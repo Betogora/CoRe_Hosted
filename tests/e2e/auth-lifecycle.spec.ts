@@ -55,7 +55,7 @@ test.describe("lokaler Auth-Lifecycle", () => {
     await signOut(page);
     await page.goto(link);
 
-    await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
     await expect(page.getByRole("alert")).toContainText("abgelaufen oder wurde bereits verwendet");
   });
 
@@ -122,7 +122,7 @@ async function expectAuthenticated(page: Page) {
 async function signOut(page: Page) {
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await page.getByRole("button", { name: "Abmelden" }).click();
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 }
 
 async function signIn(page: Page, email: string, password: string) {

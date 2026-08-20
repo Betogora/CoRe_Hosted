@@ -13,19 +13,20 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   const indexedDb = new IDBFactory();
   const userId = randomUUID();
   const alpha = createBasicLearningItem("deck-hydration", "Alpha", "Antwort Alpha", { id: "card-alpha" });
-  const dueReviewState = { ...alpha.learningItemState, state: "review" as const, dueAt: "2026-08-17T09:00:00.000Z", maturityBand: "young" as const };
+  const dueReviewState = { ...alpha.reviewState, state: "review" as const, dueAt: "2026-08-17T09:00:00.000Z", maturityBand: "young" as const };
   const cards = [
-    { ...alpha, reviewState: dueReviewState, learningItemState: dueReviewState },
-    createBasicLearningItem("deck-hydration", "Beta", "Antwort Beta", { id: "card-beta" }),
+    { ...alpha, reviewState: dueReviewState },
+    createBasicLearningItem("deck-hydration", "Beta", "Antwort Beta", {
+      id: "card-beta",
+      reviewState: { state: "new", dueAt: "2026-08-17T09:00:00.000Z", reps: 0 },
+    }),
   ];
   const deck = createCoreDeck({ id: "deck-hydration", ownerId: userId, name: "Hydration", source: "manual", cards });
   const state = {
-    version: 4,
+    version: 5,
     profile: { userId, email: "hydration@example.test", displayName: "Hydration", timezone: "UTC", onboardingComplete: true, schedulerPreferences: {}, uiPreferences: {} },
     decks: [deck],
-    documents: [],
     noteTypeDefinitions: [],
-    learningItemSourceSnapshots: [],
     cloudTombstones: [],
     updatedAt: "2026-08-17T10:00:00.000Z",
   } as any;
@@ -39,7 +40,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
     front_preview: card.originalFront,
     normalized_search_text: card.originalFront.toLowerCase(),
     sort_text: card.originalFront.toLowerCase(),
-    due_at: index === 0 ? "2026-08-17T09:00:00.000Z" : null,
+    due_at: "2026-08-17T09:00:00.000Z",
     schedule_state: index === 0 ? "review" : "new",
     maturity_band: index === 0 ? "young" : "new",
     reviewable: true,
@@ -63,7 +64,6 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
           cards: cloudRows.cards.filter((row: any) => ids.has(row.id)).map((row: any) => ({ ...row, sync_change_id: 10 })),
           variants: cloudRows.card_variants.filter((row: any) => ids.has(row.card_id)).map((row: any) => ({ ...row, sync_change_id: 11 })),
           noteTypeDefinitions: [],
-          sourceSnapshots: [],
         }, error: null };
       }
       throw new Error(`Unerwartete RPC ${name}`);
@@ -109,9 +109,9 @@ test("partielle Kataloge geben exakt die angeforderte Cloud-Keyset-Seite zurück
   const cards = ["Alpha", "Mitte", "Zulu"].map((front, index) => createBasicLearningItem("deck-keyset", front, "Antwort", { id: `card-${index}` }));
   const deck = createCoreDeck({ id: "deck-keyset", ownerId: userId, name: "Keyset", source: "manual", cards });
   const state = {
-    version: 4,
+    version: 5,
     profile: { userId, email: "keyset@example.test", displayName: "Keyset", timezone: "UTC", onboardingComplete: true, schedulerPreferences: {}, uiPreferences: {} },
-    decks: [deck], documents: [], noteTypeDefinitions: [], learningItemSourceSnapshots: [], cloudTombstones: [], updatedAt: "2026-08-17T10:00:00.000Z",
+    decks: [deck], noteTypeDefinitions: [], cloudTombstones: [], updatedAt: "2026-08-17T10:00:00.000Z",
   } as any;
   const repository = await createIndexedDbCoreRepository({ userId, initialState: state, indexedDb });
   const all = await repository.listCatalogPage(deck.id, { pageSize: 50 });
@@ -167,12 +167,10 @@ test("ein nach Reload fortgesetzter Deck-Download zählt bereits geprüfte Karte
   const missingCard = createBasicLearningItem("deck-resume", "Nachladen", "Antwort", { id: "card-missing" });
   const deck = createCoreDeck({ id: "deck-resume", ownerId: userId, name: "Fortsetzen", source: "manual", cards: [card, missingCard] });
   const state = {
-    version: 4,
+    version: 5,
     profile: { userId, email: "resume@example.test", displayName: "Resume", timezone: "UTC", onboardingComplete: true, schedulerPreferences: {}, uiPreferences: {} },
     decks: [deck],
-    documents: [],
     noteTypeDefinitions: [],
-    learningItemSourceSnapshots: [],
     cloudTombstones: [],
     updatedAt: "2026-08-17T10:00:00.000Z",
   } as any;
@@ -233,7 +231,6 @@ test("ein nach Reload fortgesetzter Deck-Download zählt bereits geprüfte Karte
               cards: cloudRows.cards.filter((row: any) => ids.has(row.id)).map((row: any) => ({ ...row, sync_change_id: 10 })),
               variants: cloudRows.card_variants.filter((row: any) => ids.has(row.card_id)).map((row: any) => ({ ...row, sync_change_id: 11 })),
               noteTypeDefinitions: [],
-              sourceSnapshots: [],
             }, error: null };
           }
           throw new Error(`Unerwartete RPC ${name}`);

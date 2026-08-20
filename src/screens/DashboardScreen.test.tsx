@@ -206,7 +206,7 @@ test("achieved dashboard offers additional new cards only when stock remains bey
     name: "Zusatz",
     source: "manual",
     deckSettings: { newCardsPerDay: 0 },
-    cards: [createCoreCard({ id: "extra-card", source: "manual", reviewState: { state: "new", reps: 0 } })],
+    cards: [createCoreCard({ id: "extra-card", source: "manual", reviewState: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 } })],
   });
   const noExtraDeck = createCoreDeck({
     id: "no-extra",

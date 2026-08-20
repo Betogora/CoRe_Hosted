@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
-import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import { readActiveAccountState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { seedAccountState } from "../support/seedAccountState.ts";
 
 const SMALL_APKG_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/import-quality-legacy.apkg", import.meta.url));
 
@@ -18,10 +18,10 @@ async function resetAccountToEmpty() {
 
   try {
     const emptyState = createCoreRepository({ seedDefaultDecks: false }).getState();
-    await replaceAccountCloudState(client, {
+    await seedAccountState(client, {
       ...emptyState,
       profile: { ...emptyState.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, { deviceId: "e2e-first-learning-reset" });
+    }, "e2e-first-learning-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();

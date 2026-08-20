@@ -2,16 +2,15 @@ import {
   createCoreNoteTypeDefinition,
   createLearningItemDocumentFromLegacy,
   createManualCoreDeck,
-  createSourceDocument,
   normalizeTags,
   stableContentHash,
   validateCardEditorValue,
 } from "./coreModel.ts";
 import { findChoiceAnswerIndices, normalizeChoiceAnswerList } from "./choiceAnswers.ts";
-import { createAnchorFromSelection, createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
+import { createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
 import { createAccountMediaStore, type MediaObjectUploadPlan, type MediaSyncProgress, type MediaSyncResult, type MediaSyncTask } from "./mediaStore.ts";
-import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem, SourceAnchor } from "./coreTypes.ts";
+import type { CardEditorValue, CardType, Deck, EditableCardType, ImportCommitGraph, LearningItem } from "./coreTypes.ts";
 import { LOCAL_APKG_MAX_BYTES, type ApkgImportReportV1 } from "./apkgImport.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 export { createImportCloudSyncTask } from "./importCloudSyncTask.ts";
@@ -46,10 +45,9 @@ interface ManualCreationInput {
   correctAnswer?: unknown;
   correctAnswers?: unknown;
   expectedAnswer?: unknown;
-  document?: ReturnType<typeof createSourceDocument> | null;
+  document?: TransientSourceDocument | null;
   documentText?: string;
   selection?: string;
-  sourceAnchor?: SourceAnchor;
   activeField?: string;
   frontImage?: ManualImageAttachment | null;
   backImage?: ManualImageAttachment | null;
@@ -91,7 +89,7 @@ interface SelectionInput {
   activeField?: string;
   front?: string;
   back?: string;
-  document?: ReturnType<typeof createSourceDocument> | null;
+  document?: TransientSourceDocument | null;
   documentText?: string;
   selectedText?: string;
   sourceAnchorOptions?: Record<string, unknown>;
@@ -392,7 +390,6 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
       mimeType: document?.mimeType,
       documentText: input.documentText,
       selection: input.selection,
-      sourceAnchor: input.sourceAnchor,
       targetField: input.activeField ?? "front",
     },
   };
@@ -582,15 +579,13 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
       return createDocumentFromFile(file);
     },
 
-    captureManualSelection({ activeField = "front", front = "", back = "", document = null, documentText = "", selectedText = "", sourceAnchorOptions = {} }: SelectionInput = {}) {
+    captureManualSelection({ activeField = "front", front = "", back = "", selectedText = "" }: SelectionInput = {}) {
       const selection = String(selectedText ?? "").trim();
       if (!selection) return { changed: false, front, back, selection: "" };
-      const sourceAnchor = document ? createAnchorFromSelection({ ...document, text: documentText || document.text }, selection, activeField, sourceAnchorOptions) : null;
 
       return {
         changed: true,
         selection,
-        sourceAnchor,
         front: activeField === "back" ? front : appendPlainTextToCardHtml(front, selection),
         back: activeField === "back" ? appendPlainTextToCardHtml(back, selection) : back,
       };

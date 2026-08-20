@@ -1,5 +1,5 @@
 import React from "react";
-import { Anchor, Ban, CheckCircle2, CircleAlert, Eye, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { Anchor, Ban, CheckCircle2, CircleAlert, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
@@ -22,10 +22,10 @@ import {
 } from "../reviewService.ts";
 import { useCardMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
-import { StudyCardContent } from "../ui/StudyCardContent.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
+import { StudyCardContent } from "../ui/StudyCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
@@ -60,7 +60,6 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
   const [showAnchor, setShowAnchor] = React.useState(false);
-  const [showSource, setShowSource] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
   const [selectedChoices, setSelectedChoices] = React.useState<string[]>([]);
   const [feedbackStatus, setFeedbackStatus] = React.useState("");
@@ -135,10 +134,8 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
         interaction: sourceCard.kind === "single-choice" || sourceCard.kind === "multiple-choice" ? "choice" : undefined,
       });
   }, [noteTypeDefinitions, sourceCard]);
-  const originalPresentationVariant = sourceCard?.variants.find((variant) => variant.isOriginal) ?? sourceCard?.variants[0] ?? null;
-  const isCurrentVariant = Boolean(current?.variant && !current.variant.isOriginal);
-  const sourceAnchor = current?.variant?.sourceAnchors?.[0] ?? sourceCard?.sourceAnchors?.[0] ?? null;
-  const hasAnswerTools = isCurrentVariant || Boolean(sourceAnchor);
+  const isCurrentVariant = Boolean(current?.variant);
+  const hasAnswerTools = isCurrentVariant;
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useCardMediaUrls(currentDeck, current?.learningItemId, mediaStore);
 
   React.useEffect(() => {
@@ -147,7 +144,6 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     setReviewSession(null);
     setShowAnswer(false);
     setShowAnchor(false);
-    setShowSource(false);
     setShowSettings(false);
     setSelectedChoices([]);
     setFeedbackStatus("");
@@ -209,7 +205,6 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
       : session);
     setShowAnswer(false);
     setShowAnchor(false);
-    setShowSource(false);
     setSelectedChoices([]);
     setFeedbackStatus("");
     feedbackDeckRef.current = null;
@@ -267,7 +262,6 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
     setReviewSession((session) => removeDailyReviewSessionItem(session ?? effectiveReviewSession, currentKey));
     setShowAnswer(false);
     setShowAnchor(false);
-    setShowSource(false);
     setSelectedChoices([]);
     setFeedbackStatus("");
     feedbackDeckRef.current = null;
@@ -423,13 +417,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                             {isCurrentVariant ? (
                               <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
                                 <Anchor size={16} aria-hidden="true" />
-                                {showAnchor ? "Original ausblenden" : "Original anzeigen"}
-                              </button>
-                            ) : null}
-                            {sourceAnchor ? (
-                              <button type="button" onClick={() => setShowSource((value) => !value)} aria-expanded={showSource} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)]">
-                                <Eye size={16} aria-hidden="true" />
-                                {showSource ? "Quelle ausblenden" : "Quelle anzeigen"}
+                                {showAnchor ? "Grundkarte ausblenden" : "Grundkarte anzeigen"}
                               </button>
                             ) : null}
                             {isCurrentVariant ? (
@@ -454,25 +442,18 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
                           ) : null}
                           {feedbackStatus ? <p className="mt-3 core-body font-semibold text-[var(--core-text-secondary)]" role="status">{feedbackStatus}</p> : null}
                           {isCurrentVariant && showAnchor && sourceCard ? (
-                            <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="original-anchor">
-                              <p className="core-body font-semibold text-[var(--core-text-muted)]">Originalkarte</p>
+                            <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="base-card-reference">
+                              <p className="core-body font-semibold text-[var(--core-text-muted)]">Grundkarte</p>
                               <div className="mt-3 grid gap-4 md:grid-cols-2">
                                 <div>
                                   <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Vorderseite</p>
-                                  <CardPresentationSurface item={sourceCard} variant={originalPresentationVariant} definition={presentationDefinition} side="question" surface="review" title="Originalfrage" mediaUrls={studyMediaUrls} showCompatibility={false} />
+                                  <CardPresentationSurface item={sourceCard} variant={null} definition={presentationDefinition} side="question" surface="review" title="Frage der Grundkarte" mediaUrls={studyMediaUrls} showCompatibility={false} />
                                 </div>
                                 <div>
                                   <p className="mb-1 core-caption font-semibold text-[var(--core-text-muted)]">Rückseite</p>
-                                  <CardPresentationSurface item={sourceCard} variant={originalPresentationVariant} definition={presentationDefinition} side="answer" surface="review" title="Originalantwort" mediaUrls={studyMediaUrls} showCompatibility={false} />
+                                  <CardPresentationSurface item={sourceCard} variant={null} definition={presentationDefinition} side="answer" surface="review" title="Antwort der Grundkarte" mediaUrls={studyMediaUrls} showCompatibility={false} />
                                 </div>
                               </div>
-                            </div>
-                          ) : null}
-                          {showSource && sourceAnchor ? (
-                            <div className="mt-4 border-t border-[var(--core-border)] pt-4" data-testid="source-anchor">
-                              <p className="core-body font-semibold text-[var(--core-text-muted)]">Quelle</p>
-                              <p className="mt-2 core-body text-[var(--core-text-secondary)]">{sourceAnchor.documentName}{sourceAnchor.pageNumber ? `, Seite ${sourceAnchor.pageNumber}` : ""}</p>
-                              {sourceAnchor.textQuote ? <blockquote className="mt-2 border-l-2 border-[var(--core-border)] pl-3 core-body text-[var(--core-text-muted)]">{sourceAnchor.textQuote}</blockquote> : null}
                             </div>
                           ) : null}
                         </div>

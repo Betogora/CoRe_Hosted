@@ -2,13 +2,11 @@ import {
   addRephrasedVariant,
   getLearningItemAnswer,
   getLearningItemQuestion,
-  getOriginalVariant,
 } from "../coreModel.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import type { CardVariant, CardVariantType, LearningItem, TransformType } from "../coreTypes.ts";
 
-const DEFAULT_VARIANT_TYPES = ["basic", "cloze", "reverse"] as const satisfies readonly CardVariantType[];
-const TRANSFER_LIKE_TYPES = new Set<CardVariantType>(["transfer", "case"]);
+const DEFAULT_VARIANT_TYPES = ["basic"] as const satisfies readonly CardVariantType[];
 
 interface VariantGenerationOptions {
   numberOfVariants?: number;
@@ -134,7 +132,7 @@ JSON-Schema:
     {
       "front": "string",
       "back": "string",
-      "variantType": "basic | cloze | reverse",
+      "variantType": "basic",
       "variantLevel": 1,
       "relationToOriginal": "same_card_rephrasing",
       "containsNewFacts": false,
@@ -184,7 +182,6 @@ function normalizeVariantGenerationOptions(options: VariantGenerationOptions = {
 function extractExistingVariants(item: LearningItem): string {
   return (
     (item?.variants ?? [])
-      .filter((variant) => !variant.isOriginal)
       .map((variant, index) => `${index + 1}. ${plain(variant.front)} -> ${plain(variant.back)}`)
       .join("\n") || "Keine."
   );
@@ -208,6 +205,7 @@ function extractJsonPayload(text: unknown): string {
   const trimmed = String(text ?? "").trim();
   const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced) return fenced[1].trim();
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) return trimmed;
 
   const firstBrace = trimmed.indexOf("{");
   const lastBrace = trimmed.lastIndexOf("}");
@@ -219,8 +217,7 @@ function extractJsonPayload(text: unknown): string {
 }
 
 function transformTypeForVariantType(variantType: CardVariantType): TransformType {
-  if (variantType === "cloze") return "cloze_conversion";
-  if (variantType === "reverse") return "front_back_style_shift";
+  void variantType;
   return "rephrase";
 }
 
@@ -286,9 +283,6 @@ export function validateVariantSuggestion(
   if (!normalizedOptions.allowedVariantTypes.includes(variantType)) {
     errors.push(`variantType ${String(variantType)} ist nicht erlaubt.`);
   }
-  if (TRANSFER_LIKE_TYPES.has(variantType) && !(normalizedOptions.allowTransfer || normalizedOptions.allowCaseVignette)) {
-    errors.push("Transfer- oder Case-Varianten sind standardmäßig nicht erlaubt.");
-  }
   if (variantLevel < 1 || variantLevel > normalizedOptions.maxVariantLevel) {
     errors.push(`variantLevel muss zwischen 1 und ${normalizedOptions.maxVariantLevel} liegen.`);
   }
@@ -322,7 +316,6 @@ export function validateVariantSuggestion(
       containsNewFacts,
       abstractionLevel,
       reason: plain(input.reason),
-      generationSource: "ai_generated",
       transformType: transformTypeForVariantType(variantType),
     },
   } as VariantValidationResult;
@@ -354,8 +347,12 @@ export function parseVariantGenerationResponse(response: unknown, options: Varia
     };
   }
 
-  const parsedRecord = parsed !== null && typeof parsed === "object" ? parsed as Record<string, unknown> : {};
-  if (!Array.isArray(parsedRecord.variants)) {
+  const suggestions = Array.isArray(parsed)
+    ? parsed
+    : parsed !== null && typeof parsed === "object" && Array.isArray((parsed as Record<string, unknown>).variants)
+      ? (parsed as Record<string, unknown>).variants as unknown[]
+      : null;
+  if (!suggestions) {
     return {
       variants,
       skippedVariants,
@@ -365,7 +362,7 @@ export function parseVariantGenerationResponse(response: unknown, options: Varia
     };
   }
 
-  parsedRecord.variants.forEach((suggestion, index) => {
+  suggestions.forEach((suggestion, index) => {
     const validation = validateVariantSuggestion(suggestion, options.originalItem, options);
     warnings.push(...validation.warnings.map((warning) => `Variante ${index + 1}: ${warning}`));
     if (validation.valid) {
@@ -447,15 +444,9 @@ export function generateRephrasedVariantsForLearningItem(item: LearningItem, opt
       continue;
     }
 
-    const originalVariant = getOriginalVariant(updatedItem);
     updatedItem = addRephrasedVariant(updatedItem, validation.suggestion.front, validation.suggestion.back, {
-      variantType: validation.suggestion.variantType,
       variantLevel: validation.suggestion.variantLevel,
-      generationSource: "ai_generated",
-      transformType: validation.suggestion.transformType,
       explanation: validation.suggestion.reason,
-      anchorVariantId: originalVariant?.id,
-      parentVariantId: originalVariant?.id,
       modelRunId: options.modelRunId ?? null,
       meta: {
         promptVersion: CARD_VARIATION_PROMPT_VERSION,
@@ -465,7 +456,7 @@ export function generateRephrasedVariantsForLearningItem(item: LearningItem, opt
         style: options.style ?? null,
       },
     });
-    const createdVariant = updatedItem.variants.find((variant) => variant.front === validation.suggestion.front && !variant.isOriginal) ?? null;
+    const createdVariant = updatedItem.variants.find((variant) => variant.front === validation.suggestion.front) ?? null;
     if (createdVariant) createdVariants.push(createdVariant);
   }
 

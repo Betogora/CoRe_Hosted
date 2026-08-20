@@ -1,12 +1,11 @@
 import React from "react";
-import { CalendarClock, CircleHelp, Database, Download, FileText, Info, RefreshCw, ShieldCheck, Upload, User, X } from "lucide-react";
+import { CalendarClock, CircleHelp, Database, FileText, Info, RefreshCw, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import { APP_RUNTIME_INFO } from "../appRuntime.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
 import type { EasyDayLevel, EasyDays, SyncIntervalMinutes } from "../coreTypes.ts";
-import { PORTABLE_EXPORT_FILE_NAME, validatePortableExport } from "../dataPortability.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
@@ -61,16 +60,13 @@ const syncIntervalOptions = [
   { value: "30", label: "Alle 30 Minuten" },
 ];
 
-export function SettingsScreen({ profile, syncStatus, storageStatus = null, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onCreateExport, onImportExport, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
+export function SettingsScreen({ profile, syncStatus, storageStatus = null, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
   const persistedDraft = createGlobalSettingsDraft(profile, globalSchedulerPreferences);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GlobalSettingsDraft>(persistedDraft);
   const [draft, setDraft] = React.useState<GlobalSettingsDraft>(persistedDraft);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
-  const [exportText, setExportText] = React.useState("");
-  const [importText, setImportText] = React.useState("");
-  const [portabilityMessage, setPortabilityMessage] = React.useState("");
   const setSuccessToast = useSuccessToast();
   React.useEffect(() => {
     setDraft((current) => settingsDraftsEqual(current, baseline) ? persistedDraft : current);
@@ -132,50 +128,6 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
       await onSignOut();
     } catch (error) {
       setAccountMessage(error instanceof Error ? error.message : "Abmeldung fehlgeschlagen.");
-    } finally {
-      setAccountBusy(false);
-    }
-  }
-
-  async function createExportText() {
-    setAccountBusy(true);
-    try {
-      const text = await onCreateExport();
-      setExportText(text);
-      return text;
-    } finally {
-      setAccountBusy(false);
-    }
-  }
-
-  async function downloadExport() {
-    const text = await createExportText();
-    const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = PORTABLE_EXPORT_FILE_NAME;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-    setPortabilityMessage("");
-    setSuccessToast(`Export wurde als ${PORTABLE_EXPORT_FILE_NAME} heruntergeladen.`);
-  }
-
-  async function importExport() {
-    const validation = validatePortableExport(importText);
-    if (!validation.valid || !validation.payload) {
-      setPortabilityMessage(validation.errors.join(" "));
-      return;
-    }
-    setAccountBusy(true);
-    try {
-      await onImportExport(importText);
-      setImportText("");
-      setPortabilityMessage("");
-      setSuccessToast("Export wurde validiert und in deine Bibliothek übernommen.");
-    } catch (error) {
-      setPortabilityMessage(error instanceof Error ? error.message : "Export konnte nicht importiert werden.");
     } finally {
       setAccountBusy(false);
     }
@@ -302,24 +254,6 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
           ) : null}
         </SoftPanel>
         <SyncConflictPanel onListConflicts={onListConflicts} onResolveConflict={onResolveConflict} />
-        <SoftPanel className="p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3"><OrbIcon icon={ShieldCheck} className="bg-core-info-soft text-core-text" /><div><p className="core-body font-semibold uppercase tracking-wide text-core-text">Datenportabilität</p><h3 className="core-heading-3 font-semibold text-core-text">Export und Import</h3></div></div>
-          <div className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-4 core-body text-core-text">
-            <p className="font-semibold">Dieser Export ist kein vollständiges Backup oder DSGVO-Auskunftspaket. Er enthält keine:</p>
-            <ul className="mt-2 list-disc space-y-1 pl-5"><li>Medienbytes</li><li>Authdaten</li><li>serverseitigen Sicherungskopien</li><li>vollständigen DSGVO-Auskunftsdaten nach Art. 15</li></ul>
-          </div>
-          <div className="mt-5 grid min-w-0 gap-5 xl:grid-cols-2">
-            <div className="grid content-start gap-3"><h4 className="font-semibold text-core-text">Daten exportieren</h4><p className="core-body text-core-muted">Eigene Lernprofile werden zusammen mit deinem Profil transportiert.</p><ActionButton type="button" variant="primary" icon={Download} onClick={() => void downloadExport()} loading={accountBusy} className="w-fit">Export herunterladen</ActionButton></div>
-            <div className="grid min-w-0 gap-3"><h4 className="font-semibold text-core-text">Daten importieren</h4><textarea className="min-h-48 min-w-0 rounded-xl border border-core-border p-3 font-mono core-caption" value={importText} onChange={(event) => setImportText(event.target.value)} placeholder="CoRe Export hier einfügen" aria-label="CoRe Export JSON importieren" data-testid="portable-import-json" /><ActionButton type="button" variant="secondary" icon={Upload} onClick={() => void importExport()} disabled={!importText.trim()} loading={accountBusy} className="w-fit">JSON importieren</ActionButton></div>
-          </div>
-          {portabilityMessage ? <p className="core-status-error mt-3 core-body" role="alert">{portabilityMessage}</p> : null}
-        </SoftPanel>
-        <SoftPanel className="p-5 sm:p-6">
-          <h3 className="core-heading-3 font-semibold text-core-text">Roh-JSON</h3>
-          <p className="mt-2 core-body text-core-muted">Für technische Prüfungen kannst du den Inhalt des Portabilitätsexports anzeigen.</p>
-          <ActionButton type="button" variant="secondary" icon={Database} onClick={() => { void createExportText().then(() => setSuccessToast("Roh-JSON wurde erstellt.")); }} loading={accountBusy} className="mt-4">Roh-JSON anzeigen</ActionButton>
-          {exportText ? <textarea className="mt-4 min-h-72 w-full rounded-xl border border-core-border p-3 font-mono core-caption" value={exportText} readOnly aria-label="Portabilitätsexport als Roh-JSON" data-testid="portable-export-json" /> : null}
-        </SoftPanel>
       </section>
 
       <section id={sectionIds.about} className="grid gap-4" aria-labelledby="settings-about-heading">

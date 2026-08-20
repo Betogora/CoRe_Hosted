@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { listAccountSyncConflicts, replaceAccountCloudState } from "../../src/cloudRepository.ts";
+import { listAccountSyncConflicts } from "../../src/cloudRepository.ts";
 import { createCoreRepository, normalizeWorkspaceState } from "../../src/coreRepository.ts";
 import { createManualCoreDeck } from "../../src/coreModel.ts";
 import type { WorkspaceState } from "../../src/coreWorkspace.ts";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "../../src/syncEngine.ts";
 import type { ReviewEvent } from "../../src/coreTypes.ts";
 import { isLocalSupabaseUrl } from "../../scripts/localE2EEnvironment.ts";
+import { seedAccountState } from "../support/seedAccountState.ts";
 
 function requiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
@@ -70,11 +71,10 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   });
   const deck = deckWithCard;
   const learningItem = deckWithCard.cards.at(-1);
-  const originalVariant = learningItem?.variants.find((variant) => variant.isOriginal);
-  assert.ok(learningItem && originalVariant);
+  assert.ok(learningItem);
   const initialState = normalizeWorkspaceState({ ...repository.getState(), decks: [deckWithCard] }) as WorkspaceState;
-  const seeded = await replaceAccountCloudState(clientA, initialState, { deviceId: "device_two_a" });
-  const seededDeck = seeded.state.decks.find((item: { id: string }) => item.id === deck.id);
+  const seeded = await seedAccountState(clientA, initialState, "device_two_a");
+  const seededDeck = seeded.decks.find((item: { id: string }) => item.id === deck.id);
   assert.ok(seededDeck);
 
   engineB.enqueueMutation({
@@ -107,7 +107,7 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
     userId,
     deckId: deck.id,
     learningItemId: learningItem.id,
-    variantId: originalVariant.id,
+    variantId: null,
     reviewableType: "card",
     reviewableId: learningItem.id,
     sourceCardId: learningItem.id,
@@ -127,17 +127,11 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
       deck: { id: deck.id },
       card: {
         id: learningItem.id,
-        learningItemState: learningItem.learningItemState,
         reviewState: learningItem.reviewState,
         coreState: learningItem.coreState,
         updatedAt: reviewEvent.answeredAt,
       },
-      variant: {
-        id: originalVariant.id,
-        reviewState: originalVariant.reviewState,
-        performance: originalVariant.performance,
-        updatedAt: reviewEvent.answeredAt,
-      },
+      variant: null,
     },
   });
   await offlineEngine.flush();

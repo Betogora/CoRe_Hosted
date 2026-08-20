@@ -16,21 +16,6 @@ test("manual batch session resets only unpinned fields and keeps the target deck
       back: "<p>Einmalige Rückseite</p>",
       tags: "prüfung",
       selection: "Quelle",
-      sourceAnchor: {
-        id: "anchor-1",
-        documentId: "document-1",
-        documentName: "Quelle.pdf",
-        cardId: null,
-        variantId: null,
-        pageNumber: 1,
-        textQuote: "Quelle",
-        charStart: null,
-        charEnd: null,
-        targetField: "front",
-        bbox: null,
-        confidence: null,
-        createdAt: "2026-07-16T00:00:00.000Z",
-      },
     },
   });
   state = reduceManualBatchSession(state, { type: "toggle-pin", field: "front" });
@@ -42,7 +27,6 @@ test("manual batch session resets only unpinned fields and keeps the target deck
   assert.equal(saved.currentDraft.front, "<p>Gemeinsame Vorderseite</p>");
   assert.equal(saved.currentDraft.back, "");
   assert.equal(saved.currentDraft.tags, "");
-  assert.equal(saved.currentDraft.sourceAnchor?.id, "anchor-1");
   assert.equal(nextManualFocusTarget(saved), "back");
 });
 

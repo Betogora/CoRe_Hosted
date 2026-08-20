@@ -222,7 +222,7 @@ export function createStudyHeatmapForecastCounts(
       || isLearningItemReviewBlocked(item)
     ) continue;
 
-    const dueAt = (item.learningItemState ?? item.reviewState)?.dueAt;
+    const dueAt = item.reviewState.dueAt;
     const dueKey = getStudyHeatmapDayKey(dueAt, timeZone, dayStartHour);
     if (!dueKey || dueKey <= todayKey || dueKey > forecastEndKey) continue;
     countsByDay.set(dueKey, (countsByDay.get(dueKey) ?? 0) + 1);

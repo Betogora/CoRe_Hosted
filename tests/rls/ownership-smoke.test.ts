@@ -13,9 +13,7 @@ const TABLES = [
   "note_type_definitions",
   "cards",
   "card_variants",
-  "learning_item_source_snapshots",
   "review_events",
-  "source_documents",
   "media_assets",
   "sync_devices",
   "sync_conflicts",
@@ -102,27 +100,9 @@ function createFixture(userId: any, prefix: string, marker: string) {
       id: `${prefix}_variant_${marker}`,
       user_id: userId,
       card_id: cardId,
-      source_card_id: cardId,
       front: `Variante ${marker}`,
       back: `Antwort ${marker}`,
-      generation_source: "original",
-      is_original: true,
-      transform_type: "original",
-      projection: { version: 1, recipeId: "front-back", instanceKey: "front-back" },
-      scheduling_mode: "independent-card",
-      study_deck_id: deckId,
-      render_revision: 1,
-    },
-    learning_item_source_snapshots: {
-      id: `${prefix}_source_snapshot_${marker}`,
-      user_id: userId,
-      card_id: cardId,
-      schema_version: 1,
-      source_kind: "csv",
-      import_fingerprint: `fingerprint-${marker}`,
-      previous_snapshot_id: null,
-      note_type_definition_id: `${prefix}_note_type_${marker}`,
-      source_payload: { fields: [{ name: "Vorderseite", value: `Frage ${marker}` }] },
+      transform_type: "rephrase",
     },
     review_events: {
       id: `${prefix}_review_${marker}`,
@@ -132,13 +112,6 @@ function createFixture(userId: any, prefix: string, marker: string) {
       reviewable_id: cardId,
       source_card_id: cardId,
       rating: "good",
-    },
-    source_documents: {
-      id: `${prefix}_document_${marker}`,
-      user_id: userId,
-      file_name: `${marker}.txt`,
-      mime_type: "text/plain",
-      text: marker,
     },
     media_assets: {
       id: `${prefix}_media_${marker}`,
@@ -178,9 +151,7 @@ const UPDATE_CASES = {
   note_type_definitions: { column: "definition", value: { version: 1, verified: true } },
   cards: { column: "original_back", value: "aktualisiert" },
   card_variants: { column: "explanation", value: "aktualisiert" },
-  learning_item_source_snapshots: { column: "source_payload", value: { verified: true } },
   review_events: { column: "flags", value: { verified: true } },
-  source_documents: { column: "metadata", value: { verified: true } },
   media_assets: { column: "metadata", value: { verified: true } },
   sync_devices: { column: "label", value: "Aktualisierter Browser" },
   sync_conflicts: { column: "resolution", value: { verified: true } },
@@ -310,9 +281,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientA.from("card_variants").insert([1, 2].map((number) => ({
         ...fixtureA.card_variants,
         id: `${prefix}_active_variant_${number}`,
-        generation_source: "user_edited",
-        is_original: false,
-        transform_type: "rephrase",
       }))), "zwei aktive Varianten für Nutzer A anlegen");
       assertNoError(await clientA.from("review_events").insert({
         ...fixtureA.review_events,
@@ -322,7 +290,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(bootstrapA.confirmedEmpty, false);
       assert.ok(bootstrapA.decks.every((entry: any) => entry.deck.user_id === userA.id));
       assert.equal(bootstrapA.decks.some((entry: any) => entry.deck.id === fixtureB.decks.id), false);
-      assert.equal(bootstrapA.decks.find((entry: any) => entry.deck.id === fixtureA.decks.id)?.summary.activeVariantCount, 2);
+      assert.equal(bootstrapA.decks.find((entry: any) => entry.deck.id === fixtureA.decks.id)?.summary.activeVariantCount, 3);
       assert.equal(bootstrapA.studyOverview.introducedTodayByDeck[fixtureA.decks.id], 1, "Tagesfortschritt zählt eindeutige Karten statt Ereignisse");
 
       const deltaA = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: 0, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta für Nutzer A");
@@ -338,7 +306,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         p_limit: 50,
       }), "Kartenkatalog für Nutzer A");
       assert.ok(catalogA.items.some((entry: any) => entry.id === fixtureA.cards.id));
-      assert.equal(catalogA.items.find((entry: any) => entry.id === fixtureA.cards.id)?.active_variant_count, 2);
+      assert.equal(catalogA.items.find((entry: any) => entry.id === fixtureA.cards.id)?.active_variant_count, 3);
       const foreignCatalog = assertNoError(await clientB.rpc("list_account_card_catalog", {
         p_deck_id: fixtureA.decks.id,
         p_query: "",
@@ -378,29 +346,12 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.ok(anonymousDelete.error, "anon darf keine Deckbäume löschen");
     });
 
-    await t.test("accountgebundene Foreign Keys verweigern fremde Decks, Notiztypen, Karten und Snapshots", async () => {
+    await t.test("accountgebundene Foreign Keys verweigern fremde Decks, Notiztypen und Karten", async () => {
       assert.ok(userA);
       const cases = [
         ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card`, deck_id: fixtureB.decks.id }],
         ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card_note_type`, note_type_definition_id: fixtureB.note_type_definitions.id }],
-        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card_snapshot`, latest_source_snapshot_id: fixtureB.learning_item_source_snapshots.id }],
         ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant`, card_id: fixtureB.cards.id }],
-        ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant_deck`, study_deck_id: fixtureB.decks.id }],
-        ["learning_item_source_snapshots", {
-          ...fixtureA.learning_item_source_snapshots,
-          id: `${prefix}_foreign_fk_source_snapshot_card`,
-          card_id: fixtureB.cards.id,
-        }],
-        ["learning_item_source_snapshots", {
-          ...fixtureA.learning_item_source_snapshots,
-          id: `${prefix}_foreign_fk_source_snapshot_note_type`,
-          note_type_definition_id: fixtureB.note_type_definitions.id,
-        }],
-        ["learning_item_source_snapshots", {
-          ...fixtureA.learning_item_source_snapshots,
-          id: `${prefix}_foreign_fk_source_snapshot_previous`,
-          previous_snapshot_id: fixtureB.learning_item_source_snapshots.id,
-        }],
         ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, deck_id: fixtureB.decks.id }],
         ["media_assets", {
           ...fixtureA.media_assets,
@@ -556,7 +507,6 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         p_card_core_state: { lastReviewedAt: answeredAt },
         p_card_updated_at: answeredAt,
         p_variant_id: fixtureA.card_variants.id,
-        p_variant_review_state: { state: "review", repetitions: 1 },
         p_variant_performance: { reviewCount: 1 },
         p_variant_updated_at: answeredAt,
         p_event: {
@@ -603,14 +553,13 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const older = assertNoError(await clientA.rpc("record_review_atomic", {
           ...parameters,
           p_card_review_state: { state: "learning", repetitions: 0, dueAt: olderAnsweredAt },
-          p_variant_review_state: { state: "learning", repetitions: 0 },
           p_variant_performance: { reviewCount: 0 },
           p_card_updated_at: olderAnsweredAt,
           p_variant_updated_at: olderAnsweredAt,
           p_event: { ...parameters.p_event, id: olderEventId, rating: "again", answered_at: olderAnsweredAt, created_at: olderAnsweredAt },
         }), "älteren Offline-Review schreiben");
         assert.equal(older.card.review_state.repetitions, 1);
-        assert.equal(older.variant.review_state.repetitions, 1);
+        assert.equal(older.variant.performance.reviewCount, 1);
         const bothEvents = assertNoError(await clientA.from("review_events").select("id").in("id", [eventId, olderEventId]), "beide Offline-Reviews lesen");
         assert.equal(bothEvents.length, 2);
         const dailyStatistics = assertNoError(await clientA.from("review_statistics_daily")
@@ -644,6 +593,77 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       } finally {
         await clientA.from("review_events").delete().eq("id", eventId);
         await clientA.from("review_events").delete().eq("id", `${eventId}_older`);
+      }
+    });
+
+    await t.test("manuelle Neuplanung nutzt den Review-Pfad, ist idempotent und zählt nicht als Lernen", async () => {
+      const before = assertNoError(await clientA.from("cards").select("*").eq("id", fixtureA.cards.id).single(), "Karte vor Neuplanung lesen");
+      const eventId = `${prefix}_manual_schedule`;
+      const occurredAt = "2099-07-20T09:00:00.000Z";
+      const dueAt = "2099-08-01T09:00:00.000Z";
+      const parameters = {
+        p_deck_id: fixtureA.decks.id,
+        p_card_id: fixtureA.cards.id,
+        p_card_review_state: { ...before.review_state, dueAt },
+        p_card_core_state: before.core_state,
+        p_card_updated_at: occurredAt,
+        p_variant_id: null,
+        p_variant_performance: null,
+        p_variant_updated_at: null,
+        p_event: {
+          id: eventId,
+          reviewable_type: "card",
+          reviewable_id: fixtureA.cards.id,
+          source_card_id: fixtureA.cards.id,
+          rating: "manual",
+          answered_at: occurredAt,
+          scheduler_before: { dueAt: before.review_state.dueAt },
+          scheduler_after: { dueAt },
+          flags: { kind: "manual_reschedule" },
+          created_at: occurredAt,
+        },
+        p_device_id: fixtureA.sync_devices.id,
+      };
+
+      try {
+        const first = assertNoError(await clientA.rpc("record_review_atomic", parameters), "Karte über Review-Pfad neu planen");
+        assert.equal(first.idempotent, false);
+        assert.equal(new Date(first.card.review_state.dueAt).toISOString(), dueAt);
+        assert.deepEqual(first.card.core_state, before.core_state);
+        assert.equal(first.card.revision, before.revision);
+        assert.equal(first.card.content_revision, before.content_revision);
+
+        const replay = assertNoError(await clientA.rpc("record_review_atomic", parameters), "Neuplanung idempotent wiederholen");
+        assert.equal(replay.idempotent, true);
+        assert.equal(replay.event.sync_change_id, first.event.sync_change_id);
+        const persisted = assertNoError(await clientA.from("review_events").select("id,rating").eq("id", eventId), "manuelles Ereignis lesen");
+        assert.deepEqual(persisted, [{ id: eventId, rating: "manual" }]);
+        const statistics = assertNoError(await clientA.from("review_statistics_daily").select("review_count").eq("deck_id", fixtureA.decks.id).eq("day_key", "2099-07-20"), "Statistik nach Neuplanung lesen");
+        assert.deepEqual(statistics, [], "Manuelle Neuplanung darf keinen Lernfortschritt erzeugen.");
+
+        const laterEventId = `${eventId}_later`;
+        const laterAt = "2099-07-21T09:00:00.000Z";
+        const laterDueAt = "2099-08-05T09:00:00.000Z";
+        const later = assertNoError(await clientA.rpc("record_review_atomic", {
+          ...parameters,
+          p_card_review_state: { ...before.review_state, dueAt: laterDueAt, repetitions: 2 },
+          p_card_core_state: { ...before.core_state, lastReviewedAt: laterAt },
+          p_card_updated_at: laterAt,
+          p_event: { ...parameters.p_event, id: laterEventId, rating: "good", answered_at: laterAt, created_at: laterAt, scheduler_after: { dueAt: laterDueAt } },
+        }), "späteren Review schreiben");
+        assert.equal(new Date(later.card.review_state.dueAt).toISOString(), laterDueAt);
+
+        const stale = assertNoError(await clientA.rpc("record_review_atomic", {
+          ...parameters,
+          p_card_review_state: { ...before.review_state, dueAt: "2099-08-03T09:00:00.000Z" },
+          p_event: { ...parameters.p_event, id: `${eventId}_stale`, answered_at: "2099-07-20T12:00:00.000Z", created_at: "2099-07-20T12:00:00.000Z" },
+        }), "ältere Neuplanung nach Review schreiben");
+        assert.equal(new Date(stale.card.review_state.dueAt).toISOString(), laterDueAt, "Die zeitlich spätere Bewertung muss gewinnen.");
+
+        const foreign = await clientB.rpc("record_review_atomic", { ...parameters, p_event: { ...parameters.p_event, id: `${eventId}_foreign` } });
+        assert.ok(foreign.error, "Eine fremde Neuplanung wurde unerwartet erlaubt.");
+      } finally {
+        await clientA.from("review_events").delete().in("id", [eventId, `${eventId}_later`, `${eventId}_stale`]);
       }
     });
 

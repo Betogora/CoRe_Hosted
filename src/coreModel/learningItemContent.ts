@@ -1,8 +1,6 @@
 import type {
   CardType,
-  CardVariant,
   FieldDefinition,
-  ForeignNoteSnapshot,
   LearningItem,
   LearningItemDocumentV1,
   NoteTypeDefinitionV1,
@@ -15,9 +13,8 @@ import type {
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
 import { readChoiceCorrectAnswers } from "../choiceAnswers.ts";
 import { makeId, stableContentHash } from "./coreValues.ts";
-import { createCardVariant, createCoreCard, getOriginalVariant } from "./learningItems.ts";
+import { createCoreCard } from "./learningItems.ts";
 import { normalizeLearningItemDocument } from "./learningItemDocument.ts";
-import { createVersionEntry } from "./reviewState.ts";
 import { compileSafeTemplate } from "../safeTemplate.ts";
 
 export type ContentApplicationReason = "create" | "edit" | "import" | "reimport" | "migration";
@@ -25,10 +22,6 @@ export type ContentApplicationReason = "create" | "edit" | "import" | "reimport"
 export interface ContentApplicationResult {
   item: LearningItem;
   definition: NoteTypeDefinitionV1;
-  sourceSnapshot: ForeignNoteSnapshot | null;
-  createdVariantIds: string[];
-  updatedVariantIds: string[];
-  disabledVariantIds: string[];
 }
 
 interface VariantSeed {
@@ -38,15 +31,14 @@ interface VariantSeed {
   back: string;
 }
 
-export interface ProjectedLearningItemVariant extends VariantSeed {
-  variantType: CardVariant["variantType"];
-  variantLevel: number;
+export interface ProjectedLearningItemCard extends VariantSeed {
+  cardType: CardType;
 }
 
 export interface LearningItemContentProjection {
   definition: NoteTypeDefinitionV1;
   document: LearningItemDocumentV1;
-  variants: ProjectedLearningItemVariant[];
+  cards: ProjectedLearningItemCard[];
 }
 
 function objectRecord(value: unknown): Record<string, unknown> {
@@ -128,7 +120,6 @@ export function normalizeNoteTypeDefinition(value: NoteTypeDefinitionV1): NoteTy
   const recipes = Array.isArray(input.recipes)
     ? input.recipes.map((recipe, ordinal) => normalizeRecipe(recipe, ordinal, id))
     : [];
-  const sourceSnapshot = input.sourceDefinitionSnapshot ? objectRecord(input.sourceDefinitionSnapshot) : null;
   const createdAt = typeof input.createdAt === "string" ? input.createdAt : new Date().toISOString();
   const definition: NoteTypeDefinitionV1 = {
     id,
@@ -141,14 +132,6 @@ export function normalizeNoteTypeDefinition(value: NoteTypeDefinitionV1): NoteTy
     recipes,
     css: String(input.css ?? ""),
     latexConfig: input.latexConfig ? objectRecord(input.latexConfig) : null,
-    sourceDefinitionSnapshot: sourceSnapshot ? {
-      sourceFormat: sourceSnapshot.sourceFormat === "latest" ? "latest" : "legacy",
-      sourceNotetypeId: String(sourceSnapshot.sourceNotetypeId ?? ""),
-      sourceName: String(sourceSnapshot.sourceName ?? input.name ?? ""),
-      rawConfigBase64: typeof sourceSnapshot.rawConfigBase64 === "string" ? sourceSnapshot.rawConfigBase64 : null,
-      decodedConfig: objectRecord(sourceSnapshot.decodedConfig),
-      unknownData: objectRecord(sourceSnapshot.unknownData),
-    } : null,
     supersedesId: typeof input.supersedesId === "string" && input.supersedesId ? input.supersedesId : null,
     createdAt,
     updatedAt: typeof input.updatedAt === "string" ? input.updatedAt : createdAt,
@@ -234,7 +217,6 @@ export function createCoreNoteTypeDefinition(input: {
     recipes,
     css: "",
     latexConfig: null,
-    sourceDefinitionSnapshot: null,
     supersedesId: null,
     createdAt,
     updatedAt: createdAt,
@@ -413,18 +395,15 @@ export function projectLearningItemContent(input: {
   return {
     definition,
     document,
-    variants: seeds.map((seed, index) => ({
+    cards: seeds.map((seed) => ({
       ...seed,
-      variantType: seed.projection.kind === "cloze"
+      cardType: seed.projection.kind === "cloze"
         ? "cloze"
         : seed.projection.kind === "image-occlusion"
-          ? "image_occlusion"
+          ? "image-occlusion"
           : seed.recipe.interaction === "choice"
-            ? "mcq"
-            : definition.origin === "core" && seed.recipe.ordinal > 0
-              ? "reverse"
-              : "basic",
-      variantLevel: index === 0 ? 1 : 2,
+            ? compatibilityCardType(definition, input.previous?.cardType)
+            : "basic",
     })),
   };
 }
@@ -434,128 +413,43 @@ export function applyLearningItemContent(input: {
   base?: Partial<LearningItem>;
   document: LearningItemDocumentV1;
   definition: NoteTypeDefinitionV1;
-  sourceSnapshot?: ForeignNoteSnapshot | null;
   reason: ContentApplicationReason;
 }): ContentApplicationResult {
-  const projection = projectLearningItemContent(input);
-  const { definition, document } = projection;
+  const projected = projectLearningItemContent(input);
+  const { definition, document } = projected;
   const choiceCorrectAnswers = document.interaction?.choice ? readChoiceCorrectAnswers(document.interaction.choice) : [];
   const applicationTime = input.previous && input.reason !== "migration" ? new Date().toISOString() : definition.updatedAt;
   const itemId = input.previous?.id ?? input.base?.id ?? makeId("card");
-
-  const previousVariants = input.previous?.variants ?? [];
-  const previousByProjection = new Map<string, CardVariant>();
-  for (const variant of previousVariants) {
-    const key = projectionKey(variant.projection);
-    const existing = previousByProjection.get(key);
-    if (!existing || (existing.isOriginal && !variant.isOriginal)) previousByProjection.set(key, variant);
-  }
-  const usedPreviousIds = new Set<string>();
-  const createdVariantIds: string[] = [];
-  const updatedVariantIds: string[] = [];
-  const activeVariants = projection.variants.map((seed, index) => {
-    const key = projectionKey(seed.projection);
-    const clozeOrdinal = seed.projection.kind === "cloze" ? seed.projection.clozeOrdinal : null;
-    const previous = previousByProjection.get(key)
-      ?? (clozeOrdinal !== null
-        ? previousVariants.find((variant) => !usedPreviousIds.has(variant.id) && variant.variantType === "cloze" && Number(variant.meta.clozeGroup) === clozeOrdinal)
-        : previousVariants.find((variant) => !usedPreviousIds.has(variant.id) && (seed.variantType === "reverse" ? variant.variantType === "reverse" : variant.isOriginal)));
-    if (previous) usedPreviousIds.add(previous.id);
-    const id = previous?.id ?? stableContentHash({ itemId, definitionId: definition.id, projection: seed.projection }, "variant");
-    if (previous) updatedVariantIds.push(id); else createdVariantIds.push(id);
-    const clozes = seed.projection.kind === "cloze" ? clozeDetails(document, seed.projection.clozeOrdinal) : [];
-    const choice = seed.recipe.interaction === "choice" ? document.interaction?.choice : null;
-    return createCardVariant({
-      ...(previous ?? {}),
-      id,
-      learningItemId: itemId,
-      cardId: itemId,
-      sourceCardId: input.previous?.sourceCardId ?? input.base?.sourceCardId ?? itemId,
-      variantType: seed.variantType,
-      variantLevel: index === 0 ? 1 : Math.max(seed.variantLevel, previous?.variantLevel ?? 2),
-      front: seed.front,
-      back: seed.back,
-      generationSource: definition.origin === "anki" ? "imported" : index === 0 ? "original" : "user_edited",
-      parentVariantId: index === 0 ? null : undefined,
-      anchorVariantId: index === 0 ? null : undefined,
-      isOriginal: index === 0,
-      isActive: true,
-      qualityStatus: "active",
-      transformType: index === 0 ? "original" : seed.projection.kind === "cloze" ? "cloze_conversion" : "front_back_style_shift",
-      projection: seed.projection,
-      studyDeckId: seed.recipe.targetDeckId,
-      schedulingMode: "independent-card",
-      renderRevision: (previous?.renderRevision ?? 0) + 1,
-      updatedAt: applicationTime,
-      sourceAnchors: input.previous?.sourceAnchors ?? input.base?.sourceAnchors ?? [],
-      explanation: choice?.explanation ?? (definition.kind === "cloze" ? document.fields[1]?.value : null) ?? previous?.explanation,
-      answerOptionsJson: choice?.options ?? previous?.answerOptionsJson,
-      expectedAnswerJson: choice ? [...choiceCorrectAnswers] : clozes.length ? clozes.map((match) => match[2]) : previous?.expectedAnswerJson,
-      hintsJson: clozes.length ? clozes.map((match) => match[3]).filter(Boolean) : previous?.hintsJson,
-      meta: {
-        ...(previous?.meta ?? {}),
-        recipeName: seed.recipe.name,
-        definitionVersionId: definition.id,
-        ...(seed.projection.kind === "cloze" ? { clozeGroup: seed.projection.clozeOrdinal } : {}),
-      },
-    });
-  });
-  const anchorId = activeVariants[0].id;
-  const disabledVariants = previousVariants
-    .filter((variant) => !usedPreviousIds.has(variant.id))
-    .map((variant) => createCardVariant({
-      ...variant,
-      isOriginal: false,
-      isActive: false,
-      qualityStatus: "disabled",
-      parentVariantId: anchorId,
-      anchorVariantId: anchorId,
-    }));
-  const disabledVariantIds = disabledVariants.map((variant) => variant.id);
-  const first = activeVariants[0];
-  const compatibilityFront = definition.kind === "cloze"
-    ? document.fields[0]?.value ?? ""
-    : first.front;
-  const compatibilityBack = definition.kind === "cloze"
-    ? document.fields[1]?.value ?? ""
-    : first.back;
+  const requestedProjection = input.previous?.projection ?? input.base?.projection;
+  const card = projected.cards.find((candidate) => requestedProjection && projectionKey(candidate.projection) === projectionKey(requestedProjection))
+    ?? projected.cards[0];
+  if (!card) throw new Error("Aus dem Karteninhalt konnte keine Karte erzeugt werden.");
+  const clozes = card.projection.kind === "cloze" ? clozeDetails(document, card.projection.clozeOrdinal) : [];
+  const choice = card.recipe.interaction === "choice" ? document.interaction?.choice : null;
   const nextContentRevision = input.previous ? input.previous.contentRevision + 1 : 1;
   const item = createCoreCard({
     ...(input.base ?? {}),
     ...(input.previous ?? {}),
     id: itemId,
-    cardType: compatibilityCardType(definition, input.previous?.cardType ?? input.base?.cardType),
-    canonicalQuestion: compatibilityFront,
-    canonicalAnswer: compatibilityBack,
-    originalFront: compatibilityFront,
-    originalBack: compatibilityBack,
+    cardType: card.cardType,
+    canonicalQuestion: card.front,
+    canonicalAnswer: card.back,
+    originalFront: card.front,
+    originalBack: card.back,
     originalFields: document.fields.map((field) => ({ name: field.name, value: field.value })),
     originalTags: document.tags,
     tags: document.tags,
     mediaRefs: document.mediaRefs,
-    variants: [...activeVariants, ...disabledVariants],
+    variants: input.previous?.variants ?? input.base?.variants ?? [],
+    projection: card.projection,
     noteTypeDefinitionId: definition.id,
     contentDocument: document,
-    latestSourceSnapshotId: input.sourceSnapshot?.id ?? input.previous?.latestSourceSnapshotId ?? null,
     contentRevision: nextContentRevision,
     source: input.previous?.source ?? input.base?.source ?? (definition.origin === "anki" ? "anki-apkg" : "manual"),
     sourceType: input.previous?.sourceType ?? input.base?.sourceType ?? (definition.origin === "anki" ? "anki_import" : "manual"),
     createdAt: input.previous?.createdAt ?? input.base?.createdAt ?? definition.createdAt,
     updatedAt: applicationTime,
     revision: input.previous ? input.previous.revision + 1 : input.base?.revision ?? 1,
-    immutableOriginal: input.previous?.immutableOriginal ?? null,
-    versionLog: [
-      ...(input.previous?.versionLog ?? []),
-      createVersionEntry({
-        objectType: "card",
-        objectId: itemId,
-        changeType: input.reason === "edit" ? "content_updated" : `content_${input.reason}`,
-        before: input.previous?.contentDocument ?? null,
-        after: document,
-        reason: input.reason,
-        createdAt: applicationTime,
-      }),
-    ],
     meta: {
       ...(input.previous?.meta ?? {}),
       contentModelVersion: 1,
@@ -565,15 +459,16 @@ export function applyLearningItemContent(input: {
         correctAnswers: [...choiceCorrectAnswers],
         expectedAnswer: [...choiceCorrectAnswers],
       } : {}),
-      ...(definition.kind === "cloze" ? { clozeGroupCount: activeVariants.length } : {}),
+      recipeName: card.recipe.name,
+      definitionVersionId: definition.id,
+      ...(card.projection.kind === "cloze" ? {
+        clozeGroup: card.projection.clozeOrdinal,
+        expectedAnswer: clozes.map((match) => match[2]),
+        hints: clozes.map((match) => match[3]).filter(Boolean),
+      } : {}),
     },
   });
-
-  const original = getOriginalVariant(item);
-  if (!original || projectionKey(original.projection) !== projectionKey(first.projection)) {
-    throw new Error("Die atomare Inhaltsanwendung konnte keine stabile Originalvariante erzeugen.");
-  }
-  return { item, definition, sourceSnapshot: input.sourceSnapshot ?? null, createdVariantIds, updatedVariantIds, disabledVariantIds };
+  return { item, definition };
 }
 
 export function saveLearningItemDocumentValues(input: {
@@ -601,13 +496,5 @@ export function saveLearningItemDocumentValues(input: {
     },
     reason: "edit",
   });
-  if (Array.isArray(input.previous.meta.reimportConflicts) && input.previous.meta.reimportConflicts.length > 0) {
-    result.item.meta = {
-      ...result.item.meta,
-      reimportConflicts: [],
-      reimportConflictDefault: null,
-      reimportConflictsResolvedAt: result.item.updatedAt,
-    };
-  }
   return result;
 }

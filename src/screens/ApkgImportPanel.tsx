@@ -2,7 +2,6 @@ import React from "react";
 import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2 } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow, ImportCompletion } from "../creationWorkflow.ts";
 import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgPreviewMediaStatus, ApkgProgressPhase } from "../apkgImportSession.ts";
-import { getOriginalVariant } from "../coreModel.ts";
 import type { Deck, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
 import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
 import type { AccountMediaStore, MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
@@ -87,8 +86,7 @@ function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
 
 function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; card: LearningItem; definition: NoteTypeDefinitionV1 | null; mediaStore: AccountMediaStore | null }) {
   const { urls: mediaUrls } = useCardMediaUrls({ ...deck, cards: [card] }, card.id, mediaStore);
-  const variant = getOriginalVariant(card);
-  if (!variant || !definition) return null;
+  if (!definition) return null;
   return (
     <article className="core-surface-raised rounded-[18px] p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -100,7 +98,7 @@ function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; ca
           <CardPresentationSurface
             key={side}
             item={card}
-            variant={variant}
+            variant={null}
             definition={definition}
             side={side}
             surface="editor-preview"
@@ -521,12 +519,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
                   ) : null}
 
                   <section className="rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby="apkg-reimport-heading">
-                    <h4 id="apkg-reimport-heading" className="font-semibold text-[var(--core-text)]">Reimport-Schutz</h4>
-                    <dl className="mt-3 grid grid-cols-2 gap-3 core-body sm:grid-cols-4">
+                    <h4 id="apkg-reimport-heading" className="font-semibold text-[var(--core-text)]">Reimport</h4>
+                    <dl className="mt-3 grid grid-cols-2 gap-3 core-body sm:grid-cols-3">
                       <div><dt className="text-[var(--core-text-muted)]">Neu</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.newItems}</dd></div>
                       <div><dt className="text-[var(--core-text-muted)]">Wiedererkannt</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.matchedItems}</dd></div>
                       <div><dt className="text-[var(--core-text-muted)]">Übersprungen</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.skippedItems}</dd></div>
-                      <div><dt className="text-[var(--core-text-muted)]">Lokale Änderungen geschützt</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.protectedLocalEdits}</dd></div>
                     </dl>
                   </section>
                 </div>

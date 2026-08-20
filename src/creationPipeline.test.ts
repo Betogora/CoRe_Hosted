@@ -1,160 +1,61 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  addRephrasedVariant,
-  createBasicLearningItem,
-  createLearningItemsFromNormalizedInput,
-  getActiveVariants,
-  getAnswerSideAnchorMiniCard,
-  getOriginalVariant,
-} from "./coreModel.ts";
-import { createBasicReverseLearningItem, createClozeLearningItem } from "./coreModel/creation.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreNoteTypeDefinition, createLearningItemsFromNormalizedInput } from "./coreModel.ts";
+import { createBasicReverseLearningItems, createClozeLearningItems } from "./coreModel/creation.ts";
 
-test("createBasicLearningItem creates a learning item with exactly one original variant", () => {
-  const item = createBasicLearningItem("deck_1", "Was ist ATP?", "Ein kurzfristiger Energietraeger.", {
-    tags: ["biochemie"],
-    concepts: ["energie"],
+function assertProjectionRecipeExists(card: ReturnType<typeof createBasicLearningItem>) {
+  const definition = createCoreNoteTypeDefinition({
+    document: card.contentDocument,
+    kind: card.kind === "cloze" ? "cloze" : "normal",
   });
-  const original = getOriginalVariant(item);
+  assert.equal(definition.recipes.some((recipe) => recipe.id === card.projection.recipeId), true);
+}
 
-  assert.equal(item.deckId, "deck_1");
-  assert.equal(item.canonicalQuestion, "Was ist ATP?");
-  assert.equal(item.canonicalAnswer, "Ein kurzfristiger Energietraeger.");
-  assert.equal(item.originalFront, "Was ist ATP?");
-  assert.equal(item.originalBack, "Ein kurzfristiger Energietraeger.");
-  assert.equal(item.learningItemState.reviewableId, item.id);
-  assert.equal(item.reviewState.learningItemId, item.id);
-  assert.equal(item.variants.filter((variant) => variant.isOriginal).length, 1);
-  assert.ok(original);
-  assert.equal(original.isOriginal, true);
-  assert.ok(original);
-  assert.equal(original.generationSource, "original");
-  assert.ok(original);
-  assert.equal(original.variantType, "basic");
-  assert.ok(original);
-  assert.equal(original.variantLevel, 1);
-  assert.ok(original);
-  assert.equal(original.front, "Was ist ATP?");
-  assert.ok(original);
-  assert.equal(original.back, "Ein kurzfristiger Energietraeger.");
-  assert.ok(original);
-  assert.equal(original.reviewState, null);
-  assert.equal(getActiveVariants(item).length, 0);
-  assert.equal(getAnswerSideAnchorMiniCard(item, original).shouldShow, false);
+test("eine Basic-Karte besitzt ihren Lernstatus direkt und keine Originalvariante", () => {
+  const card = createBasicLearningItem("deck", "Frage", "Antwort");
+  assert.equal(card.reviewState.learningItemId, card.id);
+  assert.equal(card.reviewState.reviewableId, card.id);
+  assert.deepEqual(card.variants, []);
 });
 
-test("createBasicReverseLearningItem keeps one original and anchors the reverse variant", () => {
-  const item = createBasicReverseLearningItem("deck_1", "ATP", "Energietraeger");
-  const original = getOriginalVariant(item);
-  const reverse = getActiveVariants(item).find((variant) => variant.variantType === "reverse");
-  const miniCard = getAnswerSideAnchorMiniCard(item, reverse);
-
-  assert.equal(item.variants.filter((variant) => variant.isOriginal).length, 1);
-  assert.ok(reverse);
-  assert.equal(reverse.learningItemId, item.id);
-  assert.equal(reverse.cardId, item.id);
-  assert.equal(reverse.isOriginal, false);
-  assert.equal(reverse.front, "Energietraeger");
-  assert.equal(reverse.back, "ATP");
-  assert.ok(original);
-  assert.equal(reverse.anchorVariantId, original.id);
-  assert.ok(original);
-  assert.equal(reverse.parentVariantId, original.id);
-  assert.equal(reverse.reviewState, null);
-  assert.equal(miniCard.shouldShow, true);
-  assert.ok(original);
-  assert.equal(miniCard.front, original.front);
-  assert.ok(original);
-  assert.equal(miniCard.back, original.back);
+test("Basic mit Rückseite erzeugt zwei unabhängige Karten", () => {
+  const cards = createBasicReverseLearningItems("deck", "Vorne", "Hinten");
+  assert.equal(cards.length, 2);
+  assert.notEqual(cards[0].id, cards[1].id);
+  assert.equal(cards[0].originalFront, "Vorne");
+  assert.equal(cards[1].originalFront, "Hinten");
+  assert.notEqual(cards[0].reviewState.id, cards[1].reviewState.id);
+  cards.forEach(assertProjectionRecipeExists);
 });
 
-test("createClozeLearningItem creates anchored cloze variants for multiple groups", () => {
-  const item = createClozeLearningItem(
-    "deck_1",
-    "{{c1::ATP}} liefert Energie fuer {{c2::Muskelkontraktion}}.",
-    "Extra: Kurzfristiger Energietraeger.",
-  );
-  const original = getOriginalVariant(item);
-  const clozeVariants = getActiveVariants(item).filter((variant) => variant.variantType === "cloze");
-
-  assert.equal(item.kind, "cloze");
-  assert.equal(item.variants.filter((variant) => variant.isOriginal).length, 1);
-  assert.equal(clozeVariants.length, 2);
-  assert.equal(clozeVariants.every((variant) => variant.learningItemId === item.id), true);
-  assert.ok(original);
-  assert.equal(clozeVariants.every((variant) => variant.anchorVariantId === original.id), true);
-  assert.ok(original);
-  assert.equal(clozeVariants.every((variant) => variant.parentVariantId === original.id), true);
-  assert.match(clozeVariants[0].front, /\[\.\.\.\]/);
+test("jede Cloze-Gruppe wird zu einer eigenen Karte", () => {
+  const cards = createClozeLearningItems("deck", "{{c1::Berlin}} und {{c2::Paris}}, noch einmal {{c1::Berlin}}", "Europa");
+  assert.equal(cards.length, 2);
+  assert.notEqual(cards[0].id, cards[1].id);
+  assert.deepEqual(cards.map((card) => card.projection.kind), ["cloze", "cloze"]);
+  cards.forEach(assertProjectionRecipeExists);
 });
 
-test("addRephrasedVariant appends an anchored active variant without replacing item state", () => {
-  const item = createBasicLearningItem("deck_1", "Welche Aufgabe hat Myelin?", "Myelin isoliert Axone.", {
-    reviewState: {
-      maturityXp: 80,
-      repetitions: 3,
-    },
-  });
-  const original = getOriginalVariant(item);
-  const updated = addRephrasedVariant(item, "Warum beschleunigt Myelin die Leitung?", "Durch elektrische Isolation der Axone.");
-  const newVariant = getActiveVariants(updated).find((variant) => variant.front.includes("beschleunigt"));
-  const miniCard = getAnswerSideAnchorMiniCard(updated, newVariant);
-
-  assert.equal(updated.id, item.id);
-  assert.equal(updated.learningItemState.maturityXp, 80);
-  assert.equal(updated.learningItemState.repetitions, 3);
-  assert.ok(newVariant);
-  assert.equal(newVariant.isOriginal, false);
-  assert.equal(newVariant.generationSource, "user_edited");
-  assert.ok(original);
-  assert.equal(newVariant.anchorVariantId, original.id);
-  assert.equal(newVariant.reviewState, null);
-  assert.equal(getActiveVariants(updated).includes(newVariant), true);
-  assert.equal(miniCard.shouldShow, true);
-  assert.ok(original);
-  assert.equal(miniCard.variantId, original.id);
+test("jede importierte Anki-Karte wird eigenständig materialisiert", () => {
+  const result = createLearningItemsFromNormalizedInput("deck", [{
+    canonicalQuestion: "Notiz",
+    canonicalAnswer: "Antwort",
+    sourceType: "anki_import",
+    cards: [
+      { front: "Karte 1", back: "A", sourceExternalId: "anki-card-10" },
+      { front: "Karte 2", back: "B", sourceExternalId: "anki-card-11" },
+    ],
+  }]);
+  assert.equal(result.createdItems.length, 2);
+  assert.deepEqual(result.createdItems.map((card) => card.sourceCardId), ["10", "11"]);
+  assert.notEqual(result.createdItems[0].reviewState.id, result.createdItems[1].reviewState.id);
 });
 
-test("createLearningItemsFromNormalizedInput uses the pipeline and anchors non-original variants", () => {
-  const result = createLearningItemsFromNormalizedInput("deck_import", [
-    {
-      canonicalQuestion: "Definition Diffusion",
-      canonicalAnswer: "Teilchen bewegen sich entlang eines Konzentrationsgradienten.",
-      tags: ["physio"],
-      variants: [
-        {
-          front: "Was bedeutet Diffusion?",
-          back: "Bewegung entlang eines Konzentrationsgradienten.",
-        },
-        {
-          variantType: "basic",
-          front: "Beschreibe Diffusion in einem Satz.",
-          back: "Teilchen verteilen sich entlang ihres Gradienten.",
-        },
-      ],
-    },
-    {
-      canonicalQuestion: "",
-      canonicalAnswer: "",
-    },
-  ], {
-    source: "csv-import",
-    sourceType: "mixed",
-  });
-  const item = result.createdItems[0];
-  const original = getOriginalVariant(item);
-  const importedVariant = getActiveVariants(item)[0];
-
-  assert.equal(result.createdItems.length, 1);
-  assert.equal(result.skipped.length, 1);
-  assert.equal(result.warnings.length, 1);
-  assert.equal(item.deckId, "deck_import");
-  assert.equal(item.canonicalQuestion, "Definition Diffusion");
-  assert.ok(original);
-  assert.equal(original.front, "Was bedeutet Diffusion?");
-  assert.ok(original);
-  assert.equal(original.back, "Bewegung entlang eines Konzentrationsgradienten.");
-  assert.ok(original);
-  assert.equal(importedVariant.anchorVariantId, original.id);
-  assert.equal(importedVariant.generationSource, "imported");
+test("nur KI-Umformulierungen bleiben Varianten und besitzen keinen Lernstatus", () => {
+  const card = createBasicLearningItem("deck", "Frage", "Antwort");
+  const updated = addRephrasedVariant(card, "Neu gefragt", "Neu geantwortet");
+  assert.equal(updated.variants.length, 1);
+  assert.equal(updated.variants[0].cardId, card.id);
+  assert.equal("reviewState" in updated.variants[0], false);
+  assert.equal(updated.variants[0].meta.sourceContentHash, card.contentHash);
 });

@@ -31,12 +31,10 @@ test("ein während des Bootstrap bereits versendeter Profilpatch wird nicht von 
   const repository = await createIndexedDbCoreRepository({
     userId,
     initialState: {
-      version: 4,
+      version: 5,
       profile: cloudProfile,
       decks: [],
-      documents: [],
       noteTypeDefinitions: [],
-      learningItemSourceSnapshots: [],
       cloudTombstones: [],
       updatedAt: "2026-08-17T10:00:00.000Z",
     },
@@ -58,12 +56,10 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
   const knownDeviceRepository = await createIndexedDbCoreRepository({
     userId,
     initialState: {
-      version: 4,
+      version: 5,
       profile: completeProfile(userId),
       decks: [],
-      documents: [],
       noteTypeDefinitions: [],
-      learningItemSourceSnapshots: [],
       cloudTombstones: [],
       updatedAt: "2026-08-17T10:00:00.000Z",
     },
@@ -82,7 +78,7 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
   } as unknown as SupabaseBrowserClient;
 
   const boot = await bootAuthenticatedWorkspace(supabase, { id: userId } as User);
-  assert.equal(boot.state.version, 4);
+  assert.equal(boot.state.version, 5);
   assert.equal(boot.baselineState, "nonempty");
   assert.equal(boot.state.decks.every((deck) => deck.cards.length === 0), true);
   assert.equal(boot.initialDeckSummaries.summaries.size, 0);

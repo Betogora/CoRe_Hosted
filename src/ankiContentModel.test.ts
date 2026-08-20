@@ -34,9 +34,9 @@ test("maps arbitrary Anki fields and templates without front/back name or positi
   assert.deepEqual(bundle.document.fields.map((field) => field.sourceFieldId), ["9001", "9002"]);
   assert.equal(bundle.definition.recipes[0].front.nodes[0]?.kind, "field");
   assert.equal(bundle.definition.recipes[0].front.nodes[0]?.kind === "field" && bundle.definition.recipes[0].front.nodes[0].sourceName, "Frage");
-  assert.equal(bundle.definition.sourceDefinitionSnapshot?.rawConfigBase64, "AA==");
+  assert.equal("sourceDefinitionSnapshot" in bundle.definition, false);
   assert.equal(bundle.definition.recipes[0].sourceConfigBase64, "Aw==");
-  assert.equal(bundle.snapshot.sourcePayload.cards instanceof Array, true);
+  assert.equal("snapshot" in bundle, false);
 });
 
 test("recognizes Anki's native image-occlusion stock identity without relying on field names", () => {

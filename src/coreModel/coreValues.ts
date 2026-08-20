@@ -1,5 +1,5 @@
 import { normalizeLearningProfileSource, normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
-import type { CardType, CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, LearningItemSourceType, MaturityBand, ReviewRating, TransformType, VariantGenerationSource, VariantQualityStatus } from "../coreTypes.ts";
+import type { CardType, CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, LearningItemSourceType, MaturityBand, ReviewRating, TransformType, VariantQualityStatus } from "../coreTypes.ts";
 
 interface DeckSettingsInput extends LearningSettingsInput {
   appearance?: Partial<DeckAppearance>;
@@ -26,7 +26,6 @@ export const CORE_DECK_SOURCES = [
   "manual",
   "text-import",
   "csv-import",
-  "json-import",
   "spreadsheet-import",
 ] as const satisfies readonly DeckSource[];
 
@@ -67,12 +66,11 @@ export const DEFAULT_DECK_APPEARANCE = {
   iconKey: "book-open",
   iconColor: "#6f7e9e",
 };
-export const VARIANT_TRANSFORMS = ["original", "rephrase", "front_back_style_shift", "cloze_conversion"] as const satisfies readonly TransformType[];
+export const VARIANT_TRANSFORMS = ["rephrase"] as const satisfies readonly TransformType[];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
-export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "mixed"] as const satisfies readonly LearningItemSourceType[];
-export const CARD_VARIANT_TYPES = ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"] as const satisfies readonly CardVariantType[];
-export const VARIANT_GENERATION_SOURCES = ["original", "ai_generated", "user_edited", "imported"] as const satisfies readonly VariantGenerationSource[];
+export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "anki_import", "mixed"] as const satisfies readonly LearningItemSourceType[];
+export const CARD_VARIANT_TYPES = ["basic"] as const satisfies readonly CardVariantType[];
 export const MATURITY_BANDS = [
   { id: "new", min: 0, max: 20, label: "Neu" },
   { id: "learning", min: 21, max: 50, label: "Aufbau" },

@@ -200,10 +200,10 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       });
     } else if (runGoldenE2E || runBetaE2E || runFullE2E) {
       console.log(runBetaE2E
-        ? "Beta-Core-Verträge einschließlich Auth, Medien, Portabilität und Konflikten ausführen …"
+        ? "Beta-Core-Verträge einschließlich Auth, Medien, Import und Konflikten ausführen …"
         : runGoldenE2E
         ? "Fünf Golden-E2E-Produktverträge gegen lokales Supabase ausführen …"
-        : "Vollständige Playwright-Suite einschließlich Medien- und Restore-Pfaden ausführen …");
+        : "Vollständige Playwright-Suite einschließlich Medien- und Sync-Pfaden ausführen …");
       if (runGoldenE2E || runBetaE2E) {
         await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--project=auth-setup"], {
           env: testEnvironment,

@@ -1,6 +1,6 @@
-import { createDefaultDeckSettings, isLearningItemReviewBlocked, normalizeCoreDeck, normalizeLearningItem } from "./coreModel.ts";
+import { createDefaultDeckSettings, isLearningItemReviewBlocked, normalizeCoreDeck, normalizeLearningItem, rescheduleLearningItem } from "./coreModel.ts";
 import { normalizeContentEntities, normalizeWorkspaceState } from "./coreRepository.ts";
-import type { CardVariant, Deck, ImportCommitGraph, ImportVerificationRepairScope, ImportVerificationScope, LearningItem, MaterializedImportCommitGraph, Profile, ReviewEvent, SourceDocument } from "./coreTypes.ts";
+import type { CardVariant, Deck, ImportCommitGraph, ImportVerificationRepairScope, ImportVerificationScope, LearningItem, MaterializedImportCommitGraph, Profile, ReviewEvent } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { stripHtml } from "./htmlSafety.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -9,7 +9,7 @@ import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
-import { getLearningDayRange } from "./learningDay.ts";
+import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { planEntityMutations } from "./syncMutationPlanner.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
@@ -35,9 +35,7 @@ const STORE = Object.freeze({
   cards: "cards",
   variants: "variants",
   reviewEvents: "reviewEvents",
-  documents: "documents",
   noteTypeDefinitions: "noteTypeDefinitions",
-  sourceSnapshots: "sourceSnapshots",
   outbox: "outbox",
   syncMetadata: "syncMetadata",
   deckStudySummaries: "deckStudySummaries",
@@ -116,7 +114,7 @@ function createStore(database: IDBDatabase, name: string, options: IDBObjectStor
 
 function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDb.open(`core.workspace.entities.v2.${userId}`, DATABASE_VERSION);
+    const request = indexedDb.open(`core.workspace.entities.v3.${userId}`, DATABASE_VERSION);
     request.onupgradeneeded = () => {
       const database = request.result;
       createStore(database, STORE.meta, { keyPath: "key" });
@@ -126,18 +124,15 @@ function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabas
       cards.createIndex("deckId", "deckId", { unique: false });
       cards.createIndex("deckScan", ["deckId", "id"], { unique: true });
       const variants = createStore(database, STORE.variants);
-      variants?.createIndex("learningItemId", "learningItemId", { unique: false });
+      variants?.createIndex("cardId", "cardId", { unique: false });
       variants?.createIndex("deckId", "deckId", { unique: false });
-      variants?.createIndex("studyDeckId", "studyDeckId", { unique: false });
       variants?.createIndex("deckActive", ["deckId", "activeForSummary", "id"], { unique: false });
       const events = createStore(database, STORE.reviewEvents);
       events?.createIndex("deckId", "deckId", { unique: false });
       events?.createIndex("reviewableAnswered", ["reviewableId", "answeredAt", "id"], { unique: false });
       events?.createIndex("answeredAt", ["answeredAt", "id"], { unique: false });
       events?.createIndex("deckAnswered", ["deckId", "answeredAt", "id"], { unique: false });
-      createStore(database, STORE.documents);
       createStore(database, STORE.noteTypeDefinitions);
-      createStore(database, STORE.sourceSnapshots);
       const outbox = createStore(database, STORE.outbox);
       outbox?.createIndex("createdAt", ["createdAt", "id"], { unique: false });
       createStore(database, STORE.syncMetadata, { keyPath: "key" });
@@ -162,7 +157,7 @@ function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabas
 }
 
 function dueAtOf(card: LearningItem): string {
-  return String(card.learningItemState?.dueAt ?? card.reviewState?.dueAt ?? "9999-12-31T23:59:59.999Z");
+  return String(card.reviewState.dueAt ?? "9999-12-31T23:59:59.999Z");
 }
 
 function searchTextOf(card: LearningItem): string {
@@ -190,13 +185,12 @@ function serializedBytes(value: unknown): number {
 function catalogRecordFromCard(card: LearningItem, deckId: string, definitionRevision = 1): StoredCardCatalog {
   const activeVariants = card.variants
     .filter((variant) => variant.deletedAt == null && variant.isActive !== false && variant.qualityStatus === "active")
-    .sort((left, right) => Number(left.isOriginal) - Number(right.isOriginal)
-      || right.updatedAt.localeCompare(left.updatedAt)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt)
       || left.id.localeCompare(right.id));
   const activeVariant = activeVariants[0];
-  const activeVariantCount = activeVariants.filter((variant) => !variant.isOriginal).length;
+  const activeVariantCount = activeVariants.length;
   const bodyRevision = Math.max(1, Number(card.contentRevision ?? 1), Number(card.revision ?? 1));
-  const dependencyRevision = Math.max(1, Number(activeVariant?.renderRevision ?? 1), Number(definitionRevision));
+  const dependencyRevision = Math.max(1, Number(activeVariant?.revision ?? 1), Number(definitionRevision));
   return {
     id: card.id,
     deckId,
@@ -205,12 +199,12 @@ function catalogRecordFromCard(card: LearningItem, deckId: string, definitionRev
     sortText: stripHtml(card.originalFront || card.canonicalQuestion || card.title).toLocaleLowerCase("de").slice(0, 512),
     dueAt: dueAtOf(card) === "9999-12-31T23:59:59.999Z" ? null : dueAtOf(card),
     dueSort: dueAtOf(card),
-    scheduleState: (card.learningItemState ?? card.reviewState)?.state ?? "new",
-    maturityBand: (card.learningItemState ?? card.reviewState)?.maturityBand ?? "new",
+    scheduleState: card.reviewState.state ?? "new",
+    maturityBand: card.reviewState.maturityBand ?? "new",
     reviewable: card.status !== "deleted" && card.draftStatus !== "draft" && !isLearningItemReviewBlocked(card) ? 1 : 0,
     hasActiveVariants: activeVariantCount > 0 ? 1 : 0,
     activeVariantCount,
-    activeVariantId: activeVariant && !activeVariant.isOriginal ? activeVariant.id : null,
+    activeVariantId: activeVariant?.id ?? null,
     bodyRevision,
     dependencyRevision,
     syncChangeId: 0,
@@ -288,14 +282,18 @@ function studyOverviewContext(overview: AccountStudyOverview) {
 }
 
 function overviewScheduleBucket(card: StoredCardCatalog | null, overview: AccountStudyOverview, referenceAt: string) {
-  if (!card || card.deletedAt || card.reviewable !== 1 || card.scheduleState === "new" || !card.dueAt) return null;
+  if (!card || card.deletedAt || card.reviewable !== 1 || !card.dueAt) return null;
   const context = studyOverviewContext(overview);
   if (!context || getStudyHeatmapDayKey(referenceAt, context.timeZone, context.dayStartHour) !== overview.dayKey) return null;
   const range = getLearningDayRange(referenceAt, context);
   if (!range) return null;
   const dueAt = Date.parse(card.dueAt);
   if (!Number.isFinite(dueAt)) return null;
-  if (dueAt < range.end) return { kind: "due" as const, key: card.deckId };
+  if (dueAt < range.end) {
+    if (card.scheduleState === "new") return { kind: "available-new" as const, key: card.deckId };
+    if (["learning", "relearning"].includes(card.scheduleState)) return { kind: "available-learning" as const, key: card.deckId };
+    return { kind: "due" as const, key: card.deckId };
+  }
   if (dueAt >= range.end + 365 * 24 * 60 * 60 * 1000) return null;
   const dayKey = getStudyHeatmapDayKey(card.dueAt, context.timeZone, context.dayStartHour);
   return dayKey ? { kind: "forecast" as const, key: dayKey } : null;
@@ -355,7 +353,7 @@ function shellFromState(state: WorkspaceState): WorkspaceShell {
 }
 
 function variantRecord(variant: CardVariant, deckId: string): StoredVariant {
-  return { ...variant, deckId, activeForSummary: !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active" ? 1 : 0 };
+  return { ...variant, deckId, activeForSummary: variant.isActive !== false && variant.qualityStatus === "active" ? 1 : 0 };
 }
 
 function reviewHourKey(value: unknown) {
@@ -384,6 +382,7 @@ function mutationId() {
 function reviewHourCountsFromState(state: WorkspaceState): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const event of state.decks.flatMap((deck) => deck.reviewEvents)) {
+    if (event.rating === "manual") continue;
     const key = reviewHourKey(event.answeredAt ?? event.createdAt);
     if (key) counts[key] = (counts[key] ?? 0) + 1;
   }
@@ -407,7 +406,7 @@ async function loadShell(database: IDBDatabase): Promise<WorkspaceShell | null> 
   const meta = new Map(metaRows.map((row) => [row.key, row.value]));
   const syncMeta = new Map(syncRows.map((row) => [row.key, row.value]));
   return {
-    version: 4,
+    version: 5,
     profile: meta.get("profile"),
     updatedAt: meta.get("updatedAt"),
     decks: deckRows as WorkspaceDeckSummary[],
@@ -416,20 +415,18 @@ async function loadShell(database: IDBDatabase): Promise<WorkspaceShell | null> 
 }
 
 async function materializeState(database: IDBDatabase, shell: WorkspaceShell): Promise<WorkspaceState> {
-  const transaction = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents, STORE.documents, STORE.noteTypeDefinitions, STORE.sourceSnapshots], "readonly");
-  const [cardRows, variantRows, eventRows, documents, noteTypeDefinitions, learningItemSourceSnapshots] = await Promise.all([
+  const transaction = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents, STORE.noteTypeDefinitions], "readonly");
+  const [cardRows, variantRows, eventRows, noteTypeDefinitions] = await Promise.all([
     requestResult<StoredCard[]>(transaction.objectStore(STORE.cards).getAll()),
     requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).getAll()),
     requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).getAll()),
-    requestResult<WorkspaceState["documents"]>(transaction.objectStore(STORE.documents).getAll()),
     requestResult<WorkspaceState["noteTypeDefinitions"]>(transaction.objectStore(STORE.noteTypeDefinitions).getAll()),
-    requestResult<WorkspaceState["learningItemSourceSnapshots"]>(transaction.objectStore(STORE.sourceSnapshots).getAll()),
   ]);
   await transactionDone(transaction);
 
   const variantsByCardId = new Map<string, StoredVariant[]>();
   for (const variant of variantRows) {
-    const cardId = String(variant.learningItemId ?? variant.cardId ?? "");
+    const cardId = variant.cardId;
     const bucket = variantsByCardId.get(cardId);
     if (bucket) bucket.push(variant);
     else variantsByCardId.set(cardId, [variant]);
@@ -449,9 +446,7 @@ async function materializeState(database: IDBDatabase, shell: WorkspaceShell): P
   }
   return normalizeWorkspaceState({
     ...shell,
-    documents,
     noteTypeDefinitions,
-    learningItemSourceSnapshots,
     decks: shell.decks.map((deck) => ({
       ...deck,
       cards: cardsByDeckId.get(deck.id) ?? [],
@@ -470,7 +465,7 @@ async function loadDeck(database: IDBDatabase, summary: WorkspaceDeckSummary): P
   await transactionDone(transaction);
   const variantsByCardId = new Map<string, StoredVariant[]>();
   for (const variant of variantRows) {
-    const cardId = String(variant.learningItemId ?? variant.cardId ?? "");
+    const cardId = variant.cardId;
     const bucket = variantsByCardId.get(cardId);
     if (bucket) bucket.push(variant);
     else variantsByCardId.set(cardId, [variant]);
@@ -483,7 +478,7 @@ async function loadDeck(database: IDBDatabase, summary: WorkspaceDeckSummary): P
 }
 
 function writeState(database: IDBDatabase, state: WorkspaceState): Promise<void> {
-  const storeNames = [STORE.meta, STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.documents, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.syncMetadata, STORE.deckStudySummaries, STORE.cardCatalog, STORE.bodyResidency, STORE.offlineDecks, STORE.offlineManifests, STORE.statisticsSnapshots];
+  const storeNames = [STORE.meta, STORE.decks, STORE.cards, STORE.variants, STORE.reviewEvents, STORE.noteTypeDefinitions, STORE.syncMetadata, STORE.deckStudySummaries, STORE.cardCatalog, STORE.bodyResidency, STORE.offlineDecks, STORE.offlineManifests, STORE.statisticsSnapshots];
   const transaction = database.transaction(storeNames, "readwrite");
   for (const storeName of storeNames.filter((name) => name !== STORE.syncMetadata)) transaction.objectStore(storeName).clear();
   const meta = transaction.objectStore(STORE.meta);
@@ -502,9 +497,7 @@ function writeState(database: IDBDatabase, state: WorkspaceState): Promise<void>
     }
     for (const event of deck.reviewEvents) transaction.objectStore(STORE.reviewEvents).put(event);
   }
-  for (const document of state.documents) transaction.objectStore(STORE.documents).put(document);
   for (const definition of state.noteTypeDefinitions) transaction.objectStore(STORE.noteTypeDefinitions).put(definition);
-  for (const snapshot of state.learningItemSourceSnapshots) transaction.objectStore(STORE.sourceSnapshots).put(snapshot);
   transaction.objectStore(STORE.syncMetadata).put({ key: "cloudTombstones", value: state.cloudTombstones });
   transaction.objectStore(STORE.syncMetadata).put({ key: "reviewHourCounts", value: reviewHourCountsFromState(state) });
   transaction.objectStore(STORE.syncMetadata).delete("reviewDayCounts");
@@ -530,10 +523,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   let shell = await loadShell(database);
   markStartupPhaseReady("indexedDbShell", { deckCount: shell?.decks.length ?? 0 });
   let initializedDecks: Deck[] = [];
-  let writeChain = Promise.resolve();
-  const enqueueWrite = (write: () => Promise<void>) => {
-    writeChain = writeChain.catch(() => undefined).then(write);
-    return writeChain;
+  let writeChain: Promise<void> = Promise.resolve();
+  const enqueueWrite = <T,>(write: () => Promise<T>): Promise<T> => {
+    const result = writeChain.catch(() => undefined).then(write);
+    writeChain = result.then(() => undefined, () => undefined);
+    return result;
   };
 
   if (!shell) {
@@ -578,8 +572,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     outboxCount: outboxRows.filter((mutation) => !mutation.flushedAt).length,
   });
   const pendingOutbox = new Map<string, SyncOutboxMutation>(outboxRows.map((mutation) => [mutation.id, mutation]));
-  const mutationTargetKey = (mutation: Pick<SyncOutboxMutation, "type" | "table" | "entityId">) => (
-    mutation.type === "profile-patch" ? "profile" : `${mutation.type}:${mutation.table}:${mutation.entityId}`
+  const mutationTargetKey = (mutation: Pick<SyncOutboxMutation, "type" | "table" | "entityId"> & Partial<Pick<SyncOutboxMutation, "payload">>) => (
+    mutation.type === "profile-patch" ? "profile"
+      : `${mutation.type}:${mutation.table}:${mutation.entityId}`
   );
   const pendingByTarget = new Map<string, SyncOutboxMutation>();
   for (const mutation of pendingOutbox.values()) {
@@ -659,10 +654,18 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     const nextBucket = overviewScheduleBucket(after, studyOverview, referenceAt);
     if (previousBucket?.kind === nextBucket?.kind && previousBucket?.key === nextBucket?.key) return;
     const dueByDeck = { ...studyOverview.dueByDeck };
+    const availableNewByDeck = { ...studyOverview.availableNewByDeck };
+    const availableLearningByDeck = { ...studyOverview.availableLearningByDeck };
     const forecastByDay = { ...studyOverview.forecastByDay };
-    if (previousBucket) adjustOverviewCount(previousBucket.kind === "due" ? dueByDeck : forecastByDay, previousBucket.key, -1);
-    if (nextBucket) adjustOverviewCount(nextBucket.kind === "due" ? dueByDeck : forecastByDay, nextBucket.key, 1);
-    studyOverview = { ...studyOverview, dueByDeck, forecastByDay, generatedAt: referenceAt };
+    const countsFor = (kind: "available-new" | "available-learning" | "due" | "forecast") => (
+      kind === "available-new" ? availableNewByDeck
+        : kind === "available-learning" ? availableLearningByDeck
+          : kind === "due" ? dueByDeck
+            : forecastByDay
+    );
+    if (previousBucket) adjustOverviewCount(countsFor(previousBucket.kind), previousBucket.key, -1);
+    if (nextBucket) adjustOverviewCount(countsFor(nextBucket.kind), nextBucket.key, 1);
+    studyOverview = { ...studyOverview, availableNewByDeck, availableLearningByDeck, dueByDeck, forecastByDay, generatedAt: referenceAt };
     transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
   };
 
@@ -701,8 +704,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     nextDecks: Deck[],
     previousDefinitions: any[] = [],
     nextDefinitions: any[] = [],
-    previousSnapshots: any[] = [],
-    nextSnapshots: any[] = [],
     mutationBatch: { queued: SyncOutboxMutation[]; removedIds: string[] } = { queued: [], removedIds: [] },
   ) => enqueueWrite(async () => {
     const nextIds = ids(nextDecks);
@@ -750,17 +751,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       }
       const previousEvents = new Set((previous?.reviewEvents ?? []).map((event) => event.id));
       for (const event of deck.reviewEvents) if (!previousEvents.has(event.id)) put(STORE.reviewEvents, event);
-      for (const document of deck.sourceDocuments ?? []) put(STORE.documents, document);
     }
     const previousDefinitionsById = new Map(previousDefinitions.map((definition) => [definition.id, definition]));
     for (const definition of nextDefinitions) {
       if (!previousDefinitionsById.has(definition.id) || changedEntity(previousDefinitionsById.get(definition.id), definition)) {
         put(STORE.noteTypeDefinitions, definition);
       }
-    }
-    const previousSnapshotIds = ids(previousSnapshots);
-    for (const snapshot of nextSnapshots) {
-      if (!previousSnapshotIds.has(snapshot.id)) put(STORE.sourceSnapshots, snapshot);
     }
     for (const id of mutationBatch.removedIds) remove(STORE.outbox, id);
     for (const mutation of mutationBatch.queued) put(STORE.outbox, mutation);
@@ -785,14 +781,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     }
     return missing;
   };
-  const saveContentGraph = async (decks: Deck[] = [], definitions: unknown[] = [], snapshots: unknown[] = []) => {
+  const saveContentGraph = async (decks: Deck[] = [], definitions: unknown[] = []) => {
     await writeChain;
     const normalizedDecks = decks.filter(Boolean).map((deck) => normalizeCoreDeck(deck));
     if (!normalizedDecks.length) return [];
     const content = normalizeContentEntities(
       normalizedDecks,
       [...definitionCache.values(), ...definitions],
-      snapshots,
     );
     const normalized = content.decks as Deck[];
     const previousDecks = normalized.flatMap((deck) => {
@@ -802,10 +797,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       }
       return previous ? [previous] : [];
     });
-    const [newDefinitions, newSnapshots] = await Promise.all([
-      findMissing(STORE.noteTypeDefinitions, content.definitions),
-      findMissing(STORE.sourceSnapshots, content.snapshots),
-    ]);
+    const newDefinitions = await findMissing(STORE.noteTypeDefinitions, content.definitions);
     const updatedAt = new Date().toISOString();
     const replacements = new Map(normalized.map((deck) => [deck.id, deckRecord(deck) as WorkspaceDeckSummary]));
     shell = {
@@ -817,32 +809,25 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     for (const definition of content.definitions) definitionCache.set(definition.id, definition);
     const mutations = queueMutations(planEntityMutations({
       decks: previousDecks,
-      documents: previousDecks.flatMap((deck) => deck.sourceDocuments ?? []),
       tombstones: shell!.cloudTombstones,
     }, {
       decks: normalized,
-      documents: normalized.flatMap((deck) => deck.sourceDocuments ?? []),
       noteTypeDefinitions: newDefinitions,
-      sourceSnapshots: newSnapshots,
     }));
     await persistDecks(
       previousDecks,
       normalized,
       [],
       newDefinitions,
-      [],
-      newSnapshots,
       mutations,
     );
     return normalized;
   };
   const shellState = () => ({
-    version: 4,
+    version: 5,
     profile: shell!.profile,
     decks: shell!.decks.map((deck) => ({ ...deck, cards: [], reviewEvents: [] })),
-    documents: [],
     noteTypeDefinitions: [],
-    learningItemSourceSnapshots: [],
     cloudTombstones: shell!.cloudTombstones,
     updatedAt: shell!.updatedAt,
   } as WorkspaceState);
@@ -874,13 +859,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     deckId: string,
     cardId: string,
     updater: (card: LearningItem | null) => LearningItem | null,
-    documents: SourceDocument[] = [],
   ) => {
     if (!shell!.decks.some((deck) => deck.id === deckId)) return null;
     const transaction = database.transaction([STORE.cards, STORE.variants], "readonly");
     const stored = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(cardId));
     const storedVariants = stored
-      ? await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(cardId))
+      ? await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("cardId").getAll(cardId))
       : [];
     await transactionDone(transaction);
     if (stored && stored.deckId !== deckId) return null;
@@ -898,8 +882,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       updatedAt,
     } as WorkspaceDeckSummary;
     if (!isActive) {
-      const previousDeck = { ...summary, cards: previousCard ? [previousCard] : [], reviewEvents: [], sourceDocuments: [] } as Deck;
-      const nextDeck = { ...nextSummary, cards: [], reviewEvents: [], sourceDocuments: [] } as Deck;
+      const previousDeck = { ...summary, cards: previousCard ? [previousCard] : [], reviewEvents: [] } as Deck;
+      const nextDeck = { ...nextSummary, cards: [], reviewEvents: [] } as Deck;
       const mutationBatch = queueMutations(planEntityMutations(
         { decks: [previousDeck], tombstones: shell!.cloudTombstones },
         { decks: [nextDeck] },
@@ -930,17 +914,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return candidate;
     }
     const content = normalizeContentEntities(
-      [{ ...nextSummary, cards: [candidate], reviewEvents: [], sourceDocuments: documents }],
+      [{ ...nextSummary, cards: [candidate], reviewEvents: [] }],
       [...definitionCache.values()],
-      [],
     );
     const nextCard = content.decks[0].cards[0] as LearningItem;
     const newDefinitions = await findMissing(STORE.noteTypeDefinitions, content.definitions);
-    const previousDeck = { ...summary, cards: previousCard ? [previousCard] : [], reviewEvents: [], sourceDocuments: [] } as Deck;
-    const nextDeck = { ...nextSummary, cards: [nextCard], reviewEvents: [], sourceDocuments: documents } as Deck;
+    const previousDeck = { ...summary, cards: previousCard ? [previousCard] : [], reviewEvents: [] } as Deck;
+    const nextDeck = { ...nextSummary, cards: [nextCard], reviewEvents: [] } as Deck;
     const mutationBatch = queueMutations(planEntityMutations(
       { decks: [previousDeck], tombstones: shell!.cloudTombstones },
-      { decks: [nextDeck], documents, noteTypeDefinitions: newDefinitions },
+      { decks: [nextDeck], noteTypeDefinitions: newDefinitions },
     ));
     shell = { ...shell!, decks: shell!.decks.map((deck) => deck.id === deckId ? nextSummary : deck), updatedAt };
     const cached = hydratedDecks.get(deckId);
@@ -952,7 +935,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     }
     for (const definition of content.definitions) definitionCache.set(definition.id, definition);
     await (async () => {
-      const stores = [STORE.decks, STORE.cards, STORE.variants, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.documents, STORE.noteTypeDefinitions, STORE.outbox, STORE.meta, STORE.syncMetadata];
+      const stores = [STORE.decks, STORE.cards, STORE.variants, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.noteTypeDefinitions, STORE.outbox, STORE.meta, STORE.syncMetadata];
       const write = database.transaction(stores, "readwrite");
       const catalog = catalogRecordForLocalCard(nextCard, deckId);
       await applyReplicaCatalogChange(write, deckId, previousCard ? catalogRecordForLocalCard(previousCard, deckId) : null, catalog, updatedAt);
@@ -964,7 +947,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const nextVariantIds = new Set(nextCard.variants.map((variant) => variant.id));
       for (const variant of storedVariants) if (!nextVariantIds.has(variant.id)) variants.delete(variant.id);
       for (const variant of nextCard.variants) variants.put(variantRecord(variant, deckId));
-      for (const document of documents) write.objectStore(STORE.documents).put(document);
       for (const definition of newDefinitions) write.objectStore(STORE.noteTypeDefinitions).put(definition);
       for (const id of mutationBatch.removedIds) write.objectStore(STORE.outbox).delete(id);
       for (const mutation of mutationBatch.queued) write.objectStore(STORE.outbox).put(mutation);
@@ -1034,7 +1016,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           catalogStore.delete(entity.id);
           cardStore.delete(entity.id);
           residencyStore.delete(entity.id);
-          const variantKeys = await requestResult<IDBValidKey[]>(variantStore.index("learningItemId").getAllKeys(entity.id));
+          const variantKeys = await requestResult<IDBValidKey[]>(variantStore.index("cardId").getAllKeys(entity.id));
           for (const key of variantKeys) variantStore.delete(key);
           continue;
         }
@@ -1048,7 +1030,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         if (residency && (residency.bodyRevision !== entity.bodyRevision || residency.dependencyRevision !== entity.dependencyRevision)) {
           const storedCard = await requestResult<StoredCard | undefined>(cardStore.get(entity.id));
           const storedVariants = storedCard
-            ? await requestResult<StoredVariant[]>(variantStore.index("learningItemId").getAll(entity.id))
+            ? await requestResult<StoredVariant[]>(variantStore.index("cardId").getAll(entity.id))
             : [];
           const localCatalog = storedCard
             ? catalogRecordForLocalCard(hydrateCard(storedCard, new Map([[entity.id, storedVariants]])), entity.deckId)
@@ -1190,7 +1172,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return null;
     }
     const [variants, catalog, residency] = await Promise.all([
-      requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(cardId)),
+      requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("cardId").getAll(cardId)),
       requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(cardId)),
       requestResult<CardBodyResidencyRecord | undefined>(transaction.objectStore(STORE.bodyResidency).get(cardId)),
     ]);
@@ -1276,7 +1258,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       if (protectedIds.has(candidate.id) || (candidate.protectedUntil && Date.parse(candidate.protectedUntil) > Date.now())) continue;
       const transaction = database.transaction([STORE.cards, STORE.variants, STORE.bodyResidency], "readwrite");
       const card = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(candidate.id));
-      const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(candidate.id));
+      const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("cardId").getAll(candidate.id));
       if (card) {
         freedBytes += serializedBytes(card) + serializedBytes(variants);
         transaction.objectStore(STORE.cards).delete(candidate.id);
@@ -1455,18 +1437,105 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         downloaded: residency.filter((record) => record.state === "downloaded").length,
       };
     },
-    async materializeFullState() {
-      await writeChain;
-      return materializeState(database, shell!);
-    },
     async loadCard(cardId: string) {
       return loadCardBody(cardId);
     },
     updateCard(deckId: string, cardId: string, updater: (card: LearningItem) => LearningItem) {
       return writeCard(deckId, cardId, (card) => card ? updater(card) : null);
     },
-    insertCard(deckId: string, card: LearningItem, documents: SourceDocument[] = []) {
-      return writeCard(deckId, card.id, (previous) => previous ? card : card, documents);
+    rescheduleCards(cardIds: string[], dueAt: string, occurredAt = new Date().toISOString()) {
+      const idsToUpdate = [...new Set(cardIds.filter(Boolean))];
+      if (!idsToUpdate.length) return Promise.resolve([]);
+      return enqueueWrite(async () => {
+        const transaction = database.transaction([
+          STORE.cards,
+          STORE.variants,
+          STORE.reviewEvents,
+          STORE.cardCatalog,
+          STORE.bodyResidency,
+          STORE.deckStudySummaries,
+          STORE.outbox,
+          STORE.meta,
+          STORE.syncMetadata,
+        ], "readwrite");
+        const completed = transactionDone(transaction);
+        const storedCards = await Promise.all(idsToUpdate.map((cardId) => requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(cardId))));
+        const variants = await Promise.all(idsToUpdate.map((cardId) => requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("cardId").getAll(cardId))));
+        if (storedCards.some((card) => !card || card.deletedAt)) {
+          transaction.abort();
+          await completed.catch(() => undefined);
+          throw new Error("Mindestens eine Karte wurde nicht gefunden.");
+        }
+        const cards = storedCards.map((stored, index) => hydrateCard(stored!, new Map([[stored!.id, variants[index]]])));
+        const changes = cards.map((previous) => {
+          const card = rescheduleLearningItem(previous, dueAt, occurredAt);
+          if (card === previous) return null;
+          const event: ReviewEvent = {
+            id: `manual_${mutationId()}`,
+            userId,
+            deckId: card.deckId,
+            learningItemId: card.id,
+            variantId: null,
+            reviewableType: "card",
+            reviewableId: card.id,
+            sourceCardId: card.id,
+            rating: "manual",
+            answeredAt: occurredAt,
+            responseTimeMs: null,
+            schedulerBefore: { dueAt: previous.reviewState.dueAt },
+            schedulerAfter: { dueAt },
+            flags: { kind: "manual_reschedule" },
+            createdAt: occurredAt,
+          };
+          return { previous, card, event, deckId: card.deckId };
+        }).filter((change): change is NonNullable<typeof change> => Boolean(change));
+        if (!changes.length) {
+          await completed;
+          return cards;
+        }
+        const mutationBatch = queueMutations(changes.map(({ card, deckId, event }) => ({
+          type: "review-atomic",
+          table: "review_events",
+          entityId: event.id,
+          payload: {
+            event,
+            deck: { id: deckId },
+            card: { id: card.id, reviewState: card.reviewState, coreState: card.coreState, updatedAt: card.updatedAt },
+            variant: null,
+          },
+        })));
+        for (const { previous, card, event, deckId } of changes) {
+          const previousCatalog = catalogRecordForLocalCard(previous, deckId);
+          const nextCatalog = catalogRecordForLocalCard(card, deckId);
+          await applyReplicaCatalogChange(transaction, deckId, previousCatalog, nextCatalog, occurredAt);
+          transaction.objectStore(STORE.cards).put(cardRecord(card, deckId));
+          transaction.objectStore(STORE.reviewEvents).put(event);
+          transaction.objectStore(STORE.cardCatalog).put(nextCatalog);
+          transaction.objectStore(STORE.bodyResidency).put(residencyRecord(nextCatalog, "cached"));
+        }
+        for (const id of mutationBatch.removedIds) transaction.objectStore(STORE.outbox).delete(id);
+        for (const mutation of mutationBatch.queued) transaction.objectStore(STORE.outbox).put(mutation);
+        transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: occurredAt });
+        await completed;
+
+        shell = { ...shell!, updatedAt: occurredAt };
+        const changesByDeck = new Map<string, typeof changes>();
+        for (const change of changes) changesByDeck.set(change.deckId, [...(changesByDeck.get(change.deckId) ?? []), change]);
+        for (const [deckId, deckChanges] of changesByDeck) {
+          const cached = hydratedDecks.get(deckId);
+          if (!cached) continue;
+          const byId = new Map(deckChanges.map((change) => [change.card.id, change]));
+          hydratedDecks.set(deckId, {
+            ...cached,
+            cards: cached.cards.map((card) => byId.get(card.id)?.card ?? card),
+            reviewEvents: [...deckChanges.map((change) => change.event), ...cached.reviewEvents],
+          });
+        }
+        return changes.map((change) => change.card);
+      });
+    },
+    insertCard(deckId: string, card: LearningItem) {
+      return writeCard(deckId, card.id, () => card);
     },
     async loadNoteTypeDefinitions(idsToLoad: string[] = []) {
       await writeChain;
@@ -1524,41 +1593,30 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       }
       const variantsByCardId = new Map<string, StoredVariant[]>();
       for (const variant of variants) {
-        const cardId = String(variant.learningItemId ?? variant.cardId ?? "");
+        const cardId = variant.cardId;
         if (!cardIds.has(cardId)) throw new Error(`Variante ${variant.id} verweist nicht auf eine importierte Karte.`);
-        if (variant.studyDeckId && !importedDeckIds.has(variant.studyDeckId)) throw new Error(`Variante ${variant.id} verweist auf den falschen Lernstapel.`);
         const bucket = variantsByCardId.get(cardId);
         if (bucket) bucket.push(variant);
         else variantsByCardId.set(cardId, [variant]);
       }
       for (const card of cards) {
-        const originals = (variantsByCardId.get(card.id) ?? []).filter((variant) => variant.isOriginal);
-        if (originals.length !== 1) throw new Error(`Karte ${card.id} besitzt nicht genau eine Originalvariante.`);
         if (!card.noteTypeDefinitionId) throw new Error(`Karte ${card.id} besitzt keinen Notiztyp.`);
-        if (!card.latestSourceSnapshotId) throw new Error(`Karte ${card.id} besitzt keinen verknüpften Quell-Snapshot.`);
       }
       if (reviewRows.some((review) => !importedDeckIds.has(review!.deckId))) {
         throw new Error("Mindestens ein Review-Ereignis ist dem falschen importierten Stapel zugeordnet.");
       }
 
       const noteTypeDefinitionIds = [...new Set(cards.map((card) => card.noteTypeDefinitionId))];
-      const sourceSnapshots = cards.map((card) => ({ id: card.latestSourceSnapshotId!, cardId: card.id, attachToCard: true }));
-      if (new Set(sourceSnapshots.map((snapshot) => snapshot.id)).size !== sourceSnapshots.length) {
-        throw new Error("Ein Quell-Snapshot ist mit mehreren importierten Karten verknüpft.");
-      }
-      const contractRead = database.transaction([STORE.noteTypeDefinitions, STORE.sourceSnapshots], "readonly");
+      const contractRead = database.transaction(STORE.noteTypeDefinitions, "readonly");
       const definitionRequests = noteTypeDefinitionIds.map((id) => requestResult(contractRead.objectStore(STORE.noteTypeDefinitions).getKey(id)));
-      const snapshotRequests = sourceSnapshots.map(({ id }) => requestResult(contractRead.objectStore(STORE.sourceSnapshots).getKey(id)));
-      const [definitionKeys, snapshotKeys] = await Promise.all([Promise.all(definitionRequests), Promise.all(snapshotRequests)]);
+      const definitionKeys = await Promise.all(definitionRequests);
       await transactionDone(contractRead);
       if (definitionKeys.some((key) => key == null)) throw new Error("Mindestens ein importierter Notiztyp fehlt im lokalen Commitgraphen.");
-      if (snapshotKeys.some((key) => key == null)) throw new Error("Mindestens ein importierter Quell-Snapshot fehlt im lokalen Commitgraphen.");
 
       return {
         deckIds: [...deckIds].sort(),
         cardIds: [...cardIds].sort(),
         variantIds: variants.map((variant) => variant.id).sort(),
-        sourceSnapshots: sourceSnapshots.sort((left, right) => left.id.localeCompare(right.id)),
         noteTypeDefinitionIds: noteTypeDefinitionIds.sort(),
         reviewEventIds: reviewRows.map((review) => review!.id).sort(),
       };
@@ -1569,45 +1627,32 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const targetDeckIds = repairIds(repairScope?.deckIds, scope.deckIds);
       const targetCardIds = repairIds(repairScope?.cardIds, scope.cardIds);
       const targetVariantIds = repairIds(repairScope?.variantIds, scope.variantIds);
-      const targetSnapshotIds = repairIds(repairScope?.sourceSnapshotIds, scope.sourceSnapshots.map((snapshot) => snapshot.id));
       const targetDefinitionIds = repairIds(repairScope?.noteTypeDefinitionIds, scope.noteTypeDefinitionIds);
       const targetReviewIds = repairIds(repairScope?.reviewEventIds, scope.reviewEventIds);
       const decks = targetDeckIds.map((deckId) => shell!.decks.find((deck) => deck.id === deckId) ?? null);
       if (decks.some((deck) => !deck)) throw new Error("Der unvollständige Import kann lokal nicht mehr rekonstruiert werden.");
-      const read = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents, STORE.noteTypeDefinitions, STORE.sourceSnapshots], "readonly");
+      const read = database.transaction([STORE.cards, STORE.variants, STORE.reviewEvents, STORE.noteTypeDefinitions], "readonly");
       const cardRequests = targetCardIds.map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)));
       const variantRequests = targetVariantIds.map((id) => requestResult<StoredVariant | undefined>(read.objectStore(STORE.variants).get(id)));
       const reviewRequests = targetReviewIds.map((id) => requestResult<ReviewEvent | undefined>(read.objectStore(STORE.reviewEvents).get(id)));
       const definitionRequests = targetDefinitionIds.map((id) => requestResult<any>(read.objectStore(STORE.noteTypeDefinitions).get(id)));
-      const snapshotRequests = targetSnapshotIds.map((id) => requestResult<any>(read.objectStore(STORE.sourceSnapshots).get(id)));
-      const [cards, variants, reviews, definitions, snapshots] = await Promise.all([
+      const [cards, variants, reviews, definitions] = await Promise.all([
         Promise.all(cardRequests),
         Promise.all(variantRequests),
         Promise.all(reviewRequests),
         Promise.all(definitionRequests),
-        Promise.all(snapshotRequests),
       ]);
       await transactionDone(read);
-      if ([...cards, ...variants, ...reviews, ...definitions, ...snapshots].some((entity) => !entity)) {
+      if ([...cards, ...variants, ...reviews, ...definitions].some((entity) => !entity)) {
         throw new Error("Der unvollständige Import kann lokal nicht mehr vollständig rekonstruiert werden.");
       }
 
       const deckIdByCardId = new Map(cards.map((card) => [card!.id, String((card as StoredCard & { deckId?: string }).deckId ?? "")]));
-      const snapshotLinks = new Map(scope.sourceSnapshots.map((snapshot) => [snapshot.id, snapshot]));
-      const requeuedSnapshotIds = new Set(targetSnapshotIds);
       const inputs = [
         ...(decks.filter(Boolean) as WorkspaceDeckSummary[]).map((deck) => ({ type: "entity-mutation", table: "decks", entityId: deck.id, baseRevision: null, payload: { table: "decks", entity: deck, baseRevision: null } })),
         ...definitions.map((definition) => ({ type: "entity-mutation", table: "note_type_definitions", entityId: definition.id, baseRevision: null, payload: { table: "note_type_definitions", entity: definition, baseRevision: null } })),
-        ...(cards.filter(Boolean) as StoredCard[]).map((card) => {
-          const { variants: _variants, ...cloudCard } = card as StoredCard & { variants?: never };
-          const latestSourceSnapshotId = requeuedSnapshotIds.has(card.latestSourceSnapshotId ?? "") ? null : card.latestSourceSnapshotId;
-          return { type: "entity-mutation", table: "cards", entityId: card.id, baseRevision: null, payload: { table: "cards", entity: { ...cloudCard, latestSourceSnapshotId }, deckId: deckIdByCardId.get(card.id), baseRevision: null } };
-        }),
-        ...(variants.filter(Boolean) as StoredVariant[]).map((variant) => ({ type: "entity-mutation", table: "card_variants", entityId: variant.id, baseRevision: null, payload: { table: "card_variants", entity: variant, cardId: variant.learningItemId, baseRevision: null } })),
-        ...snapshots.map((snapshot) => {
-          const link = snapshotLinks.get(snapshot.id)!;
-          return { type: "entity-mutation", table: "learning_item_source_snapshots", entityId: snapshot.id, baseRevision: null, payload: { table: "learning_item_source_snapshots", entity: snapshot, cardId: link.cardId, attachToCard: link.attachToCard, baseRevision: null } };
-        }),
+        ...(cards.filter(Boolean) as StoredCard[]).map((card) => ({ type: "entity-mutation", table: "cards", entityId: card.id, baseRevision: null, payload: { table: "cards", entity: card, deckId: deckIdByCardId.get(card.id), baseRevision: null } })),
+        ...(variants.filter(Boolean) as StoredVariant[]).map((variant) => ({ type: "entity-mutation", table: "card_variants", entityId: variant.id, baseRevision: null, payload: { table: "card_variants", entity: variant, cardId: variant.cardId, baseRevision: null } })),
         ...(reviews.filter(Boolean) as ReviewEvent[]).map((review) => ({ type: "entity-mutation", table: "review_events", entityId: review.id, baseRevision: null, payload: { table: "review_events", entity: review, deckId: review.deckId, baseRevision: null } })),
       ];
       const batch = queueMutations(inputs);
@@ -1619,15 +1664,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
     getShellState() {
       return shellState();
-    },
-    replaceFullState(nextState: WorkspaceState) {
-      const normalized = normalizeWorkspaceState(nextState) as WorkspaceState;
-      shell = shellFromState(normalized);
-      hydratedDecks.clear();
-      reviewHourCounts = reviewHourCountsFromState(normalized);
-      reviewDayCountsCache = null;
-      void enqueueWrite(() => writeState(database, normalized));
-      return normalized;
     },
     async setSyncConflicts(conflicts: any[] = []) {
       syncConflictCardIds = new Set(conflicts.flatMap((conflict) => conflict?.cardId ? [String(conflict.cardId)] : []));
@@ -1658,7 +1694,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         decks: STORE.decks,
         cards: STORE.cards,
         card_variants: STORE.variants,
-        source_documents: STORE.documents,
         note_type_definitions: STORE.noteTypeDefinitions,
       } as Record<string, string>)[target.table];
       if (!storeName) return;
@@ -1666,7 +1701,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const transaction = database.transaction(stores, "readwrite");
       transaction.objectStore(storeName).delete(target.entityId);
       if (target.table === "cards") {
-        const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("learningItemId").getAll(target.entityId));
+        const variants = await requestResult<StoredVariant[]>(transaction.objectStore(STORE.variants).index("cardId").getAll(target.entityId));
         for (const variant of variants) transaction.objectStore(STORE.variants).delete(variant.id);
         transaction.objectStore(STORE.cardCatalog).delete(target.entityId);
         transaction.objectStore(STORE.bodyResidency).delete(target.entityId);
@@ -1686,10 +1721,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         cards: STORE.cards,
         card_variants: STORE.variants,
         review_events: STORE.reviewEvents,
-        source_documents: STORE.documents,
         note_type_definitions: STORE.noteTypeDefinitions,
-        learning_item_source_snapshots: STORE.sourceSnapshots,
-      } as const)[page.table];
+      } as Record<string, string>)[page.table];
+      if (!storeName) return;
       if (page.table === "media_assets") {
         const transaction = database.transaction(STORE.decks, "readwrite");
         const store = transaction.objectStore(STORE.decks);
@@ -1712,7 +1746,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       } else if (page.table === "card_variants") {
         const cardTransaction = database.transaction(STORE.cards, "readonly");
         const cardStore = cardTransaction.objectStore(STORE.cards);
-        const deckIds = await Promise.all(entities.map(async (variant) => (await requestResult<StoredCard | undefined>(cardStore.get(variant.learningItemId ?? variant.cardId)))?.deckId ?? ""));
+        const deckIds = await Promise.all(entities.map(async (variant) => (await requestResult<StoredCard | undefined>(cardStore.get(variant.cardId)))?.deckId ?? ""));
         await transactionDone(cardTransaction);
         const transaction = database.transaction(STORE.variants, "readwrite");
         const store = transaction.objectStore(STORE.variants);
@@ -1767,6 +1801,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       if (page.table === "review_events") {
         const counts = page.reset || !reviewHourCounts ? {} : { ...reviewHourCounts };
         for (const event of entities) {
+          if (event.rating === "manual") continue;
           const key = reviewHourKey(event.answeredAt ?? event.createdAt);
           if (key) counts[key] = (counts[key] ?? 0) + 1;
         }
@@ -1776,6 +1811,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         } else if (reviewDayCountsCache) {
           const dayCounts = { ...reviewDayCountsCache.counts };
           for (const event of entities) {
+            if (event.rating === "manual") continue;
             const key = getStudyHeatmapDayKey(event.answeredAt ?? event.createdAt, reviewDayCountsCache.timeZone, reviewDayCountsCache.dayStartHour);
             if (key) dayCounts[key] = (dayCounts[key] ?? 0) + 1;
           }
@@ -1823,14 +1859,12 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           deck: { id: deck.id },
           card: {
             id: updatedCard.id,
-            learningItemState: updatedCard.learningItemState,
             reviewState: updatedCard.reviewState,
             coreState: updatedCard.coreState,
             updatedAt: updatedCard.updatedAt,
           },
           variant: variant ? {
             id: variant.id,
-            reviewState: variant.reviewState,
             performance: variant.performance,
             updatedAt: variant.updatedAt,
           } : null,
@@ -1912,7 +1946,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const importedDeckIds: string[] = [];
         const importedCardIds = new Set<string>();
         const importedVariantIds = new Set<string>();
-        const importedSourceSnapshots = new Map<string, { id: string; cardId: string; attachToCard: boolean }>();
         const importedDefinitionIds = new Set<string>();
         const importedReviewIds = new Set<string>();
         const persistedDeckIdByIncomingId = new Map(graph.deckIdentities.map((identity) => {
@@ -1952,7 +1985,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
               revision: existing.revision + 1,
               deckSettings: existing.deckSettings,
               mediaAssets: existing.mediaAssets,
-              versionLog: existing.versionLog,
             } : { ...incoming, id: persistedDeckId, parentDeckId };
             const transaction = database.transaction([STORE.decks, STORE.deckStudySummaries, STORE.outbox], "readwrite");
             transaction.objectStore(STORE.decks).put(summary);
@@ -1966,24 +1998,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
             const context = deckContexts.get(chunk.deckId);
             if (!context) throw new Error("APKG-Worker lieferte Karten vor ihrem Stapel.");
             const incomingCards = chunk.values ?? [];
-            const mappedIncomingCards = incomingCards.map((card: LearningItem) => ({
-              ...card,
-              deckId: context.summary.id,
-              variants: card.variants.map((variant) => ({
-                ...variant,
-                studyDeckId: variant.studyDeckId
-                  ? persistedDeckIdByIncomingId.get(variant.studyDeckId) ?? variant.studyDeckId
-                  : variant.studyDeckId,
-              })),
-            }));
+            const mappedIncomingCards = incomingCards.map((card: LearningItem) => ({ ...card, deckId: context.summary.id }));
             let cards = mappedIncomingCards;
             if (context.existing) {
               const { mergeImportedDeck } = await import("./apkgImportInternal.ts");
-              const snapshots = new Map((chunk.snapshots ?? []).map(({ snapshot }: any) => [snapshot.id, snapshot]));
-              cards = mergeImportedDeck({ ...context.summary, cards: mappedIncomingCards, reviewEvents: [] }, [context.existing], {
-                definitions: new Map((chunk.definitions ?? []).map((definition: any) => [definition.id, definition])),
-                snapshots,
-              }).cards;
+              cards = mergeImportedDeck({ ...context.summary, cards: mappedIncomingCards, reviewEvents: [] }, [context.existing]).cards;
             }
             const persistedCardId = new Map<string, string>(incomingCards.map((card: LearningItem, index: number) => [card.id, String(cards[index]?.id ?? card.id)]));
             for (const [incomingCardId, persistedCardIdValue] of persistedCardId) context.cardIds.set(incomingCardId, persistedCardIdValue);
@@ -1993,14 +2012,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
                 context.variantIds.set(incomingVariant.id, persistedCard?.variants[variantIndex]?.id ?? incomingVariant.id);
               });
             });
-            const snapshotRead = database.transaction(STORE.sourceSnapshots, "readonly");
-            const snapshotStore = snapshotRead.objectStore(STORE.sourceSnapshots);
-            const snapshotIds = (chunk.snapshots ?? []).map(({ snapshot }: any) => snapshot.id);
-            const snapshotKeys = await Promise.all(snapshotIds.map((id: string) => requestResult(snapshotStore.getKey(id))));
-            await transactionDone(snapshotRead);
-            const existingSnapshotIds = new Set(snapshotIds.filter((_: string, index: number) => snapshotKeys[index] != null));
             const chunkMutations: any[] = [];
-            const transaction = database.transaction([STORE.cards, STORE.variants, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.noteTypeDefinitions, STORE.sourceSnapshots, STORE.outbox, STORE.syncMetadata], "readwrite");
+            const transaction = database.transaction([STORE.cards, STORE.variants, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.noteTypeDefinitions, STORE.outbox, STORE.syncMetadata], "readwrite");
             for (const definition of chunk.definitions ?? []) {
               importedDefinitionIds.add(definition.id);
               definitionCache.set(definition.id, definition);
@@ -2013,7 +2026,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
               importedCardIds.add(card.id);
               const previousCard = context.existing?.cards.find((candidate) => candidate.id === card.id);
               const baseRevision = previousCard?.revision ?? null;
-              const cloudCard = { ...Object.fromEntries(Object.entries(card).filter(([key]) => key !== "variants")), latestSourceSnapshotId: null };
+              const cloudCard = Object.fromEntries(Object.entries(card).filter(([key]) => key !== "variants"));
               const catalog = catalogRecordForLocalCard(card, context.summary.id);
               await applyReplicaCatalogChange(transaction, context.summary.id, previousCard ? catalogRecordForLocalCard(previousCard, context.summary.id) : null, catalog);
               transaction.objectStore(STORE.cards).put(cardRecord(card, context.summary.id));
@@ -2026,16 +2039,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
                 transaction.objectStore(STORE.variants).put(variantRecord(variant, context.summary.id));
                 chunkMutations.push({ type: "entity-mutation", table: "card_variants", entityId: variant.id, baseRevision: variantBase, payload: { table: "card_variants", entity: variant, cardId: card.id, baseRevision: variantBase } });
               }
-            }
-            for (const { snapshot, cardId, attachToCard } of chunk.snapshots ?? []) {
-              const resolvedCardId = persistedCardId.get(cardId) ?? cardId;
-              importedSourceSnapshots.set(snapshot.id, { id: snapshot.id, cardId: resolvedCardId, attachToCard: Boolean(attachToCard) });
-              const previousCard = context.existing?.cards.find((candidate) => candidate.id === resolvedCardId);
-              const linkedSnapshot = snapshot.previousSnapshotId || !previousCard?.latestSourceSnapshotId || previousCard.latestSourceSnapshotId === snapshot.id
-                ? snapshot
-                : { ...snapshot, previousSnapshotId: previousCard.latestSourceSnapshotId };
-              if (!existingSnapshotIds.has(snapshot.id)) transaction.objectStore(STORE.sourceSnapshots).put(linkedSnapshot);
-              chunkMutations.push({ type: "entity-mutation", table: "learning_item_source_snapshots", entityId: snapshot.id, baseRevision: null, payload: { table: "learning_item_source_snapshots", entity: linkedSnapshot, cardId: resolvedCardId, attachToCard, baseRevision: null } });
             }
             persistOutbox(transaction, chunkMutations);
             await transactionDone(transaction);
@@ -2074,7 +2077,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           deckIds: [...new Set(importedDeckIds)].sort(),
           cardIds: [...importedCardIds].sort(),
           variantIds: [...importedVariantIds].sort(),
-          sourceSnapshots: [...importedSourceSnapshots.values()].sort((left, right) => left.id.localeCompare(right.id)),
           noteTypeDefinitionIds: [...importedDefinitionIds].sort(),
           reviewEventIds: [...importedReviewIds].sort(),
         };
@@ -2086,14 +2088,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         ));
         return summary ? hydrateDeck(summary.id) : null;
       }))).filter((deck): deck is Deck => Boolean(deck));
-      if (!existingDecks.length) return await saveContentGraph(graph.decks, graph.noteTypeDefinitions, graph.sourceSnapshots);
+      if (!existingDecks.length) return await saveContentGraph(graph.decks, graph.noteTypeDefinitions);
       const { mergeImportedDeck } = await import("./apkgImportInternal.ts");
-      const content = {
-        definitions: new Map(graph.noteTypeDefinitions.map((definition) => [definition.id, definition])),
-        snapshots: new Map(graph.sourceSnapshots.map((snapshot) => [snapshot.id, snapshot])),
-      };
-      const decks = graph.decks.map((deck) => mergeImportedDeck(deck, existingDecks, content));
-      return await saveContentGraph(decks, graph.noteTypeDefinitions, graph.sourceSnapshots);
+      const decks = graph.decks.map((deck) => mergeImportedDeck(deck, existingDecks));
+      return await saveContentGraph(decks, graph.noteTypeDefinitions);
     },
     async deleteDeckTree(deckId: string) {
       await writeChain;
@@ -2104,7 +2102,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       }
       const deletedDecks = shell!.decks
         .filter((deck) => deletedIds.has(deck.id))
-        .map((deck) => ({ ...deck, cards: [], reviewEvents: [], sourceDocuments: [], mediaAssets: [] }) as Deck);
+        .map((deck) => ({ ...deck, cards: [], reviewEvents: [], mediaAssets: [] }) as Deck);
       if (!deletedDecks.length) return { deletedDeckIds: [], deletedDecks: [], nextSelectedDeckId: shell!.decks[0]?.id ?? null };
       const deletedAt = new Date().toISOString();
       const mutationBatch = queueMutations([{
@@ -2225,7 +2223,33 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           true,
         )))))
         : Promise.resolve([] as number[]);
-      const [summaryRows, todayEventRows, dueRows] = await Promise.all([summaryRequest, todayEventsRequest, dueRequest]);
+      const availableNewRequest = dayRange && catalogIsComplete
+        ? Promise.all(shell!.decks.map((deck) => requestResult(transaction.objectStore(STORE.cardCatalog).index("deckReviewDue").count(IDBKeyRange.bound(
+          [deck.id, 1, "new", "", ""],
+          [deck.id, 1, "new", new Date(dayRange.end).toISOString(), ""],
+          false,
+          true,
+        )))))
+        : Promise.resolve([] as number[]);
+      const availableLearningRequest = dayRange && catalogIsComplete
+        ? Promise.all(shell!.decks.map(async (deck) => {
+          const index = transaction.objectStore(STORE.cardCatalog).index("deckReviewDue");
+          const counts = await Promise.all(["learning", "relearning"].map((state) => requestResult(index.count(IDBKeyRange.bound(
+            [deck.id, 1, state, "", ""],
+            [deck.id, 1, state, new Date(dayRange.end).toISOString(), ""],
+            false,
+            true,
+          )))));
+          return counts[0] + counts[1];
+        }))
+        : Promise.resolve([] as number[]);
+      const [summaryRows, todayEventRows, dueRows, availableNewRows, availableLearningRows] = await Promise.all([
+        summaryRequest,
+        todayEventsRequest,
+        dueRequest,
+        availableNewRequest,
+        availableLearningRequest,
+      ]);
       await transactionDone(transaction);
 
       if (reviewDayCountsCache?.contextKey !== contextKey) {
@@ -2252,8 +2276,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const reviewed = new Set<string>();
         if (catalogIsComplete && !overviewMatches) {
           for (const event of todayEventRows[index] ?? []) {
+            if (event.rating === "manual") continue;
             const key = event.learningItemId;
-            const before = (event as any).schedulerBefore?.card ?? (event as any).previousLearningItemStateJson;
+            const before = (event as any).schedulerBefore?.card ?? (event as any).schedulerBefore;
             if (before?.state === "new" || Number(before?.repetitions ?? before?.reps ?? 0) === 0) introduced.add(key);
             else reviewed.add(key);
           }
@@ -2262,29 +2287,30 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const introducedCount = overviewMatches ? studyOverview!.introducedTodayByDeck[deck.id] ?? 0 : catalogIsComplete ? introduced.size : 0;
         const reviewedCount = overviewMatches ? studyOverview!.reviewedTodayByDeck[deck.id] ?? 0 : catalogIsComplete ? reviewed.size : 0;
         const dueCards = catalogIsComplete ? dueRows[index] ?? 0 : overviewMatches ? studyOverview!.dueByDeck[deck.id] ?? 0 : 0;
+        const availableNewCards = catalogIsComplete ? availableNewRows[index] ?? 0 : overviewMatches ? studyOverview!.availableNewByDeck?.[deck.id] ?? 0 : 0;
+        const availableLearningCards = catalogIsComplete ? availableLearningRows[index] ?? 0 : overviewMatches ? studyOverview!.availableLearningByDeck?.[deck.id] ?? 0 : 0;
         const settings = createDefaultDeckSettings(deck.deckSettings);
         const newLimit = Math.max(0, settings.newCardsTodayOverride?.date === todayKey ? settings.newCardsTodayOverride.limit : settings.newCardsPerDay);
         const remainingNew = Math.max(0, newLimit - introducedCount);
         const remainingReviews = Math.max(0, settings.maximumReviewsPerDay - introducedCount - reviewedCount);
-        const inProgressCards = summary.learningCount;
-        const selectedNew = Math.min(summary.newCount, remainingNew, remainingReviews);
-        const selectedDue = Math.min(dueCards + inProgressCards, Math.max(0, remainingReviews - selectedNew));
+        const selectedNew = Math.min(availableNewCards, remainingNew, remainingReviews);
+        const selectedDue = Math.min(dueCards + availableLearningCards, Math.max(0, remainingReviews - selectedNew));
         const inventory = {
           totalCards: Math.max(0, summary.totalCount - summary.suspendedCount),
           dueCards,
           newCards: summary.newCount,
-          inProgressCards,
+          inProgressCards: summary.learningCount,
           matureCards: summary.matureCount,
           activeVariants: summary.activeVariantCount,
           averageMaturityXp: 0,
         };
         const completedTodayCount = introducedCount + reviewedCount;
-        const dailyProgress = { completedTodayCount, newCount: selectedNew, inProgressCount: inProgressCards, dueCount: Math.max(0, selectedDue - inProgressCards), total: completedTodayCount + selectedNew + selectedDue };
+        const dailyProgress = { completedTodayCount, newCount: selectedNew, inProgressCount: availableLearningCards, dueCount: Math.max(0, selectedDue - availableLearningCards), total: completedTodayCount + selectedNew + selectedDue };
         result.set(deck.id, {
           inventory,
           dailyProgress,
           startableCount: selectedNew + selectedDue,
-          additionalNewCount: Math.max(0, summary.newCount - selectedNew),
+          additionalNewCount: Math.max(0, availableNewCards - selectedNew),
           effectiveNewLimit: newLimit,
           introducedTodayCount: introducedCount,
           dateKey: todayKey,
@@ -2337,6 +2363,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const requestedCatalog = requestedIds.length > 0
         ? Promise.all(requestedIds.map((id) => requestResult<StoredCardCatalog | undefined>(catalogStore.get(id))))
         : null;
+      const learningDayOptions = { dayStartHour: options.dayStartHour, timeZone: options.timeZone };
+      const currentDayKey = getLearningDayKey(options.now ?? new Date(), learningDayOptions);
       const catalogPagePromises = requestedCatalog ? [] : deckIds.map((deckId) => new Promise<StoredCardCatalog[]>((resolve, reject) => {
         const cursor = options.cursorByDeck?.[deckId];
         const lower = cursor ? [deckId, cursor.dueAt, cursor.id] : [deckId, "", ""];
@@ -2348,7 +2376,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const entry = request.result;
           if (!entry || rows.length >= perDeckLimit) { resolve(rows); return; }
           const row = entry.value as StoredCardCatalog;
-          if (row.reviewable === 1 && !syncConflictCardIds.has(row.id)) rows.push(row);
+          const dueKey = getLearningDayKey(row.dueAt ?? Number.NaN, learningDayOptions);
+          if (row.reviewable === 1 && dueKey && currentDayKey && dueKey <= currentDayKey && !syncConflictCardIds.has(row.id)) rows.push(row);
           entry.continue();
         };
       }));
@@ -2395,11 +2424,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     flush: () => writeChain,
     persistMutationAcknowledgements(persistedRows: Array<{ table: string; row: any; entity?: any }> = []) {
       return enqueueWrite(async () => {
-        const stores = [...new Set(persistedRows.map(({ table }) => ({ decks: STORE.decks, cards: STORE.cards, card_variants: STORE.variants, source_documents: STORE.documents, note_type_definitions: STORE.noteTypeDefinitions } as Record<string, string>)[table]).filter(Boolean))];
+        const stores = [...new Set(persistedRows.map(({ table }) => ({ decks: STORE.decks, cards: STORE.cards, card_variants: STORE.variants, note_type_definitions: STORE.noteTypeDefinitions } as Record<string, string>)[table]).filter(Boolean))];
         if (!stores.length) return;
         const transaction = database.transaction(stores, "readwrite");
         for (const { table, row, entity } of persistedRows) {
-          const storeName = ({ decks: STORE.decks, cards: STORE.cards, card_variants: STORE.variants, source_documents: STORE.documents, note_type_definitions: STORE.noteTypeDefinitions } as Record<string, string>)[table];
+          const storeName = ({ decks: STORE.decks, cards: STORE.cards, card_variants: STORE.variants, note_type_definitions: STORE.noteTypeDefinitions } as Record<string, string>)[table];
           if (!storeName || !row?.id) continue;
           const store = transaction.objectStore(storeName);
           const current = await requestResult<any>(store.get(row.id));

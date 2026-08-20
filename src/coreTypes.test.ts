@@ -83,23 +83,14 @@ const deckSettings = {
 
 const originalVariant = {
   id: "variant-1",
-  learningItemId: "card-1",
   cardId: "card-1",
-  sourceCardId: "card-1",
   variantType: "basic",
-  variantLevel: 1,
-  front: "Frage",
-  back: "Antwort",
+  variantLevel: 2,
+  front: "Andere Frage",
+  back: "Gleiche Antwort",
   explanation: "",
-  hintsJson: null,
-  answerOptionsJson: null,
-  expectedAnswerJson: null,
-  generationSource: "original",
-  parentVariantId: null,
-  anchorVariantId: null,
-  isOriginal: true,
   isActive: true,
-  transformType: "original",
+  transformType: "rephrase",
   transformProfile: {},
   modelRunId: null,
   confidence: 1,
@@ -107,8 +98,6 @@ const originalVariant = {
   changedRecognitionCues: [],
   qualityStatus: "active",
   contentHash: "variant_hash",
-  sourceAnchors: [],
-  reviewState: null,
   performance: {
     id: "performance-1",
     learningItemId: "card-1",
@@ -130,22 +119,16 @@ const originalVariant = {
     updatedAt: now,
   },
   feedback: [],
-  versionLog: [],
   createdAt: now,
   updatedAt: now,
   revision: 1,
   deletedAt: null,
   updatedByDeviceId: null,
   meta: {},
-  projection: { kind: "template", recipeId: "core-basic", instanceKey: "variant-1" },
-  studyDeckId: null,
-  schedulingMode: "independent-card",
-  renderRevision: 1,
 } satisfies CardVariant;
 
 const learningItem = {
   id: "card-1",
-  noteId: null,
   deckId: "deck-1",
   title: "",
   canonicalQuestion: "Frage",
@@ -156,32 +139,20 @@ const learningItem = {
   sourceRefId: null,
   source: "manual",
   sourceCardId: null,
-  sourceNoteId: null,
   originalFront: "Frage",
   originalBack: "Antwort",
   originalFields: [],
   originalTags: [],
   originalHtml: "Frage<hr>Antwort",
-  immutableOriginal: {
-    front: "Frage",
-    back: "Antwort",
-    fields: [],
-    html: "Frage<hr>Antwort",
-    capturedAt: now,
-    source: "manual",
-    contentHash: "card_hash",
-  },
   mediaRefs: [],
-  sourceAnchors: [],
   kind: "basic",
   cardType: "basic",
   draftStatus: "accepted",
   status: "active",
   contentHash: "card_hash",
-  learningItemState: reviewState,
   reviewState,
   variants: [originalVariant],
-  versionLog: [],
+  projection: { kind: "template", recipeId: "core-basic", instanceKey: "card-1" },
   coreState: {
     isCoreReady: false,
     variantCount: 0,
@@ -208,7 +179,6 @@ const learningItem = {
     tags: [],
     mediaRefs: [],
   },
-  latestSourceSnapshotId: null,
   contentRevision: 1,
 } satisfies LearningItem;
 
@@ -231,10 +201,8 @@ const deck = {
   importMeta: {},
   mediaAssets: [],
   deckSettings,
-  sourceDocuments: [],
   cards: [learningItem],
   reviewEvents: [],
-  versionLog: [],
 } satisfies Deck;
 
 const creationInputs = [
@@ -287,7 +255,7 @@ function syncStatusLabel(sync: SyncStatus): string {
 
 test("führt TypeScript-Tests aus und bildet normalisierte Kernformen ab", () => {
   const rating: ReviewRating = "good";
-  assert.equal(deck.cards[0]?.variants[0]?.isOriginal, true);
+  assert.equal(deck.cards[0]?.variants[0]?.transformType, "rephrase");
   assert.equal(deck.deckSettings.coreMode, "auto");
   assert.equal(rating, "good");
   assert.deepEqual(creationInputs.map(creationLabel), ["Frage", "Frage mit Bild", "Antwort", "{{c1::Antwort}}", "B", "A+B"]);

@@ -6,6 +6,7 @@ import type { AccountMediaStore } from "./mediaStore.ts";
 import { requestPersistentWorkspaceStorage } from "./workspaceStorage.ts";
 import type { CardCatalogEntry, OfflineDeckRecord } from "./workspaceReplica.ts";
 import { markReplicaStartupGate } from "./appPerformance.ts";
+import { getLearningDayKey } from "./learningDay.ts";
 
 interface CardPageRequest {
   deckId: string;
@@ -29,6 +30,11 @@ function studyCatalogOrder(entry: CardCatalogEntry, now: string) {
   if (entry.scheduleState !== "new" && Number.isFinite(dueAt) && dueAt <= current) return [0, dueAt, entry.id] as const;
   if (entry.scheduleState === "new") return [1, Number.POSITIVE_INFINITY, entry.id] as const;
   return [2, dueAt, entry.id] as const;
+}
+
+function isCatalogEntryAvailable(entry: CardCatalogEntry, currentDayKey: string | null, options: Pick<StudyWindowOptions, "dayStartHour" | "timeZone">) {
+  const dueKey = getLearningDayKey(entry.dueAt ?? Number.NaN, options);
+  return Boolean(entry.reviewable && dueKey && currentDayKey && dueKey <= currentDayKey);
 }
 
 interface DownloadProgress {
@@ -60,9 +66,9 @@ function catalogPlaceholder(entry: CardCatalogEntry): LearningItem {
     updatedAt: entry.updatedAt,
     revision: entry.bodyRevision,
     status: entry.reviewable ? "active" : "suspended",
-    learningItemState: {
-      state: entry.scheduleState,
-      maturityBand: entry.maturityBand,
+    reviewState: {
+      state: entry.scheduleState as LearningItem["reviewState"]["state"],
+      maturityBand: entry.maturityBand as LearningItem["reviewState"]["maturityBand"],
       dueAt: entry.dueAt ?? "9999-12-31T23:59:59.999Z",
     },
     meta: {
@@ -112,7 +118,6 @@ export function createWorkspaceHydrationService({
         const absent = batch.filter((id) => !returnedIds.has(id));
         if (absent.length > 0) throw new Error("Mindestens eine Karte ist in der Cloud nicht mehr verfügbar.");
         await repository.applyCloudPage({ table: "note_type_definitions", entities: result.noteTypeDefinitions, reset: false });
-        await repository.applyCloudPage({ table: "learning_item_source_snapshots", entities: result.sourceSnapshots, reset: false });
         await repository.applyCloudPage({ table: "cards", entities: result.cards, reset: false });
         await repository.applyCloudPage({ table: "card_variants", entities: result.variants, reset: false });
       }
@@ -231,8 +236,9 @@ export function createWorkspaceHydrationService({
         if (!local.hasMore) break;
       }
     }
+    const currentDayKey = getLearningDayKey(now, options);
     const nextIds = catalogEntries
-      .filter((entry) => entry.reviewable)
+      .filter((entry) => isCatalogEntryAvailable(entry, currentDayKey, options))
       .sort((left, right) => {
         const leftOrder = studyCatalogOrder(left, now);
         const rightOrder = studyCatalogOrder(right, now);
@@ -254,7 +260,7 @@ export function createWorkspaceHydrationService({
       const loaded = (await Promise.all(hydrationIds.map((id) => repository.loadCard(id)))).filter((card): card is LearningItem => Boolean(card));
       if (loaded.length === 0) throw new Error("Fällige Karten konnten nicht geladen werden; sie wurden nicht übersprungen.");
       const cursorByDeck = { ...(options.cursorByDeck ?? {}) };
-      for (const card of loaded) cursorByDeck[card.deckId] = { dueAt: card.learningItemState?.dueAt ?? card.reviewState?.dueAt ?? "9999-12-31T23:59:59.999Z", id: card.id };
+      for (const card of loaded) cursorByDeck[card.deckId] = { dueAt: card.reviewState.dueAt ?? "9999-12-31T23:59:59.999Z", id: card.id };
       session = {
         ...session,
         cards: loaded.map((item) => ({ deckId: item.deckId, item })),
@@ -412,7 +418,7 @@ export function createWorkspaceHydrationService({
     if (!isOnline()) {
       const offlineDeck = await repository.getOfflineDeck(deckId);
       if (!offlineDeck || !["available", "outdated"].includes(offlineDeck.state)) {
-        throw new Error("Für Reimport oder Export muss dieser Stapel online oder vollständig offline verfügbar sein.");
+        throw new Error("Für den Reimport muss dieser Stapel online oder vollständig offline verfügbar sein.");
       }
       const manifest = await repository.readOfflineManifest(deckId);
       const missing = await repository.missingCardBodyIds(manifest.cards.map((card) => card.id));
@@ -451,16 +457,6 @@ export function createWorkspaceHydrationService({
     return { cardCount, source: "cloud" as const };
   };
 
-  const ensureCompleteAccountForExport = async () => {
-    for (const deck of repository.getShellState().decks) await hydrateDeckStructure(deck.id);
-    if (!isOnline()) return;
-    await repository.flush();
-    const { loadAccountExportDependencies } = await import("./cloudRepository.ts");
-    const dependencies = await loadAccountExportDependencies(client);
-    await repository.applyCloudPage({ table: "review_events", entities: dependencies.reviewEvents, reset: true });
-    await repository.applyCloudPage({ table: "media_assets", entities: dependencies.mediaAssets, reset: true });
-  };
-
   return {
     queryCardPage,
     openCard,
@@ -470,7 +466,6 @@ export function createWorkspaceHydrationService({
     enforceQuota,
     refreshStatistics,
     hydrateDeckStructure,
-    ensureCompleteAccountForExport,
   };
 }
 

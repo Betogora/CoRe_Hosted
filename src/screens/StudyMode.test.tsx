@@ -122,7 +122,9 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
 });
 
 test("StudyMode exposes labeled learning without an idle Pomodoro progress", () => {
-  const item = createBasicLearningItem("deck_progress", "Frage", "Antwort");
+  const item = createBasicLearningItem("deck_progress", "Frage", "Antwort", {
+    reviewState: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 },
+  });
   const deck = createCoreDeck({ id: "deck_progress", name: "Fortschritt", source: "manual", cards: [item], reviewEvents: [] });
   const markup = renderToStaticMarkup(
     <StudyMode

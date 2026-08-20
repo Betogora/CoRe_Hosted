@@ -6,37 +6,14 @@ import { createCoreCard, createCoreDeck } from "./coreModel.ts";
 function importedDeckFixture() {
   const card = createCoreCard({
     id: "item_anki",
+    sourceCardId: "20",
     source: "anki-apkg",
     originalFront: "Frage",
     originalBack: "Antwort",
     reviewState: { state: "new", dueAt: "2026-08-01T08:00:00.000Z" },
   });
-  const original = card.variants.find((variant) => variant.isOriginal);
-  assert.ok(original);
-  const withIdentity = {
-    ...card,
-    variants: [{
-      ...original,
-      meta: {
-        ...original.meta,
-        ankiImportIdentityV1: {
-          version: 1,
-          kind: "card",
-          guid: "guid",
-          noteId: "10",
-          cardId: "20",
-          notetypeId: "1",
-          templateOrdinal: 0,
-          templateName: "Card 1",
-          deckId: "30",
-          deckPath: "Import",
-          importGroupId: "group",
-        },
-      },
-    }],
-  };
-  const deck = createCoreDeck({ id: "deck_anki", name: "Import", source: "anki-apkg", cards: [withIdentity] });
-  return { deck, state: deck.cards[0].learningItemState };
+  const deck = createCoreDeck({ id: "deck_anki", name: "Import", source: "anki-apkg", cards: [card] });
+  return { deck, state: deck.cards[0].reviewState };
 }
 
 test("Anki revlog rows map ratings, response time and negative learning intervals", () => {
@@ -67,10 +44,10 @@ test("revlog import replays mapped history into FSRS once and remains determinis
   assert.equal(first.summary.unmapped, 1);
   assert.equal(first.summary.replayedCards, 1);
   assert.equal(first.decks[0].reviewEvents.length, 1);
-  assert.equal(first.decks[0].cards[0].learningItemState.state, "learning");
-  assert.equal(first.decks[0].cards[0].learningItemState.reps, 1);
+  assert.equal(first.decks[0].cards[0].reviewState.state, "learning");
+  assert.equal(first.decks[0].cards[0].reviewState.reps, 1);
   assert.equal(
-    (first.decks[0].cards[0].learningItemState.sourceSchedulerData as Record<string, unknown>).migrationMethod,
+    (first.decks[0].cards[0].reviewState.sourceSchedulerData as Record<string, unknown>).migrationMethod,
     "revlog-replay",
   );
   assert.equal(first.decks[0].reviewEvents[0].flags.source, "anki_revlog");
@@ -80,5 +57,5 @@ test("revlog import replays mapped history into FSRS once and remains determinis
   assert.equal(second.summary.duplicates, 1);
   assert.equal(second.summary.replayedCards, 0);
   assert.equal(second.decks[0].reviewEvents.length, 1);
-  assert.deepEqual(second.decks[0].cards[0].learningItemState, first.decks[0].cards[0].learningItemState);
+  assert.deepEqual(second.decks[0].cards[0].reviewState, first.decks[0].cards[0].reviewState);
 });

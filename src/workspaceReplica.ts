@@ -41,6 +41,8 @@ export interface AccountStudyOverview {
   dayKey: string;
   introducedTodayByDeck: Record<string, number>;
   reviewedTodayByDeck: Record<string, number>;
+  availableNewByDeck: Record<string, number>;
+  availableLearningByDeck: Record<string, number>;
   dueByDeck: Record<string, number>;
   forecastByDay: Record<string, number>;
   generatedAt: string;

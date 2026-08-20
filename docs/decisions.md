@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-11
+**Stand:** 2026-08-19
 
 ## ADR-Format
 
@@ -167,7 +167,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Status:** angenommen
 **Kontext:** Ruhigere Wochentage beschreiben die persönliche Verfügbarkeit und nicht die Lernlogik eines einzelnen Stapels. Eine stapelbezogene Copy-on-apply-Vorlage könnte dieselbe Woche widersprüchlich mehrfach abbilden. Zugleich darf eine Lastverteilung die FSRS-Gedächtnisparameter nicht durch eine zweite Intervallformel ersetzen.
 **Entscheidung:** Globale Scheduler-Präferenzen der Version 2 führen für Montag bis Sonntag jeweils `Normal`, `Weniger` oder `Minimal`. Sieben gleiche Werte sind neutral. Ausschließlich neu berechnete Review-Tagesintervalle von 3 bis 90 Tagen dürfen innerhalb des offiziellen `ts-fsrs.get_fuzz_range()` auf den nach accountweiter Fälligkeitslast und Tagesgewicht besten Lerntag gelegt werden. Vorschau und Commit verwenden dieselbe Lastmomentaufnahme, Profilzeitzone, Tagesgrenze und DST-sichere Kalenderaddition. Nur `dueAt` und das tatsächliche Intervall ändern sich; Stabilität, Schwierigkeit und Zielerinnerung bleiben das rohe FSRS-Ergebnis.
-**Konsequenzen:** Änderungen wirken nicht rückwirkend und erzeugen keine Datenbankmigration. Profil-JSONB und Portabilität transportieren sieben additive Werte; ein Import ohne ausdrückliches `easyDays`-Feld lässt die lokale Einstellung unverändert. Geschwisterverteilung, freie Gewichte, Kalenderausnahmen, Urlaubsmodus und persönliche FSRS-Optimierung bleiben außerhalb.
+**Konsequenzen:** Änderungen wirken nicht rückwirkend und erzeugen keine Datenbankmigration. Das Profil-JSONB transportiert sieben additive Werte. Geschwisterverteilung, freie Gewichte, Kalenderausnahmen, Urlaubsmodus und persönliche FSRS-Optimierung bleiben außerhalb.
 **Datum:** 2026-08-11
 
 ## ADR-020 — Accountgebundene IndexedDB-Entities und Delta-Sync
@@ -180,7 +180,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-021 — Dynamische Lerninhalte und sichere Anki-Projektion
 
-**Status:** angenommen
+**Status:** abgelöst durch ADR-029
 **Kontext:** Anki-Felder sind frei benennbar, Notetypes können mehrere Felder und Templates besitzen und CSS sowie Kartengenerierungsregeln bestimmen die Darstellung. Eine Zuordnung über die ersten zwei Felder, Feldnamenregexe oder feste CoRe-Kartentypen verliert Information und kann beim Reimport lokale Änderungen oder getrennte Anki-Card-Zustände beschädigen.
 **Entscheidung:** CoRe verwendet `LearningItemDocumentV1` als feldzentrierte Inhaltswahrheit und unveränderliche, über einen semantischen Hash deduplizierbare `NoteTypeDefinitionV1`-Revisionen. Jede APKG-Quelle erhält zusätzlich einen unveränderlichen Snapshot einschließlich bekannter Konfiguration und unbekannter Rohbytes. `applyLearningItemContent()` besitzt Validierung, Projektion und Variantenidentität; `renderLearningItemPresentation()` ist der gemeinsame sichere Renderer für Vorschau, Kartenverwaltung und Review. Dokumentierte statische Anki-Semantik wird in einem opaken Sandbox-Frame ohne Scripts und Netzwerkzugriff ausgeführt; unsichere Funktionen werden erhalten, nicht ausgeführt und führen transparent in eine Feldansicht. CSV- und Tabellenfelder werden ausschließlich deterministisch und nutzerbestätigt zugeordnet. Der initiale Anki-Lernstand wird pro Card mit der Priorität FSRS-Memory-State, Revlog-Replay, klassischer Kartenstatus, neue Karte angenähert; die importierten Revlog-Ereignisse bleiben unabhängig davon append-only Analytics.
 **Konsequenzen:** Bilder und Cloze sind Inhalt beziehungsweise Editoraktion statt eigener primärer Kartentypen; Reverse und Multiple Choice sind Review-Rezepte. Importierte Feldwerte sind editierbar, ihr Schema und ihre Templates bleiben zunächst strukturell schreibgeschützt. Template-JavaScript, Add-on-/Custom-Filter, externe Ressourcen und native LaTeX werden nicht ausgeführt. Anki-Code oder `rslib` wird nicht in das Produktionsbundle übernommen. ADR-015 bleibt für Statistik und append-only Ereignisse gültig, ist aber hinsichtlich des Verbots einer initialen, diagnostizierten Schedulermigration abgelöst.
@@ -188,7 +188,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-022 — Fachliche Revisionen und vollständiger inkrementeller Sync
 
-**Status:** angenommen
+**Status:** teilweise abgelöst durch ADR-029
 **Kontext:** Der bisherige Push-Pfad lud Cloud-Deltas nur beim Login, behandelte einen Batchkonflikt als Fehler des ganzen Blocks und ließ die konfliktverursachende Mutation nach Cloud-Wins bestehen. Technische Felder und Reviewprojektionen erhöhten Inhaltsrevisionen; die Einführung der verpflichtenden Originalvariante machte dadurch abgeleitete Lücken zu Benutzerkonflikten.
 **Entscheidung:** `syncNow()` führt accountgebunden genau einen zusammengefassten Zyklus aus lokalem Flush, isoliertem Outbox-Push, `sync_change_id`-Delta-Pull und Konfliktaktualisierung aus. Realtime wird nicht eingeführt. `revision` zählt nur fachlichen Inhalt; technische Projektionen sind weder Konfliktfelder noch alleinige Konfliktursache. Reviewereignisse bleiben append-only, erhöhen keine Inhaltsrevision und projizieren nur in zeitlicher Reihenfolge. Fehlende Originalvarianten sowie technische Alt-Abweichungen werden idempotent repariert. Aktive Konflikte sind je Entität eindeutig; Richtungsentscheidungen entfernen die Zielmutation und betreffen ausschließlich die aktuelle Konfliktmenge.
 **Konsequenzen:** Autosync nutzt Debounce, Online, Fokus und ein sichtbares 0/1/5/15/30-Minuten-Intervall mit Standard 5. Der Browser kann einen Netzwerkabschluss beim Schließen nicht garantieren; IndexedDB bleibt die Wiederanlaufwahrheit. Konfliktkarten werden quarantänisiert, konfliktfreie Karten, Reviews und Medien bleiben benutzbar. Ein kompletter Account-Override, Supabase Realtime, ein Desktop-Wrapper und ein gemeinsamer Mediensync gehören nicht zu dieser Entscheidung.
@@ -238,6 +238,14 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 **Status:** angenommen
 **Kontext:** Die noch unveröffentlichte hybride Replica enthielt zugleich alte Voll-Delta-RPCs, eine mehrstufige SQL-Migrationskette, IndexedDB-Upgrades, lokale Stapelprojektionen und Backfillzustände. Da noch kein externer Datenbestand erhalten werden muss, würden diese Pfade dauerhaft Kosten und Fehlermöglichkeiten für einen nie benötigten Übergang erzeugen.
-**Entscheidung:** Supabase wird aus genau einer frischen Baseline aufgebaut; Auth-Konten, App-Daten und Storage dürfen vor dem ersten Release nach bestätigter Projekt-Ref ersatzlos gelöscht werden. Lokal existiert nur `core.workspace.entities.v2.<userId>` mit Schema-Version 1. `card_catalog`, zeitstabile `deck_study_summaries` und bedarfsweise hydrierte Kartenkörper sind der einzige Replica-Pfad. Fälligkeit stammt bei vollständigem Katalog aus dem zusammengesetzten lokalen Index und sonst aus dem ersten `AccountStudyOverview`. Statistik ist online server-first und offline ausschließlich ein passender Snapshot plus ungesendete Reviews.
-**Konsequenzen:** Es gibt keine v1-/v5-/v6-Kompatibilität, Voll-Delta-RPCs, `due_count`, Katalog-Backfills, Migrationsmarker, Legacy-localStorage-Übernahme oder parallele Projektion. Bootstrap-Hörer enden nach der ersten bestätigten Baseline. Die einzelne Migration, Verify-SQL, generierte Typen, RLS und Performance-Nachweise müssen vor einem destruktiven Remote-Reset grün sein; die genaue Projekt-Ref wird unmittelbar davor angezeigt und geprüft. Nach dem ersten extern genutzten Release ist ein ersatzloser Reset nicht mehr zulässig.
+**Entscheidung:** Supabase wird aus genau einer frischen Baseline aufgebaut; Auth-Konten, App-Daten und Storage dürfen vor dem ersten Release nach bestätigter Projekt-Ref ersatzlos gelöscht werden. Lokal existiert nur `core.workspace.entities.v3.<userId>` mit Schema-Version 1. `card_catalog`, zeitstabile `deck_study_summaries` und bedarfsweise hydrierte Kartenkörper sind der einzige Replica-Pfad. Statistik ist online server-first und offline ausschließlich ein passender Snapshot plus ungesendete Bewertungen.
+**Konsequenzen:** Es gibt keine v1-/v5-/v6-Kompatibilität, Voll-Delta-RPCs, `due_count`, Katalog-Backfills, Migrationsmarker, Legacy-localStorage-Übernahme oder parallele Projektion. Bootstrap-Hörer enden nach der ersten bestätigten Baseline. Baseline und additive Produktmigrationen, Verify-SQL, generierte Typen, RLS und Performance-Nachweise müssen vor einem destruktiven Remote-Reset grün sein; die genaue Projekt-Ref wird unmittelbar davor angezeigt und geprüft. Nach dem ersten extern genutzten Release ist ein ersatzloser Reset nicht mehr zulässig.
 **Datum:** 2026-08-17
+
+## ADR-029 — Anki-nahes Kartenmodell ohne Versionsverlauf
+
+**Status:** angenommen
+**Kontext:** Wiederherstellbare Inhaltsversionen, persistierte Quellen und als Varianten modellierte Anki-Karten machten CoRe komplexer als Anki. Vor dem ersten Release muss kein bestehender Datenbestand erhalten werden.
+**Entscheidung:** Ein `LearningItem` ist genau eine planbare Karte. Reverse erzeugt zwei Karten, jede Cloze-Gruppe und jeder Anki-Card-Datensatz eine Karte. Nur KI-Umformulierungen bleiben untergeordnete Varianten ohne eigenen Lernstatus. Versionslogs, Restore, Notizinstanz-IDs, Quellsnapshots, Quelldokumente und CoRe-JSON-Portabilität entfallen vollständig. Manuelle Neuplanung ändert ausschließlich `dueAt` und technischen Zeitstempel und wird über den bestehenden atomaren Reviewpfad als idempotentes Ereignis mit `rating: "manual"` synchronisiert.
+**Konsequenzen:** Supabase und IndexedDB starten direkt mit einer neuen Baseline ohne Migration oder Altlesepfad. Manuelle Ereignisse beeinflussen weder Statistik noch FSRS. Bei konkurrierenden Offline-Ereignissen gewinnt `(answeredAt, id)`. CoRe erhält beim Neuplanen neuer Karten bewusst deren Status und weicht darin von Anki ab.
+**Datum:** 2026-08-20

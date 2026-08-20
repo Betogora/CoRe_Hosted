@@ -1,4 +1,4 @@
-import type { CardType, SourceAnchor } from "./coreTypes.ts";
+import type { CardType } from "./coreTypes.ts";
 
 export type ManualPinnedField = "front" | "back";
 export type ManualFocusTarget = ManualPinnedField | "option-0";
@@ -11,7 +11,6 @@ export interface ManualCreationDraft {
   correctOptionIndices: number[];
   tags: string;
   selection: string;
-  sourceAnchor: SourceAnchor | null;
 }
 
 export interface ManualBatchSessionState {
@@ -37,7 +36,6 @@ export function createManualDraft(cardType: CardType = "basic"): ManualCreationD
     correctOptionIndices: [0],
     tags: "",
     selection: "",
-    sourceAnchor: null,
   };
 }
 
@@ -55,10 +53,6 @@ export function resetManualDraft(
   draft: ManualCreationDraft,
   pinnedFields: ManualBatchSessionState["pinnedFields"],
 ): ManualCreationDraft {
-  const keepSourceAnchor = draft.sourceAnchor?.targetField === "front" || draft.sourceAnchor?.targetField === "back"
-    ? pinnedFields[draft.sourceAnchor.targetField]
-    : false;
-
   return {
     ...draft,
     front: pinnedFields.front ? draft.front : "",
@@ -66,8 +60,7 @@ export function resetManualDraft(
     answerOptions: ["", ""],
     correctOptionIndices: [0],
     tags: "",
-    selection: keepSourceAnchor ? draft.selection : "",
-    sourceAnchor: keepSourceAnchor ? draft.sourceAnchor : null,
+    selection: "",
   };
 }
 

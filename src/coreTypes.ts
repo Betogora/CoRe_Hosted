@@ -16,27 +16,16 @@ export type DeckSource =
   | "manual"
   | "text-import"
   | "csv-import"
-  | "json-import"
   | "spreadsheet-import";
 export type LearningItemSourceType =
   | "manual"
   | "text_import"
   | "csv_import"
-  | "json_import"
   | "anki_import"
   | "mixed";
-export type CardVariantType =
-  | "basic"
-  | "reverse"
-  | "cloze"
-  | "mcq"
-  | "transfer"
-  | "case"
-  | "image_occlusion"
-  | "custom";
-export type VariantGenerationSource = "original" | "ai_generated" | "user_edited" | "imported";
-export type ReviewableType = "learning_item" | "card" | "variant" | "card_family";
-export type TransformType = "original" | "rephrase" | "front_back_style_shift" | "cloze_conversion";
+export type CardVariantType = "basic";
+export type ReviewableType = "card" | "variant";
+export type TransformType = "rephrase";
 export type VariantQualityStatus = "draft" | "active" | "rejected" | "flagged" | "disabled";
 export type MaturityBand = "new" | "learning" | "young" | "mature" | "variant_ready" | "mastered";
 export type ReviewSchedulerState = "new" | "learning" | "review" | "relearning";
@@ -100,22 +89,6 @@ export interface UiPreferences {
 
 export type SyncIntervalMinutes = 0 | 1 | 5 | 15 | 30;
 
-export interface SourceDocument {
-  id: string;
-  ownerId: string;
-  fileName: string;
-  mimeType: string;
-  text: string;
-  storageUrl: string;
-  textExtractionStatus: string;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-  revision: number;
-  deletedAt: string | null;
-  updatedByDeviceId: string | null;
-}
-
 export interface ReviewEvent {
   id: string;
   userId: string;
@@ -125,7 +98,7 @@ export interface ReviewEvent {
   reviewableType: ReviewableType;
   reviewableId: string;
   sourceCardId: string;
-  rating: ReviewRating;
+  rating: ReviewRating | "manual";
   answeredAt: string;
   responseTimeMs: number | null;
   schedulerBefore: unknown;
@@ -136,7 +109,7 @@ export interface ReviewEvent {
 }
 
 export interface CloudTombstone {
-  entityTable: "decks" | "cards" | "card_variants" | "source_documents" | "note_type_definitions";
+  entityTable: "decks" | "cards" | "card_variants" | "note_type_definitions";
   entityId: string;
   revision: number;
   deletedAt: string;
@@ -341,15 +314,6 @@ export interface ReviewRecipe {
   sourceConfig: Record<string, unknown>;
 }
 
-export interface AnkiDefinitionSnapshot {
-  sourceFormat: "legacy" | "latest";
-  sourceNotetypeId: string;
-  sourceName: string;
-  rawConfigBase64: string | null;
-  decodedConfig: Record<string, unknown>;
-  unknownData: Record<string, unknown>;
-}
-
 export interface NoteTypeDefinitionV1 {
   id: string;
   revision: number;
@@ -361,7 +325,6 @@ export interface NoteTypeDefinitionV1 {
   recipes: ReviewRecipe[];
   css: string;
   latexConfig: Record<string, unknown> | null;
-  sourceDefinitionSnapshot: AnkiDefinitionSnapshot | null;
   supersedesId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -372,62 +335,6 @@ export type VariantProjection =
   | { kind: "template"; recipeId: string; instanceKey: string }
   | { kind: "cloze"; recipeId: string; clozeOrdinal: number }
   | { kind: "image-occlusion"; recipeId: string; regionKey: string };
-
-export interface ForeignNoteSnapshot {
-  id: string;
-  schemaVersion: 1;
-  sourceKind: "anki-apkg" | "csv";
-  importFingerprint: string;
-  previousSnapshotId: string | null;
-  definitionVersionId: string | null;
-  sourcePayload: Record<string, unknown>;
-  createdAt: string;
-}
-
-export interface ImmutableOriginal {
-  front: RichTextContent;
-  back: RichTextContent;
-  fields: CardField[];
-  html: RichTextContent;
-  capturedAt: string;
-  source: DeckSource;
-  contentHash: string;
-}
-
-export interface PdfBoundingBox {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
-
-export interface SourceAnchor {
-  id: string;
-  documentId: string | null;
-  documentName: string;
-  cardId: string | null;
-  variantId: string | null;
-  pageNumber: number | null;
-  textQuote: string;
-  charStart: number | null;
-  charEnd: number | null;
-  bbox: PdfBoundingBox | null;
-  confidence: number | null;
-  targetField: string;
-  createdAt: string;
-}
-
-export interface VersionEntry {
-  id: string;
-  objectType: string;
-  objectId: string;
-  changeType: string;
-  before: unknown;
-  after: unknown;
-  actorId: string;
-  reason: string;
-  createdAt: string;
-}
 
 export interface VariantPerformance {
   id: string;
@@ -459,20 +366,14 @@ export interface VariantFeedback {
   createdAt: string;
 }
 
-export interface CardVariantBase {
+export interface CardVariant {
   id: string;
-  learningItemId: string;
   cardId: string;
-  sourceCardId: string;
   variantType: CardVariantType;
   variantLevel: number;
   front: RichTextContent;
   back: RichTextContent;
   explanation: string;
-  hintsJson: unknown;
-  answerOptionsJson: unknown;
-  expectedAnswerJson: unknown;
-  generationSource: VariantGenerationSource;
   isActive: boolean;
   transformType: TransformType;
   transformProfile: Record<string, unknown>;
@@ -482,41 +383,19 @@ export interface CardVariantBase {
   changedRecognitionCues: string[];
   qualityStatus: VariantQualityStatus;
   contentHash: string;
-  sourceAnchors: SourceAnchor[];
-  reviewState: ReviewState | null;
   performance: VariantPerformance;
   feedback: VariantFeedback[];
-  versionLog: VersionEntry[];
   createdAt: string;
   updatedAt: string;
   revision: number;
   deletedAt: string | null;
   updatedByDeviceId: string | null;
   meta: Record<string, unknown>;
-  projection: VariantProjection;
-  studyDeckId: string | null;
-  schedulingMode: "independent-card" | "adaptive-presentation";
-  renderRevision: number;
 }
-
-export interface OriginalCardVariant extends CardVariantBase {
-  isOriginal: true;
-  parentVariantId: null;
-  anchorVariantId: null;
-}
-
-export interface DerivedCardVariant extends CardVariantBase {
-  isOriginal: false;
-  parentVariantId: string;
-  anchorVariantId: string;
-}
-
-export type CardVariant = OriginalCardVariant | DerivedCardVariant;
 
 export interface LearningItemCreationBase {
   deckId: string;
   tags?: string[];
-  sourceAnchors?: SourceAnchor[];
   mediaRefs?: MediaRef[];
 }
 
@@ -669,7 +548,6 @@ export interface CoreState {
 
 export interface LearningItem {
   id: string;
-  noteId: string | null;
   deckId: string;
   title: string;
   canonicalQuestion: RichTextContent;
@@ -680,24 +558,20 @@ export interface LearningItem {
   sourceRefId: string | null;
   source: DeckSource;
   sourceCardId: string | null;
-  sourceNoteId: string | null;
   originalFront: RichTextContent;
   originalBack: RichTextContent;
   originalFields: CardField[];
   originalTags: string[];
   originalHtml: RichTextContent;
-  immutableOriginal: ImmutableOriginal;
   mediaRefs: MediaRef[];
-  sourceAnchors: SourceAnchor[];
   kind: CardType;
   cardType: CardType;
   draftStatus: DraftStatus;
   status: LearningItemStatus;
   contentHash: string;
-  learningItemState: ReviewState;
   reviewState: ReviewState;
   variants: CardVariant[];
-  versionLog: VersionEntry[];
+  projection: VariantProjection;
   coreState: CoreState;
   createdAt: string;
   updatedAt: string;
@@ -708,7 +582,6 @@ export interface LearningItem {
   meta: Record<string, unknown>;
   noteTypeDefinitionId: string;
   contentDocument: LearningItemDocumentV1;
-  latestSourceSnapshotId: string | null;
   contentRevision: number;
 }
 
@@ -731,17 +604,14 @@ export interface Deck {
   importMeta: Record<string, unknown>;
   mediaAssets: MediaAssetReference[];
   deckSettings: DeckSettings;
-  sourceDocuments: SourceDocument[];
   cards: LearningItem[];
   reviewEvents: ReviewEvent[];
-  versionLog: VersionEntry[];
 }
 
 export interface MaterializedImportCommitGraph {
   kind?: never;
   decks: Deck[];
   noteTypeDefinitions: NoteTypeDefinitionV1[];
-  sourceSnapshots: ForeignNoteSnapshot[];
 }
 
 export interface WorkerImportCommitGraph {
@@ -761,7 +631,6 @@ export interface ImportVerificationScope {
   deckIds: string[];
   cardIds: string[];
   variantIds: string[];
-  sourceSnapshots: Array<{ id: string; cardId: string; attachToCard: boolean }>;
   noteTypeDefinitionIds: string[];
   reviewEventIds: string[];
 }
@@ -770,18 +639,15 @@ export interface ImportVerificationRepairScope {
   deckIds?: string[];
   cardIds?: string[];
   variantIds?: string[];
-  sourceSnapshotIds?: string[];
   noteTypeDefinitionIds?: string[];
   reviewEventIds?: string[];
 }
 
 export interface AppState {
-  version: 4;
+  version: 5;
   profile: Profile;
   decks: Deck[];
-  documents: SourceDocument[];
   noteTypeDefinitions: NoteTypeDefinitionV1[];
-  learningItemSourceSnapshots: ForeignNoteSnapshot[];
   cloudTombstones: CloudTombstone[];
   updatedAt: string;
 }

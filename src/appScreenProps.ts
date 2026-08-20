@@ -26,7 +26,6 @@ type NavigateToView = (
 ) => AppRoute;
 type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
 type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: string[] };
-type CardVariantInput = { front: string; back: string; variantLevel?: number; generationSource?: "original" | "ai_generated" | "user_edited" | "imported"; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
 type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 
 export interface CardDraftGuard {
@@ -114,9 +113,8 @@ export interface DecksScreenProps {
   onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Promise<LearningItem | null>;
   onDuplicateCard: (deckId: string, cardId: string) => Promise<LearningItem | null>;
   onDeleteCard: (deckId: string, cardId: string) => Promise<LearningItem | null>;
-  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem) => Promise<LearningItem | null>;
-  onRestoreCard: (deckId: string, cardId: string, versionId: string) => unknown;
-  onAddVariant: (deckId: string, cardId: string, variant: CardVariantInput) => unknown;
+  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem, previousStatus: LearningItem["status"]) => Promise<LearningItem | null>;
+  onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<LearningItem[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
   selectedDeckId: string | null;
   selectedCardId: string | null;
@@ -184,8 +182,6 @@ export interface SettingsScreenProps {
   globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
   onSaveSettings: (draft: GlobalSettingsDraft) => Profile | null | Promise<Profile | null>;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
-  onCreateExport: () => Promise<string>;
-  onImportExport: (value: string) => Promise<unknown>;
   onSyncNow: () => Promise<unknown>;
   onListConflicts: (options?: { refreshRemote?: boolean }) => Promise<unknown[]>;
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;

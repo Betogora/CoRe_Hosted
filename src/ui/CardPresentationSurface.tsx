@@ -97,7 +97,7 @@ export function CardPresentationSurface({
   React.useEffect(() => () => frameResizeObserverRef.current?.disconnect(), []);
 
   const effectivePresentation = React.useMemo(() => {
-    if (!item || !variant || !definition) return null;
+    if (!item || !definition) return null;
     return renderLearningItemPresentation({ item, variant, definition, side, surface, theme, fontFaceCss });
   }, [definition, fontFaceCss, item, side, surface, theme, variant]);
   const srcdoc = React.useMemo(

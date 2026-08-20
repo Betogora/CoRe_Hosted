@@ -1,206 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  createBasicLearningItem,
-  createCoreDeck,
-  getActiveVariants,
-  getAnswerSideAnchorMiniCard,
-  getOriginalVariant,
-} from "./coreModel.ts";
-import { getLearningItemMaturity, getVariantGenerationRecommendation } from "./coreVariantService.ts";
-import {
-  createImportFingerprint,
-  findDuplicateLearningItem,
-  importJsonAsNormalizedDeck,
-  importNormalizedDeck,
-  normalizeImportDeck,
-  normalizeImportItem,
-  normalizeImportVariant,
-  normalizeTextForFingerprint,
-  parseJsonToNormalizedImport,
-} from "./importService.ts";
-import { answerVariant, getNextReviewItem } from "./reviewService.ts";
+import { importNormalizedDeck } from "./importService.ts";
 
-function sampleNormalizedDeck() {
-  return {
-    title: "Normalized Import",
-    description: "Dry-run deck",
-    sourceType: "json_import",
-    tags: ["medizin", "import"],
-    items: [
-      {
-        canonicalQuestion: "Was ist MRSA?",
-        canonicalAnswer: "Methicillin-resistenter Staphylococcus aureus.",
-        tags: "mikro infektion",
-        sourceType: "json_import",
-        sourceExternalId: "note-1",
-        variants: [
-          {
-            front: "Wofür steht MRSA?",
-            back: "Methicillin-resistenter Staphylococcus aureus.",
-            variantType: "basic",
-            variantLevel: 2,
-            generationSource: "imported",
-          },
-        ],
-      },
-      {
-        canonicalQuestion: "Was bedeutet Kolonisation?",
-        canonicalAnswer: "Besiedlung ohne zwingende Erkrankung.",
-        sourceExternalId: "note-2",
-        variants: [
-          {
-            front: "Wie unterscheidet sich Kolonisation von Infektion?",
-            back: "Kolonisation bedeutet Besiedlung; Infektion bedeutet Erkrankungsreaktion.",
-            variantType: "case",
-            variantLevel: 3,
-          },
-        ],
-      },
-    ],
-  };
-}
-
-test("normalized import format normalizes decks, items and variants", () => {
-  const deckResult = normalizeImportDeck(sampleNormalizedDeck());
-  const itemResult = normalizeImportItem({
-    canonicalQuestion: "  Frage? ",
-    canonicalAnswer: " Antwort. ",
-    tags: "a, b #c",
-    variants: [{ front: " Variante? ", back: " Antwort. ", variantLevel: 9, generationSource: "unknown" }],
-  });
-  const variantResult = normalizeImportVariant({ front: "F", back: "B" });
-  const invalidItem = normalizeImportItem({ canonicalQuestion: "", canonicalAnswer: "" });
-
-  assert.equal(deckResult.errors.length, 0);
-  assert.equal(deckResult.normalizedDeck.title, "Normalized Import");
-  assert.equal(deckResult.normalizedDeck.items.length, 2);
-  assert.deepEqual(itemResult.item.tags, ["a", "b", "c"]);
-  assert.equal(itemResult.item.variants.some((variant) => variant.isOriginal), true);
-  assert.equal(itemResult.item.variants.find((variant) => !variant.isOriginal).anchorToOriginal, true);
-  assert.equal(itemResult.item.variants.find((variant) => !variant.isOriginal).variantLevel, 3);
-  assert.equal(variantResult.variant.variantType, "basic");
-  assert.equal(variantResult.variant.variantLevel, 2);
-  assert.equal(variantResult.variant.generationSource, "imported");
-  assert.equal(invalidItem.errors.length >= 2, true);
-});
-
-test("dry run returns a report without creating core objects", () => {
-  const result = importNormalizedDeck(sampleNormalizedDeck(), { dryRun: true });
-
-  assert.equal(result.deck, null);
-  assert.equal(result.report.dryRun, true);
-  assert.equal(result.report.createdLearningItems, 2);
-  assert.equal(result.report.createdVariants, 2);
-  assert.equal(result.report.previewItems.length, 2);
-});
-
-test("commit normalized import creates FSRS learning items and anchored imported variants", () => {
-  const result = importNormalizedDeck(sampleNormalizedDeck(), { dryRun: false });
-  const deck = result.deck;
-  const imported = deck.cards[0];
-  const original = getOriginalVariant(imported);
-  const variant = getActiveVariants(imported)[0];
-
-  assert.equal(deck.name, "Normalized Import");
-  assert.equal(deck.source, "json-import");
-  assert.equal(deck.cards.length, 2);
-  assert.equal(imported.reviewState.schedulerVersion, "fsrs_6_v1");
-  assert.equal(imported.reviewState.state, "new");
-  assert.equal(imported.reviewState.reps, 0);
-  assert.equal(getLearningItemMaturity(imported).stage, "new");
-  assert.equal(getVariantGenerationRecommendation(imported).shouldSuggest, false);
-  assert.ok(original);
-  assert.equal(original.isOriginal, true);
-  assert.equal(variant.generationSource, "imported");
-  assert.ok(original);
-  assert.equal(variant.anchorVariantId, original.id);
-  assert.equal(getAnswerSideAnchorMiniCard(imported, variant).shouldShow, true);
-  assert.equal(getNextReviewItem(deck)?.learningItemId, imported.id);
-});
-
-test("duplicate detection supports source ids, fingerprints and merge strategies", () => {
-  const existingItem = createBasicLearningItem("deck_existing", "Was ist MRSA?", "Methicillin-resistenter Staphylococcus aureus.", {
-    sourceType: "json_import",
-    sourceExternalId: "note-1",
-  });
-  const existingDeck = createCoreDeck({ id: "deck_existing", name: "Bestehend", source: "json-import", cards: [existingItem] });
-  const normalizedItem = normalizeImportItem(sampleNormalizedDeck().items[0]).item;
-  const duplicate = findDuplicateLearningItem(existingDeck, normalizedItem);
-  const skipped = importNormalizedDeck(sampleNormalizedDeck(), {
-    existingDecks: [existingDeck],
-    mergeStrategy: "skip_duplicates",
-  });
-  const createNew = importNormalizedDeck(sampleNormalizedDeck(), {
-    existingDecks: [existingDeck],
-    mergeStrategy: "create_new",
-  });
-  const updateExisting = importNormalizedDeck(sampleNormalizedDeck(), {
-    existingDecks: [existingDeck],
-    mergeStrategy: "update_existing",
-  });
-
-  assert.equal(normalizeTextForFingerprint("<b>Ärzte</b>  Test"), "ärzte test");
-  assert.equal(createImportFingerprint(normalizedItem).startsWith("importfp_"), true);
-  assert.equal(duplicate.duplicate, true);
-  assert.equal(duplicate.reason, "sourceExternalId");
-  assert.equal(skipped.report.duplicates.length, 1);
-  assert.equal(skipped.report.skipped.length, 1);
-  assert.equal(skipped.deck.cards.length, 1);
-  assert.equal(createNew.report.warnings.some((warning: string|string[]) => warning.includes("mögliche Dublette")), true);
-  assert.equal(createNew.deck.cards.length, 2);
-  assert.equal(updateExisting.deck.cards.length, 1);
-  assert.equal(updateExisting.report.warnings.some((warning: string|string[]) => warning.includes("update_existing")), true);
-});
-
-test("JSON parser produces normalized decks and clear reports", () => {
-  const jsonImport = importJsonAsNormalizedDeck(JSON.stringify(sampleNormalizedDeck()));
-  const invalidJson = parseJsonToNormalizedImport("{no-json");
-
-  assert.equal(jsonImport.deck.cards.length, 2);
-  assert.equal(invalidJson.errors.length, 1);
-});
-
-test("imported variants review through central item state and fallback", () => {
+test("normalisierter Import materialisiert jede Quellkarte als volle Karte", () => {
   const result = importNormalizedDeck({
-    title: "Fallback Import",
-    sourceType: "json_import",
-    items: [
-      {
-        canonicalQuestion: "Was ist MRSA?",
-        canonicalAnswer: "Methicillin-resistenter Staphylococcus aureus.",
-        variants: [
-          { front: "Level 1 MRSA?", back: "Methicillin-resistenter Staphylococcus aureus.", variantLevel: 1 },
-          { front: "Level 2 MRSA?", back: "Methicillin-resistenter Staphylococcus aureus.", variantLevel: 2 },
-          { front: "Level 3 MRSA?", back: "Methicillin-resistenter Staphylococcus aureus.", variantLevel: 3 },
-        ],
-      },
-    ],
-  });
-  const item = result.deck.cards[0];
-  const variants = getActiveVariants(item);
-  const level2 = variants.find((variant) => variant.variantLevel === 2);
-  const level3 = variants.find((variant) => variant.variantLevel === 3);
-  assert.ok(level3);
-  const failed = answerVariant(result.deck, item.id, level3.id, "again", {
-    now: "2026-07-07T10:00:00.000Z",
-  });
-  const updatedItem = failed.deck.cards[0];
-  assert.ok(level3);
-  const updatedLevel3 = getActiveVariants(updatedItem).find((variant) => variant.id === level3.id);
-  const next = getNextReviewItem(failed.deck, { now: "2026-07-07T10:00:00.000Z" });
-
-  assert.equal(updatedItem.reviewState.lastRating, "again");
-  assert.equal(updatedItem.reviewState.fallbackUntilCorrect, true);
-  assert.ok(level2);
-  assert.equal(updatedItem.reviewState.forcedVariantId, level2.id);
-  assert.ok(updatedLevel3);
-  assert.equal(updatedLevel3.performance.wrongCount, 1);
-  assert.equal(failed.deck.reviewEvents.length, 1);
-  assert.ok(level2);
-  assert.ok(next);
-  assert.equal(next.variant.id, level2.id);
-  assert.ok(next);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(next.fallbackInfo.active, true);
+    schemaVersion: 1,
+    title: "Anki",
+    sourceType: "anki_import",
+    items: [{
+      canonicalQuestion: "Notiz",
+      canonicalAnswer: "Antwort",
+      cards: [
+        { front: "Q1", back: "A1", sourceExternalId: "anki-card-1" },
+        { front: "Q2", back: "A2", sourceExternalId: "anki-card-2" },
+      ],
+    }],
+  }, { dryRun: false });
+  assert.equal(result.deck?.cards.length, 2);
+  assert.deepEqual(result.deck?.cards.map((card: any) => card.sourceCardId), ["1", "2"]);
+  assert.equal(result.deck?.cards.every((card: any) => card.variants.length === 0), true);
 });

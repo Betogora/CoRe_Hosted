@@ -35,7 +35,7 @@ setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async 
   await resetTestAccount(environment);
 
   await page.goto(hostedE2EEntryPath());
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
   await page.getByLabel("E-Mail").fill(environment.email);
   await page.getByLabel("Passwort", { exact: true }).fill(environment.password);
   await page.locator("form").getByRole("button", { name: "Anmelden", exact: true }).click();

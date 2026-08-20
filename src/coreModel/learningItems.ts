@@ -1,131 +1,187 @@
 import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
-import type { CardField, CardType, CardVariant, CardVariantBase, CardVariantType, DeckSource, DraftStatus, LearningItem, LearningItemDocumentV1, LearningItemSourceType, LearningItemStatus, LearningItemStudyStatePatch, ReviewState, SourceAnchor, VariantGenerationSource, VariantPerformance, VariantProjection, VersionEntry } from "../coreTypes.ts";
-import { CARD_VARIANT_TYPES, CORE_CARD_TYPES, CORE_DECK_SOURCES, LEARNING_ITEM_SOURCE_TYPES, VARIANT_GENERATION_SOURCES, VARIANT_STATUSES, VARIANT_TRANSFORMS, makeId, normalizeTags, stableContentHash } from "./coreValues.ts";
+import type {
+  CardField,
+  CardType,
+  CardVariant,
+  DeckSource,
+  DraftStatus,
+  LearningItem,
+  LearningItemDocumentV1,
+  LearningItemSourceType,
+  LearningItemStatus,
+  LearningItemStudyStatePatch,
+  ReviewState,
+  VariantPerformance,
+  VariantProjection,
+} from "../coreTypes.ts";
+import {
+  CORE_CARD_TYPES,
+  CORE_DECK_SOURCES,
+  LEARNING_ITEM_SOURCE_TYPES,
+  VARIANT_STATUSES,
+  makeId,
+  normalizeTags,
+  stableContentHash,
+} from "./coreValues.ts";
 import { normalizeLearningItemDocument, projectDocumentSide } from "./learningItemDocument.ts";
-import { createReviewState, createVariantPerformance, createVersionEntry, normalizeLearningItemState, normalizeVersionLog } from "./reviewState.ts";
+import { createVariantPerformance, normalizeLearningItemState } from "./reviewState.ts";
 
 type StringMap = Record<string, unknown>;
-interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> { id?: string | null; ratingCounts?: Partial<Record<"again" | "hard" | "good" | "easy", number>>; attempts?: number | null; }
-interface ImmutableOriginalInput { front?: string; back?: string; fields?: CardField[]; html?: string; capturedAt?: string; source?: DeckSource; contentHash?: string; }
-interface CardVariantInput extends Partial<Omit<CardVariantBase, "learningItemId" | "cardId" | "sourceCardId" | "variantType" | "variantLevel" | "generationSource" | "isOriginal" | "isActive" | "parentVariantId" | "anchorVariantId" | "reviewState" | "performance">> { sourceCardId?: string | null; learningItemId?: string | null; cardId?: string | null; variantType?: CardVariantType | null; variantLevel?: number | null; generationSource?: VariantGenerationSource | null; parentVariantId?: string | null; anchorVariantId?: string | null; isOriginal?: boolean; isActive?: boolean | null; performance?: VariantPerformanceInput | null; reviewState?: ReviewState | null; meta?: StringMap; }
-export interface CoreCardInput { id?: string; noteId?: string | null; deckId?: string; title?: string; cardType?: CardType; kind?: CardType; source?: DeckSource; sourceType?: LearningItemSourceType | null; sourceRefId?: string | null; sourceCardId?: string | null; sourceNoteId?: string | null; canonicalQuestion?: string | null; canonicalAnswer?: string | null; originalFront?: string; originalBack?: string; originalFields?: CardField[]; originalTags?: unknown; tags?: unknown; concepts?: unknown; originalHtml?: string; mediaRefs?: string[]; sourceAnchors?: SourceAnchor[]; variants?: CardVariantInput[]; draftStatus?: DraftStatus; status?: LearningItemStatus; reviewState?: unknown; learningItemState?: unknown; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; immutableOriginal?: ImmutableOriginalInput | null; versionLog?: VersionEntry[]; meta?: StringMap; noteTypeDefinitionId?: string; contentDocument?: LearningItemDocumentV1 | null; latestSourceSnapshotId?: string | null; contentRevision?: number; }
-interface OriginalVariantSeed { id: string; cardType: CardType; sourceType: LearningItemSourceType; canonicalQuestion: string; canonicalAnswer: string; sourceAnchors?: SourceAnchor[]; createdAt: string; updatedAt: string; }
-function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
+interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> {
+  id?: string | null;
+  ratingCounts?: Partial<Record<"again" | "hard" | "good" | "easy", number>>;
+  attempts?: number | null;
+}
+interface CardVariantInput extends Partial<Omit<CardVariant, "cardId" | "performance">> {
+  cardId?: string | null;
+  performance?: VariantPerformanceInput | null;
+}
+export interface CoreCardInput {
+  id?: string;
+  deckId?: string;
+  title?: string;
+  cardType?: CardType;
+  kind?: CardType;
+  source?: DeckSource;
+  sourceType?: LearningItemSourceType | null;
+  sourceRefId?: string | null;
+  sourceCardId?: string | null;
+  canonicalQuestion?: string | null;
+  canonicalAnswer?: string | null;
+  originalFront?: string;
+  originalBack?: string;
+  originalFields?: CardField[];
+  originalTags?: unknown;
+  tags?: unknown;
+  concepts?: unknown;
+  originalHtml?: string;
+  mediaRefs?: string[];
+  variants?: CardVariantInput[];
+  projection?: VariantProjection | null;
+  draftStatus?: DraftStatus;
+  status?: LearningItemStatus;
+  reviewState?: unknown;
+  createdAt?: string;
+  updatedAt?: string;
+  revision?: number;
+  deletedAt?: string | null;
+  updatedByDeviceId?: string | null;
+  meta?: StringMap;
+  noteTypeDefinitionId?: string;
+  contentDocument?: LearningItemDocumentV1 | null;
+  contentRevision?: number;
+}
+
+function objectRecord(value: unknown): StringMap {
+  return value !== null && typeof value === "object" ? value as StringMap : {};
+}
+
 function normalizeCardSource(source: unknown): DeckSource {
   return typeof source === "string" && CORE_DECK_SOURCES.includes(source as DeckSource)
     ? source as DeckSource
     : "manual";
 }
 
-function normalizeLearningSourceType(sourceType: unknown, legacySource: DeckSource): LearningItemSourceType {
+function normalizeLearningSourceType(sourceType: unknown, source: DeckSource): LearningItemSourceType {
   if (typeof sourceType === "string" && LEARNING_ITEM_SOURCE_TYPES.includes(sourceType as LearningItemSourceType)) {
     return sourceType as LearningItemSourceType;
   }
-  if (legacySource === "anki-apkg") return "anki_import";
-  if (legacySource === "text-import") return "text_import";
-  if (legacySource === "csv-import" || legacySource === "spreadsheet-import") return "csv_import";
-  if (legacySource === "json-import") return "json_import";
-  if (legacySource === "manual") return "manual";
-  return "mixed";
+  if (source === "anki-apkg") return "anki_import";
+  if (source === "text-import") return "text_import";
+  if (source === "csv-import" || source === "spreadsheet-import") return "csv_import";
+  return "manual";
 }
 
 function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource {
   if (sourceType === "anki_import") return "anki-apkg";
   if (sourceType === "text_import") return "text-import";
   if (sourceType === "csv_import") return "csv-import";
-  if (sourceType === "json_import") return "json-import";
   return "manual";
 }
 
-function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType {
-  if (typeof variantType === "string" && CARD_VARIANT_TYPES.includes(variantType as CardVariantType)) return variantType as CardVariantType;
-
-  const mapping: Partial<Record<CardType, CardVariantType>> = {
-    "basic-reversed": "reverse",
-    "image-occlusion": "image_occlusion",
-    "single-choice": "mcq",
-    "multiple-choice": "mcq",
-    "case-vignette": "case",
-    "free-text": "custom",
-    "multi-field": "custom",
-  };
-  const mapped = mapping[fallbackCardType as CardType];
-
-  if (mapped && CARD_VARIANT_TYPES.includes(mapped as CardVariantType)) return mapped as CardVariantType;
-  return typeof fallbackCardType === "string" && CARD_VARIANT_TYPES.includes(fallbackCardType as CardVariantType)
-    ? fallbackCardType as CardVariantType
-    : "basic";
-}
-
-function normalizeGenerationSource(
-  generationSource: unknown,
-  { isOriginal = false, sourceType = "manual", modelRunId = null }: {
-    isOriginal?: boolean;
-    sourceType?: unknown;
-    modelRunId?: string | null;
-  } = {},
-): VariantGenerationSource {
-  if (typeof generationSource === "string" && VARIANT_GENERATION_SOURCES.includes(generationSource as VariantGenerationSource)) {
-    return generationSource as VariantGenerationSource;
+function normalizeProjection(value: unknown, cardType: CardType, id: string, meta: StringMap): VariantProjection {
+  const input = objectRecord(value);
+  const recipeId = String(input.recipeId ?? meta.recipeId ?? `core-${cardType}`);
+  if (input.kind === "cloze" || cardType === "cloze") {
+    const ordinal = Number(input.clozeOrdinal ?? meta.clozeGroup ?? 1);
+    return { kind: "cloze", recipeId, clozeOrdinal: Number.isFinite(ordinal) && ordinal > 0 ? Math.floor(ordinal) : 1 };
   }
-  if (isOriginal) return "original";
-  if (sourceType === "anki_import" || sourceType === "mixed") return "imported";
-  if (modelRunId) return "ai_generated";
-  return "user_edited";
+  if (input.kind === "image-occlusion" || cardType === "image-occlusion") {
+    return { kind: "image-occlusion", recipeId, regionKey: String(input.regionKey ?? meta.regionKey ?? id) };
+  }
+  return { kind: "template", recipeId, instanceKey: String(input.instanceKey ?? meta.instanceKey ?? id) };
 }
 
-function normalizeVariantLevel(variantLevel: unknown, isOriginal = false): number {
-  if (!Number.isFinite(Number(variantLevel))) return isOriginal ? 1 : 2;
-  return Math.min(5, Math.max(1, Math.round(Number(variantLevel))));
+function activeVariantCount(variants: readonly CardVariant[]): number {
+  return variants.filter((variant) => variant.qualityStatus === "active" && variant.isActive && !variant.deletedAt).length;
 }
 
-function countGeneratedActiveVariants(variants: readonly CardVariant[]): number {
-  return variants.filter(
-    (variant) =>
-      variant.qualityStatus === "active" &&
-      variant.isActive !== false &&
-      !variant.isOriginal &&
-      variant.generationSource !== "original",
-  ).length;
-}
-
-function normalizeImmutableOriginal(
-  immutableOriginal: ImmutableOriginalInput | null,
-  fallback: Required<ImmutableOriginalInput>,
-): LearningItem["immutableOriginal"] {
-  const front = sanitizeCardHtml(immutableOriginal?.front ?? fallback.front);
-  const back = sanitizeCardHtml(immutableOriginal?.back ?? fallback.back);
-  const fields = Array.isArray(immutableOriginal?.fields)
-    ? immutableOriginal.fields.map((field) => ({
-        name: field.name,
-        value: sanitizeCardHtml(field.value),
-      }))
-    : fallback.fields;
-  const html = sanitizeCardHtml(immutableOriginal?.html ?? fallback.html);
-
+export function createCardVariant({
+  id = makeId("variant"),
+  cardId,
+  variantType = "basic",
+  variantLevel = 2,
+  front = "",
+  back = "",
+  explanation = "",
+  isActive = true,
+  transformType = "rephrase",
+  transformProfile = {},
+  modelRunId = null,
+  confidence = 0.75,
+  semanticDelta = "none",
+  changedRecognitionCues = [],
+  qualityStatus = "active",
+  performance = null,
+  feedback = [],
+  createdAt = new Date().toISOString(),
+  updatedAt = createdAt,
+  revision = 1,
+  deletedAt = null,
+  updatedByDeviceId = null,
+  meta = {},
+}: CardVariantInput): CardVariant {
+  if (!cardId) throw new Error("Varianten benötigen eine Karten-ID.");
+  if (variantType !== "basic") throw new Error(`Unbekannte Variantenart: ${variantType}`);
+  if (transformType !== "rephrase") throw new Error(`Unbekannte Transformationsart: ${transformType}`);
+  if (!VARIANT_STATUSES.includes(qualityStatus)) throw new Error(`Unbekannter Variantenstatus: ${qualityStatus}`);
+  const sanitizedFront = sanitizeCardHtml(front);
+  const sanitizedBack = sanitizeCardHtml(back);
+  const active = Boolean(isActive) && qualityStatus === "active" && deletedAt === null;
   return {
-    front,
-    back,
-    fields,
-    html,
-    capturedAt: immutableOriginal?.capturedAt ?? fallback.capturedAt,
-    source: normalizeCardSource(immutableOriginal?.source ?? fallback.source),
-    contentHash:
-      immutableOriginal?.contentHash ??
-      stableContentHash(
-        {
-          front: stripHtml(front).trim().toLowerCase(),
-          back: stripHtml(back).trim().toLowerCase(),
-          fields,
-        },
-        "card",
-      ),
+    id,
+    cardId,
+    variantType: "basic",
+    variantLevel: Math.min(5, Math.max(2, Math.round(Number(variantLevel) || 2))),
+    front: sanitizedFront,
+    back: sanitizedBack,
+    explanation,
+    isActive: active,
+    transformType: "rephrase",
+    transformProfile,
+    modelRunId,
+    confidence: Math.min(1, Math.max(0, Number(confidence) || 0)),
+    semanticDelta,
+    changedRecognitionCues,
+    qualityStatus: active ? "active" : qualityStatus === "active" ? "disabled" : qualityStatus,
+    contentHash: stableContentHash({
+      cardId,
+      front: stripHtml(sanitizedFront).trim().toLowerCase(),
+      back: stripHtml(sanitizedBack).trim().toLowerCase(),
+    }, "variant"),
+    performance: createVariantPerformance({ ...(performance ?? {}), learningItemId: cardId, variantId: id }),
+    feedback,
+    createdAt,
+    updatedAt,
+    revision,
+    deletedAt,
+    updatedByDeviceId,
+    meta,
   };
 }
 
 export function createCoreCard({
   id = makeId("card"),
-  noteId = null,
   deckId = "",
   title = "",
   cardType = "basic",
@@ -133,7 +189,6 @@ export function createCoreCard({
   sourceType = null,
   sourceRefId = null,
   sourceCardId = null,
-  sourceNoteId = null,
   canonicalQuestion = null,
   canonicalAnswer = null,
   originalFront = "",
@@ -144,136 +199,80 @@ export function createCoreCard({
   concepts = [],
   originalHtml,
   mediaRefs = [],
-  sourceAnchors = [],
   variants = [],
+  projection = null,
   draftStatus = "accepted",
   status = "active",
   reviewState = null,
-  learningItemState = null,
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
   revision = 1,
   deletedAt = null,
   updatedByDeviceId = null,
-  immutableOriginal = null,
-  versionLog = [],
   meta = {},
   noteTypeDefinitionId = "",
   contentDocument = null,
-  latestSourceSnapshotId = null,
   contentRevision = 1,
 }: CoreCardInput): LearningItem {
-  if (!CORE_CARD_TYPES.includes(cardType)) {
-    throw new Error(`Unbekannter Kartentyp: ${cardType}`);
-  }
-
+  if (!CORE_CARD_TYPES.includes(cardType)) throw new Error(`Unbekannter Kartentyp: ${cardType}`);
   const normalizedTags = normalizeTags(tags ?? originalTags);
-  const normalizedDefinitionId = noteTypeDefinitionId || contentDocument?.definitionVersionId || `core-${cardType}-v1`;
-  const normalizedDocument = normalizeLearningItemDocument(contentDocument, {
-    definitionVersionId: normalizedDefinitionId,
+  const definitionId = noteTypeDefinitionId || contentDocument?.definitionVersionId || `core-${cardType}-v1`;
+  const document = normalizeLearningItemDocument(contentDocument, {
+    definitionVersionId: definitionId,
     fields: originalFields,
     front: originalFront || canonicalQuestion || "",
     back: originalBack || canonicalAnswer || "",
     tags: normalizedTags,
     mediaRefs,
   });
-  const canonicalTags = normalizedDocument.tags;
-  const projectedFront = projectDocumentSide(normalizedDocument, "front");
-  const projectedBack = projectDocumentSide(normalizedDocument, "back");
-  const sanitizedFront = sanitizeCardHtml(originalFront || canonicalQuestion || projectedFront);
-  const sanitizedBack = sanitizeCardHtml(originalBack || canonicalAnswer || projectedBack);
-  const normalizedCanonicalQuestion = sanitizeCardHtml(canonicalQuestion ?? sanitizedFront);
-  const normalizedCanonicalAnswer = sanitizeCardHtml(canonicalAnswer ?? sanitizedBack);
-  const fields = normalizedDocument.fields.map((field) => ({ name: field.name, value: field.value }));
-  const html = sanitizeCardHtml(originalHtml ?? [sanitizedFront, sanitizedBack].filter(Boolean).join("<hr>"));
+  const front = sanitizeCardHtml(originalFront || canonicalQuestion || projectDocumentSide(document, "front"));
+  const back = sanitizeCardHtml(originalBack || canonicalAnswer || projectDocumentSide(document, "back"));
+  const question = sanitizeCardHtml(canonicalQuestion ?? front);
+  const answer = sanitizeCardHtml(canonicalAnswer ?? back);
   const cardSource = normalizeCardSource(source);
   const normalizedSourceType = normalizeLearningSourceType(sourceType, cardSource);
-  const contentHash = stableContentHash(
-    {
-      front: stripHtml(normalizedCanonicalQuestion).trim().toLowerCase(),
-      back: stripHtml(normalizedCanonicalAnswer).trim().toLowerCase(),
-      type: cardType,
-      tags: canonicalTags,
-      fields: normalizedDocument.fields.map((field) => ({ id: field.id, value: stripHtml(field.value).trim() })),
-    },
-    "card",
-  );
-  const normalizedReviewState = normalizeLearningItemState(learningItemState ?? reviewState, {
+  const normalizedReviewState = normalizeLearningItemState(reviewState, {
     learningItemId: id,
     reviewableType: "card",
     reviewableId: id,
   });
-  const normalizedVariants = ensureOriginalVariant(
-    variants.map((variant) =>
-      normalizeCardVariant({
-        ...variant,
-        sourceCardId: variant.sourceCardId ?? id,
-        learningItemId: variant.learningItemId ?? id,
-        cardId: variant.cardId ?? id,
-      }),
-    ),
-    {
-      id,
-      cardType,
-      sourceType: normalizedSourceType,
-      canonicalQuestion: normalizedCanonicalQuestion,
-      canonicalAnswer: normalizedCanonicalAnswer,
-      sourceAnchors,
-      createdAt,
-      updatedAt,
-    },
-  );
-  const fallbackImmutableOriginal = {
-    front: sanitizedFront,
-    back: sanitizedBack,
-    fields,
-    html,
-    capturedAt: createdAt,
-    source: cardSource,
-    contentHash,
-  };
-  const createdEntry = createVersionEntry({
-    objectType: "card",
-    objectId: id,
-    changeType: "created",
-    after: { front: sanitizedFront, back: sanitizedBack, cardType },
-    createdAt,
-  });
-
+  const normalizedVariants = variants.map((variant) => createCardVariant({ ...variant, cardId: id }));
+  const contentHash = stableContentHash({
+    question: stripHtml(question).trim().toLowerCase(),
+    answer: stripHtml(answer).trim().toLowerCase(),
+    cardType,
+    tags: document.tags,
+    fields: document.fields.map((field) => ({ id: field.id, value: stripHtml(field.value).trim() })),
+  }, "card");
   return {
     id,
-    noteId,
     deckId,
     title,
-    canonicalQuestion: normalizedCanonicalQuestion,
-    canonicalAnswer: normalizedCanonicalAnswer,
-    tags: canonicalTags,
+    canonicalQuestion: question,
+    canonicalAnswer: answer,
+    tags: document.tags,
     concepts: normalizeTags(concepts),
     sourceType: normalizedSourceType,
-    sourceRefId: sourceRefId ?? sourceCardId ?? sourceNoteId ?? null,
+    sourceRefId: sourceRefId ?? sourceCardId,
     source: cardSource,
     sourceCardId,
-    sourceNoteId,
-    originalFront: sanitizedFront,
-    originalBack: sanitizedBack,
-    originalFields: fields,
-    originalTags: canonicalTags,
-    originalHtml: html,
-    immutableOriginal: normalizeImmutableOriginal(immutableOriginal, fallbackImmutableOriginal),
-    mediaRefs: normalizedDocument.mediaRefs,
-    sourceAnchors,
+    originalFront: front,
+    originalBack: back,
+    originalFields: document.fields.map((field) => ({ name: field.name, value: field.value })),
+    originalTags: document.tags,
+    originalHtml: sanitizeCardHtml(originalHtml ?? [front, back].filter(Boolean).join("<hr>")),
+    mediaRefs: document.mediaRefs,
     kind: cardType,
     cardType,
     draftStatus,
     status,
     contentHash,
-    learningItemState: normalizedReviewState,
     reviewState: normalizedReviewState,
     variants: normalizedVariants,
-    versionLog: normalizeVersionLog(versionLog, createdEntry),
+    projection: normalizeProjection(projection, cardType, id, meta),
     coreState: {
-      isCoreReady: normalizedReviewState.maturityBand === "variant_ready" || normalizedReviewState.maturityBand === "mastered",
-      variantCount: countGeneratedActiveVariants(normalizedVariants),
+      isCoreReady: ["variant_ready", "mastered"].includes(normalizedReviewState.maturityBand),
+      variantCount: activeVariantCount(normalizedVariants),
       lastReviewedAt: normalizedReviewState.lastReviewedAt,
       repetitionLevel: normalizedReviewState.repetitions,
       maturityXp: normalizedReviewState.maturityXp,
@@ -286,32 +285,11 @@ export function createCoreCard({
     deletedAt,
     updatedByDeviceId,
     meta,
-    noteTypeDefinitionId: normalizedDefinitionId,
-    contentDocument: normalizedDocument,
-    latestSourceSnapshotId,
+    noteTypeDefinitionId: definitionId,
+    contentDocument: document,
     contentRevision: Number.isFinite(Number(contentRevision)) && Number(contentRevision) > 0
       ? Math.floor(Number(contentRevision))
       : 1,
-  };
-}
-
-function normalizeVariantProjection(
-  value: unknown,
-  fallback: { variantType: CardVariantType; variantId: string; meta: StringMap },
-): VariantProjection {
-  const input = objectRecord(value);
-  const recipeId = String(input.recipeId ?? fallback.meta.recipeId ?? `core-${fallback.variantType}`);
-  if (input.kind === "cloze") {
-    const ordinal = Number(input.clozeOrdinal ?? fallback.meta.clozeGroup ?? 1);
-    return { kind: "cloze", recipeId, clozeOrdinal: Number.isFinite(ordinal) && ordinal > 0 ? Math.floor(ordinal) : 1 };
-  }
-  if (input.kind === "image-occlusion") {
-    return { kind: "image-occlusion", recipeId, regionKey: String(input.regionKey ?? fallback.meta.regionKey ?? fallback.variantId) };
-  }
-  return {
-    kind: "template",
-    recipeId,
-    instanceKey: String(input.instanceKey ?? fallback.meta.instanceKey ?? fallback.variantId),
   };
 }
 
@@ -319,9 +297,7 @@ export function isLearningItemMarked(item: Pick<LearningItem, "meta"> | null | u
   return item?.meta?.marked === true;
 }
 
-export function isLearningItemReviewBlocked(
-  item: Pick<LearningItem, "status" | "meta"> | null | undefined,
-): boolean {
+export function isLearningItemReviewBlocked(item: Pick<LearningItem, "status" | "meta"> | null | undefined): boolean {
   return item?.status === "suspended"
     || String(item?.status) === "buried"
     || item?.meta?.suspended === true
@@ -333,311 +309,43 @@ export function updateLearningItemStudyState(
   patch: LearningItemStudyStatePatch,
   updatedAt = new Date().toISOString(),
 ): LearningItem {
-  const wasMarked = isLearningItemMarked(item);
-  const wasSuspended = item.status === "suspended";
-  const marked = patch.marked ?? wasMarked;
-  const suspended = patch.suspended ?? wasSuspended;
+  const marked = patch.marked ?? isLearningItemMarked(item);
+  const suspended = patch.suspended ?? item.status === "suspended";
   const status = item.status === "deleted" ? "deleted" : suspended ? "suspended" : "active";
-  if (marked === wasMarked && status === item.status) return item;
-
-  return {
-    ...item,
-    status,
-    meta: { ...item.meta, marked },
-    updatedAt,
-    revision: item.revision + 1,
-    versionLog: [
-      ...item.versionLog,
-      createVersionEntry({
-        objectType: "card",
-        objectId: item.id,
-        changeType: "study_state_updated",
-        before: { marked: wasMarked, suspended: wasSuspended },
-        after: { marked, suspended: status === "suspended" },
-        reason: "Lernstatus geändert",
-        createdAt: updatedAt,
-      }),
-    ],
-  };
+  if (marked === isLearningItemMarked(item) && status === item.status) return item;
+  return { ...item, status, meta: { ...item.meta, marked }, updatedAt, revision: item.revision + 1 };
 }
 
-export function normalizeCardVariant(variant: CardVariantInput): CardVariant {
-  return createCardVariant({
-    ...variant,
-    id: variant.id,
-    sourceCardId: variant.sourceCardId,
-    learningItemId: variant.learningItemId,
-    cardId: variant.cardId,
-    createdAt: variant.createdAt,
-    updatedAt: variant.updatedAt,
-  });
-}
-
-export function createCardVariant({
-  id = makeId("variant"),
-  sourceCardId,
-  learningItemId = null,
-  cardId = null,
-  variantType = null,
-  variantLevel = null,
-  front = "",
-  back = "",
-  explanation = "",
-  hintsJson = null,
-  answerOptionsJson = null,
-  expectedAnswerJson = null,
-  generationSource = null,
-  parentVariantId = null,
-  anchorVariantId = null,
-  isOriginal = false,
-  isActive = null,
-  transformType = "rephrase",
-  transformProfile = {},
-  modelRunId = null,
-  confidence = 0.75,
-  semanticDelta = "none",
-  changedRecognitionCues = [],
-  qualityStatus = "active",
-  sourceAnchors = [],
-  reviewState = null,
-  performance = null,
-  feedback = [],
-  createdAt = new Date().toISOString(),
-  updatedAt = createdAt,
-  revision = 1,
-  deletedAt = null,
-  updatedByDeviceId = null,
-  versionLog = [],
-  meta = {},
-  projection,
-  studyDeckId = null,
-  schedulingMode = "independent-card",
-  renderRevision = 1,
-}: CardVariantInput): CardVariant {
-  const normalizedLearningItemId = learningItemId ?? cardId ?? sourceCardId;
-  if (!normalizedLearningItemId) {
-    throw new Error("Varianten benötigen learningItemId, cardId oder sourceCardId.");
+export function rescheduleLearningItem(item: LearningItem, dueAt: string, occurredAt = new Date().toISOString()): LearningItem {
+  const dueTimestamp = Date.parse(dueAt);
+  const occurredTimestamp = Date.parse(occurredAt);
+  if (!Number.isFinite(dueTimestamp) || !Number.isFinite(occurredTimestamp)) {
+    throw new Error("Der neue Fälligkeitstermin ist ungültig.");
   }
-  const normalizedSourceCardId = sourceCardId ?? cardId ?? normalizedLearningItemId;
-  if (!VARIANT_TRANSFORMS.includes(transformType)) {
-    throw new Error(`Unbekannte Transformationsart: ${transformType}`);
-  }
-  if (!VARIANT_STATUSES.includes(qualityStatus)) {
-    throw new Error(`Unbekannter Variantenstatus: ${qualityStatus}`);
-  }
-
-  const sanitizedFront = sanitizeCardHtml(front);
-  const sanitizedBack = sanitizeCardHtml(back);
-  const normalizedIsActive = isActive ?? qualityStatus === "active";
-  const normalizedQualityStatus = normalizedIsActive || qualityStatus !== "active" ? qualityStatus : "disabled";
-  const normalizedVariantType = normalizeVariantType(variantType, meta.cardType ?? "basic");
-  const normalizedGenerationSource = normalizeGenerationSource(generationSource, {
-    isOriginal,
-    sourceType: meta.sourceType,
-    modelRunId,
-  });
-  const contentHash = stableContentHash(
-    {
-      learningItemId: normalizedLearningItemId,
-      transformType,
-      transformProfile,
-      front: stripHtml(sanitizedFront).trim().toLowerCase(),
-      back: stripHtml(sanitizedBack).trim().toLowerCase(),
-    },
-    "variant",
-  );
-  const normalizedReviewState = reviewState
-    ? createReviewState({ ...reviewState, learningItemId: normalizedLearningItemId, reviewableType: "variant", reviewableId: id })
-    : null;
-  const createdEntry = createVersionEntry({
-    objectType: "variant",
-    objectId: id,
-    changeType: "created",
-    after: { front: sanitizedFront, back: sanitizedBack, transformType },
-    createdAt,
-  });
-
-  return {
-    id,
-    learningItemId: normalizedLearningItemId,
-    cardId: normalizedSourceCardId,
-    sourceCardId: normalizedSourceCardId,
-    variantType: normalizedVariantType,
-    variantLevel: normalizeVariantLevel(variantLevel, isOriginal),
-    front: sanitizedFront,
-    back: sanitizedBack,
-    explanation,
-    hintsJson,
-    answerOptionsJson,
-    expectedAnswerJson,
-    generationSource: normalizedGenerationSource,
-    parentVariantId,
-    anchorVariantId,
-    isOriginal: Boolean(isOriginal),
-    isActive: Boolean(normalizedIsActive),
-    transformType,
-    transformProfile,
-    modelRunId,
-    confidence,
-    semanticDelta,
-    changedRecognitionCues,
-    qualityStatus: normalizedQualityStatus,
-    contentHash,
-    sourceAnchors,
-    reviewState: normalizedReviewState,
-    performance: createVariantPerformance({ ...(performance ?? {}), learningItemId: normalizedLearningItemId, variantId: id }),
-    feedback,
-    versionLog: normalizeVersionLog(versionLog, createdEntry),
-    createdAt,
-    updatedAt,
-    revision,
-    deletedAt,
-    updatedByDeviceId,
-    meta,
-    projection: normalizeVariantProjection(projection, {
-      variantType: normalizedVariantType,
-      variantId: id,
-      meta,
-    }),
-    studyDeckId: typeof studyDeckId === "string" && studyDeckId ? studyDeckId : null,
-    schedulingMode: schedulingMode === "adaptive-presentation" ? "adaptive-presentation" : "independent-card",
-    renderRevision: Number.isFinite(Number(renderRevision)) && Number(renderRevision) > 0 ? Math.floor(Number(renderRevision)) : 1,
-  } as CardVariant;
-}
-
-function createOriginalVariantForItem({
-  id,
-  cardType,
-  sourceType,
-  canonicalQuestion,
-  canonicalAnswer,
-  sourceAnchors = [],
-  createdAt,
-  updatedAt,
-}: OriginalVariantSeed): CardVariant {
-  const variantId = stableContentHash(
-    {
-      learningItemId: id,
-      front: stripHtml(canonicalQuestion).trim().toLowerCase(),
-      back: stripHtml(canonicalAnswer).trim().toLowerCase(),
-      isOriginal: true,
-    },
-    "variant",
-  );
-
-  return createCardVariant({
-    id: variantId,
-    learningItemId: id,
-    cardId: id,
-    sourceCardId: id,
-    variantType: normalizeVariantType(null, cardType),
-    variantLevel: 1,
-    front: canonicalQuestion,
-    back: canonicalAnswer,
-    generationSource: "original",
-    transformType: "original",
-    qualityStatus: "active",
-    isOriginal: true,
-    isActive: true,
-    sourceAnchors,
-    createdAt,
-    updatedAt,
-    meta: {
-      cardType,
-      sourceType,
-    },
-  });
-}
-
-function ensureOriginalVariant(variants: CardVariant[], item: OriginalVariantSeed): CardVariant[] {
-  const originalVariant =
-    variants.find((variant) => variant.isOriginal) ??
-    createOriginalVariantForItem(item);
-  const withOriginal = variants.some((variant) => variant.id === originalVariant.id) ? variants : [...variants, originalVariant];
-  const variantIds = new Set(withOriginal.map((variant) => variant.id));
-
-  return withOriginal.map((variant) => {
-    if (variant === originalVariant) {
-      return normalizeCardVariant({
-        ...variant,
-        learningItemId: item.id,
-        cardId: item.id,
-        sourceCardId: item.id,
-        anchorVariantId: null,
-        parentVariantId: null,
-        generationSource: "original",
-        transformType: "original",
-        variantLevel: 1,
-        isOriginal: true,
-        isActive: true,
-        qualityStatus: variant.qualityStatus ?? "active",
-      });
-    }
-
-    const wasMarkedOriginal = variant.isOriginal as boolean;
-    return normalizeCardVariant({
-      ...variant,
-      learningItemId: item.id,
-      cardId: item.id,
-      sourceCardId: item.id,
-      anchorVariantId: originalVariant.id,
-      parentVariantId:
-        variant.parentVariantId && variant.parentVariantId !== variant.id && variantIds.has(variant.parentVariantId)
-          ? variant.parentVariantId
-          : originalVariant.id,
-      generationSource: wasMarkedOriginal && variant.generationSource === "original" ? undefined : variant.generationSource,
-      transformType: wasMarkedOriginal && variant.transformType === "original" ? "rephrase" : variant.transformType,
-      isOriginal: false,
-    });
-  });
+  if (item.reviewState.dueAt === dueAt) return item;
+  if (dueTimestamp <= occurredTimestamp) throw new Error("Der neue Fälligkeitstermin muss in der Zukunft liegen.");
+  return { ...item, reviewState: { ...item.reviewState, dueAt } as ReviewState, updatedAt: occurredAt };
 }
 
 export function getLearningItemQuestion(item: LearningItem | null | undefined): string {
-  return item?.canonicalQuestion ?? item?.originalFront ?? getOriginalVariant(item)?.front ?? "";
+  return item?.canonicalQuestion ?? item?.originalFront ?? "";
 }
 
 export function getLearningItemAnswer(item: LearningItem | null | undefined): string {
-  return item?.canonicalAnswer ?? item?.originalBack ?? getOriginalVariant(item)?.back ?? "";
-}
-
-export function getOriginalVariant(item: LearningItem | null | undefined): CardVariant | null {
-  return (item?.variants ?? []).find((variant) => variant.isOriginal) ?? null;
+  return item?.canonicalAnswer ?? item?.originalBack ?? "";
 }
 
 export function getActiveVariants(item: LearningItem | null | undefined): CardVariant[] {
-  return (item?.variants ?? []).filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false && !variant.isOriginal);
-}
-
-export function getVariantAnchor(item: LearningItem | null | undefined, variant: CardVariant | null | undefined): CardVariant | null {
-  if (!item || !variant || variant.isOriginal) return null;
-
-  const variants = item.variants ?? [];
-  const derivedVariant = variant as CardVariantBase & { anchorVariantId: string; parentVariantId: string };
-  const anchorId = derivedVariant.anchorVariantId ?? derivedVariant.parentVariantId;
-  return variants.find((candidate) => candidate.id === anchorId) ?? getOriginalVariant(item);
+  return (item?.variants ?? []).filter((variant) => variant.qualityStatus === "active" && variant.isActive && !variant.deletedAt);
 }
 
 export function getAnswerSideAnchorMiniCard(item: LearningItem | null | undefined, variant: CardVariant | null | undefined) {
-  const anchor = getVariantAnchor(item, variant);
-
-  if (!anchor) {
-    return {
-      shouldShow: false,
-      label: "Originalkarte",
-      front: "",
-      back: "",
-      variantId: null,
-      generationSource: null,
-    };
-  }
-
   return {
-    shouldShow: Boolean(variant && !variant.isOriginal),
-    label: anchor.isOriginal ? "Originalkarte" : "Ursprungskarte",
-    front: anchor.front,
-    back: anchor.back,
-    variantId: anchor.id,
-    generationSource: anchor.generationSource,
+    shouldShow: Boolean(item && variant),
+    label: "Grundkarte",
+    front: getLearningItemQuestion(item),
+    back: getLearningItemAnswer(item),
+    variantId: null,
   };
 }
 
@@ -651,10 +359,5 @@ export function createCoreLearningItem(item: CoreCardInput = {}): LearningItem {
 
 export function normalizeLearningItem(item: unknown = {}): LearningItem {
   const input = objectRecord(item) as CoreCardInput;
-  return createCoreLearningItem({
-    ...input,
-    id: input.id,
-    createdAt: input.createdAt,
-    updatedAt: input.updatedAt,
-  });
+  return createCoreLearningItem({ ...input, id: input.id, createdAt: input.createdAt, updatedAt: input.updatedAt });
 }

@@ -1,17 +1,14 @@
-import * as v from "valibot";
 import {
   CARD_VARIANT_TYPES,
-  VARIANT_GENERATION_SOURCES,
   createCoreDeck,
   createLearningItemsFromNormalizedInput,
-  getActiveVariants,
   normalizeCoreDeck,
   normalizeTags,
   stableContentHash,
 } from "./coreModel.ts";
 import { stripHtml } from "./htmlSafety.ts";
 
-export const NORMALIZED_IMPORT_SOURCE_TYPES = ["manual", "text_import", "csv_import", "json_import", "anki_import", "mixed"];
+export const NORMALIZED_IMPORT_SOURCE_TYPES = ["manual", "text_import", "csv_import", "anki_import", "mixed"];
 export const IMPORT_MERGE_STRATEGIES = ["create_new", "skip_duplicates", "update_existing"];
 
 const DEFAULT_IMPORT_OPTIONS = {
@@ -24,72 +21,18 @@ const DEFAULT_IMPORT_OPTIONS = {
   normalizeText: true,
 };
 
-const importStringListSchema = v.union([v.string(), v.array(v.string())]);
-const importVariantSchema = v.looseObject({
-  front: v.optional(v.string()),
-  back: v.optional(v.string()),
-  question: v.optional(v.string()),
-  answer: v.optional(v.string()),
-  variantType: v.optional(v.string()),
-  variantLevel: v.optional(v.union([v.number(), v.string()])),
-  generationSource: v.optional(v.string()),
-  isOriginal: v.optional(v.boolean()),
-});
-const importItemSchema = v.looseObject({
-  canonicalQuestion: v.optional(v.string()),
-  canonicalAnswer: v.optional(v.string()),
-  question: v.optional(v.string()),
-  answer: v.optional(v.string()),
-  front: v.optional(v.string()),
-  back: v.optional(v.string()),
-  tags: v.optional(importStringListSchema),
-  concepts: v.optional(importStringListSchema),
-  sourceType: v.optional(v.string()),
-  variants: v.optional(v.array(importVariantSchema)),
-  sourceAnchors: v.optional(v.array(v.unknown())),
-  mediaRefs: v.optional(v.array(v.string())),
-  originalFields: v.optional(v.array(v.unknown())),
-});
-const normalizedImportPayloadSchema = v.looseObject({
-  schemaVersion: v.optional(v.literal(1)),
-  title: v.optional(v.string()),
-  name: v.optional(v.string()),
-  deckName: v.optional(v.string()),
-  description: v.optional(v.string()),
-  sourceType: v.optional(v.string()),
-  tags: v.optional(importStringListSchema),
-  hierarchyPath: v.optional(v.nullable(v.array(v.string()))),
-  items: v.optional(v.array(importItemSchema)),
-  cards: v.optional(v.array(importItemSchema)),
-  mediaAssets: v.optional(v.array(v.unknown())),
-  media: v.optional(v.array(v.unknown())),
-});
-
 const DECK_SOURCE_BY_IMPORT_SOURCE = {
   manual: "manual",
   text_import: "text-import",
   csv_import: "csv-import",
-  json_import: "json-import",
   anki_import: "anki-apkg",
   mixed: "manual",
-};
-
-const TRANSFORM_BY_VARIANT_TYPE = {
-  reverse: "front_back_style_shift",
-  cloze: "cloze_conversion",
-  basic: "rephrase",
-  mcq: "rephrase",
-  transfer: "rephrase",
-  case: "rephrase",
-  image_occlusion: "rephrase",
-  custom: "rephrase",
 };
 
 function text(value: any, { normalizeText = true }: any = {}) {
   const trimmed = String(value ?? "").trim();
   return normalizeText ? trimmed.replace(/\s+/g, " ") : trimmed;
 }
-
 function metadata(value: any) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return { ...value };
@@ -112,21 +55,6 @@ function normalizeVariantType(value: any) {
   return CARD_VARIANT_TYPES.includes(mapped as (typeof CARD_VARIANT_TYPES)[number]) ? mapped : "basic";
 }
 
-function normalizeGenerationSource(value: any, isOriginal: any = false) {
-  if (!isOriginal && value === "original") return "imported";
-  if (VARIANT_GENERATION_SOURCES.includes(value)) return value;
-  return isOriginal ? "original" : "imported";
-}
-
-function normalizeVariantLevel(value: any, isOriginal: any = false) {
-  if (!Number.isFinite(Number(value))) return isOriginal ? 1 : 2;
-  return Math.min(3, Math.max(1, Math.round(Number(value))));
-}
-
-function normalizeAnchors(anchors: any) {
-  return Array.isArray(anchors) ? anchors.filter((anchor: any) => anchor && typeof anchor === "object").map((anchor: any) => ({ ...anchor })) : [];
-}
-
 function normalizeStringList(values: any) {
   if (Array.isArray(values)) return values.map((value: any) => String(value ?? "").trim()).filter(Boolean);
   if (values === null || values === undefined || values === "") return [];
@@ -139,7 +67,6 @@ function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId 
     createdDecks: 0,
     createdLearningItems: 0,
     createdCards: 0,
-    createdVariants: 0,
     skipped: [],
     duplicates: [],
     warnings: [],
@@ -151,7 +78,6 @@ function createEmptyReport({ dryRun = false, sourceType = "mixed", targetDeckId 
       wouldCreateDecks: 0,
       wouldCreateLearningItems: 0,
       wouldCreateCards: 0,
-      wouldCreateVariants: 0,
       skipped: 0,
       duplicates: 0,
       warnings: 0,
@@ -167,7 +93,6 @@ export function finalizeImportReport(report: any) {
     wouldCreateDecks: report.createdDecks,
     wouldCreateLearningItems: report.createdLearningItems,
     wouldCreateCards: report.createdCards,
-    wouldCreateVariants: report.createdVariants,
     skipped: report.skipped.length,
     duplicates: report.duplicates.length,
     warnings: report.warnings.length,
@@ -204,7 +129,6 @@ function normalizeNormalizedDeckShape(input: any = {}) {
     description: input.description ?? "",
     sourceType: input.sourceType ?? "mixed",
     sourceExternalId: input.sourceExternalId ?? input.externalId ?? null,
-    sourceDocumentId: input.sourceDocumentId ?? null,
     parentDeckId: input.parentDeckId ?? null,
     hierarchyPath: input.hierarchyPath ?? null,
     originalDeckId: input.originalDeckId ?? null,
@@ -215,34 +139,24 @@ function normalizeNormalizedDeckShape(input: any = {}) {
   };
 }
 
-export function normalizeImportVariant(input: any = {}, options: any = {}) {
+function normalizeImportCard(input: any = {}, options: any = {}) {
   const warnings: any[] = [];
   const errors: any[] = [];
-  const isOriginal = Boolean(input.isOriginal);
   const front = text(input.front ?? input.question ?? input.canonicalQuestion ?? "", options);
   const back = text(input.back ?? input.answer ?? input.canonicalAnswer ?? "", options);
-  const variantType = normalizeVariantType(input.variantType ?? input.cardType);
-  const generationSource = normalizeGenerationSource(input.generationSource, isOriginal);
+  const cardType = normalizeVariantType(input.cardType ?? input.variantType);
 
-  if (!front) errors.push("Variante ohne front wurde abgelehnt.");
-  if (!back) errors.push("Variante ohne back wurde abgelehnt.");
-  if (input.variantType && !CARD_VARIANT_TYPES.includes(input.variantType)) warnings.push(`variantType ${String(input.variantType)} wurde auf ${variantType} normalisiert.`);
-  if (input.generationSource && !VARIANT_GENERATION_SOURCES.includes(input.generationSource)) warnings.push(`generationSource ${String(input.generationSource)} wurde normalisiert.`);
+  if (!front && !input.projection) errors.push("Karte ohne Vorderseite wurde abgelehnt.");
+  if (!back && !input.projection) errors.push("Karte ohne Rückseite wurde abgelehnt.");
 
   return {
-    variant: {
+    card: {
       front,
       back,
-      variantType,
-      variantLevel: normalizeVariantLevel(input.variantLevel, isOriginal),
-      generationSource,
+      cardType,
       sourceExternalId: input.sourceExternalId ?? input.externalId ?? null,
-      isOriginal,
-      anchorToOriginal: input.anchorToOriginal ?? !isOriginal,
-      isActive: input.isActive ?? true,
       projection: input.projection && typeof input.projection === "object" ? input.projection : null,
-      abstractionLevel: input.abstractionLevel == null ? null : Number(input.abstractionLevel),
-      semanticDistanceEstimate: input.semanticDistanceEstimate == null ? null : Number(input.semanticDistanceEstimate),
+      reviewState: input.reviewState,
       metadataJson: metadata(input.metadataJson ?? input.meta),
     },
     warnings,
@@ -250,63 +164,31 @@ export function normalizeImportVariant(input: any = {}, options: any = {}) {
   };
 }
 
-function normalizeItemVariants(input: any, canonicalQuestion: any, canonicalAnswer: any, options: any) {
+function normalizeItemCards(input: any, canonicalQuestion: any, canonicalAnswer: any, options: any) {
   const warnings: any[] = [];
   const errors: any[] = [];
-  const rawVariants = Array.isArray(input.variants) ? input.variants : [];
-  const variants: any[] = [];
+  const rawCards = Array.isArray(input.cards) ? input.cards : [];
+  const cards: any[] = [];
 
-  rawVariants.forEach((candidate: any, index: any) => {
-    const result = normalizeImportVariant(candidate, options);
-    warnings.push(...result.warnings.map((warning: any) => `Variante ${index + 1}: ${warning}`));
+  rawCards.forEach((candidate: any, index: any) => {
+    const result = normalizeImportCard(candidate, options);
+    warnings.push(...result.warnings.map((warning: any) => `Karte ${index + 1}: ${warning}`));
     if (result.errors.length > 0) {
-      errors.push(...result.errors.map((error: any) => `Variante ${index + 1}: ${error}`));
+      errors.push(...result.errors.map((error: any) => `Karte ${index + 1}: ${error}`));
       return;
     }
-    variants.push(result.variant);
+    cards.push(result.card);
   });
 
-  if (!variants.some((variant: any) => variant.isOriginal)) {
-    const firstOriginalCandidate = variants[0];
-    if (firstOriginalCandidate && (!canonicalQuestion || !canonicalAnswer)) {
-      firstOriginalCandidate.isOriginal = true;
-      firstOriginalCandidate.generationSource = "original";
-      firstOriginalCandidate.variantLevel = 1;
-      firstOriginalCandidate.anchorToOriginal = false;
-      warnings.push("Erste valide Variante wurde als Originalanker genutzt.");
-    } else {
-      variants.unshift({
-        front: canonicalQuestion,
-        back: canonicalAnswer,
-        variantType: "basic",
-        variantLevel: 1,
-        generationSource: "original",
-        sourceExternalId: input.sourceExternalId ?? null,
-        isOriginal: true,
-        anchorToOriginal: false,
-        isActive: true,
-        abstractionLevel: 1,
-        semanticDistanceEstimate: 0,
-        metadataJson: { derivedFromCanonical: true },
-      });
-    }
-  }
-
-  const originalSeen = new Set();
-  const normalizedVariants = variants.map((variant: any) => {
-    const keepOriginal = variant.isOriginal && originalSeen.size === 0;
-    if (keepOriginal) originalSeen.add("original");
-    return {
-      ...variant,
-      isOriginal: keepOriginal,
-      generationSource: keepOriginal ? "original" : normalizeGenerationSource(variant.generationSource, false),
-      variantLevel: normalizeVariantLevel(variant.variantLevel, keepOriginal),
-      anchorToOriginal: keepOriginal ? false : variant.anchorToOriginal ?? true,
-      isActive: variant.isActive ?? true,
-    };
+  if (cards.length === 0 && (canonicalQuestion || canonicalAnswer)) cards.push({
+    front: canonicalQuestion,
+    back: canonicalAnswer,
+    cardType: normalizeVariantType(input.cardType),
+    sourceExternalId: input.sourceExternalId ?? null,
+    projection: input.projection ?? null,
+    metadataJson: metadata(input.metadataJson ?? input.meta),
   });
-
-  return { variants: normalizedVariants, warnings, errors };
+  return { cards, warnings, errors };
 }
 
 export function normalizeImportItem(input: any = {}, options: any = {}) {
@@ -316,12 +198,12 @@ export function normalizeImportItem(input: any = {}, options: any = {}) {
   const initialCanonicalAnswer = text(input.canonicalAnswer ?? input.answer ?? input.back ?? "", options);
 
   const sourceType = normalizeSourceType(input.sourceType ?? options.sourceType, options.sourceType ?? "mixed");
-  const variantResult = normalizeItemVariants(input, initialCanonicalQuestion, initialCanonicalAnswer, options);
-  warnings.push(...variantResult.warnings);
-  errors.push(...variantResult.errors);
-  const originalCandidate = variantResult.variants.find((variant: any) => variant.isOriginal) ?? variantResult.variants[0] ?? null;
-  const canonicalQuestion = initialCanonicalQuestion || originalCandidate?.front || "";
-  const canonicalAnswer = initialCanonicalAnswer || originalCandidate?.back || "";
+  const cardResult = normalizeItemCards(input, initialCanonicalQuestion, initialCanonicalAnswer, options);
+  warnings.push(...cardResult.warnings);
+  errors.push(...cardResult.errors);
+  const firstCard = cardResult.cards[0] ?? null;
+  const canonicalQuestion = initialCanonicalQuestion || firstCard?.front || "";
+  const canonicalAnswer = initialCanonicalAnswer || firstCard?.back || "";
 
   if (!canonicalQuestion) errors.push("canonicalQuestion fehlt oder ist leer.");
   if (!canonicalAnswer) errors.push("canonicalAnswer fehlt oder ist leer.");
@@ -335,15 +217,12 @@ export function normalizeImportItem(input: any = {}, options: any = {}) {
       concepts: normalizeTags(input.concepts ?? []),
       sourceType,
       sourceExternalId: input.sourceExternalId ?? input.externalId ?? null,
-      sourceDocumentId: input.sourceDocumentId ?? options.sourceDocumentId ?? null,
-      sourceAnchors: normalizeAnchors(input.sourceAnchors),
-      variants: variantResult.variants,
+      cards: cardResult.cards,
       cardType: input.cardType ?? null,
       mediaRefs: normalizeStringList(input.mediaRefs),
       originalFields: Array.isArray(input.originalFields) ? input.originalFields.map((field: any) => ({ ...field })) : [],
       contentDocument: input.contentDocument && typeof input.contentDocument === "object" ? input.contentDocument : undefined,
       noteTypeDefinition: input.noteTypeDefinition && typeof input.noteTypeDefinition === "object" ? input.noteTypeDefinition : undefined,
-      sourceSnapshot: input.sourceSnapshot && typeof input.sourceSnapshot === "object" ? input.sourceSnapshot : undefined,
       metadataJson: metadata(input.metadataJson ?? input.meta),
     },
     warnings,
@@ -362,7 +241,6 @@ export function normalizeImportDeck(input: any = {}, options: any = {}): any {
     description: text(deckInput.description, options),
     sourceType,
     sourceExternalId: deckInput.sourceExternalId ?? null,
-    sourceDocumentId: deckInput.sourceDocumentId ?? null,
     parentDeckId: deckInput.parentDeckId ?? null,
     hierarchyPath: Array.isArray(deckInput.hierarchyPath) ? deckInput.hierarchyPath.map((part: any) => text(part, options)).filter(Boolean) : null,
     originalDeckId: deckInput.originalDeckId ?? deckInput.sourceExternalId ?? null,
@@ -380,7 +258,6 @@ export function normalizeImportDeck(input: any = {}, options: any = {}): any {
         ...options,
         sourceType: candidate?.sourceType ?? sourceType,
         tags: candidate?.tags ?? normalizedDeck.tags,
-        sourceDocumentId: candidate?.sourceDocumentId ?? normalizedDeck.sourceDocumentId,
       });
       warnings.push(...result.warnings.map((warning: any) => `Item ${index + 1}: ${warning}`));
       if (result.errors.length > 0) {
@@ -430,11 +307,11 @@ export function normalizeTextForFingerprint(value: any) {
 }
 
 export function createImportFingerprint(item: any = {}) {
-  const variants = (item.variants ?? [])
-    .map((variant: any) => ({
-      front: normalizeTextForFingerprint(variant.front),
-      back: normalizeTextForFingerprint(variant.back),
-      type: normalizeVariantType(variant.variantType),
+  const cards = (item.cards ?? [])
+    .map((card: any) => ({
+      front: normalizeTextForFingerprint(card.front),
+      back: normalizeTextForFingerprint(card.back),
+      type: normalizeVariantType(card.cardType),
     }))
     .sort((left: any, right: any) => `${left.type}:${left.front}:${left.back}`.localeCompare(`${right.type}:${right.front}:${right.back}`));
 
@@ -443,7 +320,7 @@ export function createImportFingerprint(item: any = {}) {
       question: normalizeTextForFingerprint(item.canonicalQuestion ?? item.originalFront ?? item.front),
       answer: normalizeTextForFingerprint(item.canonicalAnswer ?? item.originalBack ?? item.back),
       tags: normalizeTags(item.tags ?? item.originalTags).map((tag: any) => tag.toLowerCase()).sort(),
-      variants,
+      cards,
     },
     "importfp",
   );
@@ -462,12 +339,10 @@ function getExistingSourceExternalIds(card: any) {
     card.sourceExternalId,
     card.sourceRefId,
     card.sourceCardId,
-    card.sourceNoteId,
     card.meta?.sourceExternalId,
     card.meta?.normalizedImport?.sourceExternalId,
     card.meta?.import?.sourceExternalId,
-    identity?.guid ? `anki-guid-${String(identity.guid)}` : null,
-    identity?.noteId ? `anki-note-${String(identity.noteId)}` : null,
+    identity?.cardId,
   ].filter(Boolean).map(String);
 }
 
@@ -496,29 +371,6 @@ export function findDuplicateLearningItem(existingDecksOrDeck: any, normalizedIt
   return { duplicate: false, fingerprint };
 }
 
-function toPipelineVariant(variant: any) {
-  return {
-    sourceExternalId: variant.sourceExternalId ?? null,
-    front: variant.front,
-    back: variant.back,
-    variantType: variant.variantType,
-    variantLevel: variant.variantLevel,
-    generationSource: variant.isOriginal ? "original" : variant.generationSource ?? "imported",
-    isOriginal: Boolean(variant.isOriginal),
-    isActive: variant.isActive ?? true,
-    transformType: variant.isOriginal ? "original" : (TRANSFORM_BY_VARIANT_TYPE as Record<string, string>)[variant.variantType] ?? "rephrase",
-    projection: variant.projection,
-    meta: {
-      ...(variant.metadataJson ?? {}),
-      sourceExternalId: variant.sourceExternalId ?? null,
-      abstractionLevel: variant.abstractionLevel,
-      semanticDistanceEstimate: variant.semanticDistanceEstimate,
-      metadataJson: variant.metadataJson,
-      anchorToOriginal: variant.anchorToOriginal ?? !variant.isOriginal,
-    },
-  };
-}
-
 function toPipelineItem(item: any, options: any = {}) {
   const importFingerprint = createImportFingerprint(item);
   const coreSourceType = item.sourceType;
@@ -531,30 +383,22 @@ function toPipelineItem(item: any, options: any = {}) {
     concepts: item.concepts,
     sourceType: coreSourceType,
     sourceExternalId: options.preserveSourceIds ? item.sourceExternalId : null,
-    sourceDocumentId: item.sourceDocumentId,
-    sourceAnchors: item.sourceAnchors,
-    variants: item.variants.map(toPipelineVariant),
+    cards: item.cards,
     cardType: item.cardType ?? undefined,
     mediaRefs: item.mediaRefs ?? [],
     originalFields: item.originalFields ?? [],
     contentDocument: item.contentDocument,
     noteTypeDefinition: item.noteTypeDefinition,
-    sourceSnapshot: item.sourceSnapshot,
     meta: {
       ...(item.metadataJson ?? {}),
       importFingerprint,
       normalizedImport: {
         sourceType: item.sourceType,
         sourceExternalId: item.sourceExternalId ?? null,
-        sourceDocumentId: item.sourceDocumentId ?? null,
         metadataJson: item.metadataJson,
       },
     },
   };
-}
-
-function countNonOriginalVariants(items: any) {
-  return items.reduce((sum: any, item: any) => sum + (item.variants ?? []).filter((variant: any) => !variant.isOriginal).length, 0);
 }
 
 function previewItem(item: any, duplicateInfo: any = null) {
@@ -565,8 +409,7 @@ function previewItem(item: any, duplicateInfo: any = null) {
     tags: item.tags,
     sourceType: item.sourceType,
     sourceExternalId: item.sourceExternalId,
-    variantCount: (item.variants ?? []).length,
-    nonOriginalVariantCount: (item.variants ?? []).filter((variant: any) => !variant.isOriginal).length,
+    cardCount: (item.cards ?? []).length,
     duplicate: duplicateInfo?.duplicate ?? false,
     duplicateReason: duplicateInfo?.reason ?? null,
   };
@@ -647,7 +490,6 @@ export function importNormalizedDeck(input: any = {}, options: any = {}): any {
 
   report.createdDecks = targetDeck ? 0 : 1;
   report.createdLearningItems = importableItems.length;
-  report.createdVariants = countNonOriginalVariants(importableItems);
 
   if (normalizedOptions.dryRun || report.errors.length > 0) {
     return {
@@ -675,19 +517,15 @@ export function importNormalizedDeck(input: any = {}, options: any = {}): any {
   report.skipped.push(...creation.skipped.map((item: any) => ({ ...item, reason: item.reason ?? "creation_pipeline_skipped" })));
 
   const createdItems = creation.createdItems;
-  const createdVariantCount = createdItems.reduce((sum: any, item: any) => sum + getActiveVariants(item).length, 0);
   report.createdLearningItems = createdItems.length;
-  report.createdVariants = createdVariantCount;
   report.createdDecks = targetDeck ? 0 : 1;
 
   const importMeta = {
     creationMethod: "normalized-import",
     sourceType: normalizedDeck.sourceType,
     sourceExternalId: normalizedDeck.sourceExternalId ?? null,
-    sourceDocumentId: normalizedDeck.sourceDocumentId ?? null,
     detectedCards: normalizedDeck.items.length,
     importedCards: createdItems.length,
-    importedVariants: createdVariantCount,
     dryRun: false,
     warnings: report.warnings,
     errors: report.errors,
@@ -731,61 +569,8 @@ export function importNormalizedDeck(input: any = {}, options: any = {}): any {
     commitGraph: {
       decks: [deck],
       noteTypeDefinitions: creation.definitions,
-      sourceSnapshots: creation.sourceSnapshots,
     },
     normalizedDeck,
     report: finalizeImportReport(report),
   };
-}
-
-export function parseJsonToNormalizedImport(jsonOrObject: any) {
-  try {
-    const payload: unknown = typeof jsonOrObject === "string" ? JSON.parse(jsonOrObject) : jsonOrObject;
-    const validated = v.safeParse(normalizedImportPayloadSchema, payload);
-    if (!validated.success) {
-      throw new Error("JSON-Import entspricht nicht dem unterstützten Format oder der Schema-Version.");
-    }
-    const normalized = normalizeImportDeck(validated.output, { sourceType: validated.output.sourceType ?? "json_import" });
-    return normalized;
-  } catch (error) {
-    return {
-      normalizedDeck: {
-        title: "JSON-Import",
-        sourceType: "json_import",
-        items: [],
-        tags: [],
-        metadataJson: {},
-        mediaAssets: [],
-      },
-      warnings: [],
-      errors: [`JSON konnte nicht gelesen werden: ${error instanceof Error ? error.message : String(error)}`],
-    };
-  }
-}
-
-function importParsedNormalizedDeck(parsed: any, options: any = {}) {
-  const report = createEmptyReport({
-    dryRun: Boolean(options.dryRun),
-    sourceType: parsed.normalizedDeck?.sourceType ?? "mixed",
-    targetDeckId: options.targetDeckId ?? null,
-  });
-  report.warnings.push(...(parsed.warnings ?? []));
-  report.errors.push(...(parsed.errors ?? []));
-
-  if (report.errors.length > 0) {
-    return {
-      deck: null,
-      normalizedDeck: parsed.normalizedDeck,
-      report: finalizeImportReport(report),
-    };
-  }
-
-  const result = importNormalizedDeck(parsed.normalizedDeck, options);
-  result.report.warnings.unshift(...(parsed.warnings ?? []));
-  result.report.errors.unshift(...(parsed.errors ?? []));
-  return result;
-}
-
-export function importJsonAsNormalizedDeck(jsonOrObject: any, options: any = {}) {
-  return importParsedNormalizedDeck(parseJsonToNormalizedImport(jsonOrObject), options);
 }

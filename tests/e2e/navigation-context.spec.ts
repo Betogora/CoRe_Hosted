@@ -1,11 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreCard, createCoreDeck, updateLearningItemStudyState } from "../../src/coreModel.ts";
 import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { seedAccountState } from "../support/seedAccountState.ts";
 
 const DECK_IDS = {
   rootA: "navigation-root-a",
@@ -43,7 +43,6 @@ function card(id: string, deckId: string, front: string, back: string, options: 
     reviewState: options.dueAt ? { state: "review", dueAt: options.dueAt, repetitions: 1 } : null,
     variants: options.hasActiveVariant ? [{
       id: `${id}-variant`,
-      sourceCardId: id,
       front: `${front} Variante`,
       back,
       qualityStatus: "active",
@@ -87,13 +86,13 @@ async function seedAccount(decks: Deck[] = seedDecks()) {
   if (error || !data.user) throw error ?? new Error("Der Navigations-E2E-Account fehlt.");
   try {
     const state = createCoreRepository({ seedDefaultDecks: false }).getState();
-    const content = normalizeContentEntities(decks, [], []);
-    await replaceAccountCloudState(client, {
+    const content = normalizeContentEntities(decks, []);
+    await seedAccountState(client, {
       ...state,
       decks: content.decks,
       noteTypeDefinitions: content.definitions,
       profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, { deviceId: "e2e-navigation-context-reset" });
+    }, "e2e-navigation-context-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
@@ -122,7 +121,6 @@ async function startDeckFromCards(page: Page, deckId: string) {
   const query = new URLSearchParams({ returnView: "decks", returnDeck: deckId });
   if (returnCard) query.set("returnCard", returnCard);
   await page.goto(`/decks/${encodeURIComponent(deckId)}/review?${query}`);
-  await waitForApp(page);
   await expect(page).toHaveURL(new RegExp(`/decks/${deckId}/review\\?`));
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 }
@@ -224,8 +222,7 @@ test("[Vertrag: Kartenverwaltung] große Stapel bleiben beim Auf- und Zuklappen 
   await page.goto(`/kartenstapel?deck=${scrollDeckAId}`);
   await waitForApp(page);
   await expect(page.getByTestId(`deck-card-${scrollDeckACardIds[0]}`)).toBeVisible();
-  await expectStableDeckToggle(page, scrollDeckAId, scrollDeckBCardIds[0], false);
-  await expect(page.getByTestId(`deck-toggle-${scrollDeckAId}`)).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId(`deck-toggle-${scrollDeckAId}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByTestId(`deck-toggle-${scrollDeckBId}`).click();
   await expect(page.getByTestId(`deck-toggle-${scrollDeckBId}`)).toHaveAttribute("aria-expanded", "false");
 

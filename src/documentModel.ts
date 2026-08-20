@@ -1,5 +1,18 @@
-import { createSourceAnchor, createSourceDocument } from "./coreModel.ts";
+import { makeId } from "./coreModel.ts";
 import { loadPdfJs } from "./pdfRuntime.ts";
+
+export interface TransientSourceDocument {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  text: string;
+  textExtractionStatus: string;
+  metadata: Record<string, unknown>;
+}
+
+function createTransientSourceDocument(input: Omit<TransientSourceDocument, "id">): TransientSourceDocument {
+  return { id: makeId("transient-document"), ...input };
+}
 
 const TEXT_EXTENSIONS = [".txt", ".md", ".markdown", ".csv", ".tsv"];
 const PDF_EXTENSIONS = [".pdf"];
@@ -122,12 +135,6 @@ async function readPdfText(file: any) {
   return joinPageTexts(pages);
 }
 
-function pageNumberForSelection(document: any, charStart: any) {
-  const pages = document?.metadata?.pages ?? [];
-  if (!Number.isFinite(charStart) || charStart < 0 || !Array.isArray(pages)) return null;
-  return pages.find((page: any) => charStart >= page.charStart && charStart <= page.charEnd)?.pageNumber ?? null;
-}
-
 export async function createDocumentFromFile(file: any) {
   if (!file) {
     throw new Error("Es wurde keine Datei übergeben.");
@@ -148,7 +155,7 @@ export async function createDocumentFromFile(file: any) {
 
   if (canReadText) {
     const text = await file.text();
-    return createSourceDocument({
+    return createTransientSourceDocument({
       fileName: file.name,
       mimeType,
       text,
@@ -164,7 +171,7 @@ export async function createDocumentFromFile(file: any) {
     try {
       const extracted = await readPdfText(file);
       const text = extracted.text.trim();
-      return createSourceDocument({
+      return createTransientSourceDocument({
         fileName: file.name,
         mimeType,
         text,
@@ -176,7 +183,7 @@ export async function createDocumentFromFile(file: any) {
         }),
       });
     } catch (error) {
-      return createSourceDocument({
+      return createTransientSourceDocument({
         fileName: file.name,
         mimeType,
         text: "",
@@ -190,7 +197,7 @@ export async function createDocumentFromFile(file: any) {
     }
   }
 
-  return createSourceDocument({
+  return createTransientSourceDocument({
     fileName: file.name,
     mimeType,
     text: "",
@@ -199,25 +206,6 @@ export async function createDocumentFromFile(file: any) {
       browserReadableText: false,
       extractionMethod: "unsupported",
     }),
-  });
-}
-
-export function createAnchorFromSelection(document: any, selection: any, targetField: any, options: any = {}) {
-  const text = String(selection ?? "").trim();
-  const sourceText = document?.text ?? "";
-  const charStart = text && sourceText ? sourceText.indexOf(text) : -1;
-  const pageNumber = options.pageNumber ?? pageNumberForSelection(document, charStart);
-
-  return createSourceAnchor({
-    documentId: document?.id ?? null,
-    documentName: document?.fileName ?? "",
-    pageNumber,
-    textQuote: text,
-    charStart: charStart >= 0 ? charStart : null,
-    charEnd: charStart >= 0 ? charStart + text.length : null,
-    bbox: options.bbox ?? null,
-    confidence: options.confidence ?? 1,
-    targetField,
   });
 }
 

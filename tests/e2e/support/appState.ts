@@ -1,12 +1,12 @@
 import type { Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { replaceAccountCloudState } from "../../../src/cloudRepository.ts";
 import { createCoreRepository } from "../../../src/coreRepository.ts";
 import type { Deck } from "../../../src/coreTypes.ts";
 import { loadE2EEnvironment } from "./e2eEnvironment.ts";
+import { seedAccountState } from "../../support/seedAccountState.ts";
 
 const CORE_STORAGE_PREFIX = "core.";
-const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v2.";
+const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v3.";
 const SYNC_DEVICE_STORAGE_KEY = "core.syncDevice.v2";
 
 function isSupabaseAuthStorageKey(key: string) {
@@ -45,7 +45,7 @@ export async function resetTestAccount(environment = loadE2EEnvironment()) {
     if (conflictCleanupError) throw new Error(`E2E-Synchronisierungskonflikte konnten nicht zurückgesetzt werden: ${conflictCleanupError.message}`);
     const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", data.user.id);
     if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
-    await replaceAccountCloudState(client, createE2ESeedState(environment.email), { deviceId: "e2e-test-reset" });
+    await seedAccountState(client, createE2ESeedState(environment.email), "e2e-test-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
@@ -143,16 +143,14 @@ export async function readActiveAccountState(page: Page) {
       request.onerror = () => reject(request.error ?? new Error(`E2E-Store ${store} konnte nicht gelesen werden.`));
     });
     try {
-      const [metaRows, deckRows, catalogRows, cardRows, variantRows, reviewEvents, documents, definitions, snapshots, syncRows] = await Promise.all([
+      const [metaRows, deckRows, catalogRows, cardRows, variantRows, reviewEvents, definitions, syncRows] = await Promise.all([
         readAll<any>("meta"),
         readAll<any>("decks"),
         readAll<any>("cardCatalog"),
         readAll<any>("cards"),
         readAll<any>("variants"),
         readAll<any>("reviewEvents"),
-        readAll<any>("documents"),
         readAll<any>("noteTypeDefinitions"),
-        readAll<any>("sourceSnapshots"),
         readAll<any>("syncMetadata"),
       ]);
       const meta = new Map(metaRows.map((row) => [row.key, row.value]));
@@ -183,13 +181,11 @@ export async function readActiveAccountState(page: Page) {
       const reviewsByDeck = new Map<string, any[]>();
       for (const event of reviewEvents) reviewsByDeck.set(event.deckId, [...(reviewsByDeck.get(event.deckId) ?? []), event]);
       return {
-        version: 4,
+        version: 5,
         profile: meta.get("profile"),
         updatedAt: meta.get("updatedAt"),
         decks: deckRows.map((deck) => ({ ...deck, cards: cardsByDeck.get(deck.id) ?? [], reviewEvents: reviewsByDeck.get(deck.id) ?? [] })),
-        documents,
         noteTypeDefinitions: definitions,
-        learningItemSourceSnapshots: snapshots,
         cloudTombstones: sync.get("cloudTombstones") ?? [],
       };
     } finally {

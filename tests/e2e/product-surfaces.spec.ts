@@ -16,7 +16,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   }
 
   await menu.getByRole("button", { name: "Erstellen" }).click();
-  await expect(page.getByRole("button", { name: /Karte selbst erstellen/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Karten selbst erstellen/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Import\b/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
@@ -472,8 +472,8 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
   await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
 
   const timerKey = await page.evaluate(async () => {
-    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v2."));
-    const userId = database?.name?.slice("core.workspace.entities.v2.".length);
+    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v3."));
+    const userId = database?.name?.slice("core.workspace.entities.v3.".length);
     if (!userId) throw new Error("Accountgebundene E2E-Datenbank fehlt.");
     return `core.accountState.v2.${encodeURIComponent(userId)}.core.pomodoroTimer.v1`;
   });
@@ -816,7 +816,7 @@ test("@beta-core @hosted-core Beta-Artefakt enthält weder Labs noch Großdatei-
   await expect(page.locator("summary").filter({ hasText: "Labs" })).toHaveCount(0);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await expect(page.getByText("APKG-Datei ablegen oder auswählen (Max. 250 MB)")).toBeVisible();
+  await expect(page.getByText("APKG-Datei hier ablegen (Max. 250 MB)")).toBeVisible();
   await expect(page.getByText(/1 GiB|Server-Import|Upload fortsetzen/)).toHaveCount(0);
 });
 

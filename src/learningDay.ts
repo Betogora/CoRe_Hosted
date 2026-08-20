@@ -125,6 +125,22 @@ export function getLearningDayRange(value: DateInput, options: LearningDayOption
   };
 }
 
+export function getLearningDayStartForKey(dayKey: string, options: LearningDayOptions = {}): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const dayIndex = Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
+  const normalized = new Date(dayIndex * DAY_MS);
+  if (
+    normalized.getUTCFullYear() !== year
+    || normalized.getUTCMonth() + 1 !== month
+    || normalized.getUTCDate() !== day
+  ) return null;
+  return new Date(learningDayBoundary(dayIndex, options));
+}
+
 function zonedDateTimeToUtc(parts: LocalDateTimeParts, timeZone: string): Date {
   const desiredWallTime = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, parts.second, parts.millisecond);
   let candidateTime = desiredWallTime;

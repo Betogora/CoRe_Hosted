@@ -1,7 +1,7 @@
-import { createBasicLearningItem, createCoreDeck, createReviewState, getOriginalVariant, normalizeLearningItem } from "../coreModel.ts";
+import { createBasicLearningItem, createCoreDeck, createReviewState, normalizeLearningItem } from "../coreModel.ts";
 import { simulateRatingOutcome } from "../scheduler.ts";
 import worldCapitalsSource from "../../fixtures/apkg/world-capitals.source.json" with { type: "json" };
-import type { CardVariant, Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
+import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
 
 type WorldCapitalItem = (typeof worldCapitalsSource.items)[number];
 
@@ -174,19 +174,9 @@ function responseTimeFor(profile: StudyProfile, cardIndex: number, eventIndex: n
   return Math.max(1600, profileBase + ratingPenalty + (cardIndex % 8) * 370 + eventIndex * 95);
 }
 
-function compactHistoryReviewState(state: Partial<ReviewState> = {}) {
-  return {
-    state: state.state ?? "new",
-    reps: Number(state.reps ?? state.repetitions ?? 0),
-    repetitions: Number(state.repetitions ?? state.reps ?? 0),
-    lapses: Number(state.lapses ?? 0),
-  };
-}
-
-function createHistoryEvent({ deckId, item, variant, eventIndex, rating, reviewedAt, previousState, nextState, profile, cardIndex }: {
+function createHistoryEvent({ deckId, item, eventIndex, rating, reviewedAt, previousState, nextState, profile, cardIndex }: {
   deckId: string;
   item: LearningItem;
-  variant: CardVariant;
   eventIndex: number;
   rating: ReviewRating;
   reviewedAt: string;
@@ -194,33 +184,21 @@ function createHistoryEvent({ deckId, item, variant, eventIndex, rating, reviewe
   nextState: ReviewState;
   profile: StudyProfile;
   cardIndex: number;
-}): ReviewEvent & { reviewedAt: string; cardId: string; cardVariantId: string; [key: string]: unknown } {
+}): ReviewEvent {
   return {
     id: `review_world_capitals_${item.id.replace(/^card_world_capitals_/, "")}_${String(eventIndex + 1).padStart(2, "0")}`,
     userId: "local-user",
     deckId,
     learningItemId: item.id,
-    cardId: item.id,
-    cardVariantId: variant.id,
-    variantId: variant.id,
+    variantId: null,
     reviewableType: "card" as const,
-    reviewableId: variant.id,
+    reviewableId: item.id,
     sourceCardId: item.id,
     rating,
-    reviewedAt,
     answeredAt: reviewedAt,
     responseTimeMs: responseTimeFor(profile, cardIndex, eventIndex, rating),
     schedulerBefore: previousState,
     schedulerAfter: nextState,
-    variantLevel: 1,
-    variantType: "basic",
-    previousLearningItemStateJson: compactHistoryReviewState(previousState),
-    nextLearningItemStateJson: compactHistoryReviewState(nextState),
-    schedulerVersion: nextState.schedulerVersion ?? "fsrs_6_v1",
-    schedulerParamsJson: nextState.schedulerParamsJson ?? null,
-    anchorVariantId: null,
-    anchorSnapshotJson: null,
-    fallbackInfo: rating === "again" ? { fixtureFallback: "Originalkarte wurde erneut geübt." } : null,
     flags: {
       fixture: "world-capitals",
       studyHistoryVersion: WORLD_CAPITALS_STUDY_HISTORY.version,
@@ -271,8 +249,6 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
 
 function createCardStudyHistory(deckId: string, card: LearningItem, cardIndex: number, continentIndex: number) {
   const item = normalizeLearningItem(card);
-  const variant = getOriginalVariant(item);
-  if (!variant) throw new Error(`Originalvariante für ${item.id} fehlt.`);
   const profile = selectStudyProfile(cardIndex);
   const introDay = Math.min(30, Math.floor(cardIndex / 9) + (continentIndex % 3));
   let rollingState = createReviewState({
@@ -296,7 +272,7 @@ function createCardStudyHistory(deckId: string, card: LearningItem, cardIndex: n
     const outcome = simulateRatingOutcome({
       learningItem: item,
       previousState,
-      variant,
+      variant: null,
       rating,
       now: reviewedAt,
     });
@@ -305,7 +281,6 @@ function createCardStudyHistory(deckId: string, card: LearningItem, cardIndex: n
       createHistoryEvent({
         deckId,
         item,
-        variant,
         eventIndex,
         rating,
         reviewedAt,
@@ -317,8 +292,8 @@ function createCardStudyHistory(deckId: string, card: LearningItem, cardIndex: n
     );
   });
 
-  const firstReviewedAt = events[0]?.reviewedAt ?? addDaysIso(HISTORY_START_TIME, introDay);
-  const lastReviewedAt = events.at(-1)?.reviewedAt ?? firstReviewedAt;
+  const firstReviewedAt = events[0]?.answeredAt ?? addDaysIso(HISTORY_START_TIME, introDay);
+  const lastReviewedAt = events.at(-1)?.answeredAt ?? firstReviewedAt;
   const reviewState = createFinalReviewState({
     profile,
     cardIndex,
@@ -332,7 +307,6 @@ function createCardStudyHistory(deckId: string, card: LearningItem, cardIndex: n
   return {
     card: normalizeLearningItem({
       ...item,
-      learningItemState: reviewState,
       reviewState,
       createdAt: HISTORY_DECK_CREATED_AT,
       updatedAt: HISTORY_DECK_UPDATED_AT,
@@ -416,10 +390,10 @@ function createCapitalCard(deckId: string, item: WorldCapitalItem) {
 
   return createBasicLearningItem(deckId, front, back, {
     id: item.id,
-    originalVariantId: item.variantId,
     source: "anki-apkg",
     sourceType: "anki_import",
-    sourceRefId: `anki-note-${item.ankiNoteId}`,
+    sourceRefId: String(item.ankiCardId),
+    sourceCardId: String(item.ankiCardId),
     tags: ["geo", "hauptstaedte", item.continentId, String(item.cca3).toLowerCase()],
     createdAt: HISTORY_DECK_CREATED_AT,
     updatedAt: HISTORY_DECK_CREATED_AT,
@@ -442,7 +416,6 @@ function createCapitalCard(deckId: string, item: WorldCapitalItem) {
       countryCodeAlpha2: item.cca2,
       countryEnglish: item.countryEnglish,
       continent: item.continent,
-      ankiNoteId: String(item.ankiNoteId),
       ankiCardId: String(item.ankiCardId),
     },
   });

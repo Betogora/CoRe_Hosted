@@ -27,12 +27,22 @@ export interface StudyCardContentProps {
   answerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function StudyCardContent({ item, variant, definition, mediaUrls = {}, revealed, selectedChoices, onSelectedChoicesChange, onReveal, questionRef, answerRef }: StudyCardContentProps) {
-  const cardType = variant?.variantType === "reverse" ? "basic-reversed" : String(item?.kind ?? item?.cardType ?? variant?.meta?.cardType ?? "basic");
-  const answerOptions = normalizeChoiceOptions(variant?.answerOptionsJson ?? item?.meta?.answerOptions ?? []);
+export function StudyCardContent({
+  item,
+  variant,
+  definition,
+  mediaUrls = {},
+  revealed,
+  selectedChoices,
+  onSelectedChoicesChange,
+  onReveal,
+  questionRef,
+  answerRef,
+}: StudyCardContentProps) {
+  const cardType = String(item?.kind ?? item?.cardType ?? "basic");
+  const answerOptions = normalizeChoiceOptions(item?.meta?.answerOptions ?? []);
   const expectedAnswers = normalizeChoiceAnswerList(
-    variant?.expectedAnswerJson
-      ?? item?.meta?.correctAnswers
+    item?.meta?.correctAnswers
       ?? item?.meta?.correctAnswer
       ?? item?.meta?.expectedAnswer
       ?? "",
@@ -71,7 +81,12 @@ export function StudyCardContent({ item, variant, definition, mediaUrls = {}, re
   return (
     <div className="w-full">
       <div ref={questionRef} tabIndex={-1} role="group" aria-label="Frage" className="core-study-card-front text-[var(--core-text)] outline-none">
-        <CardPresentationSurface {...presentationProps} side="question" title="Frage" loadingLabel={stripHtml(variant?.front ?? "")} />
+        <CardPresentationSurface
+          {...presentationProps}
+          side="question"
+          title="Frage"
+          loadingLabel={stripHtml(variant?.front ?? "")}
+        />
       </div>
 
       {isChoice ? (
@@ -90,7 +105,15 @@ export function StudyCardContent({ item, variant, definition, mediaUrls = {}, re
                 ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-text)]"
                 : "border-[var(--core-border)] bg-core-surface text-[var(--core-text-secondary)] hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)]";
             return (
-              <button key={option} type="button" onClick={() => selectChoice(option)} disabled={revealed} aria-pressed={isSelected} aria-label={`Antwortoption ${String.fromCharCode(65 + index)}: ${option}`} className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 text-left core-body font-semibold ${stateClass}`}>
+              <button
+                key={option}
+                type="button"
+                onClick={() => selectChoice(option)}
+                disabled={revealed}
+                aria-pressed={isSelected}
+                aria-label={`Antwortoption ${String.fromCharCode(65 + index)}: ${option}`}
+                className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 text-left core-body font-semibold ${stateClass}`}
+              >
                 <span><span className="mr-2 core-caption uppercase tracking-wide opacity-70">{String.fromCharCode(65 + index)}</span>{option}</span>
                 {revealed && isCorrect ? <CheckCircle2 className="shrink-0" size={18} aria-hidden="true" /> : null}
                 {isWrongSelection ? <XCircle className="shrink-0" size={18} aria-hidden="true" /> : null}
@@ -115,7 +138,12 @@ export function StudyCardContent({ item, variant, definition, mediaUrls = {}, re
         <>
           <div data-testid="study-card-answer-separator" className="my-8 h-0.5 bg-[var(--core-border-interactive)] opacity-70" />
           <div ref={answerRef} tabIndex={-1} role="group" aria-label="Antwort" className="core-study-card-back text-[var(--core-text)] outline-none">
-            <CardPresentationSurface {...presentationProps} side="answer" title="Antwort" loadingLabel={stripHtml(variant?.back ?? "")} />
+            <CardPresentationSurface
+              {...presentationProps}
+              side="answer"
+              title="Antwort"
+              loadingLabel={stripHtml(variant?.back ?? "")}
+            />
           </div>
           {isChoice ? (
             <div className={`core-mcq-feedback mt-5 rounded-2xl border p-4 ${choiceFeedbackClass}`}>

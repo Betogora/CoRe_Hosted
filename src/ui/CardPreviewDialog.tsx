@@ -35,7 +35,7 @@ export function CardPreviewDialog({
 }: CardPreviewDialogProps) {
   const [side, setSide] = React.useState<PreviewSide>("question");
   const [selectedChoices, setSelectedChoices] = React.useState<string[]>([]);
-  const answerRef = React.useRef<HTMLDivElement | null>(null);
+  const answerContentRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
   const closeDialog = React.useCallback(() => {
     setSide("question");
@@ -55,6 +55,15 @@ export function CardPreviewDialog({
       setSelectedChoices([]);
     }
   }, [open]);
+
+  React.useEffect(() => {
+    if (open && side === "answer") answerContentRef.current?.focus();
+  }, [open, side]);
+
+  function selectSide(nextSide: PreviewSide) {
+    setSide(nextSide);
+    if (nextSide === "question") setSelectedChoices([]);
+  }
 
   if (!open) return null;
 
@@ -81,18 +90,20 @@ export function CardPreviewDialog({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--core-surface-muted)] p-3 sm:p-6">
-          <div className="mx-auto flex min-h-full w-full max-w-5xl items-center">
-            <StudyCardContent
-              item={item}
-              variant={variant}
-              definition={definition}
-              mediaUrls={mediaUrls}
-              revealed={side === "answer"}
-              selectedChoices={selectedChoices}
-              onSelectedChoicesChange={setSelectedChoices}
-              onReveal={() => setSide("answer")}
-              answerRef={answerRef}
-            />
+          <div className="mx-auto grid min-h-full w-full max-w-5xl place-items-center">
+            <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-2xl border border-[var(--core-border)] bg-core-surface px-4 py-6 shadow-[var(--core-shadow-raised)] sm:px-8 sm:py-10">
+              <StudyCardContent
+                item={item}
+                variant={variant}
+                definition={definition}
+                mediaUrls={mediaUrls}
+                revealed={side === "answer"}
+                selectedChoices={selectedChoices}
+                onSelectedChoicesChange={setSelectedChoices}
+                onReveal={() => setSide("answer")}
+                answerRef={answerContentRef}
+              />
+            </div>
           </div>
         </div>
 
@@ -101,11 +112,7 @@ export function CardPreviewDialog({
             ariaLabel="Kartenseite anzeigen"
             options={PREVIEW_SIDE_OPTIONS}
             value={side}
-            onValueChange={(nextSide) => {
-              setSide(nextSide);
-              if (nextSide === "question") setSelectedChoices([]);
-              else window.requestAnimationFrame(() => answerRef.current?.focus());
-            }}
+            onValueChange={selectSide}
             size="regular"
             className="w-full max-w-sm"
           />

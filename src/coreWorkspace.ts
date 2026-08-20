@@ -1,5 +1,5 @@
-import { createBasicLearningItem, createCoreDeck, createVersionEntry } from "./coreModel.ts";
-import type { Deck, DeckSettings, ForeignNoteSnapshot, LearningItem, NoteTypeDefinitionV1, Profile, SourceDocument } from "./coreTypes.ts";
+import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
+import type { Deck, DeckSettings, LearningItem, NoteTypeDefinitionV1, Profile } from "./coreTypes.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -13,9 +13,7 @@ export interface WorkspaceState {
   version?: number;
   profile: Profile;
   decks: Deck[];
-  documents: SourceDocument[];
   noteTypeDefinitions: NoteTypeDefinitionV1[];
-  learningItemSourceSnapshots: ForeignNoteSnapshot[];
   cloudTombstones: CloudTombstone[];
   updatedAt: string;
   [key: string]: unknown;
@@ -68,18 +66,6 @@ export function softDeleteCard(card: LearningItem, deletedAt: string): LearningI
     status: "deleted",
     deletedAt,
     updatedAt: deletedAt,
-    versionLog: [
-      ...(card.versionLog ?? []),
-      createVersionEntry({
-        objectType: "card",
-        objectId: card.id,
-        changeType: "deleted",
-        before: { status: card.status ?? "active" },
-        after: { status: "deleted" },
-        reason: "Karte gelöscht",
-        createdAt: deletedAt,
-      }),
-    ],
   };
 }
 
@@ -196,12 +182,8 @@ function createDeckMutationError(error: string): DeckMutationResult {
   };
 }
 
-export function restoreSoftDeletedCard(card: LearningItem, restoredAt: string): LearningItem {
+export function restoreSoftDeletedCard(card: LearningItem, restoredAt: string, previousStatus: LearningItem["status"] = "active"): LearningItem {
   if (card.status !== "deleted") return card;
-  const deletedVersion = [...(card.versionLog ?? [])].reverse().find((entry) => entry.changeType === "deleted");
-  const previousStatus = deletedVersion?.before && typeof deletedVersion.before === "object"
-    ? (deletedVersion.before as { status?: unknown }).status
-    : "active";
   const status = previousStatus === "suspended" ? "suspended" : "active";
 
   return {
@@ -209,22 +191,10 @@ export function restoreSoftDeletedCard(card: LearningItem, restoredAt: string): 
     status,
     deletedAt: null,
     updatedAt: restoredAt,
-    versionLog: [
-      ...(card.versionLog ?? []),
-      createVersionEntry({
-        objectType: "card",
-        objectId: card.id,
-        changeType: "delete_undone",
-        before: { status: "deleted", deletedAt: card.deletedAt },
-        after: { status, deletedAt: null },
-        reason: "Kartenlöschung rückgängig gemacht",
-        createdAt: restoredAt,
-      }),
-    ],
   };
 }
 
-export function updateDeckTreePlacement(state: Pick<WorkspaceState, "decks">, { deckId, name = null, parentDeckId = undefined, changeType, reason }: DeckPlacementInput): DeckMutationResult {
+export function updateDeckTreePlacement(state: Pick<WorkspaceState, "decks">, { deckId, name = null, parentDeckId = undefined }: DeckPlacementInput): DeckMutationResult {
   const decks = state.decks ?? [];
   const deck = decks.find((item) => item.id === deckId);
   if (!deck) return createDeckMutationError("Stapel nicht gefunden.");
@@ -282,28 +252,6 @@ export function updateDeckTreePlacement(state: Pick<WorkspaceState, "decks">, { 
       parentDeckId: isRoot ? requestedParentId : currentDeck.parentDeckId ?? null,
       hierarchyPath: nextPath,
       updatedAt,
-      versionLog: isRoot
-        ? [
-            ...(currentDeck.versionLog ?? []),
-            createVersionEntry({
-              objectType: "deck",
-              objectId: currentDeck.id,
-              changeType,
-              before: {
-                name: currentDeck.name,
-                parentDeckId: currentDeck.parentDeckId ?? null,
-                hierarchyPath: hierarchyPathOf(currentDeck),
-              },
-              after: {
-                name: nextName,
-                parentDeckId: requestedParentId,
-                hierarchyPath: nextPath,
-              },
-              reason,
-              createdAt: updatedAt,
-            }),
-          ]
-        : currentDeck.versionLog,
     });
   });
   return {

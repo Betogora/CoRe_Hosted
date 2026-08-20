@@ -2,7 +2,8 @@ begin;
 
 create extension if not exists pgcrypto;
 
-create sequence public.account_sync_change_id_seq as bigint;
+create sequence if not exists public.account_sync_change_id_seq as bigint;
+alter sequence public.account_sync_change_id_seq restart with 1;
 
 create table public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
@@ -23,14 +24,13 @@ create table public.decks (
   parent_deck_id text,
   name text not null,
   description text not null default '',
-  source text not null check (source in ('anki-apkg', 'manual', 'text-import', 'csv-import', 'json-import', 'spreadsheet-import')),
+  source text not null check (source in ('anki-apkg', 'manual', 'text-import', 'csv-import', 'spreadsheet-import')),
   original_deck_id text,
   hierarchy_path text[] not null default '{}'::text[],
   card_count integer not null default 0,
   tags text[] not null default '{}'::text[],
   import_meta jsonb not null default '{}'::jsonb,
   deck_settings jsonb not null default '{}'::jsonb,
-  version_log jsonb not null default '[]'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   sync_change_id bigint not null default 0 check (sync_change_id > 0),
@@ -65,14 +65,12 @@ create table public.cards (
   id text,
   user_id uuid not null references auth.users(id) on delete cascade,
   deck_id text not null,
-  note_id text,
-  source text not null check (source in ('anki-apkg', 'manual', 'text-import', 'csv-import', 'json-import', 'spreadsheet-import')),
+  source text not null check (source in ('anki-apkg', 'manual', 'text-import', 'csv-import', 'spreadsheet-import')),
   source_card_id text,
-  source_note_id text,
-  kind text not null check (kind in ('basic', 'basic-with-images', 'basic-reversed', 'cloze', 'image-occlusion', 'multiple-choice', 'free-text', 'multi-field', 'case-vignette')),
+  kind text not null check (kind in ('basic', 'basic-with-images', 'basic-reversed', 'cloze', 'image-occlusion', 'single-choice', 'multiple-choice', 'free-text', 'multi-field', 'case-vignette')),
   note_type_definition_id text,
   content_document jsonb not null default '{}'::jsonb,
-  latest_source_snapshot_id text,
+  projection jsonb not null default '{}'::jsonb,
   content_revision integer not null default 1 check (content_revision >= 1),
   draft_status text not null default 'accepted',
   status text not null default 'active',
@@ -81,13 +79,10 @@ create table public.cards (
   original_fields jsonb not null default '[]'::jsonb,
   original_tags text[] not null default '{}'::text[],
   original_html text not null default '',
-  immutable_original jsonb not null default '{}'::jsonb,
   media_refs text[] not null default '{}'::text[],
-  source_anchors jsonb not null default '[]'::jsonb,
   content_hash text,
   review_state jsonb not null default '{}'::jsonb,
   core_state jsonb not null default '{}'::jsonb,
-  version_log jsonb not null default '[]'::jsonb,
   meta jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -105,43 +100,26 @@ create unique index cards_id_deck_id_user_id_idx on public.cards (id, deck_id, u
 create index cards_user_id_idx on public.cards (user_id);
 create index cards_deck_id_idx on public.cards (deck_id);
 create index cards_note_type_definition_id_idx on public.cards (note_type_definition_id);
-create index cards_latest_source_snapshot_id_idx on public.cards (latest_source_snapshot_id);
-
 create table public.card_variants (
   id text,
   user_id uuid not null references auth.users(id) on delete cascade,
   card_id text not null,
-  source_card_id text not null,
   front text not null default '',
   back text not null default '',
-  variant_type text not null default 'basic' check (variant_type in ('basic', 'reverse', 'cloze', 'mcq', 'transfer', 'case', 'image_occlusion', 'custom')),
-  variant_level integer not null default 1 check (variant_level between 1 and 5),
-  generation_source text not null default 'user_edited' check (generation_source in ('original', 'ai_generated', 'user_edited', 'imported')),
-  parent_variant_id text,
-  anchor_variant_id text,
-  is_original boolean not null default false,
+  variant_type text not null default 'basic' check (variant_type = 'basic'),
+  variant_level integer not null default 2 check (variant_level between 1 and 3),
   is_active boolean not null default true,
-  transform_type text not null check (transform_type in ('original', 'rephrase', 'front_back_style_shift', 'cloze_conversion')),
+  transform_type text not null default 'rephrase' check (transform_type = 'rephrase'),
   transform_profile jsonb not null default '{}'::jsonb,
   model_run_id text,
   explanation text not null default '',
-  hints_json jsonb,
-  answer_options_json jsonb,
-  expected_answer_json jsonb,
   confidence numeric,
   semantic_delta text,
   changed_recognition_cues text[] not null default '{}'::text[],
   quality_status text not null default 'active' check (quality_status in ('draft', 'active', 'rejected', 'flagged', 'disabled')),
   content_hash text,
-  source_anchors jsonb not null default '[]'::jsonb,
-  review_state jsonb not null default '{}'::jsonb,
   performance jsonb not null default '{}'::jsonb,
   feedback jsonb not null default '[]'::jsonb,
-  version_log jsonb not null default '[]'::jsonb,
-  projection jsonb not null default '{}'::jsonb,
-  scheduling_mode text not null default 'independent-card' check (scheduling_mode in ('independent-card', 'adaptive-presentation')),
-  study_deck_id text,
-  render_revision integer not null default 1 check (render_revision >= 1),
   meta jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -150,51 +128,12 @@ create table public.card_variants (
   deleted_at timestamptz,
   updated_by_device_id text,
   primary key (user_id, id),
-  constraint card_variants_card_owner_fk foreign key (card_id, user_id) references public.cards (id, user_id) on delete cascade,
-  constraint card_variants_study_deck_owner_fk foreign key (study_deck_id, user_id) references public.decks (id, user_id) on delete set null (study_deck_id)
+  constraint card_variants_card_owner_fk foreign key (card_id, user_id) references public.cards (id, user_id) on delete cascade
 );
 
 create index card_variants_user_id_idx on public.card_variants (user_id);
 create index card_variants_card_id_idx on public.card_variants (card_id);
 create unique index card_variants_id_user_id_idx on public.card_variants (id, user_id);
-create index card_variants_study_deck_id_idx on public.card_variants (study_deck_id);
-
-create table public.learning_item_source_snapshots (
-  id text,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  card_id text not null,
-  schema_version integer not null default 1 check (schema_version = 1),
-  source_kind text not null check (source_kind in ('anki-apkg', 'csv')),
-  import_fingerprint text not null,
-  previous_snapshot_id text,
-  note_type_definition_id text,
-  source_payload jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  sync_change_id bigint not null default 0 check (sync_change_id > 0),
-  primary key (user_id, id),
-  constraint learning_item_source_snapshots_card_owner_fk
-    foreign key (card_id, user_id) references public.cards (id, user_id) on delete cascade,
-  constraint learning_item_source_snapshots_note_type_owner_fk
-    foreign key (note_type_definition_id, user_id) references public.note_type_definitions (id, user_id)
-);
-
-create unique index learning_item_source_snapshots_id_user_id_idx on public.learning_item_source_snapshots (id, user_id);
-create unique index learning_item_source_snapshots_card_user_id_id_idx on public.learning_item_source_snapshots (card_id, user_id, id);
-create index learning_item_source_snapshots_user_id_idx on public.learning_item_source_snapshots (user_id);
-create index learning_item_source_snapshots_card_id_idx on public.learning_item_source_snapshots (card_id);
-create index learning_item_source_snapshots_import_fingerprint_idx on public.learning_item_source_snapshots (user_id, card_id, import_fingerprint);
-
-alter table public.learning_item_source_snapshots
-  add constraint learning_item_source_snapshots_previous_owner_fk
-  foreign key (card_id, user_id, previous_snapshot_id)
-  references public.learning_item_source_snapshots (card_id, user_id, id);
-
-alter table public.cards
-  add constraint cards_latest_source_snapshot_owner_fk
-  foreign key (id, user_id, latest_source_snapshot_id)
-  references public.learning_item_source_snapshots (card_id, user_id, id)
-  on delete set null (latest_source_snapshot_id);
-
 create table public.review_events (
   id text,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -202,7 +141,7 @@ create table public.review_events (
   reviewable_type text not null check (reviewable_type in ('card', 'variant')),
   reviewable_id text not null,
   source_card_id text,
-  rating text not null check (rating in ('again', 'hard', 'good', 'easy')),
+  rating text not null check (rating in ('again', 'hard', 'good', 'easy', 'manual')),
   answered_at timestamptz not null default now(),
   response_time_ms integer,
   scheduler_before jsonb,
@@ -258,28 +197,6 @@ create table public.review_statistics_daily (
 
 create index review_statistics_daily_user_day_deck_idx
   on public.review_statistics_daily (user_id, day_key, deck_id);
-
-create table public.source_documents (
-  id text,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  local_owner_id text,
-  file_name text not null,
-  mime_type text not null default 'application/octet-stream',
-  text text not null default '',
-  storage_url text not null default '',
-  text_extraction_status text not null default 'pending',
-  metadata jsonb not null default '{}'::jsonb,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  sync_change_id bigint not null default 0 check (sync_change_id > 0),
-  revision integer not null default 1,
-  deleted_at timestamptz,
-  updated_by_device_id text,
-  primary key (user_id, id)
-);
-
-create index source_documents_user_id_idx on public.source_documents (user_id);
-create unique index source_documents_id_user_id_idx on public.source_documents (id, user_id);
 
 create table public.media_assets (
   id text,
@@ -343,10 +260,8 @@ alter table public.decks enable row level security;
 alter table public.note_type_definitions enable row level security;
 alter table public.cards enable row level security;
 alter table public.card_variants enable row level security;
-alter table public.learning_item_source_snapshots enable row level security;
 alter table public.review_events enable row level security;
 alter table public.review_statistics_daily enable row level security;
-alter table public.source_documents enable row level security;
 alter table public.media_assets enable row level security;
 alter table public.sync_devices enable row level security;
 alter table public.sync_conflicts enable row level security;
@@ -363,14 +278,10 @@ create policy "cards_owner_all" on public.cards for all to authenticated using (
 
 create policy "card_variants_owner_all" on public.card_variants for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
-create policy "learning_item_source_snapshots_owner_all" on public.learning_item_source_snapshots for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
-
 create policy "review_events_owner_all" on public.review_events for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 create policy "review_statistics_daily_owner_select" on public.review_statistics_daily
   for select to authenticated using ((select auth.uid()) = user_id);
-
-create policy "source_documents_owner_all" on public.source_documents for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
 create policy "media_assets_owner_all" on public.media_assets for all to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 
@@ -426,6 +337,10 @@ declare
   profile_day_start integer := 0;
   previous_first public.review_events%rowtype;
 begin
+  if new.rating = 'manual' then
+    new.retention_first := false;
+    return new;
+  end if;
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(new.user_id::text, 1129270853));
   select
     coalesce(profile_row.timezone, 'UTC'),
@@ -503,6 +418,10 @@ declare
   hour_key text := event_row.statistics_hour::text;
   rating_key text := event_row.statistics_category || ':' || event_row.rating;
 begin
+  if event_row.rating = 'manual' then
+    if tg_op = 'DELETE' then return old; end if;
+    return new;
+  end if;
   insert into public.review_statistics_daily (user_id, deck_id, day_key)
   values (event_row.user_id, event_row.deck_id, event_row.statistics_day)
   on conflict (user_id, deck_id, day_key) do nothing;
@@ -563,16 +482,12 @@ create trigger cards_stamp_account_sync_change before insert or update on public
   for each row execute function private.stamp_account_sync_change();
 create trigger card_variants_stamp_account_sync_change before insert or update on public.card_variants
   for each row execute function private.stamp_account_sync_change();
-create trigger learning_item_source_snapshots_stamp_account_sync_change before insert or update on public.learning_item_source_snapshots
-  for each row execute function private.stamp_account_sync_change();
 create trigger review_events_stamp_account_sync_change before insert or update on public.review_events
   for each row execute function private.stamp_account_sync_change();
 create trigger review_events_prepare_statistics before insert on public.review_events
   for each row execute function private.prepare_review_statistics();
 create trigger review_events_sync_statistics after insert or delete or update of retention_first on public.review_events
   for each row execute function private.sync_review_statistics_daily();
-create trigger source_documents_stamp_account_sync_change before insert or update on public.source_documents
-  for each row execute function private.stamp_account_sync_change();
 
 create index decks_user_updated_id_idx
   on public.decks (user_id, updated_at, id);
@@ -582,12 +497,8 @@ create index cards_user_updated_id_idx
   on public.cards (user_id, updated_at, id);
 create index card_variants_user_updated_id_idx
   on public.card_variants (user_id, updated_at, id);
-create index source_documents_user_updated_id_idx
-  on public.source_documents (user_id, updated_at, id);
 create index review_events_user_answered_id_idx
   on public.review_events (user_id, answered_at, id);
-create index learning_item_source_snapshots_user_created_id_idx
-  on public.learning_item_source_snapshots (user_id, created_at, id);
 create index decks_user_sync_change_id_idx
   on public.decks (user_id, sync_change_id, id);
 create index note_type_definitions_user_sync_change_id_idx
@@ -596,12 +507,8 @@ create index cards_user_sync_change_id_idx
   on public.cards (user_id, sync_change_id, id);
 create index card_variants_user_sync_change_id_idx
   on public.card_variants (user_id, sync_change_id, id);
-create index learning_item_source_snapshots_user_sync_change_id_idx
-  on public.learning_item_source_snapshots (user_id, sync_change_id, id);
 create index review_events_user_sync_change_id_idx
   on public.review_events (user_id, sync_change_id, id);
-create index source_documents_user_sync_change_id_idx
-  on public.source_documents (user_id, sync_change_id, id);
 
 create or replace function public.record_review_atomic(
   p_deck_id text,
@@ -610,7 +517,6 @@ create or replace function public.record_review_atomic(
   p_card_core_state jsonb,
   p_card_updated_at timestamptz,
   p_variant_id text,
-  p_variant_review_state jsonb,
   p_variant_performance jsonb,
   p_variant_updated_at timestamptz,
   p_event jsonb,
@@ -740,7 +646,7 @@ begin
       where candidate.user_id = current_user_id
         and candidate.id <> event_id
         and (candidate.source_card_id = p_card_id
-          or (candidate.reviewable_type in ('card', 'learning_item') and candidate.reviewable_id = p_card_id))
+          or (candidate.reviewable_type = 'card' and candidate.reviewable_id = p_card_id))
         and (candidate.answered_at, candidate.id) > ((p_event->>'answered_at')::timestamptz, event_id)
     )
   returning * into persisted_card;
@@ -750,8 +656,7 @@ begin
 
   if p_variant_id is not null then
     update public.card_variants
-    set review_state = coalesce(p_variant_review_state, '{}'::jsonb),
-        performance = coalesce(p_variant_performance, '{}'::jsonb),
+    set performance = coalesce(p_variant_performance, '{}'::jsonb),
         updated_at = coalesce(p_variant_updated_at, p_card_updated_at, now()),
         updated_by_device_id = p_device_id
     where user_id = current_user_id
@@ -783,11 +688,11 @@ $$;
 
 revoke all on function public.record_review_atomic(
   text, text, jsonb, jsonb, timestamptz,
-  text, jsonb, jsonb, timestamptz, jsonb, text
+  text, jsonb, timestamptz, jsonb, text
 ) from public, anon;
 grant execute on function public.record_review_atomic(
   text, text, jsonb, jsonb, timestamptz,
-  text, jsonb, jsonb, timestamptz, jsonb, text
+  text, jsonb, timestamptz, jsonb, text
 ) to authenticated, service_role;
 
 
@@ -797,10 +702,8 @@ revoke all privileges on table
   public.note_type_definitions,
   public.cards,
   public.card_variants,
-  public.learning_item_source_snapshots,
   public.review_events,
   public.review_statistics_daily,
-  public.source_documents,
   public.media_assets,
   public.sync_devices,
   public.sync_conflicts
@@ -822,9 +725,7 @@ grant select, insert, update, delete on table
   public.note_type_definitions,
   public.cards,
   public.card_variants,
-  public.learning_item_source_snapshots,
   public.review_events,
-  public.source_documents,
   public.media_assets,
   public.sync_devices,
   public.sync_conflicts
@@ -838,10 +739,8 @@ grant all privileges on table
   public.note_type_definitions,
   public.cards,
   public.card_variants,
-  public.learning_item_source_snapshots,
   public.review_events,
   public.review_statistics_daily,
-  public.source_documents,
   public.media_assets,
   public.sync_devices,
   public.sync_conflicts
@@ -971,7 +870,7 @@ begin
     and deleted_at is null
     and is_active = true
     and quality_status = 'active'
-  order by is_original asc, updated_at desc, id
+  order by updated_at desc, id
   limit 1;
 
   select count(*)::integer into projected_active_variant_count
@@ -979,7 +878,6 @@ begin
   where candidate.user_id = p_user_id
     and candidate.card_id = p_card_id
     and candidate.deleted_at is null
-    and candidate.is_original = false
     and candidate.is_active = true
     and candidate.quality_status = 'active';
 
@@ -990,13 +888,9 @@ begin
     definition_revision := coalesce(definition_revision, 1);
   end if;
 
-  projected_review_state := case
-    when variant_row.id is not null and variant_row.is_original = false
-      then coalesce(variant_row.review_state, '{}'::jsonb)
-    else coalesce(card_row.review_state, '{}'::jsonb)
-  end;
-  projected_front := coalesce(nullif(variant_row.front, ''), nullif(card_row.original_front, ''), card_row.meta #>> '{__coreModel,title}', '');
-  projected_back := coalesce(nullif(variant_row.back, ''), nullif(card_row.original_back, ''), card_row.meta #>> '{__coreModel,canonicalAnswer}', '');
+  projected_review_state := coalesce(card_row.review_state, '{}'::jsonb);
+  projected_front := coalesce(nullif(card_row.original_front, ''), card_row.meta #>> '{__coreModel,title}', '');
+  projected_back := coalesce(nullif(card_row.original_back, ''), card_row.meta #>> '{__coreModel,canonicalAnswer}', '');
   projected_meta := coalesce(card_row.meta, '{}'::jsonb);
 
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_user_id::text, 1129270853));
@@ -1030,7 +924,7 @@ begin
       and lower(coalesce(projected_meta->>'buried', 'false')) <> 'true',
     projected_active_variant_count > 0,
     projected_active_variant_count,
-    case when variant_row.is_original = false then variant_row.id else null end,
+    variant_row.id,
     case when pg_catalog.jsonb_typeof(projected_review_state->'intervalDays') = 'number'
       then greatest((projected_review_state->>'intervalDays')::numeric, 0) else 0 end,
     case when pg_catalog.jsonb_typeof(projected_review_state->'difficulty') = 'number'
@@ -1039,7 +933,7 @@ begin
       then greatest((projected_review_state->>'stability')::numeric, 0) else 0 end,
     private.try_timestamptz(projected_review_state->>'lastReviewedAt'),
     greatest(coalesce(card_row.revision, 1), coalesce(card_row.content_revision, 1)),
-    greatest(coalesce(variant_row.render_revision, 1), definition_revision),
+    greatest(coalesce(variant_row.revision, 1), definition_revision),
     pg_catalog.nextval('public.account_sync_change_id_seq'::regclass),
     card_row.deleted_at,
     card_row.created_at,
@@ -1432,6 +1326,7 @@ as $$
           select review_row.deck_id, count(distinct review_row.reviewable_id)::integer as introduced_count
           from public.review_events as review_row, learning_range
           where review_row.user_id = (select auth.uid())
+            and review_row.rating <> 'manual'
             and review_row.answered_at >= learning_range.starts_at
             and review_row.answered_at < learning_range.ends_at
             and coalesce(review_row.scheduler_before->'card'->>'state', review_row.scheduler_before->>'state', 'new') = 'new'
@@ -1444,11 +1339,36 @@ as $$
           select review_row.deck_id, count(distinct review_row.reviewable_id)::integer as reviewed_count
           from public.review_events as review_row, learning_range
           where review_row.user_id = (select auth.uid())
+            and review_row.rating <> 'manual'
             and review_row.answered_at >= learning_range.starts_at
             and review_row.answered_at < learning_range.ends_at
             and coalesce(review_row.scheduler_before->'card'->>'state', review_row.scheduler_before->>'state', 'new') <> 'new'
           group by review_row.deck_id
         ) as reviewed
+      ), '{}'::jsonb),
+      'availableNewByDeck', coalesce((
+        select pg_catalog.jsonb_object_agg(deck_id, available_count order by deck_id)
+        from (
+          select catalog_row.deck_id, count(*)::integer as available_count
+          from public.card_catalog as catalog_row, learning_range
+          where catalog_row.user_id = (select auth.uid())
+            and catalog_row.deleted_at is null and catalog_row.reviewable
+            and catalog_row.schedule_state = 'new'
+            and (catalog_row.due_at is null or catalog_row.due_at < learning_range.ends_at)
+          group by catalog_row.deck_id
+        ) as available_new
+      ), '{}'::jsonb),
+      'availableLearningByDeck', coalesce((
+        select pg_catalog.jsonb_object_agg(deck_id, available_count order by deck_id)
+        from (
+          select catalog_row.deck_id, count(*)::integer as available_count
+          from public.card_catalog as catalog_row, learning_range
+          where catalog_row.user_id = (select auth.uid())
+            and catalog_row.deleted_at is null and catalog_row.reviewable
+            and catalog_row.schedule_state in ('learning', 'relearning')
+            and (catalog_row.due_at is null or catalog_row.due_at < learning_range.ends_at)
+          group by catalog_row.deck_id
+        ) as available_learning
       ), '{}'::jsonb),
       'dueByDeck', coalesce((
         select pg_catalog.jsonb_object_agg(deck_id, due_count order by deck_id)
@@ -1667,11 +1587,6 @@ begin
         select card_row.note_type_definition_id from public.cards as card_row
         where card_row.user_id = (select auth.uid()) and card_row.id = any(coalesce(p_card_ids, '{}'::text[]))
       )
-    ), '[]'::jsonb),
-    'sourceSnapshots', coalesce((
-      select pg_catalog.jsonb_agg(pg_catalog.to_jsonb(snapshot_row) order by snapshot_row.card_id, snapshot_row.id)
-      from public.learning_item_source_snapshots as snapshot_row
-      where snapshot_row.user_id = (select auth.uid()) and snapshot_row.card_id = any(coalesce(p_card_ids, '{}'::text[]))
     ), '[]'::jsonb)
   );
 end

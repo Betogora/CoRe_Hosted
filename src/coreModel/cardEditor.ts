@@ -13,7 +13,7 @@ import type {
   NoteTypeDefinitionV1,
 } from "../coreTypes.ts";
 import { normalizeTags } from "./coreValues.ts";
-import { getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
+import { normalizeLearningItem } from "./learningItems.ts";
 import { applyLearningItemContent, createCoreNoteTypeDefinition } from "./learningItemContent.ts";
 
 interface ClozePart {
@@ -42,7 +42,7 @@ export type CardPreviewDraft =
 
 export interface CardPreviewProjection {
   item: LearningItem;
-  variant: NonNullable<ReturnType<typeof getOriginalVariant>>;
+  variant: null;
   definition: NoteTypeDefinitionV1;
 }
 
@@ -285,7 +285,6 @@ export function projectCardEditorContent(value: CardEditorValue): EditorContentP
 export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
   const cardType = card.cardType ?? card.kind;
   if (!isEditableCardType(cardType)) return null;
-  const original = getOriginalVariant(card);
   const tags = normalizeTags(card.tags ?? card.originalTags);
 
   switch (cardType) {
@@ -304,22 +303,22 @@ export function getCardEditorValue(card: LearningItem): CardEditorValue | null {
       return {
         cardType: "cloze",
         textWithClozes: card.originalFront,
-        extra: card.contentDocument.fields[1]?.value ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
+        extra: card.contentDocument.fields[1]?.value ?? String(card.meta?.explanation ?? ""),
         tags,
       };
     case "single-choice":
     case "multiple-choice": {
       const choice = card.contentDocument.interaction?.choice;
-      const options = normalizeOptions(choice?.options ?? original?.answerOptionsJson ?? card.meta?.answerOptions);
+      const options = normalizeOptions(choice?.options ?? card.meta?.answerOptions);
       const storedCorrectAnswers = readChoiceCorrectAnswers(choice);
       const correctAnswers = storedCorrectAnswers.length > 0
         ? storedCorrectAnswers
-        : normalizeChoiceAnswerList(original?.expectedAnswerJson ?? card.meta?.correctAnswers ?? card.meta?.correctAnswer ?? "");
+        : normalizeChoiceAnswerList(card.meta?.correctAnswers ?? card.meta?.correctAnswer ?? "");
       const correctOptionIndices = findChoiceAnswerIndices(options, correctAnswers);
       const common = {
         question: card.originalFront,
         options,
-        explanation: choice?.explanation ?? String(original?.explanation ?? card.meta?.explanation ?? ""),
+        explanation: choice?.explanation ?? String(card.meta?.explanation ?? ""),
         tags,
       };
       return cardType === "single-choice"
@@ -423,8 +422,6 @@ export function projectCardPreviewDraft(input: {
     revision: input.item.revision,
     contentRevision: input.item.contentRevision,
     updatedAt: input.item.updatedAt,
-    versionLog: input.item.versionLog,
   };
-  const variant = getOriginalVariant(item);
-  return variant ? { item, variant, definition: input.definition } : null;
+  return { item, variant: null, definition: input.definition };
 }

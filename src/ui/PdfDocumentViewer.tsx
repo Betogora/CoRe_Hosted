@@ -2,7 +2,7 @@ import React from "react";
 import { AlertCircle, ChevronLeft, ChevronRight, FileText, Loader2, Minus, Plus, Scan } from "lucide-react";
 import { loadPdfJs } from "../pdfRuntime.ts";
 import { createPdfSelectionBbox, firstSelectionRectOnPage, normalizePdfSelectionText } from "../pdfSelection.ts";
-import type { SourceDocument } from "../coreTypes.ts";
+import type { TransientSourceDocument } from "../documentModel.ts";
 
 const MIN_ZOOM = 0.7;
 const MAX_ZOOM = 2;
@@ -105,7 +105,7 @@ function PdfPage({ entry, pdfjs, scale }: { entry: PdfPageEntry & { page: any };
 }
 
 interface PdfDocumentViewerProps {
-  document: SourceDocument;
+  document: TransientSourceDocument;
   src: string;
   onSelection?: (text: string, selection: { pageNumber: number; bbox: ReturnType<typeof createPdfSelectionBbox> }) => void;
 }

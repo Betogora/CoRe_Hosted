@@ -9,7 +9,8 @@ import {
 } from "../creationBatch.ts";
 import { applyLearningItemContent } from "../coreModel.ts";
 import type { CreationWorkflow, ManualImageAttachment, ManualMediaSyncProgress } from "../creationWorkflow.ts";
-import type { CardEditorFieldErrors, Deck, SourceDocument } from "../coreTypes.ts";
+import type { CardEditorFieldErrors, Deck } from "../coreTypes.ts";
+import type { TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -80,7 +81,7 @@ interface ManualImageFieldProps {
   onRemove: () => void;
 }
 
-function documentStatusMessage(document: SourceDocument | null): string {
+function documentStatusMessage(document: TransientSourceDocument | null): string {
   if (!document) return "";
   if (document.textExtractionStatus === "success") return "Text ist bereit.";
   if (document.textExtractionStatus === "empty") return "Kein Textlayer gefunden.";
@@ -90,7 +91,7 @@ function documentStatusMessage(document: SourceDocument | null): string {
   return "Dokument als Quelle gespeichert; Textextraktion steht aus.";
 }
 
-function isPdfDocument(document: SourceDocument | null): boolean {
+function isPdfDocument(document: TransientSourceDocument | null): boolean {
   return document?.mimeType === "application/pdf";
 }
 
@@ -183,10 +184,10 @@ export function ManualCreationPanel({
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
   const { currentDraft, pinnedFields } = batchState;
-  const { cardType, front, back, answerOptions, correctOptionIndices, tags, selection, sourceAnchor } = currentDraft;
+  const { cardType, front, back, answerOptions, correctOptionIndices, tags, selection } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
   const [documentMode, setDocumentMode] = React.useState(false);
-  const [document, setDocument] = React.useState<SourceDocument | null>(null);
+  const [document, setDocument] = React.useState<TransientSourceDocument | null>(null);
   const [documentObjectUrl, setDocumentObjectUrl] = React.useState("");
   const [documentText, setDocumentText] = React.useState("");
   const [status, setStatus] = React.useState("");
@@ -258,22 +259,18 @@ export function ManualCreationPanel({
     setStatus(documentStatusMessage(nextDocument));
   }
 
-  function applySelection(selectedText: string, sourceAnchorOptions: Partial<PdfSelectionOptions> = {}) {
+  function applySelection(selectedText: string, _sourceAnchorOptions: Partial<PdfSelectionOptions> = {}) {
     const next = workflow.captureManualSelection({
       activeField,
       front,
       back,
-      document,
-      documentText,
       selectedText,
-      sourceAnchorOptions,
     });
     if (!next.changed) return;
     dispatchBatch({
       type: "draft",
       patch: {
         selection: next.selection,
-        sourceAnchor: next.sourceAnchor ?? null,
         front: next.front,
         back: next.back,
       },
@@ -301,7 +298,6 @@ export function ManualCreationPanel({
       document,
       documentText,
       selection,
-      sourceAnchor: sourceAnchor ?? undefined,
       activeField,
       frontImage,
       backImage,
@@ -506,6 +502,7 @@ export function ManualCreationPanel({
   const isCloze = cardType === "cloze";
   const isReverse = cardType === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
+
   React.useEffect(() => {
     if (!previewOpen || typeof URL.createObjectURL !== "function") {
       setPreviewMediaUrls({});
@@ -514,7 +511,8 @@ export function ManualCreationPanel({
     const urls: Record<string, string> = {};
     for (const attachment of [frontImage, backImage]) {
       if (!attachment || urls[attachment.sha1]) continue;
-      urls[attachment.sha1] = URL.createObjectURL(attachment.blob);
+      const url = URL.createObjectURL(attachment.blob);
+      urls[attachment.sha1] = url;
     }
     setPreviewMediaUrls(urls);
     return () => Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
@@ -526,8 +524,8 @@ export function ManualCreationPanel({
     const document = previewInput.card.contentDocument;
     const definition = previewInput.card.noteTypeDefinition;
     const result = applyLearningItemContent({ previous: null, document, definition, reason: "create" });
-    return { item: result.item, definition, variant: result.item.variants[0] };
-  }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndices, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, sourceAnchor, tags, useNewDeck, workflow]);
+    return { item: result.item, definition, variant: null };
+  }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndices, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, tags, useNewDeck, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -592,7 +590,7 @@ export function ManualCreationPanel({
               onValueChange={(value) => dispatchBatch({
                 type: "draft",
                 patch: {
-                  cardType: value === "single-choice" || value === "multiple-choice" ? value : isChoice ? "basic" : cardType,
+                  cardType: value === "standard" ? (isChoice ? "basic" : cardType) : value,
                   correctOptionIndices: value === "single-choice" ? [correctOptionIndices[0] ?? 0] : correctOptionIndices,
                 },
               })}

@@ -39,7 +39,6 @@ function createDeckWithInactiveCards() {
     variants: [
       {
         id: "variant_active",
-        sourceCardId: "card_active",
         front: "Beschreibe die Funktion von Myelin.",
         back: "Myelin isoliert Axone und beschleunigt die Erregungsleitung.",
         qualityStatus: "active",
@@ -214,7 +213,7 @@ test("daily learning plan aggregates sorted root sessions without counting desce
     parentDeckId: parent.id,
     name: "Kind",
     source: "manual",
-    cards: [createCoreCard({ id: "new-child", source: "manual", reviewState: { state: "new", reps: 0 } })],
+    cards: [createCoreCard({ id: "new-child", source: "manual", reviewState: { state: "new", dueAt: "2026-07-01T07:00:00.000Z", reps: 0 } })],
   });
   const secondRoot = createCoreDeck({
     id: "root-beta",
@@ -273,7 +272,7 @@ test("daily learning sessions expose only new cards beyond the selected daily li
     cards: [1, 2, 3].map((number) => createCoreCard({
       id: `new-${number}`,
       source: "manual",
-      reviewState: { state: "new", reps: 0 },
+      reviewState: { state: "new", dueAt: "2026-07-01T07:00:00.000Z", reps: 0 },
     })),
   });
 
@@ -462,7 +461,6 @@ test("card table sorts all columns and projects next-study and variant labels", 
     originalBack: "Früher",
     variants: [{
       id: "variant-earlier",
-      sourceCardId: "card-earlier",
       front: "Welche Stadt ist Berlin?",
       back: "Eine Hauptstadt.",
       qualityStatus: "active",
@@ -517,13 +515,15 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
     cards: [],
     reviewEvents: [
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
-      { id: "review_1", rating: "good", reviewedAt: "2026-07-07T08:00:00.000Z", learningItemId: "card_1" },
+      { id: "review_1", rating: "good", answeredAt: "2026-07-07T08:00:00.000Z", learningItemId: "card_1" },
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
       { id: "review_2", rating: "again", answeredAt: "2026-07-07T09:00:00.000Z", learningItemId: "card_2" },
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
       { id: "review_3", rating: "hard", createdAt: "2026-07-06T10:00:00.000Z", learningItemId: "card_3" },
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
-      { id: "review_4", rating: "easy", reviewedAt: "2026-07-05T10:00:00.000Z", learningItemId: "card_4" },
+      { id: "review_4", rating: "easy", answeredAt: "2026-07-05T10:00:00.000Z", learningItemId: "card_4" },
+// @ts-expect-error -- Eine manuelle Neuplanung darf nicht als Lernfortschritt zählen.
+      { id: "review_manual", rating: "manual", answeredAt: "2026-07-07T10:00:00.000Z", learningItemId: "card_4" },
 // @ts-expect-error -- Eine fehlende Bewertung darf nicht als Lernfortschritt zählen.
       { id: "review_unrated", reviewedAt: "2026-07-04T10:00:00.000Z", learningItemId: "card_unrated" },
 // @ts-expect-error -- Ein zukünftiges Review bleibt relativ zur simulierten Uhr unsichtbar.
@@ -556,7 +556,7 @@ test("study heatmap forecasts each active learning item once by its next due day
     originalBack: "Übermorgen.",
     reviewState: { state: "review", dueAt: "2026-08-07T22:30:00.000Z", repetitions: 2 },
     variants: [
-      { id: "variant_forecast", sourceCardId: "card_forecast", front: "Variante", back: "Antwort", qualityStatus: "active" },
+      { id: "variant_forecast", front: "Variante", back: "Antwort", qualityStatus: "active" },
     ],
   });
   const excludedCards = [

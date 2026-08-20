@@ -4,6 +4,7 @@ import type {
   NoteTypeDefinitionV1,
   SafeTemplateAst,
   SafeTemplateAstNode,
+  VariantProjection,
 } from "./coreTypes.ts";
 import { sanitizeCardHtml, stripHtml } from "./htmlSafety.ts";
 import { compileSafeTemplate, type CompiledSafeTemplate, type TemplateCompatibility, type TemplateDiagnostic } from "./safeTemplate.ts";
@@ -22,6 +23,7 @@ export interface PresentationResult {
 
 const compiledRecipeTemplates = new Map<string, CompiledSafeTemplate>();
 const NETWORK_URL = /^(?:https?:)?\/\//i;
+type PresentationVariant = CardVariant & { projection: VariantProjection };
 
 function addDiagnostic(
   diagnostics: PresentationDiagnostic[],
@@ -51,9 +53,9 @@ function compileRecipeTemplate(
   return compiled;
 }
 
-function specialFieldValue(name: string, item: LearningItem, variant: CardVariant, definition: NoteTypeDefinitionV1): string {
+function specialFieldValue(name: string, item: LearningItem, variant: PresentationVariant, definition: NoteTypeDefinitionV1): string {
   if (name === "Tags") return item.tags.join(" ");
-  if (name === "Deck") return String(item.meta.sourceDeckName ?? variant.studyDeckId ?? item.deckId);
+  if (name === "Deck") return String(item.meta.sourceDeckName ?? item.deckId);
   if (name === "Subdeck") return String(item.meta.sourceSubdeckName ?? "");
   if (name === "Card") return String(variant.meta.recipeName ?? "");
   if (name === "Type") return definition.name;
@@ -67,7 +69,7 @@ function clozeValue(value: string, ordinal: number, side: "question" | "answer")
   });
 }
 
-function renderFilter(value: string, filters: string[], variant: CardVariant, side: "question" | "answer"): string {
+function renderFilter(value: string, filters: string[], variant: PresentationVariant, side: "question" | "answer"): string {
   let rendered = value;
   for (const filter of filters) {
     if (filter === "text") rendered = stripHtml(rendered);
@@ -92,7 +94,7 @@ function renderAst(
   context: {
     values: Map<string, string>;
     item: LearningItem;
-    variant: CardVariant;
+    variant: PresentationVariant;
     definition: NoteTypeDefinitionV1;
     side: "question" | "answer";
     frontSide: string;
@@ -150,7 +152,7 @@ function escapeHtml(value: string): string {
 
 function fieldFallback(
   item: LearningItem,
-  variant: CardVariant,
+  variant: PresentationVariant,
   reason: string,
   side: "question" | "answer",
   surface: "editor-preview" | "card-management" | "review",
@@ -183,14 +185,21 @@ function buildSrcdoc(html: string, css: string, theme: "light" | "dark", fontFac
 
 export function renderLearningItemPresentation(input: {
   item: LearningItem;
-  variant: CardVariant;
+  variant?: CardVariant | null;
   definition: NoteTypeDefinitionV1;
   side: "question" | "answer";
   surface: "editor-preview" | "card-management" | "review";
   theme: "light" | "dark";
   fontFaceCss?: string;
 }): PresentationResult {
-  const recipe = input.definition.recipes.find((candidate) => candidate.id === input.variant.projection.recipeId) ?? null;
+  const variant = {
+    ...(input.variant ?? {}),
+    front: input.variant?.front ?? input.item.originalFront,
+    back: input.variant?.back ?? input.item.originalBack,
+    meta: input.variant?.meta ?? input.item.meta,
+    projection: input.item.projection,
+  } as PresentationVariant;
+  const recipe = input.definition.recipes.find((candidate) => candidate.id === input.item.projection.recipeId) ?? null;
   const diagnostics: PresentationDiagnostic[] = [];
   if (!recipe) {
     addDiagnostic(diagnostics, "missing-recipe", "Das zugehörige Kartenrezept fehlt. Die Darstellung wird auf sicher zugeordnete Felder begrenzt.", null, "error");
@@ -204,10 +213,10 @@ export function renderLearningItemPresentation(input: {
   let rawBodyHtml: string;
   if (input.definition.origin === "core") {
     rawBodyHtml = input.side === "question"
-      ? input.variant.front
+      ? variant.front
       : input.surface === "review"
-        ? input.variant.back
-        : [input.variant.front, input.variant.back]
+        ? variant.back
+        : [variant.front, variant.back]
           .filter((part) => stripHtml(part).trim())
           .join('<hr class="core-card-answer-separator" aria-hidden="true">');
   } else {
@@ -217,11 +226,11 @@ export function renderLearningItemPresentation(input: {
       ? compileRecipeTemplate(input.definition, recipe.id, "front", recipe.front).ast
       : null;
     const frontSide = frontAst
-      ? sanitizeCardHtml(renderAst(frontAst.nodes, { ...input, values, side: "question", frontSide: "" }))
+      ? sanitizeCardHtml(renderAst(frontAst.nodes, { ...input, variant, values, side: "question", frontSide: "" }))
       : "";
     rawBodyHtml = preservedOnly || !compiled.ast
-      ? fieldFallback(input.item, input.variant, diagnostics[0]?.message ?? "Die Originaldarstellung ist nicht sicher ausführbar.", input.side, input.surface)
-      : renderAst(compiled.ast.nodes, { ...input, values, frontSide });
+      ? fieldFallback(input.item, variant, diagnostics[0]?.message ?? "Die Originaldarstellung ist nicht sicher ausführbar.", input.side, input.surface)
+      : renderAst(compiled.ast.nodes, { ...input, variant, values, frontSide });
     if (omitFrontSide && compiled.ast?.nodes.some((node) => node.kind === "front-side")) {
       rawBodyHtml = rawBodyHtml.replace(/^\s*<hr\b[^>]*>\s*/i, "");
     }

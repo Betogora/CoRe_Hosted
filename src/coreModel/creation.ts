@@ -1,338 +1,276 @@
-import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
 import { findChoiceAnswerIndices, normalizeChoiceAnswerList } from "../choiceAnswers.ts";
-import type { CardContentPayload, CardEditorValue, CardField, CardType, CardVariantType, Deck, DeckSource, DraftStatus, ForeignNoteSnapshot, LearningItem, LearningItemDocumentV1, LearningItemSourceType, LearningItemStatus, NoteTypeDefinitionV1, SourceAnchor, TransformType, VariantGenerationSource, VariantQualityStatus, VersionEntry } from "../coreTypes.ts";
-import { makeId, stableContentHash } from "./coreValues.ts";
-import { createLearningItemState, createSourceAnchor, createSourceDocument, createVersionEntry, type SourceAnchorInput, type SourceDocument } from "./reviewState.ts";
-import { createCardVariant, createCoreCard, getOriginalVariant, normalizeLearningItem } from "./learningItems.ts";
+import { sanitizeCardHtml, stripHtml } from "../htmlSafety.ts";
+import type {
+  CardContentPayload,
+  CardEditorValue,
+  CardField,
+  CardType,
+  Deck,
+  DeckSource,
+  DraftStatus,
+  LearningItem,
+  LearningItemDocumentV1,
+  LearningItemSourceType,
+  LearningItemStatus,
+  NoteTypeDefinitionV1,
+  ReviewState,
+  VariantProjection,
+  VariantQualityStatus,
+} from "../coreTypes.ts";
+import { assertValidCardEditorValue, getCardContentPayload, projectCardEditorContent, validateCardContentPayload } from "./cardEditor.ts";
 import { createCoreDeck } from "./decks.ts";
-import { assertValidCardEditorValue, getCardContentPayload, getCardEditorValue, projectCardEditorContent, saveCardEditorValue, validateCardContentPayload } from "./cardEditor.ts";
-import { applyLearningItemContent, createCoreNoteTypeDefinition } from "./learningItemContent.ts";
+import { applyLearningItemContent, projectLearningItemContent } from "./learningItemContent.ts";
+import { createLearningItemDocumentFromLegacy } from "./learningItemDocument.ts";
+import { createCardVariant, createCoreCard, normalizeLearningItem } from "./learningItems.ts";
+import { createReviewState } from "./reviewState.ts";
+import { makeId, stableContentHash } from "./coreValues.ts";
 
 type StringMap = Record<string, unknown>;
-interface LearningItemOptions { id?: string; variantId?: string; title?: string; sourceType?: LearningItemSourceType; source?: DeckSource; sourceRefId?: string | null; sourceExternalId?: string | null; cardType?: CardType; meta?: StringMap; answerOptions?: unknown; expectedAnswer?: unknown; originalVariantId?: string; reverseVariantId?: string; sourceAnchors?: SourceAnchor[]; originalFields?: CardField[]; tags?: unknown; concepts?: string[]; mediaRefs?: string[]; draftStatus?: DraftStatus; status?: LearningItemStatus; learningItemState?: unknown; reviewState?: unknown; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; createdAt?: string; updatedAt?: string; variantType?: CardVariantType; variantLevel?: number; generationSource?: VariantGenerationSource; explanation?: string; hintsJson?: unknown; answerOptionsJson?: unknown; expectedAnswerJson?: unknown; transformType?: TransformType; qualityStatus?: VariantQualityStatus; isActive?: boolean; anchorVariantId?: string | null; parentVariantId?: string | null; modelRunId?: string | null; learningItem?: LearningItem; items?: LearningItem[]; deck?: Deck; }
-interface NormalizedVariantInput extends LearningItemOptions { front?: string; back?: string; isOriginal?: boolean; }
-interface NormalizedLearningItemInput extends LearningItemOptions { canonicalQuestion?: string; canonicalAnswer?: string; front?: string; back?: string; variants?: unknown; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; sourceSnapshot?: ForeignNoteSnapshot; }
-interface ClozePart { groupId: number; text: string; hint: string; }
-interface ManualCardInput { editorValue?: CardEditorValue; cardType?: CardType; front?: string; back?: string; tags?: unknown; mediaRefs?: string[]; answerOptions?: unknown[]; correctAnswer?: unknown; correctAnswers?: unknown[]; expectedAnswer?: unknown; exactWordingRequired?: boolean; contentDocument?: LearningItemDocumentV1; noteTypeDefinition?: NoteTypeDefinitionV1; }
-interface ManualDocumentContext { sourceAnchor?: SourceAnchorInput; selection?: string; textQuote?: string; documentId?: string | null; fileName?: string; targetField?: string; pageNumber?: number | null; charStart?: number | null; charEnd?: number | null; document?: SourceDocument | null; mimeType?: string; documentText?: string; }
-interface ManualArtifactsInput { card?: ManualCardInput; documentContext?: ManualDocumentContext; createdAt?: string; }
-interface ManualDeckInput { deckName: string; card: ManualCardInput; documentContext?: ManualDocumentContext; }
-function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
-function normalizeVariantType(variantType: unknown, fallbackCardType: unknown = "basic"): CardVariantType { const mapped: Partial<Record<CardType, CardVariantType>> = { "basic-reversed": "reverse", "image-occlusion": "image_occlusion", "single-choice": "mcq", "multiple-choice": "mcq", "case-vignette": "case", "free-text": "custom", "multi-field": "custom" }; if (typeof variantType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(variantType)) return variantType as CardVariantType; return mapped[fallbackCardType as CardType] ?? (typeof fallbackCardType === "string" && ["basic", "reverse", "cloze", "mcq", "transfer", "case", "image_occlusion", "custom"].includes(fallbackCardType) ? fallbackCardType as CardVariantType : "basic"); }
+
+interface LearningItemOptions {
+  id?: string;
+  title?: string;
+  sourceType?: LearningItemSourceType;
+  source?: DeckSource;
+  sourceRefId?: string | null;
+  sourceExternalId?: string | null;
+  sourceCardId?: string | null;
+  cardType?: CardType;
+  projection?: VariantProjection;
+  meta?: StringMap;
+  answerOptions?: unknown;
+  expectedAnswer?: unknown;
+  originalFields?: CardField[];
+  tags?: unknown;
+  concepts?: string[];
+  mediaRefs?: string[];
+  draftStatus?: DraftStatus;
+  status?: LearningItemStatus;
+  reviewState?: Partial<ReviewState>;
+  revision?: number;
+  deletedAt?: string | null;
+  updatedByDeviceId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  variantId?: string;
+  variantLevel?: number;
+  explanation?: string;
+  transformProfile?: Record<string, unknown>;
+  qualityStatus?: VariantQualityStatus;
+  isActive?: boolean;
+  modelRunId?: string | null;
+  confidence?: number;
+  semanticDelta?: string;
+  changedRecognitionCues?: string[];
+  learningItem?: LearningItem;
+  items?: LearningItem[];
+  deck?: Deck;
+}
+
+interface NormalizedCardInput extends LearningItemOptions {
+  front?: string;
+  back?: string;
+  projection?: VariantProjection;
+  metadataJson?: StringMap;
+}
+
+interface NormalizedLearningItemInput extends LearningItemOptions {
+  canonicalQuestion?: string;
+  canonicalAnswer?: string;
+  front?: string;
+  back?: string;
+  cards?: unknown;
+  contentDocument?: LearningItemDocumentV1;
+  noteTypeDefinition?: NoteTypeDefinitionV1;
+}
+
+interface ManualCardInput {
+  editorValue?: CardEditorValue;
+  cardType?: CardType;
+  front?: string;
+  back?: string;
+  tags?: unknown;
+  mediaRefs?: string[];
+  answerOptions?: unknown[];
+  correctAnswer?: unknown;
+  correctAnswers?: unknown[];
+  expectedAnswer?: unknown;
+  exactWordingRequired?: boolean;
+  contentDocument?: LearningItemDocumentV1;
+  noteTypeDefinition?: NoteTypeDefinitionV1;
+}
+
+interface ManualDocumentContext {
+  selection?: string;
+  textQuote?: string;
+  fileName?: string;
+  documentText?: string;
+}
+
+interface ManualDeckInput {
+  deckName: string;
+  card: ManualCardInput;
+  documentContext?: ManualDocumentContext;
+}
+
+function objectRecord(value: unknown): StringMap {
+  return value !== null && typeof value === "object" ? value as StringMap : {};
+}
+
 const CREATABLE_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "single-choice", "multiple-choice"]);
-function normalizeCreatableCardType(cardType: unknown, fallback: CardType = "basic"): CardType { return typeof cardType === "string" && CREATABLE_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : fallback; }
-function legacySourceFromLearningSourceType(sourceType: LearningItemSourceType): DeckSource { if (sourceType === "anki_import") return "anki-apkg"; if (sourceType === "text_import") return "text-import"; if (sourceType === "csv_import") return "csv-import"; if (sourceType === "json_import") return "json-import"; return "manual"; }
-function resolveLegacySource(sourceType: LearningItemSourceType, source?: DeckSource): DeckSource {
-  return source ?? legacySourceFromLearningSourceType(sourceType);
+
+function normalizeCreatableCardType(cardType: unknown, fallback: CardType = "basic"): CardType {
+  return typeof cardType === "string" && CREATABLE_CARD_TYPES.has(cardType as CardType) ? cardType as CardType : fallback;
 }
 
-function normalizeExtraText(extra: unknown): string {
-  if (typeof extra === "string") return extra;
-  const value = objectRecord(extra);
-  return String(value.explanation ?? value.back ?? value.answer ?? "");
+function sourceFor(sourceType: LearningItemSourceType, source?: DeckSource): DeckSource {
+  if (source) return source;
+  if (sourceType === "anki_import") return "anki-apkg";
+  if (sourceType === "text_import") return "text-import";
+  if (sourceType === "csv_import") return "csv-import";
+  return "manual";
 }
 
-function revealClozeText(text: unknown): string {
-  return String(text ?? "").replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
-}
-
-function extractClozeGroups(text: unknown): Array<{ groupId: number; clozes: ClozePart[] }> {
-  const groups = new Map<number, ClozePart[]>();
-  const pattern = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g;
-  let match = pattern.exec(String(text ?? ""));
-
-  while (match) {
-    const groupId = Number(match[1]);
-    const cloze = {
-      groupId,
-      text: match[2],
-      hint: match[3] ?? "",
-    };
-    groups.set(groupId, [...(groups.get(groupId) ?? []), cloze]);
-    match = pattern.exec(String(text ?? ""));
-  }
-
-  return [...groups.entries()]
-    .sort(([left]: any, [right]: any) => left - right)
-    .map(([groupId, clozes]: any) => ({ groupId, clozes }));
-}
-
-function renderClozeFront(text: unknown, groupId: number): string {
-  return String(text ?? "").replace(/\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g, (_match: string, candidateGroup: string, value: string, hint: string | undefined) => {
-    if (Number(candidateGroup) !== groupId) return value;
-    return hint ? `[...] (${hint})` : "[...]";
-  });
-}
-
-function normalizeNormalizedItemVariants(variants: unknown): NormalizedVariantInput[] {
-  return Array.isArray(variants)
-    ? variants.map((variant) => objectRecord(variant) as NormalizedVariantInput)
-      .filter((variant) => String(variant.front ?? "").trim() || String(variant.back ?? "").trim())
-    : [];
-}
-
-function resolveLearningItemRef(learningItemOrId: unknown, options: LearningItemOptions = {}): LearningItem | null {
-  if (learningItemOrId && typeof learningItemOrId === "object") return learningItemOrId as LearningItem;
-
-  const id = String(learningItemOrId ?? "");
-  if (!id) return null;
-  if (options.learningItem?.id === id) return options.learningItem;
-  if (Array.isArray(options.items)) return options.items.find((item) => item.id === id) ?? null;
-  if (Array.isArray(options.deck?.cards)) return options.deck.cards.find((item) => item.id === id) ?? null;
-  return null;
+function resolveLearningItemRef(value: unknown, options: LearningItemOptions): LearningItem | null {
+  if (value && typeof value === "object") return value as LearningItem;
+  const id = String(value ?? "");
+  return options.learningItem?.id === id
+    ? options.learningItem
+    : options.items?.find((item) => item.id === id)
+      ?? options.deck?.cards.find((item) => item.id === id)
+      ?? null;
 }
 
 export function createBasicLearningItem(deckId: string, front: string, back: string, options: LearningItemOptions = {}): LearningItem {
   const createdAt = options.createdAt ?? new Date().toISOString();
   const updatedAt = options.updatedAt ?? createdAt;
   const id = options.id ?? makeId("card");
-  const sourceType = options.sourceType ?? "manual";
-  const source = resolveLegacySource(sourceType, options.source);
-  const cardType = normalizeCreatableCardType(options.cardType ?? "basic");
+  const cardType = normalizeCreatableCardType(options.cardType);
   const normalizedFront = sanitizeCardHtml(front);
   const normalizedBack = sanitizeCardHtml(back);
-  const meta = options.meta ?? {};
-  const answerOptions = options.answerOptions ?? meta.answerOptions ?? null;
-  const expectedAnswer = options.expectedAnswer ?? meta.correctAnswer ?? meta.expectedAnswer ?? null;
-  const originalVariant = createCardVariant({
-    id: options.originalVariantId ?? stableContentHash({ learningItemId: id, front: normalizedFront, back: normalizedBack, isOriginal: true }, "variant"),
-    learningItemId: id,
-    cardId: id,
-    sourceCardId: id,
-    variantType: cardType === "single-choice" || cardType === "multiple-choice" ? normalizeVariantType(null, cardType) : "basic",
-    variantLevel: 1,
+  const sourceType = options.sourceType ?? "manual";
+  const document = createLearningItemDocumentFromLegacy({
+    definitionVersionId: `core-${cardType}-v1`,
+    fields: options.originalFields,
     front: normalizedFront,
     back: normalizedBack,
-    explanation: options.explanation ?? "",
-    hintsJson: options.hintsJson ?? null,
-    answerOptionsJson: answerOptions,
-    expectedAnswerJson: expectedAnswer,
-    generationSource: "original",
-    transformType: "original",
-    qualityStatus: "active",
-    isOriginal: true,
-    isActive: true,
-    sourceAnchors: options.sourceAnchors ?? [],
-    createdAt,
-    updatedAt,
-    meta: {
-      cardType,
-      sourceType,
-    },
+    tags: options.tags,
+    mediaRefs: options.mediaRefs,
   });
-
-  return normalizeLearningItem({
+  return createCoreCard({
     id,
     deckId,
     title: options.title ?? "",
-    cardType,
-    source,
+    cardType: cardType === "basic-reversed" ? "basic" : cardType,
+    source: sourceFor(sourceType, options.source),
     sourceType,
-    sourceRefId: options.sourceRefId ?? options.sourceExternalId ?? null,
+    sourceRefId: options.sourceRefId ?? options.sourceExternalId ?? options.sourceCardId ?? null,
+    sourceCardId: options.sourceCardId ?? null,
     canonicalQuestion: normalizedFront,
     canonicalAnswer: normalizedBack,
     originalFront: normalizedFront,
     originalBack: normalizedBack,
-    originalFields: options.originalFields ?? [
-      { name: "Front", value: normalizedFront },
-      { name: "Back", value: normalizedBack },
-    ].filter((field) => field.value),
-    originalTags: options.tags ?? [],
-    tags: options.tags ?? [],
+    originalFields: document.fields.map((field) => ({ name: field.name, value: field.value })),
+    originalTags: document.tags,
+    tags: document.tags,
     concepts: options.concepts ?? [],
-    mediaRefs: options.mediaRefs ?? [],
-    sourceAnchors: options.sourceAnchors ?? [],
-    variants: [originalVariant],
+    mediaRefs: document.mediaRefs,
+    projection: options.projection ?? { kind: "template", recipeId: `${document.definitionVersionId}-forward`, instanceKey: id },
+    variants: [],
     draftStatus: options.draftStatus ?? "accepted",
     status: options.status ?? "active",
-    learningItemState: options.learningItemState ?? options.reviewState ?? createLearningItemState({ learningItemId: id, reviewableType: "card", reviewableId: id }),
+    reviewState: options.reviewState,
     createdAt,
     updatedAt,
     revision: options.revision ?? 1,
     deletedAt: options.deletedAt ?? null,
     updatedByDeviceId: options.updatedByDeviceId ?? null,
-    meta,
+    contentDocument: document,
+    meta: options.meta ?? {},
   });
 }
 
-export function createBasicReverseLearningItem(deckId: string, front: string, back: string, options: LearningItemOptions = {}): LearningItem {
-  const item = createBasicLearningItem(deckId, front, back, {
+export function createBasicReverseLearningItems(deckId: string, front: string, back: string, options: LearningItemOptions = {}): LearningItem[] {
+  const forward = createBasicLearningItem(deckId, front, back, { ...options, cardType: "basic" });
+  const reverse = createBasicLearningItem(deckId, back, front, {
     ...options,
-    cardType: "basic-reversed",
+    id: undefined,
+    cardType: "basic",
+    meta: { ...(options.meta ?? {}), direction: "reverse" },
   });
-  const originalVariant = getOriginalVariant(item);
-  const reverseVariant = createCardVariant({
-    id: options.reverseVariantId,
-    learningItemId: item.id,
-    cardId: item.id,
-    sourceCardId: item.id,
-    variantType: "reverse",
-    variantLevel: options.variantLevel ?? 2,
-    front: back,
-    back: front,
-    generationSource: options.generationSource ?? "original",
-    transformType: "front_back_style_shift",
-    qualityStatus: "active",
-    isOriginal: false,
-    isActive: true,
-    anchorVariantId: originalVariant?.id ?? null,
-    parentVariantId: originalVariant?.id ?? null,
-    sourceAnchors: options.sourceAnchors ?? [],
-    createdAt: options.createdAt ?? item.createdAt,
-    updatedAt: options.updatedAt ?? item.updatedAt,
-    meta: {
-      cardType: "basic-reversed",
-      sourceType: item.sourceType,
-    },
-  });
-
-  return normalizeLearningItem({
-    ...item,
-    variants: [...item.variants, reverseVariant],
-    updatedAt: options.updatedAt ?? new Date().toISOString(),
-  });
+  return [forward, reverse];
 }
 
-export function createClozeLearningItem(deckId: string, textWithClozes: string, extra: unknown = "", options: LearningItemOptions = {}): LearningItem {
-  const createdAt = options.createdAt ?? new Date().toISOString();
-  const updatedAt = options.updatedAt ?? createdAt;
-  const id = options.id ?? makeId("card");
-  const sourceType = options.sourceType ?? "manual";
-  const source = resolveLegacySource(sourceType, options.source);
-  const extraText = normalizeExtraText(extra);
-  const revealedText = revealClozeText(textWithClozes);
-  const canonicalAnswer = [revealedText, extraText].filter(Boolean).join("\n\n");
-  const originalVariant = createCardVariant({
-    id: options.originalVariantId ?? stableContentHash({ learningItemId: id, textWithClozes, isOriginal: true }, "variant"),
-    learningItemId: id,
-    cardId: id,
-    sourceCardId: id,
-    variantType: "cloze",
-    variantLevel: 1,
-    front: textWithClozes,
-    back: canonicalAnswer,
-    explanation: extraText,
-    generationSource: "original",
-    transformType: "original",
-    qualityStatus: "active",
-    isOriginal: true,
-    isActive: true,
-    sourceAnchors: options.sourceAnchors ?? [],
-    createdAt,
-    updatedAt,
-    meta: {
-      cardType: "cloze",
-      sourceType,
-    },
-  });
-  const clozeVariants = extractClozeGroups(textWithClozes).map(({ groupId, clozes }: any) =>
-    createCardVariant({
-      id: stableContentHash({ learningItemId: id, groupId, textWithClozes }, "variant"),
-      learningItemId: id,
-      cardId: id,
-      sourceCardId: id,
-      variantType: "cloze",
-      variantLevel: options.variantLevel ?? 2,
-      front: renderClozeFront(textWithClozes, groupId),
-      back: canonicalAnswer,
-      explanation: extraText,
-      hintsJson: clozes.map((cloze: { hint?: string }) => cloze.hint).filter(Boolean),
-      expectedAnswerJson: clozes.map((cloze: { text: string }) => cloze.text),
-      generationSource: options.generationSource ?? "original",
-      transformType: "cloze_conversion",
-      qualityStatus: "active",
-      isOriginal: false,
-      isActive: true,
-      anchorVariantId: originalVariant.id,
-      parentVariantId: originalVariant.id,
-      sourceAnchors: options.sourceAnchors ?? [],
-      createdAt,
-      updatedAt,
-      meta: {
-        clozeGroup: groupId,
-        cardType: "cloze",
-        sourceType,
-      },
-    }),
-  );
+function revealClozeText(text: string): string {
+  return text.replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
+}
 
-  return normalizeLearningItem({
-    id,
+function clozeOrdinals(text: string): number[] {
+  return [...new Set([...text.matchAll(/\{\{c(\d+)::/gi)].map((match) => Number(match[1])))]
+    .filter((ordinal) => ordinal > 0)
+    .sort((left, right) => left - right);
+}
+
+function renderClozeFront(text: string, ordinal: number): string {
+  return text.replace(/\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g, (_match, candidate, answer, hint) =>
+    Number(candidate) === ordinal ? `[${hint || "…"}]` : answer,
+  );
+}
+
+export function createClozeLearningItems(deckId: string, textWithClozes: string, extra: unknown = "", options: LearningItemOptions = {}): LearningItem[] {
+  const extraText = typeof extra === "string" ? extra : String(objectRecord(extra).explanation ?? "");
+  const answer = [revealClozeText(textWithClozes), extraText].filter(Boolean).join("\n\n");
+  const ordinals = clozeOrdinals(textWithClozes);
+  return (ordinals.length ? ordinals : [1]).map((ordinal, index) => createBasicLearningItem(
     deckId,
-    title: options.title ?? "",
-    cardType: "cloze",
-    source,
-    sourceType,
-    sourceRefId: options.sourceRefId ?? options.sourceExternalId ?? null,
-    canonicalQuestion: textWithClozes,
-    canonicalAnswer,
-    originalFront: textWithClozes,
-    originalBack: canonicalAnswer,
-    originalFields: [
-      { name: "Cloze", value: textWithClozes },
-      { name: "Extra", value: extraText },
-    ].filter((field) => field.value),
-    originalTags: options.tags ?? [],
-    tags: options.tags ?? [],
-    concepts: options.concepts ?? [],
-    mediaRefs: options.mediaRefs ?? [],
-    sourceAnchors: options.sourceAnchors ?? [],
-    variants: [...clozeVariants, originalVariant],
-    draftStatus: options.draftStatus ?? "accepted",
-    status: options.status ?? "active",
-    learningItemState: options.learningItemState ?? options.reviewState ?? createLearningItemState({ learningItemId: id, reviewableType: "card", reviewableId: id }),
-    createdAt,
-    updatedAt,
-    revision: options.revision ?? 1,
-    deletedAt: options.deletedAt ?? null,
-    updatedByDeviceId: options.updatedByDeviceId ?? null,
-    meta: {
-      ...(options.meta ?? {}),
-      clozeGroupCount: clozeVariants.length,
+    renderClozeFront(textWithClozes, ordinal),
+    answer,
+    {
+      ...options,
+      id: index === 0 ? options.id : undefined,
+      cardType: "cloze",
+      originalFields: [
+        { name: "Cloze", value: textWithClozes },
+        { name: "Extra", value: extraText },
+      ].filter((field) => field.value),
+      projection: { kind: "cloze", recipeId: "core-cloze-v1-forward", clozeOrdinal: ordinal },
+      meta: { ...(options.meta ?? {}), clozeGroup: ordinal },
     },
-  });
+  ));
+}
+
+export function createLearningItemsFromEditorValue(deckId: string, editorInput: unknown, options: LearningItemOptions = {}): LearningItem[] {
+  const value = assertValidCardEditorValue(editorInput);
+  const content = projectCardEditorContent(value);
+  const common = { ...options, tags: value.tags };
+  if (value.cardType === "basic-reversed") return createBasicReverseLearningItems(deckId, value.front, value.back, common);
+  if (value.cardType === "cloze") return createClozeLearningItems(deckId, value.textWithClozes, value.extra, common);
+  if (value.cardType === "single-choice" || value.cardType === "multiple-choice") {
+    return [createBasicLearningItem(deckId, content.front, content.back, {
+      ...common,
+      cardType: value.cardType,
+      answerOptions: content.answerOptions,
+      expectedAnswer: content.correctAnswers,
+      originalFields: [
+        { name: "Frage", value: content.front },
+        { name: "Antwortoptionen", value: value.options.join("\n") },
+        { name: "Richtige Antworten", value: content.correctAnswers.join("\n") },
+        { name: "Erklärung", value: content.explanation },
+      ].filter((field) => field.value),
+      meta: {
+        ...(options.meta ?? {}),
+        answerOptions: content.answerOptions,
+        correctAnswers: content.correctAnswers,
+        expectedAnswer: content.correctAnswers,
+        explanation: content.explanation,
+      },
+    })];
+  }
+  return [createBasicLearningItem(deckId, value.front, value.back, { ...common, cardType: value.cardType })];
 }
 
 export function createLearningItemFromEditorValue(deckId: string, editorInput: unknown, options: LearningItemOptions = {}): LearningItem {
-  const value = assertValidCardEditorValue(editorInput);
-  const content = projectCardEditorContent(value);
-  const commonOptions: LearningItemOptions = {
-    ...options,
-    cardType: value.cardType,
-    tags: value.tags,
-    expectedAnswer: options.expectedAnswer ?? content.back,
-  };
-
-  switch (value.cardType) {
-    case "basic":
-    case "basic-with-images":
-      return createBasicLearningItem(deckId, value.front, value.back, commonOptions);
-    case "basic-reversed":
-      return createBasicReverseLearningItem(deckId, value.front, value.back, commonOptions);
-    case "cloze":
-      return createClozeLearningItem(deckId, value.textWithClozes, value.extra, commonOptions);
-    case "single-choice":
-    case "multiple-choice":
-      return createBasicLearningItem(deckId, content.front, content.back, {
-        ...commonOptions,
-        answerOptions: content.answerOptions,
-        expectedAnswer: content.correctAnswers,
-        explanation: content.explanation,
-        originalFields: [
-          { name: "Frage", value: content.front },
-          { name: "Antwortoptionen", value: value.options.join("\n") },
-          { name: content.correctAnswers.length === 1 ? "Richtige Antwort" : "Richtige Antworten", value: content.correctAnswers.join("\n") },
-          { name: "Erklärung", value: content.explanation },
-        ].filter((field) => field.value),
-        meta: {
-          ...(options.meta ?? {}),
-          answerOptions: content.answerOptions,
-          correctAnswers: content.correctAnswers,
-          expectedAnswer: content.correctAnswers,
-          explanation: content.explanation,
-        },
-      });
-  }
+  return createLearningItemsFromEditorValue(deckId, editorInput, options)[0];
 }
 
 export function createLearningItemFromCardContentPayload(deckId: string, payloadInput: unknown): LearningItem {
@@ -346,8 +284,7 @@ export function createLearningItemFromCardContentPayload(deckId: string, payload
 }
 
 function appendCopyMarker(html: string): string {
-  if (stripHtml(html).trim().endsWith("(Kopie)")) return html;
-  return sanitizeCardHtml(`${html}<p>(Kopie)</p>`);
+  return stripHtml(html).trim().endsWith("(Kopie)") ? html : sanitizeCardHtml(`${html}<p>(Kopie)</p>`);
 }
 
 function copyMarkedPayload(payload: CardContentPayload): CardContentPayload {
@@ -366,48 +303,47 @@ export function duplicateLearningItemContent(card: LearningItem): LearningItem |
 }
 
 export function addRephrasedVariant(learningItemOrId: unknown, front: string, back: string, options: LearningItemOptions = {}): LearningItem {
-  const resolved = resolveLearningItemRef(learningItemOrId, options);
-  if (!resolved) {
-    throw new Error(`LearningItem nicht gefunden: ${String(learningItemOrId ?? "")}`);
-  }
-
-  const item = normalizeLearningItem(resolved);
-  const originalVariant = getOriginalVariant(item);
+  const item = resolveLearningItemRef(learningItemOrId, options);
+  if (!item) throw new Error(`LearningItem nicht gefunden: ${String(learningItemOrId ?? "")}`);
   const updatedAt = options.updatedAt ?? new Date().toISOString();
   const variant = createCardVariant({
     id: options.id ?? options.variantId,
-    learningItemId: item.id,
     cardId: item.id,
-    sourceCardId: item.id,
-    variantType: options.variantType ?? "basic",
+    variantType: "basic",
     variantLevel: options.variantLevel ?? 2,
     front,
     back,
     explanation: options.explanation ?? "",
-    hintsJson: options.hintsJson ?? null,
-    answerOptionsJson: options.answerOptionsJson ?? null,
-    expectedAnswerJson: options.expectedAnswerJson ?? null,
-    generationSource: options.generationSource ?? "user_edited",
-    transformType: options.transformType ?? "rephrase",
+    transformType: "rephrase",
+    transformProfile: options.transformProfile ?? {},
     qualityStatus: options.qualityStatus ?? "active",
-    isOriginal: false,
     isActive: options.isActive ?? true,
-    anchorVariantId: options.anchorVariantId ?? originalVariant?.id ?? null,
-    parentVariantId: options.parentVariantId ?? originalVariant?.id ?? null,
-    sourceAnchors: options.sourceAnchors ?? item.sourceAnchors ?? [],
+    modelRunId: options.modelRunId ?? null,
+    confidence: options.confidence,
+    semanticDelta: options.semanticDelta,
+    changedRecognitionCues: options.changedRecognitionCues,
     createdAt: options.createdAt ?? updatedAt,
     updatedAt,
     meta: {
       ...(options.meta ?? {}),
-      nearRephrase: true,
+      generationSource: "ai_generated",
+      sourceContentHash: item.contentHash,
     },
   });
+  return normalizeLearningItem({ ...item, variants: [...item.variants, variant], updatedAt });
+}
 
-  return normalizeLearningItem({
-    ...item,
-    variants: [...item.variants, variant],
-    updatedAt,
-  });
+function normalizedCards(value: unknown): NormalizedCardInput[] {
+  return Array.isArray(value)
+    ? value.map((item) => objectRecord(item) as NormalizedCardInput)
+      .filter((item) => item.projection || String(item.front ?? "").trim() || String(item.back ?? "").trim())
+    : [];
+}
+
+function sourceCardIdOf(input: NormalizedCardInput): string | null {
+  const metadata = { ...objectRecord(input.meta), ...objectRecord(input.metadataJson) };
+  const raw = input.sourceCardId ?? metadata.ankiCardId ?? input.sourceExternalId ?? null;
+  return raw == null ? null : String(raw).replace(/^anki-card-/, "");
 }
 
 export function createLearningItemsFromNormalizedInput(
@@ -417,349 +353,138 @@ export function createLearningItemsFromNormalizedInput(
 ): {
   createdItems: LearningItem[];
   definitions: NoteTypeDefinitionV1[];
-  sourceSnapshots: ForeignNoteSnapshot[];
   warnings: string[];
   skipped: Array<{ index: number; reason: string }>;
 } {
   const createdItems: LearningItem[] = [];
   const definitions = new Map<string, NoteTypeDefinitionV1>();
-  const sourceSnapshots = new Map<string, ForeignNoteSnapshot>();
   const warnings: string[] = [];
   const skipped: Array<{ index: number; reason: string }> = [];
-
-  if (!Array.isArray(normalizedItems)) {
-    return {
-      createdItems,
-      warnings: ["normalizedItems muss ein Array sein."],
-      skipped,
-      definitions: [],
-      sourceSnapshots: [],
-    };
-  }
+  if (!Array.isArray(normalizedItems)) return { createdItems, definitions: [], warnings: ["normalizedItems muss ein Array sein."], skipped };
 
   normalizedItems.forEach((candidate, index) => {
     try {
       const input = objectRecord(candidate) as NormalizedLearningItemInput;
-      const variants = normalizeNormalizedItemVariants(input.variants);
+      const sourceCards = normalizedCards(input.cards);
       if (input.contentDocument && input.noteTypeDefinition) {
-        const applied = applyLearningItemContent({
-          previous: null,
-          document: input.contentDocument,
-          definition: input.noteTypeDefinition,
-          sourceSnapshot: input.sourceSnapshot ?? null,
-          reason: input.sourceType === "anki_import" ? "import" : "create",
-        });
-        definitions.set(applied.definition.id, applied.definition);
-        if (applied.sourceSnapshot) sourceSnapshots.set(applied.sourceSnapshot.id, applied.sourceSnapshot);
-        const sourceByProjection = new Map(variants
-          .filter((variant: any) => variant.projection)
-          .map((variant: any) => [JSON.stringify(variant.projection), variant]));
-        const appliedByProjection = new Map(applied.item.variants.map((variant) => [JSON.stringify(variant.projection), variant]));
-        const baseImageOcclusionVariant = applied.item.variants.find((variant) => variant.projection.kind === "image-occlusion") ?? null;
-        const enrichedVariants = sourceByProjection.size
-          ? variants.flatMap((sourceVariant: NormalizedVariantInput & { metadataJson?: Record<string, unknown>; projection?: any }, variantIndex) => {
-              const projectionKey = JSON.stringify(sourceVariant.projection);
-              const exactVariant = appliedByProjection.get(projectionKey);
-              const variant = exactVariant ?? (sourceVariant.projection?.kind === "image-occlusion" ? baseImageOcclusionVariant : null);
-              if (!variant) return [];
-              return [{
-                ...variant,
-                ...(!exactVariant ? {
-                  id: stableContentHash({ learningItemId: applied.item.id, projection: sourceVariant.projection }, "variant"),
-                  projection: sourceVariant.projection,
-                } : {}),
-                front: sourceVariant.front ?? variant.front,
-                back: sourceVariant.back ?? variant.back,
-                variantType: sourceVariant.variantType ?? variant.variantType,
-                variantLevel: sourceVariant.variantLevel ?? variant.variantLevel,
-                isOriginal: variantIndex === 0,
-                generationSource: variantIndex === 0 ? "original" : sourceVariant.generationSource ?? "imported",
-                meta: {
-                  ...variant.meta,
-                  ...(sourceVariant.meta ?? sourceVariant.metadataJson ?? {}),
-                  sourceExternalId: sourceVariant.sourceExternalId ?? null,
-                },
-              }];
-            })
-          : applied.item.variants.map((variant, variantIndex) => {
-              const sourceVariant = variants[variantIndex] as (NormalizedVariantInput & { metadataJson?: Record<string, unknown> }) | undefined;
-              return {
-                ...variant,
-                meta: {
-                  ...variant.meta,
-                  ...(sourceVariant?.meta ?? sourceVariant?.metadataJson ?? {}),
-                  sourceExternalId: sourceVariant?.sourceExternalId ?? null,
-                },
-              };
-            });
-        const anchoredVariants = enrichedVariants.map((variant, variantIndex) => ({
-          ...variant,
-          isOriginal: variantIndex === 0,
-          parentVariantId: variantIndex === 0 ? null : enrichedVariants[0]?.id ?? null,
-          anchorVariantId: variantIndex === 0 ? null : enrichedVariants[0]?.id ?? null,
-        }));
-        createdItems.push(normalizeLearningItem({
-          ...applied.item,
-          deckId,
-          title: input.title ?? applied.item.title,
-          source: input.source ?? (input.sourceType === "anki_import" ? "anki-apkg" : applied.item.source),
-          sourceType: input.sourceType ?? applied.item.sourceType,
-          sourceRefId: input.sourceRefId ?? input.sourceExternalId ?? applied.item.sourceRefId,
-          sourceAnchors: input.sourceAnchors ?? applied.item.sourceAnchors,
-          variants: anchoredVariants,
-          meta: {
-            ...(input.meta ?? {}),
-            ...applied.item.meta,
-            importFingerprint: input.meta?.importFingerprint ?? null,
-          },
-        }));
-        return;
-      }
-      const originalInput = variants.find((variant) => variant.isOriginal) ?? variants[0] ?? null;
-      const canonicalQuestion = input?.canonicalQuestion ?? input?.front ?? originalInput?.front ?? "";
-      const canonicalAnswer = input?.canonicalAnswer ?? input?.back ?? originalInput?.back ?? "";
-      const anchorQuestion = originalInput?.front ?? canonicalQuestion;
-      const anchorAnswer = originalInput?.back ?? canonicalAnswer;
-      if (!String(canonicalQuestion).trim() && !String(canonicalAnswer).trim()) {
-        skipped.push({ index, reason: "Keine canonicalQuestion/canonicalAnswer oder valide Variante." });
-        warnings.push(`Item ${index + 1} wurde übersprungen: keine valide Frage/Antwort.`);
+        const projection = projectLearningItemContent({ document: input.contentDocument, definition: input.noteTypeDefinition });
+        definitions.set(projection.definition.id, projection.definition);
+        const cards: NormalizedCardInput[] = sourceCards.length ? sourceCards : projection.cards.map((card) => ({ projection: card.projection }));
+        for (const [cardIndex, sourceCard] of cards.entries()) {
+          const projected = projection.cards.find((card) => sourceCard.projection && JSON.stringify(card.projection) === JSON.stringify(sourceCard.projection))
+            ?? projection.cards[cardIndex]
+            ?? projection.cards[0];
+          if (!projected) continue;
+          const sourceCardId = sourceCardIdOf(sourceCard);
+          const id = sourceCard.id ?? (sourceCardId ? stableContentHash({ deckId, sourceCardId }, "card") : makeId("card"));
+          const applied = applyLearningItemContent({
+            previous: null,
+            base: {
+              id,
+              deckId,
+              title: input.title ?? "",
+              source: input.source ?? (input.sourceType === "anki_import" ? "anki-apkg" : options.source),
+              sourceType: input.sourceType ?? options.sourceType,
+              sourceRefId: sourceCardId ?? input.sourceRefId ?? input.sourceExternalId ?? null,
+              sourceCardId,
+              projection: sourceCard.projection ?? projected.projection,
+              tags: Array.isArray(input.tags ?? options.tags) ? ((input.tags ?? options.tags) as unknown[]).map(String) : [],
+              mediaRefs: input.mediaRefs ?? options.mediaRefs,
+              reviewState: createReviewState(sourceCard.reviewState ?? input.reviewState),
+              createdAt: input.createdAt ?? options.createdAt,
+              updatedAt: input.updatedAt ?? options.updatedAt,
+              meta: {
+                ...(options.meta ?? {}),
+                ...(input.meta ?? {}),
+                ...(sourceCard.meta ?? sourceCard.metadataJson ?? {}),
+              },
+            },
+            document: input.contentDocument,
+            definition: input.noteTypeDefinition,
+            reason: input.sourceType === "anki_import" ? "import" : "create",
+          });
+          createdItems.push(applied.item);
+        }
         return;
       }
 
-      const commonOptions = {
-        id: input.id,
-        title: input.title,
-        tags: input.tags ?? options.tags ?? [],
-        concepts: input.concepts ?? options.concepts ?? [],
-        sourceType: input.sourceType ?? options.sourceType ?? "mixed",
-        source: input.source ?? options.source,
-        sourceRefId: input.sourceRefId ?? input.sourceExternalId ?? options.sourceRefId ?? null,
-        sourceExternalId: input.sourceExternalId,
-        cardType: normalizeCreatableCardType(input.cardType ?? options.cardType),
-        mediaRefs: input.mediaRefs ?? options.mediaRefs ?? [],
-        originalFields: input.originalFields ?? options.originalFields ?? [],
-        sourceAnchors: input.sourceAnchors ?? options.sourceAnchors ?? [],
-        createdAt: input.createdAt ?? options.createdAt,
-        updatedAt: input.updatedAt ?? options.updatedAt,
-        meta: {
-          ...(options.meta ?? {}),
-          ...(input.meta ?? {}),
-        },
-      };
-      const normalizedCardType = commonOptions.cardType;
-      const isCloze = normalizedCardType === "cloze" || /\{\{c\d+::/.test(String(canonicalQuestion));
-      let item = isCloze && variants.length === 0
-        ? createClozeLearningItem(deckId, anchorQuestion, anchorAnswer, commonOptions)
-        : createBasicLearningItem(deckId, anchorQuestion, anchorAnswer, {
-            ...commonOptions,
-            cardType: normalizedCardType,
-          });
-      item = normalizeLearningItem({
-        ...item,
-        canonicalQuestion,
-        canonicalAnswer,
-      });
-      const createdOriginalVariant = getOriginalVariant(item);
-      if (createdOriginalVariant && originalInput) {
-        item = normalizeLearningItem({
-          ...item,
-          variants: item.variants.map((variant) =>
-            variant.id === createdOriginalVariant.id
-              ? {
-                  ...variant,
-                  variantType: originalInput.variantType ?? variant.variantType,
-                  variantLevel: originalInput.variantLevel ?? variant.variantLevel,
-                  meta: {
-                    ...(variant.meta ?? {}),
-                    ...(originalInput.meta ?? {}),
-                    normalizedInputIndex: index,
-                    sourceVariantId: originalInput.id ?? null,
-                    sourceVariantExternalId: originalInput.sourceExternalId ?? null,
-                  },
-                }
-              : variant,
-          ),
-        });
+      const cards = sourceCards.length ? sourceCards : [{ front: input.front ?? input.canonicalQuestion, back: input.back ?? input.canonicalAnswer }];
+      for (const sourceCard of cards) {
+        const front = String(sourceCard.front ?? input.canonicalQuestion ?? input.front ?? "");
+        const back = String(sourceCard.back ?? input.canonicalAnswer ?? input.back ?? "");
+        if (!front.trim() && !back.trim()) continue;
+        const sourceCardId = sourceCardIdOf(sourceCard);
+        createdItems.push(createBasicLearningItem(deckId, front, back, {
+          ...options,
+          ...input,
+          id: sourceCard.id,
+          sourceCardId,
+          sourceRefId: sourceCardId ?? input.sourceRefId ?? input.sourceExternalId,
+          cardType: normalizeCreatableCardType(input.cardType),
+          projection: sourceCard.projection,
+          meta: { ...(options.meta ?? {}), ...(input.meta ?? {}), ...(sourceCard.meta ?? sourceCard.metadataJson ?? {}) },
+        }));
       }
-      const originalVariant = getOriginalVariant(item);
-      variants
-        .filter((variant) => variant !== originalInput)
-        .forEach((variant) => {
-          if (!String(variant.front ?? "").trim() && !String(variant.back ?? "").trim()) {
-            warnings.push(`Item ${index + 1}: Leere Variante übersprungen.`);
-            return;
-          }
-          item = addRephrasedVariant(item, variant.front ?? canonicalQuestion, variant.back ?? canonicalAnswer, {
-            variantType: variant.variantType ?? "basic",
-            variantLevel: variant.variantLevel ?? 2,
-            generationSource: variant.generationSource ?? "imported",
-            anchorVariantId: variant.anchorVariantId ?? originalVariant?.id,
-            parentVariantId: variant.parentVariantId ?? originalVariant?.id,
-            isActive: variant.isActive ?? true,
-            transformType: variant.transformType ?? (variant.variantType === "cloze" ? "cloze_conversion" : "rephrase"),
-            explanation: variant.explanation ?? "",
-            hintsJson: variant.hintsJson ?? null,
-            answerOptionsJson: variant.answerOptionsJson ?? null,
-            expectedAnswerJson: variant.expectedAnswerJson ?? null,
-            meta: {
-              ...(variant.meta ?? {}),
-              normalizedInputIndex: index,
-              sourceVariantId: variant.id ?? null,
-              sourceVariantExternalId: variant.sourceExternalId ?? null,
-            },
-          });
-        });
-      createdItems.push(item);
+      if (cards.length === 0) throw new Error("Keine valide Frage oder Antwort.");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unbekannter Fehler.";
-      skipped.push({ index, reason: message });
-      warnings.push(`Item ${index + 1} wurde übersprungen: ${message}`);
+      const reason = error instanceof Error ? error.message : "Unbekannter Fehler.";
+      skipped.push({ index, reason });
+      warnings.push(`Item ${index + 1} wurde übersprungen: ${reason}`);
     }
   });
-
-  return { createdItems, definitions: [...definitions.values()], sourceSnapshots: [...sourceSnapshots.values()], warnings, skipped };
+  return { createdItems, definitions: [...definitions.values()], warnings, skipped };
 }
 
-function createManualCardArtifacts(
-  { card = {}, documentContext = {}, createdAt = new Date().toISOString() }: ManualArtifactsInput = {},
-): { coreCard: LearningItem; sourceDocument: SourceDocument | null; sourceAnchor: SourceAnchor | null } {
-  const sourceAnchor =
-    documentContext?.sourceAnchor
-      ? createSourceAnchor({ ...documentContext.sourceAnchor, createdAt: documentContext.sourceAnchor.createdAt ?? createdAt })
-      : documentContext?.selection || documentContext?.textQuote
-        ? createSourceAnchor({
-            documentId: documentContext.documentId ?? null,
-            documentName: documentContext.fileName ?? "",
-            textQuote: documentContext.selection ?? documentContext.textQuote,
-            targetField: documentContext.targetField ?? "front",
-            pageNumber: documentContext.pageNumber ?? null,
-            charStart: documentContext.charStart ?? null,
-            charEnd: documentContext.charEnd ?? null,
-            confidence: 1,
-            createdAt,
-          })
-        : null;
-  const sourceDocument = documentContext?.document
-    ? documentContext.document
-    : documentContext?.fileName
-      ? createSourceDocument({
-          id: documentContext.documentId ?? makeId("doc"),
-          fileName: documentContext.fileName,
-          mimeType: documentContext.mimeType ?? "text/plain",
-          text: documentContext.documentText ?? "",
-          textExtractionStatus: documentContext.documentText ? "success" : "pending",
-          createdAt,
-        })
-      : null;
-  const answerOptions = Array.isArray(card.answerOptions) ? card.answerOptions.map((option) => String(option).trim()) : [];
-  const requestedCardType = normalizeCreatableCardType(card.cardType ?? "basic");
-  const correctAnswers = normalizeChoiceAnswerList(card.correctAnswers ?? card.correctAnswer ?? answerOptions[0] ?? card.back ?? "");
-  const correctOptionIndices = findChoiceAnswerIndices(answerOptions, correctAnswers);
-  const editorValue = card.editorValue ?? (requestedCardType === "cloze"
-    ? { cardType: "cloze", textWithClozes: card.front ?? "", extra: card.back ?? "", tags: card.tags }
-    : requestedCardType === "single-choice"
-      ? { cardType: "single-choice", question: card.front ?? "", options: answerOptions, correctOptionIndex: correctOptionIndices[0] ?? -1, explanation: card.back ?? "", tags: card.tags }
-      : requestedCardType === "multiple-choice"
-        ? { cardType: "multiple-choice", question: card.front ?? "", options: answerOptions, correctOptionIndices, explanation: card.back ?? "", tags: card.tags }
-      : { cardType: requestedCardType, front: card.front ?? "", back: card.back ?? "", tags: card.tags });
-  const validatedEditorValue = assertValidCardEditorValue(editorValue);
-  const itemOptions: LearningItemOptions = {
-    sourceType: "manual",
-    source: "manual",
-    cardType: validatedEditorValue.cardType,
-    tags: validatedEditorValue.tags,
-    mediaRefs: card.mediaRefs,
-    sourceAnchors: sourceAnchor ? [sourceAnchor] : [],
-    createdAt,
-    updatedAt: createdAt,
-    meta: {
-      documentContext: documentContext
-        ? {
-            fileName: documentContext.fileName,
-            pageNumber: documentContext.pageNumber ?? null,
-            selection: documentContext.selection ?? "",
-          }
-        : null,
-      exactWordingRequired: Boolean(card.exactWordingRequired),
-    },
-  };
-  const coreCard = card.contentDocument && card.noteTypeDefinition
-    ? applyLearningItemContent({
-        previous: null,
-        base: {
-          deckId: "",
-          cardType: validatedEditorValue.cardType,
-          source: "manual",
-          sourceType: "manual",
-          sourceAnchors: itemOptions.sourceAnchors,
-          createdAt,
-          updatedAt: createdAt,
-          meta: itemOptions.meta,
-        },
-        document: card.contentDocument,
-        definition: card.noteTypeDefinition,
-        reason: "create",
-      }).item
-    : createLearningItemFromEditorValue("", validatedEditorValue, itemOptions);
-
-  return { coreCard, sourceDocument, sourceAnchor };
+function manualEditorValue(card: ManualCardInput): CardEditorValue {
+  if (card.editorValue) return assertValidCardEditorValue(card.editorValue);
+  const cardType = normalizeCreatableCardType(card.cardType);
+  const answers = Array.isArray(card.answerOptions) ? card.answerOptions.map(String) : [];
+  const correctAnswers = normalizeChoiceAnswerList(card.correctAnswers ?? card.correctAnswer ?? answers[0] ?? card.back ?? "");
+  const correctIndices = findChoiceAnswerIndices(answers, correctAnswers);
+  if (cardType === "cloze") return assertValidCardEditorValue({ cardType, textWithClozes: card.front ?? "", extra: card.back ?? "", tags: card.tags });
+  if (cardType === "single-choice") return assertValidCardEditorValue({ cardType, question: card.front ?? "", options: answers, correctOptionIndex: correctIndices[0] ?? -1, explanation: card.back ?? "", tags: card.tags });
+  if (cardType === "multiple-choice") return assertValidCardEditorValue({ cardType, question: card.front ?? "", options: answers, correctOptionIndices: correctIndices, explanation: card.back ?? "", tags: card.tags });
+  return assertValidCardEditorValue({ cardType, front: card.front ?? "", back: card.back ?? "", tags: card.tags });
 }
 
 export function createManualCoreDeck({ deckName, card, documentContext }: ManualDeckInput): Deck {
   const createdAt = new Date().toISOString();
-  const { coreCard, sourceDocument, sourceAnchor } = createManualCardArtifacts({ card, documentContext, createdAt });
-
+  let cards: LearningItem[];
+  if (card.contentDocument && card.noteTypeDefinition) {
+    const projection = projectLearningItemContent({ document: card.contentDocument, definition: card.noteTypeDefinition });
+    cards = projection.cards.map((projected) => applyLearningItemContent({
+      previous: null,
+      base: {
+        deckId: "",
+        projection: projected.projection,
+        source: "manual",
+        sourceType: "manual",
+        createdAt,
+        updatedAt: createdAt,
+        meta: { exactWordingRequired: Boolean(card.exactWordingRequired) },
+      },
+      document: card.contentDocument!,
+      definition: card.noteTypeDefinition!,
+      reason: "create",
+    }).item);
+  } else {
+    cards = createLearningItemsFromEditorValue("", manualEditorValue(card), {
+      source: "manual",
+      sourceType: "manual",
+      mediaRefs: card.mediaRefs,
+      createdAt,
+      updatedAt: createdAt,
+      meta: { exactWordingRequired: Boolean(card.exactWordingRequired) },
+    });
+  }
   return createCoreDeck({
     name: deckName,
     source: "manual",
-    cards: [coreCard],
-    sourceDocuments: sourceDocument ? [sourceDocument] : [],
+    cards,
     createdAt,
     importMeta: {
       creationMethod: "manual",
-      documentAssisted: Boolean(sourceAnchor),
+      documentAssisted: Boolean(documentContext?.selection || documentContext?.textQuote || documentContext?.fileName || documentContext?.documentText),
     },
   });
-}
-
-export function restoreCardVersion(card: LearningItem, versionId: string, storedDefinition?: NoteTypeDefinitionV1): LearningItem {
-  const version = (card.versionLog ?? []).find((entry) => entry.id === versionId);
-  if (!version?.before) return card;
-
-  const before = objectRecord(version.before);
-  let restored: LearningItem;
-  if (before.schemaVersion === 1 && Array.isArray(before.fields)) {
-    const document = before as unknown as LearningItemDocumentV1;
-    const definition = storedDefinition ?? createCoreNoteTypeDefinition({
-      document,
-      kind: card.cardType === "cloze" ? "cloze" : "normal",
-      interaction: card.cardType === "single-choice" || card.cardType === "multiple-choice" ? "choice" : card.cardType === "cloze" ? "cloze" : "reveal",
-      reverse: card.cardType === "basic-reversed",
-      createdAt: card.createdAt,
-    });
-    restored = applyLearningItemContent({ previous: card, document, definition, reason: "edit" }).item;
-  } else if (before.editorValue) {
-    restored = saveCardEditorValue(card, before.editorValue, storedDefinition);
-  } else {
-    const current = getCardEditorValue(card);
-    if (!current) return card;
-    const tags = Array.isArray(before.originalTags) ? before.originalTags.map(String) : current.tags;
-    const front = typeof before.originalFront === "string" ? before.originalFront : card.originalFront;
-    const back = typeof before.originalBack === "string" ? before.originalBack : card.originalBack;
-    const editorValue: CardEditorValue = current.cardType === "cloze"
-      ? { ...current, textWithClozes: front, extra: back, tags }
-      : current.cardType === "single-choice" || current.cardType === "multiple-choice"
-        ? { ...current, question: front, explanation: back, tags }
-        : { ...current, front, back, tags };
-    restored = saveCardEditorValue(card, editorValue, storedDefinition);
-  }
-  const restoreEntry = restored.versionLog.at(-1);
-
-  return {
-    ...restored,
-    versionLog: [
-      ...restored.versionLog.slice(0, -1),
-      restoreEntry ? { ...restoreEntry, changeType: "version_restored" } : restoreEntry,
-    ].filter((entry): entry is VersionEntry => Boolean(entry)),
-  };
 }

@@ -44,10 +44,9 @@ test("soft delete and restore preserve the previous card status", () => {
     status: "suspended",
     deletedAt: null,
     updatedAt: "2026-08-12T10:00:00.000Z",
-    versionLog: [],
   } as any;
   const deleted = softDeleteCard(card, "2026-08-12T11:00:00.000Z");
-  const restored = restoreSoftDeletedCard(deleted, "2026-08-12T12:00:00.000Z");
+  const restored = restoreSoftDeletedCard(deleted, "2026-08-12T12:00:00.000Z", card.status);
 
   assert.equal(deleted.status, "deleted");
   assert.equal(restored.status, "suspended");

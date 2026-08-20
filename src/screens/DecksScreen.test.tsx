@@ -20,8 +20,7 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
     onDuplicateCard: async () => null,
     onDeleteCard: async () => null,
     onUndoDeleteCard: async () => null,
-    onRestoreCard: () => undefined,
-    onAddVariant: () => undefined,
+    onRescheduleCards: async () => [],
     onGenerateVariant: async () => ({
       variant: { front: "Neue Frage", back: "Neue Antwort" },
       model: "example/free:free",
@@ -58,7 +57,7 @@ test("cards page consumes a direct query page and projects at most 50 items", ()
     cardPages: {
       [deck.id]: {
         deckId: deck.id,
-        items: pageCards,
+        items: [...pageCards.slice(0, 49), directCard],
         page: 4,
         pageSize: 50,
         totalCount: 501,
@@ -70,10 +69,10 @@ test("cards page consumes a direct query page and projects at most 50 items", ()
   });
 
   assert.equal((markup.match(/data-card-row="true"/g) ?? []).length, 50);
-  assert.match(markup, /Seitenkarte 49/);
-  assert.doesNotMatch(markup, /Seitenkarte 50/);
+  assert.match(markup, /Seitenkarte 48/);
+  assert.doesNotMatch(markup, /Seitenkarte 49|Seitenkarte 50/);
   assert.match(markup, /Seite 5 von 11/);
-  assert.match(markup, /data-testid="deck-card-paged-card-049"/);
+  assert.match(markup, /data-testid="deck-card-direct-card"/);
   assert.match(markup, /Direkt geladene Karte/);
 });
 
@@ -162,16 +161,23 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
   });
-  const card = saveCardEditorValue(originalDeck.cards[0], { cardType: "basic", front: "Welche Funktion hat ATP?", back: "Ein Energieträger.", tags: [] });
+  const editedCard = saveCardEditorValue(originalDeck.cards[0], { cardType: "basic", front: "Welche Funktion hat ATP?", back: "Ein Energieträger.", tags: [] });
+  const reviewState = { ...editedCard.reviewState, dueAt: "2026-08-05T04:00:00.000Z" };
+  const card = { ...editedCard, reviewState };
   const deck = { ...originalDeck, cards: [card] };
-  const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
+  const markup = renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: card.id,
+    dayStartHour: 4,
+    timeZone: "Europe/Berlin",
+  });
 
   assert.match(markup, /<aside[^>]*aria-label="Kartendetail"/);
   assert.match(markup, /data-testid="card-detail-backdrop"/);
   assert.match(markup, /lg:w-1\/2/);
   assert.match(markup, /Karte bearbeiten/);
   assert.match(markup, /aria-label="Karte markieren"/);
-  assert.match(markup, /class="mb-5" data-card-study-state-controls="true"/);
+  assert.match(markup, /class="mb-3" data-card-study-state-controls="true"/);
   assert.match(markup, /aria-label="Aussetzstatus der Karte"/);
   assert.match(markup, />Nicht aussetzen</);
   assert.doesNotMatch(markup, /role="switch"/);
@@ -180,7 +186,12 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.match(markup, /Vorschau<\/span><\/button>/);
   assert.match(markup, />Kopieren<\/button>/);
   assert.doesNotMatch(markup, /Sichere Karten-Vorschau/);
-  assert.match(markup, /Version zum Wiederherstellen/);
+  assert.match(markup, /Nächste Fälligkeit/);
+  assert.match(markup, /type="date"/);
+  assert.match(markup, /value="2026-08-05"/);
+  assert.match(markup, /min="2026-08-07"/);
+  assert.match(markup, />Neu planen<\/span><\/button>/);
+  assert.doesNotMatch(markup, /Details und Herkunft|Version zum Wiederherstellen|Frühere Version wiederherstellen|Änderungslogeinträge|Details, Herkunft und Versionen/);
   assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
   assert.doesNotMatch(markup, /<details|<summary/);
   assert.match(markup, /KI-Variante erzeugen/);
@@ -228,19 +239,12 @@ function renderEditorFor(editorValue: CardEditorValue) {
   return renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
 }
 
-test("detail editor renders all six supported field sets", () => {
+test("detail editor renders the supported independent-card field sets", () => {
   const imageMarkup = renderEditorFor({ cardType: "basic-with-images", front: '<p>Vorne</p><img src="front-image">', back: '<p>Hinten</p><img src="back-image">', tags: [] });
   assert.match(imageMarkup, /Basic \+ Bilder/);
   assert.match(imageMarkup, /aria-label="Karten-Vorderseite"/);
   assert.match(imageMarkup, /aria-label="Karten-Rückseite"/);
   assert.match(imageMarkup, /KI-Varianten sind derzeit nur für Basic-Karten verfügbar/);
-
-  const reverseMarkup = renderEditorFor({ cardType: "basic-reversed", front: "Vorne", back: "Hinten", tags: [] });
-  assert.match(reverseMarkup, /Umgekehrt/);
-  assert.match(reverseMarkup, /aria-label="Karten-Vorderseite"/);
-  assert.match(reverseMarkup, /aria-label="Karten-Rückseite"/);
-  assert.match(reverseMarkup, /disabled=""[^>]*>.*KI-Variante erzeugen/s);
-  assert.match(reverseMarkup, /KI-Varianten sind derzeit nur für Basic-Karten verfügbar/);
 
   const clozeMarkup = renderEditorFor({ cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: [] });
   assert.match(clozeMarkup, /aria-label="Cloze-Text"/);

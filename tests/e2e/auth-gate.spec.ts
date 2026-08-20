@@ -37,7 +37,7 @@ test("@beta-core @hosted-core Beta-Artefakt bietet nur E-Mail und Passwort an", 
   test.skip(process.env.CORE_BETA_GATE !== "true" && !process.env.CORE_HOSTED_BASE_URL, "Nur der Beta- oder Hosted-Core-Konfiguration zugeordnet.");
   await page.goto(hostedE2EEntryPath());
 
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
   await expect(page.getByLabel("E-Mail")).toBeVisible();
   await expect(page.getByLabel("Passwort", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toHaveCount(0);
@@ -47,7 +47,7 @@ test("@beta-core @hosted-core Beta-Artefakt bietet nur E-Mail und Passwort an", 
 test("login gate exposes the supported authentication paths without an app session", async ({ page }: any) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
   await expect(authForm(page).getByRole("button", { name: "Anmelden", exact: true })).toBeEnabled();
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
   await expect(page.getByLabel("E-Mail")).toBeVisible();
@@ -70,7 +70,7 @@ test("login gate exposes the supported authentication paths without an app sessi
   await expect(page.getByLabel("Passwort", { exact: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Anmelden", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 });
 
 test("login and error states use the full viewport without an outer frame", async ({ page }) => {
@@ -81,7 +81,7 @@ test("login and error states use the full viewport without an outer frame", asyn
   ]) {
     await page.setViewportSize(viewport);
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
     await expectFullViewportSurface(page, viewport.width, viewport.height);
   }
 
@@ -124,7 +124,7 @@ test("invalid credentials stay behind the login gate and show the German auth er
   await authForm(page).getByRole("button", { name: "Anmelden", exact: true }).click();
 
   await expect(page.getByRole("alert")).toHaveText("E-Mail oder Passwort stimmt nicht.");
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
 });
 
@@ -140,5 +140,5 @@ test("render errors show a safe recovery page without build metadata", async ({ 
 
   await page.getByRole("button", { name: "Startseite öffnen" }).click();
   await expect(page).toHaveURL(/\/$/);
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
 });

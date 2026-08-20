@@ -4,6 +4,7 @@ import {
   addLearningDays,
   getLearningDayKey,
   getLearningDayRange,
+  getLearningDayStartForKey,
   getNextLearningDayBoundaryDelay,
   learningDayIndexFromLocalTime,
   normalizeDayStartHour,
@@ -55,4 +56,16 @@ test("learning-day ranges select exact Berlin boundaries across DST changes", ()
   assert.deepEqual(regular && [new Date(regular.start).toISOString(), new Date(regular.end).toISOString()], ["2026-07-11T01:00:00.000Z", "2026-07-12T01:00:00.000Z"]);
   assert.deepEqual(spring && [new Date(spring.start).toISOString(), new Date(spring.end).toISOString()], ["2026-03-29T01:00:00.000Z", "2026-03-30T00:00:00.000Z"]);
   assert.deepEqual(autumn && [new Date(autumn.start).toISOString(), new Date(autumn.end).toISOString()], ["2026-10-25T00:00:00.000Z", "2026-10-26T01:00:00.000Z"]);
+});
+
+test("learning-day keys resolve to exact configured starts across DST changes", () => {
+  assert.equal(
+    getLearningDayStartForKey("2026-07-11", { dayStartHour: 3, timeZone: "Europe/Berlin" })?.toISOString(),
+    "2026-07-11T01:00:00.000Z",
+  );
+  assert.equal(
+    getLearningDayStartForKey("2026-03-29", { dayStartHour: 2, timeZone: "Europe/Berlin" })?.toISOString(),
+    "2026-03-29T01:00:00.000Z",
+  );
+  assert.equal(getLearningDayStartForKey("2026-02-30", { timeZone: "UTC" }), null);
 });

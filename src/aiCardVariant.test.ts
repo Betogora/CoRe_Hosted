@@ -6,7 +6,7 @@ import {
   createAiCardVariantRequest,
   parseAiCardVariantRequest,
 } from "./aiCardVariantContract.ts";
-import { addRephrasedVariant, createBasicLearningItem, getCardContentPayload, saveCardEditorValue } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createLearningItemFromEditorValue, getCardContentPayload, saveCardEditorValue } from "./coreModel.ts";
 
 test("AI card request projects only normalized Basic front and back", () => {
   const card = createBasicLearningItem("deck-1", "<p>  Was ist <b>ATP</b>? </p>", "<p>Ein Energie&shy;träger.</p>", {
@@ -26,11 +26,18 @@ test("AI card request projects only normalized Basic front and back", () => {
 });
 
 test("AI card request rejects non-Basic and oversized cards", () => {
-  const reverse = getCardContentPayload(createBasicLearningItem("deck-1", "Vorne", "Hinten", { cardType: "basic-reversed" }));
+  const choice = getCardContentPayload(createLearningItemFromEditorValue("deck-1", {
+    cardType: "single-choice",
+    question: "Frage",
+    options: ["Richtig", "Falsch"],
+    correctOptionIndex: 0,
+    explanation: "Erklärung",
+    tags: [],
+  }));
   const withImages = getCardContentPayload(createBasicLearningItem("deck-1", '<p>Vorne</p><img src="image-hash">', "Hinten", { cardType: "basic-with-images", mediaRefs: ["image-hash"] }));
-  assert.ok(reverse);
+  assert.ok(choice);
   assert.ok(withImages);
-  assert.throws(() => createAiCardVariantRequest(reverse), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
+  assert.throws(() => createAiCardVariantRequest(choice), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
   assert.throws(() => createAiCardVariantRequest(withImages), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "unsupported_card_type");
 
   assert.equal(parseAiCardVariantRequest({ source: { front: "x".repeat(1_201), back: "Antwort" } }).success, false);

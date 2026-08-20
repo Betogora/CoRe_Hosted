@@ -196,7 +196,7 @@ function cardNextStudyTimestamp(card: LearningItem, options: Pick<LibraryOptions
 function cardHasActiveVariants(card: LearningItem): boolean {
   if (card.meta?.catalogOnly === true) return card.meta.catalogHasActiveVariants === true;
   return (card.variants ?? []).some((variant) => (
-    !variant.isOriginal && variant.isActive !== false && variant.qualityStatus === "active"
+    variant.isActive !== false && variant.qualityStatus === "active"
   ));
 }
 export type CardTableRow = ReturnType<typeof createCardTableRow>;
@@ -339,8 +339,7 @@ export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOpti
   for (const deck of decks) {
     for (const event of deck.reviewEvents ?? []) {
       if (!REVIEW_RATINGS.has(event.rating)) continue;
-      const reviewedAt = (event as typeof event & { reviewedAt?: string }).reviewedAt;
-      const timestamp = new Date(event.answeredAt || reviewedAt || event.createdAt).getTime();
+      const timestamp = new Date(event.answeredAt || event.createdAt).getTime();
       if (Number.isFinite(timestamp)) eventTimes.push(timestamp);
     }
   }

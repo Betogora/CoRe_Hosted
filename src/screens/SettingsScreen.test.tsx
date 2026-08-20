@@ -18,8 +18,6 @@ function renderSettings() {
       globalSchedulerPreferences={getGlobalSchedulerPreferences(profile)}
       onSaveSettings={() => profile}
       onDraftStateChange={() => undefined}
-      onCreateExport={async () => "{}"}
-      onImportExport={async () => undefined}
       onSyncNow={async () => undefined}
       onListConflicts={async () => []}
       onResolveConflict={async () => undefined}
@@ -79,12 +77,9 @@ test("learning-day settings contain only global scheduler context", () => {
   assert.doesNotMatch(html, /Lerntag speichern/);
 });
 
-test("data settings disclose export limits and profile portability", () => {
+test("data settings omit the removed CoRe JSON portability controls", () => {
   const html = renderSettings();
-  for (const text of ["Medienbytes", "Authdaten", "serverseitigen Sicherungskopien", "DSGVO-Auskunftsdaten nach Art. 15", "Eigene Lernprofile"]) assert.match(html, new RegExp(text));
-  assert.match(html, />Export herunterladen</);
-  assert.match(html, />Roh-JSON anzeigen</);
-  assert.doesNotMatch(html, /Automatik speichern/);
+  assert.doesNotMatch(html, /Export herunterladen|Roh-JSON anzeigen|JSON importieren|portable-import-json/);
 });
 
 test("conflict previews count only the selected direction", () => {

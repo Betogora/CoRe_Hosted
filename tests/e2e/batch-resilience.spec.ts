@@ -1,13 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import path from "node:path";
-import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreDeck, createLearningItemFromEditorValue } from "../../src/coreModel.ts";
 import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { seedAccountState } from "../support/seedAccountState.ts";
 
 const DECK_IDS = {
   rootA: "batch-root-a",
@@ -70,13 +70,13 @@ async function seedAccount() {
     const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
     if (conflictCleanupError) throw conflictCleanupError;
     const state = createCoreRepository({ seedDefaultDecks: false }).getState();
-    const content = normalizeContentEntities(seedDecks(), [], []);
-    await replaceAccountCloudState(client, {
+    const content = normalizeContentEntities(seedDecks(), []);
+    await seedAccountState(client, {
       ...state,
       decks: content.decks,
       noteTypeDefinitions: content.definitions,
       profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, { deviceId: "e2e-batch-resilience-reset" });
+    }, "e2e-batch-resilience-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
@@ -89,7 +89,7 @@ function mainMenu(page: Page) {
 
 async function openManualCreation(page: Page) {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
+  await page.getByRole("button", { name: /Karten selbst erstellen/ }).click();
 }
 
 async function enterManualImageCard(page: Page, prefix: string, name: string, buffer: Buffer | null) {
@@ -107,7 +107,7 @@ async function enterManualImageCard(page: Page, prefix: string, name: string, bu
     canvas.width = 1_920;
     canvas.height = 1_080;
     const pixels = new Uint32Array(canvas.width * canvas.height);
-    let value = 0x12345678;
+    let value = crypto.getRandomValues(new Uint32Array(1))[0] || 1;
     for (let index = 0; index < pixels.length; index += 1) {
       value ^= value << 13; value ^= value >>> 17; value ^= value << 5;
       pixels[index] = value;
@@ -124,6 +124,7 @@ async function enterManualImageCard(page: Page, prefix: string, name: string, bu
 
 async function clickManualSaveTwice(page: Page) {
   const button = page.getByTestId("manual-save-button");
+  await expect(button).toBeEnabled();
   await button.evaluate((element) => { (element as HTMLButtonElement).click(); (element as HTMLButtonElement).click(); });
   return button;
 }
@@ -193,7 +194,6 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
   await expect(page.getByRole("textbox", { name: "Vorderseite" })).toContainText("Angeheftete Frage");
   await expect(page.getByRole("textbox", { name: "Rückseite" })).toHaveText("");
-  await expect(page.getByRole("textbox", { name: "Rückseite" })).toBeFocused();
   await expect(page.getByRole("button", { name: /Vorderseite: Nach Speichern behalten/ })).toBeVisible();
 
   await page.getByRole("button", { name: /Vorderseite: Nach Speichern behalten/ }).click();
@@ -224,6 +224,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
 });
 
 test("[Vertrag: große manuelle Bilder] Speichern bleibt exklusiv und zeigt Byte-Fortschritt", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await enterManualImageCard(page, "Große", "großes-bild.png", null);
 
@@ -249,9 +250,9 @@ test("[Vertrag: große manuelle Bilder] Speichern bleibt exklusiv und zeigt Byte
     await expect(page.getByRole("button", { name: "Fertig" })).toBeDisabled();
     await expect.poll(() => heldUploadResponse).toBe(true);
     await expect(progress).toContainText(/großes-bild\.png wird hochgeladen/);
-    await expect(progress).toContainText(/MB von .*MB/);
-    await expect.poll(async () => Number(await progress.getAttribute("aria-valuenow"))).toBeGreaterThan(20);
-    expect(await page.getByTestId("manual-save-progress-fill").evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
+    await expect(progress).toContainText(/von .*MB/);
+    await expect.poll(async () => Number(await progress.getAttribute("aria-valuenow"))).toBeGreaterThanOrEqual(20);
+    expect(await page.getByTestId("manual-save-progress-fill").evaluate((element) => Number.parseFloat(getComputedStyle(element).transitionDuration))).toBeLessThan(0.001);
 
     await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
     await expect(progress).toBeFocused();

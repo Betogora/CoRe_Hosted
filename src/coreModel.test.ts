@@ -5,236 +5,66 @@ import {
   createBasicLearningItem,
   createDefaultDeckSettings,
   createManualCoreDeck,
-  getOriginalVariant,
+  createReviewState,
   normalizeCoreDeck,
-  normalizeLearningItem,
-  restoreCardVersion,
+  rescheduleLearningItem,
   saveCardEditorValue,
 } from "./coreModel.ts";
+import type { ReviewSchedulerState } from "./coreTypes.ts";
 
 test("deck settings normalize appearance defaults and fallbacks", () => {
   const defaults = createDefaultDeckSettings();
-  const custom = createDefaultDeckSettings({
-    appearance: {
-      iconKey: "brain",
-      iconColor: "#ABCDEF",
-    },
-  });
-  const fallback = createDefaultDeckSettings({
-    appearance: {
-      iconKey: "unknown",
-      iconColor: "blue",
-    },
-  });
-
+  const custom = createDefaultDeckSettings({ appearance: { iconKey: "brain", iconColor: "#ABCDEF" } });
   assert.deepEqual(defaults.appearance, { iconKey: "book-open", iconColor: "#6f7e9e" });
-  assert.deepEqual(defaults.learningProfileSource, { id: "builtin:standard", contentVersion: 1 });
-  assert.equal("learnAheadMinutes" in defaults, false);
   assert.deepEqual(custom.appearance, { iconKey: "brain", iconColor: "#abcdef" });
-  assert.deepEqual(fallback.appearance, defaults.appearance);
 });
 
-test("deck settings discard obsolete policy fields while preserving active exclusions", () => {
-  const settings = createDefaultDeckSettings({
-    aiPolicy: { allowExternalModels: true },
-    blacklist: {
-      tags: ["intern"],
-      variantIds: ["unused_variant"],
-    },
-  } as unknown as Parameters<typeof createDefaultDeckSettings>[0]);
-
-  assert.equal("aiPolicy" in settings, false);
-  assert.deepEqual(settings.blacklist.tags, ["intern"]);
-  assert.equal("variantIds" in settings.blacklist, false);
+test("manuelles Basic mit Rückseite erzeugt zwei volle Karten", () => {
+  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic-reversed", front: "ATP", back: "Energieträger" } });
+  assert.equal(deck.cards.length, 2);
+  assert.equal(deck.cards[0].variants.length, 0);
+  assert.equal(deck.cards[1].originalFront, "Energieträger");
 });
 
-test("creates manual cards as immutable accepted originals", () => {
+test("Multiple Choice bleibt strukturierter Karteninhalt", () => {
   const deck = createManualCoreDeck({
-    deckName: "Manual Biology",
-    card: {
-      cardType: "basic-reversed",
-      front: "ATP",
-      back: "Energy carrier",
-      tags: "biology cell",
-    },
-    documentContext: {
-      fileName: "chapter.txt",
-      selection: "ATP is the energy carrier.",
-    },
+    deckName: "MC",
+    card: { cardType: "multiple-choice", front: "Welche?", back: "A und B", answerOptions: ["A", "B", "C"], correctAnswers: ["A", "B"] },
   });
-
-  assert.equal(deck.source, "manual");
-  assert.equal(deck.cardCount, 1);
-  assert.equal(deck.cards[0].kind, "basic-reversed");
-  assert.equal(deck.cards[0].draftStatus, "accepted");
-  assert.equal(deck.cards[0].immutableOriginal.front, "ATP");
-  assert.equal(deck.cards[0].coreState.variantCount, 0);
+  assert.deepEqual(deck.cards[0].meta.answerOptions, ["A", "B", "C"]);
+  assert.deepEqual(deck.cards[0].meta.correctAnswers, ["A", "B"]);
 });
 
-test("manual multiple-choice cards keep structured metadata and free-text falls back to basic", () => {
-  const mcDeck = createManualCoreDeck({
-    deckName: "Manual MC",
-    card: {
-      cardType: "multiple-choice",
-      front: "Welche Antwort ist korrekt?",
-      back: "Antwort A und B sind korrekt.",
-      answerOptions: ["Antwort A", "Antwort B", "Antwort C"],
-      correctAnswers: ["Antwort A", "Antwort B"],
-    },
-  });
-  const freeTextDeck = createManualCoreDeck({
-    deckName: "Manual Free Text",
-    card: {
-      cardType: "free-text",
-      front: "Definiere Osmose.",
-      back: "Osmose ist die gerichtete Diffusion von Wasser durch eine semipermeable Membran.",
-    },
-  });
-
-  const mcCard = mcDeck.cards[0];
-  const freeTextCard = freeTextDeck.cards[0];
-  assert.equal(mcCard.kind, "multiple-choice");
-  assert.deepEqual(mcCard.meta.answerOptions, ["Antwort A", "Antwort B", "Antwort C"]);
-  assert.deepEqual(mcCard.meta.correctAnswers, ["Antwort A", "Antwort B"]);
-  const mcOriginalVariant = getOriginalVariant(mcCard);
-  assert.ok(mcOriginalVariant);
-  assert.deepEqual(mcOriginalVariant.answerOptionsJson, ["Antwort A", "Antwort B", "Antwort C"]);
-  assert.deepEqual(mcOriginalVariant.expectedAnswerJson, ["Antwort A", "Antwort B"]);
-  assert.equal(freeTextCard.kind, "basic");
-  assert.equal(freeTextCard.meta.selfCheck, undefined);
-  const freeTextOriginalVariant = getOriginalVariant(freeTextCard);
-  assert.ok(freeTextOriginalVariant);
-  assert.equal(freeTextOriginalVariant.expectedAnswerJson, freeTextCard.originalBack);
+test("Kartenänderungen erzeugen keinen wiederherstellbaren Verlauf", () => {
+  const card = saveCardEditorValue(createBasicLearningItem("deck", "Alt", "Antwort"), { cardType: "basic", front: "Neu", back: "Antwort", tags: [] });
+  assert.equal(card.originalFront, "Neu");
+  assert.equal("versionLog" in card, false);
+  assert.equal("immutableOriginal" in card, false);
 });
 
-test("normalizing edited decks preserves immutable originals and version history", () => {
-  const deck = createManualCoreDeck({
-    deckName: "Manual Biology",
-    card: {
-      cardType: "basic",
-      front: "ATP",
-      back: "Energy carrier",
-      tags: "biology",
-    },
-  });
-  const editedCard = saveCardEditorValue(deck.cards[0], {
-    cardType: "basic",
-    front: "What is ATP?",
-    back: "A short-term cellular energy carrier.",
-    tags: ["biology", "metabolism"],
-  });
-  const normalized = normalizeCoreDeck({ ...deck, cards: [editedCard] });
-  const card = normalized.cards[0];
-
-  assert.equal(card.originalFront, "What is ATP?");
-  assert.equal(card.canonicalQuestion, "What is ATP?");
-  assert.equal(card.canonicalAnswer, "A short-term cellular energy carrier.");
-  assert.ok(getOriginalVariant);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(getOriginalVariant(card).front, "What is ATP?");
-  assert.ok(getOriginalVariant);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(getOriginalVariant(card).back, "A short-term cellular energy carrier.");
-  assert.equal(card.immutableOriginal.front, "ATP");
-  assert.equal(card.versionLog.some((entry) => entry.changeType === "content_updated"), true);
-  assert.equal(normalized.versionLog.length, deck.versionLog.length);
+test("Neuplanung ändert in allen Phasen nur dueAt und updatedAt", () => {
+  for (const phase of ["new", "learning", "relearning", "review"] as ReviewSchedulerState[]) {
+    const card = createBasicLearningItem("deck", phase, "A", {
+      reviewState: createReviewState({ state: phase, dueAt: "2026-08-20T04:00:00.000Z", repetitions: 4, stability: 12, difficulty: 5 }),
+    });
+    const before = structuredClone(card.reviewState);
+    const updated = rescheduleLearningItem(card, "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+    assert.deepEqual({ ...updated.reviewState, dueAt: before.dueAt }, before);
+    assert.equal(updated.reviewState.dueAt, "2026-08-24T04:00:00.000Z");
+    assert.equal(updated.updatedAt, "2026-08-21T10:00:00.000Z");
+    assert.deepEqual(updated.variants, card.variants);
+  }
 });
 
-test("restoring card content appends a traceable version instead of erasing history", () => {
-  const original = createBasicLearningItem("deck-1", "Alte Frage", "Alte Antwort");
-  const edited = saveCardEditorValue(original, { cardType: "basic", front: "Neue Frage", back: "Neue Antwort", tags: [] });
-  const editedVersion = edited.versionLog.at(-1);
-  assert.ok(editedVersion);
-
-  const restored = restoreCardVersion(edited, editedVersion.id);
-  const restoreEntry = restored.versionLog.at(-1);
-
-  assert.equal(restored.originalFront, "Alte Frage");
-  assert.equal(restored.originalBack, "Alte Antwort");
-  assert.equal(restored.versionLog.length, edited.versionLog.length + 1);
-  assert.equal(restoreEntry?.changeType, "version_restored");
-  assert.equal((restoreEntry?.before as { schemaVersion?: number })?.schemaVersion, 1);
+test("identischer Termin ist ein No-op", () => {
+  const card = createBasicLearningItem("deck", "Q", "A", { reviewState: createReviewState({ dueAt: "2026-08-24T04:00:00.000Z" }) });
+  assert.equal(rescheduleLearningItem(card, card.reviewState.dueAt, "2026-08-21T10:00:00.000Z"), card);
 });
 
-test("core normalization preserves cloud sync metadata", () => {
-  const deck = createManualCoreDeck({
-    deckName: "Cloud Metadata",
-    card: { cardType: "basic", front: "ATP", back: "Energieträger" },
-  });
-  const card = deck.cards[0];
-  const normalized = normalizeCoreDeck({
-    ...deck,
-    revision: 8,
-    deletedAt: null,
-    updatedByDeviceId: "device-a",
-    cards: [
-      {
-        ...card,
-        revision: 5,
-        updatedByDeviceId: "device-b",
-        variants: card.variants.map((variant) => ({ ...variant, revision: 4, updatedByDeviceId: "device-c" })),
-      },
-    ],
-  });
-
-  assert.equal(normalized.revision, 8);
-  assert.equal(normalized.updatedByDeviceId, "device-a");
-  assert.equal(normalized.cards[0].revision, 5);
-  assert.equal(normalized.cards[0].updatedByDeviceId, "device-b");
-  assert.equal(normalized.cards[0].variants[0].revision, 4);
-  assert.equal(normalized.cards[0].variants[0].updatedByDeviceId, "device-c");
-});
-
-test("Learning Item normalization keeps exactly one original and repairs every anchor", () => {
-  const item = createBasicLearningItem("deck-1", "Frage", "Antwort", { id: "card-1" });
-  const original = getOriginalVariant(item);
-  const normalized = normalizeLearningItem({
-    ...item,
-    variants: [
-      original,
-      {
-        ...original,
-        id: "duplicate-original",
-        front: "Historische Alternative",
-        isOriginal: true,
-        isActive: false,
-        qualityStatus: "flagged",
-      },
-    ],
-  });
-  const repaired = normalized.variants.find((variant) => variant.id === "duplicate-original");
-
-  assert.equal(normalized.variants.length, 2);
-  assert.equal(normalized.variants.filter((variant) => variant.isOriginal).length, 1);
-  assert.ok(repaired);
-  assert.equal(repaired.isOriginal, false);
-  assert.ok(repaired);
-  assert.equal(repaired.isActive, false);
-  assert.ok(repaired);
-  assert.equal(repaired.qualityStatus, "flagged");
-  assert.ok(getOriginalVariant);
-  assert.ok(repaired);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(repaired.anchorVariantId, getOriginalVariant(normalized).id);
-});
-
-test("adding a variant preserves inactive and moderated variants", () => {
-  const item = createBasicLearningItem("deck-1", "Frage", "Antwort", { id: "card-1" });
-  const withDisabled = addRephrasedVariant(item, "Deaktivierte Frage", "Antwort", {
-    id: "variant-disabled",
-    isActive: false,
-    qualityStatus: "disabled",
-  });
-  const withAnother = addRephrasedVariant(withDisabled, "Neue Frage", "Antwort", { id: "variant-new" });
-  const disabled = withAnother.variants.find((variant) => variant.id === "variant-disabled");
-
-  assert.equal(withAnother.variants.length, 3);
-  assert.ok(disabled);
-  assert.equal(disabled.isActive, false);
-  assert.ok(disabled);
-  assert.equal(disabled.qualityStatus, "disabled");
-  assert.ok(getOriginalVariant);
-  assert.ok(disabled);
-// @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(disabled.anchorVariantId, getOriginalVariant(withAnother).id);
+test("Normalisierung erhält Sync-Metadaten und KI-Varianten", () => {
+  const card = addRephrasedVariant(createBasicLearningItem("deck", "Q", "A"), "Q2", "A2", { id: "variant" });
+  const deck = normalizeCoreDeck({ id: "deck", revision: 8, updatedByDeviceId: "device-a", cards: [{ ...card, revision: 5 }] });
+  assert.equal(deck.revision, 8);
+  assert.equal(deck.cards[0].revision, 5);
+  assert.equal(deck.cards[0].variants[0].cardId, deck.cards[0].id);
 });

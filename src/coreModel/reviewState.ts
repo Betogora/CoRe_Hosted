@@ -1,23 +1,16 @@
-import type { ReviewRating, ReviewSchedulerState, ReviewState, ReviewStateBase, SourceAnchor, SourceDocument, VariantPerformance, VersionEntry } from "../coreTypes.ts";
-export type { SourceDocument } from "../coreTypes.ts";
+import type { ReviewRating, ReviewSchedulerState, ReviewState, ReviewStateBase, VariantPerformance } from "../coreTypes.ts";
 import { REVIEW_RATINGS, getMaturityBand, makeId, stableContentHash } from "./coreValues.ts";
 
 type StringMap = Record<string, unknown>;
 type ReviewStateInput = Partial<Omit<ReviewStateBase, "state" | "reps" | "repetitions">> & { state?: ReviewSchedulerState | null; reps?: number | null; repetitions?: number | null };
-interface SourceDocumentInput extends Partial<SourceDocument> {}
-export interface SourceAnchorInput extends Partial<Omit<SourceAnchor, "textQuote">> { textQuote?: unknown; }
-interface VersionEntryInput extends Partial<VersionEntry> { objectType?: string; objectId?: string; changeType?: string; }
 interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> { id?: string | null; ratingCounts?: Partial<Record<ReviewRating, number>>; againCount?: number; hardCount?: number; goodCount?: number; easyCount?: number; attempts?: number | null; }
 interface VariantReviewEventInput { id?: string; userId?: string; deckId?: string; learningItemId?: string; variantId?: string; rating?: ReviewRating; answeredAt?: string; responseTimeMs?: number | null; schedulerBefore?: unknown; schedulerAfter?: unknown; flags?: StringMap; createdAt?: string; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 
-export function normalizeVersionLog(versionLog: unknown, fallbackEntry: VersionEntry): VersionEntry[] {
-  return Array.isArray(versionLog) && versionLog.length > 0 ? versionLog : [fallbackEntry];
-}
 export function createLearningItemState({
   id = makeId("state"),
   learningItemId = "",
-  reviewableType = "learning_item",
+  reviewableType = "card",
   reviewableId = learningItemId,
   userId = "local-user",
   schedulerVersion = "fsrs_6_v1",
@@ -108,9 +101,9 @@ export function normalizeLearningItemState(state: unknown = {}, fallback: unknow
   return createLearningItemState({
     ...safeFallback,
     ...safeState,
-    learningItemId: safeState.learningItemId ?? safeFallback.learningItemId ?? safeState.reviewableId ?? safeFallback.reviewableId ?? "",
-    reviewableType: safeState.reviewableType ?? safeFallback.reviewableType ?? "learning_item",
-    reviewableId: safeState.reviewableId ?? safeState.learningItemId ?? safeFallback.reviewableId ?? safeFallback.learningItemId ?? "",
+    learningItemId: safeState.learningItemId || safeFallback.learningItemId || safeState.reviewableId || safeFallback.reviewableId || "",
+    reviewableType: safeState.reviewableType ?? safeFallback.reviewableType ?? "card",
+    reviewableId: safeState.reviewableId || safeState.learningItemId || safeFallback.reviewableId || safeFallback.learningItemId || "",
   });
 }
 export function createReviewState(state: unknown = {}): ReviewState {
@@ -120,94 +113,6 @@ export function createReviewState(state: unknown = {}): ReviewState {
     reviewableType: safeState.reviewableType ?? "card",
     reviewableId: safeState.reviewableId ?? safeState.learningItemId ?? "",
   });
-}
-
-export function createSourceDocument({
-  id = makeId("doc"),
-  ownerId = "local-user",
-  fileName = "Dokument",
-  mimeType = "text/plain",
-  text = "",
-  storageUrl = "",
-  textExtractionStatus = text ? "success" : "pending",
-  metadata = {},
-  createdAt = new Date().toISOString(),
-  updatedAt = createdAt,
-  revision = 1,
-  deletedAt = null,
-  updatedByDeviceId = null,
-}: SourceDocumentInput = {}): SourceDocument {
-  return {
-    id,
-    ownerId,
-    fileName,
-    mimeType,
-    text,
-    storageUrl,
-    textExtractionStatus,
-    metadata,
-    createdAt,
-    updatedAt,
-    revision,
-    deletedAt,
-    updatedByDeviceId,
-  };
-}
-
-export function createSourceAnchor({
-  id = makeId("anchor"),
-  documentId = null,
-  documentName = "",
-  cardId = null,
-  variantId = null,
-  pageNumber = null,
-  textQuote = "",
-  charStart = null,
-  charEnd = null,
-  bbox = null,
-  confidence = null,
-  targetField = "",
-  createdAt = new Date().toISOString(),
-}: SourceAnchorInput = {}): SourceAnchor {
-  return {
-    id,
-    documentId,
-    documentName,
-    cardId,
-    variantId,
-    pageNumber,
-    textQuote: String(textQuote ?? "").slice(0, 700),
-    charStart,
-    charEnd,
-    bbox,
-    confidence,
-    targetField,
-    createdAt,
-  };
-}
-
-export function createVersionEntry({
-  id = makeId("version"),
-  objectType,
-  objectId,
-  changeType,
-  before = null,
-  after = null,
-  actorId = "local-user",
-  reason = "",
-  createdAt = new Date().toISOString(),
-}: VersionEntryInput = {}): VersionEntry {
-  return {
-    id,
-    objectType: objectType ?? "unknown",
-    objectId: objectId ?? "",
-    changeType: changeType ?? "unknown",
-    before,
-    after,
-    actorId,
-    reason,
-    createdAt,
-  };
 }
 
 export function createVariantPerformance({

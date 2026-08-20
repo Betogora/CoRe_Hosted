@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBasicLearningItem, createCoreDeck, getOriginalVariant } from "./coreModel.ts";
+import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
 import { answerVariant } from "./reviewService.ts";
 import {
   MAX_SIMULATION_OFFSET_MINUTES,
@@ -55,12 +55,9 @@ test("a future review is committed at simulated time and is not undone by resett
     reviewState: { state: "review", repetitions: 2, dueAt: simulatedNow },
   });
   const deck = createCoreDeck({ id: "deck_simulation", name: "Simulation", source: "manual", cards: [item] });
-  const original = getOriginalVariant(item);
-  assert.ok(original);
+  const result = answerVariant(deck, item.id, null, "good", { now: simulatedNow });
 
-  const result = answerVariant(deck, item.id, original.id, "good", { now: simulatedNow });
-
-  assert.equal(result.event.reviewedAt, simulatedNow);
+  assert.equal(result.event.answeredAt, simulatedNow);
   assert.equal(result.updatedCard.reviewState.lastReviewedAt, simulatedNow);
   assert.equal(getSimulatedNow(realNow, 0), realNow);
   assert.equal(result.deck.cards[0].reviewState.lastReviewedAt, simulatedNow);

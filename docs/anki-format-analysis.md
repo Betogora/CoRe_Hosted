@@ -1,6 +1,6 @@
 # Anki-Formatanalyse für CoRe
 
-Stand: 2026-08-19
+Stand: 2026-08-20
 
 Dieses Dokument ist eine kompakte technische Referenz für Ankis Modell- und
 Paketgrenzen. Der verbindliche CoRe-Vertrag steht in
@@ -82,9 +82,10 @@ Der Inhalt einer Card ist damit nicht einfach `front/back`. Die Anzeige wird
 aus Note-Feldern und Template gerendert. Eine fachliche Feldänderung wirkt auf
 alle daraus generierten Cards.
 
-CoRe-Folgerung: Ein CoRe-Learning-Item entspricht eher Ankis Note; eine
-Card-Variante eher Ankis reviewbarer Card. Die konkrete CoRe-Invariante steht
-in [`architecture.md`](architecture.md).
+CoRe-Folgerung: Ein CoRe-`LearningItem` entspricht einer reviewbaren Anki-Card,
+nicht einer Note. Jede importierte Card, jede Reverse-Richtung und jede
+Cloze-Gruppe wird eine eigenständige CoRe-Karte mit eigenem Lernzustand. Eine
+persistierte Notizinstanz oder Geschwisterkopplung gibt es in CoRe nicht.
 
 ### Templates und Stock-Formate
 
@@ -96,11 +97,11 @@ Kartengenerierung.
 Offizielle Stock-Notetypes umfassen unter anderem Basic, Basic and Reversed,
 Basic optional reversed, Basic typing, Cloze und Image Occlusion.
 
-CoRe-Folgerung: Vollständige Template-Snapshots werden konserviert und
-dokumentierte statische Semantik wird in einem eigenen sicheren Renderer
-übersetzt. Script, externe Ressourcen und Add-on-Filter werden nicht
-ausgeführt. Die Definition bleibt für Reimport, Diagnose und späteren Export
-erhalten.
+CoRe-Folgerung: Die für die Darstellung benötigte Notetype-Definition wird als
+Render-Schablone erhalten und dokumentierte statische Semantik in einem eigenen
+sicheren Renderer übersetzt. Script, externe Ressourcen und Add-on-Filter
+werden nicht ausgeführt. Notizinhalte und Quelldokumente werden nicht als
+gemeinsame persistierte Instanz konserviert.
 
 ### Review und Revlog
 
@@ -109,11 +110,12 @@ Ereignis unter anderem `cid`, `ease`, `ivl`, `lastIvl`, `factor`, `time` und
 `type`. Cards besitzen zusätzlich den aktuellen Schedulerzustand.
 
 CoRe-Folgerung: Aktueller Zustand und Ereignisverlauf bleiben getrennt.
-`review_events` sind append-only; Queue- und Schedulerzustand gehören in die
-aktuelle Lernprojektion des Learning Items und seiner Varianten.
+`review_events` sind append-only; Queue- und Schedulerzustand gehören direkt
+zur jeweiligen Karte. KI-Umformulierungen teilen diesen Zustand und erzeugen
+keine eigene Queue-Einheit.
 
 Der APKG-Leser ordnet geeignete `revlog`-Zeilen über stabile
-Anki-Kartenidentitäten finalen CoRe-Varianten zu und vereinigt sie über
+Anki-Kartenidentitäten den eigenständigen CoRe-Karten zu und vereinigt sie über
 deterministische Ereignis-IDs. Beschädigte oder nicht zuordenbare Zeilen werden
 gezählt und übersprungen. Der anfängliche Card-Zustand folgt der Reihenfolge
 gültiger FSRS-Memory-State, chronologisches Revlog-Replay, klassischer

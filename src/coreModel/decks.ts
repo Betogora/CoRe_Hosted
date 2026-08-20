@@ -1,10 +1,9 @@
-import type { Deck, DeckSource, MediaAssetReference, ReviewEvent, SourceDocument, VersionEntry } from "../coreTypes.ts";
+import type { Deck, DeckSource, MediaAssetReference, ReviewEvent } from "../coreTypes.ts";
 import { CORE_DECK_SOURCES, createDefaultDeckSettings, makeId, normalizeTags, unique } from "./coreValues.ts";
-import { createVersionEntry, normalizeVersionLog } from "./reviewState.ts";
 import { createCoreLearningItem, type CoreCardInput } from "./learningItems.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
-interface CoreDeckInput { id?: string; name?: string; description?: string; source?: DeckSource; ownerId?: string; parentDeckId?: string | null; hierarchyPath?: string[] | null; originalDeckId?: string | null; cards?: CoreCardInput[]; tags?: unknown; importMeta?: Record<string, unknown>; mediaAssets?: MediaAssetReference[]; deckSettings?: DeckSettingsInput; sourceDocuments?: SourceDocument[]; reviewEvents?: ReviewEvent[]; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; versionLog?: VersionEntry[]; }
+interface CoreDeckInput { id?: string; name?: string; description?: string; source?: DeckSource; ownerId?: string; parentDeckId?: string | null; hierarchyPath?: string[] | null; originalDeckId?: string | null; cards?: CoreCardInput[]; tags?: unknown; importMeta?: Record<string, unknown>; mediaAssets?: MediaAssetReference[]; deckSettings?: DeckSettingsInput; reviewEvents?: ReviewEvent[]; createdAt?: string; updatedAt?: string; revision?: number; deletedAt?: string | null; updatedByDeviceId?: string | null; }
 function objectRecord(value: unknown): Record<string, unknown> { return value !== null && typeof value === "object" ? value as Record<string, unknown> : {}; }
 function splitDeckPath(name: unknown, hierarchyPath: unknown): string[] {
   if (Array.isArray(hierarchyPath) && hierarchyPath.length > 0) {
@@ -21,7 +20,7 @@ export function createCoreDeck({
   id = makeId("deck"),
   name,
   description = "",
-  source,
+  source = "manual",
   ownerId = "local-user",
   parentDeckId = null,
   hierarchyPath = null,
@@ -31,14 +30,12 @@ export function createCoreDeck({
   importMeta = {},
   mediaAssets = [],
   deckSettings = {},
-  sourceDocuments = [],
   reviewEvents = [],
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
   revision = 1,
   deletedAt = null,
   updatedByDeviceId = null,
-  versionLog = [],
 }: CoreDeckInput): Deck {
   if (!source || !CORE_DECK_SOURCES.includes(source)) {
     throw new Error(`Unbekannte Kartenstapel-Quelle: ${source}`);
@@ -57,14 +54,6 @@ export function createCoreDeck({
     }),
   );
   const deckTags = unique([...normalizeTags(tags), ...normalizedCards.flatMap((card) => card.originalTags ?? [])]);
-  const createdEntry = createVersionEntry({
-    objectType: "deck",
-    objectId: id,
-    changeType: "created",
-    after: { name: deckName, source },
-    createdAt,
-  });
-
   return {
     id,
     ownerId,
@@ -84,10 +73,8 @@ export function createCoreDeck({
     importMeta,
     mediaAssets: mediaAssets.filter((asset) => !asset.deletedAt),
     deckSettings: createDefaultDeckSettings(deckSettings),
-    sourceDocuments,
     cards: normalizedCards,
     reviewEvents,
-    versionLog: normalizeVersionLog(versionLog, createdEntry),
   };
 }
 

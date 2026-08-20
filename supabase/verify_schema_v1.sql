@@ -14,7 +14,7 @@ begin
   into missing_tables
   from (values
     ('profiles'), ('decks'), ('note_type_definitions'), ('cards'), ('card_variants'),
-    ('learning_item_source_snapshots'), ('review_events'), ('source_documents'),
+    ('review_events'),
     ('media_assets'), ('sync_devices'), ('sync_conflicts'), ('card_catalog'),
     ('deck_study_summaries'), ('review_statistics_daily')
   ) as expected(name)
@@ -29,39 +29,26 @@ begin
     ('profiles', 'ui_preferences'),
     ('cards', 'note_type_definition_id'),
     ('cards', 'content_document'),
-    ('cards', 'latest_source_snapshot_id'),
+    ('cards', 'projection'),
     ('cards', 'content_revision'),
-    ('card_variants', 'projection'),
-    ('card_variants', 'scheduling_mode'),
-    ('card_variants', 'study_deck_id'),
-    ('card_variants', 'render_revision'),
-    ('learning_item_source_snapshots', 'card_id'),
-    ('learning_item_source_snapshots', 'schema_version'),
-    ('learning_item_source_snapshots', 'source_kind'),
-    ('learning_item_source_snapshots', 'import_fingerprint'),
-    ('learning_item_source_snapshots', 'previous_snapshot_id'),
-    ('learning_item_source_snapshots', 'note_type_definition_id'),
-    ('learning_item_source_snapshots', 'source_payload'),
-    ('learning_item_source_snapshots', 'created_at'),
+    ('card_variants', 'performance'),
     ('decks', 'sync_change_id'),
     ('note_type_definitions', 'sync_change_id'),
     ('cards', 'sync_change_id'),
     ('card_variants', 'sync_change_id'),
-    ('learning_item_source_snapshots', 'sync_change_id'),
     ('review_events', 'sync_change_id'),
     ('review_events', 'statistics_day'),
     ('review_events', 'statistics_category'),
     ('review_events', 'retention_first'),
-    ('source_documents', 'sync_change_id')
-    ,('card_catalog', 'body_revision')
-    ,('card_catalog', 'dependency_revision')
-    ,('card_catalog', 'active_variant_count')
-    ,('card_catalog', 'interval_days')
-    ,('card_catalog', 'stability')
-    ,('card_catalog', 'created_at')
-    ,('card_catalog', 'sync_change_id')
-    ,('deck_study_summaries', 'active_variant_count')
-    ,('deck_study_summaries', 'sync_change_id')
+    ('card_catalog', 'body_revision'),
+    ('card_catalog', 'dependency_revision'),
+    ('card_catalog', 'active_variant_count'),
+    ('card_catalog', 'interval_days'),
+    ('card_catalog', 'stability'),
+    ('card_catalog', 'created_at'),
+    ('card_catalog', 'sync_change_id'),
+    ('deck_study_summaries', 'active_variant_count'),
+    ('deck_study_summaries', 'sync_change_id')
   ) as expected(table_name, column_name)
   left join information_schema.columns columns
     on columns.table_schema = 'public'
@@ -76,20 +63,11 @@ begin
   into missing_dynamic_constraints
   from (values
     ('cards_note_type_definition_owner_fk'),
-    ('cards_latest_source_snapshot_owner_fk'),
-    ('learning_item_source_snapshots_card_owner_fk'),
-    ('learning_item_source_snapshots_note_type_owner_fk'),
-    ('learning_item_source_snapshots_previous_owner_fk'),
-    ('card_variants_study_deck_owner_fk'),
-    ('card_variants_scheduling_mode_check'),
-    ('card_variants_render_revision_check'),
     ('decks_sync_change_id_check'),
     ('note_type_definitions_sync_change_id_check'),
     ('cards_sync_change_id_check'),
     ('card_variants_sync_change_id_check'),
-    ('learning_item_source_snapshots_sync_change_id_check'),
-    ('review_events_sync_change_id_check'),
-    ('source_documents_sync_change_id_check')
+    ('review_events_sync_change_id_check')
   ) as expected(name)
   left join pg_constraint constraint_row
     on constraint_row.conname = expected.name
@@ -101,7 +79,7 @@ begin
 
   select array_agg(retired.name order by retired.name)
   into present_retired_tables
-  from (values ('ai_jobs'), ('apkg_import_jobs'), ('core_portable_exports'), ('admin_audit_events')) as retired(name)
+  from (values ('ai_jobs'), ('apkg_import_jobs'), ('core_portable_exports'), ('admin_audit_events'), ('learning_item_source_snapshots'), ('source_documents')) as retired(name)
   where to_regclass(format('public.%I', retired.name)) is not null;
   if present_retired_tables is not null then
     raise exception 'Ausgemusterte Tabellen sind noch vorhanden: %', present_retired_tables;
@@ -117,9 +95,16 @@ begin
     ('decks', 'graph'),
     ('decks', 'community_refs'),
     ('decks', 'visibility'),
-    ('learning_item_source_snapshots', 'snapshot'),
-    ('learning_item_source_snapshots', 'content_hash'),
-    ('learning_item_source_snapshots', 'captured_at'),
+    ('decks', 'version_log'),
+    ('cards', 'note_id'),
+    ('cards', 'source_note_id'),
+    ('cards', 'latest_source_snapshot_id'),
+    ('cards', 'immutable_original'),
+    ('cards', 'source_anchors'),
+    ('cards', 'version_log'),
+    ('card_variants', 'is_original'),
+    ('card_variants', 'review_state'),
+    ('card_variants', 'version_log'),
     ('deck_study_summaries', 'due_count')
   ) as retired(table_name, column_name)
   join information_schema.columns columns
@@ -130,7 +115,7 @@ begin
     raise exception 'Ausgemusterte Spalten sind noch vorhanden: %', present_retired_columns;
   end if;
 
-  foreach table_name in array array['profiles', 'decks', 'note_type_definitions', 'cards', 'card_variants', 'learning_item_source_snapshots', 'review_events', 'source_documents', 'media_assets', 'sync_devices', 'sync_conflicts', 'card_catalog', 'deck_study_summaries', 'review_statistics_daily']
+  foreach table_name in array array['profiles', 'decks', 'note_type_definitions', 'cards', 'card_variants', 'review_events', 'media_assets', 'sync_devices', 'sync_conflicts', 'card_catalog', 'deck_study_summaries', 'review_statistics_daily']
   loop
     if not exists (
       select 1 from pg_class c
@@ -160,7 +145,7 @@ begin
     end if;
   end loop;
 
-  foreach table_name in array array['decks', 'note_type_definitions', 'cards', 'card_variants', 'learning_item_source_snapshots', 'review_events', 'source_documents', 'media_assets', 'sync_devices', 'sync_conflicts']
+  foreach table_name in array array['decks', 'note_type_definitions', 'cards', 'card_variants', 'review_events', 'media_assets', 'sync_devices', 'sync_conflicts']
   loop
     if not exists (
       select 1 from pg_policies
@@ -178,7 +163,7 @@ begin
   select array_agg(format('%s:%s:%s', role_names.role_name, table_names.table_name, privilege_names.privilege) order by role_names.role_name, table_names.table_name, privilege_names.privilege)
   into missing_data_api_grants
   from unnest(array['authenticated', 'service_role']) as role_names(role_name)
-  cross join unnest(array['note_type_definitions', 'learning_item_source_snapshots']) as table_names(table_name)
+  cross join unnest(array['note_type_definitions']) as table_names(table_name)
   cross join unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE']) as privilege_names(privilege)
   where not has_table_privilege(role_names.role_name, format('public.%I', table_names.table_name), privilege_names.privilege);
   if missing_data_api_grants is not null then
@@ -212,11 +197,12 @@ begin
   where conrelid = 'public.cards'::regclass and conname = 'cards_kind_check';
   if constraint_definition is null
      or constraint_definition not like '%basic-with-images%'
+     or constraint_definition not like '%single-choice%'
      or constraint_definition not like '%multiple-choice%' then
     raise exception 'Kartenart-Constraint ist unvollständig: %', constraint_definition;
   end if;
 
-  if to_regprocedure('public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,jsonb,timestamp with time zone,jsonb,text)') is null then
+  if to_regprocedure('public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,timestamp with time zone,jsonb,text)') is null then
     raise exception 'Atomare Review-RPC fehlt.';
   end if;
   if to_regprocedure('public.pull_account_delta(bigint,integer,integer)') is not null
@@ -245,8 +231,8 @@ begin
   if to_regclass('public.sync_conflicts_one_active_entity_idx') is null then
     raise exception 'Eindeutigkeitsregel für aktive Synchronisierungskonflikte fehlt.';
   end if;
-  if not has_function_privilege('authenticated', 'public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE')
-     or has_function_privilege('anon', 'public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE') then
+  if not has_function_privilege('authenticated', 'public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE')
+     or has_function_privilege('anon', 'public.record_review_atomic(text,text,jsonb,jsonb,timestamp with time zone,text,jsonb,timestamp with time zone,jsonb,text)', 'EXECUTE') then
     raise exception 'Review-RPC-Berechtigungen sind falsch konfiguriert.';
   end if;
   if to_regprocedure('private.stamp_account_sync_change()') is null
@@ -261,8 +247,7 @@ begin
   select array_agg(expected.table_name order by expected.table_name)
   into missing_sync_triggers
   from unnest(array[
-    'decks', 'note_type_definitions', 'cards', 'card_variants',
-    'learning_item_source_snapshots', 'review_events', 'source_documents'
+    'decks', 'note_type_definitions', 'cards', 'card_variants', 'review_events'
   ]) as expected(table_name)
   where not exists (
     select 1
@@ -281,16 +266,12 @@ begin
       'note_type_definitions_user_updated_id_idx',
       'cards_user_updated_id_idx',
       'card_variants_user_updated_id_idx',
-      'source_documents_user_updated_id_idx',
       'review_events_user_answered_id_idx',
-      'learning_item_source_snapshots_user_created_id_idx',
       'decks_user_sync_change_id_idx',
       'note_type_definitions_user_sync_change_id_idx',
       'cards_user_sync_change_id_idx',
       'card_variants_user_sync_change_id_idx',
-      'learning_item_source_snapshots_user_sync_change_id_idx',
-      'review_events_user_sync_change_id_idx',
-      'source_documents_user_sync_change_id_idx'
+      'review_events_user_sync_change_id_idx'
       ,'card_catalog_user_sync_change_id_idx'
       ,'card_catalog_active_deck_sort_idx'
       ,'card_catalog_active_deck_review_due_idx'
@@ -330,6 +311,7 @@ begin
       and procedure_row.proname in (
         'get_account_bootstrap_v2', 'pull_account_catalog_delta', 'list_account_card_catalog',
         'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics', 'delete_account_deck_tree',
+        'record_review_atomic',
         'refresh_card_catalog', 'refresh_card_catalog_trigger', 'refresh_definition_card_catalog_trigger',
         'refresh_deck_study_summary', 'apply_deck_study_summary_delta', 'refresh_deck_study_summary_trigger',
         'prepare_review_statistics', 'sync_review_statistics_daily'

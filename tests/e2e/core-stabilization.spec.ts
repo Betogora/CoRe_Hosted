@@ -1,6 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
@@ -33,7 +32,7 @@ async function storedCard(page: Page, deckId: string, cardId: string) {
   return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.cards?.find((card: { id: string }) => card.id === cardId) ?? null;
 }
 
-async function findPdfAnchoredCard(page: Page) {
+async function findPdfCreatedCard(page: Page) {
   const state = await readAppState(page);
   return state.decks?.flatMap((deck: { cards: any; }) => deck.cards ?? []).find((card: { originalFront: any; canonicalQuestion: any; }) => String(card.originalFront ?? card.canonicalQuestion ?? "").includes("Mitochondrien erzeugen ATP")) ?? null;
 }
@@ -190,7 +189,7 @@ test("statistics uses the shared filtered heatmap without clipped shadows or ret
 
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
-  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] > div.grid > dl')).toHaveCount(7);
+  await expect(page.locator('section[aria-labelledby="statistics-overview-title"] dl')).toHaveCount(7);
   for (const removedText of [
     "Alle historischen Diagramme",
     "pro aktivem Tag",
@@ -556,7 +555,7 @@ test("browser back returns from settings to the previous screen", async ({ page 
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await expect(page.getByRole("button", { name: "Export herunterladen" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Export herunterladen" })).toHaveCount(0);
   for (const section of ["Konto", "Lerntag & Fokus", "Daten & Synchronisierung", "Über uns"]) {
     await expect(page.getByRole("heading", { name: section, exact: true })).toBeVisible();
   }
@@ -658,8 +657,8 @@ test("review flow records a rating through accessible controls", async ({ page }
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
-  await expect(page.getByTestId("original-anchor")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);
+  await expect(page.getByTestId("base-card-reference")).toHaveCount(0);
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => deckReviewEventCount(page, DECK_IDS.europe)).toBeGreaterThan(before);
@@ -784,7 +783,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   expect(unexpectedRuntimeErrors).toEqual([]);
 });
 
-test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-core @hosted-core Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
+test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-core @hosted-core Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
@@ -802,9 +801,17 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   const variantTools = page.getByTestId("card-variant-tools");
   await expect(variantTools).toBeVisible();
   const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
-  await page.getByLabel("Variantenfrage").fill("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
-  await page.getByLabel("Variantenantwort").fill("Yamoussoukro");
-  await page.getByRole("button", { name: "Umformulierung hinzufügen" }).click();
+  await page.route("**/api/ai/card-variant", (route: any) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({
+      variant: { front: "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", back: "Yamoussoukro" },
+      model: "provider/model:free",
+      privacyMode: "zdr",
+      usage: null,
+    }),
+  }));
+  await page.getByRole("button", { name: "KI-Variante erzeugen" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants
     ?.find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?")?.back).toBe("Yamoussoukro");
@@ -813,15 +820,15 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await page.goto(`/decks/${DECK_IDS.africa}/review?variant=1&returnView=decks&returnDeck=${DECK_IDS.africa}`);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
-  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').locator("body")).toContainText("Yamoussoukro");
-  await expect(page.getByRole("button", { name: "Original anzeigen" })).toHaveCount(1);
-  await page.getByRole("button", { name: "Original anzeigen" }).click();
-  await expect(page.getByTestId("original-anchor")).toHaveCount(1);
-  await expect(page.frameLocator('iframe[title="Originalfrage"]').getByText("Was ist die Hauptstadt von Côte d'Ivoire?", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(1);
+  await page.getByRole("button", { name: "Grundkarte anzeigen" }).click();
+  await expect(page.getByTestId("base-card-reference")).toHaveCount(1);
+  await expect(page.frameLocator('iframe[title="Frage der Grundkarte"]').getByText("Was ist die Hauptstadt von Côte d'Ivoire?", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Unklar formuliert" }).click();
   await expect(page.getByRole("status")).toContainText("Der ausgewählte Grund wurde gespeichert.");
   await expect.poll(async () => {
@@ -846,44 +853,53 @@ test("[Vertrag: Variante, Reveal, Originalanker und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" })).toBeVisible();
 });
 
-test("card version restore shows a comparison, requires confirmation and appends an audit entry", async ({ page }: any) => {
+test("card rescheduling preserves scheduler state and keeps version history out of the editor", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await mainMenu(page).getByRole("button", { name: "Karten" }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await expect(page.getByLabel("Karten-Vorderseite")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await expect(page.getByRole("heading", { name: "Details und Herkunft" })).toHaveCount(0);
+  await expect(page.getByText("Änderungslogeinträge")).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: "Version zum Wiederherstellen" })).toHaveCount(0);
 
-  const state = await readAppState(page);
-  const originalCard = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).cards.find((card: { id: string }) => card.id === "card_world_capitals_civ");
-  const originalVersionCount = originalCard.versionLog.length;
-  const resolvedCardId = originalCard.id;
+  const dueDate = page.getByLabel("Nächste Fälligkeit");
+  await expect(dueDate).not.toHaveValue("");
+  await expect(page.getByRole("button", { name: "Neu planen" })).toBeDisabled();
+  await page.getByRole("button", { name: "Aussetzen", exact: true }).click();
+  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.status).toBe("suspended");
+  const before = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
+  const reviewEventsBefore = (await readAppState(page)).decks
+    .find((deck: { id: string }) => deck.id === DECK_IDS.africa).reviewEvents.length;
 
-  await page.getByLabel("Karten-Vorderseite").fill("Welche Stadt ist die Hauptstadt der Côte d'Ivoire?");
-  await page.getByRole("button", { name: "Speichern" }).click();
-  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("<p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
+  await dueDate.fill("2099-08-10");
+  await expect(page.getByRole("button", { name: "Neu planen" })).toBeEnabled();
+  await page.getByRole("button", { name: "Neu planen" }).click();
+  await expect(page.getByText("Die nächste Fälligkeit wurde erfolgreich neu geplant.")).toBeVisible();
 
-  await expect(page.getByRole("heading", { name: "Details, Herkunft und Versionen" })).toBeVisible();
-  const versionSelect = page.getByRole("combobox", { name: "Version zum Wiederherstellen" });
-  await chooseCoreSelectOption(page, versionSelect, /Stand vor/);
-  await expect(page.getByTestId("version-restore-summary")).toContainText("Aktuell: <p>Welche Stadt ist die Hauptstadt der Côte d'Ivoire?</p>");
-  await expect(page.getByTestId("version-restore-summary")).toContainText("Nach Restore: Was ist die Hauptstadt von Côte d'Ivoire?");
-  await page.getByRole("button", { name: "Restore bestätigen" }).click();
-  await expect(page.getByRole("group", { name: "Restore endgültig bestätigen" })).toBeVisible();
-  await page.getByRole("button", { name: "Wiederherstellen", exact: true }).click();
-  await expect(page.getByText("Version wurde erfolgreich wiederhergestellt und als neuer Versionseintrag gespeichert.")).toBeVisible();
-
-  await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, resolvedCardId))?.originalFront).toBe("Was ist die Hauptstadt von Côte d'Ivoire?");
-  const restoredCard = await storedCard(page, DECK_IDS.africa, resolvedCardId);
-  expect(restoredCard.versionLog).toHaveLength(originalVersionCount + 2);
-  expect(restoredCard.versionLog.at(-1)?.changeType).toBe("version_restored");
+  const scheduled = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
+  expect(scheduled.reviewState.dueAt).not.toBe(before.reviewState.dueAt);
+  expect({ ...scheduled.reviewState, dueAt: before.reviewState.dueAt }).toEqual(before.reviewState);
+  expect(scheduled.coreState).toEqual(before.coreState);
+  expect(scheduled.revision).toBe(before.revision);
+  expect(scheduled.contentRevision).toBe(before.contentRevision);
+  expect(scheduled.status).toBe("suspended");
+  expect("versionLog" in scheduled).toBe(false);
+  const events = (await readAppState(page)).decks
+    .find((deck: { id: string }) => deck.id === DECK_IDS.africa).reviewEvents;
+  expect(events).toHaveLength(reviewEventsBefore + 1);
+  expect(events.at(-1)).toMatchObject({ rating: "manual", sourceCardId: scheduled.id });
+  expect(events.at(-1).schedulerBefore).toEqual({ dueAt: before.reviewState.dueAt });
+  expect(events.at(-1).schedulerAfter).toEqual({ dueAt: scheduled.reviewState.dueAt });
+  expect(events.at(-1).flags).toEqual({ kind: "manual_reschedule" });
 });
 
-test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core Quellenanker und Kartenänderung bleiben im Review erhalten", async ({ page }: any) => {
+test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core PDF-Auswahl erzeugt nur Karteninhalt", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
+  await page.getByRole("button", { name: /Karten selbst erstellen/ }).click();
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill("PDF-Quellenauswahl-Smoke");
   await page.getByRole("button", { name: "PDF/Text anfügen" }).click();
@@ -914,12 +930,9 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
   await page.getByRole("button", { name: "Fertig" }).click();
 
-  await expect.poll(async () => {
-    const card = await findPdfAnchoredCard(page);
-    return card?.sourceAnchors?.[0]?.pageNumber ?? null;
-  }).toBe(1);
-  const createdCard = await findPdfAnchoredCard(page);
-  expect(createdCard.sourceAnchors[0].bbox).toEqual(expect.objectContaining({ left: expect.any(Number), right: expect.any(Number) }));
+  await expect.poll(async () => Boolean(await findPdfCreatedCard(page))).toBe(true);
+  const createdCard = await findPdfCreatedCard(page);
+  expect("sourceAnchors" in createdCard).toBe(false);
 
   const stateAfterCreation = await readAppState(page);
   const createdDeck = stateAfterCreation.decks.find((deck: { cards?: { id: string }[] }) => deck.cards?.some((card) => card.id === createdCard.id));
@@ -938,38 +951,6 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
   await expect.poll(() => deckReviewEventCount(page, createdDeck.id)).toBe(reviewsBefore + 1);
-});
-
-test("@beta-core @hosted-core local portability export and import expose status and validation errors", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-
-  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  await expect(page.getByText("Medienbytes", { exact: true })).toBeVisible();
-  await expect(page.getByText("Authdaten", { exact: true })).toBeVisible();
-  await expect(page.getByText("serverseitigen Sicherungskopien", { exact: true })).toBeVisible();
-  await expect(page.getByText("vollständigen DSGVO-Auskunftsdaten nach Art. 15", { exact: true })).toBeVisible();
-  const downloadPromise = page.waitForEvent("download");
-  await page.getByRole("button", { name: "Export herunterladen" }).click();
-  const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("core-portable-export.json");
-  const downloadPath = await download.path();
-  expect(downloadPath).not.toBeNull();
-  const exportJson = await readFile(downloadPath!, "utf8");
-  await expect(page.getByRole("status").filter({ hasText: "core-portable-export.json" })).toBeVisible();
-  expect(exportJson).toContain('"schema": "core-portable-export"');
-  expect(exportJson).not.toContain("passwordVerifier");
-
-  await page.getByTestId("portable-import-json").fill("{not-json");
-  await page.getByRole("button", { name: "JSON importieren" }).click();
-  await expect(page.getByRole("alert")).toContainText("Export-JSON konnte nicht gelesen werden.");
-
-  await page.getByTestId("portable-import-json").evaluate((element: HTMLTextAreaElement, value: string) => {
-    const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
-    setter?.call(element, value);
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  }, exportJson);
-  await page.getByRole("button", { name: "JSON importieren" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Export wurde validiert und in deine Bibliothek übernommen." })).toBeVisible();
 });
 
 test("@beta-core @hosted-core settings resolve and persist an account-bound sync conflict", async ({ page }: any) => {

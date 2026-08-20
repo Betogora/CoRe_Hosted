@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { LOCAL_APKG_MAX_BYTES } from "./apkgImport.ts";
-import { createCoreDeck, createSourceDocument } from "./coreModel.ts";
+import { createCoreDeck } from "./coreModel.ts";
+import type { TransientSourceDocument } from "./documentModel.ts";
 import { createCreationWorkflow, createImportCloudSyncTask } from "./creationWorkflow.ts";
 
 async function worldCapitalsApkgFile() {
@@ -48,14 +49,15 @@ function referenceCloudTask(status: "cloud-ready" | "local-pending", onRetry: ()
   } as any;
 }
 
-test("creation workflow preserves manual document anchors", () => {
+test("creation workflow uses source text only transiently", () => {
   const workflow = createCreationWorkflow();
-  const document = createSourceDocument({ fileName: "quelle.txt", text: "ATP ist ein Energieträger.", textExtractionStatus: "success" });
+  const document: TransientSourceDocument = { id: "transient", fileName: "quelle.txt", mimeType: "text/plain", text: "ATP ist ein Energieträger.", textExtractionStatus: "success", metadata: {} };
   const selection = workflow.captureManualSelection({ activeField: "back", front: "Was ist ATP?", document, documentText: document.text, selectedText: document.text });
   const deck = workflow.createManualDeck({ deckName: "Manuell", front: selection.front, back: selection.back, document, documentText: document.text, selection: selection.selection, activeField: "back" });
 
-  assert.equal(deck.sourceDocuments[0].fileName, "quelle.txt");
-  assert.equal(deck.cards[0].sourceAnchors[0].targetField, "back");
+  assert.equal("sourceDocuments" in deck, false);
+  assert.equal("sourceAnchors" in deck.cards[0], false);
+  assert.match(deck.cards[0].originalBack, /ATP ist ein Energieträger/);
 });
 
 test("creation workflow treats images as optional media on an ordinary dynamic card", async () => {

@@ -78,7 +78,7 @@ export function createAiGeneratedVariantDraft(
     back: normalizeAiCardText(generated.variant.back),
   };
   const generatedKey = aiCardVariantSourceKey(variant);
-  const duplicate = currentCard.variants.some((candidate) => !candidate.isOriginal && aiCardVariantSourceKey({
+  const duplicate = currentCard.variants.some((candidate) => aiCardVariantSourceKey({
     front: normalizeAiCardText(candidate.front),
     back: normalizeAiCardText(candidate.back),
   }) === generatedKey);

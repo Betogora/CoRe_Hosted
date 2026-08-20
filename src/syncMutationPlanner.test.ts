@@ -5,12 +5,10 @@ import { planEntityMutations } from "./syncMutationPlanner.ts";
 
 function state(decks: any[]) {
   return {
-    version: 4,
+    version: 5,
     profile: { userId: "user-1" },
     decks,
-    documents: [],
     noteTypeDefinitions: [],
-    learningItemSourceSnapshots: [],
     cloudTombstones: [],
     updatedAt: "2026-08-11T00:00:00.000Z",
   } as any;
@@ -37,7 +35,6 @@ test("plant einen Restore mit der bestätigten Tombstone-Revision", () => {
   assert.equal(mutation.payload.entity.deletedAt, null);
   assert.equal(mutation.payload.tombstone, undefined);
 });
-
 test("plant eine Kartenänderung ohne vollständigen Workspace im Outbox-Payload", () => {
   const card = createBasicLearningItem("deck-1", "Frage", "Antwort", { id: "card-1" });
   const deck = createCoreDeck({ id: "deck-1", name: "Test", source: "manual", cards: [card] });
@@ -79,33 +76,4 @@ test("plans note type definitions before cards that reference them", () => {
   const cardIndex = mutations.findIndex((mutation) => mutation.table === "cards");
   assert.ok(definitionIndex >= 0);
   assert.ok(cardIndex > definitionIndex);
-});
-
-test("plant source snapshots as FK-safe entity mutations without a full state payload", () => {
-  const card = {
-    ...createBasicLearningItem("deck-1", "Frage", "Antwort", { id: "card-1" }),
-    latestSourceSnapshotId: "snapshot-1",
-  };
-  const deck = createCoreDeck({ id: "deck-1", name: "Test", source: "manual", cards: [card] });
-  const previous = state([]);
-  const next = state([deck]);
-  next.learningItemSourceSnapshots = [{
-    id: "snapshot-1",
-    sourceKind: "csv",
-    previousSnapshotId: null,
-    definitionVersionId: null,
-    sourcePayload: {},
-    createdAt: "2026-08-11T00:00:00.000Z",
-  }];
-
-  const mutations = planEntityMutations({}, { decks: next.decks, sourceSnapshots: next.learningItemSourceSnapshots });
-  const cardMutation = mutations.find((mutation) => mutation.table === "cards");
-  const snapshotMutation = mutations.find((mutation) => mutation.table === "learning_item_source_snapshots");
-  assert.ok(cardMutation);
-  assert.equal(cardMutation.payload.entity.latestSourceSnapshotId, null, "FK-Pointer wird erst nach dem Snapshot gesetzt");
-  assert.ok(snapshotMutation);
-  assert.equal(snapshotMutation.payload.cardId, "card-1");
-  assert.equal(snapshotMutation.payload.attachToCard, true);
-  assert.equal(mutations.some((mutation) => mutation.type === "state-patch"), false);
-  assert.equal(mutations.some((mutation) => "state" in mutation.payload), false);
 });

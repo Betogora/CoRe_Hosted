@@ -259,13 +259,13 @@ export function calculateRetrievability(learningItemState: unknown, now: DateInp
 }
 
 export function getSchedulerStateForItem(item: LearningItem): ReviewState {
-  const rawState = item?.learningItemState ?? item?.reviewState ?? {};
+  const rawState = item?.reviewState ?? {};
   return createReviewState({
     ...rawState,
     schedulerVersion: rawState.schedulerVersion ?? FSRS_SCHEDULER_VERSION,
-    learningItemId: rawState.learningItemId ?? item?.id ?? rawState.reviewableId ?? "",
+    learningItemId: rawState.learningItemId || item?.id || rawState.reviewableId || "",
     reviewableType: rawState.reviewableType ?? "card",
-    reviewableId: rawState.reviewableId ?? item?.id ?? rawState.learningItemId ?? "",
+    reviewableId: rawState.reviewableId || item?.id || rawState.learningItemId || "",
   });
 }
 
@@ -462,9 +462,9 @@ export function simulateRatingOutcome({
     ...context,
     deckSettings,
     reviewEvents,
-    isVariant: context.isVariant ?? Boolean(variant && !variant.isOriginal),
+    isVariant: context.isVariant ?? Boolean(variant),
     variantId: context.variantId ?? variant?.id ?? null,
-    variantIsOriginal: context.variantIsOriginal ?? Boolean(variant?.isOriginal),
+    variantIsOriginal: context.variantIsOriginal ?? !variant,
     variantLevel: context.variantLevel ?? variant?.variantLevel ?? 1,
     variantType: context.variantType ?? variant?.variantType ?? "basic",
   };
@@ -586,7 +586,7 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
   const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));
   const activeVariants = cards
     .flatMap((card) => card.variants ?? [])
-    .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false && !variant.isOriginal);
+    .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false);
   return {
     totalCards: cards.length,
     dueCards,

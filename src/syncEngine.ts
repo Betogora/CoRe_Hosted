@@ -86,13 +86,11 @@ function addMilliseconds(timestamp: any, milliseconds: any) {
 }
 
 const ENTITY_UPSERT_ORDER: Record<string, number> = {
-  source_documents: 0,
   note_type_definitions: 0,
   decks: 1,
   cards: 2,
-  learning_item_source_snapshots: 3,
-  card_variants: 4,
-  review_events: 5,
+  card_variants: 3,
+  review_events: 4,
 };
 
 function orderMutationBatch(mutations: any[]) {

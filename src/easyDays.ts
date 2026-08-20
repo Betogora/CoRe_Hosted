@@ -79,7 +79,7 @@ export function createEasyDaysDueCounts(
   for (const item of items) {
     if (seenItemIds.has(item.id)) continue;
     seenItemIds.add(item.id);
-    const state = item.learningItemState ?? item.reviewState;
+    const state = item.reviewState;
     if (
       item.deletedAt
       || item.draftStatus === "draft"

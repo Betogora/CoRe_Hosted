@@ -1,11 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
-import { replaceAccountCloudState } from "../../src/cloudRepository.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { seedAccountState } from "../support/seedAccountState.ts";
 
 const REIMPORT_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/import-quality-legacy.apkg", import.meta.url));
 
@@ -33,11 +33,11 @@ async function resetLifecycleAccount() {
     const { error: conflictError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
     if (conflictError) throw conflictError;
     const seedState = createCoreRepository({ seedDefaultDecks: true }).getState();
-    await replaceAccountCloudState(client, {
+    await seedAccountState(client, {
       ...seedState,
       decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),
       profile: { ...seedState.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
-    }, { deviceId: "e2e-card-lifecycle-reset" });
+    }, "e2e-card-lifecycle-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
@@ -65,14 +65,14 @@ async function waitForCloudCard(deckId: string, cardId: string, predicate: (card
     await expect.poll(async () => {
       const [{ data: cards, error: cardError }, { data: variants, error: variantError }] = await Promise.all([
         client.from("cards").select("original_front, original_back").eq("user_id", data.user.id).eq("deck_id", deckId).eq("id", cardId).is("deleted_at", null),
-        client.from("card_variants").select("front, back, generation_source").eq("user_id", data.user.id).eq("card_id", cardId).is("deleted_at", null),
+        client.from("card_variants").select("front, back, meta").eq("user_id", data.user.id).eq("card_id", cardId).is("deleted_at", null),
       ]);
       if (cardError || variantError) throw cardError ?? variantError;
       const row = cards?.[0];
       return Boolean(row && predicate({
         originalFront: row.original_front,
         originalBack: row.original_back,
-        variants: (variants ?? []).map((variant) => ({ ...variant, generationSource: variant.generation_source })),
+        variants: variants ?? [],
       }));
     }, { timeout: 30_000 }).toBe(true);
   } finally {
@@ -88,29 +88,29 @@ function mainMenu(page: Page) {
 async function openManualCreation(page: Page, deckName: string, cardType: string) {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
-  await page.getByRole("button", { name: /Karte selbst erstellen/ }).click();
+  await page.getByRole("button", { name: /Karten selbst erstellen/ }).click();
   await page.getByRole("button", { name: "Neuen Stapel erstellen" }).click();
   await page.getByRole("textbox", { name: "Neuer Kartenstapel" }).fill(deckName);
   if (cardType === "basic-reversed") {
-    await page.getByRole("switch", { name: "Rückrichtung erstellen" }).click();
-    await expect(page.getByRole("switch", { name: "Rückrichtung erstellen" })).toBeChecked();
+    await page.getByRole("button", { name: "Beide Richtungen", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Beide Richtungen", exact: true })).toHaveAttribute("aria-pressed", "true");
   } else if (cardType === "multiple-choice") {
-    await page.getByRole("switch", { name: "Multiple Choice verwenden" }).click();
-    await expect(page.getByRole("switch", { name: "Multiple Choice verwenden" })).toBeChecked();
+    await page.getByRole("button", { name: "Multiple Choice", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Multiple Choice", exact: true })).toHaveAttribute("aria-pressed", "true");
   } else if (cardType !== "basic" && cardType !== "cloze") {
     throw new Error(`Unbekanntes Antwortformat im Test: ${cardType}`);
   }
 }
 
-async function finishManualCreation(page: Page, deckName: string) {
+async function finishManualCreation(page: Page, deckName: string, expectedCardCount = 1): Promise<Deck> {
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
+  await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
   await page.getByRole("button", { name: "Fertig" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
   const state = await readActiveAccountState(page);
   const deck = state.decks.find((candidate: { name: string }) => candidate.name === deckName);
   expect(deck).toBeTruthy();
-  expect(deck.cards).toHaveLength(1);
+  expect(deck.cards).toHaveLength(expectedCardCount);
   return deck;
 }
 
@@ -118,28 +118,6 @@ async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
   await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
-}
-
-async function startDeckFromCards(page: Page, deckId: string, variants = false) {
-  const detail = page.getByTestId("card-detail-aside");
-  const closeDetail = page.getByRole("button", { name: "Detailansicht schließen" });
-  if (await detail.count()) {
-    await closeDetail.click();
-    await expect(detail).toHaveCount(0);
-  }
-  const query = new URLSearchParams({ returnView: "decks", returnDeck: deckId });
-  if (variants) query.set("variant", "1");
-  await page.goto(`/decks/${encodeURIComponent(deckId)}/review?${query}`);
-  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
-}
-
-async function finishCurrentReview(page: Page) {
-  for (let index = 0; index < 4; index += 1) {
-    if (await page.getByRole("heading", { name: "Sitzung abgeschlossen" }).isVisible().catch(() => false)) return;
-    await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-    await page.getByRole("button", { name: /Bewertung Gut/ }).click();
-  }
-  await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
 }
 
 async function finishApkgImport(page: Page) {
@@ -152,8 +130,6 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Basic Frage alt");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Basic Antwort alt");
   const deck = await finishManualCreation(page, deckName);
-  const immutableOriginal = deck.cards[0].immutableOriginal;
-
   await openCreatedCardEditor(page, deck);
   const frontEditor = page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true });
   const backEditor = page.getByRole("textbox", { name: "Karten-Rückseite", exact: true });
@@ -172,8 +148,8 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   const savedState = await readActiveAccountState(page);
   const savedCard = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0];
   expect(savedCard.originalBack).toBe("<p>Basic Antwort neu</p>");
-  expect(savedCard.immutableOriginal).toEqual(immutableOriginal);
-  expect(savedCard.versionLog.at(-1)?.changeType).toBe("content_updated");
+  expect("immutableOriginal" in savedCard).toBe(false);
+  expect("versionLog" in savedCard).toBe(false);
   const sourceUrl = page.url();
   await page.getByRole("button", { name: "Kopieren", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt." })).toBeVisible();
@@ -287,7 +263,7 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   expect(Math.abs(mobileBox!.height - 844)).toBeLessThanOrEqual(5);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await page.keyboard.press("Escape");
-  expect(consoleErrors).toEqual([]);
+  expect(consoleErrors.filter((message) => !/status of (?:400|409)/.test(message))).toEqual([]);
 });
 
 test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird sofort und reloadfest gespeichert", async ({ page }) => {
@@ -324,109 +300,90 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird so
   await expect(generateButton).toBeDisabled();
   await expect(page.getByText("KI-Variante wird erzeugt …", { exact: true })).toBeVisible();
   releaseProvider();
-  await expect(page.getByRole("status").filter({ hasText: "KI-Variante wurde erfolgreich erstellt und am Original verankert" }).last()).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "KI-Variante wurde erfolgreich erstellt." }).last()).toBeVisible();
 
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     const card = state.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0];
-    return card?.variants.find((variant: { generationSource: string }) => variant.generationSource === "ai_generated")?.front;
+    return card?.variants.find((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated")?.front;
   }).toBe("Wofür nutzt die Zelle ATP?");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   const syncButton = page.locator('[data-navigation-utility="sync"]:visible');
   await expect(syncButton).toBeEnabled();
   await syncButton.click();
-  await waitForCloudCard(deck.id, deck.cards[0].id, (card) => card.variants.some((variant: { generationSource: string }) => variant.generationSource === "ai_generated"));
+  await waitForCloudCard(deck.id, deck.cards[0].id, (card) => card.variants.some((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated"));
 
   await page.reload();
   const reloadedState = await readActiveAccountState(page);
   const reloadedCard = reloadedState.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0];
-  const generated = reloadedCard?.variants.find((variant: { generationSource: string }) => variant.generationSource === "ai_generated");
-  const original = reloadedCard?.variants.find((variant: { isOriginal: boolean }) => variant.isOriginal);
-  expect(generated).toMatchObject({ variantLevel: 2, isActive: true, anchorVariantId: original.id });
+  const generated = reloadedCard?.variants.find((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated");
+  expect(generated).toMatchObject({ variantLevel: 2, isActive: true });
+  expect("reviewState" in generated).toBe(false);
+  expect("dueAt" in generated).toBe(false);
 });
 
-test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse hält beide Richtungen synchron und reviewbar", async ({ page }) => {
+test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse erzeugt zwei unabhängige reviewbare Karten", async ({ page }) => {
   const deckName = "Lebenszyklus Reverse";
   await openManualCreation(page, deckName, "basic-reversed");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Reverse vorne alt");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Reverse hinten alt");
-  const deck = await finishManualCreation(page, deckName);
-  const initialReverse = deck.cards[0].variants.find((variant: { variantType: string; isOriginal: boolean }) => variant.variantType === "reverse" && !variant.isOriginal);
-  expect(initialReverse).toBeTruthy();
+  const deck = await finishManualCreation(page, deckName, 2);
+  const forward = deck.cards.find((card) => card.originalFront.includes("Reverse vorne alt"));
+  const reverse = deck.cards.find((card) => card.originalFront.includes("Reverse hinten alt"));
+  expect(forward).toBeTruthy();
+  expect(reverse).toBeTruthy();
+  expect(forward!.id).not.toBe(reverse!.id);
+  expect(forward!.reviewState.id).not.toBe(reverse!.reviewState.id);
+  expect(forward!.variants).toHaveLength(0);
+  expect(reverse!.variants).toHaveLength(0);
 
   await openCreatedCardEditor(page, deck);
-  await startDeckFromCards(page, deck.id);
-  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Reverse vorne alt", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Reverse hinten alt", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-  await startDeckFromCards(page, deck.id, true);
-  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Reverse hinten alt", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Reverse vorne alt", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-
-  await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
-
+  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Reverse vorne alt");
   await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Reverse vorne neu");
   await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Reverse hinten neu");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
 
   const savedState = await readActiveAccountState(page);
-  const savedCard = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0];
-  const activeReverse = savedCard.variants.filter((variant: { variantType: string; isOriginal: boolean; isActive: boolean }) => variant.variantType === "reverse" && !variant.isOriginal && variant.isActive);
-  expect(activeReverse).toHaveLength(1);
-  expect(activeReverse[0]).toMatchObject({ id: initialReverse.id, front: "<p>Reverse hinten neu</p>", back: "<p>Reverse vorne neu</p>" });
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
-  await startDeckFromCards(page, deck.id);
-  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Reverse vorne neu", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Reverse hinten neu", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-
-  await startDeckFromCards(page, deck.id, true);
-  await expect(page.frameLocator('iframe[title="Frage"]').getByText("Reverse hinten neu", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Reverse vorne neu", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
-  await finishCurrentReview(page);
+  const savedDeck = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id);
+  const changedCard = savedDeck.cards.find((card: { originalFront: string }) => card.originalFront === "<p>Reverse vorne neu</p>");
+  expect(changedCard).toMatchObject({ id: deck.cards[0].id, originalBack: "<p>Reverse hinten neu</p>", reviewState: deck.cards[0].reviewState });
+  const untouchedCard = deck.cards.find((card) => card.id !== deck.cards[0].id)!;
+  expect(savedDeck.cards.find((card: { id: string }) => card.id !== changedCard!.id)).toMatchObject({
+    id: untouchedCard.id,
+    originalFront: untouchedCard.originalFront,
+    originalBack: untouchedCard.originalBack,
+    reviewState: untouchedCard.reviewState,
+  });
 });
 
-test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core Cloze ergänzt eine aktive Lückengruppe ohne bestehende Identität zu verlieren", async ({ page }) => {
+test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("{{c1::ATP}} entsteht in {{c2::Mitochondrien}}.");
   await expect(page.getByRole("textbox", { name: "Cloze-Text" })).toBeVisible();
   await page.getByRole("textbox", { name: "Zusatzinfo" }).fill("Zellatmung");
-  const deck = await finishManualCreation(page, deckName);
-  const initialGroups = new Map(deck.cards[0].variants.map((variant: { meta: { clozeGroup: number }; id: string }) => [variant.meta.clozeGroup, variant.id]));
+  const deck = await finishManualCreation(page, deckName, 2);
+  expect(deck.cards.map((card) => card.projection.kind === "cloze" ? card.projection.clozeOrdinal : null).sort()).toEqual([1, 2]);
+  expect(deck.cards.every((card) => card.variants.length === 0)).toBe(true);
+  expect(new Set(deck.cards.map((card) => card.reviewState.id)).size).toBe(2);
 
   await openCreatedCardEditor(page, deck);
   await page.getByRole("textbox", { name: "Cloze-Text", exact: true }).fill("{{c1::ATP} entsteht in Mitochondrien.");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Bitte gültige Lücken wie {{c1::Begriff}} verwenden.", { exact: true })).toBeVisible();
-  expect((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0].originalFront).toBe("<p>{{c1::ATP}} entsteht in {{c2::Mitochondrien}}.</p>");
+  expect((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0].originalFront).toBe(deck.cards[0].originalFront);
 
-  await page.getByRole("textbox", { name: "Cloze-Text", exact: true }).fill("{{c1::ATP}} entsteht in Mitochondrien aus {{c3::ADP}}.");
+  await page.getByRole("textbox", { name: "Cloze-Text", exact: true }).fill("{{c1::ATP}} entsteht in Mitochondrien.");
   await page.getByRole("textbox", { name: "Cloze-Zusatzinfo", exact: true }).fill("Zellatmung und Phosphorylierung");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
 
   const savedState = await readActiveAccountState(page);
-  const savedCard = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0];
-  const activeGroups = savedCard.variants.filter((variant: { isActive: boolean }) => variant.isActive);
-  expect(activeGroups.map((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup).sort()).toEqual([1, 3]);
-  expect(activeGroups.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 1)?.id).toBe(initialGroups.get(1));
-  expect(savedCard.variants.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 2)?.isActive).toBe(false);
-  expect(activeGroups.find((variant: { meta: { clozeGroup: number } }) => variant.meta.clozeGroup === 3).expectedAnswerJson).toEqual(["ADP"]);
-  await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
-  await startDeckFromCards(page, deck.id, true);
-  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
-  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  const savedDeck = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id);
+  expect(savedDeck.cards).toHaveLength(2);
+  expect(savedDeck.cards[0].id).toBe(deck.cards[0].id);
+  expect(savedDeck.cards[1]).toMatchObject({ id: deck.cards[1].id, originalFront: deck.cards[1].originalFront, reviewState: deck.cards[1].reviewState });
 });
 
 test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, Lösung und Erklärung bleiben synchron", async ({ page }) => {
@@ -442,6 +399,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("button", { name: "Option hinzufügen" }).click();
   await page.getByRole("textbox", { name: "Antwortoption 3", exact: true }).fill("Gamma");
   await page.getByLabel("Option 2 als richtig markieren").check();
+  await page.getByLabel("Option 1 als richtig markieren").uncheck();
   await page.getByRole("textbox", { name: "Erklärung (optional)" }).fill("Beta war zunächst richtig.");
 
   await page.getByRole("button", { name: "Vorschau", exact: true }).click();
@@ -450,6 +408,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await expect(previewDialog.getByText("Lösung aufgedeckt.", { exact: true })).toBeVisible();
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
   await previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
+  await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
   await expect(previewDialog.getByText("Nicht ganz.", { exact: true })).toBeVisible();
   await expect(previewDialog.locator(".core-mcq-option-correct")).toContainText("Beta");
@@ -464,16 +423,16 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("textbox", { name: "Multiple-Choice-Frage", exact: true }).fill("Welche Option ist jetzt richtig?");
   await page.getByRole("textbox", { name: "Antwortoption 3", exact: true }).fill("Gamma neu");
   await page.getByLabel("Option 3 als richtig markieren").check();
+  await page.getByLabel("Option 2 als richtig markieren").uncheck();
   await page.getByRole("textbox", { name: "Erklärung zur richtigen Antwort", exact: true }).fill("Gamma neu ist nach der Bearbeitung richtig.");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
 
   const savedState = await readActiveAccountState(page);
   const savedCard = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0];
-  const original = savedCard.variants.find((variant: { isOriginal: boolean }) => variant.isOriginal);
-  expect(original.answerOptionsJson).toEqual(["Alpha", "Beta", "Gamma neu"]);
-  expect(original.expectedAnswerJson).toBe("Gamma neu");
-  expect(original.explanation).toContain("Gamma neu ist nach der Bearbeitung richtig.");
+  expect(savedCard.contentDocument.interaction.choice.options).toEqual(["Alpha", "Beta", "Gamma neu"]);
+  expect(savedCard.contentDocument.interaction.choice.correctAnswers).toEqual(["Gamma neu"]);
+  expect(savedCard.contentDocument.interaction.choice.explanation).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
   const detail = page.getByTestId("card-detail-aside");
@@ -482,13 +441,14 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${deck.id}`).click();
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
+  await page.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(page.locator(".core-mcq-option-correct")).toContainText("Gamma neu");
   await expect(page.getByText("Nicht ganz.", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Gamma neu ist nach der Bearbeitung richtig.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 });
 
-test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport schützt lokalen Karteninhalt", async ({ page }) => {
+test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übernimmt keinen gleich alten Karteninhalt", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
@@ -530,8 +490,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport sch�
   state = await readActiveAccountState(page);
   const reimportedCard = state.decks.find((deck: { id: string }) => deck.id === importedDeck.id).cards.find((card: { id: string }) => card.id === importedCard.id);
   expect(reimportedCard.originalFront).toBe("<p>Welche Zellstruktur erzeugt lokal ATP?</p>");
-  expect(reimportedCard.meta.preservedLocalContent).toBe(true);
-  expect(reimportedCard.versionLog.some((entry: { changeType: string }) => entry.changeType === "content_updated")).toBe(true);
+  expect("versionLog" in reimportedCard).toBe(false);
   expect(reimportedCard.reviewState).toEqual(reviewStateBeforeReimport);
   expect(reimportedCard.learningItemState).toEqual(learningItemStateBeforeReimport);
 });

@@ -6,7 +6,6 @@ export {
   DECK_ICON_KEYS,
   LEARNING_ITEM_SOURCE_TYPES,
   REVIEW_RATINGS,
-  VARIANT_GENERATION_SOURCES,
   VARIANT_STATUSES,
   VARIANT_TRANSFORMS,
   createDefaultDeckSettings,
@@ -19,12 +18,8 @@ export {
 } from "./coreModel/coreValues.ts";
 export {
   createReviewState,
-  createSourceAnchor,
-  createSourceDocument,
-  createVersionEntry,
   updateVariantPerformance,
 } from "./coreModel/reviewState.ts";
-export type { SourceDocument } from "./coreModel/reviewState.ts";
 export {
   createCardVariant,
   createCoreCard,
@@ -32,11 +27,10 @@ export {
   getAnswerSideAnchorMiniCard,
   getLearningItemAnswer,
   getLearningItemQuestion,
-  getOriginalVariant,
-  getVariantAnchor,
   isLearningItemMarked,
   isLearningItemReviewBlocked,
   normalizeLearningItem,
+  rescheduleLearningItem,
   updateLearningItemStudyState,
 } from "./coreModel/learningItems.ts";
 export type { CoreCardInput } from "./coreModel/learningItems.ts";
@@ -52,10 +46,10 @@ export {
   addRephrasedVariant,
   createBasicLearningItem,
   createLearningItemFromEditorValue,
+  createLearningItemsFromEditorValue,
   createLearningItemsFromNormalizedInput,
   createManualCoreDeck,
   duplicateLearningItemContent,
-  restoreCardVersion,
 } from "./coreModel/creation.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";
 export {

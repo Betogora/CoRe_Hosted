@@ -408,9 +408,9 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
 
   function eventDetails(event: ReviewEvent) {
     const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
-    if (!Number.isFinite(timestamp) || !RATINGS.includes(event.rating)) return null;
+    if (!Number.isFinite(timestamp) || event.rating === "manual" || !RATINGS.includes(event.rating)) return null;
     const local = resolveLocalTime(timestamp);
-    return { timestamp, local, before: snapshot(event.schedulerBefore), event };
+    return { timestamp, local, before: snapshot(event.schedulerBefore), event, rating: event.rating as ReviewRating };
   }
 
   return {
@@ -437,17 +437,17 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       }
       activityByDay.set(details.local.dayIndex, point);
       reviewCount += 1;
-      const positive = Number(event.rating !== "again");
+      const positive = Number(details.rating !== "again");
       successCount += positive;
       hours[details.local.hour].reviews += 1;
       hours[details.local.hour].success += positive;
       const rating = ratings.get(eventCategory)!;
-      rating[event.rating] += 1;
+      rating[details.rating] += 1;
       rating.total += 1;
       const deck = deckReviews.get(event.deckId) ?? { reviewCount: 0, positive: 0, again: 0 };
       deck.reviewCount += 1;
       deck.positive += positive;
-      deck.again += Number(event.rating === "again");
+      deck.again += Number(details.rating === "again");
       deckReviews.set(event.deckId, deck);
     },
     addRetentionReview(event: ReviewEvent) {
@@ -458,14 +458,14 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       const key = `${reviewableId}\0${details.local.dayIndex}`;
       if (key === lastRetentionKey) return;
       lastRetentionKey = key;
-      addRetention(allRetention, details.before, event.rating);
+      addRetention(allRetention, details.before, details.rating);
       if (fixedStart == null || details.local.dayIndex >= fixedStart) {
-        addRetention(selectedRetention, details.before, event.rating);
+        addRetention(selectedRetention, details.before, details.rating);
         const deck = retentionByDeck.get(event.deckId) ?? retentionAggregate();
-        addRetention(deck, details.before, event.rating);
+        addRetention(deck, details.before, details.rating);
         retentionByDeck.set(event.deckId, deck);
       } else if (previousStart != null && details.local.dayIndex >= previousStart) {
-        addRetention(previousRetention, details.before, event.rating);
+        addRetention(previousRetention, details.before, details.rating);
       }
     },
     addCard(deckId: string, item: LearningItem) {
@@ -479,7 +479,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         earliestDay = Math.min(earliestDay, createdDay);
         addedByDay.set(createdDay, (addedByDay.get(createdDay) ?? 0) + 1);
       }
-      const state = item.learningItemState ?? item.reviewState;
+      const state = item.reviewState;
       if (item.status !== "deleted" && item.status !== "suspended" && item.draftStatus !== "draft" && state) addCurrentState(deckId, state);
       const dueKey = getStudyHeatmapDayKey(state?.dueAt, timeZone, dayStartHour);
       const nowKey = keyFromDayIndex(nowLocal.dayIndex);
@@ -487,12 +487,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         forecastCounts.set(dueKey, (forecastCounts.get(dueKey) ?? 0) + 1);
       }
     },
-    addVariant(deckId: string, variant: CardVariant) {
-      if (!scopeIds.has(deckId) || variant.isOriginal || variant.isActive === false || variant.deletedAt || variant.qualityStatus === "disabled") return;
-      const state = variant.reviewState;
-      if (!state) return;
-      addCurrentState(deckId, state);
-    },
+    addVariant(_deckId: string, _variant: CardVariant) {},
     finish(): StatisticsProjection {
       const startDay = fixedStart ?? earliestDay;
       const nowKey = keyFromDayIndex(nowLocal.dayIndex);
@@ -628,7 +623,7 @@ export function mergeAccountStatisticsSnapshot(
   for (const event of pendingReviews) {
     if (!projection.scopeDeckIds.includes(event.deckId)) continue;
     const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
-    if (!Number.isFinite(timestamp) || !RATINGS.includes(event.rating)) continue;
+    if (!Number.isFinite(timestamp) || event.rating === "manual" || !RATINGS.includes(event.rating)) continue;
     const dayKey = keyFromDayIndex(resolveLocalTime(timestamp).dayIndex);
     if (dayKey < firstKey || dayKey > lastKey) continue;
     const eventCategory = category(snapshot(event.schedulerBefore));

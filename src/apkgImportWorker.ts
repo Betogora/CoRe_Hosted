@@ -14,7 +14,6 @@ let commitChunks: Iterator<any> | null = null;
 
 function* createCommitChunks(graph: any): Generator<any> {
   const definitions = new Map(graph.noteTypeDefinitions.map((definition: any) => [definition.id, definition]));
-  const snapshots = new Map(graph.sourceSnapshots.map((snapshot: any) => [snapshot.id, snapshot]));
   yield { kind: "definitions", values: graph.noteTypeDefinitions };
   for (const deck of graph.decks) {
     const { cards, reviewEvents, ...summary } = deck;
@@ -28,10 +27,6 @@ function* createCommitChunks(graph: any): Generator<any> {
         definitions: [...new Set(values.map((card: any) => card.noteTypeDefinitionId))]
           .map((id) => definitions.get(id))
           .filter(Boolean),
-        snapshots: values.flatMap((card: any) => {
-          const snapshot = snapshots.get(card.latestSourceSnapshotId);
-          return snapshot ? [{ snapshot, cardId: card.id, attachToCard: true }] : [];
-        }),
       };
     }
     for (let offset = 0; offset < reviewEvents.length; offset += 250) {

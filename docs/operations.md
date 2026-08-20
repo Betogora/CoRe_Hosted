@@ -85,7 +85,7 @@ Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPAB
 
 ### Freigabeumfang
 
-Das Beta-Gate umfasst ausschließlich E-Mail-/Passwort-Auth, die fünf Kernjourneys, Kern-RLS, Sync/Offline/Reconnect/Konflikte, einen kleinen APKG-Import mit realem Medium und den begrenzten Portabilitätsexport. Es läuft lokal mit:
+Das Beta-Gate umfasst ausschließlich E-Mail-/Passwort-Auth, die fünf Kernjourneys, Kern-RLS, Sync/Offline/Reconnect/Konflikte und einen kleinen APKG-Import mit realem Medium. Es läuft lokal mit:
 
 ```powershell
 npm run test:beta
@@ -121,7 +121,7 @@ Bypass ausschließlich am ersten Hostaufruf als Vercel-Query übergeben und als
 Host-Cookie gespeichert. Er darf nicht als globaler Playwright-Header gesetzt
 werden, weil dieser auch an Supabase-Fetches gelangen könnte.
 
-Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; manuelle PDF-Quelle und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; Variante mit Reveal, Originalanker und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage, Portabilitätsgrenzen sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MB.
+Der Lauf deckt die fünf Kernjourneys ab: Login und Cloud-Laden; kleinen APKG-Import; transiente PDF-Hilfe bei Erstellung und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; KI-Variante mit Reveal, Grundkarte und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MB.
 
 Der Smoke läuft zuerst gegen die Preview-URL und danach gegen die mit `--skip-domain` bereitgestellte staged Production. Ein fehlgeschlagener Core-Schritt stoppt die Freigabe. Nach einer Korrektur beginnt die Abnahme mit einem neuen Deployment wieder bei Preview.
 

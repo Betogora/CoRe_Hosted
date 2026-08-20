@@ -237,7 +237,7 @@ test("entity batches preserve foreign-key order", async () => {
     device,
   });
 
-  for (const table of ["card_variants", "learning_item_source_snapshots", "cards", "decks", "note_type_definitions", "source_documents"]) {
+  for (const table of ["card_variants", "cards", "decks", "note_type_definitions"]) {
     engine.enqueueMutation({
       id: `mutation-${table}`,
       type: SYNC_MUTATION_TYPES.entityMutation,
@@ -247,7 +247,7 @@ test("entity batches preserve foreign-key order", async () => {
   }
   await engine.flush();
 
-  assert.deepEqual(order, ["note_type_definitions", "source_documents", "decks", "cards", "learning_item_source_snapshots", "card_variants"]);
+  assert.deepEqual(order, ["note_type_definitions", "decks", "cards", "card_variants"]);
 });
 
 test("confirmed rows update only affected local records before acknowledgement", async () => {

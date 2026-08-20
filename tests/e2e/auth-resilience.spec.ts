@@ -53,7 +53,7 @@ async function installCachedSession(page: Page, supabaseUrl: string|URL) {
 test("missing Supabase configuration stays behind a disabled login gate", async ({ page }: any) => {
   await page.goto(UNCONFIGURED_APP_URL);
 
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveText("Supabase ist für diese Umgebung noch nicht konfiguriert.");
   await expect(page.locator("form").getByRole("button", { name: "Anmelden", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Mit Google anmelden" })).toHaveCount(0);
@@ -70,7 +70,7 @@ test("offline Supabase start without a local baseline never shows an empty accou
 
   await expect(page.getByRole("status")).toHaveText("Daten konnten auf diesem Gerät noch nicht geladen werden.");
   await expect(page.getByRole("button", { name: "Erneut versuchen" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Login" })).toHaveCount(0);
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
 });
 
@@ -90,7 +90,7 @@ test("expired Supabase session returns to login with reauthentication guidance",
 
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "Bei CoRe anmelden" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();
   await expect(page.getByRole("alert")).toHaveText("Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.");
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toHaveCount(0);
 });

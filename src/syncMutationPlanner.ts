@@ -1,4 +1,4 @@
-import type { Deck, ForeignNoteSnapshot, LearningItem, NoteTypeDefinitionV1, SourceDocument } from "./coreTypes.ts";
+import type { Deck, LearningItem, NoteTypeDefinitionV1 } from "./coreTypes.ts";
 import { SYNC_MUTATION_TYPES } from "./syncEngine.ts";
 
 interface RevisionedEntity {
@@ -10,9 +10,7 @@ interface RevisionedEntity {
 
 export interface EntityMutationGraph {
   decks?: Deck[];
-  documents?: SourceDocument[];
   noteTypeDefinitions?: NoteTypeDefinitionV1[];
-  sourceSnapshots?: ForeignNoteSnapshot[];
   tombstones?: Array<{ entityTable: string; entityId: string; revision: number; deletedAt: string }>;
 }
 
@@ -46,7 +44,7 @@ function tombstoneMutation(table: string, entity: RevisionedEntity) {
 }
 
 function deckEntity(deck: Deck) {
-  const { cards: _cards, reviewEvents: _events, sourceDocuments: _documents, ...entity } = deck;
+  const { cards: _cards, reviewEvents: _events, ...entity } = deck;
   return { ...entity, cardCount: deck.cardCount ?? deck.cards.length };
 }
 
@@ -68,7 +66,6 @@ export function planEntityMutations(previous: EntityMutationGraph = {}, next: En
   const previousEntity = (table: string, id: string, entity?: RevisionedEntity) => entity ?? tombstones.get(`${table}:${id}`);
 
   for (const [table, before, after] of [
-    ["source_documents", previous.documents ?? [], next.documents ?? []],
     ["note_type_definitions", previous.noteTypeDefinitions ?? [], next.noteTypeDefinitions ?? []],
   ] as const) {
     const beforeById = byId(before as RevisionedEntity[]);
@@ -90,17 +87,6 @@ export function planEntityMutations(previous: EntityMutationGraph = {}, next: En
     mutations.push(tombstoneMutation("decks", deck));
   }
 
-  const newSnapshotIds = new Set((next.sourceSnapshots ?? []).map((item) => item.id));
-  const snapshotById = byId(next.sourceSnapshots);
-  const cardBySnapshotId = new Map<string, string>();
-  for (const deck of next.decks ?? []) for (const card of deck.cards) {
-    let snapshotId = card.latestSourceSnapshotId;
-    while (snapshotId && !cardBySnapshotId.has(snapshotId)) {
-      cardBySnapshotId.set(snapshotId, card.id);
-      snapshotId = snapshotById.get(snapshotId)?.previousSnapshotId ?? null;
-    }
-  }
-
   for (const deck of next.decks ?? []) {
     const previousDeck = previousDecks.get(deck.id);
     const oldDeck = previousEntity("decks", deck.id, previousDeck ? deckEntity(previousDeck) : undefined);
@@ -115,7 +101,6 @@ export function planEntityMutations(previous: EntityMutationGraph = {}, next: En
     for (const card of deck.cards) {
       const previousCard = previousCards.get(card.id);
       const nextCard = cardEntity(card);
-      if (nextCard.latestSourceSnapshotId && newSnapshotIds.has(nextCard.latestSourceSnapshotId)) nextCard.latestSourceSnapshotId = null;
       const oldCard = previousEntity("cards", card.id, previousCard ? cardEntity(previousCard) : undefined);
       if (changed(oldCard, nextCard)) mutations.push(entityMutation("cards", nextCard, oldCard, { deckId: deck.id }));
       const previousVariants = byId(previousCard?.variants);
@@ -128,13 +113,5 @@ export function planEntityMutations(previous: EntityMutationGraph = {}, next: En
     }
   }
 
-  for (const snapshot of next.sourceSnapshots ?? []) {
-    const cardId = cardBySnapshotId.get(snapshot.id);
-    if (!cardId) throw new Error(`Quell-Snapshot ${snapshot.id} ist keiner Karte zugeordnet.`);
-    mutations.push(entityMutation("learning_item_source_snapshots", snapshot, undefined, {
-      cardId,
-      attachToCard: (next.decks ?? []).some((deck) => deck.cards.some((card) => card.id === cardId && card.latestSourceSnapshotId === snapshot.id)),
-    }));
-  }
   return mutations;
 }

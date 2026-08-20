@@ -1,9 +1,9 @@
 import { applyLearningItemContent, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
 import { projectLearningItemContent } from "./coreModel/learningItemContent.ts";
-import type { CardVariant, Deck, LearningItem, ReviewEvent, ReviewRating, ReviewSchedulerState, ReviewState } from "./coreTypes.ts";
+import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewSchedulerState, ReviewState } from "./coreTypes.ts";
 import { createAnkiContentBundle } from "./ankiContentModel.ts";
 import { stripHtml, stripSanitizedHtml } from "./htmlSafety.ts";
-import { createLearningItemDuplicateIndex, finalizeImportReport, findDuplicateLearningItem, importNormalizedDeck } from "./importService.ts";
+import { finalizeImportReport, importNormalizedDeck } from "./importService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
 import { readZipArchive } from "./zipReader.ts";
 import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWorkerProtocol.ts";
@@ -25,9 +25,7 @@ function loadProtobufDecoders() {
 
 export interface AnkiImportIdentityV1 {
   version: 1;
-  kind: "note" | "card";
-  guid: string | null;
-  noteId: string | null;
+  kind: "card";
   cardId: string | null;
   notetypeId: string | null;
   templateOrdinal: number | null;
@@ -56,11 +54,10 @@ export interface ApkgImportReportV1 {
     missing: string[];
     assets: Array<{ name: string; size: number; sha1: string }>;
   };
-  reimport: { newItems: number; matchedItems: number; skippedItems: number; protectedLocalEdits: number };
+  reimport: { newItems: number; matchedItems: number; skippedItems: number };
   detectedDecks: Array<{ id: string; name: string }>;
   detectedNotes: number;
   detectedCards: number;
-  detectedVariants: number;
   hasAnkiScheduling: boolean;
   mediaCount: number;
   hasMedia: boolean;
@@ -543,7 +540,7 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
         ankiDeckDepth: node.depth ?? Math.max(0, hierarchyPath.length - 1),
         ankiParentPath: node.parentPath ?? null,
         isContainerDeck,
-        detectedCards: directItems.reduce((sum: any, item: any) => sum + Math.max(1, item.variants?.length ?? 1), 0),
+        detectedCards: directItems.reduce((sum: any, item: any) => sum + Math.max(1, item.cards?.length ?? 1), 0),
         importedScheduling: false,
       },
     };
@@ -1023,53 +1020,10 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
     const sourceDeckIds = unique(noteCards.map((card: any) => String(card.did ?? "")));
     const sourceDeckNames = unique(sourceDeckIds.map((deckId: any) => deckById.get(deckId)?.name ?? primaryDeck.name));
     const noteHasScheduling = noteCards.some(cardHasAnkiSchedulingData);
-    const variants: any[] = [];
 
     hasAnkiScheduling = hasAnkiScheduling || noteHasScheduling;
     hasCloze = hasCloze || Number(model.config?.kind ?? model.type ?? 0) === 1;
 
-    noteCards.forEach((card: any, index: any) => {
-      const original = index === 0;
-      const sourceDeck = deckById.get(String(card.did ?? "")) ?? primaryDeck;
-      const templateName = getTemplateName(card, model);
-
-      variants.push({
-        front: "",
-        back: "",
-        variantType: Number(model.config?.kind ?? model.type ?? 0) === 1 ? "cloze" : "basic",
-        variantLevel: original ? 1 : 2,
-        generationSource: original ? "original" : "imported",
-        sourceExternalId: card.id == null ? null : `anki-card-${String(card.id)}`,
-        isOriginal: original,
-        anchorToOriginal: !original,
-        metadataJson: {
-          ankiImportIdentityV1: {
-            version: 1,
-            kind: "card",
-            guid: noteGuid,
-            noteId: note.id == null ? null : String(note.id),
-            cardId: card.id == null ? null : String(card.id),
-            notetypeId,
-            templateOrdinal: Number(card.ord ?? 0),
-            templateName,
-            deckId: sourceDeck.id == null ? null : String(sourceDeck.id),
-            deckPath: sourceDeck.name ?? null,
-            importGroupId,
-          } satisfies AnkiImportIdentityV1,
-          ankiCardId: card.id == null ? null : String(card.id),
-          ankiTemplateOrd: card.ord ?? null,
-          ankiTemplateName: templateName,
-          ankiModelName: modelName,
-          ankiDeckId: sourceDeck.id == null ? null : String(sourceDeck.id),
-          ankiDeckName: sourceDeck.name ?? null,
-          schedulingImported: false,
-          hasAnkiScheduling: cardHasAnkiSchedulingData(card),
-          ankiCardFlagsRaw: card.flags ?? null,
-        },
-      });
-    });
-
-    let originalVariant = variants.find((variant: any) => variant.isOriginal) ?? variants[0] ?? null;
     const templateSources = (model.tmpls ?? []).flatMap((template: any) => [template.qfmt, template.afmt, template.bqfmt, template.bafmt]);
     const mediaRefs = unique([...fields.map((field: any) => field.value), ...templateSources, model.css, model.config?.css]
       .flatMap((html: any) => extractMediaRefs(html))
@@ -1093,7 +1047,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
       document: contentBundle.document,
       definition: contentBundle.definition,
     });
-    const activeMaterializedVariants = contentProjection.variants;
+    const activeMaterializedVariants = contentProjection.cards;
     const projectedInputs = contentBundle.definition.kind === "image-occlusion"
       ? noteCards.map((sourceCard: any, index: number) => ({ variant: activeMaterializedVariants[0], sourceCard, index }))
       : activeMaterializedVariants.map((variant: any, index: number) => {
@@ -1103,76 +1057,66 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
             : noteCards.find((card: any) => Number(card.ord ?? 0) === Number(recipe?.ordinal ?? index));
           return { variant, sourceCard, index };
         });
-    const projectedVariants = projectedInputs.map(({ variant, sourceCard, index }: any) => {
+    const projectedCards = projectedInputs.map(({ variant, sourceCard, index }: any) => {
       if (!variant) return null;
       const recipe = contentBundle.definition.recipes.find((candidate) => candidate.id === variant.projection.recipeId);
-      const legacyMetadata = variants.find((candidate: any) => String(candidate.metadataJson?.ankiCardId ?? "") === String(sourceCard?.id ?? ""))?.metadataJson ?? {};
+      const sourceDeck = deckById.get(String(sourceCard?.did ?? "")) ?? primaryDeck;
       const projection = contentBundle.definition.kind === "image-occlusion"
         ? { kind: "image-occlusion", recipeId: recipe?.id ?? variant.projection.recipeId, regionKey: String(sourceCard?.id ?? index) }
         : variant.projection;
       return {
         front: variant.front,
         back: variant.back,
-        variantType: variant.variantType,
-        variantLevel: variant.variantLevel,
-        generationSource: index === 0 ? "original" : "imported",
+        cardType: variant.variantType,
         sourceExternalId: sourceCard?.id == null ? null : `anki-card-${String(sourceCard.id)}`,
-        isOriginal: index === 0,
-        anchorToOriginal: index > 0,
         projection,
         metadataJson: {
-          ...legacyMetadata,
+          ankiImportIdentityV1: {
+            version: 1,
+            kind: "card",
+            cardId: sourceCard?.id == null ? null : String(sourceCard.id),
+            notetypeId,
+            templateOrdinal: Number(recipe?.ordinal ?? sourceCard?.ord ?? 0),
+            templateName: recipe?.name ?? getTemplateName(sourceCard, model),
+            deckId: sourceDeck.id == null ? null : String(sourceDeck.id),
+            deckPath: sourceDeck.name ?? null,
+            importGroupId,
+          } satisfies AnkiImportIdentityV1,
           ankiCardId: sourceCard?.id == null ? null : String(sourceCard.id),
           ankiTemplateOrd: recipe?.ordinal ?? sourceCard?.ord ?? null,
           ankiTemplateName: recipe?.name ?? null,
           ankiDefinitionId: contentBundle.definition.id,
+          ankiModifiedAt: Number(note.mod) > 0 ? new Date(Number(note.mod) * 1_000).toISOString() : createdAt,
           sourceSchedulerData: sourceCard ? createAnkiSchedulingSnapshot(sourceCard) : null,
         },
       };
-    }).filter((variant: any) => variant?.sourceExternalId);
-    variants.splice(0, variants.length, ...projectedVariants);
-    originalVariant = variants[0] ?? originalVariant;
+    }).filter((card: any) => card?.sourceExternalId);
+    const firstCard = projectedCards[0] ?? null;
 
     warnings.push(...itemWarnings);
 
     items.push({
-      title: originalVariant?.front
-        ? stripSanitizedHtml(originalVariant.front).slice(0, 120)
+      title: firstCard?.front
+        ? stripSanitizedHtml(firstCard.front).slice(0, 120)
         : stripHtml(fields[0]?.value ?? `Anki Note ${String(note.id)}`).slice(0, 120),
-      canonicalQuestion: originalVariant?.front ?? fields[0]?.value ?? "",
-      canonicalAnswer: originalVariant?.back ?? fields[1]?.value ?? "",
+      canonicalQuestion: firstCard?.front ?? fields[0]?.value ?? "",
+      canonicalAnswer: firstCard?.back ?? fields[1]?.value ?? "",
       tags,
       sourceType: "anki_import",
-      sourceExternalId: noteGuid ? `anki-guid-${noteGuid}` : note.id == null ? null : `anki-note-${String(note.id)}`,
-      cardType: contentBundle.definition.kind === "image-occlusion" ? "image-occlusion" : originalVariant?.variantType === "cloze" ? "cloze" : "basic",
+      sourceExternalId: null,
+      cardType: contentBundle.definition.kind === "image-occlusion" ? "image-occlusion" : firstCard?.cardType === "cloze" ? "cloze" : "basic",
       mediaRefs,
       originalFields: fields,
       contentDocument: contentBundle.document,
       noteTypeDefinition: contentBundle.definition,
-      sourceSnapshot: contentBundle.snapshot,
-      variants,
+      cards: projectedCards,
       metadataJson: {
-        ankiImportIdentityV1: {
-          version: 1,
-          kind: "note",
-          guid: noteGuid,
-          noteId: note.id == null ? null : String(note.id),
-          cardId: null,
-          notetypeId,
-          templateOrdinal: null,
-          templateName: null,
-          deckId: sourceDeckIds[0] == null ? null : String(sourceDeckIds[0]),
-          deckPath: sourceDeckNames[0] == null ? null : String(sourceDeckNames[0]),
-          importGroupId,
-        } satisfies AnkiImportIdentityV1,
         importFormat: "apkg",
-        ankiNoteId: note.id == null ? null : String(note.id),
-        ankiCardIds: noteCards.map((card: any) => String(card.id ?? "")),
         ankiDeckId: sourceDeckIds[0] ?? null,
         ankiDeckIds: sourceDeckIds,
         ankiDeckNames: sourceDeckNames,
         ankiModelName: modelName,
-        ankiTemplateName: variants[0]?.metadataJson?.ankiTemplateName ?? null,
+        ankiTemplateName: firstCard?.metadataJson?.ankiTemplateName ?? null,
         ankiTags: tags,
         originalFields: fields,
         mediaRefs,
@@ -1197,7 +1141,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   if (hasCloze) {
-    warnings.push("Cloze-Karten wurden erkannt und als Cloze-Varianten importiert.");
+    warnings.push("Cloze-Karten wurden erkannt und als eigenständige Karten importiert.");
   }
 
   if (getMediaAssetCount(mediaMap, mediaManifest) > 0) {
@@ -1242,7 +1186,6 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
         detectedDeckIds,
         detectedNotes: notes.length,
         detectedCards: cards.length,
-        detectedVariants: cards.length,
         importedScheduling: false,
         hasAnkiScheduling,
         hasCloze,
@@ -1311,7 +1254,6 @@ function emptyNormalizedApkgDeck(file: any = {}) {
       detectedDecks: [],
       detectedNotes: 0,
       detectedCards: 0,
-      detectedVariants: 0,
       hasAnkiScheduling: false,
       schedulingImported: false,
       mediaManifest: {
@@ -1331,21 +1273,33 @@ function classifyAnkiNotetype(model: any): ApkgImportReportV1["notetypes"][numbe
   return "basic";
 }
 
-function findExistingReportCard(item: any, existingDecks: any[], existingIndex: ReturnType<typeof createLearningItemDuplicateIndex>, cardsById: Map<string, any>) {
-  const duplicate = findDuplicateLearningItem(existingDecks, item, existingIndex);
-  return duplicate.duplicate ? cardsById.get(String(duplicate.learningItemId)) ?? null : null;
+function normalizedReportCards(normalizedDeck: any): any[] {
+  return (normalizedDeck?.items ?? []).flatMap((item: any) => Array.isArray(item.cards) && item.cards.length ? item.cards : [item]);
+}
+
+function sourceCardIdForReport(card: any): string | null {
+  const raw = card?.sourceCardId
+    ?? card?.metadataJson?.ankiImportIdentityV1?.cardId
+    ?? card?.metadataJson?.ankiCardId
+    ?? card?.sourceExternalId
+    ?? null;
+  return raw == null ? null : String(raw).replace(/^anki-card-/, "");
 }
 
 function createReimportSummary(normalizedDeck: any, existingDecks: any[], baseReport: any) {
-  const existingIndex = createLearningItemDuplicateIndex(existingDecks);
-  const cardsById = new Map<string, any>(existingDecks.flatMap((deck: any) => deck.cards ?? []).map((card: any) => [String(card.id), card]));
-  const matches = (normalizedDeck?.items ?? []).map((item: any) => findExistingReportCard(item, existingDecks, existingIndex, cardsById));
-  const matchedItems = matches.filter(Boolean).length;
+  const existingSourceCardIds = new Set(existingDecks
+    .flatMap((deck: any) => deck.cards ?? [])
+    .map(sourceCardIdForReport)
+    .filter(Boolean));
+  const cards = normalizedReportCards(normalizedDeck);
+  const matchedItems = cards.filter((card) => {
+    const sourceCardId = sourceCardIdForReport(card);
+    return sourceCardId ? existingSourceCardIds.has(sourceCardId) : false;
+  }).length;
   return {
-    newItems: Math.max(0, (normalizedDeck?.items?.length ?? 0) - matchedItems),
+    newItems: Math.max(0, cards.length - matchedItems),
     matchedItems,
     skippedItems: Number(baseReport?.skipped?.length ?? 0) + Number(baseReport?.duplicates?.length ?? 0),
-    protectedLocalEdits: matches.filter((card: any) => card && hasLocalContentEdit(card)).length,
   };
 }
 
@@ -1361,7 +1315,6 @@ export function createApkgReportDetails(parsed: any, normalizedDeck: any, existi
   const detectedDecks = metadata.detectedDecks ?? parsed?.decks ?? [];
   const detectedNotes = metadata.detectedNotes ?? parsed?.notes?.length ?? normalizedDeck?.items?.length ?? 0;
   const detectedCards = metadata.detectedCards ?? parsed?.cards?.length ?? 0;
-  const detectedVariants = metadata.detectedVariants ?? normalizedDeck?.items?.reduce((sum: any, item: any) => sum + (item.variants?.length ?? 0), 0) ?? 0;
   const hasAnkiScheduling = Boolean(metadata.hasAnkiScheduling ?? parsed?.cards?.some(cardHasAnkiSchedulingData));
   const mediaManifest = metadata.mediaManifest ?? parsed?.mediaBundle?.manifest ?? { format: "none", assets: [], missingAssets: [] };
   const parsedCards = parsed?.cards ?? [];
@@ -1430,9 +1383,7 @@ export function createApkgReportDetails(parsed: any, normalizedDeck: any, existi
     detectedDecks,
     detectedNotes,
     detectedCards,
-    detectedVariants,
-    createdCoreItems: normalizedDeck?.items?.length ?? 0,
-    variantCount: detectedVariants,
+    createdCoreItems: normalizedReportCards(normalizedDeck).length,
     duplicateCount: 0,
     hasAnkiScheduling,
     schedulingImported: false,
@@ -1464,7 +1415,6 @@ function attachApkgReportDetails(result: any, parsed: any, parsedWarnings: any =
   };
   report.detectedNotes = details.detectedNotes;
   report.detectedCards = details.detectedCards;
-  report.detectedVariants = details.detectedVariants;
   report.hasAnkiScheduling = details.hasAnkiScheduling;
   report.schedulingImported = false;
   report.mediaCount = details.mediaCount;
@@ -1486,7 +1436,6 @@ function mergeImportReports(results: any = []) {
         createdDecks: 0,
         createdLearningItems: 0,
         createdCards: 0,
-        createdVariants: 0,
         skipped: [],
         duplicates: [],
         warnings: [],
@@ -1497,7 +1446,6 @@ function mergeImportReports(results: any = []) {
   report.createdDecks = results.reduce((sum: any, result: any) => sum + Number(result.report?.createdDecks ?? 0), 0);
   report.createdLearningItems = results.reduce((sum: any, result: any) => sum + Number(result.report?.createdLearningItems ?? 0), 0);
   report.createdCards = report.createdLearningItems;
-  report.createdVariants = results.reduce((sum: any, result: any) => sum + Number(result.report?.createdVariants ?? 0), 0);
   report.skipped = results.flatMap((result: any) => result.report?.skipped ?? []);
   report.duplicates = results.flatMap((result: any) => result.report?.duplicates ?? []);
   report.warnings = unique(results.flatMap((result: any) => result.report?.warnings ?? []));
@@ -1517,17 +1465,13 @@ function commitNormalizedApkgHierarchy(normalizedDeck: any, options: any = {}) {
   const noteTypeDefinitions = [...new Map(results
     .flatMap((result: any) => result.commitGraph?.noteTypeDefinitions ?? [])
     .map((definition: any) => [definition.id, definition])).values()];
-  const sourceSnapshots = [...new Map(results
-    .flatMap((result: any) => result.commitGraph?.sourceSnapshots ?? [])
-    .map((snapshot: any) => [snapshot.id, snapshot])).values()];
   const content = {
     definitions: new Map(noteTypeDefinitions.map((definition: any) => [definition.id, definition])),
-    snapshots: new Map(sourceSnapshots.map((snapshot: any) => [snapshot.id, snapshot])),
   };
   const decks = results
     .map((result: any) => result.deck)
     .filter(Boolean)
-    .map((createdDeck: any) => mergeImportedDeck(createdDeck, options.existingDecks ?? [], content));
+    .map((createdDeck: any) => mergeImportedDeck(createdDeck, options.existingDecks ?? []));
   const rootOrder = new Map(hierarchy.normalizedDecks.map((deck: any, index: any) => [deck.id, index]));
   decks.sort((left: any, right: any) => (rootOrder.get(left.id) ?? 0) - (rootOrder.get(right.id) ?? 0));
 
@@ -1538,7 +1482,7 @@ function commitNormalizedApkgHierarchy(normalizedDeck: any, options: any = {}) {
     importGroupId: hierarchy.importGroupId,
     normalizedDeck,
     normalizedDecks: hierarchy.normalizedDecks,
-    commitGraph: { decks, noteTypeDefinitions, sourceSnapshots },
+    commitGraph: { decks, noteTypeDefinitions },
     report: mergeImportReports(results),
   };
 }
@@ -1547,7 +1491,6 @@ function createImportedReviewEvent(
   entry: AnkiReviewHistoryEntry,
   deck: Deck,
   item: Deck["cards"][number],
-  variant: Deck["cards"][number]["variants"][number],
 ): ReviewEvent {
   const eventId = stableContentHash({ source: "anki_revlog", reviewId: entry.reviewId, cardId: entry.cardId }, "review_anki");
   const beforeCard = {
@@ -1567,10 +1510,10 @@ function createImportedReviewEvent(
     userId: deck.ownerId,
     deckId: deck.id,
     learningItemId: item.id,
-    variantId: variant.id,
-    reviewableType: "variant",
-    reviewableId: variant.id,
-    sourceCardId: item.sourceCardId ?? item.id,
+    variantId: null,
+    reviewableType: "card",
+    reviewableId: item.id,
+    sourceCardId: item.id,
     rating: entry.rating,
     answeredAt: entry.answeredAt,
     responseTimeMs: entry.responseTimeMs,
@@ -1587,24 +1530,18 @@ function createImportedReviewEvent(
   };
 }
 
-function replayAnkiHistoryIntoVariant(
-  variant: CardVariant,
+function replayAnkiHistoryIntoCard(
+  item: LearningItem,
   entries: AnkiReviewHistoryEntry[],
   deck: Deck,
-): CardVariant {
-  let state: ReviewState = variant.reviewState ?? createReviewState({
-    learningItemId: variant.learningItemId,
-    reviewableType: "variant",
-    reviewableId: variant.id,
-  });
+): LearningItem {
+  let state: ReviewState = item.reviewState;
   for (const entry of [...entries].sort((left, right) => left.answeredAt.localeCompare(right.answeredAt))) {
     state = scheduleWithFsrs(state, entry.rating, {
       now: entry.answeredAt,
-      isVariant: true,
-      variantId: variant.id,
-      variantIsOriginal: variant.isOriginal,
-      variantLevel: variant.variantLevel,
-      variantType: variant.variantType,
+      isVariant: false,
+      variantId: null,
+      variantIsOriginal: true,
       deckSettings: deck.deckSettings,
     });
   }
@@ -1612,7 +1549,7 @@ function replayAnkiHistoryIntoVariant(
     ? state.sourceSchedulerData as Record<string, unknown>
     : {};
   return {
-    ...variant,
+    ...item,
     reviewState: {
       ...state,
       sourceSchedulerData: {
@@ -1621,16 +1558,16 @@ function replayAnkiHistoryIntoVariant(
         migrationVersion: 1,
         migrationMethod: "revlog-replay",
         ankiReviewIds: entries.map((entry) => entry.reviewId),
-        rawCardState: variant.meta.sourceSchedulerData ?? null,
+        rawCardState: item.meta.sourceSchedulerData ?? null,
       },
     },
-    meta: { ...variant.meta, schedulingImported: true, schedulingMigrationMethod: "revlog-replay" },
-  } as CardVariant;
+    meta: { ...item.meta, schedulingImported: true, schedulingMigrationMethod: "revlog-replay" },
+  };
 }
 
-function migrateAnkiFsrsMemoryState(variant: CardVariant, importedAt = new Date()): CardVariant | null {
-  const raw = variant.meta.sourceSchedulerData && typeof variant.meta.sourceSchedulerData === "object"
-    ? variant.meta.sourceSchedulerData as Record<string, unknown>
+function migrateAnkiFsrsMemoryState(item: LearningItem, importedAt = new Date()): LearningItem | null {
+  const raw = item.meta.sourceSchedulerData && typeof item.meta.sourceSchedulerData === "object"
+    ? item.meta.sourceSchedulerData as Record<string, unknown>
     : null;
   const memory = readAnkiFsrsMemoryState(raw?.data);
   if (!raw || !memory) return null;
@@ -1648,10 +1585,10 @@ function migrateAnkiFsrsMemoryState(variant: CardVariant, importedAt = new Date(
   const factor = Number(raw.factor ?? 2500);
   const ease = Number.isFinite(factor) && factor > 0 ? factor / 1000 : 2.5;
   const reviewState = createReviewState({
-    ...(variant.reviewState ?? {}),
-    learningItemId: variant.learningItemId,
-    reviewableType: "variant",
-    reviewableId: variant.id,
+    ...item.reviewState,
+    learningItemId: item.id,
+    reviewableType: "card",
+    reviewableId: item.id,
     state,
     dueAt,
     intervalDays: interval.days,
@@ -1659,7 +1596,7 @@ function migrateAnkiFsrsMemoryState(variant: CardVariant, importedAt = new Date(
     ease,
     stability: memory.stability,
     difficulty: Math.min(10, Math.max(1, memory.difficulty)),
-    desiredRetention: memory.desiredRetention ?? variant.reviewState?.desiredRetention ?? 0.9,
+    desiredRetention: memory.desiredRetention ?? item.reviewState.desiredRetention ?? 0.9,
     reps: Math.max(0, Number(raw.reps ?? 0)),
     repetitions: Math.max(0, Number(raw.reps ?? 0)),
     lapses: Math.max(0, Number(raw.lapses ?? 0)),
@@ -1673,21 +1610,22 @@ function migrateAnkiFsrsMemoryState(variant: CardVariant, importedAt = new Date(
     },
   });
   return {
-    ...variant,
+    ...item,
     reviewState,
+    status: queue === -1 ? "suspended" : item.status,
     meta: {
-      ...variant.meta,
+      ...item.meta,
       schedulingImported: true,
       schedulingMigrationMethod: "fsrs-memory-state",
       ankiSuspended: queue === -1,
       ankiBuried: queue === -2 || queue === -3,
     },
-  } as CardVariant;
+  };
 }
 
-function migrateAnkiCardStateHeuristically(variant: CardVariant, importedAt = new Date()): CardVariant | null {
-  const raw = variant.meta.sourceSchedulerData && typeof variant.meta.sourceSchedulerData === "object"
-    ? variant.meta.sourceSchedulerData as Record<string, unknown>
+function migrateAnkiCardStateHeuristically(item: LearningItem, importedAt = new Date()): LearningItem | null {
+  const raw = item.meta.sourceSchedulerData && typeof item.meta.sourceSchedulerData === "object"
+    ? item.meta.sourceSchedulerData as Record<string, unknown>
     : null;
   if (!raw || Number(raw.reps ?? 0) <= 0) return null;
   const interval = intervalFromAnki(raw.interval);
@@ -1701,10 +1639,10 @@ function migrateAnkiCardStateHeuristically(variant: CardVariant, importedAt = ne
   const factor = Number(raw.factor ?? 2500);
   const ease = Number.isFinite(factor) && factor > 0 ? factor / 1000 : 2.5;
   const reviewState = createReviewState({
-    ...(variant.reviewState ?? {}),
-    learningItemId: variant.learningItemId,
-    reviewableType: "variant",
-    reviewableId: variant.id,
+    ...item.reviewState,
+    learningItemId: item.id,
+    reviewableType: "card",
+    reviewableId: item.id,
     state,
     dueAt,
     intervalDays: interval.days,
@@ -1723,47 +1661,46 @@ function migrateAnkiCardStateHeuristically(variant: CardVariant, importedAt = ne
     },
   });
   return {
-    ...variant,
+    ...item,
     reviewState,
+    status: queue === -1 ? "suspended" : item.status,
     meta: {
-      ...variant.meta,
+      ...item.meta,
       schedulingImported: true,
       schedulingMigrationMethod: "sm2-card-state",
       ankiSuspended: queue === -1,
       ankiBuried: queue === -2 || queue === -3,
     },
-  } as CardVariant;
+  };
 }
 
 export function applyAnkiReviewHistory(decks: Deck[], payload: AnkiReviewHistoryPayload) {
-  const targetByAnkiCardId = new Map<string, { deck: Deck; item: Deck["cards"][number]; variant: Deck["cards"][number]["variants"][number] }>();
+  const targetByAnkiCardId = new Map<string, { deck: Deck; item: Deck["cards"][number] }>();
   for (const deck of decks) {
     for (const item of deck.cards) {
-      for (const variant of item.variants) {
-        const cardId = getAnkiVariantIdentity(variant)?.cardId;
-        if (cardId) targetByAnkiCardId.set(cardId, { deck, item, variant });
-      }
+      const cardId = item.sourceCardId ?? String(item.meta.ankiCardId ?? "");
+      if (cardId) targetByAnkiCardId.set(cardId, { deck, item });
     }
   }
 
   const existingIds = new Set(decks.flatMap((deck) => deck.reviewEvents.map((event) => event.id)));
   const additionsByDeckId = new Map<string, ReviewEvent[]>();
-  const replayByVariantId = new Map<string, AnkiReviewHistoryEntry[]>();
+  const replayByCardId = new Map<string, AnkiReviewHistoryEntry[]>();
   let imported = 0;
   let duplicates = 0;
   let unmapped = 0;
   for (const entry of payload.entries) {
     const target = targetByAnkiCardId.get(entry.cardId);
     if (!target) { unmapped += 1; continue; }
-    const event = createImportedReviewEvent(entry, target.deck, target.item, target.variant);
+    const event = createImportedReviewEvent(entry, target.deck, target.item);
     if (existingIds.has(event.id)) { duplicates += 1; continue; }
     existingIds.add(event.id);
     const additions = additionsByDeckId.get(target.deck.id);
     if (additions) additions.push(event);
     else additionsByDeckId.set(target.deck.id, [event]);
-    const replayEntries = replayByVariantId.get(target.variant.id);
+    const replayEntries = replayByCardId.get(target.item.id);
     if (replayEntries) replayEntries.push(entry);
-    else replayByVariantId.set(target.variant.id, [entry]);
+    else replayByCardId.set(target.item.id, [entry]);
     imported += 1;
   }
 
@@ -1773,27 +1710,15 @@ export function applyAnkiReviewHistory(decks: Deck[], payload: AnkiReviewHistory
   const updatedDecks = decks.map((deck) => {
     const additions = additionsByDeckId.get(deck.id) ?? [];
     const cards = deck.cards.map((item) => {
-      const variants = item.variants.map((variant) => {
-        if (variant.reviewState?.sourceSchedulerData && typeof variant.reviewState.sourceSchedulerData === "object"
-          && "migrationMethod" in (variant.reviewState.sourceSchedulerData as Record<string, unknown>)) return variant;
-        const direct = migrateAnkiFsrsMemoryState(variant);
-        if (direct) {
-          directCards += 1;
-          return direct;
-        }
-        const replayEntries = replayByVariantId.get(variant.id) ?? [];
-        if (replayEntries.length > 0) {
-          replayedCards += 1;
-          return replayAnkiHistoryIntoVariant(variant, replayEntries, deck);
-        }
-        const migrated = migrateAnkiCardStateHeuristically(variant);
-        if (migrated) heuristicCards += 1;
-        return migrated ?? variant;
-      });
-      const original = variants.find((variant) => variant.isOriginal) ?? variants[0];
-      return original?.reviewState
-        ? { ...item, variants, learningItemState: original.reviewState, reviewState: original.reviewState }
-        : { ...item, variants };
+      const schedulerData = item.reviewState.sourceSchedulerData;
+      if (schedulerData && typeof schedulerData === "object" && "migrationMethod" in (schedulerData as Record<string, unknown>)) return item;
+      const direct = migrateAnkiFsrsMemoryState(item);
+      if (direct) { directCards += 1; return direct; }
+      const replayEntries = replayByCardId.get(item.id) ?? [];
+      if (replayEntries.length > 0) { replayedCards += 1; return replayAnkiHistoryIntoCard(item, replayEntries, deck); }
+      const migrated = migrateAnkiCardStateHeuristically(item);
+      if (migrated) heuristicCards += 1;
+      return migrated ?? item;
     });
     if (additions.length === 0 && cards.every((item, index) => item === deck.cards[index])) return deck;
     return {
@@ -2027,7 +1952,6 @@ export function prepareApkgWorkerResult(parsed: any) {
       detectedDecks: details.detectedDecks,
       detectedNotes: details.detectedNotes,
       detectedCards: details.detectedCards,
-      detectedVariants: details.detectedVariants,
       hasAnkiScheduling: details.hasAnkiScheduling,
       hasMedia: details.hasMedia,
       mediaCount: details.mediaCount,
@@ -2238,286 +2162,32 @@ function findExistingImportedDeck(importedDeck: any, existingDecks: any = []) {
   );
 }
 
-function hasLocalContentEdit(card: any) {
-  return (card.versionLog ?? []).some((entry: any) => entry.changeType === "content_updated" || entry.changeType === "content_edit");
-}
-
-function synchronizeOriginalVariant(variants: any = [], card: any = {}) {
-  const originalVariant = variants.find((variant: any) => variant.isOriginal) ?? null;
-  if (!originalVariant) return variants;
-
-  return variants.map((variant: any) =>
-    variant === originalVariant
-      ? {
-          ...variant,
-          front: card.originalFront ?? card.canonicalQuestion ?? variant.front,
-          back: card.originalBack ?? card.canonicalAnswer ?? variant.back,
-          updatedAt: card.updatedAt ?? variant.updatedAt,
-          meta: {
-            ...(variant.meta ?? {}),
-            cardType: card.cardType ?? card.kind ?? variant.meta?.cardType,
-          },
-        }
-      : variant,
-  );
-}
-
-function getAnkiNoteIdentity(card: any): AnkiImportIdentityV1 | null {
-  const candidate = card?.meta?.ankiImportIdentityV1 ?? card?.meta?.normalizedImport?.metadataJson?.ankiImportIdentityV1;
-  return candidate?.version === 1 && candidate?.kind === "note" ? candidate : null;
-}
-
-function getAnkiVariantIdentity(variant: any): AnkiImportIdentityV1 | null {
-  const candidate = variant?.meta?.ankiImportIdentityV1 ?? variant?.meta?.metadataJson?.ankiImportIdentityV1;
-  return candidate?.version === 1 && candidate?.kind === "card" ? candidate : null;
-}
-
-function noteTemplateKey(identity: AnkiImportIdentityV1 | null) {
-  return identity?.guid && identity.templateOrdinal != null ? `${identity.guid}:${identity.templateOrdinal}` : null;
-}
-
-function mergeImportedVariants(incomingCard: any, existingCard: any, preserveContent: any) {
-  const existingVariants = existingCard.variants ?? [];
-  const existingById = new Map(existingVariants.map((variant: any) => [variant.id, variant]));
-  const existingByCardId = new Map(
-    existingVariants
-      .map((variant: any) => [getAnkiVariantIdentity(variant)?.cardId, variant])
-      .filter(([cardId]: any) => cardId),
-  );
-  const existingByTemplate = new Map(
-    existingVariants
-      .map((variant: any) => [noteTemplateKey(getAnkiVariantIdentity(variant)), variant])
-      .filter(([key]: any) => key),
-  );
-  const existingBySourceId = new Map(
-    existingVariants
-      .map((variant: any) => [String(variant.meta?.sourceVariantExternalId ?? "").trim(), variant])
-      .filter(([sourceId]: any) => sourceId),
-  );
-  const existingOriginal = existingVariants.find((variant: any) => variant.isOriginal) ?? null;
-  const retainedIds = new Set();
-  const merged = (incomingCard.variants ?? []).map((incomingVariant: any) => {
-    const sourceId = String(incomingVariant.meta?.sourceVariantExternalId ?? "").trim();
-    const identity = getAnkiVariantIdentity(incomingVariant);
-    const templateKey = noteTemplateKey(identity);
-    const existingVariant =
-      (identity?.cardId ? existingByCardId.get(identity.cardId) : null) ??
-      (templateKey ? existingByTemplate.get(templateKey) : null) ??
-      (sourceId ? existingBySourceId.get(sourceId) : null) ??
-      (incomingVariant.isOriginal ? existingOriginal : null) ??
-      existingById.get(incomingVariant.id);
-    if (!existingVariant) return incomingVariant;
-
-    retainedIds.add(existingVariant.id);
-    const mergedVariant = {
-      ...existingVariant,
-      ...incomingVariant,
-      id: existingVariant.id,
-      createdAt: existingVariant.createdAt ?? incomingVariant.createdAt,
-      reviewState: existingVariant.reviewState ?? incomingVariant.reviewState,
-      performance: existingVariant.performance ?? incomingVariant.performance,
-      feedback: existingVariant.feedback?.length ? existingVariant.feedback : incomingVariant.feedback,
-      versionLog: existingVariant.versionLog?.length ? existingVariant.versionLog : incomingVariant.versionLog,
-      qualityStatus: incomingVariant.isOriginal ? incomingVariant.qualityStatus : existingVariant.qualityStatus ?? incomingVariant.qualityStatus,
-      isActive: incomingVariant.isOriginal ? true : existingVariant.isActive ?? incomingVariant.isActive,
-    };
-    return preserveContent
-      ? {
-          ...mergedVariant,
-          front: existingVariant.front,
-          back: existingVariant.back,
-          explanation: existingVariant.explanation,
-          hintsJson: existingVariant.hintsJson,
-          answerOptionsJson: existingVariant.answerOptionsJson,
-          expectedAnswerJson: existingVariant.expectedAnswerJson,
-        }
-      : mergedVariant;
-  });
-
-  const result = [
-    ...merged,
-    ...existingVariants.filter((variant: any) => !variant.isOriginal && !retainedIds.has(variant.id)),
-  ];
-  return preserveContent ? synchronizeOriginalVariant(result, existingCard) : result;
-}
-
-function mergeImportedCardMeta(incomingMeta: any, existingMeta: any, preserveContent: boolean) {
-  const preservedStudyMeta = Object.hasOwn(existingMeta ?? {}, "marked")
-    ? { marked: existingMeta.marked === true }
-    : {};
-  if (!preserveContent) return { ...(incomingMeta ?? {}), ...preservedStudyMeta, preservedLocalContent: false };
-  const editorMetaKeys = ["answerOptions", "correctAnswer", "correctAnswers", "expectedAnswer", "explanation", "clozeGroupCount"];
-  const preservedEditorMeta = Object.fromEntries(
-    editorMetaKeys
-      .filter((key) => Object.prototype.hasOwnProperty.call(existingMeta ?? {}, key))
-      .map((key) => [key, existingMeta[key]]),
-  );
-  return {
-    ...(incomingMeta ?? {}),
-    ...preservedStudyMeta,
-    ...preservedEditorMeta,
-    preservedLocalContent: true,
-  };
-}
-
-function documentFromVersionLog(card: any) {
-  for (const entry of card.versionLog ?? []) {
-    const after = entry?.after;
-    if (after?.schemaVersion === 1 && Array.isArray(after.fields)) return after;
-  }
-  return null;
-}
-
-function fieldMatchKey(field: any) {
-  return String(field?.sourceFieldId || field?.id || field?.name || "");
-}
-
-function threeWayMergeImportedDocument(existingCard: any, incomingCard: any) {
-  const base = documentFromVersionLog(existingCard);
-  const local = existingCard.contentDocument;
-  const incoming = incomingCard.contentDocument;
-  if (!base || !local || !incoming) return null;
-  const baseByKey = new Map(base.fields.map((field: any) => [fieldMatchKey(field), field]));
-  const localByKey = new Map(local.fields.map((field: any) => [fieldMatchKey(field), field]));
-  const incomingKeys = new Set<string>();
-  const conflicts: Array<{ fieldId: string; fieldName: string; kind: string; localValue: string; incomingValue: string }> = [];
-  const fields = incoming.fields.map((incomingField: any) => {
-    const key = fieldMatchKey(incomingField);
-    incomingKeys.add(key);
-    const baseField: any = baseByKey.get(key);
-    const localField: any = localByKey.get(key);
-    if (!localField) return incomingField;
-    const localChanged = baseField ? localField.value !== baseField.value : true;
-    const incomingChanged = baseField ? incomingField.value !== baseField.value : true;
-    if (localChanged && incomingChanged && localField.value !== incomingField.value) {
-      conflicts.push({
-        fieldId: String(localField.id),
-        fieldName: String(localField.name),
-        kind: "both_changed",
-        localValue: String(localField.value),
-        incomingValue: String(incomingField.value),
-      });
-      return { ...incomingField, value: localField.value };
-    }
-    return localChanged ? { ...incomingField, value: localField.value } : incomingField;
-  });
-  for (const localField of local.fields) {
-    const key = fieldMatchKey(localField);
-    if (incomingKeys.has(key)) continue;
-    const baseField: any = baseByKey.get(key);
-    if (!baseField || localField.value === baseField.value) continue;
-    conflicts.push({
-      fieldId: String(localField.id),
-      fieldName: String(localField.name),
-      kind: "removed_externally",
-      localValue: String(localField.value),
-      incomingValue: "",
-    });
-    fields.push({ ...localField, placement: "metadata" });
-  }
-  return {
-    document: {
-      ...incoming,
-      fields,
-      tags: local.tags,
-      mediaRefs: unique([...(local.mediaRefs ?? []), ...(incoming.mediaRefs ?? [])]),
-    },
-    conflicts,
-  };
-}
-
-function hasProjectionOnlyLocalEdit(card: any) {
-  const original = (card.variants ?? []).find((variant: any) => variant.isOriginal);
-  if (!original) return false;
-  return original.front !== card.originalFront || original.back !== card.originalBack;
-}
-
-function mergeImportedCard(incomingCard: any, existingCard: any, content: any = {}) {
+function mergeImportedCard(incomingCard: any, existingCard: any) {
   if (!existingCard) return incomingCard;
-
-  const preserveContent = hasLocalContentEdit(existingCard);
-  const documentMerge = preserveContent && !hasProjectionOnlyLocalEdit(existingCard)
-    ? threeWayMergeImportedDocument(existingCard, incomingCard)
-    : null;
-  const incomingDefinition = content.definitions?.get(incomingCard.noteTypeDefinitionId) ?? null;
-  const incomingSnapshot = content.snapshots?.get(incomingCard.latestSourceSnapshotId) ?? null;
-  const appliedMerge = documentMerge && incomingDefinition
-    ? applyLearningItemContent({
-        previous: existingCard,
-        document: documentMerge.document,
-        definition: incomingDefinition,
-        sourceSnapshot: incomingSnapshot ?? null,
-        reason: "reimport",
-      }).item
-    : null;
-  const localFront = existingCard.originalFront ?? existingCard.canonicalQuestion;
-  const localBack = existingCard.originalBack ?? existingCard.canonicalAnswer;
-  const mergedMediaRefs = preserveContent
-    ? unique([...(existingCard.mediaRefs ?? []), ...(incomingCard.mediaRefs ?? [])])
-    : incomingCard.mediaRefs;
-  const preservedContent = preserveContent && !appliedMerge
-    ? {
-        title: existingCard.title,
-        canonicalQuestion: localFront,
-        canonicalAnswer: localBack,
-        tags: existingCard.tags,
-        concepts: existingCard.concepts,
-        cardType: existingCard.cardType,
-        kind: existingCard.kind,
-        originalFront: localFront,
-        originalBack: localBack,
-        originalFields: existingCard.originalFields,
-        originalTags: existingCard.originalTags,
-        originalHtml: existingCard.originalHtml,
-        immutableOriginal: existingCard.immutableOriginal,
-        noteTypeDefinitionId: existingCard.noteTypeDefinitionId,
-        contentDocument: existingCard.contentDocument
-          ? { ...existingCard.contentDocument, tags: existingCard.tags ?? existingCard.contentDocument.tags, mediaRefs: mergedMediaRefs }
-          : existingCard.contentDocument,
-        latestSourceSnapshotId: existingCard.latestSourceSnapshotId,
-        contentRevision: existingCard.contentRevision,
-      }
-    : {};
-
+  const incomingModifiedAt = Date.parse(String(incomingCard.meta?.ankiModifiedAt ?? incomingCard.updatedAt ?? ""));
+  const existingModifiedAt = Date.parse(String(existingCard.meta?.ankiModifiedAt ?? existingCard.updatedAt ?? ""));
+  if (Number.isFinite(existingModifiedAt) && (!Number.isFinite(incomingModifiedAt) || incomingModifiedAt <= existingModifiedAt)) return existingCard;
   return {
     ...incomingCard,
-    ...(appliedMerge ?? {}),
-    ...preservedContent,
     id: existingCard.id,
-    noteId: existingCard.noteId ?? incomingCard.noteId,
     createdAt: existingCard.createdAt ?? incomingCard.createdAt,
     updatedAt: new Date().toISOString(),
-    status: existingCard.status === "suspended" ? "suspended" : incomingCard.status,
-    reviewState: existingCard.reviewState ?? incomingCard.reviewState,
-    learningItemState: existingCard.learningItemState ?? incomingCard.learningItemState,
-    variants: appliedMerge?.variants ?? mergeImportedVariants(incomingCard, existingCard, preserveContent),
-    immutableOriginal: existingCard.immutableOriginal ?? incomingCard.immutableOriginal,
-    versionLog: existingCard.versionLog?.length ? existingCard.versionLog : incomingCard.versionLog,
-    sourceAnchors: existingCard.sourceAnchors?.length ? existingCard.sourceAnchors : incomingCard.sourceAnchors,
-    mediaRefs: mergedMediaRefs,
+    status: existingCard.status,
+    reviewState: existingCard.reviewState,
+    variants: existingCard.variants,
     meta: {
-      ...mergeImportedCardMeta(incomingCard.meta, existingCard.meta, preserveContent),
-      ...(documentMerge?.conflicts.length ? { reimportConflicts: documentMerge.conflicts, reimportConflictDefault: "local" } : { reimportConflicts: [] }),
+      ...incomingCard.meta,
+      ...(Object.hasOwn(existingCard.meta ?? {}, "marked") ? { marked: existingCard.meta.marked === true } : {}),
     },
   };
 }
 
-export function mergeImportedDeck(importedDeck: any, existingDecks: any = [], content: any = {}) {
+export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
   const existingDeck = findExistingImportedDeck(importedDeck, existingDecks);
   if (!existingDeck) return importedDeck;
 
   const existingCardsBySourceId = new Map(
-    existingDeck.cards.map((card: any) => [String(card.sourceCardId ?? card.sourceRefId ?? card.id), card]),
-  );
-  const existingCardsByGuid = new Map(
-    existingDeck.cards
-      .map((card: any) => [getAnkiNoteIdentity(card)?.guid, card])
-      .filter(([guid]: any) => guid),
-  );
-  const existingCardsByNoteId = new Map(
-    existingDeck.cards
-      .map((card: any) => [getAnkiNoteIdentity(card)?.noteId, card])
-      .filter(([noteId]: any) => noteId),
+    existingDeck.cards.filter((card: any) => card.sourceCardId).map((card: any) => [String(card.sourceCardId), card]),
   );
   const now = new Date().toISOString();
 
@@ -2532,7 +2202,6 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = [], co
     updatedAt: now,
     deckSettings: existingDeck.deckSettings,
     reviewEvents: existingDeck.reviewEvents ?? [],
-    versionLog: existingDeck.versionLog ?? importedDeck.versionLog,
     importMeta: {
       ...(existingDeck.importMeta ?? {}),
       ...importedDeck.importMeta,
@@ -2541,12 +2210,8 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = [], co
     },
     mediaAssets: existingDeck.mediaAssets ?? [],
     cards: importedDeck.cards.map((card: any) => {
-      const identity = getAnkiNoteIdentity(card);
-      const existingCard =
-        (identity?.guid ? existingCardsByGuid.get(identity.guid) : null) ??
-        existingCardsBySourceId.get(String(card.sourceCardId ?? card.sourceRefId ?? card.id)) ??
-        (identity?.noteId ? existingCardsByNoteId.get(identity.noteId) : null);
-      return mergeImportedCard(card, existingCard, content);
+      const existingCard = card.sourceCardId ? existingCardsBySourceId.get(String(card.sourceCardId)) : null;
+      return mergeImportedCard(card, existingCard);
     }),
   });
 }
@@ -2557,10 +2222,6 @@ export function commitApkgImport(preview: any, options: any = {}) {
   if (graph.kind === "worker-import") {
     return { deck: preview.summary, decks: [preview.summary], commitGraph: graph, mediaFiles: preview.mediaFiles ?? [], report: preview.report };
   }
-  const content = {
-    definitions: new Map((graph.noteTypeDefinitions ?? []).map((definition: any) => [definition.id, definition])),
-    snapshots: new Map((graph.sourceSnapshots ?? []).map((snapshot: any) => [snapshot.id, snapshot])),
-  };
-  const decks = graph.decks.map((deck: Deck) => mergeImportedDeck(deck, options.existingDecks ?? [], content));
+  const decks = graph.decks.map((deck: Deck) => mergeImportedDeck(deck, options.existingDecks ?? []));
   return { deck: decks[0] ?? null, decks, commitGraph: { ...graph, decks }, mediaFiles: preview.mediaFiles ?? [], report: preview.report };
 }

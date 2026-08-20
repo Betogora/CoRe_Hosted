@@ -1,7 +1,6 @@
 import { compileSafeTemplate } from "./safeTemplate.ts";
 import type {
   FieldDefinition,
-  ForeignNoteSnapshot,
   LearningItemDocumentV1,
   NoteTypeDefinitionV1,
   ReviewRecipe,
@@ -53,29 +52,7 @@ function createNoteBundle(
     tags: [...input.tags],
     mediaRefs: [...new Set(input.mediaRefs)],
   };
-  const note = record(input.note);
-  const snapshotId = stableContentHash({
-    importFingerprint: input.importFingerprint,
-    noteId: note.id,
-    guid: note.guid,
-    definitionId: definition.id,
-    fields: input.fieldValues,
-    cards: jsonSafe(input.cards),
-  }, "anki-note-snapshot");
-  const snapshot: ForeignNoteSnapshot = {
-    id: snapshotId,
-    schemaVersion: 1,
-    sourceKind: "anki-apkg",
-    importFingerprint: input.importFingerprint,
-    previousSnapshotId: input.previousSnapshotId ?? null,
-    definitionVersionId: definition.id,
-    sourcePayload: {
-      note: jsonSafe(input.note),
-      cards: jsonSafe(input.cards),
-    },
-    createdAt: input.createdAt ?? new Date().toISOString(),
-  };
-  return { definition, document, snapshot };
+  return { definition, document };
 }
 
 function generationRule(model: Record<string, any>, templateOrdinal: number, fields: FieldDefinition[]): TemplateConditionAst {
@@ -111,7 +88,6 @@ export function createAnkiContentBundle(input: {
 }): {
   definition: NoteTypeDefinitionV1;
   document: LearningItemDocumentV1;
-  snapshot: ForeignNoteSnapshot;
 } {
   const model = record(input.model);
   const cachedDefinition = definitionCache.get(model);
@@ -194,14 +170,6 @@ export function createAnkiContentBundle(input: {
       pre: String(model.config?.latexPre ?? model.latexPre ?? ""),
       post: String(model.config?.latexPost ?? model.latexPost ?? ""),
       svg: Boolean(model.config?.latexSvg ?? model.latexsvg),
-    },
-    sourceDefinitionSnapshot: {
-      sourceFormat: model.config?.format === "protobuf-v18" ? "latest" : "legacy",
-      sourceNotetypeId: modelId,
-      sourceName: String(model.name ?? ""),
-      rawConfigBase64: sourceId(model.config?.rawBase64),
-      decodedConfig: jsonSafe(model.config) as Record<string, unknown>,
-      unknownData: jsonSafe(model) as Record<string, unknown>,
     },
     supersedesId: null,
     createdAt,

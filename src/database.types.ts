@@ -104,8 +104,6 @@ export type Database = {
       }
       card_variants: {
         Row: {
-          anchor_variant_id: string | null
-          answer_options_json: Json | null
           back: string
           card_id: string
           changed_recognition_cues: string[]
@@ -113,29 +111,17 @@ export type Database = {
           content_hash: string | null
           created_at: string
           deleted_at: string | null
-          expected_answer_json: Json | null
           explanation: string
           feedback: Json
           front: string
-          generation_source: string
-          hints_json: Json | null
           id: string
           is_active: boolean
-          is_original: boolean
           meta: Json
           model_run_id: string | null
-          parent_variant_id: string | null
           performance: Json
-          projection: Json
           quality_status: string
-          render_revision: number
-          review_state: Json
           revision: number
-          scheduling_mode: string
           semantic_delta: string | null
-          source_anchors: Json
-          source_card_id: string
-          study_deck_id: string | null
           sync_change_id: number
           transform_profile: Json
           transform_type: string
@@ -144,11 +130,8 @@ export type Database = {
           user_id: string
           variant_level: number
           variant_type: string
-          version_log: Json
         }
         Insert: {
-          anchor_variant_id?: string | null
-          answer_options_json?: Json | null
           back?: string
           card_id: string
           changed_recognition_cues?: string[]
@@ -156,42 +139,27 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           deleted_at?: string | null
-          expected_answer_json?: Json | null
           explanation?: string
           feedback?: Json
           front?: string
-          generation_source?: string
-          hints_json?: Json | null
           id: string
           is_active?: boolean
-          is_original?: boolean
           meta?: Json
           model_run_id?: string | null
-          parent_variant_id?: string | null
           performance?: Json
-          projection?: Json
           quality_status?: string
-          render_revision?: number
-          review_state?: Json
           revision?: number
-          scheduling_mode?: string
           semantic_delta?: string | null
-          source_anchors?: Json
-          source_card_id: string
-          study_deck_id?: string | null
           sync_change_id?: number
           transform_profile?: Json
-          transform_type: string
+          transform_type?: string
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
           variant_level?: number
           variant_type?: string
-          version_log?: Json
         }
         Update: {
-          anchor_variant_id?: string | null
-          answer_options_json?: Json | null
           back?: string
           card_id?: string
           changed_recognition_cues?: string[]
@@ -199,29 +167,17 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           deleted_at?: string | null
-          expected_answer_json?: Json | null
           explanation?: string
           feedback?: Json
           front?: string
-          generation_source?: string
-          hints_json?: Json | null
           id?: string
           is_active?: boolean
-          is_original?: boolean
           meta?: Json
           model_run_id?: string | null
-          parent_variant_id?: string | null
           performance?: Json
-          projection?: Json
           quality_status?: string
-          render_revision?: number
-          review_state?: Json
           revision?: number
-          scheduling_mode?: string
           semantic_delta?: string | null
-          source_anchors?: Json
-          source_card_id?: string
-          study_deck_id?: string | null
           sync_change_id?: number
           transform_profile?: Json
           transform_type?: string
@@ -230,7 +186,6 @@ export type Database = {
           user_id?: string
           variant_level?: number
           variant_type?: string
-          version_log?: Json
         }
         Relationships: [
           {
@@ -238,13 +193,6 @@ export type Database = {
             columns: ["card_id", "user_id"]
             isOneToOne: false
             referencedRelation: "cards"
-            referencedColumns: ["id", "user_id"]
-          },
-          {
-            foreignKeyName: "card_variants_study_deck_owner_fk"
-            columns: ["study_deck_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "decks"
             referencedColumns: ["id", "user_id"]
           },
         ]
@@ -260,30 +208,25 @@ export type Database = {
           deleted_at: string | null
           draft_status: string
           id: string
-          immutable_original: Json
           kind: string
-          latest_source_snapshot_id: string | null
           media_refs: string[]
           meta: Json
-          note_id: string | null
           note_type_definition_id: string | null
           original_back: string
           original_fields: Json
           original_front: string
           original_html: string
           original_tags: string[]
+          projection: Json
           review_state: Json
           revision: number
           source: string
-          source_anchors: Json
           source_card_id: string | null
-          source_note_id: string | null
           status: string
           sync_change_id: number
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
-          version_log: Json
         }
         Insert: {
           content_document?: Json
@@ -295,30 +238,25 @@ export type Database = {
           deleted_at?: string | null
           draft_status?: string
           id: string
-          immutable_original?: Json
           kind: string
-          latest_source_snapshot_id?: string | null
           media_refs?: string[]
           meta?: Json
-          note_id?: string | null
           note_type_definition_id?: string | null
           original_back?: string
           original_fields?: Json
           original_front?: string
           original_html?: string
           original_tags?: string[]
+          projection?: Json
           review_state?: Json
           revision?: number
           source: string
-          source_anchors?: Json
           source_card_id?: string | null
-          source_note_id?: string | null
           status?: string
           sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
-          version_log?: Json
         }
         Update: {
           content_document?: Json
@@ -330,30 +268,25 @@ export type Database = {
           deleted_at?: string | null
           draft_status?: string
           id?: string
-          immutable_original?: Json
           kind?: string
-          latest_source_snapshot_id?: string | null
           media_refs?: string[]
           meta?: Json
-          note_id?: string | null
           note_type_definition_id?: string | null
           original_back?: string
           original_fields?: Json
           original_front?: string
           original_html?: string
           original_tags?: string[]
+          projection?: Json
           review_state?: Json
           revision?: number
           source?: string
-          source_anchors?: Json
           source_card_id?: string | null
-          source_note_id?: string | null
           status?: string
           sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
-          version_log?: Json
         }
         Relationships: [
           {
@@ -362,13 +295,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "decks"
             referencedColumns: ["id", "user_id"]
-          },
-          {
-            foreignKeyName: "cards_latest_source_snapshot_owner_fk"
-            columns: ["id", "user_id", "latest_source_snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "learning_item_source_snapshots"
-            referencedColumns: ["card_id", "user_id", "id"]
           },
           {
             foreignKeyName: "cards_note_type_definition_owner_fk"
@@ -450,7 +376,6 @@ export type Database = {
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
-          version_log: Json
         }
         Insert: {
           card_count?: number
@@ -472,7 +397,6 @@ export type Database = {
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
-          version_log?: Json
         }
         Update: {
           card_count?: number
@@ -494,73 +418,8 @@ export type Database = {
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
-          version_log?: Json
         }
         Relationships: []
-      }
-      learning_item_source_snapshots: {
-        Row: {
-          card_id: string
-          created_at: string
-          id: string
-          import_fingerprint: string
-          note_type_definition_id: string | null
-          previous_snapshot_id: string | null
-          schema_version: number
-          source_kind: string
-          source_payload: Json
-          sync_change_id: number
-          user_id: string
-        }
-        Insert: {
-          card_id: string
-          created_at?: string
-          id: string
-          import_fingerprint: string
-          note_type_definition_id?: string | null
-          previous_snapshot_id?: string | null
-          schema_version?: number
-          source_kind: string
-          source_payload?: Json
-          sync_change_id?: number
-          user_id: string
-        }
-        Update: {
-          card_id?: string
-          created_at?: string
-          id?: string
-          import_fingerprint?: string
-          note_type_definition_id?: string | null
-          previous_snapshot_id?: string | null
-          schema_version?: number
-          source_kind?: string
-          source_payload?: Json
-          sync_change_id?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "learning_item_source_snapshots_card_owner_fk"
-            columns: ["card_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "cards"
-            referencedColumns: ["id", "user_id"]
-          },
-          {
-            foreignKeyName: "learning_item_source_snapshots_note_type_owner_fk"
-            columns: ["note_type_definition_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "note_type_definitions"
-            referencedColumns: ["id", "user_id"]
-          },
-          {
-            foreignKeyName: "learning_item_source_snapshots_previous_owner_fk"
-            columns: ["card_id", "user_id", "previous_snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "learning_item_source_snapshots"
-            referencedColumns: ["card_id", "user_id", "id"]
-          },
-        ]
       }
       media_assets: {
         Row: {
@@ -866,60 +725,6 @@ export type Database = {
           },
         ]
       }
-      source_documents: {
-        Row: {
-          created_at: string
-          deleted_at: string | null
-          file_name: string
-          id: string
-          local_owner_id: string | null
-          metadata: Json
-          mime_type: string
-          revision: number
-          storage_url: string
-          sync_change_id: number
-          text: string
-          text_extraction_status: string
-          updated_at: string
-          updated_by_device_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          deleted_at?: string | null
-          file_name: string
-          id: string
-          local_owner_id?: string | null
-          metadata?: Json
-          mime_type?: string
-          revision?: number
-          storage_url?: string
-          sync_change_id?: number
-          text?: string
-          text_extraction_status?: string
-          updated_at?: string
-          updated_by_device_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          deleted_at?: string | null
-          file_name?: string
-          id?: string
-          local_owner_id?: string | null
-          metadata?: Json
-          mime_type?: string
-          revision?: number
-          storage_url?: string
-          sync_change_id?: number
-          text?: string
-          text_extraction_status?: string
-          updated_at?: string
-          updated_by_device_id?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       sync_conflicts: {
         Row: {
           base_revision: number | null
@@ -1053,7 +858,6 @@ export type Database = {
           p_event: Json
           p_variant_id: string
           p_variant_performance: Json
-          p_variant_review_state: Json
           p_variant_updated_at: string
         }
         Returns: Json

@@ -18,7 +18,6 @@ const CONTRACT_TESTS = new Set([
   "src/cloudMediaStore.test.ts",
   "src/coreTypes.test.ts",
   "src/creationWorkflow.test.ts",
-  "src/dataPortability.test.ts",
   "src/localE2EEnvironment.test.ts",
   "src/normalizedImport.test.ts",
 ]);
