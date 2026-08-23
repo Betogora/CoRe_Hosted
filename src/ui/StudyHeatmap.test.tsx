@@ -3,17 +3,25 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createStudyHeatmapModelFromCounts } from "../studyHeatmapModel.ts";
-import { StudyHeatmap } from "./StudyHeatmap.tsx";
+import {
+  HEATMAP_HISTORY_COLOR_PRESETS,
+  HEATMAP_HISTORY_COLOR_STORAGE_KEY,
+  HEATMAP_HISTORY_DEFAULT_COLOR,
+  StudyHeatmap,
+} from "./StudyHeatmap.tsx";
 
 function renderHeatmapAt(
   period: "week" | "month" | "year",
   anchorKey: string,
   forecastCountsByDay: ReadonlyMap<string, number> = new Map(),
+  historyColor = HEATMAP_HISTORY_DEFAULT_COLOR,
 ) {
   const originalUseState = React.useState;
   let stateIndex = 0;
-  React.useState = (() => {
-    const value = stateIndex === 0 ? period : anchorKey;
+  React.useState = ((initialState: unknown) => {
+    const controlledValues = [period, anchorKey, historyColor];
+    if (stateIndex >= controlledValues.length) return originalUseState(initialState);
+    const value = controlledValues[stateIndex];
     stateIndex += 1;
     return [value, () => undefined];
   }) as typeof React.useState;
@@ -54,6 +62,8 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   assert.match(markup, /core-study-heatmap-container/);
   assert.match(markup, /core-study-heatmap-header/);
   assert.match(markup, /core-study-heatmap-controls/);
+  assert.match(markup, /data-heatmap-history-color="#975c92"/);
+  assert.match(markup, /aria-label="Heatmap-Farbe ändern"/);
   assert.match(markup, /data-size="regular"/);
   assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 3);
   assert.equal((markup.match(/inline-flex size-11 shrink-0/g) ?? []).length, 2);
@@ -66,6 +76,8 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   assert.match(markup, /Spätere sieben Tage anzeigen/);
   assert.match(markup, /data-testid="study-heatmap-grid"[^>]*data-heatmap-period="week"/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
+  assert.match(markup, /h-20 w-full max-w-\[4\.5rem\] rounded-xl sm:h-24/);
+  assert.match(markup, /data-heatmap-day="2026-07-07"[\s\S]*?<span class="font-semibold">Di<\/span>[\s\S]*?<span>07\.07\.<\/span>/);
   assert.match(markup, /2026-07-07: 3 Wiederholungen/);
   assert.match(markup, /data-testid="study-heatmap-legend"[\s\S]*Weniger[\s\S]*Mehr/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
@@ -92,10 +104,29 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
   assert.match(streakMarkup, /3 Tage Streak/);
 });
 
-test("shared study heatmap keeps the month calendar compact on wide panels", () => {
+test("shared study heatmap fills wide panels with compact month gutters", () => {
   const markup = renderHeatmapAt("month", "2026-08-10");
 
-  assert.match(markup, /class="mx-auto w-full max-w-\[30rem\]" role="img" data-testid="study-heatmap-grid" data-heatmap-period="month"/);
+  assert.match(markup, /class="w-full" role="img" data-testid="study-heatmap-grid" data-heatmap-period="month"/);
+  assert.match(markup, /class="grid grid-cols-7 gap-1\.5 sm:gap-2"/);
+  assert.match(markup, /h-14 w-full rounded-lg/);
+  assert.doesNotMatch(markup, /max-w-\[30rem\]|max-w-14/);
+});
+
+test("shared study heatmap offers the CoRe palette and applies a custom history scale", () => {
+  assert.equal(HEATMAP_HISTORY_COLOR_STORAGE_KEY, "core.studyHeatmap.historyColor.v1");
+  assert.deepEqual(HEATMAP_HISTORY_COLOR_PRESETS, [
+    { color: "#975c92", label: "CoRe-Standard" },
+    { color: "#6f7e9e", label: "CoRe Slate" },
+    { color: "#e28b68", label: "CoRe Coral" },
+    { color: "#d6a3d2", label: "CoRe Lilac" },
+    { color: "#e4bf63", label: "CoRe Marigold" },
+  ]);
+
+  const markup = renderHeatmapAt("week", "2026-08-10", new Map(), "#e28b68");
+  assert.match(markup, /data-heatmap-history-color="#e28b68"/);
+  assert.match(markup, /--core-heatmap-history-level-1:color-mix\(in srgb, var\(--core-surface\) 84%, #e28b68\)/);
+  assert.match(markup, /--core-heatmap-history-level-4:#e28b68/);
 });
 
 test("shared study heatmap renders forecast copy and gray levels without changing the historical legend", () => {

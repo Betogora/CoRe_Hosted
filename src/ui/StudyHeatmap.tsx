@@ -8,6 +8,8 @@ import {
   type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { normalizeColor } from "./colorMath.ts";
+import { ColorWheelPicker } from "./ColorWheelPicker.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 const heatmapToneByLevel = [
@@ -24,6 +26,15 @@ const forecastToneByLevel = [
   "core-heatmap-forecast-level-3",
   "core-heatmap-forecast-level-4",
 ];
+export const HEATMAP_HISTORY_DEFAULT_COLOR = "#975c92";
+export const HEATMAP_HISTORY_COLOR_STORAGE_KEY = "core.studyHeatmap.historyColor.v1";
+export const HEATMAP_HISTORY_COLOR_PRESETS = [
+  { color: HEATMAP_HISTORY_DEFAULT_COLOR, label: "CoRe-Standard" },
+  { color: "#6f7e9e", label: "CoRe Slate" },
+  { color: "#e28b68", label: "CoRe Coral" },
+  { color: "#d6a3d2", label: "CoRe Lilac" },
+  { color: "#e4bf63", label: "CoRe Marigold" },
+] as const;
 const PERIOD_OPTIONS: Array<{ value: StudyHeatmapPeriod; label: string }> = [
   { value: "week", label: "Woche" },
   { value: "month", label: "Monat" },
@@ -36,6 +47,34 @@ const PERIOD_NAVIGATION_LABELS: Record<StudyHeatmapPeriod, { previous: string; n
 };
 const UTC_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", timeZone: "UTC" });
 const UTC_MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+
+function readStoredHeatmapColor() {
+  if (typeof window === "undefined") return HEATMAP_HISTORY_DEFAULT_COLOR;
+  try {
+    return normalizeColor(window.localStorage.getItem(HEATMAP_HISTORY_COLOR_STORAGE_KEY), HEATMAP_HISTORY_DEFAULT_COLOR);
+  } catch {
+    return HEATMAP_HISTORY_DEFAULT_COLOR;
+  }
+}
+
+function writeStoredHeatmapColor(color: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(HEATMAP_HISTORY_COLOR_STORAGE_KEY, color);
+  } catch {
+    // Die Heatmap bleibt auch ohne browserlokale Farbpersistenz bedienbar.
+  }
+}
+
+function createHeatmapColorStyle(color: string) {
+  if (color === HEATMAP_HISTORY_DEFAULT_COLOR) return undefined;
+  return {
+    "--core-heatmap-history-level-1": `color-mix(in srgb, var(--core-surface) 84%, ${color})`,
+    "--core-heatmap-history-level-2": `color-mix(in srgb, var(--core-surface) 65%, ${color})`,
+    "--core-heatmap-history-level-3": `color-mix(in srgb, var(--core-surface) 38%, ${color})`,
+    "--core-heatmap-history-level-4": color,
+  } as React.CSSProperties;
+}
 
 function dateFromKey(key: string) {
   return new Date(`${key}T12:00:00Z`);
@@ -127,12 +166,13 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
       aria-label={`Lern-Heatmap von ${window.rangeStartKey} bis ${window.rangeEndKey}`}
     >
       {window.days.map((day) => (
-        <div key={day.key} className="grid min-w-0 justify-items-center gap-1.5">
-          <span className="text-center text-[0.68rem] font-semibold text-core-muted">
-            <span className="block">{weekdayLabel(day.key)}</span>
-            <span className="block font-normal">{compactDate(day.key)}</span>
-          </span>
-          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
+        <div key={day.key} className="grid min-w-0 justify-items-center">
+          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="h-20 w-full max-w-[4.5rem] rounded-xl sm:h-24">
+            <span className="grid gap-1 text-center text-[0.68rem] text-core-text">
+              <span className="font-semibold">{weekdayLabel(day.key)}</span>
+              <span>{compactDate(day.key)}</span>
+            </span>
+          </HeatmapDayCell>
         </div>
       ))}
     </div>
@@ -142,7 +182,7 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
 function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; formatDayLabel: (day: StudyHeatmapDay) => string }) {
   return (
     <div
-      className="mx-auto w-full max-w-[30rem]"
+      className="w-full"
       role="img"
       data-testid="study-heatmap-grid"
       data-heatmap-period="month"
@@ -151,9 +191,9 @@ function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; 
       <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2" aria-hidden="true">
         {window.weekdayLabels.map((label) => <span key={label} className="text-center text-[0.68rem] font-semibold text-core-muted">{label}</span>)}
       </div>
-      <div className="grid grid-cols-7 justify-items-center gap-1.5 sm:gap-2">
+      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {window.days.map((day) => (
-          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-14 rounded-lg">
+          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="h-14 w-full rounded-lg">
             <span className="core-caption font-semibold text-core-text">{day.dayOfMonth}</span>
           </HeatmapDayCell>
         ))}
@@ -230,6 +270,7 @@ export function StudyHeatmap({
 }) {
   const [period, setPeriod] = React.useState<StudyHeatmapPeriod>("week");
   const [anchorKey, setAnchorKey] = React.useState<string | null>(null);
+  const [historyColor, setHistoryColor] = React.useState(readStoredHeatmapColor);
   const yearScrollerRef = React.useRef<HTMLDivElement | null>(null);
   const visibleHeatmap = React.useMemo(
     () => createStudyHeatmapWindow(heatmap, { period, anchorKey }),
@@ -238,6 +279,15 @@ export function StudyHeatmap({
   const navigationLabels = PERIOD_NAVIGATION_LABELS[period];
 
   React.useEffect(() => setAnchorKey(null), [heatmap.todayKey]);
+  React.useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === HEATMAP_HISTORY_COLOR_STORAGE_KEY) {
+        setHistoryColor(normalizeColor(event.newValue, HEATMAP_HISTORY_DEFAULT_COLOR));
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
   React.useLayoutEffect(() => {
     const scroller = yearScrollerRef.current;
     if (period !== "year" || !scroller) return;
@@ -253,12 +303,29 @@ export function StudyHeatmap({
     setAnchorKey(null);
   };
 
+  const selectHistoryColor = (nextColor: string) => {
+    const normalizedColor = normalizeColor(nextColor, HEATMAP_HISTORY_DEFAULT_COLOR);
+    setHistoryColor(normalizedColor);
+    writeStoredHeatmapColor(normalizedColor);
+  };
+
   return (
-    <SoftPanel className={`core-study-heatmap-container p-4 sm:p-7 ${className}`}>
+    <SoftPanel
+      className={`core-study-heatmap-container p-4 sm:p-7 ${className}`}
+      style={createHeatmapColorStyle(historyColor)}
+      data-heatmap-history-color={historyColor}
+    >
       <div className="core-study-heatmap-header grid items-center gap-4" data-testid="study-heatmap-header">
         <div className="flex min-w-0 items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
           <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
+          <ColorWheelPicker
+            value={historyColor}
+            ariaLabel="Heatmap-Farbe ändern"
+            className="ml-auto"
+            presetColors={HEATMAP_HISTORY_COLOR_PRESETS}
+            onValueCommit={selectHistoryColor}
+          />
         </div>
         <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap">
           <CoreSegmentedControl

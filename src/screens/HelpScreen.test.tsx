@@ -40,6 +40,7 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.equal((markup.match(/hover:border-t-4/g) ?? []).length, 2);
   assert.equal((markup.match(/core-help-method-link/g) ?? []).length, 2);
   assert.match(markup, /id="active-recall-heading"[^>]*>Active Recall<\/h2>/);
+  assert.match(markup, /xl:grid-cols-\[minmax\(0,0\.9fr\)_minmax\(20rem,1\.1fr\)\]/);
   assert.doesNotMatch(markup, /Active Recall hält den Fokus auf dem Inhalt/);
   assert.doesNotMatch(markup, /Eine Antwort, wechselnde Abrufreize/);
   assert.match(markup, /data-active-recall-card="stack"/);
@@ -47,10 +48,11 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.doesNotMatch(markup, /place-items-center rounded-\[24px\][^\"]*bg-core-info-soft[^\"]*p-6/);
   assert.match(markup, /Welcher Teil des autonomen<\/span> <span data-recall-question-body="true">Nervensystems ist in erster Linie dafür verantwortlich/);
   assert.match(markup, /data-testid="active-recall-question"/);
+  assert.match(markup, /class="core-help-card-question text-core-text" data-testid="active-recall-question"/);
   assert.match(markup, /data-testid="active-recall-question-suffix"/);
   assert.match(markup, /data-testid="active-recall-divider"/);
-  assert.match(markup, /data-testid="active-recall-answer"/);
-  assert.equal((markup.match(/core-help-card-copy/g) ?? []).length, 2);
+  assert.match(markup, /class="mt-4 core-help-card-options text-core-text" data-testid="active-recall-answer"/);
+  assert.equal((markup.match(/core-help-card-question/g) ?? []).length, 2);
   assert.match(markup, /Je vertrauter die Kartenform wird, desto schwächer wird der aktive Abruf des Inhalts/);
   assert.match(markup, /CoRe verändert die Frage, nicht das Wissen/);
   assert.match(markup, /jedes Mal erneut aktiv abrufst – Smarter Recall/);
@@ -86,7 +88,8 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.equal((markup.match(/data-testid="active-recall-step-/g) ?? []).length, 3);
   assert.equal((markup.match(/data-testid="spaced-repetition-step-/g) ?? []).length, 6);
   assert.equal((markup.match(/data-story-step=/g) ?? []).length, 9);
-  assert.equal((markup.match(/data-testid="memory-parameter-/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-testid="memory-parameter-/g) ?? []).length, 3);
+  assert.match(markup, /<button(?=[^>]*data-testid="memory-parameter-r")(?=[^>]*aria-pressed="false")[^>]*>R · Abrufwahrscheinlichkeit<\/button>/);
   assert.equal((markup.match(/data-testid="memory-review-point-/g) ?? []).length, 2);
   assert.equal((markup.match(/data-testid="memory-rating-path-/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="memory-stability-arrow-/g) ?? []).length, 4);

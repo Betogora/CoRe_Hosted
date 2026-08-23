@@ -277,10 +277,10 @@
     border-color: var(--core-border);
   }
 
-  .core-heatmap-level-1 { --core-heatmap-tone: var(--core-success-surface); }
-  .core-heatmap-level-2 { --core-heatmap-tone: color-mix(in srgb, var(--core-success-surface) 55%, var(--core-success)); }
-  .core-heatmap-level-3 { --core-heatmap-tone: var(--core-palette-lilac); }
-  .core-heatmap-level-4 { --core-heatmap-tone: var(--core-deck-new-text); }
+  .core-heatmap-level-1 { --core-heatmap-tone: var(--core-heatmap-history-level-1, var(--core-success-surface)); }
+  .core-heatmap-level-2 { --core-heatmap-tone: var(--core-heatmap-history-level-2, color-mix(in srgb, var(--core-success-surface) 55%, var(--core-success))); }
+  .core-heatmap-level-3 { --core-heatmap-tone: var(--core-heatmap-history-level-3, var(--core-palette-lilac)); }
+  .core-heatmap-level-4 { --core-heatmap-tone: var(--core-heatmap-history-level-4, var(--core-deck-new-text)); }
 
   .core-heatmap-forecast-level-0,
   .core-heatmap-forecast-level-1,

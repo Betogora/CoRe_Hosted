@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 10430fe1a29094b6 */
+/* Quellenstand: bc3798b9f98d3866 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -532,10 +532,10 @@ video {
     border-color: var(--core-border);
   }
 
-  .core-heatmap-level-1 { --core-heatmap-tone: var(--core-success-surface); }
-  .core-heatmap-level-2 { --core-heatmap-tone: color-mix(in srgb, var(--core-success-surface) 55%, var(--core-success)); }
-  .core-heatmap-level-3 { --core-heatmap-tone: var(--core-palette-lilac); }
-  .core-heatmap-level-4 { --core-heatmap-tone: var(--core-deck-new-text); }
+  .core-heatmap-level-1 { --core-heatmap-tone: var(--core-heatmap-history-level-1, var(--core-success-surface)); }
+  .core-heatmap-level-2 { --core-heatmap-tone: var(--core-heatmap-history-level-2, color-mix(in srgb, var(--core-success-surface) 55%, var(--core-success))); }
+  .core-heatmap-level-3 { --core-heatmap-tone: var(--core-heatmap-history-level-3, var(--core-palette-lilac)); }
+  .core-heatmap-level-4 { --core-heatmap-tone: var(--core-heatmap-history-level-4, var(--core-deck-new-text)); }
 
   .core-surface {
     border: 1px solid var(--core-border);

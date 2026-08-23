@@ -203,7 +203,8 @@ const MEMORY_TERMS: readonly MemoryTerm[] = [
   { term: "Original und Variante", description: "Verschiedene Fragen zur gleichen Wissenseinheit." },
 ];
 
-const PARAMETER_POSITIONS: Record<Exclude<ParameterId, "r">, { left: string; top: string }> = {
+const PARAMETER_POSITIONS: Record<ParameterId, { left: string; top: string }> = {
+  r: { left: "1.5rem", top: "36.7%" },
   d: { left: "52%", top: "1%" },
   s: { left: "52%", top: "80%" },
 };
@@ -479,7 +480,7 @@ function IntroSection() {
 
 function RecallQuestion({ obscured }: { obscured: boolean }) {
   return (
-    <p className="core-help-card-copy text-core-text" data-testid="active-recall-question">
+    <p className="core-help-card-question text-core-text" data-testid="active-recall-question">
       <span className="text-core-warning">Welcher Teil des autonomen</span>{" "}
       <span
         className={obscured ? "core-obscured-recall-text" : undefined}
@@ -501,7 +502,7 @@ function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
       <div className="w-full max-w-xl text-center">
         <RecallQuestion obscured={obscured} />
         <HelpCardDivider testId="active-recall-divider" />
-        <p className="mt-4 core-help-card-copy text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
+        <p className="mt-4 core-help-card-options text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
       </div>
     </HelpExampleCardStack>
   );
@@ -555,7 +556,7 @@ function ActiveRecallStory() {
         <p className="core-control-label uppercase tracking-wide text-core-action">Methode 1</p>
         <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Active Recall</h2>
       </div>
-      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] xl:gap-12">
+      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] xl:gap-12">
         <div className="min-w-0 self-start xl:sticky xl:top-6">
           <ActiveRecallVisual activeIndex={activeIndex} />
         </div>
@@ -609,7 +610,6 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
 
             <line x1="72" y1="420" x2="928" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
             <line x1="72" y1="52" x2="72" y2="420" stroke="var(--core-border-interactive)" strokeWidth="2" />
-            <text x="14" y="198" transform="rotate(-90 14 198)" textAnchor="middle" fill="var(--core-text-muted)" fontSize="14">R · Abrufwahrscheinlichkeit</text>
             <text x="64" y="98" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">100 %</text>
             <text x="64" y="253" textAnchor="end" fill="var(--core-text-muted)" fontSize="14">90 %</text>
             <g data-testid="memory-y-axis-break" aria-hidden="true">
@@ -681,12 +681,12 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             <Sparkles size={19} />
           </span>
 
-          {(["s", "d"] as const).map((parameterId) => {
+          {(["r", "s", "d"] as const).map((parameterId) => {
             const nextSelection = parameterSelectionId(parameterId);
             const active = activeSelection === nextSelection;
-            const label = parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
+            const label = parameterId === "r" ? "R · Abrufwahrscheinlichkeit" : parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
             return (
-              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-11 -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
+              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-11 -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${parameterId === "r" ? "-translate-y-1/2 -rotate-90" : ""} ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
             );
           })}
 
