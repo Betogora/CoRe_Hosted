@@ -3,7 +3,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { LearningItemDocumentV1 } from "../coreTypes.ts";
 import { applyLearningItemContent, createCoreNoteTypeDefinition } from "../coreModel.ts";
-import { CardPresentationSurface } from "./CardPresentationSurface.tsx";
+import { CardPresentationSurface, fitReviewFrameToContent } from "./CardPresentationSurface.tsx";
 
 const now = "2026-08-11T12:00:00.000Z";
 
@@ -82,4 +82,31 @@ test("renders review content without a framed card surface", () => {
   assert.doesNotMatch(iframe, /allow-scripts/);
   assert.match(iframe, /border-0 bg-transparent/);
   assert.doesNotMatch(iframe, /rounded-xl|border-\[var\(--core-border\)\]|bg-core-surface/);
+});
+
+test("remeasures review content from a collapsed frame instead of retaining a tall previous card", () => {
+  const style = { height: "900px" };
+  const heightsAtMeasurement: string[] = [];
+  const frameDocument = {
+    documentElement: {
+      get scrollHeight() {
+        heightsAtMeasurement.push(style.height);
+        return style.height === "1px" ? 48 : 900;
+      },
+    },
+    body: {
+      get scrollHeight() {
+        heightsAtMeasurement.push(style.height);
+        return style.height === "1px" ? 72.2 : 900;
+      },
+    },
+  };
+
+  fitReviewFrameToContent(
+    { style } as unknown as HTMLIFrameElement,
+    frameDocument as unknown as Document,
+  );
+
+  assert.deepEqual(heightsAtMeasurement, ["1px", "1px"]);
+  assert.equal(style.height, "73px");
 });

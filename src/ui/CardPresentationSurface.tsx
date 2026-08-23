@@ -47,6 +47,12 @@ function readPresentationTheme(): "light" | "dark" {
   return document.documentElement.dataset.coreTheme === "dark" ? "dark" : "light";
 }
 
+export function fitReviewFrameToContent(frame: HTMLIFrameElement, frameDocument: Document) {
+  frame.style.height = "1px";
+  const height = Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body.scrollHeight, 1);
+  frame.style.height = `${Math.ceil(height)}px`;
+}
+
 export interface CardPresentationSurfaceProps {
   item?: LearningItem | null;
   variant?: CardVariant | null;
@@ -106,6 +112,12 @@ export function CardPresentationSurface({
   );
   const descriptionId = React.useId();
 
+  React.useLayoutEffect(() => {
+    if (surface !== "review") return;
+    frameResizeObserverRef.current?.disconnect();
+    if (frameRef.current) frameRef.current.style.height = "1px";
+  }, [srcdoc, surface]);
+
   if (!effectivePresentation) {
     return <StatusMessage tone="info" announce="polite" className={className}>{loadingLabel}</StatusMessage>;
   }
@@ -120,14 +132,11 @@ export function CardPresentationSurface({
     const frame = frameRef.current;
     const frameDocument = frame?.contentDocument;
     if (!frame || !frameDocument) return;
-    const updateHeight = () => {
-      const height = Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body.scrollHeight, 1);
-      frame.style.height = `${Math.ceil(height)}px`;
-    };
+    const updateHeight = () => fitReviewFrameToContent(frame, frameDocument);
     frameResizeObserverRef.current?.disconnect();
     if (typeof ResizeObserver !== "undefined") {
       frameResizeObserverRef.current = new ResizeObserver(updateHeight);
-      frameResizeObserverRef.current.observe(frameDocument.documentElement);
+      frameResizeObserverRef.current.observe(frameDocument.body);
     }
     updateHeight();
   };
