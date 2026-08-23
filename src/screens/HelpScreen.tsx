@@ -363,6 +363,16 @@ function HelpExampleCardStack({
   );
 }
 
+function HelpCardDivider({ compact = false, testId }: { compact?: boolean; testId?: string }) {
+  return (
+    <div
+      className={`mx-auto mt-4 h-px bg-[var(--core-border-interactive)] ${compact ? "w-3/4 max-w-xs" : "w-4/5 max-w-sm"}`}
+      data-testid={testId}
+      aria-hidden="true"
+    />
+  );
+}
+
 function IntroCardStack() {
   return (
     <HelpExampleCardStack
@@ -371,13 +381,14 @@ function IntroCardStack() {
       frontTestId="help-intro-card-front"
       layerTestId="help-intro-card-layer"
     >
-      <div className="max-w-md">
-        <p className="core-heading-3 font-medium leading-8 text-core-text">
+      <div className="w-full max-w-md text-center">
+        <p className="core-help-card-question text-core-text">
           Welche <mark className="core-help-keyword">Grundsätze</mark> <mark className="core-help-keyword">nutzt CoRe</mark>, um das <mark className="core-help-keyword">Lernen</mark> möglichst <mark className="core-help-keyword">nachhaltig zu gestalten</mark>, und wie wurden sie im Vergleich zu herkömmlichen Lernmechanismen verbessert?
         </p>
-        <ol className="mt-6 grid gap-3 border-t border-[var(--core-border)] pt-5 core-heading-3 font-medium text-core-text">
-          <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
-          <li className="grid grid-cols-[1.5rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
+        <HelpCardDivider compact testId="help-intro-card-divider" />
+        <ol className="mx-auto mt-3 grid w-fit max-w-full gap-2 text-left core-help-card-options text-core-text">
+          <li className="grid grid-cols-[1.25rem_1fr] gap-2"><span className="text-core-secondary">1.</span><span>Active Recall <span className="text-core-warning">→</span> Smarter Recall</span></li>
+          <li className="grid grid-cols-[1.25rem_1fr] gap-2"><span className="text-core-secondary">2.</span><span>Spaced Repetition <span className="text-core-warning">→</span> Content Repetition</span></li>
         </ol>
       </div>
     </HelpExampleCardStack>
@@ -468,7 +479,7 @@ function IntroSection() {
 
 function RecallQuestion({ obscured }: { obscured: boolean }) {
   return (
-    <p className="core-heading-3 font-medium leading-8 text-core-text" data-testid="active-recall-question">
+    <p className="core-help-card-copy text-core-text" data-testid="active-recall-question">
       <span className="text-core-warning">Welcher Teil des autonomen</span>{" "}
       <span
         className={obscured ? "core-obscured-recall-text" : undefined}
@@ -487,10 +498,10 @@ function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
     <HelpExampleCardStack
       activeRecallCard={obscured ? "blur" : "stack"}
     >
-      <div className="max-w-xl text-center">
+      <div className="w-full max-w-xl text-center">
         <RecallQuestion obscured={obscured} />
-        <div className="mx-auto mt-6 h-px w-4/5 bg-[var(--core-border-interactive)]" data-testid="active-recall-divider" />
-        <p className="mt-5 core-heading-3 font-medium text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
+        <HelpCardDivider testId="active-recall-divider" />
+        <p className="mt-4 core-help-card-copy text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
       </div>
     </HelpExampleCardStack>
   );
@@ -510,11 +521,11 @@ function ActiveRecallVariantCards() {
             <Sparkle className="absolute bottom-0 left-0 fill-[var(--core-warning)]" size={13} />
           </span>
           <div className="w-full">
-            <p className="core-heading-3 font-medium leading-8 text-core-text">{variant.question}</p>
+            <p className="core-help-card-copy text-core-text">{variant.question}</p>
             {variant.showAnswer ? (
               <>
-                <div className="mx-auto mt-5 h-px w-4/5 bg-[var(--core-border-interactive)]" />
-                <p className="mt-4 w-full text-center core-heading-3 font-medium text-core-text">Der Parasympathikus</p>
+                <HelpCardDivider />
+                <p className="mt-4 w-full text-center core-help-card-copy text-core-text">Der Parasympathikus</p>
               </>
             ) : null}
           </div>

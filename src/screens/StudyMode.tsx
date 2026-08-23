@@ -300,8 +300,9 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
 
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      if (current) questionContentRef.current?.focus();
-      else if (answeredCount > 0 || hasWaitingLearningCards || limitReachedAtStart) completionHeadingRef.current?.focus();
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      if (current) questionContentRef.current?.focus({ preventScroll: true });
+      else if (answeredCount > 0 || hasWaitingLearningCards || limitReachedAtStart) completionHeadingRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
   }, [current?.learningItemId, current?.variantId, answeredCount, hasWaitingLearningCards, limitReachedAtStart]);
@@ -388,7 +389,7 @@ export function StudyMode({ deck, decks, noteTypeDefinitions = [], deckId, varia
         />
 
         <section className="grid flex-1 place-items-center py-8">
-          <div className="core-study-card flex min-h-[56vh] w-full flex-col justify-center py-6 sm:py-10">
+          <div className="core-study-card flex w-full flex-col justify-center py-6 sm:py-10">
             {current ? (
               <>
                 <div className="w-full">

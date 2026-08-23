@@ -12,8 +12,10 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.equal((markup.match(/class="core-help-keyword"/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="help-intro-card-layer"/g) ?? []).length, 2);
   assert.match(markup, /data-testid="help-intro-card-front"/);
-  assert.match(markup, /class="core-heading-3 font-medium leading-8 text-core-text">Welche/);
-  assert.match(markup, /class="mt-6 grid gap-3 border-t border-\[var\(--core-border\)\] pt-5 core-heading-3 font-medium text-core-text"/);
+  assert.match(markup, /class="core-help-card-question text-core-text">Welche/);
+  assert.match(markup, /data-testid="help-intro-card-divider"/);
+  assert.match(markup, /mx-auto mt-4 h-px bg-\[var\(--core-border-interactive\)\] w-3\/4 max-w-xs/);
+  assert.match(markup, /class="mx-auto mt-3 grid w-fit max-w-full gap-2 text-left core-help-card-options text-core-text"/);
   assert.match(markup, /core-help-stack-layer-back/);
   assert.match(markup, /core-help-stack-layer-middle/);
   assert.equal((markup.match(/data-help-example-stack="true"/g) ?? []).length, 2);
@@ -48,6 +50,7 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.match(markup, /data-testid="active-recall-question-suffix"/);
   assert.match(markup, /data-testid="active-recall-divider"/);
   assert.match(markup, /data-testid="active-recall-answer"/);
+  assert.equal((markup.match(/core-help-card-copy/g) ?? []).length, 2);
   assert.match(markup, /Je vertrauter die Kartenform wird, desto schwächer wird der aktive Abruf des Inhalts/);
   assert.match(markup, /CoRe verändert die Frage, nicht das Wissen/);
   assert.match(markup, /jedes Mal erneut aktiv abrufst – Smarter Recall/);
