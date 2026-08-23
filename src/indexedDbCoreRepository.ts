@@ -844,6 +844,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       { decks: next.map((deck) => ({ ...deck, cards: [], reviewEvents: [] } as Deck)) },
     ));
     shell = { ...shell!, decks: [...next, ...shell!.decks.filter((deck) => !replacementIds.has(deck.id))], updatedAt };
+    for (const deck of next) {
+      const cached = hydratedDecks.get(deck.id);
+      if (cached) hydratedDecks.set(deck.id, { ...cached, ...deck, cards: cached.cards, reviewEvents: cached.reviewEvents });
+    }
     void enqueueWrite(async () => {
       const transaction = database.transaction([STORE.decks, STORE.outbox, STORE.meta], "readwrite");
       for (const deck of next) transaction.objectStore(STORE.decks).put(deck);
@@ -1874,7 +1878,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         retryCount: 0,
         lastError: null,
       };
-      const deckSummary = deckRecord(deck) as WorkspaceDeckSummary;
+      const reviewDeckSummary = deckRecord(deck) as WorkspaceDeckSummary;
+      const currentDeckSummary = shell!.decks.find((candidate) => candidate.id === deck.id);
+      const deckSummary = {
+        ...reviewDeckSummary,
+        ...currentDeckSummary,
+        updatedAt: deck.updatedAt,
+      } as WorkspaceDeckSummary;
       shell = {
         ...shell!,
         decks: shell!.decks.map((candidate) => candidate.id === deck.id ? deckSummary : candidate),

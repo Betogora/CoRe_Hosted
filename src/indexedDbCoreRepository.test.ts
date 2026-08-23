@@ -4,6 +4,7 @@ import test from "node:test";
 import { IDBKeyRange, indexedDB } from "fake-indexeddb";
 import { createBasicLearningItem, createCoreDeck, createReviewState } from "./coreModel.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
+import { answerVariant } from "./reviewService.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
 
@@ -32,6 +33,41 @@ test("liest Karten deterministisch aus dem neuen leeren Namespace", async () => 
   assert.equal(second.items.length, 5);
   assert.equal(first.selectedCard, null);
   repository.close();
+});
+
+test("eine Bewertung aus einer alten Sitzung überschreibt keine neu gespeicherten Stapeleinstellungen", async () => {
+  const userId = randomUUID();
+  const initialState = workspaceState(1);
+  const repository = await createIndexedDbCoreRepository({ userId, initialState, indexedDb: indexedDB as any });
+  const staleSessionDeck = initialState.decks[0];
+  const currentDeck = repository.getShellState().decks[0];
+  const desiredRetention = 0.96;
+
+  repository.saveDeckMetadata([{
+    ...currentDeck,
+    deckSettings: {
+      ...currentDeck.deckSettings,
+      schedulerProfile: {
+        ...currentDeck.deckSettings.schedulerProfile,
+        presetId: "custom",
+        desiredRetention,
+      },
+    },
+    updatedAt: "2026-08-20T07:59:00.000Z",
+  }]);
+
+  const result = answerVariant(staleSessionDeck, "card-0", null, "good", {
+    now: "2026-08-20T08:00:00.000Z",
+  });
+  repository.recordReview(result);
+  await repository.flush();
+
+  assert.equal(repository.getShellState().decks[0].deckSettings.schedulerProfile.desiredRetention, desiredRetention);
+  repository.close();
+
+  const reopened = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  assert.equal(reopened.getShellState().decks[0].deckSettings.schedulerProfile.desiredRetention, desiredRetention);
+  reopened.close();
 });
 
 test("plant mehrere Karten in einer lokalen Transaktion neu", async () => {

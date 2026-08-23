@@ -678,9 +678,11 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   const initialNewCards = initialDeck.deckSettings.newCardsPerDay;
   const initialMaximumReviews = initialDeck.deckSettings.maximumReviewsPerDay;
   const initialMaximumInterval = initialDeck.deckSettings.schedulerProfile.maximumIntervalDays;
+  const initialRetentionPercent = Math.round(initialDeck.deckSettings.schedulerProfile.desiredRetention * 100);
   const nextNewCards = initialNewCards === 17 ? 18 : 17;
   const nextMaximumReviews = initialMaximumReviews === 240 ? 250 : 240;
   const nextMaximumInterval = initialMaximumInterval === 777 ? 778 : 777;
+  const nextRetentionPercent = initialRetentionPercent === 96 ? 95 : 96;
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
@@ -739,6 +741,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     await field.pressSequentially(String(nextValue));
     await expect(field).toHaveValue(String(nextValue));
   }
+  await page.getByTestId("learning-settings-retention").fill(String(nextRetentionPercent));
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar).toHaveCount(1);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.newCardsPerDay).toBe(initialNewCards);
@@ -760,6 +763,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
       newCardsPerDay: deck.deckSettings.newCardsPerDay,
       maximumReviewsPerDay: deck.deckSettings.maximumReviewsPerDay,
       maximumIntervalDays: deck.deckSettings.schedulerProfile.maximumIntervalDays,
+      desiredRetention: deck.deckSettings.schedulerProfile.desiredRetention,
       variantThresholdXp: deck.deckSettings.variantThresholdXp,
       maxActiveVariantsPerCard: deck.deckSettings.maxActiveVariantsPerCard,
     };
@@ -767,6 +771,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     newCardsPerDay: nextNewCards,
     maximumReviewsPerDay: nextMaximumReviews,
     maximumIntervalDays: nextMaximumInterval,
+    desiredRetention: nextRetentionPercent / 100,
     variantThresholdXp: 181,
     maxActiveVariantsPerCard: 3,
   });
@@ -775,8 +780,18 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await expect(page.getByTestId("learning-settings-new-cards")).toHaveValue(String(nextNewCards));
   await expect(page.getByTestId("learning-settings-max-reviews")).toHaveValue(String(nextMaximumReviews));
   await expect(page.getByTestId("learning-settings-maximum-interval")).toHaveValue(String(nextMaximumInterval));
+  await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
   await expect(page.getByLabel("Varianten einsetzen ab Lernstufe")).toContainText("Sicher · später");
   await expect(page.getByLabel("Aktive Varianten pro Karte")).toContainText("3 Varianten");
+
+  await page.goto(`/decks/${DECK_IDS.africa}/review?returnView=learn&returnDeck=${DECK_IDS.africa}`);
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await page.getByRole("button", { name: /Bewertung Gut/ }).click();
+  await expect.poll(async () => (await readAppState(page)).decks
+    .find((candidate: { id: string }) => candidate.id === DECK_IDS.africa)
+    .deckSettings.schedulerProfile.desiredRetention).toBe(nextRetentionPercent / 100);
+  await page.goto(`/stapel-einstellungen?deck=${DECK_IDS.africa}&returnView=learn`);
+  await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
   const unexpectedRuntimeErrors = runtimeErrors.filter((error) => !(
     error.includes("Failed to fetch") && error.includes("@supabase_supabase-js")
   ));

@@ -1236,7 +1236,17 @@ export function App() {
   function updateDeck(deckId: string, updater: (deck: Deck) => Deck) {
     if (!state) return null;
     const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === deckId);
-    return deck ? runRepositoryMutation((repository) => repository.saveDeckMetadata([updater(deck)])[0] ?? null) : null;
+    const saved = deck ? runRepositoryMutation((repository) => repository.saveDeckMetadata([updater(deck)])[0] ?? null) : null;
+    if (saved) synchronizeStudyDeckMetadata([saved]);
+    return saved;
+  }
+
+  function synchronizeStudyDeckMetadata(savedDecks: Deck[]) {
+    const metadataById = new Map(savedDecks.map(({ cards: _cards, reviewEvents: _reviewEvents, ...metadata }) => [metadata.id, metadata]));
+    setStudyDecks((current) => current?.map((deck) => {
+      const metadata = metadataById.get(deck.id);
+      return metadata ? { ...deck, ...metadata } : deck;
+    }) ?? current);
   }
 
   async function deleteDeck(deckId: string) {
@@ -1290,6 +1300,7 @@ export function App() {
     const updatedDecks = (placement.updatedDecks.length ? placement.updatedDecks : [placement.deck])
       .map((candidate) => candidate.id === deckId ? updatedRoot : candidate);
     const savedDecks = runRepositoryMutation((repository) => repository.saveDeckMetadata(updatedDecks), { preserveCardPages: true });
+    if (savedDecks) synchronizeStudyDeckMetadata(savedDecks);
     const savedDeck = savedDecks?.find((candidate) => candidate.id === deckId) ?? null;
     return {
       ...placement,
