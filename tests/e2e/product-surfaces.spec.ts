@@ -698,6 +698,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
   await expect(page.getByText(/bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist/i)).toBeVisible();
+  const spacedDiagramColumnBox = await page.getByTestId("spaced-repetition-diagram-column").boundingBox();
+  const spacedStepsColumnBox = await page.getByTestId("spaced-repetition-steps-column").boundingBox();
+  expect(spacedDiagramColumnBox).not.toBeNull();
+  expect(spacedStepsColumnBox).not.toBeNull();
+  expect(spacedDiagramColumnBox!.x).toBeGreaterThan(spacedStepsColumnBox!.x);
 
   const activeRecallVisual = page.getByTestId("active-recall-visual");
   await page.getByTestId("active-recall-step-stack").evaluate((element) => element.scrollIntoView({ block: "center" }));
@@ -738,8 +743,37 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
 
   await page.getByTestId("active-recall-step-variants").evaluate((element) => element.scrollIntoView({ block: "center" }));
   await expect(activeRecallVisual).toHaveAttribute("data-active-step", "2");
-  await expect(activeRecallVisual.locator('[data-active-recall-card="variants"]')).toBeVisible();
-  await expect(activeRecallVisual.getByTestId("active-recall-variant-card")).toHaveCount(2);
+  const activeRecallVariants = activeRecallVisual.locator('[data-active-recall-card="variants"]');
+  await expect(activeRecallVariants).toBeVisible();
+  const activeRecallVariantCards = activeRecallVisual.getByTestId("active-recall-variant-card");
+  await expect(activeRecallVariantCards).toHaveCount(2);
+  const variantStyles = await activeRecallVariantCards.evaluateAll((cards) => cards.map((card) => {
+    const style = getComputedStyle(card);
+    return {
+      background: style.backgroundColor,
+      borderColor: style.borderColor,
+      borderRadius: style.borderRadius,
+      tone: card.getAttribute("data-help-variant-tone"),
+    };
+  }));
+  expect(variantStyles).toEqual([
+    {
+      background: middleLayer.background,
+      borderColor: introStackLayout.front.borderColor,
+      borderRadius: introStackLayout.front.borderRadius,
+      tone: "middle",
+    },
+    {
+      background: introStackLayout.front.background,
+      borderColor: introStackLayout.front.borderColor,
+      borderRadius: introStackLayout.front.borderRadius,
+      tone: "front",
+    },
+  ]);
+  const variantFontSizes = await activeRecallVariantCards.evaluateAll((cards) => cards.flatMap((card) => (
+    Array.from(card.querySelectorAll<HTMLElement>(".core-help-card-question"), (element) => getComputedStyle(element).fontSize)
+  )));
+  expect(new Set(variantFontSizes)).toEqual(new Set([await activeRecallStackCard.getByTestId("active-recall-question").evaluate((element) => getComputedStyle(element).fontSize)]));
   await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 

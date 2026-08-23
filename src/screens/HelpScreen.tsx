@@ -123,13 +123,15 @@ const ACTIVE_RECALL_VARIANTS = [
   {
     id: "resting-heart-rate",
     question: "Wenn die Herzfrequenz des Körpers im Ruhezustand sinkt, welcher Teil des autonomen Nervensystems ist daran hauptsächlich beteiligt?",
-    className: "left-[4%] right-[12%] top-4 z-10 -rotate-2 bg-core-warning-soft",
+    className: "core-help-variant-card-middle left-[4%] right-[12%] top-4 z-10 -rotate-2",
+    tone: "middle",
     showAnswer: false,
   },
   {
     id: "autonomic-section",
     question: "Die Senkung der Herzfrequenz unter Ruhebedingungen wird vor allem durch welchen Abschnitt des autonomen Nervensystems vermittelt?",
-    className: "left-[12%] right-[4%] top-44 z-20 rotate-2 bg-core-info-soft",
+    className: "core-help-stack-front left-[12%] right-[4%] top-44 z-20 rotate-2",
+    tone: "front",
     showAnswer: true,
   },
 ] as const;
@@ -502,7 +504,7 @@ function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
       <div className="w-full max-w-xl text-center">
         <RecallQuestion obscured={obscured} />
         <HelpCardDivider testId="active-recall-divider" />
-        <p className="mt-4 core-help-card-options text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
+        <p className="mt-4 core-help-card-question text-core-text" data-testid="active-recall-answer">Der Parasympathikus</p>
       </div>
     </HelpExampleCardStack>
   );
@@ -510,23 +512,24 @@ function ActiveRecallOriginalCard({ obscured }: { obscured: boolean }) {
 
 function ActiveRecallVariantCards() {
   return (
-    <div className="relative h-[27rem]" data-active-recall-card="variants">
+    <div className="relative mx-auto h-[27rem] w-full max-w-xl" data-active-recall-card="variants">
       {ACTIVE_RECALL_VARIANTS.map((variant) => (
         <div
           key={variant.id}
-          className={`absolute grid min-h-52 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 pr-12 text-center shadow-lg ${variant.className}`}
+          className={`core-help-stack-card core-help-variant-card absolute grid min-h-60 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 pr-12 text-center shadow-lg sm:p-8 sm:pr-12 ${variant.className}`}
           data-testid="active-recall-variant-card"
+          data-help-variant-tone={variant.tone}
         >
           <span className="absolute right-2 top-2 grid size-10 place-items-center text-core-warning" data-testid="active-recall-variant-stars" aria-hidden="true">
             <Sparkles className="fill-[var(--core-warning)]" size={27} />
             <Sparkle className="absolute bottom-0 left-0 fill-[var(--core-warning)]" size={13} />
           </span>
           <div className="w-full">
-            <p className="core-help-card-copy text-core-text">{variant.question}</p>
+            <p className="core-help-card-question text-core-text">{variant.question}</p>
             {variant.showAnswer ? (
               <>
                 <HelpCardDivider />
-                <p className="mt-4 w-full text-center core-help-card-copy text-core-text">Der Parasympathikus</p>
+                <p className="mt-4 w-full text-center core-help-card-question text-core-text">Der Parasympathikus</p>
               </>
             ) : null}
           </div>
@@ -739,13 +742,13 @@ function SpacedRepetitionStory() {
       <div className="max-w-3xl">
         <p className="core-control-label uppercase tracking-wide text-core-action">Methode 2</p>
         <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
-        <p className="mt-4 core-body-large leading-7 text-core-secondary">Scrolle durch die Schritte. Das Diagramm bleibt stehen und hebt jeweils den Teil hervor, der gerade erklärt wird.</p>
+        <p className="mt-4 core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
       </div>
-      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(38rem,1.35fr)_minmax(19rem,0.65fr)] xl:gap-10">
-        <div className="min-w-0 self-start xl:sticky xl:top-6">
+      <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(19rem,0.65fr)_minmax(38rem,1.35fr)] xl:gap-10">
+        <div className="min-w-0 self-start xl:order-2 xl:sticky xl:top-6" data-testid="spaced-repetition-diagram-column">
           <MemoryCurveGraphic selection={activeStep.selection} onSelectionChange={selectGraphPart} />
         </div>
-        <ol className="min-w-0">
+        <ol className="min-w-0 xl:order-1" data-testid="spaced-repetition-steps-column">
           {SPACED_REPETITION_STEPS.map((step, index) => (
             <StoryStepCard key={step.id} elementId={step.id} testId={`spaced-repetition-step-${step.selection}`} step={step} index={index} active={activeIndex === index} onFocus={() => setActiveIndex(index)} />
           ))}

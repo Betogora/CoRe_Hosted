@@ -974,6 +974,16 @@ summary {
   background: var(--core-help-stack-front);
 }
 
+.core-help-variant-card {
+  --core-text: var(--core-help-stack-text);
+  --core-text-secondary: var(--core-help-stack-secondary);
+  --core-border: var(--core-help-stack-divider);
+}
+
+.core-help-variant-card-middle {
+  background: var(--core-help-stack-middle);
+}
+
 .core-help-stack-layer-middle {
   background: var(--core-help-stack-middle);
   transform: translate(-20px, -8px) rotate(-2.5deg);
