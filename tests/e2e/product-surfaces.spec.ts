@@ -497,28 +497,35 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
 test("long desktop views use one content scrollbar without moving sidebar utilities", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto("/hilfe");
-  await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
+  for (const view of [
+    { path: "/hilfe", heading: "Wie CoRe dein Lernen stärkt" },
+    { path: "/statistik", heading: "Statistik" },
+  ]) {
+    await page.goto(view.path);
+    await expect(page.getByRole("heading", { name: view.heading })).toBeVisible();
 
-  const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
-    const aside = screen.previousElementSibling as HTMLElement | null;
-    const shell = screen.closest("main");
-    return {
-      pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
-      contentScrolls: screen.scrollHeight > screen.clientHeight,
-      contentOverflow: getComputedStyle(screen).overflowY,
-      shellHeight: shell?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
-      shellOverflow: shell ? getComputedStyle(shell).overflowY : "visible",
-      asideBottom: aside?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
-    };
-  });
+    const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
+      const aside = screen.previousElementSibling as HTMLElement | null;
+      const shell = screen.closest("main");
+      return {
+        pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
+        contentScrolls: screen.scrollHeight > screen.clientHeight,
+        contentOverflow: getComputedStyle(screen).overflowY,
+        contentPosition: getComputedStyle(screen).position,
+        shellHeight: shell?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
+        shellOverflow: shell ? getComputedStyle(shell).overflowY : "visible",
+        asideBottom: aside?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+      };
+    });
 
-  expect(layout.pageScrolls).toBe(false);
-  expect(layout.contentScrolls).toBe(true);
-  expect(layout.contentOverflow).toBe("auto");
-  expect(layout.shellHeight).toBe(720);
-  expect(layout.shellOverflow).toBe("hidden");
-  expect(layout.asideBottom).toBeLessThanOrEqual(720);
+    expect(layout.pageScrolls).toBe(false);
+    expect(layout.contentScrolls).toBe(true);
+    expect(layout.contentOverflow).toBe("auto");
+    expect(layout.contentPosition).toBe("relative");
+    expect(layout.shellHeight).toBe(720);
+    expect(layout.shellOverflow).toBe("hidden");
+    expect(layout.asideBottom).toBeLessThanOrEqual(720);
+  }
 });
 
 test("mobile bottom navigation stays viewport-fixed and keeps its width on short and long pages", async ({ page }) => {
