@@ -30,7 +30,7 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="start" sideOffset={6} collisionPadding={12} aria-label="Icon auswählen" className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-xl p-3 outline-none">
+        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Icon auswählen" data-testid="deck-icon-popover" className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-xl p-3 outline-none" style={{ color }}>
           <div className="grid grid-cols-5 gap-1" role="group" aria-label="Icon-Auswahl" data-testid="deck-icon-grid">
             {deckIconOptions.map((option) => {
               const Icon = option.icon;

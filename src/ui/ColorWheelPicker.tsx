@@ -37,7 +37,6 @@ interface ColorWheelPickerProps {
   ariaLabel?: string;
   disabled?: boolean;
   className?: string;
-  presetColors?: readonly { color: string; label: string }[];
   onValueCommit: (color: string) => void;
 }
 
@@ -46,7 +45,6 @@ export function ColorWheelPicker({
   ariaLabel = "Farbe wählen",
   disabled = false,
   className = "",
-  presetColors = [],
   onValueCommit,
 }: ColorWheelPickerProps) {
   const normalizedValue = normalizeColor(value, "#6f7e9e");
@@ -84,13 +82,6 @@ export function ColorWheelPicker({
 
   function commitColor(nextColor: string) {
     if (nextColor !== normalizedValue) onValueCommit(nextColor);
-  }
-
-  function choosePreset(nextColor: string) {
-    const normalizedColor = normalizeColor(nextColor, normalizedValue);
-    setPreviewColor(normalizedColor);
-    setPosition(wheelPositionFromColor(normalizedColor));
-    commitColor(normalizedColor);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -145,31 +136,9 @@ export function ColorWheelPicker({
           sideOffset={6}
           collisionPadding={12}
           aria-label={ariaLabel}
-          className="core-overlay z-50 w-[min(15rem,calc(100vw-1.5rem))] rounded-xl p-3 outline-none"
+          data-testid="color-wheel-popover"
+          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-xl p-3 outline-none"
         >
-          {presetColors.length > 0 ? (
-            <div className="mb-3 border-b border-[var(--core-border)] pb-3">
-              <p className="mb-2 core-caption font-semibold text-core-secondary">CoRe-Farben</p>
-              <div className="grid grid-cols-5 gap-1" role="group" aria-label="CoRe-Farbvorschläge">
-                {presetColors.map((preset) => {
-                  const presetColor = normalizeColor(preset.color, normalizedValue);
-                  const selected = presetColor === normalizedValue;
-                  return (
-                    <button
-                      key={`${preset.label}-${presetColor}`}
-                      type="button"
-                      aria-label={preset.label}
-                      aria-pressed={selected}
-                      className={`grid size-10 place-items-center rounded-lg border bg-core-surface transition hover:scale-105 ${selected ? "border-core-action shadow-[0_0_0_2px_var(--core-focus-ring-soft)]" : "border-core-border"}`}
-                      onClick={() => choosePreset(presetColor)}
-                    >
-                      <span className="size-5 rounded-full border border-black/10" style={{ backgroundColor: presetColor }} aria-hidden="true" />
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
           <div
             ref={wheelRef}
             role="slider"
@@ -179,7 +148,7 @@ export function ColorWheelPicker({
             aria-valuemax={360}
             aria-valuenow={Math.round(position.hue)}
             aria-valuetext={`${previewColor}, ${Math.round(position.intensity * 100)} %`}
-            className="relative mx-auto aspect-square w-full max-w-48 touch-none rounded-full border-2 border-[var(--core-border-interactive)] shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
+            className="relative mx-auto aspect-square w-full max-w-[14.75rem] touch-none rounded-full border-2 border-[var(--core-border-interactive)] shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
             style={{
               backgroundImage: "radial-gradient(circle, #fff 0%, rgb(255 255 255 / 0) 100%), conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
             }}

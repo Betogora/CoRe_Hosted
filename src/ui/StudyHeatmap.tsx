@@ -1,3 +1,4 @@
+import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -9,7 +10,6 @@ import {
 } from "../studyHeatmapModel.ts";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
 import { normalizeColor } from "./colorMath.ts";
-import { ColorWheelPicker } from "./ColorWheelPicker.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 const heatmapToneByLevel = [
@@ -26,15 +26,14 @@ const forecastToneByLevel = [
   "core-heatmap-forecast-level-3",
   "core-heatmap-forecast-level-4",
 ];
-export const HEATMAP_HISTORY_DEFAULT_COLOR = "#975c92";
 export const HEATMAP_HISTORY_COLOR_STORAGE_KEY = "core.studyHeatmap.historyColor.v1";
-export const HEATMAP_HISTORY_COLOR_PRESETS = [
-  { color: HEATMAP_HISTORY_DEFAULT_COLOR, label: "CoRe-Standard" },
-  { color: "#6f7e9e", label: "CoRe Slate" },
-  { color: "#e28b68", label: "CoRe Coral" },
-  { color: "#d6a3d2", label: "CoRe Lilac" },
-  { color: "#e4bf63", label: "CoRe Marigold" },
+export const HEATMAP_HISTORY_COLOR_OPTIONS = [
+  { color: "#6f7e9e", label: "Gelernt", tone: "var(--core-learning-status-learned)" },
+  { color: "#d6a3d2", label: "Neu", tone: "var(--core-learning-status-new)" },
+  { color: "#e28b68", label: "Offen", tone: "var(--core-learning-status-in-progress)" },
+  { color: "#e4bf63", label: "Fällig", tone: "var(--core-learning-status-due)" },
 ] as const;
+export const HEATMAP_HISTORY_DEFAULT_COLOR: string = HEATMAP_HISTORY_COLOR_OPTIONS[1].color;
 const PERIOD_OPTIONS: Array<{ value: StudyHeatmapPeriod; label: string }> = [
   { value: "week", label: "Woche" },
   { value: "month", label: "Monat" },
@@ -48,10 +47,20 @@ const PERIOD_NAVIGATION_LABELS: Record<StudyHeatmapPeriod, { previous: string; n
 const UTC_WEEKDAY_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 const UTC_MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
+function getHeatmapHistoryColorOption(value: unknown) {
+  const normalizedColor = normalizeColor(value, "");
+  return HEATMAP_HISTORY_COLOR_OPTIONS.find((option) => option.color === normalizedColor)
+    ?? HEATMAP_HISTORY_COLOR_OPTIONS[1];
+}
+
+export function normalizeHeatmapHistoryColor(value: unknown) {
+  return getHeatmapHistoryColorOption(value).color;
+}
+
 function readStoredHeatmapColor() {
   if (typeof window === "undefined") return HEATMAP_HISTORY_DEFAULT_COLOR;
   try {
-    return normalizeColor(window.localStorage.getItem(HEATMAP_HISTORY_COLOR_STORAGE_KEY), HEATMAP_HISTORY_DEFAULT_COLOR);
+    return normalizeHeatmapHistoryColor(window.localStorage.getItem(HEATMAP_HISTORY_COLOR_STORAGE_KEY));
   } catch {
     return HEATMAP_HISTORY_DEFAULT_COLOR;
   }
@@ -67,13 +76,52 @@ function writeStoredHeatmapColor(color: string) {
 }
 
 function createHeatmapColorStyle(color: string) {
-  if (color === HEATMAP_HISTORY_DEFAULT_COLOR) return undefined;
+  const tone = getHeatmapHistoryColorOption(color).tone;
   return {
-    "--core-heatmap-history-level-1": `color-mix(in srgb, var(--core-surface) 84%, ${color})`,
-    "--core-heatmap-history-level-2": `color-mix(in srgb, var(--core-surface) 65%, ${color})`,
-    "--core-heatmap-history-level-3": `color-mix(in srgb, var(--core-surface) 38%, ${color})`,
-    "--core-heatmap-history-level-4": color,
+    "--core-heatmap-history-level-1": `color-mix(in srgb, var(--core-surface) 84%, ${tone})`,
+    "--core-heatmap-history-level-2": `color-mix(in srgb, var(--core-surface) 65%, ${tone})`,
+    "--core-heatmap-history-level-3": `color-mix(in srgb, var(--core-surface) 38%, ${tone})`,
+    "--core-heatmap-history-level-4": tone,
   } as React.CSSProperties;
+}
+
+function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: string; className?: string; onValueCommit: (color: string) => void }) {
+  const selectedOption = getHeatmapHistoryColorOption(value);
+  return (
+    <Popover.Root>
+      <Popover.Trigger asChild>
+        <button
+          type="button"
+          aria-label="Heatmap-Farbe ändern"
+          className={`size-11 shrink-0 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface p-1 shadow-sm transition hover:border-[var(--core-action-primary)] ${className}`}
+        >
+          <span aria-hidden="true" className="block size-full rounded-lg border border-black/10 shadow-inner" style={{ backgroundColor: selectedOption.tone }} />
+        </button>
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Heatmap-Farbe ändern" className="core-overlay z-50 w-fit rounded-xl p-3 outline-none">
+          <div className="grid grid-cols-2 gap-1" role="group" aria-label="CoRe-Farben" data-testid="heatmap-color-grid">
+            {HEATMAP_HISTORY_COLOR_OPTIONS.map((option) => {
+              const selected = option.color === selectedOption.color;
+              return (
+                <Popover.Close asChild key={option.color}>
+                  <button
+                    type="button"
+                    aria-label={option.label}
+                    aria-pressed={selected}
+                    className={`grid size-11 place-items-center rounded-xl border bg-core-surface transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus ${selected ? "border-core-action shadow-[0_0_0_2px_var(--core-focus-ring-soft)]" : "border-core-border"}`}
+                    onClick={() => onValueCommit(option.color)}
+                  >
+                    <span aria-hidden="true" className="size-7 rounded-lg border border-black/10 shadow-inner" style={{ backgroundColor: option.tone }} />
+                  </button>
+                </Popover.Close>
+              );
+            })}
+          </div>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover.Root>
+  );
 }
 
 function dateFromKey(key: string) {
@@ -280,12 +328,13 @@ export function StudyHeatmap({
   React.useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key === HEATMAP_HISTORY_COLOR_STORAGE_KEY) {
-        setHistoryColor(normalizeColor(event.newValue, HEATMAP_HISTORY_DEFAULT_COLOR));
+        setHistoryColor(normalizeHeatmapHistoryColor(event.newValue));
       }
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
+  React.useEffect(() => writeStoredHeatmapColor(historyColor), [historyColor]);
   React.useLayoutEffect(() => {
     const scroller = yearScrollerRef.current;
     if (period !== "year" || !scroller) return;
@@ -302,9 +351,7 @@ export function StudyHeatmap({
   };
 
   const selectHistoryColor = (nextColor: string) => {
-    const normalizedColor = normalizeColor(nextColor, HEATMAP_HISTORY_DEFAULT_COLOR);
-    setHistoryColor(normalizedColor);
-    writeStoredHeatmapColor(normalizedColor);
+    setHistoryColor(normalizeHeatmapHistoryColor(nextColor));
   };
 
   return (
@@ -317,11 +364,9 @@ export function StudyHeatmap({
         <div className="flex min-w-0 items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
           <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
-          <ColorWheelPicker
+          <HeatmapColorPicker
             value={historyColor}
-            ariaLabel="Heatmap-Farbe ändern"
             className="ml-auto"
-            presetColors={HEATMAP_HISTORY_COLOR_PRESETS}
             onValueCommit={selectHistoryColor}
           />
         </div>

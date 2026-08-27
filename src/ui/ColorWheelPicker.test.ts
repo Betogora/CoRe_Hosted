@@ -19,20 +19,3 @@ test("color wheel picker renders an accessible compact swatch without a native c
   assert.match(markup, /background-color:#4f5eb1/);
   assert.doesNotMatch(markup, /<input|type="color"|font-mono/);
 });
-
-test("color wheel picker accepts named color suggestions", () => {
-  const markup = renderToStaticMarkup(
-    React.createElement(ColorWheelPicker, {
-      value: "#975c92",
-      ariaLabel: "Heatmap-Farbe ändern",
-      presetColors: [
-        { color: "#975c92", label: "CoRe-Standard" },
-        { color: "#6f7e9e", label: "CoRe Slate" },
-      ],
-      onValueCommit: () => undefined,
-    }),
-  );
-
-  assert.match(markup, /aria-label="Heatmap-Farbe ändern"/);
-  assert.match(markup, /background-color:#975c92/);
-});

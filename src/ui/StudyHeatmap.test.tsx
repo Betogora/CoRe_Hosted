@@ -4,9 +4,10 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createStudyHeatmapModelFromCounts } from "../studyHeatmapModel.ts";
 import {
-  HEATMAP_HISTORY_COLOR_PRESETS,
+  HEATMAP_HISTORY_COLOR_OPTIONS,
   HEATMAP_HISTORY_COLOR_STORAGE_KEY,
   HEATMAP_HISTORY_DEFAULT_COLOR,
+  normalizeHeatmapHistoryColor,
   StudyHeatmap,
 } from "./StudyHeatmap.tsx";
 
@@ -62,8 +63,9 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   assert.match(markup, /core-study-heatmap-container/);
   assert.match(markup, /core-study-heatmap-header/);
   assert.match(markup, /core-study-heatmap-controls/);
-  assert.match(markup, /data-heatmap-history-color="#975c92"/);
+  assert.match(markup, /data-heatmap-history-color="#d6a3d2"/);
   assert.match(markup, /aria-label="Heatmap-Farbe ändern"/);
+  assert.match(markup, /background-color:var\(--core-learning-status-new\)/);
   assert.match(markup, /data-size="regular"/);
   assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 3);
   assert.equal((markup.match(/inline-flex size-11 shrink-0/g) ?? []).length, 2);
@@ -112,20 +114,25 @@ test("shared study heatmap fills wide panels with compact month gutters", () => 
   assert.doesNotMatch(markup, /max-w-\[30rem\]|max-w-14/);
 });
 
-test("shared study heatmap offers the CoRe palette and applies a custom history scale", () => {
+test("shared study heatmap offers exactly the four learning-status colors", () => {
   assert.equal(HEATMAP_HISTORY_COLOR_STORAGE_KEY, "core.studyHeatmap.historyColor.v1");
-  assert.deepEqual(HEATMAP_HISTORY_COLOR_PRESETS, [
-    { color: "#975c92", label: "CoRe-Standard" },
-    { color: "#6f7e9e", label: "CoRe Slate" },
-    { color: "#e28b68", label: "CoRe Coral" },
-    { color: "#d6a3d2", label: "CoRe Lilac" },
-    { color: "#e4bf63", label: "CoRe Marigold" },
+  assert.equal(HEATMAP_HISTORY_DEFAULT_COLOR, "#d6a3d2");
+  assert.deepEqual(HEATMAP_HISTORY_COLOR_OPTIONS, [
+    { color: "#6f7e9e", label: "Gelernt", tone: "var(--core-learning-status-learned)" },
+    { color: "#d6a3d2", label: "Neu", tone: "var(--core-learning-status-new)" },
+    { color: "#e28b68", label: "Offen", tone: "var(--core-learning-status-in-progress)" },
+    { color: "#e4bf63", label: "Fällig", tone: "var(--core-learning-status-due)" },
   ]);
 
   const markup = renderHeatmapAt("week", "2026-08-10", new Map(), "#e28b68");
   assert.match(markup, /data-heatmap-history-color="#e28b68"/);
-  assert.match(markup, /--core-heatmap-history-level-1:color-mix\(in srgb, var\(--core-surface\) 84%, #e28b68\)/);
-  assert.match(markup, /--core-heatmap-history-level-4:#e28b68/);
+  assert.match(markup, /--core-heatmap-history-level-1:color-mix\(in srgb, var\(--core-surface\) 84%, var\(--core-learning-status-in-progress\)\)/);
+  assert.match(markup, /--core-heatmap-history-level-4:var\(--core-learning-status-in-progress\)/);
+});
+
+test("shared study heatmap accepts only current palette colors and otherwise uses CoRe lilac", () => {
+  for (const option of HEATMAP_HISTORY_COLOR_OPTIONS) assert.equal(normalizeHeatmapHistoryColor(option.color.toUpperCase()), option.color);
+  for (const value of [null, "", "#123456", "lila"]) assert.equal(normalizeHeatmapHistoryColor(value), HEATMAP_HISTORY_DEFAULT_COLOR);
 });
 
 test("shared study heatmap renders forecast copy and gray levels without changing the historical legend", () => {

@@ -31,6 +31,12 @@ async function storedDeckPresentation(page: Page, deckId: string) {
   };
 }
 
+function cssRgbFromHex(color: string | null) {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(color ?? "");
+  if (!match) throw new Error(`Ungültige gespeicherte Stapelfarbe: ${color}`);
+  return `rgb(${Number.parseInt(match[1], 16)}, ${Number.parseInt(match[2], 16)}, ${Number.parseInt(match[3], 16)})`;
+}
+
 async function dispatchDeckDrop(page: Page, source: Locator, target: Locator) {
   await source.scrollIntoViewIfNeeded();
   await target.scrollIntoViewIfNeeded();
@@ -445,16 +451,32 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await expect(page.getByRole("alert")).toBeHidden();
 
   await iconTrigger.click();
+  const iconPopover = page.getByTestId("deck-icon-popover");
   const iconGrid = page.getByTestId("deck-icon-grid");
+  const iconPopoverBox = await iconPopover.boundingBox();
+  const iconTriggerBox = await iconTrigger.boundingBox();
+  expect(iconPopoverBox).not.toBeNull();
+  expect(iconTriggerBox).not.toBeNull();
+  expect(Math.abs(iconPopoverBox!.x + iconPopoverBox!.width - iconTriggerBox!.x - iconTriggerBox!.width)).toBeLessThanOrEqual(1);
   await expect(iconGrid.getByRole("button")).toHaveCount(25);
   await expect.poll(() => iconGrid.evaluate((grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").length)).toBe(5);
+  const initialIconColor = await iconTrigger.evaluate((element) => getComputedStyle(element).color);
+  expect(await iconGrid.locator("svg").evaluateAll((icons) => [...new Set(icons.map((icon) => getComputedStyle(icon).color))])).toEqual([initialIconColor]);
   await iconGrid.getByRole("button", { name: "Gehirn" }).click();
   await expect(titleIcon.locator("svg")).toHaveClass(/lucide-brain/);
   expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconKey).toBe(original.iconKey);
 
   await colorTrigger.click();
+  const colorPopover = page.getByTestId("color-wheel-popover");
   const wheel = page.getByRole("slider", { name: /Farbkreis/ });
   await expect(wheel).toBeVisible();
+  const colorPopoverBox = await colorPopover.boundingBox();
+  const colorTriggerBox = await colorTrigger.boundingBox();
+  expect(colorPopoverBox).not.toBeNull();
+  expect(colorTriggerBox).not.toBeNull();
+  expect(Math.abs(colorPopoverBox!.x + colorPopoverBox!.width - colorTriggerBox!.x - colorTriggerBox!.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(colorPopoverBox!.width - iconPopoverBox!.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(colorPopoverBox!.height - iconPopoverBox!.height)).toBeLessThanOrEqual(1);
   await wheel.click({ position: { x: 185, y: 96 } });
   const pointerPreview = await colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor);
   await wheel.press("ArrowRight");
@@ -470,6 +492,27 @@ test("deck presentation form saves name, icon and color together", async ({ page
 
   await page.keyboard.press("Escape");
   await expect(wheel).toBeHidden();
+  await iconTrigger.click();
+  const updatedIconColor = await iconTrigger.evaluate((element) => getComputedStyle(element).color);
+  expect(await iconGrid.locator("svg").evaluateAll((icons) => [...new Set(icons.map((icon) => getComputedStyle(icon).color))])).toEqual([updatedIconColor]);
+  await page.keyboard.press("Escape");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await iconTrigger.click();
+  const mobileIconPopoverBox = await iconPopover.boundingBox();
+  expect(mobileIconPopoverBox).not.toBeNull();
+  expect(mobileIconPopoverBox!.x).toBeGreaterThanOrEqual(12);
+  expect(mobileIconPopoverBox!.x + mobileIconPopoverBox!.width).toBeLessThanOrEqual(378);
+  await page.keyboard.press("Escape");
+  await colorTrigger.click();
+  const mobileColorPopoverBox = await colorPopover.boundingBox();
+  expect(mobileColorPopoverBox).not.toBeNull();
+  expect(mobileColorPopoverBox!.x).toBeGreaterThanOrEqual(12);
+  expect(mobileColorPopoverBox!.x + mobileColorPopoverBox!.width).toBeLessThanOrEqual(378);
+  expect(Math.abs(mobileColorPopoverBox!.width - mobileIconPopoverBox!.width)).toBeLessThanOrEqual(1);
+  expect(Math.abs(mobileColorPopoverBox!.height - mobileIconPopoverBox!.height)).toBeLessThanOrEqual(1);
+  await page.keyboard.press("Escape");
+  await page.setViewportSize({ width: 1440, height: 900 });
   const saveBarViewports = [
     { width: 1440, height: 900 },
     { width: 768, height: 900 },
@@ -529,7 +572,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(europeRow).toContainText("Europa kompakt");
-  await expect.poll(() => europeRow.locator("span[style*='border-color']").first().evaluate((element) => getComputedStyle(element).borderColor)).toBe("rgb(109, 255, 13)");
+  await expect.poll(() => europeRow.locator("span[style*='border-color']").first().evaluate((element) => getComputedStyle(element).borderColor)).toBe(cssRgbFromHex(saved.iconColor));
   await page.reload();
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toEqual(saved);
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("Europa kompakt");
