@@ -267,13 +267,18 @@ test("dashboard deck header keeps its labels intact while changing rows at most 
 test("active deck header and rows fit every target width and toggle reliably on mobile", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  const rootLeafName = "Hauptebene ohne Unterstapel";
+  await page.getByTestId("learn-deck-name-input").fill(rootLeafName);
+  await page.getByRole("button", { name: "Anlegen", exact: true }).click();
 
   const rootRow = page.getByTestId(`learn-deck-row-${DECK_IDS.root}`);
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
+  const rootLeafRow = page.getByTestId("learn-deck-list").locator('[data-deck-row="true"]').filter({ hasText: rootLeafName });
+  await expect(rootLeafRow).toBeVisible();
   const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 523, 459, 390, 320];
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
-    const layout = await page.getByTestId("learn-deck-list").evaluate((panel) => {
+    const layout = await page.getByTestId("learn-deck-list").evaluate((panel, { rootDeckId, rootLeafName }) => {
       const rowViewport = panel.querySelector<HTMLElement>(".overflow-hidden.rounded-2xl");
       const tableHeader = panel.querySelector<HTMLElement>('[data-testid="deck-summary-header"] > div')!;
       const headerLabels = [
@@ -285,6 +290,10 @@ test("active deck header and rows fit every target width and toggle reliably on 
       const icon = panel.querySelector<HTMLElement>(".core-deck-summary-icon")!;
       const rowMetricLabels = [...panel.querySelectorAll<HTMLElement>("[data-deck-count] dt")];
       const firstRow = panel.querySelector<HTMLElement>('[data-deck-row="true"]')!;
+      const collapseControl = firstRow.querySelector<HTMLElement>('button[aria-expanded]')!;
+      const deckRows = [...panel.querySelectorAll<HTMLElement>('[data-deck-row="true"]')];
+      const rootParentIcon = deckRows.find((row) => row.dataset.deckId === rootDeckId)!.querySelector<HTMLElement>('[data-deck-icon="true"]')!;
+      const rootLeafIcon = deckRows.find((row) => row.dataset.deckDepth === "0" && row.querySelector(".core-deck-summary-name")?.textContent === rootLeafName)!.querySelector<HTMLElement>('[data-deck-icon="true"]')!;
       const rowStatusColumns = [
         ...firstRow.querySelectorAll<HTMLElement>("[data-deck-count]"),
         firstRow.querySelector<HTMLElement>(".core-donut-responsive")!,
@@ -303,6 +312,9 @@ test("active deck header and rows fit every target width and toggle reliably on 
       };
       const rowStatusCenters = centers(rowStatusColumns);
       const headerStatusCenters = centers(headerStatusColumns);
+      const collapseControlRect = collapseControl.getBoundingClientRect();
+      const rootParentIconRect = rootParentIcon.getBoundingClientRect();
+      const rootLeafIconRect = rootLeafIcon.getBoundingClientRect();
       const tableHeaderRect = tableHeader.getBoundingClientRect();
       const titleRange = document.createRange();
       titleRange.selectNodeContents(headerLabels[0]);
@@ -320,11 +332,13 @@ test("active deck header and rows fit every target width and toggle reliably on 
         iconWidth: icon.getBoundingClientRect().width,
         metricWidth: rowStatusColumns[0].getBoundingClientRect().width,
         donutWidth: rowStatusColumns.at(-1)!.getBoundingClientRect().width,
+        collapseControlSize: [collapseControlRect.width, collapseControlRect.height],
+        rootIconOffset: rootParentIconRect.x - rootLeafIconRect.x,
         statusGapSpread: gapSpread(rowStatusCenters),
         headerStatusGapSpread: gapSpread(headerStatusCenters),
         headerRowAlignment: Math.max(...rowStatusCenters.map((center, index) => Math.abs(center - headerStatusCenters[index]))),
       };
-    });
+    }, { rootDeckId: DECK_IDS.root, rootLeafName });
 
     expect(layout.fits).toBe(true);
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
@@ -334,6 +348,8 @@ test("active deck header and rows fit every target width and toggle reliably on 
       : ["STAPEL", "NEU", "OFFEN", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
+    expect(layout.collapseControlSize).toEqual([44, 44]);
+    expect(layout.rootIconOffset).toBeCloseTo(0, 0);
     expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);

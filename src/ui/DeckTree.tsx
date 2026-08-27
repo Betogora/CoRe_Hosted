@@ -322,7 +322,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
       <button
         type="button"
         onClick={() => toggleCollapsed(row.id)}
-        className="pointer-events-auto grid size-9 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
+        className="pointer-events-auto -me-2 grid size-9 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] transition [&>svg]:-translate-x-1 hover:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
         aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
         aria-expanded={!isCollapsed}
       >
