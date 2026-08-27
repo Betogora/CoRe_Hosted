@@ -1988,7 +1988,7 @@ export function App() {
   }
 
   return (
-    <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-[var(--core-text)]">
+    <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-[var(--core-text)] xl:h-dvh xl:overflow-y-hidden">
       <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-surface xl:h-dvh xl:min-h-0 xl:grid-cols-[9.5rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}

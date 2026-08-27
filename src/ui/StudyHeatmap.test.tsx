@@ -76,8 +76,7 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   assert.match(markup, /Spätere sieben Tage anzeigen/);
   assert.match(markup, /data-testid="study-heatmap-grid"[^>]*data-heatmap-period="week"/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
-  assert.match(markup, /h-20 w-full max-w-\[4\.5rem\] rounded-xl sm:h-24/);
-  assert.match(markup, /data-heatmap-day="2026-07-07"[\s\S]*?<span class="font-semibold">Di<\/span>[\s\S]*?<span>07\.07\.<\/span>/);
+  assert.match(markup, /<span class="[^"]*whitespace-nowrap[^"]*font-semibold[^"]*">Di, 7\.7\.<\/span>/);
   assert.match(markup, /2026-07-07: 3 Wiederholungen/);
   assert.match(markup, /data-testid="study-heatmap-legend"[\s\S]*Weniger[\s\S]*Mehr/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));

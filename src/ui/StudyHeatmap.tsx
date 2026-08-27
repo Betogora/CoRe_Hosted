@@ -45,7 +45,7 @@ const PERIOD_NAVIGATION_LABELS: Record<StudyHeatmapPeriod, { previous: string; n
   month: { previous: "Vorherigen Monat anzeigen", next: "Nächsten Monat anzeigen" },
   year: { previous: "Vorheriges Jahr anzeigen", next: "Nächstes Jahr anzeigen" },
 };
-const UTC_WEEKDAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", timeZone: "UTC" });
+const UTC_WEEKDAY_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 const UTC_MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 function readStoredHeatmapColor() {
@@ -100,8 +100,8 @@ function heatmapDayLabel(day: StudyHeatmapDay, formatHistoricalDayLabel: (day: S
   return day.isFuture ? forecastDayLabel(day) : formatHistoricalDayLabel(day);
 }
 
-function weekdayLabel(key: string) {
-  return UTC_WEEKDAY_FORMATTER.format(dateFromKey(key)).replace(".", "");
+function compactWeekLabel(key: string) {
+  return UTC_WEEKDAY_DATE_FORMATTER.format(dateFromKey(key)).replace(".", "");
 }
 
 function formatRangeLabel(window: StudyHeatmapWindow) {
@@ -166,13 +166,11 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
       aria-label={`Lern-Heatmap von ${window.rangeStartKey} bis ${window.rangeEndKey}`}
     >
       {window.days.map((day) => (
-        <div key={day.key} className="grid min-w-0 justify-items-center">
-          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="h-20 w-full max-w-[4.5rem] rounded-xl sm:h-24">
-            <span className="grid gap-1 text-center text-[0.68rem] text-core-text">
-              <span className="font-semibold">{weekdayLabel(day.key)}</span>
-              <span>{compactDate(day.key)}</span>
-            </span>
-          </HeatmapDayCell>
+        <div key={day.key} className="grid min-w-0 justify-items-center gap-1.5">
+          <span className="whitespace-nowrap text-center text-[0.68rem] font-semibold text-core-muted">
+            {compactWeekLabel(day.key)}
+          </span>
+          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
         </div>
       ))}
     </div>

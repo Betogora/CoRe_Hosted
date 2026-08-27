@@ -494,7 +494,7 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
   await secondPage.close();
 });
 
-test("long desktop views scroll without moving the sidebar utilities below the viewport", async ({ page }) => {
+test("long desktop views use one content scrollbar without moving sidebar utilities", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto("/hilfe");
@@ -502,10 +502,13 @@ test("long desktop views scroll without moving the sidebar utilities below the v
 
   const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
     const aside = screen.previousElementSibling as HTMLElement | null;
+    const shell = screen.closest("main");
     return {
       pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
       contentScrolls: screen.scrollHeight > screen.clientHeight,
       contentOverflow: getComputedStyle(screen).overflowY,
+      shellHeight: shell?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
+      shellOverflow: shell ? getComputedStyle(shell).overflowY : "visible",
       asideBottom: aside?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
     };
   });
@@ -513,6 +516,8 @@ test("long desktop views scroll without moving the sidebar utilities below the v
   expect(layout.pageScrolls).toBe(false);
   expect(layout.contentScrolls).toBe(true);
   expect(layout.contentOverflow).toBe("auto");
+  expect(layout.shellHeight).toBe(720);
+  expect(layout.shellOverflow).toBe("hidden");
   expect(layout.asideBottom).toBeLessThanOrEqual(720);
 });
 
