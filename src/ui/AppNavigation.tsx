@@ -37,8 +37,6 @@ const iconByKey: Record<string, LucideIcon> = {
   plus: PlusSquare,
 };
 
-const settingsViews = new Set(["einstellungen"]);
-
 function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
 }
@@ -62,7 +60,7 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
 }
 
 function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, syncStatus, onSyncNow, layout }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { layout: "sidebar" | "header" }) {
-  const settingsActive = settingsViews.has(activeView);
+  const settingsActive = activeView === "einstellungen";
   const helpActive = activeView === "hilfe";
   const sidebarLayout = layout === "sidebar";
   const darkModeActive = theme === "dark";

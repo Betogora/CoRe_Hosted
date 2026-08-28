@@ -275,6 +275,7 @@ export function ManualCreationPanel({
   }), [inlineMediaUrls, prepareInlineImage]);
 
   function pruneInlineImages(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields">) {
+    if (imageDraftsRef.current.size === 0) return;
     const references = new Set(workflow.getManualImageReferences(input));
     let changed = false;
     for (const [reference, image] of imageDraftsRef.current) {

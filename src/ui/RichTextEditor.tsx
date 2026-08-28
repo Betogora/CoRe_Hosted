@@ -49,7 +49,7 @@ export interface RichTextImageActions {
 
 function canonicalizeRichTextMedia(html: string, stripUnmanagedImages: boolean): string {
   const sanitized = sanitizeCardHtml(html);
-  if (typeof document === "undefined") return sanitized;
+  if (typeof document === "undefined" || !/<img\b/i.test(sanitized)) return sanitized;
   const root = document.createElement("div");
   root.innerHTML = sanitized;
   for (const image of Array.from(root.querySelectorAll("img"))) {
@@ -66,7 +66,7 @@ function canonicalizeRichTextMedia(html: string, stripUnmanagedImages: boolean):
 
 function hydrateRichTextMedia(html: string, mediaUrls: Record<string, string>): string {
   const normalized = normalizeRichTextForEditor(html);
-  if (typeof document === "undefined" || Object.keys(mediaUrls).length === 0) return normalized;
+  if (typeof document === "undefined" || !/<img\b/i.test(normalized) || Object.keys(mediaUrls).length === 0) return normalized;
   const root = document.createElement("div");
   root.innerHTML = normalized;
   for (const image of Array.from(root.querySelectorAll("img"))) {
@@ -80,7 +80,7 @@ function hydrateRichTextMedia(html: string, mediaUrls: Record<string, string>): 
 }
 
 function stripUnknownRichTextImages(html: string, mediaUrls: Record<string, string>): string {
-  if (typeof document === "undefined") return html;
+  if (typeof document === "undefined" || !/<img\b/i.test(html)) return html;
   const root = document.createElement("div");
   root.innerHTML = html;
   for (const image of Array.from(root.querySelectorAll("img"))) {
@@ -548,17 +548,19 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const editor = editorRef.current;
     if (!editor || typeof document === "undefined") return;
 
-    const clipboardImages = Array.from(event.clipboardData?.items ?? [])
-      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
-      .flatMap((item) => {
-        const file = item.getAsFile();
-        return file ? [file] : [];
-      });
-    if (imageActions && clipboardImages.length > 0) {
-      event.preventDefault();
-      saveSelection();
-      void insertImageFiles(clipboardImages, selectionRef.current);
-      return;
+    if (imageActions) {
+      const clipboardImages = Array.from(event.clipboardData?.items ?? [])
+        .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+        .flatMap((item) => {
+          const file = item.getAsFile();
+          return file ? [file] : [];
+        });
+      if (clipboardImages.length > 0) {
+        event.preventDefault();
+        saveSelection();
+        void insertImageFiles(clipboardImages, selectionRef.current);
+        return;
+      }
     }
 
     event.preventDefault();

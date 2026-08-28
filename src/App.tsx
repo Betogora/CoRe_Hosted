@@ -26,7 +26,7 @@ import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import { addRephrasedVariant, createDefaultDeckSettings, createManualCoreDeck, duplicateLearningItemContent, getCardContentPayload, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState } from "./coreModel.ts";
-import { createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
+import { collectDeckTreeIds, createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -1320,7 +1320,7 @@ export function App() {
 
     const placedDecks = placement.nextDecks ?? currentState.decks;
     const treeDeckIds = scope === "deck-tree"
-      ? new Set(createDeckLibraryModel(placedDecks).rows.find((row) => row.id === deckId)?.scopeDeckIds ?? [deckId])
+      ? collectDeckTreeIds(placedDecks, deckId)
       : new Set([deckId, ...placement.changedDeckIds]);
     const updatedDecks = placedDecks
       .filter((candidate) => treeDeckIds.has(candidate.id))

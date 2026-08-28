@@ -69,7 +69,7 @@ export function softDeleteCard(card: LearningItem, deletedAt: string): LearningI
   };
 }
 
-function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<string> {
+export function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<string> {
   const childIdsByParentId = new Map<string, string[]>();
   for (const deck of decks) {
     if (!deck.parentDeckId) continue;

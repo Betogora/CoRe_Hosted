@@ -30,30 +30,28 @@ export interface StudyWindowCursor {
   queueRank?: number;
 }
 
-function studyCatalogOrder(entry: CardCatalogEntry, now: string) {
+function studyCatalogOrder(entry: CardCatalogEntry, currentTime: number) {
   const dueAt = entry.dueAt ? Date.parse(entry.dueAt) : Number.POSITIVE_INFINITY;
-  const current = Date.parse(now);
-  if (entry.scheduleState !== "new" && Number.isFinite(dueAt) && dueAt <= current) return [0, dueAt, entry.id] as const;
+  if (entry.scheduleState !== "new" && Number.isFinite(dueAt) && dueAt <= currentTime) return [0, dueAt, entry.id] as const;
   if (entry.scheduleState === "new") return [1, dueAt, entry.id] as const;
   return [2, dueAt, entry.id] as const;
 }
 
-function isAfterStudyCursor(entry: CardCatalogEntry, cursor: StudyWindowCursor, now: string) {
-  const [queueRank, dueAt, id] = studyCatalogOrder(entry, now);
+function isAfterStudyCursor(entry: CardCatalogEntry, cursor: StudyWindowCursor, currentTime: number, cursorDueAt: number) {
+  const [queueRank, dueAt, id] = studyCatalogOrder(entry, currentTime);
   if (cursor.queueRank == null) {
     const entryDueAt = entry.dueAt ?? "9999-12-31T23:59:59.999Z";
     return entryDueAt > cursor.dueAt || (entryDueAt === cursor.dueAt && entry.id > cursor.id);
   }
   if (queueRank !== cursor.queueRank) return queueRank > cursor.queueRank;
-  const cursorDueAt = Date.parse(cursor.dueAt);
   return dueAt > cursorDueAt || (dueAt === cursorDueAt && id > cursor.id);
 }
 
-function studyCursorFor(entry: CardCatalogEntry, now: string): StudyWindowCursor {
+function studyCursorFor(entry: CardCatalogEntry, currentTime: number): StudyWindowCursor {
   return {
     dueAt: entry.dueAt ?? "9999-12-31T23:59:59.999Z",
     id: entry.id,
-    queueRank: studyCatalogOrder(entry, now)[0],
+    queueRank: studyCatalogOrder(entry, currentTime)[0],
   };
 }
 
@@ -239,6 +237,7 @@ export function createWorkspaceHydrationService({
   const prepareStudyWindow = async (deckIds: string[], options: StudyWindowOptions = {}) => {
     const bufferSize = constrainedConnection() ? 5 : 50;
     const now = options.now ?? new Date().toISOString();
+    const currentTime = Date.parse(now);
     const catalogEntries: CardCatalogEntry[] = [];
     let catalogHasMore = false;
     for (const deckId of deckIds) {
@@ -250,9 +249,10 @@ export function createWorkspaceHydrationService({
         }
       }
       const cursor = options.cursorByDeck?.[deckId];
+      const cursorDueAt = cursor ? Date.parse(cursor.dueAt) : Number.NaN;
       for (let page = 0; catalogEntries.filter((entry) => entry.deckId === deckId).length < bufferSize; page += 1) {
         const local = await repository.listCatalogPage(deckId, { page, pageSize: bufferSize, sort: { field: "nextStudyDate", direction: "asc" } });
-        catalogEntries.push(...local.items.filter((entry) => !cursor || isAfterStudyCursor(entry, cursor, now)));
+        catalogEntries.push(...local.items.filter((entry) => !cursor || isAfterStudyCursor(entry, cursor, currentTime, cursorDueAt)));
         catalogHasMore ||= local.hasMore;
         if (!local.hasMore) break;
       }
@@ -261,8 +261,8 @@ export function createWorkspaceHydrationService({
     const nextIds = catalogEntries
       .filter((entry) => isCatalogEntryAvailable(entry, currentDayKey, options))
       .sort((left, right) => {
-        const leftOrder = studyCatalogOrder(left, now);
-        const rightOrder = studyCatalogOrder(right, now);
+        const leftOrder = studyCatalogOrder(left, currentTime);
+        const rightOrder = studyCatalogOrder(right, currentTime);
         return leftOrder[0] - rightOrder[0] || leftOrder[1] - rightOrder[1] || leftOrder[2].localeCompare(rightOrder[2]);
       })
       .slice(0, bufferSize)
@@ -289,7 +289,7 @@ export function createWorkspaceHydrationService({
     const cursorByDeck = { ...(options.cursorByDeck ?? {}) };
     for (const { deckId, item } of session.cards) {
       const entry = catalogById.get(item.id);
-      if (entry) cursorByDeck[deckId] = studyCursorFor(entry, now);
+      if (entry) cursorByDeck[deckId] = studyCursorFor(entry, currentTime);
     }
     await repository.touchCardBodies(session.cards.map(({ item }) => item.id), new Date(Date.now() + 60 * 60 * 1000).toISOString());
     markReplicaStartupGate("workingSetReady", { cardCount: session.cards.length, bufferSize });
