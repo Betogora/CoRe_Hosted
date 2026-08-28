@@ -313,6 +313,10 @@ test("active deck header and rows fit every target width and toggle reliably on 
       const rowStatusCenters = centers(rowStatusColumns);
       const headerStatusCenters = centers(headerStatusColumns);
       const collapseControlRect = collapseControl.getBoundingClientRect();
+      const collapseControlSurface = getComputedStyle(collapseControl, "::before");
+      const collapseSurfaceLeft = collapseControlRect.left + Number.parseFloat(collapseControlSurface.left);
+      const collapseSurfaceWidth = Number.parseFloat(collapseControlSurface.width);
+      const collapseChevronRect = collapseControl.querySelector("svg")!.getBoundingClientRect();
       const rootParentIconRect = rootParentIcon.getBoundingClientRect();
       const rootLeafIconRect = rootLeafIcon.getBoundingClientRect();
       const tableHeaderRect = tableHeader.getBoundingClientRect();
@@ -333,6 +337,9 @@ test("active deck header and rows fit every target width and toggle reliably on 
         metricWidth: rowStatusColumns[0].getBoundingClientRect().width,
         donutWidth: rowStatusColumns.at(-1)!.getBoundingClientRect().width,
         collapseControlSize: [collapseControlRect.width, collapseControlRect.height],
+        collapseSurfaceSize: [collapseSurfaceWidth, Number.parseFloat(collapseControlSurface.height)],
+        collapseSurfaceIconGap: rootParentIconRect.left - collapseSurfaceLeft - collapseSurfaceWidth,
+        collapseChevronCenterOffset: collapseChevronRect.left + collapseChevronRect.width / 2 - collapseSurfaceLeft - collapseSurfaceWidth / 2,
         rootIconOffset: rootParentIconRect.x - rootLeafIconRect.x,
         statusGapSpread: gapSpread(rowStatusCenters),
         headerStatusGapSpread: gapSpread(headerStatusCenters),
@@ -349,6 +356,9 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
     expect(layout.collapseControlSize).toEqual([44, 44]);
+    expect(layout.collapseSurfaceSize).toEqual([32, 36]);
+    expect(layout.collapseSurfaceIconGap).toBeGreaterThanOrEqual(2);
+    expect(layout.collapseChevronCenterOffset).toBeCloseTo(0, 0);
     expect(layout.rootIconOffset).toBeCloseTo(0, 0);
     expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
