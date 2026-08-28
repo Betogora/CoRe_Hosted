@@ -580,8 +580,8 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="grid min-w-0 gap-4">
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4" data-testid="manual-card-options">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
@@ -596,7 +596,7 @@ export function ManualCreationPanel({
               })}
             />
           </div>
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"

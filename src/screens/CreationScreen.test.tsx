@@ -86,6 +86,7 @@ test("manual target selection shows complete deck paths", () => {
 test("manual options use labeled segmented choices without explanatory subclaims", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
+  assert.match(markup, /class="flex min-w-0 flex-wrap items-center justify-between gap-4" data-testid="manual-card-options"/);
   assert.match(markup, />Fragentyp</);
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
