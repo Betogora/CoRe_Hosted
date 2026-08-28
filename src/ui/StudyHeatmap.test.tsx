@@ -63,8 +63,10 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   assert.match(markup, /core-study-heatmap-container/);
   assert.match(markup, /core-study-heatmap-header/);
   assert.match(markup, /core-study-heatmap-controls/);
+  assert.match(markup, /data-testid="study-heatmap-controls"><button[^>]*aria-label="Heatmap-Farbe ändern"[^>]*border-core-border/);
+  assert.match(markup, /data-testid="study-heatmap-controls">[\s\S]*aria-label="Heatmap-Farbe ändern"[\s\S]*aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-heatmap-history-color="#d6a3d2"/);
-  assert.match(markup, /aria-label="Heatmap-Farbe ändern"/);
+  assert.doesNotMatch(markup, /aria-label="Heatmap-Farbe ändern"[^>]*border-\[var\(--core-border-interactive\)\]/);
   assert.match(markup, /background-color:var\(--core-learning-status-new\)/);
   assert.match(markup, /data-size="regular"/);
   assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 3);

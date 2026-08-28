@@ -93,7 +93,7 @@ function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: s
         <button
           type="button"
           aria-label="Heatmap-Farbe ändern"
-          className={`size-11 shrink-0 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface p-1 shadow-sm transition hover:border-[var(--core-action-primary)] ${className}`}
+          className={`size-11 shrink-0 rounded-xl border border-core-border bg-core-surface p-1 shadow-sm transition hover:border-core-action ${className}`}
         >
           <span aria-hidden="true" className="block size-full rounded-lg border border-black/10 shadow-inner" style={{ backgroundColor: selectedOption.tone }} />
         </button>
@@ -364,13 +364,12 @@ export function StudyHeatmap({
         <div className="flex min-w-0 items-center gap-4">
           <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
           <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
+        </div>
+        <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap" data-testid="study-heatmap-controls">
           <HeatmapColorPicker
             value={historyColor}
-            className="ml-auto"
             onValueCommit={selectHistoryColor}
           />
-        </div>
-        <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap">
           <CoreSegmentedControl
             ariaLabel="Heatmap-Zeitraum"
             options={PERIOD_OPTIONS}

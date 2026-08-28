@@ -690,6 +690,21 @@ button[aria-label] {
   justify-self: end;
 }
 
+@container core-study-heatmap (max-width: 22rem) {
+  .core-study-heatmap-controls {
+    width: 100%;
+  }
+
+  .core-study-heatmap-controls .core-segmented-control {
+    min-width: 0;
+    flex: 1 1 0%;
+  }
+
+  .core-study-heatmap-controls .core-segmented-control-option {
+    padding-inline: 0.375rem;
+  }
+}
+
 .core-deck-tree-container {
   container: core-deck-tree / inline-size;
 }
@@ -758,7 +773,7 @@ button[aria-label] {
   }
 }
 
-@container core-study-heatmap (min-width: 34rem) {
+@container core-study-heatmap (min-width: 36rem) {
   .core-study-heatmap-header {
     grid-template-columns: minmax(0, 1fr) auto;
   }

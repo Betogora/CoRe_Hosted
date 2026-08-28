@@ -17,5 +17,8 @@ test("color wheel picker renders an accessible compact swatch without a native c
   assert.match(markup, /size-11/);
   assert.match(markup, /aria-haspopup="dialog"/);
   assert.match(markup, /background-color:#4f5eb1/);
+  assert.match(markup, /aria-label="Iconfarbe auswählen"[^>]*border-core-border/);
+  assert.match(markup, /aria-label="Iconfarbe auswählen"[^>]*hover:border-core-action/);
+  assert.doesNotMatch(markup, /border-\[var\(--core-border-interactive\)\]/);
   assert.doesNotMatch(markup, /<input|type="color"|font-mono/);
 });

@@ -70,6 +70,14 @@ test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast sca
   assert.doesNotMatch(heatmapRules.match(/\.core-heatmap-forecast-level-0,[\s\S]*$/)?.[0] ?? "", /lilac|success|info/);
 });
 
+test("heatmap keeps its control group intact across responsive widths", () => {
+  assert.match(styles, /@container core-study-heatmap \(min-width: 36rem\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto/);
+  const mobileControls = styles.match(/@container core-study-heatmap \(max-width: 22rem\) \{([\s\S]*?)\n\}\n\n\.core-deck-tree-container/)?.[1] ?? "";
+  assert.match(mobileControls, /\.core-study-heatmap-controls[\s\S]*?width: 100%/);
+  assert.match(mobileControls, /\.core-segmented-control[\s\S]*?flex: 1 1 0%/);
+  assert.match(mobileControls, /\.core-segmented-control-option[\s\S]*?padding-inline: 0\.375rem/);
+});
+
 test("group depths darken in light mode and lighten in dark mode", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const lightDepths = ["ffffff", "f7f8fa", "f1f3f6", "e8edf3", "dde3ec"];

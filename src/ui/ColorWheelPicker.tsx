@@ -120,7 +120,7 @@ export function ColorWheelPicker({
           type="button"
           aria-label={ariaLabel}
           disabled={disabled}
-          className={`size-11 shrink-0 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface p-1 shadow-sm transition hover:border-[var(--core-action-primary)] disabled:pointer-events-none disabled:opacity-50 ${className}`}
+          className={`size-11 shrink-0 rounded-xl border border-core-border bg-core-surface p-1 shadow-sm transition hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
         >
           <span
             aria-hidden="true"
