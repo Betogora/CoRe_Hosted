@@ -17,6 +17,8 @@ const DECK_STATUS_DEFINITIONS = [
   { color: LEARNING_STATUS_UI.learned.color, valueKey: "learnedCards", key: "learned" },
 ] as const;
 
+const DECK_DEPTH_INDENT_PX = 16;
+
 export interface DeckSummaryRowProps {
   row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth">;
   learningStatus?: {
@@ -86,7 +88,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, d
         className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${gridClass} ${className}`}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
-        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: Math.min(row.depth, 6) * 9 }}>
+        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: Math.min(row.depth, 6) * DECK_DEPTH_INDENT_PX }}>
           {leadingControl}
           <DeckAppearanceIcon
             data-deck-icon="true"

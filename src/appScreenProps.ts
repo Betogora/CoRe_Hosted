@@ -16,7 +16,7 @@ import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
-import type { DeckLearningSettingsDraft, DeckSettingsDraft, GlobalSettingsDraft } from "./settingsDraft.ts";
+import type { DeckLearningSettingsDraft, DeckSettingsDraft, GeneralSettingsDraft, GlobalCardSettingsDraft } from "./settingsDraft.ts";
 import type { OfflineDeckRecord } from "./workspaceReplica.ts";
 
 type NavigateToView = (
@@ -170,6 +170,7 @@ export interface LearnScreenProps {
   onFocusDeck: (deckId: string | null) => unknown;
   onOpenCardCreation: () => unknown;
   onOpenDecks: (deckId?: string | null) => unknown;
+  onOpenCardSettings: () => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
@@ -181,13 +182,20 @@ export interface SettingsScreenProps {
   profile: Profile;
   syncStatus: SyncStatus;
   storageStatus?: WorkspaceStorageStatus | null;
-  globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
-  onSaveSettings: (draft: GlobalSettingsDraft) => Profile | null | Promise<Profile | null>;
+  onSaveSettings: (draft: GeneralSettingsDraft) => Profile | null | Promise<Profile | null>;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onSyncNow: () => Promise<unknown>;
   onListConflicts: (options?: { refreshRemote?: boolean }) => Promise<unknown[]>;
   onResolveConflict: (conflictId: string, decision: Record<string, unknown>) => Promise<unknown>;
   onSignOut: () => Promise<void>;
+  onNavigate: NavigateToView;
+}
+
+export interface GlobalCardSettingsScreenProps {
+  timeZone: string;
+  globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
+  onSaveSettings: (draft: GlobalCardSettingsDraft) => Profile | null | Promise<Profile | null>;
+  onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onNavigate: NavigateToView;
   simulationOffsetMinutes: number;
   simulationDateLabel: string;

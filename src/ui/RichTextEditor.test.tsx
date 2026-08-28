@@ -40,4 +40,19 @@ test("keeps the standard editor toolbar unchanged when cloze actions are disable
 
   assert.doesNotMatch(markup, /Auswahl als Lücke/);
   assert.doesNotMatch(markup, /Lücke entfernen/);
+  assert.doesNotMatch(markup, /Bild an Cursorposition einfügen/);
+});
+
+test("renders the optional inline-image action and hidden multi-file picker", () => {
+  const markup = renderToStaticMarkup(
+    <RichTextEditor
+      ariaLabel="Inhalt"
+      imageActions={{ mediaUrls: {}, prepare: async () => ({ reference: "a".repeat(40), previewUrl: "blob:test", alt: "bild.png" }) }}
+    />,
+  );
+
+  assert.match(markup, /aria-label="Bild an Cursorposition einfügen"/);
+  assert.match(markup, /type="file"/);
+  assert.match(markup, /accept="image\/\*"/);
+  assert.match(markup, /multiple=""/);
 });

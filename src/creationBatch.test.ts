@@ -8,11 +8,13 @@ import {
 } from "./creationBatch.ts";
 
 test("manual batch session resets only unpinned fields and keeps the target deck", () => {
+  const imageReference = "a".repeat(40);
+  const pinnedFront = `<p>Gemeinsame Vorderseite <img src="${imageReference}" alt="schema.png"></p>`;
   let state = createManualBatchSession("deck-a");
   state = reduceManualBatchSession(state, {
     type: "draft",
     patch: {
-      front: "<p>Gemeinsame Vorderseite</p>",
+      front: pinnedFront,
       back: "<p>Einmalige Rückseite</p>",
       tags: "prüfung",
       selection: "Quelle",
@@ -24,7 +26,7 @@ test("manual batch session resets only unpinned fields and keeps the target deck
   assert.equal(saved.createdCount, 1);
   assert.equal(saved.targetDeckId, "deck-a");
   assert.equal(saved.lastSavedCardId, "card-1");
-  assert.equal(saved.currentDraft.front, "<p>Gemeinsame Vorderseite</p>");
+  assert.equal(saved.currentDraft.front, pinnedFront);
   assert.equal(saved.currentDraft.back, "");
   assert.equal(saved.currentDraft.tags, "");
   assert.equal(nextManualFocusTarget(saved), "back");

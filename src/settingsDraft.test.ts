@@ -3,22 +3,24 @@ import test from "node:test";
 import { createCoreDeck, createDefaultDeckSettings, createManualCoreDeck } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
-import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, createGlobalSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
+import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, createGeneralSettingsDraft, createGlobalCardSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
 
-test("global draft normalizes profile, learning-day, weekly rhythm, and sync values", () => {
+test("general and global card drafts keep their settings domains separate", () => {
   const profile = createCoreRepository({ seedDefaultDecks: false }).getState().profile;
   const preferences = getGlobalSchedulerPreferences(profile);
-  const draft = createGlobalSettingsDraft(profile, {
+  const generalDraft = createGeneralSettingsDraft(profile);
+  const cardDraft = createGlobalCardSettingsDraft({
     ...preferences,
     dayStartHour: 29,
     learnAheadMinutes: 999,
     easyDays: { ...preferences.easyDays, monday: "minimum" },
   });
 
-  assert.equal(draft.dayStartHour, 23);
-  assert.equal(draft.learnAheadMinutes, 720);
-  assert.equal(draft.easyDays.monday, "minimum");
-  assert.equal(draft.syncIntervalMinutes, profile.uiPreferences.syncIntervalMinutes);
+  assert.equal(generalDraft.displayName, profile.displayName);
+  assert.equal(generalDraft.syncIntervalMinutes, profile.uiPreferences.syncIntervalMinutes);
+  assert.equal(cardDraft.dayStartHour, 23);
+  assert.equal(cardDraft.learnAheadMinutes, 720);
+  assert.equal(cardDraft.easyDays.monday, "minimum");
 });
 
 test("deck draft compares and normalizes identity, appearance, learning, scheduler, and CoRe values", () => {

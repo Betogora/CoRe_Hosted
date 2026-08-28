@@ -5,6 +5,7 @@ import type {
   DashboardScreenProps,
   DeckSettingsScreenProps,
   DecksScreenProps,
+  GlobalCardSettingsScreenProps,
   LearnScreenProps,
   SettingsScreenProps,
   SimulatorScreenProps,
@@ -13,9 +14,10 @@ import type {
 } from "./appScreenProps.ts";
 import { markAppPerformance, measureAppPerformance } from "./appPerformance.ts";
 
-export type AppFeatureId = "creation" | "dashboard" | "deck-settings" | "decks" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
+export type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
 
 const featureLoaders = {
+  "card-settings": () => import("./screens/GlobalCardSettingsScreen.tsx").then(({ GlobalCardSettingsScreen }) => ({ default: GlobalCardSettingsScreen })),
   creation: () => import("./screens/CreationScreen.tsx").then(({ CreationScreen }) => ({ default: CreationScreen })),
   dashboard: () => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })),
   "deck-settings": () => import("./screens/DeckSettingsScreen.tsx").then(({ DeckSettingsScreen }) => ({ default: DeckSettingsScreen })),
@@ -57,6 +59,7 @@ const featureByView: Record<AppViewId, AppFeatureId> = {
   simulator: "simulator",
   hilfe: "help",
   einstellungen: "settings",
+  "karten-einstellungen": "card-settings",
   "stapel-einstellungen": "deck-settings",
 };
 
@@ -70,6 +73,7 @@ export const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScr
 export const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => loadAppFeature("decks") as Promise<{ default: React.ComponentType<DecksScreenProps> }>);
 export const HelpScreen = React.lazy(() => loadAppFeature("help"));
 export const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => loadAppFeature("learn") as Promise<{ default: React.ComponentType<LearnScreenProps> }>);
+export const GlobalCardSettingsScreen = React.lazy<React.ComponentType<GlobalCardSettingsScreenProps>>(() => loadAppFeature("card-settings") as Promise<{ default: React.ComponentType<GlobalCardSettingsScreenProps> }>);
 export const SimulatorScreen = React.lazy<React.ComponentType<SimulatorScreenProps>>(() => loadAppFeature("simulator") as Promise<{ default: React.ComponentType<SimulatorScreenProps> }>);
 export const SettingsScreen = React.lazy<React.ComponentType<SettingsScreenProps>>(() => loadAppFeature("settings") as Promise<{ default: React.ComponentType<SettingsScreenProps> }>);
 export const StatisticsScreen = React.lazy<React.ComponentType<StatisticsScreenProps>>(() => loadAppFeature("statistics") as Promise<{ default: React.ComponentType<StatisticsScreenProps> }>);

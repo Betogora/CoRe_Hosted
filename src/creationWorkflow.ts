@@ -35,7 +35,7 @@ export interface ManualMediaSyncProgress extends MediaSyncProgress {
   phase: "uploading" | "persisting-references";
 }
 
-interface ManualCreationInput {
+export interface ManualCreationInput {
   deckName?: string;
   cardType?: CardType;
   front?: string;
@@ -49,8 +49,7 @@ interface ManualCreationInput {
   documentText?: string;
   selection?: string;
   activeField?: string;
-  frontImage?: ManualImageAttachment | null;
-  backImage?: ManualImageAttachment | null;
+  mediaAttachments?: ManualImageAttachment[];
   additionalFields?: Array<{
     id?: string;
     name?: string;
@@ -250,6 +249,7 @@ function normalizeAnswerOptions(value: unknown): string[] {
 
 const SUPPORTED_MANUAL_CARD_TYPES = new Set<CardType>(["basic", "basic-with-images", "basic-reversed", "cloze", "single-choice", "multiple-choice"]);
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
+const IMAGE_SOURCE_PATTERN = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi;
 const DOWNSCALABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const FULL_HD_LANDSCAPE = { width: 1_920, height: 1_080 } as const;
 
@@ -318,8 +318,41 @@ function normalizeManualImageAttachment(value: unknown): ManualImageAttachment |
   };
 }
 
-function appendManualImage(html: string, image: ManualImageAttachment | null, alt: string): string {
-  return image ? `${html}<p><img src="${image.sha1}" alt="${alt}"></p>` : html;
+export function getManualImageReferences(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields"> = {}): string[] {
+  const values = [
+    input.front ?? "",
+    input.back ?? "",
+    ...(Array.isArray(input.additionalFields) ? input.additionalFields.map((field) => field.value ?? "") : []),
+  ];
+  const references: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const html = String(value ?? "");
+    IMAGE_SOURCE_PATTERN.lastIndex = 0;
+    let match = IMAGE_SOURCE_PATTERN.exec(html);
+    while (match) {
+      const reference = String(match[1] ?? match[2] ?? match[3] ?? "").trim().toLowerCase();
+      if (SHA1_PATTERN.test(reference) && !seen.has(reference)) {
+        seen.add(reference);
+        references.push(reference);
+      }
+      match = IMAGE_SOURCE_PATTERN.exec(html);
+    }
+  }
+  return references;
+}
+
+function getReferencedManualImages(input: ManualCreationInput = {}): ManualImageAttachment[] {
+  const attachments = new Map<string, ManualImageAttachment>();
+  for (const value of input.mediaAttachments ?? []) {
+    const attachment = normalizeManualImageAttachment(value);
+    if (attachment) attachments.set(attachment.sha1, attachment);
+  }
+  return getManualImageReferences(input).map((reference) => {
+    const attachment = attachments.get(reference);
+    if (!attachment) throw new Error("Mindestens ein eingefügtes Bild ist nicht mehr verfügbar. Bitte füge es erneut ein.");
+    return attachment;
+  });
 }
 
 function createManualDeckInput(input: ManualCreationInput = {}) {
@@ -327,10 +360,8 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
   const document = input.document ?? null;
   const choice = normalizeChoiceData(input, normalizeAnswerOptions(input.answerOptions));
   const tags = normalizeTags(input.tags);
-  const frontImage = normalizeManualImageAttachment(input.frontImage);
-  const backImage = normalizeManualImageAttachment(input.backImage);
-  const front = appendManualImage(input.front ?? "", frontImage, "Bild zur Vorderseite");
-  const back = appendManualImage(input.back ?? "", backImage, "Bild zur Rückseite");
+  const front = input.front ?? "";
+  const back = input.back ?? "";
   const editorValue: CardEditorValue = requestedCardType === "cloze"
     ? { cardType: "cloze", textWithClozes: front, extra: back, tags }
     : requestedCardType === "single-choice"
@@ -354,7 +385,7 @@ function createManualDeckInput(input: ManualCreationInput = {}) {
       ...additionalFields.map((field) => ({ name: String(field.name), value: String(field.value ?? "") })),
     ],
     tags,
-    mediaRefs: [frontImage?.sha1, backImage?.sha1].filter((reference): reference is string => Boolean(reference)),
+    mediaRefs: getManualImageReferences(input),
   });
   const contentDocument = {
     ...baseDocument,
@@ -419,6 +450,10 @@ export function createCreationWorkflow({ mediaStore = createAccountMediaStore({ 
         blob: image,
       };
     },
+
+    getManualImageReferences,
+
+    getReferencedManualImages,
 
     async prepareManualMedia(deck: Deck, attachments: Array<ManualImageAttachment | null | undefined>) {
       const unique = new Map<string, ManualImageAttachment>();

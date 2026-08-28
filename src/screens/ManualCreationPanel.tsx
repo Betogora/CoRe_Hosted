@@ -16,7 +16,7 @@ import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
-import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
@@ -30,6 +30,8 @@ type ManualCreationWorkflow = Pick<
   | "validateManualCard"
   | "readSourceDocument"
   | "prepareManualImage"
+  | "getManualImageReferences"
+  | "getReferencedManualImages"
   | "prepareManualMedia"
   | "syncManualMedia"
 >;
@@ -72,13 +74,9 @@ interface PinFieldButtonProps {
   onToggle: () => void;
 }
 
-interface ManualImageFieldProps {
-  label: string;
-  value: ManualImageAttachment | null;
-  busy: boolean;
-  error: string;
-  onFile: (file: File) => void;
-  onRemove: () => void;
+interface ManualImageDraft {
+  attachment: ManualImageAttachment;
+  previewUrl: string;
 }
 
 function documentStatusMessage(document: TransientSourceDocument | null): string {
@@ -120,47 +118,6 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
   );
 }
 
-function ManualImageField({ label, value, busy, error, onFile, onRemove }: ManualImageFieldProps) {
-  const [previewUrl, setPreviewUrl] = React.useState("");
-
-  React.useEffect(() => {
-    if (!value || typeof URL?.createObjectURL !== "function") {
-      setPreviewUrl("");
-      return undefined;
-    }
-    const url = URL.createObjectURL(value.blob);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [value]);
-
-  return (
-    <div className="grid gap-2">
-      <FileDropField
-        kind="image"
-        label={label}
-        selected={Boolean(value)}
-        onFile={onFile}
-        busy={busy}
-      >
-        {value ? (
-          <div className="flex min-w-0 flex-col items-center gap-3 sm:flex-row">
-            {previewUrl ? <img src={previewUrl} alt="Vorschau des ausgewählten Bildes" className="h-28 w-full rounded-lg border border-[var(--core-border)] bg-core-surface object-contain sm:w-40" /> : null}
-            <div className="min-w-0 flex-1 text-center sm:text-left">
-              <p className="truncate core-body font-semibold text-[var(--core-text)]">{value.originalName}</p>
-              <p className="mt-1 core-caption font-normal text-[var(--core-text-muted)]">{formatBytes(value.size)} · Strg+V oder Drop ersetzt das Bild</p>
-              <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-                <ActionButton type="button" variant="destructive" icon={X} onClick={onRemove} disabled={busy}>Entfernen</ActionButton>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </FileDropField>
-      {busy ? <p className="core-caption font-normal text-[var(--core-text-muted)]" role="status">Bild wird vorbereitet …</p> : null}
-      {error ? <p className="core-body font-medium text-core-text" role="alert">{error}</p> : null}
-    </div>
-  );
-}
-
 export function ManualCreationPanel({
   decks,
   workflow,
@@ -179,7 +136,6 @@ export function ManualCreationPanel({
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
-  const [previewMediaUrls, setPreviewMediaUrls] = React.useState<Record<string, string>>({});
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
@@ -194,10 +150,10 @@ export function ManualCreationPanel({
   const [statusType, setStatusType] = React.useState<"status" | "warning" | "alert">("status");
   const setSuccessToast = useSuccessToast();
   const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
-  const [frontImage, setFrontImage] = React.useState<ManualImageAttachment | null>(null);
-  const [backImage, setBackImage] = React.useState<ManualImageAttachment | null>(null);
-  const [preparingImage, setPreparingImage] = React.useState<ActiveField | null>(null);
-  const [imageErrors, setImageErrors] = React.useState<Record<ActiveField, string>>({ front: "", back: "" });
+  const imageDraftsRef = React.useRef(new Map<string, ManualImageDraft>());
+  const imagePreparationCountRef = React.useRef(0);
+  const [imageRegistryVersion, setImageRegistryVersion] = React.useState(0);
+  const [isPreparingImage, setIsPreparingImage] = React.useState(false);
   const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
@@ -220,6 +176,11 @@ export function ManualCreationPanel({
     [documentObjectUrl],
   );
 
+  React.useEffect(() => () => {
+    for (const image of imageDraftsRef.current.values()) URL.revokeObjectURL(image.previewUrl);
+    imageDraftsRef.current.clear();
+  }, []);
+
   const focusField = React.useCallback((target: ManualFocusTarget = activeField) => {
     const field = editorRootRef.current?.querySelector<HTMLElement>(`[data-manual-focus="${target}"]`);
     const focusable = field?.matches('input, [contenteditable="true"]')
@@ -233,7 +194,7 @@ export function ManualCreationPanel({
   }, []);
 
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
-  const draftDirty = textDraftDirty || Boolean(frontImage || backImage || additionalFields.length);
+  const draftDirty = textDraftDirty || additionalFields.length > 0;
 
   React.useEffect(() => {
     onDraftStateChange(draftDirty, isSaving ? focusSaveProgress : () => focusField(), isSaving);
@@ -284,6 +245,47 @@ export function ManualCreationPanel({
     applySelection(selectedText);
   }
 
+  const inlineMediaUrls = React.useMemo(() => Object.fromEntries(
+    Array.from(imageDraftsRef.current, ([reference, image]) => [reference, image.previewUrl]),
+  ), [imageRegistryVersion]);
+
+  const prepareInlineImage = React.useCallback<RichTextImageActions["prepare"]>(async (file) => {
+    imagePreparationCountRef.current += 1;
+    setIsPreparingImage(true);
+    try {
+      const attachment = await workflow.prepareManualImage(file);
+      const existing = imageDraftsRef.current.get(attachment.sha1);
+      if (existing) {
+        return { reference: attachment.sha1, previewUrl: existing.previewUrl, alt: attachment.originalName };
+      }
+      if (typeof URL.createObjectURL !== "function") throw new Error("Das Bild kann in diesem Browser nicht angezeigt werden.");
+      const previewUrl = URL.createObjectURL(attachment.blob);
+      imageDraftsRef.current.set(attachment.sha1, { attachment, previewUrl });
+      setImageRegistryVersion((version) => version + 1);
+      return { reference: attachment.sha1, previewUrl, alt: attachment.originalName };
+    } finally {
+      imagePreparationCountRef.current = Math.max(0, imagePreparationCountRef.current - 1);
+      setIsPreparingImage(imagePreparationCountRef.current > 0);
+    }
+  }, [workflow]);
+
+  const imageActions = React.useMemo<RichTextImageActions>(() => ({
+    mediaUrls: inlineMediaUrls,
+    prepare: prepareInlineImage,
+  }), [inlineMediaUrls, prepareInlineImage]);
+
+  function pruneInlineImages(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields">) {
+    const references = new Set(workflow.getManualImageReferences(input));
+    let changed = false;
+    for (const [reference, image] of imageDraftsRef.current) {
+      if (references.has(reference)) continue;
+      URL.revokeObjectURL(image.previewUrl);
+      imageDraftsRef.current.delete(reference);
+      changed = true;
+    }
+    if (changed) setImageRegistryVersion((version) => version + 1);
+  }
+
   function manualInput(): ManualCreationInput {
     const selectedDeck = decks.find((deck) => deck.id === selectedDeckId);
     return {
@@ -299,24 +301,9 @@ export function ManualCreationPanel({
       documentText,
       selection,
       activeField,
-      frontImage,
-      backImage,
+      mediaAttachments: Array.from(imageDraftsRef.current.values(), (image) => image.attachment),
       additionalFields,
     };
-  }
-
-  async function prepareImage(field: ActiveField, file: File) {
-    setPreparingImage(field);
-    setImageErrors((current) => ({ ...current, [field]: "" }));
-    try {
-      const image = await workflow.prepareManualImage(file);
-      if (field === "front") setFrontImage(image);
-      else setBackImage(image);
-    } catch (error) {
-      setImageErrors((current) => ({ ...current, [field]: error instanceof Error ? error.message : "Bild konnte nicht verarbeitet werden." }));
-    } finally {
-      setPreparingImage(null);
-    }
   }
 
   function togglePinnedField(field: ActiveField) {
@@ -395,11 +382,9 @@ export function ManualCreationPanel({
     const nextState = reduceManualBatchSession(batchState, { type: "saved", cardId: savedCard.id, targetDeckId: deck.id });
     cleanDraftRef.current = nextState.currentDraft;
     dispatchBatch({ type: "saved", cardId: savedCard.id, targetDeckId: deck.id });
-    setFrontImage(null);
-    setBackImage(null);
     setAdditionalFields([]);
+    pruneInlineImages({ front: nextState.currentDraft.front, back: nextState.currentDraft.back, additionalFields: [] });
     setInvalidAdditionalFieldIds([]);
-    setImageErrors({ front: "", back: "" });
     setFieldErrors({});
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
@@ -454,8 +439,8 @@ export function ManualCreationPanel({
       const creatingDeck = useNewDeck;
       const targetDeck = creatingDeck ? workflow.createManualDeck(snapshot) : decks.find((deck) => deck.id === selectedDeckId) ?? null;
       if (!targetDeck) throw new Error("Der gewählte Kartenstapel ist nicht mehr verfügbar.");
-      const attachmentSnapshot = [snapshot.frontImage, snapshot.backImage];
-      const hasAttachments = attachmentSnapshot.some(Boolean);
+      const attachmentSnapshot = workflow.getReferencedManualImages(snapshot);
+      const hasAttachments = attachmentSnapshot.length > 0;
       setSuccessToast("");
       setStatus("");
       setSaveProgress({
@@ -503,21 +488,6 @@ export function ManualCreationPanel({
   const isReverse = cardType === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
 
-  React.useEffect(() => {
-    if (!previewOpen || typeof URL.createObjectURL !== "function") {
-      setPreviewMediaUrls({});
-      return undefined;
-    }
-    const urls: Record<string, string> = {};
-    for (const attachment of [frontImage, backImage]) {
-      if (!attachment || urls[attachment.sha1]) continue;
-      const url = URL.createObjectURL(attachment.blob);
-      urls[attachment.sha1] = url;
-    }
-    setPreviewMediaUrls(urls);
-    return () => Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
-  }, [backImage, frontImage, previewOpen]);
-
   const previewBundle = React.useMemo(() => {
     if (!previewOpen) return null;
     const previewInput = workflow.createManualDeckInput(manualInput());
@@ -525,7 +495,7 @@ export function ManualCreationPanel({
     const definition = previewInput.card.noteTypeDefinition;
     const result = applyLearningItemContent({ previous: null, document, definition, reason: "create" });
     return { item: result.item, definition, variant: null };
-  }, [activeField, additionalFields, answerOptions, back, backImage, cardType, correctOptionIndices, deckName, decks, document, documentText, front, frontImage, previewOpen, selectedDeckId, selection, tags, useNewDeck, workflow]);
+  }, [activeField, additionalFields, answerOptions, back, cardType, correctOptionIndices, deckName, decks, document, documentText, front, imageRegistryVersion, previewOpen, selectedDeckId, selection, tags, useNewDeck, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -580,8 +550,8 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4" data-testid="manual-card-options">
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
+        <div className="grid min-w-0 gap-4 md:grid-cols-[max-content_max-content] md:items-center md:justify-start" data-testid="manual-card-options">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
@@ -596,7 +566,7 @@ export function ManualCreationPanel({
               })}
             />
           </div>
-          <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
             <span className="core-body font-semibold text-[var(--core-text)]">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
@@ -617,6 +587,7 @@ export function ManualCreationPanel({
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
+            pruneInlineImages({ front: value, back, additionalFields });
             dispatchBatch({
               type: "draft",
               patch: {
@@ -625,7 +596,7 @@ export function ManualCreationPanel({
               },
             });
             setFieldErrors((current) => ({ ...current, front: undefined, question: undefined, textWithClozes: undefined }));
-          }} clozeActions={isChoice ? undefined : { groupId: nextClozeGroup }} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
+          }} clozeActions={isChoice ? undefined : { groupId: nextClozeGroup }} imageActions={imageActions} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={cardType === "cloze" ? "Cloze-Text" : isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes)} />
           {!isChoice ? <p className="core-body font-normal text-[var(--core-text-muted)]">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
           {fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front || fieldErrors.question || fieldErrors.textWithClozes}</p> : null}
         </div>
@@ -664,33 +635,18 @@ export function ManualCreationPanel({
             {fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices}</p> : null}
           </fieldset>
         ) : null}
-        <ManualImageField
-          label="Bild zur Vorderseite einfügen (optional)"
-          value={frontImage}
-          busy={preparingImage === "front"}
-          error={imageErrors.front}
-          onFile={(file) => void prepareImage("front", file)}
-          onRemove={() => { setFrontImage(null); setImageErrors((current) => ({ ...current, front: "" })); }}
-        />
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
           <div className="flex min-h-11 items-center justify-between gap-2">
             <span>{answerLabel}</span>
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
           <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={(value) => {
+            pruneInlineImages({ front, back: value, additionalFields });
             dispatchBatch({ type: "draft", patch: { back: value } });
             setFieldErrors((current) => ({ ...current, back: undefined }));
-          }} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
+          }} imageActions={imageActions} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
           {fieldErrors.back ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.back}</p> : null}
         </div>
-        <ManualImageField
-          label="Bild zur Rückseite einfügen (optional)"
-          value={backImage}
-          busy={preparingImage === "back"}
-          error={imageErrors.back}
-          onFile={(file) => void prepareImage("back", file)}
-          onRemove={() => { setBackImage(null); setImageErrors((current) => ({ ...current, back: "" })); }}
-        />
       </div>
 
       <div className="grid gap-4">
@@ -727,10 +683,18 @@ export function ManualCreationPanel({
                     [next[index], next[index + 1]] = [next[index + 1], next[index]];
                     return next;
                   })} />
-                  <IconButton type="button" icon={X} label={`${field.name || `Feld ${index + 1}`} entfernen`} onClick={() => setAdditionalFields((current) => current.filter((candidate) => candidate.id !== field.id))} />
+                  <IconButton type="button" icon={X} label={`${field.name || `Feld ${index + 1}`} entfernen`} onClick={() => {
+                    const next = additionalFields.filter((candidate) => candidate.id !== field.id);
+                    pruneInlineImages({ front, back, additionalFields: next });
+                    setAdditionalFields(next);
+                  }} />
                 </div>
               </div>
-              <RichTextEditor value={field.value} onChange={(value) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, value } : candidate))} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
+              <RichTextEditor value={field.value} onChange={(value) => {
+                const next = additionalFields.map((candidate) => candidate.id === field.id ? { ...candidate, value } : candidate);
+                pruneInlineImages({ front, back, additionalFields: next });
+                setAdditionalFields(next);
+              }} imageActions={imageActions} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
             </div>
           ))}
           <ActionButton type="button" variant="secondary" icon={Plus} className="w-fit" onClick={() => setAdditionalFields((current) => [...current, {
@@ -775,7 +739,7 @@ export function ManualCreationPanel({
         </div>
       ) : null}
       <div className="flex flex-wrap items-end gap-2">
-        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} loading={isSaving} disabled={Boolean(preparingImage) || isSaving} onClick={() => void saveManualCard()}>
+        <ActionButton data-testid="manual-save-button" type="button" variant="primary" icon={Database} loading={isSaving} disabled={isPreparingImage || isSaving} onClick={() => void saveManualCard()}>
           {isSaving ? "Karte wird gespeichert" : "Originalkarte speichern"}
         </ActionButton>
         <ActionButton
@@ -798,7 +762,7 @@ export function ManualCreationPanel({
         item={previewBundle?.item}
         variant={previewBundle?.variant}
         definition={previewBundle?.definition}
-        mediaUrls={previewMediaUrls}
+        mediaUrls={inlineMediaUrls}
         onOpenChange={setPreviewOpen}
         returnFocusRef={previewButtonRef}
       />

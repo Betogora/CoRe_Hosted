@@ -32,6 +32,13 @@ test("roundtrips the simulator route without additional context", () => {
   assert.equal(appRouteToUrl(route), "/simulator");
 });
 
+test("roundtrips the global card-settings route without deck context", () => {
+  const route = parseAppRouteFromUrl("/karten-einstellungen");
+
+  assert.deepEqual(route, { mode: "view", viewId: "karten-einstellungen" });
+  assert.equal(appRouteToUrl(route), "/karten-einstellungen");
+});
+
 test("roundtrips deck, card and creation context without validating navigational ids away", () => {
   const learnRoute = parseAppRouteFromUrl("/lernen?deck=deck_deep&parent=deck_parent");
   const deckRoute = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&card=card_b");

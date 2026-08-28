@@ -4,7 +4,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createViewRoute } from "../appNavigation.ts";
 import { createCoreRepository } from "../coreRepository.ts";
-import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
 import { createConflictImpactPreview } from "./SyncConflictPanel.tsx";
 
@@ -15,7 +14,6 @@ function renderSettings() {
     <SettingsScreen
       profile={profile}
       syncStatus={{ status: "idle" }}
-      globalSchedulerPreferences={getGlobalSchedulerPreferences(profile)}
       onSaveSettings={() => profile}
       onDraftStateChange={() => undefined}
       onSyncNow={async () => undefined}
@@ -23,23 +21,20 @@ function renderSettings() {
       onResolveConflict={async () => undefined}
       onSignOut={async () => undefined}
       onNavigate={() => createViewRoute("uebersicht")}
-      simulationOffsetMinutes={3 * 24 * 60}
-      simulationDateLabel="Sonntag, 9. August 2026"
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
     />,
   );
 }
 
-test("global settings expose four task-based sections and cross-navigation", () => {
+test("general settings expose three task-based sections and card-settings navigation", () => {
   const html = renderSettings();
-  for (const heading of ["Konto", "Lerntag &amp; Fokus", "Daten &amp; Synchronisierung", "Über uns"]) assert.match(html, new RegExp(`>${heading}<`));
-  assert.match(html, /aria-label="Bereiche der globalen Einstellungen"/);
-  for (const target of ["settings-account", "settings-learning-day", "settings-data-sync", "settings-about"]) assert.match(html, new RegExp(`href="#${target}"`));
+  for (const heading of ["Konto", "Daten &amp; Synchronisierung", "Über uns"]) assert.match(html, new RegExp(`>${heading}<`));
+  assert.match(html, />Allgemeine Einstellungen</);
+  assert.match(html, /aria-label="Bereiche der allgemeinen Einstellungen"/);
+  for (const target of ["settings-account", "settings-data-sync", "settings-about"]) assert.match(html, new RegExp(`href="#${target}"`));
   assert.match(html, /data-in-page-navigation="desktop"/);
   assert.match(html, /data-in-page-navigation="compact"/);
   assert.doesNotMatch(html, /min-h-28|Alle Bereiche|\d+\s*\/\s*\d+/);
-  assert.match(html, />Stapeleinstellungen</);
+  assert.match(html, />Karteneinstellungen</);
 });
 
 test("about settings contain help, legal placeholders, and the only visible version slot", () => {
@@ -61,20 +56,9 @@ test("account settings expose only active profile fields in one wide panel", () 
   assert.doesNotMatch(html, /Profil speichern/);
 });
 
-test("learning-day settings contain only global scheduler context", () => {
+test("general settings do not contain global card settings", () => {
   const html = renderSettings();
-  assert.match(html, /data-testid="settings-day-start-hour"/);
-  assert.match(html, /data-testid="settings-learn-ahead"/);
-  assert.match(html, />Wochenrhythmus</);
-  for (const weekday of ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"]) assert.match(html, new RegExp(`>${weekday}<`));
-  assert.match(html, /sm:grid-cols-2 lg:grid-cols-4/);
-  assert.match(html, /data-testid="settings-easy-day-monday"/);
-  assert.match(html, /Europe\/Berlin/);
-  assert.match(html, />Simulator</);
-  assert.match(html, />Pomodoro-Timer</);
-  assert.doesNotMatch(html, />Hilfe</);
-  assert.doesNotMatch(html, /Neue Karten pro Tag|Wiederholungen pro Tag|CoRe-Modus|Gewünschte Erinnerungsrate/);
-  assert.doesNotMatch(html, /Lerntag speichern/);
+  assert.doesNotMatch(html, /Neuer Tag beginnt|Lernkarten vorziehen|Wochenrhythmus|Simulator|Pomodoro-Timer/);
 });
 
 test("data settings omit the removed CoRe JSON portability controls", () => {

@@ -79,18 +79,17 @@ test("heatmap keeps its control group intact across responsive widths", () => {
   assert.match(mobileControls, /\.core-segmented-control-option[\s\S]*?padding-inline: 0\.375rem/);
 });
 
-test("group depths darken in light mode and lighten in dark mode", () => {
+test("group depths darken subtly in light mode and lighten subtly in dark mode", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const lightDepths = ["ffffff", "f7f8fa", "f1f3f6", "e8edf3", "dde3ec"];
-  const darkDepths = ["262e3a", "2b3441", "303a48", "35404f", "3a4657"];
+  const lightDepths = ["ffffff", "fafbfc", "f7f8fa", "f4f6f8", "f1f3f6"];
+  const darkDepths = ["262e3a", "29313e", "2c3542", "2f3846", "323b4a"];
 
-  for (let depth = 1; depth <= 3; depth += 1) {
+  for (let depth = 1; depth <= 4; depth += 1) {
     assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
   }
   for (let depth = 1; depth <= 4; depth += 1) {
     assert.match(dark, new RegExp(`--core-group-depth-${depth}:\\s*#${darkDepths[depth]}`));
   }
-  assert.match(styles, /--core-group-depth-4:\s*var\(--core-palette-cloud\)/);
   assert.ok(lightDepths.every((color, index) => index === 0 || relativeLuminance(lightDepths[index - 1]) > relativeLuminance(color)));
   assert.ok(darkDepths.every((color, index) => index === 0 || relativeLuminance(darkDepths[index - 1]) < relativeLuminance(color)));
   assert.match(styles, /\.core-deck-summary-row\[data-deck-depth="4"\]\s*\{\s*background-color:\s*var\(--core-group-depth-4\)/);

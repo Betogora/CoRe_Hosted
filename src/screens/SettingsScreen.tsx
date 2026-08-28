@@ -1,56 +1,29 @@
 import React from "react";
-import { CalendarClock, CircleHelp, Database, FileText, Info, RefreshCw, User, X } from "lucide-react";
+import { CircleHelp, Database, FileText, Info, RefreshCw, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import { APP_RUNTIME_INFO } from "../appRuntime.ts";
 import type { SettingsScreenProps } from "../appScreenProps.ts";
-import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
-import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
-import type { EasyDayLevel, EasyDays, SyncIntervalMinutes } from "../coreTypes.ts";
-import { normalizeDayStartHour } from "../learningDay.ts";
-import { formatSimulationDuration } from "../simulationClock.ts";
+import type { SyncIntervalMinutes } from "../coreTypes.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
-import { createGlobalSettingsDraft, settingsDraftsEqual, type GlobalSettingsDraft } from "../settingsDraft.ts";
+import { createGeneralSettingsDraft, settingsDraftsEqual, type GeneralSettingsDraft } from "../settingsDraft.ts";
 import { SyncConflictPanel } from "./SyncConflictPanel.tsx";
 import { formatStorageBytes } from "../workspaceStorage.ts";
 
 const sectionIds = {
   account: "settings-account",
-  focus: "settings-learning-day",
   data: "settings-data-sync",
   about: "settings-about",
 } as const;
 
 const settingsSections = [
   { id: sectionIds.account, label: "Konto", icon: User },
-  { id: sectionIds.focus, label: "Lerntag & Fokus", icon: CalendarClock },
   { id: sectionIds.data, label: "Daten & Synchronisierung", icon: Database },
   { id: sectionIds.about, label: "Über uns", icon: Info },
 ] as const;
-
-const easyDayOptions = [
-  { value: "normal", label: "Normal" },
-  { value: "reduced", label: "Weniger" },
-  { value: "minimum", label: "Minimal" },
-];
-const weekdayLabels: Record<keyof EasyDays, string> = {
-  monday: "Montag",
-  tuesday: "Dienstag",
-  wednesday: "Mittwoch",
-  thursday: "Donnerstag",
-  friday: "Freitag",
-  saturday: "Samstag",
-  sunday: "Sonntag",
-};
-const easyDayToneClasses: Record<EasyDayLevel, string> = {
-  normal: "border-core-border bg-core-subtle",
-  reduced: "border-core-warning bg-core-warning-soft",
-  minimum: "border-core-info bg-core-info-soft",
-};
 
 const syncIntervalOptions = [
   { value: "0", label: "Aus – nur manuell" },
@@ -60,11 +33,11 @@ const syncIntervalOptions = [
   { value: "30", label: "Alle 30 Minuten" },
 ];
 
-export function SettingsScreen({ profile, syncStatus, storageStatus = null, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: SettingsScreenProps) {
-  const persistedDraft = createGlobalSettingsDraft(profile, globalSchedulerPreferences);
+export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
+  const persistedDraft = createGeneralSettingsDraft(profile);
   const persistedDraftKey = JSON.stringify(persistedDraft);
-  const [baseline, setBaseline] = React.useState<GlobalSettingsDraft>(persistedDraft);
-  const [draft, setDraft] = React.useState<GlobalSettingsDraft>(persistedDraft);
+  const [baseline, setBaseline] = React.useState<GeneralSettingsDraft>(persistedDraft);
+  const [draft, setDraft] = React.useState<GeneralSettingsDraft>(persistedDraft);
   const [accountMessage, setAccountMessage] = React.useState("");
   const [accountBusy, setAccountBusy] = React.useState(false);
   const setSuccessToast = useSuccessToast();
@@ -76,24 +49,21 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
   const dirty = !settingsDraftsEqual(draft, baseline);
 
   const saveDraft = React.useCallback(async () => {
-    const normalized: GlobalSettingsDraft = {
+    const normalized: GeneralSettingsDraft = {
       displayName: draft.displayName.trim(),
-      dayStartHour: normalizeDayStartHour(draft.dayStartHour),
-      learnAheadMinutes: normalizeLearnAheadMinutes(draft.learnAheadMinutes),
-      easyDays: normalizeEasyDays(draft.easyDays),
       syncIntervalMinutes: draft.syncIntervalMinutes,
     };
     try {
       const saved = await onSaveSettings(normalized);
-      if (!saved) throw new Error("Globale Einstellungen konnten nicht gespeichert werden.");
+      if (!saved) throw new Error("Allgemeine Einstellungen konnten nicht gespeichert werden.");
       const savedDraft = { ...normalized, displayName: saved.displayName };
       setBaseline(savedDraft);
       setDraft(savedDraft);
       setAccountMessage("");
-      setSuccessToast("Globale Einstellungen wurden gespeichert.", { appearance: "neutral" });
+      setSuccessToast("Allgemeine Einstellungen wurden gespeichert.", { appearance: "neutral" });
       return true;
     } catch (error) {
-      setAccountMessage(error instanceof Error ? error.message : "Globale Einstellungen konnten nicht gespeichert werden.");
+      setAccountMessage(error instanceof Error ? error.message : "Allgemeine Einstellungen konnten nicht gespeichert werden.");
       return false;
     }
   }, [draft, onSaveSettings, setSuccessToast]);
@@ -136,13 +106,13 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
   return (
     <div className="grid min-w-0 gap-7">
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Profil" title="Globale Einstellungen" />
-        <CrossLinkButton onSelect={() => onNavigate("stapel-einstellungen", { focusedDeckId: null })}>
-          Stapeleinstellungen
+        <PageHeader eyebrow="Profil" title="Allgemeine Einstellungen" />
+        <CrossLinkButton onSelect={() => onNavigate("karten-einstellungen")}>
+          Karteneinstellungen
         </CrossLinkButton>
       </div>
 
-      <InPageNavigation ariaLabel="Bereiche der globalen Einstellungen" items={settingsSections}>
+      <InPageNavigation ariaLabel="Bereiche der allgemeinen Einstellungen" items={settingsSections}>
       <section id={sectionIds.account} className="grid gap-4" aria-labelledby="settings-account-heading">
         <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Konto</h2>
         <SoftPanel className="p-5 sm:p-6">
@@ -165,59 +135,6 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
             <ActionButton type="button" variant="destructive" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
           </div>
           {accountMessage ? <p className="core-status-error mt-3 core-body" role="alert">{accountMessage}</p> : null}
-        </SoftPanel>
-      </section>
-
-      <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="settings-focus-heading">
-        <h2 id="settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Lerntag & Fokus</h2>
-        <SoftPanel className="p-5 sm:p-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <label className="grid gap-2 core-body font-semibold text-core-muted">
-              Neuer Tag beginnt um
-              <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border px-3">
-                <input type="number" min="0" max="23" step="1" value={draft.dayStartHour} data-testid="settings-day-start-hour" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, dayStartHour: Number(event.target.value) }))} />
-                <span className="font-normal">Uhr</span>
-              </span>
-            </label>
-            <label className="grid gap-2 core-body font-semibold text-core-muted">
-              Lernkarten vorziehen
-              <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border px-3">
-                <input type="number" min="0" max="720" step="1" value={draft.learnAheadMinutes} data-testid="settings-learn-ahead" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, learnAheadMinutes: Number(event.target.value) }))} />
-                <span className="font-normal">Min.</span>
-              </span>
-            </label>
-            <div className="grid gap-2 core-body font-semibold text-core-muted">
-              Profilzeitzone
-              <span className="flex min-h-11 items-center rounded-xl border border-core-border bg-core-subtle px-3 font-normal text-core-text">{profile.timezone || "Nicht festgelegt"}</span>
-            </div>
-          </div>
-          <p className="mt-3 core-caption leading-5 text-core-muted">Tagesbeginn und Vorziehfenster gelten für alle Stapel. Lernprofile und CoRe-Parameter bleiben stapelspezifisch.</p>
-          <fieldset className="mt-6 border-t border-core-border pt-5">
-            <legend className="core-body-large font-semibold text-core-text">Wochenrhythmus</legend>
-            <p className="mt-2 core-caption leading-5 text-core-muted">CoRe verteilt neu berechnete Wiederholungen möglichst auf passendere Tage. Sind alle Tage gleich, bleibt die Planung unverändert.</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {EASY_DAY_KEYS.map((key) => (
-                <label key={key} className={`grid min-w-0 gap-2 rounded-2xl border p-4 core-body font-semibold text-core-text ${easyDayToneClasses[draft.easyDays[key]]}`}>
-                  {weekdayLabels[key]}
-                  <CoreSelect
-                    ariaLabel={`${weekdayLabels[key]} im Wochenrhythmus`}
-                    value={draft.easyDays[key]}
-                    options={easyDayOptions}
-                    testId={`settings-easy-day-${key}`}
-                    onValueChange={(value) => setDraft((current) => ({ ...current, easyDays: { ...current.easyDays, [key]: value as EasyDayLevel } }))}
-                  />
-                </label>
-              ))}
-            </div>
-          </fieldset>
-        </SoftPanel>
-
-        <SoftPanel className="overflow-hidden p-0">
-          <button type="button" onClick={() => onNavigate("simulator")} className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-core-border px-4 py-3 text-left transition hover:bg-[var(--core-surface-hover)] sm:px-6">
-            <span className="grid size-11 shrink-0 place-items-center rounded-full bg-core-warning-soft text-core-text"><CalendarClock size={20} aria-hidden="true" /></span>
-            <span className="min-w-0 flex-1"><span className="block core-body-large font-semibold text-core-text">Simulator</span><span className="block core-caption text-core-muted">{simulationOffsetMinutes > 0 ? `Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}` : "Lernfortschritt über simulierte Zeitpunkte prüfen"}</span></span>
-          </button>
-          <PomodoroTimerControl timer={pomodoroTimer} variant="settings" onStart={onStartPomodoro} />
         </SoftPanel>
       </section>
 

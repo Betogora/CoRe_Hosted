@@ -17,7 +17,7 @@ import type {
   DecksCardPageRequest,
   SettingsDraftGuard,
 } from "./appScreenProps.ts";
-import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, HelpScreen, LearnScreen, preloadAppView, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
+import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
@@ -52,7 +52,7 @@ import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
-import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GlobalSettingsDraft } from "./settingsDraft.ts";
+import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
 const menu = createMenuModel();
 const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 const magicLinkEnabled = import.meta.env.VITE_ENABLE_MAGIC_LINK === "true";
@@ -1519,25 +1519,27 @@ export function App() {
     });
   }
 
-  function saveGlobalSettings(draft: GlobalSettingsDraft) {
+  function saveGeneralSettings(draft: GeneralSettingsDraft) {
     const currentState = latestStateRef.current;
     if (!currentState) return null;
     const syncIntervalChanged = currentState.profile.uiPreferences.syncIntervalMinutes !== draft.syncIntervalMinutes;
-    const profile = withGlobalSchedulerPreferences({
+    const profile = {
       ...currentState.profile,
       displayName: draft.displayName,
       uiPreferences: {
         ...currentState.profile.uiPreferences,
         syncIntervalMinutes: draft.syncIntervalMinutes,
       },
-    }, {
-      dayStartHour: draft.dayStartHour,
-      learnAheadMinutes: draft.learnAheadMinutes,
-      easyDays: draft.easyDays,
-    });
+    };
     const saved = runRepositoryMutation((repository) => repository.saveProfile(profile));
     if (saved && syncIntervalChanged) void syncNow().catch(() => undefined);
     return saved;
+  }
+
+  function saveGlobalCardSettings(draft: GlobalCardSettingsDraft) {
+    const currentState = latestStateRef.current;
+    if (!currentState) return null;
+    return runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(currentState.profile, draft)));
   }
 
   function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
@@ -1711,7 +1713,7 @@ export function App() {
             return result;
           }}
           onSelectDeck={(deckId) => navigateToViewNow("stapel-einstellungen", { focusedDeckId: deckId }, { replace: true })}
-          onOpenGlobalSettings={() => navigateToView("einstellungen")}
+          onOpenGlobalSettings={() => navigateToView("karten-einstellungen")}
           offlineDeck={focusedDeckId ? offlineDecks[focusedDeckId] ?? null : null}
           bodyCache={focusedDeckBodyCache}
           onDownloadDeck={workspaceHydrationService && workspaceRepository ? async (deckId) => {
@@ -1833,6 +1835,7 @@ export function App() {
           onFocusDeck={openLearn}
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenDecks={openDecks}
+          onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
           onSetDeckCoreMode={setDeckCoreMode}
           onMoveDeck={moveDeck}
@@ -1865,14 +1868,28 @@ export function App() {
     if (activeView === "hilfe") {
       return <HelpScreen />;
     }
+    if (activeView === "karten-einstellungen") {
+      return (
+        <GlobalCardSettingsScreen
+          timeZone={learningTimeZone}
+          globalSchedulerPreferences={globalSchedulerPreferences}
+          onSaveSettings={saveGlobalCardSettings}
+          onDraftStateChange={handleSettingsDraftStateChange}
+          onNavigate={navigateToView}
+          simulationOffsetMinutes={simulationOffsetMinutes}
+          simulationDateLabel={formatSimulationDate(learningNow)}
+          pomodoroTimer={pomodoroTimer}
+          onStartPomodoro={startPomodoro}
+        />
+      );
+    }
     if (activeView === "einstellungen") {
       return (
         <SettingsScreen
           profile={state.profile}
           syncStatus={syncStatus}
           storageStatus={storageStatus}
-          globalSchedulerPreferences={globalSchedulerPreferences}
-          onSaveSettings={saveGlobalSettings}
+          onSaveSettings={saveGeneralSettings}
           onDraftStateChange={handleSettingsDraftStateChange}
           onSyncNow={syncNow}
           onListConflicts={listSyncConflicts}
@@ -1883,10 +1900,6 @@ export function App() {
             return Promise.resolve();
           }}
           onNavigate={navigateToView}
-          simulationOffsetMinutes={simulationOffsetMinutes}
-          simulationDateLabel={formatSimulationDate(learningNow)}
-          pomodoroTimer={pomodoroTimer}
-          onStartPomodoro={startPomodoro}
         />
       );
     }

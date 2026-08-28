@@ -15,13 +15,14 @@ Each exported screen in this folder is a UI module with a small props interface.
   - `CreationHome.tsx`: manual and import entry cards.
   - `ManualCreationPanel.tsx`: manual cards, Rich Text fields and optional PDF/text source selection.
   - `ApkgImportPanel.tsx`: sole import surface with APKG analysis, preview, commit status, media progress and import report presentation.
-- `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row subtree study entry, direct drag-and-drop reparenting, aggregated new/due/total counts and per-deck learning-settings entry points.
+- `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row subtree study entry, direct drag-and-drop reparenting, aggregated new/due/total counts, per-deck learning-settings entry points and the global `Karteneinstellungen` action beside the area switcher.
 - `DeckSettingsScreen.tsx`: drei responsive Bereiche für Stapeldarstellung/-aktionen, Tagesrunde/Lernprofil-Vorlagen und Scheduler/CoRe; ohne fokussierten Stapel zeigt die Route eine `DeckSelect`-Auswahl.
 - `HelpScreen.tsx`: statische Produktaufklärung mit kurzem Methoden-Einstieg, lokal scrollgesteuerter Active-Recall-Kartengeschichte und gekoppelter FSRS-Lernkurve; sticky ab Desktopbreite, linear darunter, ohne Workspace- oder Scheduler-Mutation.
 - `SimulatorScreen.tsx`: reduzierte Minuten-, Stunden- und Tagessteuerung für die app-weite, transiente Lernuhr; enthält keinen eigenen Stapel und mutiert selbst weder Workspace noch Synczustand.
 - `StatisticsScreen.tsx`: global period/deck-filtered analysis from local review events, including overview metrics, charts, the shared sparse study heatmap, FSRS distributions, retention and deck-level weak spots.
 - `StudyMode.tsx`: fullscreen review, daily queue, new-card limit, shortcut handling, interval previews, grading, anchor display and variant feedback; verwendet bei aktiver Simulation denselben sichtbaren Lernzeitpunkt wie die App-Shell.
-- `SettingsScreen.tsx`: vier globale Bereiche für Konto/Datenschutz, accountweiten Lerntag/Fokus, Daten/Sync und abschließend `Über uns` mit Hilfelink, Rechtstext-Platzhaltern und Versionsnummer. Stapelwerte und Lernprofilverwaltung erscheinen hier ausdrücklich nicht.
+- `GlobalCardSettingsScreen.tsx`: zwei Bereiche für accountweiten Lerntag/Planung und Fokuswerkzeuge; Tagesbeginn, Vorziehfenster, Easy Days, Simulator und Pomodoro bleiben getrennt von allgemeinen und stapelbezogenen Einstellungen.
+- `SettingsScreen.tsx`: drei allgemeine Bereiche für Konto, Daten/Sync und abschließend `Über uns` mit Hilfelink, Rechtstext-Platzhaltern und Versionsnummer. Karten- und Stapelwerte erscheinen hier ausdrücklich nicht.
 - `SyncConflictPanel.tsx`: accountgebundene Konfliktprojektionen, verständliche Fassungsentscheidung, sicherer Feld-Merge sowie Zurückstellen und Wiederaufnahme ohne Tabellen-, Revisions- oder Gerätedetails in React.
 
 ## Design Rules

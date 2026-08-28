@@ -18,6 +18,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
@@ -42,6 +43,8 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /aria-label="Bereich in Lernen"[^>]*data-size="regular"/);
   assert.match(markup, /aria-pressed="true"[^>]*>Stapelübersicht<\/button>/);
   assert.match(markup, /aria-pressed="false"[^>]*>Kartenverwaltung<\/button>/);
+  assert.match(markup, /lucide-settings2/);
+  assert.match(markup, />Karteneinstellungen<\/span><\/button>/);
   assert.match(markup, /data-testid="learn-deck-list-header"/);
   assert.match(markup, />Aktive Stapel<\/h3>/);
   assert.match(markup, /data-testid="learn-deck-create-form"/);
@@ -68,6 +71,7 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
@@ -97,6 +101,7 @@ test("quick deck creation remains visible without existing decks", () => {
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
@@ -130,6 +135,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}
@@ -149,6 +155,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
       onMoveDeck={() => null}

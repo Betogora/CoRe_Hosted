@@ -27,6 +27,7 @@ test("deck summary row keeps one-line identity, accessible metrics and compact p
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /size-8/);
+  assert.match(markup, /padding-inline-start:16px/);
   assert.match(markup, /aria-label="Keine aktiven Karten für Herkunft \/ Ein sehr langer Unterstapelname\."/);
   assert.match(markup, /data-donut-empty="true"/);
   assert.match(markup, /aria-label="Stapeloptionen"/);

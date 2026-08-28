@@ -102,9 +102,10 @@ async function openManualCreation(page: Page, deckName: string, cardType: string
   }
 }
 
-async function finishManualCreation(page: Page, deckName: string, expectedCardCount = 1): Promise<Deck> {
+async function finishManualCreation(page: Page, deckName: string, expectedCardCount = 1, beforeFinish?: () => Promise<void>): Promise<Deck> {
   await page.getByRole("button", { name: "Originalkarte speichern" }).click();
   await expect(page.getByTestId("manual-save-progress")).toHaveAttribute("aria-valuenow", "100");
+  await beforeFinish?.();
   await page.getByRole("button", { name: "Fertig" }).click();
   await expect(page.getByRole("heading", { name: "Deine Karten sind bereit" })).toBeVisible({ timeout: 30_000 });
   const state = await readActiveAccountState(page);
@@ -195,12 +196,52 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   });
   const deckName = "Vorschau-Dialog";
   await openManualCreation(page, deckName, "basic");
+  const optionGroups = page.getByTestId("manual-card-options").locator(":scope > div");
+  const desktopFirstGroup = await optionGroups.nth(0).boundingBox();
+  const desktopSecondGroup = await optionGroups.nth(1).boundingBox();
+  expect(desktopFirstGroup).not.toBeNull();
+  expect(desktopSecondGroup).not.toBeNull();
+  expect(Math.abs((desktopFirstGroup?.y ?? 0) - (desktopSecondGroup?.y ?? 0))).toBeLessThan(2);
+  await page.setViewportSize({ width: 390, height: 844 });
+  const mobileFirstGroup = await optionGroups.nth(0).boundingBox();
+  const mobileSecondGroup = await optionGroups.nth(1).boundingBox();
+  expect(mobileFirstGroup).not.toBeNull();
+  expect(mobileSecondGroup).not.toBeNull();
+  expect((mobileSecondGroup?.y ?? 0)).toBeGreaterThan((mobileFirstGroup?.y ?? 0) + (mobileFirstGroup?.height ?? 0) - 1);
+  await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Ungespeicherte Erstellungsfrage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Ungespeicherte Erstellungsantwort");
+  await page.getByRole("textbox", { name: "Vorderseite" }).evaluate((editor) => {
+    const text = editor.firstChild;
+    if (!text) throw new Error("Vorderseitentext fehlt.");
+    const range = document.createRange();
+    range.setStart(text, "Ungespeicherte ".length);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    editor.dispatchEvent(new Event("keyup", { bubbles: true }));
+  });
   const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
   const imageInputs = page.locator('input[type="file"][accept="image/*"]');
   await imageInputs.nth(0).setInputFiles({ name: "vorderseite.png", mimeType: "image/png", buffer: pixel });
-  await imageInputs.nth(1).setInputFiles({ name: "rueckseite.png", mimeType: "image/png", buffer: pixel });
+  await page.getByRole("textbox", { name: "Rückseite" }).evaluate((editor, base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([bytes], "rueckseite.png", { type: "image/png" }));
+    editor.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: transfer }));
+  }, pixel.toString("base64"));
+  await expect(page.getByRole("textbox", { name: "Vorderseite" }).locator('img[alt="vorderseite.png"]')).toHaveAttribute("src", /^blob:/);
+  await expect(page.getByRole("textbox", { name: "Rückseite" }).locator('img[alt="rueckseite.png"]')).toHaveAttribute("src", /^blob:/);
+  await page.getByRole("button", { name: "Feld hinzufügen" }).click();
+  const additionalEditor = page.getByRole("textbox", { name: "Inhalt von Zusatzfeld 1" });
+  await additionalEditor.evaluate((editor, base64) => {
+    const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+    const transfer = new DataTransfer();
+    transfer.items.add(new File([bytes], "zusatz.png", { type: "image/png" }));
+    editor.dispatchEvent(new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }));
+  }, pixel.toString("base64"));
+  await expect(additionalEditor.locator('img[alt="zusatz.png"]')).toHaveAttribute("src", /^blob:/);
   await expect(page.getByText("Live-Vorschau", { exact: true })).toHaveCount(0);
 
   const creationPreviewButton = page.getByRole("button", { name: "Vorschau", exact: true });
@@ -213,14 +254,19 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   const creationQuestion = dialog.frameLocator('iframe[title="Frage"]');
   await expect(creationQuestion.locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
   await expect(creationQuestion.locator("body")).not.toContainText("Ungespeicherte Erstellungsantwort");
-  await expect(creationQuestion.locator('img[alt="Bild zur Vorderseite"]')).toHaveAttribute("src", /^blob:/);
+  const creationFrontImage = creationQuestion.locator('img[alt="vorderseite.png"]');
+  await expect(creationFrontImage).toHaveAttribute("src", /^blob:/);
+  expect(await creationFrontImage.evaluate((image) => ({
+    before: image.previousSibling?.textContent,
+    after: image.nextSibling?.textContent,
+  }))).toEqual({ before: "Ungespeicherte ", after: "Erstellungsfrage" });
 
   await dialog.getByRole("button", { name: "Rückseite" }).click();
   const creationAnswer = dialog.frameLocator('iframe[title="Antwort"]');
   await expect(dialog.getByTestId("study-card-answer-separator")).toHaveCount(1);
   await expect(creationQuestion.locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
   await expect(creationAnswer.locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
-  await expect(creationAnswer.locator('img[alt="Bild zur Rückseite"]')).toHaveAttribute("src", /^blob:/);
+  await expect(creationAnswer.locator('img[alt="rueckseite.png"]')).toHaveAttribute("src", /^blob:/);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(creationPreviewButton).toBeFocused();
@@ -230,7 +276,10 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByTestId("card-preview-backdrop").click({ position: { x: 4, y: 4 } });
   await expect(dialog).toHaveCount(0);
 
-  const deck = await finishManualCreation(page, deckName);
+  await page.getByRole("button", { name: "Vorderseite: Nach Speichern leeren. Zum Behalten anheften" }).click();
+  const deck = await finishManualCreation(page, deckName, 1, async () => {
+    await expect(page.getByRole("textbox", { name: "Vorderseite" }).locator('img[alt="vorderseite.png"]')).toHaveAttribute("src", /^blob:/);
+  });
   await openCreatedCardEditor(page, deck);
   await expect(page.getByText("Sichere Karten-Vorschau", { exact: true })).toHaveCount(0);
   await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Ungespeicherte Editorfrage");

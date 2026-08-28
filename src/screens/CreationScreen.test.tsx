@@ -62,7 +62,7 @@ test("manual source entry stays compact until the document field is requested", 
   assert.match(markup, /<h2[^>]*>Karte selbst erstellen<\/h2>/);
   assert.match(markup, />Vorschau<\/span><\/button>/);
   assert.equal((markup.match(/PDF\/Text anfügen/g) ?? []).length, 1);
-  assert.equal((markup.match(/data-file-drop-field="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-file-drop-field="true"/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /Quelldatei auswählen oder ablegen/);
   assert.doesNotMatch(markup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
   assert.doesNotMatch(markup, /Live-Vorschau/);
@@ -83,10 +83,10 @@ test("manual target selection shows complete deck paths", () => {
   assert.match(markup, /Fertig/);
 });
 
-test("manual options use labeled segmented choices without explanatory subclaims", () => {
+test("manual options share one desktop row and keep labeled segmented choices", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /class="flex min-w-0 flex-wrap items-center justify-between gap-4" data-testid="manual-card-options"/);
+  assert.match(markup, /class="grid min-w-0 gap-4 md:grid-cols-\[max-content_max-content\] md:items-center md:justify-start" data-testid="manual-card-options"/);
   assert.match(markup, />Fragentyp</);
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
@@ -97,13 +97,12 @@ test("manual options use labeled segmented choices without explanatory subclaims
   assert.doesNotMatch(markup, /Weitere Optionen|role="switch"|Antwortoptionen statt freier Antwort verwenden|Vorder- und Rückseite zusätzlich umgekehrt abfragen/);
 });
 
-test("manual media and additional fields stay visible without disclosures", () => {
+test("manual images are editor actions without separate drop fields", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.equal((markup.match(/>Bild zur Vorderseite einfügen \(optional\)<\/span>/g) ?? []).length, 1);
-  assert.equal((markup.match(/>Bild zur Rückseite einfügen \(optional\)<\/span>/g) ?? []).length, 1);
-  assert.match(markup, /aria-label="Bild zur Vorderseite einfügen \(optional\): Bild einfügen oder ablegen"/);
-  assert.match(markup, /aria-label="Bild zur Rückseite einfügen \(optional\): Bild einfügen oder ablegen"/);
+  assert.equal((markup.match(/aria-label="Bild an Cursorposition einfügen"/g) ?? []).length, 2);
+  assert.equal((markup.match(/accept="image\/\*"/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, /Bild zur (?:Vorder|Rück)seite einfügen|kind="image"/);
   assert.match(markup, />Feld hinzufügen<\/span><\/button>/);
   assert.doesNotMatch(markup, /<details|<summary|Weitere Felder/);
 });

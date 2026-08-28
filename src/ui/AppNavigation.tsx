@@ -37,7 +37,7 @@ const iconByKey: Record<string, LucideIcon> = {
   plus: PlusSquare,
 };
 
-const settingsViews = new Set(["einstellungen", "simulator"]);
+const settingsViews = new Set(["einstellungen"]);
 
 function getIcon(iconKey: string) {
   return iconByKey[iconKey] ?? Home;
@@ -274,7 +274,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
 
 export function AppNavigation(props: AppNavigationProps) {
   const [theme, setTheme] = React.useState(readCoreTheme);
-  const navigationActiveView = props.activeView === "kartenstapel" ? "lernen" : props.activeView;
+  const navigationActiveView = ["kartenstapel", "karten-einstellungen", "simulator"].includes(props.activeView) ? "lernen" : props.activeView;
   const mobileBottomNavigation = <MobileBottomNavigation {...props} activeView={navigationActiveView} />;
   const responsiveProps = {
     ...props,

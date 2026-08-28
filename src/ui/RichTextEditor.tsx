@@ -1,5 +1,5 @@
 import React from "react";
-import { Bold, Braces, Eraser, Highlighter, Italic, List, ListOrdered, Palette, PenLine, Underline, Unlink } from "lucide-react";
+import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, List, ListOrdered, Palette, PenLine, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
@@ -33,6 +33,62 @@ export interface RichTextClozeSpan {
 }
 
 const clozePattern = /\{\{c(\d+)::((?:(?!::|\}\})[\s\S])*)(?:::((?:(?!\}\})[\s\S])*))?\}\}/g;
+const inlineMediaReferenceAttribute = "data-core-media-ref";
+const stableImageReferencePattern = /^[a-f0-9]{40}$/;
+
+export interface PreparedRichTextImage {
+  reference: string;
+  previewUrl: string;
+  alt: string;
+}
+
+export interface RichTextImageActions {
+  mediaUrls: Record<string, string>;
+  prepare: (file: File) => Promise<PreparedRichTextImage>;
+}
+
+function canonicalizeRichTextMedia(html: string, stripUnmanagedImages: boolean): string {
+  const sanitized = sanitizeCardHtml(html);
+  if (typeof document === "undefined") return sanitized;
+  const root = document.createElement("div");
+  root.innerHTML = sanitized;
+  for (const image of Array.from(root.querySelectorAll("img"))) {
+    const reference = String(image.getAttribute(inlineMediaReferenceAttribute) ?? image.getAttribute("src") ?? "").trim().toLowerCase();
+    if (stableImageReferencePattern.test(reference)) {
+      image.setAttribute("src", reference);
+      image.removeAttribute(inlineMediaReferenceAttribute);
+    } else if (stripUnmanagedImages) {
+      image.remove();
+    }
+  }
+  return sanitizeCardHtml(root.innerHTML);
+}
+
+function hydrateRichTextMedia(html: string, mediaUrls: Record<string, string>): string {
+  const normalized = normalizeRichTextForEditor(html);
+  if (typeof document === "undefined" || Object.keys(mediaUrls).length === 0) return normalized;
+  const root = document.createElement("div");
+  root.innerHTML = normalized;
+  for (const image of Array.from(root.querySelectorAll("img"))) {
+    const reference = String(image.getAttribute("src") ?? "").trim().toLowerCase();
+    const previewUrl = mediaUrls[reference];
+    if (!stableImageReferencePattern.test(reference) || !/^(?:blob:|data:image\/)/i.test(previewUrl ?? "")) continue;
+    image.setAttribute(inlineMediaReferenceAttribute, reference);
+    image.setAttribute("src", previewUrl);
+  }
+  return root.innerHTML;
+}
+
+function stripUnknownRichTextImages(html: string, mediaUrls: Record<string, string>): string {
+  if (typeof document === "undefined") return html;
+  const root = document.createElement("div");
+  root.innerHTML = html;
+  for (const image of Array.from(root.querySelectorAll("img"))) {
+    const reference = String(image.getAttribute("src") ?? "").trim().toLowerCase();
+    if (!stableImageReferencePattern.test(reference) || !mediaUrls[reference]) image.remove();
+  }
+  return root.innerHTML;
+}
 
 function normalizeClozeGroupId(groupId: number | undefined) {
   return Number.isFinite(groupId) ? Math.max(1, Math.floor(groupId ?? 1)) : 1;
@@ -65,13 +121,14 @@ export function selectionOverlapsRichTextCloze(text: string, selection: TextSele
   );
 }
 
-function ToolbarButton({ label, icon: Icon, onRun }: { label: string; icon: LucideIcon; onRun: () => void }) {
+function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: string; icon: LucideIcon; onRun: () => void; disabled?: boolean }) {
   return (
     <CoreTooltip label={label}>
       <button
         type="button"
-        className="grid size-11 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
+        className="grid size-11 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60"
         aria-label={label}
+        disabled={disabled}
         onMouseDown={(event) => {
           event.preventDefault();
         }}
@@ -95,11 +152,13 @@ interface RichTextEditorProps {
   clozeActions?: {
     groupId: number;
   };
+  imageActions?: RichTextImageActions;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
   const textColorButtonRef = React.useRef<HTMLButtonElement>(null);
   const highlightColorButtonRef = React.useRef<HTMLButtonElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
@@ -111,9 +170,13 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const [openColorMenu, setOpenColorMenu] = React.useState<"text" | "highlight" | null>(null);
   const [selectedColorSlots, setSelectedColorSlots] = React.useState({ text: 0, highlight: 0 });
   const [clozeStatus, setClozeStatus] = React.useState("");
+  const [imageStatus, setImageStatus] = React.useState("");
+  const [imageError, setImageError] = React.useState("");
+  const [isPreparingImages, setIsPreparingImages] = React.useState(false);
   const textColorMenuId = React.useId();
   const highlightColorMenuId = React.useId();
   const clozeStatusId = React.useId();
+  const imageStatusId = React.useId();
 
   React.useLayoutEffect(() => {
     const editor = editorRef.current;
@@ -121,13 +184,14 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const isLocalEditorUpdate = normalizedValue === lastEmittedNormalizedHtmlRef.current && (isFocusedRef.current || hasEditorSelection());
     if (isLocalEditorUpdate) return;
 
-    if (editor.innerHTML !== normalizedValue) {
+    const hydratedValue = hydrateRichTextMedia(normalizedValue, imageActions?.mediaUrls ?? {});
+    if (editor.innerHTML !== hydratedValue) {
       const selection = isFocusedRef.current ? captureTextSelection() : null;
-      editor.innerHTML = normalizedValue;
+      editor.innerHTML = hydratedValue;
       restoreTextSelection(selection);
     }
     lastEmittedNormalizedHtmlRef.current = normalizedValue;
-  }, [normalizedValue]);
+  }, [imageActions?.mediaUrls, normalizedValue]);
 
   React.useEffect(() => {
     if (!openColorMenu || typeof document === "undefined") return undefined;
@@ -283,9 +347,90 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     if (!editor) return;
     isFocusedRef.current = true;
     saveSelection();
-    const sanitizedHtml = sanitizeCardHtml(editor.innerHTML);
+    const sanitizedHtml = canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions));
     lastEmittedNormalizedHtmlRef.current = normalizeRichTextForEditor(sanitizedHtml);
     onChange?.(lastEmittedNormalizedHtmlRef.current);
+  }
+
+  function rangeAtEditorEnd() {
+    const editor = editorRef.current;
+    if (!editor || typeof document === "undefined") return null;
+    const range = document.createRange();
+    range.selectNodeContents(editor);
+    range.collapse(false);
+    return range;
+  }
+
+  function rangeAtPoint(clientX: number, clientY: number) {
+    const editor = editorRef.current;
+    if (!editor || typeof document === "undefined") return null;
+    const caretDocument = document as Document & {
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+      caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null;
+    };
+    const directRange = caretDocument.caretRangeFromPoint?.(clientX, clientY) ?? null;
+    if (directRange && editor.contains(directRange.startContainer)) return directRange;
+    const position = caretDocument.caretPositionFromPoint?.(clientX, clientY) ?? null;
+    if (!position || !editor.contains(position.offsetNode)) return null;
+    const range = document.createRange();
+    range.setStart(position.offsetNode, position.offset);
+    range.collapse(true);
+    return range;
+  }
+
+  async function insertImageFiles(files: File[], preferredRange: Range | null = null) {
+    const editor = editorRef.current;
+    if (!editor || !imageActions || typeof document === "undefined" || typeof window === "undefined") return;
+    const images = files.filter((file) => file.type.startsWith("image/"));
+    if (images.length === 0) {
+      setImageStatus("");
+      setImageError("Bitte füge eine Bilddatei ein.");
+      return;
+    }
+
+    let range = preferredRange?.cloneRange() ?? getRestoredEditorRange()?.cloneRange() ?? rangeAtEditorEnd();
+    if (!range || !editor.contains(range.startContainer)) range = rangeAtEditorEnd();
+    if (!range) return;
+    const replacesSelection = !range.collapsed;
+    setImageError("");
+    setImageStatus(images.length === 1 ? "Bild wird vorbereitet …" : `${images.length} Bilder werden vorbereitet …`);
+    setIsPreparingImages(true);
+    let insertedCount = 0;
+    try {
+      for (const file of images) {
+        const prepared = await imageActions.prepare(file);
+        const reference = prepared.reference.trim().toLowerCase();
+        if (!stableImageReferencePattern.test(reference) || !/^(?:blob:|data:image\/)/i.test(prepared.previewUrl)) {
+          throw new Error("Das Bild konnte nicht sicher in den Text eingefügt werden.");
+        }
+        if (!editor.isConnected || !editor.contains(range.startContainer)) throw new Error("Das Textfeld ist nicht mehr verfügbar.");
+        if (insertedCount === 0 && replacesSelection) {
+          range.deleteContents();
+          range.collapse(true);
+        }
+        const image = document.createElement("img");
+        image.setAttribute("src", prepared.previewUrl);
+        image.setAttribute(inlineMediaReferenceAttribute, reference);
+        image.setAttribute("alt", prepared.alt || file.name || "Eingefügtes Bild");
+        image.setAttribute("decoding", "async");
+        range.insertNode(image);
+        range.setStartAfter(image);
+        range.collapse(true);
+        insertedCount += 1;
+      }
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      selectionRef.current = range.cloneRange();
+      emitChange();
+      setImageStatus(insertedCount === 1 ? "Bild wurde eingefügt." : `${insertedCount} Bilder wurden eingefügt.`);
+    } catch (error) {
+      if (insertedCount > 0) emitChange();
+      setImageStatus("");
+      setImageError(error instanceof Error ? error.message : "Bild konnte nicht verarbeitet werden.");
+    } finally {
+      setIsPreparingImages(false);
+    }
   }
 
   function addCloze() {
@@ -363,10 +508,11 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const selectionOffsets = captureTextSelection();
     saveSelection();
     isFocusedRef.current = false;
-    const normalizedHtml = normalizeRichTextForEditor(editor.innerHTML);
+    const normalizedHtml = normalizeRichTextForEditor(canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions)));
+    const hydratedHtml = hydrateRichTextMedia(normalizedHtml, imageActions?.mediaUrls ?? {});
     lastEmittedNormalizedHtmlRef.current = normalizedHtml;
-    if (editor.innerHTML !== normalizedHtml) {
-      editor.innerHTML = normalizedHtml;
+    if (editor.innerHTML !== hydratedHtml) {
+      editor.innerHTML = hydratedHtml;
       restoreTextSelection(selectionOffsets);
     }
     onChange?.(normalizedHtml);
@@ -402,20 +548,48 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const editor = editorRef.current;
     if (!editor || typeof document === "undefined") return;
 
+    const clipboardImages = Array.from(event.clipboardData?.items ?? [])
+      .filter((item) => item.kind === "file" && item.type.startsWith("image/"))
+      .flatMap((item) => {
+        const file = item.getAsFile();
+        return file ? [file] : [];
+      });
+    if (imageActions && clipboardImages.length > 0) {
+      event.preventDefault();
+      saveSelection();
+      void insertImageFiles(clipboardImages, selectionRef.current);
+      return;
+    }
+
     event.preventDefault();
     const html = event.clipboardData?.getData("text/html");
     const text = event.clipboardData?.getData("text/plain");
-    const pastedContent = html ? sanitizeCardHtml(html) : textToCardHtml(text);
+    const rawPastedContent = html ? sanitizeCardHtml(html) : textToCardHtml(text);
+    const canonicalPastedContent = imageActions
+      ? stripUnknownRichTextImages(canonicalizeRichTextMedia(rawPastedContent, true), imageActions.mediaUrls)
+      : rawPastedContent;
+    const pastedContent = imageActions
+      ? hydrateRichTextMedia(canonicalPastedContent, imageActions.mediaUrls)
+      : canonicalPastedContent;
     document.execCommand("insertHTML", false, pastedContent);
     emitChange();
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    if (!imageActions || event.dataTransfer.files.length === 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const files = Array.from(event.dataTransfer.files);
+    const dropRange = rangeAtPoint(event.clientX, event.clientY) ?? selectionRef.current;
+    void insertImageFiles(files, dropRange);
   }
 
   const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-xl border border-t-0 p-4 core-body-large font-normal leading-7 text-[var(--core-text)] outline-none transition ${
     isActive ? "border-[var(--core-action-primary)] bg-core-surface shadow-[0_0_0_3px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)] bg-core-surface"
   }`;
-  const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null].filter(Boolean).join(" ") || undefined;
+  const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   return (
-    <div className="min-w-0">
+    <div className="min-w-0" aria-busy={isPreparingImages || undefined}>
       <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[var(--core-surface-muted)] p-2 ${isActive ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
@@ -480,6 +654,34 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         </div>
         <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
         <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
+        {imageActions ? (
+          <>
+            <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+            <ToolbarButton
+              label="Bild an Cursorposition einfügen"
+              icon={ImagePlus}
+              disabled={isPreparingImages}
+              onRun={() => {
+                saveSelection();
+                imageInputRef.current?.click();
+              }}
+            />
+            <input
+              ref={imageInputRef}
+              className="sr-only"
+              type="file"
+              accept="image/*"
+              multiple
+              tabIndex={-1}
+              aria-hidden="true"
+              onChange={(event) => {
+                const files = Array.from(event.currentTarget.files ?? []);
+                event.currentTarget.value = "";
+                void insertImageFiles(files, selectionRef.current);
+              }}
+            />
+          </>
+        ) : null}
         {clozeActions ? (
           <>
             <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
@@ -520,10 +722,22 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           saveSelection();
         }}
         onPaste={handlePaste}
+        onDragOver={(event) => {
+          if (imageActions && Array.from(event.dataTransfer.items).some((item) => item.kind === "file" && item.type.startsWith("image/"))) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "copy";
+          }
+        }}
+        onDrop={handleDrop}
       />
       {clozeActions && clozeStatus ? (
         <p id={clozeStatusId} role="status" className="mt-2 core-caption font-medium text-[var(--core-text-muted)]">
           {clozeStatus}
+        </p>
+      ) : null}
+      {imageStatus || imageError ? (
+        <p id={imageStatusId} role={imageError ? "alert" : "status"} className={`mt-2 core-caption font-medium ${imageError ? "core-status-error" : "text-[var(--core-text-muted)]"}`}>
+          {imageError || imageStatus}
         </p>
       ) : null}
     </div>

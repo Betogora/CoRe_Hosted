@@ -43,7 +43,7 @@ test("deck settings expose three responsive in-page links and both navigation pa
   assert.match(html, /data-in-page-navigation="desktop"/);
   assert.match(html, /data-in-page-navigation="compact"/);
   assert.doesNotMatch(html, /md:grid-cols-3|Alle Bereiche|\d+\s*\/\s*\d+/);
-  assert.match(html, />Globale Einstellungen</);
+  assert.match(html, />Karteneinstellungen</);
   assert.match(html, />Zurück zur Kartenverwaltung</);
   assert.doesNotMatch(html, /CoRe Automatisch|CoRe auto/);
 });

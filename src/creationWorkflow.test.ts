@@ -60,26 +60,44 @@ test("creation workflow uses source text only transiently", () => {
   assert.match(deck.cards[0].originalBack, /ATP ist ein Energieträger/);
 });
 
-test("creation workflow treats images as optional media on an ordinary dynamic card", async () => {
+test("creation workflow keeps inline images at their field positions and derives referenced media", async () => {
   const workflow = createCreationWorkflow();
   const frontFile = Object.assign(new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" }), { name: "vorne.png" });
   const backFile = Object.assign(new Blob([new Uint8Array([4, 5, 6])], { type: "image/jpeg" }), { name: "hinten.jpg" });
+  const unusedFile = Object.assign(new Blob([new Uint8Array([7, 8, 9])], { type: "image/png" }), { name: "entfernt.png" });
   const frontImage = await workflow.prepareManualImage(frontFile);
   const backImage = await workflow.prepareManualImage(backFile);
+  const unusedImage = await workflow.prepareManualImage(unusedFile);
   const deck = workflow.createManualDeck({
     deckName: "Bilder",
     cardType: "basic-with-images",
-    front: "Vorderseitentext",
-    back: "Rückseitentext",
-    frontImage,
-    backImage,
+    front: `<p>Vor dem Bild <img src="${frontImage.sha1}" alt="vorne.png"> danach</p>`,
+    back: `<p><img src="${backImage.sha1}" alt="hinten.jpg"> Rückseitentext</p>`,
+    mediaAttachments: [frontImage, backImage, unusedImage, frontImage],
+    additionalFields: [{ id: "hint", name: "Hinweis", value: `<p>Noch einmal <img src="${frontImage.sha1}" alt="vorne.png"></p>`, placement: "both" }],
   });
   const card = deck.cards[0];
 
   assert.equal(card.cardType, "basic");
   assert.deepEqual(card.mediaRefs, [frontImage.sha1, backImage.sha1]);
-  assert.match(card.originalFront, new RegExp(`<img src="${frontImage.sha1}" alt="Bild zur Vorderseite" ?/?>`));
-  assert.match(card.originalBack, new RegExp(`<img src="${backImage.sha1}" alt="Bild zur Rückseite" ?/?>`));
+  assert.match(card.originalFront, new RegExp(`Vor dem Bild <img src="${frontImage.sha1}" alt="vorne.png" ?/?> danach`));
+  assert.match(card.originalBack, new RegExp(`<img src="${backImage.sha1}" alt="hinten.jpg" ?/?> Rückseitentext`));
+  assert.deepEqual(workflow.getReferencedManualImages({
+    front: card.originalFront,
+    back: card.originalBack,
+    mediaAttachments: [frontImage, backImage, unusedImage],
+  }).map((image) => image.sha1), [frontImage.sha1, backImage.sha1]);
+  assert.equal(card.mediaRefs.includes(unusedImage.sha1), false);
+});
+
+test("creation workflow rejects an inline image whose prepared bytes are missing", async () => {
+  const workflow = createCreationWorkflow();
+  const missingReference = "a".repeat(40);
+
+  assert.throws(
+    () => workflow.getReferencedManualImages({ front: `<p><img src="${missingReference}"></p>`, mediaAttachments: [] }),
+    /nicht mehr verfügbar/,
+  );
 });
 
 test("creation workflow rejects non-image clipboard content", async () => {

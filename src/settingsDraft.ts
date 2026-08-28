@@ -4,12 +4,15 @@ import { normalizeLearnAheadMinutes, normalizeLearningProfileSource, normalizeLe
 import { normalizeEasyDays } from "./easyDays.ts";
 import { normalizeDayStartHour } from "./learningDay.ts";
 
-export interface GlobalSettingsDraft {
+export interface GeneralSettingsDraft {
   displayName: string;
+  syncIntervalMinutes: SyncIntervalMinutes;
+}
+
+export interface GlobalCardSettingsDraft {
   dayStartHour: number;
   learnAheadMinutes: number;
   easyDays: EasyDays;
-  syncIntervalMinutes: SyncIntervalMinutes;
 }
 
 export type DeckLearningSettingsDraft = ReturnType<typeof normalizeLearningSettings> & {
@@ -25,16 +28,20 @@ export interface DeckSettingsDraft {
   learning: DeckLearningSettingsDraft;
 }
 
-export function createGlobalSettingsDraft(
-  profile: Profile,
-  preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">,
-): GlobalSettingsDraft {
+export function createGeneralSettingsDraft(profile: Profile): GeneralSettingsDraft {
   return {
     displayName: String(profile.displayName ?? ""),
+    syncIntervalMinutes: profile.uiPreferences.syncIntervalMinutes,
+  };
+}
+
+export function createGlobalCardSettingsDraft(
+  preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">,
+): GlobalCardSettingsDraft {
+  return {
     dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
     learnAheadMinutes: normalizeLearnAheadMinutes(preferences.learnAheadMinutes),
     easyDays: normalizeEasyDays(preferences.easyDays),
-    syncIntervalMinutes: profile.uiPreferences.syncIntervalMinutes,
   };
 }
 

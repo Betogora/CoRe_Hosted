@@ -129,7 +129,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   if (!deck) {
     return (
       <div className="grid min-w-0 gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-4"><PageHeader eyebrow="Stapel" title="Stapeleinstellungen" /><CrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</CrossLinkButton></div>
+        <div className="flex flex-wrap items-end justify-between gap-4"><PageHeader eyebrow="Stapel" title="Stapeleinstellungen" /><CrossLinkButton onSelect={onOpenGlobalSettings}>Karteneinstellungen</CrossLinkButton></div>
         {decks.length > 0 ? (
           <SoftPanel className="p-6 sm:p-8">
             <div className="mx-auto grid max-w-xl gap-4 text-center">
@@ -202,7 +202,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Stapel-Einstellungen" title={<span className="flex min-w-0 items-center gap-3"><DeckAppearanceIcon appearance={activeDraft.appearance} className="size-11" iconSize={20} data-testid="deck-settings-title-icon" /><span className="min-w-0 break-words" data-testid="deck-settings-title-name">{deck.name}</span></span>} />
-        <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Globale Einstellungen</CrossLinkButton><button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button></div>
+        <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Karteneinstellungen</CrossLinkButton><button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button></div>
       </div>
 
       <InPageNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={deckSettingsSections}>

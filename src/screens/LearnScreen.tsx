@@ -1,8 +1,9 @@
 import React from "react";
-import { ChevronRight, FolderPlus, Layers } from "lucide-react";
+import { ChevronRight, FolderPlus, Layers, Settings2 } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, EmptyState, PageHeader } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -16,7 +17,7 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
+export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckStatus, setDeckStatus] = React.useState("");
@@ -129,15 +130,20 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         eyebrow="Review"
         title="Lernen"
         action={
-          <CoreSegmentedControl<LearnArea>
-            ariaLabel="Bereich in Lernen"
-            options={learnAreaOptions}
-            value="overview"
-            onValueChange={(area) => {
-              if (area === "cards") onOpenDecks(focusedDeckId);
-            }}
-            className="core-learning-area-control"
-          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <CoreSegmentedControl<LearnArea>
+              ariaLabel="Bereich in Lernen"
+              options={learnAreaOptions}
+              value="overview"
+              onValueChange={(area) => {
+                if (area === "cards") onOpenDecks(focusedDeckId);
+              }}
+              className="core-learning-area-control"
+            />
+            <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
+              Karteneinstellungen
+            </ActionButton>
+          </div>
         }
       />
 

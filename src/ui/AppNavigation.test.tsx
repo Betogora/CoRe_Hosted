@@ -71,11 +71,16 @@ test("CoRe brand links both navigation layouts to today", () => {
   assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
 });
 
-test("help has its own active utility entry while settings and simulator share the settings entry", () => {
-  for (const view of ["einstellungen", "simulator"]) {
+test("help and general settings have separate utility states while card settings stay in learning", () => {
+  const settingsMarkup = renderNavigation("einstellungen");
+  assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
+  assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
+
+  for (const view of ["karten-einstellungen", "simulator"]) {
     const markup = renderNavigation(view);
-    assert.equal((markup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);
-    assert.equal((markup.match(/<button[^>]*data-navigation-utility="help"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
+    const bottomBarMarkup = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+    assert.equal((markup.match(/data-navigation-utility="settings"[^>]*aria-current="page"/g) ?? []).length, 0);
+    assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
   }
 
   const helpMarkup = renderNavigation("hilfe");
