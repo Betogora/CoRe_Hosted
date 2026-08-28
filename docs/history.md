@@ -1,9 +1,15 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-18
+**Stand:** 2026-08-28
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-08-28 — Stapeleinstellungen auf Unterstapel übertragbar
+
+- Die Speicherleiste der Stapeleinstellungen unterscheidet das Speichern des gewählten Stapels vom rekursiven Speichern für den Stapel und alle Unterstapel. Die Baumoption erscheint nur bei vorhandenen Unterstapeln.
+- Rekursives Speichern übernimmt feldgenau nur die gegenüber dem gespeicherten Stand geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte. Unterstapelnamen und nicht geänderte individuelle Werte bleiben erhalten; alle betroffenen Stapel laufen durch eine gemeinsame lokale Metadatenmutation und die bestehende Sync-Outbox.
+- Abgenommen wurden 15 fokussierte Draft-, Speicherleisten- und Stapeleinstellungs-Tests, Typecheck, Production-Build einschließlich Chunk-Budget sowie ein lokaler Browser-Smoke mit HTTP 200, sichtbarem Auth-Gate und ohne Konsolenfehler oder Vite-Overlay. Die angemeldete Einstellungsroute wurde im Browser-Smoke mangels Testsitzung nicht geöffnet.
 
 ## 2026-08-18 — Replica-v2 auf frische Pre-Release-Baseline gehärtet
 

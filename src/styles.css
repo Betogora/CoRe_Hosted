@@ -170,6 +170,10 @@
   --core-action-secondary: #667492;
   --core-action-disabled-bg: var(--core-palette-cloud);
   --core-action-disabled-text: #667492;
+  --core-settings-save-accent: #a83d91;
+  --core-settings-save-accent-hover: #92347d;
+  --core-settings-save-accent-active: #7e2c6c;
+  --core-settings-save-surface: #fdf0fa;
   --core-deck-new-text: #975c92;
   --core-deck-due-text: var(--core-action-primary);
   --core-info: var(--core-palette-slate);
@@ -233,6 +237,10 @@
   --core-action-secondary: var(--core-palette-highlight);
   --core-action-disabled-bg: #394454;
   --core-action-disabled-text: #7d8ba4;
+  --core-settings-save-accent: var(--core-palette-lilac-glow);
+  --core-settings-save-accent-hover: #efcaec;
+  --core-settings-save-accent-active: var(--core-palette-lilac);
+  --core-settings-save-surface: #4c3449;
   --core-deck-new-text: var(--core-palette-lilac-glow);
   --core-deck-due-text: var(--core-palette-highlight);
   --core-info: var(--core-palette-highlight);
@@ -404,6 +412,29 @@
     box-shadow: var(--core-shadow-raised);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+  }
+
+  .core-settings-save-bar {
+    --core-action-primary: var(--core-settings-save-accent);
+    --core-action-primary-hover: var(--core-settings-save-accent-hover);
+    --core-action-primary-active: var(--core-settings-save-accent-active);
+    --core-action-secondary: var(--core-settings-save-accent);
+    border: 2px solid var(--core-settings-save-accent);
+    background: linear-gradient(
+      135deg,
+      var(--core-settings-save-surface),
+      color-mix(in srgb, var(--core-settings-save-surface) 82%, var(--core-surface-raised))
+    );
+    box-shadow:
+      0 20px 52px color-mix(in srgb, var(--core-settings-save-accent) 28%, transparent),
+      var(--core-shadow-raised);
+  }
+
+  .core-settings-save-badge {
+    border: 1px solid color-mix(in srgb, var(--core-settings-save-accent) 72%, transparent);
+    background: color-mix(in srgb, var(--core-settings-save-accent) 18%, transparent);
+    color: var(--core-settings-save-accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--core-settings-save-accent) 10%, transparent);
   }
 
   .core-deck-summary-row {

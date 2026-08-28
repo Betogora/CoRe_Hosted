@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: b5b8dd027a6d0b4f */
+/* Quellenstand: 7e2cda08210cadae */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -642,6 +642,29 @@ video {
     -webkit-backdrop-filter: blur(16px);
   }
 
+  .core-settings-save-bar {
+    --core-action-primary: var(--core-settings-save-accent);
+    --core-action-primary-hover: var(--core-settings-save-accent-hover);
+    --core-action-primary-active: var(--core-settings-save-accent-active);
+    --core-action-secondary: var(--core-settings-save-accent);
+    border: 2px solid var(--core-settings-save-accent);
+    background: linear-gradient(
+      135deg,
+      var(--core-settings-save-surface),
+      color-mix(in srgb, var(--core-settings-save-surface) 82%, var(--core-surface-raised))
+    );
+    box-shadow:
+      0 20px 52px color-mix(in srgb, var(--core-settings-save-accent) 28%, transparent),
+      var(--core-shadow-raised);
+  }
+
+  .core-settings-save-badge {
+    border: 1px solid color-mix(in srgb, var(--core-settings-save-accent) 72%, transparent);
+    background: color-mix(in srgb, var(--core-settings-save-accent) 18%, transparent);
+    color: var(--core-settings-save-accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--core-settings-save-accent) 10%, transparent);
+  }
+
   .core-deck-summary-row {
     transition: border-color 140ms ease, box-shadow 140ms ease, filter 140ms ease, opacity 140ms ease, transform 140ms ease;
   }
@@ -1256,6 +1279,9 @@ video {
 .rounded-\[18px\] {
   border-radius: 18px;
 }
+.rounded-\[20px\] {
+  border-radius: 20px;
+}
 .rounded-\[24px\] {
   border-radius: 24px;
 }
@@ -1546,11 +1572,6 @@ video {
 .opacity-80 {
   opacity: 0.8;
 }
-.shadow-2xl {
-  --tw-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  --tw-shadow-colored: 0 25px 50px -12px var(--tw-shadow-color);
-  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
-}
 .shadow-\[0_0_0_2px_var\(--core-focus-ring-soft\)\] {
   --tw-shadow: 0 0 0 2px var(--core-focus-ring-soft);
   --tw-shadow-colored: 0 0 0 2px var(--tw-shadow-color);
@@ -1579,9 +1600,6 @@ video {
 }
 .ring-\[var\(--core-action-primary\)\] {
   --tw-ring-color: var(--core-action-primary);
-}
-.ring-\[var\(--core-focus-ring-soft\)\] {
-  --tw-ring-color: var(--core-focus-ring-soft);
 }
 .filter {
   filter: var(--tw-blur) var(--tw-brightness) var(--tw-contrast) var(--tw-grayscale) var(--tw-hue-rotate) var(--tw-invert) var(--tw-saturate) var(--tw-sepia) var(--tw-drop-shadow);
@@ -1765,6 +1783,10 @@ video {
   --core-action-secondary: #667492;
   --core-action-disabled-bg: var(--core-palette-cloud);
   --core-action-disabled-text: #667492;
+  --core-settings-save-accent: #a83d91;
+  --core-settings-save-accent-hover: #92347d;
+  --core-settings-save-accent-active: #7e2c6c;
+  --core-settings-save-surface: #fdf0fa;
   --core-deck-new-text: #975c92;
   --core-deck-due-text: var(--core-action-primary);
   --core-info: var(--core-palette-slate);
@@ -1828,6 +1850,10 @@ video {
   --core-action-secondary: var(--core-palette-highlight);
   --core-action-disabled-bg: #394454;
   --core-action-disabled-text: #7d8ba4;
+  --core-settings-save-accent: var(--core-palette-lilac-glow);
+  --core-settings-save-accent-hover: #efcaec;
+  --core-settings-save-accent-active: var(--core-palette-lilac);
+  --core-settings-save-surface: #4c3449;
   --core-deck-new-text: var(--core-palette-lilac-glow);
   --core-deck-due-text: var(--core-palette-highlight);
   --core-info: var(--core-palette-highlight);
@@ -3910,8 +3936,8 @@ summary {
               </div>
               <div class="catalog-demo catalog-stack">
                 <span class="catalog-demo-label">Nichtmodale Einstellungs-Save-Bar · App-weite Einzelinstanz</span>
-                <aside aria-label="Ungespeicherte Änderungen" class="core-overlay grid w-full max-w-[32rem] gap-3 rounded-[18px] p-4 shadow-2xl ring-1 ring-[var(--core-focus-ring-soft)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <p class="core-body-large font-semibold text-core-text" role="status" aria-live="polite">Ungespeicherte Änderungen</p>
+                <aside aria-label="Ungespeicherte Änderungen" class="core-settings-save-bar core-overlay grid w-full max-w-[32rem] gap-4 rounded-[20px] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div class="flex min-w-0 items-center gap-3"><span class="core-settings-save-badge grid size-10 shrink-0 place-items-center rounded-full" aria-hidden="true"><svg class="catalog-icon"><use href="#icon-save"></use></svg></span><p class="core-body-large font-semibold text-core-text" role="status" aria-live="polite">Ungespeicherte Änderungen</p></div>
                   <button type="button" class="core-action-primary min-h-11 w-full justify-center sm:w-auto sm:min-w-36"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Speichern</span></button>
                 </aside>
                 <p class="catalog-note">Produktiv seitenweit im unteren Viewportbereich, ohne Backdrop, Fokusfalle, Dialogsemantik oder Verwerfen-Aktion. Blockierte Navigation wechselt den höflich angekündigten Status zu „Zum Verlassen zuerst speichern.“ und wird nicht nachgeholt.</p>

@@ -12,6 +12,7 @@ import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgImportSession, resolveApkgCreationMethod, type ApkgImportSession } from "./apkgImportSession.ts";
 import type {
   CardDraftGuard,
+  DeckSettingsSaveScope,
   DecksCardPage,
   DecksCardPageRequest,
   SettingsDraftGuard,
@@ -51,7 +52,7 @@ import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
-import { normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GlobalSettingsDraft } from "./settingsDraft.ts";
+import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GlobalSettingsDraft } from "./settingsDraft.ts";
 const menu = createMenuModel();
 const googleAuthEnabled = import.meta.env.VITE_ENABLE_GOOGLE_AUTH === "true";
 const magicLinkEnabled = import.meta.env.VITE_ENABLE_MAGIC_LINK === "true";
@@ -200,7 +201,7 @@ export function App() {
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
   const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
-  const [savingSettingsDraft, setSavingSettingsDraft] = React.useState(false);
+  const [savingSettingsDraft, setSavingSettingsDraft] = React.useState<DeckSettingsSaveScope | "global" | null>(null);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [studyPreparationFailure, setStudyPreparationFailure] = React.useState<StudyPreparationFailure | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
@@ -484,17 +485,17 @@ export function App() {
     action();
   }, []);
 
-  async function saveSettingsDraft() {
+  async function saveSettingsDraft(scope?: DeckSettingsSaveScope) {
     const guard = settingsDraftGuardRef.current;
     if (!guard) return;
-    setSavingSettingsDraft(true);
+    setSavingSettingsDraft(scope ?? "global");
     try {
-      if (!await guard.save()) return;
+      if (!await guard.save(scope)) return;
       settingsDraftGuardRef.current = null;
       setSettingsDraftOpen(false);
       setSettingsNavigationBlocked(false);
     } finally {
-      setSavingSettingsDraft(false);
+      setSavingSettingsDraft(null);
     }
   }
 
@@ -1277,7 +1278,7 @@ export function App() {
     return updateDeck(deckId, (deck) => withDeckLearningSettings(deck, settings));
   }
 
-  function saveDeckSettings(deckId: string, input: DeckSettingsDraft) {
+  function saveDeckSettings(deckId: string, input: DeckSettingsDraft, scope: DeckSettingsSaveScope, baseline: DeckSettingsDraft) {
     const currentState = latestStateRef.current;
     if (!currentState) return null;
     const draft = normalizeDeckSettingsDraft(input);
@@ -1289,16 +1290,26 @@ export function App() {
     });
     if (!placement.ok || !placement.deck) return placement;
 
-    const rootDeck = withDeckLearningSettings(placement.deck, draft.learning);
-    const updatedRoot = {
-      ...rootDeck,
-      deckSettings: createDefaultDeckSettings({
-        ...rootDeck.deckSettings,
-        appearance: draft.appearance,
-      }),
-    };
-    const updatedDecks = (placement.updatedDecks.length ? placement.updatedDecks : [placement.deck])
-      .map((candidate) => candidate.id === deckId ? updatedRoot : candidate);
+    const placedDecks = placement.nextDecks ?? currentState.decks;
+    const treeDeckIds = scope === "deck-tree"
+      ? new Set(createDeckLibraryModel(placedDecks).rows.find((row) => row.id === deckId)?.scopeDeckIds ?? [deckId])
+      : new Set([deckId, ...placement.changedDeckIds]);
+    const updatedDecks = placedDecks
+      .filter((candidate) => treeDeckIds.has(candidate.id))
+      .map((candidate) => {
+        if (candidate.id !== deckId && scope === "deck") return candidate;
+        const candidateDraft = candidate.id === deckId
+          ? draft
+          : applyDeckSettingsDraftChanges(baseline, draft, createDeckSettingsDraft(candidate));
+        const learningDeck = withDeckLearningSettings(candidate, candidateDraft.learning);
+        return {
+          ...learningDeck,
+          deckSettings: createDefaultDeckSettings({
+            ...learningDeck.deckSettings,
+            appearance: candidateDraft.appearance,
+          }),
+        };
+      });
     const savedDecks = runRepositoryMutation((repository) => repository.saveDeckMetadata(updatedDecks), { preserveCardPages: true });
     if (savedDecks) synchronizeStudyDeckMetadata(savedDecks);
     const savedDeck = savedDecks?.find((candidate) => candidate.id === deckId) ?? null;
@@ -1308,7 +1319,7 @@ export function App() {
       error: savedDeck ? null : "Die Stapeleinstellungen konnten nicht gespeichert werden.",
       deck: savedDeck,
       updatedDecks: savedDecks ?? [],
-      changedDeckIds: [...new Set([...placement.changedDeckIds, deckId])],
+      changedDeckIds: savedDecks?.map((candidate) => candidate.id) ?? [],
     };
   }
 
@@ -2011,9 +2022,12 @@ export function App() {
       </div>
       <SettingsSaveBar
         open={settingsDraftOpen}
-        saving={savingSettingsDraft}
+        savingScope={savingSettingsDraft}
         navigationBlocked={settingsNavigationBlocked}
-        onSave={() => { void saveSettingsDraft(); }}
+        mode={activeView === "stapel-einstellungen"
+          ? (focusedDeckId && state.decks.some((deck) => deck.parentDeckId === focusedDeckId) ? "deck-tree" : "deck")
+          : "global"}
+        onSave={(scope) => { void saveSettingsDraft(scope); }}
       />
       <ActionDialog
         open={Boolean(pendingNavigation)}

@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 
-const styles = readFileSync("src/styles.css", "utf8");
+const styles = readFileSync("src/styles.css", "utf8").replace(/\r\n/g, "\n");
 
 function relativeLuminance(hex: string) {
   const channels = hex.match(/[0-9a-f]{2}/gi)?.map((value) => Number.parseInt(value, 16) / 255) ?? [];

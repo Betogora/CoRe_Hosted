@@ -34,8 +34,10 @@ export interface CardDraftGuard {
 }
 
 export interface SettingsDraftGuard {
-  save: () => Promise<boolean>;
+  save: (scope?: DeckSettingsSaveScope) => Promise<boolean>;
 }
+
+export type DeckSettingsSaveScope = "deck" | "deck-tree";
 
 export interface CreationScreenProps {
   decks: Deck[];
@@ -82,7 +84,7 @@ export interface DeckSettingsScreenProps {
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   learningProfiles: LearningProfileTemplate[];
   settingsTarget?: SettingsTarget | null;
-  onSaveSettings: (deckId: string, draft: DeckSettingsDraft) => DeckMutationResult | null;
+  onSaveSettings: (deckId: string, draft: DeckSettingsDraft, scope: DeckSettingsSaveScope, baseline: DeckSettingsDraft) => DeckMutationResult | null;
   onApplyLearningProfile: (deckId: string, settings: DeckLearningSettingsDraft) => Deck | null;
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createManualCoreDeck } from "./coreModel.ts";
+import { createCoreDeck, createDefaultDeckSettings, createManualCoreDeck } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
-import { createDeckSettingsDraft, createGlobalSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
+import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, createGlobalSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
 
 test("global draft normalizes profile, learning-day, weekly rhythm, and sync values", () => {
   const profile = createCoreRepository({ seedDefaultDecks: false }).getState().profile;
@@ -45,4 +45,39 @@ test("deck draft compares and normalizes identity, appearance, learning, schedul
   assert.notEqual(normalized.appearance.iconKey, "invalid");
   assert.match(normalized.appearance.iconColor, /^#[0-9a-f]{6}$/);
   assert.equal(settingsDraftsEqual(baseline, baseline), true);
+});
+
+test("deck-tree save applies only changed settings and keeps descendant identity and individual values", () => {
+  const parent = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Frage", back: "Antwort" } });
+  const child = createCoreDeck({
+    name: "Zellen",
+    source: "manual",
+    cards: [],
+    deckSettings: createDefaultDeckSettings({
+      appearance: { iconKey: "flask", iconColor: "#123456" },
+      newCardsPerDay: 7,
+      maximumReviewsPerDay: 80,
+      schedulerProfile: { desiredRetention: 0.82 },
+    }),
+  });
+  const baseline = createDeckSettingsDraft(parent);
+  const changed = normalizeDeckSettingsDraft({
+    ...baseline,
+    name: "Neue Biologie",
+    appearance: { ...baseline.appearance, iconColor: "#abcdef" },
+    learning: {
+      ...baseline.learning,
+      newCardsPerDay: 42,
+      schedulerProfile: { ...baseline.learning.schedulerProfile, presetId: "custom", desiredRetention: 0.94 },
+    },
+  });
+
+  const propagated = applyDeckSettingsDraftChanges(baseline, changed, createDeckSettingsDraft(child));
+
+  assert.equal(propagated.name, "Zellen");
+  assert.equal(propagated.appearance.iconKey, "flask");
+  assert.equal(propagated.appearance.iconColor, "#abcdef");
+  assert.equal(propagated.learning.newCardsPerDay, 42);
+  assert.equal(propagated.learning.maximumReviewsPerDay, 80);
+  assert.equal(propagated.learning.schedulerProfile.desiredRetention, 0.94);
 });

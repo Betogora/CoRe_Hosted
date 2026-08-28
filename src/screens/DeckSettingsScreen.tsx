@@ -1,7 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
-import type { DeckSettingsScreenProps } from "../appScreenProps.ts";
+import type { DeckSettingsSaveScope, DeckSettingsScreenProps } from "../appScreenProps.ts";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
@@ -93,14 +93,14 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   const draftBelongsToDeck = draftDeckIdRef.current === deck?.id;
   const dirty = Boolean(draftBelongsToDeck && activeDraft && baseline && !settingsDraftsEqual(activeDraft, baseline));
 
-  const saveDraft = React.useCallback(async () => {
-    if (!deck || !activeDraft) return false;
+  const saveDraft = React.useCallback(async (scope: DeckSettingsSaveScope = "deck") => {
+    if (!deck || !activeDraft || !baseline) return false;
     const normalized = normalizeDeckSettingsDraft(activeDraft);
     if (!normalized.name) {
       setFeedback("Bitte gib einen Stapelnamen ein.");
       return false;
     }
-    const result = onSaveSettings(deck.id, normalized);
+    const result = onSaveSettings(deck.id, normalized, scope, baseline);
     if (!result?.ok || !result.deck) {
       setFeedback(result?.error ?? "Die Stapeleinstellungen konnten nicht gespeichert werden.");
       return false;
@@ -109,14 +109,16 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     setBaseline(savedDraft);
     setDraft(savedDraft);
     setFeedback("");
-    setSuccessToast("Stapeleinstellungen wurden gespeichert.");
+    setSuccessToast(scope === "deck-tree"
+      ? "Stapeleinstellungen wurden für den Stapel und alle Unterstapel gespeichert."
+      : "Stapeleinstellungen wurden für den Stapel gespeichert.");
     return true;
-  }, [activeDraft, deck, onSaveSettings, setSuccessToast]);
+  }, [activeDraft, baseline, deck, onSaveSettings, setSuccessToast]);
 
   const saveDraftRef = React.useRef(saveDraft);
   saveDraftRef.current = saveDraft;
   const draftGuard = React.useMemo(() => ({
-    save: () => saveDraftRef.current(),
+    save: (scope: DeckSettingsSaveScope = "deck") => saveDraftRef.current(scope),
   }), []);
 
   React.useEffect(() => {

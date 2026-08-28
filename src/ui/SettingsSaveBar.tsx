@@ -1,32 +1,51 @@
 import React from "react";
-import { Save } from "lucide-react";
+import { Layers, Save } from "lucide-react";
+import type { DeckSettingsSaveScope } from "../appScreenProps.ts";
 import { ActionButton } from "./actionUi.tsx";
 
 interface SettingsSaveBarProps {
   open: boolean;
-  saving?: boolean;
+  savingScope?: DeckSettingsSaveScope | "global" | null;
   navigationBlocked?: boolean;
-  onSave: () => void;
+  mode?: "global" | "deck" | "deck-tree";
+  onSave: (scope?: DeckSettingsSaveScope) => void;
 }
 
-export function SettingsSaveBar({ open, saving = false, navigationBlocked = false, onSave }: SettingsSaveBarProps) {
+export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = false, mode = "global", onSave }: SettingsSaveBarProps) {
   if (!open) return null;
 
+  const saving = savingScope !== null;
   const status = navigationBlocked ? "Zum Verlassen zuerst speichern." : "Ungespeicherte Änderungen";
 
   return (
     <aside
       aria-label="Ungespeicherte Änderungen"
       data-testid="settings-save-bar"
-      className="core-overlay fixed left-[50dvw] z-50 grid w-[min(32rem,calc(100dvw-2rem))] -translate-x-1/2 gap-3 rounded-[18px] p-4 shadow-2xl ring-1 ring-[var(--core-focus-ring-soft)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+      className={`core-settings-save-bar core-overlay fixed left-[50dvw] z-50 grid w-[min(48rem,calc(100dvw-2rem))] -translate-x-1/2 gap-4 rounded-[20px] p-4 ${mode === "deck-tree" ? "" : "sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"}`}
       style={{ bottom: "max(14dvh, calc(env(safe-area-inset-bottom) + 5rem))" }}
     >
-      <p className="core-body-large font-semibold text-core-text" role="status" aria-live="polite">
-        {status}
-      </p>
-      <ActionButton type="button" variant="primary" icon={Save} className="min-h-11 w-full justify-center sm:w-auto sm:min-w-36" loading={saving} disabled={saving} onClick={onSave}>
-        Speichern
-      </ActionButton>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="core-settings-save-badge grid size-10 shrink-0 place-items-center rounded-full" aria-hidden="true">
+          <Save size={19} />
+        </span>
+        <p className="core-body-large font-semibold text-core-text" role="status" aria-live="polite">
+          {status}
+        </p>
+      </div>
+      {mode === "deck-tree" ? (
+        <div className="grid gap-2 sm:grid-cols-2">
+          <ActionButton type="button" variant="primary" icon={Save} className="min-h-11 w-full justify-center" loading={savingScope === "deck"} disabled={saving} onClick={() => onSave("deck")}>
+            Einstellungen für Stapel speichern
+          </ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Layers} className="min-h-11 w-full justify-center" loading={savingScope === "deck-tree"} disabled={saving} onClick={() => onSave("deck-tree")}>
+            Einstellungen für Stapel und alle Unterstapel speichern
+          </ActionButton>
+        </div>
+      ) : (
+        <ActionButton type="button" variant="primary" icon={Save} className="min-h-11 w-full justify-center sm:w-auto sm:min-w-36" loading={saving} disabled={saving} onClick={() => onSave(mode === "deck" ? "deck" : undefined)}>
+          {mode === "deck" ? "Einstellungen für Stapel speichern" : "Speichern"}
+        </ActionButton>
+      )}
     </aside>
   );
 }
