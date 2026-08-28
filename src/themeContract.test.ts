@@ -31,7 +31,7 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
     assert.match(styles, new RegExp(color, "i"));
   }
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
+  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "group-depth-5", "group-depth-6", "group-depth-7", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
     assert.match(dark, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
@@ -79,20 +79,29 @@ test("heatmap keeps its control group intact across responsive widths", () => {
   assert.match(mobileControls, /\.core-segmented-control-option[\s\S]*?padding-inline: 0\.375rem/);
 });
 
-test("group depths darken subtly in light mode and lighten subtly in dark mode", () => {
-  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const lightDepths = ["ffffff", "fafbfc", "f7f8fa", "f4f6f8", "f1f3f6"];
-  const darkDepths = ["262e3a", "29313e", "2c3542", "2f3846", "323b4a"];
+test("deck names use at most two lines in narrow summary containers", () => {
+  assert.match(styles, /\.core-deck-summary-name\s*\{[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/);
+  const narrowDeckSummary = styles.match(/@container core-deck-summary \(max-width: 32rem\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+  assert.match(narrowDeckSummary, /\.core-deck-summary-name\s*\{[\s\S]*?-webkit-line-clamp:\s*2;[\s\S]*?white-space:\s*normal;/);
+});
 
-  for (let depth = 1; depth <= 4; depth += 1) {
+test("group depths darken in light mode and lighten in dark mode", () => {
+  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const lightDepths = ["ffffff", "fafbfc", "f5f7fa", "f0f3f7", "eceff4", "e7ebf1", "e2e7ef", "dde3ec"];
+  const darkDepths = ["262e3a", "29313e", "2c3542", "2f3846", "313c4b", "343f4f", "374353", "3a4657"];
+
+  for (let depth = 1; depth <= 6; depth += 1) {
     assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
   }
-  for (let depth = 1; depth <= 4; depth += 1) {
+  for (let depth = 1; depth <= 7; depth += 1) {
     assert.match(dark, new RegExp(`--core-group-depth-${depth}:\\s*#${darkDepths[depth]}`));
   }
+  assert.match(styles, /--core-group-depth-7:\s*var\(--core-palette-cloud\)/);
   assert.ok(lightDepths.every((color, index) => index === 0 || relativeLuminance(lightDepths[index - 1]) > relativeLuminance(color)));
   assert.ok(darkDepths.every((color, index) => index === 0 || relativeLuminance(darkDepths[index - 1]) < relativeLuminance(color)));
-  assert.match(styles, /\.core-deck-summary-row\[data-deck-depth="4"\]\s*\{\s*background-color:\s*var\(--core-group-depth-4\)/);
+  for (let depth = 0; depth <= 7; depth += 1) {
+    assert.match(styles, new RegExp(`\\.core-deck-summary-row\\[data-deck-depth="${depth}"\\]\\s*\\{\\s*background-color:\\s*var\\(--core-group-depth-${depth}\\)`));
+  }
 });
 
 test("theme exposes the six canonical typography levels and AA primary contrast", () => {

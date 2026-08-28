@@ -11,10 +11,11 @@ import {
 import { Check, ChevronDown, FolderTree, Layers3, Search, X, type LucideIcon } from "lucide-react";
 import type { Deck } from "../coreTypes.ts";
 import { buildSortedDeckChildren } from "../deckOrdering.ts";
+import { getImportedDeckHierarchyOverflow, MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 
 const SELECT_VALUE_PREFIX = "core-select:";
-const MAX_DECK_SELECT_INDENT_LEVEL = 6;
+const MAX_DECK_SELECT_INDENT_LEVEL = MAX_INTERACTIVE_DECK_LEVELS - 1;
 const DECK_SEARCH_THRESHOLD = 5;
 
 export interface CoreSelectOption {
@@ -92,8 +93,10 @@ function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
     if (visitedDeckIds.has(deck.id)) return;
     visitedDeckIds.add(deck.id);
     const hierarchyPath = deck.hierarchyPath.length ? deck.hierarchyPath : [...parentPath, deck.name];
-    const path = hierarchyPath.join(" / ");
-    rows.push({ deck, depth, path, searchPath: path.toLocaleLowerCase("de-DE") });
+    const currentPath = hierarchyPath.join(" / ");
+    const sourcePath = getImportedDeckHierarchyOverflow(deck)?.sourcePath.join(" / ") ?? "";
+    const path = sourcePath ? `${currentPath} · Anki: ${sourcePath}` : currentPath;
+    rows.push({ deck, depth, path, searchPath: `${currentPath} ${sourcePath}`.toLocaleLowerCase("de-DE") });
     (childrenByParentId.get(deck.id) ?? []).forEach((child) => visit(child, depth + 1, hierarchyPath));
   }
 

@@ -4,6 +4,7 @@ import { createCoreDeck } from "./coreModel.ts";
 import {
   createDeckPlacementValidator,
   createWorkspaceDeck,
+  DECK_DEPTH_ERROR,
   restoreSoftDeletedCard,
   softDeleteCard,
   updateDeckTreePlacement,
@@ -14,13 +15,43 @@ test("workspace deck creation keeps sibling names unique and limits nesting", ()
   assert.ok(root);
   const sibling = createWorkspaceDeck([root], { name: "Biologie" });
   assert.equal(sibling?.name, "Biologie+");
-  const child = createWorkspaceDeck([root, sibling!], { name: "Zellen", parentDeckId: root.id });
-  const grandchild = createWorkspaceDeck([root, sibling!, child!], { name: "Kern", parentDeckId: child!.id });
-  const fourth = createWorkspaceDeck([root, sibling!, child!, grandchild!], { name: "DNA", parentDeckId: grandchild!.id });
-  const rejected = createWorkspaceDeck([root, sibling!, child!, grandchild!, fourth!], { name: "Gen", parentDeckId: fourth!.id });
+  const levels = [root];
+  for (let level = 2; level <= 8; level += 1) {
+    const deck = createWorkspaceDeck([...levels, sibling!], { name: `Ebene ${level}`, parentDeckId: levels.at(-1)!.id });
+    assert.ok(deck);
+    levels.push(deck);
+  }
+  const rejected = createWorkspaceDeck([...levels, sibling!], { name: "Ebene 9", parentDeckId: levels.at(-1)!.id });
 
-  assert.ok(fourth);
   assert.equal(rejected, null);
+});
+
+test("deck tree placement rejects a subtree that would reach level nine", () => {
+  const chain = Array.from({ length: 7 }, (_, index) => createCoreDeck({
+    id: `level-${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `level-${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
+    cards: [],
+  }));
+  const movedRoot = createCoreDeck({ id: "moved-root", name: "Verschieben", source: "manual", cards: [] });
+  const movedChild = createCoreDeck({ id: "moved-child", parentDeckId: movedRoot.id, name: "Kind", hierarchyPath: ["Verschieben", "Kind"], source: "manual", cards: [] });
+
+  assert.match(createDeckPlacementValidator([...chain, movedRoot, movedChild], movedRoot.id)(chain.at(-1)!.id) ?? "", /acht Stapel-Ebenen/);
+});
+
+test("deck tree placement no longer permits a still-too-deep legacy relocation", () => {
+  const chain = Array.from({ length: 10 }, (_, index) => createCoreDeck({
+    id: `legacy-level-${index + 1}`,
+    name: `Legacy-Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `legacy-level-${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Legacy-Ebene ${pathIndex + 1}`),
+    source: "anki-apkg",
+    cards: [],
+  }));
+
+  assert.equal(createDeckPlacementValidator(chain, "legacy-level-2")(null), DECK_DEPTH_ERROR);
 });
 
 test("deck tree placement renames descendants and rejects cycles", () => {

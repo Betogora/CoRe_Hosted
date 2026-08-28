@@ -1,7 +1,8 @@
 import React from "react";
 import { ChevronRight, FolderPlus, Layers, Settings2 } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
-import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
+import { DECK_DEPTH_ERROR } from "../coreWorkspace.ts";
+import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, EmptyState, PageHeader } from "../ui/coreUi.tsx";

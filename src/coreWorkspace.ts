@@ -1,5 +1,6 @@
 import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
 import type { Deck, DeckSettings, LearningItem, NoteTypeDefinitionV1, Profile } from "./coreTypes.ts";
+import { MAX_INTERACTIVE_DECK_LEVELS } from "./deckHierarchy.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -30,8 +31,7 @@ export interface DeckMutationResult {
   movedToParentDeckId?: string | null;
 }
 
-export const MAX_INTERACTIVE_DECK_LEVELS = 4;
-export const DECK_DEPTH_ERROR = "Maximal vier Stapel-Ebenen sind möglich.";
+export const DECK_DEPTH_ERROR = "Maximal acht Stapel-Ebenen sind möglich.";
 
 interface DeckPlacementInput {
   deckId: string;
@@ -128,7 +128,7 @@ export function createDeckPlacementValidator(decks: Deck[], deckId: string): (pa
     if ((deck.parentDeckId ?? null) === requestedParentId) return null;
 
     const nextMaximumDepth = (parent ? deckDepth(deckById, parent.id) + 1 : 0) + subtreeHeight;
-    return nextMaximumDepth > maximumInteractiveDepth && nextMaximumDepth >= currentMaximumDepth
+    return nextMaximumDepth > maximumInteractiveDepth
       ? DECK_DEPTH_ERROR
       : null;
   };

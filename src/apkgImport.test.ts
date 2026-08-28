@@ -14,12 +14,12 @@ import {
 import { createBasicLearningItem, createCoreDeck, createReviewState } from "./coreModel.ts";
 import { importNormalizedDeck } from "./importService.ts";
 
-function parsedApkgFixture({ modelType = 0, fields = [{ name: "Front" }, { name: "Back" }], templates = [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}<hr>{{Back}}" }], noteFields = "Front?\u001fBack.", cards = [{ id: 20, nid: 10, did: 1, ord: 0 }] }: any = {}) {
+function parsedApkgFixture({ modelType = 0, fields = [{ name: "Front" }, { name: "Back" }], templates = [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}<hr>{{Back}}" }], noteFields = "Front?\u001fBack.", cards = [{ id: 20, nid: 10, did: 1, ord: 0 }], decks = [{ id: "1", name: "Fixture Deck" }] }: any = {}) {
   return {
     file: { name: "fixture.apkg", size: 4096 },
-    decks: [{ id: "1", name: "Fixture Deck" }],
+    decks,
     colRows: [{
-      decks: JSON.stringify({ 1: { id: "1", name: "Fixture Deck" } }),
+      decks: JSON.stringify(Object.fromEntries(decks.map((deck: any) => [String(deck.id), deck]))),
       models: JSON.stringify({ 99: { id: "99", name: "Fixture", type: modelType, flds: fields, tmpls: templates } }),
     }],
     notes: [{ id: 10, guid: "guid-10", mid: 99, tags: "tag", flds: noteFields, mod: 1_700_000_000 }],
@@ -81,6 +81,33 @@ test("jede Anki-Cloze-Gruppe wird eigenständig importiert", () => {
   const deck = importNormalizedDeck(normalizedDeck, { dryRun: false }).deck;
   assert.equal(deck?.cards.length, 2);
   assert.deepEqual(deck?.cards.map((card: any) => card.sourceCardId), ["20", "21"]);
+});
+
+test("APKG hierarchy flattens source level nine and deeper while preserving source paths and tags", async () => {
+  const segments = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
+  const decks = segments.map((_, index) => ({ id: String(index + 1), name: segments.slice(0, index + 1).join("::") }));
+  const parsed = parsedApkgFixture({
+    decks,
+    cards: [{ id: 20, nid: 10, did: "10", ord: 0 }],
+  });
+  const first = prepareApkgWorkerResult(await parseApkgToNormalizedImport(parsed));
+  const second = prepareApkgWorkerResult(await parseApkgToNormalizedImport(parsed));
+  const importedDecks = first.commitGraph.decks;
+  const bySourcePath = new Map(importedDecks.map((deck: any) => [deck.importMeta.sourceMetadata.ankiDeckPath, deck]));
+  const g = bySourcePath.get("A::B::C::D::E::F::G") as any;
+  const h = bySourcePath.get("A::B::C::D::E::F::G::H") as any;
+  const i = bySourcePath.get("A::B::C::D::E::F::G::H::I") as any;
+  const j = bySourcePath.get("A::B::C::D::E::F::G::H::I::J") as any;
+
+  assert.deepEqual([h.parentDeckId, i.parentDeckId, j.parentDeckId], [g.id, g.id, g.id]);
+  assert.deepEqual(h.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "H"]);
+  assert.deepEqual(i.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "I"]);
+  assert.deepEqual(j.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "J"]);
+  assert.equal(j.importMeta.sourceMetadata.ankiDeckDepth, 9);
+  assert.equal(j.importMeta.sourceMetadata.ankiParentPath, "A::B::C::D::E::F::G::H::I");
+  assert.equal(first.report.warnings.filter((warning: string) => warning.includes("ab Ebene 9 auf Ebene 8 abgeflacht")).length, 1);
+  assert.deepEqual(j.cards[0].tags, ["tag"]);
+  assert.deepEqual(second.commitGraph.decks.map((deck: any) => deck.id), importedDecks.map((deck: any) => deck.id));
 });
 
 test("Reimport ersetzt nur bei neuerer Anki-Änderungszeit den Inhalt und erhält den Lernstatus", () => {

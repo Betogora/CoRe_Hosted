@@ -9,7 +9,7 @@ const parent = createCoreDeck({ id: "parent", name: "Herkunft", hierarchyPath: [
 const child = createCoreDeck({ id: "child", parentDeckId: parent.id, name: "Ein sehr langer Unterstapelname", hierarchyPath: ["Herkunft", "Ein sehr langer Unterstapelname"], source: "manual", cards: [] });
 const row = createDeckLibraryModel([parent, child]).rows[1];
 
-test("deck summary row keeps one-line identity, accessible metrics and compact progress", () => {
+test("deck summary row keeps responsive identity, accessible metrics and compact progress", () => {
   const markup = renderToStaticMarkup(
     <DeckSummaryRow
       row={row}
@@ -21,7 +21,8 @@ test("deck summary row keeps one-line identity, accessible metrics and compact p
   );
 
   assert.match(markup, /data-deck-summary-row-content="compact"/);
-  assert.match(markup, /truncate whitespace-nowrap/);
+  assert.match(markup, /core-deck-summary-name/);
+  assert.doesNotMatch(markup, /truncate whitespace-nowrap/);
   assert.doesNotMatch(markup, />Herkunft \/ Ein sehr langer Unterstapelname</);
   for (const metric of ["new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-deck-count="${metric}"`));
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
@@ -31,6 +32,31 @@ test("deck summary row keeps one-line identity, accessible metrics and compact p
   assert.match(markup, /aria-label="Keine aktiven Karten für Herkunft \/ Ein sehr langer Unterstapelname\."/);
   assert.match(markup, /data-donut-empty="true"/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
+});
+
+test("deck summary row marks a flattened Anki hierarchy without changing the deck name", () => {
+  const imported = createCoreDeck({
+    id: "flattened",
+    name: "J",
+    source: "anki-apkg",
+    hierarchyPath: ["A", "B", "C", "D", "E", "F", "G", "J"],
+    importMeta: { sourceMetadata: { ankiDeckPath: "A::B::C::D::E::F::G::H::I::J" } },
+    cards: [],
+  });
+  const importedRow = createDeckLibraryModel([imported]).rows[0];
+  const markup = renderToStaticMarkup(
+    <DeckSummaryRow
+      row={importedRow}
+      leadingControl={<span aria-hidden="true" />}
+      actions={<button type="button" aria-label="Stapeloptionen" />}
+      density="responsive"
+    />,
+  );
+
+  assert.match(markup, />J</);
+  assert.match(markup, /data-testid="deck-hierarchy-overflow-flattened"/);
+  assert.match(markup, /data-core-tooltip="Tiefere Anki-Unterteilung wurde abgeflacht"/);
+  assert.match(markup, /lucide-git-branch/);
 });
 
 test("deck summary row omits the complete learning status block for management rows", () => {

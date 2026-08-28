@@ -11,6 +11,12 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Rekursives Speichern übernimmt feldgenau nur die gegenüber dem gespeicherten Stand geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte. Unterstapelnamen und nicht geänderte individuelle Werte bleiben erhalten; alle betroffenen Stapel laufen durch eine gemeinsame lokale Metadatenmutation und die bestehende Sync-Outbox.
 - Abgenommen wurden 15 fokussierte Draft-, Speicherleisten- und Stapeleinstellungs-Tests, Typecheck, Production-Build einschließlich Chunk-Budget sowie ein lokaler Browser-Smoke mit HTTP 200, sichtbarem Auth-Gate und ohne Konsolenfehler oder Vite-Overlay. Die angemeldete Einstellungsroute wurde im Browser-Smoke mangels Testsitzung nicht geöffnet.
 
+## 2026-08-28 — Achtstufige Stapelhierarchie
+
+- CoRe unterstützt Hauptstapel plus sieben Unterebenen. Eine gemeinsame reine Projektion flacht APKG-Quellknoten ab Ebene 9 als getrennte Geschwister auf sichtbare Ebene 8 ab; stabile IDs, Karten-Zuordnung, vollständiger Anki-Pfad, Quelltiefe und ursprünglicher Elternpfad bleiben erhalten.
+- Manuelles Anlegen und Verschieben lehnt Ebene 9 sowie weiterhin zu tiefe Altbaum-Platzierungen ohne Mutation ab. Acht lineare Light-/Dark-Gruppentöne, Einrückung bis Tiefe 7, zweizeilige schmale Stapelnamen, Importwarnung, Herkunftssymbol, Originalpfad im Menü sowie Suche und Auswahl über beide Pfade sind umgesetzt. Kartentags und Persistenzschema blieben unverändert; die spätere System-Tag-Projektion ist ausschließlich als Folgefeature dokumentiert.
+- Abgenommen wurden 66 fokussierte Hierarchie-, Import-, Workspace-, Such-, Auswahl- und Themeprüfungen, die vollständigen Unit-/Contract-Kategorien mit 98 Testdateien, Typecheck einschließlich UI-Katalog und Production-Build. Die tatsächliche gemeinsame Stapelzeile wurde bei 1.280 × 900 und 390 × 844 px geprüft: acht Tiefenflächen, Begrenzung auf Tiefe 7, genau zwei Namenszeilen, zugänglicher Herkunftshinweis, kein horizontaler Überlauf und keine Browserwarnung.
+
 ## 2026-08-18 — Replica-v2 auf frische Pre-Release-Baseline gehärtet
 
 - Die vierzehnteilige Supabase-Kette und der doppelte Schemaanker wurden durch eine einzelne frische Baseline plus Verify-SQL ersetzt. Lokaler Reset, generierte Typen, Typdrift und 13/13 RLS-/Zwei-Geräte-Fälle sind grün. Die alten Voll-Delta-/Bootstrap-RPCs, `due_count` und der administrative Katalog-Backfill fehlen nachweislich.

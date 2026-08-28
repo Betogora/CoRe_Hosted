@@ -1,8 +1,9 @@
 import React from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { createPortal } from "react-dom";
-import { createDeckPlacementValidator, MAX_INTERACTIVE_DECK_LEVELS, type DeckMutationResult } from "../coreWorkspace.ts";
+import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode } from "../coreTypes.ts";
+import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { SoftPanel } from "./coreUi.tsx";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
@@ -345,7 +346,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
         data-testid={`${mode}-deck-row-${row.id}`}
         data-deck-row="true"
         data-deck-id={row.id}
-        data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS)}
+        data-deck-depth={Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS - 1)}
         data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
         data-drag-state={isDragged ? "active" : undefined}
         className="core-deck-summary-row relative min-w-0 select-none"

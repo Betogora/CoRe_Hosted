@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: df72980273716342 */
+/* Quellenstand: 3cd93ef202d99710 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -671,6 +671,9 @@ video {
   .core-deck-summary-row[data-deck-depth="2"] { background-color: var(--core-group-depth-2); }
   .core-deck-summary-row[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
   .core-deck-summary-row[data-deck-depth="4"] { background-color: var(--core-group-depth-4); }
+  .core-deck-summary-row[data-deck-depth="5"] { background-color: var(--core-group-depth-5); }
+  .core-deck-summary-row[data-deck-depth="6"] { background-color: var(--core-group-depth-6); }
+  .core-deck-summary-row[data-deck-depth="7"] { background-color: var(--core-group-depth-7); }
 
   .core-deck-summary-row[data-drop-state="valid"] {
     border-color: var(--core-warning);
@@ -1759,9 +1762,12 @@ video {
   --core-surface-hover: #e7ecf3;
   --core-group-depth-0: var(--core-surface);
   --core-group-depth-1: #fafbfc;
-  --core-group-depth-2: #f7f8fa;
-  --core-group-depth-3: #f4f6f8;
-  --core-group-depth-4: #f1f3f6;
+  --core-group-depth-2: #f5f7fa;
+  --core-group-depth-3: #f0f3f7;
+  --core-group-depth-4: #eceff4;
+  --core-group-depth-5: #e7ebf1;
+  --core-group-depth-6: #e2e7ef;
+  --core-group-depth-7: var(--core-palette-cloud);
   --core-text: var(--core-palette-midnight);
   --core-text-secondary: var(--core-palette-graphite);
   --core-text-muted: #667492;
@@ -1829,7 +1835,10 @@ video {
   --core-group-depth-1: #29313e;
   --core-group-depth-2: #2c3542;
   --core-group-depth-3: #2f3846;
-  --core-group-depth-4: #323b4a;
+  --core-group-depth-4: #313c4b;
+  --core-group-depth-5: #343f4f;
+  --core-group-depth-6: #374353;
+  --core-group-depth-7: #3a4657;
   --core-text: var(--core-palette-cloud);
   --core-text-secondary: var(--core-palette-highlight);
   --core-text-muted: var(--core-palette-highlight);
@@ -2012,6 +2021,13 @@ button[aria-label] {
   container: core-deck-summary / inline-size;
 }
 
+.core-deck-summary-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .core-deck-summary-responsive {
   -moz-column-gap: 0.375rem;
        column-gap: 0.375rem;
@@ -2034,6 +2050,13 @@ button[aria-label] {
 }
 
 @container core-deck-summary (max-width: 32rem) {
+  .core-deck-summary-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    white-space: normal;
+  }
+
   .core-deck-summary-responsive {
     -moz-column-gap: 0;
          column-gap: 0;

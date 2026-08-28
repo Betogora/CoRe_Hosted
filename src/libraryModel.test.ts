@@ -451,6 +451,20 @@ test("card table preserves hierarchy and card order while including empty decks"
   assert.deepEqual(deckSearch.groups[0].cardRows.map((row) => row.id), ["card-first", "card-second"]);
 });
 
+test("deck and card searches include a flattened deck's original Anki path", () => {
+  const deck = createCoreDeck({
+    id: "flattened",
+    name: "J",
+    source: "anki-apkg",
+    hierarchyPath: ["A", "B", "C", "D", "E", "F", "G", "J"],
+    importMeta: { sourceMetadata: { ankiDeckPath: "A::B::C::D::E::F::G::H::I::J" } },
+    cards: [createCoreCard({ id: "source-card", source: "anki-apkg", originalFront: "Frage", originalBack: "Antwort" })],
+  });
+
+  assert.deepEqual(createDeckLibraryModel([deck], { query: "h / i / j" }).filteredRows.map((row) => row.id), [deck.id]);
+  assert.deepEqual(createCardTableModel([deck], { query: "h / i / j" }).groups.map((group) => group.id), [deck.id]);
+});
+
 test("card table sorts all columns and projects next-study and variant labels", () => {
   const newCard = createCoreCard({ id: "card-new", source: "manual", originalFront: "Äpfel", originalBack: "Neu" });
   const laterBase = createCoreCard({ id: "card-later", source: "manual", originalFront: "Zebra", originalBack: "Später" });

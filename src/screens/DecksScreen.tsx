@@ -6,7 +6,7 @@ export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { createCoreNoteTypeDefinition, getCardEditorValue, isLearningItemMarked, projectCardPreviewDraft, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
-import { MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
+import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
@@ -670,7 +670,7 @@ export function DecksScreen({
       const totalCardCount = Math.max(items.length, Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : group.deck.cardCount ?? 0)));
       const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
       const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
-      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(`${group.path} ${group.deck.tags?.join(" ") ?? ""}`).includes(normalizedQuery);
+      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(`${group.path} ${group.sourcePath} ${group.deck.tags?.join(" ") ?? ""}`).includes(normalizedQuery);
       return {
         ...group,
         deck: originalDecks.get(group.id) ?? group.deck,
@@ -1100,7 +1100,7 @@ export function DecksScreen({
               </thead>
               {tableModel.groups.map((group) => {
                 const expanded = searchExpandsGroups || expandedDeckIdSet.has(group.id);
-                const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS);
+                const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS - 1);
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                     {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}

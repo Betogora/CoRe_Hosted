@@ -8,6 +8,7 @@ import {
 } from "./studyHeatmapModel.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { CoreMode, Deck, LearningItem } from "./coreTypes.ts";
+import { getImportedDeckHierarchyOverflow } from "./deckHierarchy.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 
 export { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
@@ -120,6 +121,7 @@ function createDeckRow(
     summary?: DeckLibrarySummary;
   },
 ) {
+  const sourcePath = getImportedDeckHierarchyOverflow(deck)?.sourcePath.join(" / ") ?? "";
   const activeCards = summary ? [] : listReviewableCards(deck);
   const dayOptions = { dayStartHour, learnAheadMinutes, timeZone };
   const directInventory = summary?.inventory ?? summarizeDeckReview(deck, now, dayOptions);
@@ -137,6 +139,7 @@ function createDeckRow(
     deck,
     name: deck.name,
     path: deckPath(deck),
+    sourcePath,
     parentDeckId: deck.parentDeckId ?? null,
     depth,
     childrenCount,
@@ -211,7 +214,7 @@ export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & {
 };
 
 function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
-  const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
+  const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path} ${row.sourcePath}`);
   const matchesQuery = !query || haystack.includes(query);
   const matchesMode = coreMode === "all" || row.coreMode === coreMode;
 
@@ -431,7 +434,7 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit: 0, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone, deckSummaries: options.deckSummaries });
   const allGroups: CardTableGroup[] = rows.map((row) => {
-    const deckMatches = Boolean(query) && normalizeQuery(row.path).includes(query);
+    const deckMatches = Boolean(query) && normalizeQuery(`${row.path} ${row.sourcePath}`).includes(query);
     const matchingCards = !query || deckMatches
       ? row.activeCards
       : row.activeCards.filter((card) => cardSearchProjection(card).searchText.includes(query));

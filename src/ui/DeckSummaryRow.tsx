@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import { GitBranch } from "lucide-react";
+import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import type { DeckLibraryRow, DeckStatusDistribution } from "../libraryModel.ts";
 import { SegmentedDonut, type SegmentedDonutSegment } from "./coreUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 import { formatLearningCardCount, LEARNING_STATUS_UI } from "./learningStatusUi.ts";
+import { CoreTooltip } from "./tooltipUi.tsx";
 
 const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new", shortLabel: "N" },
@@ -20,7 +23,7 @@ const DECK_STATUS_DEFINITIONS = [
 const DECK_DEPTH_INDENT_PX = 16;
 
 export interface DeckSummaryRowProps {
-  row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth">;
+  row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "sourcePath" | "depth">;
   learningStatus?: {
     summary: DeckLibraryRow["summary"];
     statusDistribution: DeckStatusDistribution;
@@ -88,7 +91,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, d
         className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${gridClass} ${className}`}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
-        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: Math.min(row.depth, 6) * DECK_DEPTH_INDENT_PX }}>
+        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS - 1) * DECK_DEPTH_INDENT_PX }}>
           {leadingControl}
           <DeckAppearanceIcon
             data-deck-icon="true"
@@ -96,8 +99,20 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, d
             className={`${compactAtBase ? "size-8" : "size-9"} ${responsive ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""} rounded-full bg-[var(--core-surface-muted)]`}
             iconSize={compact ? 15 : 18}
           />
-          <span className="min-w-0 flex-1">
-            <span className={`core-deck-summary-name block truncate whitespace-nowrap font-semibold text-[var(--core-text)] ${compactAtBase ? "core-body" : "core-body-large"}`}>{row.name}</span>
+          <span className="flex min-w-0 flex-1 items-center gap-1">
+            <span className={`core-deck-summary-name min-w-0 flex-1 font-semibold text-[var(--core-text)] ${compactAtBase ? "core-body" : "core-body-large"}`}>{row.name}</span>
+            {row.sourcePath ? (
+              <CoreTooltip label="Tiefere Anki-Unterteilung wurde abgeflacht">
+                <span
+                  tabIndex={0}
+                  className="pointer-events-auto grid size-5 shrink-0 place-items-center text-[var(--core-text-muted)]"
+                  aria-label="Tiefere Anki-Unterteilung wurde abgeflacht"
+                  data-testid={`deck-hierarchy-overflow-${row.deck.id}`}
+                >
+                  <GitBranch size={14} aria-hidden="true" />
+                </span>
+              </CoreTooltip>
+            ) : null}
           </span>
         </div>
 

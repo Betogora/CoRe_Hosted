@@ -90,6 +90,22 @@ test("DeckSelect renders the selected deck icon and complete hierarchy path", ()
   assert.match(markup, />Biologie \/ Zelle</);
 });
 
+test("DeckSelect distinguishes a flattened deck by its original Anki path", () => {
+  const deck = createCoreDeck({
+    id: "flattened",
+    name: "J",
+    source: "anki-apkg",
+    hierarchyPath: ["A", "B", "C", "D", "E", "F", "G", "J"],
+    importMeta: { sourceMetadata: { ankiDeckPath: "A::B::C::D::E::F::G::H::I::J" } },
+    cards: [],
+  });
+  const markup = renderToStaticMarkup(
+    <DeckSelect ariaLabel="Kartenstapel" value={deck.id} decks={[deck]} onValueChange={() => undefined} />,
+  );
+
+  assert.match(markup, />A \/ B \/ C \/ D \/ E \/ F \/ G \/ J · Anki: A \/ B \/ C \/ D \/ E \/ F \/ G \/ H \/ I \/ J</);
+});
+
 test("DeckSelect keeps an empty special value visible with its warning icon", () => {
   const deck = createCoreDeck({ id: "deck-parent", name: "Biologie", source: "manual", cards: [] });
   const markup = renderToStaticMarkup(

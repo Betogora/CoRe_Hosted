@@ -81,25 +81,23 @@ test("deck tree places optional panel content before rows and omits an empty row
   assert.doesNotMatch(empty, /core-deck-tree-rows|data-testid="deck-summary-header"/);
 });
 
-test("deck tree maps five visible levels to group depths and clamps deeper imports", () => {
-  const deepDecks = [
-    createCoreDeck({ id: "depth-root", name: "Ebene 1", hierarchyPath: ["Ebene 1"], source: "anki-apkg", cards: [] }),
-    createCoreDeck({ id: "depth-child", parentDeckId: "depth-root", name: "Ebene 2", hierarchyPath: ["Ebene 1", "Ebene 2"], source: "anki-apkg", cards: [] }),
-    createCoreDeck({ id: "depth-grandchild", parentDeckId: "depth-child", name: "Ebene 3", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3"], source: "anki-apkg", cards: [] }),
-    createCoreDeck({ id: "depth-great-grandchild", parentDeckId: "depth-grandchild", name: "Ebene 4", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4"], source: "anki-apkg", cards: [] }),
-    createCoreDeck({ id: "depth-import", parentDeckId: "depth-great-grandchild", name: "Importtiefe", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe"], source: "anki-apkg", cards: [] }),
-    createCoreDeck({ id: "depth-deeper-import", parentDeckId: "depth-import", name: "Tiefere Importebene", hierarchyPath: ["Ebene 1", "Ebene 2", "Ebene 3", "Ebene 4", "Importtiefe", "Tiefere Importebene"], source: "anki-apkg", cards: [] }),
-  ];
+test("deck tree maps eight visible levels to group depths and clamps anything deeper", () => {
+  const deepDecks = Array.from({ length: 9 }, (_, index) => createCoreDeck({
+    id: `depth-${index + 1}`,
+    parentDeckId: index === 0 ? null : `depth-${index}`,
+    name: `Ebene ${index + 1}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "anki-apkg",
+    cards: [],
+  }));
   const markup = renderToStaticMarkup(
     <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.match(markup, /data-testid="learn-deck-row-depth-root"[^>]*data-deck-depth="0"/);
-  assert.match(markup, /data-testid="learn-deck-row-depth-child"[^>]*data-deck-depth="1"/);
-  assert.match(markup, /data-testid="learn-deck-row-depth-grandchild"[^>]*data-deck-depth="2"/);
-  assert.match(markup, /data-testid="learn-deck-row-depth-great-grandchild"[^>]*data-deck-depth="3"/);
-  assert.match(markup, /data-testid="learn-deck-row-depth-import"[^>]*data-deck-depth="4"/);
-  assert.match(markup, /data-testid="learn-deck-row-depth-deeper-import"[^>]*data-deck-depth="4"/);
+  for (let depth = 0; depth <= 7; depth += 1) {
+    assert.match(markup, new RegExp(`data-testid="learn-deck-row-depth-${depth + 1}"[^>]*data-deck-depth="${depth}"`));
+  }
+  assert.match(markup, /data-testid="learn-deck-row-depth-9"[^>]*data-deck-depth="7"/);
 });
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {

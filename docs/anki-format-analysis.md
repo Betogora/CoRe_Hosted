@@ -65,6 +65,10 @@ optionalem Desired-Retention-Override.
 
 CoRe-Folgerung: Decks sind Studiencontainer. Intern bleiben echte
 Parent-/Child-IDs kanonisch; `::` ist nur eine importierte Hierarchiecodierung.
+CoRe projiziert davon höchstens acht sichtbare Ebenen. Quellstapel ab Ebene 9
+bleiben getrennte, stabil identifizierte Stapel auf sichtbarer Ebene 8; der
+vollständige Quellpfad, die Quelltiefe und der ursprüngliche Elternpfad bleiben
+als Importherkunft erhalten und werden nicht in Kartentags umgewandelt.
 
 ### Notes, Notetypes und Cards
 

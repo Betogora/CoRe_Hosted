@@ -7,6 +7,7 @@ import { finalizeImportReport, importNormalizedDeck } from "./importService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
 import { readZipArchive } from "./zipReader.ts";
 import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWorkerProtocol.ts";
+import { MAX_INTERACTIVE_DECK_LEVELS, projectImportedDeckHierarchy } from "./deckHierarchy.ts";
 import { decompress as decompressZstd } from "fzstd";
 import { scheduleWithFsrs } from "./scheduler.ts";
 
@@ -518,7 +519,8 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
   const nodes = [...nodeByPath.values()].sort((left: any, right: any) => Number(left.depth ?? 0) - Number(right.depth ?? 0) || String(left.path).localeCompare(String(right.path)));
   const normalizedDecks = nodes.map((node: any) => {
     const sourceExternalId = hierarchyExternalId(node);
-    const hierarchyPath = splitDeckPath(node.path);
+    const sourceHierarchyPath = splitDeckPath(node.path);
+    const hierarchyProjection = projectImportedDeckHierarchy(sourceHierarchyPath);
     const directItems = itemsByPath.get(node.path) ?? [];
     const isContainerDeck = directItems.length === 0;
 
@@ -528,8 +530,8 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
       title: node.name,
       sourceExternalId,
       originalDeckId: sourceExternalId,
-      parentDeckId: node.parentPath ? idByPath.get(node.parentPath) ?? null : null,
-      hierarchyPath,
+      parentDeckId: hierarchyProjection.visibleParentSourcePath ? idByPath.get(hierarchyProjection.visibleParentSourcePath) ?? null : null,
+      hierarchyPath: hierarchyProjection.visiblePath,
       items: directItems,
       tags: unique(directItems.flatMap((item: any) => item.tags ?? [])),
       metadataJson: {
@@ -537,7 +539,7 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
         importGroupId,
         hierarchyMode: "anki_subdecks",
         ankiDeckPath: node.path,
-        ankiDeckDepth: node.depth ?? Math.max(0, hierarchyPath.length - 1),
+        ankiDeckDepth: node.depth ?? Math.max(0, sourceHierarchyPath.length - 1),
         ankiParentPath: node.parentPath ?? null,
         isContainerDeck,
         detectedCards: directItems.reduce((sum: any, item: any) => sum + Math.max(1, item.cards?.length ?? 1), 0),
@@ -1136,6 +1138,17 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
     warnings.push(`${missingNoteIds.length} Anki-Cards referenzieren Notes, die nicht gelesen werden konnten.`);
   }
 
+  const deckHierarchy = buildDeckHierarchy(decks);
+  const flattenedDeckCount = deckHierarchy.reduce(
+    (count: number, node: any) => count + (Number(node.depth ?? 0) >= MAX_INTERACTIVE_DECK_LEVELS ? 1 : 0),
+    0,
+  );
+  if (flattenedDeckCount === 1) {
+    warnings.push("Ein Anki-Stapel wurde ab Ebene 9 auf Ebene 8 abgeflacht. Der ursprüngliche Pfad bleibt erhalten.");
+  } else if (flattenedDeckCount > 1) {
+    warnings.push(`${flattenedDeckCount} Anki-Stapel wurden ab Ebene 9 auf Ebene 8 abgeflacht. Die ursprünglichen Pfade bleiben erhalten.`);
+  }
+
   if (decks.length > 1) {
     warnings.push("Mehrere Anki-Decks wurden erkannt; CoRe legt daraus sichtbare Stapel und Unterstapel an.");
   }
@@ -1196,7 +1209,7 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
           assets: [],
           missingAssets: [],
         },
-        deckHierarchy: buildDeckHierarchy(decks),
+        deckHierarchy,
         unsupportedNoteTypes: unique(unsupportedNoteTypes),
       },
     },
