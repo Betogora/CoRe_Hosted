@@ -389,7 +389,12 @@
 
   @media (max-width: 30rem) {
     .core-page-header-with-action {
+      flex-wrap: wrap;
       gap: 0.25rem;
+    }
+
+    .core-page-header-action {
+      max-width: 100%;
     }
 
     .core-page-header-with-action h2 {
