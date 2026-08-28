@@ -27,6 +27,7 @@ test("SuccessToast renders a top-right success overlay with a dismiss action", (
   const markup = renderToStaticMarkup(<SuccessToast onDismiss={() => undefined}>Stapel erfolgreich angelegt.</SuccessToast>);
 
   assert.match(markup, /data-success-toast-region="true"/);
+  assert.match(markup, /data-appearance="success"/);
   assert.match(markup, /core-success-toast/);
   assert.match(markup, /fixed/);
   assert.match(markup, /right-4/);
@@ -42,8 +43,17 @@ test("SuccessToast renders a top-right success overlay with a dismiss action", (
   assert.match(markup, /Stapel erfolgreich angelegt\./);
 });
 
+test("SuccessToast can keep a completed settings save visually neutral", () => {
+  const markup = renderToStaticMarkup(<SuccessToast appearance="neutral" onDismiss={() => undefined}>Einstellungen wurden gespeichert.</SuccessToast>);
+
+  assert.match(markup, /data-appearance="neutral"/);
+  assert.match(markup, /core-status-success/);
+  assert.match(markup, /role="status"/);
+});
+
 test("SuccessToast fades away after ten seconds with compositor-friendly properties", () => {
   const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(styles, /\.core-success-toast\[data-appearance="neutral"\][\s\S]*?background: var\(--core-surface-raised\)/);
 
   assert.match(styles, /@keyframes core-success-toast-dismiss\s*{[\s\S]*?opacity: 0;[\s\S]*?transform: translateY\(-0\.375rem\);[\s\S]*?}/);
   assert.match(styles, /\.core-success-toast\s*{\s*animation: core-success-toast-dismiss 200ms ease-out 10s forwards;\s*}/);

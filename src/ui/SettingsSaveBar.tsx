@@ -15,11 +15,11 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
   if (!open) return null;
 
   const saving = savingScope !== null;
-  const status = navigationBlocked ? "Zum Verlassen zuerst speichern." : "Ungespeicherte Änderungen";
+  const status = navigationBlocked ? "Zum Verlassen zuerst speichern." : "Änderungen speichern?";
 
   return (
     <aside
-      aria-label="Ungespeicherte Änderungen"
+      aria-label="Änderungen speichern?"
       data-testid="settings-save-bar"
       className={`core-settings-save-bar core-overlay fixed left-[50dvw] z-50 grid w-[min(48rem,calc(100dvw-2rem))] -translate-x-1/2 gap-4 rounded-[20px] p-4 ${mode === "deck-tree" ? "" : "sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"}`}
       style={{ bottom: "max(14dvh, calc(env(safe-area-inset-bottom) + 5rem))" }}

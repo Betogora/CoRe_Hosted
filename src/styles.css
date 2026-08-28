@@ -965,6 +965,12 @@ summary {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
+.core-success-toast[data-appearance="neutral"] {
+  border-color: var(--core-border);
+  background: var(--core-surface-raised);
+  color: var(--core-text);
+}
+
 .core-status-warning {
   border-color: var(--core-status-warning-border);
   background: var(--core-status-warning-bg);

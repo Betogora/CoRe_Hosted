@@ -42,11 +42,13 @@ export function StatusMessage({
 export interface SuccessToastProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
   onDismiss: () => void;
   dismissLabel?: string;
+  appearance?: "success" | "neutral";
 }
 
 export function SuccessToast({
   onDismiss,
   dismissLabel = "Erfolgsmeldung schließen",
+  appearance = "success",
   onAnimationEnd,
   className = "",
   children,
@@ -63,6 +65,7 @@ export function SuccessToast({
       tone="success"
       announce="polite"
       data-success-toast-region="true"
+      data-appearance={appearance}
       onAnimationEnd={handleAnimationEnd}
       className={`core-success-toast pointer-events-auto fixed right-4 top-4 z-[75] !w-fit max-w-[calc(100vw-2rem)] !items-center rounded-2xl py-4 pl-5 pr-2 shadow-[var(--core-shadow-raised)] [&>svg]:!mt-0 sm:right-8 sm:top-8 sm:max-w-[calc(100vw-4rem)] ${className}`}
     >
@@ -76,15 +79,23 @@ export function SuccessToast({
   return typeof document === "undefined" ? toast : createPortal(toast, document.body);
 }
 
-type SuccessToastSetter = (message: string) => void;
+interface SuccessToastOptions {
+  appearance?: SuccessToastProps["appearance"];
+}
+
+type SuccessToastSetter = (message: string, options?: SuccessToastOptions) => void;
 const SuccessToastContext = createContext<SuccessToastSetter>(() => {
   throw new Error("SuccessToastProvider fehlt.");
 });
 
 export function SuccessToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ id: number; message: string } | null>(null);
-  const setMessage = useCallback((message: string) => {
-    setToast((current) => message ? { id: (current?.id ?? 0) + 1, message } : null);
+  const [toast, setToast] = useState<{ id: number; message: string; appearance: NonNullable<SuccessToastProps["appearance"]> } | null>(null);
+  const setMessage = useCallback((message: string, options?: SuccessToastOptions) => {
+    setToast((current) => message ? {
+      id: (current?.id ?? 0) + 1,
+      message,
+      appearance: options?.appearance ?? "success",
+    } : null);
   }, []);
 
   return (
@@ -93,6 +104,7 @@ export function SuccessToastProvider({ children }: { children: ReactNode }) {
       {toast ? (
         <SuccessToast
           key={toast.id}
+          appearance={toast.appearance}
           onDismiss={() => setToast((current) => current?.id === toast.id ? null : current)}
         >
           {toast.message}

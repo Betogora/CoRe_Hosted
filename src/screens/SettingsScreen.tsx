@@ -90,7 +90,7 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, glob
       setBaseline(savedDraft);
       setDraft(savedDraft);
       setAccountMessage("");
-      setSuccessToast("Globale Einstellungen wurden gespeichert.");
+      setSuccessToast("Globale Einstellungen wurden gespeichert.", { appearance: "neutral" });
       return true;
     } catch (error) {
       setAccountMessage(error instanceof Error ? error.message : "Globale Einstellungen konnten nicht gespeichert werden.");

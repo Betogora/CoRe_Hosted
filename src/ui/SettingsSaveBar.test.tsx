@@ -13,7 +13,8 @@ function renderBar({ savingScope = null, navigationBlocked = false, mode = "glob
 test("settings save bar is a responsive save-only nonmodal CoRe region", () => {
   const html = renderBar();
   assert.match(html, /data-testid="settings-save-bar"/);
-  assert.match(html, /aria-label="Ungespeicherte Änderungen"/);
+  assert.match(html, /aria-label="Änderungen speichern\?"/);
+  assert.match(html, /Änderungen speichern\?/);
   assert.match(html, /core-overlay/);
   assert.match(html, /core-settings-save-bar/);
   assert.match(html, /core-settings-save-badge/);

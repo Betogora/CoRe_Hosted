@@ -111,7 +111,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     setFeedback("");
     setSuccessToast(scope === "deck-tree"
       ? "Stapeleinstellungen wurden für den Stapel und alle Unterstapel gespeichert."
-      : "Stapeleinstellungen wurden für den Stapel gespeichert.");
+      : "Stapeleinstellungen wurden für den Stapel gespeichert.", { appearance: "neutral" });
     return true;
   }, [activeDraft, baseline, deck, onSaveSettings, setSuccessToast]);
 

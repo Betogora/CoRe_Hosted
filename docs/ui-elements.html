@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: 7e2cda08210cadae */
+/* Quellenstand: 051d0d9ddf6d6297 */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -2216,6 +2216,12 @@ summary {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
+.core-success-toast[data-appearance="neutral"] {
+  border-color: var(--core-border);
+  background: var(--core-surface-raised);
+  color: var(--core-text);
+}
+
 .core-status-warning {
   border-color: var(--core-status-warning-border);
   background: var(--core-status-warning-bg);
@@ -3936,8 +3942,8 @@ summary {
               </div>
               <div class="catalog-demo catalog-stack">
                 <span class="catalog-demo-label">Nichtmodale Einstellungs-Save-Bar · App-weite Einzelinstanz</span>
-                <aside aria-label="Ungespeicherte Änderungen" class="core-settings-save-bar core-overlay grid w-full max-w-[32rem] gap-4 rounded-[20px] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-                  <div class="flex min-w-0 items-center gap-3"><span class="core-settings-save-badge grid size-10 shrink-0 place-items-center rounded-full" aria-hidden="true"><svg class="catalog-icon"><use href="#icon-save"></use></svg></span><p class="core-body-large font-semibold text-core-text" role="status" aria-live="polite">Ungespeicherte Änderungen</p></div>
+                <aside aria-label="Änderungen speichern?" class="core-settings-save-bar core-overlay grid w-full max-w-[32rem] gap-4 rounded-[20px] p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div class="flex min-w-0 items-center gap-3"><span class="core-settings-save-badge grid size-10 shrink-0 place-items-center rounded-full" aria-hidden="true"><svg class="catalog-icon"><use href="#icon-save"></use></svg></span><p class="core-body-large font-semibold text-core-text" role="status" aria-live="polite">Änderungen speichern?</p></div>
                   <button type="button" class="core-action-primary min-h-11 w-full justify-center sm:w-auto sm:min-w-36"><svg class="catalog-icon"><use href="#icon-save"></use></svg><span>Speichern</span></button>
                 </aside>
                 <p class="catalog-note">Produktiv seitenweit im unteren Viewportbereich, ohne Backdrop, Fokusfalle, Dialogsemantik oder Verwerfen-Aktion. Blockierte Navigation wechselt den höflich angekündigten Status zu „Zum Verlassen zuerst speichern.“ und wird nicht nachgeholt.</p>
