@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -18,7 +19,8 @@ test("settings save bar is a responsive save-only nonmodal CoRe region", () => {
   assert.match(html, /core-overlay/);
   assert.match(html, /core-settings-save-bar/);
   assert.match(html, /core-settings-save-badge/);
-  assert.match(html, /rounded-\[20px\]/);
+  assert.match(html, /rounded-2xl/);
+  assert.match(html, /w-\[min\(42rem,calc\(100dvw-2rem\)\)\]/);
   assert.match(html, /sm:grid-cols-\[minmax\(0,1fr\)_auto\]/);
   assert.match(html, /z-50/);
   assert.match(html, /left-\[50dvw\]/);
@@ -32,8 +34,8 @@ test("settings save bar is a responsive save-only nonmodal CoRe region", () => {
 test("deck-tree save bar offers separate actions for the stack and all descendants", () => {
   const html = renderBar({ mode: "deck-tree" });
 
-  assert.match(html, />Einstellungen für Stapel speichern</);
-  assert.match(html, />Einstellungen für Stapel und alle Unterstapel speichern</);
+  assert.match(html, />Nur diesen Stapel speichern</);
+  assert.match(html, />Stapel und Unterstapel speichern</);
   assert.equal((html.match(/min-h-11/g) ?? []).length, 2);
   assert.doesNotMatch(html, /role="dialog"|aria-modal/);
 });
@@ -54,4 +56,13 @@ test("settings save bar politely announces a blocked navigation", () => {
   const html = renderBar({ navigationBlocked: true });
   assert.match(html, /role="status" aria-live="polite"/);
   assert.match(html, /Zum Verlassen zuerst speichern\./);
+});
+
+test("settings save bar uses a subtle accent without a colored glow", () => {
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  const saveBarRule = styles.match(/\.core-settings-save-bar\s*\{([\s\S]*?)\n\s*}/)?.[1] ?? "";
+
+  assert.match(saveBarRule, /border: 1px solid var\(--core-settings-save-border\)/);
+  assert.match(saveBarRule, /background: var\(--core-settings-save-surface\)/);
+  assert.doesNotMatch(saveBarRule, /box-shadow|linear-gradient/);
 });
