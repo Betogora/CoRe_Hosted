@@ -13,6 +13,7 @@ export interface GlobalCardSettingsDraft {
   dayStartHour: number;
   learnAheadMinutes: number;
   easyDays: EasyDays;
+  learning: DeckLearningSettingsDraft;
 }
 
 export type DeckLearningSettingsDraft = ReturnType<typeof normalizeLearningSettings> & {
@@ -36,12 +37,16 @@ export function createGeneralSettingsDraft(profile: Profile): GeneralSettingsDra
 }
 
 export function createGlobalCardSettingsDraft(
-  preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">,
+  preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays" | "defaultLearningSettings">,
 ): GlobalCardSettingsDraft {
   return {
     dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
     learnAheadMinutes: normalizeLearnAheadMinutes(preferences.learnAheadMinutes),
     easyDays: normalizeEasyDays(preferences.easyDays),
+    learning: createDeckLearningSettingsDraft({
+      ...preferences.defaultLearningSettings,
+      coreMode: "auto",
+    }),
   };
 }
 

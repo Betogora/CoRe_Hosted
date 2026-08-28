@@ -355,6 +355,7 @@ export interface CoreSegmentedControlProps<T extends string> {
   size?: "regular" | "compact";
   disabled?: boolean;
   className?: string;
+  typography?: "status" | "control";
 }
 
 const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
@@ -371,13 +372,14 @@ export function CoreSegmentedControl<T extends string>({
   size = "regular",
   disabled = false,
   className = "",
+  typography = "status",
 }: CoreSegmentedControlProps<T>) {
   return (
     <div
       role="group"
       aria-label={ariaLabel}
       data-size={size}
-      className={`core-segmented-control core-status-label ${className}`}
+      className={`core-segmented-control ${typography === "control" ? "core-control-label" : "core-status-label"} ${className}`}
     >
       {options.map((option) => (
         <button

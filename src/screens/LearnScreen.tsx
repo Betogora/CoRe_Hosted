@@ -136,13 +136,14 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
               ariaLabel="Bereich in Lernen"
               options={learnAreaOptions}
               value="overview"
+              typography="control"
               onValueChange={(area) => {
                 if (area === "cards") onOpenDecks(focusedDeckId);
               }}
               className="core-learning-area-control"
             />
             <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
-              Karteneinstellungen
+              Lerneinstellungen
             </ActionButton>
           </div>
         }

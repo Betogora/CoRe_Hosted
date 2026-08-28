@@ -18,6 +18,7 @@ export {
   normalizeLearningProfileTemplates,
   normalizeLearningSettings,
   renameLearningProfileTemplate,
+  resolveGlobalLearningDefaults,
   updateLearningProfileTemplate,
   withGlobalSchedulerPreferences,
 } from "./learningProfiles.ts";

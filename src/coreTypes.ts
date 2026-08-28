@@ -151,12 +151,19 @@ export interface LearningProfileSource {
   contentVersion: number;
 }
 
+export interface GlobalLearningDefaults extends LearningSettings {
+  learningProfileSource: LearningProfileSource | null;
+  variantThresholdXp: number;
+  maxActiveVariantsPerCard: number;
+}
+
 export interface GlobalSchedulerPreferences {
-  settingsVersion: 2;
+  settingsVersion: 3;
   dayStartHour: number;
   learnAheadMinutes: number;
   easyDays: EasyDays;
   learningProfiles: LearningProfileTemplate[];
+  defaultLearningSettings: GlobalLearningDefaults;
 }
 
 export interface VariantBlacklist {

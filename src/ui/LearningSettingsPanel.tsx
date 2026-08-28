@@ -47,6 +47,7 @@ interface LearningSettingsPanelProps {
   draft: DeckLearningSettingsDraft;
   profiles: LearningProfileTemplate[];
   defaultProfileName: string;
+  context?: "deck" | "global";
   onProfilesChange: (profiles: LearningProfileTemplate[]) => unknown;
   onDraftChange: (draft: DeckLearningSettingsDraft) => void;
   onApplyProfile: (settings: DeckLearningSettingsDraft) => boolean;
@@ -108,7 +109,7 @@ function SelectField({ label, value, options, testId, onChange }: { label: strin
   );
 }
 
-export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onProfilesChange, onDraftChange, onApplyProfile }: LearningSettingsPanelProps) {
+export function LearningSettingsPanel({ draft, profiles, defaultProfileName, context = "deck", onProfilesChange, onDraftChange, onApplyProfile }: LearningSettingsPanelProps) {
   const [selectedProfileId, setSelectedProfileId] = React.useState(draft.learningProfileSource?.id ?? "custom");
   const [profileName, setProfileName] = React.useState(defaultProfileName);
   const [deleteProfileId, setDeleteProfileId] = React.useState<string | null>(null);
@@ -128,6 +129,11 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
     ...allProfiles.map((profile) => ({ value: profile.id, label: profile.name, icon: profile.id === "builtin:standard" ? Scale : profile.id === "builtin:intensive" ? Flame : profile.id === "builtin:relaxed" ? Leaf : Pencil })),
     { value: "custom", label: "Eigene Einstellungen", icon: SlidersHorizontal },
   ];
+  const sectionPrefix = context === "global" ? "learning-settings" : "deck";
+  const dailySectionId = `${sectionPrefix}-daily-profiles`;
+  const schedulerSectionId = `${sectionPrefix}-scheduler-core`;
+  const dailyHeadingId = `${sectionPrefix}-daily-heading`;
+  const schedulerHeadingId = `${sectionPrefix}-scheduler-heading`;
 
   function editLearning(patch: LearningSettingsInput) {
     onDraftChange({
@@ -152,7 +158,9 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
     const nextDraft = createDeckLearningSettingsDraft(next);
     if (!onApplyProfile(nextDraft)) return;
     setSelectedProfileId(selectedProfile.id);
-    setSuccessToast(`Lernprofil „${selectedProfile.name}“ wurde auf diesen Stapel angewandt.`);
+    setSuccessToast(context === "global"
+      ? `Lernprofil „${selectedProfile.name}“ ist als globaler Standard ausgewählt.`
+      : `Lernprofil „${selectedProfile.name}“ wurde auf diesen Stapel angewandt.`);
   }
 
   function createProfile() {
@@ -174,7 +182,9 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
   function updateProfile() {
     if (!selectedCustomProfile) return;
     onProfilesChange(updateLearningProfileTemplate(profiles, selectedCustomProfile.id, draft));
-    setSuccessToast("Lernprofil wurde mit den aktuellen Stapelwerten aktualisiert. Andere Stapel bleiben unverändert.");
+    setSuccessToast(context === "global"
+      ? "Lernprofil wurde mit den aktuellen globalen Werten aktualisiert. Vorhandene Stapel bleiben unverändert."
+      : "Lernprofil wurde mit den aktuellen Stapelwerten aktualisiert. Andere Stapel bleiben unverändert.");
   }
 
   function confirmDeleteProfile() {
@@ -187,15 +197,17 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
 
   return (
     <>
-      <section id="deck-daily-profiles" className="grid gap-4" aria-labelledby="deck-daily-heading">
-        <h2 id="deck-daily-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Tagesrunde & Lernprofile</h2>
+      <section id={dailySectionId} className="grid gap-4" aria-labelledby={dailyHeadingId}>
+        <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Tagesrunde & Lernprofile</h2>
         <SoftPanel className="p-5 sm:p-6">
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <SelectField label="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" onChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
-            <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>Auf diesen Stapel anwenden</ActionButton>
+            <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>{context === "global" ? "Als Standardprofil verwenden" : "Auf diesen Stapel anwenden"}</ActionButton>
           </div>
           <p className="mt-3 core-caption leading-5 text-core-muted">
-            Das Anwenden kopiert die Werte nur in diesen Stapel. Spätere Änderungen an der Vorlage wirken nicht automatisch weiter.
+            {context === "global"
+              ? "Das Standardprofil gilt für neue Stapel. Vorhandene Stapel ändern sich erst über die globale Speicheraktion."
+              : "Das Anwenden kopiert die Werte nur in diesen Stapel. Spätere Änderungen an der Vorlage wirken nicht automatisch weiter."}
           </p>
           {draft.learningProfileSource ? (
             <p className={`mt-3 rounded-xl border px-4 py-3 core-body ${appliedProfileIsStale ? "border-core-warning bg-core-warning-soft" : "border-core-info bg-core-info-soft"}`} role={appliedProfileIsStale ? "status" : undefined}>
@@ -228,8 +240,8 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
         </SoftPanel>
       </section>
 
-      <section id="deck-scheduler-core" className="grid gap-4" aria-labelledby="deck-scheduler-heading">
-        <h2 id="deck-scheduler-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Scheduler & CoRe</h2>
+      <section id={schedulerSectionId} className="grid gap-4" aria-labelledby={schedulerHeadingId}>
+        <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Scheduler & CoRe</h2>
         <SoftPanel className="p-5 sm:p-6">
           <fieldset className="grid gap-4">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Brain size={19} aria-hidden="true" />Lernablauf</legend>
@@ -250,7 +262,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, onP
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
-            <p className="core-caption leading-5 text-core-muted">Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert.</p>
+            <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."}</p>
             <div className="grid gap-4 md:grid-cols-2">
               <SelectField label="Varianten einsetzen ab Lernstufe" value={draft.variantThresholdXp} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdXp: Number(value) })} />
               <SelectField label="Aktive Varianten pro Karte" value={draft.maxActiveVariantsPerCard} options={activeVariantOptions} testId="learning-settings-active-variants" onChange={(value) => editCore({ maxActiveVariantsPerCard: Number(value) })} />

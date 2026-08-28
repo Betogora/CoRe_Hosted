@@ -8,6 +8,7 @@ import {
   markLearningSettingsCustom,
   normalizeLearnAheadMinutes,
   normalizeLearningSettings,
+  resolveGlobalLearningDefaults,
   withGlobalSchedulerPreferences,
 } from "./deckSettings.ts";
 
@@ -67,7 +68,7 @@ test("visible learning values clamp at their canonical domain limits", () => {
   assert.equal(settings.schedulerProfile.maximumIntervalDays, 30);
 });
 
-test("global scheduler preferences own day start, learn-ahead and custom templates", () => {
+test("version-two scheduler preferences normalize to version three with a standard deck default", () => {
   const defaults = getGlobalSchedulerPreferences({});
   const saved = withGlobalSchedulerPreferences({}, {
     dayStartHour: 29,
@@ -80,18 +81,47 @@ test("global scheduler preferences own day start, learn-ahead and custom templat
     }],
   });
 
-  assert.deepEqual(defaults, {
-    settingsVersion: 2,
-    dayStartHour: 0,
-    learnAheadMinutes: 20,
-    easyDays: DEFAULT_EASY_DAYS,
-    learningProfiles: [],
-  });
+  assert.equal(defaults.settingsVersion, 3);
+  assert.equal(defaults.dayStartHour, 0);
+  assert.equal(defaults.learnAheadMinutes, 20);
+  assert.deepEqual(defaults.easyDays, DEFAULT_EASY_DAYS);
+  assert.deepEqual(defaults.learningProfiles, []);
+  assert.equal(defaults.defaultLearningSettings.newCardsPerDay, 20);
+  assert.deepEqual(defaults.defaultLearningSettings.learningProfileSource, { id: "builtin:standard", contentVersion: 1 });
   assert.equal(saved.schedulerPreferences.dayStartHour, 23);
   assert.equal(saved.schedulerPreferences.learnAheadMinutes, 720);
   assert.equal(saved.schedulerPreferences.learningProfiles[0].name, "Prüfung");
   assert.equal(normalizeLearnAheadMinutes(-1), 0);
   assert.equal(normalizeLearnAheadMinutes("invalid"), 20);
+});
+
+test("global defaults follow the selected template while deletion keeps the resolved snapshot", () => {
+  const profile = {
+    id: "profile-1",
+    name: "Prüfung",
+    contentVersion: 2,
+    settings: markLearningSettingsCustom({ newCardsPerDay: 40 }),
+  };
+  const saved = withGlobalSchedulerPreferences({}, {
+    learningProfiles: [profile],
+    defaultLearningSettings: {
+      ...profile.settings,
+      learningProfileSource: { id: profile.id, contentVersion: profile.contentVersion },
+      variantThresholdXp: 181,
+      maxActiveVariantsPerCard: 3,
+    },
+  });
+  const updated = withGlobalSchedulerPreferences(saved, {
+    learningProfiles: [{ ...profile, contentVersion: 3, settings: markLearningSettingsCustom({ newCardsPerDay: 55 }) }],
+  });
+  const deleted = withGlobalSchedulerPreferences(updated, { learningProfiles: [] });
+
+  assert.equal(resolveGlobalLearningDefaults(saved.schedulerPreferences).newCardsPerDay, 40);
+  assert.equal(resolveGlobalLearningDefaults(updated.schedulerPreferences).newCardsPerDay, 55);
+  assert.deepEqual(updated.schedulerPreferences.defaultLearningSettings.learningProfileSource, { id: profile.id, contentVersion: 3 });
+  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.newCardsPerDay, 55);
+  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.learningProfileSource, null);
+  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.variantThresholdXp, 181);
 });
 
 test("direct deck edits clear copied-profile provenance and preserve deck-only fields", () => {

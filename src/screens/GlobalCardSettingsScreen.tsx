@@ -1,26 +1,31 @@
 import React from "react";
-import { CalendarClock, Timer } from "lucide-react";
-import type { GlobalCardSettingsScreenProps } from "../appScreenProps.ts";
+import { CalendarClock, CalendarRange, Sparkles, Timer } from "lucide-react";
+import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
 import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
 import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
-import { createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
+import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
 import { CrossLinkButton } from "../ui/actionUi.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
+import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
 import { PomodoroTimerControl } from "../ui/pomodoroTimerUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 
 const sectionIds = {
   planning: "card-settings-planning",
+  dailyProfiles: "learning-settings-daily-profiles",
+  schedulerCore: "learning-settings-scheduler-core",
   focus: "card-settings-focus",
 } as const;
 
 const settingsSections = [
   { id: sectionIds.planning, label: "Lerntag & Planung", icon: CalendarClock },
+  { id: sectionIds.dailyProfiles, label: "Tagesrunde & Lernprofile", icon: CalendarRange },
+  { id: sectionIds.schedulerCore, label: "Scheduler & CoRe", icon: Sparkles },
   { id: sectionIds.focus, label: "Fokuswerkzeuge", icon: Timer },
 ] as const;
 
@@ -46,7 +51,7 @@ const easyDayToneClasses: Record<EasyDayLevel, string> = {
   minimum: "border-core-info bg-core-info-soft",
 };
 
-export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
+export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
   const persistedDraft = createGlobalCardSettingsDraft(globalSchedulerPreferences);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GlobalCardSettingsDraft>(persistedDraft);
@@ -60,22 +65,25 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
   }, [persistedDraftKey]);
 
   const dirty = !settingsDraftsEqual(draft, baseline);
-  const saveDraft = React.useCallback(async () => {
+  const saveDraft = React.useCallback(async (scope: GlobalLearningSettingsSaveScope = "new-decks") => {
     const normalized: GlobalCardSettingsDraft = {
       dayStartHour: normalizeDayStartHour(draft.dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(draft.learnAheadMinutes),
       easyDays: normalizeEasyDays(draft.easyDays),
+      learning: createDeckLearningSettingsDraft(draft.learning),
     };
     try {
-      const saved = await onSaveSettings(normalized);
-      if (!saved) throw new Error("Karteneinstellungen konnten nicht gespeichert werden.");
+      const saved = await onSaveSettings(normalized, scope);
+      if (!saved) throw new Error("Lerneinstellungen konnten nicht gespeichert werden.");
       setBaseline(normalized);
       setDraft(normalized);
       setErrorMessage("");
-      setSuccessToast("Karteneinstellungen wurden gespeichert.", { appearance: "neutral" });
+      setSuccessToast(scope === "all-decks"
+        ? "Lerneinstellungen wurden auf alle Stapel angewandt und als Standard gespeichert."
+        : "Lerneinstellungen wurden als Standard für neue Stapel gespeichert.", { appearance: "neutral" });
       return true;
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "Karteneinstellungen konnten nicht gespeichert werden.");
+      setErrorMessage(error instanceof Error ? error.message : "Lerneinstellungen konnten nicht gespeichert werden.");
       return false;
     }
   }, [draft, onSaveSettings, setSuccessToast]);
@@ -89,7 +97,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
   const discardDraftRef = React.useRef(discardDraft);
   discardDraftRef.current = discardDraft;
   const draftGuard = React.useMemo(() => ({
-    save: () => saveDraftRef.current(),
+    save: (scope = "new-decks") => saveDraftRef.current(scope === "all-decks" ? "all-decks" : "new-decks"),
     discard: () => discardDraftRef.current(),
   }), []);
 
@@ -101,13 +109,13 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
   return (
     <div className="grid min-w-0 gap-7">
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Lernen" title="Karteneinstellungen" />
+        <PageHeader eyebrow="Lernen" title="Lerneinstellungen" />
         <CrossLinkButton onSelect={() => onNavigate("stapel-einstellungen", { focusedDeckId: null })}>
           Stapeleinstellungen
         </CrossLinkButton>
       </div>
 
-      <InPageNavigation ariaLabel="Bereiche der Karteneinstellungen" items={settingsSections}>
+      <InPageNavigation ariaLabel="Bereiche der Lerneinstellungen" items={settingsSections}>
         <section id={sectionIds.planning} className="grid gap-4" aria-labelledby="card-settings-planning-heading">
           <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Lerntag & Planung</h2>
           <SoftPanel className="p-5 sm:p-6">
@@ -131,7 +139,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
                 <span className="flex min-h-11 items-center rounded-xl border border-core-border bg-core-subtle px-3 font-normal text-core-text">{timeZone || "Nicht festgelegt"}</span>
               </div>
             </div>
-            <p className="mt-3 core-caption leading-5 text-core-muted">Diese Einstellungen gelten global für alle Karten und Stapel. Lernprofile und CoRe-Parameter bleiben stapelspezifisch.</p>
+            <p className="mt-3 core-caption leading-5 text-core-muted">Diese Einstellungen gelten global für den Lerntag. Tagesrunde, Scheduler und CoRe kannst du weiter unten als Stapelstandard festlegen.</p>
             <fieldset className="mt-6 border-t border-core-border pt-5">
               <legend className="core-body-large font-semibold text-core-text">Wochenrhythmus</legend>
               <p className="mt-2 core-caption leading-5 text-core-muted">CoRe verteilt neu berechnete Wiederholungen möglichst auf passendere Tage. Sind alle Tage gleich, bleibt die Planung unverändert.</p>
@@ -152,6 +160,19 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
             </fieldset>
           </SoftPanel>
         </section>
+
+        <LearningSettingsPanel
+          context="global"
+          draft={draft.learning}
+          profiles={learningProfiles}
+          defaultProfileName="Eigenes globales Lernprofil"
+          onProfilesChange={onSaveLearningProfiles}
+          onDraftChange={(learning) => setDraft((current) => ({ ...current, learning }))}
+          onApplyProfile={(learning) => {
+            setDraft((current) => ({ ...current, learning }));
+            return true;
+          }}
+        />
 
         <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="card-settings-focus-heading">
           <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Fokuswerkzeuge</h2>

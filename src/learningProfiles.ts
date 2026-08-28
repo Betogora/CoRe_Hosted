@@ -1,4 +1,5 @@
 import type {
+  GlobalLearningDefaults,
   GlobalSchedulerPreferences,
   LearningProfileSource,
   LearningProfileTemplate,
@@ -37,6 +38,7 @@ export interface GlobalSchedulerPreferencesInput {
   learnAheadMinutes?: unknown;
   easyDays?: unknown;
   learningProfiles?: unknown;
+  defaultLearningSettings?: unknown;
 }
 
 interface ProfileWithSchedulerPreferences {
@@ -343,14 +345,42 @@ export function applyLearningProfileTemplateToDeckSettings<T extends Record<stri
   };
 }
 
+function normalizeGlobalLearningDefaults(value: unknown, profiles: LearningProfileTemplate[]): GlobalLearningDefaults {
+  const input = objectRecord(value);
+  const hasStoredDefaults = value !== null && typeof value === "object" && !Array.isArray(value);
+  const source = normalizeLearningProfileSource(input.learningProfileSource)
+    ?? (hasStoredDefaults ? null : { id: "builtin:standard", contentVersion: 1 });
+  const selectedProfile = source ? getLearningProfileTemplate(profiles, source.id) : null;
+  const settings = selectedProfile
+    ? (selectedProfile.id.startsWith("builtin:")
+      ? normalizeLearningSettings(selectedProfile.settings)
+      : markLearningSettingsCustom(selectedProfile.settings))
+    : normalizeLearningSettings(input as LearningSettingsInput);
+
+  return {
+    ...settings,
+    learningProfileSource: selectedProfile
+      ? { id: selectedProfile.id, contentVersion: selectedProfile.contentVersion }
+      : null,
+    variantThresholdXp: wholeNumber(input.variantThresholdXp, 121, 1, 10000),
+    maxActiveVariantsPerCard: wholeNumber(input.maxActiveVariantsPerCard, 2, 1, 10),
+  };
+}
+
+export function resolveGlobalLearningDefaults(preferences: GlobalSchedulerPreferences): GlobalLearningDefaults {
+  return normalizeGlobalLearningDefaults(preferences.defaultLearningSettings, preferences.learningProfiles);
+}
+
 export function getGlobalSchedulerPreferences(profile: ProfileWithSchedulerPreferences = {}): GlobalSchedulerPreferences {
   const preferences = objectRecord(profile.schedulerPreferences);
+  const learningProfiles = normalizeLearningProfileTemplates(preferences.learningProfiles);
   return {
-    settingsVersion: 2,
+    settingsVersion: 3,
     dayStartHour: normalizeDayStartHour(preferences.dayStartHour),
     learnAheadMinutes: normalizeLearnAheadMinutes(preferences.learnAheadMinutes),
     easyDays: normalizeEasyDays(preferences.easyDays),
-    learningProfiles: normalizeLearningProfileTemplates(preferences.learningProfiles),
+    learningProfiles,
+    defaultLearningSettings: normalizeGlobalLearningDefaults(preferences.defaultLearningSettings, learningProfiles),
   };
 }
 
@@ -359,16 +389,21 @@ export function withGlobalSchedulerPreferences<T extends ProfileWithSchedulerPre
   patch: GlobalSchedulerPreferencesInput = {},
 ): T & { schedulerPreferences: GlobalSchedulerPreferences } {
   const current = getGlobalSchedulerPreferences(profile);
+  const learningProfiles = Object.hasOwn(patch, "learningProfiles")
+    ? normalizeLearningProfileTemplates(patch.learningProfiles)
+    : current.learningProfiles;
   return {
     ...profile,
     schedulerPreferences: {
-      settingsVersion: 2,
+      settingsVersion: 3,
       dayStartHour: normalizeDayStartHour(Object.hasOwn(patch, "dayStartHour") ? patch.dayStartHour : current.dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(Object.hasOwn(patch, "learnAheadMinutes") ? patch.learnAheadMinutes : current.learnAheadMinutes),
       easyDays: normalizeEasyDays(Object.hasOwn(patch, "easyDays") ? patch.easyDays : current.easyDays),
-      learningProfiles: Object.hasOwn(patch, "learningProfiles")
-        ? normalizeLearningProfileTemplates(patch.learningProfiles)
-        : current.learningProfiles,
+      learningProfiles,
+      defaultLearningSettings: normalizeGlobalLearningDefaults(
+        Object.hasOwn(patch, "defaultLearningSettings") ? patch.defaultLearningSettings : current.defaultLearningSettings,
+        learningProfiles,
+      ),
     },
   };
 }

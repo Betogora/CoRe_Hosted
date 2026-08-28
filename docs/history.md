@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-08-28 — Globale Lerneinstellungen und Stapelstandards
+
+- Die sichtbaren `Karteneinstellungen` heißen jetzt durchgehend `Lerneinstellungen`, bleiben unter dem kompatiblen Pfad `/karten-einstellungen` erreichbar und stehen als separater, typografisch vereinheitlichter Button neben der Bereichsauswahl. Allgemeine Einstellungen bleiben auf Konto, Daten/Sync und `Über uns` begrenzt.
+- Die globale Seite besitzt nun `Lerntag & Planung`, `Tagesrunde & Lernprofile`, `Scheduler & CoRe` und `Fokuswerkzeuge`. Lernprofile lassen sich dort als Standard wählen; die Speicherleiste unterscheidet den Standard nur für neue Stapel von der ausdrücklichen Übernahme auf alle vorhandenen und neuen Stapel. Name, Hierarchie, Darstellung, CoRe-Modus, Karten und Reviewhistorie bleiben dabei erhalten.
+- `Profile.schedulerPreferences` normalisiert Version 2 ohne Datenbankmigration auf Version 3 mit einem vollständigen globalen Stapelstandard. Manuelle, importierte und Demo-Stapel erhalten ihn bei der Neuerstellung; Reimporte behalten lokale Einstellungen. Das Copy-on-Apply-Prinzip vorhandener Stapel bleibt bestehen.
+- Abgenommen wurden 51 fokussierte Einstellungs-/UI-Tests, die vollständige Suite mit 500 Tests, `npm run gate:push` einschließlich Unit-/Contract-Gate, Typecheck, UI-Katalog, Production-Build und Chunk-Budget. Der lokale Browser-Smoke bestand bei 1.352 × 900 und 390 × 844 px ohne Fehleroverlay, Konsolenwarnung oder horizontalen Überlauf; ohne lokale Testsitzung blieb die Live-Prüfung erwartungsgemäß am Auth-Gate, während die geschützte Einstellungsansicht über Renderingtests verifiziert wurde.
+
 ## 2026-08-28 — Stapeleinstellungen auf Unterstapel übertragbar
 
 - Die Speicherleiste der Stapeleinstellungen unterscheidet das Speichern des gewählten Stapels vom rekursiven Speichern für den Stapel und alle Unterstapel. Die Baumoption erscheint nur bei vorhandenen Unterstapeln.

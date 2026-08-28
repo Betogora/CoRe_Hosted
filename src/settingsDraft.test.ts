@@ -21,6 +21,8 @@ test("general and global card drafts keep their settings domains separate", () =
   assert.equal(cardDraft.dayStartHour, 23);
   assert.equal(cardDraft.learnAheadMinutes, 720);
   assert.equal(cardDraft.easyDays.monday, "minimum");
+  assert.equal(cardDraft.learning.newCardsPerDay, 20);
+  assert.deepEqual(cardDraft.learning.learningProfileSource, { id: "builtin:standard", contentVersion: 1 });
 });
 
 test("deck draft compares and normalizes identity, appearance, learning, scheduler, and CoRe values", () => {

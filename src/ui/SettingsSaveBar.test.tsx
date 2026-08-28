@@ -5,7 +5,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SettingsSaveBar } from "./SettingsSaveBar.tsx";
 
-function renderBar({ savingScope = null, navigationBlocked = false, mode = "global" }: { savingScope?: "global" | "deck" | "deck-tree" | null; navigationBlocked?: boolean; mode?: "global" | "deck" | "deck-tree" } = {}) {
+function renderBar({ savingScope = null, navigationBlocked = false, mode = "global" }: { savingScope?: "global" | "deck" | "deck-tree" | "all-decks" | "new-decks" | null; navigationBlocked?: boolean; mode?: "global" | "learning-global" | "deck" | "deck-tree" } = {}) {
   return renderToStaticMarkup(
     <SettingsSaveBar open savingScope={savingScope} navigationBlocked={navigationBlocked} mode={mode} onSave={() => undefined} onDiscard={() => undefined} />,
   );
@@ -41,6 +41,15 @@ test("deck-tree save bar offers separate actions for the stack and all descendan
   assert.match(html, /class="core-action-secondary[^"]*"[^>]*><svg[^>]*>[\s\S]*?<span>Nur diesen Stapel speichern<\/span>/);
   assert.ok(html.indexOf("Stapel und Unterstapel speichern") < html.indexOf("Nur diesen Stapel speichern"));
   assert.doesNotMatch(html, /role="dialog"|aria-modal/);
+});
+
+test("global learning save bar distinguishes all stacks from future stacks", () => {
+  const html = renderBar({ mode: "learning-global" });
+
+  assert.match(html, />Auf alle Stapel anwenden</);
+  assert.match(html, />Auf alle neuen Stapel anwenden</);
+  assert.ok(html.indexOf("Auf alle Stapel anwenden") < html.indexOf("Auf alle neuen Stapel anwenden"));
+  assert.equal((html.match(/min-h-11/g) ?? []).length, 2);
 });
 
 test("settings save bar disables its action while saving", () => {

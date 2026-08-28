@@ -34,7 +34,7 @@ test("general settings expose three task-based sections and card-settings naviga
   assert.match(html, /data-in-page-navigation="desktop"/);
   assert.match(html, /data-in-page-navigation="compact"/);
   assert.doesNotMatch(html, /min-h-28|Alle Bereiche|\d+\s*\/\s*\d+/);
-  assert.match(html, />Karteneinstellungen</);
+  assert.match(html, />Lerneinstellungen</);
 });
 
 test("about settings contain help, legal placeholders, and the only visible version slot", () => {

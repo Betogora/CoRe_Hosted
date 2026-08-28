@@ -34,11 +34,13 @@ export interface CardDraftGuard {
 }
 
 export interface SettingsDraftGuard {
-  save: (scope?: DeckSettingsSaveScope) => Promise<boolean>;
+  save: (scope?: SettingsSaveScope) => Promise<boolean>;
   discard: () => void;
 }
 
 export type DeckSettingsSaveScope = "deck" | "deck-tree";
+export type GlobalLearningSettingsSaveScope = "all-decks" | "new-decks";
+export type SettingsSaveScope = DeckSettingsSaveScope | GlobalLearningSettingsSaveScope;
 
 export interface CreationScreenProps {
   decks: Deck[];
@@ -194,8 +196,10 @@ export interface SettingsScreenProps {
 
 export interface GlobalCardSettingsScreenProps {
   timeZone: string;
-  globalSchedulerPreferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "learnAheadMinutes" | "easyDays">;
-  onSaveSettings: (draft: GlobalCardSettingsDraft) => Profile | null | Promise<Profile | null>;
+  globalSchedulerPreferences: GlobalSchedulerPreferences;
+  learningProfiles: LearningProfileTemplate[];
+  onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
+  onSaveSettings: (draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) => Profile | null | Promise<Profile | null>;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onNavigate: NavigateToView;
   simulationOffsetMinutes: number;

@@ -16,6 +16,8 @@ import type {
   DecksCardPage,
   DecksCardPageRequest,
   SettingsDraftGuard,
+  SettingsSaveScope,
+  GlobalLearningSettingsSaveScope,
 } from "./appScreenProps.ts";
 import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
@@ -26,6 +28,7 @@ import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importClo
 import { addRephrasedVariant, createDefaultDeckSettings, createManualCoreDeck, duplicateLearningItemContent, getCardContentPayload, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState } from "./coreModel.ts";
 import { createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
+import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getLearningDayRange, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
@@ -201,7 +204,7 @@ export function App() {
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
   const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
-  const [savingSettingsDraft, setSavingSettingsDraft] = React.useState<DeckSettingsSaveScope | "global" | null>(null);
+  const [savingSettingsDraft, setSavingSettingsDraft] = React.useState<SettingsSaveScope | "global" | null>(null);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [studyPreparationFailure, setStudyPreparationFailure] = React.useState<StudyPreparationFailure | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
@@ -485,7 +488,7 @@ export function App() {
     action();
   }, []);
 
-  async function saveSettingsDraft(scope?: DeckSettingsSaveScope) {
+  async function saveSettingsDraft(scope?: SettingsSaveScope) {
     const guard = settingsDraftGuardRef.current;
     if (!guard) return;
     setSavingSettingsDraft(scope ?? "global");
@@ -1160,6 +1163,7 @@ export function App() {
       refresh();
       return { decks: nextDecks, cloudTask: createTrackedImportCloudTask() };
     }
+    const existingDeckIdsBeforeImport = new Set(latestStateRef.current?.decks.map((deck) => deck.id) ?? []);
     let importedDecks: Array<{ id: string }>;
     if (commitGraph) {
       if (!workspaceHydrationService) throw new Error("Der Reimport-Abgleich ist noch nicht bereit.");
@@ -1179,6 +1183,14 @@ export function App() {
         decks: nextDecks,
         noteTypeDefinitions: [],
       });
+    }
+    const createdDeckIds = new Set(importedDecks.map((deck) => deck.id).filter((deckId) => !existingDeckIdsBeforeImport.has(deckId)));
+    if (createdDeckIds.size > 0) {
+      const currentProfile = latestStateRef.current?.profile;
+      const createdDecks = workspaceRepository.getShellState().decks
+        .filter((deck) => createdDeckIds.has(deck.id))
+        .map((deck) => applyGlobalLearningDefaultsToDeck(deck, getGlobalSchedulerPreferences(currentProfile)));
+      if (createdDecks.length > 0) workspaceRepository.saveDeckMetadata(createdDecks);
     }
     const verificationScope = commitGraph?.kind === "worker-import"
       ? await workspaceRepository.createImportVerificationScope(importedDecks.map((deck) => deck.id))
@@ -1240,7 +1252,10 @@ export function App() {
   }
 
   function createDeck(input: CreateDeckInput = {}) {
-    const created = state ? createWorkspaceDeck(state.decks, input) : null;
+    const created = state ? createWorkspaceDeck(state.decks, {
+      ...input,
+      deckSettings: createGlobalDefaultDeckSettings(globalSchedulerPreferences, input.deckSettings),
+    }) : null;
     const saved = created ? runRepositoryMutation((repository) => repository.saveDeckMetadata([created])[0] ?? null) : null;
     if (!saved) return null;
     navigateToViewNow("lernen", { focusedDeckId: saved.id }, { replace: true });
@@ -1549,10 +1564,25 @@ export function App() {
     return saved;
   }
 
-  function saveGlobalCardSettings(draft: GlobalCardSettingsDraft) {
+  function saveGlobalCardSettings(draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) {
     const currentState = latestStateRef.current;
     if (!currentState) return null;
-    return runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(currentState.profile, draft)));
+    const nextProfile = withGlobalSchedulerPreferences(currentState.profile, {
+      dayStartHour: draft.dayStartHour,
+      learnAheadMinutes: draft.learnAheadMinutes,
+      easyDays: draft.easyDays,
+      defaultLearningSettings: draft.learning,
+    });
+    let updatedDecks: Deck[] = [];
+    const saved = runRepositoryMutation((repository) => {
+      const savedProfile = repository.saveProfile(nextProfile);
+      if (scope === "all-decks") {
+        updatedDecks = repository.saveDeckMetadata(currentState.decks.map((deck) => applyGlobalLearningDefaultsToDeck(deck, nextProfile.schedulerPreferences)));
+      }
+      return savedProfile;
+    }, { preserveCardPages: true });
+    if (updatedDecks.length > 0) synchronizeStudyDeckMetadata(updatedDecks);
+    return saved;
   }
 
   function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
@@ -1886,6 +1916,8 @@ export function App() {
         <GlobalCardSettingsScreen
           timeZone={learningTimeZone}
           globalSchedulerPreferences={globalSchedulerPreferences}
+          learningProfiles={globalSchedulerPreferences.learningProfiles}
+          onSaveLearningProfiles={saveLearningProfiles}
           onSaveSettings={saveGlobalCardSettings}
           onDraftStateChange={handleSettingsDraftStateChange}
           onNavigate={navigateToView}
@@ -2052,7 +2084,7 @@ export function App() {
         navigationBlocked={settingsNavigationBlocked}
         mode={activeView === "stapel-einstellungen"
           ? (focusedDeckId && state.decks.some((deck) => deck.parentDeckId === focusedDeckId) ? "deck-tree" : "deck")
-          : "global"}
+          : activeView === "karten-einstellungen" ? "learning-global" : "global"}
         onSave={(scope) => { void saveSettingsDraft(scope); }}
         onDiscard={discardSettingsDraft}
       />

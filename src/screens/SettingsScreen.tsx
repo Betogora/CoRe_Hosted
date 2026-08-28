@@ -115,7 +115,7 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Profil" title="Allgemeine Einstellungen" />
         <CrossLinkButton onSelect={() => onNavigate("karten-einstellungen")}>
-          Karteneinstellungen
+          Lerneinstellungen
         </CrossLinkButton>
       </div>
 
