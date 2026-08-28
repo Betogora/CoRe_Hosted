@@ -165,6 +165,15 @@ For ordinary implementation changes:
 3. run `npm run build` when production compilation or bundling could be
    affected.
 
+`npm run gate:push` is the canonical manual quality gate and combines type
+checking, compact unit/contract tests, the production build, and bundle
+budgets. Git pushes do not run it automatically because a mixed worktree may
+contain changes outside the commit being pushed.
+
+Changes to bootstrap, preload, sync, catalog, statistics, service workers,
+dependencies, or chunking, as well as releases, additionally require
+`npm run performance:measure:local` before push or release.
+
 Run the complete `npm test` suite when a change is cross-cutting, affects shared
 domain behavior or several feature areas, lacks sufficient coverage from
 focused tests, or is part of a release or repository-wide verification.

@@ -53,14 +53,19 @@ export function moduleTestsFor(categories: readonly TestCategory[]) {
   return files.filter((filePath) => requested.has(categoryFor(filePath)));
 }
 
-export async function runModuleTests(categories: readonly TestCategory[]) {
+export async function runModuleTests(categories: readonly TestCategory[], { compact = false } = {}) {
   if (categories.length === 0 || categories.some((category) => !CATEGORIES.includes(category))) {
     throw new Error(`Testkategorie fehlt oder ist ungültig. Erlaubt: ${CATEGORIES.join(", ")}.`);
   }
   const files = moduleTestsFor(categories);
   console.log(`Geschützte Testkategorien: ${categories.join(", ")} (${files.length} Dateien)`);
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(process.execPath, [TSX_CLI_PATH, "--test", ...files], {
+    const child = spawn(process.execPath, [
+      TSX_CLI_PATH,
+      "--test",
+      ...(compact ? ["--test-reporter=dot"] : []),
+      ...files,
+    ], {
       cwd: process.cwd(),
       env: process.env,
       shell: false,
@@ -76,7 +81,11 @@ export async function runModuleTests(categories: readonly TestCategory[]) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   try {
-    await runModuleTests(process.argv.slice(2) as TestCategory[]);
+    const arguments_ = process.argv.slice(2);
+    await runModuleTests(
+      arguments_.filter((argument) => argument !== "--compact") as TestCategory[],
+      { compact: arguments_.includes("--compact") },
+    );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

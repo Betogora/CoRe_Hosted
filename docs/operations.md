@@ -1,7 +1,7 @@
 # CoRe-Betrieb und Runbooks
 
 **Rolle:** einzige kanonische Quelle für lokale Betriebsabläufe, Release, Rollback, Wiederherstellung und operative Gates.
-**Stand:** 2026-08-18
+**Stand:** 2026-08-28
 
 Zeitgebundene Release-Nachweise stehen in [`history.md`](history.md). Produktanforderungen und Roadmap stehen nicht in diesem Dokument.
 
@@ -15,14 +15,32 @@ npm run dev
 Die lokale URL ist `http://127.0.0.1:5190/`.
 Der normale SPA-Weg bleibt `npm run dev`. Für einen lokalen Test der Vercel Function einschließlich serverseitiger Umgebungsvariablen wird stattdessen `vercel dev --listen 5190` verwendet.
 
-Fokussierte Prüfungen laufen zuerst. Die Standard-Gates sind:
+Fokussierte Prüfungen laufen zuerst. Für einen zusammenhängenden Arbeitsstand
+steht das kanonische manuelle Qualitätsgate bereit:
 
 ```powershell
-npm run typecheck
-npm run build
+npm run gate:push
 ```
 
-Das verpflichtende Gate für den freigegebenen Beta-Kern ist `npm run test:beta`. `npm run test:release` prüft zusätzlich schwere Medien-, Restore- und Infrastrukturpfade. Datenbanknahe Gates sind in [`test-portfolio.md`](test-portfolio.md) beschrieben.
+Das Gate kombiniert Typecheck und generierte Dokumente, kompakte Unit-/Contract-
+Tests sowie den Production-Build einschließlich harter Bundlebudgets. Commits
+und Pushes führen es nicht automatisch aus, weil ein gemischter Worktree auch
+Änderungen außerhalb des zu pushenden Commits enthalten kann. GitHub Actions
+führt auf `main`, in Pull Requests und manuell denselben einzelnen Quality-Job
+aus. Vercel verwendet ebenfalls `npm run gate:push` als Build-Barriere; die
+ausgelieferte Anwendung erhält dadurch keinen zusätzlichen Runtime-Overhead.
+
+Schwere Gates sind vom normalen Push entkoppelt:
+
+| Gate | Zeitplan | Befehl | Verantwortung |
+| --- | --- | --- | --- |
+| Nightly Core | täglich 02:17 UTC, veröffentlichte Releases, manuell | `npm run gate:nightly` | Beta-Core, vollständiges Release-E2E und APKG-Benchmark; jeder Fehler blockiert den Lauf |
+| Weekly Performance | montags 04:17 UTC, manuell | `npm run performance:measure:local` | gedrosselte Startmessung, Performanceartefakt und lokaler 100k-/1m-Statistikbenchmark; jeder Grenzwert bleibt blockierend |
+
+Bei Änderungen an Bootstrap, Preload, Sync, Katalog, Statistik, Service Worker,
+Dependencies oder Chunking sowie vor Releases wird das Performance-Gate
+zusätzlich lokal ausgeführt. Datenbanknahe Gates sind in
+[`test-portfolio.md`](test-portfolio.md) beschrieben.
 
 Gemessene Laufzeitwerte werden als JSON gegen die festen Produktgrenzen geprüft:
 
@@ -30,13 +48,32 @@ Gemessene Laufzeitwerte werden als JSON gegen die festen Produktgrenzen geprüft
 npm run performance:gates -- test-results/performance.json
 ```
 
-Die reproduzierbare lokale Startmessung startet den lokalen Supabase-Stack, baut die E2E-Production-App und misst mit je zehn Läufen einen wiederkehrenden Browser, einen frischen isolierten Kontext, denselben persistenten Kontext ohne Service Worker und einen Offline-Kaltstart:
+Die reproduzierbare lokale Performance-Abnahme startet den lokalen
+Supabase-Stack, baut die E2E-Production-App und misst mit je zehn Läufen einen
+wiederkehrenden Browser, einen frischen isolierten Kontext, denselben
+persistenten Kontext ohne Service Worker und einen Offline-Kaltstart:
 
 ```powershell
 npm run performance:measure:local
 ```
 
-Der Befehl schreibt ausschließlich Laufzeiten, Stapel- und Outboxanzahl sowie den Service-Worker-Status nach `test-results/performance.json`. Er misst je zehn Läufe für vier Startkontexte und einen kontrollierten 4G-Preload-Kontext und prüft anschließend neun Startgates. Dazu gehören null automatische 3G-Preloads, höchstens 50 ms pro automatischem 4G-Preload-Task und p75 höchstens 50 ms für den persistierten Summary-Read. Das Hintergrundgate verwendet direkt gemessene Projektions-/Rebuild-Abschnitte und Long Tasks innerhalb der automatischen Lernen-/Karten-Preloads; sichtbares Dashboard-Rendering wird nicht fälschlich als Hintergrundarbeit klassifiziert. Das Artefakt ist kein vollständiger Ersatz für die noch offene 100k-/1m- und Feldabnahme. Ein rotes Laufzeitgate bleibt rot; ein technisch erfolgreich erzeugtes Artefakt ist noch kein Freigabenachweis.
+Das Performanceartefakt enthält ausschließlich Laufzeiten, Stapel- und
+Outboxanzahl sowie den Service-Worker-Status in
+`test-results/performance.json`. Der Lauf misst je zehn Wiederholungen für vier
+Startkontexte und einen kontrollierten 4G-Preload-Kontext. Noch vor dem Stoppen
+des Supabase-Stacks prüft er zusätzlich den produktionsnahen Statistikpfad mit
+100.000 Karten und 1 Mio. logisch aggregierten Reviews. Anschließend werden die
+neun Startgates aus dem Artefakt validiert. Dazu gehören null automatische
+3G-Preloads, höchstens 50 ms pro automatischem 4G-Preload-Task und p75 höchstens
+50 ms für den persistierten Summary-Read. Der Statistik-RPC muss p95 höchstens
+1.000 ms, die 100k-Kartensuche höchstens 2.000 ms und die Clientprojektion
+höchstens 50 ms benötigen. Das Hintergrundgate verwendet direkt gemessene
+Projektions-/Rebuild-Abschnitte und Long Tasks innerhalb der automatischen
+Lernen-/Karten-Preloads; sichtbares Dashboard-Rendering wird nicht fälschlich
+als Hintergrundarbeit klassifiziert. Der Lauf schließt weder die offene
+vollständige 100k-Browserjourney noch Feldmessungen. Ein rotes Laufzeitgate
+bleibt rot; ein technisch erfolgreich erzeugtes Artefakt ist noch kein
+Freigabenachweis.
 
 Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Importgraphen und 200 KiB je normalem Lazy-Feature. Zielwerte sind 250 beziehungsweise 150 KiB. Bis echte Feld-p75/p95 vorliegen, wird das Laufzeitartefakt mit Chromium bei ungefähr 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung erzeugt. Ein fehlendes Messartefakt ist kein bestandener Performance-Nachweis.
 

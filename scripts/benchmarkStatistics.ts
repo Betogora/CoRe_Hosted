@@ -108,6 +108,6 @@ console.log(JSON.stringify({
   database,
   periods,
 }, null, 2));
-if (database.statisticsRpcP95Ms > 2_000) throw new Error("Der lokale Statistik-RPC überschreitet 2.000 ms p95.");
+if (database.statisticsRpcP95Ms > 1_000) throw new Error("Der lokale Statistik-RPC überschreitet 1.000 ms p95.");
 if (database.catalogSearchP95Ms > 2_000) throw new Error("Die lokale 100k-Kartensuche überschreitet 2.000 ms p95.");
 if (periods.some((result) => result.p95Ms > 50)) throw new Error("Die Clientprojektion des serverseitigen Statistik-Snapshots überschreitet 50 ms p95.");

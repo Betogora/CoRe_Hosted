@@ -58,9 +58,10 @@ test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast sca
   const heatmapRules = styles.match(/\.core-heatmap-level-0,[\s\S]*?\.core-surface\s*\{/)?.[0] ?? "";
 
   assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-surface\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-success-surface\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-palette-lilac\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-deck-new-text\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-1,\s*var\(--core-success-surface\)\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-2,\s*color-mix\(in srgb, var\(--core-success-surface\) 55%, var\(--core-success\)\)\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-3,\s*var\(--core-palette-lilac\)\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-4,\s*var\(--core-deck-new-text\)\)/);
   assert.match(dark, /--core-deck-new-text:\s*var\(--core-palette-lilac-glow\)/);
   assert.doesNotMatch(heatmapRules, /core-info/);
   assert.match(heatmapRules, /--core-heatmap-forecast-tone:\s*var\(--core-surface\)/);

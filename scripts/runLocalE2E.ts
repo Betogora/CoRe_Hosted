@@ -198,6 +198,10 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--config=playwright.performance.config.ts"], {
         env: testEnvironment,
       });
+      console.log("100k-Karten-/1m-Review-Statistikbenchmark ausführen …");
+      await runCommand(process.execPath, [NPM_CLI_PATH, "run", "benchmark:statistics"], {
+        env: testEnvironment,
+      });
     } else if (runGoldenE2E || runBetaE2E || runFullE2E) {
       console.log(runBetaE2E
         ? "Beta-Core-Verträge einschließlich Auth, Medien, Import und Konflikten ausführen …"

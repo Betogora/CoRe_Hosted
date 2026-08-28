@@ -5,19 +5,10 @@ on:
   push:
     branches:
       - main
-  release:
-    types:
-      - published
-  schedule:
-    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   quality:
@@ -36,116 +27,5 @@ jobs:
       - name: Abhängigkeiten installieren
         run: npm ci
 
-      - name: TypeScript-Verträge prüfen
-        run: npm run typecheck
-
-      - name: Unit- und Contract-Produktverträge prüfen
-        run: npm run test:unit-contract
-
-      - name: Produktionsbuild erstellen
-        run: npm run build
-
-  pr-product-gate:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Repository auschecken
-        uses: actions/checkout@v7
-
-      - name: Node.js einrichten
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Abhängigkeiten installieren
-        run: npm ci
-
-      - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
-
-      - name: Kern-RLS und fünf Golden-E2E-Produktverträge prüfen
-        run: npm run test:pr:local
-
-      - name: Playwright-Fehlerartefakte hochladen
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: pr-product-gate-failure-${{ github.run_id }}
-          path: |
-            playwright-report/
-            test-results/
-          if-no-files-found: ignore
-          retention-days: 7
-
-  beta-core-gate:
-    if: github.event_name != 'pull_request'
-    needs: quality
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Repository auschecken
-        uses: actions/checkout@v7
-
-      - name: Node.js einrichten
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Abhängigkeiten installieren
-        run: npm ci
-
-      - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
-
-      - name: Freigegebenen Beta-Kern prüfen
-        run: npm run test:beta
-
-      - name: Fehlerartefakte des Beta-Core-Gates hochladen
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: beta-core-gate-failure-${{ github.run_id }}
-          path: |
-            playwright-report/
-            test-results/
-          if-no-files-found: ignore
-          retention-days: 7
-
-  extended-core:
-    if: github.event_name != 'pull_request'
-    needs: beta-core-gate
-    continue-on-error: true
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    steps:
-      - name: Repository auschecken
-        uses: actions/checkout@v7
-
-      - name: Node.js einrichten
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Abhängigkeiten installieren
-        run: npm ci
-
-      - name: Chromium installieren
-        run: npx playwright install --with-deps chromium
-
-      - name: Erweiterte Core-, Medien- und Wiederherstellungspfade prüfen
-        run: npm run test:release:local
-
-      - name: Fehlerartefakte des erweiterten Core-Gates hochladen
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: extended-core-failure-${{ github.run_id }}
-          path: |
-            playwright-report/
-            test-results/
-          if-no-files-found: ignore
-          retention-days: 7
+      - name: Lokales Push-Gate ausführen
+        run: npm run gate:push
