@@ -51,6 +51,8 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   }
   assert.match(styles, /--core-learning-goal-achieved:\s*#2f7d68/);
   assert.match(dark, /--core-learning-goal-achieved:\s*#72d6b5/);
+  assert.match(styles, /--core-learning-progress-completed:\s*#a7adb6/);
+  assert.match(dark, /--core-learning-progress-completed:\s*#737b87/);
 });
 
 test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast scale", () => {

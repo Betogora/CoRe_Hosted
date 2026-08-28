@@ -220,23 +220,69 @@ test("StudyMode renders the four daily progress segments in the canonical order 
 
   assert.match(markup, />1 \/ 10 Karten</);
   assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, Offen: 1 Karte, Fällig: 5 Karten"/);
-  assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-status-learned\)[^>]*flex-grow:1/);
+  assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-progress-completed\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
   assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
   assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
   for (const [label, color, value] of [
-    ["Gelernt", "learned", "1 Karte"],
+    ["Gelernt", "progress-completed", "1 Karte"],
     ["Neu", "new", "3 Karten"],
     ["Offen", "in-progress", "1 Karte"],
     ["Fällig", "due", "5 Karten"],
   ]) {
     assert.match(markup, new RegExp(`data-core-tooltip="${label}"`));
-    assert.match(markup, new RegExp(`data-core-tooltip-swatch="var\\(--core-learning-status-${color}\\)"`));
+    const token = color === "progress-completed" ? "--core-learning-progress-completed" : `--core-learning-status-${color}`;
+    assert.match(markup, new RegExp(`data-core-tooltip-swatch="var\\(${token}\\)"`));
     assert.match(markup, new RegExp(`data-core-tooltip-value="${value}"`));
   }
   assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
   assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));
   assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));
+});
+
+test("StudyMode uses the complete catalog projection before every card body is buffered", () => {
+  const deckId = "deck_buffered_progress";
+  const newCard = createBasicLearningItem(deckId, "Neu", "Antwort", {
+    id: "new_buffered",
+    reviewState: { state: "new", reps: 0, dueAt: "2026-08-09T09:00:00.000Z" },
+  });
+  const openCards = Array.from({ length: 5 }, (_value, index) => createBasicLearningItem(deckId, `Offen ${index + 1}`, "Antwort", {
+    id: `open_buffered_${index + 1}`,
+    reviewState: { state: "learning", reps: 1, dueAt: "2026-08-09T09:00:00.000Z" },
+  }));
+  const deck = createCoreDeck({ id: deckId, name: "Gepuffert", source: "manual", cards: [newCard, ...openCards] });
+  const markup = renderToStaticMarkup(
+    <StudyMode
+      deck={deck}
+      decks={[deck]}
+      deckId={deck.id}
+      variantSession={false}
+      mediaStore={null}
+      getNow={() => "2026-08-09T10:00:00.000Z"}
+      simulationOffsetMinutes={0}
+      pomodoroTimer={null}
+      onStartPomodoro={() => undefined}
+      onExit={() => undefined}
+      onReturnToLearn={() => undefined}
+      onEditCard={() => undefined}
+      onEditDeck={() => undefined}
+      onSetCardStudyState={() => deck}
+      onSetDeckReviewOrder={() => deck}
+      onCardUpdated={() => undefined}
+      onReview={() => undefined}
+      sessionPlan={{
+        progress: { completedTodayCount: 0, newCount: 1, inProgressCount: 5, dueCount: 1, total: 7 },
+        initialCardCount: 7,
+      }}
+      bufferSize={5}
+      hasMoreCards
+    />,
+  );
+
+  assert.match(markup, />1 \/ 7</);
+  assert.match(markup, />0 \/ 7 Karten</);
+  assert.match(markup, /aria-valuemax="7"/);
+  assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 5 Karten, Fällig: 1 Karte"/);
 });
 
 test("StudyMode says Für jetzt geschafft while same-day learning steps are still waiting", () => {

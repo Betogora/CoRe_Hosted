@@ -197,6 +197,7 @@
   --core-learning-status-new: var(--core-success);
   --core-learning-status-in-progress: var(--core-danger);
   --core-learning-status-due: var(--core-warning);
+  --core-learning-progress-completed: #a7adb6;
   --core-learning-goal-achieved: #2f7d68;
 
   /* Compatibility aliases for existing status call sites. */
@@ -268,6 +269,7 @@
   --core-learning-status-new: var(--core-success);
   --core-learning-status-in-progress: var(--core-danger);
   --core-learning-status-due: var(--core-warning);
+  --core-learning-progress-completed: #737b87;
   --core-learning-goal-achieved: #72d6b5;
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #46546a;

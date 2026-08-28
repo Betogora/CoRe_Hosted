@@ -186,6 +186,7 @@ export function App() {
   const [studyDecks, setStudyDecks] = React.useState<Deck[] | null>(null);
   const [studyDefinitions, setStudyDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
   const [studyHasMoreCards, setStudyHasMoreCards] = React.useState(false);
+  const [studyBufferSize, setStudyBufferSize] = React.useState(50);
   const [visibleDefinitions, setVisibleDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
   const cardPageRequestRef = React.useRef(new Map<string, string>());
   const [cloudUser, setCloudUser] = React.useState<User | null>(null);
@@ -739,6 +740,7 @@ export function App() {
           queue,
           cursorByDeck: session.cursorByDeck,
           hasMoreCards: session.hasMore && cursorAdvanced,
+          bufferSize: "bufferSize" in session ? Math.max(1, Number(session.bufferSize) || 50) : 50,
         };
       }
       nextCursorByDeck = session.cursorByDeck;
@@ -749,6 +751,7 @@ export function App() {
     if (!workspaceRepository || !state || !studyRequest) {
       setStudyDecks(null);
       setStudyHasMoreCards(false);
+      setStudyBufferSize(50);
       studyQueueCursorRef.current = {};
       preparedStudyKeyRef.current = "";
       return;
@@ -760,6 +763,7 @@ export function App() {
       if (!active || !preparation) return;
       studyQueueCursorRef.current = preparation.cursorByDeck;
       setStudyHasMoreCards(preparation.hasMoreCards);
+      setStudyBufferSize(preparation.bufferSize);
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
         setStudyDecks(preparation.decks);
         setStudyDefinitions(preparation.definitions);
@@ -774,6 +778,7 @@ export function App() {
       preparedStudyKeyRef.current = preparationKey;
       studyQueueCursorRef.current = preparation.cursorByDeck;
       setStudyHasMoreCards(preparation.hasMoreCards);
+      setStudyBufferSize(preparation.bufferSize);
       setStudyDecks(preparation.decks);
       setStudyDefinitions(preparation.definitions);
     }).catch((error) => {
@@ -789,15 +794,16 @@ export function App() {
   }, [loadStudyPreparation, navigateToRoute, state, studyDecks, studyRequest, workspaceRepository]);
 
   const loadMoreStudyCards = React.useCallback(async () => {
-    if (!studyRequest) return [];
+    if (!studyRequest) return { decks: [], hasMoreCards: false, bufferSize: studyBufferSize };
     const preparation = await loadStudyPreparation(
       studyRequest.deckId,
       studyRequest.variantSession,
       studyQueueCursorRef.current,
     );
-    if (!preparation) return [];
+    if (!preparation) return { decks: [], hasMoreCards: false, bufferSize: studyBufferSize };
     studyQueueCursorRef.current = preparation.cursorByDeck;
     setStudyHasMoreCards(preparation.hasMoreCards);
+    setStudyBufferSize(preparation.bufferSize);
     setStudyDefinitions((current) => {
       const byId = new Map(current.map((definition) => [definition.id, definition]));
       for (const definition of preparation.definitions) byId.set(definition.id, definition);
@@ -812,8 +818,12 @@ export function App() {
       for (const event of page.reviewEvents) events.set(event.id, event);
       return { ...currentDeck, cards: [...cards.values()], reviewEvents: [...events.values()] };
     }) ?? current);
-    return preparation.decks;
-  }, [loadStudyPreparation, studyRequest]);
+    return {
+      decks: preparation.decks,
+      hasMoreCards: preparation.hasMoreCards,
+      bufferSize: preparation.bufferSize,
+    };
+  }, [loadStudyPreparation, studyBufferSize, studyRequest]);
 
   async function bootAuthenticatedUser(user: User) {
     const runId = bootRunRef.current + 1;
@@ -1625,6 +1635,7 @@ export function App() {
       preparedStudyKeyRef.current = preparationKey;
       studyQueueCursorRef.current = preparation.cursorByDeck;
       setStudyHasMoreCards(preparation.hasMoreCards);
+      setStudyBufferSize(preparation.bufferSize);
       setStudyDecks(preparation.decks);
       setStudyDefinitions(preparation.definitions);
       navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
@@ -1994,6 +2005,15 @@ export function App() {
   }
 
   const studyDeck = studyRequest ? studyDecks?.find((deck) => deck.id === studyRequest.deckId) ?? null : null;
+  const studySessionProjection = studyRequest && deckSummaries.has(studyRequest.deckId)
+    ? createDeckLibraryModel(state.decks, {
+        now: learningNow,
+        dayStartHour: globalSchedulerPreferences.dayStartHour,
+        learnAheadMinutes: globalSchedulerPreferences.learnAheadMinutes,
+        timeZone: learningTimeZone,
+        deckSummaries,
+      }).rows.find((row) => row.id === studyRequest.deckId)?.dailyLearningSession ?? null
+    : null;
   if (studyRequest && !studyDecks) return <LoadingScreen message="Lernsitzung wird vorbereitet." />;
   if (studyRequest && studyDeck) {
     return (
@@ -2049,6 +2069,11 @@ export function App() {
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
           onCardUpdated={(deckId, card) => { void runCardCommand(deckId, workspaceRepository.updateCard(deckId, card.id, () => card)); }}
           onReview={recordReview}
+          sessionPlan={studySessionProjection ? {
+            progress: studySessionProjection.progress,
+            initialCardCount: studySessionProjection.startableCount,
+          } : undefined}
+          bufferSize={studyBufferSize}
           hasMoreCards={studyHasMoreCards}
           onLoadMoreCards={loadMoreStudyCards}
         />

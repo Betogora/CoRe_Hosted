@@ -20,6 +20,10 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
       id: "card-beta",
       reviewState: { state: "new", dueAt: "2026-08-17T08:00:00.000Z", reps: 0 },
     }),
+    ...Array.from({ length: 5 }, (_value, index) => createBasicLearningItem("deck-hydration", `Zusatz ${index + 1}`, `Antwort Zusatz ${index + 1}`, {
+      id: `card-extra-${index + 1}`,
+      reviewState: { state: "new", dueAt: `2026-08-17T08:0${index + 1}:00.000Z`, reps: 0 },
+    })),
   ];
   const deck = createCoreDeck({ id: "deck-hydration", ownerId: userId, name: "Hydration", source: "manual", cards });
   const state = {
@@ -40,7 +44,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
     front_preview: card.originalFront,
     normalized_search_text: card.originalFront.toLowerCase(),
     sort_text: card.originalFront.toLowerCase(),
-    due_at: index === 0 ? "2026-08-17T09:00:00.000Z" : "2026-08-17T08:00:00.000Z",
+    due_at: card.reviewState.dueAt,
     schedule_state: index === 0 ? "review" : "new",
     maturity_band: index === 0 ? "young" : "new",
     reviewable: true,
@@ -56,7 +60,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   const hydratedRequests: string[][] = [];
   const client = {
     async rpc(name: string, payload: any) {
-      if (name === "list_account_card_catalog") return { data: { items: catalogRows, totalCount: 2, hasMore: false, nextCursor: null }, error: null };
+      if (name === "list_account_card_catalog") return { data: { items: catalogRows, totalCount: cards.length, hasMore: false, nextCursor: null }, error: null };
       if (name === "hydrate_account_cards") {
         hydratedRequests.push(payload.p_card_ids);
         const ids = new Set(payload.p_card_ids);
@@ -82,26 +86,46 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   assert.deepEqual(hydratedRequests, [["card-beta"]]);
   assert.equal(page.selectedCard?.originalBack, "Antwort Beta");
   assert.equal(page.items.find((card) => card.id === "card-alpha")?.meta.catalogOnly, true);
-  assert.equal(page.totalCount, 2);
+  assert.equal(page.totalCount, cards.length);
 
   await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
   hydratedRequests.length = 0;
-  const study = await service.prepareStudyWindow([deck.id], { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" });
-  assert.deepEqual(hydratedRequests, [["card-alpha"]], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
-  assert.equal(study.cards.length, 1);
-  assert.equal(study.cards[0]?.item.id, "card-alpha");
-  assert.equal(study.cursorByDeck[deck.id]?.queueRank, 0);
-  assert.equal(study.hasMore, true);
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, "navigator");
+  Object.defineProperty(globalThis, "navigator", { configurable: true, value: { onLine: true, connection: { saveData: true } } });
+  try {
+    const study = await service.prepareStudyWindow([deck.id], { now: "2026-08-17T10:00:00.000Z", timeZone: "UTC" });
+    assert.deepEqual(hydratedRequests, [["card-alpha"]], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
+    assert.equal(study.cards.length, 1);
+    assert.equal(study.cards[0]?.item.id, "card-alpha");
+    assert.equal(study.cursorByDeck[deck.id]?.queueRank, 0);
+    assert.equal(study.bufferSize, 5);
+    assert.equal(study.hasMore, true);
 
-  const remainder = await service.prepareStudyWindow([deck.id], {
-    now: "2026-08-17T10:00:00.000Z",
-    timeZone: "UTC",
-    cursorByDeck: study.cursorByDeck,
-  });
-  assert.deepEqual(hydratedRequests, [["card-alpha"], ["card-beta"]], "der Sitzungscursor lädt die restlichen Karten nach");
-  assert.deepEqual(remainder.cards.map(({ item }) => item.id), ["card-beta"]);
-  assert.equal(remainder.cursorByDeck[deck.id]?.queueRank, 1);
-  assert.equal(remainder.hasMore, false);
+    const remainder = await service.prepareStudyWindow([deck.id], {
+      now: "2026-08-17T10:00:00.000Z",
+      timeZone: "UTC",
+      cursorByDeck: study.cursorByDeck,
+    });
+    assert.equal(remainder.cards.length, 5, "der Datensparpuffer lädt höchstens fünf weitere Karten");
+    assert.equal(remainder.cursorByDeck[deck.id]?.queueRank, 1);
+    assert.equal(remainder.hasMore, true);
+
+    const finalPage = await service.prepareStudyWindow([deck.id], {
+      now: "2026-08-17T10:00:00.000Z",
+      timeZone: "UTC",
+      cursorByDeck: remainder.cursorByDeck,
+    });
+    assert.equal(finalPage.cards.length, 1);
+    assert.equal(finalPage.hasMore, false);
+    assert.deepEqual(
+      [study, remainder, finalPage].flatMap((page) => page.cards.map(({ item }) => item.id)).sort(),
+      cards.map((card) => card.id).sort(),
+      "alle sieben Karten bleiben über den Fünferpuffer Teil derselben Sitzung",
+    );
+  } finally {
+    if (navigatorDescriptor) Object.defineProperty(globalThis, "navigator", navigatorDescriptor);
+    else Reflect.deleteProperty(globalThis, "navigator");
+  }
   repository.close();
 });
 

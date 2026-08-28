@@ -41,23 +41,24 @@ export function DailyReviewProgress({
       data-testid={testId}
     >
       {achieved ? (
-        <CoreTooltip label="Tagesziel erreicht" swatchColor="var(--core-learning-goal-achieved)" value={formatLearningCardCount(progress.total)}>
+        <CoreTooltip label="Tagesziel erreicht" swatchColor="var(--core-learning-progress-completed)" value={formatLearningCardCount(progress.total)}>
           <span
             aria-hidden="true"
             data-study-progress-segment="achieved"
             className="h-full flex-1"
-            style={{ backgroundColor: "var(--core-learning-goal-achieved)" }}
+            style={{ backgroundColor: "var(--core-learning-progress-completed)" }}
           />
         </CoreTooltip>
       ) : DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
         const count = progress[segment.countKey];
+        const color = segment.key === "learned" ? "var(--core-learning-progress-completed)" : segment.color;
         return count > 0 ? (
-          <CoreTooltip key={segment.key} label={segment.label} swatchColor={segment.color} value={formatLearningCardCount(count)}>
+          <CoreTooltip key={segment.key} label={segment.label} swatchColor={color} value={formatLearningCardCount(count)}>
             <span
               aria-hidden="true"
               data-study-progress-segment={segment.key}
               className="h-full"
-              style={{ backgroundColor: segment.color, flexBasis: 0, flexGrow: count }}
+              style={{ backgroundColor: color, flexBasis: 0, flexGrow: count }}
             />
           </CoreTooltip>
         ) : null;

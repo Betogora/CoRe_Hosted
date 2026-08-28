@@ -12,7 +12,7 @@ import type { AccountMediaStore } from "./mediaStore.ts";
 import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
-import type { ReviewAnswerResult } from "./reviewService.ts";
+import type { DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
@@ -248,6 +248,15 @@ export interface StudyModeProps {
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onCardUpdated: (deckId: string, card: LearningItem) => unknown;
   onReview: (result: ReviewAnswerResult) => unknown;
+  sessionPlan?: {
+    progress: DailyReviewProgressSummary;
+    initialCardCount: number;
+  };
+  bufferSize?: number;
   hasMoreCards?: boolean;
-  onLoadMoreCards?: () => Promise<Deck[]>;
+  onLoadMoreCards?: () => Promise<{
+    decks: Deck[];
+    hasMoreCards: boolean;
+    bufferSize: number;
+  }>;
 }

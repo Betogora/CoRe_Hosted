@@ -103,6 +103,15 @@ export interface DailyReviewProgressSummary {
   total: number;
 }
 
+export type DailyReviewProgressKind = "completed" | "new" | "in-progress" | "due";
+
+const dailyReviewProgressCountKey: Record<DailyReviewProgressKind, keyof Omit<DailyReviewProgressSummary, "total">> = {
+  completed: "completedTodayCount",
+  new: "newCount",
+  "in-progress": "inProgressCount",
+  due: "dueCount",
+};
+
 export interface DailyReviewSessionState {
   initialKeys: string[];
   remainingInitialKeys: string[];
@@ -474,18 +483,46 @@ function summarizeDailyReviewProgress(
   };
 
   for (const [key, entry] of relevantEntries) {
-    const state = entry.learningItem.reviewState.state;
-    const inProgress = state === "learning" || state === "relearning";
-    const reviewedToday = reviewedTodayKeys.has(key);
-    const dueOnFutureDay = (learningDayKey(entry.learningItem.reviewState.dueAt ?? now, options) ?? "") > getLocalReviewDateKey(now, options);
-
-    if (reviewedToday && (!inProgress || dueOnFutureDay)) summary.completedTodayCount += 1;
-    else if (!reviewedToday && isNewLearningItem(entry.learningItem)) summary.newCount += 1;
-    else if (inProgress) summary.inProgressCount += 1;
-    else summary.dueCount += 1;
+    const kind = classifyDailyReviewProgress(entry.learningItem.reviewState, reviewedTodayKeys.has(key), now, options);
+    summary[dailyReviewProgressCountKey[kind]] += 1;
   }
 
   return summary;
+}
+
+export function classifyDailyReviewProgress(
+  reviewState: Partial<ReviewState> | null | undefined,
+  reviewedToday: boolean,
+  now: DateInput,
+  options: ReviewServiceOptions = {},
+): DailyReviewProgressKind {
+  const state = reviewState?.state;
+  const inProgress = state === "learning" || state === "relearning";
+  const dueOnFutureDay = (learningDayKey(reviewState?.dueAt ?? now, options) ?? "") > getLocalReviewDateKey(now, options);
+
+  if (reviewedToday && (!inProgress || dueOnFutureDay)) return "completed";
+  if (!reviewedToday && state === "new" && stateReps(reviewState ?? {}) === 0) return "new";
+  if (inProgress) return "in-progress";
+  return "due";
+}
+
+export function moveDailyReviewProgress(
+  progress: DailyReviewProgressSummary,
+  from: DailyReviewProgressKind | null,
+  to: DailyReviewProgressKind | null,
+): DailyReviewProgressSummary {
+  if (from === to) return progress;
+  const next = { ...progress };
+  if (from) {
+    const countKey = dailyReviewProgressCountKey[from];
+    next[countKey] = Math.max(0, next[countKey] - 1);
+  }
+  if (to) {
+    const countKey = dailyReviewProgressCountKey[to];
+    next[countKey] += 1;
+  }
+  next.total = next.completedTodayCount + next.newCount + next.inProgressCount + next.dueCount;
+  return next;
 }
 
 function updateCoreStateFromReview(card: LearningItem, reviewState: ReviewState, updatedAt = new Date().toISOString()): LearningItem {
@@ -765,11 +802,11 @@ export function reconcileDailyReviewSessionState(
 }
 
 export function removeDailyReviewSessionItem(session: DailyReviewSessionState, key: string): DailyReviewSessionState {
-  const completed = session.completedInitialKeys.includes(key);
   return {
     ...session,
-    initialKeys: completed ? session.initialKeys : session.initialKeys.filter((candidate) => candidate !== key),
+    initialKeys: session.initialKeys.filter((candidate) => candidate !== key),
     remainingInitialKeys: session.remainingInitialKeys.filter((candidate) => candidate !== key),
+    completedInitialKeys: session.completedInitialKeys.filter((candidate) => candidate !== key),
     repeatKeys: session.repeatKeys.filter((candidate) => candidate !== key),
   };
 }

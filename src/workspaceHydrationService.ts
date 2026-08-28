@@ -236,6 +236,7 @@ export function createWorkspaceHydrationService({
 
   const prepareStudyWindow = async (deckIds: string[], options: StudyWindowOptions = {}) => {
     const bufferSize = constrainedConnection() ? 5 : 50;
+    const catalogPageSize = 50;
     const now = options.now ?? new Date().toISOString();
     const currentTime = Date.parse(now);
     const catalogEntries: CardCatalogEntry[] = [];
@@ -243,7 +244,7 @@ export function createWorkspaceHydrationService({
     for (const deckId of deckIds) {
       if (isOnline()) {
         try {
-          await fetchCatalogPage({ deckId, page: 0, pageSize: bufferSize, sort: { field: "nextStudyDate", direction: "asc" } });
+          await fetchCatalogPage({ deckId, page: 0, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } });
         } catch {
           // A locally available study window remains usable while catalog refresh waits for retry.
         }
@@ -251,22 +252,22 @@ export function createWorkspaceHydrationService({
       const cursor = options.cursorByDeck?.[deckId];
       const cursorDueAt = cursor ? Date.parse(cursor.dueAt) : Number.NaN;
       for (let page = 0; catalogEntries.filter((entry) => entry.deckId === deckId).length < bufferSize; page += 1) {
-        const local = await repository.listCatalogPage(deckId, { page, pageSize: bufferSize, sort: { field: "nextStudyDate", direction: "asc" } });
+        const local = await repository.listCatalogPage(deckId, { page, pageSize: catalogPageSize, sort: { field: "nextStudyDate", direction: "asc" } });
         catalogEntries.push(...local.items.filter((entry) => !cursor || isAfterStudyCursor(entry, cursor, currentTime, cursorDueAt)));
         catalogHasMore ||= local.hasMore;
         if (!local.hasMore) break;
       }
     }
     const currentDayKey = getLearningDayKey(now, options);
-    const nextIds = catalogEntries
+    const availableIds = catalogEntries
       .filter((entry) => isCatalogEntryAvailable(entry, currentDayKey, options))
       .sort((left, right) => {
         const leftOrder = studyCatalogOrder(left, currentTime);
         const rightOrder = studyCatalogOrder(right, currentTime);
         return leftOrder[0] - rightOrder[0] || leftOrder[1] - rightOrder[1] || leftOrder[2].localeCompare(rightOrder[2]);
       })
-      .slice(0, bufferSize)
       .map((entry) => entry.id);
+    const nextIds = availableIds.slice(0, bufferSize);
     const initialWindow = Object.keys(options.cursorByDeck ?? {}).length === 0;
     const hydrationIds = initialWindow ? nextIds.slice(0, 1) : nextIds;
     if (hydrationIds.length > 0) {
@@ -293,7 +294,12 @@ export function createWorkspaceHydrationService({
     }
     await repository.touchCardBodies(session.cards.map(({ item }) => item.id), new Date(Date.now() + 60 * 60 * 1000).toISOString());
     markReplicaStartupGate("workingSetReady", { cardCount: session.cards.length, bufferSize });
-    return { ...session, cursorByDeck, hasMore: session.hasMore || catalogHasMore || nextIds.length > hydrationIds.length, bufferSize };
+    return {
+      ...session,
+      cursorByDeck,
+      hasMore: session.hasMore || catalogHasMore || availableIds.length > hydrationIds.length,
+      bufferSize,
+    };
   };
 
   const downloadDeck = async (deckId: string, onProgress?: (progress: DownloadProgress) => void) => {
