@@ -2,8 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck } from "../coreModel.ts";
+import { createDeckPlacementValidator } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
-import { DeckTree } from "./DeckTree.tsx";
+import { DeckTree, resolveDeckDropIntent } from "./DeckTree.tsx";
 
 const decks = [
   createCoreDeck({ id: "root", name: "Bereich", hierarchyPath: ["Bereich"], source: "manual", cards: [] }),
@@ -17,6 +18,17 @@ const decks = [
   }),
 ];
 const rows = createDeckLibraryModel(decks).rows;
+
+function createEightLevelDecks() {
+  return Array.from({ length: 8 }, (_, index) => createCoreDeck({
+    id: `level-${index + 1}`,
+    parentDeckId: index === 0 ? null : `level-${index}`,
+    name: `Ebene ${index + 1}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
+    cards: [],
+  }));
+}
 
 test("deck tree keeps one visual header and all three accessibly labelled metrics in every row", () => {
   const markup = renderToStaticMarkup(
@@ -98,6 +110,28 @@ test("deck tree maps eight visible levels to group depths and clamps anything de
     assert.match(markup, new RegExp(`data-testid="learn-deck-row-depth-${depth + 1}"[^>]*data-deck-depth="${depth}"`));
   }
   assert.match(markup, /data-testid="learn-deck-row-depth-9"[^>]*data-deck-depth="7"/);
+});
+
+test("dropping onto level eight places a fitting deck beside the hovered target", () => {
+  const deepDecks = createEightLevelDecks();
+  const movedDeck = createCoreDeck({ id: "moved", name: "Verschieben", source: "manual", cards: [] });
+
+  assert.deepEqual(resolveDeckDropIntent([...deepDecks, movedDeck], "level-8", createDeckPlacementValidator([...deepDecks, movedDeck], movedDeck.id)), {
+    targetDeckId: "level-7",
+    hoveredDeckId: "level-8",
+    error: null,
+  });
+});
+
+test("dropping a taller tree onto level eight still preserves the depth limit", () => {
+  const deepDecks = createEightLevelDecks();
+  const movedDeck = createCoreDeck({ id: "moved", name: "Verschieben", source: "manual", cards: [] });
+  const movedChild = createCoreDeck({ id: "moved-child", parentDeckId: movedDeck.id, name: "Kind", hierarchyPath: ["Verschieben", "Kind"], source: "manual", cards: [] });
+  const allDecks = [...deepDecks, movedDeck, movedChild];
+  const intent = resolveDeckDropIntent(allDecks, "level-8", createDeckPlacementValidator(allDecks, movedDeck.id));
+
+  assert.match(intent.error ?? "", /acht Stapel-Ebenen/);
+  assert.equal(intent.targetDeckId, "level-8");
 });
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {

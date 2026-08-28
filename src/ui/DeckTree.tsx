@@ -1,7 +1,7 @@
 import React from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { createPortal } from "react-dom";
-import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
+import { createDeckPlacementValidator, DECK_DEPTH_ERROR, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode } from "../coreTypes.ts";
 import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
@@ -24,6 +24,7 @@ export interface DeckTreeProps {
 
 interface DropIntent {
   targetDeckId: string | null;
+  hoveredDeckId: string | null;
   error: string | null;
 }
 
@@ -55,6 +56,26 @@ interface DragFocusLayout {
 type TopLevelPlacement = "sidebar" | "bottom-bar";
 
 const POINTER_DRAG_THRESHOLD = 6;
+
+export function resolveDeckDropIntent(
+  decks: DeckLibraryRow["deck"][],
+  hoveredDeckId: string | null,
+  validatePlacement: ReturnType<typeof createDeckPlacementValidator>,
+): DropIntent {
+  const error = validatePlacement(hoveredDeckId);
+  if (error === DECK_DEPTH_ERROR && hoveredDeckId) {
+    const hoveredDeck = decks.find((deck) => deck.id === hoveredDeckId);
+    if (hoveredDeck?.hierarchyPath.length === MAX_INTERACTIVE_DECK_LEVELS && hoveredDeck.parentDeckId) {
+      const siblingParentId = hoveredDeck.parentDeckId;
+      const siblingError = validatePlacement(siblingParentId);
+      if (!siblingError) {
+        return { targetDeckId: siblingParentId, hoveredDeckId, error: null };
+      }
+    }
+  }
+
+  return { targetDeckId: hoveredDeckId, hoveredDeckId, error };
+}
 
 function viewportRect(element: Element | null, inset = 0): ViewportRect | null {
   if (!element) return null;
@@ -213,10 +234,9 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
   function deckDropIntent(targetDeckId: string | null): DropIntent {
     const drag = pointerDragRef.current;
     const currentIntent = drag?.intent;
-    if (currentIntent?.targetDeckId === targetDeckId) return currentIntent;
+    if (currentIntent?.hoveredDeckId === targetDeckId) return currentIntent;
     const validatePlacement = drag?.validatePlacement ?? createDeckPlacementValidator(decks, drag?.deckId ?? "");
-    const error = validatePlacement(targetDeckId);
-    return { targetDeckId, error };
+    return resolveDeckDropIntent(decks, targetDeckId, validatePlacement);
   }
 
   function finishDeckMove(sourceDeckId: string, intent: DropIntent) {
@@ -230,7 +250,11 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
     if (result?.error) setDragStatus(result.error);
     else if (!result || result.changedDeckIds.length === 0) setDragStatus("Stapel bleibt an dieser Stelle.");
     else {
-      setDragStatus(intent.targetDeckId ? "Stapel als Unterstapel verschoben." : "Stapel auf die Hauptebene verschoben.");
+      setDragStatus(intent.targetDeckId !== intent.hoveredDeckId
+        ? "Stapel neben dem Zielstapel eingeordnet."
+        : intent.targetDeckId
+          ? "Stapel als Unterstapel verschoben."
+          : "Stapel auf die Hauptebene verschoben.");
       const targetDeckId = intent.targetDeckId;
       if (targetDeckId && collapsedDeckIdSet.has(targetDeckId)) setDeckExpanded(targetDeckId, true);
     }
@@ -281,7 +305,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
     }
     event.preventDefault();
     const intent = pointerDropIntent(event.clientX, event.clientY);
-    if (intent?.targetDeckId === drag.intent?.targetDeckId && intent?.error === drag.intent?.error) return;
+    if (intent?.hoveredDeckId === drag.intent?.hoveredDeckId && intent?.error === drag.intent?.error) return;
     drag.intent = intent;
     setDropIntent(intent);
     measureDragFocusLayout();
@@ -317,7 +341,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
   function renderRow(row: DeckLibraryRow): React.ReactNode {
     const isCollapsed = collapsedDeckIdSet.has(row.id);
     const isDragged = draggedDeckId === row.id;
-    const isDropTarget = dropIntent?.targetDeckId === row.id;
+    const isDropTarget = dropIntent?.hoveredDeckId === row.id;
     const activationLabel = `${row.path} lernen`;
     const collapseControl = row.hasChildren ? (
       <button

@@ -276,8 +276,14 @@ test("active deck header and rows fit every target width and toggle reliably on 
   const rootLeafRow = page.getByTestId("learn-deck-list").locator('[data-deck-row="true"]').filter({ hasText: rootLeafName });
   await expect(rootLeafRow).toBeVisible();
   const widths = [1440, 1280, 1279, 1152, 1024, 900, 820, 768, 700, 640, 639, 523, 459, 390, 320];
+  let mixedNameWrappingSeen = false;
   for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
+    await expect.poll(() => page.getByTestId("learn-deck-list").locator('[data-deck-row="true"]').evaluateAll((deckRows) => deckRows.every((row) => {
+      const deckName = row.querySelector<HTMLElement>(".core-deck-summary-name")!;
+      const measurement = row.querySelector<HTMLElement>(".core-deck-summary-name-measure")!;
+      return (measurement.getBoundingClientRect().width > deckName.clientWidth + 0.5) === (deckName.dataset.deckNameWrap === "true");
+    }))).toBe(true);
     const layout = await page.getByTestId("learn-deck-list").evaluate((panel, { rootDeckId, rootLeafName }) => {
       const rowViewport = panel.querySelector<HTMLElement>(".overflow-hidden.rounded-2xl");
       const tableHeader = panel.querySelector<HTMLElement>('[data-testid="deck-summary-header"] > div')!;
@@ -294,6 +300,9 @@ test("active deck header and rows fit every target width and toggle reliably on 
       const deckRows = [...panel.querySelectorAll<HTMLElement>('[data-deck-row="true"]')];
       const rootParentIcon = deckRows.find((row) => row.dataset.deckId === rootDeckId)!.querySelector<HTMLElement>('[data-deck-icon="true"]')!;
       const rootLeafIcon = deckRows.find((row) => row.dataset.deckDepth === "0" && row.querySelector(".core-deck-summary-name")?.textContent === rootLeafName)!.querySelector<HTMLElement>('[data-deck-icon="true"]')!;
+      const nameWrapping = deckRows.map((row) => (
+        row.querySelector<HTMLElement>(".core-deck-summary-name")!.dataset.deckNameWrap === "true"
+      ));
       const rowStatusColumns = [
         ...firstRow.querySelectorAll<HTMLElement>("[data-deck-count]"),
         firstRow.querySelector<HTMLElement>(".core-donut-responsive")!,
@@ -341,6 +350,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
         collapseSurfaceIconGap: rootParentIconRect.left - collapseSurfaceLeft - collapseSurfaceWidth,
         collapseChevronCenterOffset: collapseChevronRect.left + collapseChevronRect.width / 2 - collapseSurfaceLeft - collapseSurfaceWidth / 2,
         rootIconOffset: rootParentIconRect.x - rootLeafIconRect.x,
+        nameWrapping,
         statusGapSpread: gapSpread(rowStatusCenters),
         headerStatusGapSpread: gapSpread(headerStatusCenters),
         headerRowAlignment: Math.max(...rowStatusCenters.map((center, index) => Math.abs(center - headerStatusCenters[index]))),
@@ -360,6 +370,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.collapseSurfaceIconGap).toBeGreaterThanOrEqual(2);
     expect(layout.collapseChevronCenterOffset).toBeCloseTo(0, 0);
     expect(layout.rootIconOffset).toBeCloseTo(0, 0);
+    if (layout.nameWrapping.some(Boolean) && layout.nameWrapping.some((wraps) => !wraps)) mixedNameWrappingSeen = true;
     expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
     expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
@@ -376,6 +387,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
     }
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
+  expect(mixedNameWrappingSeen).toBe(true);
 
   await page.setViewportSize({ width: 390, height: 844 });
   await rootRow.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte ausblenden" }).click();

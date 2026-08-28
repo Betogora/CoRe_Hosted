@@ -79,10 +79,9 @@ test("heatmap keeps its control group intact across responsive widths", () => {
   assert.match(mobileControls, /\.core-segmented-control-option[\s\S]*?padding-inline: 0\.375rem/);
 });
 
-test("deck names use at most two lines in narrow summary containers", () => {
+test("only individually overflowing deck names use at most two lines", () => {
   assert.match(styles, /\.core-deck-summary-name\s*\{[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/);
-  const narrowDeckSummary = styles.match(/@container core-deck-summary \(max-width: 32rem\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
-  assert.match(narrowDeckSummary, /\.core-deck-summary-name\s*\{[\s\S]*?-webkit-line-clamp:\s*2;[\s\S]*?white-space:\s*normal;/);
+  assert.match(styles, /\.core-deck-summary-name\[data-deck-name-wrap="true"\]\s*\{[\s\S]*?-webkit-line-clamp:\s*2;[\s\S]*?white-space:\s*normal;/);
 });
 
 test("group depths darken in light mode and lighten in dark mode", () => {

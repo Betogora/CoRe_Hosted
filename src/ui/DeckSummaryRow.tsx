@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { GitBranch } from "lucide-react";
 import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import type { DeckLibraryRow, DeckStatusDistribution } from "../libraryModel.ts";
@@ -21,6 +21,46 @@ const DECK_STATUS_DEFINITIONS = [
 ] as const;
 
 const DECK_DEPTH_INDENT_PX = 16;
+const useDeckNameLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
+function AdaptiveDeckName({ name, className }: { name: string; className: string }) {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const measurementRef = useRef<HTMLSpanElement>(null);
+  const [wraps, setWraps] = useState(false);
+
+  useDeckNameLayoutEffect(() => {
+    const container = containerRef.current;
+    const measurement = measurementRef.current;
+    if (!container || !measurement) return undefined;
+
+    const synchronize = () => {
+      const nextWraps = measurement.getBoundingClientRect().width > container.clientWidth + 0.5;
+      setWraps((current) => current === nextWraps ? current : nextWraps);
+    };
+    synchronize();
+
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(synchronize);
+    observer?.observe(container);
+    document.fonts?.addEventListener("loadingdone", synchronize);
+    return () => {
+      observer?.disconnect();
+      document.fonts?.removeEventListener("loadingdone", synchronize);
+    };
+  }, [name]);
+
+  return (
+    <>
+      <span
+        ref={containerRef}
+        className={`core-deck-summary-name min-w-0 flex-1 ${className}`}
+        data-deck-name-wrap={wraps ? "true" : "false"}
+      >
+        {name}
+      </span>
+      <span ref={measurementRef} className={`core-deck-summary-name-measure ${className}`} aria-hidden="true">{name}</span>
+    </>
+  );
+}
 
 export interface DeckSummaryRowProps {
   row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "sourcePath" | "depth">;
@@ -100,7 +140,10 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, d
             iconSize={compact ? 15 : 18}
           />
           <span className="flex min-w-0 flex-1 items-center gap-1">
-            <span className={`core-deck-summary-name min-w-0 flex-1 font-semibold text-[var(--core-text)] ${compactAtBase ? "core-body" : "core-body-large"}`}>{row.name}</span>
+            <AdaptiveDeckName
+              name={row.name}
+              className={`font-semibold text-[var(--core-text)] ${compactAtBase ? "core-body" : "core-body-large"}`}
+            />
             {row.sourcePath ? (
               <CoreTooltip label="Tiefere Anki-Unterteilung wurde abgeflacht">
                 <span

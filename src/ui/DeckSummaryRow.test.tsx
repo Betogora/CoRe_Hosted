@@ -22,6 +22,8 @@ test("deck summary row keeps responsive identity, accessible metrics and compact
 
   assert.match(markup, /data-deck-summary-row-content="compact"/);
   assert.match(markup, /core-deck-summary-name/);
+  assert.match(markup, /data-deck-name-wrap="false"/);
+  assert.match(markup, /core-deck-summary-name-measure/);
   assert.doesNotMatch(markup, /truncate whitespace-nowrap/);
   assert.doesNotMatch(markup, />Herkunft \/ Ein sehr langer Unterstapelname</);
   for (const metric of ["new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-deck-count="${metric}"`));

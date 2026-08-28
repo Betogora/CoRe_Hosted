@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: dca2271fd0cb5bca */
+/* Quellenstand: 40c91ad28fa4a82d */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -2026,9 +2026,26 @@ button[aria-label] {
   white-space: nowrap;
 }
 
+.core-deck-summary-name[data-deck-name-wrap="true"] {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+}
+
+.core-deck-summary-name-measure {
+  position: fixed;
+  inset: 0 auto auto 0;
+  width: -moz-max-content;
+  width: max-content;
+  visibility: hidden;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
 .core-deck-summary-responsive {
-  -moz-column-gap: 0.375rem;
-       column-gap: 0.375rem;
+  -moz-column-gap: 0.125rem;
+       column-gap: 0.125rem;
   padding-inline: 0.25rem;
 }
 
@@ -2048,13 +2065,6 @@ button[aria-label] {
 }
 
 @container core-deck-summary (max-width: 32rem) {
-  .core-deck-summary-name {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    white-space: normal;
-  }
-
   .core-deck-summary-responsive {
     -moz-column-gap: 0;
          column-gap: 0;
