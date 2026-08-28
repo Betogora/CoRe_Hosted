@@ -1,7 +1,17 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, SegmentedDonut } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, PageHeader, SegmentedDonut } from "./coreUi.tsx";
+
+test("page header keeps an optional action beside its title block", () => {
+  const markup = renderToStaticMarkup(
+    <PageHeader eyebrow="Review" title="Lernen" action={<button type="button">Bereich</button>} />,
+  );
+
+  assert.match(markup, /core-page-header-with-action/);
+  assert.match(markup, /core-page-header-action/);
+  assert.ok(markup.indexOf("Lernen") < markup.indexOf("Bereich"));
+});
 
 test("action dialog exposes its accessible three-action contract", () => {
   const markup = renderToStaticMarkup(

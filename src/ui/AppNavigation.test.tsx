@@ -36,9 +36,9 @@ test("sync action exposes the current state in both navigation layouts", () => {
   assert.equal((singularConflict.match(/aria-label="1 Synchronisierungskonflikt klären"/g) ?? []).length, 2);
 });
 
-test("app navigation exposes a desktop sidebar and the five mobile tabs", () => {
+test("app navigation exposes four primary entries and marks learning active for the hidden cards route", () => {
   const markup = renderNavigation("kartenstapel");
-  const expectedTabOrder = ["Heute", "Lernen", "Erstellen", "Karten", "Statistik"];
+  const expectedTabOrder = ["Heute", "Lernen", "Erstellen", "Statistik"];
 
   assert.match(markup, /data-navigation-layout="sidebar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
@@ -52,10 +52,12 @@ test("app navigation exposes a desktop sidebar and the five mobile tabs", () => 
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
     assert.ok(bottomBarMarkup.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < bottomBarMarkup.indexOf(`>${expectedTabOrder[index]}</span>`));
   }
-  assert.match(bottomBarMarkup, /lucide-layers/);
-  assert.match(bottomBarMarkup, />Karten<\/span>/);
+  assert.match(bottomBarMarkup, /grid-cols-4/);
+  assert.doesNotMatch(bottomBarMarkup, /lucide-layers/);
+  assert.doesNotMatch(bottomBarMarkup, />Karten<\/span>/);
   assert.doesNotMatch(bottomBarMarkup, />Mehr<\/span>/);
-  assert.match(bottomBarMarkup, /aria-current="page"/);
+  assert.equal((markup.match(/aria-current="page"/g) ?? []).length, 2);
+  assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
   assert.match(markup, /left-\[50dvw\]/);
   assert.match(markup, /w-\[calc\(100dvw-4rem\)\]/);
   assert.match(markup, /sm:w-\[calc\(100dvw-6rem\)\]/);

@@ -116,7 +116,8 @@ async function finishManualCreation(page: Page, deckName: string, expectedCardCo
 
 async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
 }
 
@@ -166,7 +167,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await waitForCloudCard(deck.id, copiedCard.id, (card) => card.originalFront.includes("(Kopie)"));
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Basic Frage neu");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
@@ -434,7 +435,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   expect(savedCard.contentDocument.interaction.choice.correctAnswers).toEqual(["Gamma neu"]);
   expect(savedCard.contentDocument.interaction.choice.explanation).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   const detail = page.getByTestId("card-detail-aside");
   if (!await detail.isVisible().catch(() => false)) await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
@@ -466,7 +467,8 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   const reviewStateBeforeReimport = importedCard.reviewState;
   const learningItemStateBeforeReimport = importedCard.learningItemState;
   await page.getByRole("button", { name: "Zur Übersicht" }).click();
-  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
   await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Welches Organell erzeugt ATP");

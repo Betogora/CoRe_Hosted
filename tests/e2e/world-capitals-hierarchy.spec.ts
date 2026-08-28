@@ -659,7 +659,7 @@ test("a real click immediately after drag starts learning", async ({ page }) => 
 test("deck management disables direct drag and shares the confirmed keyboard move", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
 
   const rootRow = page.getByTestId(`deck-header-${DECK_IDS.root}`);
   const southAmericaRow = page.getByTestId(`deck-header-${DECK_IDS.southAmerica}`);
@@ -739,7 +739,7 @@ test("three-dot actions share the local-name tooltip across dashboard, learning 
   await expect(learningMenu).not.toContainText("Welt-Hauptstädte / Afrika");
   await page.keyboard.press("Escape");
 
-  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   const managementOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(managementOptions).not.toHaveAttribute("title");
   await managementOptions.focus();

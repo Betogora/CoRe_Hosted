@@ -3,10 +3,11 @@ import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { DECK_DEPTH_ERROR, MAX_INTERACTIVE_DECK_LEVELS } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
-import { EmptyState, PageHeader } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, EmptyState, PageHeader } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
+import { learnAreaOptions, type LearnArea } from "./screenConstants.ts";
 
 function createDefaultDeckDraft(parentDeckId = "") {
   return {
@@ -127,6 +128,17 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
       <PageHeader
         eyebrow="Review"
         title="Lernen"
+        action={
+          <CoreSegmentedControl<LearnArea>
+            ariaLabel="Bereich in Lernen"
+            options={learnAreaOptions}
+            value="overview"
+            onValueChange={(area) => {
+              if (area === "cards") onOpenDecks(focusedDeckId);
+            }}
+            className="core-learning-area-control"
+          />
+        }
       />
 
       <DeckTree

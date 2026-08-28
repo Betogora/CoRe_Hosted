@@ -89,11 +89,15 @@ test("cards page renders sortable collapsed deck sections without learning metri
   const decks = [originalDeck, child, grandchild, greatGrandchild, deeperImport, secondRoot];
   const markup = renderScreen(decks);
 
-  assert.match(markup, /<h2[^>]*>Karten<\/h2>/);
-  assert.match(markup, /<h3[^>]*>Kartenverwaltung<\/h3>/);
+  assert.match(markup, /<h2[^>]*>Lernen<\/h2>/);
+  assert.match(markup, /aria-label="Bereich in Lernen"[^>]*data-size="regular"/);
+  assert.match(markup, /aria-pressed="false"[^>]*>Stapelübersicht<\/button>/);
+  assert.match(markup, /aria-pressed="true"[^>]*>Kartenverwaltung<\/button>/);
+  assert.match(markup, /<h3[^>]*>Aktive Stapel<\/h3>/);
   assert.match(markup, /data-testid="card-library-panel"/);
   assert.match(markup, /data-testid="card-library-table"/);
-  assert.ok(markup.indexOf("Kartenverwaltung") < markup.indexOf('aria-label="Karten durchsuchen"'));
+  assert.ok(markup.indexOf("Aktive Stapel") < markup.indexOf("Karten durchsuchen"));
+  assert.ok(markup.indexOf("Karten durchsuchen") < markup.indexOf('aria-label="Karten durchsuchen"'));
   assert.ok(markup.indexOf('aria-label="Karten durchsuchen"') < markup.indexOf('data-testid="card-library-table"'));
   assert.match(markup, /Sortierfeld/);
   assert.match(markup, /Datum/);

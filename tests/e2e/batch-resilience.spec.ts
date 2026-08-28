@@ -179,7 +179,8 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   expect(state.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards).toHaveLength(6);
 
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
   for (let index = 1; index <= 5; index += 1) {
     await expect(page.getByText(`Batch-Frage ${index}`, { exact: true })).toBeVisible();
   }
@@ -289,7 +290,7 @@ test("[Vertrag: Offline-Medien] genau eine lokale Karte erhält eine eindeutige 
 
 test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und Auswirkungen bleiben sichtbar", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
   await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
@@ -359,7 +360,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
 
 test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Reconnect nicht reaktiviert", async ({ page, context }) => {
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await mainMenu(page).getByRole("button", { name: "Karten" }).click();
+  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   const targetState = await readActiveAccountState(page);
   const existingCardId = targetState.decks.find((deck: Deck) => deck.id === DECK_IDS.target).cards[0].id;
   await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
@@ -391,7 +392,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
   await client.auth.signOut({ scope: "local" });
   client.auth.dispose?.();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
 });
 

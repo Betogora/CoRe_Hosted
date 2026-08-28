@@ -1,5 +1,13 @@
 import { ArrowLeftRight, Braces, CreditCard, Images, ListChecks } from "lucide-react";
 import { RATING_SHORTCUT_KEYS } from "../reviewShortcuts.ts";
+import type { CoreSegmentedControlOption } from "../ui/coreUi.tsx";
+
+export type LearnArea = "overview" | "cards";
+
+export const learnAreaOptions: ReadonlyArray<CoreSegmentedControlOption<LearnArea>> = [
+  { value: "overview", label: "Stapelübersicht" },
+  { value: "cards", label: "Kartenverwaltung" },
+];
 
 export const importSteps = [
   { id: "analyze", label: "Analysieren" },

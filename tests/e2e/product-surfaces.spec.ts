@@ -10,7 +10,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await resetToFreshLocalState(page);
 
   const menu = mainMenu(page);
-  await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Erstellen", "Karten", "Statistik"]);
+  await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Erstellen", "Statistik"]);
   for (const retired of ["Graph", "Community", "Assistent", "KI-Jobs", "Lernplan"]) {
     await expect(page.getByRole("button", { name: new RegExp(retired, "i") })).toHaveCount(0);
   }
@@ -548,7 +548,8 @@ test("mobile bottom navigation stays viewport-fixed and keeps its width on short
   expect(Math.abs(longPageBottom!.width - longPageTop!.width)).toBeLessThanOrEqual(1);
 
   await page.goto("/kartenstapel");
-  await expect(page.getByRole("heading", { name: "Karten", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
   const shortPage = await bottomNavigation.boundingBox();
   expect(shortPage).not.toBeNull();
   expect(Math.abs(shortPage!.x - longPageTop!.x)).toBeLessThanOrEqual(1);

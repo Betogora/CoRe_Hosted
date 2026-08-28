@@ -313,11 +313,14 @@ export function StatTile({
   );
 }
 
-export function PageHeader({ eyebrow, title }: { eyebrow?: ReactNode; title: ReactNode }) {
+export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; title: ReactNode; action?: ReactNode }) {
   return (
-    <header className="min-w-0 space-y-2">
-      {eyebrow ? <p className="core-control-label uppercase tracking-wide text-core-action">{eyebrow}</p> : null}
-      <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
+    <header className={action ? "core-page-header-with-action flex min-w-0 items-end justify-between gap-3" : "min-w-0"}>
+      <div className="min-w-0 space-y-2">
+        {eyebrow ? <p className="core-control-label uppercase tracking-wide text-core-action">{eyebrow}</p> : null}
+        <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
+      </div>
+      {action ? <div className="core-page-header-action min-w-0 shrink-0">{action}</div> : null}
     </header>
   );
 }

@@ -16,12 +16,12 @@ import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
-import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
+import { cardTypeOptions, formatLevelList, getStateValue, learnAreaOptions, maturityStageLabels, type LearnArea } from "./screenConstants.ts";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardVariant, LearningItem } from "../coreTypes.ts";
 
 interface PendingDetailAction {
@@ -1048,15 +1048,32 @@ export function DecksScreen({
 
   return (
     <div className="relative grid min-w-0 gap-7">
-      <PageHeader title="Karten" />
+      <PageHeader
+        eyebrow="Review"
+        title="Lernen"
+        action={
+          <CoreSegmentedControl<LearnArea>
+            ariaLabel="Bereich in Lernen"
+            options={learnAreaOptions}
+            value="cards"
+            onValueChange={(area) => {
+              if (area === "overview") onOpenLearn(selectedDeckId);
+            }}
+            className="core-learning-area-control"
+          />
+        }
+      />
 
       <SoftPanel className="overflow-hidden p-4 sm:p-7" aria-labelledby="card-library-heading" data-testid="card-library-panel">
         <div className="grid gap-6">
-          <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Kartenverwaltung</h3>
+          <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
           <div className="grid gap-3">
-            <label className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body text-[var(--core-text-muted)] transition">
-              <Search size={17} aria-hidden="true" />
-              <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
+            <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              Karten durchsuchen
+              <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 font-normal text-[var(--core-text-muted)] transition">
+                <Search size={17} aria-hidden="true" />
+                <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
+              </span>
             </label>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (

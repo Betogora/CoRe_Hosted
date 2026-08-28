@@ -41,7 +41,7 @@ const views: MenuView[] = [
     id: "kartenstapel",
     label: "Karten",
     iconKey: "layers",
-    navigation: "primary",
+    navigation: "hidden",
     title: "Karten",
     eyebrow: "",
     stats: [
@@ -117,7 +117,7 @@ const views: MenuView[] = [
     stats: [],
   },
 ];
-const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "kartenstapel", "statistik"];
+const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik"];
 
 function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };

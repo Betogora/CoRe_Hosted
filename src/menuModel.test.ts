@@ -9,7 +9,6 @@ test("lists the navigation items in product order", () => {
     { id: "uebersicht", label: "Heute", iconKey: "home" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
-    { id: "kartenstapel", label: "Karten", iconKey: "layers" },
     { id: "statistik", label: "Statistik", iconKey: "chart" },
   ]);
 });
@@ -38,12 +37,13 @@ test("returns new-card content by id", () => {
   });
 });
 
-test("keeps cards in primary navigation and utility views outside it", () => {
+test("keeps cards routable while primary navigation exposes only the four product entries", () => {
   const menu = createMenuModel();
 
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("kartenstapel").title, "Karten");
+  assert.equal(menu.getView("kartenstapel")?.navigation, "hidden");
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
@@ -52,7 +52,8 @@ test("keeps cards in primary navigation and utility views outside it", () => {
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
   assert.deepStrictEqual(menu.getView("einstellungen")?.stats, []);
-  assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), true);
+  assert.equal(menu.listRoutableViewIds().includes("kartenstapel"), true);
+  assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "simulator"), false);
