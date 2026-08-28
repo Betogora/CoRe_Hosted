@@ -21,15 +21,40 @@ interface StudyWindowOptions {
   now?: string;
   dayStartHour?: number;
   timeZone?: string;
-  cursorByDeck?: Record<string, { dueAt: string; id: string }>;
+  cursorByDeck?: Record<string, StudyWindowCursor>;
+}
+
+export interface StudyWindowCursor {
+  dueAt: string;
+  id: string;
+  queueRank?: number;
 }
 
 function studyCatalogOrder(entry: CardCatalogEntry, now: string) {
   const dueAt = entry.dueAt ? Date.parse(entry.dueAt) : Number.POSITIVE_INFINITY;
   const current = Date.parse(now);
   if (entry.scheduleState !== "new" && Number.isFinite(dueAt) && dueAt <= current) return [0, dueAt, entry.id] as const;
-  if (entry.scheduleState === "new") return [1, Number.POSITIVE_INFINITY, entry.id] as const;
+  if (entry.scheduleState === "new") return [1, dueAt, entry.id] as const;
   return [2, dueAt, entry.id] as const;
+}
+
+function isAfterStudyCursor(entry: CardCatalogEntry, cursor: StudyWindowCursor, now: string) {
+  const [queueRank, dueAt, id] = studyCatalogOrder(entry, now);
+  if (cursor.queueRank == null) {
+    const entryDueAt = entry.dueAt ?? "9999-12-31T23:59:59.999Z";
+    return entryDueAt > cursor.dueAt || (entryDueAt === cursor.dueAt && entry.id > cursor.id);
+  }
+  if (queueRank !== cursor.queueRank) return queueRank > cursor.queueRank;
+  const cursorDueAt = Date.parse(cursor.dueAt);
+  return dueAt > cursorDueAt || (dueAt === cursorDueAt && id > cursor.id);
+}
+
+function studyCursorFor(entry: CardCatalogEntry, now: string): StudyWindowCursor {
+  return {
+    dueAt: entry.dueAt ?? "9999-12-31T23:59:59.999Z",
+    id: entry.id,
+    queueRank: studyCatalogOrder(entry, now)[0],
+  };
 }
 
 function isCatalogEntryAvailable(entry: CardCatalogEntry, currentDayKey: string | null, options: Pick<StudyWindowOptions, "dayStartHour" | "timeZone">) {
@@ -227,11 +252,7 @@ export function createWorkspaceHydrationService({
       const cursor = options.cursorByDeck?.[deckId];
       for (let page = 0; catalogEntries.filter((entry) => entry.deckId === deckId).length < bufferSize; page += 1) {
         const local = await repository.listCatalogPage(deckId, { page, pageSize: bufferSize, sort: { field: "nextStudyDate", direction: "asc" } });
-        catalogEntries.push(...local.items.filter((entry) => {
-          if (!cursor) return true;
-          const dueAt = entry.dueAt ?? "9999-12-31T23:59:59.999Z";
-          return dueAt > cursor.dueAt || (dueAt === cursor.dueAt && entry.id > cursor.id);
-        }));
+        catalogEntries.push(...local.items.filter((entry) => !cursor || isAfterStudyCursor(entry, cursor, now)));
         catalogHasMore ||= local.hasMore;
         if (!local.hasMore) break;
       }
@@ -259,17 +280,20 @@ export function createWorkspaceHydrationService({
     if (hydrationIds.length > 0 && session.cards.length === 0) {
       const loaded = (await Promise.all(hydrationIds.map((id) => repository.loadCard(id)))).filter((card): card is LearningItem => Boolean(card));
       if (loaded.length === 0) throw new Error("Fällige Karten konnten nicht geladen werden; sie wurden nicht übersprungen.");
-      const cursorByDeck = { ...(options.cursorByDeck ?? {}) };
-      for (const card of loaded) cursorByDeck[card.deckId] = { dueAt: card.reviewState.dueAt ?? "9999-12-31T23:59:59.999Z", id: card.id };
       session = {
         ...session,
         cards: loaded.map((item) => ({ deckId: item.deckId, item })),
-        cursorByDeck,
       };
+    }
+    const catalogById = new Map(catalogEntries.map((entry) => [entry.id, entry]));
+    const cursorByDeck = { ...(options.cursorByDeck ?? {}) };
+    for (const { deckId, item } of session.cards) {
+      const entry = catalogById.get(item.id);
+      if (entry) cursorByDeck[deckId] = studyCursorFor(entry, now);
     }
     await repository.touchCardBodies(session.cards.map(({ item }) => item.id), new Date(Date.now() + 60 * 60 * 1000).toISOString());
     markReplicaStartupGate("workingSetReady", { cardCount: session.cards.length, bufferSize });
-    return { ...session, hasMore: session.hasMore || catalogHasMore || nextIds.length > hydrationIds.length, bufferSize };
+    return { ...session, cursorByDeck, hasMore: session.hasMore || catalogHasMore || nextIds.length > hydrationIds.length, bufferSize };
   };
 
   const downloadDeck = async (deckId: string, onProgress?: (progress: DownloadProgress) => void) => {

@@ -18,7 +18,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
     { ...alpha, reviewState: dueReviewState },
     createBasicLearningItem("deck-hydration", "Beta", "Antwort Beta", {
       id: "card-beta",
-      reviewState: { state: "new", dueAt: "2026-08-17T09:00:00.000Z", reps: 0 },
+      reviewState: { state: "new", dueAt: "2026-08-17T08:00:00.000Z", reps: 0 },
     }),
   ];
   const deck = createCoreDeck({ id: "deck-hydration", ownerId: userId, name: "Hydration", source: "manual", cards });
@@ -40,7 +40,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
     front_preview: card.originalFront,
     normalized_search_text: card.originalFront.toLowerCase(),
     sort_text: card.originalFront.toLowerCase(),
-    due_at: "2026-08-17T09:00:00.000Z",
+    due_at: index === 0 ? "2026-08-17T09:00:00.000Z" : "2026-08-17T08:00:00.000Z",
     schedule_state: index === 0 ? "review" : "new",
     maturity_band: index === 0 ? "young" : "new",
     reviewable: true,
@@ -90,6 +90,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   assert.deepEqual(hydratedRequests, [["card-alpha"]], "der Lernstart wartet nur auf die erste jetzt lernbare Karte");
   assert.equal(study.cards.length, 1);
   assert.equal(study.cards[0]?.item.id, "card-alpha");
+  assert.equal(study.cursorByDeck[deck.id]?.queueRank, 0);
   assert.equal(study.hasMore, true);
 
   const remainder = await service.prepareStudyWindow([deck.id], {
@@ -99,6 +100,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur die geöffnete Karte", asy
   });
   assert.deepEqual(hydratedRequests, [["card-alpha"], ["card-beta"]], "der Sitzungscursor lädt die restlichen Karten nach");
   assert.deepEqual(remainder.cards.map(({ item }) => item.id), ["card-beta"]);
+  assert.equal(remainder.cursorByDeck[deck.id]?.queueRank, 1);
   assert.equal(remainder.hasMore, false);
   repository.close();
 });

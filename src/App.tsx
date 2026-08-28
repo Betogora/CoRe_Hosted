@@ -35,7 +35,7 @@ import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import { mergeAccountStatisticsSnapshot, type StatisticsDeckSelection, type StatisticsPeriod } from "./statisticsModel.ts";
 import { createMenuModel } from "./menuModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
-import { createWorkspaceHydrationService } from "./workspaceHydrationService.ts";
+import { createWorkspaceHydrationService, type StudyWindowCursor } from "./workspaceHydrationService.ts";
 import type { AccountBaselineState, OfflineDeckRecord } from "./workspaceReplica.ts";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
@@ -215,7 +215,7 @@ export function App() {
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const preparedStudyKeyRef = React.useRef("");
   const preparingStudyKeyRef = React.useRef("");
-  const studyQueueCursorRef = React.useRef<Record<string, { dueAt: string; id: string }>>({});
+  const studyQueueCursorRef = React.useRef<Record<string, StudyWindowCursor>>({});
   const apkgImportSessionRef = React.useRef(apkgImportSession);
   const apkgAccountIdRef = React.useRef<string | null>(null);
   const importCloudTasksRef = React.useRef(new Set<ImportCloudSyncTask>());
@@ -663,7 +663,7 @@ export function App() {
   const loadStudyPreparation = React.useCallback(async (
     deckId: string,
     variantSession: boolean,
-    cursorByDeck: Record<string, { dueAt: string; id: string }> = {},
+    cursorByDeck: Record<string, StudyWindowCursor> = {},
   ) => {
     const shellState = latestStateRef.current;
     if (!workspaceRepository || !shellState) return null;
@@ -722,7 +722,11 @@ export function App() {
       });
       const cursorAdvanced = Object.entries(session.cursorByDeck).some(([candidateDeckId, cursor]) => {
         const previous = nextCursorByDeck[candidateDeckId];
-        return !previous || previous.dueAt !== cursor.dueAt || previous.id !== cursor.id;
+        const queueRank = "queueRank" in cursor ? cursor.queueRank : undefined;
+        return !previous
+          || previous.queueRank !== queueRank
+          || previous.dueAt !== cursor.dueAt
+          || previous.id !== cursor.id;
       });
       if (queue.total > 0 || !session.hasMore || !cursorAdvanced) {
         const definitionIds = decks.flatMap((candidate) => candidate.cards.map((card) => card.noteTypeDefinitionId));

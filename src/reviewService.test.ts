@@ -21,6 +21,36 @@ test("dueAt sperrt Karten aller Lernphasen bis zum gewählten Lerntag", () => {
   assert.equal(onDay.total, 4);
 });
 
+test("eine Tagesqueue vereinigt neue, offene und fällige Karten in der gewählten Reihenfolge", () => {
+  const cards = [
+    cardInPhase("new", "new", "2026-08-21T07:00:00.000Z"),
+    cardInPhase("learning", "learning", "2026-08-21T07:05:00.000Z"),
+    cardInPhase("review", "review", "2026-08-21T07:10:00.000Z"),
+  ];
+  const options = { now: "2026-08-21T08:00:00.000Z", timeZone: "UTC" };
+  const reviewsFirst = createDailyReviewQueue(createCoreDeck({
+    id: "deck",
+    cards,
+    deckSettings: { newReviewOrder: "reviews-first" },
+  }), options);
+  const newFirst = createDailyReviewQueue(createCoreDeck({
+    id: "deck",
+    cards,
+    deckSettings: { newReviewOrder: "new-first" },
+  }), options);
+
+  assert.deepEqual(reviewsFirst.items.map((item) => item.learningItemId), ["learning", "review", "new"]);
+  assert.deepEqual(newFirst.items.map((item) => item.learningItemId), ["new", "learning", "review"]);
+  assert.equal(reviewsFirst.total, 3);
+  assert.deepEqual(reviewsFirst.dailyProgress, {
+    completedTodayCount: 0,
+    newCount: 1,
+    inProgressCount: 1,
+    dueCount: 1,
+    total: 3,
+  });
+});
+
 test("eine normale Bewertung aktualisiert nur den Karten-Lernstatus", () => {
   const card = createBasicLearningItem("deck", "Q", "A");
   const result = answerVariant(createCoreDeck({ id: "deck", cards: [card] }), card.id, null, "good", { now: "2026-08-20T08:00:00.000Z" });
