@@ -117,8 +117,15 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
 
   const saveDraftRef = React.useRef(saveDraft);
   saveDraftRef.current = saveDraft;
+  const discardDraft = React.useCallback(() => {
+    setDraft(baseline);
+    setFeedback("");
+  }, [baseline]);
+  const discardDraftRef = React.useRef(discardDraft);
+  discardDraftRef.current = discardDraft;
   const draftGuard = React.useMemo(() => ({
     save: (scope: DeckSettingsSaveScope = "deck") => saveDraftRef.current(scope),
+    discard: () => discardDraftRef.current(),
   }), []);
 
   React.useEffect(() => {

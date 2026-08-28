@@ -35,6 +35,7 @@ export interface CardDraftGuard {
 
 export interface SettingsDraftGuard {
   save: (scope?: DeckSettingsSaveScope) => Promise<boolean>;
+  discard: () => void;
 }
 
 export type DeckSettingsSaveScope = "deck" | "deck-tree";

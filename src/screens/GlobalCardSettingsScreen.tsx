@@ -82,7 +82,16 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
 
   const saveDraftRef = React.useRef(saveDraft);
   saveDraftRef.current = saveDraft;
-  const draftGuard = React.useMemo(() => ({ save: () => saveDraftRef.current() }), []);
+  const discardDraft = React.useCallback(() => {
+    setDraft(baseline);
+    setErrorMessage("");
+  }, [baseline]);
+  const discardDraftRef = React.useRef(discardDraft);
+  discardDraftRef.current = discardDraft;
+  const draftGuard = React.useMemo(() => ({
+    save: () => saveDraftRef.current(),
+    discard: () => discardDraftRef.current(),
+  }), []);
 
   React.useEffect(() => {
     onDraftStateChange(dirty ? draftGuard : null);

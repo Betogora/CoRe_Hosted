@@ -499,6 +499,15 @@ export function App() {
     }
   }
 
+  function discardSettingsDraft() {
+    const guard = settingsDraftGuardRef.current;
+    if (!guard || savingSettingsDraft !== null) return;
+    guard.discard();
+    settingsDraftGuardRef.current = null;
+    setSettingsDraftOpen(false);
+    setSettingsNavigationBlocked(false);
+  }
+
   React.useEffect(() => {
     if (!settingsDraftOpen) return undefined;
     function warnBeforeUnload(event: BeforeUnloadEvent) {
@@ -2041,6 +2050,7 @@ export function App() {
           ? (focusedDeckId && state.decks.some((deck) => deck.parentDeckId === focusedDeckId) ? "deck-tree" : "deck")
           : "global"}
         onSave={(scope) => { void saveSettingsDraft(scope); }}
+        onDiscard={discardSettingsDraft}
       />
       <ActionDialog
         open={Boolean(pendingNavigation)}

@@ -70,8 +70,15 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
 
   const saveDraftRef = React.useRef(saveDraft);
   saveDraftRef.current = saveDraft;
+  const discardDraft = React.useCallback(() => {
+    setDraft(baseline);
+    setAccountMessage("");
+  }, [baseline]);
+  const discardDraftRef = React.useRef(discardDraft);
+  discardDraftRef.current = discardDraft;
   const draftGuard = React.useMemo(() => ({
     save: () => saveDraftRef.current(),
+    discard: () => discardDraftRef.current(),
   }), []);
 
   React.useEffect(() => {
