@@ -35,6 +35,20 @@ test("liest Karten deterministisch aus dem neuen leeren Namespace", async () => 
   repository.close();
 });
 
+test("liefert nach abgeschlossenem Katalogabgleich die aktuellen Tageszähler", async () => {
+  const repository = await createIndexedDbCoreRepository({ userId: randomUUID(), initialState: workspaceState(3), indexedDb: indexedDB as any });
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
+
+  const partial = await repository.listDeckSummaries({ now: "2026-08-21T12:00:00.000Z", timeZone: "UTC", dayStartHour: 0 });
+  assert.equal(partial.summaries.get("deck-idb")?.dailyProgress.newCount, 0);
+
+  await repository.completeCatalogReconciliation();
+  const reconciled = await repository.listDeckSummaries({ now: "2026-08-21T12:00:00.000Z", timeZone: "UTC", dayStartHour: 0 });
+  assert.equal(reconciled.summaries.get("deck-idb")?.dailyProgress.newCount, 3);
+  assert.equal(reconciled.summaries.get("deck-idb")?.startableCount, 3);
+  repository.close();
+});
+
 test("eine Bewertung aus einer alten Sitzung überschreibt keine neu gespeicherten Stapeleinstellungen", async () => {
   const userId = randomUUID();
   const initialState = workspaceState(1);

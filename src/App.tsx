@@ -662,7 +662,7 @@ export function App() {
       setStudyHeatmap(result.studyHeatmap);
     });
     return () => { active = false; };
-  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, state?.updatedAt, workspaceRepository]);
+  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, state, workspaceRepository]);
 
   const loadStudyPreparation = React.useCallback(async (
     deckId: string,
