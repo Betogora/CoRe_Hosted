@@ -67,11 +67,11 @@ function generationRule(model: Record<string, any>, templateOrdinal: number, fie
       : [];
   const requirement = requirements.find((candidate: any) => Number(candidate.cardOrdinal) === templateOrdinal);
   if (!requirement) return { kind: "always" };
+  if (Number(requirement.kind) === 0) return { kind: "always" };
   const conditions = (requirement.fieldOrdinals ?? [])
     .map((ordinal: unknown) => fields[Number(ordinal)])
     .filter(Boolean)
     .map((field: FieldDefinition) => ({ kind: "field", fieldId: field.id, present: true } as const));
-  if (Number(requirement.kind) === 0) return { kind: "any", conditions: [] };
   return { kind: Number(requirement.kind) === 2 ? "all" : "any", conditions };
 }
 

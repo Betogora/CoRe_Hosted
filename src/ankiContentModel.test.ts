@@ -39,6 +39,34 @@ test("maps arbitrary Anki fields and templates without front/back name or positi
   assert.equal("snapshot" in bundle, false);
 });
 
+test("treats Anki requirement none as an existing card without a field gate", () => {
+  const bundle = createAnkiContentBundle({
+    model: {
+      id: "43",
+      name: "Vorhandene Karte ohne Feldanforderung",
+      config: {
+        format: "protobuf-v18",
+        kind: 0,
+        requirements: [{ cardOrdinal: 0, kind: 0, fieldOrdinals: [] }],
+      },
+      flds: [{ name: "Vorderseite", ord: 0 }, { name: "Rückseite", ord: 1 }],
+      tmpls: [{
+        name: "Karte 1",
+        ord: 0,
+        config: { questionFormat: "{{Vorderseite}}", answerFormat: "{{Rückseite}}" },
+      }],
+    },
+    fieldValues: [{ name: "Vorderseite", value: "Frage" }, { name: "Rückseite", value: "Antwort" }],
+    tags: [],
+    mediaRefs: [],
+    note: { id: "101" },
+    cards: [{ id: "201", ord: 0 }],
+    importFingerprint: "package-none-requirement",
+  });
+
+  assert.deepEqual(bundle.definition.recipes[0].generationRule, { kind: "always" });
+});
+
 test("recognizes Anki's native image-occlusion stock identity without relying on field names", () => {
   const bundle = createAnkiContentBundle({
     model: {

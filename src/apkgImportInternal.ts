@@ -1,5 +1,5 @@
 import { applyLearningItemContent, createCoreDeck, createReviewState, makeId, stableContentHash } from "./coreModel.ts";
-import { projectLearningItemContent } from "./coreModel/learningItemContent.ts";
+import { materializeLearningItemFieldFallback, projectLearningItemContent } from "./coreModel/learningItemContent.ts";
 import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewSchedulerState, ReviewState } from "./coreTypes.ts";
 import { createAnkiContentBundle } from "./ankiContentModel.ts";
 import { stripHtml, stripSanitizedHtml } from "./htmlSafety.ts";
@@ -2175,11 +2175,33 @@ function findExistingImportedDeck(importedDeck: any, existingDecks: any = []) {
   );
 }
 
+function isUntouchedLegacyFieldFallback(incomingCard: any, existingCard: any) {
+  const existingProjection = existingCard?.projection;
+  const incomingProjection = incomingCard?.projection;
+  if (
+    existingCard?.source !== "anki-apkg"
+    || incomingCard?.source !== "anki-apkg"
+    || Number(existingCard?.contentRevision) !== 1
+    || !existingCard?.contentDocument
+    || existingCard?.noteTypeDefinitionId !== incomingCard?.noteTypeDefinitionId
+    || existingProjection?.kind !== "template"
+    || existingProjection.instanceKey !== "fallback"
+    || existingProjection.recipeId !== `${existingCard.noteTypeDefinitionId}-forward`
+    || incomingProjection?.kind !== "template"
+    || incomingProjection.instanceKey === "fallback"
+    || incomingCard.originalFront === incomingCard.originalBack
+  ) return false;
+
+  const fallback = materializeLearningItemFieldFallback(existingCard.contentDocument);
+  return existingCard.originalFront === fallback && existingCard.originalBack === fallback;
+}
+
 function mergeImportedCard(incomingCard: any, existingCard: any) {
   if (!existingCard) return incomingCard;
   const incomingModifiedAt = Date.parse(String(incomingCard.meta?.ankiModifiedAt ?? incomingCard.updatedAt ?? ""));
   const existingModifiedAt = Date.parse(String(existingCard.meta?.ankiModifiedAt ?? existingCard.updatedAt ?? ""));
-  if (Number.isFinite(existingModifiedAt) && (!Number.isFinite(incomingModifiedAt) || incomingModifiedAt <= existingModifiedAt)) return existingCard;
+  const repairsLegacyFallback = isUntouchedLegacyFieldFallback(incomingCard, existingCard);
+  if (!repairsLegacyFallback && Number.isFinite(existingModifiedAt) && (!Number.isFinite(incomingModifiedAt) || incomingModifiedAt <= existingModifiedAt)) return existingCard;
   return {
     ...incomingCard,
     id: existingCard.id,

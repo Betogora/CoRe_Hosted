@@ -16,6 +16,7 @@ import { makeId, stableContentHash } from "./coreValues.ts";
 import { createCoreCard } from "./learningItems.ts";
 import { normalizeLearningItemDocument } from "./learningItemDocument.ts";
 import { compileSafeTemplate } from "../safeTemplate.ts";
+import { hasCardRichTextContent } from "../richText.ts";
 
 export type ContentApplicationReason = "create" | "edit" | "import" | "reimport" | "migration";
 
@@ -226,7 +227,7 @@ export function createCoreNoteTypeDefinition(input: {
 
 function evaluateCondition(condition: TemplateConditionAst, fields: Map<string, string>): boolean {
   if (condition.kind === "always") return true;
-  if (condition.kind === "field") return Boolean(stripHtml(fields.get(condition.fieldId) ?? "").trim()) === condition.present;
+  if (condition.kind === "field") return hasCardRichTextContent(fields.get(condition.fieldId) ?? "") === condition.present;
   return condition.kind === "all"
     ? condition.conditions.every((child) => evaluateCondition(child, fields))
     : condition.conditions.some((child) => evaluateCondition(child, fields));
@@ -280,11 +281,15 @@ function renderChoiceBack(choice: NonNullable<NonNullable<LearningItemDocumentV1
   return `<p><strong>${label}</strong> ${answers}</p>${choice.explanation}`;
 }
 
+export function materializeLearningItemFieldFallback(document: LearningItemDocumentV1): string {
+  return sanitizeCardHtml(document.fields.map((field) =>
+    `<section><h3>${field.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h3>${field.value}</section>`,
+  ).join(""));
+}
+
 function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTypeDefinitionV1): VariantSeed[] {
   const fields = new Map(document.fields.map((field) => [field.id, field.value]));
-  const safeFallback = document.fields.map((field) =>
-    `<section><h3>${field.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h3>${field.value}</section>`,
-  ).join("");
+  const safeFallback = materializeLearningItemFieldFallback(document);
   const seeds: VariantSeed[] = [];
   for (const recipe of definition.recipes) {
     if (!evaluateCondition(recipe.generationRule, fields)) continue;
@@ -298,8 +303,8 @@ function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTy
       seeds.push({
         recipe,
         projection: { kind: "template", recipeId: recipe.id, instanceKey: "safe-fallback" },
-        front: sanitizeCardHtml(safeFallback),
-        back: sanitizeCardHtml(safeFallback),
+        front: safeFallback,
+        back: safeFallback,
       });
       continue;
     }
@@ -317,8 +322,8 @@ function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTy
         seeds.push({
           recipe,
           projection: { kind: "template", recipeId: recipe.id, instanceKey: "safe-fallback" },
-          front: sanitizeCardHtml(safeFallback),
-          back: sanitizeCardHtml(safeFallback),
+          front: safeFallback,
+          back: safeFallback,
         });
         continue;
       }
@@ -382,9 +387,7 @@ export function projectLearningItemContent(input: {
   const seeds = createVariantSeeds(document, definition);
   if (seeds.length === 0) {
     const recipe = createCoreNoteTypeDefinition({ document }).recipes[0];
-    const fallbackHtml = sanitizeCardHtml(document.fields.map((field) =>
-      `<section><h3>${field.name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</h3>${field.value}</section>`,
-    ).join(""));
+    const fallbackHtml = materializeLearningItemFieldFallback(document);
     seeds.push({
       recipe,
       projection: { kind: "template", recipeId: recipe.id, instanceKey: "fallback" },
