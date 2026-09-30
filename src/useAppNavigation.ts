@@ -18,6 +18,7 @@ export interface AppNavigationProjection {
   studyRequest: StudyRoute | null;
   focusedDeckId: string | null;
   selectedCardId: string | null;
+  deckContent: boolean;
   deckCreationParentId: string;
   creationMethod: CreationMethod;
   creationDeckId: string;
@@ -65,6 +66,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     studyRequest: route.mode === "study" ? route : null,
     focusedDeckId: focusedDeckViewIds.has(viewRoute.viewId) ? (viewRoute.focusedDeckId ?? null) : null,
     selectedCardId: viewRoute.viewId === "kartenstapel" ? (viewRoute.selectedCardId ?? null) : null,
+    deckContent: viewRoute.deckContent === true,
     deckCreationParentId: viewRoute.viewId === "lernen" ? (viewRoute.deckCreationParentId ?? "") : "",
     creationMethod: viewRoute.viewId === "neue-karten" ? asCreationMethod(viewRoute.creationMethod) : "",
     creationDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.creationDeckId ?? "") : "",

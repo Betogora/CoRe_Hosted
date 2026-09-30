@@ -106,6 +106,7 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  contentDeckId?: string | null;
   noteTypeDefinitions?: NoteTypeDefinitionV1[];
   now: string;
   dayStartHour?: number;
@@ -173,6 +174,7 @@ export interface LearnScreenProps {
   onFocusDeck: (deckId: string | null) => unknown;
   onOpenCardCreation: () => unknown;
   onOpenDecks: (deckId?: string | null) => unknown;
+  onOpenDeckContent: (deckId: string) => unknown;
   onOpenCardSettings: () => unknown;
   onOpenDeckSettings: (deckId: string) => unknown;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;

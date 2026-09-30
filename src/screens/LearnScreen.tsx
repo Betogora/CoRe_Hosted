@@ -18,7 +18,7 @@ function createDefaultDeckDraft(parentDeckId = "") {
   };
 }
 
-export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
+export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckContent, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
   const [deckStatus, setDeckStatus] = React.useState("");
@@ -155,7 +155,8 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         contentBeforeRows={deckCreateForm}
         collapsedDeckIds={collapsedDeckIds}
         onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
-        onActivate={(row) => onStartDeck(row.deck, false)}
+        onActivate={(row) => onOpenDeckContent(row.id)}
+        onStudy={(row) => onStartDeck(row.deck, false)}
         onOpenSettings={onOpenDeckSettings}
         onSetDeckCoreMode={onSetDeckCoreMode}
         onMoveDeck={onMoveDeck}

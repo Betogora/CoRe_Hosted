@@ -247,6 +247,7 @@ export function App() {
     studyRequest,
     focusedDeckId,
     selectedCardId,
+    deckContent,
     deckCreationParentId,
     creationMethod,
     creationDeckId,
@@ -1790,7 +1791,9 @@ export function App() {
     if (activeView === "kartenstapel") {
       return (
         <DecksScreen
+          key={deckContent ? `content-${focusedDeckId}` : "library"}
           decks={state.decks}
+          contentDeckId={deckContent ? focusedDeckId : null}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
           noteTypeDefinitions={visibleDefinitions}
@@ -1810,7 +1813,11 @@ export function App() {
           onGenerateVariant={generateDeckCardVariant}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
-          onSelectDeck={openDecks}
+          onSelectDeck={deckContent ? (deckId, cardId) => navigateToViewNow("kartenstapel", {
+            focusedDeckId: deckId,
+            selectedCardId: cardId,
+            deckContent: true,
+          }) : openDecks}
           onCloseSelectedCard={cardEditorReturnContext ? () => navigateToRoute(createStudyRoute(
             cardEditorReturnContext.deckId,
             {
@@ -1889,6 +1896,7 @@ export function App() {
           onFocusDeck={openLearn}
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenDecks={openDecks}
+          onOpenDeckContent={(deckId) => navigateToView("kartenstapel", { focusedDeckId: deckId, deckContent: true })}
           onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
           onSetDeckCoreMode={setDeckCoreMode}

@@ -53,21 +53,9 @@
 
   .core-mobile-bottom-navigation {
     width: calc(100dvw - 0.5rem);
-    grid-template-columns: repeat(3, minmax(2.75rem, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0;
     padding-inline: 0.125rem;
-  }
-
-  .core-mobile-bottom-navigation span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
   }
 
   .core-auth-panel {
@@ -341,6 +329,7 @@
   }
 
   .core-segmented-control {
+    position: relative;
     display: inline-grid;
     height: 2.75rem;
     grid-auto-columns: minmax(0, 1fr);
@@ -362,6 +351,8 @@
   }
 
   .core-segmented-control-option {
+    position: relative;
+    z-index: 1;
     min-height: 0;
     min-width: 0;
     border-radius: 0.5rem;
@@ -395,7 +386,111 @@
     opacity: 0.6;
   }
 
+  .core-segmented-control-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 0.5rem;
+    background: var(--core-surface-muted);
+    pointer-events: none;
+    transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), width 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  [data-core-theme="dark"] .core-segmented-control-indicator {
+    background: var(--core-surface-hover);
+  }
+
+  .core-segmented-control[data-size="compact"] .core-segmented-control-indicator {
+    border-radius: 0.375rem;
+  }
+
+  .core-mobile-bottom-navigation .core-segmented-control-indicator {
+    border-radius: 1rem;
+  }
+
+  .core-mobile-bottom-navigation[data-sliding="true"] button[aria-current="page"] {
+    background: transparent;
+  }
+
+  .core-statistics-load-track {
+    height: 3px;
+    margin-top: 0.5rem;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+
+  .core-statistics-load-track[role="progressbar"] {
+    background: var(--core-surface-muted);
+  }
+
+  .core-statistics-load-track > span {
+    display: block;
+    height: 100%;
+    width: 200%;
+    background: repeating-linear-gradient(
+      to right,
+      var(--core-action-primary) 0 8%,
+      transparent 8% 20%
+    );
+    animation: core-statistics-loading 1.2s linear infinite;
+  }
+
+  @keyframes core-statistics-loading {
+    from { transform: translateX(-20%); }
+    to { transform: translateX(0); }
+  }
+
+  .core-segmented-control[data-sliding="true"] .core-segmented-control-option[aria-pressed="true"] {
+    background: transparent;
+  }
+
+  .core-sliding-tabs {
+    display: flex;
+    min-width: 0;
+    width: 100%;
+  }
+
+  @media (min-width: 48rem) {
+    .core-sliding-tabs {
+      max-width: 24rem;
+    }
+  }
+
+  .core-sliding-tabs .core-segmented-control-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    flex: 0 0 2.25rem;
+    padding-inline: 0.125rem;
+  }
+
+  .core-sliding-tabs .core-segmented-control-option svg {
+    flex-shrink: 0;
+  }
+
+  .core-sliding-tabs .core-segmented-control-option[aria-pressed="true"] {
+    flex: 1 1 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .core-segmented-control-indicator {
+      transition: none;
+    }
+
+    .core-statistics-load-track > span {
+      animation: none;
+      width: 100%;
+      background: var(--core-action-primary);
+      opacity: 0.65;
+    }
+  }
+
   @media (max-width: 30rem) {
+    .core-statistics-filters .core-segmented-control-option {
+      padding-inline: 0.5rem;
+    }
+
     .core-page-header-with-action {
       flex-wrap: wrap;
       gap: 0.25rem;
@@ -817,6 +912,33 @@ button[aria-label] {
 
 .core-deck-summary-metric-label-short {
   display: none;
+}
+
+[data-deck-study-row="true"] {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+@container core-deck-summary (max-width: 24rem) {
+  [data-deck-study-row="true"] {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  [data-deck-study-row="true"] .core-deck-summary-leading {
+    grid-column: 1 / -1;
+    min-height: 2.75rem;
+  }
+
+  [data-deck-study-row="true"] > button {
+    justify-self: end;
+  }
+
+  [data-deck-study-header="true"] {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  [data-deck-study-header="true"] > span:nth-child(2) {
+    display: none;
+  }
 }
 
 @container core-deck-summary (max-width: 32rem) {

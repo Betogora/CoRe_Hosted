@@ -71,6 +71,18 @@ test("CoRe brand links both navigation layouts to today", () => {
   assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
 });
 
+test("bottom navigation keeps every icon above its visible label and exactly one current page", () => {
+  for (const activeView of ["uebersicht", "lernen", "neue-karten", "statistik"]) {
+    const markup = renderNavigation(activeView);
+    const bottomBar = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+    assert.equal((bottomBar.match(/aria-current="page"/g) ?? []).length, 1);
+    assert.equal((bottomBar.match(/flex-col/g) ?? []).length, 4);
+    assert.equal((bottomBar.match(/aria-hidden="true"/g) ?? []).length, 4);
+    assert.doesNotMatch(bottomBar, /sr-only/);
+    for (const label of ["Heute", "Lernen", "Erstellen", "Statistik"]) assert.match(bottomBar, new RegExp(`</svg><span[^>]*>${label}</span>`));
+  }
+});
+
 test("help and general settings have separate utility states while card settings stay in learning", () => {
   const settingsMarkup = renderNavigation("einstellungen");
   assert.equal((settingsMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 2);

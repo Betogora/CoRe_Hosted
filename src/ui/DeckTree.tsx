@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Play } from "lucide-react";
 import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, DECK_DEPTH_ERROR, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode } from "../coreTypes.ts";
@@ -8,6 +8,9 @@ import type { DeckLibraryRow } from "../libraryModel.ts";
 import { SoftPanel } from "./coreUi.tsx";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
 import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
+import { IconButton } from "./actionUi.tsx";
+import { CoreTooltip } from "./tooltipUi.tsx";
+import { getDeckAppearance } from "./deckAppearance.tsx";
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
@@ -15,6 +18,7 @@ export interface DeckTreeProps {
   headerAction?: React.ReactNode;
   contentBeforeRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
+  onStudy: (row: DeckLibraryRow) => void;
   onOpenSettings: (deckId: string) => void;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
@@ -145,7 +149,7 @@ function getVisibleRows(rows: DeckLibraryRow[], collapsedDeckIds: Set<string>) {
   return visibleRows;
 }
 
-export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActivate, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -342,7 +346,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
     const isCollapsed = collapsedDeckIdSet.has(row.id);
     const isDragged = draggedDeckId === row.id;
     const isDropTarget = dropIntent?.hoveredDeckId === row.id;
-    const activationLabel = `${row.path} lernen`;
+    const activationLabel = `Inhalte von ${row.path} öffnen`;
     const collapseControl = row.hasChildren ? (
       <button
         type="button"
@@ -391,6 +395,11 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
         <DeckSummaryRow
           row={row}
           learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }}
+          studyAction={
+            <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
+              <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="pointer-events-auto" onClick={() => onStudy(row)} />
+            </CoreTooltip>
+          }
           leadingControl={collapseControl}
           actions={optionsMenu}
           density="responsive"

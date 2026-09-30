@@ -13,6 +13,15 @@ import {
   reviewReturnContextToViewRoute,
 } from "./appNavigation.ts";
 
+test("deck content retains its scope and editor selection through URL and history", () => {
+  const route = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", deckContent: true });
+  assert.equal(appRouteToUrl(route), "/kartenstapel?deck=deck-1&card=card-1&content=1");
+  assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
+  assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
+  assert.deepEqual(createViewRoute("kartenstapel", { deckContent: true }), createViewRoute("kartenstapel"));
+  assert.deepEqual(parseAppRouteFromUrl("/lernen?deck=deck-1&content=1"), createViewRoute("lernen", { focusedDeckId: "deck-1" }));
+});
+
 test("parses the default route from the root path", () => {
   assert.deepEqual(parseAppRouteFromUrl("/"), { mode: "view", viewId: "uebersicht" });
   assert.equal(appRouteToUrl({ mode: "view", viewId: "uebersicht" }), "/");

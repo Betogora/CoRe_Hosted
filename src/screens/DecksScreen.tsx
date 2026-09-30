@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Copy, Eye, Layers, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Copy, Eye, FileText, Layers, Network, NotebookPen, PanelsTopLeft, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -16,7 +16,7 @@ import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { ActionDialog, CoreSegmentedControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -27,6 +27,14 @@ import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardVaria
 interface PendingDetailAction {
   run: () => void;
 }
+
+const deckContentTabs = [
+  { value: "cards", label: "Karteikarten", icon: PanelsTopLeft },
+  { value: "notes", label: "Notizen", icon: NotebookPen },
+  { value: "mind-map", label: "Mind Map", icon: Network },
+  { value: "quiz", label: "Quiz", icon: CircleHelp },
+  { value: "source", label: "Quelle", icon: FileText },
+] as const;
 
 function sameSort(left: CardTableSort, right: CardTableSort) {
   return left.field === right.field && left.direction === right.direction;
@@ -606,6 +614,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
 
 export function DecksScreen({
   decks,
+  contentDeckId = null,
   noteTypeDefinitions = [],
   now,
   dayStartHour,
@@ -634,6 +643,8 @@ export function DecksScreen({
   cardPages,
   onRequestCardPage,
 }: DecksScreenProps) {
+  const [contentTab, setContentTab] = React.useState<typeof deckContentTabs[number]["value"]>("cards");
+  const libraryDecks = React.useMemo(() => contentDeckId ? decks.filter((deck) => deck.id === contentDeckId) : decks, [contentDeckId, decks]);
   const [query, setQuery] = React.useState("");
   const deferredQuery = React.useDeferredValue(query);
   const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
@@ -654,11 +665,11 @@ export function DecksScreen({
   const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
   const tableModel = React.useMemo(() => {
     if (!usesCardPages) {
-      return createCardTableModel(decks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone });
+      return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone });
     }
-    const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
+    const originalDecks = new Map(libraryDecks.map((deck) => [deck.id, deck]));
     const baseModel = createCardTableModel(
-      decks.map((deck) => ({ ...deck, cards: [] })),
+      libraryDecks.map((deck) => ({ ...deck, cards: [] })),
       { now, dayStartHour, learnAheadMinutes, timeZone },
     );
     const normalizedQuery = normalizeCardQuery(deferredQuery);
@@ -694,7 +705,7 @@ export function DecksScreen({
       groups,
       cardSort,
     };
-  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, decks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
+  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
@@ -745,7 +756,7 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!onRequestCardPage) return;
     const requestedGroups = tableModel.allGroups.filter((group) => (
-      searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
+      contentDeckId === group.id || searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
     ));
     for (const group of requestedGroups) {
       const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
@@ -771,9 +782,10 @@ export function DecksScreen({
         selectedCardId: selectedCardForDeck,
       });
     }
-  }, [cardPageByDeckId, cardPages, cardSort, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
+  }, [cardPageByDeckId, cardPages, cardSort, contentDeckId, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
 
   React.useEffect(() => {
+    if (contentDeckId) return;
     if (!selectedDeckId) {
       autoExpandedSelectedDeckIdRef.current = null;
       return;
@@ -781,7 +793,7 @@ export function DecksScreen({
     if (autoExpandedSelectedDeckIdRef.current === selectedDeckId) return;
     autoExpandedSelectedDeckIdRef.current = selectedDeckId;
     if (!expandedDeckIdSet.has(selectedDeckId)) setDeckCardsExpanded(selectedDeckId, true);
-  }, [expandedDeckIdSet, onSetDeckExpanded, selectedDeckId]);
+  }, [contentDeckId, expandedDeckIdSet, onSetDeckExpanded, selectedDeckId]);
 
   React.useEffect(() => {
     if (!detailOpen) return;
@@ -1048,7 +1060,12 @@ export function DecksScreen({
 
   return (
     <div className="relative grid min-w-0 gap-7">
-      <PageHeader
+      {contentDeckId ? (
+        <>
+          <h2 className="sr-only" data-screen-heading tabIndex={-1}>Stapelinhalte</h2>
+          <CoreSlidingTabs ariaLabel="Stapelinhalte" options={deckContentTabs} value={contentTab} onValueChange={setContentTab} />
+        </>
+      ) : <PageHeader
         eyebrow="Review"
         title="Lernen"
         action={
@@ -1062,17 +1079,17 @@ export function DecksScreen({
             className="core-learning-area-control"
           />
         }
-      />
+      />}
 
-      <SoftPanel className="overflow-hidden p-4 sm:p-7" aria-labelledby="card-library-heading" data-testid="card-library-panel">
+      <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-7" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
-          <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3> : null}
           <div className="grid gap-3">
             <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
               Karten durchsuchen
               <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 font-normal text-[var(--core-text-muted)] transition">
                 <Search size={17} aria-hidden="true" />
-                <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder="Stapel, Vorderseite, Rückseite oder Tags suchen" aria-label="Karten durchsuchen" />
+                <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
               </span>
             </label>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
@@ -1089,7 +1106,7 @@ export function DecksScreen({
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
-                <col span={2} className="w-[5.75rem]" />
+                <col span={2} className={contentDeckId ? "w-20 sm:w-[5.75rem]" : "w-[5.75rem]"} />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
                 <tr className="core-table-header-row border-b border-[var(--core-border)]">
@@ -1099,7 +1116,7 @@ export function DecksScreen({
                 </tr>
               </thead>
               {tableModel.groups.map((group) => {
-                const expanded = searchExpandsGroups || expandedDeckIdSet.has(group.id);
+                const expanded = Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id);
                 const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS - 1);
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
@@ -1117,7 +1134,7 @@ export function DecksScreen({
                 );
                 return (
                 <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id}>
-                  <tr
+                  {!contentDeckId ? <tr
                     data-testid={"deck-header-" + group.id}
                     data-deck-depth={visibleDepth}
                     className="core-deck-summary-row"
@@ -1141,7 +1158,7 @@ export function DecksScreen({
                         density="responsive"
                       />
                     </th>
-                  </tr>
+                  </tr> : null}
                   {expanded && cardPages?.[group.id]?.limitedToLocalCatalog ? (
                     <tr className="border-b border-[var(--core-border)] bg-[var(--core-warning-surface)]">
                       <td colSpan={3} className="px-4 py-2 core-caption text-[var(--core-text-secondary)]">

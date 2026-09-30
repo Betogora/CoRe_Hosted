@@ -179,6 +179,51 @@ test.beforeEach(async ({ page }) => {
   await resetToFreshLocalState(page, { resetCloud: false });
 });
 
+test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Editor behalten den Stapel", async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto("/lernen");
+  await waitForApp(page);
+  const row = page.getByTestId(`learn-deck-row-${DECK_IDS.childB}`);
+  await row.getByRole("button", { name: "Inhalte von Bereich B / Gemeinsam öffnen", exact: true }).click();
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1`);
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.a}`)).toHaveCount(0);
+  await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toHaveCount(0);
+  const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true });
+  for (const width of [320, 390, 430, 640, 768, 1280, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) {
+      const tab = tabs.getByRole("button", { name: label, exact: true });
+      await tab.click();
+      await expect(tab).toHaveAttribute("aria-pressed", "true");
+      await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+    }
+    if (width >= 768) expect(await tabs.evaluate(element => element.getBoundingClientRect().width)).toBeLessThanOrEqual(384);
+    else expect(await tabs.evaluate(element => element.getBoundingClientRect().width === element.parentElement!.getBoundingClientRect().width)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  await page.getByRole("textbox", { name: "Karten durchsuchen", exact: true }).fill("Antwort B1");
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toHaveCount(0);
+  await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1`);
+  await page.reload();
+  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Geändert im Stapel");
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1`);
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
+  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Geändert im Stapel");
+  await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Geändert in Gesamtverwaltung");
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1`);
+  await expect(page.getByRole("textbox", { name: "Karten-Rückseite", exact: true })).toContainText("Geändert in Gesamtverwaltung");
+  await page.goto("/lernen");
+  await row.getByRole("button", { name: "Bereich B / Gemeinsam lernen", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/decks/${DECK_IDS.childB}/review`));
+});
+
 test("[Vertrag: Kartenverwaltung] große Stapel bleiben beim Auf- und Zuklappen scrollstabil", async ({ page }) => {
   const scrollDeckAId = "navigation-scroll-a";
   const scrollDeckBId = "navigation-scroll-b";

@@ -1,9 +1,15 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-08-28
+**Stand:** 2026-09-30
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-09-30 — Gleitende Hauptnavigation und Statistik-Ladewechsel
+
+- Die zweizeilige untere Hauptnavigation teilt Positionsmessung, Indikator und Bewegung mit den segmentierten Controls. Icon und Tab-Name bleiben sichtbar; Resize und Reduced Motion verwenden denselben Vertrag.
+- Statistik-Filterwechsel erhalten ausschließlich das aktuell angezeigte Ergebnis bis zum Ersatz. Auswahl und Dropdownbeschriftung reagieren sofort. Variante A läuft ohne sichtbaren Schriftzug als 3-px-Balken über den vollständigen Filterinnenraum; 8 px Abstand und Balkenhöhe bleiben immer reserviert. Der vollständige Ladebildschirm erscheint beim initialen Eintritt. Überholte Antworten werden verworfen, Aktualisierungsfehler behalten Daten und Filter mit Wiederholung und Rückfokus auf die Zeitraumwahl. Zusätzliche Caches, Abfragen, Vorladung oder Warmhaltung wurden nicht eingeführt.
+- Abgenommen: 36 fokussierte Screen-/UI-/Statistikprüfungen, vollständige Modul-/Contract-/Integrationssuite aus 105 Dateien, Typecheck einschließlich UI-Katalog sowie Produktionsbuild und Chunk-Budget. Browserprüfungen verwendeten echte Komponenten mit kontrollierten Antworten für initiales Laden/Fehler, sofortige und verzögerte Antworten, Reihenfolgekonflikte, Zeitraum-/Stapelwechsel, Fehler/Wiederholung, Tastatur, zugängliche Fortschritts-/Live-Semantik und stabilen Fokus/Scroll. Die originalen Reduced-Motion-Regeln wurden auf der Testseite aktiviert und anhand der berechneten Styles geprüft; ein separater Screenreader-Lauf wurde nicht durchgeführt. Light/Dark und 320, 390, 430, 640, 768, 1024, 1280 und 1920 px passen ohne Seitenüberlauf; der Balken schließt links/rechts bündig mit den Filtern ab. In der angemeldeten lokalen App blieb die Filterbox beim Wechsel 125 px hoch; der Screenshot zeigt ihren echten laufenden Ladezustand. Initialgraph 217,5 KiB gzip, größter Lazy-Graph 168,6 KiB gzip, größter Chunk 452,4 kB.
 
 ## 2026-08-28 — Globale Lerneinstellungen und Stapelstandards
 

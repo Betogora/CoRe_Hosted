@@ -18,6 +18,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenDeckContent={() => undefined}
       onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
@@ -72,6 +73,7 @@ test("quick deck creation asks only for a name and optional parent deck", () => 
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenDeckContent={() => undefined}
       onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
@@ -102,6 +104,7 @@ test("quick deck creation remains visible without existing decks", () => {
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenDeckContent={() => undefined}
       onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
@@ -136,6 +139,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenDeckContent={() => undefined}
       onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}
@@ -156,6 +160,7 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
       onFocusDeck={() => undefined}
       onOpenCardCreation={() => undefined}
       onOpenDecks={() => undefined}
+      onOpenDeckContent={() => undefined}
       onOpenCardSettings={() => undefined}
       onOpenDeckSettings={() => undefined}
       onSetDeckCoreMode={() => undefined}

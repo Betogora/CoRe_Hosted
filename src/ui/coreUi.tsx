@@ -345,6 +345,7 @@ export function EmptyState({ icon: Icon, title, body, action }: { icon: LucideIc
 export interface CoreSegmentedControlOption<T extends string> {
   value: T;
   label: string;
+  icon?: LucideIcon;
 }
 
 export interface CoreSegmentedControlProps<T extends string> {
@@ -356,6 +357,7 @@ export interface CoreSegmentedControlProps<T extends string> {
   disabled?: boolean;
   className?: string;
   typography?: "status" | "control";
+  collapseInactiveLabels?: boolean;
 }
 
 const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
@@ -363,6 +365,27 @@ const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
   { value: "auto", label: "Auto" },
   { value: "manual", label: "Manuell" },
 ];
+const useSelectionLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
+
+export function useSlidingSelection<T extends HTMLElement>(value: string, options: ReadonlyArray<unknown>) {
+  const containerRef = React.useRef<T>(null);
+  const [indicator, setIndicator] = React.useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  useSelectionLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const synchronize = () => {
+      const selected = container.querySelector<HTMLButtonElement>('[aria-pressed="true"], [aria-current="page"]');
+      const next = selected ? { x: selected.offsetLeft, y: selected.offsetTop, width: selected.offsetWidth, height: selected.offsetHeight } : null;
+      setIndicator(current => current?.x === next?.x && current?.y === next?.y && current?.width === next?.width && current?.height === next?.height ? current : next);
+    };
+    synchronize();
+    const observer = new ResizeObserver(synchronize);
+    observer.observe(container);
+    for (const button of container.querySelectorAll("button")) observer.observe(button);
+    return () => observer.disconnect();
+  }, [value, options]);
+  return { containerRef, indicator };
+}
 
 export function CoreSegmentedControl<T extends string>({
   ariaLabel,
@@ -373,28 +396,41 @@ export function CoreSegmentedControl<T extends string>({
   disabled = false,
   className = "",
   typography = "status",
+  collapseInactiveLabels = false,
 }: CoreSegmentedControlProps<T>) {
+  const { containerRef, indicator } = useSlidingSelection<HTMLDivElement>(value, options);
   return (
     <div
+      ref={containerRef}
       role="group"
       aria-label={ariaLabel}
       data-size={size}
-      className={`core-segmented-control ${typography === "control" ? "core-control-label" : "core-status-label"} ${className}`}
+      data-sliding={indicator ? "true" : undefined}
+      className={`core-segmented-control ${collapseInactiveLabels ? "core-sliding-tabs" : ""} ${typography === "control" ? "core-control-label" : "core-status-label"} ${className}`}
     >
+      {indicator ? <span aria-hidden="true" className="core-segmented-control-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} /> : null}
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           aria-pressed={value === option.value}
+          aria-label={collapseInactiveLabels ? option.label : undefined}
           disabled={disabled}
           onClick={() => onValueChange(option.value)}
           className="core-segmented-control-option"
         >
-          {option.label}
+          {option.icon ? <option.icon size={18} aria-hidden="true" /> : null}
+          {collapseInactiveLabels ? <span className={value === option.value ? "truncate" : "sr-only"}>{option.label}</span> : option.label}
         </button>
       ))}
     </div>
   );
+}
+
+export function CoreSlidingTabs<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "collapseInactiveLabels" | "options" | "typography"> & {
+  options: ReadonlyArray<CoreSegmentedControlOption<T> & { icon: LucideIcon }>;
+}) {
+  return <CoreSegmentedControl {...props} collapseInactiveLabels typography="control" />;
 }
 
 export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {

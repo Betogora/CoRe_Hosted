@@ -10,12 +10,12 @@ Each exported screen in this folder is a UI module with a small props interface.
 
 - `DashboardScreen.tsx`: dashboard metrics, the complete shared deck tree with donut and direct reparenting, and the shared responsive keyboard-navigable study heatmap.
 - `AuthGateScreen.tsx`: required Supabase login, registration, Google start, Magic Link, reset-link request and password-recovery completion before the app shell opens.
-- `DecksScreen.tsx`: direkt verlinkbare, durchsuchbare und sortierbare Gesamttabelle mit kompakten Stapelköpfen, einzeiligen Kartenzeilen, gemeinsamem Stapelmenü, bestätigt verschiebbaren Stapeln und URL-gesteuertem Detail-`aside` für Editor, Neuplanung und KI-Varianten; erreichbar aus Hauptnavigation und Lernen.
+- `DecksScreen.tsx`: direkt verlinkbare, durchsuchbare und sortierbare Gesamttabelle mit kompakten Stapelköpfen, einzeiligen Kartenzeilen, gemeinsamem Stapelmenü, bestätigt verschiebbaren Stapeln und URL-gesteuertem Detail-`aside` für Editor, Neuplanung und KI-Varianten; erreichbar aus Hauptnavigation und Lernen. Derselbe Screen projiziert bei `contentDeckId` die reduzierte Inhaltsansicht mit fünf Vorschautabs, ausschließlich eigenen Karten und unverändertem Editor.
 - `CreationScreen.tsx`: composition and completion state for the creation area; keeps the public screen props and creation workflow wiring stable.
   - `CreationHome.tsx`: manual and import entry cards.
   - `ManualCreationPanel.tsx`: manual cards, Rich Text fields and optional PDF/text source selection.
   - `ApkgImportPanel.tsx`: sole import surface with APKG analysis, preview, commit status, media progress and import report presentation.
-- `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row subtree study entry, direct drag-and-drop reparenting, aggregated new/due/total counts, per-deck learning-settings entry points and the global `Lerneinstellungen` action beside the area switcher.
+- `LearnScreen.tsx`: shared collapsible deck tree, main/subdeck creation, whole-row deck content entry and a separate direct subtree study button, direct drag-and-drop reparenting, aggregated new/due/total counts, per-deck learning-settings entry points and the global `Lerneinstellungen` action beside the area switcher.
 - `DeckSettingsScreen.tsx`: drei responsive Bereiche für Stapeldarstellung/-aktionen, Tagesrunde/Lernprofil-Vorlagen und Scheduler/CoRe; ohne fokussierten Stapel zeigt die Route eine `DeckSelect`-Auswahl.
 - `HelpScreen.tsx`: statische Produktaufklärung mit kurzem Methoden-Einstieg, lokal scrollgesteuerter Active-Recall-Kartengeschichte und gekoppelter FSRS-Lernkurve; sticky ab Desktopbreite, linear darunter, ohne Workspace- oder Scheduler-Mutation.
 - `SimulatorScreen.tsx`: reduzierte Minuten-, Stunden- und Tagessteuerung für die app-weite, transiente Lernuhr; enthält keinen eigenen Stapel und mutiert selbst weder Workspace noch Synczustand.

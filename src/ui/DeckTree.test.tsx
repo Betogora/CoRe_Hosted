@@ -32,9 +32,12 @@ function createEightLevelDecks() {
 
 test("deck tree keeps one visual header and all three accessibly labelled metrics in every row", () => {
   const markup = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
+  assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
+  assert.match(markup, /lucide-play/);
+  assert.ok(markup.indexOf('lucide-play') < markup.indexOf('data-deck-count="new"'));
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
@@ -81,10 +84,10 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
 test("deck tree places optional panel content before rows and omits an empty row frame", () => {
   const content = <form data-testid="panel-content"><input aria-label="Stapelname" /></form>;
   const populated = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
   const empty = renderToStaticMarkup(
-    <DeckTree rows={[]} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={[]} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.ok(populated.indexOf("Aktive Stapel") < populated.indexOf('data-testid="panel-content"'));
@@ -103,7 +106,7 @@ test("deck tree maps eight visible levels to group depths and clamps anything de
     cards: [],
   }));
   const markup = renderToStaticMarkup(
-    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   for (let depth = 0; depth <= 7; depth += 1) {
@@ -136,10 +139,10 @@ test("dropping a taller tree onto level eight still preserves the depth limit", 
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {
   const dashboard = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
   const learning = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   for (const markup of [dashboard, learning]) {
@@ -154,7 +157,7 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
 
 test("deck tree projects a persisted collapsed parent", () => {
   const markup = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="dashboard" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /Unterstapel von Bereich anzeigen/);
@@ -167,7 +170,7 @@ test("deck tree fills hovered rows without separating deck headers", () => {
     createCoreDeck({ id: "second-root", name: "Zweiter Bereich", hierarchyPath: ["Zweiter Bereich"], source: "manual", cards: [] }),
   ];
   const markup = renderToStaticMarkup(
-    <DeckTree rows={createDeckLibraryModel(boundaryDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={createDeckLibraryModel(boundaryDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.doesNotMatch(markup, /class="core-deck-summary-row[^"]*border-b/);

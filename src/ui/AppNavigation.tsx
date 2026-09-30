@@ -8,6 +8,7 @@ import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { SyncStatus } from "../coreTypes.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { ActionButton, IconButton } from "./actionUi.tsx";
+import { useSlidingSelection } from "./coreUi.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
 
 export interface AppNavigationItem {
@@ -238,14 +239,18 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
 }
 
 function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPreloadView }: AppNavigationProps) {
+  const { containerRef, indicator } = useSlidingSelection<HTMLElement>(activeView, navigationItems);
   return (
     <nav
+      ref={containerRef}
       aria-label="Mobile Hauptnavigation"
       data-app-navigation="true"
       data-navigation-layout="bottom-bar"
+      data-sliding={indicator ? "true" : undefined}
       className="core-mobile-bottom-navigation fixed left-[50dvw] z-40 grid w-[calc(100dvw-4rem)] max-w-[34rem] -translate-x-1/2 grid-cols-4 gap-1 rounded-[20px] border border-[var(--core-border)] bg-core-raised p-1.5 shadow-[var(--core-shadow-raised)] sm:w-[calc(100dvw-6rem)] xl:hidden"
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
+      {indicator ? <span aria-hidden="true" className="core-segmented-control-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} /> : null}
       {navigationItems.map((view) => {
         const NavIcon = getIcon(view.iconKey);
         const isActive = view.id === activeView;
@@ -258,7 +263,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
             onPointerEnter={() => onPreloadView?.(view.id)}
             onFocus={() => onPreloadView?.(view.id)}
             onTouchStart={() => onPreloadView?.(view.id)}
-            className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition ${isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)]" : "text-[var(--core-text-muted)] hover:bg-[var(--core-surface-hover)] hover:text-[var(--core-text)]"}`}
+            className={`relative z-[1] flex min-h-14 min-w-0 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition ${isActive ? "bg-[var(--core-surface-muted)] text-[var(--core-text)]" : "text-[var(--core-text-muted)] hover:bg-[var(--core-surface-hover)] hover:text-[var(--core-text)]"}`}
             aria-current={isActive ? "page" : undefined}
           >
             <NavIcon className="text-[var(--core-text)]" size={20} aria-hidden="true" />

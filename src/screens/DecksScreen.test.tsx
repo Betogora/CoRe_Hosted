@@ -38,6 +38,46 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
   return renderToStaticMarkup(<DecksScreen {...props} />);
 }
 
+test("deck content shows only its own cards without deck headings and uses the existing editor", () => {
+  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." } });
+  const other = createManualCoreDeck({ deckName: "Chemie", card: { cardType: "basic", front: "Was ist H2O?", back: "Wasser." } });
+  const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id });
+  assert.match(markup, /aria-label="Stapelinhalte"/);
+  for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
+  assert.match(markup, /Was ist ATP\?/);
+  assert.doesNotMatch(markup, /Biologie|Chemie|Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
+  assert.match(markup, /aria-label="Karten durchsuchen"/);
+  const editor = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, selectedCardId: deck.cards[0].id });
+  assert.match(editor, /data-testid="card-detail-aside"/);
+  assert.match(editor, /Karte bearbeiten/);
+  assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten und Lernwerte/);
+});
+
+test("deck content includes a subdeck without including its parent or descendants", () => {
+  const parent = createManualCoreDeck({ deckName: "Elternstapel", card: { cardType: "basic", front: "Elternkarte", back: "Antwort" } });
+  const selected = createManualCoreDeck({ deckName: "Unterstapel", card: { cardType: "basic", front: "Eigene Karte", back: "Antwort" } });
+  const child = createManualCoreDeck({ deckName: "Nachfahre", card: { cardType: "basic", front: "Nachfahrenkarte", back: "Antwort" } });
+  selected.parentDeckId = parent.id;
+  selected.hierarchyPath = [parent.name, selected.name];
+  child.parentDeckId = selected.id;
+  child.hierarchyPath = [...selected.hierarchyPath, child.name];
+  const markup = renderScreen([parent, selected, child], { contentDeckId: selected.id, selectedDeckId: selected.id });
+  assert.match(markup, /Eigene Karte/);
+  assert.doesNotMatch(markup, /Elternkarte|Nachfahrenkarte/);
+});
+
+test("deck content preserves the paged catalog path without requiring group expansion", () => {
+  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Katalogkarte", back: "Antwort" } });
+  const markup = renderScreen([{ ...deck, cards: [] }], {
+    contentDeckId: deck.id,
+    selectedDeckId: deck.id,
+    cardPages: { [deck.id]: { deckId: deck.id, items: deck.cards, totalCount: 60, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } } },
+  });
+  assert.match(markup, /Katalogkarte/);
+  assert.match(markup, /Seite 1 von 2/);
+  assert.doesNotMatch(markup, /deck-toggle-|Aktive Stapel/);
+});
+
 test("cards page consumes a direct query page and projects at most 50 items", () => {
   const pageCards = Array.from({ length: 51 }, (_, index) => createLearningItemFromEditorValue(
     "deck-paged",

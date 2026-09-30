@@ -317,7 +317,8 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
         headerAction={(
           <CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle ansehen</CrossLinkButton>
         )}
-        onActivate={(row) => onStartDeck(row.deck, false)}
+        onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
+        onStudy={(row) => onStartDeck(row.deck, false)}
         onOpenSettings={onOpenDeckSettings}
         onSetDeckCoreMode={onSetDeckCoreMode}
         onMoveDeck={onMoveDeck}

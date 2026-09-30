@@ -157,11 +157,19 @@ test("DeckMultiSelect exposes the shared searchable combobox trigger", () => {
     cards: [],
   }));
   const markup = renderToStaticMarkup(
-    <DeckMultiSelect decks={decks} value="all" scopeLabel="Gesamte Sammlung" onValueChange={() => undefined} />,
+    <DeckMultiSelect decks={decks} value="all" onValueChange={() => undefined} />,
   );
 
   assert.match(markup, /role="combobox"/);
   assert.match(markup, /data-deck-multi-select-trigger="true"/);
   assert.match(markup, /data-deck-select-searchable="true"/);
   assert.match(markup, />Gesamte Sammlung</);
+});
+
+test("DeckMultiSelect labels the requested selection before statistics finish refreshing", () => {
+  const decks = [createCoreDeck({ id: "biology", name: "Biologie", source: "manual" }), createCoreDeck({ id: "physics", name: "Physik", source: "manual" })];
+  const single = renderToStaticMarkup(<DeckMultiSelect decks={decks} value={["biology"]} onValueChange={() => undefined} />);
+  assert.match(single, /Stapel filtern\. Aktuell: Biologie/);
+  const multiple = renderToStaticMarkup(<DeckMultiSelect decks={decks} value={["biology", "physics"]} onValueChange={() => undefined} />);
+  assert.match(multiple, /Stapel filtern\. Aktuell: 2 Stapel ausgewählt/);
 });

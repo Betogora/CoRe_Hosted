@@ -33,6 +33,7 @@ import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
+import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { DeckMultiSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 
@@ -47,6 +48,10 @@ export interface StatisticsScreenProps {
 
 export interface StatisticsScreenContentProps extends Omit<StatisticsScreenProps, "queryStatistics" | "decks"> {
   dataset: StatisticsDataset;
+  selection?: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection };
+  loading?: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   onSelectionChange?: (selection: { period: StatisticsPeriod; deckIds: StatisticsDeckSelection }) => unknown;
 }
 
@@ -415,17 +420,17 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   );
 }
 
-export function StatisticsScreenContent({ dataset: { decks, projection: statistics }, onSelectionChange, onNavigate, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
-  const [isPending, startTransition] = React.useTransition();
-  const { period, deckIds: deckSelection } = statistics.selection;
-  const showDeckComparison = deckSelection === "all" || statistics.scopeDeckIds.length > 1;
+export function StatisticsScreenContent({ dataset: { decks, projection: statistics }, selection, loading = false, error = false, onRetry, onSelectionChange, onNavigate, timeZone, dayStartHour = 0 }: StatisticsScreenContentProps) {
+  const periodRef = React.useRef<HTMLDivElement>(null);
+  const { period, deckIds: deckSelection } = selection ?? statistics.selection;
+  const showDeckComparison = statistics.selection.deckIds === "all" || statistics.scopeDeckIds.length > 1;
   const statisticsSections = showDeckComparison ? STATISTICS_SECTIONS_WITH_COMPARISON : STATISTICS_SECTIONS;
 
   function changePeriod(value: StatisticsPeriod) {
-    startTransition(() => { onSelectionChange?.({ period: value, deckIds: deckSelection }); });
+    onSelectionChange?.({ period: value, deckIds: deckSelection });
   }
   function changeDecks(value: StatisticsDeckSelection) {
-    startTransition(() => { onSelectionChange?.({ period, deckIds: value }); });
+    onSelectionChange?.({ period, deckIds: value });
   }
 
   if (decks.length === 0) {
@@ -438,15 +443,15 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
   }
 
   return (
-    <div className="min-w-0 max-w-full space-y-8" aria-busy={isPending || undefined}>
+    <div className="min-w-0 max-w-full space-y-8">
       <div className="flex flex-wrap items-end justify-between gap-5">
         <PageHeader eyebrow="Lernanalyse" title="Statistik" />
         <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
       </div>
 
-      <SoftPanel className="p-4 shadow-sm sm:p-5">
+      <SoftPanel className="core-statistics-filters p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <div className="shrink-0">
+          <div ref={periodRef} className="min-w-0 max-w-full shrink-0">
             <p className="core-control-label text-core-muted">Globaler Zeitraum</p>
             <CoreSegmentedControl
               ariaLabel="Statistikzeitraum"
@@ -454,16 +459,29 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
               value={period}
               onValueChange={changePeriod}
               size="regular"
-              className="mt-2"
+              className="mt-2 max-w-full"
             />
           </div>
-          <div className="min-w-52 flex-1 sm:max-w-72">
+          <div className="min-w-0 max-w-full flex-1 basis-52 sm:max-w-72">
             <p className="core-control-label text-core-muted">Stapel</p>
-            <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} scopeLabel={statistics.scopeLabel} onValueChange={changeDecks} /></div>
+            <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} onValueChange={changeDecks} /></div>
           </div>
         </div>
+        <div className="core-statistics-load-track" role={loading ? "progressbar" : undefined} aria-label={loading ? "Statistik wird aktualisiert" : undefined}>
+          {loading ? <span aria-hidden="true" /> : null}
+        </div>
+        <p role="status" aria-live="polite" className="sr-only">{loading ? "Statistik wird aktualisiert." : ""}</p>
       </SoftPanel>
 
+      {error ? <StatusMessage tone="error" announce="assertive" className="rounded-xl p-4">
+        <p className="core-body">Die Statistik konnte nicht aktualisiert werden. Die angezeigten Daten entsprechen der letzten erfolgreichen Auswahl.</p>
+        <ActionButton variant="secondary" className="mt-3" onClick={() => {
+          periodRef.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
+          onRetry?.();
+        }}>Erneut versuchen</ActionButton>
+      </StatusMessage> : null}
+
+      <div className={loading || error ? "opacity-60" : undefined} aria-busy={loading || undefined}>
       <InPageNavigation ariaLabel="Bereiche der Statistik" items={statisticsSections}>
       <section id={STATISTICS_SECTION_IDS.overview} className="min-w-0" aria-labelledby="statistics-overview-title">
         <ChartPanel title="Überblick" titleId="statistics-overview-title">
@@ -523,14 +541,14 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       </section> : null}
 
       </InPageNavigation>
+      </div>
     </div>
   );
 }
 
 type StatisticsLoadState =
-  | { status: "loading"; dataset: null }
-  | { status: "ready"; dataset: StatisticsDataset }
-  | { status: "error"; dataset: null };
+  | { status: "loading" | "error"; dataset: StatisticsDataset | null }
+  | { status: "ready"; dataset: StatisticsDataset };
 
 export function StatisticsScreen({ decks, queryStatistics, now, timeZone, dayStartHour = 0, ...contentProps }: StatisticsScreenProps) {
   const [attempt, setAttempt] = React.useState(0);
@@ -539,20 +557,20 @@ export function StatisticsScreen({ decks, queryStatistics, now, timeZone, daySta
 
   React.useEffect(() => {
     let active = true;
-    setLoadState({ status: "loading", dataset: null });
+    setLoadState((current) => ({ ...current, status: "loading" }));
     void Promise.resolve()
       .then(() => queryStatistics(selection))
       .then((projection) => {
         if (active) setLoadState({ status: "ready", dataset: { decks, projection } });
       })
       .catch(() => {
-        if (active) setLoadState({ status: "error", dataset: null });
+        if (active) setLoadState((current) => ({ ...current, status: "error" }));
       });
     return () => { active = false; };
   }, [attempt, decks, queryStatistics, selection]);
 
-  if (loadState.status === "ready") {
-    return <StatisticsScreenContent {...contentProps} now={now} timeZone={timeZone} dayStartHour={dayStartHour} dataset={loadState.dataset} onSelectionChange={setSelection} />;
+  if (loadState.dataset) {
+    return <StatisticsScreenContent {...contentProps} now={now} timeZone={timeZone} dayStartHour={dayStartHour} dataset={loadState.dataset} selection={selection} loading={loadState.status === "loading"} error={loadState.status === "error"} onRetry={() => setAttempt((value) => value + 1)} onSelectionChange={setSelection} />;
   }
   if (loadState.status === "error") {
     return (

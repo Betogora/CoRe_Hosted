@@ -38,8 +38,8 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
 
   assert.equal((markup.match(/Globaler Zeitraum/g) ?? []).length, 1);
   assert.match(markup, /aria-label="Statistikzeitraum"[^>]*data-size="regular"[^>]*core-segmented-control/);
-  assert.match(markup, /class="flex flex-wrap items-end justify-between gap-4"><div class="shrink-0">/);
-  assert.match(markup, /class="min-w-52 flex-1 sm:max-w-72"><p class="core-control-label text-core-muted">Stapel/);
+  assert.match(markup, /class="flex flex-wrap items-end justify-between gap-4"><div class="min-w-0 max-w-full shrink-0">/);
+  assert.match(markup, /class="min-w-0 max-w-full flex-1 basis-52 sm:max-w-72"><p class="core-control-label text-core-muted">Stapel/);
   assert.match(markup, /class="mt-2"><button[^>]*data-deck-multi-select-trigger="true"[^>]*class="[^"]*w-full[^"]*"/);
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
@@ -109,6 +109,31 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   );
   assert.doesNotMatch(singleDeckMarkup, /href="#statistics-deck-comparison"/);
   assert.doesNotMatch(singleDeckMarkup, /id="statistics-deck-comparison"/);
+});
+
+test("statistics refresh keeps previous results and shows the requested filter with an indeterminate inline bar", () => {
+  const deck = createCoreDeck({ id: "refresh_deck", name: "Biologie", source: "manual", cards: [createCoreCard({ id: "refresh_card", source: "manual", originalFront: "Frage", originalBack: "Antwort" })] });
+  const dataset = { decks: [deck], projection: projectStatistics([deck], { period: "365d", deckIds: "all", now: "2026-09-30T12:00:00.000Z", timeZone: "Europe/Berlin" }) };
+  dataset.projection.summary.reviewCount = 42;
+  const render = (loading: boolean, error = false) => renderToStaticMarkup(<StatisticsScreenContent dataset={dataset} selection={{ period: "90d", deckIds: [deck.id] }} loading={loading} error={error} onRetry={() => undefined} now="2026-09-30T12:00:00.000Z" timeZone="Europe/Berlin" onNavigate={() => undefined} />);
+  const pending = render(true);
+  assert.match(pending, /aria-pressed="true"[^>]*>90 Tage<\/button>/);
+  assert.match(pending, /Stapel filtern\. Aktuell: Biologie/);
+  assert.match(pending, /core-statistics-load-track" role="progressbar" aria-label="Statistik wird aktualisiert"/);
+  assert.doesNotMatch(pending, /aria-valuenow|Statistik wird geladen/);
+  assert.match(pending, /class="opacity-60" aria-busy="true"/);
+  assert.match(pending, />42<\/dd>/);
+  assert.match(pending, /href="#statistics-deck-comparison"/);
+  assert.match(pending, /class="sr-only">Statistik wird aktualisiert\./);
+  const ready = render(false);
+  assert.match(ready, /class="core-statistics-load-track"><\/div>/);
+  assert.doesNotMatch(ready, /role="progressbar"|opacity-60|aria-busy="true"/);
+  const failed = render(false, true);
+  assert.match(failed, /role="alert"/);
+  assert.match(failed, /letzten erfolgreichen Auswahl/);
+  assert.match(failed, /Erneut versuchen/);
+  assert.match(failed, />42<\/dd>/);
+  assert.doesNotMatch(failed, /role="progressbar"|Statistik wird geladen/);
 });
 
 test("statistics screen loads its dataset only after mounting", () => {

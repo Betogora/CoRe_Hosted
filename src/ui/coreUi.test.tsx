@@ -1,7 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, PageHeader, SegmentedDonut } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, PageHeader, SegmentedDonut } from "./coreUi.tsx";
+import { FileText, NotebookPen } from "lucide-react";
+
+test("sliding tabs keep every icon and accessible label but show only the selected label", () => {
+  const markup = renderToStaticMarkup(<CoreSlidingTabs ariaLabel="Stapelinhalte" options={[
+    { value: "cards", label: "Karteikarten", icon: FileText },
+    { value: "notes", label: "Notizen", icon: NotebookPen },
+  ]} value="notes" onValueChange={() => undefined} />);
+  assert.match(markup, /core-sliding-tabs/);
+  assert.match(markup, /aria-pressed="false" aria-label="Karteikarten"/);
+  assert.match(markup, /<span class="sr-only">Karteikarten<\/span>/);
+  assert.match(markup, /aria-pressed="true" aria-label="Notizen"/);
+  assert.match(markup, /<span class="truncate">Notizen<\/span>/);
+  assert.equal((markup.match(/<svg/g) ?? []).length, 2);
+  assert.doesNotMatch(markup, /disabled=/);
+});
 
 test("page header keeps an optional action beside its title block", () => {
   const markup = renderToStaticMarkup(

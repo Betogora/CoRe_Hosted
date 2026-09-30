@@ -52,7 +52,6 @@ export interface DeckSelectProps extends Omit<CoreSelectProps, "options" | "lead
 export interface DeckMultiSelectProps {
   decks: readonly Deck[];
   value: "all" | string[];
-  scopeLabel: string;
   onValueChange: (value: "all" | string[]) => void;
 }
 
@@ -432,13 +431,14 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
   );
 });
 
-export function DeckMultiSelect({ decks, value, scopeLabel, onValueChange }: DeckMultiSelectProps) {
+export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const listboxId = useId();
   const rows = useMemo(() => createDeckSelectRows(decks), [decks]);
   const parentByDeckId = useMemo(() => new Map(decks.map((deck) => [deck.id, deck.parentDeckId])), [decks]);
   const selected = value === "all" ? [] : value;
+  const scopeLabel = value === "all" ? "Gesamte Sammlung" : selected.length === 1 ? decks.find((deck) => deck.id === selected[0])?.name ?? "Ausgewählter Stapel" : `${selected.length} Stapel ausgewählt`;
   const selectedDeckIds = useMemo(() => new Set(value === "all" ? [] : value), [value]);
   const visibleRows = useMemo(() => filterDeckRows(rows, query), [query, rows]);
   const showSearch = rows.length >= DECK_SEARCH_THRESHOLD;

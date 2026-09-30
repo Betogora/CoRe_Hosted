@@ -33,6 +33,7 @@ export interface ViewRoute {
   viewId: AppViewId;
   focusedDeckId?: string;
   selectedCardId?: string;
+  deckContent?: boolean;
   deckCreationParentId?: string;
   creationMethod?: "manual" | "import";
   creationDeckId?: string;
@@ -76,6 +77,7 @@ interface ViewRouteInput {
   viewId?: unknown;
   focusedDeckId?: unknown;
   selectedCardId?: unknown;
+  deckContent?: unknown;
   deckCreationParentId?: unknown;
   creationMethod?: unknown;
   creationDeckId?: unknown;
@@ -157,6 +159,7 @@ function normalizeViewRoute(
     viewId,
     ...(["lernen", "kartenstapel", "stapel-einstellungen"].includes(viewId) && focusedDeckId ? { focusedDeckId } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId ? { selectedCardId } : {}),
+    ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true ? { deckContent: true } : {}),
     ...(viewId === "lernen" && deckCreationParentId ? { deckCreationParentId } : {}),
     ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
     ...(viewId === "neue-karten" && creationDeckId ? { creationDeckId } : {}),
@@ -325,6 +328,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     viewId: pathSegments[0],
     focusedDeckId: url.searchParams.get("deck") ?? undefined,
     selectedCardId: url.searchParams.get("card") ?? undefined,
+    deckContent: url.searchParams.get("content") === "1",
     deckCreationParentId: url.searchParams.get("parent") ?? undefined,
     creationMethod: url.searchParams.get("method") ?? undefined,
     creationDeckId: url.searchParams.get("deck") ?? undefined,
@@ -358,6 +362,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     params.set("deck", normalized.focusedDeckId);
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
+  if (normalized.deckContent) params.set("content", "1");
   if (normalized.viewId === "lernen" && normalized.deckCreationParentId) params.set("parent", normalized.deckCreationParentId);
   if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
   if (normalized.viewId === "neue-karten" && normalized.creationDeckId) params.set("deck", normalized.creationDeckId);
