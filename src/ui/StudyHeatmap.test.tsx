@@ -47,7 +47,7 @@ function renderHeatmapWeekAt(anchorKey: string, forecastCountsByDay: ReadonlyMap
   return renderHeatmapAt("week", anchorKey, forecastCountsByDay);
 }
 
-test("shared study heatmap defaults to seven days with the streak title and segmented period control", () => {
+test("shared study heatmap defaults to seven days with the streak title and shared period select", () => {
   const heatmap = createStudyHeatmapModelFromCounts({
     todayKey: "2026-07-07",
     countsByDay: new Map([["2026-07-07", 3]]),
@@ -68,19 +68,15 @@ test("shared study heatmap defaults to seven days with the streak title and segm
   assert.match(markup, /data-heatmap-history-color="#d6a3d2"/);
   assert.doesNotMatch(markup, /aria-label="Heatmap-Farbe ändern"[^>]*border-\[var\(--core-border-interactive\)\]/);
   assert.match(markup, /background-color:var\(--core-learning-status-new\)/);
-  assert.match(markup, /data-size="regular"/);
-  assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 3);
+  assert.match(markup, /role="combobox"[\s\S]*aria-label="Heatmap-Zeitraum"/);
   assert.equal((markup.match(/inline-flex size-11 shrink-0/g) ?? []).length, 2);
-  assert.doesNotMatch(markup, /sm:w-auto/);
-  assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
-  assert.match(markup, /aria-pressed="true"[^>]*>Woche</);
-  assert.match(markup, />Monat</);
-  assert.match(markup, />Jahr</);
+  assert.doesNotMatch(markup, /core-segmented-control-option/);
+  assert.match(markup, />Woche</);
   assert.match(markup, /Frühere sieben Tage anzeigen/);
   assert.match(markup, /Spätere sieben Tage anzeigen/);
   assert.match(markup, /data-testid="study-heatmap-grid"[^>]*data-heatmap-period="week"/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
-  assert.match(markup, /<span class="[^"]*whitespace-nowrap[^"]*font-semibold[^"]*">Di, 7\.7\.<\/span>/);
+  assert.match(markup, /<span class="block">Di<\/span><span class="block whitespace-nowrap">07\.07\.<\/span>/);
   assert.match(markup, /2026-07-07: 3 Wiederholungen/);
   assert.match(markup, /data-testid="study-heatmap-legend"[\s\S]*Weniger[\s\S]*Mehr/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));

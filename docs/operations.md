@@ -30,6 +30,46 @@ führt auf `main`, in Pull Requests und manuell denselben einzelnen Quality-Job
 aus. Vercel verwendet ebenfalls `npm run gate:push` als Build-Barriere; die
 ausgelieferte Anwendung erhält dadurch keinen zusätzlichen Runtime-Overhead.
 
+### Visuelle Pflichtmatrix
+
+Jede visuelle UI-Änderung wird in den folgenden Viewports gerendert und anhand
+von Screenshots geprüft. Die Matrix gilt für alle betroffenen Ansichten und
+Zustände; Änderungen an gemeinsamen Komponenten oder der App-Shell beziehen
+alle konsumierenden Screens ein. Vor einer Produktfreigabe werden sämtliche
+sichtbaren Menüs und Kernjourneys geprüft.
+
+| Ziel | Viewport in CSS-Pixeln |
+| --- | --- |
+| Sehr schmales Smartphone | 320 × 720 |
+| Schmales Smartphone | 360 × 800 |
+| Standard-Smartphone | 390 × 844 |
+| Breites Smartphone | 430 × 932 |
+| Desktop-Mindestziel | 1280 × 720 |
+| Primärer Desktop | 1440 × 900 |
+
+Bei Änderungen an Navigation, Shell oder Breakpoints wird zusätzlich der
+Übergang bei 1279 × 900 und 1280 × 900 geprüft; betroffene weitere Breakpoints
+werden jeweils unmittelbar darunter und darauf geprüft. Light und Dark Mode
+gehören zur Matrix, auch wenn die Änderung nur in einem Modus entwickelt wurde.
+
+Prüfkriterien sind lesbare lange Inhalte, vollständige Beschriftungen,
+Überlagerungen, Umbrüche, mindestens 44 × 44 px große gewöhnliche Touchziele,
+Scrollbarkeit und die Erreichbarkeit der letzten Aktion oberhalb fester
+Navigation und Speicherleisten. Horizontales Hauptscrolling ist unzulässig;
+dokumentierte lokale Scrollbereiche werden auf Bedienbarkeit und erkennbare
+weitere Inhalte geprüft. Betroffene Dialoge, Popover und Selects werden geöffnet,
+Entwürfe und relevante Lade-, Fehler- sowie Leerzustände berücksichtigt.
+Bei betroffenen Eingaben gehört die geöffnete Smartphone-Bildschirmtastatur zur
+Prüfung; ein verkleinerter Desktop-Viewport ersetzt diesen Nachweis nicht.
+Die betroffene Kernjourney wird zusätzlich bei 200 % Zoom geprüft.
+
+Der Abschlussbericht nennt Version, Viewports, Theme, geprüfte Zustände und
+Screenshot-Nachweise. Nicht geprüfte Fälle bleiben ausdrücklich offen;
+automatisierte Geometrieprüfungen oder erfolgreiche Builds ersetzen die
+Sichtprüfung nicht. Ein Entwurf oder Mockup zählt nicht als Produktabnahme.
+
+### Weitere Qualitätsgates
+
 Schwere Gates sind vom normalen Push entkoppelt:
 
 | Gate | Zeitplan | Befehl | Verantwortung |

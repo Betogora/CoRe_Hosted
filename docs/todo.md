@@ -18,8 +18,9 @@ der begleiteten Beta. Ausführbare Gates und Releaseabläufe stehen in
       dann aus der erhaltenen Importherkunft als schreibgeschützte System-Tags
       zur Laufzeit abgeleitet; sie werden weder in `LearningItem.tags`
       persistiert noch zur kanonischen Speicherung der Stapelbeziehung.
-- [ ] Kernjourneys bei den Zielviewports sowie per Tastatur, Axe und
-      Screenreader abschließend abnehmen.
+- [ ] Kernjourneys und sämtliche sichtbaren Menüs mit Screenshot-Nachweisen
+      gemäß der [visuellen Pflichtmatrix](operations.md#visuelle-pflichtmatrix)
+      sowie per Tastatur, Axe und Screenreader abschließend abnehmen.
 - [ ] Datenbank- und Storage-Restore getrennt in einem vorgesehenen Testprojekt
       prüfen und in `history.md` dokumentieren.
 - [ ] Für mindestens ein Kernsignal realen Alarmempfang ohne Nutzerinhalte

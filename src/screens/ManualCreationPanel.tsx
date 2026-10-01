@@ -556,6 +556,7 @@ export function ManualCreationPanel({
             <span className="core-body font-semibold text-[var(--core-text)]">Fragentyp</span>
             <CoreSegmentedControl
               ariaLabel="Fragentyp"
+              className="core-question-type-control"
               options={QUESTION_TYPE_OPTIONS}
               value={isChoice ? cardType : "standard"}
               onValueChange={(value) => dispatchBatch({

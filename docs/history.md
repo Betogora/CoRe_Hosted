@@ -1,9 +1,16 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-09-30
+**Stand:** 2026-10-01
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-01 — Schmale UI und visueller Prüfnachweis
+
+- Dashboard-Begrüßung und Lern-Bereichswechsel passen auf schmale Ansichten; die Bereichs-Pill bleibt 44 px hoch und Lerneinstellungen behalten ihr Icon. Single Choice und Multiple Choice bleiben in einer gemeinsamen Pill mit bei Bedarf zweizeiligen Labels.
+- Der Stapelvergleich verwendet auf schmalen Inhaltsflächen bestehende Kennzahlflächen; der lokale Stapelname öffnet die fünfteiligen Stapelinhalte. Die Kartenverwaltung behält ihre Tabellenzeilen. Rich Text erhält eine kurze Toolbar mit ausklappbaren vorhandenen Zusatzaktionen. Die Heatmap verwendet das gemeinsame Zeitraum-Dropdown und zweizeilige Tageslabels bei unveränderter Legende.
+- Abgenommen: fokussierte Tests, vollständige Modul-/Contract-/Integrationssuite aus 105 Dateien, Typecheck samt UI-Katalog und Produktionsbuild mit Chunk-Budget. 112 Chromium-Renderfälle prüfen sieben echte Produktansichten mit lokalen Beispieldaten in Light/Dark bei 320 × 720, 360 × 800, 390 × 844, 430 × 932, 1280 × 720, 1440 × 900, 1279 × 900 und 1280 × 900 ohne Seiten- oder Control-Überlauf und ohne Laufzeitfehler. Bereichswechsel, Choice-Auswahl, Toolbar/Textselektion, Farbmenü/Escape, Cloze-Erstellung/Entfernung, Tastaturauswahl und alle Heatmap-Zeiträume sowie der Statistiklink ins Stapelmenü bestehen. Fünf Ansichten bestehen zusätzlich bei 200 % CSS-Zoom ohne Seitenüberlauf; die automatisch geladene Specs-HTML zeigt den geänderten Vertrag.
+- Der lokale Screenshot-Bericht enthält sieben Vergleiche mit den alten gehosteten Aufnahmen, Zusatzansichten und das vollständige Renderarchiv. Er ist ein Nachweis echter Komponenten mit Beispieldaten; gespeicherte Authentifizierung, Cloud-Sync und persistente Speicherflows wurden nicht abgenommen. Echte Smartphone-Bildschirmtastatur, physische Touch- und Screenreader-Abnahme sowie nativer Browser-Zoom bleiben offen. Der temporäre Render-Einstieg und die vorherigen Designentwürfe werden entfernt; keine Produktionsabhängigkeit oder paralleler App-Pfad wurde ergänzt.
 
 ## 2026-09-30 — Gleitende Hauptnavigation und Statistik-Ladewechsel
 

@@ -8,8 +8,9 @@ import {
   type StudyHeatmapPeriod,
   type StudyHeatmapWindow,
 } from "../studyHeatmapModel.ts";
-import { CoreSegmentedControl, OrbIcon, SoftPanel } from "./coreUi.tsx";
+import { OrbIcon, SoftPanel } from "./coreUi.tsx";
 import { normalizeColor } from "./colorMath.ts";
+import { CoreSelect } from "./selectUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 const heatmapToneByLevel = [
@@ -44,7 +45,7 @@ const PERIOD_NAVIGATION_LABELS: Record<StudyHeatmapPeriod, { previous: string; n
   month: { previous: "Vorherigen Monat anzeigen", next: "Nächsten Monat anzeigen" },
   year: { previous: "Vorheriges Jahr anzeigen", next: "Nächstes Jahr anzeigen" },
 };
-const UTC_WEEKDAY_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
+const UTC_WEEKDAY_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", timeZone: "UTC" });
 const UTC_MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 function getHeatmapHistoryColorOption(value: unknown) {
@@ -215,8 +216,9 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
     >
       {window.days.map((day) => (
         <div key={day.key} className="grid min-w-0 justify-items-center gap-1.5">
-          <span className="whitespace-nowrap text-center text-[0.68rem] font-semibold text-core-muted">
-            {compactWeekLabel(day.key)}
+          <span className="core-caption text-center font-semibold text-core-muted">
+            <span className="block">{compactWeekLabel(day.key)}</span>
+            <span className="block whitespace-nowrap">{compactDate(day.key)}</span>
           </span>
           <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
         </div>
@@ -370,13 +372,12 @@ export function StudyHeatmap({
             value={historyColor}
             onValueCommit={selectHistoryColor}
           />
-          <CoreSegmentedControl
+          <CoreSelect
             ariaLabel="Heatmap-Zeitraum"
             options={PERIOD_OPTIONS}
             value={period}
-            onValueChange={selectPeriod}
-            size="regular"
-            className="shrink-0"
+            onValueChange={(value) => selectPeriod(value as StudyHeatmapPeriod)}
+            className="core-heatmap-period-select"
           />
           <CoreTooltip label={navigationLabels.previous}>
             <button

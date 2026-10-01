@@ -131,7 +131,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         eyebrow="Review"
         title="Lernen"
         action={
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="core-learning-header-actions flex flex-wrap items-center justify-end gap-2">
             <CoreSegmentedControl<LearnArea>
               ariaLabel="Bereich in Lernen"
               options={learnAreaOptions}

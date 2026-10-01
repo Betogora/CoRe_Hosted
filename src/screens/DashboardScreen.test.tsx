@@ -64,7 +64,8 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
     />,
   );
 
-  assert.match(markup, /Willkommen zurück, Noemi!/);
+  assert.match(markup, /Willkommen zurück,/);
+  assert.match(markup, /core-dashboard-name">Noemi!</);
   assert.doesNotMatch(markup, />Heute<\//);
   assert.match(markup, /data-testid="daily-learning-overview" data-status="open"/);
   assert.match(markup, /Dein Lernen heute/);

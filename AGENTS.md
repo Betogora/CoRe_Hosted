@@ -158,6 +158,13 @@ Choose checks proportionate to the affected area.
 
 ### Standard Gate
 
+For every visual UI change, run the mandatory viewport matrix and visual
+acceptance checks in [`docs/operations.md#visuelle-pflichtmatrix`](docs/operations.md#visuelle-pflichtmatrix)
+for the affected screens and states. Shared UI or app-shell changes require
+checking every screen that consumes the changed component. Record screenshots,
+results, and any unverified cases; type checking and geometry assertions do not
+replace visual inspection.
+
 For ordinary implementation changes:
 
 1. run focused tests for the affected behavior;

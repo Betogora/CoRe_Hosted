@@ -56,7 +56,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     assert.equal((markup.match(new RegExp(`href="#${sectionId}"`, "g")) ?? []).length, 2);
     assert.match(markup, new RegExp(`<section id="${sectionId}" class="[^"]*min-w-0`));
   }
-  assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 11);
+  assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 17);
   assert.equal((markup.match(/data-size="default"/g) ?? []).length, 0);
   assert.match(markup, /data-size="compact" class="flex flex-col rounded-xl bg-core-subtle p-3 min-w-0"/);
   const overviewMarkup = markup.match(/<section id="statistics-overview"[\s\S]*?<\/section>/)?.[0];
@@ -76,6 +76,9 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);
+  assert.match(markup, /aria-label="Stapelmenü öffnen: Biologie"/);
+  assert.match(markup, /scope="row"/);
+  assert.doesNotMatch(markup, /min-w-\[58rem\]/);
   assert.doesNotMatch(markup, /Schwierige Karten/);
   assert.match(markup, /0 Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);

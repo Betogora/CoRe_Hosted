@@ -77,8 +77,8 @@ test("heatmap keeps its control group intact across responsive widths", () => {
   assert.match(styles, /@container core-study-heatmap \(min-width: 36rem\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto/);
   const mobileControls = styles.match(/@container core-study-heatmap \(max-width: 22rem\) \{([\s\S]*?)\n\}\n\n\.core-deck-tree-container/)?.[1] ?? "";
   assert.match(mobileControls, /\.core-study-heatmap-controls[\s\S]*?width: 100%/);
-  assert.match(mobileControls, /\.core-segmented-control[\s\S]*?flex: 1 1 0%/);
-  assert.match(mobileControls, /\.core-segmented-control-option[\s\S]*?padding-inline: 0\.375rem/);
+  assert.match(mobileControls, /\.core-heatmap-period-select[\s\S]*?flex: 1 1 0%/);
+  assert.match(mobileControls, /\.core-heatmap-period-select[\s\S]*?min-width: 0/);
 });
 
 test("only individually overflowing deck names use at most two lines", () => {

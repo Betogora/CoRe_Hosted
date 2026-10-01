@@ -1,5 +1,5 @@
 import React from "react";
-import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, List, ListOrdered, Palette, PenLine, Underline, Unlink } from "lucide-react";
+import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, Palette, PenLine, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
@@ -173,6 +173,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const [imageStatus, setImageStatus] = React.useState("");
   const [imageError, setImageError] = React.useState("");
   const [isPreparingImages, setIsPreparingImages] = React.useState(false);
+  const [moreToolsOpen, setMoreToolsOpen] = React.useState(false);
+  const moreToolsId = React.useId();
   const textColorMenuId = React.useId();
   const highlightColorMenuId = React.useId();
   const clozeStatusId = React.useId();
@@ -592,73 +594,11 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div className="min-w-0" aria-busy={isPreparingImages || undefined}>
-      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[var(--core-surface-muted)] p-2 ${isActive ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[var(--core-surface-muted)] p-1 ${isActive ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
-        <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
-        <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
-        <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />
-        <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} onRun={() => runCommand("insertOrderedList")} />
-        <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
-        <div className="relative">
-          <ColorToolButton
-            buttonRef={textColorButtonRef}
-            label="Stiftfarbe"
-            icon={PenLine}
-            color={textColors[selectedColorSlots.text] ?? textColors[0]}
-            isOpen={openColorMenu === "text"}
-            menuId={textColorMenuId}
-            onToggle={() => {
-              saveSelection();
-              setOpenColorMenu((currentMenu) => (currentMenu === "text" ? null : "text"));
-            }}
-          />
-          {openColorMenu === "text" ? (
-            <ColorPopover
-              id={textColorMenuId}
-              label="Stiftfarbe"
-              icon={Palette}
-              colors={textColors}
-              paletteColors={textPaletteColors}
-              selectedSlot={selectedColorSlots.text}
-              onSelectSlot={(slotIndex: any) => selectColorSlot("text", slotIndex)}
-              onApply={(color: any, shouldClose: boolean|undefined) => applyStoredColor("text", color, shouldClose)}
-              onChangeSlot={(slotIndex: any, color: any) => changeColorSlot("text", slotIndex, color)}
-            />
-          ) : null}
-        </div>
-        <div className="relative">
-          <ColorToolButton
-            buttonRef={highlightColorButtonRef}
-            label="Markerfarbe"
-            icon={Highlighter}
-            color={highlightColors[selectedColorSlots.highlight] ?? highlightColors[0]}
-            isOpen={openColorMenu === "highlight"}
-            menuId={highlightColorMenuId}
-            onToggle={() => {
-              saveSelection();
-              setOpenColorMenu((currentMenu) => (currentMenu === "highlight" ? null : "highlight"));
-            }}
-          />
-          {openColorMenu === "highlight" ? (
-            <ColorPopover
-              id={highlightColorMenuId}
-              label="Markerfarbe"
-              icon={Highlighter}
-              colors={highlightColors}
-              paletteColors={highlightPaletteColors}
-              selectedSlot={selectedColorSlots.highlight}
-              onSelectSlot={(slotIndex: any) => selectColorSlot("highlight", slotIndex)}
-              onApply={(color: any, shouldClose: boolean|undefined) => applyStoredColor("highlight", color, shouldClose)}
-              onChangeSlot={(slotIndex: any, color: any) => changeColorSlot("highlight", slotIndex, color)}
-            />
-          ) : null}
-        </div>
-        <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
-        <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
         {imageActions ? (
           <>
-            <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
             <ToolbarButton
               label="Bild an Cursorposition einfügen"
               icon={ImagePlus}
@@ -684,13 +624,76 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
             />
           </>
         ) : null}
-        {clozeActions ? (
-          <>
-            <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
-            <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} />
-            <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} />
-          </>
-        ) : null}
+        {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
+        <CoreTooltip label="Weitere Textwerkzeuge">
+          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-lg border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
+            <MoreHorizontal size={17} aria-hidden="true" />
+          </button>
+        </CoreTooltip>
+        <div id={moreToolsId} hidden={!moreToolsOpen} className="core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2">
+          <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
+          <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+          <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />
+          <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} onRun={() => runCommand("insertOrderedList")} />
+          <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+          <div className="relative">
+            <ColorToolButton
+              buttonRef={textColorButtonRef}
+              label="Stiftfarbe"
+              icon={PenLine}
+              color={textColors[selectedColorSlots.text] ?? textColors[0]}
+              isOpen={openColorMenu === "text"}
+              menuId={textColorMenuId}
+              onToggle={() => {
+                saveSelection();
+                setOpenColorMenu((currentMenu) => (currentMenu === "text" ? null : "text"));
+              }}
+            />
+            {openColorMenu === "text" ? (
+              <ColorPopover
+                id={textColorMenuId}
+                label="Stiftfarbe"
+                icon={Palette}
+                colors={textColors}
+                paletteColors={textPaletteColors}
+                selectedSlot={selectedColorSlots.text}
+                onSelectSlot={(slotIndex: any) => selectColorSlot("text", slotIndex)}
+                onApply={(color: any, shouldClose: boolean|undefined) => applyStoredColor("text", color, shouldClose)}
+                onChangeSlot={(slotIndex: any, color: any) => changeColorSlot("text", slotIndex, color)}
+              />
+            ) : null}
+          </div>
+          <div className="relative">
+            <ColorToolButton
+              buttonRef={highlightColorButtonRef}
+              label="Markerfarbe"
+              icon={Highlighter}
+              color={highlightColors[selectedColorSlots.highlight] ?? highlightColors[0]}
+              isOpen={openColorMenu === "highlight"}
+              menuId={highlightColorMenuId}
+              onToggle={() => {
+                saveSelection();
+                setOpenColorMenu((currentMenu) => (currentMenu === "highlight" ? null : "highlight"));
+              }}
+            />
+            {openColorMenu === "highlight" ? (
+              <ColorPopover
+                id={highlightColorMenuId}
+                label="Markerfarbe"
+                icon={Highlighter}
+                colors={highlightColors}
+                paletteColors={highlightPaletteColors}
+                selectedSlot={selectedColorSlots.highlight}
+                onSelectSlot={(slotIndex: any) => selectColorSlot("highlight", slotIndex)}
+                onApply={(color: any, shouldClose: boolean|undefined) => applyStoredColor("highlight", color, shouldClose)}
+                onChangeSlot={(slotIndex: any, color: any) => changeColorSlot("highlight", slotIndex, color)}
+              />
+            ) : null}
+          </div>
+          <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+          <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
+          {clozeActions ? <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} /> : null}
+        </div>
       </div>
       <div
         ref={editorRef}

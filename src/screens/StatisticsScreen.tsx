@@ -43,7 +43,7 @@ export interface StatisticsScreenProps {
   now: string;
   timeZone: string;
   dayStartHour?: number;
-  onNavigate: (viewId: "neue-karten") => unknown;
+  onNavigate: (viewId: "neue-karten" | "kartenstapel", options?: { focusedDeckId: string; deckContent: boolean }) => unknown;
 }
 
 export interface StatisticsScreenContentProps extends Omit<StatisticsScreenProps, "queryStatistics" | "decks"> {
@@ -530,13 +530,23 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
       </section>
 
       {showDeckComparison ? <section id={STATISTICS_SECTION_IDS.comparison} className="min-w-0" aria-labelledby="statistics-deck-comparison-title">
-        <ChartPanel title="Stapelvergleich" titleId="statistics-deck-comparison-title">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[58rem] border-collapse text-left core-body">
-              <thead><tr className="border-b border-[var(--core-border)] text-core-muted"><th className="px-3 py-3">Stapel</th><th className="px-3 py-3 text-right">Reviews</th><th className="px-3 py-3 text-right">Erfolg</th><th className="px-3 py-3 text-right">Nochmal</th><th className="px-3 py-3 text-right">Erinnerung</th><th className="px-3 py-3 text-right">Ø Intervall</th><th className="px-3 py-3 text-right">Nächste Fälligkeit</th></tr></thead>
-              <tbody>{statistics.deckRows.map((row) => <tr key={row.id} className="border-b border-[var(--core-border)] last:border-0"><th className="px-3 py-3 font-semibold text-core-text"><span className="block">{row.name}</span><span className="core-caption font-normal text-core-muted">{row.path}</span></th><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.reviewCount)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.successPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.againPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatPercent(row.trueRetentionPercent)}</td><td className="px-3 py-3 text-right text-core-secondary">{formatNumber(row.averageIntervalDays, 1)} T.</td><td className="px-3 py-3 text-right text-core-secondary">{formatDate(row.nextDueAt, timeZone, dayStartHour)}</td></tr>)}</tbody>
-            </table>
-          </div>
+        <ChartPanel title="Stapelvergleich" titleId="statistics-deck-comparison-title" className="core-deck-comparison-container">
+          <table className="core-deck-comparison w-full border-collapse text-left core-body">
+            <thead><tr><th scope="col">Stapel</th><th scope="col">Reviews</th><th scope="col">Erfolg</th><th scope="col">Nochmal</th><th scope="col">Erinnerung</th><th scope="col">Ø Intervall</th><th scope="col">Nächste Fälligkeit</th></tr></thead>
+            <tbody>{statistics.deckRows.map((row) => (
+              <tr key={row.id}>
+                <th scope="row">
+                  <button type="button" className="min-h-11 w-full text-left font-semibold [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelmenü öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
+                </th>
+                <td><StatTile size="compact" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
+                <td><StatTile size="compact" label="Erfolg" value={formatPercent(row.successPercent)} /></td>
+                <td><StatTile size="compact" label="Nochmal" value={formatPercent(row.againPercent)} /></td>
+                <td><StatTile size="compact" label="Erinnerung" value={formatPercent(row.trueRetentionPercent)} /></td>
+                <td><StatTile size="compact" label="Ø Intervall" value={`${formatNumber(row.averageIntervalDays, 1)} T.`} /></td>
+                <td><StatTile size="compact" label="Nächste Fälligkeit" value={formatDate(row.nextDueAt, timeZone, dayStartHour)} /></td>
+              </tr>
+            ))}</tbody>
+          </table>
         </ChartPanel>
       </section> : null}
 

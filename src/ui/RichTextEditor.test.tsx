@@ -35,12 +35,15 @@ test("renders optional cloze actions with normalized group labels", () => {
   assert.doesNotMatch(markup, /role="status"/);
 });
 
-test("keeps the standard editor toolbar unchanged when cloze actions are disabled", () => {
+test("keeps optional actions absent and extra formatting collapsed by default", () => {
   const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Inhalt" />);
 
   assert.doesNotMatch(markup, /Auswahl als Lücke/);
   assert.doesNotMatch(markup, /Lücke entfernen/);
   assert.doesNotMatch(markup, /Bild an Cursorposition einfügen/);
+  assert.match(markup, /aria-label="Weitere Textwerkzeuge" aria-expanded="false" aria-controls=/);
+  assert.match(markup, /hidden="" class="core-rich-text-extra-tools/);
+  assert.match(markup, /aria-label="Unterstrichen"/);
 });
 
 test("renders the optional inline-image action and hidden multi-file picker", () => {
