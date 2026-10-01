@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-08-28
+**Stand:** 2026-08-29
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -34,7 +34,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse erzeugt zwei unabhängige Karten, jede Cloze-Lückengruppe eine unabhängige Karte. Jede reale Anki-Karte wird ebenfalls als eigene CoRe-Karte importiert.
 - Ausschließlicher APKG-Import mit getrennten UI-Phasen und Terminalzuständen; die vier laufenden Phasen einschließlich Cloud-Sync zeigen jeweils einen monotonen Prozentfortschritt in der Dateizeile. Die flüchtige accountgebundene APKG-Sitzung überlebt interne Navigation, aber keinen Reload. Der lokale Commit macht Karten sofort verfügbar und reiht Medien dauerhaft ein, während `Fertig` bestätigten Cloud-, Medien- und Referenzsync voraussetzt. Text-, CSV- und Tabellenimporte sowie eine Formatwahl sind entfernt.
-- Stapelbäume unterstützen Hauptstapel plus sieben Unterebenen. APKG-Quellknoten ab Ebene 9 bleiben getrennte, stabil identifizierte Stapel, werden als Geschwister auf sichtbare Ebene 8 projiziert und behalten Originalpfad, Quelltiefe und ursprünglichen Elternpfad als Importherkunft. Vorschau, gemeinsame Stapelzeile, Menü, Suche und Auswahl machen die Abflachung nachvollziehbar; Kartentags bleiben davon unverändert.
+- Stapelbäume besitzen kein fachliches Tiefenlimit. Manuelles Anlegen, bestätigtes Verschieben, Desktop-Drag und APKG-Import erhalten die vollständige logische Elternbeziehung samt Unterbaum; Reimporte bewahren die lokale Ordnung. Ab Ebene 6 bleiben Einrückung und Tiefenfarbe visuell konstant, während Chevron, Reihenfolge, vollständiger zugänglicher Pfad und Auf-/Zuklappen der echten Hierarchie folgen. APKG- und Learning-Item-Tags bleiben unverändert; es gibt keine Überlaufprojektion oder System-Tags.
 - APKG-Reviewereignisse laufen tabellenweise durch begrenzte Cloud-Batches und bleiben über stabile IDs idempotent.
 - Legacy- und V18-APKG erhalten die für Rendering benötigten Feld- und Template-Definitionen sowie Kartenmedien. Notizinstanz, Quellsnapshot und Quelldokument werden nicht persistiert.
 - Der APKG-Worker erzeugt Commitgraph, Bericht und höchstens fünf Vorschaukarten einmalig. Die Oberfläche materialisiert das Paket nicht erneut; der Commit streamt den Workergraphen in IndexedDB-Chunks. Der lokale 25.000-Karten-/1.000-Medien-Messlauf hält die Main-Thread-Übergabe unter 100 ms, bleibt mit rund 14,7 Sekunden Workerzeit und rund 688 MiB Heap aber ein beobachteter großer Importpfad.

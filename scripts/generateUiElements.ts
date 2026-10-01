@@ -44,6 +44,7 @@ const visualSourcePaths = [
   "src/screens/DecksScreen.tsx",
   "src/screens/ManualCreationPanel.tsx",
   "src/screens/LearnScreen.tsx",
+  "src/screens/LearningAreaHeader.tsx",
   "src/screens/SettingsScreen.tsx",
   "src/screens/StudyMode.tsx",
   "src/screens/SyncConflictPanel.tsx",

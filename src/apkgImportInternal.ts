@@ -7,7 +7,6 @@ import { finalizeImportReport, importNormalizedDeck } from "./importService.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
 import { readZipArchive } from "./zipReader.ts";
 import { parseApkgWorkerResponse, type ApkgWorkerResult } from "./apkgImportWorkerProtocol.ts";
-import { MAX_INTERACTIVE_DECK_LEVELS, projectImportedDeckHierarchy } from "./deckHierarchy.ts";
 import { decompress as decompressZstd } from "fzstd";
 import { scheduleWithFsrs } from "./scheduler.ts";
 
@@ -504,23 +503,25 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
   for (const path of itemsByPath.keys()) {
     if (nodeByPath.has(path)) continue;
     const parts = splitDeckPath(path);
-    const parentPath = parts.slice(0, -1).join("::") || null;
-    const node = {
-      id: `virtual_${path}`,
-      name: parts.at(-1) ?? path,
-      path,
-      parentPath,
-      depth: Math.max(0, parts.length - 1),
-    };
-    nodeByPath.set(path, node);
-    idByPath.set(path, hierarchyDeckId({ fileName, sourceExternalId: hierarchyExternalId(node), path }));
+    for (let index = 0; index < parts.length; index += 1) {
+      const nodePath = parts.slice(0, index + 1).join("::");
+      if (nodeByPath.has(nodePath)) continue;
+      const node = {
+        id: `virtual_${nodePath}`,
+        name: parts[index],
+        path: nodePath,
+        parentPath: parts.slice(0, index).join("::") || null,
+        depth: index,
+      };
+      nodeByPath.set(nodePath, node);
+      idByPath.set(nodePath, hierarchyDeckId({ fileName, sourceExternalId: hierarchyExternalId(node), path: nodePath }));
+    }
   }
 
   const nodes = [...nodeByPath.values()].sort((left: any, right: any) => Number(left.depth ?? 0) - Number(right.depth ?? 0) || String(left.path).localeCompare(String(right.path)));
   const normalizedDecks = nodes.map((node: any) => {
     const sourceExternalId = hierarchyExternalId(node);
     const sourceHierarchyPath = splitDeckPath(node.path);
-    const hierarchyProjection = projectImportedDeckHierarchy(sourceHierarchyPath);
     const directItems = itemsByPath.get(node.path) ?? [];
     const isContainerDeck = directItems.length === 0;
 
@@ -530,8 +531,8 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
       title: node.name,
       sourceExternalId,
       originalDeckId: sourceExternalId,
-      parentDeckId: hierarchyProjection.visibleParentSourcePath ? idByPath.get(hierarchyProjection.visibleParentSourcePath) ?? null : null,
-      hierarchyPath: hierarchyProjection.visiblePath,
+      parentDeckId: node.parentPath ? idByPath.get(node.parentPath) ?? null : null,
+      hierarchyPath: sourceHierarchyPath,
       items: directItems,
       tags: unique(directItems.flatMap((item: any) => item.tags ?? [])),
       metadataJson: {
@@ -539,8 +540,6 @@ function splitNormalizedApkgDeckByHierarchy(normalizedDeck: any = {}) {
         importGroupId,
         hierarchyMode: "anki_subdecks",
         ankiDeckPath: node.path,
-        ankiDeckDepth: node.depth ?? Math.max(0, sourceHierarchyPath.length - 1),
-        ankiParentPath: node.parentPath ?? null,
         isContainerDeck,
         detectedCards: directItems.reduce((sum: any, item: any) => sum + Math.max(1, item.cards?.length ?? 1), 0),
         importedScheduling: false,
@@ -1139,16 +1138,6 @@ export function mapAnkiApkgToNormalizedDeck({ file = {}, decks = [], notes = [],
   }
 
   const deckHierarchy = buildDeckHierarchy(decks);
-  const flattenedDeckCount = deckHierarchy.reduce(
-    (count: number, node: any) => count + (Number(node.depth ?? 0) >= MAX_INTERACTIVE_DECK_LEVELS ? 1 : 0),
-    0,
-  );
-  if (flattenedDeckCount === 1) {
-    warnings.push("Ein Anki-Stapel wurde ab Ebene 9 auf Ebene 8 abgeflacht. Der ursprüngliche Pfad bleibt erhalten.");
-  } else if (flattenedDeckCount > 1) {
-    warnings.push(`${flattenedDeckCount} Anki-Stapel wurden ab Ebene 9 auf Ebene 8 abgeflacht. Die ursprünglichen Pfade bleiben erhalten.`);
-  }
-
   if (decks.length > 1) {
     warnings.push("Mehrere Anki-Decks wurden erkannt; CoRe legt daraus sichtbare Stapel und Unterstapel an.");
   }
@@ -2232,6 +2221,7 @@ export function mergeImportedDeck(importedDeck: any, existingDecks: any = []) {
     name: existingDeck.name || importedDeck.name,
     description: existingDeck.description ?? importedDeck.description,
     ownerId: existingDeck.ownerId ?? importedDeck.ownerId,
+    parentDeckId: existingDeck.parentDeckId ?? null,
     hierarchyPath: existingDeck.hierarchyPath ?? importedDeck.hierarchyPath,
     createdAt: existingDeck.createdAt ?? importedDeck.createdAt,
     updatedAt: now,

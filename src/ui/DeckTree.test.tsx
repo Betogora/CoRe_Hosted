@@ -2,9 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck } from "../coreModel.ts";
-import { createDeckPlacementValidator } from "../coreWorkspace.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
-import { DeckTree, resolveDeckDropIntent } from "./DeckTree.tsx";
+import { DeckTree } from "./DeckTree.tsx";
 
 const decks = [
   createCoreDeck({ id: "root", name: "Bereich", hierarchyPath: ["Bereich"], source: "manual", cards: [] }),
@@ -19,26 +18,15 @@ const decks = [
 ];
 const rows = createDeckLibraryModel(decks).rows;
 
-function createEightLevelDecks() {
-  return Array.from({ length: 8 }, (_, index) => createCoreDeck({
-    id: `level-${index + 1}`,
-    parentDeckId: index === 0 ? null : `level-${index}`,
-    name: `Ebene ${index + 1}`,
-    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
-    source: "manual",
-    cards: [],
-  }));
-}
-
 test("deck tree keeps one visual header and all three accessibly labelled metrics in every row", () => {
   const markup = renderToStaticMarkup(
     <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
+  assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
   assert.match(markup, /lucide-play/);
-  assert.ok(markup.indexOf('lucide-play') < markup.indexOf('data-deck-count="new"'));
-  assert.match(markup, /aria-label="Bereich lernen"/);
+  assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf('lucide-play'));
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
   assert.equal((markup.match(/data-deck-count="new"/g) ?? []).length, 2);
@@ -96,8 +84,8 @@ test("deck tree places optional panel content before rows and omits an empty row
   assert.doesNotMatch(empty, /core-deck-tree-rows|data-testid="deck-summary-header"/);
 });
 
-test("deck tree maps eight visible levels to group depths and clamps anything deeper", () => {
-  const deepDecks = Array.from({ length: 9 }, (_, index) => createCoreDeck({
+test("deck tree maps six visible levels to group depths and clamps anything deeper", () => {
+  const deepDecks = Array.from({ length: 12 }, (_, index) => createCoreDeck({
     id: `depth-${index + 1}`,
     parentDeckId: index === 0 ? null : `depth-${index}`,
     name: `Ebene ${index + 1}`,
@@ -109,32 +97,21 @@ test("deck tree maps eight visible levels to group depths and clamps anything de
     <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  for (let depth = 0; depth <= 7; depth += 1) {
+  for (let depth = 0; depth <= 5; depth += 1) {
     assert.match(markup, new RegExp(`data-testid="learn-deck-row-depth-${depth + 1}"[^>]*data-deck-depth="${depth}"`));
   }
-  assert.match(markup, /data-testid="learn-deck-row-depth-9"[^>]*data-deck-depth="7"/);
-});
+  for (let level = 7; level <= 12; level += 1) {
+    assert.match(markup, new RegExp(`data-testid="learn-deck-row-depth-${level}"[^>]*data-deck-depth="5"`));
+  }
+  for (let level = 1; level < 12; level += 1) {
+    assert.match(markup, new RegExp(`aria-label="Unterstapel von [^"]*Ebene ${level} ausblenden"`));
+  }
 
-test("dropping onto level eight places a fitting deck beside the hovered target", () => {
-  const deepDecks = createEightLevelDecks();
-  const movedDeck = createCoreDeck({ id: "moved", name: "Verschieben", source: "manual", cards: [] });
-
-  assert.deepEqual(resolveDeckDropIntent([...deepDecks, movedDeck], "level-8", createDeckPlacementValidator([...deepDecks, movedDeck], movedDeck.id)), {
-    targetDeckId: "level-7",
-    hoveredDeckId: "level-8",
-    error: null,
-  });
-});
-
-test("dropping a taller tree onto level eight still preserves the depth limit", () => {
-  const deepDecks = createEightLevelDecks();
-  const movedDeck = createCoreDeck({ id: "moved", name: "Verschieben", source: "manual", cards: [] });
-  const movedChild = createCoreDeck({ id: "moved-child", parentDeckId: movedDeck.id, name: "Kind", hierarchyPath: ["Verschieben", "Kind"], source: "manual", cards: [] });
-  const allDecks = [...deepDecks, movedDeck, movedChild];
-  const intent = resolveDeckDropIntent(allDecks, "level-8", createDeckPlacementValidator(allDecks, movedDeck.id));
-
-  assert.match(intent.error ?? "", /acht Stapel-Ebenen/);
-  assert.equal(intent.targetDeckId, "level-8");
+  const collapsed = renderToStaticMarkup(
+    <DeckTree rows={createDeckLibraryModel(deepDecks).rows} mode="learn" collapsedDeckIds={["depth-8"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+  assert.match(collapsed, /data-testid="learn-deck-row-depth-8"/);
+  assert.doesNotMatch(collapsed, /data-testid="learn-deck-row-depth-9"|data-testid="learn-deck-row-depth-12"/);
 });
 
 test("deck tree keeps the compact summary order across dashboard and learning", () => {
@@ -149,6 +126,9 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
     assert.match(markup, /data-donut-empty="true"/);
     assert.match(markup, /Stapeloptionen für Bereich/);
     assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf("Stapeloptionen für Bereich"));
+    assert.ok(markup.indexOf('data-deck-count="due"') < markup.indexOf('data-donut-empty="true"'));
+    assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf('aria-label="Bereich lernen"'));
+    assert.ok(markup.indexOf('aria-label="Bereich lernen"') < markup.indexOf("Stapeloptionen für Bereich"));
     assert.match(markup, /data-deck-drag-source="true"/);
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);

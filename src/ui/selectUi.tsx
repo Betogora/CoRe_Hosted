@@ -11,11 +11,10 @@ import {
 import { Check, ChevronDown, FolderTree, Layers3, Search, X, type LucideIcon } from "lucide-react";
 import type { Deck } from "../coreTypes.ts";
 import { buildSortedDeckChildren } from "../deckOrdering.ts";
-import { getImportedDeckHierarchyOverflow, MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
+import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 
 const SELECT_VALUE_PREFIX = "core-select:";
-const MAX_DECK_SELECT_INDENT_LEVEL = MAX_INTERACTIVE_DECK_LEVELS - 1;
 const DECK_SEARCH_THRESHOLD = 5;
 
 export interface CoreSelectOption {
@@ -84,23 +83,29 @@ function decodeValue(value: string) {
 
 function createDeckSelectRows(decks: readonly Deck[]): DeckSelectRow[] {
   const childrenByParentId = buildSortedDeckChildren(decks);
-
   const rows: DeckSelectRow[] = [];
   const visitedDeckIds = new Set<string>();
 
-  function visit(deck: Deck, depth: number, parentPath: string[]): void {
-    if (visitedDeckIds.has(deck.id)) return;
-    visitedDeckIds.add(deck.id);
-    const hierarchyPath = deck.hierarchyPath.length ? deck.hierarchyPath : [...parentPath, deck.name];
-    const currentPath = hierarchyPath.join(" / ");
-    const sourcePath = getImportedDeckHierarchyOverflow(deck)?.sourcePath.join(" / ") ?? "";
-    const path = sourcePath ? `${currentPath} · Anki: ${sourcePath}` : currentPath;
-    rows.push({ deck, depth, path, searchPath: `${currentPath} ${sourcePath}`.toLocaleLowerCase("de-DE") });
-    (childrenByParentId.get(deck.id) ?? []).forEach((child) => visit(child, depth + 1, hierarchyPath));
+  function appendBranch(deck: Deck, depth: number, parentPath: string[]): void {
+    const pending = [{ deck, depth, parentPath }];
+    while (pending.length > 0) {
+      const current = pending.pop()!;
+      if (visitedDeckIds.has(current.deck.id)) continue;
+      visitedDeckIds.add(current.deck.id);
+      const hierarchyPath = current.deck.hierarchyPath.length
+        ? current.deck.hierarchyPath
+        : [...current.parentPath, current.deck.name];
+      const path = hierarchyPath.join(" / ");
+      rows.push({ deck: current.deck, depth: current.depth, path, searchPath: path.toLocaleLowerCase("de-DE") });
+      const children = childrenByParentId.get(current.deck.id) ?? [];
+      for (let index = children.length - 1; index >= 0; index -= 1) {
+        pending.push({ deck: children[index], depth: current.depth + 1, parentPath: hierarchyPath });
+      }
+    }
   }
 
-  (childrenByParentId.get(null) ?? []).forEach((deck) => visit(deck, 0, []));
-  decks.forEach((deck) => visit(deck, 0, []));
+  (childrenByParentId.get(null) ?? []).forEach((deck) => appendBranch(deck, 0, []));
+  decks.forEach((deck) => appendBranch(deck, 0, []));
   return rows;
 }
 
@@ -404,7 +409,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           </button>
         ) : null}
         {visibleRows.map((row) => {
-          const visibleDepth = Math.min(row.depth, MAX_DECK_SELECT_INDENT_LEVEL);
+          const visibleDepth = getVisibleDeckDepth(row.depth);
           const selected = row.deck.id === value;
           return (
             <button
@@ -503,7 +508,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
         {visibleRows.map((row) => {
           const inherited = hasDeckAncestor(parentByDeckId, row.deck.id, selectedDeckIds);
           const checked = selectedDeckIds.has(row.deck.id) || inherited;
-          const visibleDepth = Math.min(row.depth, MAX_DECK_SELECT_INDENT_LEVEL);
+          const visibleDepth = getVisibleDeckDepth(row.depth);
           return (
             <button
               key={row.deck.id}

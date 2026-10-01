@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-08-28
+**Stand:** 2026-08-29
 
 ## ADR-Format
 
@@ -252,8 +252,16 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-030 — Acht sichtbare Stapel-Ebenen mit erhaltener Importherkunft
 
-**Status:** angenommen
+**Status:** abgelöst durch ADR-031
 **Kontext:** Vier interaktive Ebenen reichen für tief gegliederte Anki-Bestände nicht aus. Eine unbegrenzte Baumdarstellung würde zugleich Farben, Einrückung und mobile Namen unbrauchbar machen. Die tieferen Quellbeziehungen dürfen weder verloren gehen noch vorzeitig in das noch unvollständige Tag-System geschrieben werden.
 **Entscheidung:** CoRe unterstützt Hauptstapel plus sieben Unterebenen. APKG-Quellknoten bis Ebene 8 bleiben hierarchisch unverändert; jeder Knoten ab Ebene 9 bleibt als eigener stabil identifizierter Stapel erhalten und wird als Geschwister auf Ebene 8 unter dem Quellvorfahren der Ebene 7 verankert. Aktueller CoRe-Pfad und unveränderte Anki-Importherkunft bleiben getrennt. Die gemeinsame Leseschnittstelle liefert Original- und Überlaufpfad für Warnung, Suche, Auswahl und Herkunftsfeedback, erzeugt aber keine Tags. Eine spätere Tagdarstellung leitet schreibgeschützte System-Tags zur Laufzeit aus dieser Herkunft ab.
 **Konsequenzen:** Interaktive Platzierungen oberhalb Ebene 8 werden ohne Mutation abgelehnt. Die acht Gruppentöne interpolieren zwischen den bisherigen Endpunkten und werden bei Tiefe 7 begrenzt. Schmale Stapelzeilen dürfen Namen auf zwei Zeilen begrenzen. Persistenzschema, Karten-Tags und Reimportidentitäten bleiben unverändert; es entstehen keine Migration, Altlesepfade oder automatische Tag-Zuweisung. ADR-008, ADR-012 und ADR-014 sind hinsichtlich der Vier-Ebenen-Regel, ADR-016 hinsichtlich der zwingend einzeiligen schmalen Stapelzeile und ADR-017 hinsichtlich des ausschließlich lokalen Menükopfs für abgeflachte Importstapel abgelöst.
 **Datum:** 2026-08-28
+
+## ADR-031 — Unbegrenzte logische Stapelhierarchie mit sechs sichtbaren Tiefen
+
+**Status:** angenommen
+**Kontext:** Die fachliche Begrenzung auf acht Ebenen und die APKG-Abflachung verlieren echte Elternbeziehungen und verhindern das konsistente Verschieben vollständiger tiefer Unterbäume. Die mobile und schmale Darstellung benötigt weiterhin eine feste visuelle Grenze für Einrückung und Tiefenfarbe.
+**Entscheidung:** Stapel besitzen kein fachliches Zahlenlimit. Anlegen, APKG-Import und Verschieben erhalten die unmittelbare Elternbeziehung und den vollständigen `hierarchyPath`; ein Drop auf einen Stapel bedeutet unabhängig von dessen Tiefe immer „als direkter Unterstapel“. Einrückung, Tiefenfarbe und sichtbares Tiefenattribut werden ab Ebene 6 auf dem Wert der sechsten Ebene gehalten. Die sechs Tiefenfarben verteilen das bisherige Spektrum linear in sRGB zwischen den unveränderten Light-/Dark-Endfarben, während Chevron, Baumreihenfolge, vollständige zugängliche Pfade und Auf-/Zuklappen der echten Hierarchie folgen. Reimporte bewahren lokalen Namen, Elternbeziehung, Pfad und Einstellungen gemeinsam. Es entstehen weder System-Tags noch neue Tag-Felder oder Schemaänderungen.
+**Konsequenzen:** Die Workspace-Seam prüft ausschließlich fehlende Ziele, Selbstbezug und Nachfahrenzyklen und aktualisiert bei einer Verschiebung den gesamten Unterbaum. Bibliotheks- und Auswahlprojektionen arbeiten iterativ; Teilbaumaggregate benötigen nur direkte Kinder und `descendantCount`. APKG importiert den vollständigen Quellbaum ohne Abflachungswarnung oder Überlaufmetadaten. Bereits abgeflachte Entwicklungsdaten werden nicht repariert und benötigen für die vollständige Hierarchie einen frischen Import beziehungsweise Entwicklungsreset. Praktische Tiefe wird nur durch Browser-, Speicher- und Datenvolumenressourcen begrenzt. ADR-030 ist vollständig abgelöst; die rein visuelle Kappung gilt jetzt ab Ebene 6.
+**Datum:** 2026-08-29

@@ -127,6 +127,7 @@ export interface DecksScreenProps {
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
   onCloseSelectedCard?: () => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
+  onOpenCardSettings: () => unknown;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;

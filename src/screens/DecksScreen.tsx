@@ -6,7 +6,7 @@ export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { createCoreNoteTypeDefinition, getCardEditorValue, isLearningItemMarked, projectCardPreviewDraft, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
-import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
+import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
@@ -16,12 +16,13 @@ import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
-import { cardTypeOptions, formatLevelList, getStateValue, learnAreaOptions, maturityStageLabels, type LearnArea } from "./screenConstants.ts";
+import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
+import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardVariant, LearningItem } from "../coreTypes.ts";
 
 interface PendingDetailAction {
@@ -636,6 +637,7 @@ export function DecksScreen({
   onGenerateVariant,
   onMoveDeck,
   onOpenLearn,
+  onOpenCardSettings,
   onOpenDeckSettings,
   onDraftStateChange,
   expandedDeckIds,
@@ -681,7 +683,7 @@ export function DecksScreen({
       const totalCardCount = Math.max(items.length, Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : group.deck.cardCount ?? 0)));
       const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
       const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
-      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(`${group.path} ${group.sourcePath} ${group.deck.tags?.join(" ") ?? ""}`).includes(normalizedQuery);
+      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(`${group.path} ${group.deck.tags?.join(" ") ?? ""}`).includes(normalizedQuery);
       return {
         ...group,
         deck: originalDecks.get(group.id) ?? group.deck,
@@ -1065,21 +1067,9 @@ export function DecksScreen({
           <h2 className="sr-only" data-screen-heading tabIndex={-1}>Stapelinhalte</h2>
           <CoreSlidingTabs ariaLabel="Stapelinhalte" options={deckContentTabs} value={contentTab} onValueChange={setContentTab} />
         </>
-      ) : <PageHeader
-        eyebrow="Review"
-        title="Lernen"
-        action={
-          <CoreSegmentedControl<LearnArea>
-            ariaLabel="Bereich in Lernen"
-            options={learnAreaOptions}
-            value="cards"
-            onValueChange={(area) => {
-              if (area === "overview") onOpenLearn(selectedDeckId);
-            }}
-            className="core-learning-area-control"
-          />
-        }
-      />}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
+        if (area === "overview") onOpenLearn(selectedDeckId);
+      }} />}
 
       <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-7" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
@@ -1117,7 +1107,7 @@ export function DecksScreen({
               </thead>
               {tableModel.groups.map((group) => {
                 const expanded = Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id);
-                const visibleDepth = Math.min(group.depth, MAX_INTERACTIVE_DECK_LEVELS - 1);
+                const visibleDepth = getVisibleDeckDepth(group.depth);
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
                     {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}

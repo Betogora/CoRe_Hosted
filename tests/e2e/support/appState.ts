@@ -23,7 +23,7 @@ function createE2ESeedState(email: string) {
   };
 }
 
-export async function resetTestAccount(environment = loadE2EEnvironment()) {
+export async function resetTestAccount(environment = loadE2EEnvironment(), additionalDecks: Deck[] = []) {
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
   });
@@ -45,18 +45,19 @@ export async function resetTestAccount(environment = loadE2EEnvironment()) {
     if (conflictCleanupError) throw new Error(`E2E-Synchronisierungskonflikte konnten nicht zurückgesetzt werden: ${conflictCleanupError.message}`);
     const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", data.user.id);
     if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
-    await seedAccountState(client, createE2ESeedState(environment.email), "e2e-test-reset");
+    const seedState = createE2ESeedState(environment.email);
+    await seedAccountState(client, { ...seedState, decks: [...seedState.decks, ...additionalDecks] }, "e2e-test-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
   }
 }
 
-export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean } = {}) {
+export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean; additionalDecks?: Deck[] } = {}) {
   await page.goto("/");
   await page.waitForFunction((key: string) => Boolean(localStorage.getItem(key)), SYNC_DEVICE_STORAGE_KEY);
   await page.goto("/favicon.svg");
-  if (options.resetCloud !== false) await resetTestAccount();
+  if (options.resetCloud !== false) await resetTestAccount(loadE2EEnvironment(), options.additionalDecks);
 
   const authKeyBefore = await page.evaluate(() =>
     Object.keys(localStorage).find((key) => key.startsWith("sb-") && key.endsWith("-auth-token")) ?? null,

@@ -11,7 +11,7 @@ import { useSuccessToast } from "./feedbackUi.tsx";
 import { DeckSelect } from "./selectUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
-type DeckOptionsRow = Pick<DeckLibraryRow, "id" | "deck" | "path" | "sourcePath" | "coreMode">;
+type DeckOptionsRow = Pick<DeckLibraryRow, "id" | "deck" | "path" | "coreMode">;
 
 export interface DeckOptionsMenuProps {
   row: DeckOptionsRow;
@@ -70,7 +70,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
               label={`Stapeloptionen für ${row.path}`}
               icon={MoreHorizontal}
               variant="ghost"
-              className="pointer-events-auto"
+              className="core-deck-icon-action pointer-events-auto"
               data-testid={`deck-options-${row.id}`}
             />
           </Popover.Trigger>
@@ -87,11 +87,6 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
               <DeckAppearanceIcon appearance={deckAppearance} className="size-9" iconSize={17} data-deck-icon="true" />
               <div className="min-w-0">
                 <p className="break-words core-body font-semibold text-[var(--core-text)]">{row.deck.name}</p>
-                {row.sourcePath ? (
-                  <p className="mt-1 break-words core-caption text-[var(--core-text-muted)]">
-                    Originaler Anki-Pfad: {row.sourcePath}
-                  </p>
-                ) : null}
               </div>
             </div>
             <div className="grid gap-2 px-2">

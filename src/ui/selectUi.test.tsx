@@ -90,20 +90,36 @@ test("DeckSelect renders the selected deck icon and complete hierarchy path", ()
   assert.match(markup, />Biologie \/ Zelle</);
 });
 
-test("DeckSelect distinguishes a flattened deck by its original Anki path", () => {
-  const deck = createCoreDeck({
-    id: "flattened",
-    name: "J",
-    source: "anki-apkg",
-    hierarchyPath: ["A", "B", "C", "D", "E", "F", "G", "J"],
-    importMeta: { sourceMetadata: { ankiDeckPath: "A::B::C::D::E::F::G::H::I::J" } },
+test("DeckSelect keeps a complete deep logical hierarchy path", () => {
+  const decks = Array.from({ length: 12 }, (_, index) => createCoreDeck({
+    id: `deep-${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `deep-${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
     cards: [],
-  });
+  }));
   const markup = renderToStaticMarkup(
-    <DeckSelect ariaLabel="Kartenstapel" value={deck.id} decks={[deck]} onValueChange={() => undefined} />,
+    <DeckSelect ariaLabel="Kartenstapel" value={decks.at(-1)!.id} decks={decks} onValueChange={() => undefined} />,
   );
 
-  assert.match(markup, />A \/ B \/ C \/ D \/ E \/ F \/ G \/ J · Anki: A \/ B \/ C \/ D \/ E \/ F \/ G \/ H \/ I \/ J</);
+  assert.match(markup, />Ebene 1 \/ Ebene 2 \/ Ebene 3 \/ Ebene 4 \/ Ebene 5 \/ Ebene 6 \/ Ebene 7 \/ Ebene 8 \/ Ebene 9 \/ Ebene 10 \/ Ebene 11 \/ Ebene 12</);
+});
+
+test("DeckSelect projects a large deep hierarchy without recursive traversal", () => {
+  const decks = Array.from({ length: 2_000 }, (_, index) => createCoreDeck({
+    id: `large-${index + 1}`,
+    name: `Stapel ${index + 1}`,
+    parentDeckId: index === 0 ? null : `large-${index}`,
+    hierarchyPath: [`Stapel ${index + 1}`],
+    source: "manual",
+    cards: [],
+  }));
+  const markup = renderToStaticMarkup(
+    <DeckSelect ariaLabel="Kartenstapel" value={decks.at(-1)!.id} decks={decks} onValueChange={() => undefined} />,
+  );
+
+  assert.match(markup, />Stapel 2000</);
 });
 
 test("DeckSelect keeps an empty special value visible with its warning icon", () => {

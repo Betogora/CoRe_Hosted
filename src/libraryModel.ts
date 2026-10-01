@@ -8,7 +8,6 @@ import {
 } from "./studyHeatmapModel.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { CoreMode, Deck, LearningItem } from "./coreTypes.ts";
-import { getImportedDeckHierarchyOverflow } from "./deckHierarchy.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 
 export { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
@@ -121,7 +120,6 @@ function createDeckRow(
     summary?: DeckLibrarySummary;
   },
 ) {
-  const sourcePath = getImportedDeckHierarchyOverflow(deck)?.sourcePath.join(" / ") ?? "";
   const activeCards = summary ? [] : listReviewableCards(deck);
   const dayOptions = { dayStartHour, learnAheadMinutes, timeZone };
   const directInventory = summary?.inventory ?? summarizeDeckReview(deck, now, dayOptions);
@@ -139,12 +137,11 @@ function createDeckRow(
     deck,
     name: deck.name,
     path: deckPath(deck),
-    sourcePath,
     parentDeckId: deck.parentDeckId ?? null,
     depth,
     childrenCount,
     hasChildren: childrenCount > 0,
-    scopeDeckIds: [deck.id],
+    descendantCount: 0,
     coreMode: deck.deckSettings?.coreMode ?? "auto",
     summary: directSummary,
     directSummary,
@@ -214,7 +211,7 @@ export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & {
 };
 
 function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
-  const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path} ${row.sourcePath}`);
+  const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
   const matchesQuery = !query || haystack.includes(query);
   const matchesMode = coreMode === "all" || row.coreMode === coreMode;
 
@@ -265,73 +262,120 @@ function combineDailyProgress(progressValues: DailyReviewProgressSummary[]): Dai
 
 function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: number; dayStartHour?: number; learnAheadMinutes?: number; timeZone?: string; deckSummaries?: ReadonlyMap<string, DeckLibrarySummary> }): DeckLibraryRow[] {
   const childrenByParent = buildSortedDeckChildren(decks);
-  const rows: DeckLibraryRow[] = [];
+  type FlatEntry = { deck: Deck; depth: number; projectedParentId: string | null; rootDeckId: string };
+  const entries: FlatEntry[] = [];
+  const visited = new Set<string>();
 
-  function visit(deck: Deck, depth: number): {
+  function appendBranch(root: Deck, depth: number, projectedParentId: string | null, rootDeckId: string) {
+    const stack: FlatEntry[] = [{ deck: root, depth, projectedParentId, rootDeckId }];
+    while (stack.length > 0) {
+      const entry = stack.pop()!;
+      if (visited.has(entry.deck.id)) continue;
+      visited.add(entry.deck.id);
+      entries.push(entry);
+      const children = childrenByParent.get(entry.deck.id) ?? [];
+      for (let index = children.length - 1; index >= 0; index -= 1) {
+        stack.push({
+          deck: children[index],
+          depth: entry.depth + 1,
+          projectedParentId: entry.deck.id,
+          rootDeckId: entry.rootDeckId,
+        });
+      }
+    }
+  }
+
+  for (const root of childrenByParent.get(null) ?? []) appendBranch(root, 0, null, root.id);
+  for (const deck of decks) {
+    if (!visited.has(deck.id)) appendBranch(deck, 0, null, deck.id);
+  }
+
+  const projectedChildrenByParentId = new Map<string, string[]>();
+  const rootDecksById = new Map<string, Deck[]>();
+  for (const entry of entries) {
+    if (entry.projectedParentId) {
+      const childIds = projectedChildrenByParentId.get(entry.projectedParentId) ?? [];
+      childIds.push(entry.deck.id);
+      projectedChildrenByParentId.set(entry.projectedParentId, childIds);
+    }
+    const rootDecks = rootDecksById.get(entry.rootDeckId) ?? [];
+    rootDecks.push(entry.deck);
+    rootDecksById.set(entry.rootDeckId, rootDecks);
+  }
+
+  type DeckAggregate = {
     row: DeckLibraryRow;
-    scopeDecks: Deck[];
     inventory: DeckInventorySummary;
     aggregateDaily: DailyReviewProgressSummary;
     startableCount: number;
-  } {
-    const children = childrenByParent.get(deck.id) ?? [];
-    const row = createDeckRow(deck, {
-      ...options,
-      depth,
-      childrenCount: children.length,
-      summary: options.deckSummaries?.get(deck.id),
+    descendantCount: number;
+  };
+  const aggregates = new Map<string, DeckAggregate>();
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index];
+    const childAggregates = (projectedChildrenByParentId.get(entry.deck.id) ?? []).flatMap((childId) => {
+      const child = aggregates.get(childId);
+      return child ? [child] : [];
     });
-    rows.push(row);
-    const childResults = children.map((child) => visit(child, depth + 1));
-    const scopeDecks = [deck, ...childResults.flatMap((result) => result.scopeDecks)];
+    const row = createDeckRow(entry.deck, {
+      ...options,
+      depth: entry.depth,
+      childrenCount: childAggregates.length,
+      summary: options.deckSummaries?.get(entry.deck.id),
+    });
     const directInventory: DeckInventorySummary = {
       ...row.directSummary,
       newCards: row.directStatusDistribution.newCards,
       inProgressCards: row.directStatusDistribution.inProgressCards,
       dueCards: row.directStatusDistribution.dueCards,
     };
-    const inventory = combineInventory([directInventory, ...childResults.map((result) => result.inventory)]);
-    const aggregateDaily = combineDailyProgress([
-      row.dailyLearningSession.progress,
-      ...childResults.map((result) => result.aggregateDaily),
-    ]);
-    const aggregateStartableCount = row.dailyLearningSession.startableCount
-      + childResults.reduce((total, result) => total + result.startableCount, 0);
-    const rootQueue = !options.deckSummaries && depth === 0 && scopeDecks.length > 1
-      ? createDailyReviewQueue(scopeDecks, { deckId: deck.id, now: options.now, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone })
+    aggregates.set(entry.deck.id, {
+      row,
+      inventory: combineInventory([directInventory, ...childAggregates.map((child) => child.inventory)]),
+      aggregateDaily: combineDailyProgress([
+        row.dailyLearningSession.progress,
+        ...childAggregates.map((child) => child.aggregateDaily),
+      ]),
+      startableCount: row.dailyLearningSession.startableCount
+        + childAggregates.reduce((total, child) => total + child.startableCount, 0),
+      descendantCount: childAggregates.reduce((total, child) => total + child.descendantCount + 1, 0),
+    });
+  }
+
+  return entries.map((entry) => {
+    const aggregate = aggregates.get(entry.deck.id)!;
+    const rootDecks = rootDecksById.get(entry.rootDeckId) ?? [entry.deck];
+    const rootQueue = !options.deckSummaries && entry.depth === 0 && rootDecks.length > 1
+      ? createDailyReviewQueue(rootDecks, { deckId: entry.deck.id, now: options.now, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone })
       : null;
-    const daily = rootQueue?.dailyProgress ?? aggregateDaily;
-    row.scopeDeckIds = scopeDecks.map((scopeDeck) => scopeDeck.id);
-    row.summary = { ...inventory, newCards: daily.newCount, inProgressCards: daily.inProgressCount, dueCards: daily.dueCount };
-    row.statusDistribution = createDeckStatusDistribution(inventory);
+    const daily = rootQueue?.dailyProgress ?? aggregate.aggregateDaily;
+    aggregate.row.descendantCount = aggregate.descendantCount;
+    aggregate.row.summary = {
+      ...aggregate.inventory,
+      newCards: daily.newCount,
+      inProgressCards: daily.inProgressCount,
+      dueCards: daily.dueCount,
+    };
+    aggregate.row.statusDistribution = createDeckStatusDistribution(aggregate.inventory);
     if (rootQueue) {
-      row.dailyLearningSession = {
-        deckId: deck.id,
+      aggregate.row.dailyLearningSession = {
+        deckId: entry.deck.id,
         progress: daily,
         startableCount: rootQueue.total,
         additionalNewCount: Math.max(0, rootQueue.availableNewCards - rootQueue.newCount),
         effectiveNewLimit: rootQueue.newCardsPerDay,
         introducedTodayCount: rootQueue.newCardsIntroducedToday,
       };
-      row.dailyLearningDateKey = rootQueue.dateKey;
-    } else if (scopeDecks.length > 1) {
-      row.dailyLearningSession = {
-        ...row.dailyLearningSession,
+      aggregate.row.dailyLearningDateKey = rootQueue.dateKey;
+    } else if (aggregate.descendantCount > 0) {
+      aggregate.row.dailyLearningSession = {
+        ...aggregate.row.dailyLearningSession,
         progress: daily,
-        startableCount: aggregateStartableCount,
+        startableCount: aggregate.startableCount,
       };
     }
-    return {
-      row,
-      scopeDecks,
-      inventory,
-      aggregateDaily,
-      startableCount: rootQueue?.total ?? aggregateStartableCount,
-    };
-  }
-
-  (childrenByParent.get(null) ?? []).forEach((deck) => visit(deck, 0));
-  return rows;
+    return aggregate.row;
+  });
 }
 
 export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOptions = {}) {
@@ -434,7 +478,7 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit: 0, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone, deckSummaries: options.deckSummaries });
   const allGroups: CardTableGroup[] = rows.map((row) => {
-    const deckMatches = Boolean(query) && normalizeQuery(`${row.path} ${row.sourcePath}`).includes(query);
+    const deckMatches = Boolean(query) && normalizeQuery(row.path).includes(query);
     const matchingCards = !query || deckMatches
       ? row.activeCards
       : row.activeCards.filter((card) => cardSearchProjection(card).searchText.includes(query));

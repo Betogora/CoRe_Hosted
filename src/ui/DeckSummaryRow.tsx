@@ -1,11 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { GitBranch } from "lucide-react";
-import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
+import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow, DeckStatusDistribution } from "../libraryModel.ts";
 import { SegmentedDonut, type SegmentedDonutSegment } from "./coreUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 import { formatLearningCardCount, LEARNING_STATUS_UI } from "./learningStatusUi.ts";
-import { CoreTooltip } from "./tooltipUi.tsx";
 
 const DECK_COUNT_DEFINITIONS = [
   { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new", shortLabel: "N" },
@@ -63,7 +61,7 @@ function AdaptiveDeckName({ name, className }: { name: string; className: string
 }
 
 export interface DeckSummaryRowProps {
-  row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "sourcePath" | "depth">;
+  row: Pick<DeckLibraryRow, "deck" | "name" | "path" | "depth">;
   learningStatus?: {
     summary: DeckLibraryRow["summary"];
     statusDistribution: DeckStatusDistribution;
@@ -79,9 +77,8 @@ export interface DeckSummaryRowProps {
 export function DeckSummaryHeader() {
   return (
     <div className="core-deck-summary-container min-w-0" data-testid="deck-summary-header" aria-hidden="true">
-      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto_auto] items-center gap-1 border-b border-[var(--core-border)] px-1 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">
+      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-[var(--core-border)] px-1 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">
         <span className="min-w-0 truncate whitespace-nowrap">Stapel</span>
-        <span className="h-0 w-11 shrink-0" />
         <div className="core-deck-summary-counts core-deck-summary-metrics grid items-center text-center">
           {DECK_COUNT_DEFINITIONS.map((count) => (
             <span key={count.metric} className="core-deck-summary-count min-w-0">
@@ -92,7 +89,7 @@ export function DeckSummaryHeader() {
         </div>
         <span className="core-deck-summary-actions flex items-center justify-end gap-0.5">
           <span className="core-deck-summary-header-donut h-0 w-8 shrink-0" />
-          <span className="h-0 w-11 shrink-0" />
+          <span className="h-0 w-[5.5rem] shrink-0" />
         </span>
       </div>
     </div>
@@ -134,7 +131,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
         data-deck-study-row={studyAction ? "true" : undefined}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
-        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: Math.min(row.depth, MAX_INTERACTIVE_DECK_LEVELS - 1) * DECK_DEPTH_INDENT_PX }}>
+        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: getVisibleDeckDepth(row.depth) * DECK_DEPTH_INDENT_PX }}>
           {leadingControl}
           <DeckAppearanceIcon
             data-deck-icon="true"
@@ -147,22 +144,9 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
               name={row.name}
               className={`font-semibold text-[var(--core-text)] ${compactAtBase ? "core-body" : "core-body-large"}`}
             />
-            {row.sourcePath ? (
-              <CoreTooltip label="Tiefere Anki-Unterteilung wurde abgeflacht">
-                <span
-                  tabIndex={0}
-                  className="pointer-events-auto grid size-5 shrink-0 place-items-center text-[var(--core-text-muted)]"
-                  aria-label="Tiefere Anki-Unterteilung wurde abgeflacht"
-                  data-testid={`deck-hierarchy-overflow-${row.deck.id}`}
-                >
-                  <GitBranch size={14} aria-hidden="true" />
-                </span>
-              </CoreTooltip>
-            ) : null}
           </span>
         </div>
 
-        {studyAction}
         {learningStatus ? (
           <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
             {DECK_COUNT_DEFINITIONS.map((count) => (
@@ -176,7 +160,10 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
 
         <div className={`core-deck-summary-actions flex items-center justify-end ${compactAtBase ? "gap-0.5" : "gap-2"}`}>
           {statusSegments ? <SegmentedDonut segments={statusSegments} ariaLabel={statusLabel} size={density} /> : null}
-          {actions}
+          <span className="inline-flex items-center gap-0">
+            {studyAction}
+            {actions}
+          </span>
         </div>
       </div>
     </div>

@@ -36,29 +36,28 @@ test("deck summary row keeps responsive identity, accessible metrics and compact
   assert.match(markup, /aria-label="Stapeloptionen"/);
 });
 
-test("deck summary row marks a flattened Anki hierarchy without changing the deck name", () => {
-  const imported = createCoreDeck({
-    id: "flattened",
-    name: "J",
-    source: "anki-apkg",
-    hierarchyPath: ["A", "B", "C", "D", "E", "F", "G", "J"],
-    importMeta: { sourceMetadata: { ankiDeckPath: "A::B::C::D::E::F::G::H::I::J" } },
+test("deck summary row caps visual indentation at level six", () => {
+  const deepDecks = Array.from({ length: 12 }, (_, index) => createCoreDeck({
+    id: `deep-${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `deep-${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
     cards: [],
-  });
-  const importedRow = createDeckLibraryModel([imported]).rows[0];
+  }));
+  const deepRow = createDeckLibraryModel(deepDecks).rows.at(-1)!;
   const markup = renderToStaticMarkup(
     <DeckSummaryRow
-      row={importedRow}
+      row={deepRow}
       leadingControl={<span aria-hidden="true" />}
       actions={<button type="button" aria-label="Stapeloptionen" />}
       density="responsive"
     />,
   );
 
-  assert.match(markup, />J</);
-  assert.match(markup, /data-testid="deck-hierarchy-overflow-flattened"/);
-  assert.match(markup, /data-core-tooltip="Tiefere Anki-Unterteilung wurde abgeflacht"/);
-  assert.match(markup, /lucide-git-branch/);
+  assert.equal(deepRow.depth, 11);
+  assert.match(markup, /padding-inline-start:80px/);
+  assert.doesNotMatch(markup, /deck-hierarchy-overflow|lucide-git-branch/);
 });
 
 test("deck summary row omits the complete learning status block for management rows", () => {

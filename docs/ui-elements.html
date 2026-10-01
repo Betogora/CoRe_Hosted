@@ -16,7 +16,7 @@
     <title>CoRe UI-Elementkatalog</title>
     <style id="core-generated-styles">
 /* Automatisch aus den kanonischen UI-Quellen erzeugt. Nicht manuell bearbeiten. */
-/* Quellenstand: c2aa0fd04a1f2b6b */
+/* Quellenstand: 5eb0e20b88d9b58f */
 *, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
@@ -747,6 +747,10 @@ video {
       width: 100%;
     }
 
+    .core-learning-header-actions > .core-action-secondary {
+      margin-inline-end: auto;
+    }
+
     .core-question-type-control .core-segmented-control-option {
       white-space: normal;
       padding-inline: 0.25rem;
@@ -791,8 +795,6 @@ video {
   .core-deck-summary-row[data-deck-depth="3"] { background-color: var(--core-group-depth-3); }
   .core-deck-summary-row[data-deck-depth="4"] { background-color: var(--core-group-depth-4); }
   .core-deck-summary-row[data-deck-depth="5"] { background-color: var(--core-group-depth-5); }
-  .core-deck-summary-row[data-deck-depth="6"] { background-color: var(--core-group-depth-6); }
-  .core-deck-summary-row[data-deck-depth="7"] { background-color: var(--core-group-depth-7); }
 
   .core-deck-summary-row[data-drop-state="valid"] {
     border-color: var(--core-warning);
@@ -1886,13 +1888,11 @@ video {
   --core-surface-muted: #edf1f6;
   --core-surface-hover: #e7ecf3;
   --core-group-depth-0: var(--core-surface);
-  --core-group-depth-1: #fafbfc;
-  --core-group-depth-2: #f5f7fa;
-  --core-group-depth-3: #f0f3f7;
-  --core-group-depth-4: #eceff4;
-  --core-group-depth-5: #e7ebf1;
-  --core-group-depth-6: #e2e7ef;
-  --core-group-depth-7: var(--core-palette-cloud);
+  --core-group-depth-1: #f8f9fb;
+  --core-group-depth-2: #f1f4f7;
+  --core-group-depth-3: #ebeef4;
+  --core-group-depth-4: #e4e9f0;
+  --core-group-depth-5: var(--core-palette-cloud);
   --core-text: var(--core-palette-midnight);
   --core-text-secondary: var(--core-palette-graphite);
   --core-text-muted: #667492;
@@ -1958,13 +1958,11 @@ video {
   --core-surface-muted: #303947;
   --core-surface-hover: #394454;
   --core-group-depth-0: var(--core-surface);
-  --core-group-depth-1: #29313e;
-  --core-group-depth-2: #2c3542;
-  --core-group-depth-3: #2f3846;
-  --core-group-depth-4: #313c4b;
-  --core-group-depth-5: #343f4f;
-  --core-group-depth-6: #374353;
-  --core-group-depth-7: #3a4657;
+  --core-group-depth-1: #2a3340;
+  --core-group-depth-2: #2e3846;
+  --core-group-depth-3: #323c4b;
+  --core-group-depth-4: #364151;
+  --core-group-depth-5: #3a4657;
   --core-text: var(--core-palette-cloud);
   --core-text-secondary: var(--core-palette-highlight);
   --core-text-muted: var(--core-palette-highlight);
@@ -2189,13 +2187,15 @@ button[aria-label] {
   display: none;
 }
 
-[data-deck-study-row="true"] {
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
+@container core-deck-summary (32rem < width < 48rem) {
+  .core-deck-summary-responsive:has(.core-deck-summary-metrics) .core-deck-summary-actions {
+    margin-inline-start: 0.25rem;
+  }
 }
 
 @container core-deck-summary (max-width: 24rem) {
   [data-deck-study-row="true"] {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   [data-deck-study-row="true"] .core-deck-summary-leading {
@@ -2203,16 +2203,8 @@ button[aria-label] {
     min-height: 2.75rem;
   }
 
-  [data-deck-study-row="true"] > button {
+  [data-deck-study-row="true"] .core-deck-summary-counts {
     justify-self: end;
-  }
-
-  [data-deck-study-header="true"] {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-  }
-
-  [data-deck-study-header="true"] > span:nth-child(2) {
-    display: none;
   }
 }
 
@@ -2957,6 +2949,30 @@ summary {
     line-height: 1.5rem;
     overflow-wrap: anywhere;
   }
+}
+
+.core-deck-icon-action,
+.core-deck-icon-action:not(:disabled):hover,
+.core-deck-icon-action:not(:disabled):active,
+.core-deck-icon-action[data-state="open"] {
+  background: transparent;
+  border-color: transparent;
+}
+
+.core-deck-icon-action > svg {
+  width: 22px;
+  height: 22px;
+  fill: transparent;
+  transition: fill 140ms ease, transform 140ms ease;
+}
+
+.core-deck-icon-action > svg circle {
+  r: 1.5;
+}
+
+.core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) > svg {
+  fill: currentColor;
+  transform: scale(1.08);
 }
 
 .hover\:-translate-y-0\.5:hover {

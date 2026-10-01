@@ -1,15 +1,12 @@
 import React from "react";
-import { ChevronRight, FolderPlus, Layers, Settings2 } from "lucide-react";
+import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
-import { DECK_DEPTH_ERROR } from "../coreWorkspace.ts";
-import { MAX_INTERACTIVE_DECK_LEVELS } from "../deckHierarchy.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
-import { ActionButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, EmptyState, PageHeader } from "../ui/coreUi.tsx";
+import { EmptyState } from "../ui/coreUi.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
-import { learnAreaOptions, type LearnArea } from "./screenConstants.ts";
+import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 
 function createDefaultDeckDraft(parentDeckId = "") {
   return {
@@ -26,24 +23,13 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
   const setSuccessToast = useSuccessToast();
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
-  const eligibleParentDeckIds = React.useMemo(
-    () => library.rows.filter((row) => row.depth < MAX_INTERACTIVE_DECK_LEVELS - 1).map((row) => row.id),
-    [library.rows],
-  );
+  const eligibleParentDeckIds = React.useMemo(() => library.rows.map((row) => row.id), [library.rows]);
   const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
 
   React.useEffect(() => {
     if (!initialParentDeckId) return;
     const parentRow = library.rows.find((row) => row.id === initialParentDeckId);
     if (!parentRow) return;
-
-    if (parentRow.depth >= MAX_INTERACTIVE_DECK_LEVELS - 1) {
-      setDeckDraft(createDefaultDeckDraft());
-      setDeckStatus(DECK_DEPTH_ERROR);
-      setDeckStatusType("alert");
-      onDeckCreationHandled?.();
-      return;
-    }
 
     setDeckDraft(createDefaultDeckDraft(parentRow.id));
     setDeckStatus(`Unterstapel unter "${parentRow.name}" anlegen.`);
@@ -127,27 +113,9 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
 
   return (
     <div className="grid min-w-0 gap-7">
-      <PageHeader
-        eyebrow="Review"
-        title="Lernen"
-        action={
-          <div className="core-learning-header-actions flex flex-wrap items-center justify-end gap-2">
-            <CoreSegmentedControl<LearnArea>
-              ariaLabel="Bereich in Lernen"
-              options={learnAreaOptions}
-              value="overview"
-              typography="control"
-              onValueChange={(area) => {
-                if (area === "cards") onOpenDecks(focusedDeckId);
-              }}
-              className="core-learning-area-control"
-            />
-            <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
-              Lerneinstellungen
-            </ActionButton>
-          </div>
-        }
-      />
+      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
+        if (area === "cards") onOpenDecks(focusedDeckId);
+      }} />
 
       <DeckTree
         rows={focusedDeckMissing ? [] : library.rows}

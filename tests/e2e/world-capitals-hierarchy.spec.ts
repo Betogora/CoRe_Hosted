@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { createCoreDeck } from "../../src/coreModel.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 
 const DECK_IDS = {
@@ -9,6 +10,34 @@ const DECK_IDS = {
   southAmerica: "deck_world_capitals_suedamerika",
 };
 
+const DEEP_DECK_IDS = {
+  leaf: "deck_deep_leaf",
+  subtree: "deck_deep_subtree",
+  subtreeChild: "deck_deep_subtree_child",
+};
+
+function createDeepDeckFixture() {
+  const chain = Array.from({ length: 13 }, (_, index) => createCoreDeck({
+    id: `deck_deep_level_${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `deck_deep_level_${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
+    cards: [],
+  }));
+  const leaf = createCoreDeck({ id: DEEP_DECK_IDS.leaf, name: "Tiefes Blatt", source: "manual", cards: [] });
+  const subtree = createCoreDeck({ id: DEEP_DECK_IDS.subtree, name: "Tiefer Teilbaum", source: "manual", cards: [] });
+  const subtreeChild = createCoreDeck({
+    id: DEEP_DECK_IDS.subtreeChild,
+    name: "Teilbaum-Kind",
+    parentDeckId: subtree.id,
+    hierarchyPath: [subtree.name, "Teilbaum-Kind"],
+    source: "manual",
+    cards: [],
+  });
+  return [...chain, leaf, subtree, subtreeChild];
+}
+
 function mainMenu(page: Page) {
   return page.locator('[data-app-navigation="true"]:visible').first();
 }
@@ -16,6 +45,11 @@ function mainMenu(page: Page) {
 async function storedParentDeckId(page: Page, deckId: string) {
   const state = await readActiveAccountState(page);
   return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.parentDeckId ?? null;
+}
+
+async function storedHierarchyPath(page: Page, deckId: string) {
+  const state = await readActiveAccountState(page);
+  return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.hierarchyPath ?? [];
 }
 
 async function storedDeckPresentation(page: Page, deckId: string) {
@@ -118,7 +152,7 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
-  const rootActivation = rootRow.getByRole("button", { name: "Welt-Hauptstädte lernen" });
+  const rootActivation = rootRow.getByRole("button", { name: "Inhalte von Welt-Hauptstädte öffnen" });
   await rootActivation.hover();
   const sharedHoverFill = await page.locator("html").evaluate((element) => getComputedStyle(element).getPropertyValue("--core-focus-ring-soft").trim());
   await expect(rootActivation).toHaveCSS("background-color", sharedHoverFill);
@@ -211,7 +245,8 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   await europeOption.click();
   await expect(trigger).toContainText("Europa");
 
-  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+  await search.fill("");
   const reopenedViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
   allOption = reopenedViewport.getByRole("option", { name: "Gesamte Sammlung", exact: true });
   const reopenedEuropeOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true });
@@ -223,7 +258,7 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   const southAmericaOption = reopenedViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true });
   await southAmericaOption.click();
   await expect(trigger).toContainText("2 Stapel ausgewählt");
-  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
   const finalViewport = page.locator('[data-deck-select-content="true"]:visible [data-deck-select-viewport="true"]');
   await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Europa", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(finalViewport.getByRole("option", { name: "Welt-Hauptstädte / Südamerika", exact: true })).toHaveAttribute("aria-selected", "true");
@@ -231,6 +266,8 @@ test("statistics deck filter uses full-width selection rows while keeping multip
   await allOption.click();
   await expect(trigger).toContainText("Gesamte Sammlung");
 
+  await trigger.click();
+  await expect(trigger).toHaveAttribute("aria-expanded", "false");
   await trigger.click();
   await expect(page.getByRole("textbox", { name: "Stapel suchen" })).toHaveValue("");
 });
@@ -296,7 +333,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
       const icon = panel.querySelector<HTMLElement>(".core-deck-summary-icon")!;
       const rowMetricLabels = [...panel.querySelectorAll<HTMLElement>("[data-deck-count] dt")];
       const firstRow = panel.querySelector<HTMLElement>('[data-deck-row="true"]')!;
-      const collapseControl = firstRow.querySelector<HTMLElement>('button[aria-expanded]')!;
+      const collapseControl = panel.querySelector<HTMLElement>('button[aria-label^="Unterstapel von "][aria-expanded]')!;
       const deckRows = [...panel.querySelectorAll<HTMLElement>('[data-deck-row="true"]')];
       const rootParentIcon = deckRows.find((row) => row.dataset.deckId === rootDeckId)!.querySelector<HTMLElement>('[data-deck-icon="true"]')!;
       const rootLeafIcon = deckRows.find((row) => row.dataset.deckDepth === "0" && row.querySelector(".core-deck-summary-name")?.textContent === rootLeafName)!.querySelector<HTMLElement>('[data-deck-icon="true"]')!;
@@ -584,7 +621,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await page.locator('[data-navigation-layout="mobile-header"]').getByRole("button", { name: "Light Mode einschalten" }).click();
   await saveButton.click();
   await expect(saveBar).toHaveCount(0);
-  await expect(page.getByText("Stapeleinstellungen wurden gespeichert.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Stapeleinstellungen wurden für den Stapel gespeichert.", { exact: true })).toBeVisible();
   await expect(page.getByTestId("deck-settings-title-name")).toHaveText("Europa kompakt");
   await expect(page.getByTestId("deck-settings-title-name")).toHaveCount(1);
   for (const viewport of [
@@ -637,8 +674,7 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.africa)).toBe(DECK_IDS.southAmerica);
 
   await dispatchDeckDrop(page, antarcticaRow, africaRow);
-  await expect(page.getByRole("status")).toContainText("Maximal vier Stapel-Ebenen sind möglich.");
-  await expect.poll(() => storedParentDeckId(page, DECK_IDS.antarctica)).toBe(DECK_IDS.root);
+  await expect.poll(() => storedParentDeckId(page, DECK_IDS.antarctica)).toBe(DECK_IDS.africa);
 
   await dispatchTopLevelDrop(page, southAmericaRow, "learn-top-drop-zone");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(null);
@@ -656,14 +692,90 @@ test("learning drag-and-drop handles child, root, no-op and invalid targets with
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toHaveCount(0);
 });
 
-test("a real click immediately after drag starts learning", async ({ page }) => {
+test("unlimited logical hierarchy keeps deep drag, subtree moves, dialogs and visual depth consistent", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 1000 });
+  await resetToFreshLocalState(page, { additionalDecks: createDeepDeckFixture() });
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+
+  const level = (number: number) => page.getByTestId(`learn-deck-row-deck_deep_level_${number}`);
+  await expect(level(6)).toHaveAttribute("data-deck-depth", "5");
+  await expect(level(13)).toHaveAttribute("data-deck-depth", "5");
+  await expect.poll(async () => new Set(await Promise.all([8, 9, 13].map((number) => level(number).evaluate((row) => getComputedStyle(row).backgroundColor)))).size)
+    .toBe(1);
+
+  await level(8).getByRole("button", { name: /Unterstapel .* ausblenden/ }).click();
+  await expect(level(9)).toHaveCount(0);
+  await level(8).getByRole("button", { name: /Unterstapel .* anzeigen/ }).click();
+  await expect(level(13)).toBeVisible();
+
+  await level(12).getByRole("button", { name: /Unterstapel .* ausblenden/ }).click();
+  await expect(level(13)).toHaveCount(0);
+  const leafRow = page.getByTestId(`learn-deck-row-${DEEP_DECK_IDS.leaf}`);
+  await dispatchDeckDrop(page, leafRow, level(12));
+  await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.leaf)).toBe("deck_deep_level_12");
+  await expect.poll(() => storedHierarchyPath(page, DEEP_DECK_IDS.leaf)).toEqual([
+    ...Array.from({ length: 12 }, (_, index) => `Ebene ${index + 1}`),
+    "Tiefes Blatt",
+  ]);
+  await expect(level(13)).toBeVisible();
+
+  const subtreeRow = page.getByTestId(`learn-deck-row-${DEEP_DECK_IDS.subtree}`);
+  await dispatchDeckDrop(page, subtreeRow, level(13));
+  await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.subtree)).toBe("deck_deep_level_13");
+  await expect.poll(() => storedHierarchyPath(page, DEEP_DECK_IDS.subtreeChild)).toEqual([
+    ...Array.from({ length: 13 }, (_, index) => `Ebene ${index + 1}`),
+    "Tiefer Teilbaum",
+    "Teilbaum-Kind",
+  ]);
+
+  await dispatchDeckDrop(page, level(12), level(13));
+  await expect(page.getByRole("status")).toContainText("Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.");
+  await expect.poll(() => storedParentDeckId(page, "deck_deep_level_12")).toBe("deck_deep_level_11");
+
+  await dispatchDeckDrop(page, leafRow, level(12));
+  await expect(page.getByRole("status")).toContainText("Stapel bleibt an dieser Stelle.");
+
+  await dispatchTopLevelDrop(page, subtreeRow, "learn-top-drop-zone");
+  await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.subtree)).toBe(null);
+  await expect.poll(() => storedHierarchyPath(page, DEEP_DECK_IDS.subtreeChild)).toEqual(["Tiefer Teilbaum", "Teilbaum-Kind"]);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await page.getByTestId(`deck-options-${DEEP_DECK_IDS.leaf}`).click();
+  await page.getByTestId(`deck-options-menu-${DEEP_DECK_IDS.leaf}`).getByRole("button", { name: "Verschieben" }).click();
+  await page.getByRole("combobox", { name: "Ziel für Tiefes Blatt" }).click();
+  await page.getByRole("textbox", { name: "Stapel suchen" }).fill("Ebene 13");
+  await page.getByRole("option", { name: /Ebene 13$/ }).click();
+  await page.getByRole("button", { name: "Verschieben bestätigen" }).click();
+  await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.leaf)).toBe("deck_deep_level_13");
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.getByTestId(`deck-options-${DEEP_DECK_IDS.subtree}`).click();
+  await page.getByTestId(`deck-options-menu-${DEEP_DECK_IDS.subtree}`).getByRole("button", { name: "Verschieben" }).click();
+  await page.getByRole("combobox", { name: "Ziel für Tiefer Teilbaum" }).click();
+  await page.getByRole("textbox", { name: "Stapel suchen" }).fill("Ebene 13");
+  await page.getByRole("option", { name: /Ebene 13$/ }).click();
+  await page.getByRole("button", { name: "Verschieben bestätigen" }).click();
+  await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.subtree)).toBe("deck_deep_level_13");
+
+  for (const viewport of [
+    { width: 1280, height: 900 },
+    { width: 820, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  }
+});
+
+test("a real Play click immediately after drag starts learning", async ({ page }) => {
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
 
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   const southAmericaRow = page.getByTestId(`learn-deck-row-${DECK_IDS.southAmerica}`);
   await dispatchDeckDrop(page, southAmericaRow, europeRow);
-  await southAmericaRow.locator('[data-deck-drag-source="true"]').click({ force: true });
+  await southAmericaRow.getByRole("button", { name: /Südamerika lernen$/ }).click({ force: true });
 
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });

@@ -1,6 +1,5 @@
 import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
 import type { Deck, DeckSettings, LearningItem, NoteTypeDefinitionV1, Profile } from "./coreTypes.ts";
-import { MAX_INTERACTIVE_DECK_LEVELS } from "./deckHierarchy.ts";
 
 interface CloudTombstone {
   entityTable: string;
@@ -30,8 +29,6 @@ export interface DeckMutationResult {
   renamedTo?: string;
   movedToParentDeckId?: string | null;
 }
-
-export const DECK_DEPTH_ERROR = "Maximal acht Stapel-Ebenen sind möglich.";
 
 interface DeckPlacementInput {
   deckId: string;
@@ -91,32 +88,12 @@ export function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<
   return ids;
 }
 
-function deckDepth(deckById: ReadonlyMap<string, Deck>, deckId: string): number {
-  const visited = new Set<string>();
-  let current = deckById.get(deckId) ?? null;
-  let depth = 0;
-
-  while (current?.parentDeckId && !visited.has(current.id)) {
-    visited.add(current.id);
-    const parent = deckById.get(current.parentDeckId) ?? null;
-    if (!parent) break;
-    depth += 1;
-    current = parent;
-  }
-
-  return depth;
-}
-
 export function createDeckPlacementValidator(decks: Deck[], deckId: string): (parentDeckId: string | null) => string | null {
   const deckById = new Map(decks.map((deck) => [deck.id, deck]));
   const deck = deckById.get(deckId) ?? null;
   if (!deck) return () => "Stapel nicht gefunden.";
 
   const movedTreeIds = collectDeckTreeIds(decks, deckId);
-  const sourceDepth = deckDepth(deckById, deckId);
-  const currentMaximumDepth = Math.max(...[...movedTreeIds].map((id) => deckDepth(deckById, id)));
-  const subtreeHeight = Math.max(0, currentMaximumDepth - sourceDepth);
-  const maximumInteractiveDepth = MAX_INTERACTIVE_DECK_LEVELS - 1;
 
   return (parentDeckId) => {
     const requestedParentId = parentDeckId || null;
@@ -125,12 +102,7 @@ export function createDeckPlacementValidator(decks: Deck[], deckId: string): (pa
     if (requestedParentId && movedTreeIds.has(requestedParentId)) {
       return "Ein Stapel kann nicht in sich selbst oder einen eigenen Unterstapel verschoben werden.";
     }
-    if ((deck.parentDeckId ?? null) === requestedParentId) return null;
-
-    const nextMaximumDepth = (parent ? deckDepth(deckById, parent.id) + 1 : 0) + subtreeHeight;
-    return nextMaximumDepth > maximumInteractiveDepth
-      ? DECK_DEPTH_ERROR
-      : null;
+    return null;
   };
 }
 
@@ -272,8 +244,8 @@ export function createWorkspaceDeck(decks: Deck[], { name = "Neuer Stapel", pare
   description?: string;
   deckSettings?: Partial<DeckSettings>;
 } = {}): Deck | null {
-  const validParentId = parentDeckId && decks.some((deck) => deck.id === parentDeckId) ? parentDeckId : null;
-  if (validParentId && deckDepth(new Map(decks.map((deck) => [deck.id, deck])), validParentId) + 1 >= MAX_INTERACTIVE_DECK_LEVELS) return null;
+  if (parentDeckId && !decks.some((deck) => deck.id === parentDeckId)) return null;
+  const validParentId = parentDeckId || null;
   const hierarchyPath = createHierarchyPathForDeck(decks, { name, parentDeckId: validParentId });
   return createCoreDeck({
     name: hierarchyPath.at(-1) || "Neuer Stapel",

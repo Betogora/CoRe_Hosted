@@ -4,69 +4,103 @@ import { createCoreDeck } from "./coreModel.ts";
 import {
   createDeckPlacementValidator,
   createWorkspaceDeck,
-  DECK_DEPTH_ERROR,
   restoreSoftDeletedCard,
   softDeleteCard,
   updateDeckTreePlacement,
 } from "./coreWorkspace.ts";
 
-test("workspace deck creation keeps sibling names unique and limits nesting", () => {
+function createDeckChain(length: number, prefix = "level") {
+  return Array.from({ length }, (_, index) => createCoreDeck({
+    id: `${prefix}-${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `${prefix}-${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
+    cards: [],
+  }));
+}
+
+test("workspace deck creation keeps sibling names unique without a logical depth limit", () => {
   const root = createWorkspaceDeck([], { name: "Biologie" });
   assert.ok(root);
   const sibling = createWorkspaceDeck([root], { name: "Biologie" });
   assert.equal(sibling?.name, "Biologie+");
   const levels = [root];
-  for (let level = 2; level <= 8; level += 1) {
+  for (let level = 2; level <= 12; level += 1) {
     const deck = createWorkspaceDeck([...levels, sibling!], { name: `Ebene ${level}`, parentDeckId: levels.at(-1)!.id });
     assert.ok(deck);
-    levels.push(deck);
+    levels.push(deck!);
   }
-  const rejected = createWorkspaceDeck([...levels, sibling!], { name: "Ebene 9", parentDeckId: levels.at(-1)!.id });
 
-  assert.equal(rejected, null);
+  assert.equal(levels.at(-1)?.hierarchyPath.length, 12);
+  assert.equal(createWorkspaceDeck([...levels, sibling!], { name: "Ohne Ziel", parentDeckId: "missing" }), null);
 });
 
-test("deck tree placement rejects a subtree that would reach level nine", () => {
-  const chain = Array.from({ length: 7 }, (_, index) => createCoreDeck({
-    id: `level-${index + 1}`,
-    name: `Ebene ${index + 1}`,
-    parentDeckId: index === 0 ? null : `level-${index}`,
-    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
-    source: "manual",
-    cards: [],
-  }));
+test("deck tree placement moves a complete subtree to any depth and back to the main level", () => {
+  const chain = createDeckChain(12);
   const movedRoot = createCoreDeck({ id: "moved-root", name: "Verschieben", source: "manual", cards: [] });
   const movedChild = createCoreDeck({ id: "moved-child", parentDeckId: movedRoot.id, name: "Kind", hierarchyPath: ["Verschieben", "Kind"], source: "manual", cards: [] });
+  const movedGrandchild = createCoreDeck({ id: "moved-grandchild", parentDeckId: movedChild.id, name: "Enkel", hierarchyPath: ["Verschieben", "Kind", "Enkel"], source: "manual", cards: [] });
+  const decks = [...chain, movedRoot, movedChild, movedGrandchild];
 
-  assert.match(createDeckPlacementValidator([...chain, movedRoot, movedChild], movedRoot.id)(chain.at(-1)!.id) ?? "", /acht Stapel-Ebenen/);
-});
-
-test("deck tree placement no longer permits a still-too-deep legacy relocation", () => {
-  const chain = Array.from({ length: 10 }, (_, index) => createCoreDeck({
-    id: `legacy-level-${index + 1}`,
-    name: `Legacy-Ebene ${index + 1}`,
-    parentDeckId: index === 0 ? null : `legacy-level-${index}`,
-    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Legacy-Ebene ${pathIndex + 1}`),
-    source: "anki-apkg",
-    cards: [],
-  }));
-
-  assert.equal(createDeckPlacementValidator(chain, "legacy-level-2")(null), DECK_DEPTH_ERROR);
-});
-
-test("deck tree placement renames descendants and rejects cycles", () => {
-  const root = createCoreDeck({ id: "root", name: "Alt", source: "manual", hierarchyPath: ["Alt"], cards: [] });
-  const child = createCoreDeck({ id: "child", name: "Kind", source: "manual", parentDeckId: root.id, hierarchyPath: ["Alt", "Kind"], cards: [] });
-  const renamed = updateDeckTreePlacement({ decks: [root, child] }, {
-    deckId: root.id,
-    name: "Neu",
-    changeType: "deck_renamed",
+  const moved = updateDeckTreePlacement({ decks }, {
+    deckId: movedRoot.id,
+    parentDeckId: chain.at(-1)!.id,
+    changeType: "deck_moved",
     reason: "Test",
   });
 
-  assert.equal(renamed.ok, true);
-  assert.deepEqual(renamed.nextDecks?.find((deck) => deck.id === child.id)?.hierarchyPath, ["Neu", "Kind"]);
-  assert.match(createDeckPlacementValidator([root, child], root.id)(child.id) ?? "", /eigenen Unterstapel/);
+  assert.equal(moved.ok, true);
+  assert.deepEqual(moved.nextDecks?.find((deck) => deck.id === movedRoot.id)?.hierarchyPath, [...chain.at(-1)!.hierarchyPath, "Verschieben"]);
+  assert.deepEqual(moved.nextDecks?.find((deck) => deck.id === movedGrandchild.id)?.hierarchyPath, [...chain.at(-1)!.hierarchyPath, "Verschieben", "Kind", "Enkel"]);
+  assert.deepEqual(new Set(moved.changedDeckIds), new Set([movedRoot.id, movedChild.id, movedGrandchild.id]));
+
+  const restored = updateDeckTreePlacement({ decks: moved.nextDecks! }, {
+    deckId: movedRoot.id,
+    parentDeckId: null,
+    changeType: "deck_moved",
+    reason: "Test",
+  });
+
+  assert.equal(restored.deck?.parentDeckId, null);
+  assert.deepEqual(restored.nextDecks?.find((deck) => deck.id === movedGrandchild.id)?.hierarchyPath, ["Verschieben", "Kind", "Enkel"]);
+});
+
+test("deck tree placement validates missing targets, no-op, self reference, and descendant cycles", () => {
+  const [root, child] = createDeckChain(2);
+  const decks = [root, child];
+  const validate = createDeckPlacementValidator(decks, root.id);
+
+  assert.equal(createDeckPlacementValidator(decks, "missing")(null), "Stapel nicht gefunden.");
+  assert.equal(validate("missing"), "Zielstapel nicht gefunden.");
+  assert.match(validate(root.id) ?? "", /sich selbst/);
+  assert.match(validate(child.id) ?? "", /eigenen Unterstapel/);
+  assert.equal(createDeckPlacementValidator(decks, child.id)(root.id), null);
+  const unchanged = updateDeckTreePlacement({ decks }, {
+    deckId: child.id,
+    parentDeckId: root.id,
+    changeType: "deck_moved",
+    reason: "Test",
+  });
+  assert.equal(unchanged.ok, true);
+  assert.deepEqual(unchanged.changedDeckIds, []);
+});
+
+test("deck tree placement keeps sibling names unique and updates descendant paths", () => {
+  const target = createCoreDeck({ id: "target", name: "Ziel", source: "manual", cards: [] });
+  const existing = createCoreDeck({ id: "existing", name: "Thema", parentDeckId: target.id, hierarchyPath: ["Ziel", "Thema"], source: "manual", cards: [] });
+  const moved = createCoreDeck({ id: "moved", name: "Thema", source: "manual", cards: [] });
+  const child = createCoreDeck({ id: "child", name: "Kind", parentDeckId: moved.id, hierarchyPath: ["Thema", "Kind"], source: "manual", cards: [] });
+  const result = updateDeckTreePlacement({ decks: [target, existing, moved, child] }, {
+    deckId: moved.id,
+    parentDeckId: target.id,
+    changeType: "deck_moved",
+    reason: "Test",
+  });
+
+  assert.equal(result.deck?.name, "Thema+");
+  assert.deepEqual(result.deck?.hierarchyPath, ["Ziel", "Thema+"]);
+  assert.deepEqual(result.nextDecks?.find((deck) => deck.id === child.id)?.hierarchyPath, ["Ziel", "Thema+", "Kind"]);
 });
 
 test("soft delete and restore preserve the previous card status", () => {

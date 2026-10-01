@@ -31,7 +31,7 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
     assert.match(styles, new RegExp(color, "i"));
   }
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "group-depth-5", "group-depth-6", "group-depth-7", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
+  for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "group-depth-5", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
     assert.match(dark, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
@@ -86,21 +86,31 @@ test("only individually overflowing deck names use at most two lines", () => {
   assert.match(styles, /\.core-deck-summary-name\[data-deck-name-wrap="true"\]\s*\{[\s\S]*?-webkit-line-clamp:\s*2;[\s\S]*?white-space:\s*normal;/);
 });
 
-test("group depths darken in light mode and lighten in dark mode", () => {
+test("six group depths retain endpoints and darken in light mode / lighten in dark mode", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const lightDepths = ["ffffff", "fafbfc", "f5f7fa", "f0f3f7", "eceff4", "e7ebf1", "e2e7ef", "dde3ec"];
-  const darkDepths = ["262e3a", "29313e", "2c3542", "2f3846", "313c4b", "343f4f", "374353", "3a4657"];
+  const lightDepths = ["ffffff", "f8f9fb", "f1f4f7", "ebeef4", "e4e9f0", "dde3ec"];
+  const darkDepths = ["262e3a", "2a3340", "2e3846", "323c4b", "364151", "3a4657"];
 
-  for (let depth = 1; depth <= 6; depth += 1) {
+  for (let depth = 1; depth <= 4; depth += 1) {
     assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
   }
-  for (let depth = 1; depth <= 7; depth += 1) {
+  for (let depth = 1; depth <= 5; depth += 1) {
     assert.match(dark, new RegExp(`--core-group-depth-${depth}:\\s*#${darkDepths[depth]}`));
   }
-  assert.match(styles, /--core-group-depth-7:\s*var\(--core-palette-cloud\)/);
+  assert.match(styles, /--core-group-depth-5:\s*var\(--core-palette-cloud\)/);
+  for (const colors of [lightDepths, darkDepths]) {
+    const channels = colors.map((color) => color.match(/../g)!.map((channel) => Number.parseInt(channel, 16)));
+    for (let depth = 0; depth < 6; depth += 1) {
+      for (let channel = 0; channel < 3; channel += 1) {
+        const interpolated = channels[0][channel] + (channels[5][channel] - channels[0][channel]) * depth / 5;
+        assert.equal(channels[depth][channel], Math.round(interpolated));
+      }
+    }
+  }
+  assert.doesNotMatch(styles, /--core-group-depth-[67]/);
   assert.ok(lightDepths.every((color, index) => index === 0 || relativeLuminance(lightDepths[index - 1]) > relativeLuminance(color)));
   assert.ok(darkDepths.every((color, index) => index === 0 || relativeLuminance(darkDepths[index - 1]) < relativeLuminance(color)));
-  for (let depth = 0; depth <= 7; depth += 1) {
+  for (let depth = 0; depth <= 5; depth += 1) {
     assert.match(styles, new RegExp(`\\.core-deck-summary-row\\[data-deck-depth="${depth}"\\]\\s*\\{\\s*background-color:\\s*var\\(--core-group-depth-${depth}\\)`));
   }
 });

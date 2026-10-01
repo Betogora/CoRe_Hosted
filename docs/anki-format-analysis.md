@@ -1,6 +1,6 @@
 # Anki-Formatanalyse für CoRe
 
-Stand: 2026-08-20
+Stand: 2026-08-29
 
 Dieses Dokument ist eine kompakte technische Referenz für Ankis Modell- und
 Paketgrenzen. Der verbindliche CoRe-Vertrag steht in
@@ -65,10 +65,11 @@ optionalem Desired-Retention-Override.
 
 CoRe-Folgerung: Decks sind Studiencontainer. Intern bleiben echte
 Parent-/Child-IDs kanonisch; `::` ist nur eine importierte Hierarchiecodierung.
-CoRe projiziert davon höchstens acht sichtbare Ebenen. Quellstapel ab Ebene 9
-bleiben getrennte, stabil identifizierte Stapel auf sichtbarer Ebene 8; der
-vollständige Quellpfad, die Quelltiefe und der ursprüngliche Elternpfad bleiben
-als Importherkunft erhalten und werden nicht in Kartentags umgewandelt.
+CoRe erhält den vollständigen Quellbaum ohne fachliches Tiefenlimit. Jeder
+importierte Stapel verweist auf seinen unmittelbaren Anki-Elternstapel und
+behält den vollständigen Pfad sowie seine stabile Importidentität. Ab Ebene 6
+bleiben lediglich Einrückung und Tiefenfarbe visuell konstant; die echte
+Beziehung wird nicht in Kartentags umgewandelt.
 
 ### Notes, Notetypes und Cards
 

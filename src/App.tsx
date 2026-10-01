@@ -1828,6 +1828,7 @@ export function App() {
           ), { replace: true }) : undefined}
           onMoveDeck={moveDeck}
           onOpenLearn={openLearn}
+          onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onDraftStateChange={handleCardDraftStateChange}
           expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
           onSetDeckExpanded={saveDeckExpansion}

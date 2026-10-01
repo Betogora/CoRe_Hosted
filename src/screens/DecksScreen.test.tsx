@@ -29,6 +29,7 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
     }),
     onMoveDeck: () => null,
     onOpenLearn: () => undefined,
+    onOpenCardSettings: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
     expandedDeckIds: [],
@@ -198,6 +199,24 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
   assert.match(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);
   assert.match(expandedMarkup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
+});
+
+test("cards page keeps logical chevrons while capping visual depth at level six", () => {
+  const deepDecks = Array.from({ length: 12 }, (_, index) => createCoreDeck({
+    id: `cards-depth-${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `cards-depth-${index}`,
+    hierarchyPath: Array.from({ length: index + 1 }, (__, pathIndex) => `Ebene ${pathIndex + 1}`),
+    source: "manual",
+    cards: [],
+  }));
+  const markup = renderScreen(deepDecks);
+
+  assert.match(markup, /data-testid="deck-header-cards-depth-6"[^>]*data-deck-depth="5"/);
+  assert.match(markup, /data-testid="deck-header-cards-depth-12"[^>]*data-deck-depth="5"/);
+  for (let level = 1; level < 12; level += 1) {
+    assert.match(markup, new RegExp(`aria-label="Karten von [^"]*Ebene ${level} aufklappen"`));
+  }
 });
 
 test("card selection opens a non-modal detail aside with editor, copy and visible tools", () => {

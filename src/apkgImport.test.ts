@@ -129,7 +129,7 @@ test("jede Anki-Cloze-Gruppe wird eigenständig importiert", () => {
   assert.deepEqual(deck?.cards.map((card: any) => card.sourceCardId), ["20", "21"]);
 });
 
-test("APKG hierarchy flattens source level nine and deeper while preserving source paths and tags", async () => {
+test("APKG hierarchy imports immediate parents and complete paths beyond level eight", async () => {
   const segments = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
   const decks = segments.map((_, index) => ({ id: String(index + 1), name: segments.slice(0, index + 1).join("::") }));
   const parsed = parsedApkgFixture({
@@ -145,13 +145,13 @@ test("APKG hierarchy flattens source level nine and deeper while preserving sour
   const i = bySourcePath.get("A::B::C::D::E::F::G::H::I") as any;
   const j = bySourcePath.get("A::B::C::D::E::F::G::H::I::J") as any;
 
-  assert.deepEqual([h.parentDeckId, i.parentDeckId, j.parentDeckId], [g.id, g.id, g.id]);
+  assert.deepEqual([h.parentDeckId, i.parentDeckId, j.parentDeckId], [g.id, h.id, i.id]);
   assert.deepEqual(h.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "H"]);
-  assert.deepEqual(i.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "I"]);
-  assert.deepEqual(j.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "J"]);
-  assert.equal(j.importMeta.sourceMetadata.ankiDeckDepth, 9);
-  assert.equal(j.importMeta.sourceMetadata.ankiParentPath, "A::B::C::D::E::F::G::H::I");
-  assert.equal(first.report.warnings.filter((warning: string) => warning.includes("ab Ebene 9 auf Ebene 8 abgeflacht")).length, 1);
+  assert.deepEqual(i.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
+  assert.deepEqual(j.hierarchyPath, segments);
+  assert.equal(j.importMeta.sourceMetadata.ankiDeckDepth, undefined);
+  assert.equal(j.importMeta.sourceMetadata.ankiParentPath, undefined);
+  assert.equal(first.report.warnings.some((warning: string) => warning.includes("abgeflacht")), false);
   assert.deepEqual(j.cards[0].tags, ["tag"]);
   assert.deepEqual(second.commitGraph.decks.map((deck: any) => deck.id), importedDecks.map((deck: any) => deck.id));
 });
@@ -160,9 +160,32 @@ test("Reimport ersetzt nur bei neuerer Anki-Änderungszeit den Inhalt und erhäl
   const reviewState = createReviewState({ state: "review", repetitions: 12, stability: 30, dueAt: "2026-09-01T04:00:00.000Z" });
   const existingCard = createBasicLearningItem("existing", "Alt", "Antwort", { id: "local", source: "anki-apkg", sourceType: "anki_import", sourceCardId: "20", reviewState, status: "suspended", meta: { ankiModifiedAt: "2026-08-20T10:00:00.000Z" } });
   const incomingCard = createBasicLearningItem("incoming", "Neu", "Antwort", { id: "remote", source: "anki-apkg", sourceType: "anki_import", sourceCardId: "20", meta: { ankiModifiedAt: "2026-08-21T10:00:00.000Z" } });
-  const existing = createCoreDeck({ id: "existing", source: "anki-apkg", originalDeckId: "1", cards: [existingCard] });
-  const incoming = createCoreDeck({ id: "incoming", source: "anki-apkg", originalDeckId: "1", cards: [incomingCard] });
+  const existing = createCoreDeck({
+    id: "existing",
+    name: "Lokaler Name",
+    source: "anki-apkg",
+    originalDeckId: "1",
+    parentDeckId: "local-parent",
+    hierarchyPath: ["Lokale Ordnung", "Lokaler Name"],
+    deckSettings: { coreMode: "manual", newCardsPerDay: 7 },
+    cards: [existingCard],
+  });
+  const incoming = createCoreDeck({
+    id: "incoming",
+    name: "Anki Name",
+    source: "anki-apkg",
+    originalDeckId: "1",
+    parentDeckId: "anki-parent",
+    hierarchyPath: ["Anki Ordnung", "Anki Name"],
+    deckSettings: { coreMode: "off", newCardsPerDay: 20 },
+    cards: [incomingCard],
+  });
   const merged = mergeImportedDeck(incoming, [existing]);
+  assert.equal(merged.name, "Lokaler Name");
+  assert.equal(merged.parentDeckId, "local-parent");
+  assert.deepEqual(merged.hierarchyPath, ["Lokale Ordnung", "Lokaler Name"]);
+  assert.equal(merged.deckSettings.coreMode, "manual");
+  assert.equal(merged.deckSettings.newCardsPerDay, 7);
   assert.equal(merged.cards[0].id, "local");
   assert.equal(merged.cards[0].originalFront, "Neu");
   assert.equal(merged.cards[0].reviewState.dueAt, reviewState.dueAt);

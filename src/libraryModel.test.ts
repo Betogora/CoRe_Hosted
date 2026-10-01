@@ -125,7 +125,7 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.ok(childRow);
   assert.equal(childRow.parentDeckId, parent.id);
   assert.ok(parentRow);
-  assert.deepEqual(parentRow.scopeDeckIds, [parent.id, child.id]);
+  assert.equal(parentRow.descendantCount, 1);
   assert.ok(parentRow);
   assert.equal(parentRow.directSummary.totalCards, 0);
   assert.ok(parentRow);
@@ -451,18 +451,36 @@ test("card table preserves hierarchy and card order while including empty decks"
   assert.deepEqual(deckSearch.groups[0].cardRows.map((row) => row.id), ["card-first", "card-second"]);
 });
 
-test("deck and card searches include a flattened deck's original Anki path", () => {
+test("deck and card searches use the complete logical hierarchy path", () => {
+  const hierarchyPath = Array.from({ length: 12 }, (_, index) => `Ebene ${index + 1}`);
   const deck = createCoreDeck({
-    id: "flattened",
-    name: "J",
+    id: "deep-deck",
+    name: hierarchyPath.at(-1)!,
     source: "anki-apkg",
-    hierarchyPath: ["A", "B", "C", "D", "E", "F", "G", "J"],
-    importMeta: { sourceMetadata: { ankiDeckPath: "A::B::C::D::E::F::G::H::I::J" } },
+    hierarchyPath,
     cards: [createCoreCard({ id: "source-card", source: "anki-apkg", originalFront: "Frage", originalBack: "Antwort" })],
   });
 
-  assert.deepEqual(createDeckLibraryModel([deck], { query: "h / i / j" }).filteredRows.map((row) => row.id), [deck.id]);
-  assert.deepEqual(createCardTableModel([deck], { query: "h / i / j" }).groups.map((group) => group.id), [deck.id]);
+  assert.deepEqual(createDeckLibraryModel([deck], { query: "ebene 9 / ebene 10 / ebene 11" }).filteredRows.map((row) => row.id), [deck.id]);
+  assert.deepEqual(createCardTableModel([deck], { query: "ebene 10 / ebene 11 / ebene 12" }).groups.map((group) => group.id), [deck.id]);
+});
+
+test("library model projects a large deep hierarchy iteratively with logical depths and aggregates", () => {
+  const deepDecks = Array.from({ length: 2_000 }, (_, index) => createCoreDeck({
+    id: `deep-${index + 1}`,
+    name: `Ebene ${index + 1}`,
+    parentDeckId: index === 0 ? null : `deep-${index}`,
+    hierarchyPath: [`Ebene ${index + 1}`],
+    source: "manual",
+    cards: [],
+  }));
+
+  const rows = createDeckLibraryModel(deepDecks).rows;
+  assert.equal(rows.length, deepDecks.length);
+  assert.equal(rows.at(-1)?.depth, deepDecks.length - 1);
+  assert.equal(rows[0].descendantCount, deepDecks.length - 1);
+  assert.equal(rows[1].descendantCount, deepDecks.length - 2);
+  assert.equal(rows.at(-1)?.descendantCount, 0);
 });
 
 test("card table sorts all columns and projects next-study and variant labels", () => {
