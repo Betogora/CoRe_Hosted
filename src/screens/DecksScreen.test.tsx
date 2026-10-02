@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DecksScreenProps } from "../appScreenProps.ts";
-import { applyLearningItemContent, createCoreDeck, createCoreNoteTypeDefinition, createLearningItemDocumentFromLegacy, createLearningItemFromEditorValue, createManualCoreDeck, saveCardEditorValue, updateLearningItemStudyState } from "../coreModel.ts";
+import { applyLearningItemContent, createCardVariant, createCoreDeck, createCoreNoteTypeDefinition, createLearningItemDocumentFromLegacy, createLearningItemFromEditorValue, createManualCoreDeck, saveCardEditorValue, updateLearningItemStudyState } from "../coreModel.ts";
 import type { CardEditorValue, Deck } from "../coreTypes.ts";
 import { DecksScreen, type DecksScreenCardPageProps } from "./DecksScreen.tsx";
 
@@ -179,8 +179,8 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, /data-deck-summary-row-content="responsive"/);
   assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 1);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
-  assert.match(markup, /<col span="2" class="w-\[5\.75rem\]"\/>/);
-  assert.match(markup, /<span class="whitespace-nowrap">Sortierfeld<\/span>/);
+  assert.match(markup, /<col class="w-20 sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
+  assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
   assert.match(markup, /core-table-header-row/);
   assert.match(markup, /core-table-header-control/);
   assert.match(markup, /text-right/);
@@ -214,10 +214,10 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(expandedMarkup, /Was ist ATP\?/);
   assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-\[var\(--core-border\)\][^"]*"[^>]*data-card-row="true"/);
   assert.doesNotMatch(expandedMarkup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
-  assert.match(expandedMarkup, />Nein<\/span>/);
+  assert.match(expandedMarkup, /aria-label="Keine Varianten"/);
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
-  assert.match(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);
-  assert.match(expandedMarkup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
+  assert.doesNotMatch(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);
+  assert.match(expandedMarkup, /aria-label="Keine Varianten"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
 
 test("cards page keeps logical chevrons while capping visual depth at level six", () => {
@@ -281,7 +281,7 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.match(markup, /Detailansicht schließen/);
 });
 
-test("cards page shows suspended rows and marked stars beside the variants badge", () => {
+test("cards page shows suspended rows and marked stars beside the fixed-width variant icon", () => {
   const originalDeck = createManualCoreDeck({
     deckName: "Biologie",
     card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
@@ -296,7 +296,7 @@ test("cards page shows suspended rows and marked stars beside the variants badge
   assert.match(markup, /data-testid="card-detail-aside"[^>]*\[scrollbar-gutter:stable\]/);
   const editorSurface = markup.match(/<section[^>]*data-testid="card-detail-editor"[^>]*>/)?.[0] ?? "";
   assert.match(editorSurface, /style="background-color:var\(--core-warning-surface\)"/);
-  assert.match(markup, />Nein<\/span><span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
+  assert.match(markup, /aria-label="Keine Varianten"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
   const suspendControl = markup.match(/<div[^>]*aria-label="Aussetzstatus der Karte"[\s\S]*?<\/div>/)?.[0] ?? "";
   assert.match(suspendControl, /aria-pressed="true"[^>]*>Aussetzen/);
@@ -359,4 +359,20 @@ test("copy is disabled with a reason for read-only imported card types", () => {
   assert.match(markup, /title="Dieser importierte Kartentyp kann nicht kopiert werden\."/);
   assert.match(markup, /disabled=""[^>]*>.*Kopieren/s);
   assert.match(markup, /wird hier nur angezeigt und kann nicht kopiert werden/);
+});
+
+
+test("variant icons and marked stars use the same slots in collection and deck contents", () => {
+  const first = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Ohne Variante", back: "Antwort" } });
+  const second = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Mit Variante", back: "Antwort" } }).cards[0];
+  const variant = createCardVariant({ cardId: second.id, front: "Andere Frage", back: "Antwort", qualityStatus: "active" });
+  const deck = createCoreDeck({ ...first, cards: [updateLearningItemStudyState(first.cards[0], { marked: true }), updateLearningItemStudyState({ ...second, variants: [variant] }, { marked: true })] });
+  for (const contentDeckId of [undefined, deck.id]) {
+    const markup = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, contentDeckId });
+    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-check[^>]*aria-label="Varianten vorhanden"/);
+    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Varianten"/);
+    assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
+    assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
+    assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-full/);
+  }
 });

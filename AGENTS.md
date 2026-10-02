@@ -13,15 +13,17 @@ requirements. General working agreements are inherited from the global
 
 ## Canonical Documentation
 
-Use `docs/index.md` when the relevant source of truth is unclear. Read only the
+Use `docs/README.md` when the relevant source of truth is unclear. Read only the
 documents and sections required for the current task.
 
 - `docs/specs.md`: canonical product behavior, core journeys, functional
   requirements, and product acceptance criteria.
 - `docs/specs.html`: generated visual mirror of `docs/specs.md`; do not treat it
   as a separate authoring source.
+- `docs/index.html`: shared HTML entrypoint, with Specs, Journeys, UI-Elements,
+  card types. Project knowledge remains in canonical Markdown. `docs/README.md` owns navigation and upkeep.
 - `docs/architecture.md`: canonical current architecture, module ownership,
-  invariants, compatibility/target models, and implemented/planned APIs.
+  invariants, persisted terminology, and implemented APIs; planned changes belong in TODO.
 - `docs/status.md`: canonical current implementation status and known gaps.
 - `docs/operations.md`: canonical operational gates, runbooks, release,
   rollback, recovery, and incident guidance.
@@ -61,8 +63,8 @@ scope and gates.
   creation and normalization. New manual, import, and AI paths must use these
   helpers.
 - Deck `cards` remains the local compatibility collection for Learning Items.
-  Each item must have exactly one original variant, and every other variant
-  must remain anchored to it.
+  Each item owns its original content and review state; generated variants
+  remain anchored to that item and own no independent review state.
 - `src/apkgImport.ts` is the public APKG import and normalization seam. Keep
   worker, protocol, ZIP, and SQLite details private in
   `src/apkgImportWorker.ts`, `src/apkgImportWorkerProtocol.ts`,
@@ -74,8 +76,8 @@ scope and gates.
   URLs and media status.
 - `src/database.types.ts` is generated output. Never edit it manually.
 - Keep validation schemas with the module that owns the trust boundary: cloud
-  row and JSONB validation in `src/cloudRepositoryValidation.ts`, and AI chat
-  request/response validation in `src/aiChatContract.ts`. Do not create a
+  row and JSONB validation in `src/cloudRepositoryValidation.ts`, and AI card-variant
+  request/response validation in `src/aiCardVariantContract.ts`. Do not create a
   central mega-schema for unrelated trust boundaries.
 
 ## Product And Data Invariants
@@ -125,7 +127,14 @@ scope and gates.
 
 Update documentation when the implemented contract changes:
 
-- Update the relevant role source from `docs/index.md`. Product behavior and
+- All `docs/*.html` files are generated. Update their Markdown or catalog
+  sources, run `npm run docs:build`, then `npm run check:docs`. UI work must
+  update the actual component demos in `scripts/uiCatalogDemos.tsx` and any
+  affected local screen examples in `scripts/uiCatalogPatterns.html`; inspect
+  both the catalog and app. Never hand-edit the generated HTML. New exported
+  shared UI components require a catalog group and visible demo.
+
+- Update the relevant role source from `docs/README.md`. Product behavior and
   acceptance criteria belong in `docs/specs.md`; then synchronize
   `docs/specs.html`. Architecture and public technical interfaces belong in
   `docs/architecture.md`; operations, decisions, status, and history remain in

@@ -347,6 +347,10 @@
   }
 
   .core-segmented-control-option {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
     position: relative;
     z-index: 1;
     min-height: 0;
@@ -356,6 +360,10 @@
     color: var(--core-text-secondary);
     white-space: nowrap;
     transition: background-color 140ms ease, color 140ms ease;
+  }
+
+  .core-segmented-control-option svg {
+    flex-shrink: 0;
   }
 
   .core-segmented-control[data-size="compact"] .core-segmented-control-option {
@@ -453,16 +461,8 @@
   }
 
   .core-sliding-tabs .core-segmented-control-option {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
     flex: 0 0 2.25rem;
     padding-inline: 0.125rem;
-  }
-
-  .core-sliding-tabs .core-segmented-control-option svg {
-    flex-shrink: 0;
   }
 
   .core-sliding-tabs .core-segmented-control-option[aria-pressed="true"] {
@@ -1244,11 +1244,6 @@ summary {
   background: var(--core-help-stack-back);
   transform: translate(28px, -20px) rotate(3deg);
 }
-
-.core-help-card-copy {
-  font: 500 1.0625rem/1.4375rem Amulya, ui-sans-serif, system-ui, sans-serif;
-}
-
 .core-help-card-question {
   font: 500 1.1875rem/1.625rem Amulya, ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.005em;

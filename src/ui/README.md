@@ -1,6 +1,6 @@
 # CoRe UI-Katalog
 
-Stand: 2026-08-29
+Stand: 2026-10-02
 
 Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue Features prüfen diese Elemente vor einer eigenen Implementierung. Wiederverwendung ist empfohlen, aber nicht verpflichtend, wenn die vorhandene Schnittstelle die Fachsemantik verschlechtern würde. Ein neues gemeinsames Modul wird erst aus mindestens drei gleichartigen aktuellen Stellen oder aus zentralisierungswürdigem Accessibility-Verhalten gewonnen.
 
@@ -8,7 +8,7 @@ Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue 
 
 `src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der umrundete Theme-Button in der responsiven Navigation setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
 
-Die teilbare visuelle Referenz liegt in `docs/ui-elements.html`. Nach Änderungen an Theme, Typografie, gemeinsamen Komponenten oder eigenständigen fachlichen UI-Mustern werden die betroffenen Beispiele manuell gegen die Produktoberflächen geprüft; `npm run docs:ui-elements` synchronisiert anschließend die eingebetteten Styles und den Quellenstand. `npm run typecheck` führt `npm run docs:ui-elements:check` aus und schlägt fehl, wenn dieser technische Stand abweicht. Der Check ersetzt nicht die fachliche Sichtprüfung der kuratierten Beispiele.
+Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](../../docs/ui-elements.html); Einstieg und Pflegeregeln stehen in [`../../docs/README.md`](../../docs/README.md). Sie zeigt die tatsächlichen gemeinsamen Komponenten, alle CoRe-Tokens, Typostufen und importierten Icons. Demos leben in `scripts/uiCatalogDemos.tsx`, ergänzende lokale Screen-Muster in `scripts/uiCatalogPatterns.html`. Bei jeder UI-Änderung die betroffenen Demos und Zustände ergänzen, die App-Quelle ändern, `npm run docs:build` und `npm run check:docs` ausführen und visuell prüfen. `typecheck` prüft die erzeugten Seiten und meldet neue Komponenten ohne Katalogzuordnung. HTML-Ausgaben werden nie direkt bearbeitet; die Referenz ist der gemeinsame Ausgangspunkt für iterative Designaufträge.
 
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
@@ -39,6 +39,8 @@ Nicht für Reviewratings, MCQ-Antworten, Tabs, Farbfelder, Navigationszeilen ode
 
 Spezialisierte native Buttons dürfen direkt `core-action-primary`, `core-action-secondary` oder `core-action-destructive` nutzen, wenn eine React-Abstraktion ihr Interface verschlechtern würde.
 
+`CreationActionCard` aus `CreationActionCard.tsx` ist das gemeinsame Aktionskartenmuster von Erstellen und leerem Dashboard. Es besitzt Iconfläche, Titel, optionale Beschreibung und die bestehenden Info-/Erfolgstöne; die Aktion bleibt beim Aufrufer. Die drei separaten Onboarding-Stile entfallen.
+
 ## Tooltips
 
 Direktimport: `import { CoreTooltip } from "../ui/tooltipUi.tsx"`. `CoreTooltipProvider` wird einmal an der App-Wurzel eingebunden.
@@ -62,7 +64,7 @@ Direktimport aus `src/ui/coreUi.tsx`:
 - `EmptyState`: Icon, Titel, optionaler Text und optionaler Action-Slot.
 - `ActionDialog`: modaler Bestätigungsdialog mit Fokusfalle, Escape, Außenklick als Cancel, Cancel/Confirm, optionaler Verwerfen-Aktion, optionalen Aktionsicons, Ladezustand und Fokuswiederherstellung; ohne Beschreibung erscheint er kompakt in einer Zeile, explizit destruktive Bestätigungen behalten ihre Gefahrenform; intern gemeinsame Actions.
 - `OrbIcon`: rein dekorativer Icon-Kreis; Bedeutung bleibt im umgebenden Text.
-- `CoreSegmentedControl`: gemeinsame Auswahlgruppe mit neutralem gleitendem Auswahlindikator und `aria-pressed`; `regular` besitzt 44 px Höhe, `compact` 36 px. Der Indikator folgt der gemessenen Buttonposition und -breite, auch nach Resize; Reduced Motion schaltet den Übergang aus. Aufrufer besitzen Optionen und fachlichen Zustand. Bestehende textbasierte Controls bleiben iconfrei.
+- `CoreSegmentedControl`: gemeinsame Auswahlgruppe mit neutralem gleitendem Auswahlindikator und `aria-pressed`; `regular` besitzt 44 px Höhe, `compact` 36 px. Der Indikator folgt der gemessenen Buttonposition und -breite, auch nach Resize; Reduced Motion schaltet den Übergang aus. Icon und Beschriftung stehen gemeinsam horizontal und vertikal zentriert; SVGs schrumpfen nicht. Aufrufer besitzen Optionen und fachlichen Zustand. Bestehende textbasierte Controls bleiben iconfrei.
 - `CoreSlidingTabs`: Inhaltsnavigation auf Basis desselben Controls mit Lucide-Icons und nur aktiv sichtbarem Wortlabel. Inaktive Optionen behalten ihre vollständigen zugänglichen Namen; die Leiste füllt unter 768 px die verfügbare Breite und bleibt darüber höchstens 24 rem breit. Sie erzeugt weder Seiten noch eigenen fachlichen Auswahlzustand.
 - `useSlidingSelection`: gemeinsame Positionsmessung für `CoreSegmentedControl` und die zweizeilige untere Hauptnavigation. Misst das aktive Element über `aria-pressed` beziehungsweise `aria-current`, beobachtet Größenänderungen und liefert denselben dekorativen Indikator mit Position, Breite und Höhe; die fachliche Auswahl bleibt beim Aufrufer.
 - `CoreModeControl`: fachliches Drei-Wege-Control für Aus/Auto/Manuell auf Basis des regulären `CoreSegmentedControl`, kein allgemeiner Tab-Ersatz.

@@ -27,6 +27,7 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 | Freies Markdown-Dokument | `kebab-case.md` | `anki-format-analysis.md` |
 | Reserviertes Markdown-Dokument | offizieller Name | `README.md`, `AGENTS.md` |
 | Generierte HTML-Fassung | Basisname der Quelle | `specs.md` und `specs.html` |
+| Gemeinsame Dokumentationsansicht | etablierter Seitenname | `README.md` → `index.html`; `journeys.html`, `ui-elements.html`, `card-types.html` |
 | Eigenständige HTML-Datei | `kebab-case.html` | `todo-review.html` |
 | JSON-Fixture | `kebab-case[.rolle].json` | `world-capitals.source.json` |
 | Sonstige Fixture | beschreibendes `kebab-case.ext` | `plain-text-sample.txt`, `pdf-selection.pdf` |

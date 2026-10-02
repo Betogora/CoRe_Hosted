@@ -483,7 +483,7 @@ test("library model projects a large deep hierarchy iteratively with logical dep
   assert.equal(rows.at(-1)?.descendantCount, 0);
 });
 
-test("card table sorts all columns and projects next-study and variant labels", () => {
+test("card table sorts all columns and projects next-study labels and variant status", () => {
   const newCard = createCoreCard({ id: "card-new", source: "manual", originalFront: "Äpfel", originalBack: "Neu" });
   const laterBase = createCoreCard({ id: "card-later", source: "manual", originalFront: "Zebra", originalBack: "Später" });
   const earlierBase = createCoreCard({
@@ -507,7 +507,7 @@ test("card table sorts all columns and projects next-study and variant labels", 
   const defaultRows = createCardTableModel([deck]).groups[0].cardRows;
   assert.deepEqual(defaultRows.map((row) => row.id), ["card-new", "card-earlier", "card-later"]);
   assert.deepEqual(defaultRows.map((row) => row.nextStudyLabel), ["Neu", "10.08.2026", "20.09.2026"]);
-  assert.deepEqual(defaultRows.map((row) => row.variantsLabel), ["Nein", "Ja", "Nein"]);
+  assert.deepEqual(defaultRows.map((row) => row.hasActiveVariants), [false, true, false]);
 
   for (const [cardSort, expected] of [
     [{ field: "sortField", direction: "desc" }, ["card-later", "card-earlier", "card-new"]],

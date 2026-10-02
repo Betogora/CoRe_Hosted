@@ -1,6 +1,6 @@
 # UI Screen Modules
 
-Stand: 2026-08-06
+Stand: 2026-10-02
 
 `src/App.tsx` owns app composition, account-scoped workspace state, workspace-command wiring, route selection and persistence callbacks. `authenticatedWorkspaceBoot.ts`, `useAppNavigation.ts`, `appSyncLifecycle.ts` and `appMediaLifecycle.ts` own the corresponding React lifecycle wiring. Auth phase and sync status wording live in `src/accountSession.ts`; cloud persistence and conflict behavior stay in `src/syncEngine.ts` and `src/cloudRepository.ts`.
 
@@ -35,3 +35,4 @@ Each exported screen in this folder is a UI module with a small props interface.
 - Keep main `PageHeader` usage compact: eyebrow plus title only. Do not add tab-level subtitles/third lines or decorative right-side header icons; place real actions as normal controls in the screen content.
 - Keep Rich Text, HTML sanitization, import normalization, learning-setting normalization, scheduler intervals and media URL behavior in `richText.ts`, `htmlSafety.ts`, `importService.ts`, `deckSettings.ts`, `scheduler.ts` and `mediaStore.ts`.
 - Update this map when adding, renaming, or moving screens so future agent work starts in the right module.
+- Besondere Produktansichten und lokale UI-Muster in `docs/ui-elements.html` werden über `scripts/uiCatalogDemos.tsx` beziehungsweise `scripts/uiCatalogPatterns.html` gepflegt. Nach Designänderungen `npm run docs:build` und `npm run check:docs` ausführen; erzeugte HTML-Dateien nicht direkt bearbeiten.

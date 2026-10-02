@@ -180,7 +180,6 @@ export function createCardTableRow(card: LearningItem, options: Pick<LibraryOpti
     nextStudyTimestamp,
     nextStudyLabel: Number.isFinite(nextStudyTimestamp) ? cardDueDateFormatter.format(nextStudyTimestamp) : "Neu",
     hasActiveVariants,
-    variantsLabel: hasActiveVariants ? "Ja" : "Nein",
   };
 }
 

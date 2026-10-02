@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Network, NotebookPen, PanelsTopLeft, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -68,7 +68,7 @@ function SortHeader({ field, label, sort, onChange }: {
         className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
-        <span className="whitespace-nowrap">{label}</span>
+        <span className="min-w-0 truncate">{label}</span>
         <SortIcon size={14} aria-hidden="true" className={`shrink-0 ${active ? "opacity-100" : "opacity-35"}`} />
       </button>
     </th>
@@ -1132,7 +1132,8 @@ export function DecksScreen({
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
-                <col span={2} className={contentDeckId ? "w-20 sm:w-[5.75rem]" : "w-[5.75rem]"} />
+                <col className="w-20 sm:w-[5.75rem]" />
+                <col className="w-20" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
                 <tr className="core-table-header-row border-b border-[var(--core-border)]">
@@ -1192,7 +1193,7 @@ export function DecksScreen({
                       </td>
                     </tr>
                   ) : null}
-                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ card, frontPreview, nextStudyLabel, variantsLabel, hasActiveVariants }) => {
+                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ card, frontPreview, nextStudyLabel, hasActiveVariants }) => {
                     const suspended = card.status === "suspended";
                     const marked = isLearningItemMarked(card);
                     const selected = selectedCardId === card.id;
@@ -1226,9 +1227,9 @@ export function DecksScreen({
                       </td>
                       <td className="min-w-0 px-1 py-1 text-right align-middle">
                         <span className="inline-flex items-center justify-end gap-1 align-middle">
-                          <span className={`inline-block whitespace-nowrap rounded-full border px-2 align-middle core-caption font-semibold ${hasActiveVariants ? "border-[var(--core-border-interactive)] bg-[var(--core-info-surface)] text-[var(--core-action-primary)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
-                            {variantsLabel}
-                          </span>
+                          {hasActiveVariants
+                            ? <Check size={18} className="shrink-0 text-[var(--core-text-muted)]" role="img" aria-label="Varianten vorhanden" />
+                            : <Minus size={18} className="shrink-0 text-[var(--core-text-muted)]" role="img" aria-label="Keine Varianten" />}
                           <span className="grid size-[1.125rem] place-items-center">
                             {marked ? <Star size={18} fill="currentColor" className="text-[var(--core-warning)]" role="img" aria-label="Markiert" /> : null}
                           </span>

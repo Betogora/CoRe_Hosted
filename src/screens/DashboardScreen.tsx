@@ -1,4 +1,5 @@
 import React from "react";
+import { CreationActionCard } from "../ui/CreationActionCard.tsx";
 import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
@@ -256,21 +257,9 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
           </div>
 
           <div className="mt-7 grid gap-4 lg:grid-cols-3">
-            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "manual" })} className="group rounded-2xl bg-[var(--core-action-primary)] p-5 text-left text-[var(--core-text-on-accent)] shadow-[var(--core-shadow-raised)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">
-              <PenLine size={24} aria-hidden="true" />
-              <span className="mt-5 block core-body-large font-semibold">Erste Karte erstellen</span>
-              <span className="core-body mt-2 block text-[var(--core-text-on-accent)]">Frage und Antwort direkt eingeben.</span>
-            </button>
-            <button type="button" onClick={() => onNavigate("neue-karten", { creationMethod: "import" })} className="group rounded-2xl border border-[var(--core-border)] bg-core-surface p-5 text-left text-[var(--core-text)] transition hover:-translate-y-0.5 hover:border-core-success focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2">
-              <FileArchive size={24} className="text-core-text" aria-hidden="true" />
-              <span className="mt-5 block core-body-large font-semibold">Anki-Stapel importieren</span>
-              <span className="mt-2 block core-body leading-6 text-[var(--core-text-muted)]">Eine vorhandene APKG-Datei übernehmen.</span>
-            </button>
-            <button type="button" onClick={onCreateDemo} className="group rounded-2xl border border-dashed border-[var(--core-border)] bg-[var(--core-surface-muted)] p-5 text-left text-[var(--core-text)] transition hover:-translate-y-0.5 hover:border-[var(--core-focus)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">
-              <Sparkles size={24} className="text-[var(--core-action-secondary)]" aria-hidden="true" />
-              <span className="mt-5 block core-body-large font-semibold">Demo ausprobieren</span>
-              <span className="mt-2 block core-body leading-6 text-[var(--core-text-muted)]">Beispielstapel nur auf deinen Klick anlegen.</span>
-            </button>
+            <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} tone="info" onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
+            <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={FileArchive} tone="success" onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
+            <CreationActionCard title="Demo ausprobieren" description="Beispielstapel nur auf deinen Klick anlegen." icon={Sparkles} tone="info" onSelect={onCreateDemo} />
           </div>
         </SoftPanel>
 

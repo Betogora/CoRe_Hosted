@@ -52,7 +52,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-005 — Community und Graph bleiben Labs
 
-**Status:** angenommen
+**Status:** abgelöst durch ADR-007
 **Kontext:** Lokale Community- und Graph-Demos zeigen technische Möglichkeiten, aber weder echte Mitgliedschaftsrechte noch nachgewiesenen Lernnutzen.
 **Entscheidung:** Community und Deck-Graph waren Labs. Diese Zwischenentscheidung wird durch ADR-007 abgelöst.
 **Konsequenzen:** Es besteht kein Kompatibilitätsanspruch für die früheren Oberflächen oder Daten.

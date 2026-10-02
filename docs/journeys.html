@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – Specs</title><style>*, ::before, ::after {
+<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – Journeys</title><style>*, ::before, ::after {
   --tw-border-spacing-x: 0;
   --tw-border-spacing-y: 0;
   --tw-translate-x: 0;
@@ -5050,97 +5050,13 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
   .catalog-type-row small { grid-column: 1; }
   .catalog-card-types { padding: 24px 16px 60px; }
 }
-</style></head><body><header class="docs-site-nav"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><nav aria-label="Doku-Seiten"><a href="index.html">Docs</a><a href="specs.html" aria-current="page">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartentypen</a></nav><button type="button" id="docs-theme" aria-label="Dark Mode einschalten">◐</button></header><button id="docs-nav-toggle" class="docs-mobile-nav" type="button" aria-expanded="false" aria-controls="docs-rail">Inhaltsverzeichnis öffnen</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1>Specs</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content"><article id="specs--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="specs.md">specs.md</a></p><h1 id="specs--core--produktvertrag-und-kernjourneys">CoRe — Produktvertrag und Kernjourneys <a class="docs-anchor" href="#specs--core--produktvertrag-und-kernjourneys" aria-label="Link zu CoRe — Produktvertrag und Kernjourneys">#</a></h1>
-<p><strong>Rolle:</strong> einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
-<strong>Status:</strong> Arbeitsfassung
-<strong>Stand:</strong> 2026-10-02</p>
-<p>Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten soll. Aktuelle Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und offene Roadmap haben eigene Quellen in der <a href="index.html#readme--document">Dokumentenlandkarte</a>.</p>
-<hr>
-<h2 id="specs--1-produktvision">1. Produktvision <a class="docs-anchor" href="#specs--1-produktvision" aria-label="Link zu 1. Produktvision">#</a></h2>
-<p>CoRe erweitert klassische Spaced Repetition um inhaltliche Wiederholung. Lernende sollen Inhalte auch bei veränderter Fragestellung abrufen, statt Layout, Wortlaut oder Lückenposition wiederzuerkennen.</p>
-<p>CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und behandelt jede planbare Karte als eigenständige Lerneinheit.</p>
-<h3 id="specs--zielgruppen">Zielgruppen <a class="docs-anchor" href="#specs--zielgruppen" aria-label="Link zu Zielgruppen">#</a></h3>
-<ul>
-<li>Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen;</li>
-<li>Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen;</li>
-</ul>
-<h3 id="specs--kernnutzen">Kernnutzen <a class="docs-anchor" href="#specs--kernnutzen" aria-label="Link zu Kernnutzen">#</a></h3>
-<ol>
-<li>Bestehende und neue Lerninhalte schnell in ein gemeinsames Modell bringen.</li>
-<li>Eine ruhige, vorhersehbare Review-Sitzung mit vier Bewertungen anbieten.</li>
-<li>Geeignete reife Inhalte kontrolliert variieren.</li>
-<li>KI-Umformulierungen stets auf ihre zugrunde liegende Karte zurückführen.</li>
-<li>Nutzerinhalte accountgebunden und nachvollziehbar halten.</li>
-</ol>
-<h2 id="specs--2-produktprinzipien">2. Produktprinzipien <a class="docs-anchor" href="#specs--2-produktprinzipien" aria-label="Link zu 2. Produktprinzipien">#</a></h2>
-<ol>
-<li><strong>Anki-kompatibel starten:</strong> APKG-Import und bekannte Kartenformen senken die Einstiegshürde.</li>
-<li><strong>Karten bleiben eigenständig:</strong> Jede Karte besitzt genau einen Lernstatus; KI-Umformulierungen teilen ihn.</li>
-<li><strong>Review first:</strong> Varianten sind vor der Antwort nicht als solche erkennbar.</li>
-<li><strong>Lernen bleibt privat:</strong> Stapel und Reviewdaten sind accountgebunden und werden nicht veröffentlicht.</li>
-<li><strong>Stapelweise steuerbar:</strong> Content Repetition kann pro Stapel aus, automatisch oder manuell sein.</li>
-<li><strong>Sparsam ausbauen:</strong> Nicht jede Karte wird variiert; neue Produktflächen brauchen einen belegten Core-Auftrag.</li>
-</ol>
-<h2 id="specs--3-produktreife">3. Produktreife <a class="docs-anchor" href="#specs--3-produktreife" aria-label="Link zu 3. Produktreife">#</a></h2>
-<h3 id="specs--core">Core <a class="docs-anchor" href="#specs--core" aria-label="Link zu Core">#</a></h3>
-<ul>
-<li>E-Mail-/Passwort-Account und verständlicher leerer Zustand;</li>
-<li>Heute-Dashboard und klarer Lernstart;</li>
-<li>APKG im freigegebenen Größenbereich;</li>
-<li>manuelle Stapel- und Kartenerstellung;</li>
-<li>Karten- und Stapelverwaltung;</li>
-<li>Review mit vier Bewertungen und Content-Repetition;</li>
-<li>direkt erreichbare Hilfe zu FSRS, CoRe und Kartenvarianten;</li>
-<li>zugrunde liegende Karte nach der Antwort einer KI-Umformulierung;</li>
-<li>accountgebundene Speicherung, Sync- und Konfliktstatus;</li>
-<li>grundlegende Statistik und verständliche Einstellungen.</li>
-</ul>
-<h3 id="specs--disabled">Disabled <a class="docs-anchor" href="#specs--disabled" aria-label="Link zu Disabled">#</a></h3>
-<ul>
-<li>APKG über 250 MB; solche Dateien werden lokal abgewiesen;</li>
-<li>Google und Magic Link, wenn ihr jeweiliges eigenes Auth-Flag deaktiviert ist;</li>
-<li>DOCX, OCR und Bildregionen;</li>
-<li>vollständige Art.-15-Auskunft und Account-Löschung.</li>
-</ul>
-<p>Die dauerhafte Entscheidung und ihre Konsequenzen stehen in <a href="decisions.md#adr-001--core-labs-und-disabled">ADR-001</a>. Der heutige Projektionsstand steht in <a href="status.md"><code>status.md</code></a>.</p>
-<h2 id="specs--4-domänensprache">4. Domänensprache <a class="docs-anchor" href="#specs--4-domänensprache" aria-label="Link zu 4. Domänensprache">#</a></h2>
-<table>
-<thead>
-<tr>
-<th>Begriff</th>
-<th>Produktbedeutung</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Deck / Stapel</td>
-<td>Hierarchisch organisierte Sammlung von Learning Items und Lernoptionen</td>
-</tr>
-<tr>
-<td>Learning Item</td>
-<td>Vollwertige, eigenständig planbare Karte mit Inhalt, Tags und Lernstatus</td>
-</tr>
-<tr>
-<td>Card Variant</td>
-<td>KI-Umformulierung einer Karte ohne eigenen Lernstatus oder Termin</td>
-</tr>
-<tr>
-<td>Review State</td>
-<td>Persönlicher Schedulingzustand einer Karte</td>
-</tr>
-<tr>
-<td>Review Event</td>
-<td>Unveränderliches Bewertungs- oder manuelles Neuplanungsereignis</td>
-</tr>
-<tr>
-<td>Reifegrad</td>
-<td>Aus Reviewdaten abgeleitete Eignung für anspruchsvollere Varianten</td>
-</tr>
-</tbody></table>
-<p>Aktuelle Code- und Tabellennamen weichen teilweise aus Kompatibilitätsgründen ab. Diese technische Trennung steht ausschließlich in <a href="architecture.md#4-heutiges-compatibility-modell"><code>architecture.md</code></a>.</p>
-<h2 id="specs--5-kernjourneys">5. Kernjourneys <a class="docs-anchor" href="#specs--5-kernjourneys" aria-label="Link zu 5. Kernjourneys">#</a></h2>
-<h3 id="specs--51-account-öffnen-und-produktzustand-verstehen">5.1 Account öffnen und Produktzustand verstehen <a class="docs-anchor" href="#specs--51-account-öffnen-und-produktzustand-verstehen" aria-label="Link zu 5.1 Account öffnen und Produktzustand verstehen">#</a></h3>
+</style><script src="vendor/mermaid.min.js"></script></head><body><header class="docs-site-nav"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><nav aria-label="Doku-Seiten"><a href="index.html">Docs</a><a href="specs.html">Specs</a><a href="journeys.html" aria-current="page">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartentypen</a></nav><button type="button" id="docs-theme" aria-label="Dark Mode einschalten">◐</button></header><button id="docs-nav-toggle" class="docs-mobile-nav" type="button" aria-expanded="false" aria-controls="docs-rail">Inhaltsverzeichnis öffnen</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1>Journeys</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content"><article class="docs-document"><h1 id="journeys--document">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article><article id="journey-1" class="docs-document docs-journey"><h2 id="journey-1--51-account-öffnen-und-produktzustand-verstehen">5.1 Account öffnen und Produktzustand verstehen <a class="docs-anchor" href="#journey-1--51-account-öffnen-und-produktzustand-verstehen" aria-label="Link zu 5.1 Account öffnen und Produktzustand verstehen">#</a></h2>
 <p>Ein neuer Account startet ohne erfundene Profildaten, Demo-Stapel oder fremde Lernhistorie. Das Dashboard erklärt kurz das Kernversprechen und bietet klare Wege zum Import, zur ersten manuellen Karte oder zu einer ausdrücklich gewählten Demo.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-1--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Account öffnen&quot;] --&gt; N1
+N1[&quot;Anmelden oder registrieren&quot;] --&gt; N2
+N2[&quot;Leeren oder bestehenden Account sehen&quot;] --&gt; N3
+N3[&quot;Import, manuelle Karte oder Lernen wählen&quot;]</pre><ol><li>Account öffnen</li><li>Anmelden oder registrieren</li><li>Leeren oder bestehenden Account sehen</li><li>Import, manuelle Karte oder Lernen wählen</li></ol></div><h3 id="journey-1-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-1-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li>Die Login-E-Mail wird als Accountwert gezeigt und nicht als wirkungslose Profiländerung angeboten.</li>
 <li>Datenschutztexte versprechen nur technisch wirksames Verhalten.</li>
@@ -5150,9 +5066,15 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>Die Tageslernfläche unterscheidet <code>Dein Lernen heute</code>, den deaktivierten Zwischenzustand <code>Später weiterlernen</code> für heute vorgemerkte, aktuell noch nicht verfügbare Lernschritte und den grün hervorgehobenen Abschluss <code>Tagesziel erreicht</code>. Auch <code>0 / 0 Karten</code> ist abgeschlossen. Eine randlose Play-Icon-Aktion oben rechts verwendet dieselbe Darstellung wie die Stapel-Lernaktion und startet als <code>Jetzt lernen</code> die erste aktuell verfügbare Hauptstapel-Session. Ihr zugänglicher Name und Tooltip folgen dem Lernzustand; im Zwischenzustand bleibt sie deaktiviert. Eine separate Buttonspalte und Plan-Vorschauen existieren nicht. Zahlen und Beschriftungen der vier Kennzahlen stehen jeweils einzeilig in gleicher Schriftgröße; die Kennzahlengruppen umbrechen bei begrenzter Breite.</li>
 <li>Nach erreichtem Ziel öffnet <code>Zusätzliche Karten lernen</code> nur dann einen Dialog, wenn jenseits des heutigen Neulimits weitere neue Karten existieren. Nutzende wählen einen Hauptstapel und eine auf den tatsächlichen Rest begrenzte Menge aus <code>+5</code>, <code>+10</code> oder <code>+20</code>; die Auswahl erhöht ausschließlich dessen <code>newCardsTodayOverride</code> für den aktuellen fachlichen Lerntag und startet anschließend diese Session. Fällige oder künftige Wiederholungen werden nicht vorgezogen. Eine bei Bestätigung veraltete Auswahl mutiert nichts und meldet den Fehler verständlich.</li>
 </ul>
-<h3 id="specs--52-stapel-importieren-oder-manuell-anlegen">5.2 Stapel importieren oder manuell anlegen <a class="docs-anchor" href="#specs--52-stapel-importieren-oder-manuell-anlegen" aria-label="Link zu 5.2 Stapel importieren oder manuell anlegen">#</a></h3>
+<p class="docs-source">Quelle: <a href="specs.html#specs--51-account-öffnen-und-produktzustand-verstehen">Produktvertrag 5.1</a> · <a href="ui-elements.html#navigation">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
+<article id="journey-2" class="docs-document docs-journey"><h2 id="journey-2--52-stapel-importieren-oder-manuell-anlegen">5.2 Stapel importieren oder manuell anlegen <a class="docs-anchor" href="#journey-2--52-stapel-importieren-oder-manuell-anlegen" aria-label="Link zu 5.2 Stapel importieren oder manuell anlegen">#</a></h2>
 <p>Nutzer wählen zwischen manueller Erstellung und Import.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-2--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Erstellen öffnen&quot;] --&gt; N1
+N1[&quot;APKG analysieren oder Karte eingeben&quot;] --&gt; N2
+N2[&quot;Vorschau und Inhalt prüfen&quot;] --&gt; N3
+N3[&quot;Lokal speichern&quot;] --&gt; N4
+N4[&quot;Synchronisierung oder Teilabschluss sehen&quot;]</pre><ol><li>Erstellen öffnen</li><li>APKG analysieren oder Karte eingeben</li><li>Vorschau und Inhalt prüfen</li><li>Lokal speichern</li><li>Synchronisierung oder Teilabschluss sehen</li></ol></div><h3 id="journey-2-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-2-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li>Der Importbereich bietet ausschließlich APKG-Dateien an; Text-, CSV- und Tabellenimporte sind nicht verfügbar.</li>
 <li>Unterstützte Quellanhänge sind PDF, Text, Markdown, CSV und TSV; nicht lesbare Formate sind nicht auswählbar.</li>
@@ -5176,9 +5098,15 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>Zielauswahlen zeigen vollständige hierarchische Stapelpfade. Erst <code>Fertig</code> öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, <code>Jetzt lernen</code> und <code>Karten prüfen</code>.</li>
 <li>Interne Navigation mit einem nichtleeren fachlichen Entwurf verlangt eine eigene Bestätigung. <code>Weiter bearbeiten</code> erhält Inhalt und Fokus; <code>Verwerfen und verlassen</code> verwirft nur den aktuellen Entwurf. Während eines laufenden Speicherversuchs bleibt die Navigation ohne Verwerfoption auf der Erstellungsseite und fokussiert den Fortschritt.</li>
 </ul>
-<h3 id="specs--53-karten-bearbeiten-und-eine-sitzung-starten">5.3 Karten bearbeiten und eine Sitzung starten <a class="docs-anchor" href="#specs--53-karten-bearbeiten-und-eine-sitzung-starten" aria-label="Link zu 5.3 Karten bearbeiten und eine Sitzung starten">#</a></h3>
+<p class="docs-source">Quelle: <a href="specs.html#specs--52-stapel-importieren-oder-manuell-anlegen">Produktvertrag 5.2</a> · <a href="ui-elements.html#inhalt">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
+<article id="journey-3" class="docs-document docs-journey"><h2 id="journey-3--53-karten-bearbeiten-und-eine-sitzung-starten">5.3 Karten bearbeiten und eine Sitzung starten <a class="docs-anchor" href="#journey-3--53-karten-bearbeiten-und-eine-sitzung-starten" aria-label="Link zu 5.3 Karten bearbeiten und eine Sitzung starten">#</a></h2>
 <p><code>Lernen</code> ist der primäre schnelle Einstieg in eine Sitzung und bündelt die beiden Bereiche <code>Stapelübersicht</code> und <code>Kartenverwaltung</code>. Die Auswahl erfolgt über ein reguläres segmentiertes Control rechts neben der Überschrift <code>Lernen</code>; die Route leitet den aktiven Bereich ab. Daneben öffnet der beschriftete Button <code>Lerneinstellungen</code> die accountweiten Lern- und Planungseinstellungen unter dem kompatiblen Pfad <code>/karten-einstellungen</code>. Die direktlinkfähige Kartenverwaltung für alle Karten, Stapelstruktur, Inhalt, Herkunft und erweiterte Optionen behält die verborgene Route <code>/kartenstapel</code>.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-3--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Lernen öffnen&quot;] --&gt; N1
+N1[&quot;Stapel und Karten verwalten&quot;] --&gt; N2
+N2[&quot;Inhalt und Lernwerte prüfen&quot;] --&gt; N3
+N3[&quot;Sitzung vorbereiten&quot;] --&gt; N4
+N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><li>Stapel und Karten verwalten</li><li>Inhalt und Lernwerte prüfen</li><li>Sitzung vorbereiten</li><li>Erste verfügbare Karte lernen</li></ol></div><h3 id="journey-3-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-3-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li>Die Stapelfläche in <code>Heute</code> und <code>Lernen</code> öffnet die stapelbezogene Inhaltsansicht unter <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Ein eigener randloser Play-Button links von <code>Neu</code> startet direkt den unveränderten Reviewpfad einschließlich Unterstapeln und Tageslimits. Sein zugänglicher Name enthält den Stapelpfad, sein Tooltip den lokalen Namen mit Stapel-Icon. Lernen, Stapeloptionen und Auf-/Zuklappen lösen die Flächenaktion nicht aus.</li>
 <li>Die Inhaltsansicht zeigt ausschließlich die direkt zum geöffneten Stapel gehörenden Karten, die gemeinsame Suche, Sortierung und Seitenwechsel. Stapelnamen, Stapelköpfe, <code>Aktive Stapel</code> und der Bereichsumschalter der Gesamtverwaltung entfallen. Sie verwendet dieselben Kartenzeilen, denselben vollständigen Editor und dieselben Mutationspfade wie die Gesamtverwaltung; ein direkter Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload.</li>
@@ -5242,9 +5170,15 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>An den Anbieter gelangen ausschließlich der bereinigte Text von Vorder- und Rückseite mit je höchstens 1.200 Zeichen. Tags, IDs, Quellen, Reviewdaten, Metadaten, Medienreferenzen und Medieninhalte werden nicht übertragen. Nicht-Basic-Karten erklären den deaktivierten KI-Zugang.</li>
 <li>CoRe speichert die KI-Variante erst, wenn die Ausgangskarte während des Aufrufs unverändert blieb und dieselbe Front-/Back-Kombination noch nicht existiert. Fehler verändern das Learning Item nicht; während des Aufrufs ist die Aktion gesperrt. Bei einem kostenlosen Non-ZDR-Fallback erscheint nach Erfolg eine sichtbare Warnung.</li>
 </ul>
-<h3 id="specs--54-karte-bewerten-neu-laden-und-fortfahren">5.4 Karte bewerten, neu laden und fortfahren <a class="docs-anchor" href="#specs--54-karte-bewerten-neu-laden-und-fortfahren" aria-label="Link zu 5.4 Karte bewerten, neu laden und fortfahren">#</a></h3>
+<p class="docs-source">Quelle: <a href="specs.html#specs--53-karten-bearbeiten-und-eine-sitzung-starten">Produktvertrag 5.3</a> · <a href="ui-elements.html#stapel">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
+<article id="journey-4" class="docs-document docs-journey"><h2 id="journey-4--54-karte-bewerten-neu-laden-und-fortfahren">5.4 Karte bewerten, neu laden und fortfahren <a class="docs-anchor" href="#journey-4--54-karte-bewerten-neu-laden-und-fortfahren" aria-label="Link zu 5.4 Karte bewerten, neu laden und fortfahren">#</a></h2>
 <p>Vor der Antwort zeigt der Review ausschließlich den Lerninhalt und die Aktion zum Aufdecken. Der Lerninhalt liegt direkt auf der Seitenfläche ohne großen Kartencontainer, ohne gerahmte Teilflächen und ohne sichtbare Abschnittslabels für Frage oder Antwort. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine markante 2-px-Linie; die Antwortprojektion enthält ausschließlich die Antwort und wiederholt die bereits sichtbare Frage nicht. Vier Bewertungen aktualisieren den Lernzustand.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-4--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Frage sehen&quot;] --&gt; N1
+N1[&quot;Antwort aufdecken&quot;] --&gt; N2
+N2[&quot;Nochmal, Schwer, Gut oder Leicht&quot;] --&gt; N3
+N3[&quot;Bewertung lokal sichern&quot;] --&gt; N4
+N4[&quot;Nächste Karte, Lernschritt oder Abschluss&quot;]</pre><ol><li>Frage sehen</li><li>Antwort aufdecken</li><li>Nochmal, Schwer, Gut oder Leicht</li><li>Bewertung lokal sichern</li><li>Nächste Karte, Lernschritt oder Abschluss</li></ol></div><h3 id="journey-4-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-4-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li><code>Again</code>, <code>Hard</code>, <code>Good</code> und <code>Easy</code> sind per Maus und Tastatur erreichbar.</li>
 <li>Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.</li>
@@ -5270,9 +5204,14 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>Nach erfolgreichem Save, Verlassen des Stapels, Reload und Sync wird der Lernfortschritt ohne separaten Sitzungssnapshot aus den gespeicherten Review-Events und Review States rekonstruiert.</li>
 <li>Offline- oder Konfliktzustände werden sichtbar und niemals als gespeichert ausgegeben, solange Änderungen ausstehen.</li>
 </ul>
-<h3 id="specs--55-core-variante-lernen-und-ursprung-prüfen">5.5 CoRe-Variante lernen und Ursprung prüfen <a class="docs-anchor" href="#specs--55-core-variante-lernen-und-ursprung-prüfen" aria-label="Link zu 5.5 CoRe-Variante lernen und Ursprung prüfen">#</a></h3>
+<p class="docs-source">Quelle: <a href="specs.html#specs--54-karte-bewerten-neu-laden-und-fortfahren">Produktvertrag 5.4</a> · <a href="ui-elements.html#feedback">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
+<article id="journey-5" class="docs-document docs-journey"><h2 id="journey-5--55-core-variante-lernen-und-ursprung-prüfen">5.5 CoRe-Variante lernen und Ursprung prüfen <a class="docs-anchor" href="#journey-5--55-core-variante-lernen-und-ursprung-prüfen" aria-label="Link zu 5.5 CoRe-Variante lernen und Ursprung prüfen">#</a></h2>
 <p>Geeignete Learning Items können nach ausreichender Reife als konservative Umformulierungen erscheinen. Die Herkunft bleibt bis zur Antwort verborgen.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-5--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Geeignete Karte lernen&quot;] --&gt; N1
+N1[&quot;Original oder KI-Umformulierung sehen&quot;] --&gt; N2
+N2[&quot;Antwort aufdecken&quot;] --&gt; N3
+N3[&quot;Ursprung prüfen und Feedback geben&quot;]</pre><ol><li>Geeignete Karte lernen</li><li>Original oder KI-Umformulierung sehen</li><li>Antwort aufdecken</li><li>Ursprung prüfen und Feedback geben</li></ol></div><h3 id="journey-5-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-5-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li>Nicht geeignete Inhalte wie sehr kurze Vokabelkarten können von Variation ausgeschlossen werden.</li>
 <li>Jede Variante ist an genau ein Original gebunden.</li>
@@ -5281,9 +5220,14 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>Persönliche Reviewdaten gelangen nicht in geteilte Varianten oder Feedbackobjekte.</li>
 <li>Bei fehlender oder fehlerhafter Variante bleibt das Original sicher lernbar.</li>
 </ul>
-<h3 id="specs--56-lernlogik-verstehen">5.6 Lernlogik verstehen <a class="docs-anchor" href="#specs--56-lernlogik-verstehen" aria-label="Link zu 5.6 Lernlogik verstehen">#</a></h3>
+<p class="docs-source">Quelle: <a href="specs.html#specs--55-core-variante-lernen-und-ursprung-prüfen">Produktvertrag 5.5</a> · <a href="ui-elements.html#inhalt">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
+<article id="journey-6" class="docs-document docs-journey"><h2 id="journey-6--56-lernlogik-verstehen">5.6 Lernlogik verstehen <a class="docs-anchor" href="#journey-6--56-lernlogik-verstehen" aria-label="Link zu 5.6 Lernlogik verstehen">#</a></h2>
 <p>Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite <code>/hilfe</code> im normalen App-Shell-Inhaltsbereich. Ein kurzer Einstieg ordnet CoRes Ziel ein. Beispielhafte Kartenstapel verwenden dort ein gemeinsames HTML-Muster mit austauschbarem Inhalt: Im Light Mode liegt eine weiße Vorderkarte über einer nach links oben gedrehten hellblauen und einer nach rechts oben gedrehten dunkleren blauen Karte. Im Dark Mode wechseln Vorderkarte, beide blauen Ebenen, Text, Trennlinie und Rahmen gemeinsam auf ihre dunklen Gegenstücke, ohne Ebenenfolge oder Kontrastabstufung zu verlieren. Einstiegs- und Originalkartenstapel verwenden dieselbe responsive mittlere Breite und Höhe; alle drei Ebenen eines Stapels sind gleich groß und folgen demselben Radius-, Abstands- und Schattenvertrag. Der Einstiegsstapel fragt, welche Grundsätze CoRe für möglichst nachhaltiges Lernen nutzt. <code>Grundsätze</code>, <code>nutzt CoRe</code>, <code>Lernen</code> und <code>nachhaltig zu gestalten</code> tragen eine pinke Textmarkierung; die gelben Pfeile verbinden <code>Active Recall → Smarter Recall</code> sowie <code>Spaced Repetition → Content Repetition</code>. Zwei anschließende Scrollgeschichten erklären erst den wechselnden Abrufreiz und danach die FSRS-Lernkurve, ohne Workspace- oder Schedulerzustand zu verändern.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-6--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Hilfe öffnen&quot;] --&gt; N1
+N1[&quot;Active Recall und Spaced Repetition&quot;] --&gt; N2
+N2[&quot;Smarter Recall und Content Repetition&quot;] --&gt; N3
+N3[&quot;FSRS und Varianten nachvollziehen&quot;]</pre><ol><li>Hilfe öffnen</li><li>Active Recall und Spaced Repetition</li><li>Smarter Recall und Content Repetition</li><li>FSRS und Varianten nachvollziehen</li></ol></div><h3 id="journey-6-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-6-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li>Die Erklärung nennt Abrufwahrscheinlichkeit <code>R</code>, Stabilität <code>S</code>, Schwierigkeit <code>D</code>, Zielerinnerung, Intervall, Original und Variante in verständlicher deutscher Sprache. Sie erklärt <code>S</code> als die Zeit, in der <code>R</code> von 100 auf 90 Prozent fällt, und zeigt die Kette von Bewertung über Gedächtniszustand und Vergessensprognose zum nächsten Termin.</li>
 <li>Die erste Methodenüberschrift lautet ausschließlich <code>Active Recall</code>. Ihre Geschichte besitzt drei aufeinanderfolgende Textschritte und eine rahmenlose Kartenvisualisierung: Zuerst zeigt sie das gemeinsame Beispielstapel-Muster mit lesbarer Originalkarte und orange hervorgehobenen Schlüsselstellen, danach dieselbe vertraute Form mit verpixeltem neutralem Fragetext und schließlich zwei deutlich versetzte Variantenkarten mit derselben Antwort und gelben Sternen in den Ecken. Beim Verpixeln bleiben Textfluss, Zeilenumbrüche, Trennlinie und Antwort exakt an ihrer vorherigen Position. Die nicht aktiven Textschritte bleiben gut lesbar. Ab Desktopbreite bleibt die Kartenvisualisierung beim Scrollen innerhalb dieses Abschnitts stehen und wechselt synchron zum aktiven Textschritt; darunter bleibt die Abfolge linear. Einstiegs- und Originalkartenstapel verwenden bei gleicher Viewportbreite dieselbe Größe, Ebenenfolge, Farbpalette, gegenläufige Drehung und seitliche Staffelung; ausschließlich der Inhalt variiert.</li>
@@ -5298,9 +5242,14 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich, deaktiviert die Sticky-Zweispaltenprojektion und erzeugt keinen Dokument-Overflow.</li>
 <li>Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.</li>
 </ul>
-<h3 id="specs--57-lernfortschritt-über-simulierte-tage-prüfen">5.7 Lernfortschritt über simulierte Tage prüfen <a class="docs-anchor" href="#specs--57-lernfortschritt-über-simulierte-tage-prüfen" aria-label="Link zu 5.7 Lernfortschritt über simulierte Tage prüfen">#</a></h3>
+<p class="docs-source">Quelle: <a href="specs.html#specs--56-lernlogik-verstehen">Produktvertrag 5.6</a> · <a href="ui-elements.html#symbols">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
+<article id="journey-7" class="docs-document docs-journey"><h2 id="journey-7--57-lernfortschritt-über-simulierte-tage-prüfen">5.7 Lernfortschritt über simulierte Tage prüfen <a class="docs-anchor" href="#journey-7--57-lernfortschritt-über-simulierte-tage-prüfen" aria-label="Link zu 5.7 Lernfortschritt über simulierte Tage prüfen">#</a></h2>
 <p>Der direkt verlinkbare <code>/simulator</code> ist unter <code>Lerneinstellungen → Fokuswerkzeuge</code> neben dem Pomodoro-Timer erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus minuten- oder tageweise um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Zeitpunkt ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.</p>
-<p>Akzeptanz:</p>
+<h3 id="journey-7--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
+N0[&quot;Simulator öffnen&quot;] --&gt; N1
+N1[&quot;Lernzeit verschieben&quot;] --&gt; N2
+N2[&quot;Verfügbare Karten und Planung prüfen&quot;] --&gt; N3
+N3[&quot;Bei Bedarf bewerten oder Zeit zurücksetzen&quot;]</pre><ol><li>Simulator öffnen</li><li>Lernzeit verschieben</li><li>Verfügbare Karten und Planung prüfen</li><li>Bei Bedarf bewerten oder Zeit zurücksetzen</li></ol></div><h3 id="journey-7-rules--regeln-zustände-und-akzeptanz">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-7-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <ul>
 <li>„Heute“, <code>+10</code>, <code>+15</code> und <code>+30 Minuten</code>, <code>+1</code>, <code>+2</code> und <code>+4 Stunden</code>, „Morgen“, <code>+3</code>, <code>+7</code>, <code>+14</code> und <code>+30 Tage</code>, einzelne Tagesschritte und ein begrenztes Datumsfeld sind per Tastatur erreichbar. Die simulierte lokale Uhrzeit bleibt sichtbar. Vergangene oder mehr als 3.650 Tage entfernte Werte werden auf den gültigen Bereich begrenzt.</li>
 <li>Die Dashboard-Begrüßung trennt <code>Willkommen zurück,</code> vom kleineren, vollständig umbrechbaren Profilnamen. Der Bereichswechsel <code>Stapelübersicht</code> / <code>Kartenverwaltung</code> füllt auf schmalen Ansichten die verfügbare Breite bei unveränderter 44-px-Höhe; <code>Lerneinstellungen</code> behält sein Icon. Stapelübersicht und Kartenverwaltung verwenden denselben Header mit identischer Control-Typografie: Lerneinstellungen stehen links vor der rechtsbündigen Bereichs-Pill.</li>
@@ -5309,190 +5258,7 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 <li>Der Offset bleibt lokal und transient. Reload und Logout stellen „Heute“ wieder her; Sync-, Auth-, Medien-, Autosave- und normale Bearbeitungsmetadaten verwenden unverändert die echte Systemzeit.</li>
 <li>Die Aktion „Heute“ setzt ausschließlich die simulierte Uhr zurück. Bereits gespeicherte Zukunftsreviews, Kartenfortschritt und daraus berechnete nächste Termine bleiben erhalten.</li>
 </ul>
-<h2 id="specs--6-funktionale-anforderungen">6. Funktionale Anforderungen <a class="docs-anchor" href="#specs--6-funktionale-anforderungen" aria-label="Link zu 6. Funktionale Anforderungen">#</a></h2>
-<h3 id="specs--61-account-und-einstellungen">6.1 Account und Einstellungen <a class="docs-anchor" href="#specs--61-account-und-einstellungen" aria-label="Link zu 6.1 Account und Einstellungen">#</a></h3>
-<ul>
-<li>E-Mail-/Passwort ist die freigegebene Kernanmeldung.</li>
-<li>Das sichtbare und aktive Profil enthält Anzeigename und Login-E-Mail. Hochschule, Fachgebiet und eine Spracheinstellung sind nicht Teil des aktiven Profilmodells; die Oberfläche bleibt global deutsch. Solange die Community-Funktion deaktiviert ist, erscheint kein separater Privatsphäre-Bereich.</li>
-<li>Das Zahnrad-Menü öffnet <code>Allgemeine Einstellungen</code> mit <code>Konto</code>, <code>Daten &amp; Synchronisierung</code> und dem abschließenden Bereich <code>Über uns</code>. Die davon getrennte Seite <code>Lerneinstellungen</code> gliedert sich in <code>Lerntag &amp; Planung</code>, <code>Tagesrunde &amp; Lernprofile</code>, <code>Scheduler &amp; CoRe</code> und <code>Fokuswerkzeuge</code>; Stapeleinstellungen verwenden <code>Stapel</code>, <code>Tagesrunde &amp; Lernprofile</code> und <code>Scheduler &amp; CoRe</code>. Die Seiten besitzen direkte Querlinks und dieselbe iconunterstützte Seiteninhaltsnavigation: Ab 1.280 px steht eine vertikale Sticky-Rail neben dem Inhalt, darunter zeigt ein Sticky-Disclosure nur den aktuellen Abschnitt und klappt alle Bereiche auf. Scrollspy markiert genau einen Abschnitt; explizite Auswahl verwendet reproduzierbare Hashlinks und Browser-Zurück. Auf Karten- und Simulatorrouten bleibt das Hauptziel <code>Lernen</code> aktiv; nur die allgemeinen Einstellungen markieren das Zahnrad als aktiv.</li>
-<li><code>Über uns</code> verlinkt über die bestehende App-Navigation auf <code>/hilfe</code>, zeigt <code>Impressum</code> und <code>Datenschutzerklärung</code> ohne Scheinaktion als <code>In Vorbereitung</code> und nennt die aktuelle Paketversion mit vorangestelltem <code>v</code>. Diese Versionsnummer erscheint in keiner anderen Oberfläche; Login und Fehlerfallback zeigen weder Version noch Umgebung oder Commit.</li>
-<li>Sobald ein allgemeines, globales Lern- oder stapelbezogenes Einstellungsfeld vom letzten gespeicherten Seitenzustand abweicht, erscheint seitenweit genau eine kompakte, nichtmodale Leiste <code>Änderungen speichern?</code> im unteren Viewportbereich. Sie hebt die noch ausstehende Speicherentscheidung und ihre Aktion mit einem dezenten CoRe-Pink-Akzent, dünnem Akzentrahmen und neutralem Tiefenschatten ab und ordnet Status und Aktion auf breiten Ansichten nebeneinander sowie mobil untereinander an. Ein zugängliches Kreuz rechts oben verwirft den gesamten offenen Seitenentwurf und stellt den zuletzt gespeicherten Stand wieder her; während des Speicherns sind Speichern und Verwerfen gesperrt. Allgemeine Einstellungen besitzen eine Speicheraktion, Lerneinstellungen die beiden Reichweiten <code>Auf alle Stapel anwenden</code> und <code>Auf alle neuen Stapel anwenden</code>, Stapeleinstellungen optional Stapel oder Stapelbaum. Erfolg schließt die Leiste und meldet die gewählte Reichweite genau einmal; Validierungs- und Speicherfehler lassen sie offen und erscheinen beim betroffenen Bereich.</li>
-<li>App-Navigation, Querlinks, Zurück, Stapelwechsel, Abmelden und Browser-Zurück/Vorwärts werden bei ungespeicherten Einstellungen abgebrochen. Lernprofil-CRUD, <code>Auf diesen Stapel anwenden</code>, manueller Sync und die Lerneinstellungen einer Kartensitzung behalten ihre unmittelbaren eigenen Aktionen.</li>
-<li>Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile und der globale Stapelstandard sind accountweite Scheduler-Präferenzen und werden über Profil-Sync transportiert.</li>
-<li>Sicherheitskritische Aktionen sind klar von Profil- und Lernoptionen getrennt.</li>
-</ul>
-<h3 id="specs--62-deck-hierarchie">6.2 Deck-Hierarchie <a class="docs-anchor" href="#specs--62-deck-hierarchie" aria-label="Link zu 6.2 Deck-Hierarchie">#</a></h3>
-<ul>
-<li>Decks können Eltern- und Unterstapel bilden.</li>
-<li>Hierarchie bleibt beim unterstützten APKG-Import ohne fachliches Tiefenlimit mit unmittelbaren Elternbeziehungen und vollständigen Pfaden erhalten.</li>
-<li>Dashboard und Lernen projizieren denselben kanonischen, lokal einklappbaren Stapelbaum als flache Folge kompakter Stapelzeilen; Elternkennzahlen aggregieren sämtliche Unterstapel. Die Kartenverwaltung projiziert dieselbe Zeilendarstellung innerhalb der gruppierten Gesamttabelle.</li>
-<li>Lernen und Kartenverwaltung bleiben getrennte, lazy geladene Aufgabenoberflächen mit einem gemeinsamen kanonischen Deckkontext und erscheinen als zwei Bereiche derselben Hauptseite <code>Lernen</code>. Der segmentierte Wechsel verwendet die bestehende Navigation; nur <code>Lernen</code> ist Teil der Hauptnavigation, während <code>/kartenstapel</code> direktlinkfähig bleibt.</li>
-<li>Dashboard und Lernen erlauben direktes Drag-and-drop für Parent-/Child-Zuordnung und Outdent zur Hauptebene. Karten bietet dieselbe fachliche Mutation über einen expliziten bestätigten Ablauf an.</li>
-<li>Direktes Drag-and-drop ist in Dashboard und Lernen eine Desktop-Interaktion für Maus und Trackpad und markiert während der Geste keinen Zeilentext. In der Kartenverwaltung sowie für Touch, Tastatur und assistive Bedienung gilt der bestätigte Verschiebeablauf. Die logische Hierarchie bleibt unbegrenzt; die visuelle Einrückung wird ab Ebene 6 gekappt.</li>
-<li>Die Suche hilft bei großen Bibliotheken; die Kartenverwaltung bietet keinen zusätzlichen Modusfilter.</li>
-<li>Stapelname, Icon, Farbe, Tagespensum, die drei Selects <code>Kartenreihenfolge</code>, <code>Neue Karten sortieren</code> und <code>Fällige Karten sortieren</code>, Schedulerwerte, CoRe-Modus, <code>Varianten einsetzen ab Lernstufe</code> mit den festen Stufen 81, 121 und 181 XP sowie <code>Aktive Varianten pro Karte</code> mit 1, 2 oder 3 Varianten bilden einen gemeinsamen Stapeleinstellungsentwurf und werden atomar über die seitenweite Einstellungsleiste übernommen. Die verständliche Reviewpriorität heißt <code>Wahrscheinlich vergessen zuerst</code>. Unter dem Reviewlimit erklärt der Text, dass es fällige, tagesübergreifende Lern- und neue Karten umfasst und Wiederholungen Vorrang haben. CoRe-Modus und Variantenparameter gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert. Seitentitel, Zurück-Button und Quernavigation bleiben auch bei 390 px vollständig sichtbar.</li>
-<li>Ohne ausgewählten Stapel zeigt die Route eine vorhandene, bei großen Bibliotheken suchbare Stapelauswahl statt eines Fehlerzustands. Neue Stapel erhalten materialisierte Standardwerte; importierte Stapel behalten ihre wirksamen Werte.</li>
-<li>Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.</li>
-</ul>
-<h3 id="specs--63-import">6.3 Import <a class="docs-anchor" href="#specs--63-import" aria-label="Link zu 6.3 Import">#</a></h3>
-<ul>
-<li>Dokumentierte statische Anki-Templates werden mit exakten Feldnamen, Conditionals, Standardfiltern, <code>FrontSide</code>, Special Fields, Cloze und CSS in einem opaken Sandbox-Frame gerendert. Script, externe Ressourcen, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben erhalten und die UI zeigt automatisch eine gekennzeichnete geordnete Feldansicht mit Diagnose.</li>
-<li>Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.</li>
-<li>Die sichtbare Importsteuerung unterscheidet <code>idle</code>, <code>analyzing</code>, <code>preview</code>, <code>committing</code>, <code>syncing_cloud</code>, <code>syncing_media</code>, <code>succeeded</code>, <code>partial</code>, <code>failed_retryable</code>, <code>failed_terminal</code> und <code>cancelled</code>.</li>
-<li>Die laufenden APKG-Phasen <code>analyzing</code>, <code>committing</code>, <code>syncing_cloud</code> und <code>syncing_media</code> zeigen in der Dateizeile einen eigenen monotonen Fortschritt. Geglättete Zwischenwerte bleiben unter 100 Prozent; 100 Prozent bedeutet immer, dass die jeweilige Phase tatsächlich abgeschlossen ist.</li>
-<li>Warnungen werden zunächst zusammengefasst und vollständig aufklappbar angeboten; Notetype-IDs, SHA-1-Listen und Importidentitäten erscheinen nicht in der Produktoberfläche.</li>
-<li>APKG-Dateien bis einschließlich 250 MB werden lokal verarbeitet. Größere Dateien enden sofort mit einer verständlichen Meldung und <code>Andere Datei auswählen</code>; es gibt keinen Serverjob oder Upload-Fallback.</li>
-<li>Reimport erkennt stabile Anki-Identitäten vor heuristischen Fingerprints.</li>
-<li>APKG-<code>revlog</code> wird als append-only Analysehistorie übernommen, soweit eine Anki-Karte eindeutig einer CoRe-Variante zugeordnet werden kann, und beim Wiederimport deterministisch dedupliziert. Für den initialen Review State gilt unabhängig davon die Reihenfolge gültiger FSRS-Memory-State, chronologisches Revlog-Replay, klassischer Kartenstatus und schließlich neue Karte; nach dem ersten CoRe-Review übernimmt ausschließlich FSRS-6.</li>
-<li>Medienreferenzen werden sicher aufgelöst; fehlende Medien werden im Bericht genannt.</li>
-</ul>
-<h3 id="specs--64-manuelle-erstellung-und-quellen">6.4 Manuelle Erstellung und Quellen <a class="docs-anchor" href="#specs--64-manuelle-erstellung-und-quellen" aria-label="Link zu 6.4 Manuelle Erstellung und Quellen">#</a></h3>
-<ul>
-<li>Karten können ohne Dokumentquelle erstellt werden.</li>
-<li>Bilder können an der aktuellen Cursorposition in Rich-Text- und Zusatzfelder eingefügt werden; Bild-Bytes bleiben im accountgebundenen Medienspeicher und die Karte persistiert nur stabile Referenzen.</li>
-<li>Mehrere Karten nacheinander zu erstellen ist der Standardfluss; gespeicherte Karten bleiben bei einem später verworfenen Entwurf erhalten.</li>
-<li>Pinning steuert ausschließlich den Reset nach erfolgreichem Speichern. Es gibt kein Cloud-Autosave für ungespeicherte Entwürfe.</li>
-<li>Aus einem lesbaren Dokument kann Text in Vorder- oder Rückseite übernommen werden.</li>
-<li>Eine Dokumentauswahl wird nach dem Übernehmen nicht als eigenes Quelldokument gespeichert.</li>
-<li>Rich Text wird vor Speicherung und Darstellung sanitisiert.</li>
-<li>Jede reale Anki-Image-Occlusion-Karte wird als eigenständige Karte importiert und sicher dargestellt. Ein manueller Maskeneditor ist kein Bestandteil dieses Ausbaus.</li>
-</ul>
-<h3 id="specs--65-review-und-scheduling">6.5 Review und Scheduling <a class="docs-anchor" href="#specs--65-review-und-scheduling" aria-label="Link zu 6.5 Review und Scheduling">#</a></h3>
-<ul>
-<li>Review verwendet vier Bewertungen und einen intern gekapselten FSRS-6-Schedulervertrag mit offiziellen Standardparametern.</li>
-<li><code>Gut</code> geht genau einen konfigurierten Lernschritt weiter und wechselt erst am letzten Schritt in den langfristigen FSRS-Reviewzustand. <code>Leicht</code> beendet die Lernphase jederzeit sofort und erhält das unverändert von <code>ts-fsrs</code> berechnete Reviewintervall; <code>Nochmal</code> und <code>Schwer</code> folgen ebenfalls der Standard-Lernschrittstrategie von <code>ts-fsrs</code>.</li>
-<li>Eine laufende Sitzung arbeitet zuerst ihre eindeutigen Karten ab und zeigt anschließend berechtigte Learning-/Relearning-Wiederholungen. Der gestartete Sitzungsstapel bestimmt das Vorziehfenster einheitlich für seinen gesamten Unterbaum. Ein Termin darf nur am selben lokalen beziehungsweise simulierten Lerntag und strikt weniger als das Fenster vorgezogen werden; Reviewkarten werden nie vorgezogen. Ein früherer noch nicht berechtigter FIFO-Eintrag blockiert keine spätere berechtigte Wiederholung.</li>
-<li>Reviewkarten werden tageweise über ihren fachlichen Fälligkeitstag freigegeben. Learning und Relearning behalten minutengenaue Termine; ihr Vorziehfenster darf den fachlichen Lerntag nicht überschreiten. Eine manuell auf einen künftigen Lerntag gesetzte New-, Learning-, Relearning- oder Reviewkarte bleibt bis zu diesem Lerntag vollständig zurückgestellt; ab dann gelten wieder Phasenlogik, Tageslimits und Vorziehfenster. Intraday-Schritte umgehen Tageslimits, tagesübergreifende Lernschritte verbrauchen Reviewbudget. Für eine gestartete Baumrunde müssen der Kartenstapel und alle aktiven Vorfahren Budget besitzen; direkte Unterstapelstarts ignorieren äußere Vorfahren. Reviews belegen das gemeinsame Reviewbudget vor neuen Karten. Sind Karten ausschließlich durch Limits verborgen, nennt Start oder Abschluss <code>Tageslimit erreicht</code> und weist die Anzahl fälliger und neuer Karten aus.</li>
-<li>Easy Days verändert ausschließlich neu berechnete Review-Tagesintervalle von 3 bis 90 Tagen. Der Scheduler wählt innerhalb des offiziellen FSRS-Fuzz-Fensters anhand der accountweiten 90-Tage-Last und der globalen Tagesstufe; <code>Normal</code>, <code>Weniger</code> und <code>Minimal</code> besitzen die Gewichte 1, 0,5 und 0,0001. Bei Gleichstand gewinnt die geringste Abweichung vom FSRS-Rohintervall und danach der frühere Termin. Nur <code>dueAt</code> und das tatsächliche Intervall ändern sich; FSRS-Stabilität, Schwierigkeit und Zielerinnerung bleiben unverändert. Vorschau und Commit verwenden dieselbe Lastmomentaufnahme und DST-sichere Kalenderaddition.</li>
-<li>Die Tagesprojektion berücksichtigt das Vorziehfenster auch nach Verlassen und erneutem Öffnen der Sitzung. Ein Vorziehen über die Tagesgrenze ist ausgeschlossen.</li>
-<li>Nutzer sehen verständliche Intervalle, nicht interne Schedulerzustände.</li>
-<li>KI-Umformulierungen teilen ausschließlich den Review State und Termin ihrer Karte; sie besitzen keinen eigenen Lernstatus.</li>
-<li>Der Scheduler darf keine KI-Erzeugung im Antwortrequest auslösen.</li>
-<li>Der Reviewmodus misst die reale Zeit von der Kartendarstellung bis zur Bewertung monoton und auf höchstens 60 Sekunden begrenzt im vorhandenen Review Event. Simulierte Lernzeitpunkte verändern diese Dauer nicht.</li>
-<li>Die transiente Simulationsuhr darf durch bloßes Umstellen keinen Workspace-, Cloud- oder Kartenstatus verändern. Bewertungen im Zukunftsmodus verwenden jedoch absichtlich den simulierten Zeitpunkt und durchlaufen den normalen Workspace-, Statistik- und Sync-Pfad.</li>
-</ul>
-<h3 id="specs--66-vertrauen-änderungsprotokoll-und-undo">6.6 Vertrauen, Änderungsprotokoll und Undo <a class="docs-anchor" href="#specs--66-vertrauen-änderungsprotokoll-und-undo" aria-label="Link zu 6.6 Vertrauen, Änderungsprotokoll und Undo">#</a></h3>
-<ul>
-<li>Karteninhalte sind direkt prüfbar; es gibt keinen wiederherstellbaren Kartenversionsverlauf.</li>
-<li>Manuelle Neuplanung ändert ausschließlich <code>dueAt</code> und die technische Aktualisierungszeit. Sie erhält Phase, Lernschritt, Intervalle, Wiederholungen, Difficulty, Stability, Ease, letzten echten Reviewzeitpunkt, Core-/FSRS-Werte und Inhaltsrevisionen. Genau ein <code>ReviewEvent</code> mit <code>rating: &quot;manual&quot;</code> hält alten und neuen Termin fest, ist nicht wiederherstellbar und zählt nicht als Lernen, Tagesfortschritt oder FSRS-Bewertung.</li>
-<li>Ein unmittelbares Karten-Undo nimmt den bestehenden Soft-Delete-Tombstone revisionsgeprüft zurück; es erzeugt weder eine neue Karte noch einen zweiten Review State.</li>
-<li>Importfehler dürfen nicht zum Verlust des letzten verlässlichen Inhalts führen.</li>
-</ul>
-<h3 id="specs--67-statistik">6.7 Statistik <a class="docs-anchor" href="#specs--67-statistik" aria-label="Link zu 6.7 Statistik">#</a></h3>
-<ul>
-<li>Beim initialen Eintritt zeigt die Statistik ihren vollständigen Ladezustand. Zeitraum- und Stapelwechsel lassen dagegen Filter, Diagramme und Kennzahlen sichtbar: Die gewählte Auswahl reagiert sofort, das letzte Ergebnis bleibt bis zum Ersatz abgeblendet. Ein unbestimmter 3-px-Prozessindikator zeigt zyklisch von links nach rechts durchlaufende Segmente. Seine Fläche reicht unter den Filtern vom linken Rand der Zeitraumwahl bis zum rechten Rand der Stapelauswahl. Sein Platz einschließlich 8 px Abstand darüber bleibt immer reserviert; es gibt keinen sichtbaren Ladetext und keinen Höhensprung. Screenreader erhalten einen zugänglichen Namen und eine Live-Statusmeldung. Fehler erhalten die Filter und letzten Daten mit einer Wiederholungsaktion. Fokus und Scrollposition bleiben bei der Aktualisierung erhalten; verspätete Antworten überschreiben keine neuere Auswahl. Lazy Loading bleibt unverändert, ohne zusätzliche Abfragen, Vorladungen oder Zeitraum-Caches.</li>
-<li>Eine einzige globale Filterleiste steuert alle Bereiche außer dem eigenständigen Zeitraum der Lern-Heatmap: <code>30 Tage</code>, <code>90 Tage</code>, <code>1 Jahr</code> oder <code>Gesamt</code> sowie gesamte Sammlung, einen Stapel oder mehrere Stapel. Standard ist <code>Gesamte Sammlung · 1 Jahr</code>; ausgewählte Oberstapel schließen Unterstapel dedupliziert ein. Eingeschlossene Unterstapel bleiben über Auswahlfläche und rechten Haken markiert und deaktiviert, ohne zusätzliche Hinweiszeile; <code>Gesamte Sammlung</code> bleibt als eigene erste Auswahl erhalten.</li>
-<li>Unterhalb der globalen Filterleiste gliedert die gemeinsame responsive Seiteninhaltsnavigation die Statistik in <code>Überblick</code>, <code>Lernaktivität</code>, <code>Planung &amp; Kartenbestand</code>, <code>FSRS-Gedächtnismodell</code>, <code>Antwortverhalten</code> und, sofern sichtbar, <code>Stapelvergleich</code>. Ab 1280 px bleibt sie als vertikale, bei Bedarf scrollbar bleibende Sticky-Rail links sichtbar; darunter verwendet sie das gemeinsame kompakte Sticky-Disclosure. Der Überblick liegt in einer umrandeten Inhaltsfläche und zeigt seine sieben Kennzahlen ohne Icons als kompakte, rand- und schattenlose graue Kennzahlflächen im selben Format wie die Kennzahlen der Zeitplanung.</li>
-<li>Historische Bereiche zeigen Übersicht, gestapelte Wiederholungen, gemessene Lernzeit mit Abdeckung, hinzugefügte Karten, die gemeinsame Lern-Heatmap, Antwortzeitpunkt, Antwortknöpfe, wahre Erinnerungsquote und Stapelvergleich. Die Heatmap folgt ausschließlich dem globalen Stapel-Scope und steuert ihren Zeitraum lokal über <code>Woche</code>, <code>Monat</code> oder <code>Jahr</code>; Standard sind die letzten sieben fachlichen Lerntage bis heute. Die Zeitraumwahl verwendet das gemeinsame Dropdown. In der Wochenansicht stehen Wochentagskürzel und Datum semibold in zwei Zeilen, beispielsweise <code>Fr</code> über <code>25.09.</code>. Monat und Jahr zeigen vollständige Kalenderzeiträume, Pfeile wechseln jeweils einen ganzen Zeitraum, und das vollständige Jahresraster scrollt auf schmalen Ansichten horizontal. Farbauswahl, Zeitraumsteuerung und Pfeile bilden mit einheitlichem Abstand eine feste Gruppe; der Farbauslöser behält seinen neutralen Außenrand. Streak und Steuerungsgruppe stehen ab 36 rem Heatmapbreite in einer Zeile, darunter springt die gesamte Gruppe dauerhaft unter den Titel, ohne dass die Farbauswahl separat stehen bleibt oder bei weiterer Verkleinerung zurückspringt. Der Titel zeigt den aktuellen Streak der ausgewählten Stapel; ein Lerntag zählt, sobald mindestens ein valides Review mit beliebiger Bewertung gespeichert wurde, und der sichtbare Zeitraum begrenzt den Streak nicht. Von morgen bis einschließlich Tag +365 zeigt eine getrennt normalisierte Grauskala die aktuell gespeicherte nächste Fälligkeit jedes aktiven Learning Items genau einmal; Varianten, Entwürfe, gelöschte, ausgesetzte und vergrabene Karten zählen nicht. Dunkleres Grau bedeutet mehr voraussichtlich fällige Karten, ohne angenommene Bewertungen oder Folgetermine zu simulieren. Die Pfeile navigieren bis zum vollständigen Zeitraum mit Tag +365; spätere Resttage sind abgeblendet und als außerhalb der Prognose beschriftet. Die <code>Weniger</code>-bis-<code>Mehr</code>-Legende erklärt weiterhin ausschließlich vergangene Aktivität. Ihre browserlokal für Dashboard und Statistik gemeinsame Grundfarbe ist über ein 2-mal-2-Raster auf die semantischen Lernstatusfarben <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> beschränkt; CoRe-Lila (<code>Neu</code>) ist der Standard, ungültige gespeicherte Werte werden ohne Migrationspfad darauf normalisiert und alle Intensitätsstufen werden aus der gewählten Farbe abgestuft. Prognose-Grauskala und blauer Heute-Rahmen bleiben von der Auswahl unberührt. Die wahre Erinnerungsquote verwendet nur die erste geeignete Wiederholung einer Variante je fachlichem Lerntag und verlangt ein vorheriges Intervall von mindestens einem Tag. Ändert sich der Tagesbeginn, werden historische Reviews dynamisch neu gruppiert. Ein separat geführter Schwierigkeitsstatus wird weder aus CoRe-Bewertungen abgeleitet noch in der Statistik angezeigt; der numerische FSRS-Parameter Schwierigkeit bleibt davon unberührt.</li>
-<li>Der Stapelvergleich zeigt auf schmalen Inhaltsflächen je Stapel sechs beschriftete Kennzahlflächen aus dem bestehenden Statistik-UI; breite Flächen behalten die Tabellenanordnung. Der lokale Stapelname öffnet direkt die fünfteiligen Stapelinhalte (<code>Karteikarten</code>, <code>Notizen</code>, <code>Mind Map</code>, <code>Quiz</code>, <code>Quelle</code>); ein zusätzlicher Hierarchiepfad wird dort nicht gezeigt.</li>
-<li>Planung zeigt Rückstand, künftige Fälligkeiten, kumulierten Verlauf und geschätztes tägliches Arbeitspensum. Der globale Zeitraum ist ihr Zukunftshorizont.</li>
-<li>Status, FSRS-Schwierigkeit, Stabilität und aktuelle Abrufwahrscheinlichkeit sind vollständige Momentaufnahmen der ausgewählten Stapel und tragen <code>Stand heute</code>. Der Zeitraum begrenzt bei Intervallen nur den sichtbaren Bereich.</li>
-<li>Historische Kategorien werden aus dem Schedulerzustand vor der Antwort als Lernen, Wiederlernen, Jung oder Reif bestimmt; Reif beginnt bei 21 Tagen. Klassische Anki-Leichtigkeit wird nicht als aktuelle CoRe-Metrik ausgegeben.</li>
-<li>Diagramme verwenden begrenzte, adaptive Zeitgruppen, zugängliche Textlegenden und strukturierte Details für Maus, Touch und Tastatur. Fehlende Historie, Zeitmessung oder Stichprobe wird erklärt; die Oberfläche erfindet keine Nullwerte oder Aktivität.</li>
-</ul>
-<h2 id="specs--7-visueller-produktvertrag">7. Visueller Produktvertrag <a class="docs-anchor" href="#specs--7-visueller-produktvertrag" aria-label="Link zu 7. Visueller Produktvertrag">#</a></h2>
-<ul>
-<li>Die produktive UI verwendet die CoRe-Palette Slate <code>#6F7E9E</code>, Mist <code>#A9B5C7</code>, Cloud <code>#DDE3EC</code>, Coral <code>#E28B68</code>, Lilac <code>#D6A3D2</code>, Marigold <code>#E4BF63</code> sowie die vorbereiteten Dark-Werte Midnight <code>#181D25</code>, Graphite <code>#262E3A</code>, Highlight <code>#8FA0BF</code>, Coral Glow <code>#F0A07E</code>, Lilac Glow <code>#E4B5E1</code> und Golden Glow <code>#F0CC77</code> ausschließlich über semantische Theme-Rollen.</li>
-<li>Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein normaler, zugänglicher Iconbutton in der responsiven App-Shell wechselt explizit zwischen beiden Modi über <code>data-core-theme</code>; Sonne beziehungsweise Mond zeigen den aktuellen Modus, während der zugängliche Name die ausgelöste Aktion beschreibt. Theme und Timer bleiben lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.</li>
-<li>Angemeldete App-Shell, Login, Sitzungsprüfung, lokale Datenübernahme und sicherer Fehlerzustand füllen ohne äußeren Kartenrahmen, Außenradius oder Schatten mindestens den gesamten dynamischen Viewport. Fachliche Panels bleiben erhalten; der horizontale innere Inhaltsabstand beträgt responsiv 10, 16 beziehungsweise 24 px.</li>
-<li>Unter 1280 px ersetzt eine schwebende, Safe-Area-fähige Bottom Bar die Sidebar. Sie bleibt unabhängig von Seitenlänge und vertikaler Browser-Scrollbar mit stabiler Breite am unteren Viewportrand sichtbar. Ihre vier direkten Ziele sind <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code> und <code>Statistik</code>; die Kartenverwaltung wird über die Bereichsauswahl in <code>Lernen</code> geöffnet. Ein kompakter Kopf zeigt den zu <code>Heute</code> navigierenden Schriftzug <code>CoRe</code>, bei aktivem Timer dessen kleinen Fortschrittsbalken sowie rechts die einzeilige gemeinsame Utility-Gruppe aus Sync, umrundetem Theme-Button, Hilfe und Einstellungen. Eine aktive Simulation bleibt in der eigenen Statuszeile sichtbar. Ab 1280 px verwendet CoRe eine 9,5 rem breite Sidebar ohne Markenunterzeile; auch dort navigiert der Schriftzug <code>CoRe</code> zu <code>Heute</code>. Ihre trennlinienlose Utility-Gruppe steht ohne horizontalen Scrollpfad in einem festen 2-mal-2-Raster mit identischem Zeilen- und Spaltenabstand: Sync und Hilfe oben, Einstellungen und Theme unten. Das Fragezeichen öffnet <code>/hilfe</code> direkt und besitzt dort einen eigenen aktiven Zustand; nur Einstellungen und Simulator teilen den aktiven Einstellungszustand. Eine Profilvorschau erscheint dort nicht.</li>
-<li>Dekorative Rahmenlinien sind bewusst heller und zurückhaltender als interaktive Feld-, Auswahl- und Fokusgrenzen.</li>
-<li>Die untere Hauptnavigation verwendet denselben gleitenden Auswahlindikator und dieselbe Bewegung wie segmentierte Controls. Icon und sichtbarer Tab-Name bleiben auf zwei Zeilen angeordnet. Der Indikator folgt Größenänderungen; Reduced Motion deaktiviert sowohl die Gleitbewegung als auch die Laufanimation des Statistikbalkens.</li>
-<li>Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände besitzen produktweit einheitliche Hover-, Active-, Focus- und Disabled-Zustände. Bedeutung bleibt durch Text, Icon oder Zahl zusätzlich zur Farbe erkennbar.</li>
-<li>Gewöhnliche einzeilige Buttons, Icon-Aktionen, Eingaben und Auswahlfelder verwenden produktweit eine Mindesthöhe beziehungsweise ein Touchziel von <code>44 × 44 px</code>. Fachliche Großflächen wie MCQ-Antworten und Reviewratings dürfen höher bleiben.</li>
-<li>Selbsterklärende Einstellungsfelder verwenden ihren eindeutigen Titel ohne wiederholenden Untertitel. Hinweise bleiben nur sichtbar, wenn sie Folgen, Abwägungen, Warnungen oder nicht offensichtliches Verhalten erklären.</li>
-<li>Fachliche Inhalte, Warnungen und Folgeaktionen bleiben ohne generische Disclosure-Flächen dauerhaft sichtbar. Ausklappbar bleiben nur zweckgebundene Navigation, Hierarchien und kompakte Werkzeugsteuerungen, deren Zustand selbst Teil der Interaktion ist.</li>
-<li>Modale Bestätigungsdialoge behandeln Escape und einen Klick direkt auf den abgedunkelten Hintergrund wie ihre Abbrechen-Aktion; Klicks innerhalb des Dialogs oder eines zugehörigen Auswahl-Overlays schließen ihn nicht. Abbrechen bestätigt, verwirft oder verändert keine Fachdaten und stellt den vorgesehenen Fokus wieder her.</li>
-<li>Auswahlfelder verwenden produktweit denselben symmetrisch gepolsterten Trigger und ein erhöhtes, abgerundetes CoRe-Overlay. Erneutes Antippen oder Anklicken des geöffneten Auswahlfelds schließt das Menü ohne Änderung des gewählten Werts; Außenberührung und Escape schließen es ebenfalls. Gewählte und fokussierte Optionen bleiben zusätzlich zur Farbe durch eine sichtbare Markierung und vollständige Tastaturbedienung erkennbar.</li>
-<li>Kurze, abgeschlossene Erfolgsmeldungen erscheinen produktweit als schließbares Overlay oben rechts mit Erfolgsicon und zugänglicher Schließen-Aktion. Nach zehn Sekunden blenden sie sich mit einer kurzen, ressourcenschonenden Deckkraft-/Transformationsanimation automatisch aus; bei reduzierter Bewegung entfällt der sichtbare Übergang. Auf schmalen Viewports halten sie den Seitenabstand ein und umbrechen ohne horizontales Hauptscrolling. Fehler, laufende Vorgänge sowie Ergebnisse mit Details oder Folgeaktionen bleiben im fachlichen Kontext sichtbar.</li>
-<li>Stapelgruppen verwenden dauerhaft die einfachen, gerahmten Flächen <code>--core-group-depth-0</code> bis <code>--core-group-depth-5</code>: Hauptstapel verwenden die ungefüllte Oberflächenfarbe von Depth 0 ohne Schatten, die fünf Unterebenen jeweils Depth 1 bis 5. Die sechs Töne interpolieren in sRGB linear zwischen den Gruppentönen von Depth 0 und Depth 5; eine größere technische Tiefe wird stets auf Depth 5 begrenzt. Die Skala wird im Light Mode mit zunehmender Tiefe dunkler und im Dark Mode spiegelbildlich heller. Hover füllt die vorhandene Zeilenfläche neutral; Auswahl, Fokus und Drop-Ziele reagieren weiterhin am bestehenden Außenrand, ohne einen eingerückten Layer oder eine erhöhte Stapelfläche zu erzeugen.</li>
-<li>Stapelkarten in Dashboard und Lernen zeigen in fester Reihenfolge ausschließlich die disjunkten, durch das verbleibende Tagesbudget begrenzten Kennzahlen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code>: <code>Neu</code> umfasst die ausgewählten New-Karten, <code>Offen</code> heute anstehendes Learning und Relearning einschließlich noch nicht vorziehbarer Schritte, <code>Fällig</code> die ausgewählten Reviewkarten mit erreichtem Fälligkeitszeitpunkt. Ausgesetzte und vergrabene Karten zählen nirgends. Die Textfarben verwenden dieselben zentralen Pink-, Orange- und Gelb-Rollen wie der Tagesfortschritt und die Bewertungsbuttons <code>Nochmal</code>, <code>Schwer</code> und <code>Gut</code>; eine sichtbare Gesamtzahl erscheint nicht. Unter 44 rem tatsächlich verfügbarer Zeilenbreite werden die drei sichtbaren Labels zugunsten der einzeiligen Kompaktform ausgeblendet; ihre zugänglichen Namen bleiben erhalten. Ab dieser Breite bleiben die Labels sichtbar. Stapelköpfe der Kartenverwaltung projizieren diese Kennzahlen weder sichtbar noch assistiv.</li>
-<li>Der Gesamtfortschrittsdonut in Dashboard und Lernen verwendet für <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und <code>Gelernt</code> dieselben Pink-, Orange-, Gelb- und Blau-Rollen wie der Tagesfortschritt und die Bewertungsbuttons <code>Nochmal</code>, <code>Schwer</code>, <code>Gut</code> und <code>Leicht</code>. Seine exakten SVG-Segmente beginnen bei zwölf Uhr, besitzen innen, außen und untereinander die dünne semantische Rahmenlinie und lassen im transparenten Zentrum stets die tatsächliche Light-/Dark-Tiefenfläche des Stapels sichtbar. Ein Bestand ohne aktive Karten zeigt einen neutralen Leer-Ring; die zugängliche Beschriftung nennt Gesamtzahl und alle vier Werte. Stapelköpfe der Kartenverwaltung rendern keinen Donut.</li>
-<li>Amulya definiert die visuellen Überschriftenstufen <code>36/44</code>, <code>28/36</code> und <code>22/30</code>; Synonym definiert Body Large <code>16/24</code>, Body und Controls <code>14/20</code> sowie Caption und Statuslabel <code>12/16</code>. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.</li>
-<li>Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate <code>#6F7E9E</code>. Stapel-Icons erscheinen produktweit rund mit Symbol und Rand in der gewählten Farbe sowie einer dezenten transparenten Flächentönung derselben Farbe. In den Stapel-Einstellungen zeigt der Seitentitel das aktuelle Icon in seiner Farbe und den gespeicherten Stapelnamen. Der Bereich <code>Stapel</code> enthält Namensfeld, das zugängliche 5-mal-5-Raster mit 25 repräsentativen Lucide-Icons und den runden Farbkreis; alle drei Werte gehören ohne eigene Speichern-Aktion zum gemeinsamen Seitendraft. Rich-Text-Schnellfarben stammen weiterhin aus der CoRe-Palette.</li>
-</ul>
-<p>Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Features steht im <a href="../src/ui/README.md"><code>src/ui</code>-Katalog</a>. Vorhandene Module sollen verwendet werden, wenn ihre Schnittstelle die Fachsemantik erhält; fachlich abweichende Controls dürfen lokal bleiben und nutzen dennoch dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.</p>
-<h3 id="specs--synchronisierung">Synchronisierung <a class="docs-anchor" href="#specs--synchronisierung" aria-label="Link zu Synchronisierung">#</a></h3>
-<ul>
-<li>Ein vollständiger Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt danach ausschließlich vorgemerkte Outbox-Mutationen, lädt anschließend alle Cloud-Deltas seit den gespeicherten <code>sync_change_id</code>-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten. Ein Konflikt blockiert nur seine Entität; konfliktfreie Geschwister und Reviews laufen weiter.</li>
-<li>Manuelles Synchronisieren führt immer den vollständigen Upload-und-Download-Zyklus aus. Automatisch läuft derselbe Zyklus nach kurz entprellten lokalen Änderungen, bei wiederhergestellter Verbindung, erneutem Fokus und sichtbar alle 1, 5, 15 oder 30 Minuten; Standard sind 5 Minuten. <code>Aus</code> bedeutet ausschließlich manueller Sync. Automatik gehört nur zum aktiven angemeldeten Account und endet bei Logout oder Accountwechsel.</li>
-<li>Der sichtbare Sync-Button in Desktop-Navigation und mobilem Kopf zeigt synchronisiert, ausstehend, laufend, offline oder die Konfliktanzahl. <code>Daten &amp; Synchronisierung</code> zeigt Intervall, letzten Erfolg, ausstehende Änderungen und den primären manuellen Sync.</li>
-<li><code>revision</code> ist ausschließlich die fachliche Inhaltsversion. Geräte-, Zeit-, Zähler-, Importzusammenfassungs-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Karteninhaltswrites erhalten den aktuellen Cloud-Lernstand; Varianteninhaltswrites erhalten ihre Performance.</li>
-<li>Reviewereignisse sind unveränderlich und idempotent. Beide Geräteereignisse bleiben erhalten, Reviewwrites verändern weder Stapel- noch Inhaltsrevisionen und nur das zeitlich jüngste Ereignis projiziert den Lernstand. Inhaltsbearbeitung und paralleles Review derselben Karte werden ohne Benutzerkonflikt zusammengeführt.</li>
-<li>Neuplanungen werden als manuelle Reviewereignisse über dieselbe offline persistente <code>review-atomic</code>-Outbox und <code>record_review_atomic</code> wie Bewertungen übertragen. Die Ereignis-ID macht Wiederholungen idempotent; bei zeitlich konkurrierenden Reviews und Neuplanungen bestimmt die jeweils spätere Aktion ausschließlich den projizierten Termin, während alle gültigen Reviewereignisse erhalten bleiben.</li>
-<li>Für die aktuelle Konfliktmenge zeigt CoRe die Folgen beider Richtungen als hinzugefügte, aktualisierte und entfernte Stapel, Karten und Varianten. <code>Dieser Browser</code> oder <code>Cloud im Account</code> betrifft ausschließlich diese Konflikte; konfliktfreie Inhalte, Reviews und Medien bleiben erhalten. Vor Ausführung wird die Vorschau gegen aktuelle Remote-Revisionen geprüft. Der Einzelauflöser bleibt eingeklappt verfügbar.</li>
-<li>Konfliktkarten sind bis zur Entscheidung aus der Lernwarteschlange ausgeschlossen und in der Kartenverwaltung mit <code>Synchronisierung klären</code> markiert. Nicht übertragene Änderungen bleiben bei Reload oder Browserende sicher in IndexedDB; ein letzter Website-Sync ist nur bestmöglich und wird nicht als garantiert dargestellt.</li>
-<li>Nach der einmaligen Accountprüfung wird ein vorhandener lokaler Workspace angezeigt, bevor Bootstrap, Deltas, Konflikte und Medien fertig sind. Ein eingerichtetes Gerät darf bei fehlendem Netz mit derselben persistierten Supabase-Sitzung offline kalt starten; es existiert weiterhin kein lokaler Login.</li>
-<li>Ein neuer Browser wartet nur auf die erste gültige, höchstens 200 KiB große Bootstrap-Seite aus Deck-Hüllen und Statistiken. Schlägt sie fehl, zeigt CoRe einen Wiederholen-Zustand und niemals einen vermeintlich leeren Account. Weitere Hüllen und der Kartenkatalog werden fortsetzbar im Hintergrund geladen; vollständige Reconciliation blockiert keine Navigation.</li>
-<li>Kartenverwaltung zeigt vorhandene 50er-Previewseiten sofort und ergänzt online per serverseitiger Suche, Sortierung und Keyset-Pagination. Erst Öffnen oder Direktlink lädt den vollständigen Kartenkörper; bei einem Fehler bleiben Preview und Wiederholen-Aktion sichtbar. Offline durchsucht CoRe transparent nur den vorhandenen Katalog.</li>
-<li>Lernen bestimmt die Reihenfolge aus dem Katalog. Bei normaler Verbindung werden bis zu 50 Körper vorbereitet und bei 25 verbleibenden Karten nachgeladen; bei Datensparmodus oder langsamer Verbindung beträgt der Puffer fünf. Die Runde darf mit der ersten verfügbaren fälligen Karte starten. Nach Netzausfall läuft der Puffer weiter und pausiert danach sichtbar, ohne eine fällige nicht geladene Karte zu überspringen.</li>
-<li><code>Öffnen</code> erzeugt einen automatisch bereinigbaren Cache. <code>Offline verfügbar machen</code> lädt Karten, KI-Varianten, Darstellungsvorlagen und Medien fortsetzbar in 50er-Paketen und setzt den Zustand erst nach Anzahl-, Revisions- und Hashprüfung auf verfügbar.</li>
-<li>Ab 80 Prozent geschätzter Browserquote entfernt CoRe ungepinnte, bestätigte Kartenkörper und Medien nach LRU bis höchstens 70 Prozent. Deck-Hüllen, Summaries, Katalog, Outbox, Konflikte, Downloads und aktive Lernkarten werden nicht bereinigt. Ein unvollständiger Katalog bleibt sichtbar als lokal eingeschränkter Zustand.</li>
-<li>Statistiken werden aus serverseitigen Aggregaten geladen und lokal gecacht; lokale noch nicht bestätigte Bewertungen ergänzen sie optimistisch, manuelle Neuplanungen jedoch nicht. Vor einem APKG-Reimport werden bestehende betroffene Stapel vollständig hydriert.</li>
-<li>Die Kartenverwaltung lädt höchstens 50 Tabellenzeilen je Seite. Eine Lernsitzung wartet nur auf den ersten benötigten Kartenkörper, füllt danach im Hintergrund einen Puffer von höchstens 50 Karten und fordert bei 25 verbleibenden Karten die nächste 50er-Seite an. Vollständige Stapel dürfen weder für App-Start noch Kartenliste oder Lernstart materialisiert werden.</li>
-<li>Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig im Hintergrund vorbereitet werden. Save-Data, 2G, unsichtbarer Tab oder neue Nutzerinteraktion verhindern weitere Hintergrundarbeit. Andere Hauptziele werden nur durch Hover, Fokus oder Touchstart vorbereitet; APKG, PDF, Statistik, Simulator und große Medien nie pauschal.</li>
-<li>Die Einstellungen zeigen, ob der Browser persistenten lokalen Speicher gewährt hat, sowie belegten und verfügbaren Speicher. Die PWA cached die App-Shell; Browsermedien bleiben selektiv und eine Eviction kann ohne persistente Freigabe nicht ausgeschlossen werden.</li>
-</ul>
-<h2 id="specs--8-nichtfunktionale-anforderungen">8. Nichtfunktionale Anforderungen <a class="docs-anchor" href="#specs--8-nichtfunktionale-anforderungen" aria-label="Link zu 8. Nichtfunktionale Anforderungen">#</a></h2>
-<h3 id="specs--sicherheit-und-datenschutz">Sicherheit und Datenschutz <a class="docs-anchor" href="#specs--sicherheit-und-datenschutz" aria-label="Link zu Sicherheit und Datenschutz">#</a></h3>
-<ul>
-<li>Accountdaten und Inhalte sind durch RLS und Ownership geschützt.</li>
-<li>Service-Secrets bleiben außerhalb des Browsers.</li>
-<li>Logs enthalten keine Secrets.</li>
-<li>Unvalidierte externe Payloads werden nicht direkt persistiert.</li>
-</ul>
-<h3 id="specs--accessibility">Accessibility <a class="docs-anchor" href="#specs--accessibility" aria-label="Link zu Accessibility">#</a></h3>
-<ul>
-<li>Kernflows sind per Tastatur bedienbar.</li>
-<li>Wichtige Zustände werden nicht nur durch Farbe vermittelt.</li>
-<li>Dialoge und Overlays besitzen nachvollziehbare Fokusreihenfolge und -wiederherstellung.</li>
-<li>Bei 200 % Zoom bleibt der Kernflow ohne horizontales Hauptscrolling bedienbar.</li>
-<li>Bewegungen beachten <code>prefers-reduced-motion</code>.</li>
-</ul>
-<h3 id="specs--viewports-und-sprache">Viewports und Sprache <a class="docs-anchor" href="#specs--viewports-und-sprache" aria-label="Link zu Viewports und Sprache">#</a></h3>
-<ul>
-<li>Primärer Zielviewport ist 1440 × 900 px, Desktop-Mindestziel 1280 × 720 px.</li>
-<li>Unter 1280 px besitzt CoRe den kompakten App-Modus mit Kopf und Bottom Bar; ab 1280 px gilt die Sidebar-Darstellung. Fachliche Komponenten wählen ihre interne Dichte anhand der tatsächlich verfügbaren Containerbreite und behalten ihre jeweils dokumentierten internen Scrollbereiche.</li>
-<li>Nutzertexte sind korrektes Deutsch mit Unicode-Schreibweise. Technische Bezeichnungen gelangen nicht ungefiltert in die UI.</li>
-</ul>
-<h3 id="specs--zuverlässigkeit">Zuverlässigkeit <a class="docs-anchor" href="#specs--zuverlässigkeit" aria-label="Link zu Zuverlässigkeit">#</a></h3>
-<ul>
-<li>Asynchrone Kernflows besitzen Lade-, Fehler-, Retry- und Erfolgszustände.</li>
-<li>Aktive Parserfehler werden nicht durch stille Fallbacks verdeckt.</li>
-<li>Pending- und Konfliktzustände überleben Reload accountgebunden.</li>
-<li>Ein Produktrelease braucht die Betriebsfreigabe aus <a href="operations.md"><code>operations.md</code></a>, ändert dadurch aber nicht diesen Produktvertrag.</li>
-</ul>
-<h3 id="specs--performance">Performance <a class="docs-anchor" href="#specs--performance" aria-label="Link zu Performance">#</a></h3>
-<ul>
-<li>LCP liegt am 75. Perzentil bei höchstens 2,5 Sekunden, INP bei höchstens 200 Millisekunden, CLS bei höchstens 0,1 und TTFB bei höchstens 800 Millisekunden.</li>
-<li>Ein wiederkehrendes oder offline eingerichtetes Gerät erreicht den lokalen Workspace p75 in höchstens 1,5 Sekunden und p95 in höchstens 3 Sekunden. Ein neues Gerät erreicht den Stapel-Bootstrap p75 in höchstens 3 Sekunden; der Vollabgleich läuft danach weiter.</li>
-<li>Eine sichtbare Tab- oder Reviewreaktion beginnt in höchstens 100 Millisekunden. Vorgeladene Tabs sind p75 in höchstens 300 Millisekunden und p95 in höchstens 750 Millisekunden vollständig bereit; nicht vorgeladene Tabs p75 in höchstens 1 Sekunde und p95 in höchstens 2 Sekunden.</li>
-<li>Erste Seite eines 100k-Stapels und Lernstart liegen p75 bei höchstens 1 Sekunde und p95 bei höchstens 2 Sekunden. Ein Review ist lokal p95 innerhalb 250 Millisekunden dauerhaft gespeichert. Normaler Delta-Sync liegt p75 bei höchstens 2 Sekunden und p95 bei höchstens 5 Sekunden und ist nie startblockierend.</li>
-<li>Initiales JavaScript zielt auf höchstens 250 KiB gzip und darf 300 KiB nicht überschreiten. Ein normaler Feature-Tab zielt auf 150 KiB und darf 200 KiB gzip nicht überschreiten. Bootstrapdaten bleiben unter 200 KiB komprimiert und enthalten keine Kartenkörper oder Medien. Hintergrundarbeit wird in Portionen von höchstens 50 Millisekunden geteilt.</li>
-</ul>
-<h2 id="specs--9-beta-abnahme">9. Beta-Abnahme <a class="docs-anchor" href="#specs--9-beta-abnahme" aria-label="Link zu 9. Beta-Abnahme">#</a></h2>
-<p>Der Beta-Kern gilt als erfüllt, wenn:</p>
-<ol>
-<li>alle sieben Kernjourneys automatisiert und manuell bestehen;</li>
-<li>ein neuer Account, kleiner Import, manuelle Erstellung, Review und Reload ohne Entwicklerwissen bedienbar sind;</li>
-<li>eine Variante vor dem Reveal nicht erkennbar ist;</li>
-<li>keine Labs-Navigation, Labs-Route oder ausgemusterte API ausgeliefert wird;</li>
-<li>keine sichtbare Einstellung eine nicht vorhandene Wirkung verspricht;</li>
-<li>die Zielviewports, Tastatur, Screenreader, Zoom, lange Inhalte und mindestens ein realistischer Fehlerfall abgenommen sind;</li>
-<li>keine Blocker oder ungeklärten hohen Reibungsverluste aus moderierten Tests verbleiben;</li>
-<li>automatisierte Tests konkrete Produkt- und Sicherheitsverträge schützen, ohne Testanzahl als Produktabnahme zu behandeln.</li>
-</ol>
-<p>Offene Gates und Evidenz stehen ausschließlich in <a href="todo.md"><code>todo.md</code></a>.</p>
-<h2 id="specs--10-nichtziele-des-beta-kerns">10. Nichtziele des Beta-Kerns <a class="docs-anchor" href="#specs--10-nichtziele-des-beta-kerns" aria-label="Link zu 10. Nichtziele des Beta-Kerns">#</a></h2>
-<ul>
-<li>Community, Rankings oder soziale Leistungsmetriken;</li>
-<li>generische Backend-, Auth- oder LLM-Adapter;</li>
-<li>externe KI-Chat- oder breite beziehungsweise multimodale Kartenerstellung jenseits der Basic-Variantenroute;</li>
-<li>vollständiges Admin-Portal, Zahlungen oder Abonnements;</li>
-<li>native Store-Apps oder Push-Benachrichtigungen;</li>
-<li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul>
-</article></main></div><script>function initializeDocsViewer() {
+<p class="docs-source">Quelle: <a href="specs.html#specs--57-lernfortschritt-über-simulierte-tage-prüfen">Produktvertrag 5.7</a> · <a href="ui-elements.html#formulare">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";
@@ -5561,4 +5327,4 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
     filter();
 }
 initializeDocsViewer();
-</script></body></html>
+</script><script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body></html>

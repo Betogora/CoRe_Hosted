@@ -41,7 +41,7 @@ CoRe verändert deshalb nicht nur den Wiederholungszeitpunkt, sondern auch die F
   <tr>
     <td width="50%" valign="top">
       <h3>📚 Vorhandenes Wissen mitnehmen</h3>
-      Anki-Decks inklusive Unterstapeln und Medienreferenzen sowie Text-, CSV- und Tabelleninhalte finden ihren Weg in CoRe.
+      Anki-Decks inklusive Unterstapeln und Medienreferenzen finden ihren Weg über APKG in CoRe.
     </td>
     <td width="50%" valign="top">
       <h3>✨ Mit Kontext erstellen</h3>
@@ -55,14 +55,14 @@ CoRe verändert deshalb nicht nur den Wiederholungszeitpunkt, sondern auch die F
     </td>
     <td width="50%" valign="top">
       <h3>🛡️ Persönliches bleibt persönlich</h3>
-      Accountgebundene Lernstände, getrennte Reviewdaten und eine Cloud-first Grundlage halten den individuellen Fortschritt beim Lernenden.
+      Accountgebundene Lernstände, getrennte Reviewdaten und lokale Speicherung mit accountgebundener Cloud-Synchronisierung halten den individuellen Fortschritt beim Lernenden.
     </td>
   </tr>
 </table>
 
 ## Mehr als ein hübscheres Karteikartensystem
 
-CoRe behandelt nicht die Karte, sondern den **Lerninhalt** als Zentrum. Jeder Inhalt besitzt genau eine Originalvariante. Umformulierungen, Cloze-Formen und Reverse-Karten bleiben daran verankert – können aber ihren eigenen Lernstand und ihr eigenes Feedback tragen.
+Jede CoRe-Karte besitzt einen eigenen Lernstand. Reverse-Richtungen und Cloze-Gruppen sind eigenständige Karten; KI-Umformulierungen bleiben an ihrer Grundkarte verankert und teilen deren Lernstand und Termin.
 
 So entsteht aus einem Stapel keine Sammlung isolierter Vorder- und Rückseiten, sondern ein wachsendes Netz aus Inhalt, Quelle, Varianten und persönlicher Lernerfahrung.
 
@@ -71,6 +71,14 @@ So entsteht aus einem Stapel keine Sammlung isolierter Vorder- und Rückseiten, 
 CoRe ist ein **auf den Kartenlern-Kern reduzierter, aktiv entwickelter Web-MVP**. Der Beta-Kern konzentriert sich auf Account, Erstellen und Importieren, Kartenverwaltung, Lernen mit Content-Repetition, Statistik, Einstellungen und verlässliche accountgebundene Speicherung.
 
 Labs-, breite KI-, Community- und Graph-Flächen sowie der serverseitige Groß-APKG-Pfad wurden entfernt. Davon ausgenommen ist die schmale textbasierte Basic-Variantenroute `/api/ai/card-variant`. APKG wird bis einschließlich 250 MB lokal verarbeitet; Google und Magic Link bleiben getrennt schaltbar. Die offene Stabilisierung und ihre Abnahme stehen in der [Roadmap](docs/todo.md).
+
+## Dokumentation
+
+Die gemeinsame [HTML-Dokumentation](docs/index.html) enthält Specs, Journeys,
+UI-Elements und Kartentypen. Technisches Projektwissen bleibt in Markdown. Quellen und kurze Pflegeregeln:
+[docs/README.md](docs/README.md). Bei Dokumentations- oder UI-Änderungen die
+zuständigen Quellen und Demos aktualisieren, `npm run docs:build` ausführen und
+mit `npm run check:docs` prüfen. Erzeugte HTML-Dateien nie direkt bearbeiten.
 
 ## Gebaut mit
 
@@ -83,13 +91,13 @@ Labs-, breite KI-, Community- und Graph-Flächen sowie der serverseitige Groß-A
 </p>
 
 <p align="center">
-  <a href="docs/specs.md">Produkt- und Engineering-Spezifikation</a>
+  <a href="docs/specs.md">Produktvertrag</a>
   ·
   <a href="docs/anki-format-analysis.md">Anki-Format-Analyse</a>
   ·
   <a href="docs/file-naming-conventions.md">Dateinamenskonvention</a>
   ·
-  <a href="docs/index.md">Dokumentation</a>
+  <a href="docs/index.html">Docs öffnen</a> · <a href="docs/README.md">Dokumentationsquellen</a>
 </p>
 
 ---
