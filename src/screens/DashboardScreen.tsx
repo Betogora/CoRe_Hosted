@@ -1,11 +1,11 @@
 import React from "react";
-import { Activity, CalendarDays, CalendarSearch, CheckCircle2, FileArchive, PenLine, Play, Plus, RefreshCcw, Sparkles } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
-import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
+import { CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
@@ -13,6 +13,7 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 function formatHeatmapDate(key: string) {
   const [year, month, date] = key.split("-");
@@ -150,7 +151,6 @@ function DailyLearningOverview({
   const title = achieved ? "Tagesziel erreicht" : "Dein Lernen heute";
   const Icon = achieved ? CheckCircle2 : Activity;
   const primaryLabel = achieved ? "Zusätzliche Karten lernen" : plan.status === "waiting" ? "Später weiterlernen" : "Jetzt lernen";
-  const PrimaryIcon = achieved ? Plus : plan.status === "waiting" ? RefreshCcw : Play;
   const primaryDisabled = achieved ? additionalSessions.length === 0 : plan.status === "waiting" || !firstStartableDeck;
 
   function activatePrimaryAction() {
@@ -164,68 +164,61 @@ function DailyLearningOverview({
   return (
     <>
       <SoftPanel className="overflow-hidden" data-testid="daily-learning-overview" data-status={plan.status}>
-        <div className="grid lg:grid-cols-[minmax(0,1fr)_minmax(15rem,18rem)]">
-          <div className="min-w-0 p-5 sm:p-6 lg:p-7">
-            <div className="flex items-center gap-4">
-              <OrbIcon
-                icon={Icon}
-                className={achieved
-                  ? "bg-[var(--core-surface-muted)] text-[var(--core-learning-goal-achieved)]"
-                  : "bg-core-subtle text-core-action"}
+        <div className="min-w-0 p-5 sm:p-6 lg:p-7">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <OrbIcon
+              icon={Icon}
+              className={achieved
+                ? "bg-[var(--core-surface-muted)] text-[var(--core-learning-goal-achieved)]"
+                : "bg-core-subtle text-core-action"}
+            />
+            <h2 className={`min-w-0 flex-1 core-heading-3 font-semibold ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
+            <CoreTooltip label={primaryLabel}>
+              <IconButton
+                type="button"
+                label={primaryLabel}
+                icon={Play}
+                variant="ghost"
+                disabled={primaryDisabled}
+                onClick={activatePrimaryAction}
+                className="core-deck-icon-action shrink-0"
               />
-              <h2 className={`core-heading-3 font-semibold ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
-            </div>
+            </CoreTooltip>
+          </div>
 
-            <div className="mt-6 grid gap-2">
-              <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-core-muted">
-                <span>Tagesziel</span>
-                <span data-testid="daily-learning-total">{plan.progress.completedTodayCount} / {plan.progress.total} Karten</span>
-              </div>
-              <DailyReviewProgress
-                progress={plan.progress}
-                achieved={achieved}
-                ariaLabel="Tagesziel"
-                testId="dashboard-daily-progress"
-              />
+          <div className="mt-6 grid gap-2">
+            <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-core-muted">
+              <span>Tagesziel</span>
+              <span data-testid="daily-learning-total">{plan.progress.completedTodayCount} / {plan.progress.total} Karten</span>
             </div>
+            <DailyReviewProgress
+              progress={plan.progress}
+              achieved={achieved}
+              ariaLabel="Tagesziel"
+              testId="dashboard-daily-progress"
+            />
+          </div>
 
-            <dl className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
-                const MetricIcon = DAILY_METRIC_ICONS[segment.key];
-                const color = achieved && segment.key === "learned" ? "var(--core-learning-goal-achieved)" : segment.color;
-                return (
-                  <div key={segment.key} className="flex min-w-0 items-center gap-3" data-daily-learning-metric={segment.key}>
-                    <span
-                      className="grid size-10 shrink-0 place-items-center rounded-full"
-                      style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--core-surface))` }}
-                    >
-                      <MetricIcon size={18} aria-hidden="true" />
-                    </span>
-                    <div className="grid min-w-0">
-                      <dt className="order-2 core-caption text-core-muted">{segment.label}</dt>
-                      <dd className="order-1 core-body-large font-semibold text-core-text">{plan.progress[segment.countKey]}</dd>
-                    </div>
+          <dl className="mt-6 flex flex-wrap gap-4">
+            {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
+              const MetricIcon = DAILY_METRIC_ICONS[segment.key];
+              const color = achieved && segment.key === "learned" ? "var(--core-learning-goal-achieved)" : segment.color;
+              return (
+                <div key={segment.key} className="flex min-w-max flex-1 basis-[calc(50%-0.5rem)] items-center gap-2 sm:basis-0 sm:gap-3" data-daily-learning-metric={segment.key}>
+                  <span
+                    className="grid size-10 shrink-0 place-items-center rounded-full"
+                    style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--core-surface))` }}
+                  >
+                    <MetricIcon size={18} aria-hidden="true" />
+                  </span>
+                  <div className="flex items-baseline gap-1.5 whitespace-nowrap core-body-large text-core-text">
+                    <dt className="order-2">{segment.label}</dt>
+                    <dd className="order-1">{plan.progress[segment.countKey]}</dd>
                   </div>
-                );
-              })}
-            </dl>
-          </div>
-
-          <div className="grid content-center gap-3 border-t border-core-border p-5 sm:p-6 lg:border-l lg:border-t-0 lg:p-7">
-            <ActionButton
-              type="button"
-              variant="primary"
-              icon={PrimaryIcon}
-              disabled={primaryDisabled}
-              onClick={activatePrimaryAction}
-              className="w-full"
-            >
-              {primaryLabel}
-            </ActionButton>
-            <ActionButton type="button" variant="secondary" icon={CalendarSearch} disabled className="w-full">
-              {achieved ? "Plan für morgen ansehen" : "Plan ansehen"}
-            </ActionButton>
-          </div>
+                </div>
+              );
+            })}
+          </dl>
         </div>
       </SoftPanel>
 

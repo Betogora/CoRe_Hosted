@@ -72,8 +72,8 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /data-testid="daily-learning-total">0 \/ 1 Karten/);
   assert.match(markup, /data-testid="dashboard-daily-progress"/);
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 0 Karten, Fällig: 0 Karten"/);
-  assert.match(markup, />Jetzt lernen<\//);
-  assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*Plan ansehen/);
+  assert.match(markup, /<button[^>]*aria-label="Jetzt lernen"[^>]*>[\s\S]*?lucide-play/);
+  assert.doesNotMatch(markup, />Jetzt lernen<|Plan ansehen|Plan für morgen ansehen/);
   for (const metric of ["learned", "new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-daily-learning-metric="${metric}"`));
   assert.doesNotMatch(markup, /geschätzte Dauer|Dranbleiben lohnt sich|Für heute alles geschafft/);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
@@ -196,7 +196,7 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
 
   assert.match(markup, /data-status="waiting"/);
   assert.match(markup, /Offen: 1 Karte/);
-  assert.match(markup, /<button[^>]*disabled=""[^>]*>[\s\S]*Später weiterlernen/);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Später weiterlernen"/);
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
 });
 
@@ -220,7 +220,7 @@ test("achieved dashboard offers additional new cards only when stock remains bey
   const noExtraMarkup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks: [noExtraDeck] }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
 
   assert.match(extraMarkup, /Tagesziel erreicht/);
-  assert.match(extraMarkup, /<button(?![^>]*disabled)[^>]*>[\s\S]*Zusätzliche Karten lernen/);
-  assert.match(extraMarkup, /Plan für morgen ansehen/);
-  assert.match(noExtraMarkup, /<button[^>]*disabled=""[^>]*>[\s\S]*Zusätzliche Karten lernen/);
+  assert.match(extraMarkup, /<button(?![^>]*disabled)[^>]*aria-label="Zusätzliche Karten lernen"/);
+  assert.doesNotMatch(extraMarkup, /Plan ansehen|Plan für morgen ansehen/);
+  assert.match(noExtraMarkup, /<button[^>]*disabled=""[^>]*aria-label="Zusätzliche Karten lernen"/);
 });
