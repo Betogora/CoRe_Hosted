@@ -1,14 +1,14 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { getVisibleDeckDepth } from "../deckHierarchy.ts";
+import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow, DeckStatusDistribution } from "../libraryModel.ts";
 import { SegmentedDonut, type SegmentedDonutSegment } from "./coreUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 import { formatLearningCardCount, LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 
 const DECK_COUNT_DEFINITIONS = [
-  { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new", shortLabel: "N" },
-  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress", shortLabel: "O" },
-  { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due", shortLabel: "F" },
+  { ...LEARNING_STATUS_UI.new, valueKey: "newCards", metric: "new" },
+  { ...LEARNING_STATUS_UI.inProgress, valueKey: "inProgressCards", metric: "in-progress" },
+  { ...LEARNING_STATUS_UI.due, valueKey: "dueCards", metric: "due" },
 ] as const;
 
 const DECK_STATUS_DEFINITIONS = [
@@ -18,7 +18,6 @@ const DECK_STATUS_DEFINITIONS = [
   { color: LEARNING_STATUS_UI.learned.color, valueKey: "learnedCards", key: "learned" },
 ] as const;
 
-const DECK_DEPTH_INDENT_PX = 16;
 const useDeckNameLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function AdaptiveDeckName({ name, className }: { name: string; className: string }) {
@@ -83,7 +82,6 @@ export function DeckSummaryHeader() {
           {DECK_COUNT_DEFINITIONS.map((count) => (
             <span key={count.metric} className="core-deck-summary-count min-w-0">
               <span className="core-deck-summary-metric-label-full">{count.label}</span>
-              <span className="core-deck-summary-metric-label-short">{count.shortLabel}</span>
             </span>
           ))}
         </div>

@@ -14,7 +14,7 @@ import {
 import { Check, ChevronDown, FolderTree, Layers3, Search, X, type LucideIcon } from "lucide-react";
 import type { Deck } from "../coreTypes.ts";
 import { buildSortedDeckChildren } from "../deckOrdering.ts";
-import { getVisibleDeckDepth } from "../deckHierarchy.ts";
+import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 
 const SELECT_VALUE_PREFIX = "core-select:";
@@ -445,7 +445,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
               data-deck-depth={visibleDepth}
               onClick={() => selectValue(row.deck.id)}
               className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
-              style={{ paddingInlineStart: `${0.75 + visibleDepth}rem` }}
+              style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
               <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>
@@ -544,7 +544,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
               data-deck-depth={visibleDepth}
               onClick={() => toggle(row.deck.id)}
               className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)] disabled:cursor-default"
-              style={{ paddingInlineStart: `${0.75 + visibleDepth}rem` }}
+              style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
               <span className="min-w-0 flex-1 truncate">{row.deck.name}</span>

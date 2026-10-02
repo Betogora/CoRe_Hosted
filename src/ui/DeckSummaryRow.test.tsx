@@ -30,7 +30,7 @@ test("deck summary row keeps responsive identity, accessible metrics and compact
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /size-8/);
-  assert.match(markup, /padding-inline-start:16px/);
+  assert.match(markup, /padding-inline-start:8px/);
   assert.match(markup, /aria-label="Keine aktiven Karten für Herkunft \/ Ein sehr langer Unterstapelname\."/);
   assert.match(markup, /data-donut-empty="true"/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
@@ -56,7 +56,7 @@ test("deck summary row caps visual indentation at level six", () => {
   );
 
   assert.equal(deepRow.depth, 11);
-  assert.match(markup, /padding-inline-start:80px/);
+  assert.match(markup, /padding-inline-start:40px/);
   assert.doesNotMatch(markup, /deck-hierarchy-overflow|lucide-git-branch/);
 });
 

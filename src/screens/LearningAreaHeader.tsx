@@ -10,20 +10,22 @@ export function LearningAreaHeader({ area, onAreaChange, onOpenCardSettings }: {
   onOpenCardSettings: () => unknown;
 }) {
   return (
-    <PageHeader eyebrow="Review" title="Lernen" action={
-      <div className="core-learning-header-actions flex flex-wrap items-center justify-end gap-2">
-        <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
-          Lerneinstellungen
-        </ActionButton>
-        <CoreSegmentedControl<LearnArea>
-          ariaLabel="Bereich in Lernen"
-          options={learnAreaOptions}
-          value={area}
-          typography="control"
-          onValueChange={onAreaChange}
-          className="core-learning-area-control"
-        />
-      </div>
-    } />
+    <div className="core-learning-header-container">
+      <PageHeader eyebrow="Review" title="Lernen" action={
+        <div className="core-learning-header-actions flex items-center justify-end gap-2">
+          <ActionButton type="button" variant="secondary" icon={Settings2} onClick={onOpenCardSettings}>
+            Lerneinstellungen
+          </ActionButton>
+          <CoreSegmentedControl<LearnArea>
+            ariaLabel="Bereich in Lernen"
+            options={learnAreaOptions}
+            value={area}
+            typography="control"
+            onValueChange={onAreaChange}
+            className="core-learning-area-control"
+          />
+        </div>
+      } />
+    </div>
   );
 }
