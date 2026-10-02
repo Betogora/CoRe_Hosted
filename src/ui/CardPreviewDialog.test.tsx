@@ -22,6 +22,22 @@ function fixture() {
   return { item, definition, variant: item.variants[0] };
 }
 
+function clozeFixture() {
+  const document: LearningItemDocumentV1 = {
+    schemaVersion: 1,
+    definitionVersionId: "preview-dialog-cloze-definition",
+    fields: [
+      { id: "text", sourceFieldId: null, name: "Text", value: "Primordialprävention verändert {{c1::gesellschaftliche Risikofaktoren}}.", placement: "both", semanticRole: "prompt" },
+      { id: "extra", sourceFieldId: null, name: "Extra", value: "Beispiel: Jodsalz", placement: "back", semanticRole: "explanation" },
+    ],
+    tags: [],
+    mediaRefs: [],
+  };
+  const definition = createCoreNoteTypeDefinition({ document, kind: "cloze", interaction: "cloze" });
+  const item = applyLearningItemContent({ previous: null, document, definition, reason: "create" }).item;
+  return { item, definition, variant: item.variants[0] };
+}
+
 test("CardPreviewDialog renders the learning front in an accessible larger dialog", () => {
   const markup = renderToStaticMarkup(
     <CardPreviewDialog open {...fixture()} onOpenChange={() => undefined} />,
@@ -57,4 +73,17 @@ test("StudyCardContent reveals one separate answer without duplicating the quest
   assert.equal((back.match(/data-testid="study-card-answer-separator"/g) ?? []).length, 1);
   assert.equal((back.match(/title="Frage"/g) ?? []).length, 1);
   assert.equal((back.match(/title="Antwort"/g) ?? []).length, 1);
+});
+
+test("StudyCardContent replaces a revealed cloze in place instead of appending a second card", () => {
+  const rendered = clozeFixture();
+  const front = renderToStaticMarkup(<StudyCardContent {...rendered} revealed={false} selectedChoices={[]} onSelectedChoicesChange={() => undefined} onReveal={() => undefined} />);
+  const back = renderToStaticMarkup(<StudyCardContent {...rendered} revealed selectedChoices={[]} onSelectedChoicesChange={() => undefined} onReveal={() => undefined} />);
+
+  assert.equal((front.match(/<iframe/g) ?? []).length, 1);
+  assert.match(front, /title="Frage"/);
+  assert.equal((back.match(/<iframe/g) ?? []).length, 1);
+  assert.equal((back.match(/title="Antwort"/g) ?? []).length, 1);
+  assert.doesNotMatch(back, /title="Frage"|data-testid="study-card-answer-separator"/);
+  assert.match(back, /aria-label="Antwort"[^>]*core-study-card-back/);
 });

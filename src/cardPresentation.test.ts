@@ -120,6 +120,35 @@ test("omits Anki FrontSide and its leading separator from review answers", async
   assert.doesNotMatch(answer.srcdoc, /<hr>/);
 });
 
+test("omits a directly repeated Anki front before the answer separator while preserving its wrapper", async () => {
+  const { definition, item, variant } = fixture();
+  const importedDefinition = {
+    ...definition,
+    origin: "anki" as const,
+    recipes: [{
+      ...definition.recipes[0],
+      front: {
+        schemaVersion: 1 as const,
+        source: '<div class="card-wrap"><div class="kicker">Biologie</div><div class="question">{{Begriff}}</div></div>',
+        nodes: [],
+      },
+      back: {
+        schemaVersion: 1 as const,
+        source: '<div class="card-wrap"><div class="kicker">Biologie</div><div class="question">{{Begriff}}</div><hr class="wide" id="answer"><div class="answer">{{Funktion}}</div></div>',
+        nodes: [],
+      },
+    }],
+  };
+
+  const answer = renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "answer", surface: "review", theme: "light" });
+  const preview = renderLearningItemPresentation({ item, variant, definition: importedDefinition, side: "answer", surface: "editor-preview", theme: "light" });
+
+  assert.equal(answer.accessibleText, "ATP-Synthese");
+  assert.match(answer.srcdoc, /<div class="card-wrap"><div class="answer">ATP-Synthese<\/div><\/div>/);
+  assert.doesNotMatch(answer.srcdoc, /Biologie|Mitochondrium|id="answer"/);
+  assert.match(preview.accessibleText, /Biologie Mitochondrium ATP-Synthese/);
+});
+
 test("projects Anki sound markers through the same blob-only media path", async () => {
   const { definition, item } = fixture();
   const audioDocument = {
