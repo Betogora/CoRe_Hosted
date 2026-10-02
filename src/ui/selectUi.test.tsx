@@ -8,10 +8,8 @@ import { CoreSelect, DeckMultiSelect, DeckSelect } from "./selectUi.tsx";
 import { cardTypeOptions } from "../screens/screenConstants.ts";
 
 test("CoreSelect renders the controlled value with an accessible combobox trigger", () => {
-  const ref = React.createRef<HTMLButtonElement>();
   const markup = renderToStaticMarkup(
     <CoreSelect
-      ref={ref}
       ariaLabel="Kartentyp"
       value="basic"
       options={[
@@ -26,9 +24,7 @@ test("CoreSelect renders the controlled value with an accessible combobox trigge
   assert.match(markup, /role="combobox"/);
   assert.match(markup, /aria-label="Kartentyp"/);
   assert.match(markup, />Basic</);
-  assert.match(markup, /px-4/);
   assert.match(markup, /lucide-languages/);
-  assert.equal(ref.current, null);
 });
 
 test("CoreSelect accepts an empty external value without losing its label", () => {

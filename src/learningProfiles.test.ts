@@ -58,7 +58,6 @@ test("copy-on-apply changes exactly one settings object and records source prove
     newCardsPerDay: 20,
     newCardsTodayOverride: { date: "2026-08-11", limit: 5 },
   };
-  const second = { newCardsPerDay: 10 };
   const applied = applyLearningProfileTemplateToDeckSettings(first, template);
 
   assert.equal(applied.newCardsPerDay, 60);
@@ -66,5 +65,5 @@ test("copy-on-apply changes exactly one settings object and records source prove
   assert.equal(applied.coreMode, "manual");
   assert.equal(applied.newCardsTodayOverride, null);
   assert.deepEqual(applied.learningProfileSource, { id: "profile-exam", contentVersion: 1 });
-  assert.deepEqual(second, { newCardsPerDay: 10 });
+  assert.equal(first.newCardsPerDay, 20);
 });

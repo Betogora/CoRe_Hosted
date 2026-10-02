@@ -1,7 +1,7 @@
 # CoRe-Betrieb und Runbooks
 
 **Rolle:** einzige kanonische Quelle für lokale Betriebsabläufe, Release, Rollback, Wiederherstellung und operative Gates.
-**Stand:** 2026-08-28
+**Stand:** 2026-10-02
 
 Zeitgebundene Release-Nachweise stehen in [`history.md`](history.md). Produktanforderungen und Roadmap stehen nicht in diesem Dokument.
 
@@ -22,8 +22,8 @@ steht das kanonische manuelle Qualitätsgate bereit:
 npm run gate:push
 ```
 
-Das Gate kombiniert Typecheck und generierte Dokumente, kompakte Unit-/Contract-
-Tests sowie den Production-Build einschließlich harter Bundlebudgets. Commits
+Das Gate kombiniert Typecheck und generierte Dokumente, alle Unit-/Contract-/Integrations-
+Tests mit kompakter Ausgabe sowie den Production-Build einschließlich harter Bundlebudgets. Commits
 und Pushes führen es nicht automatisch aus, weil ein gemischter Worktree auch
 Änderungen außerhalb des zu pushenden Commits enthalten kann. GitHub Actions
 führt auf `main`, in Pull Requests und manuell denselben einzelnen Quality-Job
@@ -74,7 +74,7 @@ Schwere Gates sind vom normalen Push entkoppelt:
 
 | Gate | Zeitplan | Befehl | Verantwortung |
 | --- | --- | --- | --- |
-| Nightly Core | täglich 02:17 UTC, veröffentlichte Releases, manuell | `npm run gate:nightly` | Beta-Core, vollständiges Release-E2E und APKG-Benchmark; jeder Fehler blockiert den Lauf |
+| Nightly Core | täglich 02:17 UTC, veröffentlichte Releases, manuell | `npm run gate:nightly` | Quality einschließlich Integration, vollständiges Release-E2E sowie zusätzlicher Beta-Auth-Smoke im selben Supabase-Lauf und APKG-Benchmark; jeder Fehler blockiert den Lauf |
 | Weekly Performance | montags 04:17 UTC, manuell | `npm run performance:measure:local` | gedrosselte Startmessung, Performanceartefakt und lokaler 100k-/1m-Statistikbenchmark; jeder Grenzwert bleibt blockierend |
 
 Bei Änderungen an Bootstrap, Preload, Sync, Katalog, Statistik, Service Worker,

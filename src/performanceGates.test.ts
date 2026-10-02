@@ -38,5 +38,6 @@ test("Startup-Artefakte müssen ihre neun Gates vollständig messen, ohne eine V
   assert.deepEqual(findMissingPerformanceGates(startup), []);
   assert.deepEqual(evaluatePerformanceSnapshot(startup), []);
   assert.equal(findMissingPerformanceGates({ ...startup, recurringWorkspaceP95Ms: undefined })[0]?.key, "recurringWorkspaceP95Ms");
+  assert.equal(findMissingPerformanceGates({ ...startup, longestBackgroundTaskMs: Number.NaN })[0]?.key, "longestBackgroundTaskMs");
   assert.equal(evaluatePerformanceSnapshot({ ...startup, longestBackgroundTaskMs: 51 })[0]?.key, "longestBackgroundTaskMs");
 });

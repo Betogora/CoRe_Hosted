@@ -114,6 +114,21 @@ test("identische Termine erzeugen kein manuelles Ereignis", async () => {
   repository.close();
 });
 
+test("Cachebereinigung schützt aktive Karten und noch nicht synchronisierte Reviews", async () => {
+  const repository = await createIndexedDbCoreRepository({ userId: randomUUID(), initialState: workspaceState(), indexedDb: indexedDB as any });
+  try {
+    await repository.rescheduleCards(["card-0"], "2026-08-24T04:00:00.000Z", "2026-08-21T10:00:00.000Z");
+    const result = await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER, ["card-1"]);
+    assert.equal(result.evictedCount, 1);
+    assert.ok(result.freedBytes > 0);
+    assert.deepEqual(await repository.missingCardBodyIds(["card-0", "card-1", "card-2"]), ["card-2"]);
+    assert.equal((await repository.loadCard("card-0"))?.reviewState.dueAt, "2026-08-24T04:00:00.000Z");
+    assert.equal(repository.outbox.listPending().filter((mutation) => mutation.type === "review-atomic").length, 1);
+  } finally {
+    repository.close();
+  }
+});
+
 test("ausgesetzte Karten bleiben bei der Neuplanung ausgesetzt", async () => {
   const state = workspaceState(1);
   state.decks[0].cards[0].status = "suspended";

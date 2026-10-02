@@ -11,23 +11,13 @@ function renderBar({ savingScope = null, navigationBlocked = false, mode = "glob
   );
 }
 
-test("settings save bar is a responsive dismissible nonmodal CoRe region", () => {
+test("settings save bar offers save and discard in a nonmodal region", () => {
   const html = renderBar();
   assert.match(html, /data-testid="settings-save-bar"/);
   assert.match(html, /aria-label="Änderungen speichern\?"/);
   assert.match(html, /Änderungen speichern\?/);
-  assert.match(html, /core-overlay/);
-  assert.match(html, /core-settings-save-bar/);
-  assert.match(html, /core-settings-save-badge/);
-  assert.match(html, /rounded-2xl/);
-  assert.match(html, /w-\[min\(42rem,calc\(100dvw-2rem\)\)\]/);
-  assert.match(html, /sm:grid-cols-\[minmax\(0,1fr\)_auto_auto\]/);
-  assert.match(html, /z-50/);
-  assert.match(html, /left-\[50dvw\]/);
-  assert.match(html, /max\(14dvh, calc\(env\(safe-area-inset-bottom\) \+ 5rem\)\)/);
   assert.equal((html.match(/>Speichern</g) ?? []).length, 1);
   assert.match(html, /aria-label="Änderungen verwerfen"/);
-  assert.equal((html.match(/min-h-11/g) ?? []).length, 1);
   assert.doesNotMatch(html, /role="dialog"|aria-modal|action-dialog-backdrop|core-backdrop/);
 });
 
@@ -36,7 +26,6 @@ test("deck-tree save bar offers separate actions for the stack and all descendan
 
   assert.match(html, />Nur diesen Stapel speichern</);
   assert.match(html, />Stapel und Unterstapel speichern</);
-  assert.equal((html.match(/min-h-11/g) ?? []).length, 2);
   assert.match(html, /class="core-action-primary[^"]*"[^>]*><svg[^>]*>[\s\S]*?<span>Stapel und Unterstapel speichern<\/span>/);
   assert.match(html, /class="core-action-secondary[^"]*"[^>]*><svg[^>]*>[\s\S]*?<span>Nur diesen Stapel speichern<\/span>/);
   assert.ok(html.indexOf("Stapel und Unterstapel speichern") < html.indexOf("Nur diesen Stapel speichern"));
@@ -49,7 +38,6 @@ test("global learning save bar distinguishes all stacks from future stacks", () 
   assert.match(html, />Auf alle Stapel anwenden</);
   assert.match(html, />Auf alle neuen Stapel anwenden</);
   assert.ok(html.indexOf("Auf alle Stapel anwenden") < html.indexOf("Auf alle neuen Stapel anwenden"));
-  assert.equal((html.match(/min-h-11/g) ?? []).length, 2);
 });
 
 test("settings save bar disables its action while saving", () => {

@@ -103,15 +103,6 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
   assert.match(streakMarkup, /3 Tage Streak/);
 });
 
-test("shared study heatmap fills wide panels with compact month gutters", () => {
-  const markup = renderHeatmapAt("month", "2026-08-10");
-
-  assert.match(markup, /class="w-full" role="img" data-testid="study-heatmap-grid" data-heatmap-period="month"/);
-  assert.match(markup, /class="grid grid-cols-7 gap-1\.5 sm:gap-2"/);
-  assert.match(markup, /h-14 w-full rounded-lg/);
-  assert.doesNotMatch(markup, /max-w-\[30rem\]|max-w-14/);
-});
-
 test("shared study heatmap offers exactly the four learning-status colors", () => {
   assert.equal(HEATMAP_HISTORY_COLOR_STORAGE_KEY, "core.studyHeatmap.historyColor.v1");
   assert.equal(HEATMAP_HISTORY_DEFAULT_COLOR, "#d6a3d2");

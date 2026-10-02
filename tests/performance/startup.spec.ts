@@ -79,12 +79,11 @@ async function createMeasuredContext(
   const context = await browser.newContext({ storageState: e2eAuthStatePath, serviceWorkers });
   await context.addInitScript((reportedEffectiveType) => {
     const target = globalThis as typeof globalThis & { __coreLongTasks?: Array<{ startTime: number; duration: number }> };
-    target.__coreLongTasks = [];
     Object.defineProperty(navigator, "connection", {
       configurable: true,
       value: { effectiveType: reportedEffectiveType, saveData: false },
     });
-    if (typeof PerformanceObserver === "undefined") return;
+    if (typeof PerformanceObserver === "undefined" || !PerformanceObserver.supportedEntryTypes.includes("longtask")) return;
     try {
       const observer = new PerformanceObserver((list) => {
         target.__coreLongTasks?.push(...list.getEntries().map((entry) => ({
@@ -93,6 +92,7 @@ async function createMeasuredContext(
         })));
       });
       observer.observe({ type: "longtask", buffered: true });
+      target.__coreLongTasks = [];
     } catch {
       // Nicht unterstützte Long-Task-Beobachtung wird als fehlender Messwert erkannt.
     }
@@ -156,7 +156,8 @@ async function measureRun(
     const detail = (name: string) => mark(name)?.detail as Record<string, unknown> | undefined;
     const workspaceReadyMs = mark(marks.workspaceLocalReady)?.startTime ?? Number.NaN;
     const navigation = performance.getEntriesByType("navigation").at(-1) as PerformanceNavigationTiming | undefined;
-    const observedLongTasks = (globalThis as typeof globalThis & { __coreLongTasks?: Array<{ startTime: number; duration: number }> }).__coreLongTasks ?? [];
+    const observedLongTasks = (globalThis as typeof globalThis & { __coreLongTasks?: Array<{ startTime: number; duration: number }> }).__coreLongTasks;
+    if (!observedLongTasks) throw new Error("Long-Task-Beobachtung ist nicht verfügbar; Performance-Abnahme ist unvollständig.");
     const interval = (startName: string, readyName: string) => ({
       start: mark(startName)?.startTime ?? Number.NaN,
       end: mark(readyName)?.startTime ?? Number.NaN,

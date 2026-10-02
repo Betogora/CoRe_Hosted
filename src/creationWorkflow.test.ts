@@ -260,8 +260,7 @@ test("creation workflow previews and commits a local APKG", async () => {
 });
 
 test("creation workflow reports monotonic worker commit progress and completes only after persistence", async () => {
-  const parsed = await createCreationWorkflow().parseApkgFile(await worldCapitalsApkgFile());
-  assert.ok(parsed.preview);
+  const summary = createCoreDeck({ id: "progress-deck", name: "Fortschritt", cards: [] });
   const progress: number[] = [];
   let completedBeforePersistence = false;
   const workflow = createCreationWorkflow({
@@ -279,13 +278,13 @@ test("creation workflow reports monotonic worker commit progress and completes o
     },
   });
   const preview = {
-    ...parsed.preview,
+    kind: "local" as const, summary, sampleCards: [], mediaFiles: [], report: { errors: [], warnings: [] },
     commitGraph: {
       kind: "worker-import" as const,
       deckCount: 1,
       cardCount: 3,
-      noteTypeDefinitions: parsed.preview.commitGraph.noteTypeDefinitions,
-      deckIdentities: [{ id: parsed.preview.summary.id, originalDeckId: parsed.preview.summary.originalDeckId ?? null }],
+      noteTypeDefinitions: [],
+      deckIdentities: [{ id: summary.id, originalDeckId: null }],
       mediaTargets: [],
       async streamChunks(visit: (chunk: unknown) => Promise<void>) {
         await visit({ kind: "cards", values: [{}, {}] });

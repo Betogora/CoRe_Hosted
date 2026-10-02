@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import { e2eAuthStatePath } from "./tests/e2e/support/e2eEnvironment.ts";
 
-const betaCoreGate = process.env.CORE_BETA_GATE === "true";
+const localGate = process.env.CORE_E2E_GATE;
+const betaCoreGate = localGate === "beta";
+const focusedCoreGate = betaCoreGate || localGate === "golden" || localGate === "pr";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -27,15 +29,13 @@ export default defineConfig({
       env: {
         ...process.env,
         CORE_VITE_CACHE_DIR: "node_modules/.vite/e2e-configured",
-        VITE_ENABLE_LABS: "true",
-        VITE_ENABLE_SERVER_APKG_IMPORT: "true",
         VITE_ENABLE_GOOGLE_AUTH: betaCoreGate ? "" : "true",
         VITE_ENABLE_MAGIC_LINK: betaCoreGate ? "" : "true",
       },
       reuseExistingServer: false,
       timeout: 60_000,
     },
-    {
+    ...(focusedCoreGate ? [] : [{
       name: "unconfigured-app",
       command: "npm run dev -- --mode e2e-unconfigured --port 5191",
       url: "http://127.0.0.1:5191/",
@@ -65,7 +65,7 @@ export default defineConfig({
       env: { ...process.env, CORE_VITE_CACHE_DIR: "node_modules/.vite/e2e-magic", VITE_ENABLE_GOOGLE_AUTH: "", VITE_ENABLE_MAGIC_LINK: "true" },
       reuseExistingServer: false,
       timeout: 60_000,
-    },
+    }]),
   ],
   projects: [
     {
@@ -104,7 +104,7 @@ export default defineConfig({
     {
       name: "first-learning-chromium",
       testMatch: /first-learning\.spec\.ts/,
-      dependencies: ["authenticated-chromium"],
+      dependencies: ["auth-setup"],
       use: {
         ...devices["Desktop Chrome"],
         storageState: e2eAuthStatePath,

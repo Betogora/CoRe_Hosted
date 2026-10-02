@@ -173,7 +173,7 @@ For ordinary implementation changes:
    affected.
 
 `npm run gate:push` is the canonical manual quality gate and combines type
-checking, compact unit/contract tests, the production build, and bundle
+checking, all unit/contract/integration tests with compact output, the production build, and bundle
 budgets. Git pushes do not run it automatically because a mixed worktree may
 contain changes outside the commit being pushed.
 

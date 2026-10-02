@@ -2036,6 +2036,10 @@ function parseApkgInWorker(file: File, onStep: (step: string) => void, signal?: 
         dispose() { cleanup(); },
         streamChunks(visit: (chunk: unknown) => Promise<void>) {
           return new Promise<void>((resolveCommit, rejectCommit) => {
+            worker.onerror = () => {
+              cleanup();
+              rejectCommit(new Error("APKG-Import-Worker ist unerwartet abgebrochen."));
+            };
             worker.onmessage = (commitEvent: MessageEvent<unknown>) => {
               const commitResponse = parseApkgWorkerResponse(commitEvent.data);
               if (!commitResponse.success || commitResponse.output.requestId !== requestId) {

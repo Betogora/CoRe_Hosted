@@ -17,7 +17,7 @@ export type AccountUpdate = TablesUpdate<GeneratedAccountTable> | Record<string,
 export type CloudJson = Json;
 export type MediaAssetRow = Tables<"media_assets">;
 
-const jsonObjectSchema = v.record(v.string(), v.unknown());
+const jsonObjectSchema = v.pipe(v.unknown(), v.check((value) => !Array.isArray(value)), v.record(v.string(), v.unknown()));
 const accountRowBaseSchema = {
   id: v.string(),
   user_id: v.string(),

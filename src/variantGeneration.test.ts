@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createBasicLearningItem } from "./coreModel.ts";
-import { buildCardVariationPrompt, generateRephrasedVariantsForLearningItem, parseVariantGenerationResponse } from "./coreVariantService.ts";
+import { buildCardVariationPrompt, classifyCardEligibility, generateRephrasedVariantsForLearningItem, getVariantCoverage, parseVariantGenerationResponse } from "./coreVariantService.ts";
 
 test("der KI-Prompt fordert ausschließlich Umformulierungen derselben Karte", () => {
   const prompt = buildCardVariationPrompt(createBasicLearningItem("deck", "Was ist ATP?", "Ein Energieträger."));
@@ -17,6 +17,8 @@ test("generierte Umformulierungen bleiben terminlose Kindvarianten", () => {
   assert.equal(generated.card.variants[0].cardId, card.id);
   assert.equal("reviewState" in generated.card.variants[0], false);
   assert.equal(generated.card.variants[0].meta.sourceContentHash, card.contentHash);
+  assert.equal(classifyCardEligibility(generated.card, { coreMode: "adaptive" }).eligible, true);
+  assert.equal(getVariantCoverage(generated.card).activeRephraseCount, 1);
 });
 
 test("Antwortparser lehnt zusätzliche Fakten ab", () => {

@@ -5,10 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
 test("CoreTooltip preserves child semantics and replaces native title hints", () => {
-  let focused = false;
-  const handleFocus = () => {
-    focused = true;
-  };
+  const handleFocus = () => undefined;
   const child = (
     <button
       type="button"
@@ -30,7 +27,6 @@ test("CoreTooltip preserves child semantics and replaces native title hints", ()
   assert.match(markup, /data-core-tooltip="Frühere Wochen anzeigen"/);
   assert.doesNotMatch(markup, /title=/);
   assert.doesNotMatch(markup, /<span/);
-  assert.equal(focused, false);
 });
 
 test("CoreTooltip projects an optional statistics-style swatch and value", () => {

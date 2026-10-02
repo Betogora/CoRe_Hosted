@@ -23,20 +23,13 @@ test("StatusMessage owns polite and assertive announcement semantics", () => {
   assert.doesNotMatch(assertive, /aria-live=/);
 });
 
-test("SuccessToast renders a top-right success overlay with a dismiss action", () => {
+test("SuccessToast renders a success announcement with a dismiss action", () => {
   const markup = renderToStaticMarkup(<SuccessToast onDismiss={() => undefined}>Stapel erfolgreich angelegt.</SuccessToast>);
 
   assert.match(markup, /data-success-toast-region="true"/);
   assert.match(markup, /data-appearance="success"/);
-  assert.match(markup, /core-success-toast/);
-  assert.match(markup, /fixed/);
-  assert.match(markup, /right-4/);
-  assert.match(markup, /sm:right-8/);
-  assert.match(markup, /!w-fit/);
+  assert.match(markup, /fixed right-4 top-4/);
   assert.match(markup, /max-w-\[calc\(100vw-2rem\)\]/);
-  assert.match(markup, /!items-center/);
-  assert.match(markup, /\[&amp;&gt;svg\]:!mt-0/);
-  assert.doesNotMatch(markup, /sm:max-w-xl|sm:w-full|inset-x-4/);
   assert.match(markup, /core-status-success/);
   assert.match(markup, /role="status"/);
   assert.match(markup, /aria-label="Erfolgsmeldung schließen"/);

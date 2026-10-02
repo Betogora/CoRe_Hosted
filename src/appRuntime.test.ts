@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { manualChunkForModule, resolveReleaseInfo } from "../vite.config.ts";
 import { normalizeAppRuntimeInfo } from "./appRuntime.ts";
 
 test("release info exposes only the package version", () => {
-  assert.deepEqual(resolveReleaseInfo(), { version: "0.2.0" });
+  const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+  assert.deepEqual(resolveReleaseInfo(), { version });
   assert.deepEqual(resolveReleaseInfo({ version: "1.2.3-beta.1" }), { version: "1.2.3-beta.1" });
 });
 

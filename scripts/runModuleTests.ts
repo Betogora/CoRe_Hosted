@@ -16,7 +16,6 @@ const CONTRACT_TESTS = new Set([
   "src/buildChunkBudget.test.ts",
   "src/cloudAuth.test.ts",
   "src/cloudMediaStore.test.ts",
-  "src/coreTypes.test.ts",
   "src/creationWorkflow.test.ts",
   "src/localE2EEnvironment.test.ts",
   "src/normalizedImport.test.ts",
@@ -25,9 +24,10 @@ const CONTRACT_TESTS = new Set([
 const INTEGRATION_TESTS = new Set([
   "src/cloudRepository.test.ts",
   "src/coreWorkspace.test.ts",
-  "src/fsrsVariantFlow.test.ts",
+  "src/indexedDbCoreRepository.test.ts",
   "src/mediaStore.test.ts",
   "src/syncEngine.test.ts",
+  "src/workspaceHydrationService.test.ts",
 ]);
 
 function collectTests(directory: string): string[] {

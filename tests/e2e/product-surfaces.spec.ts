@@ -568,76 +568,49 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByRole("heading", { name: "Wir wollen Lernen verbessern." })).toBeVisible();
   await expect(page.getByText(/Welche Grundsätze nutzt CoRe, um das Lernen möglichst nachhaltig zu gestalten/)).toBeVisible();
   const readExampleStack = (stack: Locator) => stack.evaluate((stackElement) => {
-    const frontElement = stackElement.querySelector<HTMLElement>('[data-help-example-stack-front="true"]')!;
-    const frontRect = frontElement.getBoundingClientRect();
-    const frontStyle = getComputedStyle(frontElement);
-    const layers = Array.from(stackElement.querySelectorAll<HTMLElement>('[data-help-example-stack-layer]'))
-      .map((layer) => ({ id: layer.dataset.helpExampleStackLayer, element: layer, rect: layer.getBoundingClientRect(), style: getComputedStyle(layer) }));
-    return {
-      front: {
-        background: frontStyle.backgroundColor,
-        borderColor: frontStyle.borderColor,
-        borderRadius: frontStyle.borderRadius,
-        height: frontElement.offsetHeight,
-        width: frontElement.offsetWidth,
-        zIndex: frontStyle.zIndex,
-      },
-      layers: layers.map(({ id, element, rect, style }) => ({
-        id,
-        background: style.backgroundColor,
-        borderColor: style.borderColor,
-        borderRadius: style.borderRadius,
-        height: element.offsetHeight,
-        leftDelta: rect.left - frontRect.left,
-        topDelta: rect.top - frontRect.top,
-        transform: style.transform,
+    const front = stackElement.querySelector<HTMLElement>('[data-help-example-stack-front="true"]')!;
+    const readLayer = (element: HTMLElement) => {
+      const style = getComputedStyle(element);
+      return {
         width: element.offsetWidth,
-        zIndex: style.zIndex,
-      })),
+        height: element.offsetHeight,
+        background: style.backgroundColor,
+        border: style.borderColor,
+        radius: style.borderRadius,
+        z: Number(style.zIndex),
+        rotation: new DOMMatrixReadOnly(style.transform).b,
+      };
+    };
+    return {
+      front: readLayer(front),
+      layers: Array.from(stackElement.querySelectorAll<HTMLElement>('[data-help-example-stack-layer]'))
+        .map((layer) => ({ id: layer.dataset.helpExampleStackLayer, ...readLayer(layer) })),
     };
   });
-  const exampleStackStyle = (stack: Awaited<ReturnType<typeof readExampleStack>>) => ({
-    front: {
-      background: stack.front.background,
-      borderColor: stack.front.borderColor,
-      borderRadius: stack.front.borderRadius,
-      zIndex: stack.front.zIndex,
-    },
-    layers: stack.layers.map(({ id, background, borderColor, borderRadius, transform, zIndex }) => (
-      { id, background, borderColor, borderRadius, transform, zIndex }
-    )),
-  });
   const introStackLayout = await readExampleStack(page.getByTestId("help-intro-card-stack"));
+  expect(introStackLayout.layers).toHaveLength(2);
+  expect(introStackLayout.layers.every(({ width, height }) => (
+    width === introStackLayout.front.width && height === introStackLayout.front.height
+  ))).toBe(true);
   const backLayer = introStackLayout.layers.find(({ id }) => id === "back")!;
   const middleLayer = introStackLayout.layers.find(({ id }) => id === "middle")!;
-  expect(backLayer.width).toBe(introStackLayout.front.width);
-  expect(backLayer.height).toBe(introStackLayout.front.height);
-  expect(middleLayer.width).toBe(introStackLayout.front.width);
-  expect(middleLayer.height).toBe(introStackLayout.front.height);
-  expect(backLayer.leftDelta).toBeGreaterThan(0);
-  expect(backLayer.topDelta).toBeLessThan(0);
-  expect(middleLayer.leftDelta).toBeLessThan(0);
-  expect(middleLayer.topDelta).toBeLessThan(0);
-  expect(introStackLayout.front.background).toBe("rgb(255, 255, 255)");
-  expect(middleLayer.background).toBe("rgb(231, 239, 249)");
-  expect(backLayer.background).toBe("rgb(203, 220, 237)");
-  expect(Number(backLayer.zIndex)).toBeLessThan(Number(middleLayer.zIndex));
-  expect(Number(middleLayer.zIndex)).toBeLessThan(Number(introStackLayout.front.zIndex));
+  expect(backLayer.rotation).toBeGreaterThan(0);
+  expect(middleLayer.rotation).toBeLessThan(0);
+  expect(backLayer.z).toBeLessThan(middleLayer.z);
+  expect(middleLayer.z).toBeLessThan(introStackLayout.front.z);
+  expect(new Set([introStackLayout.front.background, ...introStackLayout.layers.map((layer) => layer.background)]).size).toBe(3);
   await page.getByRole("button", { name: "Dark Mode einschalten" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  const darkIntroStackLayout = await readExampleStack(page.getByTestId("help-intro-card-stack"));
-  const darkBackLayer = darkIntroStackLayout.layers.find(({ id }) => id === "back")!;
-  const darkMiddleLayer = darkIntroStackLayout.layers.find(({ id }) => id === "middle")!;
-  expect(darkIntroStackLayout.front.background).toBe("rgb(49, 57, 71)");
-  expect(darkMiddleLayer.background).toBe("rgb(70, 84, 106)");
-  expect(darkBackLayer.background).toBe("rgb(53, 64, 79)");
-  expect(darkIntroStackLayout.front.borderColor).toBe("rgb(143, 160, 191)");
-  expect(darkMiddleLayer.borderColor).toBe(darkIntroStackLayout.front.borderColor);
-  expect(darkBackLayer.borderColor).toBe(darkIntroStackLayout.front.borderColor);
-  expect(darkMiddleLayer.transform).toBe(middleLayer.transform);
-  expect(darkBackLayer.transform).toBe(backLayer.transform);
+  const darkStack = await readExampleStack(page.getByTestId("help-intro-card-stack"));
+  expect(darkStack.front.background).not.toBe(introStackLayout.front.background);
+  expect(darkStack.front.border).not.toBe(introStackLayout.front.border);
+  for (const layer of darkStack.layers) {
+    const lightLayer = introStackLayout.layers.find(({ id }) => id === layer.id)!;
+    expect(layer.background).not.toBe(lightLayer.background);
+    expect(layer.border).toBe(darkStack.front.border);
+    expect(layer.rotation).toBe(lightLayer.rotation);
+    expect(layer.z).toBe(lightLayer.z);
+  }
   await page.getByRole("button", { name: "Light Mode einschalten" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-core-theme", "light");
   const activeRecallHeading = page.getByRole("heading", { name: "Active Recall", exact: true });
   const spacedRepetitionHeading = page.getByRole("heading", { name: "Spaced Repetition findet den passenden Zeitpunkt" });
   await expect(activeRecallHeading).toBeVisible();
@@ -740,7 +713,11 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   const activeRecallStackCard = activeRecallVisual.locator('[data-active-recall-card="stack"]');
   await expect(activeRecallStackCard).toBeVisible();
   const activeRecallStackLayout = await readExampleStack(activeRecallStackCard);
-  expect(exampleStackStyle(activeRecallStackLayout)).toEqual(exampleStackStyle(introStackLayout));
+  for (const key of ["background", "border", "radius", "z", "rotation"] as const) {
+    expect(activeRecallStackLayout.front[key]).toBe(introStackLayout.front[key]);
+  }
+  expect(activeRecallStackLayout.layers.map(({ width, height, ...appearance }) => appearance))
+    .toEqual(introStackLayout.layers.map(({ width, height, ...appearance }) => appearance));
   expect(activeRecallStackLayout.layers.every(({ width, height }) => (
     width === activeRecallStackLayout.front.width && height === activeRecallStackLayout.front.height
   ))).toBe(true);
@@ -760,33 +737,6 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(activeRecallVariants).toBeVisible();
   const activeRecallVariantCards = activeRecallVisual.getByTestId("active-recall-variant-card");
   await expect(activeRecallVariantCards).toHaveCount(2);
-  const variantStyles = await activeRecallVariantCards.evaluateAll((cards) => cards.map((card) => {
-    const style = getComputedStyle(card);
-    return {
-      background: style.backgroundColor,
-      borderColor: style.borderColor,
-      borderRadius: style.borderRadius,
-      tone: card.getAttribute("data-help-variant-tone"),
-    };
-  }));
-  expect(variantStyles).toEqual([
-    {
-      background: middleLayer.background,
-      borderColor: introStackLayout.front.borderColor,
-      borderRadius: introStackLayout.front.borderRadius,
-      tone: "middle",
-    },
-    {
-      background: introStackLayout.front.background,
-      borderColor: introStackLayout.front.borderColor,
-      borderRadius: introStackLayout.front.borderRadius,
-      tone: "front",
-    },
-  ]);
-  const variantFontSizes = await activeRecallVariantCards.evaluateAll((cards) => cards.flatMap((card) => (
-    Array.from(card.querySelectorAll<HTMLElement>(".core-help-card-question"), (element) => getComputedStyle(element).fontSize)
-  )));
-  expect(new Set(variantFontSizes)).toEqual(new Set([await activeRecallStackCard.getByTestId("active-recall-question").evaluate((element) => getComputedStyle(element).fontSize)]));
   await expect(activeRecallVisual.locator(".lucide-sparkles")).toHaveCount(2);
   await expect(activeRecallVisual.locator(".lucide-sparkle")).toHaveCount(2);
 

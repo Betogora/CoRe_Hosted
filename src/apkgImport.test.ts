@@ -15,6 +15,7 @@ import { renderLearningItemPresentation } from "./cardPresentation.ts";
 import { createBasicLearningItem, createCardVariant, createCoreDeck, createReviewState } from "./coreModel.ts";
 import { projectLearningItemContent } from "./coreModel/learningItemContent.ts";
 import { importNormalizedDeck } from "./importService.ts";
+import { createApkgImportPreview } from "./apkgImport.ts";
 
 function parsedApkgFixture({ modelType = 0, fields = [{ name: "Front" }, { name: "Back" }], templates = [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}<hr>{{Back}}" }], noteFields = "Front?\u001fBack.", cards = [{ id: 20, nid: 10, did: 1, ord: 0 }], decks = [{ id: "1", name: "Fixture Deck" }] }: any = {}) {
   return {
@@ -44,6 +45,57 @@ test("validiert Dateityp und Browsergrößenlimit", () => {
   assert.equal(validateApkgFile({ name: "deck.apkg", size: LOCAL_APKG_MAX_BYTES }).valid, true);
   assert.equal(validateApkgFile({ name: "deck.zip", size: 1 }).valid, false);
   assert.equal(validateApkgFile({ name: "deck.apkg", size: LOCAL_APKG_MAX_BYTES + 1 }).valid, false);
+});
+
+test("APKG-Workerfehler beenden Vorschau und Commit sichtbar statt den Import hängen zu lassen", async () => {
+  let phase: "parse" | "commit" = "parse";
+  let terminated = false;
+  class FailingWorker {
+    onmessage: ((event: { data: unknown }) => void) | null = null;
+    onerror: (() => void) | null = null;
+    postMessage(request: { type: string; requestId: string }) {
+      queueMicrotask(() => {
+        if (request.type === "commit" || phase === "parse") {
+          this.onerror?.();
+          return;
+        }
+        this.onmessage?.({ data: {
+          type: "result", requestId: request.requestId,
+          result: {
+            summary: createCoreDeck({ id: "worker-deck", name: "Worker", cards: [] }), sampleCards: [], mediaFiles: [],
+            report: { warnings: [], errors: [], apkg: { detectedDecks: 1, detectedCards: 0, detectedNotes: 0 } },
+            commitGraph: { kind: "worker-import", deckCount: 1, cardCount: 0 },
+          },
+        } });
+      });
+    }
+    terminate() { terminated = true; }
+  }
+  const workerDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Worker");
+  Object.defineProperty(globalThis, "Worker", { configurable: true, value: FailingWorker });
+  const file = { name: "worker.apkg", size: 1, arrayBuffer: async () => new ArrayBuffer(1) };
+  try {
+    await assert.rejects(createApkgImportPreview(file), /Worker.*abgebrochen/);
+    assert.equal(terminated, true);
+    phase = "commit";
+    terminated = false;
+    const { preview } = await createApkgImportPreview(file);
+    assert.ok(preview);
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      await assert.rejects(Promise.race([
+        preview.commitGraph.streamChunks(async () => undefined),
+        new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Worker-Commit hängt.")), 2_000); }),
+      ]), /Worker.*abgebrochen/);
+      assert.equal(terminated, true);
+    } finally {
+      clearTimeout(timeout);
+      preview.commitGraph.dispose();
+    }
+  } finally {
+    if (workerDescriptor) Object.defineProperty(globalThis, "Worker", workerDescriptor);
+    else Reflect.deleteProperty(globalThis, "Worker");
+  }
 });
 
 test("jede echte Anki-Karte wird als eigenständige CoRe-Karte importiert", () => {

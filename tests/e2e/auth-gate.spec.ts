@@ -34,7 +34,7 @@ test("Google und Magic Link bleiben unabhängig schaltbar", async ({ page }) => 
 });
 
 test("@beta-core @hosted-core Beta-Artefakt bietet nur E-Mail und Passwort an", async ({ page }) => {
-  test.skip(process.env.CORE_BETA_GATE !== "true" && !process.env.CORE_HOSTED_BASE_URL, "Nur der Beta- oder Hosted-Core-Konfiguration zugeordnet.");
+  test.skip(process.env.CORE_E2E_GATE !== "beta" && !process.env.CORE_HOSTED_BASE_URL, "Nur der Beta- oder Hosted-Core-Konfiguration zugeordnet.");
   await page.goto(hostedE2EEntryPath());
 
   await expect(page.getByRole("heading", { name: "Login" })).toBeVisible();

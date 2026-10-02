@@ -6,6 +6,8 @@ import {
   createDefaultDeckSettings,
   createManualCoreDeck,
   createReviewState,
+  getActiveVariants,
+  getAnswerSideAnchorMiniCard,
   normalizeCoreDeck,
   rescheduleLearningItem,
   saveCardEditorValue,
@@ -67,4 +69,7 @@ test("Normalisierung erhält Sync-Metadaten und KI-Varianten", () => {
   assert.equal(deck.revision, 8);
   assert.equal(deck.cards[0].revision, 5);
   assert.equal(deck.cards[0].variants[0].cardId, deck.cards[0].id);
+  assert.equal(getActiveVariants(deck.cards[0]).length, 1);
+  assert.equal(getAnswerSideAnchorMiniCard(deck.cards[0], deck.cards[0].variants[0]).shouldShow, true);
+  assert.equal(getAnswerSideAnchorMiniCard(deck.cards[0], null).shouldShow, false);
 });

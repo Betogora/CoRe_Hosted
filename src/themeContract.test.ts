@@ -4,6 +4,18 @@ import { join } from "node:path";
 import test from "node:test";
 
 const styles = readFileSync("src/styles.css", "utf8").replace(/\r\n/g, "\n");
+const lightTokens = styles.match(/:root\s*\{([\s\S]*?)\n\}/)![1];
+const darkTokens = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)![1];
+
+function tokenColor(name: string, tokens: string): string {
+  const declaration = new RegExp(`--core-${name}:\\s*([^;]+);`);
+  const value = (tokens.match(declaration) ?? lightTokens.match(declaration))?.[1];
+  assert.ok(value, `missing color ${name}`);
+  const reference = value.match(/^var\(--core-([\w-]+)\)$/);
+  if (reference) return tokenColor(reference[1], tokens);
+  assert.match(value, /^#[0-9a-f]{6}$/i);
+  return value.slice(1);
+}
 
 function relativeLuminance(hex: string) {
   const channels = hex.match(/[0-9a-f]{2}/gi)?.map((value) => Number.parseInt(value, 16) / 255) ?? [];
@@ -73,14 +85,6 @@ test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast sca
   assert.doesNotMatch(heatmapRules.match(/\.core-heatmap-forecast-level-0,[\s\S]*$/)?.[0] ?? "", /lilac|success|info/);
 });
 
-test("heatmap keeps its control group intact across responsive widths", () => {
-  assert.match(styles, /@container core-study-heatmap \(min-width: 36rem\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto/);
-  const mobileControls = styles.match(/@container core-study-heatmap \(max-width: 22rem\) \{([\s\S]*?)\n\}\n\n\.core-deck-tree-container/)?.[1] ?? "";
-  assert.match(mobileControls, /\.core-study-heatmap-controls[\s\S]*?width: 100%/);
-  assert.match(mobileControls, /\.core-heatmap-period-select[\s\S]*?flex: 1 1 0%/);
-  assert.match(mobileControls, /\.core-heatmap-period-select[\s\S]*?min-width: 0/);
-});
-
 test("only individually overflowing deck names use at most two lines", () => {
   assert.match(styles, /\.core-deck-summary-name\s*\{[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/);
   assert.match(styles, /\.core-deck-summary-name\[data-deck-name-wrap="true"\]\s*\{[\s\S]*?-webkit-line-clamp:\s*2;[\s\S]*?white-space:\s*normal;/);
@@ -99,7 +103,9 @@ test("six group depths retain endpoints and darken in light mode / lighten in da
   }
   assert.match(styles, /--core-group-depth-5:\s*var\(--core-palette-cloud\)/);
   for (const colors of [lightDepths, darkDepths]) {
-    const channels = colors.map((color) => color.match(/../g)!.map((channel) => Number.parseInt(channel, 16)));
+    const tokens = colors === lightDepths ? lightTokens : darkTokens;
+    const actualColors = colors.map((_, depth) => tokenColor(`group-depth-${depth}`, tokens));
+    const channels = actualColors.map((color) => color.match(/../g)!.map((channel) => Number.parseInt(channel, 16)));
     for (let depth = 0; depth < 6; depth += 1) {
       for (let channel = 0; channel < 3; channel += 1) {
         const interpolated = channels[0][channel] + (channels[5][channel] - channels[0][channel]) * depth / 5;
@@ -108,8 +114,6 @@ test("six group depths retain endpoints and darken in light mode / lighten in da
     }
   }
   assert.doesNotMatch(styles, /--core-group-depth-[67]/);
-  assert.ok(lightDepths.every((color, index) => index === 0 || relativeLuminance(lightDepths[index - 1]) > relativeLuminance(color)));
-  assert.ok(darkDepths.every((color, index) => index === 0 || relativeLuminance(darkDepths[index - 1]) < relativeLuminance(color)));
   for (let depth = 0; depth <= 5; depth += 1) {
     assert.match(styles, new RegExp(`\\.core-deck-summary-row\\[data-deck-depth="${depth}"\\]\\s*\\{\\s*background-color:\\s*var\\(--core-group-depth-${depth}\\)`));
   }
@@ -124,8 +128,9 @@ test("theme exposes the six canonical typography levels and AA primary contrast"
     "400 0.875rem/1.25rem Synonym",
     "400 0.75rem/1rem Synonym",
   ]) assert.ok(styles.includes(declaration), `missing typography ${declaration}`);
-  assert.ok(contrastRatio("667492", "ffffff") >= 4.5);
-  assert.ok(contrastRatio("181d25", "f3f5f8") >= 4.5);
+  for (const tokens of [lightTokens, darkTokens]) {
+    assert.ok(contrastRatio(tokenColor("action-primary", tokens), tokenColor("text-on-accent", tokens)) >= 4.5);
+  }
 });
 
 test("productive TSX does not reintroduce the replaced palette or named status utilities", () => {

@@ -1,9 +1,17 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-01
+**Stand:** 2026-10-02
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-02 — Testportfolio geprüft und gestrafft
+
+- Alle 106 ursprünglichen Modultestdateien sowie zwölf Browser-, zwei RLS- und die Start-/Preload-Performance-Suite anhand der aktuellen Besitzer und Verträge geprüft. Drei Mini-Suites sind in ihre Besitzer integriert; umfangreiche selbst geprüfte Typfixtures sind durch Compile-Verträge ersetzt. Zwei doppelte History-/Review-Exit-Journeys, SSR-Tautologien und reine Klassen-/Dekorationsduplikate entfallen. Der Laufzeittestcode schrumpft um mehr als 360 Zeilen; der gesamte Diff bleibt einschließlich Dokumentation und neuer Typverträge negativ.
+- Kleine Regressionstests ergänzen Workerabbrüche, Cloudrevisionen/JSONB-/Manifestgrenzen und den Cache-/Outbox-Schutz. Dabei gefundene Fehler korrigiert: APKG-Workerabbrüche während des Commits lassen den Import nicht mehr hängen; Arrays werden vor der Record-Transformation als ungültige JSONB-Objekte abgewiesen. Theme-Kontrast wird anhand der tatsächlich verwendeten CSS-Tokens geprüft. Fehlende Long-Task-Beobachtung bricht die Startmessung ausdrücklich ab, statt ein scheinbar grünes Nullergebnis zu liefern.
+- Quality enthält alle schnellen Unit-/Contract-/Integrationsprüfungen. Nightly verwendet einen vollständigen Release-Lauf und ergänzt im selben Supabase-Lebenszyklus nur den abweichenden Beta-Auth-Vertrag. Alle sechs Golden-Journeys sind in Beta enthalten; fokussierte Golden-/Beta-/PR-Läufe starten einen statt vier Vite-Servern. Bestehende Authkonfigurationen bleiben in der Vollsuite.
+- Abgenommen: 519/519 Modultests in 102 Dateien, Typecheck samt UI-Katalog, Production-Build und Bundlebudgets. APKG-Benchmark mit 25.000 Karten/1.000 Medien/fünf Vorschaukarten und 0 ms gemessener Workerübergabe bestanden; drei Parserläufe 8,8–32,7 s unter wechselnder Rechnerlast. Kein belastbarer Laufzeitgewinn aus diesem Audit ableitbar.
+- Browserauswahl per `--list`: 99 Journeys plus Auth-Setup, davon sechs Golden, 23 Beta und neun Hosted. Tatsächliche Browser-/RLS-/Datenbankdrift-Abnahme offen: Docker Desktop scheitert beim Start seines internen Inference Managers; Hosted wurde nicht ausgeführt. Keine produktive UI geändert. Lernpuffer-/Quota-Servicepfade und Messintegritätslücken bleiben im [`Testportfolio`](test-portfolio.md) priorisiert.
 
 ## 2026-10-01 — Stapelaktionen und einheitlicher Lernkopf
 

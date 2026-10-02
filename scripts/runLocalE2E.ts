@@ -206,21 +206,22 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       console.log(runBetaE2E
         ? "Beta-Core-Verträge einschließlich Auth, Medien, Import und Konflikten ausführen …"
         : runGoldenE2E
-        ? "Fünf Golden-E2E-Produktverträge gegen lokales Supabase ausführen …"
+        ? "Golden-E2E-Produktverträge gegen lokales Supabase ausführen …"
         : "Vollständige Playwright-Suite einschließlich Medien- und Sync-Pfaden ausführen …");
-      if (runGoldenE2E || runBetaE2E) {
-        await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--project=auth-setup"], {
-          env: testEnvironment,
-        });
-      }
       const selectedTag = runBetaE2E ? BETA_CORE_TAG : GOLDEN_E2E_TAG;
       const selectedArguments = runGoldenE2E || runBetaE2E
-        ? ["--grep", selectedTag, "--no-deps", ...forwardedPlaywrightArguments]
+        ? ["--grep", selectedTag, ...forwardedPlaywrightArguments]
         : forwardedPlaywrightArguments;
       await stopOrphanedLocalViteServers();
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
-        env: { ...testEnvironment, CORE_BETA_GATE: runBetaE2E ? "true" : "" },
+        env: { ...testEnvironment, CORE_E2E_GATE: gate },
       });
+      if (runFullE2E && forwardedPlaywrightArguments.length === 0) {
+        console.log("E-Mail-/Passwort-Beta-Artefakt im selben Supabase-Lauf prüfen …");
+        await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--project=auth-gate-chromium", "--grep", BETA_CORE_TAG, "--no-deps"], {
+          env: { ...testEnvironment, CORE_E2E_GATE: "beta" },
+        });
+      }
     }
   } finally {
     if (supabaseStartAttempted) {

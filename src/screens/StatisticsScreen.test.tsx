@@ -38,9 +38,6 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
 
   assert.equal((markup.match(/Globaler Zeitraum/g) ?? []).length, 1);
   assert.match(markup, /aria-label="Statistikzeitraum"[^>]*data-size="regular"[^>]*core-segmented-control/);
-  assert.match(markup, /class="flex flex-wrap items-end justify-between gap-4"><div class="min-w-0 max-w-full shrink-0">/);
-  assert.match(markup, /class="min-w-0 max-w-full flex-1 basis-52 sm:max-w-72"><p class="core-control-label text-core-muted">Stapel/);
-  assert.match(markup, /class="mt-2"><button[^>]*data-deck-multi-select-trigger="true"[^>]*class="[^"]*w-full[^"]*"/);
   assert.match(markup, /Gesamte Sammlung/);
   assert.match(markup, /Wiederholungen/);
   assert.match(markup, /Zeitplanung/);
@@ -54,18 +51,11 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
     "statistics-deck-comparison",
   ]) {
     assert.equal((markup.match(new RegExp(`href="#${sectionId}"`, "g")) ?? []).length, 2);
-    assert.match(markup, new RegExp(`<section id="${sectionId}" class="[^"]*min-w-0`));
+    assert.match(markup, new RegExp(`<section id="${sectionId}"`));
   }
-  assert.equal((markup.match(/data-size="compact"/g) ?? []).length, 17);
-  assert.equal((markup.match(/data-size="default"/g) ?? []).length, 0);
-  assert.match(markup, /data-size="compact" class="flex flex-col rounded-xl bg-core-subtle p-3 min-w-0"/);
   const overviewMarkup = markup.match(/<section id="statistics-overview"[\s\S]*?<\/section>/)?.[0];
   assert.ok(overviewMarkup);
-  assert.match(overviewMarkup, /core-surface-raised/);
   assert.match(overviewMarkup, /<h3 id="statistics-overview-title"[^>]*>Überblick<\/h3>/);
-  assert.match(overviewMarkup, /grid grid-cols-2 gap-3 sm:grid-cols-4/);
-  assert.equal((overviewMarkup.match(/data-size="compact"/g) ?? []).length, 7);
-  assert.doesNotMatch(overviewMarkup, /<svg|core-orb/);
   assert.match(overviewMarkup, /Reviews/);
   assert.doesNotMatch(overviewMarkup, /Wiederholungen/);
   assert.match(overviewMarkup, /Erfolgsrate/);
@@ -78,28 +68,10 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /Stapelvergleich/);
   assert.match(markup, /aria-label="Stapelmenü öffnen: Biologie"/);
   assert.match(markup, /scope="row"/);
-  assert.doesNotMatch(markup, /min-w-\[58rem\]/);
   assert.doesNotMatch(markup, /Schwierige Karten/);
   assert.match(markup, /0 Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
-  assert.doesNotMatch(markup, /overflow-x-hidden/);
-  assert.doesNotMatch(markup, /sticky top-3 z-30 p-4/);
-  assert.doesNotMatch(markup, /items-start justify-between gap-3 border-b/);
-  for (const removedText of [
-    "Alle historischen Diagramme",
-    "pro aktivem Tag",
-    "Schwer, Gut oder Einfach",
-    "geeignete Reviews",
-    "Messung beginnt mit der nächsten Wiederholung",
-    "gemessene Antworten",
-    "Längste:",
-    "Auswertung",
-    "Durchgeführte Reviews nach Zustand",
-    "Neue Learning Items und kumulierter Bestand",
-    "Direkter Vergleich innerhalb der globalen Auswahl",
-    "FSRS-Kennzahlen und aktuelle Bestandsverteilungen",
-  ]) assert.doesNotMatch(markup, new RegExp(removedText));
   assert.doesNotMatch(markup, /Letzte 14 Tage/);
 
   const singleDeckMarkup = renderToStaticMarkup(

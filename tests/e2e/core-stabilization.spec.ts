@@ -387,32 +387,6 @@ test("CoRe tooltips replace native hints for heatmap and icon actions", async ({
   await expect(tooltip).toHaveCount(0);
 });
 
-test("browser back returns from deck management to learning without reload", async ({ page }: any) => {
-  const { authStorageKey } = await resetToFreshLocalState(page);
-  expect(authStorageKey).toMatch(/^sb-.+-auth-token$/);
-
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
-  await expect(page.getByTestId(`deck-header-${DECK_IDS.europe}`)).toBeVisible();
-
-  await page.evaluate(() => window.history.back());
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page).toHaveURL(/\/lernen$/);
-});
-
-test("leaving study mode returns to the previous learning screen", async ({ page }: any) => {
-  await resetToFreshLocalState(page);
-
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
-  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-  await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
-  await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.europe}`);
-});
-
 test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- und Overlaywechseln", async ({ page }: any) => {
   await page.setViewportSize({ width: 1280, height: 720 });
   await resetToFreshLocalState(page);

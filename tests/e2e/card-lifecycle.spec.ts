@@ -316,7 +316,7 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   expect(consoleErrors.filter((message) => !/status of (?:400|409)/.test(message))).toEqual([]);
 });
 
-test("[Vertrag: KI-Basic-Variante] @golden-e2e abgefangene Modellantwort wird sofort und reloadfest gespeichert", async ({ page }) => {
+test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefangene Modellantwort wird sofort und reloadfest gespeichert", async ({ page }) => {
   const deckName = "KI-Variante Basic";
   await openManualCreation(page, deckName, "basic");
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Welche Aufgabe hat ATP?");

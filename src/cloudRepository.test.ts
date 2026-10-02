@@ -3,6 +3,7 @@ import test from "node:test";
 import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
 import { createCloudStateRows, deckToCloudRow, recordAtomicReview, reviewEventToCloudRow } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
+import { validateAccountRows, validateOfflineManifestRows } from "./cloudRepositoryValidation.ts";
 
 const now = "2026-08-21T10:00:00.000Z";
 
@@ -93,4 +94,28 @@ test("Deckserialisierung bleibt eine schlanke Statuszeile", () => {
   assert.equal(row.card_count, 1);
   assert.equal("cards" in row, false);
   assert.equal("version_log" in row, false);
+});
+
+test("Cloudzeilen weisen ungültige Revisionen und JSONB-Strukturen vor der Übernahme zurück", () => {
+  const card = { ...fixture().rows.cards[0], sync_change_id: 1 };
+  assert.equal(validateAccountRows("cards", [card]).length, 1);
+  assert.throws(() => validateAccountRows("cards", { card }), /Zeilenformat/);
+  for (const change of [
+    { sync_change_id: 0 }, { sync_change_id: Number.MAX_SAFE_INTEGER + 1 },
+    { content_revision: 0 }, { content_revision: 1.5 },
+    { content_document: null }, { projection: [] }, { media_refs: [7] },
+  ]) assert.throws(() => validateAccountRows("cards", [{ ...card, ...change }]), /ungültiges Format/, JSON.stringify(change));
+});
+
+test("Offline-Manifeste akzeptieren leere Medien, aber keine beschädigten Revisionen oder Hashes", () => {
+  const card = { id: "card", bodyRevision: 1, dependencyRevision: 1, bodyBytes: 0, updatedAt: now };
+  const media = { id: "media", sha1: "a".repeat(40), size: 0, mimeType: "image/png", originalName: "bild.png", storageBucket: "media", storagePath: "user/bild.png", cardId: card.id, updatedAt: now };
+  assert.deepEqual(validateOfflineManifestRows({ cards: [card], media: [media] }), { cards: [card], media: [media] });
+  assert.deepEqual(validateOfflineManifestRows({ cards: [], media: [] }), { cards: [], media: [] });
+  for (const change of [{ bodyRevision: 0 }, { dependencyRevision: 1.5 }, { bodyBytes: -1 }]) {
+    assert.throws(() => validateOfflineManifestRows({ cards: [{ ...card, ...change }], media: [] }), /ungültiges Format/);
+  }
+  for (const change of [{ sha1: "kein-hash" }, { size: -1 }]) {
+    assert.throws(() => validateOfflineManifestRows({ cards: [], media: [{ ...media, ...change }] }), /ungültiges Format/);
+  }
 });

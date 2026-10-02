@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBasicLearningItem, createCoreDeck, createReviewState } from "./coreModel.ts";
+import { addRephrasedVariant, createBasicLearningItem, createCoreDeck, createReviewState } from "./coreModel.ts";
 import { answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, moveDailyReviewProgress } from "./reviewService.ts";
 import type { ReviewSchedulerState } from "./coreTypes.ts";
 
@@ -57,6 +57,11 @@ test("eine normale Bewertung aktualisiert nur den Karten-Lernstatus", () => {
   assert.equal(result.updatedCard.reviewState.repetitions, 1);
   assert.equal(result.event.reviewableType, "card");
   assert.equal(result.event.variantId, null);
+  const withVariant = addRephrasedVariant(card, "Q2", "A2");
+  const variantResult = answerVariant(createCoreDeck({ id: "deck", cards: [withVariant] }), card.id, withVariant.variants[0].id, "good", { now: "2026-08-20T08:00:00.000Z" });
+  assert.equal(variantResult.updatedCard.reviewState.repetitions, result.updatedCard.reviewState.repetitions);
+  assert.equal(variantResult.event.variantId, withVariant.variants[0].id);
+  assert.equal("reviewState" in variantResult.updatedCard.variants[0], false);
 });
 
 test("Tagesfortschritt verschiebt Karten zwischen offenem und erledigtem Anteil ohne Doppelzählung", () => {
