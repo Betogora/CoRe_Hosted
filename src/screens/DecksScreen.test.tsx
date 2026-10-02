@@ -76,6 +76,9 @@ test("deck content preserves the paged catalog path without requiring group expa
   });
   assert.match(markup, /Katalogkarte/);
   assert.match(markup, /Seite 1 von 2/);
+  assert.match(markup, /aria-label="Vorherige Seite anzeigen"[^>]*disabled=""/);
+  assert.match(markup, /aria-label="Nächste Seite anzeigen"/);
+  assert.match(markup, /class="core-body [^"]*">Seite 1 von 2/);
   assert.doesNotMatch(markup, /deck-toggle-|Aktive Stapel/);
 });
 

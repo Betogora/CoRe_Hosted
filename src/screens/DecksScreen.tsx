@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronRight, Copy, Eye, FileText, Layers, Network, NotebookPen, PanelsTopLeft, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Network, NotebookPen, PanelsTopLeft, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -21,6 +21,7 @@ import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardVariant, LearningItem } from "../coreTypes.ts";
@@ -1204,9 +1205,17 @@ export function DecksScreen({
                     <tr className="border-b border-[var(--core-border)] bg-core-surface" data-testid={`card-page-${group.id}`}>
                       <td colSpan={3} className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">
-                          <ActionButton type="button" variant="secondary" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>Zurück</ActionButton>
-                          <span className="core-caption text-[var(--core-text-muted)]">Seite {group.page + 1} von {group.pageCount}</span>
-                          <ActionButton type="button" variant="secondary" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>Weiter</ActionButton>
+                          <CoreTooltip label="Vorherige Seite anzeigen">
+                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
+                              <ChevronLeft size={16} aria-hidden="true" />
+                            </button>
+                          </CoreTooltip>
+                          <span className="core-body text-[var(--core-text-muted)]">Seite {group.page + 1} von {group.pageCount}</span>
+                          <CoreTooltip label="Nächste Seite anzeigen">
+                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
+                              <ChevronRight size={16} aria-hidden="true" />
+                            </button>
+                          </CoreTooltip>
                         </div>
                       </td>
                     </tr>
