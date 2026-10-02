@@ -9,6 +9,7 @@ import { DecksScreen, type DecksScreenCardPageProps } from "./DecksScreen.tsx";
 function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & DecksScreenCardPageProps> = {}) {
   const props: DecksScreenProps & DecksScreenCardPageProps = {
     decks,
+    onStartDeck: () => undefined,
     now: "2026-08-06T10:00:00.000Z",
     mediaStore: null,
     selectedDeckId: null,
@@ -46,12 +47,27 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.match(markup, /aria-label="Stapelinhalte"/);
   for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /Was ist ATP\?/);
-  assert.doesNotMatch(markup, /Biologie|Chemie|Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
+  assert.doesNotMatch(markup, /Chemie|Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
+  assert.match(markup, /aria-label="Biologie lernen"/);
+  assert.match(markup, /core-deck-content-study/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   const editor = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, selectedCardId: deck.cards[0].id });
   assert.match(editor, /data-testid="card-detail-aside"/);
   assert.match(editor, /Karte bearbeiten/);
   assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten und Lernwerte/);
+});
+
+test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
+  const deck = createCoreDeck({ id: "empty", name: "Leer", source: "manual", cards: [] });
+  const empty = renderScreen([deck], { contentDeckId: deck.id });
+  assert.match(empty, /disabled=""[^>]*aria-label="Leer lernen"/);
+  const catalog = renderScreen([{ ...deck, cardCount: 60 }], { contentDeckId: deck.id, cardPages: {} });
+  assert.doesNotMatch(catalog, /disabled=""[^>]*aria-label="Leer lernen"/);
+  assert.match(catalog, /aria-label="Leer lernen"/);
+  const child = createCoreDeck({ id: "child", name: "Unterstapel", source: "manual", parentDeckId: deck.id, cards: [] });
+  const subtree = renderScreen([deck, { ...child, cardCount: 1 }], { contentDeckId: deck.id });
+  assert.doesNotMatch(subtree, /disabled=""[^>]*aria-label="Leer lernen"/);
+  assert.doesNotMatch(renderScreen([deck]), /core-deck-content-study/);
 });
 
 test("deck content includes a subdeck without including its parent or descendants", () => {

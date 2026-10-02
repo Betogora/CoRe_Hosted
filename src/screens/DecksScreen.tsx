@@ -1,11 +1,12 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Network, NotebookPen, PanelsTopLeft, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Network, NotebookPen, PanelsTopLeft, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { createCoreNoteTypeDefinition, getCardEditorValue, isLearningItemMarked, projectCardPreviewDraft, validateCardEditorValue } from "../coreModel.ts";
 import { createVariantReviewModel } from "../coreVariantService.ts";
+import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
@@ -616,6 +617,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
 
 export function DecksScreen({
   decks,
+  onStartDeck,
   contentDeckId = null,
   noteTypeDefinitions = [],
   now,
@@ -648,6 +650,17 @@ export function DecksScreen({
 }: DecksScreenProps) {
   const [contentTab, setContentTab] = React.useState<typeof deckContentTabs[number]["value"]>("cards");
   const libraryDecks = React.useMemo(() => contentDeckId ? decks.filter((deck) => deck.id === contentDeckId) : decks, [contentDeckId, decks]);
+  const contentDeck = contentDeckId ? libraryDecks[0] : null;
+  const hasStudyCards = React.useMemo(() => {
+    if (!contentDeckId) return false;
+    if (contentDeck && !contentDeck.deletedAt
+      && (contentDeck.cardCount > 0 || contentDeck.cards.some((card) => card.status !== "deleted"))) return true;
+    const treeIds = collectDeckTreeIds(decks, contentDeckId);
+    return decks.some((deck) => treeIds.has(deck.id) && !deck.deletedAt
+      && (deck.cardCount > 0 || deck.cards.some((card) => card.status !== "deleted")));
+  }, [contentDeck, contentDeckId, decks]);
+  const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
+  const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
   const deferredQuery = React.useDeferredValue(query);
   const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
@@ -1072,17 +1085,39 @@ export function DecksScreen({
         if (area === "overview") onOpenLearn(selectedDeckId);
       }} />}
 
-      <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-7" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
+      {contentDeckId && contentTab !== "cards" ? (
+        <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-7 sm:p-10">
+          <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
+            <span className="grid size-14 place-items-center rounded-2xl bg-core-subtle text-core-muted"><ContentIcon size={28} strokeWidth={1.6} aria-hidden="true" /></span>
+            <div>
+              <h3 className="core-heading-3 text-core-text">{selectedContentTab.label}</h3>
+              <p className="mt-1 core-body-large text-core-muted">Demnächst verfügbar</p>
+            </div>
+          </div>
+        </SoftPanel>
+      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-7" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
           {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3> : null}
           <div className="grid gap-3">
-            <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
-              Karten durchsuchen
-              <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 font-normal text-[var(--core-text-muted)] transition">
-                <Search size={17} aria-hidden="true" />
-                <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
-              </span>
-            </label>
+            <div className={contentDeckId ? "grid min-w-0 grid-cols-[minmax(0,1fr)_44px] items-end gap-3" : "min-w-0"}>
+              <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+                Karten durchsuchen
+                <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 font-normal text-[var(--core-text-muted)] transition">
+                  <Search size={17} aria-hidden="true" />
+                  <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
+                </span>
+              </label>
+              {contentDeck ? <CoreTooltip label={`${contentDeck.name} lernen`}>
+                <IconButton
+                  label={`${contentDeck.name} lernen`}
+                  icon={Play}
+                  variant="ghost"
+                  className="core-deck-icon-action core-deck-content-study size-11"
+                  disabled={!hasStudyCards}
+                  onClick={() => requestDetailAction(() => onStartDeck(contentDeck))}
+                />
+              </CoreTooltip> : null}
+            </div>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
@@ -1235,7 +1270,7 @@ export function DecksScreen({
             </div>
           )}
         </div>
-      </SoftPanel>
+      </SoftPanel>}
 
       {detailOpen ? (typeof document === "undefined" ? renderDetailLayer() : createPortal(renderDetailLayer(), document.body)) : null}
 

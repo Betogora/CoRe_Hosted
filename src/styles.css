@@ -1696,3 +1696,13 @@ summary {
   fill: currentColor;
   transform: scale(1.08);
 }
+
+.core-deck-icon-action.core-deck-content-study {
+  border-color: var(--core-border);
+  background: var(--core-surface-muted);
+}
+
+.core-deck-icon-action.core-deck-content-study:not(:disabled):is(:hover, :active) {
+  border-color: var(--core-border);
+  background: var(--core-surface-hover);
+}

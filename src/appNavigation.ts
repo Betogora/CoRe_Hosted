@@ -19,6 +19,7 @@ export interface ReviewReturnContext {
   view: ReviewReturnView;
   deckId?: string;
   cardId?: string;
+  deckContent?: boolean;
 }
 
 export type ReviewResumeContext = Omit<StudyRoute, "mode">;
@@ -63,6 +64,7 @@ interface ReviewReturnContextInput {
   view?: unknown;
   deckId?: unknown;
   cardId?: unknown;
+  deckContent?: unknown;
 }
 
 interface ReviewResumeContextInput {
@@ -184,6 +186,7 @@ function legacyViewRouteToReturnContext(route: ViewRouteInput | undefined, fallb
       view: "decks",
       ...(focusedDeckId ? { deckId: focusedDeckId } : {}),
       ...(focusedDeckId && selectedCardId ? { cardId: selectedCardId } : {}),
+      ...(focusedDeckId && route?.deckContent === true ? { deckContent: true } : {}),
     };
   }
   return {
@@ -205,6 +208,7 @@ function normalizeReviewReturnContext(
     view,
     ...(view !== "today" && deckId ? { deckId } : {}),
     ...(view === "decks" && deckId && cardId ? { cardId } : {}),
+    ...(view === "decks" && deckId && context?.deckContent === true ? { deckContent: true } : {}),
   };
 }
 
@@ -239,6 +243,7 @@ export function reviewReturnContextToViewRoute(
     return createViewRoute("kartenstapel", {
       focusedDeckId: context.deckId,
       selectedCardId: context.cardId,
+      deckContent: context.deckContent,
     }, options);
   }
   return createViewRoute("lernen", { focusedDeckId: context.deckId }, options);
@@ -312,6 +317,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
         view: url.searchParams.get("returnView") ?? undefined,
         deckId: url.searchParams.get("returnDeck") ?? undefined,
         cardId: url.searchParams.get("returnCard") ?? undefined,
+        deckContent: url.searchParams.get("returnContent") === "1",
       },
     }, options);
   }
@@ -354,6 +360,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     params.set("returnView", normalized.returnContext.view);
     if (normalized.returnContext.deckId) params.set("returnDeck", normalized.returnContext.deckId);
     if (normalized.returnContext.cardId) params.set("returnCard", normalized.returnContext.cardId);
+    if (normalized.returnContext.deckContent) params.set("returnContent", "1");
     return `/decks/${encodeURIComponent(normalized.deckId)}/review?${params.toString()}`;
   }
   const path = normalized.viewId === defaultViewId ? "/" : `/${encodeURIComponent(normalized.viewId)}`;

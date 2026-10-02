@@ -283,6 +283,20 @@ test("keeps an unknown review deck id so the product can render a not-found fall
   assert.deepEqual(createStudyRoute(""), { mode: "view", viewId: "lernen" });
 });
 
+test("review return preserves deck content through URL reloads", () => {
+  const source = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true });
+  const returnContext = createReviewReturnContext(source);
+  const review = createStudyRoute("deck_a", { returnContext });
+  const url = appRouteToUrl(review);
+  assert.match(url, /returnContent=1/);
+  const reloaded = parseAppRouteFromUrl(url);
+  assert.ok(reloaded.mode === "study");
+  assert.deepEqual(reviewReturnContextToViewRoute(reloaded.returnContext), source);
+  const learning = parseAppRouteFromUrl("/decks/deck_a/review?returnView=learn&returnContent=1");
+  assert.ok(learning.mode === "study");
+  assert.equal(learning.returnContext.deckContent, undefined);
+});
+
 test("stores and reads app routes from browser history state without losing external state", () => {
   const route = createViewRoute("lernen");
   const state = createAppHistoryState(route, { currentState: { external: "kept" } });

@@ -1612,6 +1612,7 @@ export function App() {
       ? createViewRoute("kartenstapel", {
           focusedDeckId: focusedDeckId ?? deck.id,
           selectedCardId,
+          deckContent,
         })
       : activeView === "stapel-einstellungen"
         ? settingsReturnContext?.view === "review"
@@ -1793,6 +1794,7 @@ export function App() {
         <DecksScreen
           key={deckContent ? `content-${focusedDeckId}` : "library"}
           decks={state.decks}
+          onStartDeck={startDeck}
           contentDeckId={deckContent ? focusedDeckId : null}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}

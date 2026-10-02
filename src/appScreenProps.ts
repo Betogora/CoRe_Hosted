@@ -106,6 +106,7 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
   noteTypeDefinitions?: NoteTypeDefinitionV1[];
   now: string;
