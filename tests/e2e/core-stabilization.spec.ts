@@ -84,6 +84,62 @@ test("dashboard deck rows start learning across their full surface and keep the 
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
+test("gemeinsame Dropdowns schließen durch erneutes Antippen und behalten Auswahl und Tastaturbedienung", async ({ browser, context }) => {
+  const touchContext = await browser.newContext({
+    baseURL: "http://127.0.0.1:5190/",
+    storageState: await context.storageState(),
+    hasTouch: true,
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const page = await touchContext.newPage();
+    await resetToFreshLocalState(page);
+    const trigger = page.locator('button[aria-label="Heatmap-Zeitraum"]');
+    for (const touch of [true, false]) {
+      await page.setViewportSize({ width: touch ? 390 : 1440, height: touch ? 844 : 900 });
+      await trigger.scrollIntoViewIfNeeded();
+      const box = await trigger.boundingBox();
+      expect(box).not.toBeNull();
+      const activate = () => touch
+        ? page.touchscreen.tap(box!.x + box!.width / 2, box!.y + box!.height / 2)
+        : page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+      const selectedLabel = await trigger.textContent();
+      for (let repeat = 0; repeat < 3; repeat += 1) {
+        await activate();
+        await expect(trigger).toHaveAttribute("aria-expanded", "true");
+        await activate();
+        await expect(trigger).toHaveAttribute("aria-expanded", "false");
+        await expect(trigger).toHaveText(selectedLabel!);
+        await expect(trigger).toBeFocused();
+      }
+      await activate();
+      if (touch) await page.getByRole("option", { name: "Monat", exact: true }).tap();
+      else await page.getByRole("option", { name: "Monat", exact: true }).click();
+      await expect(trigger).toHaveText("Monat");
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await activate();
+      await expect(page.getByRole("option", { name: "Monat", exact: true })).toBeFocused();
+      if (touch) await page.touchscreen.tap(1, 1);
+      else await page.mouse.click(1, 1);
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await trigger.press("Enter");
+      await expect(page.getByRole("option", { name: "Monat", exact: true })).toBeFocused();
+      await page.keyboard.press("Escape");
+      await expect(trigger).toBeFocused();
+      await trigger.press("ArrowDown");
+      await expect(page.getByRole("option", { name: "Monat", exact: true })).toBeFocused();
+      await page.keyboard.press("Home");
+      await expect(page.getByRole("option", { name: "Woche", exact: true })).toBeFocused();
+      await page.keyboard.press("Enter");
+      await expect(trigger).toHaveText("Woche");
+      await expect(trigger).toHaveAttribute("aria-expanded", "false");
+      await expect(trigger).toBeFocused();
+    }
+  } finally {
+    await touchContext.close();
+  }
+});
+
 test("dashboard heatmap changes its header layout only once across responsive widths", async ({ page }: any) => {
   await resetToFreshLocalState(page);
 

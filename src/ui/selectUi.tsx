@@ -3,10 +3,13 @@ import * as Select from "@radix-ui/react-select";
 import {
   forwardRef,
   useId,
+  useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   type KeyboardEvent,
   type ReactNode,
+  type RefObject,
 } from "react";
 import { Check, ChevronDown, FolderTree, Layers3, Search, X, type LucideIcon } from "lucide-react";
 import type { Deck } from "../coreTypes.ts";
@@ -147,7 +150,7 @@ function CoreSelectOptions({ options }: Pick<CoreSelectProps, "options">) {
   });
 }
 
-function SelectContent({ children }: { children: ReactNode }) {
+function SelectContent({ children, triggerRef }: { children: ReactNode; triggerRef: RefObject<HTMLButtonElement | null> }) {
   return (
     <Select.Portal>
       <Select.Content
@@ -155,6 +158,9 @@ function SelectContent({ children }: { children: ReactNode }) {
         align="start"
         sideOffset={6}
         collisionPadding={12}
+        onPointerDownOutside={(event) => {
+          if (event.target instanceof Node && triggerRef.current?.contains(event.target)) event.preventDefault();
+        }}
         className="core-overlay z-[90] max-h-[min(20rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl outline-none"
       >
         <Select.ScrollUpButton className="grid h-8 cursor-default place-items-center text-[var(--core-text-muted)]">
@@ -288,18 +294,34 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
   autoFocus,
   leadingIcon: LeadingIcon,
 }, ref) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeOnClickRef = useRef(false);
+  useImperativeHandle(ref, () => triggerRef.current!, []);
   const selectedOption = options.find((option) => option.value === value);
   const selectedLabel = selectedOption?.label ?? "";
   const TriggerIcon = LeadingIcon ?? selectedOption?.icon;
 
   return (
-    <Select.Root value={encodeValue(value)} onValueChange={(nextValue) => onValueChange(decodeValue(nextValue))}>
+    <Select.Root open={open} onOpenChange={setOpen} value={encodeValue(value)} onValueChange={(nextValue) => onValueChange(decodeValue(nextValue))}>
       <Select.Trigger
-        ref={ref}
+        ref={triggerRef}
         id={id}
         aria-label={ariaLabel}
         autoFocus={autoFocus}
         data-testid={testId}
+        style={{ pointerEvents: open ? "auto" : undefined }}
+        onPointerDown={(event) => {
+          closeOnClickRef.current = open;
+          if (open) event.preventDefault();
+        }}
+        onClick={(event) => {
+          if (closeOnClickRef.current) {
+            closeOnClickRef.current = false;
+            event.preventDefault();
+            setOpen(false);
+          }
+        }}
         className={`group inline-flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-4 text-left core-body text-[var(--core-text)] transition hover:border-[var(--core-action-primary)] data-[state=open]:border-[var(--core-action-primary)] data-[state=open]:shadow-[0_0_0_2px_var(--core-focus-ring-soft)] ${className}`}
       >
         {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-[var(--core-text)]" aria-hidden="true" /> : null}
@@ -311,7 +333,7 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
         </Select.Icon>
       </Select.Trigger>
 
-      <SelectContent>
+      <SelectContent triggerRef={triggerRef}>
         <CoreSelectOptions options={options} />
       </SelectContent>
     </Select.Root>
