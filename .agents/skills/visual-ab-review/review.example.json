@@ -1,0 +1,21 @@
+{
+  "title": "CoRe – visueller Variantenvergleich",
+  "intro": "Formatbeispiel mit Katalogdemos. Für eine echte Entscheidung Texte und Szenen an die konkrete Änderung anpassen.",
+  "shots": "shots",
+  "view": "mobile",
+  "cases": [
+    {
+      "id": "K1",
+      "title": "Basic-Karte vergleichen",
+      "lead": "Die beiden Aufnahmen zeigen die Basic-Karte im UI-Katalog vor und nach der Änderung.",
+      "kind": "Karte",
+      "points": {
+        "A": ["Ausgangsstand bei 390 × 844 px", "1 Basic-Karte im Demo-Zustand"],
+        "B": ["Zielstand bei 390 × 844 px", "1 Basic-Karte im Demo-Zustand"]
+      },
+      "scenes": [
+        { "scene": "basic-card", "note": "Auf Lesbarkeit und Abstände achten. Dies ist eine Katalogdemo, keine angemeldete App-Ansicht." }
+      ]
+    }
+  ]
+}

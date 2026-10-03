@@ -80,6 +80,30 @@ UI-Elements und Kartentypen. Technisches Projektwissen bleibt in Markdown. Quell
 zuständigen Quellen und Demos aktualisieren, `npm run docs:build` ausführen und
 mit `npm run check:docs` prüfen. Erzeugte HTML-Dateien nie direkt bearbeiten.
 
+## Visueller Variantenvergleich
+
+Der versionierte Codex-Skill liegt unter [`.agents/skills/visual-ab-review/SKILL.md`](.agents/skills/visual-ab-review/SKILL.md), einschließlich Screenshot-Generator, HTML-Generator und [Formatbeispiel](.agents/skills/visual-ab-review/review.example.json). Contributors können ihn direkt über diesen Dateipfad im Chat aufrufen; eine persönliche Skill-Kopie ist dafür nicht nötig. Änderungen am Skill erfolgen im Repository.
+
+Voraussetzungen: Node.js mit den Projektabhängigkeiten (`npm ci`), Chromium (`npx playwright install chromium`) und Python ab 3.10. Optional ermöglicht Pillow (`python -m pip install Pillow`) eine Rangliste nach Pixelanteil und kleinere eingebettete Bilder; ohne Pillow bleibt der Vergleich ausführbar. Es werden keine zusätzlichen npm-Abhängigkeiten benötigt.
+
+Alle Befehle aus der Repository-Wurzel ausführen. Zunächst `npm run docs:build`, dann `npm run dev` starten (Port 5190). Die [Projektkonfiguration](visual-review.config.mjs) enthält zwei Katalogszenen ohne Anmeldung und sechs Viewports jeweils in Light und Dark. Weitere App-Zustände samt erforderlichem Demo- oder Anmelde-Setup bei der konkreten Änderung ergänzen; die [visuelle Pflichtmatrix](docs/operations.md#visuelle-pflichtmatrix) bleibt maßgeblich.
+
+```sh
+node .agents/skills/visual-ab-review/scenes.mjs --config visual-review.config.mjs --list
+node .agents/skills/visual-ab-review/scenes.mjs --config visual-review.config.mjs --base http://127.0.0.1:5190 --out test-results/visual-review/shots --variant A
+# Nach der Änderung und erneutem docs:build den Zielstand aufnehmen:
+node .agents/skills/visual-ab-review/scenes.mjs --config visual-review.config.mjs --base http://127.0.0.1:5190 --out test-results/visual-review/shots --variant B
+python .agents/skills/visual-ab-review/build.py rank test-results/visual-review/shots
+```
+
+Das Formatbeispiel nach `test-results/visual-review/spec.json` kopieren (PowerShell: `Copy-Item .agents/skills/visual-ab-review/review.example.json test-results/visual-review/spec.json`; macOS/Linux: `cp .agents/skills/visual-ab-review/review.example.json test-results/visual-review/spec.json`). Texte und Szenen anpassen, dann die eigenständige Vergleichsseite erzeugen:
+
+```sh
+python .agents/skills/visual-ab-review/build.py page test-results/visual-review/spec.json test-results/visual-review/review.html
+```
+
+`review.html` lokal im Browser öffnen, je Fall auswählen und den Ergebnis-Prompt in den Chat kopieren. Für parallele Vorher-/Nachher-Stände gilt der Worktree-Ablauf im Skill. Mit `--views mobile,mobile-dark,desktop,desktop-dark` weitere Ansichten aufnehmen; für alle Ansichten deren Namen aus der Konfiguration übergeben. Bei `"matrix": true` im Spec zeigt die Seite auch alle aufgenommenen Szenen und Ansichten. Aufnahmen, Spec und Vergleichsseite bleiben unter dem bereits Git-ignorierten `test-results/` und werden nach Abschluss gelöscht.
+
 ## Gebaut mit
 
 <p align="center">

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Visual A/B Review"
+  short_description: "Legt sichtbare Änderungen als klickbaren Vorher/Nachher-Vergleich zur Entscheidung vor"
+  default_prompt: "Nutze $visual-ab-review, um die sichtbaren Änderungen als Vergleichsseite mit einer Entscheidung pro Änderung vorzulegen."
+
+policy:
+  allow_implicit_invocation: true
