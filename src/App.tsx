@@ -135,13 +135,13 @@ function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): 
 
 function LoadingScreen({ message = "CoRe wird geladen.", onRetry }: { message?: string; onRetry?: () => void }) {
   return (
-    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-[var(--core-text)]">
+    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-6 py-10 text-core-text">
       <SoftPanel className="w-full max-w-md p-6">
         <div className="flex items-center gap-3">
           <OrbIcon icon={Database} />
           <div>
-            <h1 className="core-heading-2 font-semibold text-[var(--core-text)]">CoRe</h1>
-            <p className="mt-1 core-body text-[var(--core-text-muted)]" role="status" aria-live="polite">
+            <h1 className="core-heading-2 font-semibold text-core-text">CoRe</h1>
+            <p className="mt-1 core-body text-core-muted" role="status" aria-live="polite">
               {message}
             </p>
             {onRetry ? <ActionButton variant="primary" className="mt-4" onClick={onRetry}>Erneut versuchen</ActionButton> : null}
@@ -155,8 +155,8 @@ function LoadingScreen({ message = "CoRe wird geladen.", onRetry }: { message?: 
 function ScreenLoadingFallback() {
   return (
     <div className="grid min-h-[20rem] place-items-center" role="status" aria-live="polite">
-      <SoftPanel className="flex items-center gap-3 px-5 py-4 core-body font-medium text-[var(--core-text-muted)]">
-        <span className="size-3 animate-pulse rounded-full bg-[var(--core-action-secondary)]" aria-hidden="true" />
+      <SoftPanel className="flex items-center gap-3 px-6 py-4 core-body font-medium text-core-muted">
+        <span className="size-3 animate-pulse rounded-round bg-[var(--core-action-secondary)]" aria-hidden="true" />
         Bereich wird geladen.
       </SoftPanel>
     </div>
@@ -1735,10 +1735,10 @@ export function App() {
           body="Die verlinkte Lernsitzung kann nicht geöffnet werden, weil der Stapel gelöscht wurde oder in diesem Account nicht verfügbar ist."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
+              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
+              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
                 Zur Kartenverwaltung
               </button>
             </div>
@@ -2093,7 +2093,7 @@ export function App() {
   }
 
   return (
-    <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-[var(--core-text)] xl:h-dvh xl:overflow-y-hidden">
+    <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-core-text xl:h-dvh xl:overflow-y-hidden">
       <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-surface xl:h-dvh xl:min-h-0 xl:grid-cols-[9.5rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}

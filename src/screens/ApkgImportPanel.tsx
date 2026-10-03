@@ -81,17 +81,17 @@ function importStatusLabel(status: ImportUiState["status"]): string {
 }
 
 function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">{children}</span>;
+  return <span className="rounded-control bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">{children}</span>;
 }
 
 function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; card: LearningItem; definition: NoteTypeDefinitionV1 | null; mediaStore: AccountMediaStore | null }) {
   const { urls: mediaUrls } = useCardMediaUrls({ ...deck, cards: [card] }, card.id, mediaStore);
   if (!definition) return null;
   return (
-    <article className="core-surface-raised rounded-[18px] p-5">
+    <article className="core-surface-raised rounded-panel p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <ApkgPreviewBadge>Originalkarte</ApkgPreviewBadge>
-        <span className="core-caption font-medium uppercase tracking-wide text-[var(--core-text-muted)]">{definition.name}</span>
+        <span className="core-caption font-medium uppercase tracking-wide text-core-muted">{definition.name}</span>
       </div>
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
         {APKG_CARD_SIDES.map(({ side, label, title }) => (
@@ -360,11 +360,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
   }, [activeProgressPhase, prefersReducedMotion, progressPaused]);
 
   return (
-    <div className="grid gap-5">
-      <SoftPanel className="p-5 sm:p-6">
-        <div className="mb-5 flex items-center gap-3">
+    <div className="grid gap-4">
+      <SoftPanel className="p-6">
+        <div className="mb-6 flex items-center gap-3">
           <OrbIcon icon={FileArchive} className="bg-core-success-soft text-core-text" />
-          <h2 className="core-heading-2 font-semibold text-[var(--core-text)]">APKG-Dateien importieren</h2>
+          <h2 className="core-heading-2 font-semibold text-core-text">APKG-Dateien importieren</h2>
         </div>
 
         <FileDropField
@@ -377,7 +377,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
 
         {selectedFile ? (
           <div
-            className="relative mt-4 overflow-hidden rounded-xl border border-[var(--core-border)] bg-core-surface p-4"
+            className="relative mt-4 overflow-hidden rounded-control border border-core-border bg-core-surface p-4"
             data-testid="apkg-file-progress"
             role={activeProgressPhase ? "progressbar" : undefined}
             aria-label={activeProgressPhase ? `Importfortschritt für ${selectedFile.name}` : undefined}
@@ -390,22 +390,22 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
             {activeProgressPhase ? (
               <span
                 data-testid="apkg-progress-fill"
-                className="pointer-events-none absolute inset-y-0 left-0 bg-[var(--core-surface-muted)] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                className="pointer-events-none absolute inset-y-0 left-0 bg-core-subtle transition-[width] duration-500 ease-out motion-reduce:transition-none"
                 style={{ width: `${activeProgressPercent}%` }}
                 aria-hidden="true"
               />
             ) : null}
             <div className="relative grid min-w-0 grid-cols-2 items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
-              <p className="col-span-2 min-w-0 truncate core-body font-semibold text-[var(--core-text)] sm:col-span-1">{selectedFile.name}</p>
-              <p className={`core-body font-semibold ${activeProgressPhase ? "text-[var(--core-text)]" : "text-[var(--core-text-muted)]"}`}>
+              <p className="col-span-2 min-w-0 truncate core-body font-semibold text-core-text sm:col-span-1">{selectedFile.name}</p>
+              <p className={`core-body font-semibold ${activeProgressPhase ? "text-core-text" : "text-core-muted"}`}>
                 {activeProgressPhase ? `${activeProgressPercent} %` : importStatusLabel(uiState.status)}
               </p>
-              <p className="justify-self-end whitespace-nowrap core-body text-[var(--core-text-muted)]">{formatBytes(selectedFile.size)}</p>
+              <p className="justify-self-end whitespace-nowrap core-body text-core-muted">{formatBytes(selectedFile.size)}</p>
             </div>
           </div>
         ) : null}
 
-        <ol className="mt-5 grid gap-2 md:grid-cols-6" aria-label="Importstatus">
+        <ol className="mt-6 grid gap-2 md:grid-cols-6" aria-label="Importstatus">
           {importSteps.map((step) => {
             const stepIndex = importSteps.findIndex((item) => item.id === step.id);
             const isActive = stepIndex === currentStepIndex;
@@ -413,9 +413,9 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
             const isFailure = ["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
             const label = step.id === "complete" && currentStepIndex === 5 ? importStatusLabel(uiState.status) : step.label;
             return (
-              <li key={step.id} className={`flex items-center gap-2 rounded-xl border px-3 py-2 ${isActive ? isFailure ? "border-core-danger bg-core-danger-soft" : uiState.status === "partial" ? "border-core-warning bg-core-warning-soft" : "border-core-success bg-core-success-soft" : "border-[var(--core-border)]"}`}>
-                {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin text-core-text motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-full border border-[var(--core-border)]" />}
-                <span className="core-caption font-semibold text-[var(--core-text-secondary)]">{label}</span>
+              <li key={step.id} className={`flex items-center gap-2 rounded-control border px-3 py-2 ${isActive ? isFailure ? "border-core-danger bg-core-danger-soft" : uiState.status === "partial" ? "border-core-warning bg-core-warning-soft" : "border-core-success bg-core-success-soft" : "border-core-border"}`}>
+                {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin text-core-text motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-round border border-core-border" />}
+                <span className="core-caption font-semibold text-core-secondary">{label}</span>
               </li>
             );
           })}
@@ -446,34 +446,34 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
         ) : null}
 
         {uiState.status === "failed_retryable" || uiState.status === "failed_terminal" ? (
-          <div className="core-status-error mt-5 core-body" role="alert">
+          <div className="core-status-error mt-6 core-body" role="alert">
             {(job?.errors.length ? job.errors : ["Die APKG-Datei konnte nicht verarbeitet werden."]).map((error, index) => (
               <p key={`${error}-${index}`}>{error}</p>
             ))}
           </div>
         ) : null}
         {uiState.status === "cancelled" ? (
-          <div className="core-status-info mt-5 core-body" role="status">
+          <div className="core-status-info mt-6 core-body" role="status">
             <p>Import abgebrochen. Es wurden aus diesem Vorgang keine weiteren Karten übernommen.</p>
           </div>
         ) : null}
       </SoftPanel>
 
-      <section className="grid gap-5">
+      <section className="grid gap-4">
         {previewVisible && preview ? (
           <>
             <SoftPanel className="p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="core-body font-semibold uppercase tracking-wide text-core-text">Importvorschau</p>
-                  <h3 className="mt-1 core-heading-2 font-semibold text-[var(--core-text)]">{preview.summary.name}</h3>
+                  <h3 className="mt-1 core-heading-2 font-semibold text-core-text">{preview.summary.name}</h3>
                 </div>
                 {uiState.status === "preview" ? (
                   <ActionButton type="button" variant="primary" icon={Database} loading={isParsing} disabled={previewErrors.length > 0} onClick={() => void handleCommit()}>Import übernehmen</ActionButton>
                 ) : null}
               </div>
-              <div className="mt-4 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 py-3 core-body text-[var(--core-text-muted)]">
-                <span className="font-semibold text-[var(--core-text)]">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
+              <div className="mt-4 rounded-control border border-core-border bg-core-surface px-4 py-3 core-body text-core-muted">
+                <span className="font-semibold text-core-text">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
                 <span> · {formatBytes(job?.fileSize ?? selectedFile?.size ?? 0)}</span>
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -487,13 +487,13 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
                 ))}
               </div>
               {apkgReport ? (
-                <div className="mt-5 grid gap-4">
-                  <section className="rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby="apkg-decks-heading">
-                    <h4 id="apkg-decks-heading" className="font-semibold text-[var(--core-text)]">Erkannte Stapel</h4>
-                    <div className="mt-3 grid gap-2 core-body text-[var(--core-text-muted)]">
+                <div className="mt-6 grid gap-4">
+                  <section className="rounded-control border border-core-border bg-core-surface p-4" aria-labelledby="apkg-decks-heading">
+                    <h4 id="apkg-decks-heading" className="font-semibold text-core-text">Erkannte Stapel</h4>
+                    <div className="mt-3 grid gap-2 core-body text-core-muted">
                       {apkgReport.decks.map((deck) => (
-                        <div key={deck.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--core-surface-muted)] pb-2 last:border-0 last:pb-0">
-                          <span className="font-medium text-[var(--core-text-secondary)]">{deck.path}</span>
+                        <div key={deck.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-core-subtle pb-2 last:border-0 last:pb-0">
+                          <span className="font-medium text-core-secondary">{deck.path}</span>
                           <span>{deck.cardCount} Karten</span>
                         </div>
                       ))}
@@ -501,13 +501,13 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
                   </section>
 
                   {apkgReport.media.missing.length > 0 ? (
-                    <div className="flex gap-2 rounded-xl bg-core-warning-soft px-3 py-2 core-body text-core-text">
+                    <div className="flex gap-2 rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text">
                       <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
                       <span>{apkgReport.media.missing.length} referenzierte Medien fehlen im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
                     </div>
                   ) : null}
                   {previewWarnings.length > 0 ? (
-                    <section className="rounded-xl bg-core-warning-soft px-3 py-2 core-body text-core-text" aria-labelledby="apkg-warnings-heading">
+                    <section className="rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text" aria-labelledby="apkg-warnings-heading">
                       <h4 id="apkg-warnings-heading" className="flex items-center gap-2 font-semibold">
                         <AlertCircle className="shrink-0" size={16} aria-hidden="true" />
                         {previewWarnings.length} {previewWarnings.length === 1 ? "Warnung" : "Warnungen"}
@@ -518,12 +518,12 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
                     </section>
                   ) : null}
 
-                  <section className="rounded-xl border border-[var(--core-border)] bg-core-surface p-4" aria-labelledby="apkg-reimport-heading">
-                    <h4 id="apkg-reimport-heading" className="font-semibold text-[var(--core-text)]">Reimport</h4>
+                  <section className="rounded-control border border-core-border bg-core-surface p-4" aria-labelledby="apkg-reimport-heading">
+                    <h4 id="apkg-reimport-heading" className="font-semibold text-core-text">Reimport</h4>
                     <dl className="mt-3 grid grid-cols-2 gap-3 core-body sm:grid-cols-3">
-                      <div><dt className="text-[var(--core-text-muted)]">Neu</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.newItems}</dd></div>
-                      <div><dt className="text-[var(--core-text-muted)]">Wiedererkannt</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.matchedItems}</dd></div>
-                      <div><dt className="text-[var(--core-text-muted)]">Übersprungen</dt><dd className="font-semibold text-[var(--core-text)]">{apkgReport.reimport.skippedItems}</dd></div>
+                      <div><dt className="text-core-muted">Neu</dt><dd className="font-semibold text-core-text">{apkgReport.reimport.newItems}</dd></div>
+                      <div><dt className="text-core-muted">Wiedererkannt</dt><dd className="font-semibold text-core-text">{apkgReport.reimport.matchedItems}</dd></div>
+                      <div><dt className="text-core-muted">Übersprungen</dt><dd className="font-semibold text-core-text">{apkgReport.reimport.skippedItems}</dd></div>
                     </dl>
                   </section>
                 </div>
@@ -537,8 +537,8 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
             </SoftPanel>
 
             {preview.sampleCards.length > 0 ? (
-              <section className="core-surface-raised rounded-[18px] p-5" aria-labelledby="apkg-card-examples-heading">
-                <h3 id="apkg-card-examples-heading" className="font-semibold text-[var(--core-text)]">Kartenbeispiele</h3>
+              <section className="core-surface-raised rounded-panel p-6" aria-labelledby="apkg-card-examples-heading">
+                <h3 id="apkg-card-examples-heading" className="font-semibold text-core-text">Kartenbeispiele</h3>
                 <div className="mt-4 grid gap-4">
                   {preview.sampleCards.slice(0, APKG_SAMPLE_CARD_LIMIT).map((card) => <ApkgCardSample key={card.id} deck={preview.summary} card={card} definition={previewDefinitions.get(card.noteTypeDefinitionId) ?? null} mediaStore={mediaStore} />)}
                 </div>

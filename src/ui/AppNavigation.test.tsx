@@ -112,7 +112,7 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.match(sidebarMarkup, /class="[^"]*grid-cols-\[repeat\(2,2\.75rem\)\][^"]*gap-2[^"]*" data-navigation-utilities="true" data-navigation-utility-layout="sidebar"/);
-  assert.match(sidebarMarkup, /px-4 pb-5 pt-10/);
+  assert.match(sidebarMarkup, /px-4 pb-6 pt-10/);
   assert.doesNotMatch(sidebarMarkup, /border-t/);
   assert.doesNotMatch(sidebarMarkup, /Content Repetition/);
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="sync"') < sidebarMarkup.indexOf('data-navigation-utility="help"'));

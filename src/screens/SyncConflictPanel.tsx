@@ -146,43 +146,43 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
           <OrbIcon icon={AlertTriangle} className="bg-core-warning-soft text-core-text" />
           <div>
             <p className="core-body font-semibold uppercase tracking-wide text-core-text">Synchronisierung</p>
-            <h3 className="core-heading-3 font-semibold text-[var(--core-text)]">Änderungskonflikte lösen</h3>
+            <h3 className="core-heading-3 font-semibold text-core-text">Änderungskonflikte lösen</h3>
           </div>
         </div>
-        <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]">
+        <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">
           <RefreshCw size={16} aria-hidden="true" />
           Neu laden
         </button>
       </div>
 
-      <p className="mt-3 max-w-3xl core-body leading-6 text-[var(--core-text-muted)]">
+      <p className="mt-3 max-w-3xl core-body leading-6 text-core-muted">
         CoRe hat unterschiedliche Änderungen am selben Inhalt gefunden. Vergleiche beide Fassungen und entscheide, welcher Inhalt weiterverwendet wird.
       </p>
 
-      {loading ? <p className="mt-5 core-body text-[var(--core-text-muted)]" role="status">Konflikte werden geladen.</p> : null}
+      {loading ? <p className="mt-6 core-body text-core-muted" role="status">Konflikte werden geladen.</p> : null}
       {error ? <p className="core-status-error mt-4 core-body" role="alert">{error}</p> : null}
-      {!loading && conflicts.length === 0 ? <p className="core-status-success mt-5 core-body">Keine offenen Synchronisierungskonflikte.</p> : null}
+      {!loading && conflicts.length === 0 ? <p className="core-status-success mt-6 core-body">Keine offenen Synchronisierungskonflikte.</p> : null}
 
       {openConflicts.length > 0 ? (
-        <div className="mt-5 grid gap-3 lg:grid-cols-2">
-          <div className="rounded-2xl border border-core-border bg-core-subtle p-4">
+        <div className="mt-6 grid gap-3 lg:grid-cols-2">
+          <div className="rounded-panel border border-core-border bg-core-subtle p-4">
             <h4 className="core-body-large font-semibold text-core-text">Cloud im Account übernehmen</h4>
             <p className="mt-2 core-body text-core-muted">{previewText(cloudPreview)}</p>
             <p className="mt-2 core-caption text-core-muted">Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
-            <button type="button" className="mt-4 min-h-11 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
+            <button type="button" className="mt-4 min-h-11 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
           </div>
-          <div className="rounded-2xl border border-core-border bg-core-subtle p-4">
+          <div className="rounded-panel border border-core-border bg-core-subtle p-4">
             <h4 className="core-body-large font-semibold text-core-text">Diesen Browser übernehmen</h4>
             <p className="mt-2 core-body text-core-muted">{previewText(localPreview)}</p>
             <p className="mt-2 core-caption text-core-muted">Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
-            <button type="button" className="mt-4 min-h-11 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
+            <button type="button" className="mt-4 min-h-11 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
           </div>
         </div>
       ) : null}
 
       {openConflicts.length > 0 ? (
-        <section className="mt-5" aria-labelledby="individual-sync-conflicts-heading">
-          <h4 id="individual-sync-conflicts-heading" className="core-body-large font-semibold text-[var(--core-text)]">Einzelne Konflikte prüfen ({openConflicts.length})</h4>
+        <section className="mt-6" aria-labelledby="individual-sync-conflicts-heading">
+          <h4 id="individual-sync-conflicts-heading" className="core-body-large font-semibold text-core-text">Einzelne Konflikte prüfen ({openConflicts.length})</h4>
       <div className="mt-4 grid gap-4">
         {openConflicts.map((conflict) => {
           const choices = fieldChoices[conflict.id] ?? {};
@@ -190,58 +190,58 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
           const merging = mergeConflictId === conflict.id;
           const busy = busyId === conflict.id;
           return (
-            <article key={conflict.id} className="rounded-2xl border border-core-warning bg-core-warning-soft p-4" data-testid={`sync-conflict-${conflict.id}`}>
+            <article key={conflict.id} className="rounded-panel border border-core-warning bg-core-warning-soft p-4" data-testid={`sync-conflict-${conflict.id}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="core-caption font-semibold uppercase tracking-wide text-core-text">{conflict.entityLabel}</p>
-                  <h4 className="mt-1 core-body-large font-semibold text-[var(--core-text)]">{conflict.title}</h4>
-                  <p className="mt-1 core-caption text-[var(--core-text-muted)]">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
+                  <h4 className="mt-1 core-body-large font-semibold text-core-text">{conflict.title}</h4>
+                  <p className="mt-1 core-caption text-core-muted">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
                 </div>
-                <span className="rounded-full bg-core-warning-soft px-3 py-1 core-caption font-semibold text-core-text">Entscheidung nötig</span>
+                <span className="rounded-round bg-core-warning-soft px-3 py-1 core-caption font-semibold text-core-text">Entscheidung nötig</span>
               </div>
 
               {conflict.fields.length > 0 ? (
                 <div className="mt-4 grid gap-3">
                   {conflict.fields.map((field: { key: React.Key|null|undefined; label: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; localText: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; remoteText: string|number|bigint|boolean|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|React.ReactPortal|Promise<string|number|bigint|boolean|React.ReactPortal|React.ReactElement<unknown,string|React.JSXElementConstructor<any>>|Iterable<React.ReactNode>|null|undefined>|null|undefined; }) => (
-                    <div key={field.key} className="rounded-xl border border-[var(--core-border)] bg-core-surface p-3">
-                      <p className="core-body font-semibold text-[var(--core-text-secondary)]">{field.label}</p>
+                    <div key={field.key} className="rounded-control border border-core-border bg-core-surface p-3">
+                      <p className="core-body font-semibold text-core-secondary">{field.label}</p>
                       <div className="mt-2 grid gap-2 md:grid-cols-2">
-                        <div className="min-w-0 rounded-lg bg-[var(--core-surface-muted)] p-3">
-                          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Dieser Browser</p>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-[var(--core-text)]">{field.localText}</pre>
+                        <div className="min-w-0 rounded-inset bg-core-subtle p-3">
+                          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Dieser Browser</p>
+                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.localText}</pre>
                         </div>
-                        <div className="min-w-0 rounded-lg bg-[var(--core-surface-muted)] p-3">
-                          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Cloud im Account</p>
-                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-[var(--core-text)]">{field.remoteText}</pre>
+                        <div className="min-w-0 rounded-inset bg-core-subtle p-3">
+                          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Cloud im Account</p>
+                          <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.remoteText}</pre>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : <p className="mt-4 core-body text-[var(--core-text-muted)]">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
+              ) : <p className="mt-4 core-body text-core-muted">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-11 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-11 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-11 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-11 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
                 {conflict.allowedActions.includes("merge-fields") ? (
-                  <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]" data-testid={`sync-conflict-merge-${conflict.id}`}>
+                  <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" data-testid={`sync-conflict-merge-${conflict.id}`}>
                     <GitMerge size={16} aria-hidden="true" />
                     Manuell zusammenführen
                   </button>
                 ) : null}
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="min-h-11 rounded-xl px-4 core-body font-semibold text-[var(--core-text-muted)] disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="min-h-11 rounded-control px-4 core-body font-semibold text-core-muted disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
               </div>
 
               {merging ? (
-                <fieldset id={`sync-conflict-merge-fields-${conflict.id}`} className="mt-4 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
-                  <legend className="px-1 core-body font-semibold text-[var(--core-text)]">Quelle für jedes Feld wählen</legend>
+                <fieldset id={`sync-conflict-merge-fields-${conflict.id}`} className="mt-4 rounded-control border border-core-border bg-core-surface p-4">
+                  <legend className="px-1 core-body font-semibold text-core-text">Quelle für jedes Feld wählen</legend>
                   <div className="grid gap-3">
                     {conflict.fields.map((field: any) => (
-                      <div key={field.key} className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--core-surface-muted)] pb-3 last:border-0 last:pb-0">
-                        <span className="core-body font-semibold text-[var(--core-text-secondary)]">{field.label}</span>
+                      <div key={field.key} className="flex flex-wrap items-center justify-between gap-3 border-b border-core-subtle pb-3 last:border-0 last:pb-0">
+                        <span className="core-body font-semibold text-core-secondary">{field.label}</span>
                         <div className="flex gap-4">
                           {FIELD_SOURCES.map(([source, label]: any) => (
-                            <label key={source} className="inline-flex min-h-11 items-center gap-2 core-body text-[var(--core-text-secondary)]">
+                            <label key={source} className="inline-flex min-h-11 items-center gap-2 core-body text-core-secondary">
                               <input type="radio" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
                               {label}
                             </label>
@@ -250,7 +250,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                       </div>
                     ))}
                   </div>
-                  <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-4 min-h-11 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:bg-[var(--core-action-disabled-bg)]">Zusammenführung speichern</button>
+                  <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-4 min-h-11 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]">Zusammenführung speichern</button>
                 </fieldset>
               ) : null}
             </article>
@@ -261,16 +261,16 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
       ) : null}
 
       {ignoredConflicts.length > 0 ? (
-        <section className="mt-5" aria-labelledby="ignored-sync-conflicts-heading">
-          <h4 id="ignored-sync-conflicts-heading" className="core-body-large font-semibold text-[var(--core-text)]">Für später zurückgestellt ({ignoredConflicts.length})</h4>
-          <p className="mt-3 core-body leading-6 text-[var(--core-text-muted)]">Stapel- und Kartenänderungen werden erst weiter synchronisiert, wenn diese Konflikte entschieden sind. Neue Reviews werden weiterhin gespeichert.</p>
+        <section className="mt-6" aria-labelledby="ignored-sync-conflicts-heading">
+          <h4 id="ignored-sync-conflicts-heading" className="core-body-large font-semibold text-core-text">Für später zurückgestellt ({ignoredConflicts.length})</h4>
+          <p className="mt-3 core-body leading-6 text-core-muted">Stapel- und Kartenänderungen werden erst weiter synchronisiert, wenn diese Konflikte entschieden sind. Neue Reviews werden weiterhin gespeichert.</p>
           <div className="mt-3 grid gap-2">
             {ignoredConflicts.map((conflict) => (
-              <div key={conflict.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-core-surface p-3">
+              <div key={conflict.id} className="flex flex-wrap items-center justify-between gap-3 rounded-control bg-core-surface p-3">
                 <div>
-                  <p className="core-body font-semibold text-[var(--core-text)]">{conflict.entityLabel}: {conflict.title}</p>
+                  <p className="core-body font-semibold text-core-text">{conflict.entityLabel}: {conflict.title}</p>
                 </div>
-                <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:text-[var(--core-action-disabled-text)]">
+                <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">
                   <RotateCcw size={16} aria-hidden="true" />
                   Wieder aufnehmen
                 </button>

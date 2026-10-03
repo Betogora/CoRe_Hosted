@@ -94,7 +94,7 @@ function AdditionalCardsDialog({
       open={open}
       title="Zusätzliche Karten lernen"
       description={(
-        <div className="grid gap-5">
+        <div className="grid gap-4">
           <div className="core-field-group">
             <span className="core-field-label">Hauptstapel</span>
             <DeckSelect
@@ -165,12 +165,12 @@ function DailyLearningOverview({
   return (
     <>
       <SoftPanel className="overflow-hidden" data-testid="daily-learning-overview" data-status={plan.status}>
-        <div className="min-w-0 p-5 sm:p-6 lg:p-7">
+        <div className="min-w-0 p-6">
           <div className="flex items-center gap-3 sm:gap-4">
             <OrbIcon
               icon={Icon}
               className={achieved
-                ? "bg-[var(--core-surface-muted)] text-[var(--core-learning-goal-achieved)]"
+                ? "bg-core-subtle text-[var(--core-learning-goal-achieved)]"
                 : "bg-core-subtle text-core-action"}
             />
             <h2 className={`min-w-0 flex-1 core-heading-3 font-semibold ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
@@ -207,7 +207,7 @@ function DailyLearningOverview({
               return (
                 <div key={segment.key} className="flex min-w-max flex-1 basis-[calc(50%-0.5rem)] items-center gap-2 sm:basis-0 sm:gap-3" data-daily-learning-metric={segment.key}>
                   <span
-                    className="grid size-10 shrink-0 place-items-center rounded-full"
+                    className="grid size-10 shrink-0 place-items-center rounded-round"
                     style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--core-surface))` }}
                   >
                     <MetricIcon size={18} aria-hidden="true" />
@@ -246,28 +246,28 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
 
   if (state.decks.length === 0) {
     return (
-      <div className="grid min-w-0 gap-7">
+      <div className="grid min-w-0 gap-6">
         <PageHeader eyebrow={displayName ? <span className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined} title={welcomeTitle} />
 
-        <SoftPanel className="overflow-hidden p-7 sm:p-9">
+        <SoftPanel className="overflow-hidden p-6 sm:p-9">
           <div className="max-w-3xl">
             <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Dein erster Lernerfolg</p>
-            <h2 className="mt-2 core-heading-2 font-semibold text-[var(--core-text)]">Womit möchtest du starten?</h2>
-            <p className="mt-3 max-w-2xl core-body-large leading-7 text-[var(--core-text-muted)]">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
+            <h2 className="mt-2 core-heading-2 font-semibold text-core-text">Womit möchtest du starten?</h2>
+            <p className="mt-3 max-w-2xl core-body-large leading-7 text-core-muted">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
           </div>
 
-          <div className="mt-7 grid gap-4 lg:grid-cols-3">
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
             <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} tone="info" onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
             <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={FileArchive} tone="success" onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
             <CreationActionCard title="Demo ausprobieren" description="Beispielstapel nur auf deinen Klick anlegen." icon={Sparkles} tone="info" onSelect={onCreateDemo} />
           </div>
         </SoftPanel>
 
-        <SoftPanel className="p-7">
-          <h2 className="core-heading-3 font-semibold text-[var(--core-text)]">Das macht CoRe</h2>
-          <ul className="mt-5 grid gap-3 md:grid-cols-3">
+        <SoftPanel className="p-6">
+          <h2 className="core-heading-3 font-semibold text-core-text">Das macht CoRe</h2>
+          <ul className="mt-6 grid gap-3 md:grid-cols-3">
             {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Original und Quelle bleiben sichtbar."].map((point) => (
-              <li key={point} className="flex gap-3 core-body leading-6 text-[var(--core-text-secondary)]">
+              <li key={point} className="flex gap-3 core-body leading-6 text-core-secondary">
                 <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-core-text" aria-hidden="true" />
                 {point}
               </li>
@@ -279,7 +279,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
   }
 
   return (
-    <div className="grid min-w-0 gap-7">
+    <div className="grid min-w-0 gap-6">
       <PageHeader eyebrow={displayName ? <span className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined} title={welcomeTitle} />
 
       <DailyLearningOverview

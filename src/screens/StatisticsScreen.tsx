@@ -159,19 +159,19 @@ function StatisticsTooltip({
   const datum = payload[0]?.payload ?? {};
   const heading = String(datum.rangeLabel ?? datum.label ?? label ?? "Details");
   return (
-    <div role="tooltip" className="core-overlay min-w-52 rounded-xl border border-[var(--core-border)] bg-core-surface p-3 shadow-xl">
+    <div role="tooltip" className="core-overlay min-w-52 rounded-control border border-core-border bg-core-surface p-3 shadow-raised">
       <p className="core-body font-semibold text-core-text">{heading}</p>
       <div className="mt-2 grid gap-1.5">
         {typeof datum.total === "number" ? (
-          <div className="flex items-center justify-between gap-5 border-b border-[var(--core-border)] pb-1.5 core-caption">
+          <div className="flex items-center justify-between gap-4 border-b border-core-border pb-1.5 core-caption">
             <span className="font-semibold text-core-secondary">Gesamt</span>
             <span className="font-semibold text-core-text">{valueFormatter(datum.total, { name: "Gesamt", dataKey: "total", payload: datum })}</span>
           </div>
         ) : null}
         {payload.filter((entry) => entry.value != null).map((entry) => (
-          <div key={`${entry.dataKey}-${entry.name}`} className="flex items-center justify-between gap-5 core-caption">
+          <div key={`${entry.dataKey}-${entry.name}`} className="flex items-center justify-between gap-4 core-caption">
             <span className="flex items-center gap-2 text-core-secondary">
-              <span className="size-2.5 rounded-sm" style={{ backgroundColor: entry.color ?? entry.fill }} aria-hidden="true" />
+              <span className="size-2.5 rounded-marker" style={{ backgroundColor: entry.color ?? entry.fill }} aria-hidden="true" />
               {entry.name}
             </span>
             <span className="font-semibold text-core-text">{valueFormatter(Number(entry.value), entry)}</span>
@@ -179,7 +179,7 @@ function StatisticsTooltip({
         ))}
       </div>
       {typeof datum.timedCount === "number" && typeof datum.total === "number" && datum.total > 0 ? (
-        <p className="core-caption mt-2 border-t border-[var(--core-border)] pt-2 text-core-muted">
+        <p className="core-caption mt-2 border-t border-core-border pt-2 text-core-muted">
           Zeitmessung: {formatPercent((datum.timedCount / datum.total) * 100)} Abdeckung
         </p>
       ) : null}
@@ -190,8 +190,8 @@ function StatisticsTooltip({
 function PanelHeader({ title, titleId, snapshot = false }: { title: string; titleId?: string; snapshot?: boolean }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
-      {snapshot ? <span className="core-status-label rounded-full bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
+      <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
+      {snapshot ? <span className="core-status-label rounded-round bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
     </div>
   );
 }
@@ -210,9 +210,9 @@ function ChartPanel({
   className?: string;
 }) {
   return (
-    <SoftPanel className={`p-5 sm:p-6 ${className}`}>
+    <SoftPanel className={`p-6 ${className}`}>
       <PanelHeader title={title} titleId={titleId} snapshot={snapshot} />
-      <div className="mt-5 min-w-0">{children}</div>
+      <div className="mt-6 min-w-0">{children}</div>
     </SoftPanel>
   );
 }
@@ -223,7 +223,7 @@ function StatisticsSectionHeading({ id, children }: { id: string; children: Reac
 
 function NoChartData({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-56 place-items-center rounded-xl bg-core-subtle p-6 text-center core-body text-core-muted">
+    <div className="grid min-h-56 place-items-center rounded-control bg-core-subtle p-6 text-center core-body text-core-muted">
       <p className="max-w-md">{children}</p>
     </div>
   );
@@ -331,7 +331,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
           <StatTile key={label} size="compact" label={label} value={formatNumber(value, 1)} />
         ))}
       </div>
-      <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-5 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
+      <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
         <Bar dataKey="learning" name="Lernen" stackId="due" fill={CATEGORY_COLORS.learning} isAnimationActive={false} />
         <Bar dataKey="relearning" name="Wiederlernen/Rückstand" stackId="due" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
         <Bar dataKey="young" name="Jung" stackId="due" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
@@ -345,7 +345,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
 function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
   if (status.activeVariants === 0) return <NoChartData>Die ausgewählten Stapel enthalten keine aktiven, planbaren Varianten.</NoChartData>;
   return (
-    <div className="grid items-center gap-5 lg:grid-cols-[minmax(220px,0.8fr)_1fr]">
+    <div className="grid items-center gap-4 lg:grid-cols-[minmax(220px,0.8fr)_1fr]">
       <div className="h-64" aria-label="Diagramm zum aktuellen Kartenstatus">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart accessibilityLayer>
@@ -358,8 +358,8 @@ function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
       </div>
       <div className="grid gap-2">
         {status.rows.map((row, index) => (
-          <div key={row.key} className="flex items-center justify-between gap-4 rounded-lg bg-core-subtle px-3 py-2 core-body">
-            <span className="flex items-center gap-2 text-core-secondary"><span className="size-3 rounded-sm" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />{row.label}</span>
+          <div key={row.key} className="flex items-center justify-between gap-4 rounded-inset bg-core-subtle px-3 py-2 core-body">
+            <span className="flex items-center gap-2 text-core-secondary"><span className="size-3 rounded-marker" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />{row.label}</span>
             <strong className="text-core-text">{formatNumber(row.count)} · {formatPercent(row.percent)}</strong>
           </div>
         ))}
@@ -413,8 +413,8 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[38rem] border-collapse text-left core-body">
-        <thead><tr className="border-b border-[var(--core-border)] text-core-muted"><th className="px-3 py-3">Zeitraum</th><th className="px-3 py-3">Jung</th><th className="px-3 py-3">Reif</th><th className="px-3 py-3">Gesamt</th><th className="px-3 py-3 text-right">Stichprobe</th></tr></thead>
-        <tbody>{rows.map((row) => <tr key={row.key} className="border-b border-[var(--core-border)] last:border-0"><th className="px-3 py-3 font-semibold text-core-text">{row.label}</th><td className="px-3 py-3 text-core-secondary">{formatPercent(row.young.percent)}</td><td className="px-3 py-3 text-core-secondary">{formatPercent(row.mature.percent)}</td><td className="px-3 py-3 font-semibold text-core-text">{formatPercent(row.total.percent)}</td><td className="px-3 py-3 text-right text-core-muted">{formatNumber(row.total.total)}</td></tr>)}</tbody>
+        <thead><tr className="border-b border-core-border text-core-muted"><th className="px-3 py-3">Zeitraum</th><th className="px-3 py-3">Jung</th><th className="px-3 py-3">Reif</th><th className="px-3 py-3">Gesamt</th><th className="px-3 py-3 text-right">Stichprobe</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.key} className="border-b border-core-border last:border-0"><th className="px-3 py-3 font-semibold text-core-text">{row.label}</th><td className="px-3 py-3 text-core-secondary">{formatPercent(row.young.percent)}</td><td className="px-3 py-3 text-core-secondary">{formatPercent(row.mature.percent)}</td><td className="px-3 py-3 font-semibold text-core-text">{formatPercent(row.total.percent)}</td><td className="px-3 py-3 text-right text-core-muted">{formatNumber(row.total.total)}</td></tr>)}</tbody>
       </table>
     </div>
   );
@@ -444,12 +444,12 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
 
   return (
     <div className="min-w-0 max-w-full space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Lernanalyse" title="Statistik" />
         <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
       </div>
 
-      <SoftPanel className="core-statistics-filters p-4 shadow-sm sm:p-5">
+      <SoftPanel className="core-statistics-filters p-4 shadow-soft sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div ref={periodRef} className="min-w-0 max-w-full shrink-0">
             <p className="core-control-label text-core-muted">Globaler Zeitraum</p>
@@ -473,7 +473,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         <p role="status" aria-live="polite" className="sr-only">{loading ? "Statistik wird aktualisiert." : ""}</p>
       </SoftPanel>
 
-      {error ? <StatusMessage tone="error" announce="assertive" className="rounded-xl p-4">
+      {error ? <StatusMessage tone="error" announce="assertive" className="rounded-control p-4">
         <p className="core-body">Die Statistik konnte nicht aktualisiert werden. Die angezeigten Daten entsprechen der letzten erfolgreichen Auswahl.</p>
         <ActionButton variant="secondary" className="mt-3" onClick={() => {
           periodRef.current?.querySelector<HTMLButtonElement>('[aria-pressed="true"]')?.focus();
@@ -497,7 +497,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         </ChartPanel>
       </section>
 
-      <section id={STATISTICS_SECTION_IDS.activity} className="grid min-w-0 gap-5 xl:grid-cols-2" aria-labelledby="statistics-activity-title">
+      <section id={STATISTICS_SECTION_IDS.activity} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-activity-title">
         <StatisticsSectionHeading id="statistics-activity-title">Lernaktivität</StatisticsSectionHeading>
         <ChartPanel title="Wiederholungen" className="xl:col-span-2"><ActivityChart points={statistics.activity} /></ChartPanel>
         <ChartPanel title="Lernzeit"><ActivityChart points={statistics.activity} duration /></ChartPanel>
@@ -505,7 +505,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         <StudyHeatmap heatmap={statistics.studyHeatmap} formatDayLabel={statisticsHeatmapDayLabel} className="xl:col-span-2" />
       </section>
 
-      <section id={STATISTICS_SECTION_IDS.planning} className="grid min-w-0 gap-5 xl:grid-cols-2" aria-labelledby="statistics-planning-title">
+      <section id={STATISTICS_SECTION_IDS.planning} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-planning-title">
         <StatisticsSectionHeading id="statistics-planning-title">Planung & Kartenbestand</StatisticsSectionHeading>
         <ChartPanel title="Zeitplanung" className="xl:col-span-2"><PlanningChart planning={statistics.planning} /></ChartPanel>
         <ChartPanel title="Status" snapshot><StatusChart status={statistics.status} /></ChartPanel>
@@ -515,14 +515,14 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         </ChartPanel>
       </section>
 
-      <section id={STATISTICS_SECTION_IDS.memory} className="grid min-w-0 gap-5 xl:grid-cols-3" aria-labelledby="statistics-memory-model-title">
+      <section id={STATISTICS_SECTION_IDS.memory} className="grid min-w-0 gap-4 xl:grid-cols-3" aria-labelledby="statistics-memory-model-title">
         <StatisticsSectionHeading id="statistics-memory-model-title">FSRS-Gedächtnismodell</StatisticsSectionHeading>
         <ChartPanel title="FSRS-Schwierigkeit" snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Varianten" /></ChartPanel>
         <ChartPanel title="FSRS-Stabilität" snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Varianten" /></ChartPanel>
         <ChartPanel title="Abrufwahrscheinlichkeit" snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Varianten" /></ChartPanel>
       </section>
 
-      <section id={STATISTICS_SECTION_IDS.responses} className="grid min-w-0 gap-5 xl:grid-cols-2" aria-labelledby="statistics-response-behavior-title">
+      <section id={STATISTICS_SECTION_IDS.responses} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-response-behavior-title">
         <StatisticsSectionHeading id="statistics-response-behavior-title">Antwortverhalten</StatisticsSectionHeading>
         <ChartPanel title="Nach Uhrzeit"><HourlyChart points={statistics.hourly} /></ChartPanel>
         <ChartPanel title="Antwortknöpfe"><RatingChart points={statistics.ratings} /></ChartPanel>

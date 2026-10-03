@@ -58,7 +58,7 @@ export function StudyCardContent({
   const hasIncompleteChoice = (isSingleChoice || isMultipleChoice) && !isChoice;
   const selectedChoiceIsCorrect = Boolean(isChoice && selectedChoices.length > 0 && sameAnswerSet(selectedChoices, expectedAnswers));
   const choiceFeedbackClass = selectedChoices.length === 0
-    ? "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-secondary)]"
+    ? "border-core-border bg-core-subtle text-core-secondary"
     : selectedChoiceIsCorrect
       ? "border-core-success bg-core-success-soft text-core-text"
       : "border-core-danger bg-core-danger-soft text-core-text";
@@ -80,7 +80,7 @@ export function StudyCardContent({
 
   return (
     <div className="w-full">
-      <div ref={questionRef} tabIndex={-1} role="group" aria-label="Frage" className="core-study-card-front text-[var(--core-text)] outline-none">
+      <div ref={questionRef} tabIndex={-1} role="group" aria-label="Frage" className="core-study-card-front text-core-text outline-none">
         <CardPresentationSurface
           {...presentationProps}
           side="question"
@@ -100,10 +100,10 @@ export function StudyCardContent({
                 ? "core-mcq-option-correct border-core-success bg-core-success-soft text-core-text"
                 : isWrongSelection
                   ? "core-mcq-option-wrong border-core-danger bg-core-danger-soft text-core-text"
-                  : "border-[var(--core-border)] bg-core-surface text-[var(--core-text-muted)]"
+                  : "border-core-border bg-core-surface text-core-muted"
               : isSelected
-                ? "border-[var(--core-action-primary)] bg-[var(--core-surface-muted)] text-[var(--core-text)]"
-                : "border-[var(--core-border)] bg-core-surface text-[var(--core-text-secondary)] hover:border-[var(--core-border-interactive)] hover:bg-[var(--core-surface-muted)]";
+                ? "border-core-action bg-core-subtle text-core-text"
+                : "border-core-border bg-core-surface text-core-secondary hover:border-core-border-strong hover:bg-core-subtle";
             return (
               <button
                 key={option}
@@ -112,7 +112,7 @@ export function StudyCardContent({
                 disabled={revealed}
                 aria-pressed={isSelected}
                 aria-label={`Antwortoption ${String.fromCharCode(65 + index)}: ${option}`}
-                className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-xl border px-4 text-left core-body font-semibold ${stateClass}`}
+                className={`core-mcq-option flex min-h-12 items-center justify-between gap-3 rounded-control border px-4 text-left core-body font-semibold ${stateClass}`}
               >
                 <span><span className="mr-2 core-caption uppercase tracking-wide opacity-70">{String.fromCharCode(65 + index)}</span>{option}</span>
                 {revealed && isCorrect ? <CheckCircle2 className="shrink-0" size={18} aria-hidden="true" /> : null}
@@ -129,15 +129,15 @@ export function StudyCardContent({
       ) : null}
 
       {hasIncompleteChoice ? (
-        <div className="mt-6 rounded-2xl border border-core-warning bg-core-warning-soft p-4 core-body font-semibold text-core-text" role="alert">
+        <div className="mt-6 rounded-panel border border-core-warning bg-core-warning-soft p-4 core-body font-semibold text-core-text" role="alert">
           Diese Auswahlkarte hat keine vollständigen Antwortoptionen und wird wie eine normale Karte angezeigt.
         </div>
       ) : null}
 
       {revealed ? (
         <>
-          <div data-testid="study-card-answer-separator" className="my-8 h-0.5 bg-[var(--core-border-interactive)] opacity-70" />
-          <div ref={answerRef} tabIndex={-1} role="group" aria-label="Antwort" className="core-study-card-back text-[var(--core-text)] outline-none">
+          <div data-testid="study-card-answer-separator" className="my-8 h-0.5 bg-core-border-strong opacity-70" />
+          <div ref={answerRef} tabIndex={-1} role="group" aria-label="Antwort" className="core-study-card-back text-core-text outline-none">
             <CardPresentationSurface
               {...presentationProps}
               side="answer"
@@ -146,7 +146,7 @@ export function StudyCardContent({
             />
           </div>
           {isChoice ? (
-            <div className={`core-mcq-feedback mt-5 rounded-2xl border p-4 ${choiceFeedbackClass}`}>
+            <div className={`core-mcq-feedback mt-6 rounded-panel border p-4 ${choiceFeedbackClass}`}>
               <p className="font-semibold">{selectedChoices.length > 0 ? (selectedChoiceIsCorrect ? "Richtig ausgewählt." : "Nicht ganz.") : "Lösung aufgedeckt."}</p>
               <p className="mt-2">{expectedAnswers.length === 1 ? "Richtige Antwort" : "Richtige Antworten"}: {expectedAnswers.join(", ")}</p>
               {selectedChoices.length > 0 ? <p className="mt-1">Deine Auswahl: {selectedChoices.join(", ")}</p> : null}

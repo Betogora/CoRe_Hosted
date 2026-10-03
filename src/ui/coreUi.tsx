@@ -26,7 +26,7 @@ interface ActionDialogProps {
 
 export function SoftPanel({ children, className = "", ...props }: SoftPanelProps) {
   return (
-    <section {...props} className={`core-surface-raised min-w-0 rounded-[18px] ${className}`}>
+    <section {...props} className={`core-surface-raised min-w-0 rounded-panel ${className}`}>
       {children}
     </section>
   );
@@ -140,9 +140,9 @@ export function ActionDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description == null ? undefined : descriptionId}
-        className={`core-surface-raised w-full max-w-lg rounded-[18px] shadow-2xl ${compact ? "flex flex-wrap items-center gap-3 p-3 sm:gap-4 sm:p-6" : "p-6"}`}
+        className={`core-surface-raised w-full max-w-lg rounded-panel shadow-raised ${compact ? "flex flex-wrap items-center gap-3 p-3 sm:gap-4 sm:p-6" : "p-6"}`}
       >
-        <h2 id={titleId} className={`core-heading-2 text-core-text ${compact ? "min-w-0 flex-1 whitespace-nowrap !text-xl !leading-7 sm:!text-[1.75rem] sm:!leading-9" : ""}`}>{title}</h2>
+        <h2 id={titleId} className={`core-heading-2 text-core-text ${compact ? "min-w-0 flex-1 whitespace-nowrap core-dialog-title-compact" : ""}`}>{title}</h2>
         {description == null ? null : <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>}
         <div className={`${compact ? "shrink-0 gap-2 sm:gap-3" : "mt-6 gap-3"} flex flex-wrap justify-end`}>
           <ActionButton ref={cancelRef} type="button" variant="secondary" icon={actionIcons?.cancel} disabled={confirmLoading} onClick={cancelDialog}>
@@ -175,7 +175,7 @@ export function ActionDialog({
 
 export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
   return (
-    <div className={`grid size-12 shrink-0 place-items-center rounded-full ${className}`}>
+    <div className={`grid size-12 shrink-0 place-items-center rounded-round ${className}`}>
       <Icon size={22} aria-hidden="true" />
     </div>
   );
@@ -301,11 +301,11 @@ export function StatTile({
     <dl
       {...props}
       data-size={size}
-      className={`${compact ? "flex flex-col rounded-xl bg-core-subtle p-3" : "core-surface-raised rounded-[18px] p-6"} min-w-0 ${className}`.trim()}
+      className={`${compact ? "flex flex-col rounded-control bg-core-subtle p-3" : "core-surface-raised rounded-panel p-6"} min-w-0 ${className}`.trim()}
     >
       <dt className={`${compact ? "core-caption !font-semibold" : "core-status-label"} uppercase tracking-wide text-core-muted`}>
         {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
-        <span className={Icon ? "mt-5 block" : undefined}>{label}</span>
+        <span className={Icon ? "mt-6 block" : undefined}>{label}</span>
       </dt>
       <dd className={`${compact ? "core-heading-3 mt-auto pt-1" : "core-heading-2 mt-2"} text-core-text`}>{value}</dd>
       {hint ? <dd className="core-body mt-1 text-core-muted">{hint}</dd> : null}
@@ -328,7 +328,7 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
 export function EmptyState({ icon: Icon, title, body, action }: { icon: LucideIcon; title: ReactNode; body?: ReactNode; action?: ReactNode }) {
   return (
     <SoftPanel className="p-8">
-      <div className="flex flex-wrap items-center justify-between gap-5">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <OrbIcon icon={Icon} />
           <div>
@@ -458,7 +458,7 @@ export function CardMarkButton({ marked, onMarkedChange, disabled = false, class
       aria-label={marked ? "Markierung entfernen" : "Karte markieren"}
       disabled={disabled}
       onClick={() => onMarkedChange(!marked)}
-      className={`grid size-11 shrink-0 place-items-center rounded-xl text-[var(--core-warning)] transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`grid size-11 shrink-0 place-items-center rounded-control text-core-warning transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <Star size={22} fill={marked ? "currentColor" : "none"} aria-hidden="true" />
     </button>

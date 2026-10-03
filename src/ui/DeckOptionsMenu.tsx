@@ -21,7 +21,7 @@ export interface DeckOptionsMenuProps {
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
-const menuActionClass = "flex min-h-10 w-full items-center gap-2 rounded-lg px-3 text-left core-body font-semibold text-[var(--core-text-secondary)] hover:bg-[var(--core-surface-muted)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]";
+const menuActionClass = "flex min-h-10 w-full items-center gap-2 rounded-inset px-3 text-left core-body font-semibold text-core-secondary hover:bg-core-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]";
 
 export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks, onSetCoreMode, onOpenSettings, onMoveDeck }: DeckOptionsMenuProps) {
   const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);
@@ -81,27 +81,27 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
             align="end"
             sideOffset={8}
             collisionPadding={16}
-            className="core-overlay z-[60] grid w-72 gap-3 rounded-2xl border border-[var(--core-border)] bg-core-surface p-3 shadow-xl"
+            className="core-overlay z-[60] grid w-72 gap-3 rounded-panel border border-core-border bg-core-surface p-3 shadow-raised"
           >
             <div className="flex min-w-0 items-center gap-3 px-2">
               <DeckAppearanceIcon appearance={deckAppearance} className="size-9" iconSize={17} data-deck-icon="true" />
               <div className="min-w-0">
-                <p className="break-words core-body font-semibold text-[var(--core-text)]">{row.deck.name}</p>
+                <p className="break-words core-body font-semibold text-core-text">{row.deck.name}</p>
               </div>
             </div>
             <div className="grid gap-2 px-2">
-              <span className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">CoRe-Modus</span>
+              <span className="core-caption font-semibold uppercase tracking-wide text-core-muted">CoRe-Modus</span>
               <CoreModeControl value={row.coreMode} onChange={(mode) => onSetCoreMode(row.id, mode)} />
             </div>
             <div className="grid gap-1 pt-2">
               <Popover.Close asChild>
                 <button type="button" className={menuActionClass} onClick={() => onOpenSettings(row.id)}>
-                  <Settings className="text-[var(--core-text)]" size={16} aria-hidden="true" />Einstellungen
+                  <Settings className="text-core-text" size={16} aria-hidden="true" />Einstellungen
                 </button>
               </Popover.Close>
               <Popover.Close asChild>
                 <button type="button" className={menuActionClass} data-testid={`deck-move-button-${row.id}`} onClick={openMoveDialog}>
-                  <MoveRight className="text-[var(--core-text)]" size={16} aria-hidden="true" />Verschieben
+                  <MoveRight className="text-core-text" size={16} aria-hidden="true" />Verschieben
                 </button>
               </Popover.Close>
             </div>
@@ -127,7 +127,7 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
                   setMoveError("");
                 }}
               />
-              {moveError ? <p className="core-body mt-3 font-semibold text-[var(--core-status-error-text)]" role="alert">{moveError}</p> : null}
+              {moveError ? <p className="core-body mt-3 font-semibold text-core-text" role="alert">{moveError}</p> : null}
             </>
           )}
           confirmLabel="Verschieben bestätigen"

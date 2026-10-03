@@ -77,10 +77,10 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
       className="grid min-w-0 gap-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_auto]"
       data-testid="learn-deck-create-form"
     >
-      <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+      <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
         Stapelname
         <input
-          className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-medium text-[var(--core-text)] outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring-soft)]"
+          className="min-h-11 min-w-0 rounded-control border border-core-border bg-core-surface px-3 core-body font-medium text-core-text outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring-soft)]"
           ref={deckNameRef}
           value={deckDraft.name}
           onChange={(event) => updateDeckDraft("name", event.target.value)}
@@ -90,7 +90,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           data-testid="learn-deck-name-input"
         />
       </label>
-      <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+      <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
         Ebene
         <DeckSelect
           ariaLabel="Ebene"
@@ -103,7 +103,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           testId="learn-deck-parent-select"
         />
       </label>
-      <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-xl bg-[var(--core-surface-muted)] px-4 core-body font-semibold text-[var(--core-action-primary)] transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] focus-visible:ring-offset-2">
+      <button type="submit" className="inline-flex min-h-11 items-center justify-center gap-2 self-end rounded-control bg-core-subtle px-4 core-body font-semibold text-core-action transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2">
         <FolderPlus size={17} aria-hidden="true" />
         Anlegen
       </button>
@@ -112,7 +112,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
   );
 
   return (
-    <div className="grid min-w-0 gap-7">
+    <div className="grid min-w-0 gap-6">
       <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
         if (area === "cards") onOpenDecks(focusedDeckId);
       }} />
@@ -137,10 +137,10 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           body="Der verlinkte Stapel wurde gelöscht oder steht in diesem Account nicht zur Verfügung."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => onFocusDeck(null)} className="inline-flex min-h-11 items-center rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
+              <button type="button" onClick={() => onFocusDeck(null)} className="inline-flex min-h-11 items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => onOpenDecks(null)} className="inline-flex min-h-11 items-center rounded-xl border border-[var(--core-border)] bg-core-surface px-5 core-body font-semibold text-[var(--core-action-primary)]">
+              <button type="button" onClick={() => onOpenDecks(null)} className="inline-flex min-h-11 items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
                 Zur Kartenverwaltung
               </button>
             </div>
@@ -152,7 +152,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           title="Keine Karten"
           body="Erstelle oder importiere zuerst einen Stapel."
           action={
-            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-surface-muted)] px-5 core-body font-semibold text-[var(--core-action-primary)]">
+            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
               Erstellen <ChevronRight size={16} aria-hidden="true" />
             </button>
           }

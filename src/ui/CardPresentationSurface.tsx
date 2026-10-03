@@ -126,7 +126,7 @@ export function CardPresentationSurface({
   const compatibilityVisible = showCompatibility === "warnings-only" ? warning : showCompatibility;
   const frameClassName = surface === "review"
     ? "h-px w-full border-0 bg-transparent"
-    : "min-h-72 w-full rounded-xl border border-[var(--core-border)] bg-core-surface";
+    : "min-h-72 w-full rounded-control border border-core-border bg-core-surface";
   const resizeReviewFrame = () => {
     if (surface !== "review") return;
     const frame = frameRef.current;
@@ -146,7 +146,7 @@ export function CardPresentationSurface({
         <StatusMessage id={descriptionId} tone={warning ? "warning" : "success"} announce="polite">
           <span>{COMPATIBILITY_COPY[effectivePresentation.compatibility]}</span>
           {effectivePresentation.diagnostics.length ? (
-            <ul className="mt-2 list-disc space-y-1 pl-5">
+            <ul className="mt-2 list-disc space-y-1 pl-6">
               {effectivePresentation.diagnostics.map((diagnostic) => (
                 <li key={`${diagnostic.code}:${diagnostic.detail ?? ""}`}>{diagnostic.message}</li>
               ))}

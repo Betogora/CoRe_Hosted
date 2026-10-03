@@ -9,7 +9,7 @@ test("deck appearance uses the selected color for icon, border and translucent r
     <DeckAppearanceIcon appearance={{ iconKey: "brain", iconColor: "#047857" }} className="size-11" />,
   );
 
-  assert.match(markup, /rounded-full border-2/);
+  assert.match(markup, /rounded-round border-strong/);
   assert.match(markup, /color:#047857/);
   assert.match(markup, /border-color:#047857/);
   assert.match(markup, /background-color:#0478571f/);

@@ -328,7 +328,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
       <button
         type="button"
         onClick={() => toggleCollapsed(row.id)}
-        className="pointer-events-auto relative -me-2 grid size-9 shrink-0 place-items-center rounded-lg text-[var(--core-action-primary)] before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-lg before:transition-colors before:content-[''] hover:before:bg-[var(--core-surface-hover)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)] [&>svg]:relative [&>svg]:z-[1]"
+        className="pointer-events-auto relative -me-2 grid size-9 shrink-0 place-items-center rounded-inset text-core-action before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
         aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
         aria-expanded={!isCollapsed}
       >
@@ -397,12 +397,12 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
       <DeckDragFocusOverlay maskId={dragMaskId} holes={focusHoles} />
       {dragFocusLayout?.topLevelTarget ? (
         <div
-          className={`pointer-events-auto grid min-h-11 w-full place-items-center rounded-xl border-2 border-dashed px-4 text-center core-body font-semibold transition ${
+          className={`pointer-events-auto grid min-h-11 w-full place-items-center rounded-control border-strong border-dashed px-4 text-center core-body font-semibold transition ${
             topDropActive && dropIntent?.error
-              ? "border-[var(--core-danger)] bg-[var(--core-danger-surface)] text-[var(--core-danger)]"
+              ? "border-core-danger bg-core-danger-soft text-core-danger"
               : topDropActive
-                ? "border-[var(--core-warning)] bg-[var(--core-warning-surface)] text-[var(--core-text)]"
-                : "border-[var(--core-border)] bg-[var(--core-surface-raised)] text-[var(--core-text-muted)]"
+                ? "border-core-warning bg-core-warning-soft text-core-text"
+                : "border-core-border bg-core-raised text-core-muted"
           }`}
           style={{
             position: "fixed",
@@ -426,7 +426,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
   return (
     <>
       <SoftPanel
-        className="core-deck-tree-container overflow-visible p-4 sm:p-7"
+        className="core-deck-tree-container overflow-visible p-4 sm:p-6"
         data-testid={`${mode}-deck-list`}
         onPointerMove={movePointer}
         onPointerUp={endPointer}
@@ -435,12 +435,12 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="grid gap-6">
           <div className="core-deck-tree-header grid min-h-11 items-center gap-3" data-testid={`${mode}-deck-list-header`}>
-            <h3 className="core-deck-tree-title whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3>
+            <h3 className="core-deck-tree-title whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
             {headerAction ? <div className="core-deck-tree-header-action justify-self-end whitespace-nowrap">{headerAction}</div> : null}
           </div>
           {contentBeforeRows}
           {visibleRows.length > 0 ? (
-            <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
+            <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border">
               <DeckSummaryHeader />
               {visibleRows.map(renderRow)}
             </div>

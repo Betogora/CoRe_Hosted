@@ -81,7 +81,7 @@ test("renders review content without a framed card surface", () => {
   assert.match(iframe, /scrolling="no"/);
   assert.doesNotMatch(iframe, /allow-scripts/);
   assert.match(iframe, /border-0 bg-transparent/);
-  assert.doesNotMatch(iframe, /rounded-xl|border-\[var\(--core-border\)\]|bg-core-surface/);
+  assert.doesNotMatch(iframe, /rounded-control|border-core-border|bg-core-surface/);
 });
 
 test("remeasures review content from a collapsed frame instead of retaining a tall previous card", () => {

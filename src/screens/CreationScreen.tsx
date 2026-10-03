@@ -114,21 +114,21 @@ export function CreationScreen({
   }
 
   return (
-    <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-7">
+    <div className="grid min-w-0 min-h-[calc(100vh-10rem)] content-start gap-6">
       <PageHeader eyebrow="Erstellen" title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
       {completedDeck ? (
-        <SoftPanel className="mx-auto w-full max-w-3xl p-7 text-center sm:p-10">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-core-success-soft text-core-text">
+        <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
+          <span className="mx-auto grid size-16 place-items-center rounded-round bg-core-success-soft text-core-text">
             <CheckCircle2 size={34} aria-hidden="true" />
           </span>
-          <p className="mt-5 core-body font-semibold uppercase tracking-wide text-core-text">Gespeichert</p>
-          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-[var(--core-text)] outline-none">
+          <p className="mt-6 core-body font-semibold uppercase tracking-wide text-core-text">Gespeichert</p>
+          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-core-text outline-none">
             {resolvedCompletionKind === "import" ? "Import erfolgreich" : "Deine Karten sind bereit"}
           </h2>
-          <p className="mx-auto mt-3 max-w-xl core-body-large leading-7 text-[var(--core-text-muted)]">
+          <p className="mx-auto mt-3 max-w-xl core-body-large leading-7 text-core-muted">
             {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ {resolvedCompletionKind === "import" ? "vollständig gespeichert." : "gespeichert."}
           </p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <ActionButton type="button" variant="primary" onClick={() => onStartDeck(completedDeck)}>Jetzt lernen</ActionButton>
             {resolvedCompletionKind === "import" ? (
               <ActionButton type="button" variant="secondary" onClick={onOpenDashboard}>Zur Übersicht</ActionButton>
@@ -144,8 +144,8 @@ export function CreationScreen({
           </div>
         </SoftPanel>
       ) : selectedMethod ? (
-        <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-5" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
-          <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 core-body font-semibold text-[var(--core-action-primary)] hover:bg-core-surface">
+        <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-4" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
+          <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action hover:bg-core-surface">
             <ArrowLeft size={16} aria-hidden="true" />
             Erstellen
           </button>

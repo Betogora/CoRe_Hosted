@@ -14,7 +14,7 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [Docs](index.html) | Orientierung und Quellen | diese README |
 | [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
 | [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
-| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar nach 18 Elementfamilien, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
+| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar nach 19 Elementfamilien einschließlich echter Produktansichten, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
 | [Kartentypen](card-types.html) | sechs manuell erstellbare Formen im echten Reviewrenderer | dieselben Demos und CoRe-Modellhelfer |
 
 Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,

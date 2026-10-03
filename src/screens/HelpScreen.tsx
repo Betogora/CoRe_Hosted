@@ -307,7 +307,7 @@ function StoryStepCard<TSelection extends string>({
   return (
     <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
       <article
-        className={`min-w-0 w-full border-l-4 py-4 pl-5 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-70"}`}
+        className={`min-w-0 w-full border-l-4 py-4 pl-6 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-70"}`}
         tabIndex={0}
         onFocus={onFocus}
         aria-current={active ? "step" : undefined}
@@ -349,14 +349,14 @@ function HelpExampleCardStack({
       {HELP_EXAMPLE_STACK_LAYERS.map((layer) => (
         <div
           key={layer.id}
-          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-[24px] border border-[var(--core-border-interactive)] shadow-md sm:h-[21rem] ${layer.className}`}
+          className={`core-help-stack-card absolute inset-x-[8%] top-20 h-[30rem] rounded-overlay border border-core-border-strong shadow-soft sm:h-[21rem] ${layer.className}`}
           aria-hidden="true"
           data-testid={layerTestId}
           data-help-example-stack-layer={layer.id}
         />
       ))}
       <div
-        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[30rem] place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 shadow-lg sm:h-[21rem] sm:p-8"
+        className="core-help-stack-card core-help-stack-front absolute inset-x-[8%] top-20 z-20 grid h-[30rem] place-items-center rounded-overlay border border-core-border-strong p-6 shadow-raised sm:h-[21rem] sm:p-8"
         data-testid={frontTestId}
         data-help-example-stack-front="true"
       >
@@ -369,7 +369,7 @@ function HelpExampleCardStack({
 function HelpCardDivider({ compact = false, testId }: { compact?: boolean; testId?: string }) {
   return (
     <div
-      className={`mx-auto mt-4 h-px bg-[var(--core-border-interactive)] ${compact ? "w-3/4 max-w-xs" : "w-4/5 max-w-sm"}`}
+      className={`mx-auto mt-4 h-px bg-core-border-strong ${compact ? "w-3/4 max-w-xs" : "w-4/5 max-w-sm"}`}
       data-testid={testId}
       aria-hidden="true"
     />
@@ -516,7 +516,7 @@ function ActiveRecallVariantCards() {
       {ACTIVE_RECALL_VARIANTS.map((variant) => (
         <div
           key={variant.id}
-          className={`core-help-stack-card core-help-variant-card absolute grid min-h-60 place-items-center rounded-[24px] border border-[var(--core-border-interactive)] p-6 pr-12 text-center shadow-lg sm:p-8 sm:pr-12 ${variant.className}`}
+          className={`core-help-stack-card core-help-variant-card absolute grid min-h-60 place-items-center rounded-overlay border border-core-border-strong p-6 pr-12 text-center shadow-raised sm:p-8 sm:pr-12 ${variant.className}`}
           data-testid="active-recall-variant-card"
           data-help-variant-tone={variant.tone}
         >
@@ -700,7 +700,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               <button
                 key={review.id}
                 type="button"
-                className="absolute z-20 grid size-11 place-items-center rounded-full border bg-[var(--core-surface-raised)] core-body font-semibold shadow-sm transition-[transform,opacity] motion-reduce:transition-none"
+                className="absolute z-20 grid size-11 place-items-center rounded-round border bg-core-raised core-body font-semibold shadow-soft transition-[transform,opacity] motion-reduce:transition-none"
                 style={{
                   left: `${(review.reviewX / 960) * 100}%`,
                   top: `${(248 / 540) * 100}%`,
@@ -766,13 +766,13 @@ function ReferenceSection() {
         <h2 id="reference-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Das Wichtigste auf einen Blick</h2>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
             <OrbIcon icon={Clock3} />
             <h3 className="core-heading-2 font-semibold text-core-text">So arbeitet ein Spaced-Repetition-Scheduler</h3>
           </div>
-          <ol className="mt-5 border-t border-core-border">
+          <ol className="mt-6 border-t border-core-border">
             {SCHEDULING_STEPS.map((step, index) => (
               <li key={step.label} className="grid gap-2 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr]">
                 <span className="core-caption font-semibold tabular-nums text-core-action">0{index + 1}</span>
@@ -790,7 +790,7 @@ function ReferenceSection() {
             <OrbIcon icon={ShieldCheck} className="bg-core-warning-soft text-core-text" />
             <h3 className="core-heading-2 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h3>
           </div>
-          <p className="mt-5 core-body leading-6 text-core-secondary">
+          <p className="mt-6 core-body leading-6 text-core-secondary">
             CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
           </p>
           <p className="mt-3 core-body leading-6 text-core-secondary">
@@ -801,7 +801,7 @@ function ReferenceSection() {
 
       <dl className="grid border-t border-core-border md:grid-cols-2 xl:grid-cols-3">
         {MEMORY_TERMS.map((memoryTerm) => (
-          <div key={memoryTerm.term} className="border-b border-core-border py-5 md:pr-8">
+          <div key={memoryTerm.term} className="border-b border-core-border py-6 md:pr-8">
             <dt className="core-body-large font-semibold text-core-text">{memoryTerm.term}</dt>
             <dd className="mt-2 core-body leading-6 text-core-secondary">{memoryTerm.description}</dd>
           </div>
@@ -829,7 +829,7 @@ function ReferenceSection() {
             <h3 className="core-heading-2 font-semibold text-core-text">Mehr über FSRS</h3>
           </div>
           <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine 21 Modellparameter und die Zielerinnerung.</p>
-          <a className="core-action-secondary mt-5 w-fit" href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer noopener">
+          <a className="core-action-secondary mt-6 w-fit" href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer noopener">
             ABC of FSRS öffnen
             <ExternalLink size={17} aria-hidden="true" />
           </a>

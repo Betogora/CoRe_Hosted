@@ -126,7 +126,7 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: 
     <CoreTooltip label={label}>
       <button
         type="button"
-        className="grid size-11 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)] disabled:cursor-not-allowed disabled:opacity-60"
+        className="grid size-11 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60"
         aria-label={label}
         disabled={disabled}
         onMouseDown={(event) => {
@@ -588,13 +588,13 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     void insertImageFiles(files, dropRange);
   }
 
-  const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-xl border border-t-0 p-4 core-body-large font-normal leading-7 text-[var(--core-text)] outline-none transition ${
-    isActive ? "border-[var(--core-action-primary)] bg-core-surface shadow-[0_0_0_3px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)] bg-core-surface"
+  const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-control border border-t-0 p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
+    isActive ? "border-core-action bg-core-surface shadow-selection" : "border-core-border bg-core-surface"
   }`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div className="min-w-0" aria-busy={isPreparingImages || undefined}>
-      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-xl border bg-[var(--core-surface-muted)] p-1 ${isActive ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-control border bg-core-subtle p-1 ${isActive ? "border-core-action" : "border-core-border"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         {imageActions ? (
@@ -626,16 +626,16 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         ) : null}
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
         <CoreTooltip label="Weitere Textwerkzeuge">
-          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-lg border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
+          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
             <MoreHorizontal size={17} aria-hidden="true" />
           </button>
         </CoreTooltip>
         <div id={moreToolsId} hidden={!moreToolsOpen} className="core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2">
           <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
-          <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+          <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
           <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />
           <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} onRun={() => runCommand("insertOrderedList")} />
-          <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+          <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
           <div className="relative">
             <ColorToolButton
               buttonRef={textColorButtonRef}
@@ -690,7 +690,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
               />
             ) : null}
           </div>
-          <span className="mx-1 h-7 w-px bg-[var(--core-border)]" aria-hidden="true" />
+          <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
           <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
           {clozeActions ? <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} /> : null}
         </div>
@@ -736,12 +736,12 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         onDrop={handleDrop}
       />
       {clozeActions && clozeStatus ? (
-        <p id={clozeStatusId} role="status" className="mt-2 core-caption font-medium text-[var(--core-text-muted)]">
+        <p id={clozeStatusId} role="status" className="mt-2 core-caption font-medium text-core-muted">
           {clozeStatus}
         </p>
       ) : null}
       {imageStatus || imageError ? (
-        <p id={imageStatusId} role={imageError ? "alert" : "status"} className={`mt-2 core-caption font-medium ${imageError ? "core-status-error" : "text-[var(--core-text-muted)]"}`}>
+        <p id={imageStatusId} role={imageError ? "alert" : "status"} className={`mt-2 core-caption font-medium ${imageError ? "core-status-error" : "text-core-muted"}`}>
           {imageError || imageStatus}
         </p>
       ) : null}

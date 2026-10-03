@@ -65,7 +65,7 @@ function SortHeader({ field, label, sort, onChange }: {
       <button
         type="button"
         onClick={() => onChange(field)}
-        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-lg core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)] hover:text-[var(--core-text)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-semibold uppercase tracking-wide text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
         <span className="min-w-0 truncate">{label}</span>
@@ -354,18 +354,18 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
   return (
     <SoftPanel
       data-testid="card-detail-editor"
-      className="min-h-full rounded-none border-0 p-5 shadow-none sm:p-6"
+      className="min-h-full rounded-none border-0 p-6 shadow-none sm:p-6"
       style={card.status === "suspended" ? { backgroundColor: "var(--core-warning-surface)" } : undefined}
     >
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-[var(--core-text)] outline-none">Karte bearbeiten</h2>
-          <p className="mt-1 core-caption text-[var(--core-text-muted)]">{cardTypeOptions.find((option) => option.value === card.cardType)?.label ?? card.cardType}</p>
+          <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-core-text outline-none">Karte bearbeiten</h2>
+          <p className="mt-1 core-caption text-core-muted">{cardTypeOptions.find((option) => option.value === card.cardType)?.label ?? card.cardType}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
           {form || dynamicDocumentMode ? (
-            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--core-action-primary)] px-4 core-body font-semibold text-[var(--core-text-on-accent)] disabled:opacity-60">
+            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:opacity-60">
               <Save size={16} aria-hidden="true" />
               {isSaving ? "Speichert …" : "Speichern"}
             </button>
@@ -386,7 +386,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
             disabled={(!form && !dynamicDocumentMode) || isDuplicating}
             title={form || dynamicDocumentMode ? "Eigenständige Kopie direkt unter dieser Karte erstellen" : "Dieser importierte Kartentyp kann nicht kopiert werden."}
             aria-describedby={!form && !dynamicDocumentMode ? "copy-disabled-" + card.id : undefined}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-4 core-body font-semibold text-[var(--core-action-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Copy size={16} aria-hidden="true" />
             {isDuplicating ? "Kopiert …" : "Kopieren"}
@@ -394,7 +394,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           <button
             type="button"
             onClick={() => onDeleteCard(card.id)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
+            className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
           >
             <Trash2 size={16} aria-hidden="true" />
             Löschen
@@ -402,7 +402,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
         </div>
       </div>
       {card.syncConflict ? (
-        <div className="mb-5 rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
+        <div className="mb-6 rounded-control border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
           <p className="font-semibold">Synchronisierung klären</p>
           <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
         </div>
@@ -414,7 +414,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
         onMarkedChange={(marked) => onSetStudyState(card.id, { marked })}
         onSuspendedChange={(suspended) => onSetStudyState(card.id, { suspended })}
       />
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3 rounded-xl border border-[var(--core-border)] bg-core-surface p-3">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3 rounded-control border border-core-border bg-core-surface p-3">
         <div className="core-field-group min-w-0 flex-1">
           <span className="core-field-label inline-flex items-center gap-2 font-semibold"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
           <CoreDatePicker
@@ -439,12 +439,12 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
         <div className="grid min-w-0 gap-4">
           {form.cardType === "basic" || form.cardType === "basic-with-images" || form.cardType === "basic-reversed" ? (
             <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div className="grid gap-2 core-body font-semibold text-core-secondary">
                 <span>Vorderseite</span>
                 <RichTextEditor value={form.front} onChange={(value) => update("front", value)} ariaLabel="Karten-Vorderseite" ariaInvalid={Boolean(fieldErrors.front)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="front" />
               </div>
-              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div className="grid gap-2 core-body font-semibold text-core-secondary">
                 <span>Rückseite</span>
                 <RichTextEditor value={form.back} onChange={(value) => update("back", value)} ariaLabel="Karten-Rückseite" ariaInvalid={Boolean(fieldErrors.back)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="back" />
@@ -453,13 +453,13 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           ) : null}
           {form.cardType === "cloze" ? (
             <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div className="grid gap-2 core-body font-semibold text-core-secondary">
                 <span>Cloze-Text</span>
                 <RichTextEditor value={form.textWithClozes} onChange={(value) => update("textWithClozes", value)} ariaLabel="Cloze-Text" ariaInvalid={Boolean(fieldErrors.textWithClozes)} minHeightClass="min-h-32" />
-                <p className="core-body font-normal text-[var(--core-text-muted)]">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Reviewrichtung.</p>
+                <p className="core-body font-normal text-core-muted">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Reviewrichtung.</p>
                 <FieldError errors={fieldErrors} field="textWithClozes" />
               </div>
-              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div className="grid gap-2 core-body font-semibold text-core-secondary">
                 <span>Zusatzinfo</span>
                 <RichTextEditor value={form.extra} onChange={(value) => update("extra", value)} ariaLabel="Cloze-Zusatzinfo" minHeightClass="min-h-32" />
               </div>
@@ -467,13 +467,13 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           ) : null}
           {form.cardType === "single-choice" || form.cardType === "multiple-choice" ? (
             <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div className="grid gap-2 core-body font-semibold text-core-secondary">
                 <span>Frage</span>
                 <RichTextEditor value={form.question} onChange={(value) => update("question", value)} ariaLabel={`${form.cardType === "single-choice" ? "Single" : "Multiple"}-Choice-Frage`} ariaInvalid={Boolean(fieldErrors.question)} minHeightClass="min-h-32" />
                 <FieldError errors={fieldErrors} field="question" />
               </div>
-              <fieldset className="grid gap-3 rounded-xl border border-[var(--core-border)] p-4">
-                <legend className="px-1 core-body font-semibold text-[var(--core-text-secondary)]">Antwortoptionen und {form.cardType === "single-choice" ? "richtige Antwort" : "richtige Antworten"}</legend>
+              <fieldset className="grid gap-3 rounded-control border border-core-border p-4">
+                <legend className="px-1 core-body font-semibold text-core-secondary">Antwortoptionen und {form.cardType === "single-choice" ? "richtige Antwort" : "richtige Antworten"}</legend>
                 {form.options.map((option, index) => {
                   const isCorrect = form.cardType === "single-choice" ? form.correctOptionIndex === index : form.correctOptionIndices.includes(index);
                   const correctnessLocked = form.cardType === "multiple-choice"
@@ -481,39 +481,39 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
                   return (
                     <div key={index} className="flex min-w-0 items-center gap-2">
                       <input type={form.cardType === "single-choice" ? "radio" : "checkbox"} name={form.cardType === "single-choice" ? `correct-option-${card.id}` : undefined} checked={isCorrect} disabled={correctnessLocked} onChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices)} />
-                      <input className="min-h-11 min-w-0 flex-1 rounded-xl border border-[var(--core-border)] px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                      <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2 || correctnessLocked} className="grid size-11 place-items-center rounded-xl border border-[var(--core-border)] text-[var(--core-text-muted)] disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                      <input className="min-h-11 min-w-0 flex-1 rounded-control border border-core-border px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                      <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2 || correctnessLocked} className="grid size-11 place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
                     </div>
                   );
                 })}
-                <button type="button" onClick={addMcOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-xl border border-[var(--core-border)] px-3 core-body font-semibold text-[var(--core-action-primary)]"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
+                <button type="button" onClick={addMcOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-control border border-core-border px-3 core-body font-semibold text-core-action"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
                 <FieldError errors={fieldErrors} field="options" />
                 <FieldError errors={fieldErrors} field="correctOptionIndex" />
                 <FieldError errors={fieldErrors} field="correctOptionIndices" />
               </fieldset>
-              <div className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div className="grid gap-2 core-body font-semibold text-core-secondary">
                 <span>Erklärung (optional)</span>
                 <RichTextEditor value={form.explanation} onChange={(value) => update("explanation", value)} ariaLabel="Erklärung zur richtigen Antwort" minHeightClass="min-h-28" />
               </div>
             </div>
           ) : null}
-          <label className="grid gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+          <label className="grid gap-2 core-body font-semibold text-core-secondary">
             Tags
-            <input className="min-h-11 min-w-0 rounded-xl border border-[var(--core-border)] px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
+            <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
           </label>
           {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
           {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
         </div>
       ) : dynamicDocumentMode ? (
         <div className="grid min-w-0 gap-4">
-          <div className="rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-4">
-            <p className="core-body font-semibold text-[var(--core-text)]">{definition.name}</p>
-            <p className="mt-1 core-body text-[var(--core-text-muted)]">Feldnamen, Reihenfolge und Templates stammen aus dem Import und bleiben schreibgeschützt. Du bearbeitest nur die Werte.</p>
+          <div className="rounded-control border border-core-border bg-core-subtle p-4">
+            <p className="core-body font-semibold text-core-text">{definition.name}</p>
+            <p className="mt-1 core-body text-core-muted">Feldnamen, Reihenfolge und Templates stammen aus dem Import und bleiben schreibgeschützt. Du bearbeitest nur die Werte.</p>
           </div>
           {card.contentDocument.fields.map((field: any) => {
             const value = documentFields.find((candidate) => candidate.id === field.id)?.value ?? "";
             return (
-              <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
                 <span>{field.name}</span>
                 <RichTextEditor
                   value={value}
@@ -532,56 +532,56 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
         </div>
       ) : (
-        <div id={"copy-disabled-" + card.id} className="rounded-xl border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
+        <div id={"copy-disabled-" + card.id} className="rounded-control border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
           Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze, Single Choice und Multiple Choice verfügbar.
         </div>
       )}
-      <section className="mt-5 min-w-0" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
-        <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-[var(--core-text)]">Varianten und Lernwerte</h3>
+      <section className="mt-6 min-w-0" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
+        <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten und Lernwerte</h3>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
-        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
-          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Reifegrad</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-[var(--core-text)]">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
-          <p className="mt-1 core-body text-[var(--core-text-muted)]">Score {maturity.score} · {maturity.description}</p>
-          <p className="mt-2 core-caption text-[var(--core-text-muted)]">Stability {getStateValue(card.reviewState, "stability")} · Difficulty {getStateValue(card.reviewState, "difficulty")} · Reps {getStateValue(card.reviewState, "reps", getStateValue(card.reviewState, "repetitions"))}</p>
+        <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Reifegrad</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
+          <p className="mt-1 core-body text-core-muted">Score {maturity.score} · {maturity.description}</p>
+          <p className="mt-2 core-caption text-core-muted">Stability {getStateValue(card.reviewState, "stability")} · Difficulty {getStateValue(card.reviewState, "difficulty")} · Reps {getStateValue(card.reviewState, "reps", getStateValue(card.reviewState, "repetitions"))}</p>
         </div>
-        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
-          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Variantenbereitschaft</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-[var(--core-text)]">{formatLevelList(readiness.allowedLevels)}</p>
-          <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
+        <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Variantenbereitschaft</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{formatLevelList(readiness.allowedLevels)}</p>
+          <p className="mt-1 break-words core-body text-core-muted">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
         </div>
-        <div className="min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
-          <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Variantenabdeckung</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-[var(--core-text)]">{coverage.activeRephraseCount} nahe Varianten</p>
-          <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
+        <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
+          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Variantenabdeckung</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{coverage.activeRephraseCount} nahe Varianten</p>
+          <p className="mt-1 break-words core-body text-core-muted">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
         </div>
         </div>
-        <div className="mt-5 min-w-0 rounded-xl border border-[var(--core-border)] bg-core-surface p-4">
+        <div className="mt-6 min-w-0 rounded-control border border-core-border bg-core-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">Varianten dieser Grundkarte</p>
-            <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
+            <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Varianten dieser Grundkarte</p>
+            <p className="mt-1 break-words core-body text-core-muted">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
           </div>
-          <span className="rounded-xl bg-[var(--core-surface-muted)] px-3 py-1 core-caption font-semibold text-[var(--core-action-primary)]">{variants.length} Formen</span>
+          <span className="rounded-control bg-core-subtle px-3 py-1 core-caption font-semibold text-core-action">{variants.length} Formen</span>
         </div>
         <div className="mt-4 grid gap-3">
           {variants.filter((variant: any): variant is CardVariant => variant != null).map((variant: CardVariant) => (
-              <article key={variant.id} className={`min-w-0 rounded-xl border p-3 ${variant.isActive === false || variant.qualityStatus !== "active" ? "border-core-border bg-core-subtle" : "border-[var(--core-border)] bg-[var(--core-surface-muted)]"}`}>
-                <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-[var(--core-text-muted)]">
-                  <span className="rounded-lg bg-core-surface px-2 py-1">KI-Umformulierung</span>
+              <article key={variant.id} className={`min-w-0 rounded-control border p-3 ${variant.isActive === false || variant.qualityStatus !== "active" ? "border-core-border bg-core-subtle" : "border-core-border bg-core-subtle"}`}>
+                <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
+                  <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
                   <span>Level {variant.variantLevel}</span>
                   <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>
                 </div>
-                <p className="break-words core-body font-semibold text-[var(--core-text)]">{variant.front}</p>
-                <p className="mt-1 break-words core-body text-[var(--core-text-muted)]">{variant.back}</p>
-                <p className="mt-2 core-caption text-[var(--core-text-muted)]">Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
+                <p className="break-words core-body font-semibold text-core-text">{variant.front}</p>
+                <p className="mt-1 break-words core-body text-core-muted">{variant.back}</p>
+                <p className="mt-2 core-caption text-core-muted">Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
               </article>
           ))}
         </div>
-        <div className="mt-4 grid gap-3 border-t border-[var(--core-border)] pt-4">
-          <p className="core-body font-semibold text-[var(--core-text)]">Nahe KI-Umformulierung hinzufügen</p>
-          <p className="core-body text-[var(--core-text-muted)]">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
-          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
+        <div className="mt-4 grid gap-3 border-t border-core-border pt-4">
+          <p className="core-body font-semibold text-core-text">Nahe KI-Umformulierung hinzufügen</p>
+          <p className="core-body text-core-muted">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
+          <div className="flex flex-wrap items-center gap-3 rounded-control border border-core-border bg-core-subtle p-3">
             <ActionButton
               type="button"
               variant="secondary"
@@ -592,13 +592,13 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
             >
               KI-Variante erzeugen
             </ActionButton>
-            <p className="min-w-0 flex-1 core-caption text-[var(--core-text-muted)]">
+            <p className="min-w-0 flex-1 core-caption text-core-muted">
               {card.cardType === "basic"
                 ? "Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter. ZDR wird bevorzugt; ein kostenloser Non-ZDR-Fallback ist möglich."
                 : "KI-Varianten sind derzeit nur für Basic-Karten verfügbar."}
             </p>
           </div>
-          {variantStatus ? <p className={`core-body ${variantStatusWarning ? "text-core-warning" : "text-[var(--core-text-muted)]"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
+          {variantStatus ? <p className={`core-body ${variantStatusWarning ? "text-core-warning" : "text-core-muted"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
         </div>
         </div>
       </section>
@@ -1017,7 +1017,7 @@ export function DecksScreen({
           tabIndex={-1}
           aria-label="Kartendetail"
           data-testid="card-detail-aside"
-          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-[var(--core-border)] bg-core-surface shadow-2xl [scrollbar-gutter:stable] focus:outline-none lg:w-1/2"
+          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-core-border bg-core-surface shadow-raised [scrollbar-gutter:stable] focus:outline-none lg:w-1/2"
         >
         {selectedDeckMissing ? (
           <div className="grid min-h-full place-items-center p-6">
@@ -1075,7 +1075,7 @@ export function DecksScreen({
   }
 
   return (
-    <div className="relative grid min-w-0 gap-7">
+    <div className="relative grid min-w-0 gap-6">
       {contentDeckId ? (
         <>
           <h2 className="sr-only" data-screen-heading tabIndex={-1}>Stapelinhalte</h2>
@@ -1086,23 +1086,23 @@ export function DecksScreen({
       }} />}
 
       {contentDeckId && contentTab !== "cards" ? (
-        <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-7 sm:p-10">
+        <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">
           <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
-            <span className="grid size-14 place-items-center rounded-2xl bg-core-subtle text-core-muted"><ContentIcon size={28} strokeWidth={1.6} aria-hidden="true" /></span>
+            <span className="grid size-14 place-items-center rounded-panel bg-core-subtle text-core-muted"><ContentIcon size={28} strokeWidth={2} aria-hidden="true" /></span>
             <div>
               <h3 className="core-heading-3 text-core-text">{selectedContentTab.label}</h3>
               <p className="mt-1 core-body-large text-core-muted">Demnächst verfügbar</p>
             </div>
           </div>
         </SoftPanel>
-      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-7" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
+      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
-          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-[var(--core-text)]">Aktive Stapel</h3> : null}
+          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3> : null}
           <div className="grid gap-3">
             <div className={contentDeckId ? "grid min-w-0 grid-cols-[minmax(0,1fr)_44px] items-end gap-3" : "min-w-0"}>
-              <label className="grid min-w-0 gap-2 core-body font-semibold text-[var(--core-text-secondary)]">
+              <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
                 Karten durchsuchen
-                <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-surface px-3 font-normal text-[var(--core-text-muted)] transition">
+                <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 font-normal text-core-muted transition">
                   <Search size={17} aria-hidden="true" />
                   <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
                 </span>
@@ -1120,15 +1120,15 @@ export function DecksScreen({
             </div>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[var(--core-border)] bg-[var(--core-surface-muted)] p-3">
-                <p className="min-w-0 flex-1 truncate core-body text-[var(--core-text)]">„{deletedCardUndo.description}“ gelöscht.</p>
+              <div className="flex flex-wrap items-center gap-3 rounded-control border border-core-border bg-core-subtle p-3">
+                <p className="min-w-0 flex-1 truncate core-body text-core-text">„{deletedCardUndo.description}“ gelöscht.</p>
                 <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
               </div>
             ) : null}
           </div>
 
           {tableModel.groups.length ? (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-[var(--core-border)]">
+            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border">
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
@@ -1136,7 +1136,7 @@ export function DecksScreen({
                 <col className="w-20" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
-                <tr className="core-table-header-row border-b border-[var(--core-border)]">
+                <tr className="core-table-header-row border-b border-core-border">
                   <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
@@ -1146,7 +1146,7 @@ export function DecksScreen({
                 const expanded = Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id);
                 const visibleDepth = getVisibleDeckDepth(group.depth);
                 const groupLeadingControl = (
-                  <span className="grid size-9 shrink-0 place-items-center text-[var(--core-action-primary)]" aria-hidden="true">
+                  <span className="grid size-9 shrink-0 place-items-center text-core-action" aria-hidden="true">
                     {expanded ? <ChevronDown size={18} aria-hidden="true" /> : <ChevronRight size={18} aria-hidden="true" />}
                   </span>
                 );
@@ -1176,7 +1176,7 @@ export function DecksScreen({
                         aria-label={expanded ? `Karten von ${group.path} einklappen` : `Karten von ${group.path} aufklappen`}
                         onClick={() => toggleDeckCards(group.id)}
                         data-deck-row-activation="true"
-                        className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--core-focus)]"
+                        className="absolute inset-0 z-0 cursor-pointer transition-colors hover:bg-[var(--core-focus-ring-soft)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus"
                       />
                       <DeckSummaryRow
                         row={group}
@@ -1187,8 +1187,8 @@ export function DecksScreen({
                     </th>
                   </tr> : null}
                   {expanded && cardPages?.[group.id]?.limitedToLocalCatalog ? (
-                    <tr className="border-b border-[var(--core-border)] bg-[var(--core-warning-surface)]">
-                      <td colSpan={3} className="px-4 py-2 core-caption text-[var(--core-text-secondary)]">
+                    <tr className="border-b border-core-border bg-core-warning-soft">
+                      <td colSpan={3} className="px-4 py-2 core-caption text-core-secondary">
                         Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
                       </td>
                     </tr>
@@ -1201,7 +1201,7 @@ export function DecksScreen({
                     <tr
                       key={card.id}
                       onClick={() => requestCardSelection(group.id, card.id)}
-                      className={`cursor-pointer border-b border-[var(--core-border)] transition ${suspended ? "bg-[var(--core-warning-surface)] hover:bg-[var(--core-warning-surface)]" : selected ? "bg-[var(--core-info-surface)] hover:bg-[var(--core-surface-muted)]" : "bg-core-surface hover:bg-[var(--core-surface-muted)]"} ${selected ? "shadow-[inset_3px_0_0_var(--core-action-primary)]" : ""}`}
+                      className={`cursor-pointer border-b border-core-border transition ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft hover:bg-core-subtle" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
                       data-selected={selected ? "true" : undefined}
                       data-suspended={suspended ? "true" : undefined}
                       data-card-row="true"
@@ -1211,44 +1211,44 @@ export function DecksScreen({
                           type="button"
                           data-testid={"deck-card-" + card.id}
                           aria-pressed={selectedCardId === card.id}
-                          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-[var(--core-text)] focus-visible:rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+                          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
                           onClick={(event) => {
                             event.stopPropagation();
                             requestCardSelection(group.id, card.id);
                           }}
                         >
                           {frontPreview}
-                          {card.syncConflict ? <span className="ml-2 rounded-full bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
+                          {card.syncConflict ? <span className="ml-2 rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
                         </button>
                       </td>
-                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-[var(--core-text-secondary)]">
+                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
                         {nextStudyLabel}
                         {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
                       </td>
                       <td className="min-w-0 px-1 py-1 text-right align-middle">
                         <span className="inline-flex items-center justify-end gap-1 align-middle">
                           {hasActiveVariants
-                            ? <Check size={18} className="shrink-0 text-[var(--core-text-muted)]" role="img" aria-label="Varianten vorhanden" />
-                            : <Minus size={18} className="shrink-0 text-[var(--core-text-muted)]" role="img" aria-label="Keine Varianten" />}
+                            ? <Check size={18} className="shrink-0 text-core-muted" role="img" aria-label="Varianten vorhanden" />
+                            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Varianten" />}
                           <span className="grid size-[1.125rem] place-items-center">
-                            {marked ? <Star size={18} fill="currentColor" className="text-[var(--core-warning)]" role="img" aria-label="Markiert" /> : null}
+                            {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
                           </span>
                         </span>
                       </td>
                     </tr>
                     );
                   })}{group.pageCount > 1 ? (
-                    <tr className="border-b border-[var(--core-border)] bg-core-surface" data-testid={`card-page-${group.id}`}>
+                    <tr className="border-b border-core-border bg-core-surface" data-testid={`card-page-${group.id}`}>
                       <td colSpan={3} className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">
                           <CoreTooltip label="Vorherige Seite anzeigen">
-                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
+                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
                               <ChevronLeft size={16} aria-hidden="true" />
                             </button>
                           </CoreTooltip>
-                          <span className="core-body text-[var(--core-text-muted)]">Seite {group.page + 1} von {group.pageCount}</span>
+                          <span className="core-body text-core-muted">Seite {group.page + 1} von {group.pageCount}</span>
                           <CoreTooltip label="Nächste Seite anzeigen">
-                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
+                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
                               <ChevronRight size={16} aria-hidden="true" />
                             </button>
                           </CoreTooltip>
@@ -1256,8 +1256,8 @@ export function DecksScreen({
                       </td>
                     </tr>
                   ) : null}</> : expanded ? (
-                    <tr className="border-b border-[var(--core-border)] bg-core-surface">
-                      <td colSpan={3} className="px-4 py-1 core-body text-[var(--core-text-muted)]">Keine Karten</td>
+                    <tr className="border-b border-core-border bg-core-surface">
+                      <td colSpan={3} className="px-4 py-1 core-body text-core-muted">Keine Karten</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -1265,9 +1265,9 @@ export function DecksScreen({
           </table>
             </div>
           ) : (
-            <div className="rounded-2xl border border-[var(--core-border)] p-6 sm:p-8" role="status">
-              <h4 className="core-heading-3 text-[var(--core-text)]">Keine Karten gefunden</h4>
-              <p className="mt-1 core-body-large text-[var(--core-text-muted)]">Passe die Suche an.</p>
+            <div className="rounded-panel border border-core-border p-6 sm:p-8" role="status">
+              <h4 className="core-heading-3 text-core-text">Keine Karten gefunden</h4>
+              <p className="mt-1 core-body-large text-core-muted">Passe die Suche an.</p>
             </div>
           )}
         </div>

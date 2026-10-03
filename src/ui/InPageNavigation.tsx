@@ -184,7 +184,7 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
             href={`#${item.id}`}
             aria-current={active && compact !== desktop ? "location" : undefined}
             data-in-page-navigation-link={item.id}
-            className={`-ml-px flex min-h-11 min-w-0 items-center gap-3 rounded-r-xl border-l-[3px] px-3 py-2 core-body no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus ${active ? "border-core-action bg-core-subtle font-semibold text-core-text" : "border-transparent font-medium text-core-secondary hover:bg-core-subtle hover:text-core-text"}`}
+            className={`-ml-px flex min-h-11 min-w-0 items-center gap-3 rounded-r-control border-l-strong px-3 py-2 core-body no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus ${active ? "border-core-action bg-core-subtle font-semibold text-core-text" : "border-transparent font-medium text-core-secondary hover:bg-core-subtle hover:text-core-text"}`}
             onClick={(event) => selectSection(event, item, compact)}
           >
             <Icon className="size-[1.125rem] shrink-0" aria-hidden="true" />
@@ -195,12 +195,12 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
     });
   }
 
-  if (!currentItem) return <div className="grid min-w-0 gap-7">{children}</div>;
+  if (!currentItem) return <div className="grid min-w-0 gap-6">{children}</div>;
   const CurrentIcon = currentItem.icon;
   const layoutStyle = { "--core-in-page-scroll-margin": `${Math.round(activationOffset + 16)}px` } as React.CSSProperties;
 
   return (
-    <div ref={layoutRef} className="grid min-w-0 gap-7 xl:grid-cols-[13rem_minmax(0,1fr)] xl:items-start" style={layoutStyle}>
+    <div ref={layoutRef} className="grid min-w-0 gap-6 xl:grid-cols-[13rem_minmax(0,1fr)] xl:items-start" style={layoutStyle}>
       <nav aria-label={ariaLabel} className="sticky top-4 hidden max-h-[calc(100dvh-2rem)] self-start overflow-y-auto py-1 xl:block" data-in-page-navigation="desktop">
         <ul>{links(false)}</ul>
       </nav>
@@ -224,20 +224,20 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
         <details open={compactOpen} onToggle={(event) => setCompactOpen(event.currentTarget.open)} className="relative">
           <summary
             ref={compactSummaryRef}
-            className="grid min-h-[3.75rem] cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl border border-core-border bg-core-raised px-4 py-3 text-core-text shadow-[var(--core-shadow-soft)] outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden"
+            className="grid min-h-[3.75rem] cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-panel border border-core-border bg-core-raised px-4 py-3 text-core-text shadow-soft outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden"
             data-in-page-navigation-summary="true"
           >
             <CurrentIcon className="size-[1.125rem] shrink-0 text-core-action" aria-hidden="true" />
             <span className="min-w-0 truncate core-body font-semibold">{currentItem.label}</span>
             <ChevronDown className={`size-[1.125rem] shrink-0 text-core-action transition-transform ${compactOpen ? "rotate-180" : ""}`} aria-hidden="true" />
           </summary>
-          <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] max-h-[min(26rem,calc(100dvh-10rem))] overflow-y-auto rounded-2xl border border-core-border bg-core-raised p-3 shadow-[var(--core-shadow-raised)]" data-in-page-navigation-panel="true">
+          <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] max-h-[min(26rem,calc(100dvh-10rem))] overflow-y-auto rounded-panel border border-core-border bg-core-raised p-3 shadow-raised" data-in-page-navigation-panel="true">
             <ul className="grid gap-1 sm:grid-cols-2">{links(true)}</ul>
           </div>
         </details>
       </nav>
 
-      <div className="core-in-page-content grid min-w-0 gap-7">{children}</div>
+      <div className="core-in-page-content grid min-w-0 gap-6">{children}</div>
     </div>
   );
 }

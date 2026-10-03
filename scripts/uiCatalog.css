@@ -17,6 +17,8 @@
 body:has(.catalog-shell-preview) > .core-mobile-bottom-navigation { z-index: 71; }
 body:has(.catalog-shell-preview, .catalog-product-preview) > .core-tooltip { z-index: 80; }
 body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
+body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-index: 79; }
+body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index: 80; }
 .catalog-product-preview { position: fixed; inset: 0; z-index: 70; overflow-y: auto; overflow-x: hidden; background: var(--core-canvas); }
 .catalog-product-bar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 10px; background: var(--core-canvas); }
 .catalog-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }

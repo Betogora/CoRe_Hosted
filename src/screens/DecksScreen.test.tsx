@@ -212,11 +212,11 @@ test("cards page renders sortable collapsed deck sections without learning metri
   const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id] });
   assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
   assert.match(expandedMarkup, /Was ist ATP\?/);
-  assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-\[var\(--core-border\)\][^"]*"[^>]*data-card-row="true"/);
+  assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
   assert.doesNotMatch(expandedMarkup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
   assert.match(expandedMarkup, /aria-label="Keine Varianten"/);
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
-  assert.doesNotMatch(expandedMarkup, /inline-block whitespace-nowrap rounded-full/);
+  assert.doesNotMatch(expandedMarkup, /inline-block whitespace-nowrap rounded-round/);
   assert.match(expandedMarkup, /aria-label="Keine Varianten"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
 
@@ -292,7 +292,7 @@ test("cards page shows suspended rows and marked stars beside the fixed-width va
 
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
-  assert.match(markup, /bg-\[var\(--core-warning-surface\)\]/);
+  assert.match(markup, /bg-core-warning-soft/);
   assert.match(markup, /data-testid="card-detail-aside"[^>]*\[scrollbar-gutter:stable\]/);
   const editorSurface = markup.match(/<section[^>]*data-testid="card-detail-editor"[^>]*>/)?.[0] ?? "";
   assert.match(editorSurface, /style="background-color:var\(--core-warning-surface\)"/);
@@ -373,6 +373,6 @@ test("variant icons and marked stars use the same slots in collection and deck c
     assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Varianten"/);
     assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
     assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
-    assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-full/);
+    assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
   }
 });

@@ -114,7 +114,7 @@ function CalendarNavigationButton({ label, icon: Icon, disabled, onClick }: { la
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid size-9 shrink-0 place-items-center rounded-lg text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:text-core-muted disabled:opacity-40"
+      className="grid size-9 shrink-0 place-items-center rounded-inset text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:text-core-muted disabled:opacity-40"
     >
       <Icon size={18} aria-hidden="true" />
     </button>
@@ -194,7 +194,7 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
           aria-label={ariaLabel}
           aria-describedby={ariaDescribedBy}
           data-core-date-picker="trigger"
-          className={`core-field inline-flex items-center justify-between gap-3 text-left transition hover:border-[var(--core-action-primary)] ${className}`}
+          className={`core-field inline-flex items-center justify-between gap-3 text-left transition hover:border-core-action ${className}`}
         >
           <span>{displayValue}</span>
           <CalendarDays size={17} className="shrink-0 text-core-action" aria-hidden="true" />
@@ -209,7 +209,7 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
           role="dialog"
           aria-label={`${ariaLabel}: Datum auswählen`}
           data-core-date-picker="calendar"
-          className="core-overlay z-[100] w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl p-3 outline-none"
+          className="core-overlay z-[100] w-[min(20rem,calc(100vw-1.5rem))] rounded-panel p-3 outline-none"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
@@ -228,8 +228,8 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
           </div>
           <div className="grid grid-cols-7 gap-1" role="group" aria-label={`Kalendertage für ${monthLabel}`}>
             {days.map((day) => {
-              const selectedClass = day.selected ? "bg-[var(--core-action-primary)] text-[var(--core-text-on-accent)] shadow-sm" : day.today ? "ring-1 ring-inset ring-[var(--core-action-primary)] text-core-text" : day.outsideMonth ? "text-core-muted opacity-65" : "text-core-text";
-              const hoverClass = day.selected ? "hover:bg-[var(--core-action-primary-hover)]" : "hover:bg-[var(--core-surface-hover)]";
+              const selectedClass = day.selected ? "bg-core-action text-core-on-accent shadow-soft" : day.today ? "ring-1 ring-inset ring-core-action text-core-text" : day.outsideMonth ? "text-core-muted opacity-65" : "text-core-text";
+              const hoverClass = day.selected ? "hover:bg-core-action-hover" : "hover:bg-core-hover";
               return (
                 <button
                   key={day.key}
@@ -240,7 +240,7 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
                   aria-current={day.today ? "date" : undefined}
                   disabled={day.disabled}
                   tabIndex={day.key === focusKey ? 0 : -1}
-                  className={`aspect-square min-h-9 rounded-lg core-body font-semibold transition ${selectedClass} ${hoverClass} disabled:cursor-not-allowed disabled:bg-transparent disabled:text-[var(--core-action-disabled-text)] disabled:opacity-35`}
+                  className={`aspect-square min-h-9 rounded-inset core-body font-semibold transition ${selectedClass} ${hoverClass} disabled:cursor-not-allowed disabled:bg-transparent disabled:text-[var(--core-action-disabled-text)] disabled:opacity-35`}
                   onKeyDown={(event) => handleDayKeyDown(event, day.key)}
                   onClick={() => {
                     onValueChange(day.key);

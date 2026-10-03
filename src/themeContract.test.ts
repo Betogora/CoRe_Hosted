@@ -120,17 +120,38 @@ test("six group depths retain endpoints and darken in light mode / lighten in da
 });
 
 test("theme exposes the six canonical typography levels and AA primary contrast", () => {
-  for (const declaration of [
-    "700 2.25rem/2.75rem Amulya",
-    "700 1.75rem/2.25rem Amulya",
-    "500 1.375rem/1.875rem Amulya",
-    "400 1rem/1.5rem Synonym",
-    "400 0.875rem/1.25rem Synonym",
-    "400 0.75rem/1rem Synonym",
-  ]) assert.ok(styles.includes(declaration), `missing typography ${declaration}`);
+  for (const [role, size, leading, weight, family] of [
+    ["heading-1", "2.25rem", "2.75rem", "heading", "Amulya"],
+    ["heading-2", "1.75rem", "2.25rem", "heading", "Amulya"],
+    ["heading-3", "1.375rem", "1.875rem", "control", "Amulya"],
+    ["body-large", "1rem", "1.5rem", "body", "Synonym"],
+    ["body", "0.875rem", "1.25rem", "body", "Synonym"],
+    ["caption", "0.75rem", "1rem", "body", "Synonym"],
+  ]) {
+    assert.ok(lightTokens.includes(`--core-type-${role}: ${size};`));
+    assert.ok(lightTokens.includes(`--core-leading-${role}: ${leading};`));
+    assert.ok(styles.includes(`font: var(--core-weight-${weight}) var(--core-type-${role})/var(--core-leading-${role}) ${family},`));
+  }
+  for (const [role, weight] of [["body", 400], ["control", 500], ["emphasis", 600], ["heading", 700]]) {
+    assert.ok(lightTokens.includes(`--core-weight-${role}: ${weight};`));
+  }
   for (const tokens of [lightTokens, darkTokens]) {
     assert.ok(contrastRatio(tokenColor("action-primary", tokens), tokenColor("text-on-accent", tokens)) >= 4.5);
   }
+});
+
+test("product UI consumes the shared geometry scale instead of independent utility values", () => {
+  for (const file of ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui"), "scripts/uiCatalogDemos.tsx", "scripts/uiCatalogPatterns.html"]) {
+    const source = readFileSync(file, "utf8");
+    assert.doesNotMatch(source, /\brounded(?:-[trbl])?-(?:sm|md|lg|xl|[23]xl|full|\[[^\]]+\])/, file);
+    assert.doesNotMatch(source, /\bshadow-(?:sm|md|lg|xl|2xl|inner|\[)/, file);
+    assert.doesNotMatch(source, /\btext-\[(?:\d|clamp\()/, file);
+    assert.doesNotMatch(source, /\bborder-(?:[248]|\[\d)/, file);
+    assert.doesNotMatch(source, /\bborder-(?:black|white)(?:\/|\b)/, file);
+  }
+  assert.equal((lightTokens.match(/--core-radius-/g) ?? []).length, 6);
+  assert.doesNotMatch(styles, /border-radius:\s*(?:\d|\.)/);
+  assert.doesNotMatch(styles, /--core-status-(?:info|success|warning|error)-(?:border|bg|text)/);
 });
 
 test("productive TSX does not reintroduce the replaced palette or named status utilities", () => {

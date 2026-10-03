@@ -9,7 +9,7 @@ interface AppErrorFallbackProps { onReload: () => void; onOpenHome: () => void }
 
 export function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps) {
   return (
-    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-5 py-10 text-core-text">
+    <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-6 py-10 text-core-text">
       <SoftPanel className="w-full max-w-xl p-6 sm:p-8" role="alert" aria-live="assertive">
         <div className="flex items-start gap-3">
           <OrbIcon icon={AlertTriangle} className="bg-core-danger-soft text-core-text" />
@@ -18,7 +18,7 @@ export function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps
             <h1 className="core-heading-1 mt-1 text-core-text">CoRe konnte nicht geladen werden</h1>
           </div>
         </div>
-        <p className="core-body mt-5 text-core-muted">
+        <p className="core-body mt-6 text-core-muted">
           Lade die Seite neu oder öffne die Startseite. Nicht synchronisierte Änderungen seit dem letzten erfolgreichen Speichern können verloren gehen.
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">

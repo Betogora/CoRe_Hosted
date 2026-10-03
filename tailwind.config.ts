@@ -7,6 +7,30 @@ export default {
   },
   theme: {
     extend: {
+      borderRadius: {
+        marker: "var(--core-radius-marker)",
+        inset: "var(--core-radius-inset)",
+        control: "var(--core-radius-control)",
+        panel: "var(--core-radius-panel)",
+        overlay: "var(--core-radius-overlay)",
+        round: "var(--core-radius-round)",
+      },
+      boxShadow: {
+        soft: "var(--core-shadow-soft)",
+        raised: "var(--core-shadow-raised)",
+        inset: "var(--core-shadow-inset)",
+        selection: "var(--core-shadow-selection)",
+      },
+      borderWidth: {
+        DEFAULT: "var(--core-border-width)",
+        strong: "var(--core-border-width-strong)",
+      },
+      fontWeight: {
+        normal: "var(--core-weight-body)",
+        medium: "var(--core-weight-control)",
+        semibold: "var(--core-weight-emphasis)",
+        bold: "var(--core-weight-heading)",
+      },
       fontFamily: {
         display: ["Amulya", "ui-sans-serif", "system-ui", "sans-serif"],
         sans: ["Synonym", "ui-sans-serif", "system-ui", "sans-serif"],
@@ -17,9 +41,12 @@ export default {
           surface: "var(--core-surface)",
           raised: "var(--core-surface-raised)",
           subtle: "var(--core-surface-muted)",
+          hover: "var(--core-surface-hover)",
           text: "var(--core-text)",
           secondary: "var(--core-text-secondary)",
           muted: "var(--core-text-muted)",
+          "on-accent": "var(--core-text-on-accent)",
+          "on-danger": "var(--core-text-on-danger)",
           border: "var(--core-border)",
           "border-strong": "var(--core-border-interactive)",
           action: "var(--core-action-primary)",

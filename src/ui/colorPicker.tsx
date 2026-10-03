@@ -79,7 +79,7 @@ export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onTo
       <button
         ref={buttonRef}
         type="button"
-        className="relative grid size-11 place-items-center rounded-lg border border-[var(--core-border)] bg-core-surface text-[var(--core-action-primary)] transition hover:bg-[var(--core-surface-muted)]"
+        className="relative grid size-11 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle"
         aria-label={label}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -90,7 +90,7 @@ export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onTo
         onClick={onToggle}
       >
         <Icon size={16} aria-hidden="true" />
-        <span className="absolute bottom-1 right-1 size-3 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+        <span className="absolute bottom-1 right-1 size-3 rounded-round border border-core-border" style={{ backgroundColor: color }} />
       </button>
     </CoreTooltip>
   );
@@ -177,19 +177,19 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
   const spectrumHueColor = `hsl(${spectrumColor.hue} 100% 50%)`;
 
   return (
-    <div id={id} role="dialog" aria-label={label} className="core-overlay absolute left-0 top-full z-30 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-xl p-3">
-      <div className="mb-3 flex items-center justify-between gap-2 core-caption font-semibold uppercase tracking-wide text-[var(--core-text-muted)]">
+    <div id={id} role="dialog" aria-label={label} className="core-overlay absolute left-0 top-full z-30 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-control p-3">
+      <div className="mb-3 flex items-center justify-between gap-2 core-caption font-semibold uppercase tracking-wide text-core-muted">
         <span>{label}</span>
         <Icon size={15} aria-hidden="true" />
       </div>
-      <p className="mb-2 core-caption font-semibold text-[var(--core-text-secondary)]">Gespeichert</p>
+      <p className="mb-2 core-caption font-semibold text-core-secondary">Gespeichert</p>
       <div className="grid grid-cols-3 gap-2">
         {colors.map((color: any, index: number) => (
           <CoreTooltip key={`${id}-${index}`} label={`${label} ${index + 1}`}>
             <button
               type="button"
-              className={`grid min-h-11 place-items-center rounded-lg border bg-core-surface transition hover:bg-[var(--core-surface-muted)] ${
-                selectedSlot === index ? "border-[var(--core-action-primary)] shadow-[0_0_0_2px_var(--core-focus-ring-soft)]" : "border-[var(--core-border)]"
+              className={`grid min-h-11 place-items-center rounded-inset border bg-core-surface transition hover:bg-core-subtle ${
+                selectedSlot === index ? "border-core-action shadow-selection" : "border-core-border"
               }`}
               aria-label={`${label} ${index + 1}`}
               onMouseDown={(event) => {
@@ -201,15 +201,15 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
                 setCustomColor(color);
               }}
             >
-              <span className="size-5 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+              <span className="size-5 rounded-round border border-core-border" style={{ backgroundColor: color }} />
             </button>
           </CoreTooltip>
         ))}
       </div>
-      <div className="mt-3 border-t border-[var(--core-surface-muted)] pt-3">
-        <p className="mb-2 core-caption font-semibold text-[var(--core-text-secondary)]">Spektrum</p>
+      <div className="mt-3 border-t border-core-subtle pt-3">
+        <p className="mb-2 core-caption font-semibold text-core-secondary">Spektrum</p>
         <div
-          className="relative h-28 cursor-crosshair overflow-hidden rounded-lg border border-[var(--core-border)]"
+          className="relative h-28 cursor-crosshair overflow-hidden rounded-inset border border-core-border"
           style={{
             backgroundColor: spectrumHueColor,
             backgroundImage: "linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, rgba(255,255,255,0))",
@@ -240,7 +240,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
           }}
         >
           <span
-            className="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-core-surface shadow-[0_0_0_2px_var(--core-focus-ring-soft)]"
+            className="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-round border-strong border-core-surface shadow-selection"
             style={{
               left: `${spectrumColor.saturation * 100}%`,
               top: `${(1 - spectrumColor.value) * 100}%`,
@@ -248,7 +248,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
             }}
           />
         </div>
-        <label className="mt-2 grid gap-1 core-caption font-semibold text-[var(--core-text-muted)]">
+        <label className="mt-2 grid gap-1 core-caption font-semibold text-core-muted">
           Farbton
           <input
             type="range"
@@ -263,15 +263,15 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
           />
         </label>
       </div>
-      <div className="mt-3 border-t border-[var(--core-surface-muted)] pt-3">
-        <p className="mb-2 core-caption font-semibold text-[var(--core-text-secondary)]">Schnellfarben</p>
+      <div className="mt-3 border-t border-core-subtle pt-3">
+        <p className="mb-2 core-caption font-semibold text-core-secondary">Schnellfarben</p>
         <div className="grid grid-cols-4 gap-1.5">
           {paletteColors.map((color: string|undefined) => (
             <CoreTooltip key={`${id}-palette-${color}`} label={color ?? label}>
               <button
                 type="button"
-                className={`grid size-11 place-items-center rounded-md border bg-core-surface transition hover:scale-105 ${
-                  normalizeColor(color, selectedColor) === selectedColor ? "border-[var(--core-action-primary)]" : "border-[var(--core-border)]"
+                className={`grid size-11 place-items-center rounded-inset border bg-core-surface transition hover:scale-105 ${
+                  normalizeColor(color, selectedColor) === selectedColor ? "border-core-action" : "border-core-border"
                 }`}
                 aria-label={`${label} ${color}`}
                 onMouseDown={(event) => {
@@ -281,22 +281,22 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
                   if (color) chooseColor(color);
                 }}
               >
-                <span className="size-4 rounded-full border border-black/10" style={{ backgroundColor: color }} />
+                <span className="size-4 rounded-round border border-core-border" style={{ backgroundColor: color }} />
               </button>
             </CoreTooltip>
           ))}
         </div>
       </div>
-      <label className="mt-3 flex items-center gap-2 rounded-lg border border-[var(--core-surface-muted)] bg-[var(--core-surface-muted)] p-2 core-caption font-semibold text-[var(--core-text-muted)]">
-        <span className="grid size-8 shrink-0 place-items-center rounded-md bg-core-surface text-[var(--core-action-primary)]">{selectedSlot + 1}</span>
-        <span className="size-6 shrink-0 rounded-full border border-black/10" style={{ backgroundColor: colorHexPattern.test(customColor) ? customColor : selectedColor }} />
+      <label className="mt-3 flex items-center gap-2 rounded-inset border border-core-subtle bg-core-subtle p-2 core-caption font-semibold text-core-muted">
+        <span className="grid size-8 shrink-0 place-items-center rounded-inset bg-core-surface text-core-action">{selectedSlot + 1}</span>
+        <span className="size-6 shrink-0 rounded-round border border-core-border" style={{ backgroundColor: colorHexPattern.test(customColor) ? customColor : selectedColor }} />
         <CoreTooltip label={`${label} als Hex-Farbe`}>
           <input
             type="text"
             inputMode="text"
             spellCheck="false"
             maxLength={7}
-            className="min-h-11 min-w-0 flex-1 rounded-md border border-[var(--core-border)] bg-core-surface px-2 font-mono core-body font-semibold uppercase text-[var(--core-text)] outline-none transition"
+            className="min-h-11 min-w-0 flex-1 rounded-inset border border-core-border bg-core-surface px-2 font-mono core-body font-semibold uppercase text-core-text outline-none transition"
             aria-label={`${label} als Hex-Farbe`}
             value={customColor}
             onChange={(event) => {

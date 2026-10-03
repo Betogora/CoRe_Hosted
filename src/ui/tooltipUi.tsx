@@ -227,10 +227,10 @@ export function CoreTooltipProvider({ children }: { children: React.ReactNode })
                   <span>{activeTooltip.label}</span>
                 </span>
               ) : activeTooltip.swatchColor || activeTooltip.value ? (
-                <span className="flex items-center justify-between gap-5 core-caption">
+                <span className="flex items-center justify-between gap-4 core-caption">
                   <span className="flex items-center gap-2 text-core-secondary">
                     {activeTooltip.swatchColor ? (
-                      <span className="size-2.5 rounded-sm" style={{ backgroundColor: activeTooltip.swatchColor }} aria-hidden="true" />
+                      <span className="size-2.5 rounded-marker" style={{ backgroundColor: activeTooltip.swatchColor }} aria-hidden="true" />
                     ) : null}
                     {activeTooltip.label}
                   </span>

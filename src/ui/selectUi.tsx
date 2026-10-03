@@ -127,7 +127,7 @@ function hasDeckAncestor(parentByDeckId: Map<string, string | null>, candidateId
 }
 
 const SELECT_ITEM_INDICATOR = (
-  <Select.ItemIndicator className="absolute right-3 grid place-items-center text-[var(--core-text)]">
+  <Select.ItemIndicator className="absolute right-3 grid place-items-center text-core-text">
     <Check size={15} aria-hidden="true" />
   </Select.ItemIndicator>
 );
@@ -140,9 +140,9 @@ function CoreSelectOptions({ options }: Pick<CoreSelectProps, "options">) {
         key={option.value}
         value={encodeValue(option.value)}
         textValue={option.label}
-        className="relative flex min-h-11 cursor-default select-none items-center gap-3 rounded-lg py-2 pl-3 pr-9 core-body leading-5 text-[var(--core-text)] outline-none data-[highlighted]:bg-[var(--core-surface-muted)] data-[state=checked]:bg-[var(--core-info-surface)]"
+        className="relative flex min-h-11 cursor-default select-none items-center gap-3 rounded-inset py-2 pl-3 pr-9 core-body leading-5 text-core-text outline-none data-[highlighted]:bg-core-subtle data-[state=checked]:bg-core-info-soft"
       >
-        {Icon ? <Icon size={17} className="shrink-0 text-[var(--core-text-muted)]" aria-hidden="true" /> : null}
+        {Icon ? <Icon size={17} className="shrink-0 text-core-muted" aria-hidden="true" /> : null}
         <Select.ItemText className="min-w-0 break-words">{option.label}</Select.ItemText>
         {SELECT_ITEM_INDICATOR}
       </Select.Item>
@@ -161,13 +161,13 @@ function SelectContent({ children, triggerRef }: { children: ReactNode; triggerR
         onPointerDownOutside={(event) => {
           if (event.target instanceof Node && triggerRef.current?.contains(event.target)) event.preventDefault();
         }}
-        className="core-overlay z-[90] max-h-[min(20rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl outline-none"
+        className="core-overlay z-[90] max-h-[min(20rem,var(--radix-select-content-available-height))] w-[var(--radix-select-trigger-width)] max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-control outline-none"
       >
-        <Select.ScrollUpButton className="grid h-8 cursor-default place-items-center text-[var(--core-text-muted)]">
+        <Select.ScrollUpButton className="grid h-8 cursor-default place-items-center text-core-muted">
           <ChevronDown size={16} className="rotate-180" aria-hidden="true" />
         </Select.ScrollUpButton>
         <Select.Viewport className="p-1">{children}</Select.Viewport>
-        <Select.ScrollDownButton className="grid h-8 cursor-default place-items-center text-[var(--core-text-muted)]">
+        <Select.ScrollDownButton className="grid h-8 cursor-default place-items-center text-core-muted">
           <ChevronDown size={16} aria-hidden="true" />
         </Select.ScrollDownButton>
       </Select.Content>
@@ -180,7 +180,7 @@ function SpecialOptionIcon({ option }: { option: DeckSelectSpecialOption }) {
   const danger = option.tone === "danger";
 
   return (
-    <span className={`grid size-7 shrink-0 place-items-center rounded-full border ${danger ? "border-[var(--core-danger)] bg-[var(--core-danger-surface)] text-[var(--core-danger)]" : "border-[var(--core-border)] bg-[var(--core-surface-muted)] text-[var(--core-text-muted)]"}`}>
+    <span className={`grid size-7 shrink-0 place-items-center rounded-round border ${danger ? "border-core-danger bg-core-danger-soft text-core-danger" : "border-core-border bg-core-subtle text-core-muted"}`}>
       <Icon size={14} aria-hidden="true" />
     </span>
   );
@@ -232,7 +232,7 @@ function DeckPickerContent({
         sideOffset={8}
         collisionPadding={12}
         data-deck-select-content="true"
-        className={`core-overlay z-[90] grid max-h-[min(25rem,var(--radix-popover-content-available-height))] gap-3 overflow-hidden rounded-2xl border border-[var(--core-border)] bg-core-surface p-3 shadow-xl outline-none ${showSearch ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]"} ${widthClassName}`}
+        className={`core-overlay z-[90] grid max-h-[min(25rem,var(--radix-popover-content-available-height))] gap-3 overflow-hidden rounded-panel border border-core-border bg-core-surface p-3 shadow-raised outline-none ${showSearch ? "grid-rows-[auto_minmax(0,1fr)]" : "grid-rows-[minmax(0,1fr)]"} ${widthClassName}`}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           const content = event.currentTarget;
@@ -243,7 +243,7 @@ function DeckPickerContent({
         }}
       >
         {showSearch ? (
-          <div className="flex items-center gap-2 rounded-xl border border-[var(--core-border)] bg-core-subtle px-3">
+          <div className="flex items-center gap-2 rounded-control border border-core-border bg-core-subtle px-3">
             <Search size={17} className="shrink-0 text-core-muted" aria-hidden="true" />
             <input
               value={query}
@@ -322,13 +322,13 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
             setOpen(false);
           }
         }}
-        className={`group inline-flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-4 text-left core-body text-[var(--core-text)] transition hover:border-[var(--core-action-primary)] data-[state=open]:border-[var(--core-action-primary)] data-[state=open]:shadow-[0_0_0_2px_var(--core-focus-ring-soft)] ${className}`}
+        className={`group inline-flex min-h-11 min-w-0 items-center gap-3 rounded-control border border-core-border-strong bg-core-surface px-4 text-left core-body text-core-text transition hover:border-core-action data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
       >
-        {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-[var(--core-text)]" aria-hidden="true" /> : null}
+        {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-core-text" aria-hidden="true" /> : null}
         <span className="min-w-0 flex-1 truncate">
           <Select.Value>{selectedLabel}</Select.Value>
         </span>
-        <Select.Icon className="grid shrink-0 place-items-center text-[var(--core-text)]">
+        <Select.Icon className="grid shrink-0 place-items-center text-core-text">
           <ChevronDown size={16} className="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
         </Select.Icon>
       </Select.Trigger>
@@ -391,7 +391,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           data-state={open ? "open" : "closed"}
           data-deck-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className={`group inline-flex min-h-11 min-w-0 items-center gap-2 rounded-xl border border-[var(--core-border-interactive)] bg-core-surface px-3 text-left core-body text-[var(--core-text)] transition hover:border-[var(--core-action-primary)] data-[state=open]:border-[var(--core-action-primary)] data-[state=open]:shadow-[0_0_0_2px_var(--core-focus-ring-soft)] ${className}`}
+          className={`group inline-flex min-h-11 min-w-0 items-center gap-2 rounded-control border border-core-border-strong bg-core-surface px-3 text-left core-body text-core-text transition hover:border-core-action data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
         >
           {selectedDeckRow ? (
             <DeckAppearanceIcon data-deck-icon="true" deck={selectedDeckRow.deck} className="size-8" iconSize={15} />
@@ -399,7 +399,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             <SpecialOptionIcon option={selectedSpecialOption} />
           ) : null}
           <span className="min-w-0 flex-1 truncate">{selectedLabel}</span>
-          <span className="grid shrink-0 place-items-center text-[var(--core-text)]">
+          <span className="grid shrink-0 place-items-center text-core-text">
             <ChevronDown size={16} className="transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
           </span>
         </button>
@@ -423,7 +423,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             data-deck-picker-option="true"
             data-deck-select-special-option="true"
             onClick={() => selectValue(specialOption.value)}
-            className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
+            className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
           >
             <SpecialOptionIcon option={specialOption} />
             <span className="min-w-0 flex-1 truncate">{specialOption.label}</span>
@@ -444,7 +444,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => selectValue(row.deck.id)}
-              className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
+              className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
               style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
@@ -493,7 +493,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           data-state={open ? "open" : "closed"}
           data-deck-multi-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className="group core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 text-left"
+          className="group core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-control px-3 text-left"
         >
           <span className="flex min-w-0 items-center gap-2">
             <Layers3 size={18} className="shrink-0 text-core-text" aria-hidden="true" />
@@ -520,13 +520,13 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           aria-selected={value === "all"}
           data-deck-picker-option="true"
           onClick={() => onValueChange("all")}
-          className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)]"
+          className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
         >
           <FolderTree size={18} className="shrink-0 text-core-text" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">Gesamte Sammlung</span>
           {value === "all" ? <Check size={15} className="absolute right-3 text-core-text" aria-hidden="true" /> : null}
         </button>
-        <div aria-hidden="true" className="my-2 border-t border-[var(--core-border)]" />
+        <div aria-hidden="true" className="my-2 border-t border-core-border" />
         {visibleRows.map((row) => {
           const inherited = hasDeckAncestor(parentByDeckId, row.deck.id, selectedDeckIds);
           const checked = selectedDeckIds.has(row.deck.id) || inherited;
@@ -543,7 +543,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => toggle(row.deck.id)}
-              className="relative flex min-h-11 w-full items-center gap-3 rounded-xl py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-[var(--core-info-surface)] disabled:cursor-default"
+              className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft disabled:cursor-default"
               style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />

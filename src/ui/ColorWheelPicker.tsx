@@ -120,11 +120,11 @@ export function ColorWheelPicker({
           type="button"
           aria-label={ariaLabel}
           disabled={disabled}
-          className={`size-11 shrink-0 rounded-xl border border-core-border bg-core-surface p-1 shadow-sm transition hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
+          className={`size-11 shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
         >
           <span
             aria-hidden="true"
-            className="block size-full rounded-lg border border-black/10 shadow-inner"
+            className="block size-full rounded-inset border border-core-border shadow-inset"
             style={{ backgroundColor: isOpen ? previewColor : normalizedValue }}
           />
         </button>
@@ -137,7 +137,7 @@ export function ColorWheelPicker({
           collisionPadding={12}
           aria-label={ariaLabel}
           data-testid="color-wheel-popover"
-          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-xl p-3 outline-none"
+          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-control p-3 outline-none"
         >
           <div
             ref={wheelRef}
@@ -148,7 +148,7 @@ export function ColorWheelPicker({
             aria-valuemax={360}
             aria-valuenow={Math.round(position.hue)}
             aria-valuetext={`${previewColor}, ${Math.round(position.intensity * 100)} %`}
-            className="relative mx-auto aspect-square w-full max-w-[14.75rem] touch-none rounded-full border-2 border-[var(--core-border-interactive)] shadow-inner outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus)]"
+            className="relative mx-auto aspect-square w-full max-w-[14.75rem] touch-none rounded-round border-strong border-core-border-strong shadow-inset outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
             style={{
               backgroundImage: "radial-gradient(circle, #fff 0%, rgb(255 255 255 / 0) 100%), conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
             }}
@@ -183,7 +183,7 @@ export function ColorWheelPicker({
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white"
+              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-round border-strong border-core-surface"
               style={{
                 backgroundColor: previewColor,
                 boxShadow: "0 0 0 1px var(--core-text)",

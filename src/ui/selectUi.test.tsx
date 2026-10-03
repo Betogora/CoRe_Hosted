@@ -133,7 +133,7 @@ test("DeckSelect keeps an empty special value visible with its warning icon", ()
 
   assert.match(markup, />Zielstapel nicht gefunden</);
   assert.match(markup, /lucide-circle-alert/);
-  assert.match(markup, /var\(--core-danger-surface\)/);
+  assert.match(markup, /bg-core-danger-soft/);
 });
 
 test("DeckSelect shows search from five selectable decks and excludes special options from the threshold", () => {

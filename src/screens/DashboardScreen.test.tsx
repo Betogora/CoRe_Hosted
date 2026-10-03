@@ -80,7 +80,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.doesNotMatch(markup, /Originalkarten/);
   assert.match(markup, /Alle ansehen/);
-  assert.match(markup, /whitespace-nowrap[^\"]*rounded-xl[^>]*>Alle ansehen/);
+  assert.match(markup, /whitespace-nowrap[^\"]*rounded-control[^>]*>Alle ansehen/);
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
@@ -100,7 +100,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /Frühere sieben Tage anzeigen[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="study-heatmap-legend"[\s\S]*Weniger/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
-  assert.match(markup, /aspect-square w-full max-w-\[4\.5rem\] rounded-xl/);
+  assert.match(markup, /aspect-square w-full max-w-\[4\.5rem\] rounded-control/);
   assert.match(markup, /ring-\[3px\] ring-core-action/);
   assert.doesNotMatch(markup, /ring-inset/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));

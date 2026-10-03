@@ -94,13 +94,13 @@ function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: s
         <button
           type="button"
           aria-label="Heatmap-Farbe ändern"
-          className={`size-11 shrink-0 rounded-xl border border-core-border bg-core-surface p-1 shadow-sm transition hover:border-core-action ${className}`}
+          className={`size-11 shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition hover:border-core-action ${className}`}
         >
-          <span aria-hidden="true" className="block size-full rounded-lg border border-black/10 shadow-inner" style={{ backgroundColor: selectedOption.tone }} />
+          <span aria-hidden="true" className="block size-full rounded-inset border border-core-border shadow-inset" style={{ backgroundColor: selectedOption.tone }} />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Heatmap-Farbe ändern" className="core-overlay z-50 w-fit rounded-xl p-3 outline-none">
+        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Heatmap-Farbe ändern" className="core-overlay z-50 w-fit rounded-control p-3 outline-none">
           <div className="grid grid-cols-2 gap-1" role="group" aria-label="CoRe-Farben" data-testid="heatmap-color-grid">
             {HEATMAP_HISTORY_COLOR_OPTIONS.map((option) => {
               const selected = option.color === selectedOption.color;
@@ -110,10 +110,10 @@ function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: s
                     type="button"
                     aria-label={option.label}
                     aria-pressed={selected}
-                    className={`grid size-11 place-items-center rounded-xl border bg-core-surface transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus ${selected ? "border-core-action shadow-[0_0_0_2px_var(--core-focus-ring-soft)]" : "border-core-border"}`}
+                    className={`grid size-11 place-items-center rounded-control border bg-core-surface transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus ${selected ? "border-core-action shadow-selection" : "border-core-border"}`}
                     onClick={() => onValueCommit(option.color)}
                   >
-                    <span aria-hidden="true" className="size-7 rounded-lg border border-black/10 shadow-inner" style={{ backgroundColor: option.tone }} />
+                    <span aria-hidden="true" className="size-7 rounded-inset border border-core-border shadow-inset" style={{ backgroundColor: option.tone }} />
                   </button>
                 </Popover.Close>
               );
@@ -167,10 +167,10 @@ function formatStudyHeatmapTitle(currentStreak: number) {
 
 function HeatmapLegend() {
   return (
-    <div className="flex items-center gap-2 core-body text-[var(--core-text-muted)]">
+    <div className="flex items-center gap-2 core-body text-core-muted">
       <span>Weniger</span>
       {[0, 1, 2, 3, 4].map((level) => (
-        <span key={level} className={`block size-3 rounded-[4px] border ${heatmapToneByLevel[level]}`} />
+        <span key={level} className={`block size-3 rounded-marker border ${heatmapToneByLevel[level]}`} />
       ))}
       <span>Mehr</span>
     </div>
@@ -220,7 +220,7 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
             <span className="block">{compactWeekLabel(day.key)}</span>
             <span className="block whitespace-nowrap">{compactDate(day.key)}</span>
           </span>
-          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-[4.5rem] rounded-xl" />
+          <HeatmapDayCell day={day} label={heatmapDayLabel(day, formatDayLabel)} className="aspect-square w-full max-w-[4.5rem] rounded-control" />
         </div>
       ))}
     </div>
@@ -237,11 +237,11 @@ function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; 
       aria-label={`Lern-Heatmap für ${formatRangeLabel(window)}`}
     >
       <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2" aria-hidden="true">
-        {window.weekdayLabels.map((label) => <span key={label} className="text-center text-[0.68rem] font-semibold text-core-muted">{label}</span>)}
+        {window.weekdayLabels.map((label) => <span key={label} className="text-center core-caption font-semibold text-core-muted">{label}</span>)}
       </div>
       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {window.days.map((day) => (
-          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="h-14 w-full rounded-lg">
+          <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="h-14 w-full rounded-inset">
             <span className="core-caption font-semibold text-core-text">{day.dayOfMonth}</span>
           </HeatmapDayCell>
         ))}
@@ -263,7 +263,7 @@ function YearHeatmap({
   return (
     <div
       ref={scrollerRef}
-      className="min-w-0 overflow-x-auto rounded-xl pb-2 [scrollbar-gutter:stable]"
+      className="min-w-0 overflow-x-auto rounded-control pb-2 [scrollbar-gutter:stable]"
       tabIndex={0}
       role="group"
       aria-label={`Horizontal scrollbare Lern-Heatmap für das Jahr ${window.rangeStartKey.slice(0, 4)}`}
@@ -280,7 +280,7 @@ function YearHeatmap({
         {window.monthLabels.map((label, index) => (
           <span
             key={`${label}-${index}`}
-            className="h-5 whitespace-nowrap text-left text-[0.68rem] font-semibold text-core-muted"
+            className="h-5 whitespace-nowrap text-left core-caption font-semibold text-core-muted"
             data-month-label={label || undefined}
           >
             {label}
@@ -288,7 +288,7 @@ function YearHeatmap({
         ))}
         {window.weekdayLabels.map((label, dayIndex) => (
           <React.Fragment key={label}>
-            <span className="flex min-h-4 items-center text-[0.68rem] font-semibold text-core-muted">{label}</span>
+            <span className="flex min-h-4 items-center core-caption font-semibold text-core-muted">{label}</span>
             {window.weeks.map((week) => {
               const day = week[dayIndex];
               return (
@@ -296,7 +296,7 @@ function YearHeatmap({
                   key={day.key}
                   day={day}
                   label={heatmapDayLabel(day, formatDayLabel)}
-                  className="size-[19px] rounded-[4px]"
+                  className="size-[19px] rounded-marker"
                 />
               );
             })}
@@ -358,7 +358,7 @@ export function StudyHeatmap({
 
   return (
     <SoftPanel
-      className={`core-study-heatmap-container p-4 sm:p-7 ${className}`}
+      className={`core-study-heatmap-container p-4 sm:p-6 ${className}`}
       style={createHeatmapColorStyle(historyColor)}
       data-heatmap-history-color={historyColor}
     >
@@ -384,7 +384,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.previousAnchorKey)}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={navigationLabels.previous}
             >
               <ChevronLeft size={16} aria-hidden="true" />
@@ -395,7 +395,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.nextAnchorKey)}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-core-border bg-core-surface text-core-action transition hover:bg-[var(--core-surface-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={navigationLabels.next}
             >
               <ChevronRight size={16} aria-hidden="true" />

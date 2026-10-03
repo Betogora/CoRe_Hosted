@@ -89,7 +89,7 @@ function NumberField({ label, value, min, max, testId, onChange }: { label: stri
         step="1"
         value={inputValue}
         data-testid={testId}
-        className="min-h-11 rounded-xl border border-core-border px-3 text-core-text"
+        className="min-h-11 rounded-control border border-core-border px-3 text-core-text"
         onChange={(event) => updateInput(event.target.value)}
         onBlur={commitInput}
         onKeyDown={(event) => {
@@ -198,8 +198,8 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
   return (
     <>
       <section id={dailySectionId} className="grid gap-4" aria-labelledby={dailyHeadingId}>
-        <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Tagesrunde & Lernprofile</h2>
-        <SoftPanel className="p-5 sm:p-6">
+        <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Tagesrunde & Lernprofile</h2>
+        <SoftPanel className="p-6">
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <SelectField label="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" onChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
             <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>{context === "global" ? "Als Standardprofil verwenden" : "Auf diesen Stapel anwenden"}</ActionButton>
@@ -210,20 +210,20 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
               : "Das Anwenden kopiert die Werte nur in diesen Stapel. Spätere Änderungen an der Vorlage wirken nicht automatisch weiter."}
           </p>
           {draft.learningProfileSource ? (
-            <p className={`mt-3 rounded-xl border px-4 py-3 core-body ${appliedProfileIsStale ? "border-core-warning bg-core-warning-soft" : "border-core-info bg-core-info-soft"}`} role={appliedProfileIsStale ? "status" : undefined}>
+            <p className={`mt-3 rounded-control border px-4 py-3 core-body ${appliedProfileIsStale ? "border-core-warning bg-core-warning-soft" : "border-core-info bg-core-info-soft"}`} role={appliedProfileIsStale ? "status" : undefined}>
               Herkunft: {appliedProfile?.name ?? "Gelöschtes Lernprofil"} · Version {draft.learningProfileSource.contentVersion}{appliedProfileIsStale ? " · Neuere Vorlage verfügbar" : ""}
             </p>
           ) : null}
 
-          <div className="mt-5 grid min-w-0 gap-3 border-t border-core-border pt-5 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end">
-            <label className="grid gap-2 core-body font-semibold text-core-muted">Name des eigenen Lernprofils<input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
+          <div className="mt-6 grid min-w-0 gap-3 border-t border-core-border pt-6 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end">
+            <label className="grid gap-2 core-body font-semibold text-core-muted">Name des eigenen Lernprofils<input className="min-h-11 min-w-0 rounded-control border border-core-border px-3 text-core-text" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
             <ActionButton type="button" variant="secondary" icon={Plus} onClick={createProfile}>Anlegen</ActionButton>
             <ActionButton type="button" variant="secondary" icon={Pencil} disabled={!selectedCustomProfile} onClick={renameProfile}>Umbenennen</ActionButton>
             <ActionButton type="button" variant="destructive" icon={Trash2} disabled={!selectedCustomProfile} onClick={() => setDeleteProfileId(selectedCustomProfile?.id ?? null)}>Löschen</ActionButton>
           </div>
           <ActionButton type="button" variant="secondary" icon={Save} className="mt-3" disabled={!selectedCustomProfile} onClick={updateProfile}>Vorlage mit aktuellen Werten aktualisieren</ActionButton>
 
-          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
+          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
             <legend className="mb-1 core-body-large font-semibold text-core-text">Tagespensum und Reihenfolge</legend>
             <div className="grid gap-4 md:grid-cols-2">
               <NumberField label="Neue Karten pro Tag" value={draft.newCardsPerDay} min={0} max={500} testId="learning-settings-new-cards" onChange={(value) => editLearning({ newCardsPerDay: value })} />
@@ -241,8 +241,8 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
       </section>
 
       <section id={schedulerSectionId} className="grid gap-4" aria-labelledby={schedulerHeadingId}>
-        <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Scheduler & CoRe</h2>
-        <SoftPanel className="p-5 sm:p-6">
+        <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Scheduler & CoRe</h2>
+        <SoftPanel className="p-6">
           <fieldset className="grid gap-4">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Brain size={19} aria-hidden="true" />Lernablauf</legend>
             <div className="grid gap-4 md:grid-cols-2">
@@ -251,16 +251,16 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
             </div>
           </fieldset>
 
-          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
+          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
             <legend className="mb-1 core-body-large font-semibold text-core-text">Erinnerungsziel</legend>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2 core-body font-semibold text-core-muted">Gewünschte Erinnerungsrate<span className="flex items-center gap-3"><input type="range" min="70" max="99" value={Math.round(draft.schedulerProfile.desiredRetention * 100)} data-testid="learning-settings-retention" className="min-w-0 flex-1" onChange={(event) => editLearning({ schedulerProfile: { desiredRetention: Number(event.target.value) / 100 } })} /><output>{Math.round(draft.schedulerProfile.desiredRetention * 100)} %</output></span></label>
               <NumberField label="Maximales Intervall in Tagen" value={draft.schedulerProfile.maximumIntervalDays} min={30} max={36500} testId="learning-settings-maximum-interval" onChange={(value) => editLearning({ schedulerProfile: { maximumIntervalDays: value } })} />
             </div>
-            {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="rounded-xl border border-core-warning bg-core-warning-soft px-4 py-3 core-body" role="alert">Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
+            {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 core-body" role="alert">Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
           </fieldset>
 
-          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-5">
+          <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
             <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."}</p>
             <div className="grid gap-4 md:grid-cols-2">

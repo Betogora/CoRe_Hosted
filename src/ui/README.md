@@ -6,6 +6,28 @@ Dieser Katalog ist die code-nahe Übersicht der verfügbaren UI-Bausteine. Neue 
 
 ## Theme und Typografie
 
+Die gemeinsame Geometrieskala verwendet `rounded-marker` (4 px),
+`rounded-inset` (8 px), `rounded-control` (12 px), `rounded-panel` (18 px),
+`rounded-overlay` (24 px) und `rounded-round`. Gerichtete Rundungen verwenden
+dieselben Stufen; eckige Flächen bleiben `rounded-none`. Normale Rahmen nutzen
+`--core-border-width` (1 px), hervorgehobene Rahmen `border-strong` (2 px).
+`shadow-soft` und `shadow-raised` besitzen themeabhängige Werte; `shadow-inset`
+und `shadow-selection` unterscheiden Vertiefung und fachliche Auswahl von
+Elevation. Sichtbare DOM-Fokusringe bleiben gemäß dem bestehenden Vertrag
+unterdrückt. Die Auswahlmarkierung ist kein Fokusring.
+
+Die sechs Schriftgrößen 12, 14, 16, 22, 28 und 36 px sowie ihre Zeilenhöhen
+liegen in `--core-type-*` und `--core-leading-*`; die vorhandenen Rollen bleiben
+erhalten. Die Gewichte 400, 500, 600 und 700 verwenden `--core-weight-*`.
+Gemeinsame Abstände verwenden 4, 8, 12, 16 und 24 px; bestehende lokale
+Layoutabstände und fachliche Messwerte bleiben in der Tailwind-Skala.
+Reguläre Panel-Layouts verwenden 24 px Innenabstand; größere Leer- und
+Fehlerzustände behalten ihren lokalen Abstand. Importierte Kartenstile,
+responsive Lernkarteninhalte, Farbspektren und die PDF-Textgeometrie sind
+inhaltliche beziehungsweise technische Ausnahmen. `themeContract.test.ts`
+verhindert freie Radius-, Schatten- und Schriftgrößenklassen in Produkt-TSX
+und den Katalogbeispielen.
+
 `src/styles.css` besitzt die primitiven CoRe-Farben, alle semantischen Light-/Dark-Rollen und die Typostufen. Produktcode verwendet semantische Klassen beziehungsweise Variablen. Der umrundete Theme-Button in der responsiven Navigation setzt ausschließlich `data-core-theme="light"` beziehungsweise `data-core-theme="dark"` am Dokumentelement; `src/coreTheme.ts` besitzt Validierung und lokale Persistenz der Auswahl. Eine automatische Systempräferenz gibt es bewusst nicht.
 
 Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](../../docs/ui-elements.html); Einstieg und Pflegeregeln stehen in [`../../docs/README.md`](../../docs/README.md). Sie zeigt die tatsächlichen gemeinsamen Komponenten, alle CoRe-Tokens, Typostufen und importierten Icons. Demos leben in `scripts/uiCatalogDemos.tsx`, ergänzende lokale Screen-Muster in `scripts/uiCatalogPatterns.html`. Bei jeder UI-Änderung die betroffenen Demos und Zustände ergänzen, die App-Quelle ändern, `npm run docs:build` und `npm run check:docs` ausführen und visuell prüfen. `typecheck` prüft die erzeugten Seiten und meldet neue Komponenten ohne Katalogzuordnung. HTML-Ausgaben werden nie direkt bearbeitet; die Referenz ist der gemeinsame Ausgangspunkt für iterative Designaufträge.

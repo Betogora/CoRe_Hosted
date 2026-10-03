@@ -1,9 +1,18 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-02
+**Stand:** 2026-10-03
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-03 — Token-Vereinheitlichung und Vorher-/Nachher-Vergleich
+
+- Die Produkt-UI verwendet sechs gemeinsame Rundungen, zwei Elevationen plus Vertiefung und Auswahl, Rahmen mit 1/2 px sowie zentrale Schriftgrößen, Zeilenhöhen und Gewichte. Die sechs bisherigen Schriftgrößen bleiben erhalten; freie kleine Beschriftungen, Sonderrundungen, Schatten und ähnliche Panelabstände sind behutsam zusammengeführt. Zwölf redundante Status-Aliasse entfallen. Semantische Farben und fachliche Stapeltiefen bleiben erhalten; importierte Kartengestaltung und PDF-Textgeometrie bleiben in ihren Besitzern. Der Theme-Vertrag verhindert die erneute Einführung freier Geometrieklassen.
+- Der Katalog zeigt zusätzlich echte Produkt-Screens mit lokalen Demodaten. Der temporäre A/B-Vergleich enthielt 88 Fälle mit 352 eingebetteten Vorher-/Nachher-Bildern in Light/Dark, Such- und Bereichsfilter sowie gemeinsame Vergrößerung. Grundlage war der isolierte Ausgangsstand mit identischen Fixtures und Zeitpunkt. Standardbreite 1440 px, mobile Navigation zusätzlich einmal bei 390 px. Menüs, Dialoge, Karteneditor, Textwerkzeuge, laufender Timer und Choice-Auswahl/-Lösung waren enthalten. Nach der Freigabe zur Veröffentlichung wurden Vergleichsdatei, Ausgangskopie und temporäre Vergleichsskripte auf Nutzerwunsch entfernt. Demos und generierte HTML-Seiten bleiben aus ihren Quellen aktualisiert.
+- Modultests in 102 Dateien, Typecheck einschließlich Dokumentationsgate sowie Produktionsbuild und Bundlebudgets bestehen. Initialgraph 217,5 KiB gzip, größter Lazy-Graph 168,7 KiB gzip. Bedienprüfungen der Vergleichsdatei bestanden ohne Laufzeitfehler. Separate Chromium-Nachweise bleiben in `test-results/ui-token-validation/matrix/`: 15 Screens und Navigation über die sechs Pflichtgrößen sowie 1279/1280 × 900 in beiden Themes; zusätzliche Vergrößerungsprobe mit 200 % CSS-Zoom. Komponenten und geöffnete Zustände wurden am Vergleich visuell geprüft; dies ersetzt keine vollständige Geräte- oder Cloud-Abnahme.
+- Audit des fertigen Diffs: keine weitere belegbare Produktionsvereinfachung oder Performance-Optimierung gefunden. Der Typografie-Test bewahrt bei der Token-Umstellung zusätzlich die bisherigen Prüfungen von Schriftfamilien und Gewichten; alle elf Theme-Prüfungen bestehen.
+- Das vollständige `npm run gate:push` besteht nach dem Audit. `npm run performance:measure:local` wurde zweimal ausgeführt: zunächst neuer Geräte-Start p75 3.821,6 ms und persistierte Stapelzusammenfassung p75 110,5 ms, anschließend ohne parallele Builds 3.097,5 ms beziehungsweise 9,8 ms. Damit bleibt ausschließlich der Geräte-Start über seinem 3.000-ms-Budget. Die übrigen Grenzwerte einschließlich des 100k-Karten-/1m-Review-Statistikbenchmarks bestehen. Messungen liegen in `test-results/ui-token-validation/performance-first.json` und `performance-repeat.json`; die Grenzwerte wurden nicht verändert. Der Push wird bis zur Klärung oder einer ausdrücklichen Ausnahme zurückgehalten.
+- Der vorhandene Überstand der Überschrift „Lerneinstellungen“ bei 320 px ist im Ausgangsstand identisch (300 px verfügbar, 316 px Textbreite, 36 px Schrift). Beim schnellen Theme-/Viewportwechsel des PDF-Katalogs wurde eine RenderingCancelledException vor und nach der Umstellung beobachtet. Beide angrenzenden Probleme bleiben außerhalb dieser Token-Umstellung. Reale Smartphone-Tastatur, physischer Touch/Screenreader, nativer Browserzoom und authentifizierte Cloudabläufe bleiben ungeprüft. Die lokale Änderung ist nach dem A/B-Vergleich zur Veröffentlichung freigegeben.
 
 ## 2026-10-02 — Audit der Dokumentation und UI-Korrekturen vor Main-Push
 

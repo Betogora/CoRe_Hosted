@@ -107,7 +107,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
   }, [dirty, draftGuard, onDraftStateChange]);
 
   return (
-    <div className="grid min-w-0 gap-7">
+    <div className="grid min-w-0 gap-6">
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Lernen" title="Lerneinstellungen" />
         <CrossLinkButton onSelect={() => onNavigate("stapel-einstellungen", { focusedDeckId: null })}>
@@ -117,35 +117,35 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
 
       <InPageNavigation ariaLabel="Bereiche der Lerneinstellungen" items={settingsSections}>
         <section id={sectionIds.planning} className="grid gap-4" aria-labelledby="card-settings-planning-heading">
-          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Lerntag & Planung</h2>
-          <SoftPanel className="p-5 sm:p-6">
+          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Lerntag & Planung</h2>
+          <SoftPanel className="p-6">
             <div className="grid gap-4 md:grid-cols-3">
               <label className="grid gap-2 core-body font-semibold text-core-muted">
                 Neuer Tag beginnt um
-                <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border px-3">
+                <span className="flex min-h-11 items-center gap-2 rounded-control border border-core-border px-3">
                   <input type="number" min="0" max="23" step="1" value={draft.dayStartHour} data-testid="card-settings-day-start-hour" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, dayStartHour: Number(event.target.value) }))} />
                   <span className="font-normal">Uhr</span>
                 </span>
               </label>
               <label className="grid gap-2 core-body font-semibold text-core-muted">
                 Lernkarten vorziehen
-                <span className="flex min-h-11 items-center gap-2 rounded-xl border border-core-border px-3">
+                <span className="flex min-h-11 items-center gap-2 rounded-control border border-core-border px-3">
                   <input type="number" min="0" max="720" step="1" value={draft.learnAheadMinutes} data-testid="card-settings-learn-ahead" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, learnAheadMinutes: Number(event.target.value) }))} />
                   <span className="font-normal">Min.</span>
                 </span>
               </label>
               <div className="grid gap-2 core-body font-semibold text-core-muted">
                 Profilzeitzone
-                <span className="flex min-h-11 items-center rounded-xl border border-core-border bg-core-subtle px-3 font-normal text-core-text">{timeZone || "Nicht festgelegt"}</span>
+                <span className="flex min-h-11 items-center rounded-control border border-core-border bg-core-subtle px-3 font-normal text-core-text">{timeZone || "Nicht festgelegt"}</span>
               </div>
             </div>
             <p className="mt-3 core-caption leading-5 text-core-muted">Diese Einstellungen gelten global für den Lerntag. Tagesrunde, Scheduler und CoRe kannst du weiter unten als Stapelstandard festlegen.</p>
-            <fieldset className="mt-6 border-t border-core-border pt-5">
+            <fieldset className="mt-6 border-t border-core-border pt-6">
               <legend className="core-body-large font-semibold text-core-text">Wochenrhythmus</legend>
               <p className="mt-2 core-caption leading-5 text-core-muted">CoRe verteilt neu berechnete Wiederholungen möglichst auf passendere Tage. Sind alle Tage gleich, bleibt die Planung unverändert.</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {EASY_DAY_KEYS.map((key) => (
-                  <label key={key} className={`grid min-w-0 gap-2 rounded-2xl border p-4 core-body font-semibold text-core-text ${easyDayToneClasses[draft.easyDays[key]]}`}>
+                  <label key={key} className={`grid min-w-0 gap-2 rounded-panel border p-4 core-body font-semibold text-core-text ${easyDayToneClasses[draft.easyDays[key]]}`}>
                     {weekdayLabels[key]}
                     <CoreSelect
                       ariaLabel={`${weekdayLabels[key]} im Wochenrhythmus`}
@@ -175,10 +175,10 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
         />
 
         <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="card-settings-focus-heading">
-          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Fokuswerkzeuge</h2>
+          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Fokuswerkzeuge</h2>
           <SoftPanel className="overflow-hidden p-0">
-            <button type="button" onClick={() => onNavigate("simulator")} className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-core-border px-4 py-3 text-left transition hover:bg-[var(--core-surface-hover)] sm:px-6">
-              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-core-warning-soft text-core-text"><CalendarClock size={20} aria-hidden="true" /></span>
+            <button type="button" onClick={() => onNavigate("simulator")} className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-core-border px-4 py-3 text-left transition hover:bg-core-hover sm:px-6">
+              <span className="grid size-11 shrink-0 place-items-center rounded-round bg-core-warning-soft text-core-text"><CalendarClock size={20} aria-hidden="true" /></span>
               <span className="min-w-0 flex-1"><span className="block core-body-large font-semibold text-core-text">Simulator</span><span className="block core-caption text-core-muted">{simulationOffsetMinutes > 0 ? `Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}` : "Lernfortschritt über simulierte Zeitpunkte prüfen"}</span></span>
             </button>
             <PomodoroTimerControl timer={pomodoroTimer} variant="settings" onStart={onStartPomodoro} />

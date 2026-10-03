@@ -25,19 +25,19 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   return (
     <Popover.Root>
       <Popover.Trigger asChild>
-        <button type="button" aria-label="Icon auswählen" className="grid size-11 shrink-0 place-items-center rounded-xl border border-core-border bg-core-surface shadow-sm transition hover:border-core-action" style={{ color }}>
+        <button type="button" aria-label="Icon auswählen" className="grid size-11 shrink-0 place-items-center rounded-control border border-core-border bg-core-surface shadow-soft transition hover:border-core-action" style={{ color }}>
           <SelectedIcon size={20} aria-hidden="true" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Icon auswählen" data-testid="deck-icon-popover" className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-xl p-3 outline-none" style={{ color }}>
+        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Icon auswählen" data-testid="deck-icon-popover" className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-control p-3 outline-none" style={{ color }}>
           <div className="grid grid-cols-5 gap-1" role="group" aria-label="Icon-Auswahl" data-testid="deck-icon-grid">
             {deckIconOptions.map((option) => {
               const Icon = option.icon;
               const selected = option.key === value;
               return (
                 <Popover.Close asChild key={option.key}>
-                  <button type="button" aria-label={option.label} aria-pressed={selected} className={`grid size-11 place-items-center rounded-xl border transition ${selected ? "border-core-action bg-core-info-soft" : "border-transparent bg-core-surface hover:bg-core-subtle"}`} onClick={() => onChange(option.key)}>
+                  <button type="button" aria-label={option.label} aria-pressed={selected} className={`grid size-11 place-items-center rounded-control border transition ${selected ? "border-core-action bg-core-info-soft" : "border-transparent bg-core-surface hover:bg-core-subtle"}`} onClick={() => onChange(option.key)}>
                     <Icon size={20} aria-hidden="true" />
                   </button>
                 </Popover.Close>
@@ -140,15 +140,15 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
         {decks.length > 0 ? (
           <SoftPanel className="p-6 sm:p-8">
             <div className="mx-auto grid max-w-xl gap-4 text-center">
-              <span className="mx-auto grid size-12 place-items-center rounded-full bg-core-info-soft text-core-action"><SlidersHorizontal size={22} aria-hidden="true" /></span>
+              <span className="mx-auto grid size-12 place-items-center rounded-round bg-core-info-soft text-core-action"><SlidersHorizontal size={22} aria-hidden="true" /></span>
               <h2 className="core-heading-2 font-semibold text-core-text">Stapel auswählen</h2>
               <p className="core-body text-core-muted">Wähle einen vorhandenen Stapel, um seine Darstellung, Lernprofile und CoRe-Parameter zu bearbeiten.</p>
               <DeckSelect ariaLabel="Stapel für Einstellungen auswählen" value="" decks={decks} specialOption={{ value: "", label: "Stapel auswählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onSelectDeck(deckId); }} testId="deck-settings-select" />
-              <button type="button" onClick={onBack} className="mx-auto inline-flex min-h-11 items-center gap-2 rounded-xl border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>
+              <button type="button" onClick={onBack} className="mx-auto inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>
             </div>
           </SoftPanel>
         ) : (
-          <EmptyState icon={Layers} title="Noch kein Stapel vorhanden" body="Erstelle oder importiere zuerst einen Stapel." action={<button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-core-subtle px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>} />
+          <EmptyState icon={Layers} title="Noch kein Stapel vorhanden" body="Erstelle oder importiere zuerst einen Stapel." action={<button type="button" onClick={onBack} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-core-subtle px-4 core-body font-semibold text-core-action"><ArrowLeft size={17} aria-hidden="true" />{backLabel}</button>} />
         )}
       </div>
     );
@@ -206,7 +206,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   }
 
   return (
-    <div className="grid min-w-0 gap-7" data-testid={`deck-settings-${deck.id}`}>
+    <div className="grid min-w-0 gap-6" data-testid={`deck-settings-${deck.id}`}>
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Stapel-Einstellungen" title={<span className="flex min-w-0 items-center gap-3"><DeckAppearanceIcon appearance={activeDraft.appearance} className="size-11" iconSize={20} data-testid="deck-settings-title-icon" /><span className="min-w-0 break-words" data-testid="deck-settings-title-name">{deck.name}</span></span>} />
         <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Lerneinstellungen</CrossLinkButton><ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={onBack}>{backLabel}</ActionButton></div>
@@ -214,10 +214,10 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
 
       <InPageNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={deckSettingsSections}>
       <section id="deck-identity" className="grid gap-4" aria-labelledby="deck-identity-heading">
-        <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Stapel</h2>
-        <SoftPanel className="p-5 sm:p-6">
+        <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Stapel</h2>
+        <SoftPanel className="p-6">
           <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
-            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">Name<input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} /></label>
+            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">Name<input className="min-h-11 min-w-0 rounded-control border border-core-border px-3 text-core-text" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} /></label>
             <label className="grid gap-2 core-body font-semibold text-core-muted">Icon<DeckIconPicker value={activeDraft.appearance.iconKey} color={activeDraft.appearance.iconColor} onChange={(iconKey) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconKey }) } : current)} /></label>
             <label className="grid gap-2 core-body font-semibold text-core-muted">Farbe<ColorWheelPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
           </div>
@@ -231,7 +231,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
             <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
           </div>
           {onDownloadDeck && onRemoveDeckDownload ? (
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-core-border bg-core-subtle p-4">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-4">
               <div>
                 <p className="core-body font-semibold text-core-text">Offline-Nutzung</p>
                 <p className="mt-1 core-caption text-core-muted">{offlineLabel}{offlineDeck?.state === "downloading" && offlineDeck.expectedCardCount > 0 ? ` · ${offlineDeck.verifiedCardCount} von ${offlineDeck.expectedCardCount} Karten` : ""}</p>
@@ -250,7 +250,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
       <LearningSettingsPanel draft={activeDraft.learning} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onDraftChange={changeLearningDraft} onApplyProfile={applyLearningProfile} />
       </InPageNavigation>
 
-      <ActionDialog open={deleteDialogOpen} title="Stapelbaum löschen?" description={<div className="grid gap-2"><p>„{deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p><ul className="list-disc pl-5"><li>{deckRow?.descendantCount ?? 0} Unterstapel</li><li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li></ul></div>} confirmLabel="Stapelbaum löschen" cancelLabel="Abbrechen" confirmLoading={deleting} destructive onCancel={() => setDeleteDialogOpen(false)} onConfirm={() => void confirmDelete()} />
+      <ActionDialog open={deleteDialogOpen} title="Stapelbaum löschen?" description={<div className="grid gap-2"><p>„{deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p><ul className="list-disc pl-6"><li>{deckRow?.descendantCount ?? 0} Unterstapel</li><li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li></ul></div>} confirmLabel="Stapelbaum löschen" cancelLabel="Abbrechen" confirmLoading={deleting} destructive onCancel={() => setDeleteDialogOpen(false)} onConfirm={() => void confirmDelete()} />
     </div>
   );
 }

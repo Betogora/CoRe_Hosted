@@ -22,11 +22,11 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
     <aside
       aria-label="Änderungen speichern?"
       data-testid="settings-save-bar"
-      className={`core-settings-save-bar core-overlay fixed left-[50dvw] z-50 grid w-[min(42rem,calc(100dvw-2rem))] -translate-x-1/2 gap-3 rounded-2xl p-3 ${mode === "deck-tree" || mode === "learning-global" ? "" : "sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"}`}
+      className={`core-settings-save-bar core-overlay fixed left-[50dvw] z-50 grid w-[min(42rem,calc(100dvw-2rem))] -translate-x-1/2 gap-3 rounded-panel p-3 ${mode === "deck-tree" || mode === "learning-global" ? "" : "sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center"}`}
       style={{ bottom: "max(14dvh, calc(env(safe-area-inset-bottom) + 5rem))" }}
     >
       <div className={`flex min-w-0 items-center gap-3 ${mode === "deck-tree" || mode === "learning-global" ? "pr-12" : "pr-12 sm:pr-0"}`}>
-        <span className="core-settings-save-badge grid size-9 shrink-0 place-items-center rounded-full" aria-hidden="true">
+        <span className="core-settings-save-badge grid size-9 shrink-0 place-items-center rounded-round" aria-hidden="true">
           <Save size={17} />
         </span>
         <p className="core-body font-semibold text-core-text" role="status" aria-live="polite">
@@ -39,7 +39,7 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
         icon={X}
         label="Änderungen verwerfen"
         disabled={saving}
-        className={mode === "deck-tree" || mode === "learning-global" ? "absolute right-2 top-2 rounded-xl" : "absolute right-2 top-2 rounded-xl sm:static sm:col-start-3 sm:row-start-1"}
+        className={mode === "deck-tree" || mode === "learning-global" ? "absolute right-2 top-2 rounded-control" : "absolute right-2 top-2 rounded-control sm:static sm:col-start-3 sm:row-start-1"}
         onClick={onDiscard}
       />
       {mode === "deck-tree" ? (

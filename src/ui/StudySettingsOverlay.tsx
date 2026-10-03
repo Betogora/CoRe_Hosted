@@ -49,13 +49,13 @@ function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-11 w-full items-center justify-between gap-3 py-1 text-left core-body font-semibold text-[var(--core-text-secondary)] transition hover:text-[var(--core-text)] disabled:cursor-not-allowed disabled:text-[var(--core-text-muted)]"
+      className="flex min-h-11 w-full items-center justify-between gap-3 py-1 text-left core-body font-semibold text-core-secondary transition hover:text-core-text disabled:cursor-not-allowed disabled:text-core-muted"
     >
       <span className="flex min-w-0 items-center gap-3">
-        <Icon className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />
+        <Icon className="shrink-0 text-core-text" size={18} aria-hidden="true" />
         {label}
       </span>
-      <ChevronRight className="text-[var(--core-text)]" size={17} aria-hidden="true" />
+      <ChevronRight className="text-core-text" size={17} aria-hidden="true" />
     </button>
   );
 }
@@ -99,16 +99,16 @@ export function StudySettingsOverlay({
         aria-modal="true"
         aria-labelledby={titleId}
         data-testid="study-settings-overlay"
-        className="core-study-settings-overlay core-overlay flex max-h-[min(88dvh,42rem)] w-full flex-col overflow-hidden rounded-t-[28px] border-b-0 md:max-w-xl md:rounded-[24px] md:border-b"
+        className="core-study-settings-overlay core-overlay flex max-h-[min(88dvh,42rem)] w-full flex-col overflow-hidden rounded-t-overlay border-b-0 md:max-w-xl md:rounded-overlay md:border-b"
       >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[var(--core-border)] md:hidden" aria-hidden="true" />
-        <header className="flex min-h-14 items-center justify-between gap-4 border-b border-[var(--core-border)] px-4 sm:px-5">
+        <div className="mx-auto mt-2 h-1 w-10 rounded-round bg-core-border md:hidden" aria-hidden="true" />
+        <header className="flex min-h-14 items-center justify-between gap-4 border-b border-core-border px-4 sm:px-6">
           <span className="size-11" aria-hidden="true" />
-          <h2 id={titleId} className="core-body-large text-center font-semibold text-[var(--core-text)]">Lerneinstellungen</h2>
+          <h2 id={titleId} className="core-body-large text-center font-semibold text-core-text">Lerneinstellungen</h2>
           <IconButton ref={closeButtonRef} label="Lerneinstellungen schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
-        <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-5">
+        <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           <section className="py-3" aria-labelledby={`${titleId}-card`}>
             <h3 id={`${titleId}-card`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Karte</h3>
             <div className="mt-1">
@@ -151,8 +151,8 @@ export function StudySettingsOverlay({
                 }}
               />
               <div className="grid min-h-11 gap-2 py-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center">
-                <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-[var(--core-text-secondary)]">
-                  <ListOrdered className="shrink-0 text-[var(--core-text)]" size={18} aria-hidden="true" />
+                <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-core-secondary">
+                  <ListOrdered className="shrink-0 text-core-text" size={18} aria-hidden="true" />
                   <span>Kartenreihenfolge</span>
                 </span>
                 <CoreSelect

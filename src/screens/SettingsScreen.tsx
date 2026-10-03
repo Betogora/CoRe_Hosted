@@ -111,7 +111,7 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
   }
 
   return (
-    <div className="grid min-w-0 gap-7">
+    <div className="grid min-w-0 gap-6">
       <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
         <PageHeader eyebrow="Profil" title="Allgemeine Einstellungen" />
         <CrossLinkButton onSelect={() => onNavigate("karten-einstellungen")}>
@@ -121,24 +121,24 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
 
       <InPageNavigation ariaLabel="Bereiche der allgemeinen Einstellungen" items={settingsSections}>
       <section id={sectionIds.account} className="grid gap-4" aria-labelledby="settings-account-heading">
-        <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Konto</h2>
-        <SoftPanel className="p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3">
+        <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Konto</h2>
+        <SoftPanel className="p-6">
+          <div className="mb-6 flex items-center gap-3">
             <OrbIcon icon={User} />
             <h3 className="core-heading-3 font-semibold text-core-text">Profil</h3>
           </div>
           <div className="grid min-w-0 gap-4 md:grid-cols-2">
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Anzeigename
-              <input className="min-h-11 min-w-0 rounded-xl border border-core-border px-3 text-core-text" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
+              <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3 text-core-text" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
             </label>
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Login-E-Mail
-              <input className="min-h-11 min-w-0 rounded-xl border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
+              <input className="min-h-11 min-w-0 rounded-control border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
               <span id="login-email-help" className="font-normal leading-5">Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.</span>
             </label>
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-6 flex flex-wrap gap-2">
             <ActionButton type="button" variant="destructive" icon={X} onClick={() => void signOut()} disabled={accountBusy}>Abmelden</ActionButton>
           </div>
           {accountMessage ? <p className="core-status-error mt-3 core-body" role="alert">{accountMessage}</p> : null}
@@ -146,8 +146,8 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
       </section>
 
       <section id={sectionIds.data} className="grid gap-4" aria-labelledby="settings-data-heading">
-        <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Daten & Synchronisierung</h2>
-        <SoftPanel className="p-5 sm:p-6">
+        <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Daten & Synchronisierung</h2>
+        <SoftPanel className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h3 className="core-heading-3 font-semibold text-core-text">Synchronisierung</h3>
@@ -157,7 +157,7 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
             </div>
             <ActionButton type="button" variant="primary" icon={RefreshCw} onClick={() => void syncNow()} loading={syncStatus.status === "saving"} disabled={accountBusy}>Jetzt synchronisieren</ActionButton>
           </div>
-          <div className="mt-5 grid gap-3 border-t border-core-border pt-5 sm:grid-cols-[minmax(0,18rem)_auto] sm:items-end">
+          <div className="mt-6 grid gap-3 border-t border-core-border pt-6 sm:grid-cols-[minmax(0,18rem)_auto] sm:items-end">
             <label className="grid gap-2 core-body font-semibold text-core-text">
               Automatisch synchronisieren
               <CoreSelect
@@ -171,7 +171,7 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
           </div>
           <p className="mt-3 core-caption leading-5 text-core-muted">Lokale Änderungen bleiben sicher in diesem Browser gespeichert. Beim nächsten vollständigen Abgleich werden nur Änderungen übertragen und neue Cloud-Daten geladen.</p>
           {storageStatus ? (
-            <div className="mt-4 rounded-xl border border-core-border bg-core-subtle px-4 py-3 core-caption leading-5 text-core-muted" data-testid="workspace-storage-status">
+            <div className="mt-4 rounded-control border border-core-border bg-core-subtle px-4 py-3 core-caption leading-5 text-core-muted" data-testid="workspace-storage-status">
               <p className="font-semibold text-core-text">Lokaler Gerätespeicher: {storageStatus.persisted ? "dauerhaft freigegeben" : storageStatus.supported ? "Best Effort" : "nicht unterstützt"}</p>
               <p>Belegt: {formatStorageBytes(storageStatus.usage)} von {formatStorageBytes(storageStatus.quota)}. Medien werden im Browser weiterhin selektiv offline gehalten.</p>
             </div>
@@ -181,8 +181,8 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
       </section>
 
       <section id={sectionIds.about} className="grid gap-4" aria-labelledby="settings-about-heading">
-        <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 rounded-lg font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Über uns</h2>
-        <SoftPanel className="p-5 sm:p-6">
+        <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Über uns</h2>
+        <SoftPanel className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
               <OrbIcon icon={CircleHelp} className="bg-core-info-soft text-core-text" />
@@ -194,11 +194,11 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
             <CrossLinkButton onSelect={() => onNavigate("hilfe")}>Info-Seite öffnen</CrossLinkButton>
           </div>
 
-          <div className="mt-6 border-t border-core-border pt-5">
+          <div className="mt-6 border-t border-core-border pt-6">
             <h3 className="core-heading-3 font-semibold text-core-text">Rechtliches</h3>
             <dl className="mt-4 grid gap-3 sm:grid-cols-2">
               {["Impressum", "Datenschutzerklärung"].map((label) => (
-                <div key={label} className="rounded-xl border border-core-border bg-core-subtle px-4 py-3">
+                <div key={label} className="rounded-control border border-core-border bg-core-subtle px-4 py-3">
                   <dt className="flex items-center gap-2 core-body font-semibold text-core-text"><FileText size={18} aria-hidden="true" />{label}</dt>
                   <dd className="mt-1 core-caption text-core-muted">In Vorbereitung</dd>
                 </div>
@@ -206,7 +206,7 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
             </dl>
           </div>
 
-          <dl className="mt-6 border-t border-core-border pt-5">
+          <dl className="mt-6 border-t border-core-border pt-6">
             <div className="flex items-center justify-between gap-4">
               <dt className="core-body font-semibold text-core-text">Version</dt>
               <dd className="core-body font-semibold text-core-muted" aria-label="Aktuelle Version">{`v${APP_RUNTIME_INFO.version}`}</dd>

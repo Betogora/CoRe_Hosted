@@ -82,16 +82,16 @@ export function CardPreviewDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         data-testid="card-preview-dialog"
-        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-6xl sm:rounded-[24px] sm:border"
+        className="core-card-preview-dialog core-overlay flex h-[100dvh] w-full flex-col overflow-hidden border-0 sm:h-auto sm:max-h-[92dvh] sm:max-w-6xl sm:rounded-overlay sm:border"
       >
-        <header className="flex min-h-16 items-center gap-4 border-b border-[var(--core-border)] px-4 sm:px-6">
-          <h2 id={titleId} className="min-w-0 flex-1 core-heading-3 text-[var(--core-text)]">Kartenvorschau</h2>
+        <header className="flex min-h-16 items-center gap-4 border-b border-core-border px-4 sm:px-6">
+          <h2 id={titleId} className="min-w-0 flex-1 core-heading-3 text-core-text">Kartenvorschau</h2>
           <IconButton ref={closeButtonRef} label="Kartenvorschau schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-[var(--core-surface-muted)] p-3 sm:p-6">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-subtle p-3 sm:p-6">
           <div className="mx-auto grid min-h-full w-full max-w-5xl place-items-center">
-            <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-2xl border border-[var(--core-border)] bg-core-surface px-4 py-6 shadow-[var(--core-shadow-raised)] sm:px-8 sm:py-10">
+            <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-panel border border-core-border bg-core-surface px-4 py-6 shadow-raised sm:px-8 sm:py-10">
               <StudyCardContent
                 item={item}
                 variant={variant}
@@ -107,7 +107,7 @@ export function CardPreviewDialog({
           </div>
         </div>
 
-        <footer className="flex shrink-0 justify-center border-t border-[var(--core-border)] bg-[var(--core-surface-raised)] px-4 py-3 pb-[max(.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4">
+        <footer className="flex shrink-0 justify-center border-t border-core-border bg-core-raised px-4 py-3 pb-[max(.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:py-4">
           <CoreSegmentedControl
             ariaLabel="Kartenseite anzeigen"
             options={PREVIEW_SIDE_OPTIONS}

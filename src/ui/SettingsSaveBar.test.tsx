@@ -62,7 +62,7 @@ test("settings save bar uses a subtle accent without a colored glow", () => {
   const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
   const saveBarRule = styles.match(/\.core-settings-save-bar\s*\{([\s\S]*?)\n\s*}/)?.[1] ?? "";
 
-  assert.match(saveBarRule, /border: 1px solid var\(--core-settings-save-border\)/);
+  assert.match(saveBarRule, /border: var\(--core-border-width\) solid var\(--core-settings-save-border\)/);
   assert.match(saveBarRule, /background: var\(--core-settings-save-surface\)/);
   assert.doesNotMatch(saveBarRule, /box-shadow|linear-gradient/);
 });

@@ -19,7 +19,7 @@ test("auth gate exposes named fields, a busy state and a non-duplicated alert re
   assert.match(markup, /<h2[^>]*>Login<\/h2>/);
   assert.match(markup, /Anmelden läuft/);
   assert.doesNotMatch(markup, /<button[^>]*type="button"[^>]*>\s*Anmelden\s*<\/button>/);
-  assert.equal(markup.match(/bg-\[var\(--core-surface\)\]/g)?.length, 2);
+  assert.equal(markup.match(/<(?:input|span)\b[^>]*bg-core-surface/g)?.length, 2);
   assert.match(markup, /role="alert"/);
   assert.doesNotMatch(markup, /aria-live="assertive"/);
   assert.match(markup, /<main class="core-centered-viewport grid min-h-dvh/);

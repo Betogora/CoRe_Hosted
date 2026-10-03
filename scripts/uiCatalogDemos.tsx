@@ -45,6 +45,17 @@ import { SimulatorScreen } from "../src/screens/SimulatorScreen.tsx";
 import { HelpScreen } from "../src/screens/HelpScreen.tsx";
 import { projectStatistics, type StatisticsSelection } from "../src/statisticsModel.ts";
 import { createMenuModel } from "../src/menuModel.ts";
+import { createCoreRepository } from "../src/coreRepository.ts";
+import { getGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
+import { createViewRoute } from "../src/appNavigation.ts";
+import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
+import { LearnScreen } from "../src/screens/LearnScreen.tsx";
+import { CreationScreen } from "../src/screens/CreationScreen.tsx";
+import { DecksScreen } from "../src/screens/DecksScreen.tsx";
+import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
+import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
+import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
+import { StudyMode } from "../src/screens/StudyMode.tsx";
 
 const today = "2026-10-02";
 const imageReference = "a".repeat(40);
@@ -77,12 +88,12 @@ function ActionsDemo({ section }: { section: string }) {
 }
 
 function BadgesDemo() {
-  return <Demo title="Lokale Badges und Kennzeichnungen"><p className="catalog-pattern-source">APKG-Vorschau und Kartensynchronisierung: <code>src/screens/ApkgImportPanel.tsx</code>, <code>src/screens/DecksScreen.tsx</code>.</p><div className="catalog-row"><span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Originalkarte</span><span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Vorderseite</span><span className="rounded-xl bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Rückseite</span><span className="rounded-full bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span></div><p className="core-caption text-core-muted">Variantenstatus verwendet ausschließlich Haken und Strich in der Tabellenfamilie.</p></Demo>;
+  return <Demo title="Lokale Badges und Kennzeichnungen"><p className="catalog-pattern-source">APKG-Vorschau und Kartensynchronisierung: <code>src/screens/ApkgImportPanel.tsx</code>, <code>src/screens/DecksScreen.tsx</code>.</p><div className="catalog-row"><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Originalkarte</span><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Vorderseite</span><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">Rückseite</span><span className="rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span></div><p className="core-caption text-core-muted">Variantenstatus verwendet ausschließlich Haken und Strich in der Tabellenfamilie.</p></Demo>;
 }
 
 function FoundationsDemo({ section }: { section: string }) {
   return <>
-    {section === "surfaces" && <Demo title="SoftPanel"><SoftPanel className="p-5"><p className="core-body text-core-text">Erhöhte Inhaltsfläche mit kanonischem Schatten.</p></SoftPanel></Demo>}
+    {section === "surfaces" && <Demo title="SoftPanel"><SoftPanel className="p-6"><p className="core-body text-core-text">Erhöhte Inhaltsfläche mit kanonischem Schatten.</p></SoftPanel></Demo>}
     {section === "headings" && <Demo title="PageHeader"><PageHeader eyebrow="Review" title="Heute lernen" action={<IconButton label="Hinzufügen" icon={Plus} />} /></Demo>}
     {section === "surfaces" && <Demo title="EmptyState"><EmptyState icon={BookOpen} title="Noch keine Karten" body="Erstelle deine erste Karte oder importiere einen Anki-Stapel." action={<ActionButton variant="primary" icon={Plus}>Erste Karte erstellen</ActionButton>} /></Demo>}
     {section === "symbols" && <Demo title="OrbIcon und DeckAppearanceIcon"><div className="catalog-row"><OrbIcon icon={BookOpen} /><DeckAppearanceIcon deck={deck} /><DeckAppearanceIcon appearance={{ iconKey: "brain", iconColor: "#047857" }} /></div></Demo>}
@@ -116,7 +127,7 @@ function FormsDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="DeckSelect · Hierarchie und Suche"><DeckSelect ariaLabel="Zielstapel" value={deckId} onValueChange={setDeckId} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="DeckMultiSelect · eingeschlossene Unterstapel"><DeckMultiSelect value={scope} onValueChange={setScope} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="CoreDatePicker"><CoreDatePicker today={today} value={date} min="2026-09-01" max="2027-12-31" ariaLabel="Lerndatum wählen" onValueChange={setDate} /></Demo>}
-    {section === "forms" && <Demo title="Native Felder · Typen, Auswahl und Validierung"><label className="catalog-field">Suche<input type="search" placeholder="Karten durchsuchen" className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Stapelname<input className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-11 rounded-xl border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-11 rounded-xl border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-row"><input type="checkbox" defaultChecked /> Auswahl aktiviert</label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-xl border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-11 rounded-xl border border-core-border px-3" /></label><label className="catalog-row"><input type="radio" name="catalog-radio" defaultChecked /> Einzelwahl</label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-11 rounded-xl border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
+    {section === "forms" && <Demo title="Native Felder · Typen, Auswahl und Validierung"><label className="catalog-field">Suche<input type="search" placeholder="Karten durchsuchen" className="min-h-11 rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Stapelname<input className="min-h-11 rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-11 rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-11 rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-row"><input type="checkbox" defaultChecked /> Auswahl aktiviert</label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-11 rounded-control border border-core-border px-3" /></label><label className="catalog-row"><input type="radio" name="catalog-radio" defaultChecked /> Einzelwahl</label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-11 rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
     {section === "forms" && <Demo title="FileDropField · APKG, Bild und Quelle" wide><div className="catalog-three">{(["apkg", "image", "document"] as const).map((kind) => <FileDropField key={kind} kind={kind} selected={Boolean(fileName)} onFile={(file) => setFileName(file.name)}>{fileName && <p>{fileName}</p>}</FileDropField>)}</div><FileDropField kind="apkg" selected disabled busy onFile={() => undefined}><p>Import wird analysiert …</p></FileDropField></Demo>}
   </>;
 }
@@ -181,7 +192,7 @@ export function cardFixture(cardType: CardType = "basic", index = 0) {
 export function StudyDemo({ cardType = "basic", index = 0 }: { cardType?: CardType; index?: number }) {
   const [revealed, setRevealed] = useState(false);
   const [choices, setChoices] = useState<string[]>([]);
-  return <div><StudyCardContent {...cardFixture(cardType, index)} revealed={revealed} selectedChoices={choices} onSelectedChoicesChange={setChoices} onReveal={() => setRevealed(true)} /><div className="catalog-row mt-5"><ActionButton variant="secondary" onClick={() => setRevealed((current) => !current)}>{revealed ? "Vorderseite zeigen" : "Antwort aufdecken"}</ActionButton><ActionButton variant="secondary" onClick={() => { setRevealed(false); setChoices([]); }}>Zurücksetzen</ActionButton></div></div>;
+  return <div><StudyCardContent {...cardFixture(cardType, index)} revealed={revealed} selectedChoices={choices} onSelectedChoicesChange={setChoices} onReveal={() => setRevealed(true)} /><div className="catalog-row mt-6"><ActionButton variant="secondary" onClick={() => setRevealed((current) => !current)}>{revealed ? "Vorderseite zeigen" : "Antwort aufdecken"}</ActionButton><ActionButton variant="secondary" onClick={() => { setRevealed(false); setChoices([]); }}>Zurücksetzen</ActionButton></div></div>;
 }
 
 function ContentDemo({ section }: { section: string }) {
@@ -249,7 +260,7 @@ function LearningDemo({ section }: { section: string }) {
     {section === "progress" && <Demo title="PomodoroProgress · Review, Sidebar und Kopf">{timer ? <>{(["study", "sidebar", "header"] as const).map((variant) => <PomodoroProgress key={variant} timer={timer} variant={variant} />)}</> : <ActionButton variant="secondary" onClick={() => start(25)}>Fortschritt anzeigen</ActionButton>}</Demo>}
     {section === "dialogs" && <Demo title="StudySettingsOverlay · Bottom Sheet und Dialog"><ActionButton variant="secondary" onClick={() => setSettings(true)}>Lerneinstellungen öffnen</ActionButton><StudySettingsOverlay open={settings} canEditCard marked={marked} suspended={suspended} reviewOrder={order} pomodoroTimer={timer} onOpenChange={setSettings} onEditCard={() => setSettings(false)} onEditDeck={() => setSettings(false)} onMarkedChange={setMarked} onSuspendedChange={setSuspended} onReviewOrderChange={setOrder} onStartPomodoro={(minutes) => { start(minutes); setSettings(false); }} /></Demo>}
     {section === "forms" && <Demo title="LearningSettingsPanel · Profile, Tagesrunde und Scheduler" wide><LearningSettingsPanel draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /></Demo>}
-    {section === "buttons" && <Demo title="Reviewratings · alle vier Bewertungen"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`min-h-14 rounded-xl border px-3 py-1.5 text-center shadow-sm transition hover:-translate-y-0.5 ${rating.className}`}><span className="block core-body font-semibold">{rating.label}</span><small className="block core-caption">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</small></button>)}</div></Demo>}
+    {section === "buttons" && <Demo title="Reviewratings · alle vier Bewertungen"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`min-h-14 rounded-control border px-3 py-1.5 text-center shadow-soft transition hover:-translate-y-0.5 ${rating.className}`}><span className="block core-body font-semibold">{rating.label}</span><small className="block core-caption">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</small></button>)}</div></Demo>}
   </>;
 }
 
@@ -273,7 +284,23 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     }) }), child];
   }, []);
   const toast = useSuccessToast();
+  const workspace = React.useMemo(() => ({ ...createCoreRepository().getState(), decks: sampleDecks }), []);
+  const navigate = React.useCallback<React.ComponentProps<typeof DashboardScreen>["onNavigate"]>((id, fields) => createViewRoute(id ?? "uebersicht", fields), []);
+  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const noop = React.useCallback(() => undefined, []);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
+  views.push(
+    ["dashboard", "DashboardScreen · Tagesübersicht", "Tagesübersicht"],
+    ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
+    ["creation", "CreationScreen · Einstieg", "Erstellen"],
+    ["manual", "ManualCreationPanel · vollständiges Formular", "Manuelle Erstellung"],
+    ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
+    ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
+    ["settings", "SettingsScreen · Konto und Synchronisierung", "Allgemeine Einstellungen"],
+    ["global", "GlobalCardSettingsScreen · globale Lernwerte", "Globale Lernwerte"],
+    ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
+    ["study", "StudyMode · Frage, Antwort und Bewertungen", "Lernsitzung"],
+  );
   return <>{views.filter(([id]) => id === kind).map(([id, title, label]) => <Demo key={id} title={title}><ActionButton variant="secondary" onClick={() => { conflicts.current = [conflict]; setMessage(""); setView(id); }}>{label} öffnen</ActionButton></Demo>)}{view && <div className="catalog-product-preview core-screen-region" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) setView(""); }}><div className="catalog-product-bar"><p className="core-caption">Echte Produktansicht · lokale Demodaten</p><ActionButton variant="secondary" autoFocus onClick={() => setView("")}>Produktansicht schließen</ActionButton></div>
     <section className="min-w-0 overflow-x-clip px-2.5 pb-32 pt-8 sm:px-4 lg:px-6">
     {view === "auth" && <AuthGateScreen message={message} onSignIn={() => setMessage("Demo-Anmeldung geprüft.")} onSignUp={() => setMessage("Demo-Registrierung geprüft.")} onResetPassword={() => setMessage("Demo-Reset angefordert.")} />}
@@ -281,11 +308,20 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
+    {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
+    {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
+    {view === "decks" && <DecksScreen decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} onSaveCard={noop} onSetCardStudyState={async () => null} onDuplicateCard={async () => null} onDeleteCard={async () => null} onUndoDeleteCard={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
+    {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
+    {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
+    {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
+    {view === "study" && <StudyMode deck={deck} decks={sampleDecks} deckId={deck.id} variantSession={false} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} onSetCardStudyState={() => deck} onSetDeckReviewOrder={() => deck} onCardUpdated={noop} onReview={noop} />}
     </section>
   </div>}</>;
 }
 
 export const DEMO_GROUPS = [
+  { id: "screens", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], render: () => <>{["dashboard", "learn", "creation", "manual", "import", "decks", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
   { id: "colors", title: "Farbauswahl", description: "Farbkreis, Schnellfarben und Farb-Popover.", components: ["ColorWheelPicker", "ColorToolButton", "ColorPopover"], render: () => <ContentDemo section="colors" /> },
   { id: "grundlagen", title: "Flächen und Leerzustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "headings", title: "Überschriften", description: "Seitentitel und Titel mit Bereichssteuerung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },

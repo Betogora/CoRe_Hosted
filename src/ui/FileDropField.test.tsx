@@ -16,8 +16,8 @@ test("FileDropField owns variant copy, file semantics, shared tokens and details
   assert.match(documentMarkup, /data-file-drop-field="true"/);
   assert.match(documentMarkup, /aria-label="Quelldatei auswählen oder ablegen"/);
   assert.match(documentMarkup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
-  assert.match(documentMarkup, /border-2 border-dashed bg-\[var\(--core-surface-muted\)\]/);
-  assert.match(documentMarkup, /border-\[var\(--core-border-interactive\)\]/);
+  assert.match(documentMarkup, /border-strong border-dashed bg-core-subtle/);
+  assert.match(documentMarkup, /border-core-border-strong/);
   assert.match(documentMarkup, /focus-visible:ring-\[var\(--core-focus-ring\)\]/);
   for (const pattern of [/lucide-file-text/, />Andere Datei auswählen<\/span>/, /beispiel\.pdf/]) assert.match(documentMarkup, pattern);
   assert.match(imageMarkup, /aria-label="Vorderseite: Bild einfügen oder ablegen"/);

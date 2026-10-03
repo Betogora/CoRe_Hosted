@@ -88,7 +88,7 @@ test("shared card mark control exposes pressed semantics", () => {
 
   assert.match(markup, /aria-pressed="true"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
-  assert.match(markup, /text-\[var\(--core-warning\)\]/);
+  assert.match(markup, /text-core-warning/);
   assert.match(markup, /fill="currentColor"/);
 });
 

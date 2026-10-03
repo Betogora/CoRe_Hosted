@@ -31,7 +31,7 @@ export function DailyReviewProgress({
 
   return (
     <div
-      className="flex h-3 overflow-hidden rounded-full bg-core-subtle"
+      className="flex h-3 overflow-hidden rounded-round bg-core-subtle"
       role="progressbar"
       aria-label={ariaLabel}
       aria-valuemin={0}

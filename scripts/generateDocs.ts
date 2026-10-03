@@ -73,7 +73,7 @@ export function createCatalogData(): CatalogData {
     const declarations = rule.nodes.filter((node) => node.type === "decl").map((node) => node.toString()).join("; ");
     if (rule.selector.includes(":root") || rule.selector.includes('[data-core-theme="dark"]')) rule.walkDecls(/^--core-/, (declaration) => {
       const name = declaration.prop;
-      const category = /shadow/.test(name) ? "Schatten" : /radius/.test(name) ? "Radius" : /height|size|space|width/.test(name) ? "Maße" : "Farbe";
+      const category = /shadow/.test(name) ? "Schatten" : /radius/.test(name) ? "Radius" : /type-|leading-|weight-/.test(name) ? "Typografie" : /height|size|space|width/.test(name) ? "Maße" : "Farbe";
       const token = tokens.get(name) ?? { name, light: "", dark: "", category };
       token[rule.selector.includes('data-core-theme="dark"') ? "dark" : "light"] = declaration.value;
       tokens.set(name, token);
@@ -130,12 +130,14 @@ export async function synchronizeDocs(mode: "write" | "check") {
   const viewer = ts.transpileModule(text("docs/tooling/viewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
   const pdfWorker = (await transformWithEsbuild(readFileSync(path.join(root, "node_modules/pdfjs-dist/build/pdf.worker.mjs"), "utf8"), "pdf.worker.js", { minify: true, target: "es2022" })).code;
   const bundle = await build({ configFile: false, logLevel: "error", publicDir: false, define: { "process.env.NODE_ENV": '"production"' }, esbuild: { supported: { "template-literal": false } },
+    worker: { format: "es", rollupOptions: { output: { inlineDynamicImports: true } } },
     plugins: [{ name: "docs-inline-runtime-assets", transform(code, id) {
       const normalized = id.replaceAll("\\", "/");
       if (!normalized.includes("/src/")) return;
       let result = code;
       for (const [file, url] of fonts) result = result.replaceAll(file, url);
       if (normalized.endsWith("/src/pdfRuntime.ts")) result = result.replace('new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString()', () => `URL.createObjectURL(new Blob([${JSON.stringify(pdfWorker)}], { type: "application/javascript" }))`);
+      if (normalized.endsWith("/src/apkgImportInternal.ts")) result = 'import CatalogApkgWorker from "./apkgImportWorker.ts?worker&inline";\n' + result.replace('new Worker(new URL("./apkgImportWorker.ts", import.meta.url), { type: "module" })', 'new CatalogApkgWorker()');
       return result === code ? undefined : { code: result, map: null };
     } }],
     build: { write: false, emptyOutDir: false, target: "es2022", minify: "esbuild", lib: { entry: path.join(root, "scripts/uiCatalog.tsx"), formats: ["iife"], name: "CoReCatalog" }, rollupOptions: { output: { inlineDynamicImports: true } } },
