@@ -10,24 +10,25 @@ Spec (Pfade relativ zur Spec, unbekannte Felder sind Fehler):
   "intro": "ein Satz Kontext",               optional
   "shots": "shots",                          Pflicht, Ordner mit den Varianten
   "view": "mobile",                          Pflicht, Standardansicht der Szenen
-  "variants": [{"key": "A", "label": "vorher"}, {"key": "B", "label": "nachher"}],   optional, das ist der Standard
+  "variants": [{"key": "A", "label": "Variante A"}, {"key": "B", "label": "Variante B"}],   optional, das ist der Standard
   "matrix": false,                           optional: true hängt einen Reiter mit allen Szenen x Ansichten an
   "cases": [{
     "id": "K1", "title": "…", "lead": "1–3 Sätze: was und warum",          Pflicht
     "kind": "Komponente",                                                  optional
+    "layout": "journey",                                                   optional: Varianten als Zeilen, Schritte als Spalten
     "variants": [...],                                                     optional, überschreibt die globalen
     "points": {"A": ["Stichpunkt mit Zahl"], "B": ["…"]},                  optional
-    "scenes": [{"scene": "startseite", "note": "worauf achten", "view": "mobile"}]   Pflicht, view optional
+    "scenes": [{"scene": "startseite", "title": "Schritt öffnen", "note": "worauf achten", "view": "mobile"}]   Pflicht, title/view optional
   }]
 }
 """
 import base64, html, io, json, sys
 from pathlib import Path
 
-DEFAULT_VARIANTS = [{"key": "A", "label": "vorher"}, {"key": "B", "label": "nachher"}]
+DEFAULT_VARIANTS = [{"key": "A", "label": "Variante A"}, {"key": "B", "label": "Variante B"}]
 SPEC_KEYS = {"title", "intro", "shots", "view", "variants", "matrix", "cases"}
-CASE_KEYS = {"id", "title", "lead", "kind", "variants", "points", "scenes"}
-SCENE_KEYS = {"scene", "note", "view"}
+CASE_KEYS = {"id", "title", "lead", "kind", "layout", "variants", "points", "scenes"}
+SCENE_KEYS = {"scene", "title", "note", "view"}
 
 
 def fail(msg):
@@ -102,6 +103,8 @@ def page(spec_path, out):
             fail(f"{where}: doppelte id {case['id']}")
         seen.add(case["id"])
         case.setdefault("variants", spec["variants"])
+        if case.get("layout", "comparison") not in {"comparison", "journey"}:
+            fail(f"{where}: layout muss comparison oder journey sein")
         keys = [v["key"] for v in case["variants"]]
         for k in case.get("points", {}):
             if k not in keys:
@@ -112,11 +115,19 @@ def page(spec_path, out):
             scene["view"] = view
             scene["images"] = {k: image(k, view, scene["scene"]) for k in keys}
     if spec.get("matrix"):
-        first = spec["variants"][0]["key"]
-        spec["matrix"] = sorted({(p.stem, p.parent.name) for p in (shots / first).glob("*/*.png")})
-        for scene, view in spec["matrix"]:
-            for v in spec["variants"]:
+        variants_by_scene = {}
+        for case in spec["cases"]:
+            for scene in case["scenes"]:
+                variants = variants_by_scene.setdefault(scene["scene"], {})
+                variants.update({v["key"]: v for v in case["variants"]})
+        first_keys = {spec["variants"][0]["key"], *(c["variants"][0]["key"] for c in spec["cases"])}
+        captured = sorted({(p.stem, p.parent.name) for key in first_keys for p in (shots / key).glob("*/*.png")})
+        spec["matrix"] = []
+        for scene, view in captured:
+            variants = list(variants_by_scene[scene].values()) if scene in variants_by_scene else spec["variants"]
+            for v in variants:
                 image(v["key"], view, scene)
+            spec["matrix"].append([scene, view, variants])
     spec["images"] = images
     data = json.dumps(spec, ensure_ascii=False).replace("</", "<\\/")
     out = Path(out)
@@ -143,8 +154,9 @@ h2{margin:4px 0 6px;font-size:26px;line-height:1.2}.lead{margin:0;max-width:72ch
 .scene{margin:0 0 28px}.scene h3{margin:0 0 2px;font-size:16px}.scene p{margin:0 0 10px;color:var(--ink-2)}
 .row{display:grid;grid-template-columns:repeat(var(--n),minmax(0,390px));gap:18px}figure{margin:0}figcaption{margin-bottom:6px;font-weight:700;font-size:13px}
 figure img{display:block;width:100%;border:1px solid var(--rule);border-radius:14px;background:var(--surface);cursor:zoom-in}
-body.toggle .row{grid-template-columns:minmax(0,390px)}body.toggle figure:not(.shown){display:none}body.toggle figure img{cursor:pointer}
-body.toggle figcaption::after{content:"  · Klick wechselt";font-weight:400;color:var(--ink-3)}
+body.toggle .row:not(.journey-row){grid-template-columns:minmax(0,390px)}body.toggle .row:not(.journey-row) figure:not(.shown){display:none}body.toggle .row:not(.journey-row) figure img{cursor:pointer}
+body.toggle .row:not(.journey-row) figcaption::after{content:"  · Klick wechselt";font-weight:400;color:var(--ink-3)}
+.journey{overflow-x:auto;margin:18px 0 28px}.journey:focus-visible{outline:2px solid var(--accent);outline-offset:2px}.journey .row{grid-template-columns:repeat(var(--n),280px);width:max-content}.journey .scene{margin-bottom:20px}.journey figcaption{min-height:3em}.journey .scene p{font-size:13px}
 .bar{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px -16px 0;padding:14px 16px;background:color-mix(in srgb,var(--ground) 92%,transparent);backdrop-filter:blur(6px);border-top:1px solid var(--rule)}
 .bar button,.bar input{height:42px;border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:0 14px}
 .bar button[aria-pressed=true]{background:var(--accent-wash);border-color:var(--accent);color:var(--accent)}.bar input{flex:1 1 240px;font:400 14px inherit}
@@ -163,6 +175,24 @@ const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catc
 const e = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const label = (c, k) => (c.variants.find((v) => v.key === k) || {}).label || k;
 const row = (variants, refs, alt) => `<div class="row" style="--n:${variants.length}">${variants.map((v, i) => `<figure class="${i ? "" : "shown"}"><figcaption>${e(v.key)} · ${e(v.label)}</figcaption><img src="${IMG[refs[v.key]]}" alt="${e(alt)}, ${e(v.label)}"></figure>`).join("")}</div>`;
+function scenes(c) {
+  if (c.layout !== "journey") {
+    return c.scenes.map((s) => `<div class="scene"><h3>${e(s.title || s.scene)} · ${e(s.view)}</h3>${s.note ? `<p>${e(s.note)}</p>` : ""}${row(c.variants, s.images, s.scene)}</div>`).join("");
+  }
+  return `<p class="lead">Jede Zeile zeigt einen Durchlauf. Weitere Schritte durch horizontales Scrollen ansehen; Bilder zum Vergrößern anklicken.</p>
+    <div class="journey" role="region" aria-label="${e(c.title)}: Journey-Matrix" tabindex="0">
+      ${c.variants.map((v) => `<div class="scene">
+        <h3>${e(v.key)} · ${e(v.label)}</h3>
+        <div class="row journey-row" style="--n:${c.scenes.length}">
+          ${c.scenes.map((s, i) => `<figure>
+            <figcaption>${e(v.key)}${i + 1} · ${e(s.title || s.scene)}</figcaption>
+            <img src="${IMG[s.images[v.key]]}" alt="${e(v.label)}, Schritt ${i + 1}: ${e(s.title || s.scene)}">
+            ${s.note ? `<p>${e(s.note)}</p>` : ""}
+          </figure>`).join("")}
+        </div>
+      </div>`).join("")}
+    </div>`;
+}
 const RESULT = C.length + (M ? 1 : 0);
 let cur = 0;
 document.getElementById("main").innerHTML = (S.intro ? `<p class="intro">${e(S.intro)}</p>` : "") + C.map((c, i) => `
@@ -170,11 +200,11 @@ document.getElementById("main").innerHTML = (S.intro ? `<p class="intro">${e(S.i
   <span class="eyebrow">Entscheidung ${i + 1} von ${C.length} · ${e(c.id)}${c.kind ? " · " + e(c.kind) : ""}</span>
   <h2>${e(c.title)}</h2><p class="lead">${e(c.lead)}</p>
   ${c.points ? `<div class="points">${c.variants.map((v) => c.points[v.key] ? `<div class="point"><b>${e(v.key)} · ${e(v.label)}</b><ul>${c.points[v.key].map((p) => `<li>${e(p)}</li>`).join("")}</ul></div>` : "").join("")}</div>` : ""}
-  ${c.scenes.map((s) => `<div class="scene"><h3>${e(s.scene)} · ${e(s.view)}</h3>${s.note ? `<p>${e(s.note)}</p>` : ""}${row(c.variants, s.images, s.scene)}</div>`).join("")}
+  ${scenes(c)}
   <div class="bar">${c.variants.map((v) => `<button type="button" data-pick="${e(v.key)}">${e(v.key)} · ${e(v.label)}</button>`).join("")}
     <input data-note placeholder="Notiz (optional)" value="${e(st[c.id]?.note)}"><button type="button" data-go="${i - 1}" ${i ? "" : "disabled"}>Zurück</button><button type="button" class="next" data-go="${i + 1}">Weiter</button></div>
 </section>`).join("") + (M ? `<section class="case" data-i="${C.length}"><span class="eyebrow">Matrix</span><h2>Alle Szenen und Ansichten</h2><p class="lead">Nur zum Ansehen, ohne Entscheidung.</p>
-  ${S.matrix.map(([scene, view]) => `<div class="scene"><h3>${e(scene)} · ${e(view)}</h3>${row(S.variants, Object.fromEntries(S.variants.map((v) => [v.key, `${v.key}/${view}/${scene}`])), scene)}</div>`).join("")}
+  ${S.matrix.map(([scene, view, variants]) => `<div class="scene"><h3>${e(scene)} · ${e(view)}</h3>${row(variants, Object.fromEntries(variants.map((v) => [v.key, `${v.key}/${view}/${scene}`])), scene)}</div>`).join("")}
   <div class="bar"><button type="button" data-go="${C.length - 1}">Zurück</button><button type="button" class="next" data-go="${RESULT}">Weiter</button></div></section>` : "")
   + `<section class="case" data-i="${RESULT}"><span class="eyebrow">Ergebnis</span><h2>Entscheidungen</h2>
   <table><thead><tr><th>ID</th><th>Entscheidung</th><th>Wahl</th><th>Notiz</th></tr></thead><tbody id="sum"></tbody></table>
@@ -194,7 +224,7 @@ const go = (i) => { cur = Math.max(0, Math.min(RESULT, i)); render(); scrollTo({
 const pick = (k) => { const c = C[cur]; if (!c || !c.variants.some((v) => v.key === k)) return; st[c.id] = { ...st[c.id], pick: k }; save(); render(); setTimeout(() => go(cur + 1), 350); };
 addEventListener("click", (ev) => {
   const t = ev.target.closest("button,img"); if (!t) return;
-  if (t.tagName === "IMG" && st._mode === "toggle") { const f = t.closest("figure"), figs = [...f.parentElement.children]; f.classList.remove("shown"); figs[(figs.indexOf(f) + 1) % figs.length].classList.add("shown"); }
+  if (t.tagName === "IMG" && st._mode === "toggle" && !t.closest(".journey")) { const f = t.closest("figure"), figs = [...f.parentElement.children]; f.classList.remove("shown"); figs[(figs.indexOf(f) + 1) % figs.length].classList.add("shown"); }
   else if (t.tagName === "IMG") { const d = document.getElementById("zoom"); d.firstChild.src = t.src; d.showModal(); }
   else if (t.dataset.mode) { st._mode = t.dataset.mode; save(); render(); }
   else if (t.dataset.pick) pick(t.dataset.pick);
@@ -204,7 +234,7 @@ addEventListener("click", (ev) => {
 document.getElementById("zoom").onclick = (ev) => ev.currentTarget.close();
 addEventListener("input", (ev) => { if (!ev.target.matches?.("[data-note]")) return; const c = C[cur]; st[c.id] = { ...st[c.id], note: ev.target.value }; save(); render(); });
 addEventListener("keydown", (ev) => {
-  if (ev.target.matches?.("input,textarea")) return;
+  if (ev.target.matches?.("input,textarea") || ev.target.closest?.(".journey")) return;
   if (ev.key === "ArrowRight") go(cur + 1); else if (ev.key === "ArrowLeft") go(cur - 1); else pick(ev.key.toUpperCase());
 });
 render();

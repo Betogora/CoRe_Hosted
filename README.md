@@ -82,7 +82,7 @@ mit `npm run check:docs` prüfen. Erzeugte HTML-Dateien nie direkt bearbeiten.
 
 ## Visueller Variantenvergleich
 
-Der versionierte Codex-Skill liegt unter [`.agents/skills/visual-ab-review/SKILL.md`](.agents/skills/visual-ab-review/SKILL.md), einschließlich Screenshot-Generator, HTML-Generator und [Formatbeispiel](.agents/skills/visual-ab-review/review.example.json). Contributors können ihn direkt über diesen Dateipfad im Chat aufrufen; eine persönliche Skill-Kopie ist dafür nicht nötig. Änderungen am Skill erfolgen im Repository.
+Der projektunabhängige Codex-Skill liegt unter [`.agents/skills/visual-ab-review/SKILL.md`](.agents/skills/visual-ab-review/SKILL.md), einschließlich Screenshot-Generator, HTML-Generator und [Formatbeispiel](.agents/skills/visual-ab-review/review.example.json). Contributors können diese vollständige Repository-Kopie direkt verwenden; alternativ ist eine globale Installation unter `~/.codex/skills/visual-ab-review` möglich. Bei beauftragten Skill-Aktualisierungen die Kopien mit der benannten Quelle abgleichen und die CoRe-Projektkonfiguration erhalten. Neue Projekte legen ihre Konfiguration anhand des [neutralen Beispiels](.agents/skills/visual-ab-review/visual-review.config.example.mjs) an.
 
 Voraussetzungen: Node.js mit den Projektabhängigkeiten (`npm ci`), Chromium (`npx playwright install chromium`) und Python ab 3.10. Optional ermöglicht Pillow (`python -m pip install Pillow`) eine Rangliste nach Pixelanteil und kleinere eingebettete Bilder; ohne Pillow bleibt der Vergleich ausführbar. Es werden keine zusätzlichen npm-Abhängigkeiten benötigt.
 

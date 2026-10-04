@@ -38,7 +38,14 @@ for (const v of views) if (!config.views?.[v]) throw new Error(`Unbekannte Ansic
 const only = args.only ? new Set(String(args.only).split(",")) : null;
 for (const name of only ?? []) if (!config.scenes[name]) throw new Error(`Unbekannte Szene: ${name}`);
 
-const { chromium } = createRequire(resolve("package.json"))("@playwright/test");
+const require = createRequire(resolve("package.json"));
+let chromium;
+try {
+  ({ chromium } = require("playwright"));
+} catch (error) {
+  if (error.code !== "MODULE_NOT_FOUND") throw error;
+  ({ chromium } = require("@playwright/test"));
+}
 const settle = config.settle ?? 1500;
 const base = String(args.base).replace(/\/$/, "");
 const browser = await chromium.launch();

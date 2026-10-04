@@ -1,20 +1,32 @@
 {
-  "title": "CoRe – visueller Variantenvergleich",
-  "intro": "Formatbeispiel mit Katalogdemos. Für eine echte Entscheidung Texte und Szenen an die konkrete Änderung anpassen.",
+  "title": "Visueller Variantenvergleich",
+  "intro": "Neutrales Formatbeispiel. Inhalte, Varianten und Ansichten entsprechend dem Auftrag anpassen.",
   "shots": "shots",
   "view": "mobile",
   "cases": [
     {
       "id": "K1",
-      "title": "Basic-Karte vergleichen",
-      "lead": "Die beiden Aufnahmen zeigen die Basic-Karte im UI-Katalog vor und nach der Änderung.",
-      "kind": "Karte",
+      "title": "Einstieg vergleichen",
+      "lead": "Zwei Darstellungen desselben Einstiegs vergleichen.",
+      "kind": "Einzelansicht",
       "points": {
-        "A": ["Ausgangsstand bei 390 × 844 px", "1 Basic-Karte im Demo-Zustand"],
-        "B": ["Zielstand bei 390 × 844 px", "1 Basic-Karte im Demo-Zustand"]
+        "A": ["Variante A"],
+        "B": ["Variante B"]
       },
       "scenes": [
-        { "scene": "basic-card", "note": "Auf Lesbarkeit und Abstände achten. Dies ist eine Katalogdemo, keine angemeldete App-Ansicht." }
+        { "scene": "start", "title": "Einstieg", "note": "Bildquelle und relevante Unterschiede benennen." }
+      ]
+    },
+    {
+      "id": "J1",
+      "title": "Ablauf vergleichen",
+      "lead": "Jede Variante zeigt einen vollständigen Durchlauf; die Wahl gilt für alle Schritte.",
+      "kind": "Journey",
+      "layout": "journey",
+      "scenes": [
+        { "scene": "step-01", "title": "Ablauf öffnen" },
+        { "scene": "step-02", "title": "Eingabe abschließen" },
+        { "scene": "step-03", "title": "Ergebnis prüfen" }
       ]
     }
   ]
