@@ -224,6 +224,35 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   await expect(page).toHaveURL(new RegExp(`/decks/${DECK_IDS.childB}/review`));
 });
 
+test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den Inhaltskontext beim Bearbeiten", async ({ page }) => {
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1`);
+  await waitForApp(page);
+  await expect(page.getByTestId(`deck-header-${DECK_IDS.rootB}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-header-${DECK_IDS.rootA}`)).toHaveCount(0);
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.a}`)).toHaveCount(0);
+  const toggle = page.getByTestId(`deck-toggle-${DECK_IDS.childB}`);
+  await toggle.click();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
+  await toggle.click();
+  await page.getByRole("textbox", { name: "Karten durchsuchen", exact: true }).fill("Antwort B1");
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toHaveCount(0);
+  await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&card=${CARD_IDS.b1}&content=1`);
+  await page.reload();
+  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Unterkarte im Hauptstapel geändert");
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1`);
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toContainText("Unterkarte im Hauptstapel geändert");
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
+  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Unterkarte im Hauptstapel geändert");
+});
+
 test("[Vertrag: Kartenverwaltung] große Stapel bleiben beim Auf- und Zuklappen scrollstabil", async ({ page }) => {
   const scrollDeckAId = "navigation-scroll-a";
   const scrollDeckBId = "navigation-scroll-b";

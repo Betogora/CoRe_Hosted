@@ -625,7 +625,7 @@ export function DecksScreen({
   learnAheadMinutes,
   timeZone,
   mediaStore,
-  selectedDeckId = null,
+  selectedDeckId: focusedDeckId = null,
   selectedCardId = null,
   onSelectDeck,
   onCloseSelectedCard,
@@ -649,16 +649,15 @@ export function DecksScreen({
   onRequestCardPage,
 }: DecksScreenProps) {
   const [contentTab, setContentTab] = React.useState<typeof deckContentTabs[number]["value"]>("cards");
-  const libraryDecks = React.useMemo(() => contentDeckId ? decks.filter((deck) => deck.id === contentDeckId) : decks, [contentDeckId, decks]);
-  const contentDeck = contentDeckId ? libraryDecks[0] : null;
-  const hasStudyCards = React.useMemo(() => {
-    if (!contentDeckId) return false;
-    if (contentDeck && !contentDeck.deletedAt
-      && (contentDeck.cardCount > 0 || contentDeck.cards.some((card) => card.status !== "deleted"))) return true;
+  const libraryDecks = React.useMemo(() => {
+    if (!contentDeckId) return decks;
     const treeIds = collectDeckTreeIds(decks, contentDeckId);
-    return decks.some((deck) => treeIds.has(deck.id) && !deck.deletedAt
-      && (deck.cardCount > 0 || deck.cards.some((card) => card.status !== "deleted")));
-  }, [contentDeck, contentDeckId, decks]);
+    return decks.filter((deck) => treeIds.has(deck.id));
+  }, [contentDeckId, decks]);
+  const contentDeck = contentDeckId ? libraryDecks.find((deck) => deck.id === contentDeckId) : null;
+  const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
+    !deck.deletedAt && (deck.cardCount > 0 || deck.cards.some((card) => card.status !== "deleted"))
+  )), [contentDeckId, libraryDecks]);
   const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
@@ -724,12 +723,25 @@ export function DecksScreen({
   }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
+  const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
+  const selectedContentCard = React.useMemo(() => {
+    if (!contentDeckId || !selectedCardId) return null;
+    for (const group of tableModel.allGroups) {
+      const directCard = cardPages?.[group.id]?.selectedCard;
+      if (directCard?.id === selectedCardId) return directCard;
+      const card = group.activeCards.find((candidate) => candidate.id === selectedCardId);
+      if (card) return card;
+    }
+    return null;
+  }, [cardPages, contentDeckId, selectedCardId, tableModel.allGroups]);
+  const selectedDeckId = selectedContentCard?.deckId ?? focusedDeckId;
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
   const selectedPage = selectedDeckId ? cardPages?.[selectedDeckId] : undefined;
   const selectedCard = (selectedPage?.selectedCard?.id === selectedCardId ? selectedPage.selectedCard : null)
     ?? selectedGroup?.activeCards.find((card) => card.id === selectedCardId && card.meta?.catalogOnly !== true)
+    ?? (selectedContentCard?.meta?.catalogOnly !== true ? selectedContentCard : null)
     ?? null;
   const selectedDefinition = React.useMemo(() => {
     if (!selectedCard) return null;
@@ -772,7 +784,7 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!onRequestCardPage) return;
     const requestedGroups = tableModel.allGroups.filter((group) => (
-      contentDeckId === group.id || searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
+      Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
     ));
     for (const group of requestedGroups) {
       const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
@@ -915,10 +927,19 @@ export function DecksScreen({
   }
 
   function toggleDeckCards(deckId: string) {
-    setDeckCardsExpanded(deckId, !expandedDeckIdSet.has(deckId));
+    setDeckCardsExpanded(deckId, contentDeckId ? collapsedContentDeckIds.has(deckId) : !expandedDeckIdSet.has(deckId));
   }
 
   function setDeckCardsExpanded(deckId: string, expanded: boolean) {
+    if (contentDeckId) {
+      setCollapsedContentDeckIds((current) => {
+        const next = new Set(current);
+        if (expanded) next.delete(deckId);
+        else next.add(deckId);
+        return next;
+      });
+      return;
+    }
     setExpandedDeckIdSet((current) => {
       if (current.has(deckId) === expanded) return current;
       const next = new Set(current);
@@ -1143,7 +1164,7 @@ export function DecksScreen({
                 </tr>
               </thead>
               {tableModel.groups.map((group) => {
-                const expanded = Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id);
+                const expanded = searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(group.id) : expandedDeckIdSet.has(group.id));
                 const visibleDepth = getVisibleDeckDepth(group.depth);
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-core-action" aria-hidden="true">
@@ -1161,7 +1182,7 @@ export function DecksScreen({
                 );
                 return (
                 <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id}>
-                  {!contentDeckId ? <tr
+                  {!contentDeckId || libraryDecks.length > 1 ? <tr
                     data-testid={"deck-header-" + group.id}
                     data-deck-depth={visibleDepth}
                     className="core-deck-summary-row"

@@ -70,17 +70,67 @@ test("deck learning is disabled only for an empty deck, including the paged cata
   assert.doesNotMatch(renderScreen([deck]), /core-deck-content-study/);
 });
 
-test("deck content includes a subdeck without including its parent or descendants", () => {
+test("deck content includes its complete subtree without its parent or other branches", () => {
   const parent = createManualCoreDeck({ deckName: "Elternstapel", card: { cardType: "basic", front: "Elternkarte", back: "Antwort" } });
   const selected = createManualCoreDeck({ deckName: "Unterstapel", card: { cardType: "basic", front: "Eigene Karte", back: "Antwort" } });
   const child = createManualCoreDeck({ deckName: "Nachfahre", card: { cardType: "basic", front: "Nachfahrenkarte", back: "Antwort" } });
+  const grandchild = createManualCoreDeck({ deckName: "Tiefer Unterstapel", card: { cardType: "basic", front: "Tiefe Karte", back: "Antwort" } });
+  const sibling = createManualCoreDeck({ deckName: "Andere Verzweigung", card: { cardType: "basic", front: "Andere Karte", back: "Antwort" } });
   selected.parentDeckId = parent.id;
   selected.hierarchyPath = [parent.name, selected.name];
   child.parentDeckId = selected.id;
   child.hierarchyPath = [...selected.hierarchyPath, child.name];
-  const markup = renderScreen([parent, selected, child], { contentDeckId: selected.id, selectedDeckId: selected.id });
+  grandchild.parentDeckId = child.id;
+  sibling.parentDeckId = parent.id;
+  const decks = [parent, selected, child, grandchild, sibling];
+  const markup = renderScreen(decks, { contentDeckId: selected.id, selectedDeckId: selected.id });
   assert.match(markup, /Eigene Karte/);
-  assert.doesNotMatch(markup, /Elternkarte|Nachfahrenkarte/);
+  assert.match(markup, /Nachfahrenkarte/);
+  assert.match(markup, /Tiefe Karte/);
+  assert.doesNotMatch(markup, /Elternkarte|Andere Karte/);
+  for (const deck of [selected, child, grandchild]) {
+    assert.match(markup, new RegExp(`data-testid="deck-header-${deck.id}"`));
+    assert.match(markup, new RegExp(`data-testid="deck-toggle-${deck.id}"[^>]*aria-expanded="true"`));
+  }
+  const emptyParent = renderScreen(decks.map((deck) => deck.id === selected.id ? { ...deck, cards: [] } : deck), { contentDeckId: selected.id });
+  assert.match(emptyParent, /Nachfahrenkarte/);
+  assert.match(emptyParent, /Tiefe Karte/);
+  const editor = renderScreen(decks, { contentDeckId: selected.id, selectedDeckId: selected.id, selectedCardId: grandchild.cards[0].id });
+  assert.match(editor, /data-testid="card-detail-aside"/);
+  assert.match(editor, /Karte bearbeiten/);
+  assert.doesNotMatch(editor, /Karte nicht gefunden/);
+});
+
+test("deck content renders paged subdecks and resolves a direct card link to its owning deck", () => {
+  const root = createCoreDeck({ id: "root", name: "Hauptstapel", source: "manual", cards: [] });
+  const child = createManualCoreDeck({ deckName: "Unterstapel", card: { cardType: "basic", front: "Katalog-Unterkarte", back: "Antwort" } });
+  child.parentDeckId = root.id;
+  const markup = renderScreen([root, { ...child, cards: [], cardCount: 60 }], {
+    contentDeckId: root.id,
+    selectedDeckId: root.id,
+    selectedCardId: child.cards[0].id,
+    cardPages: {
+      [root.id]: { deckId: root.id, items: [], selectedCard: child.cards[0], totalCount: 0, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
+      [child.id]: { deckId: child.id, items: child.cards, totalCount: 60, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
+    },
+  });
+  assert.match(markup, /Katalog-Unterkarte/);
+  assert.match(markup, /Seite 1 von 2/);
+  assert.match(markup, /data-testid="card-detail-aside"/);
+  assert.match(markup, /Karte bearbeiten/);
+  const updated = updateLearningItemStudyState(saveCardEditorValue(child.cards[0], { cardType: "basic", front: "Aktualisierte Unterkarte", back: "Antwort", tags: [] }), { marked: true });
+  const updatedMarkup = renderScreen([root, { ...child, cards: [], cardCount: 60 }], {
+    contentDeckId: root.id,
+    selectedDeckId: root.id,
+    selectedCardId: updated.id,
+    cardPages: {
+      [root.id]: { deckId: root.id, items: [], selectedCard: child.cards[0], totalCount: 0, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
+      [child.id]: { deckId: child.id, items: [updated], selectedCard: updated, totalCount: 60, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
+    },
+  });
+  const detailMarkup = updatedMarkup.slice(updatedMarkup.indexOf('data-testid="card-detail-aside"'));
+  assert.match(updatedMarkup, /Aktualisierte Unterkarte/);
+  assert.match(detailMarkup, /aria-label="Markierung entfernen"/);
 });
 
 test("deck content preserves the paged catalog path without requiring group expansion", () => {

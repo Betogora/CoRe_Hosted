@@ -1816,7 +1816,7 @@ export function App() {
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
           onSelectDeck={deckContent ? (deckId, cardId) => navigateToViewNow("kartenstapel", {
-            focusedDeckId: deckId,
+            focusedDeckId,
             selectedCardId: cardId,
             deckContent: true,
           }) : openDecks}
