@@ -265,6 +265,7 @@ export interface LearningItemDocumentV1 {
       options: string[];
       correctAnswers?: string[];
       correctAnswer?: string;
+      mode?: "single" | "multiple";
       explanation: RichTextContent;
     };
   };

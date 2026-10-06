@@ -67,6 +67,60 @@ test("treats Anki requirement none as an existing card without a field gate", ()
   assert.deepEqual(bundle.definition.recipes[0].generationRule, { kind: "always" });
 });
 
+test("maps the Anki Multiple Choice add-on fields to a native choice interaction", () => {
+  const fields = [
+    "Title",
+    "Question",
+    "QType (0=kprim,1=mc,2=sc)",
+    "Q_1",
+    "Q_2",
+    "Q_3",
+    "Answers",
+    "Sources",
+    "Extra 1",
+  ];
+  const bundle = createAnkiContentBundle({
+    model: {
+      id: "44",
+      name: "AllInOne (kprim, mc, sc)",
+      type: 0,
+      flds: fields.map((name, ord) => ({ name, ord })),
+      tmpls: [{
+        name: "AllInOne (kprim, mc, sc)",
+        ord: 0,
+        qfmt: '<script>generateTable()</script>{{Question}}<table id="qtable"></table><div id="Q_solutions">{{Answers}}</div>',
+        afmt: '<table id="qtable"></table><p>Correct answers: x %</p><script>onLoad()</script>',
+      }],
+    },
+    fieldValues: [
+      { name: "Title", value: "Medizin" },
+      { name: "Question", value: "Was trifft zu?" },
+      { name: "QType (0=kprim,1=mc,2=sc)", value: "1" },
+      { name: "Q_1", value: "Antwort A" },
+      { name: "Q_2", value: "Antwort B" },
+      { name: "Q_3", value: "Antwort C" },
+      { name: "Answers", value: "1 0 1" },
+      { name: "Sources", value: "Leitlinie" },
+      { name: "Extra 1", value: "Zusatzwissen" },
+    ],
+    tags: [],
+    mediaRefs: [],
+    note: { id: "102" },
+    cards: [{ id: "202", ord: 0 }],
+    importFingerprint: "package-choice",
+  });
+
+  assert.equal(bundle.definition.recipes[0].interaction, "choice");
+  assert.doesNotMatch(bundle.definition.recipes[0].front.source, /<script/i);
+  assert.match(String(bundle.definition.recipes[0].sourceConfig.originalQuestionFormat), /generateTable/);
+  assert.deepEqual(bundle.document.interaction?.choice, {
+    options: ["Antwort A", "Antwort B", "Antwort C"],
+    correctAnswers: ["Antwort A", "Antwort C"],
+    mode: "multiple",
+    explanation: "<section><h3>Sources</h3>Leitlinie</section><section><h3>Extra 1</h3>Zusatzwissen</section>",
+  });
+});
+
 test("recognizes Anki's native image-occlusion stock identity without relying on field names", () => {
   const bundle = createAnkiContentBundle({
     model: {

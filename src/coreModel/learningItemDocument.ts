@@ -62,6 +62,7 @@ function normalizeInteraction(value: unknown): LearningItemDocumentV1["interacti
     choice: {
       options,
       correctAnswers,
+      ...(choice.mode === "single" || choice.mode === "multiple" ? { mode: choice.mode } : {}),
       explanation: sanitizeCardHtml(choice.explanation),
     },
   };

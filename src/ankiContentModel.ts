@@ -8,6 +8,7 @@ import type {
 } from "./coreTypes.ts";
 import { stableContentHash } from "./coreModel.ts";
 import { normalizeNoteTypeDefinition } from "./coreModel/learningItemContent.ts";
+import { stripHtml } from "./htmlSafety.ts";
 
 const definitionCache = new WeakMap<object, NoteTypeDefinitionV1>();
 
@@ -34,10 +35,105 @@ function sourceId(value: unknown): string | null {
   return normalized || null;
 }
 
+interface AnkiMultipleChoiceModel {
+  questionFieldName: string;
+  titleFieldName: string | null;
+  typeFieldName: string;
+  answerFieldName: string;
+  optionFieldNames: string[];
+  explanationFieldNames: string[];
+}
+
+function fieldNameKey(value: unknown): string {
+  return String(value ?? "").trim().toLocaleLowerCase("en-US");
+}
+
+function detectAnkiMultipleChoiceModel(model: Record<string, any>, fieldNames: readonly string[]): AnkiMultipleChoiceModel | null {
+  const byKey = new Map(fieldNames.map((name) => [fieldNameKey(name), name]));
+  const questionFieldName = byKey.get("question");
+  const answerFieldName = byKey.get("answers");
+  const typeFieldName = fieldNames.find((name) => /^qtype\b/i.test(name));
+  const optionFieldNames = fieldNames
+    .flatMap((name) => {
+      const match = /^q_(\d+)$/i.exec(name.trim());
+      return match ? [{ name, ordinal: Number(match[1]) }] : [];
+    })
+    .sort((left, right) => left.ordinal - right.ordinal)
+    .map((entry) => entry.name);
+  const templates = Array.isArray(model.tmpls) ? model.tmpls : [];
+  const templateSource = templates.flatMap((candidate: unknown) => {
+    const template = record(candidate);
+    const config = record(template.config);
+    return [config.questionFormat, config.answerFormat, template.qfmt, template.afmt];
+  }).map(String).join("\n");
+  const hasKnownTemplateSignature = /\bid=["']?Q_solutions\b/i.test(templateSource)
+    && /\bid=["']?qtable\b/i.test(templateSource)
+    && /Correct answers:\s*x\s*%/i.test(templateSource);
+
+  if (!questionFieldName || !answerFieldName || !typeFieldName || optionFieldNames.length < 2 || !hasKnownTemplateSignature) {
+    return null;
+  }
+
+  return {
+    questionFieldName,
+    titleFieldName: byKey.get("title") ?? null,
+    typeFieldName,
+    answerFieldName,
+    optionFieldNames,
+    explanationFieldNames: fieldNames.filter((name) => ["sources", "extra 1"].includes(fieldNameKey(name))),
+  };
+}
+
+function choicePromptSource(choiceModel: AnkiMultipleChoiceModel): string {
+  const title = choiceModel.titleFieldName
+    ? `{{#${choiceModel.titleFieldName}}}<h3>{{${choiceModel.titleFieldName}}}</h3>{{/${choiceModel.titleFieldName}}}`
+    : "";
+  return `${title}{{#${choiceModel.questionFieldName}}}<p>{{${choiceModel.questionFieldName}}}</p>{{/${choiceModel.questionFieldName}}}`;
+}
+
+function choiceInteraction(
+  choiceModel: AnkiMultipleChoiceModel | null,
+  fieldValues: Array<{ name: string; value: string }>,
+): LearningItemDocumentV1["interaction"] | undefined {
+  if (!choiceModel) return undefined;
+  const values = new Map(fieldValues.map((field) => [field.name, field.value]));
+  const answerFlags = stripHtml(values.get(choiceModel.answerFieldName) ?? "")
+    .replace(/&nbsp;|&#160;/gi, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const options = choiceModel.optionFieldNames.flatMap((name, index) => {
+    const value = stripHtml(values.get(name) ?? "").replace(/\s+/g, " ").trim();
+    if (!value) return [];
+    const match = /^q_(\d+)$/i.exec(name.trim());
+    const answerIndex = match ? Number(match[1]) - 1 : index;
+    const flag = answerFlags[answerIndex];
+    return flag === "0" || flag === "1" ? [{ value, correct: flag === "1" }] : [];
+  });
+  const correctAnswers = options.filter((option) => option.correct).map((option) => option.value);
+  if (options.length < 2 || correctAnswers.length === 0 || correctAnswers.length === options.length) return undefined;
+
+  const explanation = choiceModel.explanationFieldNames.flatMap((name) => {
+    const value = values.get(name)?.trim();
+    return value ? [`<section><h3>${name}</h3>${value}</section>`] : [];
+  }).join("");
+  const type = stripHtml(values.get(choiceModel.typeFieldName) ?? "").trim();
+  return {
+    choice: {
+      options: options.map((option) => option.value),
+      correctAnswers,
+      mode: type === "2" ? "single" : "multiple",
+      explanation,
+    },
+  };
+}
+
 function createNoteBundle(
   input: Parameters<typeof createAnkiContentBundle>[0],
   definition: NoteTypeDefinitionV1,
 ): ReturnType<typeof createAnkiContentBundle> {
+  const choiceModel = detectAnkiMultipleChoiceModel(record(input.model), input.fieldValues.map((field) => field.name));
+  const interaction = choiceInteraction(choiceModel, input.fieldValues);
   const document: LearningItemDocumentV1 = {
     schemaVersion: 1,
     definitionVersionId: definition.id,
@@ -51,6 +147,7 @@ function createNoteBundle(
     })),
     tags: [...input.tags],
     mediaRefs: [...new Set(input.mediaRefs)],
+    ...(interaction ? { interaction } : {}),
   };
   return { definition, document };
 }
@@ -125,6 +222,8 @@ export function createAnkiContentBundle(input: {
       sourceConfig: jsonSafe(config) as Record<string, unknown>,
     };
   });
+  const choiceModel = detectAnkiMultipleChoiceModel(model, fields.map((field) => field.name));
+  const safeChoicePrompt = choiceModel ? choicePromptSource(choiceModel) : null;
   const templates = Array.isArray(model.tmpls) ? model.tmpls : [];
   const kind: NoteTypeDefinitionV1["kind"] = Number(model.config?.originalStockKind ?? 0) === 6
     ? "image-occlusion"
@@ -140,20 +239,26 @@ export function createAnkiContentBundle(input: {
     const backSource = String(config.answerFormat ?? template.afmt ?? "");
     const browserFrontSource = String(config.browserQuestionFormat ?? template.bqfmt ?? "");
     const browserBackSource = String(config.browserAnswerFormat ?? template.bafmt ?? "");
+    const storedSourceConfig = jsonSafe(config) as Record<string, unknown>;
+    if (choiceModel) {
+      storedSourceConfig.coreImportAdapter = "anki-mc";
+      storedSourceConfig.originalQuestionFormat = frontSource;
+      storedSourceConfig.originalAnswerFormat = backSource;
+    }
     return {
       id: templateId ? `anki-template-${templateId}` : `${definitionId}-template-${templateOrdinal}`,
       sourceTemplateId: templateId,
       name: String(template.name ?? `Karte ${templateOrdinal + 1}`),
       ordinal: templateOrdinal,
       generationRule: generationRule(model, templateOrdinal, fields),
-      front: compileSafeTemplate(frontSource, fields).ast,
-      back: compileSafeTemplate(backSource, fields).ast,
+      front: compileSafeTemplate(safeChoicePrompt ?? frontSource, fields).ast,
+      back: compileSafeTemplate(safeChoicePrompt ?? backSource, fields).ast,
       browserFront: browserFrontSource ? compileSafeTemplate(browserFrontSource, fields).ast : null,
       browserBack: browserBackSource ? compileSafeTemplate(browserBackSource, fields).ast : null,
       targetDeckId: sourceId(config.targetDeckId ?? template.did),
-      interaction: kind === "image-occlusion" ? "image-occlusion" : kind === "cloze" ? "cloze" : "reveal",
+      interaction: kind === "image-occlusion" ? "image-occlusion" : kind === "cloze" ? "cloze" : choiceModel ? "choice" : "reveal",
       sourceConfigBase64: sourceId(config.rawBase64),
-      sourceConfig: jsonSafe(config) as Record<string, unknown>,
+      sourceConfig: storedSourceConfig,
     };
   });
   const definition = normalizeNoteTypeDefinition({
