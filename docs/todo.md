@@ -100,8 +100,9 @@ nicht an Erstellung, Import oder Darstellung angeschlossen.
       Hinweis, verschachtelt, mit `{{c1,2::…}}`, über mehrere Felder und in
       Formeln; native Image Occlusion mit Rechteck, Ellipse, Polygon und Text
       sowie beiden Verdeckungsmodi; Image Occlusion Enhanced; Nachbau eines
-      AnKing-/Ankizin-artigen Notiztyps mit Script-Hinweisbuttons; Nachbau eines
-      verbreiteten Multiple-Choice-Add-on-Typs; unbekannter Notiztyp mit
+      AnKing-/Ankizin-artigen Notiztyps mit Script-Hinweisbuttons; Nachbau von
+      `Multiple Choice for Anki` (`Question`, `Q_1`…`Q_n`, `Answers` als
+      0/1-Maske, `QType`, `Sources`, `Extra 1`); unbekannter Notiztyp mit
       statischem Text und Bedingungen; `{{hint:}}`, `{{type:}}`, `{{tts}}`,
       Furigana; MathJax inline und als Block; LaTeX als Bild; Audio und Video;
       Tabellen und Inline-Styles; farbiger Text; AMBOSS- und andere Links;
@@ -169,8 +170,11 @@ unverändert grün; im Code existiert kein Kartentyp-Begriff mehr.
 
 - [ ] **K3.1 Ein Renderer.** `renderCard(note, card, side, theme)` erzeugt
       scriptfreies HTML mit CoRe-Styles für Vorschau, Kartenverwaltung und
-      Review. Nichts davon wird persistiert. Der Anki-Template-Renderpfad und
-      der Feldlisten-Fallback entfallen.
+      Review. Nichts davon wird persistiert. Beim Aufdecken ergänzt eine
+      Abfrage Trennlinie und Antwort, ohne die Vorderseite zu wiederholen; ein
+      Lückentext wird an derselben Stelle gefüllt (Vorlage: `2c08cc7` in
+      `archive/noemi-anki-fixes`). Der Anki-Template-Renderpfad
+      und der Feldlisten-Fallback entfallen.
 - [ ] **K3.2 Feldrollen.** Frage und Antwort; Hinweise vor dem Aufdecken
       einzeln aufklappbar (ohne Script, z. B. über `details`); Zusatz erst nach
       dem Aufdecken; Quellen als Link-Chips.
@@ -256,7 +260,9 @@ für Review und Inhaltskorrektur grün.
       Antwort eintippen, Lückentext, native Image Occlusion (Occlusion-Feld zu
       Masken), Image Occlusion Enhanced, AnKing-/Ankizin-Familie (Text, Extra,
       zusätzliche Felder als Hinweise, Links als Quellen), verbreitete
-      Multiple-Choice-Add-ons.
+      Multiple-Choice-Add-ons. Für `Multiple Choice for Anki` dienen Erkennung,
+      Template-Signatur, Feldzuordnung und Tests aus dem zurückgestellten
+      Branch `archive/noemi-anki-fixes` (Commit `e558338`) als Vorlage.
 - [ ] **K5.3 Generischer Übersetzer.** Für unbekannte Notiztypen leitet der
       sichere Template-Compiler aus der Struktur ab, welche Felder Frage,
       Antwort oder Zusatz sind, übernimmt statischen Template-Text als Teil der
