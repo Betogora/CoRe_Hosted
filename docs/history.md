@@ -5,6 +5,85 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-06 — Kanonisches Note-/Card-Modell (Phase 2)
+
+- K2.1: `coreTypes.ts` ergänzt `Note`, `Card` und `CardStudyState`, ohne
+  bestehende Typen zu ändern. `coreTypes.typecheck.ts` schützt die Trennung
+  von Inhalt, Stapel und Lernstand. Queue-relevante Werte liegen direkt am
+  Lernstand; genutzte CoRe-, Lernfortschritts- und Variantenwerte sind in
+  `extra` typisiert. Identitäten des früheren Review-State, die Aliaswerte
+  `repetitions`/`sameDaySuccessCount` und die nur geschriebenen Werte
+  `ease`, `retrievability` und `schedulerParamsJson` wurden nicht übernommen.
+- K2.2/K2.3: `coreModel/notes.ts` validiert und bereinigt Inhalte über
+  `parseNoteContent`, erstellt frische Karten je Abfrageschlüssel und plant
+  Inhaltsänderungen. Gleiche Schlüssel erhalten exakt ihre bisherigen
+  Karten, Lernstände, Varianten, Markierungen, Flaggen und Stapel. Neue
+  Schlüssel erzeugen neue Karten im Stapel der ersten übergebenen Karte;
+  entfallende Karten werden nur gemeldet, nicht gelöscht. Inhalts- und
+  Entitätsrevision steigen je Änderungsplan einmal.
+- K2.6 (reiner Anteil): `planNoteDeletion` plant Soft-Delete für Inhalt und
+  alle Geschwister, auch in anderen Stapeln, mit einem Zeitstempel. `undo`
+  enthält die vollständigen vorherigen Datensätze einschließlich Varianten
+  und Aussetzung. Eingaben und Persistenz werden nicht verändert.
+- K2.4/K2.5: Die neuen Funktionen bleiben privat; `coreModel.ts`, Scheduler,
+  Review, Statistik, Import, App und Persistenz sind unverändert. Die
+  verbleibende Verdrahtung von K2.2/K2.4/K2.5/K2.6 ist in K4.9 eingeplant.
+- Nachweise: 17 neue Modelltests und elf vorhandene Inhaltsschema-Tests
+  bestehen. Abgedeckt sind bedingte Richtungen, Eintippen, alle drei
+  Auswahlmodi, beide Bildverdeckungsmodi, Hinweise, Mehrfachnummern,
+  Verschachtelung, mehrere Lückenfelder und Formeln; außerdem Hinzufügen,
+  Entfernen und Umnummerieren von Lücken, Rückrichtung an/aus, geleerte
+  Bedingungen, Formatierungs-/Reihenfolgeänderungen, Fremdkartenabwehr und
+  vollständiger Undo-Zustand. Die vollständige Modulsuite besteht mit
+  unveränderten Scheduler-, Review- und Statistiktests (105 Dateien).
+  `npm run typecheck` einschließlich `check:docs`, `npm run docs:build`
+  und die abschließende Diffprüfung bestehen ebenfalls.
+- Audit mit `audit-last-change`: Der Änderungsabgleich verwendet seine
+  Schlüssel-Map zugleich für entfallende Karten; ein zusätzliches Set und
+  ein weiterer Filterdurchlauf entfallen. Keine weitere sichere
+  Vereinfachung gefunden. Keine neue Abhängigkeit, kein Laufzeitwechsel,
+  keine Änderung von Datenbank oder UI. Produkt-Specs, Anki-Formatvertrag
+  und Kartentypen-Demos bleiben deshalb unverändert.
+
+<!-- K2.5: Lese-/Schreibinventar für den Cutover, Stand 2026-10-06.
+src/reviewService.ts:
+  Lesen: isDue/isReviewDueByLearningDay/isNewLearningItem/isLearningAvailable,
+  compareQueueEntries/compareReviewQueueEntries, isIntradayLearning,
+  classifyDailyReviewProgress und createDailyReviewQueue: state, dueAt, reps
+  (bisher auch repetitions), lastReviewedAt und learningDayKey.
+  createReviewItemViewModel/createFallbackViewModel: maturityXp/maturityBand,
+  schedulerVersion, forcedVariantId, fallbackUntilCorrect, lastFailedVariantId.
+  Schreiben: answerVariant -> updateCoreStateFromReview übernimmt den gesamten
+  Schedulerstate, createReviewEvent speichert vorher/nachher als Snapshots;
+  Variantenperformance wird separat aktualisiert. Meta-Projektionen entfallen
+  erst im Cutover, repetitions wird überall auf reps umgestellt.
+src/scheduler.ts:
+  Lesen: createFsrsScheduler (desiredRetention), toFsrsCard/phaseForState/
+  getStateReps/calculateRetrievability (direkte Queue-/FSRS-Werte),
+  nextPreferredVariantLevel/fallbackStateForRating/deriveOutcomeMaturity
+  (Variantenwerte), learningProgress (Lernfortschritt und Zeitstempel).
+  Schreiben: projectFsrsResult -> createReviewState; state, dueAt, intervalDays,
+  intervalMinutes, learningStepIndex, difficulty, stability, desiredRetention,
+  reps, lapses, maturityXp/maturityBand, lastReviewedAt/lastRating,
+  schedulerVersion, Variantenfallback und Lernfortschritt. Die bisher zusätzlich
+  geschriebenen Alias-/Diagnosewerte entfallen im Cutover; keine FSRS-Änderung.
+src/easyDays.ts:
+  Lesen: createEasyDaysDueCounts liest state und dueAt; keine Lernstand-Schreibstelle.
+src/learningDay.ts:
+  Keine direkte ReviewState-Nutzung; erhält Datum, Zeitzone und Tagesgrenze als
+  Werte. Aufrufer müssen künftig study.dueAt und extra.learningDayKey übergeben.
+src/statisticsModel.ts:
+  Lesen: snapshot/category/createStatisticsAccumulator nutzen state,
+  intervalDays, difficulty, stability und dueAt sowie Review-Snapshots.
+  Keine Lernstand-Schreibstelle; Snapshots/Account-Aggregate beim Cutover mitziehen.
+src/coreVariantService.ts und coreVariantService/variantSelection.ts:
+  Lesen: getLearningItemMaturity/getVariantReadiness/chooseReviewCard und
+  selectAutomaticReviewVariant lesen maturityXp/maturityBand, stability,
+  difficulty, intervalDays, reps (bisher auch repetitions), state,
+  preferredVariantLevel, forcedVariantId und fallbackUntilCorrect.
+  Keine Scheduler-Schreibstelle; Variantenmutationen bleiben an ihrer Karte.
+-->
+
 ## 2026-10-06 — APKG-Formatmatrix und Realwelt-Korpus (Phase 1)
 
 - `scripts/create_apkg_matrix_fixtures.py` erzeugt mit dem offiziellen Exporter von `anki==26.5` zwölf Pakete und `apkg-matrix.expected.json` (Vertrag v2):

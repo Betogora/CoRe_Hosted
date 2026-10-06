@@ -101,9 +101,9 @@ K-Nummern verweisen. Ausgeführt wird in dieser Reihenfolge:
 ```text
 Phase 0   Ausgangsmessung und Inhaltsschema            ✔ abgeschlossen
 Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
-Phase 2   Kanonisches Modell (reine Module)            auf main, unverdrahtet
-Phase 3   Renderer und Bausteine (reine Module)        auf main, unverdrahtet
-Phase 5A  Übersetzer und Importgraph (reine Module)    auf main, Matrix prüft die neue Pipeline
+Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, unverdrahtet
+Phase 3   Renderer und Bausteine (reine Module)        geplant: auf main, unverdrahtet
+Phase 5A  Übersetzer und Importgraph (reine Module)    geplant: auf main, neue Pipeline in der Matrix
 Phase 4   Cutover: Datenbank, Replica, Sync, App       eigener Branch, ein Merge
           + K2.4–K2.6, K5.4, K5.7, K5.9-Oberfläche     (im Cutover verdrahtet)
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        auf main
@@ -190,101 +190,12 @@ Hinweise zur Matrix für alle folgenden Phasen:
 
 ## Phase 2 — Kanonisches Modell in TypeScript
 
-**Ziel:** `Note`, `Card` und die reine Domänenlogik für Ableitung, Abgleich und
-Löschen existieren vollständig getestet in `src/coreModel/`, ohne dass App,
-Persistenz oder Screens sie schon verwenden.
-
-**Ausgangspunkt:** `NoteContent`, `parseNoteContent`, `deriveNotePromptKeys`,
-`clozeOrdinals` und `noteContentMediaRefs` aus Phase 0
-(`src/coreModel/noteContent.ts`). Diese Funktionen werden erweitert, nicht
-dupliziert.
-
-- [ ] **K2.1 Typen.** `Note` (Inhalt ohne Stapel mit `NoteContent`, Quelle,
-      Anki-GUID und Inhaltsrevision) und `Card` (Inhalt-ID, Stapel,
-      Abfrageschlüssel, Anki-Kartenidentität, Status, typisierter Lernstand) in
-      `coreTypes.ts`. `LearningItem` als inhaltstragende Karte,
-      `LearningItemDocumentV1`, `NoteTypeDefinitionV1`, `CardType`,
-      `EditableCardType`, typspezifische Editorwerte und alle
-      Compatibility-Projektionen entfallen. Das Entfernen geschieht im Cutover
-      (K4.10); in Phase 2 werden die neuen Typen ergänzt.
-  - **Wo:** `src/coreTypes.ts`, neuer Abschnitt direkt nach `NoteContent`.
-  - **Wie:** `Note` = `{ id, userId?, content: NoteContent, source:
-    "manual" | "anki-apkg", ankiGuid: string | null, noteTypeSourceId: string
-    | null, translator: { id: string; version: number } | null,
-    contentRevision: number, createdAt, updatedAt, revision, deletedAt,
-    updatedByDeviceId }`. `Card` = `{ id, noteId, deckId, promptKey,
-    ankiCardId: string | null, status: "active" | "suspended", marked:
-    boolean, ankiFlag: number, study: CardStudyState, variants: CardVariant[],
-    createdAt, updatedAt, revision, deletedAt, updatedByDeviceId }`.
-    `CardStudyState` übernimmt die heute in `ReviewStateBase` genutzten
-    Felder; dabei Queue-relevante Werte (`state`, `dueAt`, `stability`,
-    `difficulty`, `reps`, `lapses`, `intervalDays`, `learningStepIndex`,
-    `lastReviewedAt`, `lastRating`) als eigene Felder, alle übrigen CoRe-
-    beziehungsweise Variantenwerte gesammelt in `extra`. Keine Felder
-    erfinden, die heute nicht gelesen werden; Liste per
-    `grep -n "reviewState\." src` ermitteln.
-  - **Fertig, wenn:** Typen kompilieren, `coreTypes.typecheck.ts` deckt sie ab,
-    kein bestehender Typ wurde verändert.
-  - **Nicht dazu:** Persistenzspalten, Cloud-Mapping, React-Props.
-- [ ] **K2.2 Abfrageableitung anschließen.** `parseNoteContent` und
-      `deriveNotePromptKeys` aus Phase 0 werden die einzige Quelle dafür,
-      welche Karten ein Inhalt besitzt; Erstellung, Bearbeitung und Import
-      verwenden sie über die `coreModel.ts`-Seam.
-  - **Wo:** `src/coreModel/noteContent.ts` (Ableitung),
-    neues `src/coreModel/notes.ts` (Fabrikfunktionen).
-  - **Wie:** `createNote(input)` validiert mit `parseNoteContent`, erzeugt
-    `Note` plus je Abfrageschlüssel eine `Card` mit neuem Lernstand
-    (`createReviewState` als Vorlage). Stabile Karten-IDs aus
-    `makeId("card")`; Reihenfolge der Karten = Reihenfolge der Schlüssel.
-    Die Verdrahtung in Erstellung, Bearbeitung und Import geschieht im
-    Cutover (K4.9) beziehungsweise in Phase 5A für den Import.
-  - **Fertig, wenn:** Unit-Tests zeigen für jeden Baustein (reveal mit
-    Bedingungen, choice, cloze mit `c1,2` und Verschachtelung, Bildverdeckung)
-    die erwartete Kartenmenge.
-- [ ] **K2.3 Abgleich bei Änderung.** Eine reine Funktion vergleicht alte und
-      neue Abfragemenge und liefert neue Karten, unveränderte Karten mit
-      Lernstand und entfallende Karten. Entfallende Karten werden nie still
-      gelöscht, sondern erst nach Bestätigung (ADR-032).
-  - **Wo:** `src/coreModel/notes.ts`, Funktion `planNoteContentChange(previous:
-    { note, cards }, nextContent)`.
-  - **Wie:** Rückgabe `{ note, keptCards, newCards, removedCards }`. Schlüssel
-    gleich = Karte behalten (Lernstand, Varianten, Status unverändert).
-    `removedCards` werden nur zurückgegeben, nicht gelöscht; die Bestätigung
-    ist Sache des Aufrufers. `contentRevision` steigt genau um 1.
-  - **Fertig, wenn:** Tests für Lücke hinzufügen, Lücke entfernen, Lücke
-    umnummerieren (c2 → c3 = entfernt + neu), Rückrichtung an/aus,
-    Bedingungsfeld geleert und Formatierungsänderung ohne Kartenänderung.
-- [ ] **K2.4 Seam und Validierung.** `coreModel.ts` bleibt die einzige
-      öffentliche Seam für Erzeugen, Normalisieren und Ändern von Inhalten und
-      Karten. Cloud-Zeilenvalidierung bleibt in `cloudRepositoryValidation.ts`.
-  - **Ausführung:** Export der neuen Funktionen über `src/coreModel.ts` erst im
-    Cutover (K4.9), damit vorher kein App-Code sie versehentlich nutzt. Tests
-    importieren bis dahin direkt aus `src/coreModel/notes.ts`.
-- [ ] **K2.5 Scheduler und Queue umstellen.** `reviewService`, FSRS, Easy Days,
-      Tageslimits und Statistik lesen den typisierten Kartenlernstand; das
-      Verhalten bleibt unverändert und durch die bestehenden Tests belegt.
-  - **Ausführung:** im Cutover (K4.9). In Phase 2 nur vorbereiten: Liste der
-    Lese- und Schreibstellen in `src/reviewService.ts`, `src/scheduler.ts`,
-    `src/easyDays.ts`, `src/learningDay.ts`, `src/statisticsModel.ts` und
-    `src/coreVariantService.ts` als Kommentar im Phasenbericht festhalten.
-  - **Nicht dazu:** Änderungen am FSRS-Verhalten oder an Grenzwerten.
-- [ ] **K2.6 Löschen nach Anki.** Löschen einer Karte löscht Inhalt und alle
-      Geschwister; Undo stellt beide wieder her; der Auswirkungsdialog nennt die
-      Kartenzahl.
-  - **Wo:** reine Planung `planNoteDeletion(note, cards)` in
-    `src/coreModel/notes.ts` (Phase 2); Verdrahtung in `src/coreWorkspace.ts`
-    (heute `softDeleteCard`/`restoreSoftDeletedCard`) und im Dialog von
-    `src/screens/DecksScreen.tsx` im Cutover.
-  - **Fertig, wenn:** Tests zeigen Soft-Delete von Inhalt und allen Karten mit
-    gemeinsamem Zeitstempel und vollständiges Undo.
-
-**Prüfung:** `npx tsx --test src/coreModel/notes.test.ts
-src/coreModel/noteContent.test.ts`, `npm run typecheck`, `npm test`.
-
-**Abnahme:** Unit-Tests für Ableitung und Abgleich decken jede Lückensyntax und
-jeden Baustein ab; bestehende Scheduler-, Review- und Statistiktests sind
-unverändert grün. (Die frühere Abnahme „im Code existiert kein
-Kartentyp-Begriff mehr“ gilt jetzt für den Cutover, K4.10.)
+Abgeschlossen am 2026-10-06 (siehe `history.md`). `Note`, `Card` und
+`CardStudyState` sind ergänzt; `src/coreModel/notes.ts` enthält vollständig
+getestete Erstellung, Änderungsabgleich und Löschplanung mit Undo-Zustand.
+Die Funktionen sind noch nicht an App, Import oder Persistenz angeschlossen.
+Die verbleibende Verdrahtung von K2.2, K2.4, K2.5 und K2.6 liegt in K4.9;
+das Lese-/Schreibinventar für den Scheduler-Cutover steht im Phasenbericht.
 
 ## Phase 3 — Renderer und Bausteine
 
@@ -621,6 +532,18 @@ Freigabe.
       `src/importCloudSyncTask.ts`), Statistik (`src/statisticsModel.ts`) und
       KI-Varianten (`src/coreVariantService.ts`, `src/aiCardVariant.ts`)
       arbeiten auf `Note`/`Card`.
+  - **Phase-2-Verdrahtung:** Die Funktionen aus `src/coreModel/notes.ts`
+    über `src/coreModel.ts` exportieren (K2.4); Erstellung und Bearbeitung
+    verwenden die validierte Abfrageableitung (K2.2). Cloud-Zeilenvalidierung
+    bleibt in `cloudRepositoryValidation.ts`. Scheduler, Queue, Easy Days,
+    Tageslimits, Statistik und Varianten lesen `study` beziehungsweise
+    `study.extra` ohne Verhaltensänderung (K2.5); das Lese-/Schreibinventar
+    steht im Phase-2-Bericht in `history.md`.
+  - **Löschen und Undo (K2.6):** `planNoteDeletion` in `coreWorkspace.ts`
+    verdrahten; der Dialog in `DecksScreen.tsx` nennt die Geschwisterzahl.
+    Aufrufer laden alle Karten des Inhalts, auch in anderen Stapeln. Der
+    Undo-Befehl stellt Inhalt und Geschwister aus den vorherigen Datensätzen
+    wieder her; Persistenz-/Syncrevisionen folgen dem neuen Speichervertrag.
   - **Editor-Parität:** Alles, was der Editor heute kann (Vorder- und
     Rückseite, Bilder, Lückenaktion, Rückrichtung, Single und Multiple
     Choice, Zusatzfelder, Tags, Batch-Erstellung), funktioniert danach

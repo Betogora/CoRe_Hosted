@@ -404,6 +404,72 @@ export interface NoteContent {
   tags: string[];
 }
 
+export interface Note {
+  id: string;
+  userId?: string;
+  content: NoteContent;
+  source: "manual" | "anki-apkg";
+  ankiGuid: string | null;
+  noteTypeSourceId: string | null;
+  translator: { id: string; version: number } | null;
+  contentRevision: number;
+  createdAt: string;
+  updatedAt: string;
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
+}
+
+export interface CardStudyState {
+  state: ReviewSchedulerState;
+  dueAt: string;
+  stability: number;
+  difficulty: number;
+  reps: number;
+  lapses: number;
+  intervalDays: number;
+  learningStepIndex: number;
+  lastReviewedAt: string | null;
+  lastRating: ReviewRating | null;
+  extra: {
+    schedulerVersion: string;
+    desiredRetention: number;
+    maturityXp: number;
+    maturityBand: MaturityBand;
+    preferredVariantLevel: number;
+    forcedVariantId: string | null;
+    fallbackUntilCorrect: boolean;
+    lastFailedVariantId: string | null;
+    previousSuccessfulVariantId: string | null;
+    intervalMinutes: number | null;
+    learningSuccessCount: number;
+    firstLearningAt: string | null;
+    lastLearningStepAt: string | null;
+    graduatedAt: string | null;
+    isGraduated: boolean;
+    learningDayKey: string | null;
+    sourceSchedulerData: unknown;
+  };
+}
+
+export interface Card {
+  id: string;
+  noteId: string;
+  deckId: string;
+  promptKey: string;
+  ankiCardId: string | null;
+  status: "active" | "suspended";
+  marked: boolean;
+  ankiFlag: number;
+  study: CardStudyState;
+  variants: CardVariant[];
+  createdAt: string;
+  updatedAt: string;
+  revision: number;
+  deletedAt: string | null;
+  updatedByDeviceId: string | null;
+}
+
 export interface VariantPerformance {
   id: string;
   learningItemId: string;

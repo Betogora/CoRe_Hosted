@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-02
+**Stand:** 2026-10-06
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -11,6 +11,12 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 
 ## Implementiert
 
+- Kartenmodell-Vorbereitung (Phase 0 bis 2): `NoteContent` und Feld-HTML-Vertrag,
+  APKG-Formatmatrix sowie `Note`/`Card` mit typisiertem Kartenlernstand sind
+  vorhanden. `coreModel/notes.ts` erstellt Inhalte und Karten, plant
+  Inhaltsänderungen ohne Lernstandsverlust und Soft-Delete samt vollständigem
+  Undo-Zustand. Diese Module sind noch nicht an App, Import oder Persistenz
+  angeschlossen; der folgende Laufzeitstand bleibt das Learning-Item-Modell.
 - Pflichtlogin mit Supabase E-Mail/Passwort, Profil-Upsert und accountgebundenem Browser-Cache.
 - Local-first Account-Boot mit expliziter Baseline: Ein bekanntes Gerät rendert seine IndexedDB-Shell sofort; ein neues wartet nur auf die erste gültige, bytebegrenzte `get_account_bootstrap_v2`-Seite aus Profil, Deck-Hüllen, zeitstabilen Summaries und `AccountStudyOverview`. `confirmed-empty` ist die einzige Freigabe der Leeransicht. Nach dem ersten erfolgreichen Bootstrap werden seine Retry- und Browserlistener entfernt; Online, Fokus und Sichtbarkeit gehören danach ausschließlich dem normalen Sync.
 - Inkrementeller Hybrid-Sync aus isoliertem Outbox-Push, servergestempeltem Katalog-Delta und Konfliktaktualisierung; manuell auch bei leerer Outbox sowie automatisch nach Debounce, Online, Fokus und sichtbar im wählbaren 1/5/15/30-Minuten-Intervall. Der normale Webpfad lädt keine sieben vollständigen Tabellen mehr. Deck-Hüllen, `deck_study_summaries` und `card_catalog` besitzen eigene bytebegrenzte Cursor; Kartenkörper und Abhängigkeiten werden höchstens zu 50 hydriert.

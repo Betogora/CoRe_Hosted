@@ -1,6 +1,6 @@
 # CoRe-Architektur und Invarianten
 
-**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-02.
+**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-06.
 Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Gates: [Betrieb](operations.md). Offene Änderungen: [TODO](todo.md). Formatdetails: [Anki-Referenz](anki-format-analysis.md).
 
 ## Systemkontext
@@ -60,6 +60,31 @@ Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Re
 ## Heutiges Compatibility-Modell
 
 `deck.cards[]`, einzelne `CoreCard`-Typgrenzen und die Cloudtabelle `cards` bezeichnen Learning Items. `cards.content_document` und `deck_note_type_definitions.definition` speichern normalisierte Dokumente/Definitionen; diese heutigen Namen werden nicht nebenbei migriert. Jeder zusätzliche Varianteninhalt bleibt einem vorhandenen Item untergeordnet. Geplante Umbauten stehen ausschließlich in [TODO](todo.md).
+
+### Vorbereitete Note-/Card-Domäne
+
+`coreTypes.ts` enthält zusätzlich `Note`, `Card` und `CardStudyState` nach
+ADR-032. Ein Inhalt besitzt Felder, Tags, Herkunft und Inhaltsrevision ohne
+Stapel; eine Karte besitzt Inhaltsreferenz, Stapel, Abfrageschlüssel,
+Lernstand und Varianten. Queue-Werte sind direkt typisiert, die weiteren
+genutzten Lern- und Variantenwerte liegen in einem typisierten `study.extra`.
+
+Das private Modul `coreModel/notes.ts` bietet `createNote`,
+`planNoteContentChange` und `planNoteDeletion`. Inhaltseingaben bleiben
+`unknown`, bis `parseNoteContent` sie validiert und bereinigt; dessen
+Abfrageschlüssel bestimmen die Kartenmenge. Änderungen erhalten bestehende
+Karten samt Lernstand unverändert, erhöhen Inhalts- und Entitätsrevision
+einmal und liefern entfallende Karten zur Bestätigung zurück. Neue Karten
+kommen in den Stapel der ersten übergebenen Karte; bestehende Platzierungen
+bleiben erhalten. Aufrufer übergeben jeweils die vollständige Kartenmenge
+eines Inhalts; fremde Karten werden abgewiesen.
+
+Die Löschplanung liefert Soft-Delete-Datensätze für Inhalt und Geschwister
+mit gemeinsamem Zeitstempel sowie deren vollständige vorherige Datensätze
+als `undo`. Sie verändert weder Eingaben noch Persistenz. Löschung erhöht
+nur Entitätsrevisionen; Lernstand, Aussetzung und Inhaltsrevision bleiben
+erhalten. Die Funktionen sind ausschließlich durch Modultests angebunden,
+noch nicht über `coreModel.ts` exportiert und ändern keinen App-Laufzeitpfad.
 
 ## Persistenz, Sync und Medien
 
