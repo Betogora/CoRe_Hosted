@@ -128,29 +128,6 @@ test("APKG-Import ordnet eine reine Bild-Vorderseite dem echten Anki-Template zu
   assert.doesNotMatch(answer.srcdoc, /person\.jpg/);
 });
 
-test("APKG-Review trennt direkt wiederholte Vorderseiten am Anki-Antwortmarker", () => {
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
-    fields: [{ name: "Frage" }, { name: "Antwort" }, { name: "Metadaten" }],
-    templates: [{
-      name: "Frage-Antwort",
-      ord: 0,
-      qfmt: '<div class="card-wrap"><div class="kicker">Flow Cytometrie</div><div class="question">{{Frage}}</div></div>',
-      afmt: '<div class="card-wrap"><div class="kicker">Flow Cytometrie</div><div class="question">{{Frage}}</div><hr id="answer"><div class="answer">{{Antwort}}</div><div class="meta">{{Metadaten}}</div></div>',
-    }],
-    noteFields: "Wie funktioniert die Kompensation?\u001fÜber Einzelkontrollen.\u001fKapitel 6",
-  }));
-  const imported = importNormalizedDeck(normalizedDeck, { dryRun: false });
-  const card = imported.deck.cards[0];
-  const definition = imported.commitGraph.noteTypeDefinitions.find((candidate: any) => candidate.id === card.noteTypeDefinitionId);
-  const question = renderLearningItemPresentation({ item: card, definition, side: "question", surface: "review", theme: "light" });
-  const answer = renderLearningItemPresentation({ item: card, definition, side: "answer", surface: "review", theme: "light" });
-
-  assert.match(question.accessibleText, /Flow Cytometrie Wie funktioniert die Kompensation\?/);
-  assert.equal(answer.accessibleText, "Über Einzelkontrollen. Kapitel 6");
-  assert.doesNotMatch(answer.srcdoc, /Wie funktioniert die Kompensation\?|Flow Cytometrie|id="answer"/);
-  assert.match(answer.srcdoc, /class="card-wrap"/);
-});
-
 test("APKG-Import projiziert vorhandene Karten mit Anki-Anforderung none getrennt", () => {
   const parsed = parsedApkgFixture({
     fields: [{ name: "Vorderseite" }, { name: "Rückseite" }],
@@ -195,19 +172,13 @@ test("jede Anki-Cloze-Gruppe wird eigenständig importiert", () => {
   const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
     modelType: 1,
     fields: [{ name: "Text" }, { name: "Extra" }],
-    templates: [{ name: "Cloze", ord: 0, qfmt: "{{cloze:Text}}", afmt: '{{cloze:Text}}<hr id="answer">{{Extra}}' }],
+    templates: [{ name: "Cloze", ord: 0, qfmt: "{{cloze:Text}}", afmt: "{{cloze:Text}}<hr>{{Extra}}" }],
     noteFields: "{{c1::Berlin}} und {{c2::Paris}}\u001fEuropa",
     cards: [{ id: 20, nid: 10, did: 1, ord: 0 }, { id: 21, nid: 10, did: 1, ord: 1 }],
   }));
-  const imported = importNormalizedDeck(normalizedDeck, { dryRun: false });
-  const deck = imported.deck;
-  const card = deck.cards[0];
-  const definition = imported.commitGraph.noteTypeDefinitions.find((candidate: any) => candidate.id === card.noteTypeDefinitionId);
-  const answer = renderLearningItemPresentation({ item: card, definition, side: "answer", surface: "review", theme: "light" });
-
+  const deck = importNormalizedDeck(normalizedDeck, { dryRun: false }).deck;
   assert.equal(deck?.cards.length, 2);
   assert.deepEqual(deck?.cards.map((card: any) => card.sourceCardId), ["20", "21"]);
-  assert.match(answer.accessibleText, /Berlin und Paris Europa/);
 });
 
 test("APKG hierarchy imports immediate parents and complete paths beyond level eight", async () => {

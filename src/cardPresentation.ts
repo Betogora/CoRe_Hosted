@@ -23,7 +23,6 @@ export interface PresentationResult {
 
 const compiledRecipeTemplates = new Map<string, CompiledSafeTemplate>();
 const NETWORK_URL = /^(?:https?:)?\/\//i;
-const VOID_HTML_TAGS = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 type PresentationVariant = CardVariant & { projection: VariantProjection };
 
 function addDiagnostic(
@@ -113,34 +112,6 @@ function renderAst(
     }
     return renderFilter(rawValue, node.filters, context.variant, context.side);
   }).join("");
-}
-
-function hasFrontSide(nodes: SafeTemplateAstNode[]): boolean {
-  return nodes.some((node) => node.kind === "front-side" || (node.kind === "conditional" && hasFrontSide(node.children)));
-}
-
-function findAnkiAnswerSeparator(html: string): RegExpMatchArray | null {
-  return [...html.matchAll(/<hr\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi)]
-    .find((match) => /\bid\s*=\s*(?:"answer"|'answer'|answer(?=[\s/>]))/i.test(match[0])) ?? null;
-}
-
-function projectAnkiReviewAnswer(html: string, templateSource: string): string | null {
-  if (!findAnkiAnswerSeparator(templateSource)) return null;
-  const separator = findAnkiAnswerSeparator(html);
-  if (!separator || separator.index === undefined) return null;
-
-  const openTags: Array<{ name: string; source: string }> = [];
-  const prefix = html.slice(0, separator.index);
-  for (const match of prefix.matchAll(/<\/?([a-z][a-z0-9:-]*)\b(?:[^>"']|"[^"]*"|'[^']*')*>/gi)) {
-    const name = match[1].toLowerCase();
-    if (match[0].startsWith("</")) {
-      const openIndex = openTags.map((tag) => tag.name).lastIndexOf(name);
-      if (openIndex >= 0) openTags.splice(openIndex);
-    } else if (!VOID_HTML_TAGS.has(name) && !/\/\s*>$/.test(match[0])) {
-      openTags.push({ name, source: match[0] });
-    }
-  }
-  return `${openTags.map((tag) => tag.source).join("")}${html.slice(separator.index + separator[0].length)}`;
 }
 
 function safeCss(css: string, diagnostics: PresentationDiagnostic[]): string {
@@ -250,8 +221,8 @@ export function renderLearningItemPresentation(input: {
           .join('<hr class="core-card-answer-separator" aria-hidden="true">');
   } else {
     const values = new Map(input.item.contentDocument.fields.map((field) => [field.id, field.value]));
-    const omitRenderedFront = input.surface === "review" && input.side === "answer" && variant.projection.kind !== "cloze";
-    const frontAst = recipe && !omitRenderedFront
+    const omitFrontSide = input.surface === "review" && input.side === "answer";
+    const frontAst = recipe && !omitFrontSide
       ? compileRecipeTemplate(input.definition, recipe.id, "front", recipe.front).ast
       : null;
     const frontSide = frontAst
@@ -260,10 +231,8 @@ export function renderLearningItemPresentation(input: {
     rawBodyHtml = preservedOnly || !compiled.ast
       ? fieldFallback(input.item, variant, diagnostics[0]?.message ?? "Die Originaldarstellung ist nicht sicher ausführbar.", input.side, input.surface)
       : renderAst(compiled.ast.nodes, { ...input, variant, values, frontSide });
-    if (omitRenderedFront && !preservedOnly && compiled.ast) {
-      const projectedAnswer = projectAnkiReviewAnswer(rawBodyHtml, compiled.ast.source);
-      if (projectedAnswer !== null) rawBodyHtml = projectedAnswer;
-      else if (hasFrontSide(compiled.ast.nodes)) rawBodyHtml = rawBodyHtml.replace(/^\s*<hr\b[^>]*>\s*/i, "");
+    if (omitFrontSide && compiled.ast?.nodes.some((node) => node.kind === "front-side")) {
+      rawBodyHtml = rawBodyHtml.replace(/^\s*<hr\b[^>]*>\s*/i, "");
     }
   }
   if (/\s(?:src|poster|href)\s*=\s*["']?\s*(?:https?:)?\/\//i.test(rawBodyHtml)) {

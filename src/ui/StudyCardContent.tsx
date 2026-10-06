@@ -49,8 +49,6 @@ export function StudyCardContent({
   );
   const isSingleChoice = cardType === "single-choice";
   const isMultipleChoice = cardType === "multiple-choice";
-  const isCloze = item?.projection.kind === "cloze" || cardType === "cloze" || definition?.kind === "cloze";
-  const revealClozeInPlace = revealed && isCloze;
   const isChoice = (isSingleChoice || isMultipleChoice)
     && answerOptions.length >= 2
     && expectedAnswers.length > 0
@@ -82,18 +80,12 @@ export function StudyCardContent({
 
   return (
     <div className="w-full">
-      <div
-        ref={revealClozeInPlace ? answerRef : questionRef}
-        tabIndex={-1}
-        role="group"
-        aria-label={revealClozeInPlace ? "Antwort" : "Frage"}
-        className={`${revealClozeInPlace ? "core-study-card-back" : "core-study-card-front"} text-core-text outline-none`}
-      >
+      <div ref={questionRef} tabIndex={-1} role="group" aria-label="Frage" className="core-study-card-front text-core-text outline-none">
         <CardPresentationSurface
           {...presentationProps}
-          side={revealClozeInPlace ? "answer" : "question"}
-          title={revealClozeInPlace ? "Antwort" : "Frage"}
-          loadingLabel={stripHtml(revealClozeInPlace ? variant?.back ?? "" : variant?.front ?? "")}
+          side="question"
+          title="Frage"
+          loadingLabel={stripHtml(variant?.front ?? "")}
         />
       </div>
 
@@ -142,7 +134,7 @@ export function StudyCardContent({
         </div>
       ) : null}
 
-      {revealed && !isCloze ? (
+      {revealed ? (
         <>
           <div data-testid="study-card-answer-separator" className="my-8 h-0.5 bg-core-border-strong opacity-70" />
           <div ref={answerRef} tabIndex={-1} role="group" aria-label="Antwort" className="core-study-card-back text-core-text outline-none">
