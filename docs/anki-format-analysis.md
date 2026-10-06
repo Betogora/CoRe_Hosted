@@ -108,13 +108,6 @@ sicheren Renderer übersetzt. Script, externe Ressourcen und Add-on-Filter
 werden nicht ausgeführt. Notizinhalte und Quelldokumente werden nicht als
 gemeinsame persistierte Instanz konserviert.
 
-Das bekannte Add-on-Schema `AllInOne (kprim, mc, sc)` wird über seine
-Template-Signatur und die Felder `Question`, `QType`, `Q_1` bis `Q_n` sowie
-`Answers` erkannt. CoRe führt dessen JavaScript nicht aus, sondern projiziert
-die gespeicherten `0`-/`1`-Lösungen deterministisch in eine native
-Choice-Interaktion; die ursprünglichen Templatequellen bleiben in der
-Quellkonfiguration erhalten.
-
 ### Review und Revlog
 
 Anki speichert Review-Ereignisse in `revlog`. Das Legacy-Schema hält pro

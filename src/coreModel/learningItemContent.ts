@@ -357,16 +357,10 @@ function createVariantSeeds(document: LearningItemDocumentV1, definition: NoteTy
   return seeds;
 }
 
-function compatibilityCardType(
-  definition: NoteTypeDefinitionV1,
-  document: LearningItemDocumentV1,
-  previousType?: CardType,
-): CardType {
+function compatibilityCardType(definition: NoteTypeDefinitionV1, previousType?: CardType): CardType {
   if (definition.kind === "cloze") return "cloze";
   if (definition.kind === "image-occlusion") return "image-occlusion";
   if (definition.recipes.some((recipe) => recipe.interaction === "choice")) {
-    if (document.interaction?.choice?.mode === "single") return "single-choice";
-    if (document.interaction?.choice?.mode === "multiple") return "multiple-choice";
     return previousType === "single-choice" || previousType === "multiple-choice" ? previousType : "multiple-choice";
   }
   if (definition.origin === "core" && (previousType === "basic-reversed" || definition.recipes.length > 1)) return "basic-reversed";
@@ -411,7 +405,7 @@ export function projectLearningItemContent(input: {
         : seed.projection.kind === "image-occlusion"
           ? "image-occlusion"
           : seed.recipe.interaction === "choice"
-            ? compatibilityCardType(definition, document, input.previous?.cardType)
+            ? compatibilityCardType(definition, input.previous?.cardType)
             : "basic",
     })),
   };

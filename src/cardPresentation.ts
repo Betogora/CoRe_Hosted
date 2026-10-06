@@ -240,7 +240,7 @@ export function renderLearningItemPresentation(input: {
   diagnostics.push(...compiled.diagnostics);
   const preservedOnly = !recipe || compiled.compatibility === "preserved-only";
   let rawBodyHtml: string;
-  if (input.definition.origin === "core" || recipe?.interaction === "choice") {
+  if (input.definition.origin === "core") {
     rawBodyHtml = input.side === "question"
       ? variant.front
       : input.surface === "review"

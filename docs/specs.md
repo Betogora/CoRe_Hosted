@@ -290,7 +290,6 @@ Akzeptanz:
 ### 6.3 Import
 
 - Dokumentierte statische Anki-Templates werden mit exakten Feldnamen, Conditionals, Standardfiltern, `FrontSide`, Special Fields, Cloze und CSS in einem opaken Sandbox-Frame gerendert. Script, externe Ressourcen, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben erhalten und die UI zeigt automatisch eine gekennzeichnete geordnete Feldansicht mit Diagnose.
-- Karten des verbreiteten Anki-Add-ons `Multiple Choice for Anki` werden ohne Ausführung des Template-JavaScripts sicher in native Single- beziehungsweise Multiple-Choice-Interaktionen überführt. `Question`, `Q_1` bis `Q_n`, `Answers`, `QType`, `Sources` und `Extra 1` bleiben als Quellfelder erhalten; Auswahlmodus, Optionen, richtige Antworten und Erklärung werden zusätzlich kanonisch projiziert.
 - Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.
 - Die sichtbare Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_cloud`, `syncing_media`, `succeeded`, `partial`, `failed_retryable`, `failed_terminal` und `cancelled`.
 - Die laufenden APKG-Phasen `analyzing`, `committing`, `syncing_cloud` und `syncing_media` zeigen in der Dateizeile einen eigenen monotonen Fortschritt. Geglättete Zwischenwerte bleiben unter 100 Prozent; 100 Prozent bedeutet immer, dass die jeweilige Phase tatsächlich abgeschlossen ist.

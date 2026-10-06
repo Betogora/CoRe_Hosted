@@ -171,66 +171,6 @@ test("APKG-Import projiziert vorhandene Karten mit Anki-Anforderung none getrenn
   assert.equal(card.projection.instanceKey, "default");
 });
 
-test("APKG-Import überführt das Anki-Multiple-Choice-Add-on in native Auswahlkarten", () => {
-  const fieldNames = [
-    "Title",
-    "Question",
-    "QType (0=kprim,1=mc,2=sc)",
-    "Q_1",
-    "Q_2",
-    "Q_3",
-    "Q_4",
-    "Q_5",
-    "Answers",
-    "Sources",
-    "Extra 1",
-  ];
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
-    fields: fieldNames.map((name) => ({ name })),
-    templates: [{
-      name: "AllInOne (kprim, mc, sc)",
-      ord: 0,
-      qfmt: '<script>generateTable()</script>{{Question}}<table id="qtable"></table><div id="Q_solutions">{{Answers}}</div>',
-      afmt: '{{Question}}<table id="qtable"></table><p><b>Correct answers: x %</b></p>{{Extra 1}}<script>onLoad()</script>',
-    }],
-    noteFields: [
-      "",
-      "Was trifft bei Rückenschmerzen zu?",
-      "1",
-      "40 % der Rückenschmerz-Patienten haben eine chronische Symptomatik.",
-      "10–15 % aller AU-Tage sind durch Rückenschmerzen bedingt.",
-      "Ca. 20 % der Frühberentungen erfolgen aufgrund von Rückenschmerzen.",
-      "80–90 % sind nach 4–6 Wochen beschwerdefrei.",
-      "",
-      "1 0 0 1 0",
-      "",
-      "Leitlinienhinweis",
-    ].join("\u001f"),
-  }));
-  const imported = importNormalizedDeck(normalizedDeck, { dryRun: false });
-  const card = imported.deck.cards[0];
-  const definition = imported.commitGraph.noteTypeDefinitions.find((candidate: any) => candidate.id === card.noteTypeDefinitionId);
-  const question = renderLearningItemPresentation({ item: card, definition, side: "question", surface: "review", theme: "light" });
-  const answer = renderLearningItemPresentation({ item: card, definition, side: "answer", surface: "review", theme: "light" });
-
-  assert.equal(card.kind, "multiple-choice");
-  assert.deepEqual(card.meta.answerOptions, [
-    "40 % der Rückenschmerz-Patienten haben eine chronische Symptomatik.",
-    "10–15 % aller AU-Tage sind durch Rückenschmerzen bedingt.",
-    "Ca. 20 % der Frühberentungen erfolgen aufgrund von Rückenschmerzen.",
-    "80–90 % sind nach 4–6 Wochen beschwerdefrei.",
-  ]);
-  assert.deepEqual(card.meta.correctAnswers, [
-    "40 % der Rückenschmerz-Patienten haben eine chronische Symptomatik.",
-    "80–90 % sind nach 4–6 Wochen beschwerdefrei.",
-  ]);
-  assert.equal(question.accessibleText, "Was trifft bei Rückenschmerzen zu?");
-  assert.doesNotMatch(question.srcdoc, /Correct answers|Q_solutions|<script/i);
-  assert.match(answer.accessibleText, /Richtige Antworten: 40 %.*80–90 %/);
-  assert.match(answer.accessibleText, /Leitlinienhinweis/);
-  assert.doesNotMatch(answer.srcdoc, /Correct answers: x %|<script/i);
-});
-
 test("APKG-Bericht zählt und erkennt eigenständige Karten statt Notizen", () => {
   const parsed = parsedApkgFixture({
     templates: [
