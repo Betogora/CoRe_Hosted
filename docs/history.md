@@ -1,9 +1,43 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-05
+**Stand:** 2026-10-06
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-06 — Ausgangsmessung für das neue Kartenmodell (K0.1)
+
+Referenz für den Vergleich nach ADR-032 bis ADR-036. Gemessen auf dem lokalen Entwicklungsrechner mit dem Kartenmodell nach ADR-029; Rohdaten liegen lokal in `test-results/baseline/`.
+
+**Speicherbedarf je 1.000 Inhalte.** `npm run measure:footprint` erzeugt mit `anki==26.5` ein APKG aus Ankis Standardnotiztypen (je 1.000 Notizen Basic, Basic und umgekehrt sowie Lückentext mit vier Lücken und Extra; rund 300 bis 450 Zeichen Text je Notiz). Der Import läuft über den produktiven APKG-Pfad. Die manuellen Szenarien verwenden dieselben Texte über `createLearningItemsFromEditorValue`. Alle Zeilen werden über `createCloudStateRows` in einer zurückgerollten Transaktion in die lokale Datenbank geschrieben. Postgres misst `pg_column_size` je Zeile einschließlich der Trigger-Projektion `card_catalog`. Sync misst das JSON der Zeilen, Browser das UTF-8-JSON der IndexedDB-Kartenkörper. Angaben in MiB, Lernfenster in KiB.
+
+| Szenario | Karten | Postgres gesamt | davon `cards` | davon `card_catalog` | Sync | Browser-Kartenkörper | Lernfenster 50 Karten |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| APKG Basic | 1.000 | 4,87 | 3,71 | 1,15 | 4,66 | 4,35 | 223 |
+| APKG Basic und umgekehrt | 2.000 | 10,60 | 7,73 | 2,87 | 9,77 | 9,16 | 235 |
+| APKG Lückentext (4 Lücken) | 4.000 | 23,84 | 19,31 | 4,53 | 23,95 | 22,72 | 291 |
+| Manuell Basic | 1.000 | 4,46 | 3,52 | 0,94 | 4,07 | 3,77 | 193 |
+| Manuell Basic und umgekehrt | 2.000 | 9,20 | 7,06 | 2,15 | 8,16 | 7,57 | 194 |
+| Manuell Lückentext (4 Lücken) | 4.000 | 22,46 | 17,52 | 4,94 | 21,56 | 20,37 | 261 |
+
+Notiztyp-Definitionen belegen je Szenario unter 2 KiB. Eine importierte Lückentext-Karte trägt rund 3,3 KiB Inhaltskopien (`contentDocument`, `originalHtml`, `originalFields`, `originalFront`/`originalBack`, `canonicalQuestion`/`canonicalAnswer`, `title`) und rund 0,8 KiB Lernstand-JSON mit 37 Schlüsseln. Der eigentliche Notiztext umfasst rund 0,6 KiB je Notiz.
+
+**Startzeiten.** `npm run performance:measure:local` mit 4-facher CPU-Drosselung und je zehn Läufen:
+
+| Kennzahl | p75 | p95 | Grenze | Ergebnis |
+| --- | ---: | ---: | ---: | --- |
+| Wiederkehrender Start mit IndexedDB | 927,5 ms | 953,8 ms | – | – |
+| Offline-Kaltstart | 677,1 ms | 705,5 ms | – | – |
+| Start ohne Service Worker | 1.435,1 ms | 1.455,8 ms | – | – |
+| Neues Gerät bis Dashboard | 3.958,8 ms | 4.187,4 ms | 3.000 ms (p75) | überschritten |
+| Automatischer 4G-Preload, längste Aufgabe | – | 73 ms | 50 ms | überschritten |
+| Persistierte Stapelzusammenfassung | 18,7 ms | – | – | – |
+| Statistik-RPC (100k Karten, 1 Mio. Reviews) | 490,0 ms | 522,0 ms | – | – |
+| Katalogsuche (100k Karten) | 125,1 ms | 295,2 ms | – | – |
+
+Die Überschreitung beim Start eines neuen Geräts war bereits am 3. Oktober 2026 bekannt (3.821,6 ms und 3.097,5 ms). Die Preload-Überschreitung trat in dieser Messung zusätzlich auf. Beide Werte sind Teil der Ausgangslage und wurden nicht korrigiert.
+
+**APKG-Import.** `npm run benchmark:apkg` mit 25.000 Karten und 1.000 Medien (14,2 MiB): Median 10,5 s gesamt und 10,2 s im Worker, maximal 425 MiB Worker-Heap, längste Main-Thread-Verzögerung 32,4 ms, Ergebnisübergabe 0 ms.
 
 ## 2026-10-05 — Specs an den UI-Katalog angeglichen
 

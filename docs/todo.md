@@ -65,12 +65,10 @@ Phase 8  Gesamtabnahme
 
 ## Phase 0 — Ausgangsmessung und Inhaltsschema
 
-- [ ] **K0.1 Ausgangsmessung festhalten.** Mit dem heutigen Modell messen:
-      Datenbankbytes je 1.000 Inhalte für Basic, Reverse und Lückentext mit vier
-      Lücken; IndexedDB-Bytes für Lernfenster und Offline-Download; Bootstrap-,
-      Lernstart-, Katalogsuche- und Statistik-p95 aus
-      `performance:measure:local`; Workerzeit und Heap des APKG-Benchmarks.
-      Ergebnis datiert in `history.md`.
+Die Ausgangsmessung (K0.1) ist am 2026-10-06 in `history.md` festgehalten und
+mit `npm run measure:footprint`, `npm run performance:measure:local` und
+`npm run benchmark:apkg` reproduzierbar.
+
 - [ ] **K0.2 Inhaltsschema `NoteContent` spezifizieren.** Felder mit stabiler
       ID, Name, Rolle (`prompt`, `answer`, `hint`, `extra`, `source`, `note`)
       und Rich-Text-Wert; Bausteine `cloze`, `imageOcclusion`, `choice`,
@@ -85,7 +83,7 @@ Phase 8  Gesamtabnahme
       eingebetteten Fremdinhalte.
 
 **Abnahme:** Schema und Regeln sind als Typen mit Validierung und Beispielen
-reviewt; die Ausgangsmessung ist reproduzierbar dokumentiert.
+reviewt.
 
 ## Phase 1 — Format-Matrix und Realwelt-Korpus
 
@@ -219,7 +217,7 @@ kein Script und lädt keine externen Ressourcen; Bundlebudgets sind grün.
       entfallen.
 - [ ] **K4.2 Projektionen prüfen.** Für `card_catalog` und
       `deck_study_summaries` wird gemessen, ob direkte Indizes auf `cards` und
-      `notes` die Grenzen aus K0.1 halten. Nur gerechtfertigte Projektionen
+      `notes` die Grenzen der Ausgangsmessung halten. Nur gerechtfertigte Projektionen
       bleiben.
 - [ ] **K4.3 RPCs.** Atomare Reviewaufzeichnung auf Kartenspalten, Bootstrap,
       Katalog-Delta, Hydrierung von Karten mit ihren Inhalten,
@@ -246,7 +244,7 @@ kein Script und lädt keine externen Ressourcen; Bundlebudgets sind grün.
 
 **Abnahme:** `db:types:check`, `test:rls:local`, `test:e2e:local` und
 `performance:measure:local` grün; Speicher je 1.000 Lückentext-Inhalte
-nachweislich unter K0.1; p95-Werte mindestens auf K0.1-Niveau; Zwei-Geräte-Test
+nachweislich unter der Ausgangsmessung; p95-Werte mindestens auf deren Niveau; Zwei-Geräte-Test
 für Review und Inhaltskorrektur grün.
 
 ## Phase 5 — APKG-Import und Übersetzer
@@ -338,7 +336,7 @@ Verhalten nachweislich nicht.
 
 - [ ] **K8.1** `npm test`, `gate:push`, `gate:nightly` und
       `performance:measure:local` grün.
-- [ ] **K8.2** Vergleich mit K0.1 in `history.md`: Speicher, Ladevolumen,
+- [ ] **K8.2** Vergleich mit der Ausgangsmessung in `history.md`: Speicher, Ladevolumen,
       p95-Werte und Importzeiten.
 - [ ] **K8.3** Visuelle Pflichtmatrix für alle Screens, die Karten anzeigen
       oder bearbeiten, mit Screenshots.
