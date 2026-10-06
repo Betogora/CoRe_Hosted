@@ -1300,6 +1300,9 @@ video {
 .block {
   display: block;
 }
+.inline {
+  display: inline;
+}
 .flex {
   display: flex;
 }
@@ -4742,67 +4745,82 @@ summary {
   animation: spin 1s linear infinite;
 }
 
-/* Dokumentationsrahmen. Produktdemos behalten ausschließlich ihre CoRe-Styles. */
-:root { --docs-font-body: Synonym, ui-sans-serif, system-ui, sans-serif; --docs-font-heading: Amulya, Synonym, ui-sans-serif, system-ui, sans-serif; }
-body { margin: 0; color: var(--core-text); background: var(--core-canvas); font-family: var(--docs-font-body); }
-.docs-site-nav { box-sizing: border-box; position: sticky; top: 0; z-index: 45; min-height: 64px; display: flex; align-items: center; gap: 24px; padding: 8px max(16px, calc((100vw - 1440px) / 2 + 24px)); border-bottom: 1px solid var(--core-border); background: var(--core-surface); }
-.docs-brand { flex: none; font: 700 22px/1.2 var(--docs-font-heading); color: var(--core-text); text-decoration: none; }
-.docs-brand span { font: 400 13px var(--docs-font-body); color: var(--core-text-muted); }
-.docs-site-nav nav { display: flex; flex: 1; min-width: 0; overflow-x: auto; gap: 4px; }
-.docs-site-nav nav a { display: flex; flex: none; align-items: center; min-height: 44px; padding: 0 12px; border-bottom: 2px solid transparent; color: var(--core-text-secondary); text-decoration: none; font-size: 14px; }
-.docs-site-nav nav a[aria-current] { color: var(--core-text); border-color: var(--core-action-primary); font-weight: 600; }
-.docs-site-nav button { flex: none; min-width: 44px; min-height: 44px; border: 1px solid var(--core-border); border-radius: 50%; background: var(--core-surface); color: var(--core-text); font-size: 22px; }
+/* Gemeinsamer Dokumentationsrahmen mit den produktiven CoRe-Tokens. */
+body { margin: 0; color: var(--core-text); background: var(--core-canvas); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) Synonym, ui-sans-serif, system-ui, sans-serif; }
+.docs-site-nav { box-sizing: border-box; position: sticky; top: 0; z-index: 45; min-height: 64px; display: flex; align-items: center; gap: var(--core-space-xl); padding: var(--core-space-sm) max(var(--core-space-lg), calc((100vw - 1440px) / 2 + var(--core-space-xl))); border-bottom: var(--core-border-width) solid var(--core-border); background: var(--core-surface); }
+.docs-brand { flex: none; color: var(--core-text); text-decoration: none; }
+.docs-brand span { color: var(--core-text-muted); }
+.docs-site-nav nav { display: flex; flex: 1; min-width: 0; overflow-x: auto; gap: var(--core-space-xs); }
+.docs-site-nav nav a { display: flex; flex: none; align-items: center; min-height: var(--core-control-height); padding: 0 var(--core-space-md); border-bottom: var(--core-border-width-strong) solid transparent; color: var(--core-text-secondary); text-decoration: none; }
+.docs-site-nav nav a[aria-current] { color: var(--core-text); border-color: var(--core-action-primary); font-weight: var(--core-weight-emphasis); }
+.docs-site-nav button { flex: none; min-width: var(--core-control-height); border-radius: var(--core-radius-round); padding: var(--core-space-sm); }
 .docs-layout { display: grid; grid-template-columns: 270px minmax(0, 1fr); max-width: 1440px; margin: 0 auto; }
-.docs-rail { position: sticky; top: 64px; height: calc(100dvh - 64px); display: flex; flex-direction: column; gap: 16px; padding: 28px 20px; border-right: 1px solid var(--core-border); min-width: 0; }
-.docs-rail h1 { font: 700 24px/1.2 var(--docs-font-heading); margin: 0; }
-.docs-rail p, .docs-count { font-size: 13px; color: var(--core-text-muted); }
-.docs-search { display: block; width: 100%; min-height: 44px; border: 1px solid var(--core-border-interactive); border-radius: 10px; background: var(--core-surface); color: var(--core-text); padding: 0 12px; font: inherit; }
+.docs-rail { position: sticky; top: var(--docs-nav-height, 64px); height: calc(100dvh - var(--docs-nav-height, 64px)); display: flex; flex-direction: column; gap: var(--core-space-lg); padding: var(--core-space-xl); border-right: var(--core-border-width) solid var(--core-border); min-width: 0; }
+.docs-rail h1 { margin: 0; }
+.docs-rail p, .docs-count { font-size: var(--core-type-caption); line-height: var(--core-leading-caption); color: var(--core-text-muted); }
+.docs-search { display: block; width: 100%; }
 .docs-toc { overflow: auto; min-height: 0; }
-.docs-toc a { display: block; min-height: 44px; padding: 10px 8px; border-radius: 8px; color: var(--core-text-secondary); font-size: 14px; line-height: 1.5; text-decoration: none; overflow-wrap: anywhere; }
-.docs-toc a[data-depth="3"] { padding-left: 22px; font-size: 13px; }
-.docs-toc a[aria-current], .docs-toc a:hover { background: var(--core-surface-muted); color: var(--core-text); }
-.docs-content { min-width: 0; padding: 36px clamp(16px, 4vw, 56px) 80px; }
-.docs-document { max-width: 820px; margin: 0 auto 56px; line-height: 1.7; font-size: 16px; overflow-wrap: anywhere; }
-.docs-document h1 { font: 700 34px/1.2 var(--docs-font-heading); margin: 0 0 24px; }
-.docs-document h2 { font: 600 26px/1.3 var(--docs-font-heading); margin: 40px 0 16px; }
-.docs-document h3 { font: 600 20px/1.4 var(--docs-font-heading); margin: 28px 0 12px; }
-.docs-document h4 { font-weight: 600; margin-top: 20px; }
-.docs-document p, .docs-document ul, .docs-document ol { margin: 12px 0; }
-.docs-document ul, .docs-document ol { padding-left: 24px; list-style: revert; }
-.docs-document li { margin: 8px 0; }
-.docs-document a { color: var(--core-action-primary); text-decoration: underline; text-underline-offset: 3px; }
-.docs-document blockquote { border-left: 3px solid var(--core-border-interactive); padding-left: 16px; color: var(--core-text-secondary); }
-.docs-document code, .catalog code { font: 12px/1.5 ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
-.docs-document :not(pre) > code { background: var(--core-surface-muted); border-radius: 4px; padding: 2px 4px; }
-.docs-document pre { overflow: auto; padding: 20px; border-radius: 12px; background: var(--core-surface-muted); }
-.docs-document table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.docs-document th, .docs-document td { border-bottom: 1px solid var(--core-border); padding: 12px; text-align: left; vertical-align: top; }
-.docs-document th { background: var(--core-surface-muted); }
+.docs-toc a { display: flex; align-items: center; min-height: var(--core-control-height); padding: var(--core-space-sm) var(--core-space-md); border-left: var(--core-border-width-strong) solid transparent; border-radius: 0 var(--core-radius-control) var(--core-radius-control) 0; color: var(--core-text-secondary); font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) Synonym, sans-serif; text-decoration: none; overflow-wrap: anywhere; }
+.docs-toc a[data-depth="3"] { padding-left: var(--core-space-xl); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
+.docs-toc a:hover { background: var(--core-surface-muted); color: var(--core-text); }
+.docs-toc a[aria-current] { border-color: var(--core-action-primary); background: var(--core-surface-muted); color: var(--core-text); font-weight: var(--core-weight-emphasis); }
+.docs-toc a[hidden] { display: none; }
+.docs-content { min-width: 0; padding: var(--core-space-xl); }
+.docs-document { max-width: 820px; margin: 0 auto var(--core-space-xl); overflow-wrap: anywhere; }
+.docs-document h1 { margin: 0 0 var(--core-space-xl); }
+.docs-document h2 { margin: var(--core-space-xl) 0 var(--core-space-lg); }
+.docs-document h3 { margin: var(--core-space-xl) 0 var(--core-space-md); }
+.docs-document h4 { margin-top: var(--core-space-lg); }
+.docs-document p, .docs-document ul, .docs-document ol { margin: var(--core-space-md) 0; }
+.docs-document ul, .docs-document ol { padding-left: var(--core-space-xl); list-style: revert; }
+.docs-document li { margin: var(--core-space-sm) 0; }
+.docs-document a { color: var(--core-action-primary); text-decoration: underline; text-underline-offset: var(--core-space-xs); }
+.docs-document blockquote { border-left: var(--core-border-width-strong) solid var(--core-border-interactive); padding-left: var(--core-space-lg); color: var(--core-text-secondary); }
+.docs-document code, .catalog code { font: var(--core-type-caption)/var(--core-leading-caption) ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+.docs-document :not(pre) > code { background: var(--core-surface-muted); border-radius: var(--core-radius-marker); padding: 0 var(--core-space-xs); }
+.docs-document pre { overflow: auto; padding: var(--core-space-xl); border-radius: var(--core-radius-control); background: var(--core-surface-muted); }
+.docs-document table { width: 100%; border-collapse: collapse; font-size: var(--core-type-body); line-height: var(--core-leading-body); }
+.docs-document th, .docs-document td { border-bottom: var(--core-border-width) solid var(--core-border); padding: var(--core-space-md); text-align: left; vertical-align: top; }
+.docs-document thead th { color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) Synonym, sans-serif; text-transform: uppercase; }
 .docs-document th:first-child, .docs-document td:first-child { min-width: 110px; }
 .docs-table-scroll { max-width: 100%; overflow: auto; }
-.docs-anchor { font-size: 14px; opacity: .45; }
-.docs-source { color: var(--core-text-muted); font-size: 13px; margin-bottom: 20px; }
-[id] { scroll-margin-top: 92px; }
+.docs-anchor { display: inline-flex; align-items: center; justify-content: center; min-width: var(--core-control-height); min-height: var(--core-control-height); font-size: var(--core-type-body); opacity: .45; }
+.docs-document .docs-anchor { text-decoration: none; }
+.docs-source { color: var(--core-text-muted); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); margin-bottom: var(--core-space-lg); }
+[id] { scroll-margin-top: calc(var(--docs-nav-height, 64px) + var(--core-space-xl)); }
 .docs-mobile-nav { display: none; }
-.docs-journey { border-top: 1px solid var(--core-border); margin-bottom: 48px; }
-.docs-journey-flow { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 24px; align-items: start; }
-.docs-journey-flow pre { margin: 0; padding: 12px; }
+.docs-journey { border-top: var(--core-border-width) solid var(--core-border); margin-bottom: var(--core-space-xl); }
+.docs-journey-flow { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: var(--core-space-xl); align-items: start; }
+.docs-journey-flow pre { margin: 0; padding: var(--core-space-md); }
 .mermaid svg { max-width: 100%; height: auto; }
-.docs-site-nav :focus-visible, .docs-rail :focus-visible, .docs-mobile-nav :focus-visible, .catalog-controls :focus-visible { outline: 2px solid var(--core-action-primary) !important; outline-offset: 3px !important; }
-@media (max-width: 960px) {
+.docs-code-footprint { margin: var(--core-space-xl) 0; padding: var(--core-space-xl); }
+.docs-code-footprint h2 { margin-top: 0; }
+.docs-code-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--core-space-md); }
+.docs-code-chart { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--core-space-xl); align-items: center; margin: var(--core-space-xl) 0; }
+.docs-code-donut { display: grid; justify-items: center; gap: var(--core-space-md); }
+.docs-code-donut > span:first-child { width: 10rem; height: 10rem; }
+.docs-code-dot { display: inline-block; width: var(--core-space-sm); height: var(--core-space-sm); border-radius: var(--core-radius-round); margin-right: var(--core-space-sm); }
+.docs-code-chart tbody th { font-weight: var(--core-weight-control); }
+.docs-code-chart thead th { white-space: nowrap; }
+.docs-code-chart td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 1279px) {
   .docs-layout { display: block; }
-  .docs-rail { display: none; position: static; height: auto; max-height: 65dvh; border-right: 0; border-bottom: 1px solid var(--core-border); padding: 20px; }
+  .docs-rail { display: none; position: sticky; top: calc(var(--docs-nav-height, 64px) + var(--docs-section-height, var(--core-control-height)) + var(--core-space-xl)); z-index: 44; height: auto; max-height: 60dvh; margin: 0 var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); box-shadow: var(--core-shadow-raised); padding: var(--core-space-lg); }
   .docs-rail.is-open { display: flex; }
-  .docs-mobile-nav { display: block; width: 100%; min-height: 44px; padding: 10px 20px; background: var(--core-surface-muted); color: var(--core-text); text-align: left; }
-  .docs-content { padding-top: 24px; }
+  .docs-mobile-nav { position: sticky; top: var(--docs-nav-height, 64px); z-index: 44; display: flex; justify-content: space-between; width: calc(100% - 2 * var(--core-space-lg)); margin: var(--core-space-md) var(--core-space-lg); background: var(--core-surface-raised); box-shadow: var(--core-shadow-soft); text-align: left; white-space: normal; }
+  .docs-mobile-nav svg { flex: none; }
+  .docs-mobile-nav[aria-expanded="true"] svg { transform: rotate(180deg); }
+  [id] { scroll-margin-top: calc(var(--docs-nav-height, 64px) + var(--docs-section-height, var(--core-control-height)) + 2 * var(--core-space-xl)); }
   .docs-journey-flow { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
-  .docs-site-nav { flex-wrap: wrap; gap: 4px 12px; padding: 8px 16px; }
+  .docs-site-nav { flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); padding: var(--core-space-sm) var(--core-space-lg); }
   .docs-site-nav nav { order: 3; flex-basis: 100%; }
   .docs-site-nav button { margin-left: auto; }
-  .docs-document h1 { font-size: 28px; }
-  [id] { scroll-margin-top: 136px; }
+  .docs-content { padding: var(--core-space-lg); }
+  .docs-code-footprint { padding: var(--core-space-lg); }
+  .docs-code-stats, .docs-code-chart { grid-template-columns: 1fr; }
+  .docs-code-footprint th, .docs-code-footprint td { padding: var(--core-space-sm); }
 }
 @media print { .docs-site-nav, .docs-rail, .docs-mobile-nav { display: none; } .docs-layout { display: block; } .docs-content { padding: 0; } .docs-document { max-width: none; } }
 
@@ -4871,21 +4889,21 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
   .catalog-type-row small { grid-column: 1; }
   .catalog-card-types { padding: 24px 16px 60px; }
 }
-</style></head><body><header class="docs-site-nav"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><nav aria-label="Doku-Seiten"><a href="index.html">Docs</a><a href="specs.html" aria-current="page">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartentypen</a></nav><button type="button" id="docs-theme" aria-label="Dark Mode einschalten">◐</button></header><button id="docs-nav-toggle" class="docs-mobile-nav" type="button" aria-expanded="false" aria-controls="docs-rail">Inhaltsverzeichnis öffnen</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1>Specs</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content"><article id="specs--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="specs.md">specs.md</a></p><h1 id="specs--core--produktvertrag-und-kernjourneys">CoRe — Produktvertrag und Kernjourneys <a class="docs-anchor" href="#specs--core--produktvertrag-und-kernjourneys" aria-label="Link zu CoRe — Produktvertrag und Kernjourneys">#</a></h1>
+</style></head><body><header class="docs-site-nav"><a class="docs-brand core-heading-3" href="index.html">CoRe <span class="core-caption">Docs</span></a><nav aria-label="Doku-Seiten"><a class="core-control-label" href="index.html">Docs</a><a class="core-control-label" href="specs.html" aria-current="page">Specs</a><a class="core-control-label" href="journeys.html">Journeys</a><a class="core-control-label" href="ui-elements.html">UI-Elements</a><a class="core-control-label" href="card-types.html">Kartentypen</a></nav><button class="core-action-secondary" type="button" id="docs-theme" aria-label="Dark Mode einschalten"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun-moon" aria-hidden="true"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"></path><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.9 4.9 1.4 1.4"></path><path d="m17.7 17.7 1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.3 17.7-1.4 1.4"></path><path d="m19.1 4.9-1.4 1.4"></path></svg></button></header><button id="docs-nav-toggle" class="docs-mobile-nav core-action-secondary" type="button" aria-expanded="false" aria-controls="docs-rail"><span id="docs-current-section">Inhaltsverzeichnis</span><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1 class="core-heading-3">Specs</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search core-field" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count core-caption" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content"><article id="specs--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="specs.md">specs.md</a></p><h1 id="specs--core--produktvertrag-und-kernjourneys" class="core-heading-1" tabindex="-1">CoRe — Produktvertrag und Kernjourneys <a class="docs-anchor" href="#specs--core--produktvertrag-und-kernjourneys" aria-label="Link zu CoRe — Produktvertrag und Kernjourneys">#</a></h1>
 <p><strong>Rolle:</strong> einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 <strong>Status:</strong> Arbeitsfassung
-<strong>Stand:</strong> 2026-10-02</p>
-<p>Diese Spezifikation beschreibt ausschließlich, was CoRe für Nutzer leisten soll. Aktuelle Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und offene Roadmap haben eigene Quellen in der <a href="index.html#readme--document">Dokumentenlandkarte</a>.</p>
+<strong>Stand:</strong> 2026-10-05</p>
+<p>Diese Spezifikation beschreibt CoRes Produktvertrag. Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und Roadmap stehen in der <a href="index.html#readme--document">Dokumentenlandkarte</a>.</p>
 <hr>
-<h2 id="specs--1-produktvision">1. Produktvision <a class="docs-anchor" href="#specs--1-produktvision" aria-label="Link zu 1. Produktvision">#</a></h2>
-<p>CoRe erweitert klassische Spaced Repetition um inhaltliche Wiederholung. Lernende sollen Inhalte auch bei veränderter Fragestellung abrufen, statt Layout, Wortlaut oder Lückenposition wiederzuerkennen.</p>
-<p>CoRe startet Anki-kompatibel, bleibt beim Lernen ruhig und fokussiert und behandelt jede planbare Karte als eigenständige Lerneinheit.</p>
-<h3 id="specs--zielgruppen">Zielgruppen <a class="docs-anchor" href="#specs--zielgruppen" aria-label="Link zu Zielgruppen">#</a></h3>
+<section class="core-surface-raised min-w-0 rounded-panel docs-code-footprint"><h2 id="specs--codeumfang" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control bg-core-subtle p-3 min-w-0"><dt class="core-caption !font-semibold uppercase tracking-wide text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">6.282</dd></dl><dl data-size="compact" class="flex flex-col rounded-control bg-core-subtle p-3 min-w-0"><dt class="core-caption !font-semibold uppercase tracking-wide text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">33.439</dd></dl><dl data-size="compact" class="flex flex-col rounded-control bg-core-subtle p-3 min-w-0"><dt class="core-caption !font-semibold uppercase tracking-wide text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">146</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 287 Zeilen, Lernen &amp; Karten: 2.543 Zeilen, Erstellen &amp; Import: 1.474 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 782 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.379434805919324 1.7774403233556733 L 23.822229993679517 7.052391808700085 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="287"></path><path d="M 25.379434805919324 1.7774403233556733 A 19 19 0 0 1 25.815266962250952 38.08819145624439 L 24.13190021002041 32.85213603469997 A 13.5 13.5 0 0 0 23.822229993679517 7.052391808700085 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2543"></path><path d="M 25.815266962250952 38.08819145624439 A 19 19 0 0 1 2.5564039173196313 27.531331602332887 L 7.6058659412534215 25.351209296394423 A 13.5 13.5 0 0 0 24.13190021002041 32.85213603469997 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1474"></path><path d="M 2.5564039173196313 27.531331602332887 A 19 19 0 0 1 1.2322893196078546 17.0380689040603 L 6.6650476744582114 17.895470010779686 A 13.5 13.5 0 0 0 7.6058659412534215 25.351209296394423 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.2322893196078546 17.0380689040603 A 19 19 0 0 1 6.6087141433744865 6.521370132459994 L 10.485138996608187 10.423078778326838 A 13.5 13.5 0 0 0 6.6650476744582114 17.895470010779686 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 6.6087141433744865 6.521370132459994 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.485138996608187 10.423078778326838 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="782"></path></svg></span><span class="core-caption">6.282 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>287</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.543</td><td>40,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.474</td><td>23,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>10,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>782</td><td>12,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></section><h2 id="specs--1-produktvision" class="core-heading-2" tabindex="-1">1. Produktvision <a class="docs-anchor" href="#specs--1-produktvision" aria-label="Link zu 1. Produktvision">#</a></h2>
+<p>CoRe ergänzt Spaced Repetition um inhaltliche Wiederholung: Wissen auch bei veränderter Frage abrufen, statt Layout, Wortlaut oder Lückenposition wiederzuerkennen.</p>
+<p>CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit.</p>
+<h3 id="specs--zielgruppen" class="core-heading-3" tabindex="-1">Zielgruppen <a class="docs-anchor" href="#specs--zielgruppen" aria-label="Link zu Zielgruppen">#</a></h3>
 <ul>
 <li>Studierende und Auszubildende mit großen, langfristig gepflegten Kartenbeständen;</li>
 <li>Anki-Nutzer, die vorhandene Stapel weiterverwenden wollen;</li>
 </ul>
-<h3 id="specs--kernnutzen">Kernnutzen <a class="docs-anchor" href="#specs--kernnutzen" aria-label="Link zu Kernnutzen">#</a></h3>
+<h3 id="specs--kernnutzen" class="core-heading-3" tabindex="-1">Kernnutzen <a class="docs-anchor" href="#specs--kernnutzen" aria-label="Link zu Kernnutzen">#</a></h3>
 <ol>
 <li>Bestehende und neue Lerninhalte schnell in ein gemeinsames Modell bringen.</li>
 <li>Eine ruhige, vorhersehbare Review-Sitzung mit vier Bewertungen anbieten.</li>
@@ -4893,7 +4911,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>KI-Umformulierungen stets auf ihre zugrunde liegende Karte zurückführen.</li>
 <li>Nutzerinhalte accountgebunden und nachvollziehbar halten.</li>
 </ol>
-<h2 id="specs--2-produktprinzipien">2. Produktprinzipien <a class="docs-anchor" href="#specs--2-produktprinzipien" aria-label="Link zu 2. Produktprinzipien">#</a></h2>
+<h2 id="specs--2-produktprinzipien" class="core-heading-2" tabindex="-1">2. Produktprinzipien <a class="docs-anchor" href="#specs--2-produktprinzipien" aria-label="Link zu 2. Produktprinzipien">#</a></h2>
 <ol>
 <li><strong>Anki-kompatibel starten:</strong> APKG-Import und bekannte Kartenformen senken die Einstiegshürde.</li>
 <li><strong>Karten bleiben eigenständig:</strong> Jede Karte besitzt genau einen Lernstatus; KI-Umformulierungen teilen ihn.</li>
@@ -4902,8 +4920,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li><strong>Stapelweise steuerbar:</strong> Content Repetition kann pro Stapel aus, automatisch oder manuell sein.</li>
 <li><strong>Sparsam ausbauen:</strong> Nicht jede Karte wird variiert; neue Produktflächen brauchen einen belegten Core-Auftrag.</li>
 </ol>
-<h2 id="specs--3-produktreife">3. Produktreife <a class="docs-anchor" href="#specs--3-produktreife" aria-label="Link zu 3. Produktreife">#</a></h2>
-<h3 id="specs--core">Core <a class="docs-anchor" href="#specs--core" aria-label="Link zu Core">#</a></h3>
+<h2 id="specs--3-produktreife" class="core-heading-2" tabindex="-1">3. Produktreife <a class="docs-anchor" href="#specs--3-produktreife" aria-label="Link zu 3. Produktreife">#</a></h2>
+<h3 id="specs--core" class="core-heading-3" tabindex="-1">Core <a class="docs-anchor" href="#specs--core" aria-label="Link zu Core">#</a></h3>
 <ul>
 <li>E-Mail-/Passwort-Account und verständlicher leerer Zustand;</li>
 <li>Heute-Dashboard und klarer Lernstart;</li>
@@ -4916,15 +4934,15 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>accountgebundene Speicherung, Sync- und Konfliktstatus;</li>
 <li>grundlegende Statistik und verständliche Einstellungen.</li>
 </ul>
-<h3 id="specs--disabled">Disabled <a class="docs-anchor" href="#specs--disabled" aria-label="Link zu Disabled">#</a></h3>
+<h3 id="specs--disabled" class="core-heading-3" tabindex="-1">Disabled <a class="docs-anchor" href="#specs--disabled" aria-label="Link zu Disabled">#</a></h3>
 <ul>
 <li>APKG über 250 MB; solche Dateien werden lokal abgewiesen;</li>
 <li>Google und Magic Link, wenn ihr jeweiliges eigenes Auth-Flag deaktiviert ist;</li>
 <li>DOCX, OCR und Bildregionen;</li>
 <li>vollständige Art.-15-Auskunft und Account-Löschung.</li>
 </ul>
-<p>Die dauerhafte Entscheidung und ihre Konsequenzen stehen in <a href="decisions.md#adr-001--core-labs-und-disabled">ADR-001</a>. Der heutige Projektionsstand steht in <a href="status.md"><code>status.md</code></a>.</p>
-<h2 id="specs--4-domänensprache">4. Domänensprache <a class="docs-anchor" href="#specs--4-domänensprache" aria-label="Link zu 4. Domänensprache">#</a></h2>
+<p>Entscheidung und Konsequenzen: <a href="decisions.md#adr-001--core-labs-und-disabled">ADR-001</a>. Aktueller Stand: <a href="status.md"><code>status.md</code></a>.</p>
+<h2 id="specs--4-domänensprache" class="core-heading-2" tabindex="-1">4. Domänensprache <a class="docs-anchor" href="#specs--4-domänensprache" aria-label="Link zu 4. Domänensprache">#</a></h2>
 <table>
 <thead>
 <tr>
@@ -4957,21 +4975,21 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <td>Aus Reviewdaten abgeleitete Eignung für anspruchsvollere Varianten</td>
 </tr>
 </tbody></table>
-<p>Aktuelle Code- und Tabellennamen weichen teilweise aus Kompatibilitätsgründen ab. Diese technische Trennung steht ausschließlich in <a href="architecture.md#4-heutiges-compatibility-modell"><code>architecture.md</code></a>.</p>
-<h2 id="specs--5-kernjourneys">5. Kernjourneys <a class="docs-anchor" href="#specs--5-kernjourneys" aria-label="Link zu 5. Kernjourneys">#</a></h2>
-<h3 id="specs--51-account-öffnen-und-produktzustand-verstehen">5.1 Account öffnen und Produktzustand verstehen <a class="docs-anchor" href="#specs--51-account-öffnen-und-produktzustand-verstehen" aria-label="Link zu 5.1 Account öffnen und Produktzustand verstehen">#</a></h3>
-<p>Ein neuer Account startet ohne erfundene Profildaten, Demo-Stapel oder fremde Lernhistorie. Das Dashboard erklärt kurz das Kernversprechen und bietet klare Wege zum Import, zur ersten manuellen Karte oder zu einer ausdrücklich gewählten Demo.</p>
+<p>Abweichende Code- und Tabellennamen erklärt <a href="architecture.md#4-heutiges-compatibility-modell"><code>architecture.md</code></a>.</p>
+<h2 id="specs--5-kernjourneys" class="core-heading-2" tabindex="-1">5. Kernjourneys <a class="docs-anchor" href="#specs--5-kernjourneys" aria-label="Link zu 5. Kernjourneys">#</a></h2>
+<h3 id="specs--51-account-öffnen-und-produktzustand-verstehen" class="core-heading-3" tabindex="-1">5.1 Account öffnen und Produktzustand verstehen <a class="docs-anchor" href="#specs--51-account-öffnen-und-produktzustand-verstehen" aria-label="Link zu 5.1 Account öffnen und Produktzustand verstehen">#</a></h3>
+<p>Neue Accounts starten ohne erfundene Profildaten, Demo-Stapel oder fremde Lernhistorie. Das Dashboard erklärt den Kernnutzen und führt zu Import, manueller Karte oder bewusst gewählter Demo.</p>
 <p>Akzeptanz:</p>
 <ul>
 <li>Die Login-E-Mail wird als Accountwert gezeigt und nicht als wirkungslose Profiländerung angeboten.</li>
 <li>Datenschutztexte versprechen nur technisch wirksames Verhalten.</li>
 <li>Sync-, Offline- und Konfliktstatus sind ohne Tabellen-, Revisions- oder Geräteterminologie verständlich.</li>
 <li>Demo-Daten entstehen nur durch eine ausdrückliche Nutzeraktion oder klaren Entwicklungs-/Testmodus.</li>
-<li>Ein befülltes Dashboard ersetzt den bloßen Fälligkeitszähler durch genau eine Tageslernfläche. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions einschließlich ihrer Unterstapel ohne Doppelzählung und zeigt <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> mit denselben Farben und derselben vollständig gefüllten Segmentreihenfolge wie der Review. <code>Gelernt</code> verwendet im Tagesfortschritt neutrales Grau; ein fünftes Segment existiert nicht. <code>X / Y Karten</code> zählt eindeutige heute relevante Learning Items; Untertitel, Zeitprognose und Konfetti existieren nicht.</li>
-<li>Die Tageslernfläche unterscheidet <code>Dein Lernen heute</code>, den deaktivierten Zwischenzustand <code>Später weiterlernen</code> für heute vorgemerkte, aktuell noch nicht verfügbare Lernschritte und den grün hervorgehobenen Abschluss <code>Tagesziel erreicht</code>. Auch <code>0 / 0 Karten</code> ist abgeschlossen. Eine randlose Play-Icon-Aktion oben rechts verwendet dieselbe Darstellung wie die Stapel-Lernaktion und startet als <code>Jetzt lernen</code> die erste aktuell verfügbare Hauptstapel-Session. Ihr zugänglicher Name und Tooltip folgen dem Lernzustand; im Zwischenzustand bleibt sie deaktiviert. Eine separate Buttonspalte und Plan-Vorschauen existieren nicht. Zahlen und Beschriftungen der vier Kennzahlen stehen jeweils einzeilig in gleicher Schriftgröße; die Kennzahlengruppen umbrechen bei begrenzter Breite.</li>
-<li>Nach erreichtem Ziel öffnet <code>Zusätzliche Karten lernen</code> nur dann einen Dialog, wenn jenseits des heutigen Neulimits weitere neue Karten existieren. Nutzende wählen einen Hauptstapel und eine auf den tatsächlichen Rest begrenzte Menge aus <code>+5</code>, <code>+10</code> oder <code>+20</code>; die Auswahl erhöht ausschließlich dessen <code>newCardsTodayOverride</code> für den aktuellen fachlichen Lerntag und startet anschließend diese Session. Fällige oder künftige Wiederholungen werden nicht vorgezogen. Eine bei Bestätigung veraltete Auswahl mutiert nichts und meldet den Fehler verständlich.</li>
+<li>Befüllte Dashboards zeigen genau eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert alphabetisch sortierte Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung. <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> folgen den Reviewfarben und der vollständig gefüllten Segmentreihenfolge; <code>Gelernt</code> bleibt neutral grau. <code>X / Y Karten</code> zählt eindeutige heute relevante Learning Items. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.</li>
+<li>Die Tageslernfläche zeigt <code>Dein Lernen heute</code>, deaktiviertes <code>Später weiterlernen</code> bei noch nicht verfügbaren heutigen Lernschritten oder den grünen Abschluss <code>Tagesziel erreicht</code> (auch bei <code>0 / 0 Karten</code>). Das randlose Play-Icon oben rechts entspricht der Stapel-Lernaktion und startet als <code>Jetzt lernen</code> die erste verfügbare Hauptstapel-Session. Name und Tooltip folgen dem Zustand; im Zwischenzustand bleibt es deaktiviert. Buttonspalte und Plan-Vorschauen entfallen. Die vier Kennzahlen verwenden einzeilige Zahlen/Labels gleicher Schriftgröße; nur ihre Gruppen umbrechen.</li>
+<li>Nach Zielerreichung öffnet <code>Zusätzliche Karten lernen</code> nur bei weiteren neuen Karten jenseits des heutigen Limits einen Dialog. Hauptstapel und <code>+5</code>, <code>+10</code> oder <code>+20</code> sind auf den tatsächlichen Rest begrenzt. Bestätigung erhöht nur dessen <code>newCardsTodayOverride</code> für den aktuellen Lerntag und startet die Session; Wiederholungen werden nicht vorgezogen. Veraltete Auswahlen ändern nichts und melden einen verständlichen Fehler.</li>
 </ul>
-<h3 id="specs--52-stapel-importieren-oder-manuell-anlegen">5.2 Stapel importieren oder manuell anlegen <a class="docs-anchor" href="#specs--52-stapel-importieren-oder-manuell-anlegen" aria-label="Link zu 5.2 Stapel importieren oder manuell anlegen">#</a></h3>
+<h3 id="specs--52-stapel-importieren-oder-manuell-anlegen" class="core-heading-3" tabindex="-1">5.2 Stapel importieren oder manuell anlegen <a class="docs-anchor" href="#specs--52-stapel-importieren-oder-manuell-anlegen" aria-label="Link zu 5.2 Stapel importieren oder manuell anlegen">#</a></h3>
 <p>Nutzer wählen zwischen manueller Erstellung und Import.</p>
 <p>Akzeptanz:</p>
 <ul>
@@ -4979,26 +4997,26 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Unterstützte Quellanhänge sind PDF, Text, Markdown, CSV und TSV; nicht lesbare Formate sind nicht auswählbar.</li>
 <li>APKG wird zuerst analysiert. Vorschau und <code>Import übernehmen</code> sind getrennte Schritte.</li>
 <li>APKG-Hierarchien werden ohne fachliches Tiefenlimit vollständig importiert. Jeder Stapel verweist auf seinen unmittelbaren Anki-Elternstapel und behält den vollständigen Quellpfad; eine Abflachungswarnung wird nicht angezeigt.</li>
-<li>Der Hauptbericht nennt Datei, Stapel, Karten, Notetypes, vorhandene und fehlende Medien sowie verständliche Kompatibilitäts- und Schedulerwarnungen. Höchstens drei repräsentative Karten werden mit demselben Renderer wie die spätere Kartenansicht und der Review gezeigt; Vorder- und Rückseite tragen innerhalb der Kartenfläche eine kompakte Seitenkennzeichnung. Der pauschale Hinweis auf originalgetreue und sichere Darstellung entfällt, tatsächliche Darstellungsabweichungen und Diagnosen bleiben sichtbar.</li>
+<li>Der Importbericht nennt Datei, Stapel, Karten, Notetypes, vorhandene/fehlende Medien sowie verständliche Kompatibilitäts- und Schedulerwarnungen. Bis zu drei Beispielkarten verwenden den Karten-/Reviewrenderer mit kompakter Seitenkennzeichnung innerhalb der Karte. Tatsächliche Darstellungsabweichungen und Diagnosen bleiben sichtbar; pauschale Originaltreue- und Sicherheitshinweise entfallen.</li>
 <li>Notetype-IDs, Template-Ordinals, Hashes und Importidentitäten dominieren den Hauptflow nicht.</li>
-<li>Eine laufende accountgebundene APKG-Sitzung bleibt bei Navigation innerhalb der App mit Datei-Metadaten, Vorschau, Fortschritt und Abschlusszustand erhalten. Die Rückkehr zu <code>Erstellen → Import</code> zeigt denselben Zustand; die Zurückaktion <code>Erstellen</code>, Logout oder bestätigter Abschluss setzen ihn zurück. Ein Browser-Reload übernimmt weder Datei noch Vorschau oder Worker.</li>
+<li>Eine accountgebundene APKG-Sitzung erhält bei App-Navigation Datei-Metadaten, Vorschau, Fortschritt und Abschluss. <code>Erstellen → Import</code> stellt sie wieder dar; die Zurückaktion <code>Erstellen</code>, Logout und bestätigter Abschluss setzen sie zurück. Reload erhält weder Datei noch Vorschau oder Worker.</li>
 <li><code>Import übernehmen</code> endet nach dem lokal validierten IndexedDB-Commit und dem dauerhaften Einreihen vorhandener Medien. Jede reale Anki-Karte wird dabei zu einer eigenständigen CoRe-Karte. Danach werden Karten-, Review- und Mediendaten getrennt synchronisiert; Notiztypen bleiben reine Render-Schablonen.</li>
 <li>Offline- und erneut versuchbare Fehler melden <code>Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.</code> und lassen Outbox sowie Medienqueue bestehen. Nicht erneut versuchbare Konflikte bleiben sichtbar und entfernen die lokalen Karten nicht.</li>
 <li>Abbruch, erneut versuchbarer Fehler, terminaler Fehler, Teilabschluss und Erfolg sind getrennte Zustände mit jeweils passender Folgeaktion.</li>
 <li>Nach dem bestätigten APKG-Erfolg öffnet sich ohne zusätzlichen Zwischenbutton genau einmal <code>Import erfolgreich</code>. Die Zusammenfassung nennt die verifizierte Kartenanzahl und den Stapelpfad. <code>Jetzt lernen</code> startet den importierten Wurzelstapel einschließlich seiner Unterstapel; <code>Zur Übersicht</code> führt zu <code>Heute</code>. <code>Karten prüfen</code> und <code>Weitere Karten erstellen</code> gehören nicht zu dieser Importabschlussansicht.</li>
 <li>Bei manueller Erstellung bleibt der Editor nach <code>Speichern</code> geöffnet. Angeheftete Felder bleiben erhalten, andere Felder werden geleert, das Zieldeck bleibt gewählt und der Fokus springt deterministisch in das erste freie Pflichtfeld.</li>
-<li>Ein gültiger manueller Speicherklick startet genau einen exklusiven Versuch. Entwurf, Zielstapel, <code>Fertig</code> und interne Navigation bleiben bis zu dessen Abschluss gesperrt; Mehrfachklick, Doppelklick und Tastaturaktivierung erzeugen höchstens eine Karte. Reload und Tab-Schließen behalten währenddessen die Browserwarnung.</li>
+<li>Manuelles Speichern startet genau einen exklusiven Versuch. Entwurf, Zielstapel, <code>Fertig</code> und interne Navigation bleiben bis zum Abschluss gesperrt. Mehrfach-/Doppelklick und Tastaturaktivierung erzeugen höchstens eine Karte; Reload und Tab-Schließen zeigen währenddessen die Browserwarnung.</li>
 <li>Bilder werden vor der Karte im accountgebundenen lokalen Medienspeicher gesichert. Erst danach wird die Karte lokal persistiert und der aktuelle Medien-Upload versucht. Ein Fehler vor der lokalen Kartenspeicherung erhält den vollständigen Entwurf und erhöht den Sitzungszähler nicht; ein späterer Medien- oder Cloudfehler zählt die bereits lokale Karte genau einmal und darf keinen erneuten Save zur Dublette erzwingen.</li>
-<li>Manuell eingefügte JPEG-, PNG- und WebP-Bilder oberhalb Full HD werden vor Prüfsumme und lokaler Sicherung unter Beibehaltung des Seitenverhältnisses verkleinert: Landschaft passt in 1920 × 1080, Hochformat in 1080 × 1920. Kleinere Dateien sowie SVG-, GIF- und AVIF-Dateien bleiben bytegenau unverändert; APKG-Medien werden nie durch diesen Pfad verändert.</li>
+<li>Manuelle JPEG-/PNG-/WebP-Bilder oberhalb Full HD werden vor Prüfsumme und lokaler Sicherung proportional verkleinert: Landschaft auf höchstens 1920 × 1080, Hochformat auf 1080 × 1920. Kleinere Dateien, SVG, GIF und AVIF bleiben bytegenau erhalten; APKG-Medien sind ausgenommen.</li>
 <li>Während des Versuchs zeigt der Aktionsbereich einen zugänglichen, monotonen Fortschrittsbalken mit den Phasen <code>Bilder werden lokal gesichert</code>, <code>Karte wird lokal gespeichert</code>, Upload mit ursprünglichem Dateinamen und Byteangaben sowie <code>Medienverknüpfung wird gespeichert</code>. 100 Prozent erscheinen erst am Ende des gesamten Versuchs; Reduced Motion wird berücksichtigt.</li>
 <li>Vollständiger Cloudabschluss meldet <code>Karte wurde erfolgreich gespeichert.</code>. Ein erneut versuchbarer oder Offline-Teilabschluss meldet <code>Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt.</code>; ein nicht erneut versuchbarer Medienfehler nach lokaler Speicherung wird als unvollständiger Medienzustand angezeigt.</li>
-<li>Im Kopf der manuellen Erstellungsfläche öffnet <code>Vorschau</code> den gemeinsamen modalen Karten-Vorschau-Dialog aus dem aktuellen ungespeicherten Entwurf. Text, Kartentyp, Zusatzfelder und frei positionierte Inline-Bilder stammen dabei aus derselben Projektion wie beim Speichern. Eine zusätzliche aufgeklappte <code>Live-Vorschau</code> wird in der Kartenerstellung nicht angezeigt. Die modale Vorschau verzichtet auf pauschale Sicherheits- oder Originaltreue-Werbung. <code>PDF/Text anfügen</code> steht in der oberen Zurückzeile direkt neben <code>Erstellen</code>.</li>
+<li><code>Vorschau</code> im Erstellkopf öffnet den gemeinsamen modalen Kartendialog aus dem ungespeicherten Entwurf. Text, Typ, Zusatzfelder und Inline-Bilder verwenden dieselbe Projektion wie Speichern. Eine zusätzliche <code>Live-Vorschau</code> und pauschale Sicherheits-/Originaltreue-Werbung entfallen. <code>PDF/Text anfügen</code> steht in der Zurückzeile direkt neben <code>Erstellen</code>.</li>
 <li>Die manuelle Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. <code>Fragentyp</code> und <code>Lernrichtung</code> stehen ab 768 px gemeinsam in einer Zeile und darunter in zwei sauber umbrechenden Gruppen. Die gemeinsame Fragentyp-Pill behält <code>Single Choice</code> und <code>Multiple Choice</code>; ihre Beschriftungen dürfen auf schmalen Ansichten innerhalb der unveränderten 44-px-Höhe zweizeilig werden. Bilder werden über die Rich-Text-Toolbar, Einfügen oder Drag-and-drop an der aktuellen Cursorposition in Vorderseite, Rückseite und Zusatzfelder eingefügt; separate Bild-Ablagefelder existieren nicht. <code>Lücke</code> markiert die gespeicherte Textauswahl als Cloze-Gruppe, Rückrichtung, Single Choice und Multiple Choice werden als direkte Steuerungen angeboten. Bei beiden Auswahltypen stehen die Antwortoptionen unmittelbar unter der Frage. Zusätzliche benannte Felder erhalten eine Platzierung auf Vorderseite, Rückseite, beiden Seiten oder nur in Metadaten; <code>Feld hinzufügen</code> steht ohne ausklappbare Gruppenfläche direkt darunter.</li>
 <li>Zielauswahlen zeigen vollständige hierarchische Stapelpfade. Erst <code>Fertig</code> öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, <code>Jetzt lernen</code> und <code>Karten prüfen</code>.</li>
 <li>Interne Navigation mit einem nichtleeren fachlichen Entwurf verlangt eine eigene Bestätigung. <code>Weiter bearbeiten</code> erhält Inhalt und Fokus; <code>Verwerfen und verlassen</code> verwirft nur den aktuellen Entwurf. Während eines laufenden Speicherversuchs bleibt die Navigation ohne Verwerfoption auf der Erstellungsseite und fokussiert den Fortschritt.</li>
 </ul>
-<h3 id="specs--53-karten-bearbeiten-und-eine-sitzung-starten">5.3 Karten bearbeiten und eine Sitzung starten <a class="docs-anchor" href="#specs--53-karten-bearbeiten-und-eine-sitzung-starten" aria-label="Link zu 5.3 Karten bearbeiten und eine Sitzung starten">#</a></h3>
-<p><code>Lernen</code> ist der primäre schnelle Einstieg in eine Sitzung und bündelt die beiden Bereiche <code>Stapelübersicht</code> und <code>Kartenverwaltung</code>. Die Auswahl erfolgt über ein reguläres segmentiertes Control rechts neben der Überschrift <code>Lernen</code>; die Route leitet den aktiven Bereich ab. Daneben öffnet der beschriftete Button <code>Lerneinstellungen</code> die accountweiten Lern- und Planungseinstellungen unter dem kompatiblen Pfad <code>/karten-einstellungen</code>. Die direktlinkfähige Kartenverwaltung für alle Karten, Stapelstruktur, Inhalt, Herkunft und erweiterte Optionen behält die verborgene Route <code>/kartenstapel</code>.</p>
+<h3 id="specs--53-karten-bearbeiten-und-eine-sitzung-starten" class="core-heading-3" tabindex="-1">5.3 Karten bearbeiten und eine Sitzung starten <a class="docs-anchor" href="#specs--53-karten-bearbeiten-und-eine-sitzung-starten" aria-label="Link zu 5.3 Karten bearbeiten und eine Sitzung starten">#</a></h3>
+<p><code>Lernen</code> bündelt <code>Stapelübersicht</code> und <code>Kartenverwaltung</code> als schnellen Sitzungseinstieg. Das segmentierte Control rechts neben <code>Lernen</code> folgt der aktiven Route. Daneben öffnet <code>Lerneinstellungen</code> die accountweite Planung unter <code>/karten-einstellungen</code>. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt, Herkunft und erweiterte Optionen bleibt unter der verborgenen Route <code>/kartenstapel</code>.</p>
 <p>Akzeptanz:</p>
 <ul>
 <li>Die Stapelfläche in <code>Heute</code> und <code>Lernen</code> öffnet die stapelbezogene Inhaltsansicht unter <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Ein eigener randloser Play-Button links von <code>Neu</code> startet direkt den unveränderten Reviewpfad einschließlich Unterstapeln und Tageslimits. Sein zugänglicher Name enthält den Stapelpfad, sein Tooltip den lokalen Namen mit Stapel-Icon. Lernen, Stapeloptionen und Auf-/Zuklappen lösen die Flächenaktion nicht aus.</li>
@@ -5008,13 +5026,13 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Der Auswahlindikator aller gemeinsamen segmentierten Controls, einschließlich <code>Woche</code>, <code>Monat</code> und <code>Jahr</code>, gleitet bei einem Auswahlwechsel zwischen den Positionen und passt seine Breite an. Bei reduzierter Bewegung entfällt der Übergang.</li>
 <li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auch auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein normaler Klick auf das Hauptziel <code>Lernen</code> öffnet stets die Stapelübersicht. Ein Klick auf den Schriftzug <code>CoRe</code> im App-Kopf beziehungsweise in der Sidebar navigiert zu <code>Heute</code>.</li>
 <li>Beide Lernen-Bereiche zeigen <code>REVIEW</code> und <code>Lernen</code> im Seitenkopf. Das segmentierte Control und der separate sekundäre Button <code>Lerneinstellungen</code> verwenden dieselbe 44-px-Höhe, Schriftfamilie, Schriftgröße und Gewicht. Bei mehr als 42 rem verfügbarer Kopfbreite stehen sie rechts neben der Überschrift; zwischen 32 und 42 rem wechseln beide gemeinsam in eine Zeile unter die Überschrift. Bis 32 rem steht <code>Lerneinstellungen</code> neben <code>Lernen</code>, und die Bereichsauswahl füllt die nächste Zeile. Überschrift und Controls überlagern sich nicht und erzeugen keinen horizontalen Seitenüberlauf.</li>
-<li><code>Heute</code>, <code>Lernen</code> und <code>Kartenverwaltung</code> verwenden dieselben Stapeldaten mit Tiefenfarbe, Chevron, Icon und Drei-Punkte-Aktion. Die logische Hierarchie besitzt kein fachliches Tiefenlimit. Die Einrückung beträgt 8 px je Ebene und maximal 40 px; Einrückung, Tiefenfarbe und <code>data-deck-depth</code> werden ab Ebene 6 auf dem Wert der sechsten Ebene gehalten. Jeder tatsächliche Elternstapel behält unabhängig von seiner Tiefe den Chevron, und sein Einklappen verbirgt den gesamten logisch tieferen Unterbaum. Die Zeile zeigt niemals den Hierarchiepfad; ein Stapelname bleibt einzeilig, solange er in seine individuell verfügbare Fläche passt. Sobald er dort abgeschnitten würde, darf ausschließlich dieser Name höchstens zwei Zeilen belegen; gleichzeitig einzeilig passende Stapelnamen bleiben unverändert. Der Abstand zur anschließenden Kennzahlspalte <code>Neu</code> bleibt kompakt. Der Play-Button steht unmittelbar nach dem Donut neben den Stapeloptionen. Donut, Play und Stapeloptionen besitzen optisch denselben schmalen Abstand. Beide Aktionen behalten ihre 44-px-Klickfläche; die Drei-Punkte-Grafik ist bei allen Breiten 32 px groß, und die Icons füllen sich bei Hover, Betätigung und geöffnetem Menü in der semantischen Textfarbe, ohne zusätzliche Hoverfläche. <code>Heute</code> und <code>Lernen</code> ergänzen die drei Kennzahlen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> sowie den segmentierten Gesamtfortschrittsdonut; oberhalb ihrer Stapelzeilen steht genau eine ungefähr 28 px hohe, nicht sortierbare Kopfzeile mit <code>Stapel</code> und diesen drei Kennzahlen. Bei schmaler verfügbarer Panelbreite entfallen die sichtbaren Kennzahllabel vollständig, ohne Abkürzungen wie <code>N</code>, <code>O</code> und <code>F</code>; in den Zeilen bleiben ausschließlich die vollständig zugänglich beschrifteten Zahlen sichtbar. Die drei Zahlen sind die durch verbleibende Tageslimits begrenzte Tagesprojektion: <code>Neu</code> enthält ausgewählte neue Karten, <code>Offen</code> heute anstehende Learning-/Relearning-Karten und <code>Fällig</code> ausgewählte fällige Reviewkarten. Der Donut bleibt davon unabhängig und teilt den gesamten aktiven Kartenbestand ohne Tageslimits im Uhrzeigersinn in <code>Neu</code>, <code>Offen</code>, aktuell <code>Fällig</code> und <code>Gelernt</code> auf; gelernt sind Reviewkarten mit einem zukünftigen Termin. Dashboard und Lernen aggregieren Zahlen und Donut über den Teilbaum mit den Einstellungen des dargestellten Elternstapels. Stapelköpfe der Kartenverwaltung zeigen auf keiner Hierarchieebene diese Kennzahlen oder den Donut, auch nicht ausschließlich für assistive Technik. Ausgesetzte oder vergrabene Karten fehlen weiterhin in den Lernprojektionen.</li>
+<li><code>Heute</code>, <code>Lernen</code> und <code>Kartenverwaltung</code> teilen Stapeldaten, Tiefenfarbe, Chevron, Icon und Drei-Punkte-Aktion. Die Hierarchie ist unbegrenzt; Einrückung (8 px je Ebene, höchstens 40 px), Tiefenfarbe und <code>data-deck-depth</code> bleiben ab Ebene 6 auf deren Wert. Jeder Elternstapel behält seinen Chevron; Einklappen verbirgt den gesamten Unterbaum. Zeilen zeigen nur lokale Namen. Nur individuell zu lange Namen dürfen zweizeilig werden; passende bleiben einzeilig. Der Abstand zur Spalte <code>Neu</code> bleibt kompakt. Donut, anschließender Play-Button und Stapeloptionen haben gleiche schmale Abstände. Beide Aktionen besitzen 44-px-Klickflächen, die Drei-Punkte-Grafik stets 32 px. Icons füllen sich bei Hover, Betätigung und offenem Menü in semantischer Textfarbe ohne zusätzliche Hoverfläche. <code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und den Gesamtfortschrittsdonut. Darüber steht genau eine ungefähr 28 px hohe, nicht sortierbare Kopfzeile mit <code>Stapel</code> und den drei Kennzahlen. Auf schmalen Panels entfallen Kennzahllabel ohne Abkürzungen; Zahlen behalten vollständige zugängliche Namen. Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Der unabhängige Donut zeigt den gesamten aktiven Bestand ohne Tageslimits im Uhrzeigersinn als <code>Neu</code>, <code>Offen</code>, aktuell <code>Fällig</code> und <code>Gelernt</code> (Reviews mit Zukunftstermin). Dashboard und Lernen aggregieren den Teilbaum nach den Einstellungen des dargestellten Elternstapels. Die Kartenverwaltung zeigt weder Kennzahlen noch Donut auf irgendeiner Ebene, auch assistiv nicht. Ausgesetzte und vergrabene Karten bleiben aus Lernprojektionen ausgeschlossen.</li>
 <li>Übersicht, Lernen und Kartenverwaltung speichern ihren jeweiligen Auf-/Zuklappzustand kontogebunden und stellen ihn nach Navigation, Reload und erneuter Anmeldung wieder her. Ohne gespeicherte Präferenz starten die Stapelsektionen der Kartenverwaltung eingeklappt; ein fokussierter Stapel beziehungsweise eine direkt verlinkte Karte öffnet die betroffene Sektion und speichert diesen Zustand. Unterstapel und die drei Ansichten bleiben voneinander unabhängig.</li>
 <li>Eine vorhandene leere, als <code>Nicht festgelegt</code> dargestellte Profilzeitzone blockiert das Speichern dieser UI-Präferenzen nicht. Für zeitabhängige Laufzeitberechnungen bleibt der Fallback auf die Browserzeitzone aktiv.</li>
 <li>Alle Stapelbäume sind innerhalb jeder Hierarchieebene alphabetisch wie in Anki sortiert. Die Reihenfolge folgt dem Stapelnamen ohne numerische Sonderbehandlung, sodass beispielsweise <code>Stapel 10</code> vor <code>Stapel 9</code> steht; jeder Elternstapel bleibt unmittelbar mit seinem separat sortierten Unterbaum zusammen.</li>
 <li>Die Kartentabelle zeigt pro Karte ausschließlich <code>Sortierfeld</code>, <code>Datum</code> und <code>Variante</code>. <code>Sortierfeld</code> ist die bereinigte Vorderseitenvorschau, <code>Datum</code> zeigt für unbewertete Karten <code>Neu</code> und sonst <code>TT.MM.JJJJ</code>, <code>Variante</code> zeigt zusätzliche aktive Varianten mit einem grauen Haken und Karten ohne aktive Variante mit einem grauen Strich; beide Icons haben dieselbe Breite und zugängliche Beschriftungen.</li>
 <li>Ausgesetzte Karten bleiben mit unverändertem, sortierbarem Datum in der Kartenverwaltung sichtbar und erhalten über die gesamte Zeile eine semantische gelbe Warnfläche; die Auswahl bleibt zusätzlich erkennbar und assistive Technik erhält die textliche Kennzeichnung <code>Ausgesetzt</code>. Markierte Karten zeigen unmittelbar rechts neben dem Variantenicon in einer durchgängig gleich ausgerichteten Sternspalte einen gelb gefüllten Stern. Beide Zustände können gleichzeitig erscheinen.</li>
-<li>Normale Kartenzeilen und beide Tabellenkopfvarianten bleiben einzeilig und ungefähr 28 px hoch; die sortierbaren Kartenüberschriften behalten Schrift und Pfeile. Lange Sortierfelder werden visuell mit Ellipse gekürzt, bleiben aber zugänglich und im Kartendetail vollständig verfügbar. Stapelköpfe bleiben mit höchstens ungefähr 48 px einheitlich kompakt. Bei höchstens 24 rem eigener Zeilenbreite ordnen Dashboard und Lernen den Stapelnamen über Lernen, Kennzahlen und Optionen an, damit alle Bedienelemente erreichbar und Namen lesbar bleiben. Die Kartenverwaltung und <code>Aktive Stapel</code> erzeugen bei keiner unterstützten Breite horizontales Scrollen: Stapelnamen und flexible Zellinhalte werden elliptisch gekürzt. In der Kartentabelle erhält <code>Sortierfeld</code> den verbleibenden Platz. Spaltenüberschriften dürfen bei Platzmangel gekürzt werden; ihre zugänglichen Beschriftungen bleiben vollständig. Die Werte in <code>Datum</code> und <code>Variante</code> bleiben ungekürzt sichtbar.</li>
+<li>Kartenzeilen und beide Tabellenköpfe bleiben einzeilig, ungefähr 28 px hoch; sortierbare Überschriften behalten Schrift und Pfeile. Lange Sortierfelder erhalten Ellipsen, bleiben zugänglich und im Detail vollständig. Stapelköpfe sind höchstens ungefähr 48 px hoch. Bis 24 rem Zeilenbreite steht in Dashboard und Lernen der Name über Lernaktion, Kennzahlen und Optionen. Kartenverwaltung und <code>Aktive Stapel</code> erzeugen keinen horizontalen Überlauf: Namen und flexible Zellen werden elliptisch gekürzt, <code>Sortierfeld</code> erhält den Restplatz. Gekürzte Spaltentitel behalten vollständige zugängliche Namen; <code>Datum</code> und <code>Variante</code> bleiben ungekürzt.</li>
 <li>Alle drei Spalten sind auf- und absteigend sortierbar. Standard ist <code>Sortierfeld</code> A–Z; die gewählte Sortierung gilt einheitlich für alle Stapelsektionen und wird nicht persistiert. Leere aufgeklappte Stapel zeigen <code>Keine Karten</code>.</li>
 <li>Bei mehreren Kartenseiten stehen unter der Liste dieselben umrundeten Chevron-Pfeile wie in der Heatmap. Die Anzeige <code>Seite X von Y</code> dazwischen verwendet die Schriftgröße der Kartenfragen; an erster und letzter Seite ist der jeweilige Pfeil deaktiviert.</li>
 <li>Die Kartenverwaltung bündelt den Paneltitel <code>Aktive Stapel</code>, die Suche und die gruppierte Gesamttabelle in einem gemeinsamen Panel. Über dem Suchfeld steht das sichtbare Feldlabel <code>Karten durchsuchen</code> im Format von <code>Stapelname</code>. Es gibt dort keinen Direkteinstieg zur Kartenerstellung.</li>
@@ -5063,7 +5081,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>An den Anbieter gelangen ausschließlich der bereinigte Text von Vorder- und Rückseite mit je höchstens 1.200 Zeichen. Tags, IDs, Quellen, Reviewdaten, Metadaten, Medienreferenzen und Medieninhalte werden nicht übertragen. Nicht-Basic-Karten erklären den deaktivierten KI-Zugang.</li>
 <li>CoRe speichert die KI-Variante erst, wenn die Ausgangskarte während des Aufrufs unverändert blieb und dieselbe Front-/Back-Kombination noch nicht existiert. Fehler verändern das Learning Item nicht; während des Aufrufs ist die Aktion gesperrt. Bei einem kostenlosen Non-ZDR-Fallback erscheint nach Erfolg eine sichtbare Warnung.</li>
 </ul>
-<h3 id="specs--54-karte-bewerten-neu-laden-und-fortfahren">5.4 Karte bewerten, neu laden und fortfahren <a class="docs-anchor" href="#specs--54-karte-bewerten-neu-laden-und-fortfahren" aria-label="Link zu 5.4 Karte bewerten, neu laden und fortfahren">#</a></h3>
+<h3 id="specs--54-karte-bewerten-neu-laden-und-fortfahren" class="core-heading-3" tabindex="-1">5.4 Karte bewerten, neu laden und fortfahren <a class="docs-anchor" href="#specs--54-karte-bewerten-neu-laden-und-fortfahren" aria-label="Link zu 5.4 Karte bewerten, neu laden und fortfahren">#</a></h3>
 <p>Vor der Antwort zeigt der Review ausschließlich den Lerninhalt und die Aktion zum Aufdecken. Der Lerninhalt liegt direkt auf der Seitenfläche ohne großen Kartencontainer, ohne gerahmte Teilflächen und ohne sichtbare Abschnittslabels für Frage oder Antwort. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine markante 2-px-Linie; die Antwortprojektion enthält ausschließlich die Antwort und wiederholt die bereits sichtbare Frage nicht. Vier Bewertungen aktualisieren den Lernzustand.</p>
 <p>Akzeptanz:</p>
 <ul>
@@ -5091,7 +5109,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Nach erfolgreichem Save, Verlassen des Stapels, Reload und Sync wird der Lernfortschritt ohne separaten Sitzungssnapshot aus den gespeicherten Review-Events und Review States rekonstruiert.</li>
 <li>Offline- oder Konfliktzustände werden sichtbar und niemals als gespeichert ausgegeben, solange Änderungen ausstehen.</li>
 </ul>
-<h3 id="specs--55-core-variante-lernen-und-ursprung-prüfen">5.5 CoRe-Variante lernen und Ursprung prüfen <a class="docs-anchor" href="#specs--55-core-variante-lernen-und-ursprung-prüfen" aria-label="Link zu 5.5 CoRe-Variante lernen und Ursprung prüfen">#</a></h3>
+<h3 id="specs--55-core-variante-lernen-und-ursprung-prüfen" class="core-heading-3" tabindex="-1">5.5 CoRe-Variante lernen und Ursprung prüfen <a class="docs-anchor" href="#specs--55-core-variante-lernen-und-ursprung-prüfen" aria-label="Link zu 5.5 CoRe-Variante lernen und Ursprung prüfen">#</a></h3>
 <p>Geeignete Learning Items können nach ausreichender Reife als konservative Umformulierungen erscheinen. Die Herkunft bleibt bis zur Antwort verborgen.</p>
 <p>Akzeptanz:</p>
 <ul>
@@ -5102,8 +5120,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Persönliche Reviewdaten gelangen nicht in geteilte Varianten oder Feedbackobjekte.</li>
 <li>Bei fehlender oder fehlerhafter Variante bleibt das Original sicher lernbar.</li>
 </ul>
-<h3 id="specs--56-lernlogik-verstehen">5.6 Lernlogik verstehen <a class="docs-anchor" href="#specs--56-lernlogik-verstehen" aria-label="Link zu 5.6 Lernlogik verstehen">#</a></h3>
-<p>Ein Fragezeichen neben dem Theme-Schalter öffnet die direkt verlinkbare Hilfeseite <code>/hilfe</code> im normalen App-Shell-Inhaltsbereich. Ein kurzer Einstieg ordnet CoRes Ziel ein. Beispielhafte Kartenstapel verwenden dort ein gemeinsames HTML-Muster mit austauschbarem Inhalt: Im Light Mode liegt eine weiße Vorderkarte über einer nach links oben gedrehten hellblauen und einer nach rechts oben gedrehten dunkleren blauen Karte. Im Dark Mode wechseln Vorderkarte, beide blauen Ebenen, Text, Trennlinie und Rahmen gemeinsam auf ihre dunklen Gegenstücke, ohne Ebenenfolge oder Kontrastabstufung zu verlieren. Einstiegs- und Originalkartenstapel verwenden dieselbe responsive mittlere Breite und Höhe; alle drei Ebenen eines Stapels sind gleich groß und folgen demselben Radius-, Abstands- und Schattenvertrag. Der Einstiegsstapel fragt, welche Grundsätze CoRe für möglichst nachhaltiges Lernen nutzt. <code>Grundsätze</code>, <code>nutzt CoRe</code>, <code>Lernen</code> und <code>nachhaltig zu gestalten</code> tragen eine pinke Textmarkierung; die gelben Pfeile verbinden <code>Active Recall → Smarter Recall</code> sowie <code>Spaced Repetition → Content Repetition</code>. Zwei anschließende Scrollgeschichten erklären erst den wechselnden Abrufreiz und danach die FSRS-Lernkurve, ohne Workspace- oder Schedulerzustand zu verändern.</p>
+<h3 id="specs--56-lernlogik-verstehen" class="core-heading-3" tabindex="-1">5.6 Lernlogik verstehen <a class="docs-anchor" href="#specs--56-lernlogik-verstehen" aria-label="Link zu 5.6 Lernlogik verstehen">#</a></h3>
+<p>Das Fragezeichen neben dem Theme-Schalter öffnet <code>/hilfe</code> direkt in der App-Shell. Der Einstieg erklärt CoRes Ziel anhand eines gemeinsamen Kartenstapel-Musters: weiße Vorderkarte, dahinter eine hellblaue nach links oben und eine dunklere blaue nach rechts oben gedrehte Karte. Im Dark Mode wechseln alle Ebenen, Texte, Trennlinien und Rahmen gemeinsam ins dunkle Gegenstück; Ebenenfolge und Kontrastabstufung bleiben erhalten. Einstiegs- und Originalstapel haben dieselbe responsive mittlere Größe; alle drei Ebenen teilen Größe, Radien, Abstände und Schatten. Der Einstieg fragt nach Grundsätzen nachhaltigen Lernens. <code>Grundsätze</code>, <code>nutzt CoRe</code>, <code>Lernen</code> und <code>nachhaltig zu gestalten</code> sind pink markiert; gelbe Pfeile verbinden <code>Active Recall → Smarter Recall</code> und <code>Spaced Repetition → Content Repetition</code>. Zwei Scrollgeschichten erklären wechselnde Abrufreize und die FSRS-Kurve ohne Workspace-/Scheduleränderung.</p>
 <p>Akzeptanz:</p>
 <ul>
 <li>Die Erklärung nennt Abrufwahrscheinlichkeit <code>R</code>, Stabilität <code>S</code>, Schwierigkeit <code>D</code>, Zielerinnerung, Intervall, Original und Variante in verständlicher deutscher Sprache. Sie erklärt <code>S</code> als die Zeit, in der <code>R</code> von 100 auf 90 Prozent fällt, und zeigt die Kette von Bewertung über Gedächtniszustand und Vergessensprognose zum nächsten Termin.</li>
@@ -5119,8 +5137,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Die mobile Darstellung begrenzt horizontales Scrollen auf den Grafikbereich, deaktiviert die Sticky-Zweispaltenprojektion und erzeugt keinen Dokument-Overflow.</li>
 <li>Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.</li>
 </ul>
-<h3 id="specs--57-lernfortschritt-über-simulierte-tage-prüfen">5.7 Lernfortschritt über simulierte Tage prüfen <a class="docs-anchor" href="#specs--57-lernfortschritt-über-simulierte-tage-prüfen" aria-label="Link zu 5.7 Lernfortschritt über simulierte Tage prüfen">#</a></h3>
-<p>Der direkt verlinkbare <code>/simulator</code> ist unter <code>Lerneinstellungen → Fokuswerkzeuge</code> neben dem Pomodoro-Timer erreichbar. Er verschiebt die lernbezogene App-Zeit für die vorhandenen Accountkarten von „Heute“ aus minuten- oder tageweise um bis zu 3.650 Kalendertage in die Zukunft. Das Umstellen der Zeit verändert keine Karte; ein am simulierten Zeitpunkt ausgeführtes Review ist dagegen ein echtes Review und wird mit diesem Zeitpunkt gespeichert und synchronisiert.</p>
+<h3 id="specs--57-lernfortschritt-über-simulierte-tage-prüfen" class="core-heading-3" tabindex="-1">5.7 Lernfortschritt über simulierte Tage prüfen <a class="docs-anchor" href="#specs--57-lernfortschritt-über-simulierte-tage-prüfen" aria-label="Link zu 5.7 Lernfortschritt über simulierte Tage prüfen">#</a></h3>
+<p><code>/simulator</code> ist direkt und unter <code>Lerneinstellungen → Fokuswerkzeuge</code> neben dem Pomodoro-Timer erreichbar. Er verschiebt die Lernzeit vorhandener Accountkarten minuten- oder tageweise um bis zu 3.650 Kalendertage ab „Heute“. Zeitwechsel verändern keine Karte; Reviews sind echte Bewertungen und werden mit dem simulierten Zeitpunkt gespeichert und synchronisiert.</p>
 <p>Akzeptanz:</p>
 <ul>
 <li>„Heute“, <code>+10</code>, <code>+15</code> und <code>+30 Minuten</code>, <code>+1</code>, <code>+2</code> und <code>+4 Stunden</code>, „Morgen“, <code>+3</code>, <code>+7</code>, <code>+14</code> und <code>+30 Tage</code>, einzelne Tagesschritte und ein begrenztes Datumsfeld sind per Tastatur erreichbar. Die simulierte lokale Uhrzeit bleibt sichtbar. Vergangene oder mehr als 3.650 Tage entfernte Werte werden auf den gültigen Bereich begrenzt.</li>
@@ -5130,8 +5148,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Der Offset bleibt lokal und transient. Reload und Logout stellen „Heute“ wieder her; Sync-, Auth-, Medien-, Autosave- und normale Bearbeitungsmetadaten verwenden unverändert die echte Systemzeit.</li>
 <li>Die Aktion „Heute“ setzt ausschließlich die simulierte Uhr zurück. Bereits gespeicherte Zukunftsreviews, Kartenfortschritt und daraus berechnete nächste Termine bleiben erhalten.</li>
 </ul>
-<h2 id="specs--6-funktionale-anforderungen">6. Funktionale Anforderungen <a class="docs-anchor" href="#specs--6-funktionale-anforderungen" aria-label="Link zu 6. Funktionale Anforderungen">#</a></h2>
-<h3 id="specs--61-account-und-einstellungen">6.1 Account und Einstellungen <a class="docs-anchor" href="#specs--61-account-und-einstellungen" aria-label="Link zu 6.1 Account und Einstellungen">#</a></h3>
+<h2 id="specs--6-funktionale-anforderungen" class="core-heading-2" tabindex="-1">6. Funktionale Anforderungen <a class="docs-anchor" href="#specs--6-funktionale-anforderungen" aria-label="Link zu 6. Funktionale Anforderungen">#</a></h2>
+<h3 id="specs--61-account-und-einstellungen" class="core-heading-3" tabindex="-1">6.1 Account und Einstellungen <a class="docs-anchor" href="#specs--61-account-und-einstellungen" aria-label="Link zu 6.1 Account und Einstellungen">#</a></h3>
 <ul>
 <li>E-Mail-/Passwort ist die freigegebene Kernanmeldung.</li>
 <li>Das sichtbare und aktive Profil enthält Anzeigename und Login-E-Mail. Hochschule, Fachgebiet und eine Spracheinstellung sind nicht Teil des aktiven Profilmodells; die Oberfläche bleibt global deutsch. Solange die Community-Funktion deaktiviert ist, erscheint kein separater Privatsphäre-Bereich.</li>
@@ -5142,7 +5160,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile und der globale Stapelstandard sind accountweite Scheduler-Präferenzen und werden über Profil-Sync transportiert.</li>
 <li>Sicherheitskritische Aktionen sind klar von Profil- und Lernoptionen getrennt.</li>
 </ul>
-<h3 id="specs--62-deck-hierarchie">6.2 Deck-Hierarchie <a class="docs-anchor" href="#specs--62-deck-hierarchie" aria-label="Link zu 6.2 Deck-Hierarchie">#</a></h3>
+<h3 id="specs--62-deck-hierarchie" class="core-heading-3" tabindex="-1">6.2 Deck-Hierarchie <a class="docs-anchor" href="#specs--62-deck-hierarchie" aria-label="Link zu 6.2 Deck-Hierarchie">#</a></h3>
 <ul>
 <li>Decks können Eltern- und Unterstapel bilden.</li>
 <li>Hierarchie bleibt beim unterstützten APKG-Import ohne fachliches Tiefenlimit mit unmittelbaren Elternbeziehungen und vollständigen Pfaden erhalten.</li>
@@ -5155,7 +5173,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Ohne ausgewählten Stapel zeigt die Route eine vorhandene, bei großen Bibliotheken suchbare Stapelauswahl statt eines Fehlerzustands. Neue Stapel erhalten materialisierte Standardwerte; importierte Stapel behalten ihre wirksamen Werte.</li>
 <li>Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.</li>
 </ul>
-<h3 id="specs--63-import">6.3 Import <a class="docs-anchor" href="#specs--63-import" aria-label="Link zu 6.3 Import">#</a></h3>
+<h3 id="specs--63-import" class="core-heading-3" tabindex="-1">6.3 Import <a class="docs-anchor" href="#specs--63-import" aria-label="Link zu 6.3 Import">#</a></h3>
 <ul>
 <li>Dokumentierte statische Anki-Templates werden mit exakten Feldnamen, Conditionals, Standardfiltern, <code>FrontSide</code>, Special Fields, Cloze und CSS in einem opaken Sandbox-Frame gerendert. Script, externe Ressourcen, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben erhalten und die UI zeigt automatisch eine gekennzeichnete geordnete Feldansicht mit Diagnose.</li>
 <li>Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.</li>
@@ -5167,7 +5185,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>APKG-<code>revlog</code> wird als append-only Analysehistorie übernommen, soweit eine Anki-Karte eindeutig einer CoRe-Variante zugeordnet werden kann, und beim Wiederimport deterministisch dedupliziert. Für den initialen Review State gilt unabhängig davon die Reihenfolge gültiger FSRS-Memory-State, chronologisches Revlog-Replay, klassischer Kartenstatus und schließlich neue Karte; nach dem ersten CoRe-Review übernimmt ausschließlich FSRS-6.</li>
 <li>Medienreferenzen werden sicher aufgelöst; fehlende Medien werden im Bericht genannt.</li>
 </ul>
-<h3 id="specs--64-manuelle-erstellung-und-quellen">6.4 Manuelle Erstellung und Quellen <a class="docs-anchor" href="#specs--64-manuelle-erstellung-und-quellen" aria-label="Link zu 6.4 Manuelle Erstellung und Quellen">#</a></h3>
+<h3 id="specs--64-manuelle-erstellung-und-quellen" class="core-heading-3" tabindex="-1">6.4 Manuelle Erstellung und Quellen <a class="docs-anchor" href="#specs--64-manuelle-erstellung-und-quellen" aria-label="Link zu 6.4 Manuelle Erstellung und Quellen">#</a></h3>
 <ul>
 <li>Karten können ohne Dokumentquelle erstellt werden.</li>
 <li>Bilder können an der aktuellen Cursorposition in Rich-Text- und Zusatzfelder eingefügt werden; Bild-Bytes bleiben im accountgebundenen Medienspeicher und die Karte persistiert nur stabile Referenzen.</li>
@@ -5178,7 +5196,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Rich Text wird vor Speicherung und Darstellung sanitisiert.</li>
 <li>Jede reale Anki-Image-Occlusion-Karte wird als eigenständige Karte importiert und sicher dargestellt. Ein manueller Maskeneditor ist kein Bestandteil dieses Ausbaus.</li>
 </ul>
-<h3 id="specs--65-review-und-scheduling">6.5 Review und Scheduling <a class="docs-anchor" href="#specs--65-review-und-scheduling" aria-label="Link zu 6.5 Review und Scheduling">#</a></h3>
+<h3 id="specs--65-review-und-scheduling" class="core-heading-3" tabindex="-1">6.5 Review und Scheduling <a class="docs-anchor" href="#specs--65-review-und-scheduling" aria-label="Link zu 6.5 Review und Scheduling">#</a></h3>
 <ul>
 <li>Review verwendet vier Bewertungen und einen intern gekapselten FSRS-6-Schedulervertrag mit offiziellen Standardparametern.</li>
 <li><code>Gut</code> geht genau einen konfigurierten Lernschritt weiter und wechselt erst am letzten Schritt in den langfristigen FSRS-Reviewzustand. <code>Leicht</code> beendet die Lernphase jederzeit sofort und erhält das unverändert von <code>ts-fsrs</code> berechnete Reviewintervall; <code>Nochmal</code> und <code>Schwer</code> folgen ebenfalls der Standard-Lernschrittstrategie von <code>ts-fsrs</code>.</li>
@@ -5192,14 +5210,14 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Der Reviewmodus misst die reale Zeit von der Kartendarstellung bis zur Bewertung monoton und auf höchstens 60 Sekunden begrenzt im vorhandenen Review Event. Simulierte Lernzeitpunkte verändern diese Dauer nicht.</li>
 <li>Die transiente Simulationsuhr darf durch bloßes Umstellen keinen Workspace-, Cloud- oder Kartenstatus verändern. Bewertungen im Zukunftsmodus verwenden jedoch absichtlich den simulierten Zeitpunkt und durchlaufen den normalen Workspace-, Statistik- und Sync-Pfad.</li>
 </ul>
-<h3 id="specs--66-vertrauen-änderungsprotokoll-und-undo">6.6 Vertrauen, Änderungsprotokoll und Undo <a class="docs-anchor" href="#specs--66-vertrauen-änderungsprotokoll-und-undo" aria-label="Link zu 6.6 Vertrauen, Änderungsprotokoll und Undo">#</a></h3>
+<h3 id="specs--66-vertrauen-änderungsprotokoll-und-undo" class="core-heading-3" tabindex="-1">6.6 Vertrauen, Änderungsprotokoll und Undo <a class="docs-anchor" href="#specs--66-vertrauen-änderungsprotokoll-und-undo" aria-label="Link zu 6.6 Vertrauen, Änderungsprotokoll und Undo">#</a></h3>
 <ul>
 <li>Karteninhalte sind direkt prüfbar; es gibt keinen wiederherstellbaren Kartenversionsverlauf.</li>
 <li>Manuelle Neuplanung ändert ausschließlich <code>dueAt</code> und die technische Aktualisierungszeit. Sie erhält Phase, Lernschritt, Intervalle, Wiederholungen, Difficulty, Stability, Ease, letzten echten Reviewzeitpunkt, Core-/FSRS-Werte und Inhaltsrevisionen. Genau ein <code>ReviewEvent</code> mit <code>rating: &quot;manual&quot;</code> hält alten und neuen Termin fest, ist nicht wiederherstellbar und zählt nicht als Lernen, Tagesfortschritt oder FSRS-Bewertung.</li>
 <li>Ein unmittelbares Karten-Undo nimmt den bestehenden Soft-Delete-Tombstone revisionsgeprüft zurück; es erzeugt weder eine neue Karte noch einen zweiten Review State.</li>
 <li>Importfehler dürfen nicht zum Verlust des letzten verlässlichen Inhalts führen.</li>
 </ul>
-<h3 id="specs--67-statistik">6.7 Statistik <a class="docs-anchor" href="#specs--67-statistik" aria-label="Link zu 6.7 Statistik">#</a></h3>
+<h3 id="specs--67-statistik" class="core-heading-3" tabindex="-1">6.7 Statistik <a class="docs-anchor" href="#specs--67-statistik" aria-label="Link zu 6.7 Statistik">#</a></h3>
 <ul>
 <li>Beim initialen Eintritt zeigt die Statistik ihren vollständigen Ladezustand. Zeitraum- und Stapelwechsel lassen dagegen Filter, Diagramme und Kennzahlen sichtbar: Die gewählte Auswahl reagiert sofort, das letzte Ergebnis bleibt bis zum Ersatz abgeblendet. Ein unbestimmter 3-px-Prozessindikator zeigt zyklisch von links nach rechts durchlaufende Segmente. Seine Fläche reicht unter den Filtern vom linken Rand der Zeitraumwahl bis zum rechten Rand der Stapelauswahl. Sein Platz einschließlich 8 px Abstand darüber bleibt immer reserviert; es gibt keinen sichtbaren Ladetext und keinen Höhensprung. Screenreader erhalten einen zugänglichen Namen und eine Live-Statusmeldung. Fehler erhalten die Filter und letzten Daten mit einer Wiederholungsaktion. Fokus und Scrollposition bleiben bei der Aktualisierung erhalten; verspätete Antworten überschreiben keine neuere Auswahl. Lazy Loading bleibt unverändert, ohne zusätzliche Abfragen, Vorladungen oder Zeitraum-Caches.</li>
 <li>Eine einzige globale Filterleiste steuert alle Bereiche außer dem eigenständigen Zeitraum der Lern-Heatmap: <code>30 Tage</code>, <code>90 Tage</code>, <code>1 Jahr</code> oder <code>Gesamt</code> sowie gesamte Sammlung, einen Stapel oder mehrere Stapel. Standard ist <code>Gesamte Sammlung · 1 Jahr</code>; ausgewählte Oberstapel schließen Unterstapel dedupliziert ein. Eingeschlossene Unterstapel bleiben über Auswahlfläche und rechten Haken markiert und deaktiviert, ohne zusätzliche Hinweiszeile; <code>Gesamte Sammlung</code> bleibt als eigene erste Auswahl erhalten.</li>
@@ -5211,7 +5229,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Historische Kategorien werden aus dem Schedulerzustand vor der Antwort als Lernen, Wiederlernen, Jung oder Reif bestimmt; Reif beginnt bei 21 Tagen. Klassische Anki-Leichtigkeit wird nicht als aktuelle CoRe-Metrik ausgegeben.</li>
 <li>Diagramme verwenden begrenzte, adaptive Zeitgruppen, zugängliche Textlegenden und strukturierte Details für Maus, Touch und Tastatur. Fehlende Historie, Zeitmessung oder Stichprobe wird erklärt; die Oberfläche erfindet keine Nullwerte oder Aktivität.</li>
 </ul>
-<h2 id="specs--7-visueller-produktvertrag">7. Visueller Produktvertrag <a class="docs-anchor" href="#specs--7-visueller-produktvertrag" aria-label="Link zu 7. Visueller Produktvertrag">#</a></h2>
+<h2 id="specs--7-visueller-produktvertrag" class="core-heading-2" tabindex="-1">7. Visueller Produktvertrag <a class="docs-anchor" href="#specs--7-visueller-produktvertrag" aria-label="Link zu 7. Visueller Produktvertrag">#</a></h2>
 <ul>
 <li>Die produktive UI verwendet die CoRe-Palette Slate <code>#6F7E9E</code>, Mist <code>#A9B5C7</code>, Cloud <code>#DDE3EC</code>, Coral <code>#E28B68</code>, Lilac <code>#D6A3D2</code>, Marigold <code>#E4BF63</code> sowie die vorbereiteten Dark-Werte Midnight <code>#181D25</code>, Graphite <code>#262E3A</code>, Highlight <code>#8FA0BF</code>, Coral Glow <code>#F0A07E</code>, Lilac Glow <code>#E4B5E1</code> und Golden Glow <code>#F0CC77</code> ausschließlich über semantische Theme-Rollen.</li>
 <li>Light und Dark Mode verwenden denselben vollständigen semantischen Tokensatz. Ein normaler, zugänglicher Iconbutton in der responsiven App-Shell wechselt explizit zwischen beiden Modi über <code>data-core-theme</code>; Sonne beziehungsweise Mond zeigen den aktuellen Modus, während der zugängliche Name die ausgelöste Aktion beschreibt. Theme und Timer bleiben lokal im Browser erhalten. Es gibt keine automatische Aktivierung über die Systempräferenz.</li>
@@ -5221,7 +5239,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Die untere Hauptnavigation verwendet denselben gleitenden Auswahlindikator und dieselbe Bewegung wie segmentierte Controls. Icon und sichtbarer Tab-Name bleiben auf zwei Zeilen angeordnet. Der Indikator folgt Größenänderungen; Reduced Motion deaktiviert sowohl die Gleitbewegung als auch die Laufanimation des Statistikbalkens.</li>
 <li>Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände besitzen produktweit einheitliche Hover-, Active-, Focus- und Disabled-Zustände. Bedeutung bleibt durch Text, Icon oder Zahl zusätzlich zur Farbe erkennbar.</li>
 <li>Gewöhnliche einzeilige Buttons, Icon-Aktionen, Eingaben und Auswahlfelder verwenden produktweit eine Mindesthöhe beziehungsweise ein Touchziel von <code>44 × 44 px</code>. Fachliche Großflächen wie MCQ-Antworten und Reviewratings dürfen höher bleiben.</li>
-<li>Selbsterklärende Einstellungsfelder verwenden ihren eindeutigen Titel ohne wiederholenden Untertitel. Hinweise bleiben nur sichtbar, wenn sie Folgen, Abwägungen, Warnungen oder nicht offensichtliches Verhalten erklären.</li>
+<li>Einstellungsfelder verwenden eindeutige Titel ohne wiederholende Untertitel. Hinweise erklären nur Folgen, Abwägungen, Warnungen oder nicht offensichtliches Verhalten.</li>
 <li>Fachliche Inhalte, Warnungen und Folgeaktionen bleiben ohne generische Disclosure-Flächen dauerhaft sichtbar. Ausklappbar bleiben nur zweckgebundene Navigation, Hierarchien und kompakte Werkzeugsteuerungen, deren Zustand selbst Teil der Interaktion ist.</li>
 <li>Modale Bestätigungsdialoge behandeln Escape und einen Klick direkt auf den abgedunkelten Hintergrund wie ihre Abbrechen-Aktion; Klicks innerhalb des Dialogs oder eines zugehörigen Auswahl-Overlays schließen ihn nicht. Abbrechen bestätigt, verwirft oder verändert keine Fachdaten und stellt den vorgesehenen Fokus wieder her.</li>
 <li>Auswahlfelder verwenden produktweit denselben symmetrisch gepolsterten Trigger und ein erhöhtes, abgerundetes CoRe-Overlay. Erneutes Antippen oder Anklicken des geöffneten Auswahlfelds schließt das Menü ohne Änderung des gewählten Werts; Außenberührung und Escape schließen es ebenfalls. Gewählte und fokussierte Optionen bleiben zusätzlich zur Farbe durch eine sichtbare Markierung und vollständige Tastaturbedienung erkennbar.</li>
@@ -5232,37 +5250,37 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Amulya definiert die visuellen Überschriftenstufen <code>36/44</code>, <code>28/36</code> und <code>22/30</code>; Synonym definiert Body Large <code>16/24</code>, Body und Controls <code>14/20</code> sowie Caption und Statuslabel <code>12/16</code>. Semantische HTML-Ebene und visuelle Stufe dürfen voneinander abweichen.</li>
 <li>Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate <code>#6F7E9E</code>. Stapel-Icons erscheinen produktweit rund mit Symbol und Rand in der gewählten Farbe sowie einer dezenten transparenten Flächentönung derselben Farbe. In den Stapel-Einstellungen zeigt der Seitentitel das aktuelle Icon in seiner Farbe und den gespeicherten Stapelnamen. Der Bereich <code>Stapel</code> enthält Namensfeld, das zugängliche 5-mal-5-Raster mit 25 repräsentativen Lucide-Icons und den runden Farbkreis; alle drei Werte gehören ohne eigene Speichern-Aktion zum gemeinsamen Seitendraft. Rich-Text-Schnellfarben stammen weiterhin aus der CoRe-Palette.</li>
 </ul>
-<p>Der auffindbare, nicht verpflichtende Wiederverwendungsvertrag für neue Features steht im <a href="../src/ui/README.md"><code>src/ui</code>-Katalog</a>. Vorhandene Module sollen verwendet werden, wenn ihre Schnittstelle die Fachsemantik erhält; fachlich abweichende Controls dürfen lokal bleiben und nutzen dennoch dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.</p>
-<h3 id="specs--synchronisierung">Synchronisierung <a class="docs-anchor" href="#specs--synchronisierung" aria-label="Link zu Synchronisierung">#</a></h3>
+<p>Der <a href="../src/ui/README.md"><code>src/ui</code>-Katalog</a> beschreibt die Wiederverwendung. Bestehende Module werden bei passender Fachsemantik genutzt; abweichende lokale Controls behalten dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.</p>
+<h3 id="specs--synchronisierung" class="core-heading-3" tabindex="-1">Synchronisierung <a class="docs-anchor" href="#specs--synchronisierung" aria-label="Link zu Synchronisierung">#</a></h3>
 <ul>
 <li>Ein vollständiger Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt danach ausschließlich vorgemerkte Outbox-Mutationen, lädt anschließend alle Cloud-Deltas seit den gespeicherten <code>sync_change_id</code>-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten. Ein Konflikt blockiert nur seine Entität; konfliktfreie Geschwister und Reviews laufen weiter.</li>
-<li>Manuelles Synchronisieren führt immer den vollständigen Upload-und-Download-Zyklus aus. Automatisch läuft derselbe Zyklus nach kurz entprellten lokalen Änderungen, bei wiederhergestellter Verbindung, erneutem Fokus und sichtbar alle 1, 5, 15 oder 30 Minuten; Standard sind 5 Minuten. <code>Aus</code> bedeutet ausschließlich manueller Sync. Automatik gehört nur zum aktiven angemeldeten Account und endet bei Logout oder Accountwechsel.</li>
+<li>Manueller und automatischer Sync verwenden denselben vollständigen Upload-/Download-Zyklus. Automatik läuft kurz entprellt nach lokalen Änderungen, bei Netzrückkehr, erneutem Fokus und im sichtbaren Tab alle 1, 5, 15 oder 30 Minuten (Standard: 5). <code>Aus</code> bedeutet manuellen Sync. Automatik endet bei Logout oder Accountwechsel.</li>
 <li>Der sichtbare Sync-Button in Desktop-Navigation und mobilem Kopf zeigt synchronisiert, ausstehend, laufend, offline oder die Konfliktanzahl. <code>Daten &amp; Synchronisierung</code> zeigt Intervall, letzten Erfolg, ausstehende Änderungen und den primären manuellen Sync.</li>
 <li><code>revision</code> ist ausschließlich die fachliche Inhaltsversion. Geräte-, Zeit-, Zähler-, Importzusammenfassungs-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Karteninhaltswrites erhalten den aktuellen Cloud-Lernstand; Varianteninhaltswrites erhalten ihre Performance.</li>
 <li>Reviewereignisse sind unveränderlich und idempotent. Beide Geräteereignisse bleiben erhalten, Reviewwrites verändern weder Stapel- noch Inhaltsrevisionen und nur das zeitlich jüngste Ereignis projiziert den Lernstand. Inhaltsbearbeitung und paralleles Review derselben Karte werden ohne Benutzerkonflikt zusammengeführt.</li>
 <li>Neuplanungen werden als manuelle Reviewereignisse über dieselbe offline persistente <code>review-atomic</code>-Outbox und <code>record_review_atomic</code> wie Bewertungen übertragen. Die Ereignis-ID macht Wiederholungen idempotent; bei zeitlich konkurrierenden Reviews und Neuplanungen bestimmt die jeweils spätere Aktion ausschließlich den projizierten Termin, während alle gültigen Reviewereignisse erhalten bleiben.</li>
 <li>Für die aktuelle Konfliktmenge zeigt CoRe die Folgen beider Richtungen als hinzugefügte, aktualisierte und entfernte Stapel, Karten und Varianten. <code>Dieser Browser</code> oder <code>Cloud im Account</code> betrifft ausschließlich diese Konflikte; konfliktfreie Inhalte, Reviews und Medien bleiben erhalten. Vor Ausführung wird die Vorschau gegen aktuelle Remote-Revisionen geprüft. Der Einzelauflöser bleibt eingeklappt verfügbar.</li>
-<li>Konfliktkarten sind bis zur Entscheidung aus der Lernwarteschlange ausgeschlossen und in der Kartenverwaltung mit <code>Synchronisierung klären</code> markiert. Nicht übertragene Änderungen bleiben bei Reload oder Browserende sicher in IndexedDB; ein letzter Website-Sync ist nur bestmöglich und wird nicht als garantiert dargestellt.</li>
-<li>Nach der einmaligen Accountprüfung wird ein vorhandener lokaler Workspace angezeigt, bevor Bootstrap, Deltas, Konflikte und Medien fertig sind. Ein eingerichtetes Gerät darf bei fehlendem Netz mit derselben persistierten Supabase-Sitzung offline kalt starten; es existiert weiterhin kein lokaler Login.</li>
+<li>Konfliktkarten bleiben bis zur Entscheidung außerhalb der Lernqueue und tragen in der Verwaltung <code>Synchronisierung klären</code>. Ausstehende Änderungen überleben Reload und Browserende in IndexedDB; ein letzter Website-Sync ist nicht garantiert.</li>
+<li>Nach einmaliger Accountprüfung erscheint der lokale Workspace vor Abschluss von Bootstrap, Deltas, Konflikten und Medien. Eingerichtete Geräte können mit ihrer persistierten Supabase-Sitzung offline kalt starten; einen lokalen Login gibt es nicht.</li>
 <li>Ein neuer Browser wartet nur auf die erste gültige, höchstens 200 KiB große Bootstrap-Seite aus Deck-Hüllen und Statistiken. Schlägt sie fehl, zeigt CoRe einen Wiederholen-Zustand und niemals einen vermeintlich leeren Account. Weitere Hüllen und der Kartenkatalog werden fortsetzbar im Hintergrund geladen; vollständige Reconciliation blockiert keine Navigation.</li>
 <li>Kartenverwaltung zeigt vorhandene 50er-Previewseiten sofort und ergänzt online per serverseitiger Suche, Sortierung und Keyset-Pagination. Erst Öffnen oder Direktlink lädt den vollständigen Kartenkörper; bei einem Fehler bleiben Preview und Wiederholen-Aktion sichtbar. Offline durchsucht CoRe transparent nur den vorhandenen Katalog.</li>
 <li>Lernen bestimmt die Reihenfolge aus dem Katalog. Bei normaler Verbindung werden bis zu 50 Körper vorbereitet und bei 25 verbleibenden Karten nachgeladen; bei Datensparmodus oder langsamer Verbindung beträgt der Puffer fünf. Die Runde darf mit der ersten verfügbaren fälligen Karte starten. Nach Netzausfall läuft der Puffer weiter und pausiert danach sichtbar, ohne eine fällige nicht geladene Karte zu überspringen.</li>
 <li><code>Öffnen</code> erzeugt einen automatisch bereinigbaren Cache. <code>Offline verfügbar machen</code> lädt Karten, KI-Varianten, Darstellungsvorlagen und Medien fortsetzbar in 50er-Paketen und setzt den Zustand erst nach Anzahl-, Revisions- und Hashprüfung auf verfügbar.</li>
 <li>Ab 80 Prozent geschätzter Browserquote entfernt CoRe ungepinnte, bestätigte Kartenkörper und Medien nach LRU bis höchstens 70 Prozent. Deck-Hüllen, Summaries, Katalog, Outbox, Konflikte, Downloads und aktive Lernkarten werden nicht bereinigt. Ein unvollständiger Katalog bleibt sichtbar als lokal eingeschränkter Zustand.</li>
 <li>Statistiken werden aus serverseitigen Aggregaten geladen und lokal gecacht; lokale noch nicht bestätigte Bewertungen ergänzen sie optimistisch, manuelle Neuplanungen jedoch nicht. Vor einem APKG-Reimport werden bestehende betroffene Stapel vollständig hydriert.</li>
-<li>Die Kartenverwaltung lädt höchstens 50 Tabellenzeilen je Seite. Eine Lernsitzung wartet nur auf den ersten benötigten Kartenkörper, füllt danach im Hintergrund einen Puffer von höchstens 50 Karten und fordert bei 25 verbleibenden Karten die nächste 50er-Seite an. Vollständige Stapel dürfen weder für App-Start noch Kartenliste oder Lernstart materialisiert werden.</li>
+<li>Die Kartenverwaltung lädt höchstens 50 Zeilen je Seite. Lernen startet mit dem ersten benötigten Kartenkörper, puffert höchstens 50 und lädt bei 25 verbleibenden die nächste 50er-Seite. App-Start, Kartenliste und Lernstart materialisieren keine vollständigen Stapel.</li>
 <li>Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig im Hintergrund vorbereitet werden. Save-Data, 2G, unsichtbarer Tab oder neue Nutzerinteraktion verhindern weitere Hintergrundarbeit. Andere Hauptziele werden nur durch Hover, Fokus oder Touchstart vorbereitet; APKG, PDF, Statistik, Simulator und große Medien nie pauschal.</li>
 <li>Die Einstellungen zeigen, ob der Browser persistenten lokalen Speicher gewährt hat, sowie belegten und verfügbaren Speicher. Die PWA cached die App-Shell; Browsermedien bleiben selektiv und eine Eviction kann ohne persistente Freigabe nicht ausgeschlossen werden.</li>
 </ul>
-<h2 id="specs--8-nichtfunktionale-anforderungen">8. Nichtfunktionale Anforderungen <a class="docs-anchor" href="#specs--8-nichtfunktionale-anforderungen" aria-label="Link zu 8. Nichtfunktionale Anforderungen">#</a></h2>
-<h3 id="specs--sicherheit-und-datenschutz">Sicherheit und Datenschutz <a class="docs-anchor" href="#specs--sicherheit-und-datenschutz" aria-label="Link zu Sicherheit und Datenschutz">#</a></h3>
+<h2 id="specs--8-nichtfunktionale-anforderungen" class="core-heading-2" tabindex="-1">8. Nichtfunktionale Anforderungen <a class="docs-anchor" href="#specs--8-nichtfunktionale-anforderungen" aria-label="Link zu 8. Nichtfunktionale Anforderungen">#</a></h2>
+<h3 id="specs--sicherheit-und-datenschutz" class="core-heading-3" tabindex="-1">Sicherheit und Datenschutz <a class="docs-anchor" href="#specs--sicherheit-und-datenschutz" aria-label="Link zu Sicherheit und Datenschutz">#</a></h3>
 <ul>
 <li>Accountdaten und Inhalte sind durch RLS und Ownership geschützt.</li>
 <li>Service-Secrets bleiben außerhalb des Browsers.</li>
 <li>Logs enthalten keine Secrets.</li>
 <li>Unvalidierte externe Payloads werden nicht direkt persistiert.</li>
 </ul>
-<h3 id="specs--accessibility">Accessibility <a class="docs-anchor" href="#specs--accessibility" aria-label="Link zu Accessibility">#</a></h3>
+<h3 id="specs--accessibility" class="core-heading-3" tabindex="-1">Accessibility <a class="docs-anchor" href="#specs--accessibility" aria-label="Link zu Accessibility">#</a></h3>
 <ul>
 <li>Kernflows sind per Tastatur bedienbar.</li>
 <li>Wichtige Zustände werden nicht nur durch Farbe vermittelt.</li>
@@ -5270,20 +5288,20 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Bei 200 % Zoom bleibt der Kernflow ohne horizontales Hauptscrolling bedienbar.</li>
 <li>Bewegungen beachten <code>prefers-reduced-motion</code>.</li>
 </ul>
-<h3 id="specs--viewports-und-sprache">Viewports und Sprache <a class="docs-anchor" href="#specs--viewports-und-sprache" aria-label="Link zu Viewports und Sprache">#</a></h3>
+<h3 id="specs--viewports-und-sprache" class="core-heading-3" tabindex="-1">Viewports und Sprache <a class="docs-anchor" href="#specs--viewports-und-sprache" aria-label="Link zu Viewports und Sprache">#</a></h3>
 <ul>
 <li>Primärer Zielviewport ist 1440 × 900 px, Desktop-Mindestziel 1280 × 720 px.</li>
 <li>Unter 1280 px besitzt CoRe den kompakten App-Modus mit Kopf und Bottom Bar; ab 1280 px gilt die Sidebar-Darstellung. Fachliche Komponenten wählen ihre interne Dichte anhand der tatsächlich verfügbaren Containerbreite und behalten ihre jeweils dokumentierten internen Scrollbereiche.</li>
 <li>Nutzertexte sind korrektes Deutsch mit Unicode-Schreibweise. Technische Bezeichnungen gelangen nicht ungefiltert in die UI.</li>
 </ul>
-<h3 id="specs--zuverlässigkeit">Zuverlässigkeit <a class="docs-anchor" href="#specs--zuverlässigkeit" aria-label="Link zu Zuverlässigkeit">#</a></h3>
+<h3 id="specs--zuverlässigkeit" class="core-heading-3" tabindex="-1">Zuverlässigkeit <a class="docs-anchor" href="#specs--zuverlässigkeit" aria-label="Link zu Zuverlässigkeit">#</a></h3>
 <ul>
 <li>Asynchrone Kernflows besitzen Lade-, Fehler-, Retry- und Erfolgszustände.</li>
 <li>Aktive Parserfehler werden nicht durch stille Fallbacks verdeckt.</li>
 <li>Pending- und Konfliktzustände überleben Reload accountgebunden.</li>
 <li>Ein Produktrelease braucht die Betriebsfreigabe aus <a href="operations.md"><code>operations.md</code></a>, ändert dadurch aber nicht diesen Produktvertrag.</li>
 </ul>
-<h3 id="specs--performance">Performance <a class="docs-anchor" href="#specs--performance" aria-label="Link zu Performance">#</a></h3>
+<h3 id="specs--performance" class="core-heading-3" tabindex="-1">Performance <a class="docs-anchor" href="#specs--performance" aria-label="Link zu Performance">#</a></h3>
 <ul>
 <li>LCP liegt am 75. Perzentil bei höchstens 2,5 Sekunden, INP bei höchstens 200 Millisekunden, CLS bei höchstens 0,1 und TTFB bei höchstens 800 Millisekunden.</li>
 <li>Ein wiederkehrendes oder offline eingerichtetes Gerät erreicht den lokalen Workspace p75 in höchstens 1,5 Sekunden und p95 in höchstens 3 Sekunden. Ein neues Gerät erreicht den Stapel-Bootstrap p75 in höchstens 3 Sekunden; der Vollabgleich läuft danach weiter.</li>
@@ -5291,7 +5309,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>Erste Seite eines 100k-Stapels und Lernstart liegen p75 bei höchstens 1 Sekunde und p95 bei höchstens 2 Sekunden. Ein Review ist lokal p95 innerhalb 250 Millisekunden dauerhaft gespeichert. Normaler Delta-Sync liegt p75 bei höchstens 2 Sekunden und p95 bei höchstens 5 Sekunden und ist nie startblockierend.</li>
 <li>Initiales JavaScript zielt auf höchstens 250 KiB gzip und darf 300 KiB nicht überschreiten. Ein normaler Feature-Tab zielt auf 150 KiB und darf 200 KiB gzip nicht überschreiten. Bootstrapdaten bleiben unter 200 KiB komprimiert und enthalten keine Kartenkörper oder Medien. Hintergrundarbeit wird in Portionen von höchstens 50 Millisekunden geteilt.</li>
 </ul>
-<h2 id="specs--9-beta-abnahme">9. Beta-Abnahme <a class="docs-anchor" href="#specs--9-beta-abnahme" aria-label="Link zu 9. Beta-Abnahme">#</a></h2>
+<h2 id="specs--9-beta-abnahme" class="core-heading-2" tabindex="-1">9. Beta-Abnahme <a class="docs-anchor" href="#specs--9-beta-abnahme" aria-label="Link zu 9. Beta-Abnahme">#</a></h2>
 <p>Der Beta-Kern gilt als erfüllt, wenn:</p>
 <ol>
 <li>alle sieben Kernjourneys automatisiert und manuell bestehen;</li>
@@ -5304,7 +5322,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>automatisierte Tests konkrete Produkt- und Sicherheitsverträge schützen, ohne Testanzahl als Produktabnahme zu behandeln.</li>
 </ol>
 <p>Offene Gates und Evidenz stehen ausschließlich in <a href="todo.md"><code>todo.md</code></a>.</p>
-<h2 id="specs--10-nichtziele-des-beta-kerns">10. Nichtziele des Beta-Kerns <a class="docs-anchor" href="#specs--10-nichtziele-des-beta-kerns" aria-label="Link zu 10. Nichtziele des Beta-Kerns">#</a></h2>
+<h2 id="specs--10-nichtziele-des-beta-kerns" class="core-heading-2" tabindex="-1">10. Nichtziele des Beta-Kerns <a class="docs-anchor" href="#specs--10-nichtziele-des-beta-kerns" aria-label="Link zu 10. Nichtziele des Beta-Kerns">#</a></h2>
 <ul>
 <li>Community, Rankings oder soziale Leistungsmetriken;</li>
 <li>generische Backend-, Auth- oder LLM-Adapter;</li>
@@ -5314,6 +5332,17 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
 </ul>
 </article></main></div><script>function initializeDocsViewer() {
+    const header = document.querySelector(".docs-site-nav");
+    const resize = new ResizeObserver(() => {
+        document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);
+        const summary = document.querySelector(".docs-mobile-nav");
+        if (summary)
+            document.documentElement.style.setProperty("--docs-section-height", `${summary.getBoundingClientRect().height}px`);
+    });
+    resize.observe(header);
+    const summary = document.querySelector(".docs-mobile-nav");
+    if (summary)
+        resize.observe(summary);
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";
@@ -5338,6 +5367,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
         return { heading, link, text: text.toLocaleLowerCase("de") };
     });
     document.querySelectorAll(".docs-document table").forEach((table) => {
+        if (table.parentElement?.classList.contains("docs-table-scroll"))
+            return;
         const wrapper = document.createElement("div");
         wrapper.className = "docs-table-scroll";
         wrapper.tabIndex = 0;
@@ -5354,31 +5385,72 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
         document.getElementById("docs-search-count").textContent = `${count} ${query ? "Treffer" : "Abschnitte"}`;
     }
     search.addEventListener("input", filter);
+    function closeMenu(restoreFocus = false) {
+        rail.classList.remove("is-open");
+        toggle.setAttribute("aria-expanded", "false");
+        if (restoreFocus)
+            toggle.focus({ preventScroll: true });
+    }
     toggle.addEventListener("click", () => {
         const open = rail.classList.toggle("is-open");
         toggle.setAttribute("aria-expanded", String(open));
         if (open)
             search.focus();
     });
-    toc.addEventListener("click", () => { rail.classList.remove("is-open"); toggle.setAttribute("aria-expanded", "false"); });
+    toc.addEventListener("click", (event) => {
+        const link = event.target.closest("a");
+        if (!link)
+            return;
+        const entry = entries.find((entry) => entry.link === link);
+        closeMenu();
+        if (event.detail === 0)
+            entry?.heading.focus({ preventScroll: true });
+    });
+    document.addEventListener("pointerdown", (event) => {
+        if (!rail.contains(event.target) && !toggle.contains(event.target))
+            closeMenu();
+    });
     document.addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-            rail.classList.remove("is-open");
-            toggle.setAttribute("aria-expanded", "false");
+        if (event.key === "Escape" && rail.classList.contains("is-open")) {
+            event.preventDefault();
+            closeMenu(true);
         }
         if (event.key === "/" && !event.ctrlKey && !event.metaKey && !/INPUT|TEXTAREA/.test(event.target.tagName)) {
             event.preventDefault();
             rail.classList.add("is-open");
+            toggle.setAttribute("aria-expanded", "true");
             search.focus();
         }
     });
-    const observer = new IntersectionObserver((records) => {
-        const current = records.find((record) => record.isIntersecting);
-        if (!current)
+    let frame = 0;
+    let active;
+    function updateLocation() {
+        frame = 0;
+        const offset = header.getBoundingClientRect().height + (toggle.offsetHeight ? toggle.offsetHeight + 48 : 24);
+        let current = entries[0];
+        for (const entry of entries) {
+            if (entry.heading.getBoundingClientRect().top > offset + 1)
+                break;
+            current = entry;
+        }
+        if (window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2)
+            current = entries.at(-1);
+        if (!current || active === current.link)
             return;
-        entries.forEach(({ heading, link }) => heading === current.target ? link.setAttribute("aria-current", "location") : link.removeAttribute("aria-current"));
-    }, { rootMargin: "-120px 0px -65% 0px" });
-    entries.forEach(({ heading }) => observer.observe(heading));
+        active = current.link;
+        entries.forEach(({ link }) => link === active ? link.setAttribute("aria-current", "location") : link.removeAttribute("aria-current"));
+        document.getElementById("docs-current-section").textContent = current.link.textContent;
+        const position = active.offsetTop - toc.offsetTop;
+        if (position < toc.scrollTop || position + active.offsetHeight > toc.scrollTop + toc.clientHeight)
+            toc.scrollTop = position;
+    }
+    function scheduleLocation() { if (!frame)
+        frame = requestAnimationFrame(updateLocation); }
+    window.addEventListener("scroll", scheduleLocation, { passive: true });
+    window.addEventListener("resize", scheduleLocation);
+    window.addEventListener("hashchange", scheduleLocation);
+    document.fonts.ready.then(scheduleLocation);
+    updateLocation();
     filter();
 }
 initializeDocsViewer();

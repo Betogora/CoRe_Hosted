@@ -1,9 +1,16 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-03
+**Stand:** 2026-10-05
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-05 — Specs an den UI-Katalog angeglichen
+
+- Specs und gemeinsamer Dokumentationsrahmen verwenden CoRe-Typografie, Abstände, Radien, Rahmen, Flächen, Controls und Lucide-Icons. Die Inhaltsnavigation markiert die Scrollposition auch innerhalb langer Abschnitte und ist unter 1280 px aufklappbar; Escape schließt sie mit Fokus-Rückkehr und erhält den Suchfilter.
+- Die Markdown-Quelle wurde um 457 Wörter gestrafft; alle 35 Überschriften und 274 Aufzählungsregeln bleiben erhalten. Der Generator ergänzt eine nachvollziehbare Codeumfang-Projektion aus aktuellen Quellen mit den produktiven `SegmentedDonut`- und `StatTile`-Komponenten. Der Ring zeigt Bildschirmcode je Produktbereich; gemeinsam genutzter Code und API stehen separat. Produktfunktionen und Roadmap bleiben unverändert.
+- Nachweise: neun fokussierte Dokumentationstests, Typecheck einschließlich `check:docs`, Produktionsbuild und Bundlebudgets. Chromium 149.0.7827.55: sechs Dokumentationsseiten in Light/Dark bei 320 × 720, 360 × 800, 390 × 844, 430 × 932, 1280 × 720, 1440 × 900 sowie 600/601 und 1279/1280 × 900. Kein horizontaler Seitenüberlauf. Specs zusätzlich mit langen Texten, Tabellen, Codegrafik, geöffnetem Menü, Suche/Nulltreffern, Scrollspy, Direktlinks, Browser-Zurück und Escape geprüft. Screenshots und Browserbericht liegen lokal in `test-results/specs-ui/`.
+- Offen: echte Smartphone-Bildschirmtastatur, physische Touch-/Screenreader-Prüfung und nativer 200-%-Browser-Zoom. Die Zoomprobe verwendet 720 × 450 CSS-Pixel bei DPR 2 und ersetzt diese Nachweise nicht. Die App wurde als Stilreferenz angesehen; Auth-/Cloud-Flows gehören nicht zu dieser Dokumentationsänderung.
 
 ## 2026-10-03 — Token-Vereinheitlichung und Vorher-/Nachher-Vergleich
 

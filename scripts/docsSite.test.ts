@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { markdownAnchor, renderMarkdown } from "./docsSite.ts";
-import { createCatalogData, journeyProjection } from "./generateDocs.ts";
+import { codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection } from "./generateDocs.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
+import postcss from "postcss";
 
 test("Markdown-Anker erhalten Unicode, doppelte Überschriften und direkte Abschnittslinks", () => {
   const html = renderMarkdown("# Übersicht\n## Größe & Maß\n[Abschnitt](#größe--maß)\n## Größe & Maß\n", "specs.md");
@@ -44,6 +45,23 @@ test("Journey-Projektion erhält sämtliche Akzeptanzregeln der sieben Kernjourn
   }
 });
 
+test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte ins Ringdiagramm", () => {
+  const footprint = codeFootprint();
+  const files = footprint.areas.flatMap((area) => area.files);
+  assert.equal(new Set(files).size, files.length);
+  assert.ok(footprint.shared > 0 && footprint.areas.every((area) => area.lines > 0));
+  for (const area of footprint.areas) {
+    assert.ok(area.files.every((file) => file.startsWith("src/screens/") && !file.includes(".test.")));
+  }
+  for (const [label, file] of [["Heute", "DashboardScreen"], ["Lernen & Karten", "StudyMode"], ["Erstellen & Import", "ApkgImportPanel"]]) {
+    assert.ok(footprint.areas.find((area) => area.label === label)?.files.includes(`src/screens/${file}.tsx`));
+  }
+  const html = codeFootprintMarkup();
+  assert.equal([...html.matchAll(/data-donut-segment=/g)].length, footprint.areas.length);
+  const values = [...html.matchAll(/data-donut-value="(\d+)"/g)].map((match) => Number(match[1]));
+  assert.deepEqual(values, footprint.areas.map((area) => area.lines));
+});
+
 test("Jede exportierte gemeinsame UI-Komponente hat Gruppe und Demo; Inventar enthält reale Tokens und Icons", () => {
   const data = createCatalogData();
   assert.ok(data.components.length >= 45);
@@ -57,6 +75,16 @@ test("Katalogbeispiele und Dokumentationsrahmen verwenden nur definierte Design-
   for (const file of ["scripts/uiCatalogDemos.tsx", "scripts/uiCatalog.css", "docs/tooling/site.css"]) {
     for (const [, token] of readFileSync(file, "utf8").matchAll(/var\((--core-[a-z0-9-]+)/g)) assert.ok(tokens.has(token), `${file}: ${token} fehlt`);
   }
+});
+
+test("Der Dokumentationsrahmen verwendet CoRe-Typografie und die gemeinsame Radiusskala", () => {
+  postcss.parse(readFileSync("docs/tooling/site.css", "utf8")).walkDecls((declaration) => {
+    if (["font-size", "line-height"].includes(declaration.prop)) assert.match(declaration.value, /^var\(--core-(type|leading)-/);
+    if (declaration.prop === "font") assert.match(declaration.value, /var\(--core-type-/);
+    if (declaration.prop === "border-radius") assert.match(declaration.value, /^(?:0\s+)?var\(--core-radius-/);
+  });
+  const html = renderMarkdown("# Titel\n## Abschnitt\n### Detail", "specs.md");
+  for (const depth of [1, 2, 3]) assert.match(html, new RegExp(`class="core-heading-${depth}" tabindex="-1"`));
 });
 
 test("Alle Kataloggruppen rendern ihre echten Komponenten mit gültigen Demodaten", () => {

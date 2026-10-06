@@ -55,6 +55,16 @@ Die separate [Design-Freigabe](design-review.html) enthält Einstieg- und Meldun
 
 HTML-Ansichten ändern diese Zuständigkeiten nicht und sind keine zweite Quelle.
 
+Die Specs-Leseansicht verwendet dieselben CoRe-Tokens und den gemeinsamen
+Dokumentationsrahmen wie UI-Elements. Ihre Inhaltsnavigation markiert den
+aktuellen Abschnitt; unter 1280 px ist sie aufklappbar. Die ergänzende
+Codeumfang-Grafik wird aus den Quellen neu berechnet und verwendet den
+produktiven `SegmentedDonut` und `StatTile`. Sie zählt nichtleere Zeilen
+einschließlich Kommentaren in `src/` und `api/` (TS/TSX) sowie `src/styles.css`,
+ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
+werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
+der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
+
 ## Ergänzende Analysen und Nachweise
 
 Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:

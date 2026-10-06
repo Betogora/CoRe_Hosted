@@ -16,6 +16,7 @@ import autoprefixer from "autoprefixer";
 import tailwindConfig from "../tailwind.config.ts";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
+import { SegmentedDonut, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
 import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 
 const root = process.cwd();
@@ -27,6 +28,43 @@ function sourceFiles(directory: string): string[] {
     const file = `${directory}/${entry.name}`;
     return entry.isDirectory() ? sourceFiles(file) : /\.tsx?$/.test(file) && !/\.test\./.test(file) ? [file] : [];
   }).sort();
+}
+
+export function codeFootprint() {
+  const groups = [
+    { label: "Heute", files: ["DashboardScreen"], color: "var(--core-learning-status-learned)" },
+    { label: "Lernen & Karten", files: ["LearnScreen", "LearningAreaHeader", "DecksScreen", "StudyMode", "DeckSettingsScreen", "GlobalCardSettingsScreen", "SimulatorScreen"], color: "var(--core-learning-status-new)" },
+    { label: "Erstellen & Import", files: ["CreationScreen", "CreationHome", "ManualCreationPanel", "ApkgImportPanel"], color: "var(--core-learning-status-in-progress)" },
+    { label: "Statistik", files: ["StatisticsScreen"], color: "var(--core-learning-status-due)" },
+    { label: "Konto & Sync", files: ["AuthGateScreen", "SettingsScreen", "SyncConflictPanel"], color: "var(--core-learning-progress-completed)" },
+    { label: "Hilfe", files: ["HelpScreen"], color: "var(--core-text-secondary)" },
+  ];
+  const files = [...sourceFiles("src"), ...sourceFiles("api"), "src/styles.css"].filter((file) => !file.endsWith(".d.ts") && file !== "src/database.types.ts");
+  const counts = files.map((file) => ({ file, lines: text(file).split("\n").filter((line) => line.trim()).length }));
+  const areas = groups.map((group) => {
+    const owned = counts.filter(({ file }) => group.files.some((name) => file === `src/screens/${name}.tsx`));
+    return { label: group.label, color: group.color, lines: owned.reduce((sum, entry) => sum + entry.lines, 0), files: owned.map(({ file }) => file) };
+  });
+  const screens = areas.reduce((sum, area) => sum + area.lines, 0);
+  const total = counts.reduce((sum, entry) => sum + entry.lines, 0);
+  return { areas, screens, shared: total - screens, files: counts.length };
+}
+
+export function codeFootprintMarkup() {
+  const footprint = codeFootprint();
+  const number = (value: number) => value.toLocaleString("de-DE");
+  const segments = footprint.areas.map((area) => ({ key: area.label, value: area.lines, color: area.color }));
+  const chart = renderToStaticMarkup(React.createElement(SegmentedDonut, {
+    segments, ariaLabel: `Bildschirmcode: ${footprint.areas.map((area) => `${area.label}: ${number(area.lines)} Zeilen`).join(", ")}`,
+  }));
+  const tiles = renderToStaticMarkup(React.createElement("div", { className: "docs-code-stats" },
+    React.createElement(StatTile, { size: "compact", label: "Bildschirmcode", value: number(footprint.screens) }),
+    React.createElement(StatTile, { size: "compact", label: "Gemeinsamer Code & API", value: number(footprint.shared) }),
+    React.createElement(StatTile, { size: "compact", label: "Quelldateien", value: number(footprint.files) }),
+  ));
+  const rows = footprint.areas.map((area) => `<tr><th scope="row"><span class="docs-code-dot" style="background:${area.color}" aria-hidden="true"></span>${area.label}</th><td>${number(area.lines)}</td><td>${(area.lines / footprint.screens * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</td></tr>`).join("");
+  const contents = `<h2 id="specs--codeumfang" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>${tiles}<div class="docs-code-chart"><div class="docs-code-donut">${chart}<span class="core-caption">${number(footprint.screens)} Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
+  return renderToStaticMarkup(React.createElement(SoftPanel, { className: "docs-code-footprint", dangerouslySetInnerHTML: { __html: contents } }));
 }
 
 export function createCatalogData(): CatalogData {
@@ -116,13 +154,13 @@ export function journeyProjection(specs: string) {
     const diagram = `flowchart TD\n${steps.map((label, node) => `N${node}["${label}"]${node < steps.length - 1 ? ` --> N${node + 1}` : ""}`).join("\n")}`;
     const prefix = `journey-${index + 1}`;
     const uiGroup = ["navigation", "inhalt", "stapel", "feedback", "inhalt", "symbols", "formulare"][index];
-    return `<article id="${prefix}" class="docs-document docs-journey">${renderMarkdown(`## ${title}\n${intro}`, "specs.md", prefix)}<h3 id="${prefix}--ablauf">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">${escapeHtml(diagram)}</pre><ol>${steps.map((label) => `<li>${label}</li>`).join("")}</ol></div>${renderMarkdown(`### Regeln, Zustände und Akzeptanz\n${acceptance}`, "specs.md", `${prefix}-rules`)}<p class="docs-source">Quelle: <a href="specs.html#specs--${markdownAnchor(title)}">Produktvertrag ${title.split(" ")[0]}</a> · <a href="ui-elements.html#${uiGroup}">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>`;
+    return `<article id="${prefix}" class="docs-document docs-journey">${renderMarkdown(`## ${title}\n${intro}`, "specs.md", prefix)}<h3 id="${prefix}--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">${escapeHtml(diagram)}</pre><ol>${steps.map((label) => `<li>${label}</li>`).join("")}</ol></div>${renderMarkdown(`### Regeln, Zustände und Akzeptanz\n${acceptance}`, "specs.md", `${prefix}-rules`)}<p class="docs-source">Quelle: <a href="specs.html#specs--${markdownAnchor(title)}">Produktvertrag ${title.split(" ")[0]}</a> · <a href="ui-elements.html#${uiGroup}">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>`;
   }).join("\n");
 }
 
 export async function synchronizeDocs(mode: "write" | "check") {
   const data = createCatalogData();
-  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/designReview.tsx") + Object.values(data.patterns).join("\n");
+  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/designReview.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
   let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
   const fonts = new Map(readdirSync(path.join(root, "public/fonts")).map((file) => [`/fonts/${file}`, `data:font/woff2;base64,${readFileSync(path.join(root, "public/fonts", file)).toString("base64")}`]));
   for (const [file, url] of fonts) styles = styles.replaceAll(file, url);
@@ -145,13 +183,14 @@ export async function synchronizeDocs(mode: "write" | "check") {
   const runtime = (Array.isArray(bundle) ? bundle : [bundle]).flatMap((output) => output.output).filter((entry): entry is Rollup.OutputChunk => entry.type === "chunk").map((entry) => entry.code).join("\n").replace(/^[ \t]+$/gm, "");
   const results = new Map<string, string>();
   function reader(file: string, title: string, contents: string) {
-    const content = `<button id="docs-nav-toggle" class="docs-mobile-nav" type="button" aria-expanded="false" aria-controls="docs-rail">Inhaltsverzeichnis öffnen</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1>${title}</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content">${contents}</main></div>`;
+    const content = `<button id="docs-nav-toggle" class="docs-mobile-nav core-action-secondary" type="button" aria-expanded="false" aria-controls="docs-rail"><span id="docs-current-section">Inhaltsverzeichnis</span>${renderToStaticMarkup(React.createElement(lucide.ChevronDown, { size: 18, "aria-hidden": true }))}</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1 class="core-heading-3">${title}</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search core-field" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count core-caption" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content">${contents}</main></div>`;
     results.set(file, htmlPage(file, content, css, viewer, file === "journeys.html" ? '<script src="vendor/mermaid.min.js"></script>' : ""));
   }
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
   reader("index.html", "Docs", document("README.md"));
-  reader("specs.html", "Specs", document("specs.md"));
-  reader("journeys.html", "Journeys", `<article class="docs-document"><h1 id="journeys--document">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
+  const specs = document("specs.md");
+  reader("specs.html", "Specs", specs.replace(/(<h2 id="specs--1-produktvision"[^>]*>)/, `${codeFootprintMarkup()}$1`));
+  reader("journeys.html", "Journeys", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
   results.set("journeys.html", results.get("journeys.html")!.replace("</body>", '<script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body>'));
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;

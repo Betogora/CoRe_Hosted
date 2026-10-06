@@ -1,5 +1,8 @@
 import path from "node:path";
 import { Marked } from "../docs/vendor/marked.esm.js";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { SunMoon } from "lucide-react";
 
 export const DOC_PAGES = [
   { file: "index.html", label: "Docs" },
@@ -34,7 +37,8 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
         const count = anchors.get(base) ?? 0;
         anchors.set(base, count + 1);
         const id = `${prefix}--${base}${count ? `-${count}` : ""}`;
-        return `<h${depth} id="${id}">${this.parser.parseInline(tokens)} <a class="docs-anchor" href="#${id}" aria-label="Link zu ${escapeHtml(text)}">#</a></h${depth}>\n`;
+        const typography = depth <= 3 ? `core-heading-${depth}` : "core-control-label";
+        return `<h${depth} id="${id}" class="${typography}" tabindex="-1">${this.parser.parseInline(tokens)} <a class="docs-anchor" href="#${id}" aria-label="Link zu ${escapeHtml(text)}">#</a></h${depth}>\n`;
       },
       code({ text, lang }) {
         return lang === "mermaid" ? `<pre class="mermaid">${escapeHtml(text)}</pre>` : false;
@@ -53,7 +57,8 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
 }
 
 export function siteNavigation(currentFile: string) {
-  return `<header class="docs-site-nav"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><nav aria-label="Doku-Seiten">${DOC_PAGES.map((page) => `<a href="${page.file}"${currentFile === page.file ? ' aria-current="page"' : ""}>${page.label}</a>`).join("")}</nav><button type="button" id="docs-theme" aria-label="Dark Mode einschalten">◐</button></header>`;
+  const icon = renderToStaticMarkup(React.createElement(SunMoon, { size: 20, "aria-hidden": true }));
+  return `<header class="docs-site-nav"><a class="docs-brand core-heading-3" href="index.html">CoRe <span class="core-caption">Docs</span></a><nav aria-label="Doku-Seiten">${DOC_PAGES.map((page) => `<a class="core-control-label" href="${page.file}"${currentFile === page.file ? ' aria-current="page"' : ""}>${page.label}</a>`).join("")}</nav><button class="core-action-secondary" type="button" id="docs-theme" aria-label="Dark Mode einschalten">${icon}</button></header>`;
 }
 
 export function htmlPage(file: string, content: string, css: string, script: string, extraHead = "", title?: string) {
