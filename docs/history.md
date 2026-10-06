@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-06 — Inhaltsschema und Feld-HTML-Vertrag (K0.2, K0.3)
+
+- `NoteContent` in `coreTypes.ts` beschreibt den universellen Inhalt nach ADR-033: Felder mit den Rollen Frage, Antwort, Hinweis, Zusatz, Quelle und Notiz; genau eine Abfrageart (Aufdecken mit einer Liste von Abfragen, Auswahl, Lückentext oder Bildverdeckung); Vorlesen je Feld; Tags. Eine Abfrage nennt Schlüssel, Namen, eine meist ausgeblendete Anweisung für festen Vorlagentext, Vorder- und Rückseitenfelder, eine optionale Feldbedingung (`all`/`any`) und optional ein Eintippfeld. Damit bleiben auch Anki-Notiztypen mit mehr als zwei Richtungen ohne Kartenverlust abbildbar.
+- `src/coreModel/noteContent.ts` validiert fremde Inhalte mit deutschen Meldungen. Daneben leitet es die Abfrageschlüssel deterministisch ab: erfüllte Abfragen über ihren Schlüssel, `choice`, `cloze:N` einschließlich `{{c1,2::…}}` und Verschachtelung sowie `io:N`. Wie in Anki entsteht keine Karte mit leerer Vorderseite. Medienreferenzen werden aus dem Inhalt abgeleitet statt gespeichert.
+- `sanitizeNoteHtml` erhält Auszeichnung, Farben, relative Schriftgrößen, Listen, Tabellen mit Rahmen, Innenabständen und Prozentbreiten, Ruby, lokale beziehungsweise eingebettete Medien und absolute Web-Links. Entfernt werden Schriftarten, feste Größen, Positionierung, Klassen, IDs, Datenattribute, relative Links, Remote-, `blob:`- und Script-Inhalte. Der bestehende `sanitizeCardHtml` bleibt unverändert, bis der Renderer in Phase 3 umgestellt wird.
+- Audit des fertigen Diffs: Eine Nachbearbeitung, die leere Attribute entfernen sollte, löschte auch die Wörter „src“, „href“, „style“ und „poster“ aus normalem Text. Die Prüfung liegt jetzt im Attribut-Hook des Filters, gilt nur für erlaubte Attribute und decodiert HTML-Entities vorher. Medienreferenzen werden ebenfalls decodiert (`c&amp;d.png` → `c&d.png`). Für beide Fälle gibt es Regressionstests.
+- Schema und Sanitizer sind bewusst noch nicht an Erstellung, Import oder Darstellung angeschlossen; das geschieht in Phase 2, 3 und 5.
+- Nachweise: 11 Schema-Tests mit Beispielen für Basic, Basic und umgekehrt, optional umgekehrt, Eintippen, drei Richtungen mit Anweisung, Lückentext, AnKing-artige Feldrollen, Single/Multiple Choice/Kprim und Bildverdeckung, 3 neue Sanitizer-Tests neben den 4 bestehenden; `npm run typecheck` einschließlich Dokumentationsgate.
+
 ## 2026-10-06 — Ausgangsmessung für das neue Kartenmodell (K0.1)
 
 Referenz für den Vergleich nach ADR-032 bis ADR-036. Gemessen auf dem lokalen Entwicklungsrechner mit dem Kartenmodell nach ADR-029; Rohdaten liegen lokal in `test-results/baseline/`.

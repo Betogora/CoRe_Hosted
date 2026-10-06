@@ -1,6 +1,6 @@
 import xss, { type IFilterXSSOptions } from "xss";
 
-const { FilterXSS, escapeAttrValue, getDefaultWhiteList, safeAttrValue } = xss as unknown as typeof import("xss");
+const { FilterXSS, escapeAttrValue, friendlyAttrValue, getDefaultWhiteList, safeAttrValue } = xss as unknown as typeof import("xss");
 
 const GLOBAL_ATTRIBUTES = ["class", "id", "title", "dir", "lang", "style"];
 const MEDIA_ATTRIBUTES = new Set(["src", "srcset", "poster"]);
@@ -89,6 +89,103 @@ const options: IFilterXSSOptions = {
 };
 
 const cardHtmlFilter = new FilterXSS(options);
+
+const NOTE_GLOBAL_ATTRIBUTES = ["title", "dir", "lang", "style"];
+const NOTE_TAG_ATTRIBUTES: Record<string, string[]> = {
+  a: ["href"],
+  audio: ["src", "controls"],
+  font: ["color"],
+  img: ["src", "alt", "width", "height"],
+  ol: ["start", "type", "reversed"],
+  source: ["src", "type"],
+  td: ["colspan", "rowspan"],
+  th: ["colspan", "rowspan", "scope"],
+  video: ["src", "controls", "poster", "width", "height"],
+};
+const NOTE_STYLE_PROPERTIES = new Set([
+  "background-color",
+  "border",
+  "border-bottom",
+  "border-collapse",
+  "border-color",
+  "border-left",
+  "border-right",
+  "border-style",
+  "border-top",
+  "border-width",
+  "color",
+  "font-style",
+  "font-weight",
+  "padding",
+  "padding-bottom",
+  "padding-left",
+  "padding-right",
+  "padding-top",
+  "text-align",
+  "text-decoration",
+  "text-decoration-line",
+  "vertical-align",
+]);
+const RELATIVE_FONT_SIZE = /^(?:\d+(?:\.\d+)?(?:em|rem|%)|smaller|larger)$/i;
+const PERCENT_WIDTH = /^\d+(?:\.\d+)?%$/;
+const noteAllowList = getDefaultWhiteList();
+for (const tag of ["audio", "img", "mark", "rp", "rt", "ruby", "source", "video"]) noteAllowList[tag] = [];
+for (const tag of Object.keys(noteAllowList)) {
+  noteAllowList[tag] = [...NOTE_GLOBAL_ATTRIBUTES, ...(NOTE_TAG_ATTRIBUTES[tag] ?? [])];
+}
+
+function sanitizeNoteStyle(value: string) {
+  return value
+    .split(";")
+    .flatMap((declaration) => {
+      const separator = declaration.indexOf(":");
+      if (separator <= 0) return [];
+      const property = declaration.slice(0, separator).trim().toLowerCase();
+      const propertyValue = declaration.slice(separator + 1).trim();
+      if (!SAFE_CSS_VALUE.test(propertyValue)) return [];
+      if (property === "font-size") return RELATIVE_FONT_SIZE.test(propertyValue) ? [`${property}:${propertyValue}`] : [];
+      if (property === "width") return PERCENT_WIDTH.test(propertyValue) ? [`${property}:${propertyValue}`] : [];
+      return NOTE_STYLE_PROPERTIES.has(property) ? [`${property}:${propertyValue}`] : [];
+    })
+    .join(";");
+}
+
+function isNoteMediaReference(value: string) {
+  const normalized = value.replace(/[\u0000-\u001f\u007f\s]+/g, "").toLowerCase();
+  if (!normalized || normalized.startsWith("//")) return false;
+  if (/^data:(?:image|audio|video)\/[\w.+-]+;base64,/.test(normalized)) return true;
+  return !/^[a-z][a-z\d+.-]*:/.test(normalized);
+}
+
+const noteHtmlFilter = new FilterXSS({
+  allowList: noteAllowList,
+  stripIgnoreTag: true,
+  stripIgnoreTagBody: ["script", "style", "iframe", "object", "embed", "form", "template"],
+  onIgnoreTagAttr(_tag, name, value) {
+    return /^aria-[\w-]+$/i.test(name) ? `${name}="${escapeAttrValue(value)}"` : undefined;
+  },
+  onTagAttr(_tag, name, rawValue, isWhiteAttr) {
+    if (!isWhiteAttr) return undefined;
+    const value = friendlyAttrValue(rawValue);
+    const trimmed = value.trim();
+    const safe = name === "style"
+      ? sanitizeNoteStyle(value)
+      : name === "href"
+        ? /^(?:https?:\/\/|mailto:)/i.test(trimmed) ? trimmed : ""
+        : name === "src" || name === "poster"
+          ? isNoteMediaReference(value) ? trimmed : ""
+          : null;
+    if (safe === null) return undefined;
+    return safe ? `${name}="${escapeAttrValue(safe)}"` : "";
+  },
+});
+
+/** Field HTML of the universal note content (ADR-033): semantic markup only, no layout, fonts or remote media. */
+export function sanitizeNoteHtml(html: unknown) {
+  return noteHtmlFilter.process(String(html ?? ""))
+    .replace(VOID_TAG_PATTERN, (_match, tag: string, attributes: string) => `<${tag}${attributes.replace(/\s*\/$/, "")} />`)
+    .replace(/<a\b(?![^>]*\brel=)/gi, '<a rel="noopener noreferrer"');
+}
 
 export function sanitizeCardHtml(html: unknown) {
   const sanitized = cardHtmlFilter.process(String(html ?? ""));

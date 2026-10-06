@@ -33,6 +33,14 @@ CoRe besitzt ein dauerhaft stabiles Kartenmodell:
 - **Keine Parallelpfade:** Altes Modell, alte Typen, alte Tabellen und alte
   Renderpfade werden in derselben Phase entfernt, in der ihr Ersatz fertig ist.
   Es gibt keine Migration und keinen Altlesepfad (ADR-028).
+- **Vollständiger Cutover erlaubt:** Wo der Umbau es braucht, dürfen
+  Supabase-Tabellen, Storage-Objekte, Auth-Testkonten und lokale
+  IndexedDB-Bestände verworfen und neu aufgebaut werden. Für bestehende Daten
+  entsteht kein Umwandlungs- oder Legacy-Code; sie bleiben nur erhalten, wenn
+  sie ohne zusätzlichen Code weiter funktionieren. Persistierte Daten ändern
+  sich erst in Phase 4 (K4.1, K4.5, K4.7, K4.8); Phase 0 bis 3 schreiben keine
+  Bestandsdaten um. Der gehostete Reset folgt den Sicherheitsregeln aus
+  ADR-028.
 - **Dokumentation pro Phase:** Wenn eine Phase ihren Vertrag ändert, werden
   `specs.md`, `architecture.md`, `status.md`, `anki-format-analysis.md`,
   `test-portfolio.md`, `AGENTS.md` und der Kartentypen-Katalog in derselben
@@ -65,25 +73,12 @@ Phase 8  Gesamtabnahme
 
 ## Phase 0 — Ausgangsmessung und Inhaltsschema
 
-Die Ausgangsmessung (K0.1) ist am 2026-10-06 in `history.md` festgehalten und
-mit `npm run measure:footprint`, `npm run performance:measure:local` und
-`npm run benchmark:apkg` reproduzierbar.
-
-- [ ] **K0.2 Inhaltsschema `NoteContent` spezifizieren.** Felder mit stabiler
-      ID, Name, Rolle (`prompt`, `answer`, `hint`, `extra`, `source`, `note`)
-      und Rich-Text-Wert; Bausteine `cloze`, `imageOcclusion`, `choice`,
-      `typeIn`, `directions`, `tts`; Tags; Medienreferenzen; Schemaversion.
-      Eindeutige Regeln für Abfrageschlüssel (`default`, `reverse`, `cloze:N`,
-      `io:N`, `choice`, `type`) und für ihre Ableitung aus den Bausteinen.
-- [ ] **K0.3 Zulässiges Rich-Text-HTML festlegen.** Erhalten bleiben
-      Struktur und Auszeichnung (fett, kursiv, unterstrichen, Hoch-/Tiefstellung,
-      Farbe, Hintergrundmarkierung, Listen, Tabellen mit Rahmen, Abständen und
-      Ausrichtung, Bilder, Audio, Video, Links, Ruby). Schriftfamilien entfallen,
-      Schriftgrößen nur relativ, keine Positionierung, keine Formulare oder
-      eingebetteten Fremdinhalte.
-
-**Abnahme:** Schema und Regeln sind als Typen mit Validierung und Beispielen
-reviewt.
+Abgeschlossen am 2026-10-06 (siehe `history.md`). Die Ausgangsmessung ist mit
+`npm run measure:footprint`, `npm run performance:measure:local` und
+`npm run benchmark:apkg` reproduzierbar. Das Inhaltsschema `NoteContent` mit
+Validierung und Abfrageableitung liegt in `src/coreModel/noteContent.ts`, der
+Feld-HTML-Vertrag in `sanitizeNoteHtml` (`src/htmlSafety.ts`); beide sind noch
+nicht an Erstellung, Import oder Darstellung angeschlossen.
 
 ## Phase 1 — Format-Matrix und Realwelt-Korpus
 
@@ -141,16 +136,17 @@ Beispieldatei lauffähig; `test-portfolio.md` beschreibt beide.
 
 ## Phase 2 — Kanonisches Modell in TypeScript
 
-- [ ] **K2.1 Typen.** `Note` (Inhalt ohne Stapel) und `Card` (Inhalt-ID,
-      Stapel, Abfrageschlüssel, Anki-Kartenidentität, Status, typisierter
-      Lernstand) in `coreTypes.ts`. `LearningItem` als inhaltstragende Karte,
-      `CardType`, `EditableCardType`, typspezifische Editorwerte und alle
+- [ ] **K2.1 Typen.** `Note` (Inhalt ohne Stapel mit `NoteContent`, Quelle,
+      Anki-GUID und Inhaltsrevision) und `Card` (Inhalt-ID, Stapel,
+      Abfrageschlüssel, Anki-Kartenidentität, Status, typisierter Lernstand) in
+      `coreTypes.ts`. `LearningItem` als inhaltstragende Karte,
+      `LearningItemDocumentV1`, `NoteTypeDefinitionV1`, `CardType`,
+      `EditableCardType`, typspezifische Editorwerte und alle
       Compatibility-Projektionen entfallen.
-- [ ] **K2.2 Abfrageableitung.** Eine reine Funktion leitet aus einem Inhalt die
-      Menge der Abfrageschlüssel ab: Lückennummern einschließlich
-      Mehrfachnummern und Verschachtelung, Bildverdeckungsgruppen, Richtungen
-      samt optionaler Rückrichtung, Auswahl und Eintippen. Ergebnis ist
-      deterministisch und stabil bei Feldreihenfolge oder Formatierung.
+- [ ] **K2.2 Abfrageableitung anschließen.** `parseNoteContent` und
+      `deriveNotePromptKeys` aus Phase 0 werden die einzige Quelle dafür,
+      welche Karten ein Inhalt besitzt; Erstellung, Bearbeitung und Import
+      verwenden sie über die `coreModel.ts`-Seam.
 - [ ] **K2.3 Abgleich bei Änderung.** Eine reine Funktion vergleicht alte und
       neue Abfragemenge und liefert neue Karten, unveränderte Karten mit
       Lernstand und entfallende Karten. Entfallende Karten werden nie still
@@ -192,8 +188,9 @@ unverändert grün; im Code existiert kein Kartentyp-Begriff mehr.
 - [ ] **K3.7 Formeln.** MathJax-Notation (`\(…\)`, `\[…\]`) wird mit KaTeX
       vorgerendert; KaTeX lädt nur bei erkannten Formeln nach und hält die
       Bundlebudgets ein.
-- [ ] **K3.8 Rich Text.** Sanitizer nach K0.3; Feldfarben werden für Light und
-      Dark Mode automatisch auf ausreichenden Kontrast angepasst.
+- [ ] **K3.8 Rich Text.** Der Renderer gibt ausschließlich nach
+      `sanitizeNoteHtml` bereinigtes Feld-HTML aus; Feldfarben werden für Light
+      und Dark Mode automatisch auf ausreichenden Kontrast angepasst.
 - [ ] **K3.9 Medien und Vorlesen.** Bilder, Audio, Video wie heute über
       aufgelöste Medien-URLs; `{{tts}}` als Vorlese-Schaltfläche im Host über
       die Sprachausgabe des Systems.
@@ -250,9 +247,10 @@ für Review und Inhaltskorrektur grün.
 ## Phase 5 — APKG-Import und Übersetzer
 
 - [ ] **K5.1 Importgraph.** Eine Anki-Notiz wird ein Inhalt, jede Anki-Karte
-      eine Karte mit Abfrageschlüssel aus Template-Ordinal, Lückennummer oder
-      Maskengruppe. Stapel je Karte über `did`, bei gefilterten Stapeln über
-      `odid` und `odue`.
+      eine Karte. Abfrageschlüssel: Basic-Familie `forward`/`reverse`, andere
+      Templates `anki-<Ordinal>`, Lückentext `cloze:N`, Bildverdeckung `io:N`.
+      Stapel je Karte über `did`, bei gefilterten Stapeln über `odid` und
+      `odue`.
 - [ ] **K5.2 Übersetzer-Registry.** Versionierte Übersetzer mit Erkennung über
       Notiztyp-Art, Stock-Kennung, Felder und Template-Signatur: Basic-Familie,
       Antwort eintippen, Lückentext, native Image Occlusion (Occlusion-Feld zu

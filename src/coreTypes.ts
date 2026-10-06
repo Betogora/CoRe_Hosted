@@ -343,6 +343,67 @@ export type VariantProjection =
   | { kind: "cloze"; recipeId: string; clozeOrdinal: number }
   | { kind: "image-occlusion"; recipeId: string; regionKey: string };
 
+export type NoteFieldRole = "prompt" | "answer" | "hint" | "extra" | "source" | "note";
+
+export interface NoteField {
+  id: string;
+  name: string;
+  role: NoteFieldRole;
+  html: RichTextContent;
+}
+
+export interface NoteFieldRequirement {
+  mode: "all" | "any";
+  fieldIds: string[];
+}
+
+export interface RevealPrompt {
+  key: string;
+  name: string;
+  instruction: string;
+  questionFieldIds: string[];
+  answerFieldIds: string[];
+  requires: NoteFieldRequirement | null;
+  typeInFieldId: string | null;
+}
+
+export interface ChoiceOption {
+  id: string;
+  html: RichTextContent;
+  correct: boolean;
+}
+
+export type OcclusionShape =
+  | { kind: "rect" | "ellipse"; left: number; top: number; width: number; height: number; angle: number }
+  | { kind: "polygon"; points: Array<[number, number]>; angle: number }
+  | { kind: "text"; left: number; top: number; text: string; scale: number; angle: number };
+
+export interface OcclusionMask {
+  id: string;
+  ordinal: number;
+  shape: OcclusionShape;
+  alwaysOccluded: boolean;
+}
+
+export type NoteInteraction =
+  | { kind: "reveal"; prompts: RevealPrompt[] }
+  | { kind: "choice"; mode: "single" | "multiple" | "kprim"; options: ChoiceOption[] }
+  | { kind: "cloze" }
+  | { kind: "image-occlusion"; image: MediaRef; mode: "hide-all-guess-one" | "hide-one-guess-one"; masks: OcclusionMask[] };
+
+export interface NoteSpeech {
+  fieldId: string;
+  language: string;
+}
+
+export interface NoteContent {
+  schemaVersion: 1;
+  fields: NoteField[];
+  interaction: NoteInteraction;
+  speech: NoteSpeech[];
+  tags: string[];
+}
+
 export interface VariantPerformance {
   id: string;
   learningItemId: string;
