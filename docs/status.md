@@ -75,6 +75,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 
 ## Bekannte Lücken
 
+- Die APKG-Formatmatrix führt die heutigen Importabweichungen einzeln in `KNOWN_GAPS` von `src/apkgFormatMatrix.test.ts`. Abweichend vom oben beschriebenen Vertrag erreicht der rohe Anki-Kartenzustand (`sourceSchedulerData`) das Learning Item nicht; daher greift nur das Revlog-Replay. Gültige FSRS-Zustände, Aussetzen, Wiederlernen und Begraben gehen so verloren. Weitere Lücken: Flaggen und `marked` gehen verloren; ein leerer Stapel `Default` und gefilterte Stapel entstehen; Geschwister in anderen Stapeln landen im Stapel der ersten Karte. Außerdem werden `.colpkg`, Mehrfach- und verschachtelte Lücken, Bildverdeckung, Hinweise, Eintippen, MathJax, „Multiple Choice for Anki“, Image Occlusion Enhanced sowie kodierte Mediennamen nicht korrekt abgebildet.
 - Das P0-Produktgate mit Zielviewports, Tastatur- und Screenreader-Abnahme ist offen.
 - Template-JavaScript, Add-on-/Custom-Filter, native LaTeX-Toolchains und nicht browserfähige Codecs werden erhalten, aber bewusst nicht ausgeführt.
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.

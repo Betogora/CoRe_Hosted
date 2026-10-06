@@ -63,6 +63,23 @@ Bei betroffenen Eingaben gehört die geöffnete Smartphone-Bildschirmtastatur zu
 Prüfung; ein verkleinerter Desktop-Viewport ersetzt diesen Nachweis nicht.
 Die betroffene Kernjourney wird zusätzlich bei 200 % Zoom geprüft.
 
+Änderungen an Kartendarstellung oder APKG-Import prüfen zusätzlich die
+folgenden Referenzinhalte aus `fixtures/apkg/matrix/`. Jeder Fall wird in Light
+und Dark jeweils vor und nach dem Aufdecken in Review und Kartenvorschau bei
+mindestens 390 × 844 und 1440 × 900 betrachtet. Bis zur Umsetzung der
+Kartenmodell-Roadmap zeigen mehrere Fälle die in `KNOWN_GAPS` von
+`src/apkgFormatMatrix.test.ts` geführten Lücken.
+
+| Fall | Fixture | Notiz-GUID |
+| --- | --- | --- |
+| Lückentext mit Mehrfachnummer, verschachtelt, in Formel | `standard-latest`, `special-latest` | `matrix-cloze`, `matrix-cloze-nested`, `matrix-cloze-math` |
+| Bildverdeckung nativ und Image Occlusion Enhanced | `special-latest` | `matrix-io-native`, `matrix-ioe-1` |
+| Hinweise, Zusatz und Quellen-Link | `special-latest` | `matrix-hint-tts`, `matrix-anking` |
+| Antwort eintippen | `standard-latest` | `matrix-type-in` |
+| Kprim, Multiple und Single Choice | `special-latest` | `matrix-mc-kprim`, `matrix-mc-multiple`, `matrix-mc-single` |
+| Formeln und LaTeX | `special-latest` | `matrix-math` |
+| Tabelle, farbiger Text, Audio und Video | `special-latest` | `matrix-media-rich` |
+
 Der Abschlussbericht nennt Version, Viewports, Theme, geprüfte Zustände und
 Screenshot-Nachweise. Nicht geprüfte Fälle bleiben ausdrücklich offen;
 automatisierte Geometrieprüfungen oder erfolgreiche Builds ersetzen die

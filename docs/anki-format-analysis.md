@@ -152,6 +152,32 @@ eine JSON-Hashmap wie `{"0": "bild.png"}`. Der Import normalisiert Dateinamen,
 prüft Sicherheit, verwendet SHA-1 und Größe, dekomprimiert bei Bedarf und hält
 Medien von Karteninhalten getrennt.
 
+Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
+
+- Moderne `.apkg`- und `.colpkg`-Dateien enthalten neben `collection.anki21b`
+  stets eine Platzhalter-`collection.anki2`; der Legacy-Export schreibt
+  `collection.anki21` plus Platzhalter. Anki 2.0 verwendet ausschließlich
+  `collection.anki2` mit Schema 11.
+- Die sechs Standardnotiztypen tragen `originalStockKind` 1 bis 6: Basic,
+  Basic und umgekehrt, optional umgekehrt, Antwort eintippen, Cloze und Image
+  Occlusion.
+- Image Occlusion speichert Masken als Lückentext im Feld `Occlusion`, etwa
+  `{{c1::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4:oi=1}}`; Formen
+  sind `rect`, `ellipse`, `polygon:points=x,y …` und `text:text=…`. `oi=1`
+  (occludeInactive) hält eine Form auch auf Karten anderer Gruppen verdeckt.
+  Das Template zeichnet die Masken per `anki.imageOcclusion.setup()` aus der
+  Anki-Laufzeit, nicht aus dem Paket.
+- Ein Deckexport enthält gefilterte Karten mit `did` des Filterstapels und dem
+  Heimatstapel in `odid`, dazu stets den Stapel `Default`. Ein Export ohne
+  Lernstand entfernt die Tags `marked` und `leech`.
+- Ein Template-Zielstapel (`did` im Template) legt die betreffende Karte direkt
+  in einen anderen Stapel als ihre Geschwister.
+- Das Add-on „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3) legt den
+  Notiztyp `AllInOne (kprim, mc, sc)` mit den Feldern `Question`, `Title`,
+  `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources` und
+  `Extra 1` an. `QType` bedeutet 0 = Kprim, 1 = Multiple Choice, 2 = Single
+  Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske.
+
 CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat.
 `src/apkgImport.ts` bleibt die öffentliche Seam; Worker-Protokoll, ZIP, SQLite,
 Zstd, MediaEntries und Legacy-Mappings bleiben in ihren privaten

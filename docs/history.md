@@ -5,6 +5,31 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-06 — APKG-Formatmatrix und Realwelt-Korpus (Phase 1)
+
+- `scripts/create_apkg_matrix_fixtures.py` erzeugt mit dem offiziellen Exporter von `anki==26.5` zwölf Pakete und `apkg-matrix.expected.json` (Vertrag v2):
+  - Standardnotiztypen als aktuelles Paket, Legacy-2-Paket und Anki-2.0-Paket;
+  - Sonderformate (AnKing-artige Hinweise mit AMBOSS-Link, „Multiple Choice for Anki“ als Kprim, Multiple und Single Choice, unbekannter Notiztyp mit festem Vorlagentext, Hinweis, Vorlesen, Furigana, drei Richtungen, zwei Lückenfelder, Lücke in Formel, MathJax, LaTeX, Audio, Video, Tabelle, native Image Occlusion mit allen vier Formen, Image Occlusion Enhanced);
+  - Mediensonderfälle;
+  - Lernstände mit und ohne Lernstand, auch als Legacy-Paket;
+  - eine `.colpkg` mit Stapel `Default`;
+  - ein leeres und ein defektes Paket.
+
+  Jede Notiz trägt die Zielerwartung des universellen Inhalts: Feldrollen, Abfrageschlüssel, Text vor und nach dem Aufdecken nach der Regel aus `2c08cc7` (Basic wiederholt die Frage nicht, Lückentext füllt an derselben Stelle), Stapel, Lernstand und Medien.
+- `src/apkgFormatMatrix.test.ts` (Contract, unter 1 s) prüft alle Pakete über die öffentliche Import-Seam. `KNOWN_GAPS` ist streng: Nicht gelistete Abweichungen und bereits geschlossene Lücken lassen den Test fehlschlagen.
+- Die Matrix weist folgende Lücken des heutigen Imports nach:
+  - **Widerspruch zum dokumentierten Vertrag:** Der rohe Anki-Kartenzustand erreicht das Learning Item nicht. Gültige FSRS-Zustände, Aussetzen, Wiederlernen, Begraben und Flaggen gehen verloren; es greift nur das Revlog-Replay.
+  - **Stapel:** Jeder Import legt einen leeren Stapel `Default` an; gefilterte Stapel werden echte Stapel (`odid` ignoriert); Geschwister in anderen Stapeln, auch per Template-Zielstapel, landen im Stapel der ersten Karte.
+  - **Formate:** `.colpkg` wird abgelehnt. `{{c1,3::…}}` erzeugt keine dritte Karte, verschachtelte Lücken zerbrechen, und die Eintippkarte zeigt die Antwort nicht. Hinweise sind sofort sichtbar, MathJax und LaTeX bleiben roh, Bildverdeckung erscheint als Rohtext. „Multiple Choice for Anki“ und Image Occlusion Enhanced werden nicht erkannt.
+  - **Medien:** Ein Link-Pfad zählt als Medienverweis. HTML-maskierte und URL-kodierte Mediennamen werden nicht aufgelöst und fälschlich als fehlend gemeldet. Das Tag `marked` wird nicht zur Markierung.
+- Belegte Formatdetails stehen in `anki-format-analysis.md`, darunter die Bedeutung von `QType` (0 = Kprim, 1 = Multiple, 2 = Single Choice) laut Quelle von `zjosua/anki-mc`. Noemis zurückgestellte Commits `e558338` und `2c08cc7` dienten nur als Lesevorlage; aus ihnen wurde kein Code übernommen.
+- `scripts/reportApkgCorpus.ts` (`npm run report:apkg-corpus`) importiert echte Stapel aus `fixtures/apkg/corpus/` (gitignoriert) und berichtet je Notiztyp heutige Darstellungsquote, fehlende Medien, Laufzeit und Heap; ohne Dateien endet er mit Exit-Code 2. Mit Matrixpaketen geprüft; echte Ankizin- und AnKing-Stapel stehen noch aus.
+- Audit des fertigen Diffs: Ungenutzte Erwartungsfelder im Test und ein ungenutzter Generatorparameter wurden entfernt; sonst keine Vereinfachung gefunden. Die Roadmap in `todo.md` wurde für die Übergabe an ein ausführendes Modell detailliert. Neu sind dort Arbeitsweise, Geschmacksstandards, Datei-Hinweise und Fertig-Kriterien je Aufgabe. Ausgeführt wird künftig 2 → 3 → 5A → Cutover (4) → 6 → 7 → 8, damit `LearningItem` erst im Cutover entfällt.
+- Nebenbefunde außerhalb des Feature-Freezes, nicht behoben, aber in `todo.md` eingeplant (K4.11, K5.9, K3.9):
+  - `scripts/create_apkg_quality_fixtures.py` exportiert wegen `ExportLimit` statt `DeckIdLimit` die ganze Sammlung.
+  - Der Import meldet noch „produktive Medienablage bleibt ein späterer Ausbaupunkt“.
+  - Das Filter `{{tts …}}` gibt den Feldtext doppelt aus.
+
 ## 2026-10-06 — Inhaltsschema und Feld-HTML-Vertrag (K0.2, K0.3)
 
 - `NoteContent` in `coreTypes.ts` beschreibt den universellen Inhalt nach ADR-033: Felder mit den Rollen Frage, Antwort, Hinweis, Zusatz, Quelle und Notiz; genau eine Abfrageart (Aufdecken mit einer Liste von Abfragen, Auswahl, Lückentext oder Bildverdeckung); Vorlesen je Feld; Tags. Eine Abfrage nennt Schlüssel, Namen, eine meist ausgeblendete Anweisung für festen Vorlagentext, Vorder- und Rückseitenfelder, eine optionale Feldbedingung (`all`/`any`) und optional ein Eintippfeld. Damit bleiben auch Anki-Notiztypen mit mehr als zwei Richtungen ohne Kartenverlust abbildbar.
