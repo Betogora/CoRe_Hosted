@@ -1,9 +1,40 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-06
+**Stand:** 2026-10-07
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-07 — Nachprüfung Kanonisches Modell (Phase 2)
+
+- Review von `0c025cb` gegen K2.1–K2.6: Typen, Ableitung, Abgleich, private
+  Seam, Inventar und Löschplanung entsprechen der Roadmap. Nachgeschärft:
+- `planNoteContentChange` meldet `changed`. Ist der bereinigte Inhalt
+  unverändert, bleiben Inhalt, Inhalts- und Entitätsrevision unverändert;
+  sonst steigen beide genau einmal. Verglichen werden beide Seiten nach
+  `parseNoteContent`, damit eine spätere JSONB-Schlüsselreihenfolge keine
+  Scheinänderung erzeugt. So gilt ein bloßes Speichern später nicht als
+  lokale Bearbeitung (K5.1/K5.7 nennen dafür jetzt `importedContentRevision`).
+- Neue Karten kommen deterministisch in den Stapel der Karte, deren
+  Abfrageschlüssel im bisherigen Inhalt zuerst abgeleitet wird, statt in den
+  Stapel der zufällig ersten übergebenen Karte.
+- Doppelte Karten-IDs oder Abfrageschlüssel werden bei Änderung und Löschung
+  abgewiesen; gelöschte Inhalte oder Karten können nicht geändert werden.
+- `updatedByDeviceId` setzt ausschließlich die Persistenz beim Schreiben
+  (K4.9); `createNote` nimmt den Wert nicht mehr entgegen.
+- Markierung: `marked` liegt wie in Anki am Inhalt (`Note.marked`) statt an
+  der Karte und außerhalb von `content`; ADR-032 ist entsprechend ergänzt.
+  Der APKG-Import entfernt künftig das Tag `marked` (K5.5); die
+  Matrixerwartung bleibt unverändert, die Beobachtung ergänzt das Tag (K5.0).
+- `architecture.md` nennt in der Modultabelle `scheduler.ts` statt der nicht
+  existierenden Datei `fsrsScheduler.ts`.
+- Nachweise: vier neue und drei angepasste Modelltests; vollständige
+  Modulsuite (105 Dateien), `npm run typecheck` einschließlich
+  `check:docs` und `npm run docs:build` bestehen.
+- Audit mit `audit-last-change`: Die Stapelwahl für neue Karten nimmt die
+  erste vorhandene Karte in bisheriger Schlüsselreihenfolge, statt alle
+  Karten zu sortieren. Keine weitere belegbare Vereinfachung gefunden.
+
 
 ## 2026-10-06 — Kanonisches Note-/Card-Modell (Phase 2)
 

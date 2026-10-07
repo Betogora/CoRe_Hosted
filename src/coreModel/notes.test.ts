@@ -48,7 +48,7 @@ test("Erstellung validiert und bereinigt den Inhalt einmal für alle Karten", ()
   const { note, cards } = createNote({
     id: "note-import", content: input, deckId: "deck-a", createdAt: CREATED_AT,
     userId: "account", source: "anki-apkg", ankiGuid: "guid",
-    noteTypeSourceId: "source", translator: { id: "basic", version: 1 }, updatedByDeviceId: "device",
+    noteTypeSourceId: "source", translator: { id: "basic", version: 1 },
   });
   assert.equal(note.id, "note-import");
   assert.equal(note.content.fields[0].html, "<b>Frage</b>");
@@ -58,11 +58,13 @@ test("Erstellung validiert und bereinigt den Inhalt einmal für alle Karten", ()
   assert.equal(note.ankiGuid, "guid");
   assert.equal(note.noteTypeSourceId, "source");
   assert.deepEqual(note.translator, { id: "basic", version: 1 });
+  assert.equal(note.marked, false);
   assert.equal(note.contentRevision, 1);
   assert.equal(note.revision, 1);
   assert.equal(note.createdAt, CREATED_AT);
   assert.equal(note.updatedAt, CREATED_AT);
   assert.equal(note.deletedAt, null);
+  assert.equal(note.updatedByDeviceId, null);
   assert.deepEqual(keys(cards), ["forward", "reverse"]);
   assert.equal(new Set(cards.map((card) => card.id)).size, 2);
   for (const card of cards) {
@@ -70,9 +72,8 @@ test("Erstellung validiert und bereinigt den Inhalt einmal für alle Karten", ()
     assert.equal(card.noteId, note.id);
     assert.equal(card.deckId, "deck-a");
     assert.equal(card.ankiCardId, null);
-    assert.equal(card.updatedByDeviceId, "device");
+    assert.equal(card.updatedByDeviceId, null);
     assert.equal(card.status, "active");
-    assert.equal(card.marked, false);
     assert.equal(card.ankiFlag, 0);
     assert.deepEqual(card.variants, []);
     assert.equal(card.study.state, "new");
@@ -156,18 +157,19 @@ for (const scenario of [
   test(`Änderungsplanung: ${scenario.name} bewahrt Lernstand und meldet entfallende Karten`, () => {
     const previous = create(cloze("{{c1::eins}} {{c2::zwei}}"));
     previous.note.contentRevision = 4;
+    previous.note.marked = true;
     previous.cards[0].study.state = "review";
     previous.cards[0].study.reps = 12;
     previous.cards[0].study.stability = 33;
     previous.cards[0].study.extra.forcedVariantId = "variant";
     previous.cards[0].status = "suspended";
-    previous.cards[0].marked = true;
     previous.cards[0].ankiFlag = 3;
     previous.cards[0].ankiCardId = "anki-1";
     previous.cards[0].variants = [createCardVariant({ cardId: previous.cards[0].id, front: "Variante", back: "Antwort" })];
     previous.cards[1].deckId = "deck-b";
     const before = structuredClone(previous);
     const plan = planNoteContentChange(previous, cloze(scenario.next), CHANGED_AT);
+    assert.equal(plan.changed, true);
     assert.deepEqual(keys(plan.keptCards), scenario.kept);
     assert.deepEqual(keys(plan.newCards), scenario.added);
     assert.deepEqual(keys(plan.removedCards), scenario.removed);
@@ -183,6 +185,7 @@ for (const scenario of [
       assert.ok(!previous.cards.some((old) => old.id === card.id));
     }
     assert.equal(plan.note.contentRevision, 5);
+    assert.equal(plan.note.marked, true);
     assert.equal(plan.note.revision, previous.note.revision + 1);
     assert.equal(plan.note.updatedAt, CHANGED_AT);
     assert.equal(plan.note.createdAt, CREATED_AT);
@@ -249,4 +252,45 @@ test("Änderung und Löschung lehnen Karten eines fremden Inhalts ab", () => {
   const foreign = create(reveal());
   assert.throws(() => planNoteContentChange({ note: previous.note, cards: foreign.cards }, reveal(), CHANGED_AT), /anderen Inhalt/);
   assert.throws(() => planNoteDeletion(previous.note, [...previous.cards, ...foreign.cards], CHANGED_AT), /anderen Inhalt/);
+});
+
+test("Speichern ohne inhaltliche Änderung erhöht keine Revision und behält alle Karten", () => {
+  const previous = create(reveal(true));
+  const next = reveal(true);
+  next.fields[0].html = "Frage<script>alert(1)</script>";
+  next.tags = ["", ""];
+  const before = structuredClone(previous);
+  const plan = planNoteContentChange(JSON.parse(JSON.stringify(previous)), next, CHANGED_AT);
+  assert.equal(plan.changed, false);
+  assert.deepEqual(plan.note, before.note);
+  assert.deepEqual(plan.keptCards, before.cards);
+  assert.deepEqual(plan.newCards, []);
+  assert.deepEqual(plan.removedCards, []);
+  const reordered = { note: { ...previous.note, content: { tags: [], speech: [], interaction: previous.note.content.interaction, fields: previous.note.content.fields, schemaVersion: 1 } as typeof previous.note.content }, cards: previous.cards };
+  assert.equal(planNoteContentChange(reordered, reveal(true), CHANGED_AT).changed, false);
+});
+
+test("Neue Karten landen unabhängig von der übergebenen Reihenfolge im Stapel der ersten bisherigen Abfrage", () => {
+  const previous = create(cloze("{{c1::eins}} {{c2::zwei}}"));
+  previous.cards[0].deckId = "deck-first";
+  previous.cards[1].deckId = "deck-second";
+  for (const cards of [previous.cards, [...previous.cards].reverse()]) {
+    const plan = planNoteContentChange({ note: previous.note, cards }, cloze("{{c1::eins}} {{c2::zwei}} {{c3::drei}}"), CHANGED_AT);
+    assert.deepEqual(plan.newCards.map((card) => card.deckId), ["deck-first"]);
+  }
+});
+
+test("Änderung und Löschung lehnen doppelte Karten oder Abfrageschlüssel ab", () => {
+  const previous = create(cloze("{{c1::eins}} {{c2::zwei}}"));
+  const duplicateKey = [previous.cards[0], { ...previous.cards[1], promptKey: "cloze:1" }];
+  assert.throws(() => planNoteContentChange({ note: previous.note, cards: duplicateKey }, cloze("{{c1::eins}}"), CHANGED_AT), /Abfrageschlüssel ist mehrfach/);
+  assert.throws(() => planNoteDeletion(previous.note, [...previous.cards, previous.cards[0]], CHANGED_AT), /mehrfach übergeben/);
+});
+
+test("Änderungsplanung lehnt gelöschte Inhalte und Karten ab", () => {
+  const previous = create(cloze("{{c1::eins}} {{c2::zwei}}"));
+  const deleted = planNoteDeletion(previous.note, previous.cards, CHANGED_AT);
+  assert.throws(() => planNoteContentChange(deleted, cloze("{{c1::eins}}"), CHANGED_AT), /Gelöschte/);
+  const oneDeleted = [previous.cards[0], { ...previous.cards[1], deletedAt: CHANGED_AT }];
+  assert.throws(() => planNoteContentChange({ note: previous.note, cards: oneDeleted }, cloze("{{c1::eins}}"), CHANGED_AT), /Gelöschte/);
 });

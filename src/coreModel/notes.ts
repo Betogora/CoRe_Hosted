@@ -13,7 +13,6 @@ export interface CreateNoteInput {
   noteTypeSourceId?: string | null;
   translator?: Note["translator"];
   createdAt?: string;
-  updatedByDeviceId?: string | null;
 }
 
 function createCard(note: Note, deckId: string, promptKey: string, createdAt: string): Card {
@@ -25,7 +24,6 @@ function createCard(note: Note, deckId: string, promptKey: string, createdAt: st
     promptKey,
     ankiCardId: null,
     status: "active",
-    marked: false,
     ankiFlag: 0,
     study: {
       state: initial.state,
@@ -63,14 +61,13 @@ function createCard(note: Note, deckId: string, promptKey: string, createdAt: st
     updatedAt: createdAt,
     revision: 1,
     deletedAt: null,
-    updatedByDeviceId: note.updatedByDeviceId,
+    updatedByDeviceId: null,
   };
 }
 
 /** Creates one validated content record and a fresh card for each derived prompt key. */
 export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] } {
-  const parsed = parseNoteContent(input.content);
-  if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
+  const parsed = parseOrThrow(input.content);
   const createdAt = input.createdAt ?? new Date().toISOString();
   const note: Note = {
     id: input.id ?? makeId("note"),
@@ -80,39 +77,57 @@ export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] 
     ankiGuid: input.ankiGuid ?? null,
     noteTypeSourceId: input.noteTypeSourceId ?? null,
     translator: input.translator ?? null,
+    marked: false,
     contentRevision: 1,
     createdAt,
     updatedAt: createdAt,
     revision: 1,
     deletedAt: null,
-    updatedByDeviceId: input.updatedByDeviceId ?? null,
+    updatedByDeviceId: null,
   };
   return { note, cards: parsed.promptKeys.map((key) => createCard(note, input.deckId, key, createdAt)) };
 }
 
 function assertNoteCards(note: Note, cards: readonly Card[]): void {
   if (cards.some((card) => card.noteId !== note.id)) throw new Error("Eine Karte gehört zu einem anderen Inhalt.");
+  if (new Set(cards.map((card) => card.id)).size !== cards.length) throw new Error("Eine Karte wurde mehrfach übergeben.");
+  if (new Set(cards.map((card) => card.promptKey)).size !== cards.length) throw new Error("Ein Abfrageschlüssel ist mehrfach vergeben.");
 }
 
-/** Removed cards are only proposed; the caller must obtain confirmation before deleting them. */
+function parseOrThrow(content: unknown) {
+  const parsed = parseNoteContent(content);
+  if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
+  return parsed;
+}
+
+/**
+ * Removed cards are only proposed; the caller must obtain confirmation before deleting them.
+ * Content that is unchanged after sanitizing keeps the previous note and its revisions.
+ */
 export function planNoteContentChange(
   previous: { note: Note; cards: readonly Card[] },
   nextContent: unknown,
   updatedAt = new Date().toISOString(),
-): { note: Note; keptCards: Card[]; newCards: Card[]; removedCards: Card[] } {
+): { changed: boolean; note: Note; keptCards: Card[]; newCards: Card[]; removedCards: Card[] } {
   assertNoteCards(previous.note, previous.cards);
-  const deckId = previous.cards[0]?.deckId;
-  if (deckId === undefined) throw new Error("Dem Inhalt ist keine Karte zugeordnet.");
-  const parsed = parseNoteContent(nextContent);
-  if (!parsed.ok) throw new Error(parsed.errors.join("\n"));
-  const note: Note = {
-    ...previous.note,
-    content: parsed.value,
-    contentRevision: previous.note.contentRevision + 1,
-    revision: previous.note.revision + 1,
-    updatedAt,
-  };
+  if (previous.note.deletedAt !== null || previous.cards.some((card) => card.deletedAt !== null)) {
+    throw new Error("Gelöschte Inhalte oder Karten können nicht geändert werden.");
+  }
+  const previousParsed = parseOrThrow(previous.note.content);
   const cardsByKey = new Map(previous.cards.map((card) => [card.promptKey, card]));
+  const deckId = previousParsed.promptKeys.map((key) => cardsByKey.get(key)).find((card) => card !== undefined)?.deckId;
+  if (deckId === undefined) throw new Error("Dem Inhalt ist keine Karte zugeordnet.");
+  const parsed = parseOrThrow(nextContent);
+  const changed = JSON.stringify(parsed.value) !== JSON.stringify(previousParsed.value);
+  const note: Note = changed
+    ? {
+      ...previous.note,
+      content: parsed.value,
+      contentRevision: previous.note.contentRevision + 1,
+      revision: previous.note.revision + 1,
+      updatedAt,
+    }
+    : previous.note;
   const keptCards: Card[] = [];
   const newCards: Card[] = [];
   for (const key of parsed.promptKeys) {
@@ -124,6 +139,7 @@ export function planNoteContentChange(
     else newCards.push(createCard(note, deckId, key, updatedAt));
   }
   return {
+    changed,
     note,
     keptCards,
     newCards,

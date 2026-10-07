@@ -1,6 +1,6 @@
 # CoRe-Architektur und Invarianten
 
-**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-06.
+**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-07.
 Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Gates: [Betrieb](operations.md). Offene Änderungen: [TODO](todo.md). Formatdetails: [Anki-Referenz](anki-format-analysis.md).
 
 ## Systemkontext
@@ -19,7 +19,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
 | `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
-| `reviewService.ts`, `fsrsScheduler.ts`, `easyDays.ts` | Queue, Bewertung, FSRS-6 und deterministische Intervallentlastung |
+| `reviewService.ts`, `scheduler.ts`, `easyDays.ts` | Queue, Bewertung, FSRS-6 und deterministische Intervallentlastung |
 | `coreVariantService.ts` | Reife, Eligibility, Variantenwahl und Original-Fallback |
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung, Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
@@ -64,9 +64,10 @@ Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Re
 ### Vorbereitete Note-/Card-Domäne
 
 `coreTypes.ts` enthält zusätzlich `Note`, `Card` und `CardStudyState` nach
-ADR-032. Ein Inhalt besitzt Felder, Tags, Herkunft und Inhaltsrevision ohne
-Stapel; eine Karte besitzt Inhaltsreferenz, Stapel, Abfrageschlüssel,
-Lernstand und Varianten. Queue-Werte sind direkt typisiert, die weiteren
+ADR-032. Ein Inhalt besitzt Felder, Tags, Herkunft, Markierung und
+Inhaltsrevision ohne Stapel; die Markierung liegt außerhalb von `content` und
+zählt nicht als Inhaltsänderung. Eine Karte besitzt Inhaltsreferenz, Stapel,
+Abfrageschlüssel, Status, Anki-Flagge, Lernstand und Varianten. Queue-Werte sind direkt typisiert, die weiteren
 genutzten Lern- und Variantenwerte liegen in einem typisierten `study.extra`.
 
 Das private Modul `coreModel/notes.ts` bietet `createNote`,
@@ -74,10 +75,14 @@ Das private Modul `coreModel/notes.ts` bietet `createNote`,
 `unknown`, bis `parseNoteContent` sie validiert und bereinigt; dessen
 Abfrageschlüssel bestimmen die Kartenmenge. Änderungen erhalten bestehende
 Karten samt Lernstand unverändert, erhöhen Inhalts- und Entitätsrevision
-einmal und liefern entfallende Karten zur Bestätigung zurück. Neue Karten
-kommen in den Stapel der ersten übergebenen Karte; bestehende Platzierungen
-bleiben erhalten. Aufrufer übergeben jeweils die vollständige Kartenmenge
-eines Inhalts; fremde Karten werden abgewiesen.
+einmal und liefern entfallende Karten zur Bestätigung zurück. Ist der
+bereinigte Inhalt unverändert, meldet der Plan `changed: false` und behält
+den bisherigen Inhalt samt Revisionen. Neue Karten kommen in den Stapel der
+Karte, deren Abfrageschlüssel im bisherigen Inhalt zuerst abgeleitet wird;
+bestehende Platzierungen bleiben erhalten. Aufrufer übergeben jeweils die
+vollständige, nicht gelöschte Kartenmenge eines Inhalts; fremde Karten sowie
+doppelte Karten oder Abfrageschlüssel werden abgewiesen. `updatedByDeviceId`
+setzt die Persistenz beim Schreiben, nicht die reine Planung.
 
 Die Löschplanung liefert Soft-Delete-Datensätze für Inhalt und Geschwister
 mit gemeinsamem Zeitstempel sowie deren vollständige vorherige Datensätze

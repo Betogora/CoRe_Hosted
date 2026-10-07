@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-06
+Stand: 2026-10-07
 
 Dieses Dokument enthält ausschließlich offene Arbeit. Es beschreibt die
 Roadmap für das neue Kartenmodell nach [ADR-032 bis ADR-036](decisions.md).
@@ -323,7 +323,9 @@ Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
     diese Pipeline und `renderCard` statt `LearningItem` und
     `renderLearningItemPresentation`. Die Prüfungen bleiben dieselben; die
     Beobachtung liest jetzt `note.content.fields[].role` und
-    `card.promptKey`. Danach `KNOWN_GAPS` neu abgleichen; der strenge Test
+    `card.promptKey`. Die Erwartung beschreibt Ankis Sicht: Für `note.tags`
+    ergänzt die Beobachtung bei `note.marked` das Tag `marked`; die
+    Fixtures bleiben unverändert. Danach `KNOWN_GAPS` neu abgleichen; der strenge Test
     zeigt, welche Lücken geschlossen sind.
 - [ ] **K5.1 Importgraph.** Eine Anki-Notiz wird ein Inhalt, jede Anki-Karte
       eine Karte. Abfrageschlüssel: Basic-Familie `forward`/`reverse`, andere
@@ -334,6 +336,9 @@ Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
     Karten enthält. Gefilterte Stapel (`dyn`) werden nie angelegt.
     Geschwister in anderen Stapeln und Template-Zielstapel bleiben in ihrem
     eigenen Stapel.
+  - **Importrevision:** `Note` erhält `importedContentRevision: number | null`.
+    Der Übersetzer setzt es beim Import auf die `contentRevision` des
+    erzeugten Inhalts; manuelle Inhalte tragen `null`. K5.4 und K5.7 lesen es.
   - **Schließt:** `package.decks`, `card.deck`, `card.key`, `note.cards` in
     `KNOWN_GAPS`.
 - [ ] **K5.2 Übersetzer-Registry.** Versionierte Übersetzer mit Erkennung über
@@ -389,7 +394,8 @@ Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
       (heute geht er verloren, siehe Matrix). Heutige Priorität
       (FSRS-Memory-State, Revlog-Replay, klassischer Status, neu) bleibt; ausgesetzt wird
       übernommen; begraben verfällt wie in Anki am nächsten Lerntag; Tag
-      `marked` wird zur CoRe-Markierung; Flaggen bleiben als Metadaten.
+      `marked` wird zur CoRe-Markierung am Inhalt; Flaggen bleiben als
+      Metadaten an der Karte.
   - **Ursache des heutigen Fehlers:** `sourceSchedulerData` aus
     `createAnkiSchedulingSnapshot` landet nicht in `item.meta`, deshalb liefern
     `migrateAnkiFsrsMemoryState` und `migrateAnkiCardStateHeuristically`
@@ -397,8 +403,9 @@ Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
     die drei Migrationsfunktionen auf `Card` umschreiben.
   - **Zuordnung:** `type` 0/1/2/3 → new/learning/review/relearning, `queue -1`
     → `status: "suspended"`, `queue -2/-3` → nicht ausgesetzt, Zustand aus
-    `type`, `flags & 7` → `ankiFlag`, Tag `marked` → `marked: true` (Tag bleibt
-    erhalten), `data.s`/`data.d` → FSRS-Zustand.
+    `type`, `flags & 7` → `ankiFlag`, Tag `marked` (ohne Groß-/Kleinschreibung)
+    → `note.marked = true`; das Tag wird aus `content.tags` entfernt, damit
+    die Markierung genau eine Quelle hat. `data.s`/`data.d` → FSRS-Zustand.
   - **Schließt:** alle `card.learning.*` und `note.marked`.
 - [ ] **K5.6 Medien.** Namen nach Unicode-NFC, URL- und HTML-Dekodierung
       normalisieren; eine Mediendatei pro SHA-1; Referenzen je Inhalt; über
@@ -411,8 +418,11 @@ Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
       Anki-Kartenidentität zuordnen; lokale Inhaltsänderungen, Lernstand,
       Aussetzung, Markierung und Stapelordnung bleiben; neue Lücken erzeugen
       neue Karten; in Anki entfallene Karten werden nur berichtet.
-  - **Lokal bearbeitet** heißt: `contentRevision` größer als beim letzten
-    Import (Importrevision am Inhalt speichern).
+  - **Lokal bearbeitet** heißt: `contentRevision` größer als
+    `importedContentRevision` (K5.1). Speichern ohne inhaltliche Änderung
+    erhöht die Revision nicht (`planNoteContentChange` meldet
+    `changed: false`). Ein Reimport ohne lokale Bearbeitung setzt beide Werte
+    gemeinsam neu.
 - [ ] **K5.8 Große Stapel am Computer.** ZIP und Medien werden streamend
       verarbeitet; APKG und COLPKG bis mindestens 2 GiB, Worker-Heap höchstens
       1 GiB, Main-Thread-Übergabe weiter unter 100 ms. Die Grenzen werden mit
@@ -538,7 +548,14 @@ Freigabe.
     bleibt in `cloudRepositoryValidation.ts`. Scheduler, Queue, Easy Days,
     Tageslimits, Statistik und Varianten lesen `study` beziehungsweise
     `study.extra` ohne Verhaltensänderung (K2.5); das Lese-/Schreibinventar
-    steht im Phase-2-Bericht in `history.md`.
+    steht im Phase-2-Bericht in `history.md`. Ein Änderungsplan mit
+    `changed: false` schreibt weder Inhalt noch Karten.
+  - **Markierung am Inhalt:** Markieren in Review und Kartenverwaltung setzt
+    `note.marked` und erhöht nur die Entitätsrevision, nicht
+    `contentRevision`. Damit zeigen alle Geschwister den Stern; `specs.md`
+    (Kartenverwaltung, Review) beschreibt das im Cutover entsprechend.
+  - **Geräte-ID:** Die Persistenz setzt `updatedByDeviceId` beim Schreiben von
+    Inhalt und Karten; die reinen Planfunktionen setzen sie nicht.
   - **Löschen und Undo (K2.6):** `planNoteDeletion` in `coreWorkspace.ts`
     verdrahten; der Dialog in `DecksScreen.tsx` nennt die Geschwisterzahl.
     Aufrufer laden alle Karten des Inhalts, auch in anderen Stapeln. Der

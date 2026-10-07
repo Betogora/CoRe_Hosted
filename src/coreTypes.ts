@@ -412,6 +412,7 @@ export interface Note {
   ankiGuid: string | null;
   noteTypeSourceId: string | null;
   translator: { id: string; version: number } | null;
+  marked: boolean;
   contentRevision: number;
   createdAt: string;
   updatedAt: string;
@@ -459,7 +460,6 @@ export interface Card {
   promptKey: string;
   ankiCardId: string | null;
   status: "active" | "suspended";
-  marked: boolean;
   ankiFlag: number;
   study: CardStudyState;
   variants: CardVariant[];
