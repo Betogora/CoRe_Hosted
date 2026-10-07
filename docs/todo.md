@@ -145,7 +145,7 @@ werden nicht frei erfunden.
 | Formeln | `\(…\)` inline, `\[…\]` als abgesetzter Block, beide mit KaTeX; bei Renderfehler bleibt der Quelltext in Monospace sichtbar mit Diagnose. |
 | Farbiger Feldtext | Farbe bleibt erhalten; unterschreitet sie 4,5 : 1 Kontrast zum Kartenhintergrund des aktiven Themes, wird nur die Helligkeit angepasst (`src/ui/colorMath.ts`). |
 | Löschen | Anki-Verhalten nach ADR-032; Dialogtext nennt die Kartenzahl, z. B. `Inhalt mit 3 Karten löschen?`. |
-| Neu übersetzen (K5.4) | Standard: nach einem Übersetzer-Update bietet `Allgemeine Einstellungen › Daten` die Aktion `Importierte Inhalte neu übersetzen` an; sie verändert nur Inhalte ohne lokale Bearbeitung. Vor der Umsetzung Rückfrage, ob stattdessen automatisch übersetzt werden soll. |
+| Neu übersetzen (K5.4) | Entschieden: automatisch nach einem Übersetzer-Update, nur für Inhalte ohne lokale Bearbeitung und ohne Verlust von Karten mit Lernstand; danach ein kurzer Hinweis, etwa `1.234 Inhalte mit verbesserter Darstellung aktualisiert`. |
 
 ## Phase 0 — Ausgangsmessung und Inhaltsschema
 
@@ -241,11 +241,21 @@ Nachweise, die echte Anki-Daten brauchen.
       im Bildseitenverhältnis, Ankis Drehpunkt und Schriftgröße). Die Matrix
       kann das nicht belegen, weil ihre Masken als Text erzeugt werden.
 - [ ] **K5.4 Anki-Vorlage speichern und neu übersetzen (5B, im Cutover).**
-      `noteTypeSources` aus dem Importgraphen landen unsichtbar in
-      `note_type_sources`; ein Befehl übersetzt bestehende Importe nach einem
-      Übersetzer-Update neu (`translator.version`), ohne lokale
-      Inhaltsänderungen oder Lernstand zu überschreiben. Oberfläche nach dem
-      Standard oben, vorher Rückfrage.
+      `noteTypeSources` und die rohen Feldwerte `noteSources` aus dem
+      Importgraphen landen unsichtbar in `note_type_sources` und
+      `note_sources`. Nach einem Übersetzer-Update (`translator.version`)
+      übersetzt CoRe bestehende Importe **automatisch** neu (Entscheidung des
+      Nutzers 2026-10-07, ADR-033).
+      Leitplanken: (1) nur Inhalte ohne lokale Bearbeitung
+      (`contentRevision` = `importedContentRevision`; beide steigen gemeinsam);
+      (2) Karten werden über `ankiCardId` zugeordnet, Lernstand bleibt
+      unangetastet, neue Abfragen werden neue Karten; würde eine Karte mit
+      Lernstand entfallen, bleibt der Inhalt unverändert und wird berichtet;
+      (3) deterministisch und einmal je Account im Hintergrund, synchronisiert
+      wie eine normale Änderung, unveränderte Inhalte werden nicht geschrieben
+      (`changed: false`); (4) ein kurzer Hinweis nennt die Zahl aktualisierter
+      Inhalte. Übersetzer-Verbesserungen werden gebündelt ausgeliefert, weil
+      jede Version betroffene Inhalte neu synchronisiert.
 - [ ] **K5.7 Reimport (5B, im Cutover).** Inhalte über Anki-GUID, Karten über
       Anki-Kartenidentität zuordnen; lokale Inhaltsänderungen, Lernstand,
       Aussetzung, Markierung und Stapelordnung bleiben; neue Lücken erzeugen
@@ -293,6 +303,7 @@ Freigabe.
 - [ ] **K4.1 Neue Baseline.** Eine einzige frische Migration ersetzt die
       heutige: `decks`, `notes`, `cards` mit typisierten Lernstandsspalten,
       `note_type_sources` (unsichtbare Anki-Vorlage je Notiztyp),
+      `note_sources` (rohe Anki-Feldwerte je importiertem Inhalt),
       `media_files` je Account und SHA-1, `note_media`, `card_variants`,
       `review_events`, `review_statistics_daily`, `sync_devices`,
       `sync_conflicts`. `note_type_definitions` und gespeichertes Karten-HTML
@@ -512,10 +523,8 @@ Entfernen einzelner Abfragen regelt ADR-032; Großstapel-Grenzen,
 Korpus-Zielquote und der Bildverdeckungs-Editor sind als Abnahmekriterien in
 K5.8, Phase 5 und K6.5 festgelegt. Offen sind:
 
-- Bereitstellung des Realwelt-Korpus (Ankizin, AnKing) durch den Nutzer; bis
-  dahin gelten die synthetischen Nachbauten aus K1.4.
-- Rückfrage zu K5.4: Neuübersetzung auf Knopfdruck (Standard) oder
-  automatisch.
+- AnKing sowie Pakete mit echter Bildverdeckung und echtem Lernstand für den
+  Korpus.
 
 ## Spätere Roadmaps
 
@@ -529,28 +538,17 @@ Roadmap:
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
 - KI-Umformulierungen für Lückentext und andere Bausteine.
 
-## Offene Entscheidungen aus Phase 3
+## Offene Entscheidungen vor dem Cutover
 
-Diese Punkte entstanden beim Review des Renderers und gehören keiner späteren
-Phase an. Sie werden vor dem Cutover (Phase 4) mit dem Nutzer entschieden, weil
-sie danach im echten Review sichtbar sind. Bereits einer Phase zugeordnet sind:
-Performance-Abnahme und Gerätenachweise (Phase 3, offene Abnahme), Drehung und
-Textgröße der Bildmasken (K5.2).
+Marker, Kprim-Teilpunkte und Bildbeschreibung sind entschieden und umgesetzt,
+die Neuübersetzung ist entschieden (K5.4, siehe `history.md`). Bereits einer Phase zugeordnet sind: Performance-Abnahme
+und Gerätenachweise (Phase 3, offene Abnahme), Drehung und Textgröße der
+Bildmasken (K5.2). Vor dem Branch `kartenmodell-cutover` soll die lokale
+E2E-Suite auf `main` wieder grün sein (siehe `status.md`).
 
-- [ ] **Marker-Hintergründe im Dark Mode.** Feld-HTML mit
-      `background-color` (Anki-Textmarker) bleibt unverändert; Textfarben
-      werden nur gegen den Kartenhintergrund auf 4,5 : 1 geprüft. Im Dark Mode
-      steht heller Text dann auf hellem Marker. Standardvorschlag: Marker im
-      Dark Mode in der Helligkeit absenken und Text gegen die Markerfarbe statt
-      gegen den Kartenhintergrund prüfen (`src/notePresentation.ts`,
-      `src/ui/colorMath.ts`). Vor der Umsetzung per `visual-ab-review` mit
-      echten Ankizin-/AnKing-Markern entscheiden.
-- [ ] **Kprim-Bewertung.** Kprim wird heute nur als ganz richtig oder falsch
-      ausgewertet; verbreitete Anki-Add-ons vergeben Teilpunkte (etwa eine
-      falsche Aussage = halbe Punktzahl). Entscheiden, ob CoRe Teilpunkte
-      anzeigt und ob sie eine Bewertung vorschlagen; die Bewertung selbst
-      bleibt beim Nutzer.
-- [ ] **Bildbeschreibung der Bildverdeckung.** Das Bild trägt pauschal den
-      Alternativtext „Bild mit verdeckten Bereichen“. Entscheiden, ob der
-      Übersetzer einen vorhandenen Alt-Text oder Dateinamen übernimmt
-      oder ob der Editor (K6.5) eine Beschreibung erfasst.
+- [ ] **Image Occlusion Enhanced: Overlay oder Masken nachbauen.** Heute legt
+      CoRe das Frage-/Antwort-SVG als `overlay`-Maske über das Bild (Farben des
+      Add-ons, nicht bearbeitbar). Mit einem echten IOE-Deck prüfen, ob die SVGs
+      einfach genug sind, um echte CoRe-Masken daraus zu bauen; das Overlay
+      bleibt der Rückfall.
+

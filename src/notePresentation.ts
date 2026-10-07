@@ -4,7 +4,7 @@ import type { TemplateDiagnostic } from "./safeTemplate.ts";
 import { sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
 import { buildSrcdoc } from "./cardPresentationFrame.ts";
-import { ensureTextContrast, resolveCssColor } from "./ui/colorMath.ts";
+import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./ui/colorMath.ts";
 
 /** Semantic tokens copied into the card frame as `--core-<name>`. */
 export const NOTE_THEME_COLORS = ["surface", "surface-muted", "text", "text-muted", "border", "border-interactive", "success", "success-surface", "danger", "danger-surface", "learning-goal-achieved"] as const;
@@ -90,10 +90,30 @@ function renderClozes(value: string, ordinal: number, side: "question" | "answer
   return output;
 }
 
-function adjustedColors(html: string, background: string): string {
-  const adjust = (value: string) => { const hex = resolveCssColor(value, background); return hex ? ensureTextContrast(hex, background) : value; };
-  return html.replace(/style="([^"]*)"/gi, (_match, style: string) => `style="${style.replace(/(^|;)color:([^;]+)/gi, (_part, separator: string, color: string) => `${separator}color:${adjust(color)}`)}"`)
-    .replace(/\scolor="([^"]*)"/gi, (_match, color: string) => ` color="${adjust(color)}"`);
+/**
+ * Field colors follow the theme: coloured markers change brightness until the card text reads on them,
+ * grey page backgrounds from pasted web text are dropped, and text colours reach 4,5 : 1 against
+ * their marker or the card surface.
+ */
+function adjustedColors(html: string, colors: NotePresentationTheme["colors"]): string {
+  const adjust = (value: string, backdrop: string) => { const hex = resolveCssColor(value, backdrop); return hex ? ensureTextContrast(hex, backdrop) : value; };
+  // Unreadable black, white or grey text (pasted from dark or light web pages) takes the card's text colour.
+  const textColor = (separator: string, value: string, backdrop: string) => {
+    const hex = resolveCssColor(value, backdrop);
+    if (!hex) return `${separator}color:${value}`;
+    return hexToHsv(hex).saturation < .15 && colorContrast(hex, backdrop) < 4.5 ? separator : `${separator}color:${ensureTextContrast(hex, backdrop)}`;
+  };
+  return html.replace(/style="([^"]*)"/gi, (_match, style: string) => {
+    let backdrop = colors.surface;
+    const withMarker = style.replace(/(^|;)\s*background(?:-color)?\s*:\s*([^;]+)/gi, (part, separator: string, value: string) => {
+      const hex = resolveCssColor(value, colors.surface);
+      if (!hex) return part;
+      if (hexToHsv(hex).saturation < .15) return separator;
+      backdrop = ensureTextContrast(hex, colors.text);
+      return `${separator}background-color:${backdrop}`;
+    });
+    return `style="${withMarker.replace(/(^|;)\s*color\s*:\s*([^;]+)/gi, (_part, separator: string, color: string) => textColor(separator, color, backdrop))}"`;
+  }).replace(/\scolor="([^"]*)"/gi, (_match, color: string) => ` color="${adjust(color, colors.surface)}"`);
 }
 
 function shapeHtml(shape: Exclude<OcclusionShape, { kind: "text" | "overlay" }>, className: string): string {
@@ -103,7 +123,7 @@ function shapeHtml(shape: Exclude<OcclusionShape, { kind: "text" | "overlay" }>,
   if (shape.kind === "rect") return `<rect ${attrs} x="${shape.left}" y="${shape.top}" width="${shape.width}" height="${shape.height}"/>`;
   return `<ellipse ${attrs} cx="${shape.left + shape.width / 2}" cy="${shape.top + shape.height / 2}" rx="${shape.width / 2}" ry="${shape.height / 2}"/>`;
 }
-function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occlusion" }>, ordinal: number, side: "question" | "answer"): string {
+function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occlusion" }>, ordinal: number, side: "question" | "answer", alt: string): string {
   let masks = "";
   let labels = "";
   for (const { shape, ordinal: group, alwaysOccluded } of interaction.masks) {
@@ -121,7 +141,7 @@ function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occl
     if (!active && !alwaysOccluded && interaction.mode === "hide-one-guess-one") continue;
     masks += shapeHtml(shape, active && side === "answer" ? "mask-outline" : active ? "mask-target" : "mask-muted");
   }
-  return `<div class="core-occlusion"><img src="${escapeHtml(interaction.image)}" alt="Bild mit verdeckten Bereichen"/><svg aria-hidden="true" viewBox="0 0 1 1" preserveAspectRatio="none">${masks}</svg>${labels}</div>`;
+  return `<div class="core-occlusion"><img src="${escapeHtml(interaction.image)}" alt="${escapeHtml(alt)}"/><svg aria-hidden="true" viewBox="0 0 1 1" preserveAspectRatio="none">${masks}</svg>${labels}</div>`;
 }
 
 async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, side: "question" | "answer", theme: NotePresentationTheme, diagnostics: TemplateDiagnostic[], interactions: Set<NotePresentationResult["interactions"][number]>) {
@@ -129,7 +149,7 @@ async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, sid
   const ordinal = Number(card.promptKey.split(":")[1]);
   const katex = noteHasMath(note) ? await import("katex") : null;
   const html = (raw: string) => {
-    const sanitized = adjustedColors(sanitizeNoteHtml(raw), theme.colors.surface);
+    const sanitized = adjustedColors(sanitizeNoteHtml(raw), theme.colors);
     let output = "";
     let cursor = 0;
     for (const match of sanitized.matchAll(MATH)) {
@@ -274,7 +294,8 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
     question = fieldsHtml(content.fields.filter((field) => field.role === "prompt"));
     if (interaction.kind === "cloze") answer = question;
     else if (interaction.kind === "image-occlusion") {
-      question += occlusionHtml(interaction, ordinal, side);
+      const header = notePlainText(html(content.fields.find((field) => field.role === "prompt" && field.html.trim())?.html ?? ""));
+      question += occlusionHtml(interaction, ordinal, side, header ? `${header} – Bild mit verdeckten Bereichen` : "Bild mit verdeckten Bereichen");
       answer = question;
     } else interactions.add("choice");
     if (side === "answer" && interaction.kind !== "cloze" && interaction.kind !== "image-occlusion") answer = fieldsHtml(content.fields.filter((field) => field.role === "answer"));

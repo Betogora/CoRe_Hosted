@@ -97,7 +97,8 @@ export function ensureTextContrast(color: string, background: string): string {
 }
 
 export function resolveCssColor(input: string, background = "#ffffff"): string | null {
-  const color = input.trim().toLowerCase();
+  // `var(…)` (e.g. Tailwind opacity from pasted web text) cannot be resolved here and counts as opaque.
+  const color = input.trim().toLowerCase().replace(/\s*\/?\s*var\([^)]*\)/g, "");
   if (cssNamedColors[color]) return cssNamedColors[color];
   if (/^#[a-f\d]{3}$/i.test(color)) return `#${color.slice(1).split("").map((part) => part + part).join("")}`;
   if (/^#[a-f\d]{6}$/i.test(color)) return color;
