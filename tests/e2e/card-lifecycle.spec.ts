@@ -234,6 +234,25 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await expect(page.getByRole("textbox", { name: "Vorderseite" }).locator('img[alt="vorderseite.png"]')).toHaveAttribute("src", /^blob:/);
   await expect(page.getByRole("textbox", { name: "Rückseite" }).locator('img[alt="rueckseite.png"]')).toHaveAttribute("src", /^blob:/);
   await page.getByRole("button", { name: "Feld hinzufügen" }).click();
+  await expect(page.getByRole("button", { name: /Zusatzfeld \d+ nach (oben|unten)/ })).toHaveCount(0);
+  const placement = page.getByRole("combobox", { name: "Platzierung von Zusatzfeld 1" });
+  await expect(placement).toContainText("Rückseite");
+  await placement.click();
+  await expect(page.getByRole("option")).toHaveText(["Vorderseite", "Rückseite", "Beide Seiten"]);
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Feld hinzufügen" }).click();
+  await expect(page.getByRole("button", { name: "Zusatzfeld 1 nach oben", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Zusatzfeld 2 nach unten", exact: true })).toHaveCount(0);
+  await page.getByRole("textbox", { name: "Inhalt von Zusatzfeld 2", exact: true }).fill("Zweites Zusatzfeld");
+  await page.getByRole("button", { name: "Zusatzfeld 2 nach oben", exact: true }).click();
+  await expect(page.locator("[data-additional-field-name]").nth(0)).toHaveValue("Zusatzfeld 2");
+  await expect(page.locator("[data-additional-field-name]").nth(1)).toHaveValue("Zusatzfeld 1");
+  await expect(page.getByRole("textbox", { name: "Inhalt von Zusatzfeld 2", exact: true })).toContainText("Zweites Zusatzfeld");
+  await page.getByRole("button", { name: "Zusatzfeld 2 nach unten", exact: true }).click();
+  await expect(page.locator("[data-additional-field-name]").nth(0)).toHaveValue("Zusatzfeld 1");
+  await expect(page.locator("[data-additional-field-name]").nth(1)).toHaveValue("Zusatzfeld 2");
+  await page.getByRole("button", { name: "Zusatzfeld 2 entfernen", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Zusatzfeld \d+ nach (oben|unten)/ })).toHaveCount(0);
   const additionalEditor = page.getByRole("textbox", { name: "Inhalt von Zusatzfeld 1" });
   await additionalEditor.evaluate((editor, base64) => {
     const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));

@@ -296,7 +296,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["dashboard", "DashboardScreen · Tagesübersicht", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
-    ["manual", "ManualCreationPanel · vollständiges Formular", "Manuelle Erstellung"],
+    ["manual", "ManualCreationPanel · Formular und Zusatzfelder", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
     ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
     ["deck-content", "DecksScreen · Stapelinhalte einschließlich Unterstapel", "Stapelinhalte"],
@@ -314,6 +314,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "help" && <HelpScreen />}
     {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
+    {view === "manual" && <p className="core-caption text-core-muted">Zusatzfelder: ein Feld ohne Pfeile, mehrere Felder mit möglichen Verschieberichtungen. Platzierung auf Vorderseite, Rückseite oder beiden Seiten; Standard ist die Rückseite.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
     {["decks", "deck-content"].includes(view) && <DecksScreen contentDeckId={view === "deck-content" ? deck.id : null} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} onSaveCard={noop} onSetCardStudyState={async () => null} onDuplicateCard={async () => null} onDeleteCard={async () => null} onUndoDeleteCard={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
