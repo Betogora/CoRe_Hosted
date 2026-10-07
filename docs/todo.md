@@ -102,7 +102,7 @@ K-Nummern verweisen. Ausgeführt wird in dieser Reihenfolge:
 Phase 0   Ausgangsmessung und Inhaltsschema            ✔ abgeschlossen
 Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
 Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, unverdrahtet
-Phase 3   Renderer und Bausteine (reine Module)        geplant: auf main, unverdrahtet
+Phase 3   Renderer und Bausteine (reine Module)        implementiert, unverdrahtet; Performance-Abnahme offen
 Phase 5A  Übersetzer und Importgraph (reine Module)    geplant: auf main, neue Pipeline in der Matrix
 Phase 4   Cutover: Datenbank, Replica, Sync, App       eigener Branch, ein Merge
           + K2.4–K2.6, K5.4, K5.7, K5.9-Oberfläche     (im Cutover verdrahtet)
@@ -197,106 +197,32 @@ Die Funktionen sind noch nicht an App, Import oder Persistenz angeschlossen.
 Die verbleibende Verdrahtung von K2.2, K2.4, K2.5 und K2.6 liegt in K4.9;
 das Lese-/Schreibinventar für den Scheduler-Cutover steht im Phasenbericht.
 
-## Phase 3 — Renderer und Bausteine
+## Phase 3 — Offene Abnahme
 
-**Ziel:** Ein reiner Renderer und die nötigen React-Host-Bausteine stellen
-jede Karte im CoRe-Design dar. Sie sind getestet, im UI-Katalog sichtbar und
-noch nicht in Review, Vorschau oder Kartenverwaltung eingebaut.
+Renderer und Host-Bausteine sind implementiert und im UI-Katalog verfügbar.
+Die Umsetzung von K3.1 bis K3.10 und ihre Nachweise stehen datiert in
+`history.md`; die technischen Verträge stehen in `architecture.md`.
+App, APKG-Import und Persistenz verwenden sie erst im Cutover (K4.10).
 
-**Ausgangspunkt:** Der heutige Renderer `src/cardPresentation.ts` mit
-`CardPresentationSurface`, `StudyCardContent` und `CardPreviewDialog` in
-`src/ui/`. Wiederverwenden: CSP-Gerüst und Medien-URL-Auflösung
-(`buildSrcdoc`, `resolvePresentationMedia`). Nicht übernehmen:
-Template-Auswertung, Feldlisten-Fallback, Anki-CSS.
+- [ ] **K3.7 Performance-Abnahme nachholen.** Das verpflichtende
+      `npm run performance:measure:local` muss vollständig durchlaufen und
+      ein aktuelles Messartefakt erzeugen. Der Phase-3-Lauf endet im
+      4G-Szenario beim Warten auf `core:first_deck_summaries_ready` nach dem
+      Zehn-Minuten-Limit; deshalb fehlen auch Statistikbenchmark und
+      Grenzwertprüfung. Der Nutzer hat ausdrücklich entschieden, Phase 3
+      mit dieser offenen Abnahme festzuhalten. Die Grenzwerte bleiben
+      unverändert; die bereits gemessenen Überschreitungen der Ausgangslage
+      bleiben ebenfalls offen. Der bestehende Startpfad wird in Phase 3
+      nicht umgebaut.
+- [ ] **Gerätenachweise ergänzen.** Echte Smartphone-Bildschirmtastatur,
+      physischer Touch/Screenreader, hörbare System-Sprachausgabe und nativer
+      200-%-Browserzoom sind noch nicht geprüft. Die Chromium-Matrix und
+      CSS-Zoomprobe ersetzen diese Nachweise nicht.
 
-- [ ] **K3.1 Ein Renderer.** `renderCard(note, card, side, theme)` erzeugt
-      scriptfreies HTML mit CoRe-Styles für Vorschau, Kartenverwaltung und
-      Review. Nichts davon wird persistiert. Beim Aufdecken ergänzt eine
-      Abfrage Trennlinie und Antwort, ohne die Vorderseite zu wiederholen; ein
-      Lückentext wird an derselben Stelle gefüllt (Vorlage: `2c08cc7` in
-      `archive/noemi-anki-fixes`). Der Anki-Template-Renderpfad
-      und der Feldlisten-Fallback entfallen (im Cutover, K4.10).
-  - **Wo:** neues `src/notePresentation.ts` mit Test
-    `src/notePresentation.test.ts`.
-  - **Wie:** Signatur `renderCard({ note, card, side: "question" | "answer",
-    surface: "review" | "preview" | "management", theme })` →
-    `{ srcdoc, accessibleText, mediaReferences, interactions, diagnostics }`
-    (gleiche Form wie `PresentationResult`, ohne `compatibility`). Die
-    Rückseite im Review enthält nur Trennlinie plus Antwortteil; in
-    `preview`/`management` Frage, Trennlinie und Antwort zusammen.
-  - **Fertig, wenn:** jede Matrixnotiz lässt sich rendern. Die Textfassungen
-    lassen sich mit den Matrixerwartungen vergleichen; das passiert ab K5.0.
-- [ ] **K3.2 Feldrollen.** Frage und Antwort; Hinweise vor dem Aufdecken
-      einzeln aufklappbar (ohne Script, z. B. über `details`); Zusatz erst nach
-      dem Aufdecken; Quellen als Link-Chips. Gestaltung nach den Standards oben.
-- [ ] **K3.3 Lückentext.** Volle Anki-Syntax einschließlich Hinweis,
-      Verschachtelung, Mehrfachnummern und Lücken in Formeln; aktive Lücke
-      hervorgehoben, andere Lücken ausgeschrieben.
-  - **Wie:** Lücken mit einem kleinen Tokenizer statt Regex-Ersetzung
-    auflösen (Klammertiefe zählen, wie `clozeOrdinals`). Für Karte N: jede
-    Lücke, deren Nummernliste N enthält, wird zu `[…]`/`[Hinweis]`; innere
-    Lücken einer aktiven äußeren Lücke verschwinden mit ihr. Alle übrigen
-    Lücken zeigen ihren Text. Lücken innerhalb von `\(…\)` vor dem
-    KaTeX-Schritt ersetzen.
-  - **Testfälle:** alle Lückennotizen der Matrix, zusätzlich Hinweis mit
-    Doppelpunkt im Text und leere Lücke.
-- [ ] **K3.4 Bildverdeckung.** Masken als SVG über dem Bild, relative
-      Koordinaten, Modi „eine verdecken“ und „alle verdecken, eine erraten“,
-      Aufdecken der Zielmaske auf der Rückseite, responsive Skalierung.
-  - **Wie:** Bild und ein `svg` mit `viewBox="0 0 1 1"` und
-    `preserveAspectRatio="none"` in einem relativ positionierten Container;
-    Formen aus `OcclusionShape`; `alwaysOccluded` entspricht Ankis `oi=1`.
-    Text-Formen sind Beschriftungen und verdecken nichts.
-- [ ] **K3.5 Eintippen.** Eingabe im Review-Host außerhalb des Kartenrahmens,
-      zeichengenauer Vergleich beim Aufdecken, Tastaturbedienung.
-  - **Wo:** reiner Vergleich `compareTypedAnswer(expected, typed)` in
-    `src/notePresentation.ts`; Eingabe als React-Baustein in `src/ui/`
-    (Katalog-Demo Pflicht).
-- [ ] **K3.6 Auswahl.** Single Choice, Multiple Choice und Kprim im
-      Review-Host mit Auswertung und Erklärung; ersetzt die heutige
-      Choice-Darstellung (Ersatz wirksam im Cutover).
-  - **Wo:** Auswertung als reine Funktion; Darstellung als React-Baustein.
-    Heutige Logik in `src/choiceAnswers.ts` und der Choice-Teil von
-    `StudyMode.tsx` als Vorlage lesen, nicht kopieren.
-- [ ] **K3.7 Formeln.** MathJax-Notation (`\(…\)`, `\[…\]`) wird mit KaTeX
-      vorgerendert; KaTeX lädt nur bei erkannten Formeln nach und hält die
-      Bundlebudgets ein.
-  - **Wie:** Abhängigkeit `katex` (npm) per dynamischem `import()` nur, wenn
-    ein Feld `\(` oder `\[` enthält; KaTeX-CSS und Schriften in den
-    `srcdoc` einbetten (CSP erlaubt `data:`-Fonts). `[latex]…[/latex]` und
-    `[$]…[/$]` ebenfalls an KaTeX geben; nicht unterstützte Befehle zeigen
-    Quelltext plus Diagnose.
-  - **Pflicht:** neue Abhängigkeit ⇒ `npm run build` (Budgets) und
-    `npm run performance:measure:local` (AGENTS.md).
-- [ ] **K3.8 Rich Text.** Der Renderer gibt ausschließlich nach
-      `sanitizeNoteHtml` bereinigtes Feld-HTML aus; Feldfarben werden für Light
-      und Dark Mode automatisch auf ausreichenden Kontrast angepasst.
-- [ ] **K3.9 Medien und Vorlesen.** Bilder, Audio, Video wie heute über
-      aufgelöste Medien-URLs; `{{tts}}` als Vorlese-Schaltfläche im Host über
-      die Sprachausgabe des Systems (`speechSynthesis`, Sprache aus
-      `NoteContent.speech`). `[sound:x.mp4]` wird als Video dargestellt. Der
-      heutige Fehler, dass `{{tts …}}` den Feldtext doppelt ausgibt, entfällt
-      mit dem alten Renderer.
-- [ ] **K3.10 Links und AMBOSS.** Links öffnen extern in neuem Kontext ohne
-      Zugriff auf CoRe; Review-Aktion „In AMBOSS nachschlagen“ öffnet die
-      AMBOSS-Suche mit dem markierten Begriff. Das Suchlinkformat wird vor der
-      Umsetzung verifiziert.
-  - **Wie:** Links mit `target="_blank" rel="noopener noreferrer"`; der
-    Kartenrahmen bekommt dafür `allow-popups allow-popups-to-escape-sandbox`
-    zusätzlich zur heutigen Sandbox, sonst nichts. Das Suchlinkformat im
-    Browser mit einem echten Begriff prüfen; ist kein stabiles Format
-    auffindbar, den Nutzer fragen statt zu raten.
-
-**Prüfung:** `npx tsx --test src/notePresentation.test.ts`,
-`npm run typecheck`, `npm run build`, `npm run docs:build` und
-`npm run check:docs` (neue UI-Bausteine brauchen Katalog-Demos in
-`scripts/uiCatalogDemos.tsx`), Sichtprüfung der Referenzfälle aus der
-visuellen Pflichtmatrix im UI-Katalog.
-
-**Abnahme:** Textfassungen aller Matrixfälle stimmen (über die neue Pipeline
-ab K5.0); Screenshot-Fälle aus K1.9 sind in beiden Themes visuell geprüft; der
-Kartenrahmen enthält nachweislich kein Script und lädt keine externen
-Ressourcen; Bundlebudgets sind grün.
+Die vollständigen Textvergleiche der APKG-Matrix über den neuen Renderer
+gehören unverändert zu K5.0. Importierte IO-Enhanced- und Realwelt-Inhalte
+werden über diese neue Pipeline abgenommen, nicht über die vorbereiteten
+normalisierten Katalogbeispiele.
 
 ## Phase 5 — APKG-Import und Übersetzer
 
@@ -364,6 +290,14 @@ Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
     (`rect`, `ellipse`, `polygon:points=…`, `text:text=…`, `oi=1` →
     `alwaysOccluded`). Werte in Anki sind relativ (0–1); `\:` und `\\`
     entschlüsseln.
+  - **Drehung und Textgröße prüfen (aus Phase 3):** Der Renderer dreht
+    Rechteck und Ellipse um ihre linke obere Ecke und Polygone um die
+    Bildmitte, jeweils in der auf 0–1 gestreckten Maskenfläche; bei nicht
+    quadratischen Bildern verzerrt das gedrehte Masken. Textbeschriftungen
+    nutzen `scale` als Vielfaches der Kartenschrift. Beides mit echten
+    gedrehten Masken und Beschriftungen aus Anki abgleichen und im Renderer
+    korrigieren (Drehung im Bildseitenverhältnis, Ankis Drehpunkt und
+    Schriftgröße).
   - **Image Occlusion Enhanced:** Jede Notiz ist eine eigene Karte. Statt
     Masken zu rekonstruieren, werden Bild und Masken-SVGs als Bildverdeckung
     mit einer Maske übernommen, die das Frage-SVG überlagert. Ist das zu
@@ -680,7 +614,6 @@ K5.8, Phase 5 und K6.5 festgelegt. Offen sind:
   dahin gelten die synthetischen Nachbauten aus K1.4.
 - Rückfrage zu K5.4: Neuübersetzung auf Knopfdruck (Standard) oder
   automatisch.
-- Verifikation des AMBOSS-Suchlinkformats (K3.10).
 
 ## Spätere Roadmaps
 
@@ -693,3 +626,29 @@ Roadmap:
 - AMBOSS-Tooltips ausschließlich über eine offizielle Kooperation oder API.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
 - KI-Umformulierungen für Lückentext und andere Bausteine.
+
+## Offene Entscheidungen aus Phase 3
+
+Diese Punkte entstanden beim Review des Renderers und gehören keiner späteren
+Phase an. Sie werden vor dem Cutover (Phase 4) mit dem Nutzer entschieden, weil
+sie danach im echten Review sichtbar sind. Bereits einer Phase zugeordnet sind:
+Performance-Abnahme und Gerätenachweise (Phase 3, offene Abnahme), Drehung und
+Textgröße der Bildmasken (K5.2), Textvergleiche der Matrix (K5.0).
+
+- [ ] **Marker-Hintergründe im Dark Mode.** Feld-HTML mit
+      `background-color` (Anki-Textmarker) bleibt unverändert; Textfarben
+      werden nur gegen den Kartenhintergrund auf 4,5 : 1 geprüft. Im Dark Mode
+      steht heller Text dann auf hellem Marker. Standardvorschlag: Marker im
+      Dark Mode in der Helligkeit absenken und Text gegen die Markerfarbe statt
+      gegen den Kartenhintergrund prüfen (`src/notePresentation.ts`,
+      `src/ui/colorMath.ts`). Vor der Umsetzung per `visual-ab-review` mit
+      echten Ankizin-/AnKing-Markern entscheiden.
+- [ ] **Kprim-Bewertung.** Kprim wird heute nur als ganz richtig oder falsch
+      ausgewertet; verbreitete Anki-Add-ons vergeben Teilpunkte (etwa eine
+      falsche Aussage = halbe Punktzahl). Entscheiden, ob CoRe Teilpunkte
+      anzeigt und ob sie eine Bewertung vorschlagen; die Bewertung selbst
+      bleibt beim Nutzer.
+- [ ] **Bildbeschreibung der Bildverdeckung.** Das Bild trägt pauschal den
+      Alternativtext „Bild mit verdeckten Bereichen“. Entscheiden, ob der
+      Übersetzer (K5.2) einen vorhandenen Alt-Text oder Dateinamen übernimmt
+      oder ob der Editor (K6.5) eine Beschreibung erfasst.

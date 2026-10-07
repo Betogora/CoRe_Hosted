@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { runInNewContext } from "node:vm";
 import { codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection } from "./generateDocs.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -9,6 +10,15 @@ import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
 import postcss from "postcss";
+
+test("Eingebettete Bibliothekszeichen bleiben gültiges HTML und behalten ihre JavaScript-Werte", () => {
+  const html = htmlPage("ui-elements.html", "", "", 'globalThis.value = "\u000e\uffff</script>";');
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)![1];
+  assert.doesNotMatch(script, /[\u000e\uffff]/);
+  const scope: { value?: string } = {};
+  runInNewContext(script, scope);
+  assert.equal(scope.value, "\u000e\uffff</script>");
+});
 
 test("Markdown-Anker erhalten Unicode, doppelte Überschriften und direkte Abschnittslinks", () => {
   const html = renderMarkdown("# Übersicht\n## Größe & Maß\n[Abschnitt](#größe--maß)\n## Größe & Maß\n", "specs.md");

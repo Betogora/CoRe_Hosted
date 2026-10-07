@@ -2,7 +2,7 @@ import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
 import { BookOpen, ChevronRight, Home, Info, Layers, Plus, Save, Settings, Trash2, Type } from "lucide-react";
 import { createBasicLearningItem, createReviewState, createCoreDeck, createCoreNoteTypeDefinition, createManualCoreDeck } from "../src/coreModel.ts";
-import type { CardType, CoreMode, NewReviewOrder } from "../src/coreTypes.ts";
+import type { CardType, CoreMode, NewReviewOrder, NoteContent, NoteField } from "../src/coreTypes.ts";
 import { createDeckLibraryModel } from "../src/libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
@@ -56,6 +56,8 @@ import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
 import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
 import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
 import { StudyMode } from "../src/screens/StudyMode.tsx";
+import { createNote } from "../src/coreModel/notes.ts";
+import { NoteCardContent } from "../src/ui/NoteCardContent.tsx";
 
 const today = "2026-10-02";
 const imageReference = "a".repeat(40);
@@ -340,6 +342,67 @@ export const DEMO_GROUPS = [
   { id: "charts", title: "Kennzahlen und Diagramme", description: "Kennzahlen, Ringdiagramme, Heatmap und die produktiven Statistikdiagramme.", components: ["StatTile", "SegmentedDonut", "StudyHeatmap", "StatisticsScreenContent"], render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /><ProductViewsDemo kind="statistics" /></> },
   { id: "symbols", title: "Icons und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "inhalt", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface", "StudyCardContent"], render: () => <ContentDemo section="inhalt" /> },
+  { id: "note-content", title: "Vorbereitete Kartenbausteine", description: "Phase 3: Renderer und Antwort-Host des Note-/Card-Modells. Bis zum Cutover ausschließlich hier nutzbar.", components: ["NoteCardContent"], render: NotePresentationDemos },
   { id: "editor", title: "Texteditor und Werkzeuge", description: "Rich-Text-Toolbar, Lückentext, Bilder und Zusatzwerkzeuge.", components: ["RichTextEditor"], render: () => <ContentDemo section="editor" /> },
   { id: "media", title: "Medien und Dokumente", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], render: () => <ContentDemo section="media" /> },
 ] as const;
+
+const noteDemoField = (id: string, role: NoteField["role"], html: string): NoteField => ({ id, name: id, role, html });
+const noteDemoContent = (fields: NoteField[], interaction: NoteContent["interaction"], speech: NoteContent["speech"] = []): NoteContent => ({ schemaVersion: 1, fields, interaction, speech, tags: [] });
+const noteDemoReveal = (typed = false): NoteContent["interaction"] => ({ kind: "reveal", prompts: [{ key: "forward", name: "Vorwärts", instruction: "", questionFieldIds: ["Frage"], answerFieldIds: ["Antwort"], requires: null, typeInFieldId: typed ? "Antwort" : null }] });
+function noteDemoAudio() {
+  const bytes = new Uint8Array(8044);
+  const view = new DataView(bytes.buffer);
+  for (const [offset, text] of [[0, "RIFF"], [8, "WAVEfmt "], [36, "data"]] as const) bytes.set(Array.from(text, (letter) => letter.charCodeAt(0)), offset);
+  for (const [offset, value] of [[4, 8036], [16, 16], [24, 8000], [28, 8000], [40, 8000]]) view.setUint32(offset, value, true);
+  for (const [offset, value] of [[20, 1], [22, 1], [32, 1], [34, 8]]) view.setUint16(offset, value, true);
+  for (let index = 0; index < 8000; index += 1) bytes[44 + index] = 128 + Math.round(20 * Math.sin(index * 2 * Math.PI * 440 / 8000));
+  return `data:audio/wav;base64,${btoa(String.fromCharCode(...bytes))}`;
+}
+const noteDemoTone = noteDemoAudio();
+const noteDemoImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="320" viewBox="0 0 600 320"><rect width="600" height="320" fill="#edf1f6"/><path d="M190 230C50 140 130 25 220 105C310 25 390 140 250 230Z" fill="#e28b68"/><rect x="390" y="110" width="100" height="80" rx="8" fill="#6f7e9e"/><text x="70" y="285" font-family="sans-serif" font-size="24" fill="#181d25">Herz · schematisches Beispiel</text></svg>')}`;
+const noteDemoMasks: Extract<NoteContent["interaction"], { kind: "image-occlusion" }>["masks"] = [
+  { id: "rect", ordinal: 1, shape: { kind: "rect", left: .18, top: .2, width: .24, height: .28, angle: 0 }, alwaysOccluded: false },
+  { id: "ellipse", ordinal: 2, shape: { kind: "ellipse", left: .65, top: .34, width: .17, height: .25, angle: 0 }, alwaysOccluded: false },
+  { id: "polygon", ordinal: 2, shape: { kind: "polygon", points: [[.1, .1], [.18, .1], [.14, .2]], angle: 0 }, alwaysOccluded: true },
+  { id: "label", ordinal: 1, shape: { kind: "text", left: .18, top: .15, text: "Ziel", scale: 1, angle: 0 }, alwaysOccluded: false },
+];
+const noteDemoCases = [
+  { id: "roles", title: "Feldrollen · Hinweise, Zusatz und Quellen", value: noteDemoContent([noteDemoField("Frage", "prompt", "Welches Hormon senkt den Blutzucker?"), noteDemoField("Antwort", "answer", "Insulin"), noteDemoField("Hinweis", "hint", "Es wird in den Betazellen gebildet."), noteDemoField("Zusatz", "extra", "Insulin fördert die Aufnahme von Glukose."), noteDemoField("Quelle", "source", '<a href="https://www.amboss.com/de">AMBOSS</a>'), noteDemoField("Intern", "note", "Dieses Feld erscheint nur im Editor.")], noteDemoReveal()) },
+  { id: "cloze", title: "Lücken · Mehrfachnummern und Hinweise", value: noteDemoContent([noteDemoField("Text", "prompt", "{{c1,3::Insulin::Hinweis: Hormon}} senkt, {{c2::Glukagon}} hebt den Blutzucker.")], { kind: "cloze" }) },
+  { id: "nested", title: "Lücken · Verschachtelung", value: noteDemoContent([noteDemoField("Text", "prompt", "{{c1::Das Herz hat {{c2::vier}} Hohlräume.}}")], { kind: "cloze" }) },
+  { id: "cloze-math", title: "Lücke in Formel", value: noteDemoContent([noteDemoField("Text", "prompt", "\\(E = {{c1::m}}c^2\\)")], { kind: "cloze" }) },
+  { id: "occlusion-all", title: "Bildverdeckung · Alle verdecken, eine erraten", value: noteDemoContent([noteDemoField("Frage", "prompt", "Welcher Bereich ist markiert?"), noteDemoField("Zusatz", "extra", "Die aktive Maske zeigt nach dem Aufdecken nur den Umriss.")], { kind: "image-occlusion", image: "herz.svg", mode: "hide-all-guess-one", masks: noteDemoMasks }) },
+  { id: "occlusion-one", title: "Bildverdeckung · Eine verdecken", value: noteDemoContent([noteDemoField("Frage", "prompt", "Benenne den verdeckten Bereich.")], { kind: "image-occlusion", image: "herz.svg", mode: "hide-one-guess-one", masks: noteDemoMasks }) },
+  { id: "typed", title: "Antwort eintippen", value: noteDemoContent([noteDemoField("Frage", "prompt", "Welches Organ pumpt das Blut?"), noteDemoField("Antwort", "answer", "Herz")], noteDemoReveal(true)) },
+  ...(["single", "multiple", "kprim"] as const).map((mode) => ({ id: mode, title: mode === "single" ? "Single Choice" : mode === "multiple" ? "Multiple Choice" : "Kprim", value: noteDemoContent([noteDemoField("Frage", "prompt", "Welche Aussagen zum Herz-Kreislauf-System treffen zu?"), noteDemoField("Antwort", "answer", "Das Herz pumpt Blut. Blut transportiert Sauerstoff.")], { kind: "choice", mode, options: ["Das Herz pumpt Blut.", "Die Lunge produziert Blut.", "Blut transportiert Sauerstoff.", "Alle Gefäße haben identische Wände."].map((html, index) => ({ id: `o${index}`, html, correct: index === 0 || (mode !== "single" && index === 2) })) }) })),
+  { id: "math", title: "Formeln · MathJax, Anki-LaTeX und sichtbarer Fehler", value: noteDemoContent([noteDemoField("Frage", "prompt", "Inline: \\(x^2 + y^2 = z^2\\). \\[\\frac{1}{2}\\] [latex]\\sqrt{2}[/latex] [$]\\alpha[/$]"), noteDemoField("Antwort", "answer", "Nicht unterstützte Formel: \\(\\unsupportedcommand\\)")], noteDemoReveal()) },
+  { id: "choice-rich", title: "Auswahl mit Formel und Bild", value: noteDemoContent([noteDemoField("Frage", "prompt", "Wähle den Bruch mit dem schematischen Herz."), noteDemoField("Antwort", "answer", "Die erste Option zeigt den Bruch und das Bild.")], { kind: "choice", mode: "single", options: [{ id: "fraction", html: '\\(\\frac{1}{2}\\)<img src="herz.svg" alt="Schematisches Herz">', correct: true }, { id: "zero", html: "0", correct: false }] }) },
+  { id: "rich-media", title: "Rich Text · Tabelle, Farbe, Audio und Video", value: noteDemoContent([noteDemoField("Frage", "prompt", '<p style="color:yellow">Kontrastangepasster gelber Text</p><table style="width:100%;border-collapse:collapse"><tr><td style="border:1px solid gray;padding:4px">Ein langer Begriff zur Prüfung schmaler Ansichten</td><td>Wert</td></tr></table><img src="herz.svg">[sound:ton.wav][sound:film.mp4]'), noteDemoField("Antwort", "answer", "Tabellen bleiben lokal scrollbar; Medien werden über aufgelöste URLs geladen.")], noteDemoReveal()) },
+  { id: "speech", title: "Vorlesen und AMBOSS-Textauswahl", value: noteDemoContent([noteDemoField("Frage", "prompt", "Herzinsuffizienz bezeichnet eine eingeschränkte Pumpfunktion des Herzens."), noteDemoField("Antwort", "answer", "Markiere einen Begriff für die AMBOSS-Suche.")], noteDemoReveal(), [{ fieldId: "Frage", language: "de-DE" }]) },
+];
+const notePromptLabel = (key: string) => ({ forward: "Vorwärts", reverse: "Rückwärts", choice: "Auswahl" } as Record<string, string>)[key] ?? key.replace(/^cloze:/, "Lücke ").replace(/^io:/, "Maske ");
+const noteDemoGraphs = noteDemoCases.map((item) => ({ ...item, graph: createNote({ id: `note-demo-${item.id}`, content: item.value, deckId: "catalog", createdAt: "2026-10-06T12:00:00.000Z" }) }));
+
+function NoteDemo({ item }: { item: typeof noteDemoGraphs[number] }) {
+  const [revealed, setRevealed] = React.useState(false);
+  const [generation, setGeneration] = React.useState(0);
+  const [key, setKey] = React.useState(item.graph.cards[0].promptKey);
+  const [surface, setSurface] = React.useState<"review" | "preview">("review");
+  const card = item.graph.cards.find((candidate) => candidate.promptKey === key)!;
+  return <article className="catalog-demo catalog-demo-wide" data-note-demo={item.id}>
+    <h3>{item.title}</h3>
+    <div className="catalog-demo-content grid gap-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <CoreSegmentedControl ariaLabel="Darstellung" value={surface} options={[{ value: "review", label: "Review" }, { value: "preview", label: "Vorschau" }]} onValueChange={(value) => { setSurface(value); setRevealed(false); }} />
+        {item.graph.cards.length > 1 ? <CoreSelect ariaLabel="Abfrage" value={key} options={item.graph.cards.map((candidate) => ({ value: candidate.promptKey, label: notePromptLabel(candidate.promptKey) }))} onValueChange={(value) => { setKey(value); setRevealed(false); }} /> : null}
+      </div>
+      <NoteCardContent key={`${generation}:${key}`} note={item.graph.note} card={card} revealed={revealed} onReveal={() => setRevealed(true)} surface={surface} mediaUrls={{ "herz.svg": noteDemoImage, "ton.wav": noteDemoTone, "film.mp4": "data:video/mp4;base64,AAAAJGZ0eXBpc29tAAACAGlzb21pc282aXNvMmF2YzFtcDQxAAACy21vb3YAAAB4bXZoZAEAAAAAAAAA5usLYwAAAADm6wtjAAAD6AAAAAAAAAAhAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAIjdHJhawAAAGh0a2hkAQAAAwAAAADm6wtjAAAAAObrC2MAAAABAAAAAAAAAAAAAAAhAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAACgAAAAWgAAAAABs21kaWEAAAAsbWRoZAEAAAAAAAAA5usLYwAAAADm6wtjAAB1MAAAAAAAAAAhVcQAAAAAAC1oZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAVJtaW5mAAAAFHZtaGQAAAABAAAAAAAAAAAAAAAlZGluZgAAAB1kcmVmAAAAAAAAAAEAAAANdXJsIAAAAAEAAAABEXN0YmwAAAAQc3RzYwAAAAAAAAAAAAAAEHN0dHMAAAAAAAAAAAAAABRzdHN6AAAAAAAAAAAAAAAAAAAAEHN0Y28AAAAAAAAAAAAAAMVzdHNkAAAAAAAAAAEAAAC1YXZjMQAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAACgAFoASAAAAEgAAAAAAAAAAQtBVkMxIENvZGluZwAAAAAAAAAAAAAAAAAAAAAAAAAAABj//wAAABBwYXNwAAAAAQAAAAEAAAAUYnRydAAAAAAAAAAAAAAAAAAAAChhdmNDAULADP/hABFnQsAMjGgo15JqDAwMDwiEagEABGjOPIAAAAATY29scm5jbHgABgAGAAYAAAAAKG12ZXgAAAAgdHJleAAAAAAAAAABAAAAAQAAAAAAAAAAAAAAAAAAAGhtb29mAAAAEG1maGQAAAAAAAAAAQAAAFB0cmFmAAAAFHRmaGQAAgAgAAAAAQEBAAAAAAAUdGZkdAEAAAAAAAAAAAAAAAAAACB0cnVuAQADBQAAAAEAAABwAgAAAAAAA+cAAAH+AAACBm1kYXQAAAH6ZbgABAQ///4IooABb3k5OTk5OTk5OTrrrrrrrrrrr/4yhxiOANraTfkFrf64Jvrz25kwBEjl99pNlbtyIPr0+dqgeM8AMxs2SY+AbshrpgNlt3gsLfDI0Th9v4xzwGh9YOLTSf/yDWnISdadTOPCqiaOwRf4DADCPKbh8BOLwABAGjVrRvE23+VDaNeF60jxESQx2vegj0UxKTYRTf6Z0epuBUBttNIQvf9YURMZwBXNMmbU3xmWB/+X71LFKtVPqhZPCb1DBGOZdb4YWdggzxfABjZW9LvwS3fOnbUVs3p/PnVzt2EI5+7cxLQ69GlLSDkRjBe2ai0f6zKCW5N82lIV8//FQEYvgCRk02PPL9ACZZuwWFvsbOmlmZme8KF7vCp51p/5RE4p9b/DmR0T9BCyQrz/gbp8EEojkbmj0TG9vPAHjbkPf6uuvpmI/+H4Bj6e6/e+Gkdksv9P+SbYf8JZUlMP9L11z62OSfzv+8O9ikX/bx4pn+YUP/4S7rjX0TWj66U2/y5vW7JF+9/XikP+EsIXJBUoZrv/AfXSGq/bBF/+Ep/dn8J9ZOMLEh7PSJP7f/oF0/+Ery1nD6tq2Ob+t7/wrz+UzC2pd2tNL3//1b//h7L2+yS/35jXf+7/XXXXXXXXXfff/8f4IIHBAgtl999999999+AAAABMbWZyYQAAADR0ZnJhAQAAAAAAAAEAAAA/AAAAAQAAAAAAAAAAAAAAAAAAAu8AAAABAAAAAQAAAAEAAAAQbWZybwAAAAAAAABM" }} />
+      <div className="flex flex-wrap gap-3"><ActionButton variant="primary" disabled={revealed} onClick={() => setRevealed(true)}>Aufdecken</ActionButton><ActionButton variant="secondary" onClick={() => { setRevealed(false); setGeneration((value) => value + 1); }}>Zurücksetzen</ActionButton></div>
+    </div>
+  </article>;
+}
+
+export function NotePresentationDemos() {
+  return <>{noteDemoGraphs.map((item) => <NoteDemo key={item.id} item={item} />)}</>;
+}

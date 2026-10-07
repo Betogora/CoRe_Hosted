@@ -63,5 +63,6 @@ export function siteNavigation(currentFile: string) {
 
 export function htmlPage(file: string, content: string, css: string, script: string, extraHead = "", title?: string) {
   const label = title ?? DOC_PAGES.find((candidate) => candidate.file === file)!.label;
-  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body>${siteNavigation(file)}${content}<script>${script.replace(/<\/script/gi, "<\\/script")}</script></body></html>\n`;
+  const inlineScript = script.replace(/<\/script/gi, "<\\/script").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufdd0-\ufdef\ufffe\uffff]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
+  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body>${siteNavigation(file)}${content}<script>${inlineScript}</script></body></html>\n`;
 }

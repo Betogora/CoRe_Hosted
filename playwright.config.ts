@@ -69,6 +69,12 @@ export default defineConfig({
   ],
   projects: [
     {
+      name: "note-presentation-chromium",
+      testMatch: /note-presentation\.spec\.ts/,
+      outputDir: "test-results/note-presentation-browser",
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "auth-setup",
       testMatch: /auth\.setup\.ts/,
       use: {

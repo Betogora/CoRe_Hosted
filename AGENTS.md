@@ -63,8 +63,14 @@ scope and gates.
   creation and normalization. New manual, import, and AI paths must use these
   helpers.
 - The new `Note`/`Card` types and `src/coreModel/notes.ts` are prepared for the
-  card-model cutover. Until K4.9, only their focused tests import `notes.ts`;
+  card-model cutover. Until K4.9, only prepared modules, focused tests and
+  UI catalog demos import `notes.ts`;
   do not export it through `coreModel.ts` or connect it to the app or persistence.
+- `src/notePresentation.ts` and `src/ui/NoteCardContent.tsx` are the prepared
+  Note/Card renderer and host. Until the cutover, use them only in prepared
+  modules, tests and catalog demos. `src/cardPresentationFrame.ts` owns the
+  shared CSP and media URL resolution; never put scripts or interaction state
+  into rendered card HTML.
 - Deck `cards` remains the local compatibility collection for Learning Items.
   Each item owns its original content and review state; generated variants
   remain anchored to that item and own no independent review state.

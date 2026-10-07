@@ -5,6 +5,125 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-07 — Vorbereiteter Renderer und Kartenbausteine (Phase 3)
+
+- K3.1–K3.4/K3.8: `notePresentation.ts` rendert validierte `Note`/`Card`-Paare
+  ohne Anki-Templates, Scripts oder Persistenz. Review-Antworten ergänzen nur
+  Antwort und Trennlinie, Vorschau/Verwaltung beide Seiten; Lücken und Bildmasken
+  ersetzen die Frage. Feldrollen steuern native Hinweise, Zusatz und Quellen;
+  interne Notizfelder bleiben auch bei expliziten Abfragereferenzen verborgen.
+  Der Cloze-Tokenizer unterstützt Verschachtelung, Mehrfachnummern, Hinweise,
+  leere Lücken und Formeln. Relative SVG-Masken unterstützen Rechteck, Ellipse,
+  Polygon, Beschriftung und beide Modi. `alwaysOccluded` hält fremde Gruppen
+  sichtbar, verhindert aber nicht das Aufdecken der aktiven Gruppe.
+  Feld-HTML wird bereinigt und Textfarbe auf 4,5 : 1 zum Theme-Hintergrund
+  angepasst. `notePlainText` erhält Wörter/Satzzeichen über Inline-Tags hinweg.
+- K3.5/K3.6: `NoteCardContent` komponiert den bestehenden Kartenrahmen,
+  Aktions- und Statusbausteine sowie das segmentierte Control. Eingabe und
+  Auswahl bleiben im Host: Enter deckt auf, Unicode-Zeichen werden einzeln
+  verglichen, Single Choice deckt direkt auf, Multiple Choice und vollständiges
+  Kprim werden geprüft. Rich-Text-Optionen verwenden das bereits bereinigte
+  Renderergebnis, damit KaTeX-Layoutattribute erhalten bleiben; nur aufgelöste
+  Blob-/Data-Medien gelangen dabei in den Host.
+- K3.7/K3.9/K3.10: KaTeX 0.19.0 lädt nur bei Formeln. Lokale WOFF2-Assets
+  werden einmal geladen und mit CSS in den Frame eingebettet. Nicht unterstützte
+  oder unsichere Befehle zeigen die bereits maskierte Quelle mit Diagnose.
+  Rückseitendiagnosen bleiben bis zum Aufdecken verborgen. MP4-Soundmarker
+  werden Video-Controls; Bilder, Audio und Video nutzen die bestehende
+  URL-Auflösung. System-Vorlesen erhält bereinigten Text und Sprache im Host
+  ohne Feldduplikation oder Antwortleck. Die AMBOSS-Suche mit
+  `https://next.amboss.com/de/search?q=Herzinsuffizienz` wurde im echten Browser
+  bis zur Anmeldung geprüft; Suchpfad und Begriff bleiben erhalten. Ergebnisse
+  hinter dem Login wurden nicht geprüft. Der automatisierte Popup-Test nutzt
+  eine lokale Antwort und prüft Begriff sowie `window.opener === null`.
+- Gemeinsames CSP-Gerüst und URL-Auflösung liegen in `cardPresentationFrame.ts`;
+  der bisherige Renderer verwendet exakt dieselben Funktionen. Der neue
+  Frame-Aufruf erlaubt isolierte Popups und meldet Textauswahl. Der bisherige
+  App-Aufruf bleibt unverändert. Vierzehn interaktive normalisierte Beispiele
+  stehen in `scripts/uiCatalogDemos.tsx` und unter
+  `docs/ui-elements.html#note-content`; der Kartentypen-Katalog verlinkt sie.
+  App, Import, Scheduler, Speicherung und alte Renderpfade wechseln erst im
+  Cutover. Die tatsächlichen APKG-Textvergleiche und IO-Enhanced-/Korpusnachweise
+  folgen in K5.0; kein `KNOWN_GAPS`-Eintrag wurde vorzeitig entfernt.
+- Nachweise: 17 fokussierte Renderer-/Kontrastprüfungen sowie neun bestehende
+  Rendererprüfungen, vollständige Modulsuite (107 Dateien), Typecheck,
+  Dokumentationsgate und Produktionsbuild mit Bundlebudgets bestehen.
+  Initialgraph 218,0 KiB gzip, größter Lazy-Graph 168,7 KiB gzip. Ein separater
+  Build des noch unverdrahteten Hosts hält dieselben Budgets ebenfalls ein;
+  KaTeX-Lazy-Graph rund 76 KiB gzip. UI-, Rollen-, Wortgrenzen-, Formel- und
+  Medienregressionen sind gezielt abgesichert.
+- Browsernachweis für CoRe 0.2.0 im Arbeitsstand nach `0c025cb`, Chromium
+  149.0.7827.55: 672 Renderfälle mit 14 Beispielen, Review/Vorschau vor und
+  nach Aufdecken, Light/Dark bei 320 × 720, 360 × 800, 390 × 844, 430 × 932,
+  1280 × 720 und 1440 × 900. Eingabe/Reset, falsche und richtige Auswahl,
+  vollständiges Kprim, native Hinweise per Tastatur, Script-CSP, Textauswahl,
+  Formelschriften und Fehlerdiagnosen, echte Audio-/MP4-Wiedergabe und
+  Host-Sprachausgabe bestehen. Die bisherigen Inhalts-/Reviewrahmen und der
+  mobile Vorschaudialog sind zusätzlich geprüft; die Eingabejourney besteht
+  bei 200 % CSS-Zoom. Screenshots liegen in `test-results/note-presentation/`,
+  zusätzlich gesichert unter `C:/Users/bengt/.codex/scratchpad/core-phase3/screenshots/`.
+  Für komponentenbezogene Aufnahmen wurde ausschließlich die klebende
+  Dokumentationsnavigation auf statische Position gesetzt. Die App-Styles
+  wurden nicht durch Test-Styles verändert.
+- Review gegen K3.1–K3.10 am 2026-10-07: Die Funktionen entsprechen der
+  Roadmap. Korrigiert wurden: `[$$]…[/$$]` fehlte als abgesetzte Formel.
+  Textbeschriftungen der Bildverdeckung waren SVG-Text in der gestreckten
+  0–1-Fläche und damit verzerrt; Ankis Standardskala 1 ergab eine bildhohe
+  Schrift. Sie sind jetzt HTML, Skala 1 entspricht der Kartenschrift. Umrisse
+  verwenden nicht skalierende Striche, fremde Masken sind deckend statt in
+  Bildhintergrundfarbe. Zusätze stehen vor den Quellen, Link-Quellen gemeinsam
+  als Chips am Kartenende. Der Tippvergleich ersetzt auf der Antwortseite das
+  Antwortfeld (`typedAnswer`), statt die Antwort doppelt zu zeigen. Der Host
+  rendert Frage, Optionen und Vorlesetexte beider Seiten einmal und beim
+  Aufdecken nur die Antwortseite neu, ohne die Karte zwischenzeitlich
+  auszublenden.
+- Visuelle Neugestaltung aus den bestehenden UI-Bausteinen: Hinweise als
+  umrandete Disclosure mit Chevron, aktive Lücke als umrandete Akzentmarke,
+  Zusatz mit gedämpfter Überschrift, Tabellen ohne Zeichenumbruch,
+  Formelfehler als markierter Quelltext. Auswahl im vorhandenen Choice-Stil
+  mit Buchstaben, Status-Icons und Feedback; Kprim zeigt die Lösung je
+  Aussage. Das Eingabefeld steht mit Enter-Hinweis bis zum Aufdecken unter der
+  Frage. Die Werkzeugzeile zeigt Vorlesen und `In AMBOSS nachschlagen` erst bei
+  markiertem Begriff. Im Katalog wählt ein Segmented Control die Darstellung;
+  Abfragen heißen „Lücke 1“, „Maske 2“ usw.
+- Bewusst offen und in `todo.md` geführt: Marker-Hintergründe im Dark Mode,
+  Kprim-Teilpunkte und Bildbeschreibung der Bildverdeckung (Abschnitt „Offene
+  Entscheidungen aus Phase 3“) sowie Drehung und Textgröße gedrehter Masken
+  (K5.2).
+- Nachweise nach der Neugestaltung: 15 Renderer- und drei Kontrastprüfungen,
+  vollständige Modulsuite (107 Dateien), Typecheck mit Dokumentationsgate,
+  Produktionsbuild mit Bundlebudgets (Initialgraph 217,9 KiB gzip, größter
+  Lazy-Graph 168,7 KiB gzip), die sieben Browserprüfungen von
+  `tests/e2e/note-presentation.spec.ts` und die visuelle Matrix mit
+  672 Aufnahmen (sechs Viewports, Light/Dark, Review/Vorschau, vor und nach
+  dem Aufdecken; ohne horizontales Überlaufen und Seitenfehler). Gesichtet
+  wurden Light und Dark bei 320, 390 und 1440 px. Der gestapelte Tippvergleich
+  und die beim Aufdecken sichtbar bleibende Frage entstanden nach dem
+  Matrixlauf; beides ist mit den Browserprüfungen und eigenen Aufnahmen bei
+  320 und 1440 px nachgeprüft.
+- Audit mit `audit-last-change` nach dem Review: Theme-Farbliste und
+  Formelerkennung bestehen nur noch einmal; der Host rendert beim Aufdecken
+  nicht mehr alle Seiten neu. Keine weitere belegbare Vereinfachung gefunden.
+- Offene Abnahme: `npm run performance:measure:local` prüft lokales Schema
+  und Typendrift und baut erfolgreich, endet aber im 4G-Szenario beim Warten
+  auf `core:first_deck_summaries_ready` am Zehn-Minuten-Limit. Der Trace zeigt
+  ein gerendertes Dashboard, keinen Konsolenfehler und die erfolgreiche
+  Bootstrap-Marke; die Zusammenfassungsmarke fehlt in diesem Lauf. Es entsteht
+  kein neues Performanceartefakt; Statistikbenchmark und Grenzwertprüfung
+  wurden deshalb nicht ausgeführt. Der Nutzer hat ausdrücklich entschieden,
+  Phase 3 mit offener Performance-Abnahme festzuhalten. Der bestehende Startpfad
+  und alle Grenzwerte bleiben unverändert. Echte Smartphone-Tastatur,
+  physischer Touch/Screenreader, hörbare Systemstimme und nativer Browserzoom
+  bleiben ebenfalls ungeprüft; CSS-Zoom und kontrollierte Sprachübergabe
+  ersetzen diese Nachweise nicht.
+- Abschlussaudit mit `audit-last-change`: Font-Binärdaten bleiben außerhalb
+  des JavaScript-Bundles, CSP und Medienauflösung sind gemeinsam statt kopiert,
+  interne Feldrollen und aktive Bildmasken werden korrekt behandelt und
+  Textgrenzen bleiben erhalten. Keine weitere belegbare Vereinfachung gefunden.
+  Produkt-Specs und lokale Screen-Muster bleiben unverändert, weil kein
+  Produktpfad auf den neuen Renderer umgestellt wurde. Keine Datenbankänderung,
+  keine Phase-5A-Implementierung und kein Commit/Push ohne neue Freigabe.
+
 ## 2026-10-07 — Nachprüfung Kanonisches Modell (Phase 2)
 
 - Review von `0c025cb` gegen K2.1–K2.6: Typen, Ableitung, Abgleich, private
@@ -34,7 +153,6 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Audit mit `audit-last-change`: Die Stapelwahl für neue Karten nimmt die
   erste vorhandene Karte in bisheriger Schlüsselreihenfolge, statt alle
   Karten zu sortieren. Keine weitere belegbare Vereinfachung gefunden.
-
 
 ## 2026-10-06 — Kanonisches Note-/Card-Modell (Phase 2)
 

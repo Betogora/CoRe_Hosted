@@ -88,8 +88,46 @@ Die Löschplanung liefert Soft-Delete-Datensätze für Inhalt und Geschwister
 mit gemeinsamem Zeitstempel sowie deren vollständige vorherige Datensätze
 als `undo`. Sie verändert weder Eingaben noch Persistenz. Löschung erhöht
 nur Entitätsrevisionen; Lernstand, Aussetzung und Inhaltsrevision bleiben
-erhalten. Die Funktionen sind ausschließlich durch Modultests angebunden,
+erhalten. Die Funktionen werden von Modultests und vorbereiteten Katalog-Demos genutzt,
 noch nicht über `coreModel.ts` exportiert und ändern keinen App-Laufzeitpfad.
+
+### Vorbereitete Kartendarstellung
+
+`notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron über
+`renderCard({ note, card, side, surface, theme, typedAnswer? })`. Das Ergebnis enthält
+`srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions` und
+`diagnostics`; HTML wird weder persistiert noch aus Anki-Templates erzeugt.
+Der Theme-Snapshot enthält die aktuellen semantischen Farben. Feld-HTML
+durchläuft `sanitizeNoteHtml`; Textfarben erreichen 4,5 : 1 zum Kartenhintergrund.
+Lücken werden verschachtelt tokenisiert, Bildmasken als relatives SVG dargestellt;
+Textbeschriftungen der Masken sind HTML (Skala 1 entspricht der Kartenschrift),
+damit die gestreckte Maskenfläche sie nicht verzerrt.
+`alwaysOccluded` hält fremde Maskengruppen auch im Modus „eine verdecken“ sichtbar;
+die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss.
+Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
+enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
+Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
+Kartenende. Mit `typedAnswer` ersetzt die Antwortseite das Eingabefeld durch den
+Zeichenvergleich aus `compareTypedAnswer`.
+
+`cardPresentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
+Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
+externen Ressourcen. `CardPresentationSurface` nimmt optional ein fertiges
+Renderergebnis entgegen; diese Variante erlaubt zusätzlich isolierte externe
+Popups und meldet Textauswahl an den Host. Der bisherige Learning-Item-Aufruf
+behält seinen bisherigen Vertrag.
+
+`ui/NoteCardContent.tsx` besitzt ausschließlich transienten Eingabe-, Auswahl-
+und Darstellungszustand. Das Eingabefeld steht bis zum Aufdecken im Host; danach
+rendert der Host die Antwortseite einmal mit der Eingabe neu. `compareTypedAnswer`
+und `evaluateNoteChoice` bleiben reine Renderer-Helfer; `notePlainText` erhält Wörter und Satzzeichen über
+Inline-HTML hinweg und trennt Blockinhalte. Vorlesen verwendet bereinigte, der aktuellen Kartenseite
+entsprechende Texte und die System-Sprachausgabe im Host. AMBOSS öffnet die Suche
+mit dem markierten Begriff. KaTeX wird nur bei erkannten Formeln (`\(…\)`,
+`\[…\]`, `[$]`, `[$$]`, `[latex]`) importiert;
+`noteMathAssets.ts` lädt lokale WOFF2-Assets einmal und bettet sie mit dem CSS
+als Data-URLs in den Rahmen ein. Die Bausteine sind nur im UI-Katalog angebunden;
+Import, App und Persistenz wechseln erst im Cutover auf diesen Vertrag.
 
 ## Persistenz, Sync und Medien
 

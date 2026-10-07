@@ -47,6 +47,7 @@
     "@supabase/supabase-js": "2.110.1",
     "@vitejs/plugin-react": "^5.0.0",
     "fzstd": "^0.1.1",
+    "katex": "0.19.0",
     "lucide-react": "^0.468.0",
     "pdfjs-dist": "^6.2.108",
     "react": "^19.0.0",

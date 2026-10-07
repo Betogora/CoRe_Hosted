@@ -14,8 +14,13 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [Docs](index.html) | Orientierung und Quellen | diese README |
 | [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
 | [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
-| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar nach 19 Elementfamilien einschließlich echter Produktansichten, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
+| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar einschließlich echter Produktansichten, vorbereiteter Kartenbausteine, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
 | [Kartentypen](card-types.html) | sechs manuell erstellbare Formen im echten Reviewrenderer | dieselben Demos und CoRe-Modellhelfer |
+
+Die [vorbereiteten Kartenbausteine](ui-elements.html#note-content) zeigen den
+neuen Note-/Card-Renderer vor seinem Cutover: Feldrollen, Lücken, Bildmasken,
+Eintippen, Auswahl einschließlich Kprim, Formeln, Medien und System-Vorlesen.
+Die sechs bisherigen Kartentypen bleiben die Referenz des aktuellen App-Pfads.
 
 Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
 Styles und Synonym-Fonts sind eingebettet; Journey-Diagramme nutzen `vendor/mermaid.min.js`.

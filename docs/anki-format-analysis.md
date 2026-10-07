@@ -1,6 +1,6 @@
 # Anki-Formatanalyse für CoRe
 
-Stand: 2026-08-29
+Stand: 2026-10-06
 
 Dieses Dokument ist eine kompakte technische Referenz für Ankis Modell- und
 Paketgrenzen. Der verbindliche CoRe-Vertrag steht in
@@ -179,6 +179,16 @@ Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
   Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske.
 
 CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat.
+Der vorbereitete universelle Renderer verarbeitet übersetzte Feldrollen und
+Interaktionen statt Anki-Templates: verschachtelte `{{c1,3::Text::Hinweis}}`
+werden vor dem Formelschritt aufgelöst; aktive äußere Lücken verbergen innere.
+MathJax-Delimiters sowie `[latex]`, `[$]` und `[$$]` gehen an KaTeX. Bei Fehlern bleibt
+die bereits maskierte Quellfassung sichtbar. Native Bildmasken werden als
+relative SVG-Formen über dem Bild gezeichnet, ohne die Anki-JavaScript-Laufzeit.
+`[sound:…mp4]` verwendet ein Video-Control; TTS-Metadaten werden ausschließlich
+im React-Host ausgewertet und duplizieren den Feldtext nicht. Die eigentliche
+APKG-Übersetzung auf diesen Vertrag ist getrennte Arbeit in Phase 5A.
+
 `src/apkgImport.ts` bleibt die öffentliche Seam; Worker-Protokoll, ZIP, SQLite,
 Zstd, MediaEntries und Legacy-Mappings bleiben in ihren privaten
 Eigentümermodulen und außerhalb von React und dem kanonischen CoRe-Datenmodell.
