@@ -66,9 +66,9 @@ Die betroffene Kernjourney wird zusätzlich bei 200 % Zoom geprüft.
 Änderungen an Kartendarstellung oder APKG-Import prüfen zusätzlich die
 folgenden Referenzinhalte aus `fixtures/apkg/matrix/`. Jeder Fall wird in Light
 und Dark jeweils vor und nach dem Aufdecken in Review und Kartenvorschau bei
-mindestens 390 × 844 und 1440 × 900 betrachtet. Bis zur Umsetzung der
-Kartenmodell-Roadmap zeigen mehrere Fälle die in `KNOWN_GAPS` von
-`src/apkgFormatMatrix.test.ts` geführten Lücken.
+mindestens 390 × 844 und 1440 × 900 betrachtet. Die Matrix beobachtet die
+vorbereitete Note-Übersetzung; bis zum Cutover zeigt die App noch den
+bisherigen Import mit den in `status.md` genannten Abweichungen.
 
 | Fall | Fixture | Notiz-GUID |
 | --- | --- | --- |

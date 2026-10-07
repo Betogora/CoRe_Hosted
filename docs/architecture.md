@@ -24,6 +24,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung, Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
 | `apkgImport.ts` | öffentliche APKG-Normalisierungsgrenze; Worker, Protokoll, ZIP und SQLite bleiben privat |
+| `apkgNoteTranslation.ts` | vorbereitete, noch unverdrahtete Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen |
 | `ankiContentModel.ts`, `cardPresentation.ts` | private Formatübersetzung sowie sicherer gemeinsamer Template-Compiler/Renderer |
 | `CardPresentationSurface`, `StudyCardContent`, `CardPreviewDialog` | React-Host, kontrollierte Kartenkomposition und transiente Entwurfsvorschau |
 | `indexedDbCoreRepository.ts`, `workspaceHydrationService.ts` | accountgebundene Web-Replica, begrenzte Hydrierung, Offline-Download und Quota-Bereinigung |
@@ -68,7 +69,11 @@ ADR-032. Ein Inhalt besitzt Felder, Tags, Herkunft, Markierung und
 Inhaltsrevision ohne Stapel; die Markierung liegt außerhalb von `content` und
 zählt nicht als Inhaltsänderung. Eine Karte besitzt Inhaltsreferenz, Stapel,
 Abfrageschlüssel, Status, Anki-Flagge, Lernstand und Varianten. Queue-Werte sind direkt typisiert, die weiteren
-genutzten Lern- und Variantenwerte liegen in einem typisierten `study.extra`.
+genutzten Lern- und Variantenwerte liegen in einem typisierten `study.extra`;
+`cardStudyFromReviewState` bildet einen Scheduler-Zustand darauf ab.
+Importierte Inhalte tragen `importedContentRevision` = `contentRevision` beim
+Import; ein höherer `contentRevision` bedeutet lokale Bearbeitung. Manuelle
+Inhalte tragen `null`.
 
 Das private Modul `coreModel/notes.ts` bietet `createNote`,
 `planNoteContentChange` und `planNoteDeletion`. Inhaltseingaben bleiben
@@ -103,7 +108,10 @@ Lücken werden verschachtelt tokenisiert, Bildmasken als relatives SVG dargestel
 Textbeschriftungen der Masken sind HTML (Skala 1 entspricht der Kartenschrift),
 damit die gestreckte Maskenfläche sie nicht verzerrt.
 `alwaysOccluded` hält fremde Maskengruppen auch im Modus „eine verdecken“ sichtbar;
-die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss.
+die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss. Eine Maske der
+Form `overlay` legt ein ganzes Maskenbild über das Bild (Frage- und optional
+Antwortbild, etwa aus Image Occlusion Enhanced); sie erscheint nur für die aktive
+Gruppe und zeichnet keinen Umriss.
 Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
 enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
 Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
@@ -148,7 +156,68 @@ Die Migrationsbaseline in `supabase/migrations/` und `supabase/verify_schema_v1.
 
 ## Importregeln
 
-Der Worker normalisiert einmal; der Main Thread streamt den Commitgraphen in begrenzten Chunks nach IndexedDB. Persistierte IDs werden vor dem Schreiben zugeordnet. Die flüchtige APKG-Sitzung überlebt interne Navigation; Reload-Wiederanlauf gehört nur Outbox und Medienqueue. Legacy-JSON und V18-Protobuf sind unterstützte externe Anki-Formate, keine obsolete Appkompatibilität. Unbekannte Quellfelder bleiben im unveränderlichen Snapshot. Format-, Template-, Medien-, Identitäts- und Revlogdetails stehen in der [Anki-Referenz](anki-format-analysis.md); sichtbare Phasen, Dateigrenzen und Teilabschlüsse in [Specs](specs.md).
+Der Worker normalisiert einmal; der Main Thread streamt den Commitgraphen in begrenzten Chunks nach IndexedDB. Persistierte IDs werden vor dem Schreiben zugeordnet. Die flüchtige APKG-Sitzung überlebt interne Navigation; Reload-Wiederanlauf gehört nur Outbox und Medienqueue. Legacy-JSON und V18-Protobuf sind unterstützte externe Anki-Formate, keine obsolete Appkompatibilität. Unbekannte Quellfelder bleiben im unveränderlichen Snapshot. Format-, Template-, Medien-, Identitäts- und Revlogdetails stehen in der [Anki-Referenz](anki-format-analysis.md); sichtbare Phasen, Dateigrenzen und Teilabschlüsse in [Specs](specs.md). Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, statt das Archiv vollständig zu laden.
+
+### Vorbereitete Note-Übersetzung
+
+`readAnkiPackage(file)` in `apkgImportInternal.ts` liest `.apkg` und `.colpkg`
+bis 2 GiB (`ANKI_PACKAGE_MAX_BYTES`) zu Stapeln mit Filterkennung, Notizen,
+Karten, Notiztypen, Revlog, Sammlungsdatum und einem Medienindex. Medien bleiben
+im Archiv und werden erst über `readBytes()` gelesen; moderne Pakete liefern
+SHA-1 und Größe aus `MediaEntries` (Eintrag *i* ist ZIP-Eintrag `i`), Legacy-Medien
+werden einzeln gehasht. Die sichtbare 250-MB-Grenze des heutigen Imports bleibt
+bis zum Cutover bestehen.
+
+`translateAnkiPackage(pkg)` in `apkgNoteTranslation.ts` ist eine reine Funktion
+und liefert `{ decks, notes, cards, mediaFiles, reviewEvents, noteTypeSources,
+report }`:
+
+- **Stapel:** Karten liegen in `did`, in gefilterten Stapeln im Heimatstapel
+  `odid`. Angelegt werden nur Stapel mit Karten und ihre Vorfahren; gefilterte
+  Stapel nie.
+- **Übersetzer-Registry** in Erkennungsreihenfolge: native Image Occlusion
+  (`originalStockKind` 6), „Multiple Choice for Anki“ (Felder plus
+  `qtable`/`Q_solutions`), Image Occlusion Enhanced (drei Maskenfelder, eine
+  `overlay`-Maske), AnKing-/Ankizin-Familie (Lückentyp mit `Text`, `Extra` und
+  Hinweis-Buttons), Anki-Standardtypen und der generische Übersetzer. Weil Anki
+  `originalStockKind` auch an geklonte und neu angelegte Notiztypen vergibt,
+  zählen Basic-Familie und Lückentext nur mit unveränderten Standardvorlagen
+  als Standardtyp. Jeder Inhalt trägt `translator: { id, version }`.
+- **Generischer Übersetzer:** wertet die Vorlagen mit `compileSafeTemplate`
+  ohne Script-Blöcke und Kommentare aus. Angezeigte Vorderseitenfelder werden
+  Frage, direkt sichtbare neue Rückseitenfelder nach `{{FrontSide}}` oder
+  `<hr id=answer>` Antwort, `hint:` Hinweis; nie angezeigte Felder bleiben
+  Notiz. Felder in einem `{{#Feld}}`-Abschnitt mit Button werden vorn Hinweis,
+  hinten wie per `display:none` verborgene Felder und Felder namens `Extra`
+  Zusatz; Lückentypen führen alle Rückseitenfelder als Zusatz. Metadaten (`Note ID`, `ankihub_id`, `Date Stamp`,
+  GUID) bleiben unabhängig von ihrer Position Notiz; `Source`/`Quelle` und
+  AMBOSS-, Link- oder URL-Felder werden Quelle. Ein Feld in `href="…{{Feld}}…"`
+  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Statischer Text
+  auf der Zeile eines Fragefelds (ohne Buttons und Links) wird Anweisung mit
+  `…`, ersatzweise eine mit `?` oder `:` endende Zeile direkt darüber, eine vollständig umschließende Bedingung `requires`, `type:` Eintippen,
+  `tts` Vorlesen und `furigana:`/`kana:`/`kanji:` Ruby-Text. Die
+  AnKing-/Ankizin-Familie nutzt dieselbe Positionsanalyse.
+- **Abfrageschlüssel:** Basic-Familie `forward`/`reverse`, sonst `anki-<Ordinal>`,
+  Lückentext `cloze:N`, Bildverdeckung `io:N`, Auswahl `choice`. Die Kartenmenge
+  folgt dem Inhalt: fehlende Anki-Karten werden abgeleitet, Anki-Karten ohne
+  Abfrage berichtet. Passt ein Inhalt nicht zum Übersetzer, wird er Feldliste
+  (`field-list`), statt verloren zu gehen.
+- **Lernstand:** Phase, Fälligkeit (Tageswerte relativ zum Sammlungsdatum),
+  Zähler, Aussetzung und `flags & 7` kommen von der Anki-Karte; das Gedächtnis
+  folgt FSRS-Memory-State, Revlog-Replay, klassischem Intervall oder bleibt neu.
+  Zurückgesetzte Karten beginnen neu. Das Tag `marked` wird zu `note.marked`.
+  Reviewereignisse tragen deterministische IDs je Anki-Revlog-Zeile.
+- **Medien:** Verweise nur aus `src`, `poster` und `[sound:…]`, verglichen nach
+  HTML-, URL- und NFC-Normalisierung; der Feldtext verweist danach auf den
+  kanonischen Namen. Je SHA-1 bleibt eine Datei; übernommen werden nur
+  referenzierte Medien.
+- **Bericht:** je Notiztyp Übersetzer, Inhalte, Karten, Feldrollen, nicht
+  zugeordnete Felder, Feldlisten- und nicht darstellbare Inhalte, fehlende
+  Medien und übernommener Lernstand nach Herkunft.
+
+`noteTypeSources` enthält die unsichtbare Anki-Vorlage je genutztem Notiztyp
+für spätere Neuübersetzung. Die Funktion ist nur an Matrix, Korpusbericht und
+Benchmark angebunden; Worker, Commit und Oberfläche wechseln im Cutover.
 
 ## Architekturänderungen
 

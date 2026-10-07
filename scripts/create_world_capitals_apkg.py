@@ -485,14 +485,15 @@ def write_apkg(source, output_path: Path = APKG_PATH, media_files: dict[str, byt
             media_map = {str(index): name for index, name in enumerate(media_files)}
             archive.writestr(deterministic_zip_info("media"), json.dumps(media_map, sort_keys=True))
             for index, data in enumerate(media_files.values()):
-                archive.writestr(deterministic_zip_info(str(index)), data)
+                archive.writestr(deterministic_zip_info(str(index)), data() if callable(data) else data)
 
 
-def build_benchmark_fixture(source, repeat: int, media_count: int, item_count: int = 0):
+def build_benchmark_fixture(source, repeat: int, media_count: int, item_count: int = 0, media_bytes: int = 4096):
     benchmark = copy.deepcopy(source)
     original_items = benchmark["items"][:item_count] if item_count > 0 else benchmark["items"]
+    # Media bytes are produced while writing, so even a 2-GiB package never sits in memory as a whole.
     media_files = {
-        f"benchmark-{index:04d}.png": b"\x89PNG\r\n\x1a\n" + bytes([index % 251]) * 4096
+        f"benchmark-{index:04d}.png": lambda index=index: b"\x89PNG\r\n\x1a\n" + index.to_bytes(4, "big") + bytes([index % 251]) * media_bytes
         for index in range(media_count)
     }
     media_names = list(media_files)
@@ -521,6 +522,7 @@ def main() -> None:
     parser.add_argument("--benchmark-repeat", type=int, default=20)
     parser.add_argument("--benchmark-media-count", type=int, default=200)
     parser.add_argument("--benchmark-item-count", type=int, default=0)
+    parser.add_argument("--benchmark-media-bytes", type=int, default=4096)
     args = parser.parse_args()
     source = build_source(refresh=args.refresh_source)
     if args.benchmark_output:
@@ -530,6 +532,7 @@ def main() -> None:
             max(1, args.benchmark_repeat),
             max(0, args.benchmark_media_count),
             max(0, args.benchmark_item_count),
+            max(1, args.benchmark_media_bytes),
         )
         write_apkg(benchmark, output_path, media_files)
         print(f"wrote {output_path.relative_to(ROOT)}")

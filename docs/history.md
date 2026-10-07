@@ -5,6 +5,92 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-07 — Übersetzer und Importgraph (Phase 5A)
+
+- K5.0: `readAnkiPackage` (`apkgImportInternal.ts`) liest Pakete ohne
+  Abbildung; `translateAnkiPackage` (`apkgNoteTranslation.ts`) liefert
+  `{ decks, notes, cards, mediaFiles, reviewEvents, noteTypeSources, report }`.
+  `src/apkgFormatMatrix.test.ts` beobachtet diese Pipeline und `renderCard`
+  statt Learning Items; die sichtbare Textfassung blendet zugeklappte Hinweise
+  aus und ergänzt bei Auswahlfragen die Optionen. Alle 27 bisherigen
+  `KNOWN_GAPS`-Einträge sind geschlossen, die Liste ist leer.
+- K5.1: Anki-Karten liegen in `did`, gefilterte im Heimatstapel `odid`;
+  angelegt werden nur Stapel mit Karten und deren Vorfahren. `Note` trägt
+  `importedContentRevision`. Fehlende Anki-Karten werden aus dem Inhalt
+  abgeleitet, Karten ohne Abfrage berichtet.
+- K5.2/K5.3: Registry aus nativer Image Occlusion, „Multiple Choice for Anki“
+  (QType 0/1/2, Maske über die gefüllten Optionen), Image Occlusion Enhanced
+  (neue Maskenform `overlay` mit Frage- und Antwort-SVG, Standard der
+  Roadmap), AnKing-/Ankizin-Familie (Feldrollen nach Name, nie referenzierte
+  Felder als Notiz), Anki-Standardtypen und generischem Übersetzer
+  (Feldplatzierung, Anweisung mit `…`, Bedingungen, Eintippen, Vorlesen,
+  Furigana). Passt ein Inhalt nicht, bleibt er als Feldliste erhalten.
+- Abweichungen von der Roadmap, begründet: Signaturen werden vor der
+  Stock-Kennung geprüft, und Basic/Lückentext gelten nur mit unveränderten
+  Standardvorlagen als Standardtyp, weil Anki `originalStockKind` = 1 auch an
+  neu angelegte und geklonte Notiztypen vergibt (in den Matrixpaketen
+  nachgewiesen). Zwei Zielerwartungen wichen nachweislich von Ankis Verhalten
+  ab und wurden im Generator korrigiert: „CoRe-Matrix Schrift“ ist ein
+  unveränderter Basic-Klon (`forward` statt `anki-0`); ein Export ohne
+  Lernstand wandelt den gefilterten Stapel in einen normalen um, die Karte
+  bleibt dort. Die Matrix wurde mit `anki==26.5` neu erzeugt.
+- K5.5: Phase, Fälligkeit relativ zum Sammlungsdatum, Zähler, Aussetzung und
+  `flags & 7` kommen von der Anki-Karte; das Gedächtnis folgt FSRS-Memory-State,
+  Revlog-Replay, klassischem Intervall oder bleibt neu. Das Tag `marked` wird
+  `note.marked`. `cardStudyFromReviewState` in `coreModel/notes.ts` bildet den
+  Scheduler-Zustand auf `Card.study` ab.
+- K5.6: Medienverweise nur aus `src`, `poster` und `[sound:…]`, verglichen nach
+  HTML-, URL- und NFC-Normalisierung und im Feldtext auf den kanonischen Namen
+  umgeschrieben; eine Datei je SHA-1, nur referenzierte Medien. Moderne
+  Medien werden positionsgenau ihrem ZIP-Eintrag zugeordnet (per SHA-1 geprüft).
+- K5.8: Der ZIP-Leser liest Einträge einzeln aus dem `Blob`; `readAnkiPackage`
+  akzeptiert `.apkg` und `.colpkg` bis 2 GiB und hält Medien bis zum Lesen im
+  Archiv. Die sichtbare 250-MB-Grenze des heutigen Imports bleibt bewusst bis
+  zum Cutover (K5.8 App), weil der Altpfad alle Medien materialisiert.
+- K5.9: Der Bericht nennt je Notiztyp Übersetzer und Version, Inhalte, Karten,
+  Feldrollen, nicht zugeordnete Felder, Feldlisten- und nicht darstellbare
+  Inhalte, fehlende Medien und übernommenen Lernstand. `report:apkg-corpus`
+  berichtet diese Quoten statt der Darstellungsquote.
+- Nachweise: Matrix 13/13 und `apkgNoteTranslation.test.ts` 9/9 grün,
+  `gate:push` mit vollständiger Modulsuite (108 Dateien), Typecheck, Build und Budgets. `benchmark:apkg` (25.000 Karten,
+  1.000 Medien): Workerzeit Altpfad 7,1 s / 502 MB Heap, Note-Übersetzung
+  3,2 s / 181 MB, Übergabe 0 ms. `benchmark:apkg:large` mit 2,11 GB
+  (1.000 Medien à 2,1 MB): 14,7 s, Spitze Heap plus ArrayBuffer 183 MB bei
+  1-GiB-Heap-Grenze.
+- Browserprobe im Dev-Server: Der heutige Worker-Import liest mit dem neuen
+  ZIP-Leser unverändert (`special-latest` 20 Karten, 11 Medien; Deflate-Paket
+  `standard-legacy1`), die Note-Übersetzung läuft im Browser mit passender
+  Medien-SHA-1. Die Supabase-E2E-Suite lief nicht, weil Docker nicht verfügbar
+  war.
+- Realwelt-Korpus (lokal in `fixtures/apkg/corpus/`, nicht versioniert):
+  Ankizin v5 vollständig (46.729 Inhalte, 53.205 Karten, 5.617 Medien,
+  784 MB; 23,5 s, 552 MiB Heap), Dellas x Amboss Pharmakologie v0.81
+  (4.944 Inhalte) sowie mit Ankis eigenem Exporter geschnittene Auszüge aus
+  AMBOSS feat. Ankiphil Klinik (317 Inhalte) und Physikum v43 (424 Inhalte).
+  Ankizin: 99,9 % der Lückentexte über den Ankizin-/AnKing-Übersetzer, die
+  1.800 Blickdiagnosen generisch, 0,1 % Feldliste (54 Lösch-Platzhalter ohne
+  Lücke, eine im Original nicht geschlossene Lücke), 0 % nicht darstellbar.
+  Die Stichproben deckten auf, dass echte Vorlagen Zusatzfelder hinter Buttons
+  oder `display:none` auf der Rückseite, Metadaten in einer Kopfzeile auf
+  beiden Seiten und Links als `href="{{Feld}}"` führen; der Übersetzer ordnet
+  seitdem nach Position statt nach Feldnamen. Diese Muster stehen als
+  selbst geschriebene Nachbauten (`matrix-ankizin`, `matrix-blickdiagnose`) in
+  der versionierten Matrix, damit sie ohne Korpus geprüft werden. Dellas
+  meldet zutreffend 44 im Paket fehlende Bilder und 7 verwaiste Anki-Karten
+  gelöschter Lücken. Keiner der Stapel enthält Bildverdeckung oder Lernstand.
+- `npm run test:e2e:local` mit Docker: 58 bestanden, 46 fehlgeschlagen, 4 nicht
+  gelaufen. Ein Vergleichslauf der APKG-Import-Specs auf `7e9f192` scheitert
+  identisch; die Fehlschläge stammen nicht aus Phase 5A (siehe `status.md`).
+- Audit mit `audit-last-change`: ungenutzte Notiztyp-ID im internen Modell,
+  doppelte Script-Entfernung und doppelte Filterung der Vorderseitenfelder
+  entfernt. Zweites Audit nach den Korpus-Nacharbeiten: Hinweise aus
+  Button-Abschnitten werden direkt über die Vorderseite statt per Suche in der
+  Rückseite bestimmt; keine weitere belegbare Vereinfachung.
+- Offen: AnKing, reale Bildverdeckung und reale Lernstände fehlen im Korpus;
+  Lernstand ist über die mit Anki erzeugten Matrixpakete synthetisch belegt; Drehung und Textgröße der Bildmasken brauchen im Anki-Editor
+  gezeichnete Masken (K5.2). Persistenz, Neuübersetzung, Reimport und
+  Oberfläche folgen im Cutover (K5.4, K5.7, K5.8 App, K5.9 App).
+
 ## 2026-10-07 — Vorbereiteter Renderer und Kartenbausteine (Phase 3)
 
 - K3.1–K3.4/K3.8: `notePresentation.ts` rendert validierte `Note`/`Card`-Paare

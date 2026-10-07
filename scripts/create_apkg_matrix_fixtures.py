@@ -242,6 +242,8 @@ AMBOSS_URL = "https://next.amboss.com/de/article/matrix-troponin"
 # Multiple Choice for Anki (github.com/zjosua/anki-mc, AGPLv3): note type, field order and
 # "QType: 0 = Kprim, 1 = Multiple Choice, 2 = Single Choice" are taken from its README and
 # template definition; the template below is a CoRe-authored imitation of its signature.
+ANKIZIN_FIELDS = ["Text", "Extra", "Klinik", "AMBOSS-Link", "Quelle", "Note ID", "ankihub_id"]
+ANKIZIN_URL = "https://next.amboss.com/de/article/matrix-tbc"
 MC_NOTETYPE = "AllInOne (kprim, mc, sc)"
 MC_QTYPE = "QType (0=kprim,1=mc,2=sc)"
 MC_FIELDS = ["Question", "Title", MC_QTYPE, "Q_1", "Q_2", "Q_3", "Q_4", "Q_5", "Answers", "Sources", "Extra 1"]
@@ -288,6 +290,24 @@ def build_special_notetypes(col: Any) -> None:
     add_custom_notetype(col, "CoRe-Matrix Zwei Lückenfelder", ["Text", "Text 2", "Extra"], [(
         "Cloze", "{{cloze:Text}}<br>{{cloze:Text 2}}", "{{cloze:Text}}<br>{{cloze:Text 2}}<br>{{Extra}}",
     )], cloze=True)
+    # Structure of the Ankizin/Ankiphil note types seen in the local corpus: metadata in a header on both
+    # sides, supplements behind buttons or hidden until clicked on the back, links as href targets.
+    header = ('<div class="header"><strong>{{Quelle}}</strong> | {{#Note ID}}<button onclick="t()">ID</button>{{/Note ID}}'
+              '<div style="display:none">{{Note ID}}</div><a href="https://example.org/errata?id={{Note ID}}"><button>Errata</button></a></div><hr>')
+    add_custom_notetype(col, "CoRe-Matrix Ankizin-artig", ANKIZIN_FIELDS, [(
+        "Cloze",
+        f'{header}<div id="cloze">{{{{edit:cloze:Text}}}}</div>',
+        f'{header}<div id="cloze">{{{{edit:cloze:Text}}}}</div><br>{{{{#Extra}}}}<div class="extra">{{{{edit:Extra}}}}</div>{{{{/Extra}}}}'
+        '{{#Klinik}}<button onclick="t()">Klinik</button><div id="klinik" style="display: none;">{{edit:Klinik}}</div>{{/Klinik}}'
+        '{{#AMBOSS-Link}}<a href="{{text:AMBOSS-Link}}">AMBOSS</a>{{/AMBOSS-Link}}'
+        "{{#ankihub_id}}<a href='https://app.ankihub.net/decks/notes/{{ankihub_id}}'>AnkiHub</a>{{/ankihub_id}}",
+    )], cloze=True)
+    add_custom_notetype(col, "CoRe-Matrix Blickdiagnose", ["Bild", "Overlay", "Diagnose", "Extra", "Quelle", "Note ID"], [(
+        "Blickdiagnose",
+        f'{header}<span class="frage">Blickdiagnose?</span><br><br>{{{{Bild}}}}',
+        f'{header}<span class="frage">Blickdiagnose?</span><br><br>{{{{#Overlay}}}}{{{{Overlay}}}}{{{{/Overlay}}}}{{{{^Overlay}}}}{{{{Bild}}}}{{{{/Overlay}}}}'
+        '<br><br>{{Diagnose}}{{#Extra}}<div id="extra" style="display: none;">{{Extra}}</div>{{/Extra}}',
+    )])
     add_custom_notetype(col, "CoRe-Matrix Image Occlusion Enhanced", [
         "ID (hidden)", "Header", "Image", "Question Mask", "Footer", "Remarks", "Sources", "Extra 1", "Extra 2", "Answer Mask", "Original Mask",
     ], [(
@@ -360,6 +380,22 @@ def special_notes() -> list[NoteSpec]:
                  {"Text": "prompt", "Back Extra": "extra"}, "cloze",
                  {0: CardSpec("cloze:1", ["Ableitung"], ["{{c1::", r"\("], ["Potenzregel"], ["{{c1::", r"\("]),
                   1: CardSpec("cloze:2", ["Ableitung"], ["{{c2::", "2x", r"\("], ["2x", "Potenzregel"], ["{{c2::", r"\("])}),
+        NoteSpec("matrix-ankizin", "CoRe-Matrix Ankizin-artig", f"{root}::Ankizin",
+                 {"Text": "{{c1::Primäraffekt}} ist ein TBC-Herd.", "Extra": "Ghon-Herd", "Klinik": "Meist verkalkt",
+                  "AMBOSS-Link": ANKIZIN_URL, "Quelle": "AMBOSS", "Note ID": "1568383637297", "ankihub_id": "3ab8ed99"},
+                 {"Text": "prompt", "Extra": "extra", "Klinik": "extra", "AMBOSS-Link": "source", "Quelle": "source", "Note ID": "note", "ankihub_id": "note"},
+                 "cloze",
+                 {0: CardSpec("cloze:1", ["ist ein TBC-Herd"], ["Primäraffekt", "AMBOSS", "1568383637297", "Ghon-Herd", "Meist verkalkt", "Errata"],
+                              ["Primäraffekt ist ein TBC-Herd.", "Ghon-Herd", "Meist verkalkt", "AMBOSS"], ["1568383637297", "3ab8ed99", "Errata"],
+                              links=[ANKIZIN_URL])}),
+        NoteSpec("matrix-blickdiagnose", "CoRe-Matrix Blickdiagnose", f"{root}::Blickdiagnose",
+                 {"Bild": '<img src="blick.png">', "Overlay": '<img src="blick-overlay.png">', "Diagnose": "Morbus Perthes",
+                  "Extra": "Aufnahme nach Lauenstein", "Quelle": "IMPP", "Note ID": "1568383637298"},
+                 {"Bild": "prompt", "Overlay": "answer", "Diagnose": "answer", "Extra": "extra", "Quelle": "source", "Note ID": "note"},
+                 "reveal",
+                 {0: CardSpec("anki-0", ["Blickdiagnose?"], ["Morbus Perthes", "Lauenstein", "IMPP", "1568383637298"],
+                              ["Morbus Perthes", "Aufnahme nach Lauenstein", "IMPP"], ["1568383637298"])},
+                 media=["blick.png", "blick-overlay.png"], instruction={"anki-0": "Blickdiagnose?"}),
         NoteSpec("matrix-media-rich", "Basic", f"{root}::Medien und Tabellen",
                  {"Front": 'Herzton hören: [sound:herz.mp3] Video: [sound:klappe.mp4] <span style="color:#c00">wichtig</span>',
                   "Back": '<table style="border-collapse:collapse"><tr><td style="border:1px solid #999">Systole</td><td>Diastole</td></tr></table>'},
@@ -371,7 +407,8 @@ def special_notes() -> list[NoteSpec]:
 
 def build_special(col: Any, media_dir: Path) -> list[dict[str, Any]]:
     build_special_notetypes(col)
-    for name, data in {"hund.mp3": b"ID3matrix-hund", "herz.mp3": b"ID3matrix-herz", "klappe.mp4": b"\x00\x00\x00\x18ftypmp42matrix"}.items():
+    for name, data in {"hund.mp3": b"ID3matrix-hund", "herz.mp3": b"ID3matrix-herz", "klappe.mp4": b"\x00\x00\x00\x18ftypmp42matrix",
+                       "blick.png": png_bytes(8, 8, (90, 90, 90)), "blick-overlay.png": png_bytes(8, 8, (90, 200, 90))}.items():
         col.media.write_data(name, data)
     manifests = [note_manifest(spec, add_note(col, spec)) for spec in special_notes()]
     manifests.append(build_native_image_occlusion(col, media_dir))
@@ -450,8 +487,10 @@ def build_media(col: Any) -> list[dict[str, Any]]:
                  {"Front": "prompt", "Back": "answer"}, "reveal", {0: CardSpec("forward", ["Entity"], [], ["maskiert"])}, media=["a&b.png"]),
         NoteSpec("matrix-media-missing", "Basic", MEDIA_ROOT, {"Front": 'Fehlt <img src="fehlt.png">', "Back": "weg"},
                  {"Front": "prompt", "Back": "answer"}, "reveal", {0: CardSpec("forward", ["Fehlt"], [], ["weg"])}, media=["fehlt.png"]),
+        # Anki marks note types from models.new() as stock Basic (originalStockKind 1). With unchanged
+        # Basic fields and templates this one cannot be told apart from a renamed Basic, so it is one.
         NoteSpec("matrix-media-font", "CoRe-Matrix Schrift", MEDIA_ROOT, {"Front": "Schrift aus CSS", "Back": "ohne Schrift"},
-                 {"Front": "prompt", "Back": "answer"}, "reveal", {0: CardSpec("anki-0", ["Schrift aus CSS"], [], ["ohne Schrift"])}),
+                 {"Front": "prompt", "Back": "answer"}, "reveal", {0: CardSpec("forward", ["Schrift aus CSS"], [], ["ohne Schrift"])}),
     ]
     return [note_manifest(spec, add_note(col, spec)) for spec in specs]
 
@@ -459,6 +498,7 @@ def build_media(col: Any) -> list[dict[str, Any]]:
 # --- Learning state, history and filtered decks -------------------------------------------
 
 LEARNING_ROOT = "Matrix Lernstand"
+FILTERED_DECK = f"{LEARNING_ROOT}::Gefiltert"
 
 
 def build_learning(col: Any) -> list[dict[str, Any]]:
@@ -526,7 +566,7 @@ def build_learning(col: Any) -> list[dict[str, Any]]:
 
     filtered_spec = basic("matrix-state-filtered", "Im Filterstapel")
     filtered_cards = add_note(col, filtered_spec)
-    filtered_deck = col.decks.new_filtered(f"{LEARNING_ROOT}::Gefiltert")
+    filtered_deck = col.decks.new_filtered(FILTERED_DECK)
     config = col.sched.get_or_create_filtered_deck(filtered_deck)
     config.config.search_terms[0].search = f"cid:{filtered_cards[0]['ankiCardId']}"
     col.sched.add_or_update_filtered_deck(config)
@@ -562,13 +602,16 @@ def repack_as_anki2(source: Path, target: Path) -> None:
 
 
 def as_learning_without_scheduling(notes: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    # Anki drops scheduling and the scheduling tags "marked" and "leech" from such exports.
+    # Anki drops scheduling and the scheduling tags "marked" and "leech" from such exports. It also
+    # turns filtered decks into normal decks that keep their cards, without the home deck `odid`.
     reset = json.loads(json.dumps(notes))
     for note in reset:
         note["tags"] = [tag for tag in note["tags"] if tag.lower() not in {"marked", "leech"}]
         note["marked"] = False
         for card in note["cards"]:
             card["learning"] = {"state": "new", "suspended": False, "reviewEvents": 0}
+            if note["guid"] == "matrix-state-filtered":
+                card["deckPath"] = FILTERED_DECK
     return reset
 
 
@@ -625,11 +668,11 @@ def main() -> None:
 
             path = MATRIX_DIR / "special-latest.apkg"
             export(col, path, SPECIAL_ROOT)
-            special_media = ["herz.mp3", "herzklappen.png", "hund.mp3", "ioe-1-A.svg", "ioe-1-O.svg", "ioe-1-Q.svg", "ioe-2-A.svg", "ioe-2-O.svg", "ioe-2-Q.svg", "ioe-original.png", "klappe.mp4"]
+            special_media = ["blick-overlay.png", "blick.png", "herz.mp3", "herzklappen.png", "hund.mp3", "ioe-1-A.svg", "ioe-1-O.svg", "ioe-1-Q.svg", "ioe-2-A.svg", "ioe-2-O.svg", "ioe-2-Q.svg", "ioe-original.png", "klappe.mp4"]
             fixtures["special-latest"] = fixture_entry(path, "latest", {
                 "package": ["latest"],
                 "content": ["anking-like", "mc-addon-kprim", "mc-addon-multiple", "mc-addon-single", "unknown-notetype", "static-template-text", "hint", "tts", "furigana", "three-directions",
-                            "cloze-two-fields", "cloze-in-mathjax", "mathjax", "latex", "audio", "video", "table", "inline-style", "links", "image-occlusion", "image-occlusion-enhanced"],
+                            "cloze-two-fields", "cloze-in-mathjax", "mathjax", "latex", "audio", "video", "table", "inline-style", "links", "image-occlusion", "image-occlusion-enhanced", "ankizin-like", "blickdiagnose", "header-metadata", "hidden-supplements", "href-links"],
                 "organization": [], "learning": ["new"],
             }, special, extra={"media": media_manifest(media_dir, special_media), "missingMedia": []})
 

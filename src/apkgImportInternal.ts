@@ -318,6 +318,7 @@ function getDecksFromCollection(colRows: any) {
   return Object.values(deckMap).map((deck: any) => ({
     id: String(deck.id ?? ""),
     name: deck.name ?? "Anki Deck",
+    filtered: Number(deck.dyn ?? 0) === 1,
   }));
 }
 
@@ -747,6 +748,8 @@ export function parseAnkiDecks(database: any) {
       .map((deck: any) => ({
         id: String(deck.id ?? deck.rowid ?? ""),
         name: normalizeAnkiDeckPath(deck.name),
+        // V18 `kind` is a protobuf oneof: field 1 = normal, field 2 = filtered.
+        filtered: deck.kind instanceof Uint8Array && deck.kind[0] === 0x12,
       }))
       .sort((left: any, right: any) => {
         const leftDefault = left.name === "Default" ? 1 : 0;
@@ -1234,6 +1237,91 @@ async function readApkgPackage(file: any, onStep: any = () => {}) {
     reviewHistory,
     models,
     mediaBundle,
+  };
+}
+
+export const ANKI_PACKAGE_MAX_BYTES = 2 * 1024 ** 3;
+
+export interface AnkiPackageMediaFile {
+  name: string;
+  sha1: string;
+  size: number;
+  mimeType: string;
+  readBytes(): Promise<Uint8Array>;
+}
+
+/** Raw package contents for the note translation (K5.0); media bytes stay in the archive until read. */
+export interface AnkiPackage {
+  file: { name: string; size: number };
+  packageFormat: string;
+  collectionCreatedAt: number | null;
+  decks: Array<{ id: string; name: string; filtered: boolean }>;
+  notes: any[];
+  cards: any[];
+  models: Record<string, any>;
+  reviewHistory: AnkiReviewHistoryPayload;
+  media: { format: string; files: AnkiPackageMediaFile[]; missing: string[] };
+}
+
+async function readAnkiMediaIndex(archive: any): Promise<AnkiPackage["media"]> {
+  const mediaEntry = archive.getEntry("media");
+  if (!mediaEntry) return { format: "none", files: [], missing: [] };
+  const mediaBytes = maybeDecompressZstdBytes(await mediaEntry.readBytes());
+  const legacyMap = parseJson(textDecoder.decode(mediaBytes), null);
+  const isLegacy = legacyMap !== null && typeof legacyMap === "object" && !Array.isArray(legacyMap);
+  // Modern packages store media file i as ZIP entry "i" and list its SHA-1; legacy packages need hashing.
+  const descriptors = isLegacy
+    ? Object.entries(legacyMap).map(([zipEntryName, name]) => ({ zipEntryName, name: normalizeMediaFileName(name), sha1: null as string | null, size: 0 }))
+    : (await parseMediaEntriesBytes(mediaBytes)).map((entry, index) => ({
+      zipEntryName: entry.legacyZipFileName ?? String(index),
+      name: normalizeMediaFileName(entry.name),
+      sha1: entry.sha1 as string | null,
+      size: entry.size,
+    }));
+  const files: AnkiPackageMediaFile[] = [];
+  const missing: string[] = [];
+  for (const descriptor of descriptors) {
+    const entry = archive.getEntry(descriptor.zipEntryName);
+    if (!descriptor.name) continue;
+    if (!entry) {
+      missing.push(descriptor.name);
+      continue;
+    }
+    const readBytes = async () => maybeDecompressZstdBytes(await entry.readBytes()) as Uint8Array;
+    let { sha1, size } = descriptor;
+    if (sha1 === null) {
+      const bytes = await readBytes();
+      sha1 = await sha1Hex(bytes);
+      size = bytes.length;
+    }
+    files.push({ name: descriptor.name, sha1, size, mimeType: inferMimeType(descriptor.name), readBytes });
+  }
+  return { format: isLegacy ? "legacy-json" : "media-entries", files, missing };
+}
+
+/** Reads `.apkg` and `.colpkg` files up to 2 GiB without materializing the archive or its media. */
+export async function readAnkiPackage(file: Blob & { name: string }, onStep: (step: string) => void = () => {}): Promise<AnkiPackage> {
+  if (!/\.(?:apkg|colpkg)$/i.test(file.name)) throw new Error("Es werden nur Anki-Pakete im Format .apkg oder .colpkg akzeptiert.");
+  if (file.size > ANKI_PACKAGE_MAX_BYTES) throw new Error("Die Datei ist größer als 2 GiB und wird nicht im Browser importiert.");
+  onStep("validate");
+  const archive = await extractApkgArchive(file);
+  onStep("collection");
+  const { bytes } = await findReadableCollectionDatabase(archive);
+  const database = readSqliteDatabase(bytes);
+  const colRows = database.readTable("col");
+  onStep("cards");
+  const metadata = await parseAnkiPackageMetadata(archive);
+  const createdAt = Number(colRows[0]?.crt);
+  return {
+    file: { name: file.name, size: file.size },
+    packageFormat: String(metadata.version ?? "unknown"),
+    collectionCreatedAt: Number.isFinite(createdAt) && createdAt > 0 ? createdAt : null,
+    decks: parseAnkiDecks(database),
+    notes: parseAnkiNotes(database),
+    cards: parseAnkiCards(database),
+    models: await getModelsFromDatabase(database, colRows),
+    reviewHistory: parseAnkiReviewHistory(database),
+    media: await readAnkiMediaIndex(archive),
   };
 }
 

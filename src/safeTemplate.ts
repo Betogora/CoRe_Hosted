@@ -11,7 +11,7 @@ function addDiagnostic(diagnostics: TemplateDiagnostic[], code: string, message:
   if (!diagnostics.some((candidate) => candidate.code === code && candidate.detail === detail)) diagnostics.push({ code, level, message, detail });
 }
 
-export function compileSafeTemplate(source: string, fields: readonly FieldDefinition[]): CompiledSafeTemplate {
+export function compileSafeTemplate(source: string, fields: readonly Pick<FieldDefinition, "id" | "name">[]): CompiledSafeTemplate {
   const diagnostics: TemplateDiagnostic[] = [];
   let compatibility: TemplateCompatibility = "safe-equivalent";
   if (/<script\b|\son[a-z]+\s*=|javascript:/i.test(source)) {

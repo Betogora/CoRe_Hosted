@@ -68,7 +68,10 @@ scope and gates.
   do not export it through `coreModel.ts` or connect it to the app or persistence.
 - `src/notePresentation.ts` and `src/ui/NoteCardContent.tsx` are the prepared
   Note/Card renderer and host. Until the cutover, use them only in prepared
-  modules, tests and catalog demos. `src/cardPresentationFrame.ts` owns the
+  modules, tests and catalog demos. `src/apkgNoteTranslation.ts` and
+  `readAnkiPackage` are the prepared APKG note translation; until the cutover
+  only the format matrix, its tests, the corpus report and the APKG benchmark
+  use them. `src/cardPresentationFrame.ts` owns the
   shared CSP and media URL resolution; never put scripts or interaction state
   into rendered card HTML.
 - Deck `cards` remains the local compatibility collection for Learning Items.

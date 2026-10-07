@@ -96,7 +96,7 @@ function adjustedColors(html: string, background: string): string {
     .replace(/\scolor="([^"]*)"/gi, (_match, color: string) => ` color="${adjust(color)}"`);
 }
 
-function shapeHtml(shape: Exclude<OcclusionShape, { kind: "text" }>, className: string): string {
+function shapeHtml(shape: Exclude<OcclusionShape, { kind: "text" | "overlay" }>, className: string): string {
   const rotate = shape.kind === "polygon" ? `rotate(${shape.angle} .5 .5)` : `rotate(${shape.angle} ${shape.left} ${shape.top})`;
   const attrs = `class="${className}" transform="${rotate}" vector-effect="non-scaling-stroke"`;
   if (shape.kind === "polygon") return `<polygon ${attrs} points="${shape.points.map((point) => point.join(",")).join(" ")}"/>`;
@@ -113,6 +113,11 @@ function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occl
       continue;
     }
     const active = group === ordinal;
+    if (shape.kind === "overlay") {
+      const overlay = side === "answer" ? shape.answer : shape.question;
+      if (active && overlay) labels += `<img class="mask-overlay" src="${escapeHtml(overlay)}" alt=""/>`;
+      continue;
+    }
     if (!active && !alwaysOccluded && interaction.mode === "hide-one-guess-one") continue;
     masks += shapeHtml(shape, active && side === "answer" ? "mask-outline" : active ? "mask-target" : "mask-muted");
   }
@@ -216,7 +221,7 @@ const NOTE_CARD_CSS = `
   .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}
   .core-occlusion{position:relative;display:inline-block;max-width:100%;margin-top:.75rem;overflow:hidden;border:1px solid var(--core-border);border-radius:.75rem;vertical-align:top}
   .core-occlusion img{display:block;max-width:100%;height:auto}
-  .core-occlusion svg{position:absolute;inset:0;width:100%;height:100%}
+  .core-occlusion svg,.core-occlusion .mask-overlay{position:absolute;inset:0;width:100%;height:100%}
   .mask-target{fill:var(--core-success);stroke:var(--core-surface);stroke-width:2}
   .mask-muted{fill:var(--core-border-interactive);stroke:var(--core-surface);stroke-width:1.5}
   .mask-outline{fill:none;stroke:var(--core-success);stroke-width:3;stroke-dasharray:6 4}

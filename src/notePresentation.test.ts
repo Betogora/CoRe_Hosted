@@ -91,6 +91,9 @@ test("Bildmasken verdecken fremde Gruppen dauerhaft und decken die aktive Gruppe
     assert.equal(/<ellipse/.test(question.srcdoc), mode === "hide-all-guess-one");
     assert.match((await render(value, "answer", "io:2")).srcdoc, /<polygon class="mask-outline"/);
   }
+  const overlay = content({ kind: "image-occlusion", image: "bild.png", mode: "hide-one-guess-one", masks: [{ id: "m", ordinal: 1, alwaysOccluded: false, shape: { kind: "overlay", question: "q.svg", answer: "a.svg" } }] });
+  assert.match((await render(overlay, "question", "io:1")).srcdoc, /<img class="mask-overlay" src="q\.svg" alt=""\/><\/div>/);
+  assert.match((await render(overlay, "answer", "io:1")).srcdoc, /<img class="mask-overlay" src="a\.svg" alt=""\/><\/div>/);
 });
 
 test("Medien sind lokal auflösbar, MP4-Sound wird Video und TTS dupliziert keinen Feldtext", async () => {

@@ -1,7 +1,42 @@
-import type { Card, Note } from "../coreTypes.ts";
+import type { Card, CardStudyState, Note, ReviewState } from "../coreTypes.ts";
 import { makeId } from "./coreValues.ts";
 import { parseNoteContent } from "./noteContent.ts";
 import { createReviewState } from "./reviewState.ts";
+
+/** Maps a scheduler state to the card's study columns; identity fields of the legacy state are dropped. */
+export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
+  return {
+    state: state.state,
+    dueAt: state.dueAt,
+    stability: state.stability,
+    difficulty: state.difficulty,
+    reps: state.reps,
+    lapses: state.lapses,
+    intervalDays: state.intervalDays,
+    learningStepIndex: state.learningStepIndex,
+    lastReviewedAt: state.lastReviewedAt,
+    lastRating: state.lastRating,
+    extra: {
+      schedulerVersion: state.schedulerVersion,
+      desiredRetention: state.desiredRetention,
+      maturityXp: state.maturityXp,
+      maturityBand: state.maturityBand,
+      preferredVariantLevel: state.preferredVariantLevel,
+      forcedVariantId: state.forcedVariantId,
+      fallbackUntilCorrect: state.fallbackUntilCorrect,
+      lastFailedVariantId: state.lastFailedVariantId,
+      previousSuccessfulVariantId: state.previousSuccessfulVariantId,
+      intervalMinutes: state.intervalMinutes,
+      learningSuccessCount: state.learningSuccessCount,
+      firstLearningAt: state.firstLearningAt,
+      lastLearningStepAt: state.lastLearningStepAt,
+      graduatedAt: state.graduatedAt,
+      isGraduated: state.isGraduated,
+      learningDayKey: state.learningDayKey,
+      sourceSchedulerData: state.sourceSchedulerData,
+    },
+  };
+}
 
 export interface CreateNoteInput {
   content: unknown;
@@ -16,7 +51,6 @@ export interface CreateNoteInput {
 }
 
 function createCard(note: Note, deckId: string, promptKey: string, createdAt: string): Card {
-  const initial = createReviewState({ dueAt: createdAt });
   return {
     id: makeId("card"),
     noteId: note.id,
@@ -25,37 +59,7 @@ function createCard(note: Note, deckId: string, promptKey: string, createdAt: st
     ankiCardId: null,
     status: "active",
     ankiFlag: 0,
-    study: {
-      state: initial.state,
-      dueAt: initial.dueAt,
-      stability: initial.stability,
-      difficulty: initial.difficulty,
-      reps: initial.reps,
-      lapses: initial.lapses,
-      intervalDays: initial.intervalDays,
-      learningStepIndex: initial.learningStepIndex,
-      lastReviewedAt: initial.lastReviewedAt,
-      lastRating: initial.lastRating,
-      extra: {
-        schedulerVersion: initial.schedulerVersion,
-        desiredRetention: initial.desiredRetention,
-        maturityXp: initial.maturityXp,
-        maturityBand: initial.maturityBand,
-        preferredVariantLevel: initial.preferredVariantLevel,
-        forcedVariantId: initial.forcedVariantId,
-        fallbackUntilCorrect: initial.fallbackUntilCorrect,
-        lastFailedVariantId: initial.lastFailedVariantId,
-        previousSuccessfulVariantId: initial.previousSuccessfulVariantId,
-        intervalMinutes: initial.intervalMinutes,
-        learningSuccessCount: initial.learningSuccessCount,
-        firstLearningAt: initial.firstLearningAt,
-        lastLearningStepAt: initial.lastLearningStepAt,
-        graduatedAt: initial.graduatedAt,
-        isGraduated: initial.isGraduated,
-        learningDayKey: initial.learningDayKey,
-        sourceSchedulerData: initial.sourceSchedulerData,
-      },
-    },
+    study: cardStudyFromReviewState(createReviewState({ dueAt: createdAt })),
     variants: [],
     createdAt,
     updatedAt: createdAt,
@@ -79,6 +83,7 @@ export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] 
     translator: input.translator ?? null,
     marked: false,
     contentRevision: 1,
+    importedContentRevision: input.source === "anki-apkg" ? 1 : null,
     createdAt,
     updatedAt: createdAt,
     revision: 1,

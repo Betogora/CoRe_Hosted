@@ -129,6 +129,9 @@ test("Bildverdeckung erzeugt eine Karte je Maskengruppe und verweist auf ihr Bil
   rejected(note(header, { kind: "image-occlusion", image: "https://example.com/x.png", mode: "hide-one-guess-one", masks: [mask] }), /lokales Bild/);
   rejected(note(header, { kind: "image-occlusion", image: "herz.png", mode: "hide-one-guess-one", masks: [{ ...mask, shape: { ...rect, width: 2 } }] }), /zwischen 0 und 1/);
   rejected(note(header, { kind: "image-occlusion", image: "herz.png", mode: "hide-one-guess-one", masks: [{ ...mask, ordinal: 0 }] }), /Gruppennummer/);
+  const overlay = { ...mask, shape: { kind: "overlay" as const, question: "maske-q.svg", answer: "maske-a.svg" } };
+  assert.deepEqual(noteContentMediaRefs(parsed(note(header, { kind: "image-occlusion", image: "herz.png", mode: "hide-one-guess-one", masks: [overlay] })).value), ["herz.png", "maske-a.svg", "maske-q.svg"]);
+  rejected(note(header, { kind: "image-occlusion", image: "herz.png", mode: "hide-one-guess-one", masks: [{ ...overlay, shape: { ...overlay.shape, question: "https://example.com/q.svg" } }] }), /lokale Maskenbilder/);
 });
 
 test("Feld-HTML wird nach dem Inhaltsvertrag bereinigt und Medien werden gesammelt", () => {

@@ -12,6 +12,7 @@ const CONTRACT_TESTS = new Set([
   "src/aiCardVariantRoute.test.ts",
   "src/apkgFormatMatrix.test.ts",
   "src/apkgImport.test.ts",
+  "src/apkgNoteTranslation.test.ts",
   "src/appNavigation.test.ts",
   "src/appRuntime.test.ts",
   "src/buildChunkBudget.test.ts",

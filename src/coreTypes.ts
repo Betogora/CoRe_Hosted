@@ -376,7 +376,9 @@ export interface ChoiceOption {
 export type OcclusionShape =
   | { kind: "rect" | "ellipse"; left: number; top: number; width: number; height: number; angle: number }
   | { kind: "polygon"; points: Array<[number, number]>; angle: number }
-  | { kind: "text"; left: number; top: number; text: string; scale: number; angle: number };
+  | { kind: "text"; left: number; top: number; text: string; scale: number; angle: number }
+  /** Full-image mask images, e.g. from Image Occlusion Enhanced; the answer image replaces the question image after reveal. */
+  | { kind: "overlay"; question: MediaRef; answer: MediaRef | null };
 
 export interface OcclusionMask {
   id: string;
@@ -414,6 +416,8 @@ export interface Note {
   translator: { id: string; version: number } | null;
   marked: boolean;
   contentRevision: number;
+  /** contentRevision at the last APKG import; a higher contentRevision means local edits. Null for manual notes. */
+  importedContentRevision: number | null;
   createdAt: string;
   updatedAt: string;
   revision: number;

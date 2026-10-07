@@ -1,81 +1,50 @@
-import { existsSync, readdirSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync, openAsBlob, readdirSync, statSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
-import { commitApkgImport, createApkgImportPreview } from "../src/apkgImport.ts";
-import { renderLearningItemPresentation, type PresentationCompatibility } from "../src/cardPresentation.ts";
-import type { Deck, LearningItem, NoteTypeDefinitionV1 } from "../src/coreTypes.ts";
+import { readAnkiPackage } from "../src/apkgImportInternal.ts";
+import { translateAnkiPackage, type ApkgNotetypeReport } from "../src/apkgNoteTranslation.ts";
 
-// ADR-035: imports real decks (Ankizin, AnKing, …) from a local, unversioned folder and
-// reports per note type how the current import presents them. Decks never leave the machine.
+// ADR-035: translates real decks (Ankizin, AnKing, …) from a local, unversioned folder and
+// reports per note type which translator was used and how much of it is fully translated.
+// Decks never leave the machine.
 
 const corpusDir = resolve(process.argv[2] ?? "fixtures/apkg/corpus");
 const reportPath = resolve("test-results/apkg-corpus/report.json");
-const RANK: Record<PresentationCompatibility, number> = { "safe-equivalent": 0, "safe-with-differences": 1, "preserved-only": 2 };
-const LABEL: Record<PresentationCompatibility, string> = {
-  "safe-equivalent": "vollständig",
-  "safe-with-differences": "mit Abweichungen",
-  "preserved-only": "nur Feldliste",
-};
 
-interface NotetypeReport {
-  notetype: string;
-  cards: number;
-  presentation: Record<PresentationCompatibility, number>;
-  diagnostics: string[];
-}
-
-function worstPresentation(card: LearningItem, definition: NoteTypeDefinitionV1) {
-  const sides = (["question", "answer"] as const).map((side) =>
-    renderLearningItemPresentation({ item: card, definition, side, surface: "review", theme: "light" }));
-  const compatibility = sides.map((side) => side.compatibility).sort((left, right) => RANK[right] - RANK[left])[0];
-  return { compatibility, diagnostics: sides.flatMap((side) => side.diagnostics.map((diagnostic) => diagnostic.code)) };
+/** Share of notes per outcome: own translator, generic translator, field list, not displayable. */
+function quotas(notetype: ApkgNotetypeReport) {
+  const total = notetype.notes + notetype.untranslatableNotes;
+  const translated = notetype.notes - notetype.fallbackNotes;
+  const generic = notetype.translator.id === "generic";
+  const percent = (value: number) => total ? Math.round(value / total * 1000) / 10 : 0;
+  return {
+    full: percent(generic ? 0 : translated),
+    generic: percent(generic ? translated : 0),
+    fieldList: percent(notetype.fallbackNotes),
+    notDisplayable: percent(notetype.untranslatableNotes),
+  };
 }
 
 async function reportFile(path: string) {
   const startedAt = performance.now();
-  const bytes = await readFile(path);
-  const file = { name: basename(path), size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
-  const { job, preview } = await createApkgImportPreview(file);
-  if (!preview) return { file: basename(path), bytes: bytes.length, errors: job.errors as string[] };
-  const committed = commitApkgImport(preview);
-  const definitions = new Map<string, NoteTypeDefinitionV1>(
-    committed.commitGraph.noteTypeDefinitions.map((definition: NoteTypeDefinitionV1) => [definition.id, definition]),
-  );
-  const notetypes = new Map<string, NotetypeReport>();
-  const sampled = new Map<string, ReturnType<typeof worstPresentation>>();
-  const cards = (committed.decks as Deck[]).flatMap((deck) => deck.cards);
-  for (const card of cards) {
-    const definition = definitions.get(card.noteTypeDefinitionId);
-    const name = definition?.name ?? "Unbekannter Notiztyp";
-    const report = notetypes.get(name) ?? {
-      notetype: name,
-      cards: 0,
-      presentation: { "safe-equivalent": 0, "safe-with-differences": 0, "preserved-only": 0 },
-      diagnostics: [],
+  const name = basename(path);
+  const bytes = statSync(path).size;
+  try {
+    const graph = translateAnkiPackage(await readAnkiPackage(Object.assign(await openAsBlob(path), { name })));
+    if (graph.report.errors.length) return { file: name, bytes, errors: graph.report.errors };
+    return {
+      file: name,
+      bytes,
+      errors: [] as string[],
+      durationMs: Math.round(performance.now() - startedAt),
+      heapUsedBytes: process.memoryUsage().heapUsed,
+      report: graph.report,
+      notetypes: graph.report.notetypes.map((notetype) => ({ ...notetype, quotas: quotas(notetype) })).sort((left, right) => right.notes - left.notes),
     };
-    const sampleKey = `${card.noteTypeDefinitionId}:${card.projection.recipeId}`;
-    const sample = sampled.get(sampleKey)
-      ?? (definition ? worstPresentation(card, definition) : { compatibility: "preserved-only" as const, diagnostics: ["missing-definition"] });
-    sampled.set(sampleKey, sample);
-    report.cards += 1;
-    report.presentation[sample.compatibility] += 1;
-    report.diagnostics = [...new Set([...report.diagnostics, ...sample.diagnostics])];
-    notetypes.set(name, report);
+  } catch (error) {
+    return { file: name, bytes, errors: [error instanceof Error ? error.message : String(error)] };
   }
-  return {
-    file: basename(path),
-    bytes: bytes.length,
-    errors: [] as string[],
-    decks: committed.decks.length,
-    cards: cards.length,
-    reviewEvents: (committed.decks as Deck[]).reduce((total, deck) => total + deck.reviewEvents.length, 0),
-    mediaFiles: preview.mediaFiles.length,
-    missingMedia: (preview.report.apkg.media?.missing ?? []).length,
-    durationMs: Math.round(performance.now() - startedAt),
-    heapUsedBytes: process.memoryUsage().heapUsed,
-    notetypes: [...notetypes.values()].sort((left, right) => right.cards - left.cards),
-  };
 }
 
 const files = existsSync(corpusDir)
@@ -89,21 +58,20 @@ if (files.length === 0) {
 
 const reports = [];
 for (const name of files) {
-  const report = await reportFile(join(corpusDir, name));
-  reports.push(report);
-  console.log(`\n${report.file} (${(report.bytes / 1_048_576).toFixed(1)} MiB)`);
-  if (report.errors.length) {
-    console.log(`  Abgelehnt: ${report.errors.join(" | ")}`);
+  const result = await reportFile(join(corpusDir, name));
+  reports.push(result);
+  console.log(`\n${result.file} (${(result.bytes / 1_048_576).toFixed(1)} MiB)`);
+  if (!result.report) {
+    console.log(`  Abgelehnt: ${result.errors.join(" | ")}`);
     continue;
   }
-  console.log(`  ${report.cards} Karten, ${report.decks} Stapel, ${report.reviewEvents} Reviewereignisse, ${report.mediaFiles} Medien, ${report.missingMedia} fehlende Medienverweise`);
-  console.log(`  ${report.durationMs} ms, Heap nach Import ${(report.heapUsedBytes! / 1_048_576).toFixed(0)} MiB`);
-  for (const notetype of report.notetypes!) {
-    const parts = (Object.keys(LABEL) as PresentationCompatibility[])
-      .filter((key) => notetype.presentation[key] > 0)
-      .map((key) => `${LABEL[key]} ${Math.round(notetype.presentation[key] / notetype.cards * 100)} %`);
-    const diagnostics = notetype.diagnostics.length ? ` [${notetype.diagnostics.join(", ")}]` : "";
-    console.log(`  - ${notetype.notetype}: ${notetype.cards} Karten – ${parts.join(", ")}${diagnostics}`);
+  const { imported, missingMedia, addedCards, droppedCards } = result.report;
+  console.log(`  ${imported.notes} Inhalte, ${imported.cards} Karten, ${imported.decks} Stapel, ${imported.reviewEvents} Reviewereignisse, ${imported.mediaFiles} Medien, ${missingMedia.length} fehlende Medien`);
+  console.log(`  ${addedCards} abgeleitete und ${droppedCards} nicht übernommene Karten; ${result.durationMs} ms, Heap ${(result.heapUsedBytes / 1_048_576).toFixed(0)} MiB`);
+  for (const notetype of result.notetypes) {
+    const { full, generic, fieldList, notDisplayable } = notetype.quotas;
+    const unmapped = notetype.unmappedFields.length ? ` [nicht zugeordnet: ${notetype.unmappedFields.join(", ")}]` : "";
+    console.log(`  - ${notetype.name} (${notetype.translator.id} v${notetype.translator.version}): ${notetype.notes} Inhalte – voll ${full} %, generisch ${generic} %, Feldliste ${fieldList} %, nicht darstellbar ${notDisplayable} %${unmapped}`);
   }
 }
 

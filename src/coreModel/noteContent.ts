@@ -135,8 +135,17 @@ function parseChoice(input: Record<string, unknown>, errors: string[]): NoteInte
   return { kind: "choice", mode, options };
 }
 
+function isLocalMedia(value: string): boolean {
+  return Boolean(value) && !/^[a-z][a-z\d+.-]*:/i.test(value);
+}
+
 function parseShape(value: unknown, label: string, errors: string[]): OcclusionShape {
   const shape = record(value);
+  if (shape.kind === "overlay") {
+    const answer = text(shape.answer) || null;
+    if (!isLocalMedia(text(shape.question)) || (answer !== null && !isLocalMedia(answer))) errors.push(`${label} braucht lokale Maskenbilder.`);
+    return { kind: "overlay", question: text(shape.question), answer };
+  }
   const angle = typeof shape.angle === "number" && Number.isFinite(shape.angle) ? shape.angle : 0;
   if (shape.kind === "rect" || shape.kind === "ellipse") {
     const [left, top, width, height] = [shape.left, shape.top, shape.width, shape.height].map(unitNumber);
@@ -165,7 +174,7 @@ function parseShape(value: unknown, label: string, errors: string[]): OcclusionS
 function parseImageOcclusion(input: Record<string, unknown>, errors: string[]): NoteInteraction {
   const image = text(input.image);
   const mode = input.mode as "hide-all-guess-one" | "hide-one-guess-one";
-  if (!image || /^[a-z][a-z\d+.-]*:/i.test(image)) errors.push("Die Bildverdeckung braucht ein lokales Bild.");
+  if (!isLocalMedia(image)) errors.push("Die Bildverdeckung braucht ein lokales Bild.");
   if (mode !== "hide-all-guess-one" && mode !== "hide-one-guess-one") errors.push("Die Bildverdeckung hat keinen gültigen Modus.");
   const masks = list(input.masks).map((candidate, index): OcclusionMask => {
     const mask = record(candidate);
@@ -258,7 +267,14 @@ export function noteContentMediaRefs(content: NoteContent): string[] {
     for (const match of html.matchAll(MEDIA_SOURCE)) if (!match[1].startsWith("data:")) refs.add(decodeAttribute(match[1]));
     for (const match of html.matchAll(SOUND_TAG)) refs.add(match[1].trim());
   }
-  if (content.interaction.kind === "image-occlusion") refs.add(content.interaction.image);
+  if (content.interaction.kind === "image-occlusion") {
+    refs.add(content.interaction.image);
+    for (const { shape } of content.interaction.masks) {
+      if (shape.kind !== "overlay") continue;
+      refs.add(shape.question);
+      if (shape.answer) refs.add(shape.answer);
+    }
+  }
   return [...refs].sort();
 }
 

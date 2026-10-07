@@ -60,6 +60,8 @@ test("Erstellung validiert und bereinigt den Inhalt einmal für alle Karten", ()
   assert.deepEqual(note.translator, { id: "basic", version: 1 });
   assert.equal(note.marked, false);
   assert.equal(note.contentRevision, 1);
+  assert.equal(note.importedContentRevision, 1);
+  assert.equal(create(reveal()).note.importedContentRevision, null);
   assert.equal(note.revision, 1);
   assert.equal(note.createdAt, CREATED_AT);
   assert.equal(note.updatedAt, CREATED_AT);

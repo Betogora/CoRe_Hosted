@@ -1,6 +1,6 @@
 # Anki-Formatanalyse für CoRe
 
-Stand: 2026-10-06
+Stand: 2026-10-07
 
 Dieses Dokument ist eine kompakte technische Referenz für Ankis Modell- und
 Paketgrenzen. Der verbindliche CoRe-Vertrag steht in
@@ -170,8 +170,28 @@ Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
 - Ein Deckexport enthält gefilterte Karten mit `did` des Filterstapels und dem
   Heimatstapel in `odid`, dazu stets den Stapel `Default`. Ein Export ohne
   Lernstand entfernt die Tags `marked` und `leech`.
+- Ein Export ohne Lernstand wandelt gefilterte Stapel in normale Stapel um; ihre
+  Karten bleiben dort und verlieren `odid`, ein Heimatstapel ist danach nicht
+  mehr bestimmbar.
 - Ein Template-Zielstapel (`did` im Template) legt die betreffende Karte direkt
   in einen anderen Stapel als ihre Geschwister.
+- `originalStockKind` ist kein verlässliches Typmerkmal: Anki setzt 1 (Basic)
+  auch für Notiztypen aus `models.new()`, einschließlich Lückentypen, und
+  Klone behalten den Wert. Erst unveränderte Standardvorlagen weisen einen
+  Standardtyp nach.
+- In modernen Paketen liegt Mediendatei *i* der `MediaEntries` im ZIP-Eintrag
+  `i` (zstd-komprimiert), mit SHA-1 und Größe der entpackten Datei; Legacy-Pakete
+  nennen nur Name und Eintrag.
+- Image Occlusion speichert Ellipsen in aktuellen Versionen mit `rx`/`ry` statt
+  `width`/`height`; Text in Eigenschaften maskiert `:` als `\:`.
+- Ankizin-, Ankiphil- und Dellas-Notiztypen (Korpus, 2026-10-07) zeigen
+  Quelle und Notiz-ID in einer Kopfzeile auf beiden Seiten, legen Zusatzfelder
+  hinter Buttons oder `display:none` auf die Rückseite, führen Links als
+  `href="{{Feld}}"` beziehungsweise `{{text:Feld}}` und nutzen den Filter
+  `edit:` des Add-ons „Edit Field During Review“.
+- Image Occlusion Enhanced legt je Maske eine Notiz mit den Feldern `Image`,
+  `Question Mask`, `Answer Mask` und `Original Mask` an; die Maskenfelder
+  verweisen auf SVG-Dateien in Bildgröße.
 - Das Add-on „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3) legt den
   Notiztyp `AllInOne (kprim, mc, sc)` mit den Feldern `Question`, `Title`,
   `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources` und
@@ -186,8 +206,9 @@ MathJax-Delimiters sowie `[latex]`, `[$]` und `[$$]` gehen an KaTeX. Bei Fehlern
 die bereits maskierte Quellfassung sichtbar. Native Bildmasken werden als
 relative SVG-Formen über dem Bild gezeichnet, ohne die Anki-JavaScript-Laufzeit.
 `[sound:…mp4]` verwendet ein Video-Control; TTS-Metadaten werden ausschließlich
-im React-Host ausgewertet und duplizieren den Feldtext nicht. Die eigentliche
-APKG-Übersetzung auf diesen Vertrag ist getrennte Arbeit in Phase 5A.
+im React-Host ausgewertet und duplizieren den Feldtext nicht. Die vorbereitete
+APKG-Übersetzung auf diesen Vertrag beschreibt
+[`architecture.md`](architecture.md#vorbereitete-note-übersetzung).
 
 `src/apkgImport.ts` bleibt die öffentliche Seam; Worker-Protokoll, ZIP, SQLite,
 Zstd, MediaEntries und Legacy-Mappings bleiben in ihren privaten

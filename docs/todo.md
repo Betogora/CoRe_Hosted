@@ -103,9 +103,9 @@ Phase 0   Ausgangsmessung und Inhaltsschema            ✔ abgeschlossen
 Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
 Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, unverdrahtet
 Phase 3   Renderer und Bausteine (reine Module)        implementiert, unverdrahtet; Performance-Abnahme offen
-Phase 5A  Übersetzer und Importgraph (reine Module)    geplant: auf main, neue Pipeline in der Matrix
+Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ abgeschlossen, unverdrahtet; Korpus offen
 Phase 4   Cutover: Datenbank, Replica, Sync, App       eigener Branch, ein Merge
-          + K2.4–K2.6, K5.4, K5.7, K5.9-Oberfläche     (im Cutover verdrahtet)
+          + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      (im Cutover verdrahtet)
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        auf main
 Phase 7   Begraben von Geschwistern                     auf main
 Phase 8   Gesamtabnahme
@@ -115,7 +115,7 @@ Warum so: Wer `LearningItem` vor dem Datenbankumbau entfernt, bricht
 Persistenz, Sync, Import und Screens gleichzeitig und müsste
 Übergangscode schreiben. Stattdessen entstehen Modell, Renderer und Übersetzer
 zuerst als reine, vollständig getestete TypeScript-Module. Die Matrix prüft
-schon vor dem Cutover gegen die neue Pipeline (siehe K5.0). Der Cutover
+schon vor dem Cutover gegen die neue Pipeline. Der Cutover
 verdrahtet dann alles in einem Zug und löscht den Altpfad.
 
 **Branch für den Cutover:** `kartenmodell-cutover`, abgezweigt vom dann
@@ -219,173 +219,66 @@ App, APKG-Import und Persistenz verwenden sie erst im Cutover (K4.10).
       200-%-Browserzoom sind noch nicht geprüft. Die Chromium-Matrix und
       CSS-Zoomprobe ersetzen diese Nachweise nicht.
 
-Die vollständigen Textvergleiche der APKG-Matrix über den neuen Renderer
-gehören unverändert zu K5.0. Importierte IO-Enhanced- und Realwelt-Inhalte
-werden über diese neue Pipeline abgenommen, nicht über die vorbereiteten
-normalisierten Katalogbeispiele.
+Realwelt-Inhalte werden über die neue Pipeline abgenommen, nicht über die
+vorbereiteten normalisierten Katalogbeispiele (Abnahme Phase 5).
 
 ## Phase 5 — APKG-Import und Übersetzer
 
-Phase 5 ist zweigeteilt. **5A** (K5.0–K5.3, K5.5, K5.6, K5.8 und der
-Berichtsinhalt von K5.9) entsteht vor dem Cutover als reine Pipeline.
-**5B** (K5.4, K5.7 und die Berichtsoberfläche von K5.9) braucht Persistenz und
-wird im Cutover (Phase 4) umgesetzt.
+**5A ist abgeschlossen** (siehe `history.md`): `readAnkiPackage` und
+`translateAnkiPackage` (`src/apkgNoteTranslation.ts`) übersetzen Pakete in den
+Importgraphen; die APKG-Matrix beobachtet diese Pipeline und ist ohne
+`KNOWN_GAPS` grün. Den Vertrag beschreibt `architecture.md`. Offen sind die
+an Persistenz und Oberfläche gebundenen Teile (5B, im Cutover) und zwei
+Nachweise, die echte Anki-Daten brauchen.
 
-**Ausgangspunkt:** Der Paketleser ist gut und bleibt: ZIP, SQLite, Zstd,
-Protobuf und Medienliste in `src/apkgImportInternal.ts`, `src/zipReader.ts`,
-`src/sqliteReader.ts`, `src/apkgImportProtobuf.ts`, Worker in
-`src/apkgImportWorker.ts`. Ersetzt wird die Abbildung ab
-`mapAnkiApkgToNormalizedDeck` und `src/ankiContentModel.ts`.
-
-- [ ] **K5.0 Neue Pipeline und Matrixbeobachtung (5A).** Eine reine Funktion
-      übersetzt ein gelesenes Paket in einen Importgraphen aus Stapeln,
-      `Note`s, `Card`s, Medien, Reviewereignissen und Bericht.
-  - **Wo:** neues privates Modul `src/apkgNoteTranslation.ts` (Registry und
-    Übersetzer) mit Tests; die öffentliche Seam bleibt `src/apkgImport.ts`.
-  - **Wie:** Eingabe ist das heutige Leseergebnis (Decks, Notes, Cards,
-    Modelle, Medienliste, Revlog). Ausgabe `{ decks, notes, cards, mediaFiles,
-    reviewEvents, noteTypeSources, report }`.
-  - **Matrix umstellen:** `src/apkgFormatMatrix.test.ts` beobachtet ab hier
-    diese Pipeline und `renderCard` statt `LearningItem` und
-    `renderLearningItemPresentation`. Die Prüfungen bleiben dieselben; die
-    Beobachtung liest jetzt `note.content.fields[].role` und
-    `card.promptKey`. Die Erwartung beschreibt Ankis Sicht: Für `note.tags`
-    ergänzt die Beobachtung bei `note.marked` das Tag `marked`; die
-    Fixtures bleiben unverändert. Danach `KNOWN_GAPS` neu abgleichen; der strenge Test
-    zeigt, welche Lücken geschlossen sind.
-- [ ] **K5.1 Importgraph.** Eine Anki-Notiz wird ein Inhalt, jede Anki-Karte
-      eine Karte. Abfrageschlüssel: Basic-Familie `forward`/`reverse`, andere
-      Templates `anki-<Ordinal>`, Lückentext `cloze:N`, Bildverdeckung `io:N`.
-      Stapel je Karte über `did`, bei gefilterten Stapeln über `odid` und
-      `odue`.
-  - **Zusätzlich:** Der leere Stapel `Default` wird nur angelegt, wenn er
-    Karten enthält. Gefilterte Stapel (`dyn`) werden nie angelegt.
-    Geschwister in anderen Stapeln und Template-Zielstapel bleiben in ihrem
-    eigenen Stapel.
-  - **Importrevision:** `Note` erhält `importedContentRevision: number | null`.
-    Der Übersetzer setzt es beim Import auf die `contentRevision` des
-    erzeugten Inhalts; manuelle Inhalte tragen `null`. K5.4 und K5.7 lesen es.
-  - **Schließt:** `package.decks`, `card.deck`, `card.key`, `note.cards` in
-    `KNOWN_GAPS`.
-- [ ] **K5.2 Übersetzer-Registry.** Versionierte Übersetzer mit Erkennung über
-      Notiztyp-Art, Stock-Kennung, Felder und Template-Signatur: Basic-Familie,
-      Antwort eintippen, Lückentext, native Image Occlusion (Occlusion-Feld zu
-      Masken), Image Occlusion Enhanced, AnKing-/Ankizin-Familie (Text, Extra,
-      zusätzliche Felder als Hinweise, Links als Quellen), verbreitete
-      Multiple-Choice-Add-ons. Für `Multiple Choice for Anki` dienen Erkennung,
-      Template-Signatur, Feldzuordnung und Tests aus dem zurückgestellten
-      Branch `archive/noemi-anki-fixes` (Commit `e558338`) als Vorlage.
-  - **Erkennung, in dieser Reihenfolge:** (1) `originalStockKind` 1–6 der
-    Anki-Standardtypen; (2) Signaturen: `AllInOne (kprim, mc, sc)` beziehungsweise
-    Felder `Question`, `QType …`, `Q_1` und `Answers` plus `id="qtable"` oder
-    `id="Q_solutions"`; Image Occlusion Enhanced über `Question Mask`,
-    `Answer Mask`, `Original Mask`; AnKing/Ankizin über Lückentyp mit Feld
-    `Text` und `Extra` plus Hinweis-Buttons im Template; (3) sonst K5.3.
-  - **Multiple Choice for Anki:** `QType` 0 = Kprim, 1 = Multiple,
-    2 = Single Choice (belegt in `anki-format-analysis.md`); `Answers` ist
-    eine durch Leerzeichen getrennte 0/1-Maske über die nicht leeren
-    `Q_n`. Noemis Code behandelte nur „2“ als Single Choice; das nicht
-    übernehmen.
-  - **Image Occlusion nativ:** Masken aus dem Feld `Occlusion` parsen
-    (`rect`, `ellipse`, `polygon:points=…`, `text:text=…`, `oi=1` →
-    `alwaysOccluded`). Werte in Anki sind relativ (0–1); `\:` und `\\`
-    entschlüsseln.
-  - **Drehung und Textgröße prüfen (aus Phase 3):** Der Renderer dreht
-    Rechteck und Ellipse um ihre linke obere Ecke und Polygone um die
-    Bildmitte, jeweils in der auf 0–1 gestreckten Maskenfläche; bei nicht
-    quadratischen Bildern verzerrt das gedrehte Masken. Textbeschriftungen
-    nutzen `scale` als Vielfaches der Kartenschrift. Beides mit echten
-    gedrehten Masken und Beschriftungen aus Anki abgleichen und im Renderer
-    korrigieren (Drehung im Bildseitenverhältnis, Ankis Drehpunkt und
-    Schriftgröße).
-  - **Image Occlusion Enhanced:** Jede Notiz ist eine eigene Karte. Statt
-    Masken zu rekonstruieren, werden Bild und Masken-SVGs als Bildverdeckung
-    mit einer Maske übernommen, die das Frage-SVG überlagert. Ist das zu
-    ungenau, den Nutzer fragen.
-  - **AnKing/Ankizin:** Feldrollen nach Feldname; unbekannte Zusatzfelder
-    werden Hinweise. Die Zielquote prüft der Korpus.
-  - **Schließt:** `note.interaction`, `note.choice`, `note.fieldRoles`,
-    `card.front`, `card.back` der Sonderformate.
-- [ ] **K5.3 Generischer Übersetzer.** Für unbekannte Notiztypen leitet der
-      sichere Template-Compiler aus der Struktur ab, welche Felder Frage,
-      Antwort oder Zusatz sind, übernimmt statischen Template-Text als Teil der
-      Frage und wertet Bedingungen aus. Nicht zuordenbare Felder bleiben als
-      Notizfelder sichtbar und werden berichtet.
-  - **Wie:** `compileSafeTemplate` aus `src/safeTemplate.ts` liefert den AST.
-    Felder im Vorderseiten-Template → `prompt`; Felder nur in der Rückseite
-    nach `<hr id=answer>` beziehungsweise nach `{{FrontSide}}` → `answer`; ein
-    zweites Rückseitenfeld → `extra`; nirgends verwendete Felder → `note`.
-    Statischer Text vor dem ersten Feld der Vorderseite wird `instruction` mit
-    `…` an Stelle des Feldes. `{{#Feld}}` auf der Vorderseite → `requires`.
-  - **Schließt:** `note.instruction`.
+- [ ] **K5.2 Drehung und Textgröße der Bildmasken prüfen.** Der Renderer dreht
+      Rechteck und Ellipse um ihre linke obere Ecke und Polygone um die
+      Bildmitte, jeweils in der auf 0–1 gestreckten Maskenfläche; bei nicht
+      quadratischen Bildern verzerrt das gedrehte Masken. Textbeschriftungen
+      nutzen `scale` als Vielfaches der Kartenschrift; Ankis Schriftgröße `fs`
+      wird noch nicht gelesen. Beides mit im Anki-Editor gezeichneten, gedrehten
+      Masken und Beschriftungen abgleichen und im Renderer korrigieren (Drehung
+      im Bildseitenverhältnis, Ankis Drehpunkt und Schriftgröße). Die Matrix
+      kann das nicht belegen, weil ihre Masken als Text erzeugt werden.
 - [ ] **K5.4 Anki-Vorlage speichern und neu übersetzen (5B, im Cutover).**
-      Templates, CSS, Feld- und Konfigurationsdaten je Notiztyp landen
-      unsichtbar in `note_type_sources`; ein Befehl übersetzt bestehende
-      Importe nach einem Übersetzer-Update neu, ohne lokale Inhaltsänderungen
-      oder Lernstand zu überschreiben. Oberfläche nach dem Standard oben,
-      vorher Rückfrage.
-- [ ] **K5.5 Lernstand.** Der rohe Anki-Kartenzustand erreicht jede Karte
-      (heute geht er verloren, siehe Matrix). Heutige Priorität
-      (FSRS-Memory-State, Revlog-Replay, klassischer Status, neu) bleibt; ausgesetzt wird
-      übernommen; begraben verfällt wie in Anki am nächsten Lerntag; Tag
-      `marked` wird zur CoRe-Markierung am Inhalt; Flaggen bleiben als
-      Metadaten an der Karte.
-  - **Ursache des heutigen Fehlers:** `sourceSchedulerData` aus
-    `createAnkiSchedulingSnapshot` landet nicht in `item.meta`, deshalb liefern
-    `migrateAnkiFsrsMemoryState` und `migrateAnkiCardStateHeuristically`
-    nichts. In der neuen Pipeline den Snapshot direkt an die Karte geben und
-    die drei Migrationsfunktionen auf `Card` umschreiben.
-  - **Zuordnung:** `type` 0/1/2/3 → new/learning/review/relearning, `queue -1`
-    → `status: "suspended"`, `queue -2/-3` → nicht ausgesetzt, Zustand aus
-    `type`, `flags & 7` → `ankiFlag`, Tag `marked` (ohne Groß-/Kleinschreibung)
-    → `note.marked = true`; das Tag wird aus `content.tags` entfernt, damit
-    die Markierung genau eine Quelle hat. `data.s`/`data.d` → FSRS-Zustand.
-  - **Schließt:** alle `card.learning.*` und `note.marked`.
-- [ ] **K5.6 Medien.** Namen nach Unicode-NFC, URL- und HTML-Dekodierung
-      normalisieren; eine Mediendatei pro SHA-1; Referenzen je Inhalt; über
-      Template-CSS referenzierte Schriften werden nicht übernommen.
-  - **Wie:** Medienverweise nur aus `src`, `poster` und `[sound:…]`
-    sammeln, nie aus `href`. Vergleich in normalisierter Form; der
-    gespeicherte Feldtext verweist danach auf den normalisierten Namen.
-  - **Schließt:** `card.media`, `package.missingMedia`.
+      `noteTypeSources` aus dem Importgraphen landen unsichtbar in
+      `note_type_sources`; ein Befehl übersetzt bestehende Importe nach einem
+      Übersetzer-Update neu (`translator.version`), ohne lokale
+      Inhaltsänderungen oder Lernstand zu überschreiben. Oberfläche nach dem
+      Standard oben, vorher Rückfrage.
 - [ ] **K5.7 Reimport (5B, im Cutover).** Inhalte über Anki-GUID, Karten über
       Anki-Kartenidentität zuordnen; lokale Inhaltsänderungen, Lernstand,
       Aussetzung, Markierung und Stapelordnung bleiben; neue Lücken erzeugen
       neue Karten; in Anki entfallene Karten werden nur berichtet.
   - **Lokal bearbeitet** heißt: `contentRevision` größer als
-    `importedContentRevision` (K5.1). Speichern ohne inhaltliche Änderung
-    erhöht die Revision nicht (`planNoteContentChange` meldet
-    `changed: false`). Ein Reimport ohne lokale Bearbeitung setzt beide Werte
-    gemeinsam neu.
-- [ ] **K5.8 Große Stapel am Computer.** ZIP und Medien werden streamend
-      verarbeitet; APKG und COLPKG bis mindestens 2 GiB, Worker-Heap höchstens
-      1 GiB, Main-Thread-Übergabe weiter unter 100 ms. Die Grenzen werden mit
-      echten AnKing-/Ankizin-Dateien überprüft, sobald der Korpus bereitsteht.
-  - **Wie:** `.colpkg` in `validateApkgFile` zulassen (gleiches Format);
-    `LOCAL_APKG_MAX_BYTES` auf 2 GiB; Medien einzeln aus dem ZIP lesen und
-    weiterreichen statt das Archiv vollständig zu materialisieren. Messung mit
-    `npm run benchmark:apkg` und einem künstlich vergrößerten Paket.
-  - **Schließt:** `package.import` für `collection-latest`.
-- [ ] **K5.9 Importbericht.** Vorschau und Abschluss zeigen je Notiztyp den
-      Übersetzer, die Anzahl Inhalte und Karten, generisch übersetzte und nicht
-      zuordenbare Felder, fehlende Medien und übernommenen Lernstand.
-  - **5A:** Berichtsinhalt in der Pipeline; veraltete Warnungen entfernen,
-    insbesondere „produktive Medienablage bleibt ein späterer Ausbaupunkt“.
-  - **5B:** Anzeige in `src/screens/ApkgImportPanel.tsx` im Cutover.
-  - **Korpusbericht:** `scripts/reportApkgCorpus.ts` berichtet danach den
-    Übersetzer je Notiztyp statt der heutigen Darstellungsquote.
+    `importedContentRevision`. Speichern ohne inhaltliche Änderung erhöht die
+    Revision nicht (`planNoteContentChange` meldet `changed: false`). Ein
+    Reimport ohne lokale Bearbeitung setzt beide Werte gemeinsam neu.
+- [ ] **K5.8 Großstapel in der App (5B, im Cutover).** Der Worker erhält die
+      `File` statt eines ArrayBuffers und verwendet `readAnkiPackage`; die
+      sichtbare Grenze steigt von 250 MB auf 2 GiB (`ANKI_PACKAGE_MAX_BYTES`
+      ersetzt `LOCAL_APKG_MAX_BYTES`), die Dateiauswahl akzeptiert `.colpkg`.
+      Medienbytes werden erst beim Commit einzeln gelesen und gegen ihre SHA-1
+      geprüft. `specs.md` (Dateigrenzen) und `FileDropField` mitziehen.
+- [ ] **K5.9 Importbericht in der Oberfläche (5B, im Cutover).** Vorschau und
+      Abschluss in `src/screens/ApkgImportPanel.tsx` zeigen aus
+      `report.notetypes` je Notiztyp Übersetzer, Inhalte, Karten, generisch
+      übersetzte und nicht zugeordnete Felder, fehlende Medien und übernommenen
+      Lernstand. Die heutigen Warnungen des Altpfads (etwa „produktive
+      Medienablage bleibt ein späterer Ausbaupunkt“) entfallen mit ihm.
 
-**Prüfung 5A:** `npx tsx --test src/apkgNoteTranslation.test.ts
+**Prüfung:** `npx tsx --test src/apkgNoteTranslation.test.ts
 src/apkgFormatMatrix.test.ts`, `npm run typecheck`, `npm test`,
-`npm run benchmark:apkg`, mit Korpus `npm run report:apkg-corpus`.
+`npm run benchmark:apkg`, `npm run benchmark:apkg:large`, mit Korpus
+`npm run report:apkg-corpus`.
 
-**Abnahme:** Die gesamte Matrix aus Phase 1 ist grün und `KNOWN_GAPS` leer
-(für 5A: alle Lücken außer den an Persistenz gebundenen geschlossen);
-Golden-Flow APKG und Medien-E2E grün (nach dem Cutover); APKG-Benchmark hält
-die Grenzen aus K5.8; mit bereitgestelltem Korpus sind mindestens 95 % der
-Ankizin- und AnKing-Inhalte voll übersetzt und 0 % nicht darstellbar. Fehlt
-der Korpus, bleibt dieser Teil ausdrücklich offen und wird im Phasenbericht so
-benannt.
+**Abnahme (offen):** Golden-Flow APKG und Medien-E2E grün (nach dem Cutover);
+mit bereitgestelltem Korpus sind mindestens 95 % der Ankizin- und
+AnKing-Inhalte voll übersetzt und 0 % nicht darstellbar. Für Ankizin v5 belegt
+(99,9 % Lückentexte über den eigenen Übersetzer, Blickdiagnosen generisch,
+0 % nicht darstellbar; siehe `history.md`). Offen bleiben AnKing, Pakete mit
+realer Bildverdeckung und ein echter Export mit Lernstand und Revlog; der
+Lernstand ist bis dahin nur über die Matrix synthetisch belegt.
 
 ## Phase 4 — Cutover: Datenbank-Baseline, Replica, Sync und App
 
@@ -394,7 +287,7 @@ neuer Importpipeline. Der Altpfad ist gelöscht. Ausgeführt nach Phase 5A auf
 dem Branch `kartenmodell-cutover`.
 
 **Vorgehen in dieser Reihenfolge:** K4.1 → K4.4 → K4.3 → K4.2 → K4.5 → K4.6 →
-K4.7 → K4.9 → K5.4/K5.7/K5.9-Oberfläche → K4.10 → K4.11 → Gates → K4.8 nach
+K4.7 → K4.9 → K5.4/K5.7/K5.8/K5.9 (App) → K4.10 → K4.11 → Gates → K4.8 nach
 Freigabe.
 
 - [ ] **K4.1 Neue Baseline.** Eine einzige frische Migration ersetzt die
@@ -502,13 +395,22 @@ Freigabe.
   - **KI-Varianten:** Die Route `api/ai/card-variant.ts` bleibt unverändert
     (`{ front, back }`); Quelle sind die Klartexte von Frage und Antwort der
     Karte.
+  - **Import-Commit:** Der Worker übersetzt mit `readAnkiPackage` und
+    `translateAnkiPackage`; Stapel (`ImportDeck`), Inhalte, Karten,
+    Reviewereignisse (`ImportReviewEvent` mit `cardId`) und `noteTypeSources`
+    werden in begrenzten Chunks persistiert, Medien je SHA-1 aus `mediaFiles`
+    hochgeladen und über `noteContentMediaRefs` mit Inhalten verknüpft.
 - [ ] **K4.10 Altpfad löschen.** `LearningItem`, `LearningItemDocumentV1`,
       `NoteTypeDefinitionV1`, `CardType`, `EditableCardType`, typspezifische
       Editorwerte, `originalFront`/`originalBack`/`originalFields`/
       `originalHtml`/`canonical*`, `src/cardPresentation.ts`,
       `src/ankiContentModel.ts`, `src/coreModel/learningItemContent.ts`,
       `src/coreModel/learningItemDocument.ts` und `sanitizeCardHtml` (sofern
-      unbenutzt) entfallen. Prüfen mit
+      unbenutzt) entfallen. In `src/apkgImportInternal.ts` entfallen die
+      Abbildung ab `mapAnkiApkgToNormalizedDeck` samt Hierarchie-, Bericht-,
+      Revlog- und Merge-Helfern, `readApkgPackage`, `parseAnkiMedia` mit den
+      materialisierenden Medienbündeln und `LOCAL_APKG_MAX_BYTES`; der Benchmark
+      misst danach nur noch die Note-Übersetzung. Prüfen mit
       `grep -rnE "LearningItem|CardType|cardPresentation" src scripts api tests`:
       keine Treffer. AGENTS.md-Begriffe („Learning Item“) mitziehen.
 - [ ] **K4.11 Testinfrastruktur auf die Matrix umstellen.** E2E-Specs, die
@@ -633,7 +535,7 @@ Diese Punkte entstanden beim Review des Renderers und gehören keiner späteren
 Phase an. Sie werden vor dem Cutover (Phase 4) mit dem Nutzer entschieden, weil
 sie danach im echten Review sichtbar sind. Bereits einer Phase zugeordnet sind:
 Performance-Abnahme und Gerätenachweise (Phase 3, offene Abnahme), Drehung und
-Textgröße der Bildmasken (K5.2), Textvergleiche der Matrix (K5.0).
+Textgröße der Bildmasken (K5.2).
 
 - [ ] **Marker-Hintergründe im Dark Mode.** Feld-HTML mit
       `background-color` (Anki-Textmarker) bleibt unverändert; Textfarben
@@ -650,5 +552,5 @@ Textgröße der Bildmasken (K5.2), Textvergleiche der Matrix (K5.0).
       bleibt beim Nutzer.
 - [ ] **Bildbeschreibung der Bildverdeckung.** Das Bild trägt pauschal den
       Alternativtext „Bild mit verdeckten Bereichen“. Entscheiden, ob der
-      Übersetzer (K5.2) einen vorhandenen Alt-Text oder Dateinamen übernimmt
+      Übersetzer einen vorhandenen Alt-Text oder Dateinamen übernimmt
       oder ob der Editor (K6.5) eine Beschreibung erfasst.
