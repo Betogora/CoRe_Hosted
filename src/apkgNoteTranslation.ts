@@ -12,13 +12,12 @@ import type {
   RevealPrompt,
   ReviewRating,
   ReviewSchedulerState,
-  SafeTemplateAstNode,
 } from "./coreTypes.ts";
 import { makeId, stableContentHash } from "./coreModel/coreValues.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
-import { cardStudyFromReviewState, createNote } from "./coreModel/notes.ts";
-import { createReviewState } from "./coreModel/reviewState.ts";
-import { compileSafeTemplate } from "./safeTemplate.ts";
+import { createNote } from "./coreModel/notes.ts";
+import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
+import { compileSafeTemplate, type SafeTemplateAstNode } from "./safeTemplate.ts";
 import { scheduleWithFsrs } from "./scheduler.ts";
 
 // ADR-033: versioned translators turn Anki note types into the universal CoRe content.
@@ -645,7 +644,6 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     difficulty: Math.min(10, Math.max(1, memoryState.difficulty)),
     ...(memoryState.desiredRetention ? { desiredRetention: memoryState.desiredRetention } : {}),
     reps,
-    repetitions: reps,
     lapses: Math.max(0, Number(ankiCard.lapses ?? 0)),
     lastReviewedAt: memoryState.lastReviewedAt,
     sourceSchedulerData: {
@@ -757,6 +755,8 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
     else historyByCard.set(entry.cardId, [entry]);
   }
   const media = mediaResolver(pkg.media.files);
+  // Field text references canonical names after `media.rewrite`; each note keeps the SHA-1 of the names it uses.
+  const mediaSha1ByName = Object.fromEntries([...media.canonical].map((file) => [file.name, file.sha1]));
   const plans = new Map<string, { model: AnkiModel; plan: NotetypePlan; source: NoteTypeSource; report: ApkgNotetypeReport }>();
   const planFor = (notetypeId: string) => {
     const known = plans.get(notetypeId);
@@ -814,6 +814,7 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
     const createdMs = Number(ankiNote.id);
     const input = {
       deckId: deckIdForAnkiDeck(homeDeck(ankiCards[0])),
+      media: mediaSha1ByName,
       source: "anki-apkg" as const,
       ankiGuid: String(ankiNote.guid ?? "") || null,
       noteTypeSourceId: entry.source.id,
@@ -903,4 +904,69 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
       errors: notes.length ? [] : ["Keine importierbaren Anki-Inhalte mit Karten erkannt."],
     },
   };
+}
+
+// --- Commit stream (K5.8) -----------------------------------------------------------------
+
+const NOTE_CHUNK_SIZE = 250;
+const REVIEW_CHUNK_SIZE = 500;
+
+async function sha1Hex(bytes: Uint8Array): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest("SHA-1", bytes as BufferSource);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** Preview of a translated package: report, five sample cards and the counts the commit will stream. */
+export function describeImportGraph(graph: ApkgImportGraph) {
+  const notesById = new Map(graph.notes.map((note) => [note.id, note]));
+  const samples: Array<{ note: Note; card: Card }> = [];
+  for (const card of graph.cards) {
+    const note = notesById.get(card.noteId);
+    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card });
+    if (samples.length >= 5) break;
+  }
+  return {
+    rootDeckName: graph.decks.find((deck) => deck.parentDeckId === null)?.name ?? "Anki-Import",
+    report: graph.report,
+    samples,
+    counts: {
+      deckCount: graph.decks.length,
+      noteCount: graph.notes.length,
+      cardCount: graph.cards.length,
+      reviewEventCount: graph.reviewEvents.length,
+      mediaCount: graph.mediaFiles.length,
+      ankiGuids: graph.notes.flatMap((note) => note.ankiGuid ? [note.ankiGuid] : []),
+    },
+  };
+}
+
+/**
+ * Streams the graph in bounded chunks: decks, templates, notes with their sources and cards, review events and
+ * finally each media file, read only now from the archive and checked against its SHA-1.
+ */
+export async function* createImportGraphChunks(graph: ApkgImportGraph) {
+  yield { kind: "decks" as const, decks: graph.decks };
+  yield { kind: "note-type-sources" as const, values: graph.noteTypeSources };
+  const cardsByNote = new Map<string, Card[]>();
+  for (const card of graph.cards) cardsByNote.set(card.noteId, [...(cardsByNote.get(card.noteId) ?? []), card]);
+  const sourcesByNote = new Map(graph.noteSources.map((source) => [source.noteId, source]));
+  for (let offset = 0; offset < graph.notes.length; offset += NOTE_CHUNK_SIZE) {
+    const notes = graph.notes.slice(offset, offset + NOTE_CHUNK_SIZE);
+    yield {
+      kind: "notes" as const,
+      notes,
+      noteSources: notes.flatMap((note) => sourcesByNote.has(note.id) ? [sourcesByNote.get(note.id)!] : []),
+      cards: notes.flatMap((note) => cardsByNote.get(note.id) ?? []),
+    };
+  }
+  for (let offset = 0; offset < graph.reviewEvents.length; offset += REVIEW_CHUNK_SIZE) {
+    yield { kind: "reviews" as const, values: graph.reviewEvents.slice(offset, offset + REVIEW_CHUNK_SIZE) };
+  }
+  for (const file of graph.mediaFiles) {
+    const bytes = await file.readBytes();
+    if (bytes.length !== file.size && file.size > 0 || await sha1Hex(bytes) !== file.sha1) {
+      throw new Error(`Die Mediendatei „${file.name}“ ist beschädigt.`);
+    }
+    yield { kind: "media" as const, file: { name: file.name, sha1: file.sha1, size: bytes.length, mimeType: file.mimeType, bytes } };
+  }
 }

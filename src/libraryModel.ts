@@ -1,4 +1,3 @@
-import { stripHtml } from "./htmlSafety.ts";
 import { listReviewableCards, summarizeDeckReview } from "./scheduler.ts";
 import { createDailyReviewQueue, type DailyReviewProgressSummary } from "./reviewService.ts";
 import {
@@ -7,7 +6,8 @@ import {
   getStudyHeatmapDayKey,
 } from "./studyHeatmapModel.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
-import type { CoreMode, Deck, LearningItem } from "./coreTypes.ts";
+import type { CoreMode, Deck, Note } from "./coreTypes.ts";
+import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 
 export { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
@@ -28,6 +28,8 @@ interface LibraryOptions {
   cardPageSize?: number;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   studyHeatmap?: ReturnType<typeof createStudyHeatmapModelFromCounts>;
+  /** Contents of locally loaded cards; without one, a card row shows its catalog preview. */
+  notesById?: ReadonlyMap<string, Note>;
 }
 export interface DeckLibrarySummary {
   inventory: ReturnType<typeof summarizeDeckReview>;
@@ -68,7 +70,6 @@ export const DEFAULT_CARD_TABLE_SORT: CardTableSort = { field: "sortField", dire
 export const CARD_TABLE_PAGE_SIZE = 50;
 const cardSortCollator = new Intl.Collator("de-DE", { sensitivity: "base" });
 const cardDueDateFormatter = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
-const cardSearchTextCache = new WeakMap<LearningItem, { frontPreview: string; backPreview: string; searchText: string }>();
 
 const REVIEW_RATINGS = new Set(["again", "hard", "good", "easy"]);
 
@@ -89,24 +90,6 @@ function createDeckStatusDistribution(summary: ReturnType<typeof summarizeDeckRe
   };
 }
 
-function previewText(value: unknown): string {
-  return stripHtml(value).replace(/\s+/g, " ").trim() || "Leere Karte";
-}
-
-function cardSearchProjection(card: LearningItem) {
-  const cached = cardSearchTextCache.get(card);
-  if (cached) return cached;
-  const frontPreview = previewText(card.originalFront);
-  const backPreview = previewText(card.originalBack);
-  const projection = {
-    frontPreview,
-    backPreview,
-    searchText: normalizeQuery(`${frontPreview} ${backPreview} ${card.tags?.join(" ") ?? ""}`),
-  };
-  cardSearchTextCache.set(card, projection);
-  return projection;
-}
-
 function createDeckRow(
   deck: Deck,
   { now, cardLimit, depth = 0, childrenCount = 0, dayStartHour = 0, learnAheadMinutes = 20, timeZone, summary }: {
@@ -120,7 +103,6 @@ function createDeckRow(
     summary?: DeckLibrarySummary;
   },
 ) {
-  const activeCards = summary ? [] : listReviewableCards(deck);
   const dayOptions = { dayStartHour, learnAheadMinutes, timeZone };
   const directInventory = summary?.inventory ?? summarizeDeckReview(deck, now, dayOptions);
   const directQueue = summary ? null : createDailyReviewQueue(deck, { deckId: deck.id, now, ...dayOptions });
@@ -156,51 +138,34 @@ function createDeckRow(
       introducedTodayCount: summary?.introducedTodayCount ?? directQueue!.newCardsIntroducedToday,
     } satisfies DailyLearningSession,
     dailyLearningDateKey: summary?.dateKey ?? directQueue!.dateKey,
-    activeCards,
-    cardRows: activeCards.slice(0, cardLimit).map((card) => ({
-      id: card.id,
-      card,
-      frontPreview: previewText(card.originalFront),
-      kind: card.kind,
-      maturityBand: card.reviewState?.maturityBand ?? "new",
-    })),
   };
 }
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-export function createCardTableRow(card: LearningItem, options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> = {}) {
-  const nextStudyTimestamp = cardNextStudyTimestamp(card, options);
-  const hasActiveVariants = cardHasActiveVariants(card);
-
+export function createCardTableRow(entry: CardCatalogEntry, options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> = {}) {
+  const nextStudyTimestamp = cardNextStudyTimestamp(entry, options);
   return {
-    id: card.id,
-    card,
-    ...cardSearchProjection(card),
+    id: entry.id,
+    entry,
+    frontPreview: entry.frontPreview.replace(/\s+/g, " ").trim() || "Leere Karte",
     nextStudyTimestamp,
     nextStudyLabel: Number.isFinite(nextStudyTimestamp) ? cardDueDateFormatter.format(nextStudyTimestamp) : "Neu",
-    hasActiveVariants,
+    hasActiveVariants: entry.hasActiveVariants,
   };
 }
 
-function cardNextStudyTimestamp(card: LearningItem, options: Pick<LibraryOptions, "dayStartHour" | "timeZone">): number {
-  const isNew = card.reviewState?.state === "new";
-  const parsedDue = Date.parse(card.reviewState?.dueAt ?? "");
-  const dueDayKey = !isNew && Number.isFinite(parsedDue)
+function cardNextStudyTimestamp(entry: Pick<CardCatalogEntry, "scheduleState" | "dueAt">, options: Pick<LibraryOptions, "dayStartHour" | "timeZone">): number {
+  const parsedDue = Date.parse(entry.dueAt ?? "");
+  const dueDayKey = entry.scheduleState !== "new" && Number.isFinite(parsedDue)
     ? getStudyHeatmapDayKey(parsedDue, options.timeZone, options.dayStartHour)
     : null;
   return dueDayKey ? Date.parse(`${dueDayKey}T12:00:00.000Z`) : Number.POSITIVE_INFINITY;
 }
-
-function cardHasActiveVariants(card: LearningItem): boolean {
-  if (card.meta?.catalogOnly === true) return card.meta.catalogHasActiveVariants === true;
-  return (card.variants ?? []).some((variant) => (
-    variant.isActive !== false && variant.qualityStatus === "active"
-  ));
-}
 export type CardTableRow = ReturnType<typeof createCardTableRow>;
 
-export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & {
+export type CardTableGroup = DeckLibraryRow & {
+  entries: CardCatalogEntry[];
   cardRows: CardTableRow[];
   totalCardCount: number;
   page: number;
@@ -210,7 +175,7 @@ export type CardTableGroup = Omit<DeckLibraryRow, "cardRows"> & {
 };
 
 function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
-  const haystack = normalizeQuery(`${row.name} ${row.deck.tags?.join(" ") ?? ""} ${row.path}`);
+  const haystack = normalizeQuery(`${row.name} ${row.path}`);
   const matchesQuery = !query || haystack.includes(query);
   const matchesMode = coreMode === "all" || row.coreMode === coreMode;
 
@@ -233,19 +198,17 @@ function combineInventory(summaries: DeckInventorySummary[]): DeckInventorySumma
   };
 }
 
-function sortCards(cards: LearningItem[], sort: CardTableSort, options: Pick<LibraryOptions, "dayStartHour" | "timeZone">): LearningItem[] {
+function sortEntries(entries: CardCatalogEntry[], sort: CardTableSort, options: Pick<LibraryOptions, "dayStartHour" | "timeZone">): CardCatalogEntry[] {
   const direction = sort.direction === "desc" ? -1 : 1;
-  return [...cards].sort((left, right) => {
-    if (sort.field === "sortField") {
-      return cardSortCollator.compare(cardSearchProjection(left).frontPreview, cardSearchProjection(right).frontPreview) * direction;
-    }
+  return [...entries].sort((left, right) => {
+    if (sort.field === "sortField") return cardSortCollator.compare(left.frontPreview, right.frontPreview) * direction;
     if (sort.field === "nextStudyDate") {
       const leftTimestamp = cardNextStudyTimestamp(left, options);
       const rightTimestamp = cardNextStudyTimestamp(right, options);
       const comparison = leftTimestamp === rightTimestamp ? 0 : leftTimestamp - rightTimestamp;
       return comparison * direction;
     }
-    return (Number(cardHasActiveVariants(left)) - Number(cardHasActiveVariants(right))) * direction;
+    return (Number(left.hasActiveVariants) - Number(right.hasActiveVariants)) * direction;
   });
 }
 
@@ -476,18 +439,28 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
   const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(options.cardPageSize ?? CARD_TABLE_PAGE_SIZE)));
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit: 0, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone, deckSummaries: options.deckSummaries });
+  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
   const allGroups: CardTableGroup[] = rows.map((row) => {
     const deckMatches = Boolean(query) && normalizeQuery(row.path).includes(query);
-    const matchingCards = !query || deckMatches
-      ? row.activeCards
-      : row.activeCards.filter((card) => cardSearchProjection(card).searchText.includes(query));
-    const pageCount = Math.max(1, Math.ceil(matchingCards.length / pageSize));
+    const entries = listReviewableCards(deckById.get(row.id) ?? row.deck)
+      .map((card) => catalogEntryFromCard(card, options.notesById?.get(card.noteId) ?? null));
+    const matchingEntries = !query || deckMatches
+      ? entries
+      : entries.filter((entry) => entry.normalizedSearchText.includes(query));
+    const pageCount = Math.max(1, Math.ceil(matchingEntries.length / pageSize));
     const requestedPage = Math.max(0, Math.floor(options.cardPageByDeckId?.[row.id] ?? 0));
     const page = Math.min(requestedPage, pageCount - 1);
-    const cardRows = sortCards(matchingCards, cardSort, options)
-      .slice(page * pageSize, (page + 1) * pageSize)
-      .map((card) => createCardTableRow(card, options));
-    return { ...row, cardRows, totalCardCount: matchingCards.length, page, pageCount, pageSize, deckMatches };
+    const pageEntries = sortEntries(matchingEntries, cardSort, options).slice(page * pageSize, (page + 1) * pageSize);
+    return {
+      ...row,
+      entries: pageEntries,
+      cardRows: pageEntries.map((entry) => createCardTableRow(entry, options)),
+      totalCardCount: matchingEntries.length,
+      page,
+      pageCount,
+      pageSize,
+      deckMatches,
+    };
   });
   const groups = allGroups.filter((group) => (
     (coreMode === "all" || group.coreMode === coreMode)

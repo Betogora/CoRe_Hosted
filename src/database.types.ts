@@ -18,19 +18,16 @@ export type Database = {
           deck_id: string
           deleted_at: string | null
           dependency_revision: number
-          difficulty: number
           due_at: string | null
           front_preview: string
           has_active_variants: boolean
           id: string
-          interval_days: number
-          last_reviewed_at: string | null
           maturity_band: string
-          normalized_search_text: string
+          note_id: string
           reviewable: boolean
           schedule_state: string
           sort_text: string
-          stability: number
+          study_revision: number
           sync_change_id: number
           updated_at: string
           user_id: string
@@ -43,19 +40,16 @@ export type Database = {
           deck_id: string
           deleted_at?: string | null
           dependency_revision?: number
-          difficulty?: number
           due_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
           id: string
-          interval_days?: number
-          last_reviewed_at?: string | null
           maturity_band?: string
-          normalized_search_text?: string
+          note_id: string
           reviewable?: boolean
           schedule_state?: string
           sort_text?: string
-          stability?: number
+          study_revision?: number
           sync_change_id: number
           updated_at?: string
           user_id: string
@@ -68,19 +62,16 @@ export type Database = {
           deck_id?: string
           deleted_at?: string | null
           dependency_revision?: number
-          difficulty?: number
           due_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
           id?: string
-          interval_days?: number
-          last_reviewed_at?: string | null
           maturity_band?: string
-          normalized_search_text?: string
+          note_id?: string
           reviewable?: boolean
           schedule_state?: string
           sort_text?: string
-          stability?: number
+          study_revision?: number
           sync_change_id?: number
           updated_at?: string
           user_id?: string
@@ -88,17 +79,17 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "card_catalog_card_owner_fk"
-            columns: ["id", "user_id"]
+            columns: ["user_id", "id"]
             isOneToOne: true
             referencedRelation: "cards"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
           {
             foreignKeyName: "card_catalog_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
+            columns: ["user_id", "deck_id"]
             isOneToOne: false
             referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -122,14 +113,11 @@ export type Database = {
           quality_status: string
           revision: number
           semantic_delta: string | null
-          sync_change_id: number
           transform_profile: Json
-          transform_type: string
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
           variant_level: number
-          variant_type: string
         }
         Insert: {
           back?: string
@@ -150,14 +138,11 @@ export type Database = {
           quality_status?: string
           revision?: number
           semantic_delta?: string | null
-          sync_change_id?: number
           transform_profile?: Json
-          transform_type?: string
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
           variant_level?: number
-          variant_type?: string
         }
         Update: {
           back?: string
@@ -178,112 +163,103 @@ export type Database = {
           quality_status?: string
           revision?: number
           semantic_delta?: string | null
-          sync_change_id?: number
           transform_profile?: Json
-          transform_type?: string
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
           variant_level?: number
-          variant_type?: string
         }
         Relationships: [
           {
             foreignKeyName: "card_variants_card_owner_fk"
-            columns: ["card_id", "user_id"]
+            columns: ["user_id", "card_id"]
             isOneToOne: false
             referencedRelation: "cards"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
       cards: {
         Row: {
-          content_document: Json
-          content_hash: string | null
-          content_revision: number
-          core_state: Json
+          anki_card_id: string | null
+          anki_flag: number
           created_at: string
           deck_id: string
           deleted_at: string | null
-          draft_status: string
+          difficulty: number
+          due_at: string
           id: string
-          kind: string
-          media_refs: string[]
-          meta: Json
-          note_type_definition_id: string | null
-          original_back: string
-          original_fields: Json
-          original_front: string
-          original_html: string
-          original_tags: string[]
-          projection: Json
-          review_state: Json
+          interval_days: number
+          lapses: number
+          last_rating: string | null
+          last_reviewed_at: string | null
+          learning_step_index: number
+          note_id: string
+          prompt_key: string
+          reps: number
           revision: number
-          source: string
-          source_card_id: string | null
+          source_scheduler: Json | null
+          stability: number
+          state: string
           status: string
-          sync_change_id: number
+          study_extra: Json
+          study_revision: number
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
         }
         Insert: {
-          content_document?: Json
-          content_hash?: string | null
-          content_revision?: number
-          core_state?: Json
+          anki_card_id?: string | null
+          anki_flag?: number
           created_at?: string
           deck_id: string
           deleted_at?: string | null
-          draft_status?: string
+          difficulty?: number
+          due_at: string
           id: string
-          kind: string
-          media_refs?: string[]
-          meta?: Json
-          note_type_definition_id?: string | null
-          original_back?: string
-          original_fields?: Json
-          original_front?: string
-          original_html?: string
-          original_tags?: string[]
-          projection?: Json
-          review_state?: Json
+          interval_days?: number
+          lapses?: number
+          last_rating?: string | null
+          last_reviewed_at?: string | null
+          learning_step_index?: number
+          note_id: string
+          prompt_key: string
+          reps?: number
           revision?: number
-          source: string
-          source_card_id?: string | null
+          source_scheduler?: Json | null
+          stability?: number
+          state?: string
           status?: string
-          sync_change_id?: number
+          study_extra?: Json
+          study_revision?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
         }
         Update: {
-          content_document?: Json
-          content_hash?: string | null
-          content_revision?: number
-          core_state?: Json
+          anki_card_id?: string | null
+          anki_flag?: number
           created_at?: string
           deck_id?: string
           deleted_at?: string | null
-          draft_status?: string
+          difficulty?: number
+          due_at?: string
           id?: string
-          kind?: string
-          media_refs?: string[]
-          meta?: Json
-          note_type_definition_id?: string | null
-          original_back?: string
-          original_fields?: Json
-          original_front?: string
-          original_html?: string
-          original_tags?: string[]
-          projection?: Json
-          review_state?: Json
+          interval_days?: number
+          lapses?: number
+          last_rating?: string | null
+          last_reviewed_at?: string | null
+          learning_step_index?: number
+          note_id?: string
+          prompt_key?: string
+          reps?: number
           revision?: number
-          source?: string
-          source_card_id?: string | null
+          source_scheduler?: Json | null
+          stability?: number
+          state?: string
           status?: string
-          sync_change_id?: number
+          study_extra?: Json
+          study_revision?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
@@ -291,17 +267,17 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cards_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
+            columns: ["user_id", "deck_id"]
             isOneToOne: false
             referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
           {
-            foreignKeyName: "cards_note_type_definition_owner_fk"
-            columns: ["note_type_definition_id", "user_id"]
+            foreignKeyName: "cards_note_owner_fk"
+            columns: ["user_id", "note_id"]
             isOneToOne: false
-            referencedRelation: "note_type_definitions"
-            referencedColumns: ["id", "user_id"]
+            referencedRelation: "notes"
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -348,186 +324,286 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "deck_study_summaries_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
-            isOneToOne: false
+            columns: ["user_id", "deck_id"]
+            isOneToOne: true
             referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
       decks: {
         Row: {
-          card_count: number
+          anki_deck_id: string | null
           created_at: string
           deck_settings: Json
           deleted_at: string | null
           description: string
           hierarchy_path: string[]
           id: string
-          import_meta: Json
-          local_owner_id: string | null
           name: string
-          original_deck_id: string | null
           parent_deck_id: string | null
           revision: number
           source: string
           sync_change_id: number
-          tags: string[]
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
         }
         Insert: {
-          card_count?: number
+          anki_deck_id?: string | null
           created_at?: string
           deck_settings?: Json
           deleted_at?: string | null
           description?: string
           hierarchy_path?: string[]
           id: string
-          import_meta?: Json
-          local_owner_id?: string | null
           name: string
-          original_deck_id?: string | null
           parent_deck_id?: string | null
           revision?: number
           source: string
           sync_change_id?: number
-          tags?: string[]
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
         }
         Update: {
-          card_count?: number
+          anki_deck_id?: string | null
           created_at?: string
           deck_settings?: Json
           deleted_at?: string | null
           description?: string
           hierarchy_path?: string[]
           id?: string
-          import_meta?: Json
-          local_owner_id?: string | null
           name?: string
-          original_deck_id?: string | null
           parent_deck_id?: string | null
           revision?: number
           source?: string
           sync_change_id?: number
-          tags?: string[]
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
         }
         Relationships: []
       }
-      media_assets: {
+      media_files: {
         Row: {
-          card_id: string | null
           created_at: string
-          deck_id: string | null
-          deleted_at: string | null
-          id: string
-          metadata: Json
           mime_type: string
           original_name: string
           sha1: string
           size: number
-          source: string
-          storage_bucket: string
           storage_path: string
-          updated_at: string
           user_id: string
         }
         Insert: {
-          card_id?: string | null
           created_at?: string
-          deck_id?: string | null
-          deleted_at?: string | null
-          id: string
-          metadata?: Json
           mime_type?: string
           original_name: string
           sha1: string
-          size?: number
-          source?: string
-          storage_bucket?: string
+          size: number
           storage_path: string
-          updated_at?: string
           user_id: string
         }
         Update: {
-          card_id?: string | null
           created_at?: string
-          deck_id?: string | null
-          deleted_at?: string | null
-          id?: string
-          metadata?: Json
           mime_type?: string
           original_name?: string
           sha1?: string
           size?: number
-          source?: string
-          storage_bucket?: string
           storage_path?: string
-          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      note_media: {
+        Row: {
+          note_id: string
+          sha1: string
+          user_id: string
+        }
+        Insert: {
+          note_id: string
+          sha1: string
+          user_id: string
+        }
+        Update: {
+          note_id?: string
+          sha1?: string
           user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "media_assets_card_deck_owner_fk"
-            columns: ["card_id", "deck_id", "user_id"]
+            foreignKeyName: "note_media_note_owner_fk"
+            columns: ["user_id", "note_id"]
             isOneToOne: false
-            referencedRelation: "cards"
-            referencedColumns: ["id", "deck_id", "user_id"]
-          },
-          {
-            foreignKeyName: "media_assets_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
-            isOneToOne: false
-            referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
+            referencedRelation: "notes"
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
-      note_type_definitions: {
+      note_sources: {
         Row: {
+          created_at: string
+          deleted_at: string | null
+          fields: Json
+          id: string
+          note_type_source_id: string
+          revision: number
+          updated_at: string
+          updated_by_device_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          fields?: Json
+          id: string
+          note_type_source_id: string
+          revision?: number
+          updated_at?: string
+          updated_by_device_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          fields?: Json
+          id?: string
+          note_type_source_id?: string
+          revision?: number
+          updated_at?: string
+          updated_by_device_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_sources_note_owner_fk"
+            columns: ["user_id", "id"]
+            isOneToOne: true
+            referencedRelation: "notes"
+            referencedColumns: ["user_id", "id"]
+          },
+          {
+            foreignKeyName: "note_sources_note_type_source_owner_fk"
+            columns: ["user_id", "note_type_source_id"]
+            isOneToOne: false
+            referencedRelation: "note_type_sources"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
+      note_type_sources: {
+        Row: {
+          anki_notetype_id: string
           created_at: string
           definition: Json
           deleted_at: string | null
           id: string
           name: string
           revision: number
-          sync_change_id: number
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
         }
         Insert: {
+          anki_notetype_id: string
           created_at?: string
           definition?: Json
           deleted_at?: string | null
           id: string
           name: string
           revision?: number
-          sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
         }
         Update: {
+          anki_notetype_id?: string
           created_at?: string
           definition?: Json
           deleted_at?: string | null
           id?: string
           name?: string
           revision?: number
-          sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
         }
         Relationships: []
+      }
+      notes: {
+        Row: {
+          anki_guid: string | null
+          content: Json
+          content_revision: number
+          created_at: string
+          deleted_at: string | null
+          id: string
+          imported_content_revision: number | null
+          marked: boolean
+          media: Json
+          note_type_source_id: string | null
+          revision: number
+          search_text: string
+          sort_text: string
+          source: string
+          translator_id: string | null
+          translator_version: number | null
+          updated_at: string
+          updated_by_device_id: string | null
+          user_id: string
+        }
+        Insert: {
+          anki_guid?: string | null
+          content: Json
+          content_revision?: number
+          created_at?: string
+          deleted_at?: string | null
+          id: string
+          imported_content_revision?: number | null
+          marked?: boolean
+          media?: Json
+          note_type_source_id?: string | null
+          revision?: number
+          search_text?: string
+          sort_text?: string
+          source: string
+          translator_id?: string | null
+          translator_version?: number | null
+          updated_at?: string
+          updated_by_device_id?: string | null
+          user_id: string
+        }
+        Update: {
+          anki_guid?: string | null
+          content?: Json
+          content_revision?: number
+          created_at?: string
+          deleted_at?: string | null
+          id?: string
+          imported_content_revision?: number | null
+          marked?: boolean
+          media?: Json
+          note_type_source_id?: string | null
+          revision?: number
+          search_text?: string
+          sort_text?: string
+          source?: string
+          translator_id?: string | null
+          translator_version?: number | null
+          updated_at?: string
+          updated_by_device_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notes_note_type_source_owner_fk"
+            columns: ["user_id", "note_type_source_id"]
+            isOneToOne: false
+            referencedRelation: "note_type_sources"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -568,6 +644,7 @@ export type Database = {
       review_events: {
         Row: {
           answered_at: string
+          card_id: string
           created_at: string
           created_by_device_id: string | null
           deck_id: string
@@ -576,20 +653,18 @@ export type Database = {
           rating: string
           response_time_ms: number | null
           retention_first: boolean
-          reviewable_id: string
-          reviewable_type: string
           scheduler_after: Json | null
           scheduler_before: Json | null
-          source_card_id: string | null
           statistics_category: string
           statistics_day: string
           statistics_hour: number
           statistics_interval_days: number
-          sync_change_id: number
           user_id: string
+          variant_id: string | null
         }
         Insert: {
-          answered_at?: string
+          answered_at: string
+          card_id: string
           created_at?: string
           created_by_device_id?: string | null
           deck_id: string
@@ -598,20 +673,18 @@ export type Database = {
           rating: string
           response_time_ms?: number | null
           retention_first?: boolean
-          reviewable_id: string
-          reviewable_type: string
           scheduler_after?: Json | null
           scheduler_before?: Json | null
-          source_card_id?: string | null
           statistics_category?: string
           statistics_day?: string
           statistics_hour?: number
           statistics_interval_days?: number
-          sync_change_id?: number
           user_id: string
+          variant_id?: string | null
         }
         Update: {
           answered_at?: string
+          card_id?: string
           created_at?: string
           created_by_device_id?: string | null
           deck_id?: string
@@ -620,25 +693,29 @@ export type Database = {
           rating?: string
           response_time_ms?: number | null
           retention_first?: boolean
-          reviewable_id?: string
-          reviewable_type?: string
           scheduler_after?: Json | null
           scheduler_before?: Json | null
-          source_card_id?: string | null
           statistics_category?: string
           statistics_day?: string
           statistics_hour?: number
           statistics_interval_days?: number
-          sync_change_id?: number
           user_id?: string
+          variant_id?: string | null
         }
         Relationships: [
           {
+            foreignKeyName: "review_events_card_owner_fk"
+            columns: ["user_id", "card_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["user_id", "id"]
+          },
+          {
             foreignKeyName: "review_events_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
+            columns: ["user_id", "deck_id"]
             isOneToOne: false
             referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -718,10 +795,10 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "review_statistics_daily_deck_owner_fk"
-            columns: ["deck_id", "user_id"]
+            columns: ["user_id", "deck_id"]
             isOneToOne: false
             referencedRelation: "decks"
-            referencedColumns: ["id", "user_id"]
+            referencedColumns: ["user_id", "id"]
           },
         ]
       }
@@ -812,10 +889,11 @@ export type Database = {
         Args: { p_deck_id: string; p_deleted_at?: string; p_device_id?: string }
         Returns: Json
       }
-      get_account_bootstrap_v2: {
+      get_account_bootstrap: {
         Args: { p_cursor?: string; p_limit?: number; p_max_bytes?: number }
         Returns: Json
       }
+      get_account_due_forecast: { Args: never; Returns: Json }
       get_account_statistics: {
         Args: {
           p_day_start_hour?: number
@@ -827,10 +905,18 @@ export type Database = {
         Returns: Json
       }
       get_deck_offline_manifest: {
-        Args: { p_cursor?: string; p_deck_id: string; p_limit?: number }
+        Args: {
+          p_cursor?: string
+          p_deck_id: string
+          p_include_total?: boolean
+          p_limit?: number
+        }
         Returns: Json
       }
-      hydrate_account_cards: { Args: { p_card_ids: string[] }; Returns: Json }
+      hydrate_account_cards: {
+        Args: { p_card_ids: string[]; p_note_ids?: string[] }
+        Returns: Json
+      }
       list_account_card_catalog: {
         Args: {
           p_cursor?: Json
@@ -843,19 +929,22 @@ export type Database = {
         }
         Returns: Json
       }
+      list_releasable_media: { Args: { p_limit?: number }; Returns: Json }
+      list_retranslation_candidates: {
+        Args: { p_current_versions: Json; p_cursor?: string; p_limit?: number }
+        Returns: Json
+      }
       pull_account_catalog_delta: {
         Args: { p_cursor?: number; p_limit?: number; p_max_bytes?: number }
         Returns: Json
       }
       record_review_atomic: {
         Args: {
-          p_card_core_state: Json
           p_card_id: string
-          p_card_review_state: Json
           p_card_updated_at: string
-          p_deck_id: string
           p_device_id: string
           p_event: Json
+          p_study: Json
           p_variant_id: string
           p_variant_performance: Json
           p_variant_updated_at: string

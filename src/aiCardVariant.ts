@@ -10,16 +10,16 @@ import {
   parseAiCardVariantSuccess,
   type AiCardVariantSuccess,
 } from "./aiCardVariantContract.ts";
-import { getCardContentPayload } from "./coreModel.ts";
-import type { CardContentPayload, LearningItem } from "./coreTypes.ts";
+import { cardVariantSource } from "./coreVariantService.ts";
+import type { Card, Note } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 
 export async function requestAiCardVariant(
-  payload: CardContentPayload,
+  source: { front: string; back: string } | null,
   supabase: SupabaseClient<Database> | null,
   fetchImpl: typeof fetch = globalThis.fetch,
 ): Promise<AiCardVariantSuccess> {
-  const request = createAiCardVariantRequest(payload);
+  const request = createAiCardVariantRequest(source);
   if (!supabase) throw new AiCardVariantContractError("auth_unavailable", "Die Anmeldung ist noch nicht bereit.");
 
   const { data, error } = await supabase.auth.getSession();
@@ -61,16 +61,17 @@ export async function requestAiCardVariant(
   return parsed.output;
 }
 
+/** Rejects the response when question or answer changed meanwhile or the rephrasing already exists. */
 export function createAiGeneratedVariantDraft(
-  sourcePayload: CardContentPayload,
-  currentCard: LearningItem | null | undefined,
+  source: { front: string; back: string },
+  current: { note: Note; card: Card } | null | undefined,
   generated: AiCardVariantSuccess,
 ) {
-  if (!currentCard) {
+  if (!current) {
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Erstellung geändert. Bitte starte die KI-Variante erneut.");
   }
-  const currentPayload = getCardContentPayload(currentCard);
-  if (!currentPayload || aiCardVariantSourceKey(createAiCardVariantRequest(currentPayload).source) !== aiCardVariantSourceKey(createAiCardVariantRequest(sourcePayload).source)) {
+  const currentSource = cardVariantSource(current.note, current.card);
+  if (!currentSource || aiCardVariantSourceKey(createAiCardVariantRequest(currentSource).source) !== aiCardVariantSourceKey(createAiCardVariantRequest(source).source)) {
     throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Erstellung geändert. Bitte starte die KI-Variante erneut.");
   }
   const variant = {
@@ -78,7 +79,7 @@ export function createAiGeneratedVariantDraft(
     back: normalizeAiCardText(generated.variant.back),
   };
   const generatedKey = aiCardVariantSourceKey(variant);
-  const duplicate = currentCard.variants.some((candidate) => aiCardVariantSourceKey({
+  const duplicate = current.card.variants.some((candidate) => aiCardVariantSourceKey({
     front: normalizeAiCardText(candidate.front),
     back: normalizeAiCardText(candidate.back),
   }) === generatedKey);

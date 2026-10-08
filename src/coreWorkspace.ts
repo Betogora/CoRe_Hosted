@@ -1,20 +1,12 @@
-import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
-import type { Deck, DeckSettings, LearningItem, NoteTypeDefinitionV1, Profile } from "./coreTypes.ts";
-
-interface CloudTombstone {
-  entityTable: string;
-  entityId: string;
-  revision: number;
-  deletedAt: string;
-  updatedByDeviceId: string | null;
-}
+import { createCoreDeck } from "./coreModel.ts";
+import type { Deck, DeckSettings, Note, Profile } from "./coreTypes.ts";
 
 export interface WorkspaceState {
   version?: number;
   profile: Profile;
   decks: Deck[];
-  noteTypeDefinitions: NoteTypeDefinitionV1[];
-  cloudTombstones: CloudTombstone[];
+  /** Contents of the loaded cards; siblings may belong to other decks. */
+  notes: Note[];
   updatedAt: string;
   [key: string]: unknown;
 }
@@ -36,34 +28,6 @@ interface DeckPlacementInput {
   parentDeckId?: string | null;
   changeType: string;
   reason: string;
-}
-
-export function createDemoAnatomyDeck(): Deck {
-  return createCoreDeck({
-    name: "Demo / Anatomie",
-    source: "manual",
-    tags: ["anatomie", "demo"],
-    cards: [
-      createBasicLearningItem("", "Welche Aufgabe hat die Myelinscheide im Nervensystem?", "Sie isoliert Axone elektrisch und erhöht die Leitungsgeschwindigkeit saltatorischer Erregungsleitung.", {
-        tags: ["anatomie", "nerven"],
-        reviewState: { maturityXp: 132, maturityBand: "variant_ready", repetitions: 4 },
-      }),
-      createBasicLearningItem("", "Was ist ATP?", "ATP ist ein universeller Energieträger der Zelle.", {
-        tags: ["biochemie"],
-      }),
-    ],
-  });
-}
-
-export function softDeleteCard(card: LearningItem, deletedAt: string): LearningItem {
-  if (card.status === "deleted") return card;
-
-  return {
-    ...card,
-    status: "deleted",
-    deletedAt,
-    updatedAt: deletedAt,
-  };
 }
 
 export function collectDeckTreeIds(decks: Deck[] = [], rootDeckId: string): Set<string> {
@@ -151,18 +115,6 @@ function createDeckMutationError(error: string): DeckMutationResult {
     deck: null,
     updatedDecks: [],
     changedDeckIds: [],
-  };
-}
-
-export function restoreSoftDeletedCard(card: LearningItem, restoredAt: string, previousStatus: LearningItem["status"] = "active"): LearningItem {
-  if (card.status !== "deleted") return card;
-  const status = previousStatus === "suspended" ? "suspended" : "active";
-
-  return {
-    ...card,
-    status,
-    deletedAt: null,
-    updatedAt: restoredAt,
   };
 }
 
@@ -254,6 +206,5 @@ export function createWorkspaceDeck(decks: Deck[], { name = "Neuer Stapel", pare
     parentDeckId: validParentId,
     hierarchyPath,
     deckSettings,
-    cards: [],
   });
 }

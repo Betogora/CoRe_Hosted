@@ -1,10 +1,8 @@
 // Public core-model seam. Callers outside this directory must import from here.
 export {
   CARD_VARIANT_TYPES,
-  CORE_CARD_TYPES,
   CORE_DECK_SOURCES,
   DECK_ICON_KEYS,
-  LEARNING_ITEM_SOURCE_TYPES,
   REVIEW_RATINGS,
   VARIANT_STATUSES,
   VARIANT_TRANSFORMS,
@@ -17,46 +15,47 @@ export {
   unique,
 } from "./coreModel/coreValues.ts";
 export {
+  cardStudyFromReviewState,
+  createCardStudy,
   createReviewState,
+  reviewStateFromCardStudy,
   updateVariantPerformance,
 } from "./coreModel/reviewState.ts";
 export {
+  addCardVariant,
   createCardVariant,
-  createCoreCard,
   getActiveVariants,
-  getAnswerSideAnchorMiniCard,
-  getLearningItemAnswer,
-  getLearningItemQuestion,
-  isLearningItemMarked,
-  isLearningItemReviewBlocked,
-  normalizeLearningItem,
-  rescheduleLearningItem,
-  updateLearningItemStudyState,
-} from "./coreModel/learningItems.ts";
-export type { CoreCardInput } from "./coreModel/learningItems.ts";
+  isCardReviewBlocked,
+  rescheduleCard,
+  setCardSuspended,
+} from "./coreModel/cards.ts";
+export type { CardVariantInput } from "./coreModel/cards.ts";
 export {
-  getCardContentPayload,
-  getCardEditorValue,
-  projectCardPreviewDraft,
-  saveCardEditorValue,
-  validateCardEditorValue,
-} from "./coreModel/cardEditor.ts";
-export type { CardPreviewDraft, CardPreviewProjection } from "./coreModel/cardEditor.ts";
+  createBasicNote,
+  createNote,
+  duplicateNote,
+  noteTextIndex,
+  planNoteContentChange,
+  planNoteDeletion,
+  planNoteRestore,
+  setNoteMarked,
+} from "./coreModel/notes.ts";
+export type { CreateNoteInput } from "./coreModel/notes.ts";
 export {
-  addRephrasedVariant,
-  createBasicLearningItem,
-  createLearningItemFromEditorValue,
-  createLearningItemsFromEditorValue,
-  createLearningItemsFromNormalizedInput,
-  createManualCoreDeck,
-  duplicateLearningItemContent,
+  clozeOrdinals,
+  deriveNotePromptKeys,
+  noteContentMediaRefs,
+  parseNoteContent,
+} from "./coreModel/noteContent.ts";
+export {
+  applyNoteEditorValue,
+  noteEditorValue,
+  validateNoteEditorValue,
+} from "./coreModel/noteEditor.ts";
+export type { NoteEditorErrors, NoteEditorValue } from "./coreModel/noteEditor.ts";
+export {
+  createManualNoteContent,
+  validateManualNoteInput,
 } from "./coreModel/creation.ts";
+export type { ManualContentKind, ManualFieldPlacement, ManualNoteErrors, ManualNoteInput } from "./coreModel/creation.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";
-export {
-  applyLearningItemContent,
-  createCoreNoteTypeDefinition,
-  saveLearningItemDocumentValues,
-} from "./coreModel/learningItemContent.ts";
-export {
-  createLearningItemDocumentFromLegacy,
-} from "./coreModel/learningItemDocument.ts";

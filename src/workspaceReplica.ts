@@ -1,12 +1,25 @@
+import type { Card, Note } from "./coreTypes.ts";
+import { getActiveVariants, isCardReviewBlocked, noteTextIndex } from "./coreModel.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 
 export type AccountBaselineState = "uninitialized" | "nonempty" | "confirmed-empty";
 export type BodyResidency = "catalog-only" | "cached" | "downloaded";
 export type OfflineDeckState = "none" | "downloading" | "available" | "outdated" | "error";
 
+/** A loaded content with all its (non-deleted) cards, including siblings in other decks. */
+export interface NoteGraph {
+  note: Note;
+  cards: Card[];
+}
+
+/**
+ * Per-card list and delta entry. The cloud projection carries no full text; locally written entries
+ * search the content text, entries from the cloud catalog search their preview.
+ */
 export interface CardCatalogEntry {
   id: string;
   deckId: string;
+  noteId: string;
   frontPreview: string;
   normalizedSearchText: string;
   sortText: string;
@@ -18,6 +31,7 @@ export interface CardCatalogEntry {
   activeVariantCount: number;
   activeVariantId: string | null;
   bodyRevision: number;
+  studyRevision: number;
   dependencyRevision: number;
   syncChangeId: number;
   deletedAt: string | null;
@@ -53,26 +67,25 @@ export interface CardBodyResidencyRecord {
   deckId: string;
   state: BodyResidency;
   bodyRevision: number;
+  studyRevision: number;
   dependencyRevision: number;
   lastAccessedAt: string;
   protectedUntil?: string | null;
 }
 
 export interface OfflineMediaManifestEntry {
-  id: string;
   sha1: string;
   size: number;
   mimeType: string;
   originalName: string;
-  storageBucket: string;
   storagePath: string;
-  cardId: string | null;
-  updatedAt: string;
+  createdAt: string;
 }
 
 export interface OfflineCardManifestEntry {
   id: string;
   bodyRevision: number;
+  studyRevision: number;
   dependencyRevision: number;
   bodyBytes: number;
   updatedAt: string;
@@ -171,11 +184,42 @@ export interface AccountStatisticsSnapshot {
 
 export function bodyResidencyForRevision(
   residency: CardBodyResidencyRecord | undefined,
-  catalog: Pick<CardCatalogEntry, "bodyRevision" | "dependencyRevision">,
+  catalog: Pick<CardCatalogEntry, "bodyRevision" | "studyRevision" | "dependencyRevision">,
 ): BodyResidency {
   if (!residency) return "catalog-only";
-  if (residency.bodyRevision !== catalog.bodyRevision || residency.dependencyRevision !== catalog.dependencyRevision) {
+  if (residency.bodyRevision !== catalog.bodyRevision
+    || residency.studyRevision !== catalog.studyRevision
+    || residency.dependencyRevision !== catalog.dependencyRevision) {
     return "catalog-only";
   }
   return residency.state;
+}
+
+/** Local catalog entry with the same revisions as the cloud projection (`private.refresh_card_catalog`). */
+export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalogEntry {
+  const activeVariants = getActiveVariants(card)
+    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
+  const text = note ? noteTextIndex(note.content) : null;
+  const preview = text?.sortText ?? "";
+  return {
+    id: card.id,
+    deckId: card.deckId,
+    noteId: card.noteId,
+    frontPreview: preview.slice(0, 240),
+    normalizedSearchText: text?.searchText ?? preview.toLocaleLowerCase("de"),
+    sortText: preview.toLocaleLowerCase("de").slice(0, 128),
+    dueAt: card.study.dueAt,
+    scheduleState: card.study.state,
+    maturityBand: card.study.extra.maturityBand,
+    reviewable: !isCardReviewBlocked(card),
+    hasActiveVariants: activeVariants.length > 0,
+    activeVariantCount: activeVariants.length,
+    activeVariantId: activeVariants[0]?.id ?? null,
+    bodyRevision: card.revision,
+    studyRevision: card.studyRevision,
+    dependencyRevision: (note?.revision ?? 1) + card.variants.reduce((total, variant) => total + variant.revision, 0),
+    syncChangeId: 0,
+    deletedAt: card.deletedAt,
+    updatedAt: [card.updatedAt, note?.updatedAt ?? "", ...card.variants.map((variant) => variant.updatedAt)].sort().at(-1)!,
+  };
 }

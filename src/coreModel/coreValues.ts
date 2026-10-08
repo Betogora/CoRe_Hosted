@@ -1,5 +1,5 @@
 import { normalizeLearningProfileSource, normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
-import type { CardType, CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, LearningItemSourceType, MaturityBand, ReviewRating, TransformType, VariantQualityStatus } from "../coreTypes.ts";
+import type { CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, MaturityBand, ReviewRating, TransformType, VariantQualityStatus } from "../coreTypes.ts";
 
 interface DeckSettingsInput extends LearningSettingsInput {
   appearance?: Partial<DeckAppearance>;
@@ -8,26 +8,7 @@ interface DeckSettingsInput extends LearningSettingsInput {
   maxActiveVariantsPerCard?: number;
   blacklist?: Partial<DeckSettings["blacklist"]>;
 }
-export const CORE_CARD_TYPES = [
-  "basic",
-  "basic-with-images",
-  "basic-reversed",
-  "cloze",
-  "image-occlusion",
-  "single-choice",
-  "multiple-choice",
-  "free-text",
-  "multi-field",
-  "case-vignette",
-] as const satisfies readonly CardType[];
-
-export const CORE_DECK_SOURCES = [
-  "anki-apkg",
-  "manual",
-  "text-import",
-  "csv-import",
-  "spreadsheet-import",
-] as const satisfies readonly DeckSource[];
+export const CORE_DECK_SOURCES = ["anki-apkg", "manual"] as const satisfies readonly DeckSource[];
 
 export const CORE_MODES = ["off", "auto", "manual"] as const satisfies readonly CoreMode[];
 export const DECK_ICON_KEYS = [
@@ -69,7 +50,6 @@ export const DEFAULT_DECK_APPEARANCE = {
 export const VARIANT_TRANSFORMS = ["rephrase"] as const satisfies readonly TransformType[];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
-export const LEARNING_ITEM_SOURCE_TYPES = ["manual", "text_import", "csv_import", "anki_import", "mixed"] as const satisfies readonly LearningItemSourceType[];
 export const CARD_VARIANT_TYPES = ["basic"] as const satisfies readonly CardVariantType[];
 export const MATURITY_BANDS = [
   { id: "new", min: 0, max: 20, label: "Neu" },
@@ -161,7 +141,6 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
     variantThresholdXp: typeof settings.variantThresholdXp === "number" && Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
     blacklist: {
-      cardTypes: settings.blacklist?.cardTypes ?? ["image-occlusion"],
       tags: settings.blacklist?.tags ?? [],
       transforms: settings.blacklist?.transforms ?? [],
       cardIds: settings.blacklist?.cardIds ?? [],
