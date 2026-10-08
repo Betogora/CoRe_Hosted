@@ -235,7 +235,7 @@ test("manuelle Medien folgen Cache, lokalem Inhalt und Upload der vorbereiteten 
   const events: string[] = [];
   const cached: unknown[] = [];
   const uploads: Array<readonly string[] | undefined> = [];
-  const visible: Array<{ name: string; phase: string }> = [];
+  const visible: string[] = [];
   const workflow = createCreationWorkflow({
     mediaStore: fakeMediaStore({
       async cacheMedia(files: unknown[]) {
@@ -254,13 +254,13 @@ test("manuelle Medien folgen Cache, lokalem Inhalt und Upload der vorbereiteten 
 
   const prepared = await workflow.prepareManualMedia([attachment, null, undefined, attachment]);
   events.push("local-note");
-  const result = await workflow.syncManualMedia(prepared, { onProgress: (progress) => visible.push({ name: progress.currentName, phase: progress.phase }) });
+  const result = await workflow.syncManualMedia(prepared, { onProgress: (progress) => visible.push(progress.currentName) });
 
   assert.deepEqual(events, ["cache", "local-note", "upload"]);
   assert.equal(prepared.length, 1);
   assert.deepEqual(cached, [{ sha1: attachment.sha1, name: "großes-bild.png", size: 4, mimeType: "image/png", blob: attachment.blob }]);
   assert.deepEqual(uploads, [[attachment.sha1]]);
-  assert.deepEqual(visible, [{ name: "großes-bild.png", phase: "uploading" }]);
+  assert.deepEqual(visible, ["großes-bild.png"]);
   assert.deepEqual(result, { status: "cloud-ready", message: "Synchronisiert." });
 });
 
@@ -359,7 +359,7 @@ test("eine lokale APKG wird mit Analyse-Schritten in der Vorschau angezeigt und 
   const committed = await workflow.commitApkgPreview(parsed.preview);
   assert.deepEqual(chunkKinds, ["decks", "note-type-sources", "notes"]);
   assert.equal(committed.createdCount, 245);
-  assert.equal(committed.deck, rootDeck);
+  assert.equal(committed.rootDeck, rootDeck);
   assert.equal(committed.mediaTask, null);
 });
 
@@ -472,7 +472,7 @@ test("der Standard-Commit ohne Persistenz liefert eine bereits synchronisierte C
   const preview = (await workflow.parseApkgFile(await fixtureFile("world-capitals.apkg"))).preview!;
   const committed = await workflow.commitApkgPreview(preview);
 
-  assert.equal(committed.deck, null);
+  assert.equal(committed.rootDeck, null);
   assert.equal(committed.createdCount, 0);
   await committed.cloudTask.ready;
   assert.equal(committed.cloudTask.status, "cloud-ready");

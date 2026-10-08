@@ -77,17 +77,16 @@ export function createManualNoteContent(input: ManualNoteInput): NoteContent {
   const used = new Set(["front", "back"]);
   const additional = (input.additionalFields ?? [])
     .filter((field) => String(field.name ?? "").trim())
-    .map((field, index): NoteField & { placement: ManualFieldPlacement } => ({
+    .map((field, index): NoteField => ({
       id: additionalFieldId(field.id, index, used),
       name: String(field.name).trim(),
       role: field.placement === "back" ? "extra" : "prompt",
       html: String(field.value ?? ""),
-      placement: field.placement ?? "front",
     }));
   const fields: NoteField[] = [
     { id: "front", name: frontName, role: "prompt", html: input.front },
     { id: "back", name: backName, role: input.kind === "basic" || input.kind === "basic-reversed" ? "answer" : "extra", html: input.back },
-    ...additional.map(({ placement: _placement, ...field }) => field),
+    ...additional,
   ];
   const questionFieldIds = ["front", ...additional.filter((field) => field.role === "prompt").map((field) => field.id)];
   const prompts: RevealPrompt[] = [

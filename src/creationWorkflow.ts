@@ -18,9 +18,6 @@ export interface ManualImageAttachment {
   blob: Blob;
 }
 
-export interface ManualMediaSyncProgress extends MediaSyncProgress {
-  phase: "uploading";
-}
 
 export interface ManualCreationInput {
   kind?: ManualContentKind;
@@ -281,12 +278,12 @@ export function createCreationWorkflow({
       return prepared;
     },
 
-    async syncManualMedia(attachments: ManualImageAttachment[], options: { onProgress?: (progress: ManualMediaSyncProgress) => void } = {}): Promise<{ status: MediaSyncStatus; message: string }> {
+    async syncManualMedia(attachments: ManualImageAttachment[], options: { onProgress?: (progress: MediaSyncProgress) => void } = {}): Promise<{ status: MediaSyncStatus; message: string }> {
       if (attachments.length === 0) return { status: "cloud-ready", message: "" };
       try {
         const result = await mediaStore.syncQueuedMedia({
           sha1s: attachments.map((attachment) => attachment.sha1),
-          onProgress: (progress) => options.onProgress?.({ ...progress, phase: "uploading" }),
+          onProgress: options.onProgress,
         }).result;
         return { status: result.status, message: result.message };
       } catch (error) {
@@ -328,7 +325,7 @@ export function createCreationWorkflow({
         : null;
       await mediaTask?.queued;
       reportProgress(100);
-      return { ...persistence, deck: persistence.rootDeck, mediaTask };
+      return { ...persistence, mediaTask };
     },
 
     async readSourceDocument(file: Parameters<typeof createDocumentFromFile>[0]) {

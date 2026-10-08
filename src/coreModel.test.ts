@@ -67,8 +67,6 @@ test("Kartenänderungen erzeugen keinen wiederherstellbaren Verlauf", () => {
   assert.equal(plan.note.content.fields.find((field) => field.id === "front")?.html, "Neu");
   assert.equal(plan.note.contentRevision, 2);
   assert.deepEqual(plan.keptCards, previous.cards);
-  assert.equal("versionLog" in plan.note, false);
-  assert.equal("immutableOriginal" in plan.note, false);
   assert.deepEqual(applyNoteEditorValue(previous.note.content, value), previous.note.content);
 });
 

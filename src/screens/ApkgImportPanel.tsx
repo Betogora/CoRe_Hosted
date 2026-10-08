@@ -276,9 +276,9 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
       const result = await workflow.commitApkgPreview(preview, {
         onProgress: (percent) => reportProgress("committing", percent),
       });
-      if (!result.deck) throw new Error("Der Import hat keinen Stapel angelegt.");
+      if (!result.rootDeck) throw new Error("Der Import hat keinen Stapel angelegt.");
       setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_cloud" }));
-      setCompletedDeck(result.deck);
+      setCompletedDeck(result.rootDeck);
       setCompletedCount(result.createdCount);
       updateSession((current) => ({
         ...current,

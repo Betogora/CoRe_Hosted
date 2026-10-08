@@ -46,19 +46,17 @@ test("shows a color-independent compatibility warning with diagnostics", () => {
   assert.ok(markup.includes(`aria-describedby="${descriptionId}"`));
 });
 
-test("hides equivalent compatibility advertising while keeping a corner badge inside the card frame", () => {
+test("hides equivalent compatibility advertising in warnings-only mode", () => {
   const markup = renderToStaticMarkup(
     <CardPresentationSurface
       {...fixture()}
       title="Importierte Vorderseite"
       showCompatibility="warnings-only"
-      cornerBadge={<span>Vorderseite</span>}
     />,
   );
 
   assert.doesNotMatch(markup, /Originalgetreu und sicher dargestellt/);
   assert.doesNotMatch(markup, /aria-describedby=/);
-  assert.match(markup, /class="relative min-w-0"[^>]*>[\s\S]*Vorderseite[\s\S]*<iframe/);
 });
 
 test("renders review content without a framed card surface", () => {

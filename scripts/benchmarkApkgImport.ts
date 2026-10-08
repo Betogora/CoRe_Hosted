@@ -26,7 +26,7 @@ function median(values: number[]) {
   return [...values].sort((left, right) => left - right)[Math.floor(values.length / 2)] ?? 0;
 }
 
-function runWorker(pipeline: "notes"): Promise<Record<string, number>> {
+function runWorker(): Promise<Record<string, number>> {
   return new Promise((resolveRun, reject) => {
     const worker = new Worker(new URL("./benchmarkApkgWorker.ts", import.meta.url), {
       execArgv: ["--import", "tsx"],
@@ -54,14 +54,14 @@ function runWorker(pipeline: "notes"): Promise<Record<string, number>> {
       void worker.terminate();
     });
     worker.on("error", reject);
-    worker.postMessage({ path: fixturePath, name: basename(fixturePath), pipeline });
+    worker.postMessage({ path: fixturePath, name: basename(fixturePath) });
   });
 }
 
 const reports = [];
 for (const pipeline of pipelines) {
   const runs: Record<string, number>[] = [];
-  for (let run = 0; run < RUNS; run += 1) runs.push(await runWorker(pipeline));
+  for (let run = 0; run < RUNS; run += 1) runs.push(await runWorker());
   reports.push({
     pipeline,
     fixture: fixturePath,

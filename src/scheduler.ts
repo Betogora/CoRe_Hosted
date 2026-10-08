@@ -256,10 +256,6 @@ export function calculateRetrievability(studyState: unknown, now: DateInput = ne
   return round(scheduler.get_retrievability(toFsrsCard(state, nowDate), nowDate, false), 4);
 }
 
-function getSchedulerStateForCard(card: Pick<Card, "study">): ReviewState {
-  return reviewStateFromCardStudy(card.study);
-}
-
 export function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
   if (!REVIEW_RATINGS.includes(rating)) throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
   const variantBonus = wasVariant && (rating === "good" || rating === "easy") ? 4 : 0;
@@ -421,7 +417,7 @@ export function simulateRatingOutcome({
   const state = previousState
     ? createReviewState(previousState)
     : card
-      ? getSchedulerStateForCard(card)
+      ? reviewStateFromCardStudy(card.study)
       : createReviewState({});
   const variantContext = {
     ...context,
@@ -529,7 +525,7 @@ export function listReviewableCards(deck: Deck): Card[] {
 }
 
 export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), dayOptions: { dayStartHour?: number; timeZone?: string } = {}) {
-  const cards = listReviewableCards(deck).filter((card) => !isCardReviewBlocked(card));
+  const cards = (deck.cards ?? []).filter((card) => !isCardReviewBlocked(card));
   const currentDayKey = getLearningDayKey(now, dayOptions);
   let dueCards = 0;
   let newCards = 0;

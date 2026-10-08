@@ -34,7 +34,6 @@ const queueRecordSchema = v.looseObject({ key: v.string(), userId: v.string(), s
 
 interface AssetRecord { key: string; userId: string; sha1: string; name: string; size: number; mimeType: string; blob: Blob; pinnedDeckIds: string[]; updatedAt: string; }
 interface QueueRecord { key: string; userId: string; sha1: string; queuedAt: string; }
-export interface MediaFileInput { sha1: string; name: string; size: number; mimeType?: string; blob?: Blob; bytes?: Uint8Array; }
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
 export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; processedBytes: number; totalBytes: number; }
 export interface MediaSyncResult { status: MediaSyncStatus; progress: MediaSyncProgress; failureKind?: MediaFailureKind; message: string; }
@@ -48,7 +47,6 @@ const keyFor = (userId: string, sha1: string) => `${userId}\u0000${sha1}`;
 
 function openDatabase(api: IDBFactory | null): Promise<IDBDatabase | null> {
   if (!api) return Promise.resolve(null);
-  try { api.deleteDatabase(RETIRED_DB_NAME); } catch { /* The retired cache is only removed opportunistically. */ }
   return new Promise((resolve, reject) => {
     const request = api.open(DB_NAME, DB_VERSION);
     request.onupgradeneeded = () => {
@@ -116,6 +114,7 @@ function trustedSignedMediaUrl(value: unknown, supabaseUrl: string) {
 
 export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB: indexedDb = globalThis.indexedDB, fetchImpl = globalThis.fetch }: { client: any; supabaseUrl: string; userId: string; indexedDB?: IDBFactory | null; fetchImpl?: typeof fetch }) {
   const databaseApi = indexedDb ?? null;
+  try { databaseApi?.deleteDatabase(RETIRED_DB_NAME); } catch { /* The retired cache is only removed opportunistically. */ }
 
   async function readAsset(sha1: string): Promise<AssetRecord | null> {
     const session = sessionAssets.get(keyFor(userId, sha1));

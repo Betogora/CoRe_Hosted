@@ -29,7 +29,6 @@ export {
   rescheduleCard,
   setCardSuspended,
 } from "./coreModel/cards.ts";
-export type { CardVariantInput } from "./coreModel/cards.ts";
 export {
   createBasicNote,
   createNote,
@@ -40,10 +39,7 @@ export {
   planNoteRestore,
   setNoteMarked,
 } from "./coreModel/notes.ts";
-export type { CreateNoteInput } from "./coreModel/notes.ts";
 export {
-  clozeOrdinals,
-  deriveNotePromptKeys,
   noteContentMediaRefs,
   parseNoteContent,
 } from "./coreModel/noteContent.ts";
@@ -57,5 +53,5 @@ export {
   createManualNoteContent,
   validateManualNoteInput,
 } from "./coreModel/creation.ts";
-export type { ManualContentKind, ManualFieldPlacement, ManualNoteErrors, ManualNoteInput } from "./coreModel/creation.ts";
+export type { ManualContentKind, ManualNoteErrors, ManualNoteInput } from "./coreModel/creation.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";

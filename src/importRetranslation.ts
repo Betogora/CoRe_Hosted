@@ -66,7 +66,7 @@ export async function runAccountRetranslation(client: unknown, repository: Pick<
   let cursor = "";
   let updated = 0;
   for (;;) {
-    const page = await listRetranslationCandidates(client, { ...TRANSLATOR_VERSIONS }, cursor);
+    const page = await listRetranslationCandidates(client, TRANSLATOR_VERSIONS, cursor);
     const sources = new Map(page.noteTypeSources.flatMap((stored) => {
       const source = noteTypeSourceForTranslation(stored);
       return source ? [[source.id, source] as const] : [];

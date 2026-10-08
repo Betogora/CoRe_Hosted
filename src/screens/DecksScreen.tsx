@@ -4,13 +4,12 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, Chev
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { noteEditorValue, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
+import { noteEditorValue, noteTextIndex, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
 import { classifyCardEligibility, createVariantReviewModel } from "../coreVariantService.ts";
 import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
-import { noteTextIndex } from "../coreModel.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import type { NoteGraph } from "../workspaceReplica.ts";
@@ -666,7 +665,6 @@ export function DecksScreen({
       return {
         ...group,
         deck: originalDecks.get(group.id) ?? group.deck,
-        entries: items,
         cardRows: items.map((entry) => createCardTableRow(entry, { dayStartHour, timeZone })),
         totalCardCount,
         page: currentPage,
@@ -695,7 +693,7 @@ export function DecksScreen({
     if (!contentDeckId || !selectedCardId) return null;
     for (const group of tableModel.allGroups) {
       if (cardPages?.[group.id]?.selected?.cardId === selectedCardId) return group.id;
-      if (group.entries.some((entry) => entry.id === selectedCardId)) return group.id;
+      if (group.cardRows.some((row) => row.id === selectedCardId)) return group.id;
     }
     return null;
   }, [cardPages, contentDeckId, selectedCardId, tableModel.allGroups]);

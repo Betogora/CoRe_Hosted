@@ -165,7 +165,6 @@ function cardNextStudyTimestamp(entry: Pick<CardCatalogEntry, "scheduleState" | 
 export type CardTableRow = ReturnType<typeof createCardTableRow>;
 
 export type CardTableGroup = DeckLibraryRow & {
-  entries: CardCatalogEntry[];
   cardRows: CardTableRow[];
   totalCardCount: number;
   page: number;
@@ -453,7 +452,6 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
     const pageEntries = sortEntries(matchingEntries, cardSort, options).slice(page * pageSize, (page + 1) * pageSize);
     return {
       ...row,
-      entries: pageEntries,
       cardRows: pageEntries.map((entry) => createCardTableRow(entry, options)),
       totalCardCount: matchingEntries.length,
       page,

@@ -7,7 +7,6 @@ import {
   noteFromRow,
   noteSourceFromRow,
   noteTypeSourceFromRow,
-  reviewEventFromRow,
   validateAccountRows,
   validateAccountStatistics,
   validateAccountStudyOverview,
@@ -176,14 +175,6 @@ function syncFields(entity: any = {}) {
     revision: normalizeRevision(entity.revision),
     deleted_at: entity.deletedAt ?? null,
     updated_by_device_id: entity.updatedByDeviceId ?? null,
-  };
-}
-
-function syncMetadataFromRow(row: any = {}) {
-  return {
-    revision: normalizeRevision(row.revision),
-    deletedAt: row.deleted_at ?? null,
-    updatedByDeviceId: row.updated_by_device_id ?? null,
   };
 }
 
@@ -1274,10 +1265,7 @@ function projectCloudEntities(table: AccountTable, rows: any[]) {
   if (table === "decks") return rows.map(deckFromRow);
   if (table === "notes") return rows.map(noteFromRow);
   if (table === "cards") return rows.map((row) => cardFromRow(row));
-  if (table === "card_variants") return rows.map(variantFromRow);
-  if (table === "review_events") return rows.map(reviewEventFromRow);
-  if (table === "note_type_sources") return rows.map(noteTypeSourceFromRow);
-  return rows.map(noteSourceFromRow);
+  return rows.map(variantFromRow);
 }
 
 export async function applyEntityMutation(client: any, mutation: any, options: any = {}): Promise<any> {

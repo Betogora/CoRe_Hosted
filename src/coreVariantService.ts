@@ -6,10 +6,9 @@ import type { Card, CardVariant, Note, ReviewRating, VariantFeedbackType } from 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
 type DateInput = string | number | Date;
 interface ReviewEventInput { cardId?: string; rating?: ReviewRating | "manual"; answeredAt?: string; createdAt?: string; variantId?: string | null }
-interface VariantServiceOptions { now?: DateInput; variantSession?: boolean }
+interface VariantServiceOptions { now?: DateInput }
 
-export { isAutomaticRephraseVariant, selectAutomaticReviewVariant } from "./coreVariantService/variantSelection.ts";
-export { getActiveVariants } from "./coreModel.ts";
+export { selectAutomaticReviewVariant } from "./coreVariantService/variantSelection.ts";
 
 function plainText(html: string): string {
   return stripSanitizedHtml(html).replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
@@ -62,7 +61,7 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Pick<
   return { eligible: reasons.length === 0, reasons, blockedTransforms: reasons.length ? ["rephrase"] : [], cardId: card.id };
 }
 
-export function getReviewSuccessProfile(card: Card, reviewEvents: ReviewEventInput[] = []) {
+function getReviewSuccessProfile(card: Card, reviewEvents: ReviewEventInput[] = []) {
   const events = reviewEvents
     .filter((event) => event.rating !== "manual" && event.cardId === card.id)
     .sort((left, right) => String(left.answeredAt ?? left.createdAt).localeCompare(String(right.answeredAt ?? right.createdAt)));
@@ -100,7 +99,7 @@ function getCardMaturity(card: Card, now: DateInput = new Date(), reviewEvents: 
   };
 }
 
-export function getVariantReadiness(card: Card, reviewEvents: ReviewEventInput[] = [], options: VariantServiceOptions = {}) {
+function getVariantReadiness(card: Card, reviewEvents: ReviewEventInput[] = [], options: VariantServiceOptions = {}) {
   const maturity = getCardMaturity(card, options.now, reviewEvents);
   const ready = maturity.isStable && !maturity.isFragile;
   return {
@@ -116,7 +115,7 @@ export function getVariantReadiness(card: Card, reviewEvents: ReviewEventInput[]
   };
 }
 
-export function getVariantCoverage(card: Card) {
+function getVariantCoverage(card: Card) {
   const active = getActiveVariants(card);
   const levelCounts = Object.fromEntries([1, 2, 3].map((level) => [level, active.filter((variant) => variant.variantLevel === level).length]));
   return {

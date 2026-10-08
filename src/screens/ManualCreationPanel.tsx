@@ -8,7 +8,8 @@ import {
   type ManualFocusTarget,
 } from "../creationBatch.ts";
 import { createNote, type ManualNoteErrors } from "../coreModel.ts";
-import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment, ManualMediaSyncProgress } from "../creationWorkflow.ts";
+import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
+import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent } from "../coreTypes.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
@@ -361,7 +362,7 @@ export function ManualCreationPanel({
     setFieldErrors((current) => ({ ...current, correctOptions: undefined }));
   }
 
-  function reportManualMediaProgress(progress: ManualMediaSyncProgress) {
+  function reportManualMediaProgress(progress: MediaSyncProgress) {
     const ratio = progress.totalBytes > 0
       ? progress.processedBytes / progress.totalBytes
       : progress.total > 0
@@ -453,8 +454,8 @@ export function ManualCreationPanel({
       const saved = await onSaveManualNote({
         deckId: creatingDeck ? null : selectedDeckId,
         deckName: deckName.trim() || "Manueller Kartenstapel",
-        content: validation.content!,
-        media: validation.media!,
+        content: validation.content,
+        media: validation.media,
       });
       if (!saved?.cardIds.length) throw new Error("Karte konnte nicht lokal gespeichert werden.");
       if (creatingDeck) {

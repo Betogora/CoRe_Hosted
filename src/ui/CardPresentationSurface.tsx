@@ -49,7 +49,6 @@ export interface CardPresentationSurfaceProps {
   title: string;
   loadingLabel?: string;
   showCompatibility?: boolean | "warnings-only";
-  cornerBadge?: React.ReactNode;
   className?: string;
 }
 
@@ -61,7 +60,6 @@ export function CardPresentationSurface({
   title,
   loadingLabel = "Kartendarstellung wird vorbereitet …",
   showCompatibility = true,
-  cornerBadge,
   className = "",
 }: CardPresentationSurfaceProps) {
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
@@ -129,7 +127,6 @@ export function CardPresentationSurface({
         </StatusMessage>
       ) : null}
       <div className="relative min-w-0">
-        {cornerBadge ? <div className="pointer-events-none absolute right-3 top-3 z-10">{cornerBadge}</div> : null}
         <iframe
           ref={frameRef}
           title={title}

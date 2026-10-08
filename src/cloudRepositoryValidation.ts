@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, parseNoteContent } from "./coreModel.ts";
-import type { Card, CardVariant, Deck, MediaFileReference, Note, ReviewEvent } from "./coreTypes.ts";
+import type { Card, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
 import type { Json } from "./database.types.ts";
 import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type {
@@ -332,24 +332,6 @@ export function variantFromRow(row: AccountRow): CardVariant {
   };
 }
 
-export function reviewEventFromRow(row: AccountRow): ReviewEvent {
-  return {
-    id: String(row.id),
-    userId: String(row.user_id),
-    deckId: String(row.deck_id),
-    cardId: String(row.card_id),
-    variantId: (row.variant_id as string | null) ?? null,
-    rating: row.rating as ReviewEvent["rating"],
-    answeredAt: String(row.answered_at),
-    responseTimeMs: (row.response_time_ms as number | null) ?? null,
-    schedulerBefore: row.scheduler_before ?? null,
-    schedulerAfter: row.scheduler_after ?? null,
-    flags: row.flags as Record<string, unknown>,
-    createdAt: String(row.created_at),
-    createdByDeviceId: (row.created_by_device_id as string | null) ?? null,
-  };
-}
-
 export function noteTypeSourceFromRow(row: AccountRow): StoredNoteTypeSource {
   return {
     id: String(row.id),
@@ -559,4 +541,3 @@ export function validateAccountStatistics(input: unknown): AccountStatisticsSnap
   return result.output;
 }
 
-export type DueForecast = ReturnType<typeof validateDueForecast>;

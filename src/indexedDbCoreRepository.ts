@@ -438,7 +438,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           : null;
   };
   const pendingEntityMutation = (table: string, entityId: string) => pendingByTarget.get(mutationTargetKey({ type: "entity-mutation", table, entityId }))
-    ?? [...pendingByTarget.values()].find((mutation) => mutation.type === "review-atomic" && reviewTargetId(mutation, table) === entityId);
+    ?? (table === "cards" || table === "card_variants" || table === "review_events"
+      ? [...pendingByTarget.values()].find((mutation) => mutation.type === "review-atomic" && reviewTargetId(mutation, table) === entityId)
+      : undefined);
   const pendingEntityIdsForTable = (table: string) => [...pendingByTarget.values()].flatMap((mutation) => {
     if (mutation.type === "entity-mutation" && mutation.table === table && mutation.entityId) return [mutation.entityId];
     if (mutation.type !== "review-atomic") return [];
@@ -455,7 +457,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     catalogServerCursor: 0,
   };
   let studyOverview: AccountStudyOverview | null = studyOverviewRow?.value ?? null;
-  let latestImportVerificationScope: ImportVerificationScope | null = null;
   let firstDeckSummariesStarted = false;
   const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
 
@@ -1133,7 +1134,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       cardIds: [...new Set(scope.cardIds)].sort(),
       reviewEventIds: [...new Set(scope.reviewEventIds)].sort(),
     };
-    latestImportVerificationScope = finalScope;
     return {
       decks: finalScope.deckIds.map((id) => shell!.decks.find((deck) => deck.id === id)).filter((deck): deck is WorkspaceDeckSummary => Boolean(deck)),
       scope: finalScope,
@@ -1516,30 +1516,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return result;
     },
     commitImportGraph,
-    async createImportVerificationScope(deckIdsToVerify: string[]): Promise<ImportVerificationScope> {
-      await writeChain;
-      const deckIds = [...new Set(deckIdsToVerify.filter(Boolean))];
-      const scope = latestImportVerificationScope;
-      if (!scope || scope.deckIds.length !== deckIds.length || scope.deckIds.some((deckId) => !deckIds.includes(deckId))) {
-        throw new Error("Der Prüfumfang des letzten APKG-Imports ist nicht mehr verfügbar.");
-      }
-      const known = new Set(shell!.decks.map((deck) => deck.id));
-      for (const deckId of deckIds) {
-        const deck = shell!.decks.find((candidate) => candidate.id === deckId);
-        if (!deck) throw new Error("Mindestens ein importierter Stapel fehlt im lokalen Commitgraphen.");
-        if (deck.parentDeckId && !known.has(deck.parentDeckId)) throw new Error(`Der übergeordnete Stapel für „${deck.name}“ fehlt im lokalen Commitgraphen.`);
-      }
-      const read = database.transaction([STORE.notes, STORE.cards, STORE.reviewEvents], "readonly");
-      const [notes, cards, reviews] = await Promise.all([
-        Promise.all(scope.noteIds.map((id) => requestResult(read.objectStore(STORE.notes).getKey(id)))),
-        Promise.all(scope.cardIds.map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)))),
-        Promise.all(scope.reviewEventIds.map((id) => requestResult(read.objectStore(STORE.reviewEvents).getKey(id)))),
-      ]);
-      await transactionDone(read);
-      if ([...notes, ...cards, ...reviews].some((row) => row == null)) throw new Error("Mindestens eine erwartete Entität fehlt im lokalen Importgraphen.");
-      if (cards.some((card) => !known.has(card!.deckId))) throw new Error("Mindestens eine Karte ist einem unbekannten Stapel zugeordnet.");
-      return scope;
-    },
     /** Re-queues the inserts of a verified import graph; the cloud matches existing rows idempotently. */
     async requeueImportVerificationScope(scope: ImportVerificationScope, repairScope: ImportVerificationRepairScope | null = null) {
       await writeChain;
