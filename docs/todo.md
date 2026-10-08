@@ -230,6 +230,31 @@ Nachweise, die echte Anki-Daten brauchen.
       Masken und Beschriftungen abgleichen und im Renderer korrigieren (Drehung
       im Bildseitenverhältnis, Ankis Drehpunkt und Schriftgröße). Die Matrix
       kann das nicht belegen, weil ihre Masken als Text erzeugt werden.
+      Befund aus Ankis Editor-Code (26.9): Masken sind fabric.js-Objekte mit
+      Ursprung links oben; gespeichert werden `left`/`top` (normiert auf
+      Bildbreite bzw. -höhe), `angle` in Grad, Rechtecke mit `width`/`height`,
+      Ellipsen mit `rx`/`ry`, Polygone mit `left`/`top` und absoluten
+      `points`, Text mit `text`, `scale` und `fs` (Schriftgröße relativ zur
+      Bildhöhe), optional `fill`. Gedreht wird also in Pixeln um die linke
+      obere Ecke. Der Matrixgenerator schreibt Ellipsen noch mit
+      `width`/`height`; auf `rx`/`ry` umstellen. Referenz:
+      `CoRe_Bildverdeckung_nativ.apkg` im Korpus (alle Formen, gedreht, Text in
+      zwei Größen, Gruppe, Füllfarbe, beide Modi, 2:1-Bild); in Anki
+      importiert zeigt Ankis eigener Reviewer die Sollansicht.
+- [ ] **K5.10 Image Occlusion Enhanced als CoRe-Masken.** Entschieden
+      2026-10-08 (Ergänzung zu ADR-033): Der IOE-Übersetzer baut aus den
+      SVG-Masken echte CoRe-Masken statt einer `overlay`-Maske. Je IOE-Inhalt
+      ist die Maske mit `class="qshape"` die aktive Abfrage; im Modus `ao`
+      (alle verdecken, eine erraten) bleiben die übrigen Masken als
+      `alwaysOccluded` verdeckt, im Modus `oa` entfallen sie. Koordinaten
+      werden über `width`/`height` des SVG auf 0–1 normiert; die Add-on-Farben
+      entfallen. Dafür braucht der Plan Zugriff auf die Medienbytes des
+      Pakets. Nur Masken mit unbekannten Elementen (`path`, `text`,
+      `transform`) bleiben `overlay`. Beleg: Das echte Deck
+      `Image_Occlusion_Test_Pharmagrundlagen.apkg` enthält ausschließlich
+      ungedrehte `rect`-Masken in beiden Modi. Matrixerwartung im Generator
+      anpassen, `architecture.md` (Form `overlay`) mitziehen. Reines Modul,
+      unabhängig vom Cutover umsetzbar.
 - [ ] **K5.4 Anki-Vorlage speichern und neu übersetzen (5B, im Cutover).**
       `noteTypeSources` und die rohen Feldwerte `noteSources` aus dem
       Importgraphen landen unsichtbar in `note_type_sources` und
@@ -276,9 +301,12 @@ src/apkgFormatMatrix.test.ts`, `npm run typecheck`, `npm test`,
 mit bereitgestelltem Korpus sind mindestens 95 % der Ankizin- und
 AnKing-Inhalte voll übersetzt und 0 % nicht darstellbar. Für Ankizin v5 belegt
 (99,9 % Lückentexte über den eigenen Übersetzer, Blickdiagnosen generisch,
-0 % nicht darstellbar; siehe `history.md`). Offen bleiben AnKing, Pakete mit
-realer Bildverdeckung und ein echter Export mit Lernstand und Revlog; der
-Lernstand ist bis dahin nur über die Matrix synthetisch belegt.
+0 % nicht darstellbar; siehe `history.md`). Echte Image-Occlusion-Enhanced-
+Inhalte, Ankis eingebaute Bildverdeckung (im Format des Anki-Editors erzeugt)
+und ein echter Export mit FSRS-Lernstand und Revlog sind belegt (siehe
+`history.md`). Offen bleiben AnKing und ein Lernstand mit Lern-,
+Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten; diese Zustände
+sind bis dahin nur über die Matrix synthetisch belegt.
 
 ## Phase 4 — Cutover: Datenbank-Baseline, Replica, Sync und App
 
@@ -548,8 +576,8 @@ Entfernen einzelner Abfragen regelt ADR-032; Großstapel-Grenzen,
 Korpus-Zielquote und der Bildverdeckungs-Editor sind als Abnahmekriterien in
 K5.8, Phase 5 und K6.5 festgelegt. Offen sind:
 
-- AnKing sowie Pakete mit echter Bildverdeckung und echtem Lernstand für den
-  Korpus.
+- AnKing und ein Lernstand mit Lern-, Wiederlern-, ausgesetzten, begrabenen
+  und geflaggten Karten für den Korpus (Phase-5-Abnahme).
 
 ## Spätere Roadmaps
 
@@ -570,9 +598,6 @@ die Neuübersetzung ist entschieden (K5.4, siehe `history.md`). Bereits einer Ph
 Gerätenachweise (Phase 3, offene Abnahme), Drehung und Textgröße der
 Bildmasken (K5.2).
 
-- [ ] **Image Occlusion Enhanced: Overlay oder Masken nachbauen.** Heute legt
-      CoRe das Frage-/Antwort-SVG als `overlay`-Maske über das Bild (Farben des
-      Add-ons, nicht bearbeitbar). Mit einem echten IOE-Deck prüfen, ob die SVGs
-      einfach genug sind, um echte CoRe-Masken daraus zu bauen; das Overlay
-      bleibt der Rückfall.
+Image Occlusion Enhanced ist entschieden (K5.10). Damit ist vor dem Cutover
+nichts mehr offen.
 
