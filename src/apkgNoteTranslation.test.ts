@@ -51,6 +51,7 @@ test("Medien werden normalisiert, je SHA-1 einmal übernommen und nur aus src, p
   assert.match(front, /src="bild\.png"/);
   assert.match(front, /src="Ärzte\.png"/);
   assert.deepEqual(graph.mediaFiles.map((file) => file.name).sort(), ["bild.png", "Ärzte.png"]);
+  assert.match(graph.noteSources[0].fields[0], /src="bild\.png"/);
   assert.deepEqual(graph.report.missingMedia, ["fehlt.mp3"]);
 });
 
@@ -69,6 +70,8 @@ test("Ungültige Übersetzungen fallen auf eine Feldliste zurück, ohne die Anki
   assert.deepEqual(graph.cards.map((item) => [item.promptKey, item.ankiCardId]), [["anki-0", "200"]]);
   assert.equal(graph.report.notetypes[0].translator.id, "multiple-choice-for-anki");
   assert.equal(graph.report.notetypes[0].fallbackNotes, 1);
+  // Re-translation needs the raw fields, including those a translator consumes.
+  assert.deepEqual(graph.noteSources, [{ noteId: graph.notes[0].id, noteTypeSourceId: graph.noteTypeSources[0].id, fields: ["Welche?", "1", "A", "B", "C", "1 0"] }]);
 });
 
 test("Geänderte Basic-Vorlagen und Zusatzfelder werden generisch übersetzt; nur unveränderte Vorlagen gelten als Basic", () => {

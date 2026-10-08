@@ -39,13 +39,12 @@ type ManualCreationInput = NonNullable<Parameters<ManualCreationWorkflow["create
 type ManualDeckInput = ReturnType<ManualCreationWorkflow["createManualDeckInput"]>;
 type PdfSelectionOptions = Parameters<NonNullable<React.ComponentProps<typeof PdfDocumentViewer>["onSelection"]>>[1];
 type ActiveField = "front" | "back";
-type AdditionalField = { id: string; name: string; value: string; placement: "front" | "back" | "both" | "metadata" };
+type AdditionalField = { id: string; name: string; value: string; placement: "front" | "back" | "both" };
 type ManualSaveProgress = { label: string; percent: number };
 const FIELD_PLACEMENT_OPTIONS = [
   { value: "front", label: "Vorderseite" },
   { value: "back", label: "Rückseite" },
   { value: "both", label: "Beide Seiten" },
-  { value: "metadata", label: "Nur Metadaten" },
 ] as const;
 const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
@@ -681,16 +680,16 @@ export function ManualCreationPanel({
                   <CoreSelect ariaLabel={`Platzierung von ${field.name || `Feld ${index + 1}`}`} value={field.placement} options={FIELD_PLACEMENT_OPTIONS} onValueChange={(placement) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, placement: placement as AdditionalField["placement"] } : candidate))} />
                 </label>
                 <div className="flex items-end gap-1">
-                  <IconButton type="button" icon={ArrowUp} label={`${field.name || `Feld ${index + 1}`} nach oben`} disabled={index === 0} onClick={() => setAdditionalFields((current) => {
+                  {index > 0 ? <IconButton type="button" icon={ArrowUp} label={`${field.name || `Feld ${index + 1}`} nach oben`} onClick={() => setAdditionalFields((current) => {
                     const next = [...current];
                     [next[index - 1], next[index]] = [next[index], next[index - 1]];
                     return next;
-                  })} />
-                  <IconButton type="button" icon={ArrowDown} label={`${field.name || `Feld ${index + 1}`} nach unten`} disabled={index === additionalFields.length - 1} onClick={() => setAdditionalFields((current) => {
+                  })} /> : null}
+                  {index < additionalFields.length - 1 ? <IconButton type="button" icon={ArrowDown} label={`${field.name || `Feld ${index + 1}`} nach unten`} onClick={() => setAdditionalFields((current) => {
                     const next = [...current];
                     [next[index], next[index + 1]] = [next[index + 1], next[index]];
                     return next;
-                  })} />
+                  })} /> : null}
                   <IconButton type="button" icon={X} label={`${field.name || `Feld ${index + 1}`} entfernen`} onClick={() => {
                     const next = additionalFields.filter((candidate) => candidate.id !== field.id);
                     pruneInlineImages({ front, back, additionalFields: next });
@@ -708,7 +707,7 @@ export function ManualCreationPanel({
             id: `manual-field-${Date.now()}-${current.length}`,
             name: `Zusatzfeld ${current.length + 1}`,
             value: "",
-            placement: "metadata",
+            placement: "back",
           }])}>Feld hinzufügen</ActionButton>
       </div>
 

@@ -37,6 +37,35 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
   und Statistik, verpixelte Hilfekarte und Begrüßung bei 320 bis 1.440 px in
   Light und Dark.
 
+## 2026-10-07 — Entscheidungen vor dem Cutover: Marker, Kprim, Bildbeschreibung
+
+- Marker (Entscheidung 1A): Farbige `background-color`-Marker im Feld-HTML
+  ändern ihre Helligkeit, bis die Kartenschrift des Themes darauf 4,5 : 1
+  erreicht (Dark Mode dunkler, Light Mode heller). Der Korpus zeigte kaum echte
+  Marker, aber eingefügte Webfarben: 100-mal weiße Tailwind-Schrift
+  `rgb(255 255 255/var(--tw-text-opacity))` in Ankizin, die der Farbparser wegen
+  `var(…)` nicht las und im Light Mode unsichtbar ließ, dazu graue und weiße
+  Seitenhintergründe. `var(…)` gilt jetzt als deckend; farblose Hintergründe
+  entfallen, unlesbare farblose Textfarben übernehmen die Kartenschrift.
+  Visuell in Light und Dark mit Marker, Webkopie und Ankizin-Textfarben geprüft.
+- Kprim (wie vorgeschlagen): Nach dem Prüfen nennt die Rückmeldung „3 von 4
+  Aussagen richtig“; die Bewertung Nochmal/Schwer/Gut/Einfach bleibt manuell.
+- Bildbeschreibung (Entscheidung 3A): Das Bild einer Bildverdeckung trägt den
+  ersten Fragetext, etwa „Herzklappen – Bild mit verdeckten Bereichen“.
+- Neuübersetzung (K5.4): Der Importgraph liefert zusätzlich `noteSources`, die
+  rohen Anki-Feldwerte je Inhalt. Ohne sie wäre keine Neuübersetzung möglich,
+  weil Übersetzer Felder wie Antwortmaske, Optionen oder Maskenfeld
+  verbrauchen. Kosten am Beispiel Dellas: 1,75 MiB Rohfelder zu 7,39 MiB
+  übersetztem Inhalt. Entschieden: automatische Neuübersetzung mit vier
+  Leitplanken (nur Unbearbeitetes, Lernstand und Karten mit Lernstand
+  geschützt, einmal deterministisch je Account, kurzer Hinweis), festgehalten
+  in K5.4 und als Ergänzung zu ADR-033.
+- Nachweise: Renderer- und Farbtests, Matrix, Übersetzertests, die drei
+  Kartenbaustein-Browsertests (Eintippen, Auswahl einschließlich Kprim,
+  200-%-Zoom).
+- Audit mit `audit-last-change`: Textfarben werden je Stilangabe nur noch
+  einmal gelesen; keine weitere belegbare Vereinfachung.
+
 ## 2026-10-07 — Übersetzer und Importgraph (Phase 5A)
 
 - K5.0: `readAnkiPackage` (`apkgImportInternal.ts`) liest Pakete ohne

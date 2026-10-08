@@ -103,7 +103,13 @@ noch nicht über `coreModel.ts` exportiert und ändern keinen App-Laufzeitpfad.
 `srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions` und
 `diagnostics`; HTML wird weder persistiert noch aus Anki-Templates erzeugt.
 Der Theme-Snapshot enthält die aktuellen semantischen Farben. Feld-HTML
-durchläuft `sanitizeNoteHtml`; Textfarben erreichen 4,5 : 1 zum Kartenhintergrund.
+durchläuft `sanitizeNoteHtml`. Farbige Marker (`background-color`) ändern ihre
+Helligkeit, bis die Kartenschrift des Themes darauf 4,5 : 1 erreicht; graue,
+weiße und schwarze Hintergründe aus kopiertem Webtext entfallen. Textfarben
+erreichen 4,5 : 1 zu ihrem Marker oder zum Kartenhintergrund; unlesbare farblose
+Textfarben übernehmen die Kartenschrift. `var(…)` in Farbwerten gilt als deckend.
+Das Bild einer Bildverdeckung trägt den ersten Fragetext als Beschreibung
+(„Herzklappen – Bild mit verdeckten Bereichen“).
 Lücken werden verschachtelt tokenisiert, Bildmasken als relatives SVG dargestellt;
 Textbeschriftungen der Masken sind HTML (Skala 1 entspricht der Kartenschrift),
 damit die gestreckte Maskenfläche sie nicht verzerrt.
@@ -171,7 +177,7 @@ bis zum Cutover bestehen.
 
 `translateAnkiPackage(pkg)` in `apkgNoteTranslation.ts` ist eine reine Funktion
 und liefert `{ decks, notes, cards, mediaFiles, reviewEvents, noteTypeSources,
-report }`:
+noteSources, report }`:
 
 - **Stapel:** Karten liegen in `did`, in gefilterten Stapeln im Heimatstapel
   `odid`. Angelegt werden nur Stapel mit Karten und ihre Vorfahren; gefilterte
@@ -216,8 +222,10 @@ report }`:
   zugeordnete Felder, Feldlisten- und nicht darstellbare Inhalte, fehlende
   Medien und übernommener Lernstand nach Herkunft.
 
-`noteTypeSources` enthält die unsichtbare Anki-Vorlage je genutztem Notiztyp
-für spätere Neuübersetzung. Die Funktion ist nur an Matrix, Korpusbericht und
+`noteTypeSources` enthält die unsichtbare Anki-Vorlage je genutztem Notiztyp,
+`noteSources` die rohen Anki-Feldwerte je Inhalt (Mediennamen bereits
+kanonisch), auch die vom Übersetzer verbrauchten Felder. Beide zusammen sind die
+Eingabe jeder späteren Neuübersetzung. Die Funktion ist nur an Matrix, Korpusbericht und
 Benchmark angebunden; Worker, Commit und Oberfläche wechseln im Cutover.
 
 ## Architekturänderungen

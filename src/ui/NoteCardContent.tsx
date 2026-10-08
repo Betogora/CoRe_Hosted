@@ -148,7 +148,9 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
           }}>{badge}{text}{stateIcon}</button>;
       })}
       {!revealed && interaction.mode !== "single" ? <ActionButton variant="primary" className="mt-1 w-fit" disabled={!choiceResult!.complete} onClick={onReveal}>Antwort prüfen</ActionButton> : null}
-      {revealed ? <StatusMessage className="mt-1" tone={!choiceResult!.complete ? "info" : choiceResult!.correct ? "success" : "error"} announce="polite">{!choiceResult!.complete ? "Lösung aufgedeckt." : choiceResult!.correct ? "Richtig ausgewählt." : "Nicht ganz. Vergleiche deine Auswahl mit der Lösung."}</StatusMessage> : null}
+      {revealed ? <StatusMessage className="mt-1" tone={!choiceResult!.complete ? "info" : choiceResult!.correct ? "success" : "error"} announce="polite">{!choiceResult!.complete ? "Lösung aufgedeckt." : choiceResult!.correct ? "Richtig ausgewählt."
+        : interaction.mode === "kprim" ? `${choiceResult!.options.filter((option) => option.correct).length} von ${choiceResult!.options.length} Aussagen richtig. Vergleiche deine Auswahl mit der Lösung.`
+          : "Nicht ganz. Vergleiche deine Auswahl mit der Lösung."}</StatusMessage> : null}
     </div> : null}
 
     {answerResult && !oneFrame ? <CardPresentationSurface {...frameProps} presentation={answerResult} title="Antwort" /> : null}

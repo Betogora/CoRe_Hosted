@@ -60,6 +60,13 @@ export interface NoteTypeSource {
   config: unknown;
 }
 
+/** Raw Anki field values of an imported note (media names already canonical), the input of any re-translation. */
+export interface NoteSource {
+  noteId: string;
+  noteTypeSourceId: string;
+  fields: string[];
+}
+
 export type StudyMigration = "fsrs-memory-state" | "revlog-replay" | "classic-state" | "new";
 
 export interface ApkgNotetypeReport {
@@ -102,6 +109,7 @@ export interface ApkgImportGraph {
   mediaFiles: AnkiPackageMediaFile[];
   reviewEvents: ImportReviewEvent[];
   noteTypeSources: NoteTypeSource[];
+  noteSources: NoteSource[];
   report: ApkgTranslationReport;
 }
 
@@ -789,6 +797,7 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
   };
 
   const notes: Note[] = [];
+  const noteSources: NoteSource[] = [];
   const cards: Card[] = [];
   const reviewEvents = new Map<string, ImportReviewEvent>();
   const usedMedia = new Set<string>();
@@ -855,6 +864,7 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
     entry.report.notes += 1;
     entry.report.cards += created.cards.length;
     notes.push(note);
+    noteSources.push({ noteId: note.id, noteTypeSourceId: entry.source.id, fields: values });
   }
 
   const importedCardIds = new Set(cards.map((card) => card.ankiCardId));
@@ -874,6 +884,7 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
     mediaFiles,
     reviewEvents: [...reviewEvents.values()].sort((left, right) => left.answeredAt.localeCompare(right.answeredAt)),
     noteTypeSources: [...plans.values()].map(({ source }) => source),
+    noteSources,
     report: {
       packageFormat: pkg.packageFormat,
       mediaFormat: pkg.media.format,

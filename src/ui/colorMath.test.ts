@@ -14,6 +14,7 @@ test("CSS-Farben werden als Hex, Name, RGB und HSL einschließlich Transparenz g
   assert.equal(resolveCssColor("hsl(120deg 100% 50%)"), "#00ff00");
   assert.equal(resolveCssColor("rgba(0, 0, 0, 0.5)", "#ffffff"), "#808080");
   assert.equal(resolveCssColor("currentColor"), null);
+  assert.equal(resolveCssColor("rgb(255 255 255/var(--tw-text-opacity))"), "#ffffff");
 });
 
 test("Feldfarben behalten ausreichenden Kontrast oder werden nur in ihrer Helligkeit angepasst", () => {

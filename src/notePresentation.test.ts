@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { NoteContent, NoteField } from "./coreTypes.ts";
 import { createNote } from "./coreModel/notes.ts";
+import { colorContrast } from "./ui/colorMath.ts";
 import { compareTypedAnswer, evaluateNoteChoice, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationTheme } from "./notePresentation.ts";
 
 const theme: NotePresentationTheme = { mode: "light", colors: { surface: "#ffffff", "surface-muted": "#edf1f6", text: "#181d25", "text-muted": "#667492", border: "#d5dbe5", "border-interactive": "#6f7e9e", success: "#d6a3d2", "success-surface": "#f5e8f4", danger: "#e28b68", "danger-surface": "#f8e2d9", "learning-goal-achieved": "#2f7d68" } };
@@ -94,6 +95,22 @@ test("Bildmasken verdecken fremde Gruppen dauerhaft und decken die aktive Gruppe
   const overlay = content({ kind: "image-occlusion", image: "bild.png", mode: "hide-one-guess-one", masks: [{ id: "m", ordinal: 1, alwaysOccluded: false, shape: { kind: "overlay", question: "q.svg", answer: "a.svg" } }] });
   assert.match((await render(overlay, "question", "io:1")).srcdoc, /<img class="mask-overlay" src="q\.svg" alt=""\/><\/div>/);
   assert.match((await render(overlay, "answer", "io:1")).srcdoc, /<img class="mask-overlay" src="a\.svg" alt=""\/><\/div>/);
+  assert.match((await render(overlay, "question", "io:1")).srcdoc, /<img src="bild\.png" alt="Frage – Bild mit verdeckten Bereichen"\/>/);
+});
+
+test("Marker folgen dem Theme; graue Fremdhintergründe entfallen und Text bleibt auf seinem Marker lesbar", async () => {
+  const dark: NotePresentationTheme = { mode: "dark", colors: { ...theme.colors, surface: "#17151f", text: "#f4f0ff" } };
+  const value = basic();
+  value.fields[0].html = '<span style="background-color: yellow">Marker</span> <span style="background-color: rgb(32, 33, 36); color: rgb(255 255 255/var(--tw-text-opacity))">Kopie</span>';
+  const graph = createNote({ content: value, deckId: "deck" });
+  const styles = async (colors: NotePresentationTheme) => [...(await renderCard({ ...graph, card: graph.cards[0], side: "question", surface: "review", theme: colors })).srcdoc.matchAll(/<span style="([^"]*)">/g)].map((match) => match[1]);
+  const [lightMarker, lightCopy] = await styles(theme);
+  const [darkMarker] = await styles(dark);
+  const background = (style: string) => /background-color:(#[\da-f]{6})/.exec(style)![1];
+  assert.ok(colorContrast(background(lightMarker), theme.colors.text) >= 4.5);
+  assert.ok(colorContrast(background(darkMarker), dark.colors.text) >= 4.5);
+  assert.notEqual(background(darkMarker), background(lightMarker));
+  assert.doesNotMatch(lightCopy, /background|color/);
 });
 
 test("Medien sind lokal auflösbar, MP4-Sound wird Video und TTS dupliziert keinen Feldtext", async () => {
