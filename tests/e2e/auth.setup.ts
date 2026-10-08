@@ -30,6 +30,8 @@ async function readRegisteredDevices(environment: { supabaseUrl: any; publishabl
 }
 
 setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async ({ page }: any) => {
+  // Der erste Aufruf transformiert alle Module des frisch gestarteten Vite-Servers.
+  setup.setTimeout(60_000);
   const environment = loadE2EEnvironment();
   await ensureLocalE2EAccount(environment);
   await resetTestAccount(environment);

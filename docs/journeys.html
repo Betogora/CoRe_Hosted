@@ -3225,7 +3225,8 @@ button[aria-label] {
   }
 }
 
-@container core-study-heatmap (min-width: 36rem) {
+/* Liegt oberhalb der Breitendelle, die der größere Innenabstand ab 640 px erzeugt; so wechselt der Kopf nur einmal. */
+@container core-study-heatmap (min-width: 37rem) {
   .core-study-heatmap-header {
     grid-template-columns: minmax(0, 1fr) auto;
   }
@@ -3486,8 +3487,6 @@ summary {
   background-position: left 56%;
   background-repeat: repeat-x;
   background-size: 0.36rem 0.3rem;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
 }
 
 @keyframes core-answer-pulse {

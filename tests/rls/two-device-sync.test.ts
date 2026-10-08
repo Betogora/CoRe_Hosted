@@ -163,3 +163,49 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   const { error: cleanupError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
   assert.ifError(cleanupError);
 });
+
+test("eine Folgeänderung nach verlorener Insert-Antwort wird nur auf dem eigenen Gerät übernommen", async () => {
+  const url = requiredEnvironment("VITE_SUPABASE_URL");
+  const key = requiredEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY");
+  const email = requiredEnvironment("CORE_TWO_DEVICE_EMAIL");
+  const password = requiredEnvironment("CORE_TWO_DEVICE_PASSWORD");
+  assert.equal(isLocalSupabaseUrl(url), true, "Der Zwei-Geräte-Test darf nur gegen lokales Supabase laufen.");
+
+  const clientA = await createAuthenticatedClient(url, key, email, password);
+  const clientB = await createAuthenticatedClient(url, key, email, password);
+  const { data: userData } = await clientA.auth.getUser();
+  assert.ok(userData.user);
+  const userId = userData.user.id;
+  const engineA = createDevice(clientA, userId, "device_lost_insert_a");
+  const engineB = createDevice(clientB, userId, "device_lost_insert_b");
+  const { error: staleConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
+  assert.ifError(staleConflictError);
+
+  const { cards: _cards, reviewEvents: _reviewEvents, ...deck } = createManualCoreDeck({
+    deckName: "Verlorene Insert-Antwort",
+    card: { cardType: "free-text", front: "Frage", back: "Antwort" },
+  });
+  const insertAndChange = (engine: ReturnType<typeof createDevice>, id: string, name: string) => engine.enqueueMutation({
+    id,
+    type: SYNC_MUTATION_TYPES.entityMutation,
+    entityId: deck.id,
+    payload: { table: "decks", entity: { ...deck, name }, baseRevision: null },
+  });
+
+  insertAndChange(engineA, `insert-a-${deck.id}`, "Angelegt auf Gerät A");
+  await engineA.flush({ force: true });
+  assert.equal((await readDeckRow(clientA, userId, deck.id)).revision, 1);
+
+  insertAndChange(engineA, `follow-up-a-${deck.id}`, "Folgeänderung auf Gerät A");
+  const ownFlush = await engineA.flush({ force: true });
+  assert.equal(ownFlush.conflicts.length, 0);
+  assert.deepEqual(await readDeckRow(clientA, userId, deck.id), { id: deck.id, name: "Folgeänderung auf Gerät A", revision: 2, deleted_at: null });
+
+  insertAndChange(engineB, `foreign-b-${deck.id}`, "Fremde Anlage auf Gerät B");
+  const foreignFlush = await engineB.flush({ force: true });
+  assert.ok(foreignFlush.conflicts.some((conflict: { entityId?: string }) => conflict.entityId === deck.id));
+  assert.equal((await readDeckRow(clientA, userId, deck.id)).name, "Folgeänderung auf Gerät A");
+
+  const { error: cleanupError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
+  assert.ifError(cleanupError);
+});

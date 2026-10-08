@@ -64,7 +64,7 @@ async function findOriginLeakBeforeReveal(page: Page) {
   });
 }
 
-test("dashboard deck rows start learning across their full surface and keep the learning overview separate", async ({ page }: any) => {
+test("dashboard deck rows start learning from their play action and keep the learning overview separate", async ({ page }: any) => {
   await resetToFreshLocalState(page, { waitForCloud: false });
 
   const openLearn = page.getByRole("button", { name: "Alle ansehen", exact: true });
@@ -75,7 +75,7 @@ test("dashboard deck rows start learning across their full surface and keep the 
 
   await page.goBack();
   const deckRow = page.getByRole("button", { name: "Welt-Hauptstädte lernen", exact: true });
-  await deckRow.click({ position: { x: 120, y: 20 } });
+  await deckRow.click();
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
@@ -149,7 +149,7 @@ test("dashboard heatmap changes its header layout only once across responsive wi
     { label: "Monat", value: "month" },
     { label: "Jahr", value: "year" },
   ]) {
-    await page.getByRole("button", { name: period.label, exact: true }).click();
+    await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Heatmap-Zeitraum" }), period.label);
     let stackedHeaderSeen = false;
 
     for (const width of viewports) {
@@ -225,7 +225,7 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    await page.getByRole("button", { name: "Jahr", exact: true }).click();
+    await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Heatmap-Zeitraum" }), "Jahr");
     const grid = page.getByTestId("study-heatmap-grid");
     await expect(grid).toBeVisible();
     await expect.poll(() => grid.locator("span[aria-label]").count()).toBeGreaterThan(0);
@@ -238,7 +238,8 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
       const todayStyle = today ? window.getComputedStyle(today) : null;
       const header = document.querySelector<HTMLElement>("[data-testid='study-heatmap-header']")!;
       const controls = header.lastElementChild as HTMLElement;
-      const [periodSelector, navigation] = [...controls.children] as HTMLElement[];
+      const periodSelector = controls.querySelector<HTMLElement>('[aria-label="Heatmap-Zeitraum"]')!;
+      const navigation = controls.querySelector<HTMLElement>('[aria-label="Vorheriges Jahr anzeigen"]')!;
       const headerRect = header.getBoundingClientRect();
       const controlsRect = controls.getBoundingClientRect();
       const periodSelectorRect = periodSelector.getBoundingClientRect();
@@ -449,6 +450,7 @@ test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentrierte
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
   const settings = page.getByRole("button", { name: "Lerneinstellungen" });
   await settings.click();
@@ -504,6 +506,7 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   const dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
@@ -552,6 +555,7 @@ test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge s
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 
   await page.getByRole("button", { name: "Lerneinstellungen" }).click();
   let dialog = page.getByRole("dialog", { name: "Lerneinstellungen" });
@@ -611,7 +615,7 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
   await expect(page.getByRole("button", { name: "Export herunterladen" })).toHaveCount(0);
-  for (const section of ["Konto", "Lerntag & Fokus", "Daten & Synchronisierung", "Über uns"]) {
+  for (const section of ["Konto", "Daten & Synchronisierung", "Über uns"]) {
     await expect(page.getByRole("heading", { name: section, exact: true })).toBeVisible();
   }
   await expect(page.getByLabel("Login-E-Mail")).not.toBeEditable();
@@ -673,7 +677,7 @@ test("[Vertrag: Review über Offline, Reconnect und Reload] @golden-e2e @beta-co
   try {
     const before = await deckReviewEventCount(page, DECK_IDS.europe);
     await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-    await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
+    await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
     await page.getByRole("button", { name: "Antwort anzeigen" }).click();
 
     await context.setOffline(true);
@@ -709,7 +713,8 @@ test("review flow records a rating through accessible controls", async ({ page }
   const before = await deckReviewEventCount(page, DECK_IDS.europe);
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).click();
+  await page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`).getByRole("button", { name: /lernen/ }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);
@@ -810,7 +815,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await expect(saveBar).toHaveCount(1);
   await saveBar.getByRole("button", { name: "Speichern" }).click();
   await expect(saveBar).toHaveCount(0);
-  await expect(page.getByText("Stapeleinstellungen wurden gespeichert.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Stapeleinstellungen wurden für den Stapel gespeichert.", { exact: true })).toBeVisible();
 
   await expect.poll(async () => {
     const deck = (await readAppState(page)).decks.find((candidate: { id: string }) => candidate.id === DECK_IDS.africa);
@@ -863,10 +868,10 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
   await page.getByTestId("learning-settings-new-cards").fill("0");
   await page.getByTestId("learning-settings-max-reviews").fill("1");
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden gespeichert." })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
-  await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
+  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   const variantTools = page.getByTestId("card-variant-tools");
   await expect(variantTools).toBeVisible();
@@ -1049,7 +1054,7 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   const reviewsBefore = await deckReviewEventCount(page, createdDeck.id);
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByTestId(`learn-deck-row-${createdDeck.id}`).click();
+  await page.getByTestId(`learn-deck-row-${createdDeck.id}`).getByRole("button", { name: /lernen/ }).click();
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Warum erzeugen Mitochondrien ATP?", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();

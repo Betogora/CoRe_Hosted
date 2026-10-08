@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-07
+**Stand:** 2026-10-08
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -91,7 +91,6 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 
 - Der heutige App-Import über Learning Items weicht noch vom Importvertrag ab: Der rohe Anki-Kartenzustand (`sourceSchedulerData`) erreicht das Learning Item nicht, daher greift nur das Revlog-Replay; gültige FSRS-Zustände, Aussetzen, Wiederlernen, Begraben, Flaggen und `marked` gehen verloren. Ein leerer Stapel `Default` und gefilterte Stapel entstehen, Geschwister in anderen Stapeln landen im Stapel der ersten Karte. `.colpkg`, Mehrfach- und verschachtelte Lücken, Bildverdeckung, Hinweise, Eintippen, MathJax, „Multiple Choice for Anki“, Image Occlusion Enhanced sowie kodierte Mediennamen werden nicht korrekt abgebildet. Die vorbereitete Note-Übersetzung (`src/apkgNoteTranslation.ts`) schließt diese Abweichungen; die APKG-Formatmatrix beobachtet sie und ist ohne bekannte Lücken grün. Die App wechselt erst im Cutover auf sie.
 - Der lokale Realwelt-Korpus (Ankizin v5, Ankiphil, Dellas) wird vollständig übersetzt, Ankizin zu 99,9 % über den eigenen Übersetzer. AnKing, reale Bildverdeckung und reale Lernstände fehlen im Korpus; Lernstand ist nur synthetisch über die Matrix belegt.
-- Die lokale Playwright-Suite (`npm run test:e2e:local`) ist rot: Am 2026-10-07 schlugen 46 von 109 Tests fehl, auf dem Stand vor Phase 5A (`7e9f192`) identisch. Die Tests suchen die Dashboard-Begrüßung „Willkommen zurück,“ seit `415b05b` noch als Überschrift, APKG-Importe bleiben nach dem Commit bei „Medien werden synchronisiert“ stehen, und weitere Abläufe (Einstellungen, Pomodoro, Kartenverwaltung) laufen in Zeitüberschreitungen.
 - Das P0-Produktgate mit Zielviewports, Tastatur- und Screenreader-Abnahme ist offen.
 - Template-JavaScript, Add-on-/Custom-Filter, native LaTeX-Toolchains und nicht browserfähige Codecs werden erhalten, aber bewusst nicht ausgeführt.
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.

@@ -242,12 +242,13 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
   );
   const { dailyLearningPlan, studyHeatmap } = library;
   const displayName = state.profile?.displayName?.trim();
-  const welcomeTitle = displayName ? <span className="core-dashboard-name">{displayName}!</span> : "Willkommen bei CoRe";
+  const welcomeTitle = displayName ? <><span className="sr-only">Willkommen zurück, </span><span className="core-dashboard-name">{displayName}!</span></> : "Willkommen bei CoRe";
+  const welcomeEyebrow = displayName ? <span aria-hidden="true" className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined;
 
   if (state.decks.length === 0) {
     return (
       <div className="grid min-w-0 gap-6">
-        <PageHeader eyebrow={displayName ? <span className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined} title={welcomeTitle} />
+        <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
 
         <SoftPanel className="overflow-hidden p-6 sm:p-9">
           <div className="max-w-3xl">
@@ -280,7 +281,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
 
   return (
     <div className="grid min-w-0 gap-6">
-      <PageHeader eyebrow={displayName ? <span className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined} title={welcomeTitle} />
+      <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
 
       <DailyLearningOverview
         plan={dailyLearningPlan}

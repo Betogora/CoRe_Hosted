@@ -1243,20 +1243,24 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
     if (remoteRow && rowsHaveSameContent(candidate, remoteRow, entityTable)) {
       return revisionMutationResult(entityTable, remoteRow, { idempotent: true });
     }
-    return throwRevisionConflict(client, user, {
-      entityTable,
-      entityId,
-      baseRevision,
-      localValue: candidate,
-      remoteValue: remoteRow ?? {},
-      deviceId,
-      createdAt: flushedAt,
-    });
+    if (!remoteRow) {
+      return throwRevisionConflict(client, user, {
+        entityTable,
+        entityId,
+        baseRevision,
+        localValue: candidate,
+        remoteValue: {},
+        deviceId,
+        createdAt: flushedAt,
+      });
+    }
   }
 
   row = preserveRemoteLearningProjection(entityTable, row, remoteRow);
   const restoresTombstone = Boolean(remoteRow.deleted_at) && row.deleted_at == null;
-  if (baseRevision === null || normalizeRevision(remoteRow.revision) !== baseRevision || (remoteRow.deleted_at && !restoresTombstone)) {
+  // Schrieb zuletzt dieses Gerät, war die Antwort auf seinen Insert verloren; die ausstehende Änderung baut darauf auf.
+  const effectiveBaseRevision = baseRevision ?? (remoteRow.updated_by_device_id === deviceId && !remoteRow.deleted_at ? normalizeRevision(remoteRow.revision) : null);
+  if (effectiveBaseRevision === null || normalizeRevision(remoteRow.revision) !== effectiveBaseRevision || (remoteRow.deleted_at && !restoresTombstone)) {
     return throwRevisionConflict(client, user, {
       entityTable,
       entityId,
@@ -1268,14 +1272,14 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
     });
   }
 
-  const nextRevision = baseRevision + 1;
+  const nextRevision = effectiveBaseRevision + 1;
   const payload = updatePayload(row, { revision: nextRevision, deviceId, now: writeNow });
   const { data, error } = await client
     .from(entityTable)
     .update(payload)
     .eq("user_id", user.id)
     .eq("id", entityId)
-    .eq("revision", baseRevision)
+    .eq("revision", effectiveBaseRevision)
     .select("*");
   if (error) throw error;
   if (data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });

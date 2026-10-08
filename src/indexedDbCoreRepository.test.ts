@@ -176,3 +176,24 @@ test("synchronisierte manuelle Neuplanungen zählen nicht als Lernaktivität", a
   assert.equal(result.studyHeatmap.countsByDay.get("2026-08-21"), 1);
   repository.close();
 });
+
+test("eine Änderung an einem noch nicht gesendeten Stapel bleibt ein Cloud-Insert", async () => {
+  const userId = randomUUID();
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  const created = createCoreDeck({ id: "deck-new", name: "Neu", source: "manual", cards: [] });
+  repository.saveDeckMetadata([created]);
+  const [saved] = repository.saveDeckMetadata([{ ...repository.getShellState().decks.find((deck) => deck.id === "deck-new")!, name: "Umbenannt", updatedAt: "2099-01-01T00:00:00.000Z" }]);
+  await repository.flush();
+
+  const pending = repository.outbox.listPending().filter((mutation) => mutation.entityId === "deck-new");
+  assert.equal(saved.name, "Umbenannt");
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].baseRevision, null);
+  assert.equal((pending[0].payload as any).baseRevision, null);
+  assert.equal((pending[0].payload as any).entity.name, "Umbenannt");
+  repository.close();
+
+  const reopened = await createIndexedDbCoreRepository({ userId, initialState: workspaceState(0), indexedDb: indexedDB as any });
+  assert.deepEqual(reopened.outbox.listPending().filter((mutation) => mutation.entityId === "deck-new").map((mutation) => mutation.baseRevision), [null]);
+  reopened.close();
+});

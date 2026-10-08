@@ -1,9 +1,41 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-07
+**Stand:** 2026-10-08
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-08 — Lokale Playwright-Suite wieder grün
+
+- Ursache der hängenden APKG-Importe und der Synchronisierungskonflikte: Eine
+  Folgeänderung an einem noch nicht gesendeten Insert (etwa die globalen
+  Lernstandards direkt nach dem Import) ersetzte ihn in der Outbox als Update
+  mit Basisrevision 1; die Cloud meldete `missing`, die Karten scheiterten am
+  Stapel-Fremdschlüssel. Die Outbox hält solche Ersetzungen jetzt als Insert.
+  Ging nur die Antwort auf einen Insert verloren (Reload während des Syncs),
+  übernimmt die Cloud die Folgeänderung als Update, sofern dasselbe Gerät die
+  Zeile zuletzt geschrieben hat.
+- Weitere Produktkorrekturen: Die Dashboard-Überschrift trägt als zugänglichen
+  Namen wieder die vollständige Begrüßung; eingefügte Bilder gehen nicht mehr
+  verloren, wenn ein anderes Feld beim Einfügen den Fokus abgibt; nach dem
+  Speichern landet der Fokus im ersten freien Pflichtfeld statt im
+  Datei-Input der Toolbar; verpixelter Hilfetext bricht wie der lesbare um;
+  der Heatmap-Kopf wechselt ab 37 rem nur noch einmal, weil 36 rem in der
+  Breitendelle des größeren Innenabstands ab 640 px lag.
+- Rund 30 Playwright-Tests in sieben Specs wurden an spec-gedeckte UI-Änderungen seit dem
+  2026-08-18 angepasst (Stapelinhalte statt Review per Zeilenklick,
+  Heatmap-Dropdown, getrennte Lerneinstellungen, Bereichstoasts,
+  Platzhalter-Tabs, Einrückung 8 px, kürzbare Spaltentitel, Navigationshelfer).
+- Abgenommen: `npm run gate:push` (Typecheck mit Doku-Prüfung, 108
+  Testdateien, Build und Chunk-Budget), `npm run test:e2e:local` mit 15/15
+  RLS-/Zwei-Geräte-Fällen, 108 bestandenen und einem erwartbar übersprungenen
+  Playwright-Test sowie dem Beta-Auth-Artefakt, die Startmessung aus
+  `performance:measure:local` (Wiederholungsstart p75/p95 731/775 ms,
+  Offline-Kaltstart 518/542 ms, Frischstart p75 3.063 ms). Der anschließende
+  Statistikbenchmark lief im Worktree nicht, weil er den Containernamen aus dem
+  Verzeichnisnamen ableitet. Visuell geprüft wurden Heatmap-Kopf in Dashboard
+  und Statistik, verpixelte Hilfekarte und Begrüßung bei 320 bis 1.440 px in
+  Light und Dark.
 
 ## 2026-10-07 — Übersetzer und Importgraph (Phase 5A)
 
