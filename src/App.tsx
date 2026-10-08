@@ -982,6 +982,22 @@ export function App() {
     });
   }, [authPhase, mediaStore, syncEngine, workspaceRepository]);
 
+  // K5.4: after a translator release, unedited imports are re-translated once in the background.
+  React.useEffect(() => {
+    if (authPhase !== "ready" || !syncEngine || !workspaceRepository || !supabase) return undefined;
+    let active = true;
+    void import("./importRetranslation.ts")
+      .then(({ runAccountRetranslation }) => runAccountRetranslation(supabase, workspaceRepository))
+      .then((count) => {
+        if (!active || count === 0) return;
+        setAppState(workspaceRepository.getShellState(), { preserveCardPages: true });
+        syncEngine.requestSync();
+        setSuccessToast(`${count.toLocaleString("de-DE")} ${count === 1 ? "Inhalt" : "Inhalte"} mit verbesserter Darstellung aktualisiert.`);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [authPhase, supabase, syncEngine, workspaceRepository]);
+
   async function handleSignIn({ email, password }: SignInInput) {
     if (!supabase) return;
     setAuthBusy(true);

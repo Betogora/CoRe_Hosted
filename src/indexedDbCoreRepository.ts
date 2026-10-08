@@ -1565,6 +1565,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return batch.queued.length;
     },
     getSyncConflictCardIds: (): ReadonlySet<string> => new Set(syncConflictCardIds),
+    async readSyncMetadata(key: string): Promise<unknown> {
+      const transaction = database.transaction(STORE.syncMetadata, "readonly");
+      const row = await requestResult<{ value?: unknown } | undefined>(transaction.objectStore(STORE.syncMetadata).get(key));
+      return row?.value;
+    },
+    async writeSyncMetadata(key: string, value: unknown) {
+      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+      transaction.objectStore(STORE.syncMetadata).put({ key, value });
+      await transactionDone(transaction);
+    },
     async setSyncConflicts(conflicts: any[] = []) {
       syncConflictCardIds = new Set(conflicts.flatMap((conflict) => conflict?.cardId ? [String(conflict.cardId)] : []));
       const conflictedDeckIds = [...new Set(conflicts.filter((conflict) => conflict?.entityTable === "decks" && conflict?.entityId).map((conflict) => String(conflict.entityId)))];

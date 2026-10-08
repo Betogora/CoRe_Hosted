@@ -1,17 +1,17 @@
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { openAsBlob, readFileSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
-import { commitApkgImport, parseApkgToNormalizedImport, prepareApkgWorkerResult } from "../src/apkgImportInternal.ts";
+import { readAnkiPackage } from "../src/apkgImportInternal.ts";
+import { translateAnkiPackage, type NoteSource, type NoteTypeSource } from "../src/apkgNoteTranslation.ts";
 import { createCloudStateRows } from "../src/cloudRepository.ts";
-import { createCoreDeck, createLearningItemsFromEditorValue } from "../src/coreModel.ts";
-import { normalizeContentEntities } from "../src/coreRepository.ts";
-import type { Deck, NoteTypeDefinitionV1 } from "../src/coreTypes.ts";
+import { createCoreDeck, createManualNoteContent, createNote } from "../src/coreModel.ts";
+import type { Deck, Note } from "../src/coreTypes.ts";
 import { localSupabaseDatabaseContainer } from "./localE2EEnvironment.ts";
 
-// Measures how many bytes 1,000 learning contents occupy in Postgres, on the
-// sync wire and in the browser replica. The APKG comes from
-// scripts/create_footprint_apkg.py; the manual scenarios reuse the same text.
+// Measures how many bytes 1,000 contents occupy in Postgres, on the sync wire and
+// in the browser replica. The APKG comes from scripts/create_footprint_apkg.py and
+// runs through the app's note translation; the manual scenarios reuse the same text.
 
 const NOTES_PER_KIND = 1_000;
 const USER_ID = "00000000-0000-0000-0000-00000000f00d";
@@ -21,7 +21,7 @@ const ORGANS = ["Herz", "Niere", "Leber", "Lunge", "Milz", "Pankreas", "Schilddr
 const TOPICS = ["Physiologie", "Pathologie", "Pharmakologie", "Anatomie", "Diagnostik"];
 const KINDS = ["basic", "reverse", "cloze"] as const;
 type Kind = typeof KINDS[number];
-type Scenario = { key: string; origin: "apkg" | "manual"; kind: Kind; decks: Deck[] };
+type Scenario = { key: string; origin: "apkg" | "manual"; kind: Kind; decks: Deck[]; notes: Note[]; noteTypeSources: NoteTypeSource[]; noteSources: NoteSource[] };
 
 function basicFields(index: number) {
   const organ = ORGANS[index % ORGANS.length];
@@ -41,32 +41,41 @@ function clozeFields(index: number) {
   };
 }
 
-function manualDeck(kind: Kind): Deck {
+function manualScenario(kind: Kind): Scenario {
   const deck = createCoreDeck({ id: `footprint-manual-${kind}`, name: `Manuell ${kind}`, source: "manual" });
+  const notes: Note[] = [];
   for (let index = 0; index < NOTES_PER_KIND; index += 1) {
-    const editorValue = kind === "cloze"
-      ? { cardType: "cloze", ...clozeFields(index), tags: [] }
-      : { cardType: kind === "reverse" ? "basic-reversed" : "basic", ...basicFields(index), tags: [] };
-    deck.cards.push(...createLearningItemsFromEditorValue(deck.id, editorValue));
+    const { textWithClozes, extra } = clozeFields(index);
+    const { front, back } = kind === "cloze" ? { front: textWithClozes, back: extra } : basicFields(index);
+    const graph = createNote({ deckId: deck.id, content: createManualNoteContent({ kind: kind === "cloze" ? "cloze" : kind === "reverse" ? "basic-reversed" : "basic", front, back }) });
+    notes.push(graph.note);
+    deck.cards.push(...graph.cards);
   }
-  return deck;
+  return { key: `manual-${kind}`, origin: "manual", kind, decks: [deck], notes, noteTypeSources: [], noteSources: [] };
 }
 
-async function importedScenarios(): Promise<{ scenarios: Scenario[]; definitions: NoteTypeDefinitionV1[] }> {
-  const bytes = await readFile(apkgPath);
-  const file = { name: basename(apkgPath), size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
-  const committed = commitApkgImport(prepareApkgWorkerResult(await parseApkgToNormalizedImport(file)));
+/** The footprint APKG through the app's translation; each scenario keeps only its deck's notes and sources. */
+async function importedScenarios(): Promise<Scenario[]> {
+  const file = Object.assign(await openAsBlob(apkgPath), { name: basename(apkgPath) });
+  const graph = translateAnkiPackage(await readAnkiPackage(file));
   const kindForDeck: Record<string, Kind> = { "Basic": "basic", "Basic und umgekehrt": "reverse", "Lückentext": "cloze" };
-  const scenarios = KINDS.map((kind) => ({
-    key: `apkg-${kind}`,
-    origin: "apkg" as const,
-    kind,
-    decks: committed.decks.filter((deck: Deck) => kindForDeck[deck.name] === kind),
-  }));
-  for (const scenario of scenarios) {
-    if (scenario.decks.length !== 1) throw new Error(`Importstapel für ${scenario.kind} wurde nicht eindeutig gefunden.`);
-  }
-  return { scenarios, definitions: committed.commitGraph.noteTypeDefinitions };
+  return KINDS.map((kind) => {
+    const importDecks = graph.decks.filter((deck) => kindForDeck[deck.name] === kind);
+    if (importDecks.length !== 1) throw new Error(`Importstapel für ${kind} wurde nicht eindeutig gefunden.`);
+    const deck = createCoreDeck({ id: importDecks[0].id, name: importDecks[0].name, source: "anki-apkg", ankiDeckId: importDecks[0].ankiDeckId, cards: graph.cards.filter((card) => card.deckId === importDecks[0].id) });
+    const noteIds = new Set(deck.cards.map((card) => card.noteId));
+    const notes = graph.notes.filter((note) => noteIds.has(note.id));
+    const sourceIds = new Set(notes.map((note) => note.noteTypeSourceId));
+    return {
+      key: `apkg-${kind}`,
+      origin: "apkg" as const,
+      kind,
+      decks: [deck],
+      notes,
+      noteTypeSources: graph.noteTypeSources.filter((source) => sourceIds.has(source.id)),
+      noteSources: graph.noteSources.filter((source) => noteIds.has(source.noteId)),
+    };
+  });
 }
 
 function utf8Bytes(value: unknown) {
@@ -89,27 +98,38 @@ function insertSql(table: string, rows: Record<string, unknown>[]) {
   return `insert into public.${table} (${columns}) select ${columns} from jsonb_populate_recordset(null::public.${table}, $core_json$${JSON.stringify(rows)}$core_json$::jsonb);\n`;
 }
 
-function measureDatabase(decks: Deck[], definitions: NoteTypeDefinitionV1[]) {
-  const rows = createCloudStateRows({ decks, noteTypeDefinitions: definitions }, USER_ID);
+const MEASURED_TABLES = ["notes", "cards", "card_catalog", "note_sources", "note_type_sources"] as const;
+const NOTE_DECK = "(select min(c.deck_id) from public.cards c where c.user_id = t.user_id and c.note_id = t.id)";
+const DECK_EXPRESSION: Record<typeof MEASURED_TABLES[number], string> = {
+  notes: NOTE_DECK,
+  cards: "deck_id",
+  card_catalog: "deck_id",
+  note_sources: NOTE_DECK,
+  note_type_sources: "(select min(c.deck_id) from public.notes n join public.cards c on c.user_id = n.user_id and c.note_id = n.id where n.user_id = t.user_id and n.note_type_source_id = t.id)",
+};
+
+/** Writes every scenario in one rolled-back transaction and reads row sizes per scenario deck. */
+function measureDatabase(scenarios: Scenario[]) {
+  const rows = createCloudStateRows({
+    decks: scenarios.flatMap((scenario) => scenario.decks),
+    notes: scenarios.flatMap((scenario) => scenario.notes),
+    noteTypeSources: scenarios.flatMap((scenario) => scenario.noteTypeSources),
+    noteSources: scenarios.flatMap((scenario) => scenario.noteSources),
+  }, USER_ID);
+  const perDeck = (table: typeof MEASURED_TABLES[number]) => `'${table}', (select coalesce(json_object_agg(deck_id, value), '{}'::json) from (
+        select ${DECK_EXPRESSION[table]} as deck_id, json_build_object('rows', count(*), 'storedBytes', sum(pg_column_size(t.*)), 'wireBytes', sum(octet_length(to_jsonb(t)::text))) as value
+        from public.${table} t where user_id = '${USER_ID}' group by 1) per_deck)`;
   const sql = [
     "begin;",
     `insert into auth.users (id, email) values ('${USER_ID}', 'footprint@core.local');`,
     insertSql("decks", rows.decks),
-    insertSql("note_type_definitions", rows.note_type_definitions),
+    insertSql("note_type_sources", rows.note_type_sources),
+    insertSql("notes", rows.notes),
+    insertSql("note_sources", rows.note_sources),
     insertSql("cards", rows.cards),
     `\\pset tuples_only on`,
     `\\pset format unaligned`,
-    `select json_build_object(
-      'cards', (select coalesce(json_object_agg(deck_id, value), '{}'::json) from (
-        select deck_id, json_build_object('rows', count(*), 'storedBytes', sum(pg_column_size(c.*)), 'wireBytes', sum(octet_length(to_jsonb(c)::text)),
-          'definitionIds', array_agg(distinct note_type_definition_id)) as value
-        from public.cards c where user_id = '${USER_ID}' group by deck_id) per_deck),
-      'catalog', (select coalesce(json_object_agg(deck_id, value), '{}'::json) from (
-        select deck_id, json_build_object('rows', count(*), 'storedBytes', sum(pg_column_size(k.*))) as value
-        from public.card_catalog k where user_id = '${USER_ID}' group by deck_id) per_deck),
-      'definitions', (select coalesce(json_object_agg(id, json_build_object('storedBytes', pg_column_size(d.*), 'wireBytes', octet_length(to_jsonb(d)::text))), '{}'::json)
-        from public.note_type_definitions d where user_id = '${USER_ID}')
-    );`,
+    `select json_build_object(${MEASURED_TABLES.map(perDeck).join(", ")});`,
     "rollback;",
   ].join("\n");
   const { docker, container } = databaseContainer();
@@ -124,56 +144,41 @@ function measureDatabase(decks: Deck[], definitions: NoteTypeDefinitionV1[]) {
   return JSON.parse(jsonLine);
 }
 
-const imported = await importedScenarios();
-const manualDecks = KINDS.map(manualDeck);
-const manual = normalizeContentEntities(manualDecks, []);
-const scenarios: Scenario[] = [
-  ...imported.scenarios,
-  ...KINDS.map((kind, index) => ({ key: `manual-${kind}`, origin: "manual" as const, kind, decks: [manual.decks[index] as Deck] })),
-];
-const definitions = [...imported.definitions, ...manual.definitions];
-const database = measureDatabase(scenarios.flatMap((scenario) => scenario.decks), definitions);
-const definitionById = new Map(definitions.map((definition) => [definition.id, definition]));
+const scenarios: Scenario[] = [...await importedScenarios(), ...KINDS.map(manualScenario)];
+const database = measureDatabase(scenarios);
 
 const results = scenarios.map((scenario) => {
   const cards = scenario.decks.flatMap((deck) => deck.cards);
-  const deckIds = scenario.decks.map((deck) => deck.id);
-  const cardRows = deckIds.map((id) => database.cards[id]).filter(Boolean);
-  const catalogRows = deckIds.map((id) => database.catalog[id]).filter(Boolean);
-  const definitionIds = [...new Set(cardRows.flatMap((row: any) => row.definitionIds as string[]))];
-  const sum = (values: number[]) => values.reduce((total, value) => total + Number(value ?? 0), 0);
-  const cardsStored = sum(cardRows.map((row: any) => row.storedBytes));
-  const catalogStored = sum(catalogRows.map((row: any) => row.storedBytes));
-  const definitionsStored = sum(definitionIds.map((id) => database.definitions[id]?.storedBytes ?? 0));
-  const cardsWire = sum(cardRows.map((row: any) => row.wireBytes));
-  const definitionsWire = sum(definitionIds.map((id) => database.definitions[id]?.wireBytes ?? 0));
-  const replicaCardBytes = sum(cards.map(utf8Bytes));
-  const replicaDefinitionBytes = sum(definitionIds.map((id) => utf8Bytes(definitionById.get(id) ?? null)));
+  const deckId = scenario.decks[0].id;
+  const table = (name: typeof MEASURED_TABLES[number]) => database[name][deckId] ?? { rows: 0, storedBytes: 0, wireBytes: 0 };
+  const stored = Object.fromEntries(MEASURED_TABLES.map((name) => [name, Number(table(name).storedBytes)])) as Record<typeof MEASURED_TABLES[number], number>;
+  const syncWireBytes = (["notes", "cards", "note_sources", "note_type_sources"] as const).reduce((sum, name) => sum + Number(table(name).wireBytes), 0);
+  // Browser replica: content once per note plus a card body per card (study state and variants).
+  const replicaBytes = scenario.notes.reduce((sum, note) => sum + utf8Bytes(note), 0) + cards.reduce((sum, card) => sum + utf8Bytes(card), 0);
   return {
     scenario: scenario.key,
     origin: scenario.origin,
     kind: scenario.kind,
-    notes: NOTES_PER_KIND,
+    notes: scenario.notes.length,
     cards: cards.length,
-    noteTypeDefinitions: definitionIds.length,
     postgres: {
-      cardRowBytes: cardsStored,
-      catalogRowBytes: catalogStored,
-      definitionRowBytes: definitionsStored,
-      totalBytes: cardsStored + catalogStored + definitionsStored,
+      noteRowBytes: stored.notes,
+      cardRowBytes: stored.cards,
+      catalogRowBytes: stored.card_catalog,
+      sourceRowBytes: stored.note_sources + stored.note_type_sources,
+      totalBytes: Object.values(stored).reduce((sum, value) => sum + value, 0),
     },
-    syncWireBytes: cardsWire + definitionsWire,
+    syncWireBytes,
     browserReplica: {
-      cardBodyBytes: replicaCardBytes,
-      definitionBytes: replicaDefinitionBytes,
-      learningWindow50CardsBytes: Math.round(replicaCardBytes / cards.length * 50),
+      bodyBytes: replicaBytes,
+      learningWindow50CardsBytes: Math.round(replicaBytes / cards.length * 50),
     },
   };
 });
 
 const report = {
   measuredAt: new Date().toISOString(),
-  method: "Postgres: pg_column_size je Zeile; Sync: octet_length(to_jsonb(Zeile)); Browser: UTF-8-JSON der Kartenkörper und Definitionen.",
+  method: "Postgres: pg_column_size je Zeile in notes, cards, card_catalog, note_sources und note_type_sources; Sync: octet_length(to_jsonb(Zeile)) ohne Katalogprojektion; Browser: UTF-8-JSON der Inhalte und Kartenkörper.",
   fixture: basename(apkgPath),
   results,
 };

@@ -2,6 +2,7 @@ import * as v from "valibot";
 import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, parseNoteContent } from "./coreModel.ts";
 import type { Card, CardVariant, Deck, MediaFileReference, Note, ReviewEvent } from "./coreTypes.ts";
 import type { Json } from "./database.types.ts";
+import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type {
   AccountStatisticsSnapshot,
   AccountStudyOverview,
@@ -358,6 +359,28 @@ export function noteTypeSourceFromRow(row: AccountRow): StoredNoteTypeSource {
     updatedAt: String(row.updated_at),
     deletedAt: (row.deleted_at as string | null) ?? null,
   };
+}
+
+const noteTypeDefinitionSchema = v.object({
+  translator: v.object({ id: v.string(), version: positiveIntegerSchema }),
+  kind: v.number(),
+  originalStockKind: v.number(),
+  css: v.string(),
+  fields: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema })),
+  templates: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema, front: v.string(), back: v.string(), targetDeckId: v.nullable(v.string()) })),
+  config: v.unknown(),
+});
+
+/** The stored Anki template as translator input; null when the cloud definition does not have the expected shape. */
+export function noteTypeSourceForTranslation(source: StoredNoteTypeSource): NoteTypeSource | null {
+  const parsed = v.safeParse(noteTypeDefinitionSchema, source.definition);
+  return parsed.success ? { id: source.id, ankiNotetypeId: source.ankiNotetypeId, name: source.name, ...parsed.output } : null;
+}
+
+export function noteSourceForTranslation(source: StoredNoteSource): NoteSource | null {
+  return Array.isArray(source.fields) && source.fields.every((field) => typeof field === "string")
+    ? { noteId: source.id, noteTypeSourceId: source.noteTypeSourceId, fields: source.fields }
+    : null;
 }
 
 export function noteSourceFromRow(row: AccountRow): StoredNoteSource {

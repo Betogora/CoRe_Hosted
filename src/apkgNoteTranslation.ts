@@ -567,6 +567,29 @@ function planNotetype(model: AnkiModel): NotetypePlan {
   return genericPlan(model, GENERIC, (ordinal) => `anki-${ordinal}`);
 }
 
+/** Current translator versions; a higher version re-translates unedited imports automatically (K5.4). */
+export const TRANSLATOR_VERSIONS: Readonly<Record<string, number>> = Object.fromEntries(
+  [BASIC, CLOZE, IMAGE_OCCLUSION, IMAGE_OCCLUSION_ENHANCED, MULTIPLE_CHOICE, ANKING, GENERIC, FIELD_LIST].map(({ id, version }) => [id, version]),
+);
+
+/**
+ * Translates the raw fields of an imported content again with the current translator; null when the translator
+ * cannot express them. The result is an unvalidated candidate like during the import.
+ */
+export function retranslateNoteContent(source: NoteTypeSource, fields: string[], tags: string[]) {
+  const plan = planNotetype({
+    name: source.name,
+    kind: source.kind,
+    originalStockKind: source.originalStockKind,
+    css: source.css,
+    fields: [...source.fields].sort((left, right) => left.ordinal - right.ordinal).map((field) => field.name),
+    templates: source.templates,
+    config: source.config,
+  });
+  const content = plan.content(fields);
+  return content ? { content: { ...content, tags }, translator: plan.translator, promptKey: plan.promptKey } : null;
+}
+
 // --- Learning state (K5.5) ----------------------------------------------------------------
 
 function readFsrsMemory(data: unknown) {
