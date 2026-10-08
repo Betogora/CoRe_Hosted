@@ -1011,6 +1011,8 @@ test("shared CoRe date picker updates the simulator within its bounded range", a
 
 test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-core @hosted-core PDF-Auswahl erzeugt nur Karteninhalt", async ({ page }: any) => {
   await resetToFreshLocalState(page);
+  // Hosted latency: saving must not wait for a cloud round trip before the editor counts as saved.
+  await page.route(/\/rest\/v1\/rpc\/hydrate_account_cards/, async (route: any) => { await new Promise((resolve) => setTimeout(resolve, 3000)); await route.continue(); });
 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /Karten selbst erstellen/ }).click();

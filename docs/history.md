@@ -21,8 +21,15 @@ Nach ausdrücklicher Freigabe des Nutzers im Chat; Projekt-Ref vorher aus
   gegen das Projekt fehlerfrei; die aus dem Projekt generierten Typen
   entsprechen `src/database.types.ts` bis auf CLI-Metadaten und Formatierung.
 - Production (`core-hosted.vercel.app`) läuft auf `d29cc99` und zeigt die
-  Anmeldung ohne Konsolenfehler. Der Hosted-Smoke braucht einen neu
-  registrierten Testaccount und steht noch aus.
+  Anmeldung ohne Konsolenfehler.
+- Erster Hosted-Smoke (`npm run test:beta:hosted`, neu registrierter
+  Testaccount) gegen `d29cc99`: 9 von 10 grün. „PDF-Auswahl erzeugt nur
+  Karteninhalt“ scheiterte am Dialog „Änderungen übernehmen?“: Nach dem
+  lokalen Speichern lud die Kartenverwaltung den Inhalt erneut aus der Cloud
+  und galt bis zu deren Antwort als ungespeichert; die Antwort konnte zudem
+  den älteren Cloud-Stand liefern. `reloadNoteGraph` liest seitdem nach
+  lokalen Änderungen nur noch die Replica. Der PDF-Test verzögert die
+  Hydrierung um 3 s und scheitert ohne die Korrektur reproduzierbar.
 
 ## 2026-10-08 — Cutover auf das Kartenmodell `Note`/`Card` (Phase 4, K5.4, K5.7–K5.9)
 

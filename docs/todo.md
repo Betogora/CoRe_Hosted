@@ -274,11 +274,10 @@ sind bis dahin nur über die Matrix synthetisch belegt.
 K4.1 bis K4.11 sind umgesetzt, auf `main` gemergt und das Pre-Release-Projekt
 ist zurückgesetzt (siehe `history.md`). Offen ist nur noch:
 
-- [ ] **Hosted-Smoke nach dem Reset (Rest von K4.8).** Den dedizierten
-      Testaccount neu registrieren (das macht der Nutzer), die Variablen aus
-      `operations.md` (Hosted-Core-Smoke) setzen und `npm run test:beta:hosted`
-      gegen Production ausführen; danach den Satz zum ausstehenden Smoke in
-      `status.md` streichen.
+- [ ] **Hosted-Smoke nach dem Reset (Rest von K4.8).** Der erste Lauf war 9
+      von 10 grün; die Korrektur für den zehnten Test ist auf `main`. Nach dem
+      Production-Deployment `npm run test:beta:hosted` erneut ausführen und
+      den Satz zum ausstehenden Smoke in `status.md` streichen.
 - [ ] **Neues Gerät bis Dashboard unter Budget bringen.** Der Cutover hält den
       Wert (p75 schwankt zwischen 2.883 und 3.023 ms, nicht schlechter als vorher); die
       Phasenaufschlüsselung aus K4.2 zeigt, dass fast die gesamte Zeit vor dem

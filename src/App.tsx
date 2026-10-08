@@ -1414,11 +1414,10 @@ export function App() {
   }
 
   /** Loads a content with all its cards (also in other decks) and refreshes every visible card page that shows it. */
+  // Follows a local write: the replica already holds the new graph, while the cloud may not have it yet.
   async function reloadNoteGraph(noteId: string, refreshPages = false): Promise<NoteGraph | null> {
     if (!workspaceRepository) return null;
-    const graph = workspaceHydrationService
-      ? await workspaceHydrationService.loadNoteGraph(noteId).catch(() => null)
-      : await workspaceRepository.loadNoteGraph(noteId);
+    const graph = await workspaceRepository.loadNoteGraph(noteId);
     refresh({ preserveCardPages: true });
     // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
     const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
