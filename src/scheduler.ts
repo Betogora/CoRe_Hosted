@@ -7,16 +7,16 @@ import {
   type Grade,
   type StepUnit,
 } from "ts-fsrs";
-import { REVIEW_RATINGS, createReviewState, getMaturityBand, isLearningItemReviewBlocked } from "./coreModel.ts";
+import { REVIEW_RATINGS, createReviewState, getMaturityBand, isCardReviewBlocked, reviewStateFromCardStudy } from "./coreModel.ts";
 import { normalizeLearningSettings } from "./deckSettings.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import { hasEasyDayDifferences, selectEasyDayInterval, type EasyDaysSchedulingContext } from "./easyDays.ts";
 import { addLearningDays, getLearningDayKey } from "./learningDay.ts";
 import type {
+  Card,
   CardVariant,
   CardVariantType,
   Deck,
-  LearningItem,
   ReviewRating,
   ReviewSchedulerState,
   ReviewState,
@@ -48,7 +48,7 @@ interface SchedulerContext {
 }
 
 interface RatingSimulationInput extends SchedulerContext {
-  learningItem?: LearningItem | null;
+  card?: Card | null;
   previousState?: ReviewStateInput | null;
   variant?: CardVariant | null;
   rating?: ReviewRating;
@@ -68,7 +68,6 @@ interface RatingOutcome {
   schedulerVersion: string;
   previousReviewState: ReviewState;
   nextReviewState: ReviewState;
-  nextLearningItemState: ReviewState;
   nextState: ReviewSchedulerState;
   dueAt: string;
   intervalDays: number;
@@ -92,7 +91,6 @@ export const SCHEDULER_VERSION = "fsrs_6_v1";
 export const FSRS_SCHEDULER_VERSION = SCHEDULER_VERSION;
 export const MINUTE_MS = 60 * 1000;
 export const DAY_MS = 24 * 60 * 60 * 1000;
-const FSRS_IMPLEMENTATION = "ts-fsrs@5.4.1";
 
 const RATING_LABELS: Record<ReviewRating, string> = {
   again: "Again",
@@ -206,7 +204,7 @@ export function formatIntervalLabel(input: number | IntervalInput = {}): string 
 }
 
 function getStateReps(state: ReviewStateInput): number {
-  return Math.max(0, Math.round(Number(state.reps ?? state.repetitions ?? 0) || 0));
+  return Math.max(0, Math.round(Number(state.reps ?? 0) || 0));
 }
 
 function phaseForState(state: ReviewStateInput): ReviewSchedulerState {
@@ -250,23 +248,12 @@ function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefi
   return { scheduler, profile, requestRetention, learningSteps, relearningSteps };
 }
 
-export function calculateRetrievability(learningItemState: unknown, now: DateInput = new Date()): number {
-  const state = createReviewState(learningItemState);
+export function calculateRetrievability(studyState: unknown, now: DateInput = new Date()): number {
+  const state = createReviewState(studyState);
   if (phaseForState(state) === "new" || getStateReps(state) === 0 || Number(state.stability ?? 0) <= 0 || !state.lastReviewedAt) return 0;
   const nowDate = validDate(now, new Date());
   const { scheduler } = createFsrsScheduler(null, state);
   return round(scheduler.get_retrievability(toFsrsCard(state, nowDate), nowDate, false), 4);
-}
-
-export function getSchedulerStateForItem(item: LearningItem): ReviewState {
-  const rawState = item?.reviewState ?? {};
-  return createReviewState({
-    ...rawState,
-    schedulerVersion: rawState.schedulerVersion ?? FSRS_SCHEDULER_VERSION,
-    learningItemId: rawState.learningItemId || item?.id || rawState.reviewableId || "",
-    reviewableType: rawState.reviewableType ?? "card",
-    reviewableId: rawState.reviewableId || item?.id || rawState.learningItemId || "",
-  });
 }
 
 export function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
@@ -323,12 +310,11 @@ function deriveOutcomeMaturity(state: ReviewStateInput): { stage: string; label:
 function learningProgress(previousState: ReviewState, nextPhase: ReviewSchedulerState, rating: ReviewRating, nextStep: number, now: Date, context: SchedulerContext) {
   const previousPhase = phaseForState(previousState);
   const isLearningFlow = previousPhase === "new" || previousPhase === "learning";
-  const previousSuccess = Math.max(0, Number(previousState.learningSuccessCount ?? previousState.sameDaySuccessCount ?? 0) || 0);
+  const previousSuccess = Math.max(0, Number(previousState.learningSuccessCount ?? 0) || 0);
   if (!isLearningFlow) {
     return {
       learningStepIndex: nextStep,
       learningSuccessCount: previousSuccess,
-      sameDaySuccessCount: previousSuccess,
       learningDayKey: previousState.learningDayKey,
       firstLearningAt: previousState.firstLearningAt,
       lastLearningStepAt: previousState.lastLearningStepAt,
@@ -348,7 +334,6 @@ function learningProgress(previousState: ReviewState, nextPhase: ReviewScheduler
   return {
     learningStepIndex: nextStep,
     learningSuccessCount: successCount,
-    sameDaySuccessCount: successCount,
     learningDayKey: getLearningDayKey(now, context) ?? now.toISOString().slice(0, 10),
     firstLearningAt: previousState.firstLearningAt ?? now.toISOString(),
     lastLearningStepAt: now.toISOString(),
@@ -391,7 +376,6 @@ function projectFsrsResult(
   const intervalMinutes = intervalDays === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
   const maturityXp = updateMaturityXp(previousState.maturityXp, rating, Boolean(context.isVariant));
   const fallback = fallbackStateForRating(previousState, rating, context);
-  const retrievabilityBefore = calculateRetrievability(previousState, now);
   const progress = learningProgress(previousState, nextPhase, rating, nextCard.learning_steps, now, context);
 
   return createReviewState({
@@ -406,41 +390,18 @@ function projectFsrsResult(
     difficulty: nextCard.difficulty,
     stability: nextCard.stability,
     desiredRetention: schedulerMeta.requestRetention,
-    retrievability: 1,
     reps: nextCard.reps,
-    repetitions: nextCard.reps,
     lapses: nextCard.lapses,
     maturityXp,
     maturityBand: getMaturityBand(maturityXp),
     lastReviewedAt: now.toISOString(),
     lastRating: rating,
     preferredVariantLevel: nextPhase === "learning" || nextPhase === "relearning" ? 1 : nextPreferredVariantLevel(previousState, rating, context),
-    schedulerParamsJson: {
-      schedulerVersion: FSRS_SCHEDULER_VERSION,
-      schedulerKind: "fsrs_6_default",
-      implementation: FSRS_IMPLEMENTATION,
-      parameterSource: "official_default",
-      weights: [...default_w],
-      rating,
-      desiredRetention: schedulerMeta.requestRetention,
-      maximumIntervalDays: schedulerMeta.profile.maximumIntervalDays,
-      learningSteps: schedulerMeta.learningSteps,
-      relearningSteps: schedulerMeta.relearningSteps,
-      retrievabilityBefore,
-      variantLevel: context.variantLevel ?? null,
-      variantType: context.variantType ?? null,
-      fallbackVariantId: fallback.forcedVariantId,
-      easyDays: {
-        applied: intervalDays !== rawIntervalDays,
-        rawIntervalDays,
-        selectedIntervalDays: intervalDays,
-      },
-    },
   });
 }
 
 export function simulateRatingOutcome({
-  learningItem = null,
+  card = null,
   previousState = null,
   variant = null,
   rating,
@@ -455,8 +416,8 @@ export function simulateRatingOutcome({
   const nowDate = validDate(now, new Date());
   const state = previousState
     ? createReviewState(previousState)
-    : learningItem
-      ? getSchedulerStateForItem(learningItem)
+    : card
+      ? reviewStateFromCardStudy(card.study)
       : createReviewState({});
   const variantContext = {
     ...context,
@@ -484,7 +445,6 @@ export function simulateRatingOutcome({
     schedulerVersion: FSRS_SCHEDULER_VERSION,
     previousReviewState: state,
     nextReviewState,
-    nextLearningItemState: nextReviewState,
     nextState: nextReviewState.state,
     dueAt: nextReviewState.dueAt,
     intervalDays: nextReviewState.intervalDays,
@@ -502,7 +462,7 @@ export function simulateRatingOutcome({
 }
 
 export function getReviewButtonOptions(
-  learningItem: LearningItem,
+  card: Card,
   variant: CardVariant | null = null,
   nowOrOptions: DateInput | ReviewButtonOptions = new Date().toISOString(),
   reviewEvents: unknown[] = [],
@@ -519,7 +479,7 @@ export function getReviewButtonOptions(
       ? options.fallbackVariantIdByRating?.[rating] ?? options.fallbackVariantId ?? null
       : null;
     const outcome = simulateRatingOutcome({
-      learningItem,
+      card,
       variant,
       rating,
       now,
@@ -560,18 +520,18 @@ export function applyReviewRating(reviewState: ReviewStateInput, rating: ReviewR
   return scheduleWithFsrs(reviewState, rating, context);
 }
 
-export function listReviewableCards(deck: Deck): LearningItem[] {
-  return (deck.cards ?? []).filter((card) => card.status !== "deleted" && card.draftStatus !== "draft");
+export function listReviewableCards(deck: Deck): Card[] {
+  return (deck.cards ?? []).filter((card) => card.deletedAt === null);
 }
 
 export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), dayOptions: { dayStartHour?: number; timeZone?: string } = {}) {
-  const cards = listReviewableCards(deck).filter((card) => !isLearningItemReviewBlocked(card));
+  const cards = (deck.cards ?? []).filter((card) => !isCardReviewBlocked(card));
   const currentDayKey = getLearningDayKey(now, dayOptions);
   let dueCards = 0;
   let newCards = 0;
   let inProgressCards = 0;
   for (const card of cards) {
-    const state = getSchedulerStateForItem(card);
+    const state = card.study;
     if (state.state === "new") {
       newCards += 1;
     } else if (state.state === "learning" || state.state === "relearning") {
@@ -583,7 +543,7 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
       }
     }
   }
-  const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.reviewState?.maturityBand));
+  const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.study.extra.maturityBand));
   const activeVariants = cards
     .flatMap((card) => card.variants ?? [])
     .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false);
@@ -595,7 +555,7 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
     matureCards: matureCards.length,
     activeVariants: activeVariants.length,
     averageMaturityXp: cards.length
-      ? Math.round(cards.reduce((sum, card) => sum + Number(card.reviewState?.maturityXp ?? 0), 0) / cards.length)
+      ? Math.round(cards.reduce((sum, card) => sum + Number(card.study.extra.maturityXp ?? 0), 0) / cards.length)
       : 0,
   };
 }

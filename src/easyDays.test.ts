@@ -1,9 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBasicLearningItem } from "./coreModel.ts";
+import { cardStudyFromReviewState, createBasicNote, createReviewState } from "./coreModel.ts";
+import type { Card } from "./coreTypes.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, normalizeEasyDays, selectEasyDayInterval } from "./easyDays.ts";
 
 const NOW = "2026-08-10T10:00:00.000Z";
+
+function scheduledCard(id: string, study: Record<string, unknown>): Card {
+  return { ...createBasicNote("deck", id, "Antwort").cards[0], id, study: cardStudyFromReviewState(createReviewState(study)) };
+}
 
 test("easy days normalize seven independent weekday levels", () => {
   assert.deepEqual(normalizeEasyDays(null), DEFAULT_EASY_DAYS);
@@ -62,10 +67,11 @@ test("existing account load breaks otherwise equal candidate days", () => {
 });
 
 test("account load counts active scheduled items once and excludes new or blocked cards", () => {
-  const review = createBasicLearningItem("deck", "Review", "Antwort", { id: "review", reviewState: { state: "review", reps: 4, dueAt: "2026-08-15T10:00:00.000Z" } });
-  const learning = createBasicLearningItem("deck", "Learning", "Antwort", { id: "learning", reviewState: { state: "learning", reps: 1, dueAt: "2026-08-15T10:00:00.000Z" } });
-  const newCard = createBasicLearningItem("deck", "Neu", "Antwort", { id: "new", reviewState: { state: "new", reps: 0, dueAt: "2026-08-15T10:00:00.000Z" } });
+  const review = scheduledCard("review", { state: "review", reps: 4, dueAt: "2026-08-15T10:00:00.000Z" });
+  const learning = scheduledCard("learning", { state: "learning", reps: 1, dueAt: "2026-08-15T10:00:00.000Z" });
+  const newCard = scheduledCard("new", { state: "new", reps: 0, dueAt: "2026-08-15T10:00:00.000Z" });
   const suspended = { ...review, id: "suspended", status: "suspended" as const };
-  const counts = createEasyDaysDueCounts([review, review, learning, newCard, suspended], NOW, { timeZone: "Europe/Berlin", dayStartHour: 3 });
+  const deleted = { ...review, id: "deleted", deletedAt: NOW };
+  const counts = createEasyDaysDueCounts([review, review, learning, newCard, suspended, deleted], NOW, { timeZone: "Europe/Berlin", dayStartHour: 3 });
   assert.equal(counts.get("2026-08-15"), 2);
 });

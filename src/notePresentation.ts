@@ -3,7 +3,7 @@ import type { CoreTheme } from "./coreTheme.ts";
 import type { TemplateDiagnostic } from "./safeTemplate.ts";
 import { sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
-import { buildSrcdoc } from "./cardPresentationFrame.ts";
+import { buildSrcdoc } from "./presentationFrame.ts";
 import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./ui/colorMath.ts";
 
 /** Semantic tokens copied into the card frame as `--core-<name>`. */

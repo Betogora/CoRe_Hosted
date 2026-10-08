@@ -10,14 +10,19 @@ import { Upload } from "tus-js-client";
 const TABLES = [
   "profiles",
   "decks",
-  "note_type_definitions",
+  "note_type_sources",
+  "notes",
+  "note_sources",
   "cards",
   "card_variants",
   "review_events",
-  "media_assets",
+  "media_files",
   "sync_devices",
   "sync_conflicts",
 ];
+
+/** Row key of a table; media files are identified per account by their SHA-1. */
+const keyOf = (table: string) => table === "media_files" ? "sha1" : "id";
 
 function requireEnvironment(name: string) {
   const value = String(process.env[name] ?? "").trim();
@@ -62,7 +67,10 @@ function assertPostgresError(result: PostgrestResponseFailure|PostgrestResponseS
 
 function createFixture(userId: any, prefix: string, marker: string) {
   const deckId = `${prefix}_deck_${marker}`;
+  const noteTypeSourceId = `${prefix}_note_type_${marker}`;
+  const noteId = `${prefix}_note_${marker}`;
   const cardId = `${prefix}_card_${marker}`;
+  const sha1 = (marker === "a" ? "a" : "b").repeat(40);
 
   return {
     profiles: {
@@ -78,23 +86,49 @@ function createFixture(userId: any, prefix: string, marker: string) {
       name: `RLS Deck ${marker}`,
       source: "manual",
     },
-    note_type_definitions: {
-      id: `${prefix}_note_type_${marker}`,
+    note_type_sources: {
+      id: noteTypeSourceId,
       user_id: userId,
+      anki_notetype_id: `rls-${marker}`,
       name: `RLS Notiztyp ${marker}`,
-      definition: { version: 1, fields: [{ id: "front", name: "Vorderseite" }] },
+      definition: { kind: 0, fields: [{ name: "Vorderseite", ordinal: 0 }] },
+    },
+    notes: {
+      id: noteId,
+      user_id: userId,
+      content: {
+        schemaVersion: 1,
+        fields: [
+          { id: "front", name: "Vorderseite", role: "prompt", html: `Frage ${marker}<img src="${marker}.png">` },
+          { id: "back", name: "Rückseite", role: "answer", html: `Antwort ${marker}` },
+        ],
+        interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Vorwärts", instruction: "", questionFieldIds: ["front"], answerFieldIds: ["back"], requires: null, typeInFieldId: null }] },
+        speech: [],
+        tags: [],
+      },
+      media: { [`${marker}.png`]: sha1 },
+      search_text: `frage ${marker} antwort ${marker}`,
+      sort_text: `Frage ${marker}`,
+      source: "anki-apkg",
+      anki_guid: `guid-${prefix}-${marker}`,
+      note_type_source_id: noteTypeSourceId,
+      translator_id: "anki-basic",
+      translator_version: 1,
+      imported_content_revision: 1,
+    },
+    note_sources: {
+      id: noteId,
+      user_id: userId,
+      note_type_source_id: noteTypeSourceId,
+      fields: [`Frage ${marker}`, `Antwort ${marker}`],
     },
     cards: {
       id: cardId,
       user_id: userId,
+      note_id: noteId,
       deck_id: deckId,
-      source: "manual",
-      kind: "basic-with-images",
-      note_type_definition_id: `${prefix}_note_type_${marker}`,
-      content_document: { version: 1, fields: [{ fieldId: "front", value: `Frage ${marker}` }] },
-      content_revision: 1,
-      original_front: `Frage ${marker}`,
-      original_back: `Antwort ${marker}`,
+      prompt_key: "forward",
+      due_at: "2026-07-11T08:00:00.000Z",
     },
     card_variants: {
       id: `${prefix}_variant_${marker}`,
@@ -102,25 +136,23 @@ function createFixture(userId: any, prefix: string, marker: string) {
       card_id: cardId,
       front: `Variante ${marker}`,
       back: `Antwort ${marker}`,
-      transform_type: "rephrase",
     },
     review_events: {
       id: `${prefix}_review_${marker}`,
       user_id: userId,
-      deck_id: deckId,
-      reviewable_type: "card",
-      reviewable_id: cardId,
-      source_card_id: cardId,
-      rating: "good",
-    },
-    media_assets: {
-      id: `${prefix}_media_${marker}`,
-      user_id: userId,
-      deck_id: deckId,
       card_id: cardId,
-      sha1: `${marker === "a" ? "a" : "b"}`.repeat(40),
+      deck_id: deckId,
+      rating: "good",
+      answered_at: new Date().toISOString(),
+      scheduler_before: { card: { state: "new" } },
+    },
+    media_files: {
+      user_id: userId,
+      sha1,
+      size: 4,
+      mime_type: "image/png",
       original_name: `${marker}.png`,
-      storage_path: `${userId}/${prefix}/${marker}.png`,
+      storage_path: `${userId}/${sha1}`,
     },
     sync_devices: {
       id: `${prefix}_device_${marker}`,
@@ -131,8 +163,8 @@ function createFixture(userId: any, prefix: string, marker: string) {
     sync_conflicts: {
       id: `${prefix}_conflict_${marker}`,
       user_id: userId,
-      entity_table: "cards",
-      entity_id: cardId,
+      entity_table: "notes",
+      entity_id: noteId,
       base_revision: 1,
       local_revision: 2,
       remote_revision: 2,
@@ -148,11 +180,13 @@ const DELETE_ORDER = [...TABLES].reverse();
 const UPDATE_CASES = {
   profiles: { column: "display_name", value: "Aktualisiertes RLS-Profil" },
   decks: { column: "description", value: "aktualisiert" },
-  note_type_definitions: { column: "definition", value: { version: 1, verified: true } },
-  cards: { column: "original_back", value: "aktualisiert" },
+  note_type_sources: { column: "definition", value: { kind: 0, verified: true } },
+  notes: { column: "marked", value: true },
+  note_sources: { column: "fields", value: ["aktualisiert"] },
+  cards: { column: "anki_flag", value: 1 },
   card_variants: { column: "explanation", value: "aktualisiert" },
   review_events: { column: "flags", value: { verified: true } },
-  media_assets: { column: "metadata", value: { verified: true } },
+  media_files: { column: "original_name", value: "aktualisiert.png" },
   sync_devices: { column: "label", value: "Aktualisierter Browser" },
   sync_conflicts: { column: "resolution", value: { verified: true } },
 };
@@ -168,19 +202,19 @@ async function insertFixture(client: SupabaseClient<any,"public","public",any,an
 
 async function cleanupFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: Record<string, any>) {
   for (const table of DELETE_ORDER) {
-    const id = fixture[table]?.id;
+    const id = fixture[table]?.[keyOf(table)];
     if (!id) continue;
-    await client.from(table).delete().eq("id", id);
+    await client.from(table).delete().eq(keyOf(table), id);
   }
 }
 
 function forgedRow(row: any, table: string, ownerId: any, prefix: string) {
   if (table === "profiles") return { ...row, id: ownerId, email: `forged-${prefix}@rls.local` };
+  if (table === "media_files") return { ...row, user_id: ownerId, sha1: "f".repeat(40), storage_path: `${ownerId}/${"f".repeat(40)}` };
   return {
     ...row,
     id: `${prefix}_forged_${table}`,
     user_id: ownerId,
-    ...(table === "media_assets" ? { storage_path: `${ownerId}/${prefix}/forged.png` } : {}),
   };
 }
 
@@ -219,7 +253,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
 
     await t.test("eigene Rows sind lesbar und aktualisierbar", async () => {
       for (const table of TABLES) {
-        const ownRead = await clientA.from(table).select("*").eq("id", fixtureA[table].id);
+        const ownRead = await clientA.from(table).select("*").eq(keyOf(table), fixtureA[table][keyOf(table)]);
         assertNoError(ownRead, `${table}: eigene Row lesen`);
         assert.ok(ownRead);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
@@ -230,7 +264,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const ownUpdate = await clientA
           .from(table)
           .update({ [updateCase.column]: updateCase.value })
-          .eq("id", fixtureA[table].id)
+          .eq(keyOf(table), fixtureA[table][keyOf(table)])
           .select("*");
         assertNoError(ownUpdate, `${table}: eigene Row aktualisieren`);
         assert.ok(ownUpdate);
@@ -241,7 +275,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
 
     await t.test("fremde Rows bleiben unsichtbar und unveränderbar", async () => {
       for (const table of TABLES) {
-        const foreignRead = await clientB.from(table).select("*").eq("id", fixtureA[table].id);
+        const foreignRead = await clientB.from(table).select("*").eq(keyOf(table), fixtureA[table][keyOf(table)]);
         assertNoError(foreignRead, `${table}: fremde Row lesen`);
         assert.deepEqual(foreignRead.data, [], `${table}: Nutzer B sieht Nutzer-A-Daten`);
 
@@ -250,12 +284,12 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const foreignUpdate = await clientB
           .from(table)
           .update({ [updateCase.column]: updateCase.value })
-          .eq("id", fixtureA[table].id)
+          .eq(keyOf(table), fixtureA[table][keyOf(table)])
           .select("*");
         assertNoError(foreignUpdate, `${table}: fremde Row aktualisieren`);
         assert.deepEqual(foreignUpdate.data, [], `${table}: Nutzer B konnte Nutzer-A-Daten aktualisieren`);
 
-        const foreignDelete = await clientB.from(table).delete().eq("id", fixtureA[table].id).select("*");
+        const foreignDelete = await clientB.from(table).delete().eq(keyOf(table), fixtureA[table][keyOf(table)]).select("*");
         assertNoError(foreignDelete, `${table}: fremde Row löschen`);
         assert.deepEqual(foreignDelete.data, [], `${table}: Nutzer B konnte Nutzer-A-Daten löschen`);
       }
@@ -275,7 +309,25 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("Replica-v2-RPCs liefern ausschließlich Daten des angemeldeten Accounts", async () => {
+    await t.test("abgeleitete Projektionen sind accountgebunden und nur lesbar", async () => {
+      assert.ok(userA);
+      const ownLinks = assertNoError(await clientA.from("note_media").select("note_id,sha1").eq("note_id", fixtureA.notes.id), "eigene Medienverknüpfung lesen");
+      assert.deepEqual(ownLinks, [{ note_id: fixtureA.notes.id, sha1: fixtureA.media_files.sha1 }], "notes.media pflegt note_media per Trigger");
+      assert.deepEqual(assertNoError(await clientB.from("note_media").select("note_id").eq("note_id", fixtureA.notes.id), "fremde Medienverknüpfung lesen"), []);
+      const projectionRows: Record<string, Record<string, unknown>> = {
+        note_media: { user_id: userA.id, note_id: fixtureA.notes.id, sha1: "e".repeat(40) },
+        card_catalog: { user_id: userA.id, id: `${prefix}_forged_catalog`, deck_id: fixtureA.decks.id, note_id: fixtureA.notes.id },
+        deck_study_summaries: { user_id: userA.id, deck_id: fixtureA.decks.id },
+      };
+      for (const [table, row] of Object.entries(projectionRows)) {
+        assertPostgresError(await clientA.from(table).insert(row), "42501", `${table}: direkter Write auf Projektion`);
+      }
+      const ownCatalog = assertNoError(await clientA.from("card_catalog").select("id,note_id").eq("id", fixtureA.cards.id), "eigenen Katalogeintrag lesen");
+      assert.deepEqual(ownCatalog, [{ id: fixtureA.cards.id, note_id: fixtureA.notes.id }]);
+      assert.deepEqual(assertNoError(await clientB.from("card_catalog").select("id").eq("id", fixtureA.cards.id), "fremden Katalogeintrag lesen"), []);
+    });
+
+    await t.test("Replica-RPCs liefern ausschließlich Daten des angemeldeten Accounts", async () => {
       assert.ok(userA);
       assert.ok(userB);
       assertNoError(await clientA.from("card_variants").insert([1, 2].map((number) => ({
@@ -286,7 +338,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         ...fixtureA.review_events,
         id: `${prefix}_same_card_second_review`,
       }), "zweites Tagesereignis derselben Karte anlegen");
-      const bootstrapA = assertNoError(await clientA.rpc("get_account_bootstrap_v2", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap-v2 für Nutzer A");
+      const bootstrapA = assertNoError(await clientA.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap für Nutzer A");
       assert.equal(bootstrapA.confirmedEmpty, false);
       assert.ok(bootstrapA.decks.every((entry: any) => entry.deck.user_id === userA.id));
       assert.equal(bootstrapA.decks.some((entry: any) => entry.deck.id === fixtureB.decks.id), false);
@@ -297,38 +349,39 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.ok(deltaA.changes.length > 0);
       assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));
 
-      const catalogA = assertNoError(await clientA.rpc("list_account_card_catalog", {
-        p_deck_id: fixtureA.decks.id,
-        p_query: "",
-        p_sort_field: "sortField",
-        p_sort_direction: "asc",
-        p_cursor: null,
-        p_limit: 50,
-      }), "Kartenkatalog für Nutzer A");
+      const catalogRequest = { p_deck_id: fixtureA.decks.id, p_query: "", p_sort_field: "sortField", p_sort_direction: "asc", p_cursor: null, p_limit: 50 };
+      const catalogA = assertNoError(await clientA.rpc("list_account_card_catalog", catalogRequest), "Kartenkatalog für Nutzer A");
       assert.ok(catalogA.items.some((entry: any) => entry.id === fixtureA.cards.id));
       assert.equal(catalogA.items.find((entry: any) => entry.id === fixtureA.cards.id)?.active_variant_count, 3);
-      const foreignCatalog = assertNoError(await clientB.rpc("list_account_card_catalog", {
-        p_deck_id: fixtureA.decks.id,
-        p_query: "",
-        p_sort_field: "sortField",
-        p_sort_direction: "asc",
-        p_cursor: null,
-        p_limit: 50,
-      }), "fremden Kartenkatalog für Nutzer B");
-      assert.deepEqual(foreignCatalog.items, []);
+      const searchA = assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_query: "antwort a" }), "Volltextsuche für Nutzer A");
+      assert.ok(searchA.items.some((entry: any) => entry.id === fixtureA.cards.id), "Die Suche findet auch Text der Antwort");
+      assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", catalogRequest), "fremden Kartenkatalog für Nutzer B").items, []);
 
-      const hydratedA = assertNoError(await clientA.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id, fixtureB.cards.id] }), "Kartenkörper für Nutzer A");
+      const hydratedA = assertNoError(await clientA.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id, fixtureB.cards.id], p_note_ids: [fixtureB.notes.id] }), "Kartenkörper für Nutzer A");
       assert.deepEqual(hydratedA.cards.map((entry: any) => entry.id), [fixtureA.cards.id]);
+      assert.deepEqual(hydratedA.notes.map((entry: any) => entry.id), [fixtureA.notes.id]);
       assert.ok(hydratedA.variants.every((entry: any) => entry.user_id === userA.id));
-      const hydratedB = assertNoError(await clientB.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id] }), "fremden Kartenkörper für Nutzer B");
+      const hydratedB = assertNoError(await clientB.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id], p_note_ids: [fixtureA.notes.id] }), "fremden Kartenkörper für Nutzer B");
       assert.deepEqual(hydratedB.cards, []);
+      assert.deepEqual(hydratedB.notes, []);
       assert.deepEqual(hydratedB.variants, []);
 
       const manifestA = assertNoError(await clientA.rpc("get_deck_offline_manifest", { p_deck_id: fixtureA.decks.id, p_cursor: "", p_limit: 50 }), "Offline-Manifest für Nutzer A");
       assert.ok(manifestA.cards.some((entry: any) => entry.id === fixtureA.cards.id));
+      assert.ok(manifestA.media.some((entry: any) => entry.sha1 === fixtureA.media_files.sha1));
       const manifestB = assertNoError(await clientB.rpc("get_deck_offline_manifest", { p_deck_id: fixtureA.decks.id, p_cursor: "", p_limit: 50 }), "fremdes Offline-Manifest für Nutzer B");
       assert.deepEqual(manifestB.cards, []);
       assert.deepEqual(manifestB.media, []);
+
+      const reimportA = assertNoError(await clientA.rpc("load_reimport_targets", { p_guids: [fixtureA.notes.anki_guid, fixtureB.notes.anki_guid] }), "Reimport-Ziele für Nutzer A");
+      assert.deepEqual(reimportA.notes.map((entry: any) => entry.id), [fixtureA.notes.id]);
+      assert.deepEqual(reimportA.cards.map((entry: any) => entry.id), [fixtureA.cards.id]);
+      assert.deepEqual(assertNoError(await clientB.rpc("load_reimport_targets", { p_guids: [fixtureA.notes.anki_guid] }), "fremde Reimport-Ziele für Nutzer B").notes, []);
+
+      const candidatesA = assertNoError(await clientA.rpc("list_retranslation_candidates", { p_current_versions: { "anki-basic": 2 }, p_cursor: "", p_limit: 100 }), "Neuübersetzungskandidaten für Nutzer A");
+      assert.ok(candidatesA.notes.some((entry: any) => entry.id === fixtureA.notes.id));
+      assert.ok(candidatesA.notes.every((entry: any) => entry.user_id === userA.id));
+      assert.ok(candidatesA.noteSources.every((entry: any) => entry.user_id === userA.id));
 
       const statisticsA = assertNoError(await clientA.rpc("get_account_statistics", { p_deck_ids: [fixtureA.decks.id], p_from: null, p_to: null }), "Statistik für Nutzer A");
       assert.equal(statisticsA.cards.total, 1);
@@ -340,33 +393,23 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.deepEqual(foreignTreeDelete.deletedDeckIds, []);
       const untouchedDeckA = assertNoError(await clientA.from("decks").select("id,deleted_at").eq("id", fixtureA.decks.id), "Deck von Nutzer A nach Fremdlöschung lesen");
       assert.equal(untouchedDeckA[0]?.deleted_at, null);
-      const anonymousBootstrap = await anonClient.rpc("get_account_bootstrap_v2", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 });
-      assert.ok(anonymousBootstrap.error, "anon darf Bootstrap-v2 nicht ausführen");
+      const anonymousBootstrap = await anonClient.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 });
+      assert.ok(anonymousBootstrap.error, "anon darf den Bootstrap nicht ausführen");
       const anonymousDelete = await anonClient.rpc("delete_account_deck_tree", { p_deck_id: fixtureA.decks.id });
       assert.ok(anonymousDelete.error, "anon darf keine Deckbäume löschen");
+      const anonymousReleasable = await anonClient.rpc("list_releasable_media", { p_limit: 10 });
+      assert.ok(anonymousReleasable.error, "anon darf keine freigebbaren Medien abfragen");
     });
 
-    await t.test("accountgebundene Foreign Keys verweigern fremde Decks, Notiztypen und Karten", async () => {
+    await t.test("accountgebundene Foreign Keys verweigern fremde Decks, Inhalte, Vorlagen und Karten", async () => {
       assert.ok(userA);
       const cases = [
-        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card`, deck_id: fixtureB.decks.id }],
-        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card_note_type`, note_type_definition_id: fixtureB.note_type_definitions.id }],
+        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card`, prompt_key: "reverse", deck_id: fixtureB.decks.id }],
+        ["cards", { ...fixtureA.cards, id: `${prefix}_foreign_fk_card_note`, prompt_key: "reverse", note_id: fixtureB.notes.id }],
+        ["notes", { ...fixtureA.notes, id: `${prefix}_foreign_fk_note`, anki_guid: null, note_type_source_id: fixtureB.note_type_sources.id }],
+        ["note_sources", { ...fixtureA.note_sources, id: fixtureB.notes.id }],
         ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant`, card_id: fixtureB.cards.id }],
-        ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, deck_id: fixtureB.decks.id }],
-        ["media_assets", {
-          ...fixtureA.media_assets,
-          id: `${prefix}_foreign_fk_media_deck`,
-          deck_id: fixtureB.decks.id,
-          card_id: null,
-          storage_path: `${userA.id}/${prefix}/foreign-deck.png`,
-        }],
-        ["media_assets", {
-          ...fixtureA.media_assets,
-          id: `${prefix}_foreign_fk_media_card`,
-          deck_id: fixtureA.decks.id,
-          card_id: fixtureB.cards.id,
-          storage_path: `${userA.id}/${prefix}/foreign-card.png`,
-        }],
+        ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, card_id: fixtureB.cards.id }],
       ];
 
       for (const [table, row] of cases) {
@@ -375,17 +418,19 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("[Vertrag: private Medien-Ownership] Standarduploads bleiben accountgebunden und ein Objekt darf mehrere Referenzen haben", async () => {
+    await t.test("[Vertrag: private Medien-Ownership] Standarduploads bleiben accountgebunden und eine Datei darf von mehreren Inhalten genutzt werden", async () => {
       assert.ok(userA);
       const hash = "c".repeat(40);
-      const path = `${userA.id}/objects/${hash}`;
-      const secondDeckId = `${prefix}_media_second_deck`;
-      const secondReferenceId = `${prefix}_media_second_reference`;
+      const path = `${userA.id}/${hash}`;
+      const secondNoteId = `${prefix}_media_second_note`;
       try {
-        assertNoError(await clientA.from("decks").insert({ ...fixtureA.decks, id: secondDeckId, name: "Geteiltes Medienobjekt" }), "zweiten Medien-Stapel anlegen");
         const smallUpload = await clientA.storage.from("core-media").upload(path, new Blob([new Uint8Array([1, 2, 3, 4])]), { contentType: "image/png", upsert: false });
         assert.equal(smallUpload.error, null, `Standard-Upload: ${smallUpload.error?.message ?? "Fehler"}`);
-        assertNoError(await clientA.from("media_assets").insert({ ...fixtureA.media_assets, id: secondReferenceId, deck_id: secondDeckId, card_id: null, sha1: hash, size: 4, storage_path: path }), "zweite Referenz auf dasselbe Objekt anlegen");
+        assertNoError(await clientA.from("media_files").insert({ ...fixtureA.media_files, sha1: hash, storage_path: path }), "Mediendatei registrieren");
+        assertNoError(await clientA.from("notes").update({ media: { "c.png": hash } }).eq("id", fixtureA.notes.id), "ersten Inhalt mit Datei verknüpfen");
+        assertNoError(await clientA.from("notes").insert({ ...fixtureA.notes, id: secondNoteId, anki_guid: null, media: { "anders.png": hash } }), "zweiten Inhalt mit derselben Datei anlegen");
+        const links = assertNoError(await clientA.from("note_media").select("note_id").eq("sha1", hash), "Verknüpfungen derselben Datei lesen");
+        assert.deepEqual(links.map((entry: any) => entry.note_id).sort(), [fixtureA.notes.id, secondNoteId].sort());
 
         const ownSigned = await clientA.storage.from("core-media").createSignedUrl(path, 60);
         assert.equal(ownSigned.error, null);
@@ -393,10 +438,13 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.ok((await clientA.storage.from("core-media").download(path)).data);
         assert.ok((await clientB.storage.from("core-media").download(path)).error);
         assert.ok((await anonClient.storage.from("core-media").download(path)).error);
+        const releasable = assertNoError(await clientA.rpc("list_releasable_media", { p_limit: 100 }), "freigebbare Medien lesen");
+        assert.equal(releasable.some((entry: any) => entry.sha1 === hash), false, "Eine verwendete Datei ist nicht freigebbar");
       } finally {
         await clientA.storage.from("core-media").remove([path]);
-        await clientA.from("media_assets").delete().eq("id", secondReferenceId);
-        await clientA.from("decks").delete().eq("id", secondDeckId);
+        await clientA.from("notes").delete().eq("id", secondNoteId);
+        await clientA.from("notes").update({ media: fixtureA.notes.media }).eq("id", fixtureA.notes.id);
+        await clientA.from("media_files").delete().eq("sha1", hash);
       }
     });
 
@@ -405,7 +453,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
     }, async () => {
       assert.ok(userA);
       const largeHash = "d".repeat(40);
-      const largePath = `${userA.id}/objects/${largeHash}`;
+      const largePath = `${userA.id}/${largeHash}`;
       try {
         const session = await clientA.auth.getSession();
         const token = session.data.session?.access_token;
@@ -489,36 +537,40 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       }
     });
 
-    await t.test("atomarer Review-Write erhält Inhaltsrevisionen, markiert Projektionen und ist idempotent", async () => {
+    await t.test("atomarer Review-Write erhält Inhaltsrevisionen, erhöht nur die Lernstandsrevision und ist idempotent", async () => {
       const eventId = `${prefix}_atomic_review`;
       const answeredAt = "2099-07-11T09:00:00.000Z";
-      const [deck, card, variant] = await Promise.all([
+      const [deck, note, card, variant] = await Promise.all([
         clientA.from("decks").select("*").eq("id", fixtureA.decks.id).single(),
+        clientA.from("notes").select("*").eq("id", fixtureA.notes.id).single(),
         clientA.from("cards").select("*").eq("id", fixtureA.cards.id).single(),
         clientA.from("card_variants").select("*").eq("id", fixtureA.card_variants.id).single(),
       ]);
       const currentDeck = assertNoError(deck, "Deck vor atomarem Review lesen");
+      const currentNote = assertNoError(note, "Inhalt vor atomarem Review lesen");
       const currentCard = assertNoError(card, "Karte vor atomarem Review lesen");
       const currentVariant = assertNoError(variant, "Variante vor atomarem Review lesen");
+      const study = (overrides: Record<string, unknown> = {}) => ({
+        state: "review", due_at: "2099-07-12T09:00:00.000Z", stability: 3, difficulty: 5, reps: 1, lapses: 0, interval_days: 1,
+        learning_step_index: 0, last_reviewed_at: answeredAt, last_rating: "good", study_extra: {}, ...overrides,
+      });
       const parameters = {
-        p_deck_id: fixtureA.decks.id,
         p_card_id: fixtureA.cards.id,
-        p_card_review_state: { state: "review", repetitions: 1, dueAt: "2026-07-12T09:00:00.000Z" },
-        p_card_core_state: { lastReviewedAt: answeredAt },
+        p_study: study(),
         p_card_updated_at: answeredAt,
         p_variant_id: fixtureA.card_variants.id,
         p_variant_performance: { reviewCount: 1 },
         p_variant_updated_at: answeredAt,
         p_event: {
           id: eventId,
-          reviewable_type: "variant",
-          reviewable_id: fixtureA.card_variants.id,
-          source_card_id: fixtureA.cards.id,
+          card_id: fixtureA.cards.id,
+          deck_id: fixtureA.decks.id,
+          variant_id: fixtureA.card_variants.id,
           rating: "good",
           answered_at: answeredAt,
           response_time_ms: 750,
-          scheduler_before: { state: "review", intervalDays: 12 },
-          scheduler_after: { state: "review" },
+          scheduler_before: { card: { state: "review", intervalDays: 12 } },
+          scheduler_after: { card: { state: "review" } },
           flags: {},
           created_at: answeredAt,
         },
@@ -528,23 +580,21 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       try {
         const first = assertNoError(await clientA.rpc("record_review_atomic", parameters), "atomaren Review schreiben");
         assert.equal(first.idempotent, false);
-        assert.equal(first.deck.revision, currentDeck.revision);
         assert.equal(first.card.revision, currentCard.revision);
+        assert.equal(first.card.study_revision, currentCard.study_revision + 1);
         assert.equal(first.variant.revision, currentVariant.revision);
         assert.equal(first.event.id, eventId);
-        assert.equal(first.deck.sync_change_id, currentDeck.sync_change_id);
-        assert.ok(first.card.sync_change_id > currentCard.sync_change_id);
-        assert.ok(first.variant.sync_change_id > currentVariant.sync_change_id);
-        assert.ok(first.event.sync_change_id > 0);
+        const [deckAfter, noteAfter] = await Promise.all([
+          clientA.from("decks").select("revision,sync_change_id").eq("id", fixtureA.decks.id).single(),
+          clientA.from("notes").select("revision,content_revision").eq("id", fixtureA.notes.id).single(),
+        ]);
+        assert.deepEqual(assertNoError(deckAfter, "Deck nach Review lesen"), { revision: currentDeck.revision, sync_change_id: currentDeck.sync_change_id });
+        assert.deepEqual(assertNoError(noteAfter, "Inhalt nach Review lesen"), { revision: currentNote.revision, content_revision: currentNote.content_revision });
 
         const replay = assertNoError(await clientA.rpc("record_review_atomic", parameters), "atomaren Review idempotent wiederholen");
         assert.equal(replay.idempotent, true);
-        assert.equal(replay.deck.revision, first.deck.revision);
-        assert.equal(replay.card.revision, first.card.revision);
-        assert.equal(replay.variant.revision, first.variant.revision);
-        assert.equal(replay.card.sync_change_id, first.card.sync_change_id);
-        assert.equal(replay.variant.sync_change_id, first.variant.sync_change_id);
-        assert.equal(replay.event.sync_change_id, first.event.sync_change_id);
+        assert.equal(replay.card.study_revision, first.card.study_revision);
+        assert.equal(replay.event.id, first.event.id);
         const persistedEvents = assertNoError(await clientA.from("review_events").select("id").eq("id", eventId), "atomare Reviewevents lesen");
         assert.equal(persistedEvents.length, 1);
 
@@ -552,13 +602,13 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const olderAnsweredAt = "2099-07-11T07:00:00.000Z";
         const older = assertNoError(await clientA.rpc("record_review_atomic", {
           ...parameters,
-          p_card_review_state: { state: "learning", repetitions: 0, dueAt: olderAnsweredAt },
+          p_study: study({ state: "learning", reps: 0, due_at: olderAnsweredAt, last_rating: "again" }),
           p_variant_performance: { reviewCount: 0 },
           p_card_updated_at: olderAnsweredAt,
           p_variant_updated_at: olderAnsweredAt,
           p_event: { ...parameters.p_event, id: olderEventId, rating: "again", answered_at: olderAnsweredAt, created_at: olderAnsweredAt },
         }), "älteren Offline-Review schreiben");
-        assert.equal(older.card.review_state.repetitions, 1);
+        assert.equal(older.card.reps, 1, "Ein älterer Offline-Review überschreibt den neueren Lernstand nicht.");
         assert.equal(older.variant.performance.reviewCount, 1);
         const bothEvents = assertNoError(await clientA.from("review_events").select("id").in("id", [eventId, olderEventId]), "beide Offline-Reviews lesen");
         assert.equal(bothEvents.length, 2);
@@ -583,7 +633,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
           .eq("id", fixtureA.decks.id)
           .select("sync_change_id")
           .single(), "Deck mit zurückdatierter Fachzeit wiederherstellen");
-        assert.ok(deleted.sync_change_id > first.event.sync_change_id, "Trigger muss den Client-Cursor beim Tombstone überschreiben");
+        assert.ok(deleted.sync_change_id > currentDeck.sync_change_id, "Trigger muss den Client-Cursor beim Tombstone überschreiben");
         assert.ok(restored.sync_change_id > deleted.sync_change_id, "Restore muss eine neue serverseitige Cursorposition erhalten");
 
         const foreign = await clientB.rpc("record_review_atomic", { ...parameters, p_event: { ...parameters.p_event, id: `${eventId}_foreign` } });
@@ -591,8 +641,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const anonymous = await anonClient.rpc("record_review_atomic", { ...parameters, p_event: { ...parameters.p_event, id: `${eventId}_anon` } });
         assert.ok(anonymous.error, "Ein anonymer atomarer Review-Write wurde unerwartet erlaubt.");
       } finally {
-        await clientA.from("review_events").delete().eq("id", eventId);
-        await clientA.from("review_events").delete().eq("id", `${eventId}_older`);
+        await clientA.from("review_events").delete().in("id", [eventId, `${eventId}_older`]);
       }
     });
 
@@ -601,24 +650,26 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const eventId = `${prefix}_manual_schedule`;
       const occurredAt = "2099-07-20T09:00:00.000Z";
       const dueAt = "2099-08-01T09:00:00.000Z";
+      const beforeStudy = {
+        state: before.state, due_at: before.due_at, stability: before.stability, difficulty: before.difficulty, reps: before.reps, lapses: before.lapses,
+        interval_days: before.interval_days, learning_step_index: before.learning_step_index, last_reviewed_at: before.last_reviewed_at,
+        last_rating: before.last_rating, study_extra: before.study_extra,
+      };
       const parameters = {
-        p_deck_id: fixtureA.decks.id,
         p_card_id: fixtureA.cards.id,
-        p_card_review_state: { ...before.review_state, dueAt },
-        p_card_core_state: before.core_state,
+        p_study: { ...beforeStudy, due_at: dueAt },
         p_card_updated_at: occurredAt,
         p_variant_id: null,
         p_variant_performance: null,
         p_variant_updated_at: null,
         p_event: {
           id: eventId,
-          reviewable_type: "card",
-          reviewable_id: fixtureA.cards.id,
-          source_card_id: fixtureA.cards.id,
+          card_id: fixtureA.cards.id,
+          deck_id: fixtureA.decks.id,
           rating: "manual",
           answered_at: occurredAt,
-          scheduler_before: { dueAt: before.review_state.dueAt },
-          scheduler_after: { dueAt },
+          scheduler_before: { card: { dueAt: before.due_at } },
+          scheduler_after: { card: { dueAt } },
           flags: { kind: "manual_reschedule" },
           created_at: occurredAt,
         },
@@ -628,14 +679,13 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       try {
         const first = assertNoError(await clientA.rpc("record_review_atomic", parameters), "Karte über Review-Pfad neu planen");
         assert.equal(first.idempotent, false);
-        assert.equal(new Date(first.card.review_state.dueAt).toISOString(), dueAt);
-        assert.deepEqual(first.card.core_state, before.core_state);
+        assert.equal(new Date(first.card.due_at).toISOString(), dueAt);
+        assert.equal(first.card.reps, before.reps);
         assert.equal(first.card.revision, before.revision);
-        assert.equal(first.card.content_revision, before.content_revision);
 
         const replay = assertNoError(await clientA.rpc("record_review_atomic", parameters), "Neuplanung idempotent wiederholen");
         assert.equal(replay.idempotent, true);
-        assert.equal(replay.event.sync_change_id, first.event.sync_change_id);
+        assert.equal(replay.event.id, first.event.id);
         const persisted = assertNoError(await clientA.from("review_events").select("id,rating").eq("id", eventId), "manuelles Ereignis lesen");
         assert.deepEqual(persisted, [{ id: eventId, rating: "manual" }]);
         const statistics = assertNoError(await clientA.from("review_statistics_daily").select("review_count").eq("deck_id", fixtureA.decks.id).eq("day_key", "2099-07-20"), "Statistik nach Neuplanung lesen");
@@ -646,19 +696,18 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         const laterDueAt = "2099-08-05T09:00:00.000Z";
         const later = assertNoError(await clientA.rpc("record_review_atomic", {
           ...parameters,
-          p_card_review_state: { ...before.review_state, dueAt: laterDueAt, repetitions: 2 },
-          p_card_core_state: { ...before.core_state, lastReviewedAt: laterAt },
+          p_study: { ...beforeStudy, due_at: laterDueAt, reps: 2, last_reviewed_at: laterAt },
           p_card_updated_at: laterAt,
-          p_event: { ...parameters.p_event, id: laterEventId, rating: "good", answered_at: laterAt, created_at: laterAt, scheduler_after: { dueAt: laterDueAt } },
+          p_event: { ...parameters.p_event, id: laterEventId, rating: "good", answered_at: laterAt, created_at: laterAt, scheduler_after: { card: { dueAt: laterDueAt } } },
         }), "späteren Review schreiben");
-        assert.equal(new Date(later.card.review_state.dueAt).toISOString(), laterDueAt);
+        assert.equal(new Date(later.card.due_at).toISOString(), laterDueAt);
 
         const stale = assertNoError(await clientA.rpc("record_review_atomic", {
           ...parameters,
-          p_card_review_state: { ...before.review_state, dueAt: "2099-08-03T09:00:00.000Z" },
+          p_study: { ...beforeStudy, due_at: "2099-08-03T09:00:00.000Z" },
           p_event: { ...parameters.p_event, id: `${eventId}_stale`, answered_at: "2099-07-20T12:00:00.000Z", created_at: "2099-07-20T12:00:00.000Z" },
         }), "ältere Neuplanung nach Review schreiben");
-        assert.equal(new Date(stale.card.review_state.dueAt).toISOString(), laterDueAt, "Die zeitlich spätere Bewertung muss gewinnen.");
+        assert.equal(new Date(stale.card.due_at).toISOString(), laterDueAt, "Die zeitlich spätere Bewertung muss gewinnen.");
 
         const foreign = await clientB.rpc("record_review_atomic", { ...parameters, p_event: { ...parameters.p_event, id: `${eventId}_foreign` } });
         assert.ok(foreign.error, "Eine fremde Neuplanung wurde unerwartet erlaubt.");

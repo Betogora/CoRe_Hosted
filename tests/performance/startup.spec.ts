@@ -34,6 +34,10 @@ interface StartupRun {
   indexedDbShellMs: number;
   indexedDbStartupMetadataMs: number;
   firstDeckSummariesMs: number;
+  sessionCheckedMs: number;
+  bootstrapRpcMs: number;
+  bootstrapApplyMs: number;
+  renderAfterBootstrapMs: number;
   dashboardFeatureLoadMs: number;
   learnPreloadMs: number;
   decksPreloadMs: number;
@@ -184,6 +188,10 @@ async function measureRun(
       indexedDbShellMs: measure(measures.indexedDbShell),
       indexedDbStartupMetadataMs: measure(measures.indexedDbStartupMetadata),
       firstDeckSummariesMs: measure(measures.firstDeckSummaries),
+      sessionCheckedMs: mark(marks.sessionChecked)?.startTime ?? Number.NaN,
+      bootstrapRpcMs: measure(measures.bootstrapRpc),
+      bootstrapApplyMs: measure(measures.bootstrapApply),
+      renderAfterBootstrapMs: (mark(selectedTarget)?.startTime ?? Number.NaN) - (mark(marks.bootstrapApplyReady)?.startTime ?? Number.NaN),
       dashboardFeatureLoadMs: measure("core:feature:dashboard:load"),
       learnPreloadMs: measure("core:feature:learn:load"),
       decksPreloadMs: measure("core:feature:decks:load"),
@@ -292,6 +300,14 @@ test("misst normale, isolierte, Service-Worker-freie und offline Starts", async 
     offlineColdStartP75Ms: persistedOffline.p75Ms,
     offlineColdStartP95Ms: persistedOffline.p95Ms,
     newDeviceDashboardP75Ms: freshIsolated.p75Ms,
+    // K4.2: where the new-device start spends its time (p75 per phase over the fresh runs).
+    newDevicePhaseP75Ms: {
+      networkAndSession: round(percentile(freshRuns.map((run) => run.sessionCheckedMs), 0.75)),
+      bootstrapRpc: round(percentile(freshRuns.map((run) => run.bootstrapRpcMs), 0.75)),
+      indexedDbWrite: round(percentile(freshRuns.map((run) => run.bootstrapApplyMs), 0.75)),
+      firstDeckSummaries: round(percentile(freshRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
+      render: round(percentile(freshRuns.map((run) => run.renderAfterBootstrapMs), 0.75)),
+    },
     persistedSummaryReadP75Ms: round(percentile(persistedSummaryRuns.map((run) => run.firstDeckSummariesMs), 0.75)),
     longestBackgroundTaskMs: Math.max(
       ...allRuns.map((run) => run.longestProjectionTaskMs),

@@ -3,13 +3,13 @@ import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./app
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
-import type { createManualCoreDeck } from "./coreModel.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
-import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
+import type { CommitImport } from "./creationWorkflow.ts";
+import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
 import type { DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
@@ -17,7 +17,7 @@ import type { CreationMethod } from "./useAppNavigation.ts";
 import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
 import type { DeckLearningSettingsDraft, DeckSettingsDraft, GeneralSettingsDraft, GlobalCardSettingsDraft } from "./settingsDraft.ts";
-import type { OfflineDeckRecord } from "./workspaceReplica.ts";
+import type { CardCatalogEntry, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
 
 type NavigateToView = (
   viewId: AppViewId | undefined,
@@ -25,8 +25,6 @@ type NavigateToView = (
   options?: { replace?: boolean },
 ) => AppRoute;
 type CreateDeckInput = { name?: string; parentDeckId?: string | null; description?: string; deckSettings?: Partial<Deck["deckSettings"]> };
-type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: string[] };
-type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 
 export interface CardDraftGuard {
   focus: () => void;
@@ -45,7 +43,7 @@ export type SettingsSaveScope = DeckSettingsSaveScope | GlobalLearningSettingsSa
 export interface CreationScreenProps {
   decks: Deck[];
   mediaStore: AccountMediaStore | null;
-  persistImportedDecks: (decks: Deck[], options?: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph }) => Promise<ImportedDeckPersistence>;
+  commitImport: CommitImport;
   apkgImportSession: ApkgImportSession;
   onApkgImportSessionChange: Dispatch<SetStateAction<ApkgImportSession>>;
   isApkgImportSessionCurrent: (version: number) => boolean;
@@ -57,8 +55,7 @@ export interface CreationScreenProps {
   completionKind: "import" | "manual" | "";
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
-  onCreated: (deck: Deck) => Promise<Deck | null>;
-  onAppendManualCard: (deckId: string, input: ManualCardInput) => Promise<Deck | null>;
+  onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
@@ -93,7 +90,7 @@ export interface DeckSettingsScreenProps {
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;
   onRequestContextAction: (action: () => void) => void;
   onCreateSubdeck: (parentDeckId: string) => unknown;
-  onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; deletedDecks: Deck[]; nextSelectedDeckId: string | null } | null>;
+  onDeleteDeck: (deckId: string) => Promise<{ deletedDeckIds: string[]; nextSelectedDeckId: string | null } | null>;
   onSelectDeck: (deckId: string) => unknown;
   onOpenGlobalSettings: () => unknown;
   offlineDeck?: OfflineDeckRecord | null;
@@ -106,22 +103,22 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
-  noteTypeDefinitions?: NoteTypeDefinitionV1[];
   now: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
   timeZone?: string;
   mediaStore: AccountMediaStore | null;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
-  onSaveCard: (deckId: string, cardId: string, value: CardEditorValue) => unknown;
-  onSaveCardDocument?: (deckId: string, cardId: string, value: CardDocumentValue) => unknown;
-  onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Promise<LearningItem | null>;
-  onDuplicateCard: (deckId: string, cardId: string) => Promise<LearningItem | null>;
-  onDeleteCard: (deckId: string, cardId: string) => Promise<LearningItem | null>;
-  onUndoDeleteCard: (deckId: string, deletedCard: LearningItem, previousStatus: LearningItem["status"]) => Promise<LearningItem | null>;
-  onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<LearningItem[]>;
+  /** Saves edited content; card removals were confirmed by the editor beforehand. */
+  onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<NoteGraph | null>;
+  onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => Promise<NoteGraph | null>;
+  onDuplicateNote: (graph: NoteGraph) => Promise<NoteGraph | null>;
+  onDeleteNote: (graph: NoteGraph) => Promise<{ deleted: NoteGraph; undo: NoteGraph } | null>;
+  onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
+  onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
   selectedDeckId: string | null;
   selectedCardId: string | null;
@@ -136,6 +133,7 @@ export interface DecksScreenProps {
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
   cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
   onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
+  syncConflictCardIds?: ReadonlySet<string>;
 }
 
 export interface DecksCardPageRequest {
@@ -149,14 +147,14 @@ export interface DecksCardPageRequest {
 
 export interface DecksCardPage {
   deckId: string;
-  items: LearningItem[];
+  items: CardCatalogEntry[];
   page: number;
   pageSize: number;
   totalCount: number;
   hasMore?: boolean;
   query: string;
   sort: CardTableSort;
-  selectedCard?: LearningItem | null;
+  selected?: (NoteGraph & { cardId: string }) | null;
   loadError?: string | null;
   limitedToLocalCatalog?: boolean;
 }
@@ -230,7 +228,7 @@ export interface SimulatorScreenProps {
 export interface StudyModeProps {
   deck: Deck;
   decks: Deck[];
-  noteTypeDefinitions?: NoteTypeDefinitionV1[];
+  notes: Note[];
   deckId: string;
   variantSession: boolean;
   variantId?: string;
@@ -248,9 +246,9 @@ export interface StudyModeProps {
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;
   onEditDeck: (deckId: string) => unknown;
-  onSetCardStudyState: (deckId: string, cardId: string, patch: LearningItemStudyStatePatch) => Deck | null;
+  onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
-  onCardUpdated: (deckId: string, card: LearningItem) => unknown;
+  onCardUpdated: (deckId: string, card: Card) => unknown;
   onReview: (result: ReviewAnswerResult) => unknown;
   sessionPlan?: {
     progress: DailyReviewProgressSummary;
@@ -260,6 +258,7 @@ export interface StudyModeProps {
   hasMoreCards?: boolean;
   onLoadMoreCards?: () => Promise<{
     decks: Deck[];
+    notes: Note[];
     hasMoreCards: boolean;
     bufferSize: number;
   }>;

@@ -11,7 +11,6 @@ export interface ApkgImportJob {
   errors: string[];
 }
 
-export type ApkgPreviewMediaStatus = { persisted: boolean; count: number; errors: string[] };
 export type ApkgCloudProgress = MediaSyncProgress & { status: MediaSyncStatus };
 export type ApkgProgressPhase = "analyzing" | "committing" | "syncing_cloud" | "syncing_media";
 
@@ -20,13 +19,15 @@ export interface ApkgImportSession {
   selectedFile: File | null;
   job: ApkgImportJob | null;
   preview: ApkgCreationPreview | null;
-  mediaStatus: ApkgPreviewMediaStatus | MediaSyncResult | null;
+  mediaStatus: MediaSyncResult | null;
   isParsing: boolean;
   mediaTask: MediaSyncTask | null;
   cloudTask: ImportCloudSyncTask | null;
   cloudProgress: ApkgCloudProgress | null;
   completedDeck: Deck | null;
   completedCount: number;
+  /** Reimport result: kept local edits and Anki cards missing from the package (K5.7). */
+  reimport: { keptLocalEdits: number; missingInPackage: number } | null;
   phaseProgress: { phase: ApkgProgressPhase; percent: number } | null;
 }
 
@@ -43,6 +44,7 @@ export function createEmptyApkgImportSession(version = 0): ApkgImportSession {
     cloudProgress: null,
     completedDeck: null,
     completedCount: 0,
+    reimport: null,
     phaseProgress: null,
   };
 }
@@ -57,5 +59,5 @@ export function resolveApkgCreationMethod<T extends string>(requestedMethod: T, 
 }
 
 export function disposeApkgImportPreview(session: ApkgImportSession): void {
-  if (session.preview?.commitGraph.kind === "worker-import") session.preview.commitGraph.dispose();
+  session.preview?.commitGraph.dispose();
 }

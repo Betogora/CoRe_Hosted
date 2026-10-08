@@ -14,13 +14,13 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [Docs](index.html) | Orientierung und Quellen | diese README |
 | [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
 | [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
-| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar einschließlich echter Produktansichten, vorbereiteter Kartenbausteine, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
-| [Kartentypen](card-types.html) | sechs manuell erstellbare Formen im echten Reviewrenderer | dieselben Demos und CoRe-Modellhelfer |
+| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar einschließlich echter Produktansichten, Kartenbausteine, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
+| [Kartentypen](card-types.html) | sechs manuell erstellbare Formen im echten Reviewrenderer (`NoteCardContent`) | dieselben Demos und CoRe-Modellhelfer |
 
-Die [vorbereiteten Kartenbausteine](ui-elements.html#note-content) zeigen den
-neuen Note-/Card-Renderer vor seinem Cutover: Feldrollen, Lücken, Bildmasken,
+Die [Kartenbausteine](ui-elements.html#note-content) zeigen den Note-/Card-
+Renderer mit allen Formen aus Anki-Importen: Feldrollen, Lücken, Bildmasken,
 Eintippen, Auswahl einschließlich Kprim, Formeln, Medien und System-Vorlesen.
-Die sechs bisherigen Kartentypen bleiben die Referenz des aktuellen App-Pfads.
+Die sechs manuell erstellbaren Formen stehen gesammelt unter Kartentypen.
 
 Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
 Styles und Synonym-Fonts sind eingebettet; Journey-Diagramme nutzen `vendor/mermaid.min.js`.
@@ -75,7 +75,7 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
 Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
 - [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
-- [`anki-format-analysis.md`](anki-format-analysis.md): technische Referenz zu Anki/APKG, Templates, Medien und Learning Items.
+- [`anki-format-analysis.md`](anki-format-analysis.md): technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
 - [`ui-elements.html`](ui-elements.html): direkt aus produktiven Komponenten erzeugte Demos plus klar gekennzeichnete lokale Screen-Muster.
 - [`card-types.html`](card-types.html): interaktive Referenz für Basic, Basic mit Bildern, Basic umgekehrt, Lückentext, Single Choice und Multiple Choice.
@@ -84,7 +84,7 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
 - [`../AGENTS.md`](../AGENTS.md): Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.
 - [`../src/screens/README.md`](../src/screens/README.md): Screen-Landkarte.
-- [`../supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql`](../supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql): einzige frische Pre-Release-Schemabaseline.
+- [`../supabase/migrations/20261008101057_kartenmodell_baseline.sql`](../supabase/migrations/20261008101057_kartenmodell_baseline.sql): einzige frische Pre-Release-Schemabaseline (Kartenmodell `Note`/`Card`).
 - [`../supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql): ausführbares Struktur-, RLS- und Policy-Gate.
 
 ## Inventarregeln

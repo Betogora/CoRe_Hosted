@@ -86,11 +86,13 @@ function addMilliseconds(timestamp: any, milliseconds: any) {
 }
 
 const ENTITY_UPSERT_ORDER: Record<string, number> = {
-  note_type_definitions: 0,
+  note_type_sources: 0,
   decks: 1,
-  cards: 2,
-  card_variants: 3,
-  review_events: 4,
+  notes: 2,
+  note_sources: 3,
+  cards: 4,
+  card_variants: 5,
+  review_events: 6,
 };
 
 function orderMutationBatch(mutations: any[]) {
@@ -261,7 +263,6 @@ function createDefaultAdapter(client: any, userId: string) {
             if (acknowledged.persistedRow) persistedRows.push({ table: mutation.payload?.table ?? mutation.table, row: acknowledged.persistedRow });
             const atomicRows = acknowledged.rows && !Array.isArray(acknowledged.rows) ? acknowledged.rows : null;
             const atomicEntities = acknowledged.entities && !Array.isArray(acknowledged.entities) ? acknowledged.entities : null;
-            if (atomicRows?.deck) persistedRows.push({ table: "decks", row: atomicRows.deck, entity: atomicEntities?.deck });
             if (atomicRows?.card) persistedRows.push({ table: "cards", row: atomicRows.card, entity: atomicEntities?.card });
             if (atomicRows?.variant) persistedRows.push({ table: "card_variants", row: atomicRows.variant, entity: atomicEntities?.variant });
           } else {

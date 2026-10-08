@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreCard, createCoreDeck, updateLearningItemStudyState } from "./coreModel.ts";
-import type { LearningItem } from "./coreTypes.ts";
+import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
+import type { Card, Note } from "./coreTypes.ts";
 import {
   type CardTableSort,
   createCardTableModel,
@@ -11,7 +11,26 @@ import {
 } from "./libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "./studyHeatmapModel.ts";
 
-function createDeckHierarchy(cards: LearningItem[] = []) {
+const notesById = new Map<string, Note>();
+
+/** A basic card with its note registered in `notesById`; `study` is the flat scheduler input. */
+function libraryCard(id: string, {
+  front = id,
+  back = "Antwort",
+  tags = [],
+  study,
+  createdAt,
+}: { front?: string; back?: string; tags?: string[]; study?: Record<string, unknown>; createdAt?: string } = {}): Card {
+  const { note, cards } = createBasicNote("deck", front, back, { tags, createdAt });
+  notesById.set(note.id, note);
+  return { ...cards[0], id, ...(study ? { study: cardStudyFromReviewState(createReviewState(study)) } : {}) };
+}
+
+function deleted(card: Card, deletedAt = "2026-06-30T08:00:00.000Z"): Card {
+  return { ...card, deletedAt };
+}
+
+function createDeckHierarchy(cards: Card[] = []) {
   const parent = createCoreDeck({ id: "deck_parent", name: "Medizin", source: "manual", hierarchyPath: ["Medizin"], cards: [] });
   const child = createCoreDeck({
     id: "deck_child",
@@ -25,45 +44,21 @@ function createDeckHierarchy(cards: LearningItem[] = []) {
 }
 
 function createDeckWithInactiveCards() {
-  const active = createCoreCard({
-    id: "card_active",
-    source: "manual",
-    originalFront: "<b>Welche Funktion hat Myelin?</b>",
-    originalBack: "Myelin isoliert Axone und beschleunigt die Erregungsleitung.",
-    originalTags: ["neuro"],
-    reviewState: {
-      dueAt: "2026-07-01T07:00:00.000Z",
-      repetitions: 4,
-      maturityXp: 142,
-    },
-    variants: [
-      {
-        id: "variant_active",
-        front: "Beschreibe die Funktion von Myelin.",
-        back: "Myelin isoliert Axone und beschleunigt die Erregungsleitung.",
-        qualityStatus: "active",
-      },
-    ],
+  const active = addCardVariant(libraryCard("card_active", {
+    front: "<b>Welche Funktion hat Myelin?</b>",
+    back: "Myelin isoliert Axone und beschleunigt die Erregungsleitung.",
+    tags: ["neuro"],
+    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 4, maturityXp: 142 },
+  }), {
+    id: "variant_active",
+    front: "Beschreibe die Funktion von Myelin.",
+    back: "Myelin isoliert Axone und beschleunigt die Erregungsleitung.",
   });
-  const deleted = createCoreCard({
-    id: "card_deleted",
-    source: "manual",
-    originalFront: "Geloeschte Karte",
-    originalBack: "Soll nicht zaehlen.",
-    status: "deleted",
-    reviewState: {
-      dueAt: "2026-07-01T07:00:00.000Z",
-      repetitions: 4,
-      maturityXp: 142,
-    },
-  });
-  const draft = createCoreCard({
-    id: "card_draft",
-    source: "manual",
-    originalFront: "Draft",
-    originalBack: "Soll nicht zaehlen.",
-    draftStatus: "draft",
-  });
+  const deletedCard = deleted(libraryCard("card_deleted", {
+    front: "Gelöschte Karte",
+    back: "Soll nicht zählen.",
+    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 4, maturityXp: 142 },
+  }));
 
   return createCoreDeck({
     id: "deck_neuro",
@@ -71,7 +66,7 @@ function createDeckWithInactiveCards() {
     source: "manual",
     hierarchyPath: ["Medizin", "Neuro", "Myelin"],
     deckSettings: { coreMode: "auto" },
-    cards: [active, deleted, draft],
+    cards: [active, deletedCard],
   });
 }
 
@@ -87,9 +82,21 @@ test("library model hides reviewable-card filtering and deck selection fallback"
   assert.equal(library.filteredRows.length, 1);
   assert.equal(library.selectedRow.id, deck.id);
   assert.equal(library.selectedRow.path, "Medizin / Neuro / Myelin");
-  assert.equal(library.selectedRow.cardRows.length, 1);
-  assert.equal(library.selectedRow.cardRows[0].frontPreview, "Welche Funktion hat Myelin?");
+  assert.equal(library.selectedRow.summary.totalCards, 1);
+  assert.equal(library.selectedRow.summary.activeVariants, 1);
+
+  const table = createCardTableModel([deck], { now: "2026-07-01T08:00:00.000Z", notesById });
+  assert.deepEqual(table.groups[0].cardRows.map((row) => row.id), ["card_active"]);
+  assert.equal(table.groups[0].cardRows[0].frontPreview, "Welche Funktion hat Myelin?");
 });
+
+test("card table shows a placeholder preview for cards without a loaded note", () => {
+  const deck = createDeckWithInactiveCards();
+  const table = createCardTableModel([deck], { now: "2026-07-01T08:00:00.000Z" });
+  assert.equal(table.groups[0].cardRows[0].frontPreview, "Leere Karte");
+  assert.equal(table.groups[0].cardRows[0].hasActiveVariants, true);
+});
+
 test("library model keeps an explicitly selected deck even when filters hide it", () => {
   const deck = createDeckWithInactiveCards();
   const library = createDeckLibraryModel([deck], {
@@ -102,15 +109,10 @@ test("library model keeps an explicitly selected deck even when filters hide it"
 });
 
 test("library model projects deck hierarchies with aggregate parent summaries", () => {
-  const childCard = createCoreCard({
-    id: "card_child",
-    source: "manual",
-    originalFront: "Was ist ATP?",
-    originalBack: "Ein Energietraeger.",
-    reviewState: {
-      dueAt: "2026-07-01T07:00:00.000Z",
-      repetitions: 0,
-    },
+  const childCard = libraryCard("card_child", {
+    front: "Was ist ATP?",
+    back: "Ein Energieträger.",
+    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 0 },
   });
   const { parent, child } = createDeckHierarchy([childCard]);
   const library = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" });
@@ -122,17 +124,11 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(parentRow.depth, 0);
   assert.ok(childRow);
   assert.equal(childRow.depth, 1);
-  assert.ok(childRow);
   assert.equal(childRow.parentDeckId, parent.id);
-  assert.ok(parentRow);
   assert.equal(parentRow.descendantCount, 1);
-  assert.ok(parentRow);
   assert.equal(parentRow.directSummary.totalCards, 0);
-  assert.ok(parentRow);
   assert.equal(parentRow.summary.totalCards, 1);
-  assert.ok(parentRow);
   assert.equal(parentRow.summary.newCards, 1);
-  assert.ok(childRow);
   assert.equal(childRow.summary.totalCards, 1);
   assert.equal(library.dueCards, 0);
   assert.deepEqual(library.rows.map((row) => row.id), [parent.id, child.id]);
@@ -140,13 +136,7 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
 });
 
 test("library model keeps new, in-progress and due deck counts disjoint", () => {
-  const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => createCoreCard({
-    id,
-    source: "manual",
-    originalFront: id,
-    originalBack: "Antwort",
-    reviewState: { state, dueAt, reps },
-  });
+  const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => libraryCard(id, { study: { state, dueAt, reps } });
   const parent = createCoreDeck({
     id: "status_parent",
     name: "Status",
@@ -213,17 +203,13 @@ test("daily learning plan aggregates sorted root sessions without counting desce
     parentDeckId: parent.id,
     name: "Kind",
     source: "manual",
-    cards: [createCoreCard({ id: "new-child", source: "manual", reviewState: { state: "new", dueAt: "2026-07-01T07:00:00.000Z", reps: 0 } })],
+    cards: [libraryCard("new-child", { study: { state: "new", dueAt: "2026-07-01T07:00:00.000Z", reps: 0 } })],
   });
   const secondRoot = createCoreDeck({
     id: "root-beta",
     name: "Beta",
     source: "manual",
-    cards: [createCoreCard({
-      id: "due-root",
-      source: "manual",
-      reviewState: { state: "review", dueAt: "2026-07-01T07:00:00.000Z", reps: 3 },
-    })],
+    cards: [libraryCard("due-root", { study: { state: "review", dueAt: "2026-07-01T07:00:00.000Z", reps: 3 } })],
   });
 
   const plan = createDeckLibraryModel([secondRoot, child, parent], { now: "2026-07-01T08:00:00.000Z" }).dailyLearningPlan;
@@ -245,11 +231,7 @@ test("daily learning plan separates future same-day learning from currently star
     id: "root-waiting",
     name: "Warten",
     source: "manual",
-    cards: [createCoreCard({
-      id: "waiting-item",
-      source: "manual",
-      reviewState: { state: "learning", dueAt: "2026-07-01T10:00:00.000Z", reps: 1 },
-    })],
+    cards: [libraryCard("waiting-item", { study: { state: "learning", dueAt: "2026-07-01T10:00:00.000Z", reps: 1 } })],
   });
 
   const plan = createDeckLibraryModel([deck], {
@@ -269,11 +251,7 @@ test("daily learning sessions expose only new cards beyond the selected daily li
     name: "Zusatz",
     source: "manual",
     deckSettings: { newCardsPerDay: 1 },
-    cards: [1, 2, 3].map((number) => createCoreCard({
-      id: `new-${number}`,
-      source: "manual",
-      reviewState: { state: "new", dueAt: "2026-07-01T07:00:00.000Z", reps: 0 },
-    })),
+    cards: [1, 2, 3].map((number) => libraryCard(`new-${number}`, { study: { state: "new", dueAt: "2026-07-01T07:00:00.000Z", reps: 0 } })),
   });
 
   const session = createDeckLibraryModel([deck], { now: "2026-07-01T08:00:00.000Z" }).dailyLearningPlan.sessions[0];
@@ -285,40 +263,17 @@ test("daily learning sessions expose only new cards beyond the selected daily li
   assert.equal(session.introducedTodayCount, 0);
 });
 
-test("deck counters and overall status distribution exclude blocked cards while the card table keeps them", () => {
-  const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => createCoreCard({
-    id,
-    source: "manual",
-    originalFront: id,
-    originalBack: "Antwort",
-    reviewState: { state, dueAt, reps },
-  });
+test("deck counters and overall status distribution exclude blocked cards while the card table keeps suspended ones", () => {
+  const card = (id: string, state: "new" | "learning" | "review" | "relearning", dueAt: string, reps: number) => libraryCard(id, { study: { state, dueAt, reps } });
   const activeNew = card("active_new", "new", "2026-07-01T07:00:00.000Z", 0);
   const activeLearning = card("active_learning", "learning", "2026-07-01T10:00:00.000Z", 1);
   const activeRelearning = card("active_relearning", "relearning", "2026-07-02T10:00:00.000Z", 3);
   const activeDue = card("active_due", "review", "2026-07-01T07:00:00.000Z", 3);
   const activeDueAtNow = card("active_due_at_now", "review", "2026-07-01T08:00:00.000Z", 3);
   const activeLearned = card("active_learned", "review", "2026-07-02T08:00:00.000Z", 3);
-  const suspendedLearning = updateLearningItemStudyState(
-    card("suspended_learning", "learning", "2026-07-01T07:00:00.000Z", 1),
-    { suspended: true },
-  );
-  const suspendedDue = updateLearningItemStudyState(
-    card("suspended_due", "review", "2026-07-01T07:00:00.000Z", 3),
-    { suspended: true },
-  );
-  const buriedDue = createCoreCard({
-    ...card("buried_due", "review", "2026-07-01T07:00:00.000Z", 3),
-    meta: { buried: true },
-  });
-  const deletedDue = createCoreCard({
-    ...card("deleted_due", "review", "2026-07-01T07:00:00.000Z", 3),
-    status: "deleted",
-  });
-  const draftDue = createCoreCard({
-    ...card("draft_due", "review", "2026-07-01T07:00:00.000Z", 3),
-    draftStatus: "draft",
-  });
+  const suspendedLearning = setCardSuspended(card("suspended_learning", "learning", "2026-07-01T07:00:00.000Z", 1), true);
+  const suspendedDue = setCardSuspended(card("suspended_due", "review", "2026-07-01T07:00:00.000Z", 3), true);
+  const deletedDue = deleted(card("deleted_due", "review", "2026-07-01T07:00:00.000Z", 3));
   const deck = createCoreDeck({
     id: "deck_suspended_counts",
     name: "Ausgesetzt",
@@ -333,9 +288,7 @@ test("deck counters and overall status distribution exclude blocked cards while 
       activeLearned,
       suspendedLearning,
       suspendedDue,
-      buriedDue,
       deletedDue,
-      draftDue,
     ],
   });
   const library = createDeckLibraryModel([deck], { now: "2026-07-01T08:00:00.000Z" });
@@ -365,11 +318,11 @@ test("deck counters and overall status distribution exclude blocked cards while 
     "active_learning",
     "active_new",
     "active_relearning",
-    "buried_due",
     "suspended_due",
     "suspended_learning",
   ]));
   assert.equal(table.groups[0].cardRows.find((cardRow) => cardRow.id === "suspended_due")?.nextStudyLabel, "01.07.2026");
+  assert.equal(table.groups[0].cardRows.find((cardRow) => cardRow.id === "suspended_due")?.entry.reviewable, false);
 });
 
 test("overall status distribution aggregates descendants while preserving direct deck values", () => {
@@ -377,18 +330,14 @@ test("overall status distribution aggregates descendants while preserving direct
     id: "distribution_parent",
     name: "Eltern",
     source: "manual",
-    cards: [createCoreCard({ id: "parent_new", source: "manual", reviewState: { state: "new", reps: 0 } })],
+    cards: [libraryCard("parent_new", { study: { state: "new", reps: 0 } })],
   });
   const child = createCoreDeck({
     id: "distribution_child",
     parentDeckId: parent.id,
     name: "Kind",
     source: "manual",
-    cards: [createCoreCard({
-      id: "child_learned",
-      source: "manual",
-      reviewState: { state: "review", dueAt: "2026-07-02T08:00:00.000Z", reps: 3 },
-    })],
+    cards: [libraryCard("child_learned", { study: { state: "review", dueAt: "2026-07-02T08:00:00.000Z", reps: 3 } })],
   });
   const parentRow = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" }).rows[0];
 
@@ -428,26 +377,25 @@ test("library model sorts every deck level alphabetically like Anki", () => {
 
 test("card table preserves hierarchy and card order while including empty decks", () => {
   const cards = [
-    createCoreCard({ id: "card-first", source: "manual", originalFront: "<b>Erste</b> Frage", originalBack: "Erste Antwort", originalTags: ["alpha"] }),
-    createCoreCard({ id: "card-second", source: "manual", originalFront: "Zweite Frage", originalBack: "Gesuchte Rückseite", originalTags: ["beta"] }),
+    libraryCard("card-first", { front: "<b>Erste</b> Frage", back: "Erste Antwort", tags: ["alpha"] }),
+    libraryCard("card-second", { front: "Zweite Frage", back: "Gesuchte Rückseite", tags: ["beta"] }),
   ];
   const { parent, child } = createDeckHierarchy(cards);
-  const model = createCardTableModel([parent, child]);
+  const model = createCardTableModel([parent, child], { notesById });
 
   assert.deepEqual(model.groups.map((group) => group.id), [parent.id, child.id]);
   assert.equal(model.groups[0].cardRows.length, 0);
   assert.deepEqual(model.groups[1].cardRows.map((row) => row.id), ["card-first", "card-second"]);
   assert.equal(model.groups[1].cardRows[0].frontPreview, "Erste Frage");
-  assert.equal(model.groups[1].cardRows[1].backPreview, "Gesuchte Rückseite");
 
-  const cardSearch = createCardTableModel([parent, child], { query: "gesuchte rückseite" });
+  const cardSearch = createCardTableModel([parent, child], { query: "gesuchte rückseite", notesById });
   assert.deepEqual(cardSearch.groups.map((group) => group.id), [child.id]);
   assert.deepEqual(cardSearch.groups[0].cardRows.map((row) => row.id), ["card-second"]);
 
-  const tagSearch = createCardTableModel([parent, child], { query: "beta" });
+  const tagSearch = createCardTableModel([parent, child], { query: "beta", notesById });
   assert.deepEqual(tagSearch.groups[0].cardRows.map((row) => row.id), ["card-second"]);
 
-  const deckSearch = createCardTableModel([parent, child], { query: "medizin / anatomie" });
+  const deckSearch = createCardTableModel([parent, child], { query: "medizin / anatomie", notesById });
   assert.deepEqual(deckSearch.groups[0].cardRows.map((row) => row.id), ["card-first", "card-second"]);
 });
 
@@ -458,11 +406,11 @@ test("deck and card searches use the complete logical hierarchy path", () => {
     name: hierarchyPath.at(-1)!,
     source: "anki-apkg",
     hierarchyPath,
-    cards: [createCoreCard({ id: "source-card", source: "anki-apkg", originalFront: "Frage", originalBack: "Antwort" })],
+    cards: [libraryCard("source-card", { front: "Frage", back: "Antwort" })],
   });
 
   assert.deepEqual(createDeckLibraryModel([deck], { query: "ebene 9 / ebene 10 / ebene 11" }).filteredRows.map((row) => row.id), [deck.id]);
-  assert.deepEqual(createCardTableModel([deck], { query: "ebene 10 / ebene 11 / ebene 12" }).groups.map((group) => group.id), [deck.id]);
+  assert.deepEqual(createCardTableModel([deck], { query: "ebene 10 / ebene 11 / ebene 12", notesById }).groups.map((group) => group.id), [deck.id]);
 });
 
 test("library model projects a large deep hierarchy iteratively with logical depths and aggregates", () => {
@@ -484,27 +432,20 @@ test("library model projects a large deep hierarchy iteratively with logical dep
 });
 
 test("card table sorts all columns and projects next-study labels and variant status", () => {
-  const newCard = createCoreCard({ id: "card-new", source: "manual", originalFront: "Äpfel", originalBack: "Neu" });
-  const laterBase = createCoreCard({ id: "card-later", source: "manual", originalFront: "Zebra", originalBack: "Später" });
-  const earlierBase = createCoreCard({
-    id: "card-earlier",
-    source: "manual",
-    originalFront: "Berlin",
-    originalBack: "Früher",
-    variants: [{
-      id: "variant-earlier",
-      front: "Welche Stadt ist Berlin?",
-      back: "Eine Hauptstadt.",
-      qualityStatus: "active",
-    }],
+  const newCard = libraryCard("card-new", { front: "Äpfel", back: "Neu" });
+  const later = libraryCard("card-later", {
+    front: "Zebra",
+    back: "Später",
+    study: { state: "review", dueAt: "2026-09-20T08:00:00.000Z", reps: 2, lastReviewedAt: "2026-08-01T08:00:00.000Z" },
   });
-  const laterState = { ...laterBase.reviewState, state: "review" as const, dueAt: "2026-09-20T08:00:00.000Z", reps: 2, lastReviewedAt: "2026-08-01T08:00:00.000Z" };
-  const earlierState = { ...earlierBase.reviewState, state: "review" as const, dueAt: "2026-08-10T08:00:00.000Z", reps: 2, lastReviewedAt: "2026-08-01T08:00:00.000Z" };
-  const later = { ...laterBase, reviewState: laterState, learningItemState: laterState };
-  const earlier = { ...earlierBase, reviewState: earlierState, learningItemState: earlierState };
+  const earlier = addCardVariant(libraryCard("card-earlier", {
+    front: "Berlin",
+    back: "Früher",
+    study: { state: "review", dueAt: "2026-08-10T08:00:00.000Z", reps: 2, lastReviewedAt: "2026-08-01T08:00:00.000Z" },
+  }), { id: "variant-earlier", front: "Welche Stadt ist Berlin?", back: "Eine Hauptstadt." });
   const deck = createCoreDeck({ id: "deck-sort", name: "Sortierung", source: "manual", cards: [later, newCard, earlier] });
 
-  const defaultRows = createCardTableModel([deck]).groups[0].cardRows;
+  const defaultRows = createCardTableModel([deck], { notesById }).groups[0].cardRows;
   assert.deepEqual(defaultRows.map((row) => row.id), ["card-new", "card-earlier", "card-later"]);
   assert.deepEqual(defaultRows.map((row) => row.nextStudyLabel), ["Neu", "10.08.2026", "20.09.2026"]);
   assert.deepEqual(defaultRows.map((row) => row.hasActiveVariants), [false, true, false]);
@@ -516,27 +457,30 @@ test("card table sorts all columns and projects next-study labels and variant st
     [{ field: "variants", direction: "asc" }, ["card-later", "card-new", "card-earlier"]],
     [{ field: "variants", direction: "desc" }, ["card-earlier", "card-later", "card-new"]],
   ] satisfies Array<[CardTableSort, string[]]>) {
-    assert.deepEqual(createCardTableModel([deck], { cardSort }).groups[0].cardRows.map((row) => row.id), expected);
+    assert.deepEqual(createCardTableModel([deck], { cardSort, notesById }).groups[0].cardRows.map((row) => row.id), expected);
   }
 });
 
 test("card table pages large libraries and finds late cards deterministically", () => {
-  const cards = Array.from({ length: 10_000 }, (_, index) => createCoreCard({
-    id: "large-card-" + index,
-    source: "manual",
-    originalFront: "Frage " + index,
-    originalBack: "Antwort " + index,
+  const cards = Array.from({ length: 10_000 }, (_, index) => libraryCard("large-card-" + index, {
+    front: "Frage " + index,
+    back: "Antwort " + index,
   }));
   const deck = createCoreDeck({ id: "large-deck", name: "Groß", source: "manual", cards });
-  const model = createCardTableModel([deck]);
+  const model = createCardTableModel([deck], { notesById });
 
   assert.equal(model.cardCount, 10_000);
   assert.equal(model.groups[0].cardRows.length, 50);
   assert.equal(model.groups[0].pageCount, 200);
 
-  const lateMatch = createCardTableModel([deck], { query: "Frage 9999" });
+  const lateMatch = createCardTableModel([deck], { query: "Frage 9999", notesById });
   assert.equal(lateMatch.cardCount, 1);
   assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-9999"]);
+
+  const secondPage = createCardTableModel([deck], { notesById, cardPageByDeckId: { [deck.id]: 1 } });
+  assert.equal(secondPage.groups[0].page, 1);
+  assert.equal(secondPage.groups[0].cardRows.length, 50);
+  assert.notDeepEqual(secondPage.groups[0].cardRows.map((row) => row.id), model.groups[0].cardRows.map((row) => row.id));
 });
 
 test("study heatmap counts only rated reviews by profile day and derives the current streak", () => {
@@ -547,19 +491,19 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
     cards: [],
     reviewEvents: [
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
-      { id: "review_1", rating: "good", answeredAt: "2026-07-07T08:00:00.000Z", learningItemId: "card_1" },
+      { id: "review_1", rating: "good", answeredAt: "2026-07-07T08:00:00.000Z", cardId: "card_1" },
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
-      { id: "review_2", rating: "again", answeredAt: "2026-07-07T09:00:00.000Z", learningItemId: "card_2" },
+      { id: "review_2", rating: "again", answeredAt: "2026-07-07T09:00:00.000Z", cardId: "card_2" },
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
-      { id: "review_3", rating: "hard", createdAt: "2026-07-06T10:00:00.000Z", learningItemId: "card_3" },
+      { id: "review_3", rating: "hard", createdAt: "2026-07-06T10:00:00.000Z", cardId: "card_3" },
 // @ts-expect-error -- Die Fixture prüft bewusst nur die von der Heatmap benötigte Laufzeitform.
-      { id: "review_4", rating: "easy", answeredAt: "2026-07-05T10:00:00.000Z", learningItemId: "card_4" },
+      { id: "review_4", rating: "easy", answeredAt: "2026-07-05T10:00:00.000Z", cardId: "card_4" },
 // @ts-expect-error -- Eine manuelle Neuplanung darf nicht als Lernfortschritt zählen.
-      { id: "review_manual", rating: "manual", answeredAt: "2026-07-07T10:00:00.000Z", learningItemId: "card_4" },
+      { id: "review_manual", rating: "manual", answeredAt: "2026-07-07T10:00:00.000Z", cardId: "card_4" },
 // @ts-expect-error -- Eine fehlende Bewertung darf nicht als Lernfortschritt zählen.
-      { id: "review_unrated", reviewedAt: "2026-07-04T10:00:00.000Z", learningItemId: "card_unrated" },
+      { id: "review_unrated", reviewedAt: "2026-07-04T10:00:00.000Z", cardId: "card_unrated" },
 // @ts-expect-error -- Ein zukünftiges Review bleibt relativ zur simulierten Uhr unsichtbar.
-      { id: "review_future", rating: "good", reviewedAt: "2026-07-08T10:00:00.000Z", learningItemId: "card_future" },
+      { id: "review_future", rating: "good", reviewedAt: "2026-07-08T10:00:00.000Z", cardId: "card_future" },
     ],
   });
 
@@ -580,23 +524,16 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
   assert.equal(heatmap.countsByDay.has("2026-07-08"), false);
 });
 
-test("study heatmap forecasts each active learning item once by its next due day", () => {
-  const forecastCard = createCoreCard({
-    id: "card_forecast",
-    source: "manual",
-    originalFront: "Wann bin ich fällig?",
-    originalBack: "Übermorgen.",
-    reviewState: { state: "review", dueAt: "2026-08-07T22:30:00.000Z", repetitions: 2 },
-    variants: [
-      { id: "variant_forecast", front: "Variante", back: "Antwort", qualityStatus: "active" },
-    ],
-  });
+test("study heatmap forecasts each active card once by its next due day", () => {
+  const forecastCard = addCardVariant(libraryCard("card_forecast", {
+    front: "Wann bin ich fällig?",
+    back: "Übermorgen.",
+    study: { state: "review", dueAt: "2026-08-07T22:30:00.000Z", reps: 2 },
+  }), { id: "variant_forecast", front: "Variante", back: "Antwort" });
   const excludedCards = [
-    createCoreCard({ id: "card_deleted_forecast", source: "manual", status: "deleted", reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
-    createCoreCard({ id: "card_suspended_forecast", source: "manual", status: "suspended", reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
-    createCoreCard({ id: "card_draft_forecast", source: "manual", draftStatus: "draft", reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
-    createCoreCard({ id: "card_buried_forecast", source: "manual", meta: { buried: true }, reviewState: { dueAt: "2026-08-08T08:00:00.000Z" } }),
-    createCoreCard({ id: "card_too_late_forecast", source: "manual", reviewState: { dueAt: "2027-08-08T08:00:00.000Z" } }),
+    deleted(libraryCard("card_deleted_forecast", { study: { dueAt: "2026-08-08T08:00:00.000Z" } })),
+    setCardSuspended(libraryCard("card_suspended_forecast", { study: { dueAt: "2026-08-08T08:00:00.000Z" } }), true),
+    libraryCard("card_too_late_forecast", { study: { dueAt: "2027-08-08T08:00:00.000Z" } }),
   ];
   const deck = createCoreDeck({ name: "Prognose", source: "manual", cards: [forecastCard, ...excludedCards] });
 
@@ -740,16 +677,10 @@ test("study heatmap streak crosses calendar years and intensity follows the disp
 });
 
 test("library metrics, card dates and heatmap share the configured learning day", () => {
-  const card = createCoreCard({
-    id: "card_shifted_day",
-    source: "manual",
-    originalFront: "Frühe Karte",
-    originalBack: "Antwort",
-    reviewState: {
-      state: "review",
-      reps: 4,
-      dueAt: "2026-07-11T00:30:00.000Z",
-    },
+  const card = libraryCard("card_shifted_day", {
+    front: "Frühe Karte",
+    back: "Antwort",
+    study: { state: "review", reps: 4, dueAt: "2026-07-11T00:30:00.000Z" },
   });
   const deck = createCoreDeck({
     id: "deck_shifted_day",
@@ -759,7 +690,7 @@ test("library metrics, card dates and heatmap share the configured learning day"
     reviewEvents: [{
       id: "event_shifted_day",
       deckId: "deck_shifted_day",
-      learningItemId: card.id,
+      cardId: card.id,
       answeredAt: "2026-07-11T00:30:00.000Z",
       rating: "good",
     }] as any,

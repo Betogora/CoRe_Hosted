@@ -1,6 +1,5 @@
 import { SCHEDULER_VERSION, calculateRetrievability, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
 import {
-  chooseReviewCard,
   createVariantReviewModel,
   deactivateVariant,
   flagVariant,
@@ -8,22 +7,19 @@ import {
   selectAutomaticReviewVariant,
 } from "./coreVariantService.ts";
 import {
+  cardStudyFromReviewState,
   createDefaultDeckSettings,
-  createReviewState,
-  getActiveVariants,
-  getAnswerSideAnchorMiniCard,
-  getLearningItemAnswer,
-  getLearningItemQuestion,
-  isLearningItemReviewBlocked,
+  isCardReviewBlocked,
   makeId,
-  normalizeLearningItem,
+  reviewStateFromCardStudy,
   stableContentHash,
   updateVariantPerformance,
 } from "./coreModel.ts";
 import type {
+  Card,
+  CardStudyState,
   CardVariant,
   Deck,
-  LearningItem,
   NewReviewOrder,
   ReviewRating,
   ReviewEvent,
@@ -36,8 +32,7 @@ import type { EasyDaysSchedulingContext } from "./easyDays.ts";
 
 type DateInput = string | number | Date;
 
-type ReviewEventRecord = ReviewEvent;
-type LegacyReviewEvent = Partial<ReviewEvent>;
+type ReviewEventInput = Partial<ReviewEvent>;
 
 interface ReviewServiceOptions {
   now?: DateInput;
@@ -64,35 +59,27 @@ interface ReviewServiceOptions {
   sessionIndex?: DailyReviewSessionIndex;
 }
 
-interface ReviewableItem {
-  id: string;
-  reviewableType?: "card" | "variant";
-  sourceCardId?: string;
-  isVariant?: boolean;
-  card?: LearningItem;
-}
-
 interface QueueEntry {
   deck: Deck;
-  learningItem: LearningItem;
+  card: Card;
   key: string;
 }
 
 export interface DailyReviewQueueEntry {
   deckId: string;
-  learningItemId: string;
+  cardId: string;
   key: string;
   queueKind: "new" | "due";
 }
 
 interface DailyReviewSessionIndexEntry {
   deck: Deck;
-  learningItem: LearningItem;
+  card: Card;
 }
 
 export interface DailyReviewSessionIndex {
   entriesByKey: Map<string, DailyReviewSessionIndexEntry>;
-  reviewEventsByKey: Map<string, LegacyReviewEvent[]>;
+  reviewEventsByKey: Map<string, ReviewEventInput[]>;
 }
 
 export interface DailyReviewProgressSummary {
@@ -123,7 +110,7 @@ export interface DailyReviewSessionState {
 
 interface CreateReviewEventInput {
   deck: Deck;
-  item: LearningItem;
+  card: Card;
   variant: CardVariant | null;
   rating: ReviewRating;
   responseTimeMs: number | null;
@@ -137,43 +124,42 @@ function objectRecord(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" ? value as Record<string, unknown> : {};
 }
 
-function isDue(reviewState: Partial<ReviewState> | null | undefined, now: DateInput): boolean {
-  return new Date(reviewState?.dueAt ?? 0).getTime() <= new Date(now).getTime();
+function isDue(study: Pick<CardStudyState, "dueAt"> | null | undefined, now: DateInput): boolean {
+  return new Date(study?.dueAt ?? 0).getTime() <= new Date(now).getTime();
 }
 
 function learningDayKey(value: DateInput, options: ReviewServiceOptions = {}): string | null {
   return getLearningDayKey(value, { dayStartHour: options.dayStartHour, timeZone: options.timeZone });
 }
 
-function isReviewDueByLearningDay(reviewState: Partial<ReviewState> | null | undefined, now: DateInput, options: ReviewServiceOptions = {}): boolean {
-  const dueKey = learningDayKey(reviewState?.dueAt ?? Number.NaN, options);
+function isReviewDueByLearningDay(study: Pick<CardStudyState, "dueAt"> | null | undefined, now: DateInput, options: ReviewServiceOptions = {}): boolean {
+  const dueKey = learningDayKey(study?.dueAt ?? Number.NaN, options);
   const currentKey = learningDayKey(now, options);
   return Boolean(dueKey && currentKey && dueKey <= currentKey);
 }
 
-function isLearningState(reviewState: Partial<ReviewState> | null | undefined): boolean {
-  return reviewState?.state === "learning" || reviewState?.state === "relearning";
+function isLearningState(study: Pick<CardStudyState, "state"> | null | undefined): boolean {
+  return study?.state === "learning" || study?.state === "relearning";
 }
 
-function stateReps(state: Partial<ReviewState> = {}): number {
-  return Math.max(0, Math.round(Number(state?.reps ?? state?.repetitions ?? 0) || 0));
+function stateReps(state: { reps?: unknown } = {}): number {
+  return Math.max(0, Math.round(Number(state?.reps ?? 0) || 0));
 }
 
-function isNewLearningItem(item: LearningItem): boolean {
-  const state = item.reviewState;
-  return state?.state === "new" && stateReps(state) === 0;
+function isNewCard(card: Card): boolean {
+  return card.study.state === "new" && stateReps(card.study) === 0;
 }
 
-function isLearningDueByToday(item: LearningItem, now: DateInput, options: ReviewServiceOptions = {}): boolean {
-  const state = item.reviewState;
+function isLearningDueByToday(card: Card, now: DateInput, options: ReviewServiceOptions = {}): boolean {
+  const state = card.study;
   const dueTime = new Date(state?.dueAt ?? "").getTime();
   const dueKey = learningDayKey(dueTime, options);
   const currentKey = learningDayKey(now, options);
   return isLearningState(state) && Number.isFinite(dueTime) && Boolean(dueKey && currentKey && dueKey <= currentKey);
 }
 
-function isLearningAvailable(item: LearningItem, now: DateInput, learnAheadMinutes: number, options: ReviewServiceOptions = {}): boolean {
-  const state = item.reviewState;
+function isLearningAvailable(card: Card, now: DateInput, learnAheadMinutes: number, options: ReviewServiceOptions = {}): boolean {
+  const state = card.study;
   if (!isLearningState(state)) return false;
 
   const nowTime = new Date(now).getTime();
@@ -184,26 +170,8 @@ function isLearningAvailable(item: LearningItem, now: DateInput, learnAheadMinut
   return dueTime - nowTime < learnAheadMinutes * 60 * 1000;
 }
 
-function activeLearningItems(deck: Deck): LearningItem[] {
-  return (deck?.cards ?? [])
-    .map((card) => isCanonicalLearningItem(card) ? card : normalizeLearningItem(card))
-    .filter(isActiveLearningItem);
-}
-
-function isCanonicalLearningItem(value: unknown): value is LearningItem {
-  const item = value as Partial<LearningItem> | null;
-  return Boolean(
-    item
-      && typeof item.id === "string"
-      && item.contentDocument?.schemaVersion === 1
-      && typeof item.noteTypeDefinitionId === "string"
-      && Array.isArray(item.variants)
-      && item.reviewState,
-  );
-}
-
-function isActiveLearningItem(item: LearningItem): boolean {
-  return item.status !== "deleted" && item.draftStatus !== "draft" && !isLearningItemReviewBlocked(item);
+function activeCards(deck: Deck): Card[] {
+  return (deck?.cards ?? []).filter((card) => !isCardReviewBlocked(card));
 }
 
 function asDeckArray(decksOrDeck: Deck | Deck[]): Deck[] {
@@ -236,35 +204,30 @@ function collectDeckScope(decksOrDeck: Deck | Deck[], deckId: string | null = nu
   return decks.filter((deck) => scopedIds.has(deck.id));
 }
 
-function reviewEventDate(event: LegacyReviewEvent): string | undefined {
+function reviewEventDate(event: ReviewEventInput): string | undefined {
   return event.answeredAt ?? event.createdAt;
 }
 
-function wasNewBeforeReview(event: LegacyReviewEvent): boolean {
+function wasNewBeforeReview(event: ReviewEventInput): boolean {
   const schedulerBefore = objectRecord(event.schedulerBefore);
   const previous = objectRecord(schedulerBefore.card ?? schedulerBefore);
   return previous.state === "new" || stateReps(previous) === 0;
 }
 
-function reviewKey(deckId: string, learningItemId: string | undefined): string {
-  return `${deckId}:${learningItemId}`;
-}
-
-function reviewEventLearningItemId(event: LegacyReviewEvent): string | null {
-  return event.learningItemId ?? event.sourceCardId ?? null;
+function reviewKey(deckId: string, cardId: string | undefined): string {
+  return `${deckId}:${cardId}`;
 }
 
 export function createDailyReviewSessionIndex(decksOrDeck: Deck | Deck[]): DailyReviewSessionIndex {
   const entriesByKey = new Map<string, DailyReviewSessionIndexEntry>();
-  const reviewEventsByKey = new Map<string, LegacyReviewEvent[]>();
+  const reviewEventsByKey = new Map<string, ReviewEventInput[]>();
   for (const deck of asDeckArray(decksOrDeck)) {
-    for (const learningItem of activeLearningItems(deck)) {
-      entriesByKey.set(reviewKey(deck.id, learningItem.id), { deck, learningItem });
+    for (const card of activeCards(deck)) {
+      entriesByKey.set(reviewKey(deck.id, card.id), { deck, card });
     }
-    for (const event of (deck.reviewEvents ?? []) as LegacyReviewEvent[]) {
-      const learningItemId = reviewEventLearningItemId(event);
-      if (!learningItemId) continue;
-      const key = reviewKey(deck.id, learningItemId);
+    for (const event of (deck.reviewEvents ?? []) as ReviewEventInput[]) {
+      if (!event.cardId) continue;
+      const key = reviewKey(deck.id, event.cardId);
       const events = reviewEventsByKey.get(key);
       if (events) events.push(event);
       else reviewEventsByKey.set(key, [event]);
@@ -276,15 +239,14 @@ export function createDailyReviewSessionIndex(decksOrDeck: Deck | Deck[]): Daily
 export function updateDailyReviewSessionIndex(
   index: DailyReviewSessionIndex,
   updatedDeck: Deck,
-  updatedLearningItem: LearningItem,
+  updatedCard: Card,
 ): DailyReviewSessionIndex {
-  const key = reviewKey(updatedDeck.id, updatedLearningItem.id);
-  const normalized = normalizeLearningItem(updatedLearningItem);
-  if (isActiveLearningItem(normalized)) index.entriesByKey.set(key, { deck: updatedDeck, learningItem: normalized });
+  const key = reviewKey(updatedDeck.id, updatedCard.id);
+  if (!isCardReviewBlocked(updatedCard)) index.entriesByKey.set(key, { deck: updatedDeck, card: updatedCard });
   else index.entriesByKey.delete(key);
 
-  const latestEvent = ((updatedDeck.reviewEvents ?? []) as LegacyReviewEvent[])
-    .find((event) => reviewEventLearningItemId(event) === updatedLearningItem.id);
+  const latestEvent = ((updatedDeck.reviewEvents ?? []) as ReviewEventInput[])
+    .find((event) => event.cardId === updatedCard.id);
   if (latestEvent) {
     const events = index.reviewEventsByKey.get(key) ?? [];
     if (!events.some((event) => event.id === latestEvent.id)) index.reviewEventsByKey.set(key, [latestEvent, ...events]);
@@ -293,9 +255,9 @@ export function updateDailyReviewSessionIndex(
 }
 
 function compareQueueEntries(left: QueueEntry, right: QueueEntry): number {
-  const leftDue = new Date(left.learningItem.reviewState?.dueAt ?? left.learningItem.createdAt ?? 0).getTime();
-  const rightDue = new Date(right.learningItem.reviewState?.dueAt ?? right.learningItem.createdAt ?? 0).getTime();
-  return leftDue - rightDue || String(left.learningItem.createdAt ?? "").localeCompare(String(right.learningItem.createdAt ?? ""));
+  const leftDue = new Date(left.card.study.dueAt ?? left.card.createdAt ?? 0).getTime();
+  const rightDue = new Date(right.card.study.dueAt ?? right.card.createdAt ?? 0).getTime();
+  return leftDue - rightDue || String(left.card.createdAt ?? "").localeCompare(String(right.card.createdAt ?? ""));
 }
 
 export function getLocalReviewDateKey(now: DateInput = new Date(), options: ReviewServiceOptions = {}): string {
@@ -306,10 +268,10 @@ function compareNewQueueEntries(left: QueueEntry, right: QueueEntry, randomKeys:
   if (randomKeys) {
     const leftHash = randomKeys.get(left.key) ?? "";
     const rightHash = randomKeys.get(right.key) ?? "";
-    return leftHash.localeCompare(rightHash) || left.learningItem.id.localeCompare(right.learningItem.id);
+    return leftHash.localeCompare(rightHash) || left.card.id.localeCompare(right.card.id);
   }
-  const createdComparison = String(left.learningItem.createdAt ?? "").localeCompare(String(right.learningItem.createdAt ?? ""));
-  return createdComparison || left.learningItem.id.localeCompare(right.learningItem.id);
+  const createdComparison = String(left.card.createdAt ?? "").localeCompare(String(right.card.createdAt ?? ""));
+  return createdComparison || left.card.id.localeCompare(right.card.id);
 }
 
 function compareReviewQueueEntries(left: QueueEntry, right: QueueEntry, retrievabilityByKey: ReadonlyMap<string, number> | null): number {
@@ -319,9 +281,9 @@ function compareReviewQueueEntries(left: QueueEntry, right: QueueEntry, retrieva
     const retrievabilityComparison = leftRetrievability - rightRetrievability;
     if (retrievabilityComparison) return retrievabilityComparison;
   }
-  const dueComparison = new Date(left.learningItem.reviewState.dueAt ?? 0).getTime()
-    - new Date(right.learningItem.reviewState.dueAt ?? 0).getTime();
-  return dueComparison || left.learningItem.id.localeCompare(right.learningItem.id);
+  const dueComparison = new Date(left.card.study.dueAt ?? 0).getTime()
+    - new Date(right.card.study.dueAt ?? 0).getTime();
+  return dueComparison || left.card.id.localeCompare(right.card.id);
 }
 
 export function getEffectiveNewCardsPerDay(deck: Deck | null, options: ReviewServiceOptions = {}): number {
@@ -377,16 +339,15 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
   for (const deck of scopeDecks) {
     const introduced = new Set<string>();
     const reviewed = new Set<string>();
-    for (const event of (deck.reviewEvents ?? []) as LegacyReviewEvent[]) {
+    for (const event of (deck.reviewEvents ?? []) as ReviewEventInput[]) {
       if (event.rating === "manual") continue;
       const eventDate = reviewEventDate(event) ?? now;
       const eventTime = new Date(eventDate).getTime();
       if (dayRange
         ? !Number.isFinite(eventTime) || eventTime < dayRange.start || eventTime >= dayRange.end
         : learningDayKey(eventDate, options) !== dateKey) continue;
-      const learningItemId = event.learningItemId ?? event.sourceCardId;
-      const key = reviewKey(deck.id, learningItemId);
-      if (learningItemId) reviewedTodayKeys.add(key);
+      const key = reviewKey(deck.id, event.cardId);
+      if (event.cardId) reviewedTodayKeys.add(key);
       if (wasNewBeforeReview(event)) introduced.add(key);
       else reviewed.add(key);
     }
@@ -399,11 +360,11 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
   return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys };
 }
 
-function isIntradayLearning(item: LearningItem, now: DateInput, options: ReviewServiceOptions): boolean {
-  const state = item.reviewState;
+function isIntradayLearning(card: Card, now: DateInput, options: ReviewServiceOptions): boolean {
+  const state = card.study;
   const currentKey = learningDayKey(now, options);
   const dueKey = learningDayKey(state?.dueAt ?? Number.NaN, options);
-  const storedLearningDayKey = typeof state?.learningDayKey === "string" ? state.learningDayKey : null;
+  const storedLearningDayKey = state.extra.learningDayKey;
   if (storedLearningDayKey) return storedLearningDayKey === currentKey && dueKey === currentKey;
 
   const dueTime = new Date(state?.dueAt ?? Number.NaN).getTime();
@@ -483,7 +444,7 @@ function summarizeDailyReviewProgress(
   };
 
   for (const [key, entry] of relevantEntries) {
-    const kind = classifyDailyReviewProgress(entry.learningItem.reviewState, reviewedTodayKeys.has(key), now, options);
+    const kind = classifyDailyReviewProgress(entry.card.study, reviewedTodayKeys.has(key), now, options);
     summary[dailyReviewProgressCountKey[kind]] += 1;
   }
 
@@ -491,7 +452,7 @@ function summarizeDailyReviewProgress(
 }
 
 export function classifyDailyReviewProgress(
-  reviewState: Partial<ReviewState> | null | undefined,
+  reviewState: Pick<CardStudyState, "state" | "dueAt" | "reps"> | null | undefined,
   reviewedToday: boolean,
   now: DateInput,
   options: ReviewServiceOptions = {},
@@ -525,39 +486,15 @@ export function moveDailyReviewProgress(
   return next;
 }
 
-function updateCoreStateFromReview(card: LearningItem, reviewState: ReviewState, updatedAt = new Date().toISOString()): LearningItem {
-  return {
-    ...card,
-    reviewState,
-    coreState: {
-      ...card.coreState,
-      isCoreReady: ["variant_ready", "mastered"].includes(reviewState.maturityBand),
-      lastReviewedAt: reviewState.lastReviewedAt,
-      repetitionLevel: reviewState.repetitions,
-      maturityXp: reviewState.maturityXp,
-      maturityBand: reviewState.maturityBand,
-      variantCount: getActiveVariants(card).length,
-    },
-    updatedAt,
-  };
-}
-
-function assertReviewable(item: LearningItem): void {
-  if (isLearningItemReviewBlocked(item)) {
-    throw new Error("Diese Grundkarte ist ausgesetzt oder vergraben und kann nicht gelernt werden.");
-  }
-  if (item.status === "deleted" || item.draftStatus === "draft") {
-    throw new Error("Diese Grundkarte ist aktuell nicht reviewbar.");
+function assertReviewable(card: Card): void {
+  if (isCardReviewBlocked(card)) {
+    throw new Error("Diese Karte ist ausgesetzt oder gelöscht und kann nicht gelernt werden.");
   }
 }
 
-function findVariant(item: LearningItem, variantId: string | null | undefined): CardVariant | null {
-  if (!variantId || variantId === item.id) return null;
-  return (item.variants ?? []).find((variant) => variant.id === variantId) ?? null;
-}
-
-function belongsToLearningItem(item: LearningItem | null, variant: CardVariant | null): boolean {
-  return Boolean(item && variant && variant.cardId === item.id);
+function findVariant(card: Card, variantId: string | null | undefined): CardVariant | null {
+  if (!variantId || variantId === card.id) return null;
+  return (card.variants ?? []).find((variant) => variant.id === variantId) ?? null;
 }
 
 function resolveResponseArgs(responseTimeMsOrOptions: number | ReviewServiceOptions | null, maybeOptions: ReviewServiceOptions) {
@@ -568,21 +505,36 @@ function resolveResponseArgs(responseTimeMsOrOptions: number | ReviewServiceOpti
   return { responseTimeMs: responseTimeMsOrOptions ?? maybeOptions?.responseTimeMs ?? null, options: maybeOptions ?? {} };
 }
 
-function createReviewEvent({ deck, item, variant, rating, responseTimeMs, now, previousState, nextState, flags }: CreateReviewEventInput): ReviewEventRecord {
+/** Compact study snapshot of a review event; statistics read `card.state` and `card.intervalDays`. */
+function studySnapshot(state: ReviewState) {
+  return {
+    card: {
+      state: state.state,
+      dueAt: state.dueAt,
+      intervalDays: state.intervalDays,
+      intervalMinutes: state.intervalMinutes,
+      stability: state.stability,
+      difficulty: state.difficulty,
+      reps: state.reps,
+      lapses: state.lapses,
+      learningStepIndex: state.learningStepIndex,
+      lastReviewedAt: state.lastReviewedAt,
+    },
+  };
+}
+
+function createReviewEvent({ deck, card, variant, rating, responseTimeMs, now, previousState, nextState, flags }: CreateReviewEventInput): ReviewEvent {
   return {
     id: makeId("review"),
     userId: "local-user",
     deckId: deck.id,
-    learningItemId: item.id,
+    cardId: card.id,
     variantId: variant?.id ?? null,
-    reviewableType: variant ? "variant" : "card",
-    reviewableId: variant?.id ?? item.id,
-    sourceCardId: item.id,
     rating,
     answeredAt: now,
     responseTimeMs,
-    schedulerBefore: { card: previousState, variant: null },
-    schedulerAfter: { card: nextState, variant: null },
+    schedulerBefore: studySnapshot(previousState),
+    schedulerAfter: studySnapshot(nextState),
     flags: flags ?? {},
     createdAt: now,
   };
@@ -590,7 +542,7 @@ function createReviewEvent({ deck, item, variant, rating, responseTimeMs, now, p
 
 export function answerVariant(
   deck: Deck,
-  learningItemId: string,
+  cardId: string,
   cardVariantId: string | null | undefined,
   rating: ReviewRating,
   responseTimeMsOrOptions: number | ReviewServiceOptions | null = null,
@@ -598,109 +550,79 @@ export function answerVariant(
 ) {
   const { responseTimeMs, options } = resolveResponseArgs(responseTimeMsOrOptions, maybeOptions);
   const now = new Date(options.now ?? new Date()).toISOString();
-  const targetItemId = learningItemId;
-  let event: ReviewEventRecord | null = null;
-  let updatedCard: LearningItem | null = null;
-
-  const cards = (deck.cards ?? []).map((card) => {
-    if (card.id !== targetItemId) return card;
-
-    const item = normalizeLearningItem(card);
-    assertReviewable(item);
-    const variant = findVariant(item, cardVariantId);
-    if (cardVariantId && cardVariantId !== item.id && !variant) {
-      throw new Error(`Variante nicht gefunden: ${String(cardVariantId ?? "")}`);
-    }
-    if (variant && !belongsToLearningItem(item, variant)) {
-      throw new Error("Diese Variante gehört nicht zur angegebenen Grundkarte.");
-    }
-
-    const previousState = createReviewState(item.reviewState);
-    const fallbackInfo = rating === "again" ? getVariantFallbackTarget(item, variant) : null;
-    const outcome = simulateRatingOutcome({
-      learningItem: item,
-      previousState,
-      variant,
-      rating,
-      now,
-      deckSettings: deck.deckSettings,
-      dayStartHour: options.dayStartHour,
-      timeZone: options.timeZone,
-      easyDaysContext: options.easyDaysContext,
-      isVariant: Boolean(variant),
-      variantId: variant?.id ?? null,
-      variantIsOriginal: !variant,
-      variantLevel: variant?.variantLevel ?? 1,
-      variantType: variant?.variantType ?? "basic",
-      variantPerformance: variant?.performance ?? null,
-      fallbackVariantId: fallbackInfo?.fallbackVariantId ?? null,
-    });
-    const nextState = outcome.nextReviewState;
-    const variants = variant
-      ? item.variants.map((candidate) => candidate.id === variant.id ? {
-          ...candidate,
-          performance: updateVariantPerformance(candidate.performance, rating, {
-            responseTimeMs,
-            reviewedAt: now,
-            learningItemId: item.id,
-            variantId: candidate.id,
-          }),
-          updatedAt: now,
-        } : candidate)
-      : item.variants;
-    updatedCard = updateCoreStateFromReview({ ...item, variants }, nextState, now);
-    event = createReviewEvent({
-      deck,
-      item,
-      variant,
-      rating,
-      responseTimeMs,
-      now,
-      previousState,
-      nextState,
-      flags: options.flags,
-    });
-    return updatedCard;
-  });
-
-  const committedCard = updatedCard as LearningItem | null;
-  const committedEvent = event as ReviewEventRecord | null;
-  if (!committedCard || !committedEvent) {
-    throw new Error(`Grundkarte nicht gefunden: ${String(targetItemId ?? "")}`);
+  const card = (deck.cards ?? []).find((candidate) => candidate.id === cardId);
+  if (!card) throw new Error(`Karte nicht gefunden: ${String(cardId ?? "")}`);
+  assertReviewable(card);
+  const variant = findVariant(card, cardVariantId);
+  if (cardVariantId && cardVariantId !== card.id && !variant) {
+    throw new Error(`Variante nicht gefunden: ${String(cardVariantId ?? "")}`);
   }
+
+  const previousState = reviewStateFromCardStudy(card.study);
+  const fallbackInfo = rating === "again" ? getVariantFallbackTarget(card, variant) : null;
+  const outcome = simulateRatingOutcome({
+    card,
+    previousState,
+    variant,
+    rating,
+    now,
+    deckSettings: deck.deckSettings,
+    dayStartHour: options.dayStartHour,
+    timeZone: options.timeZone,
+    easyDaysContext: options.easyDaysContext,
+    isVariant: Boolean(variant),
+    variantId: variant?.id ?? null,
+    variantIsOriginal: !variant,
+    variantLevel: variant?.variantLevel ?? 1,
+    variantType: variant?.variantType ?? "basic",
+    variantPerformance: variant?.performance ?? null,
+    fallbackVariantId: fallbackInfo?.fallbackVariantId ?? null,
+  });
+  const nextState = outcome.nextReviewState;
+  const variants = variant
+    ? card.variants.map((candidate) => candidate.id === variant.id ? {
+        ...candidate,
+        performance: updateVariantPerformance(candidate.performance, rating, {
+          responseTimeMs,
+          reviewedAt: now,
+          cardId: card.id,
+          variantId: candidate.id,
+        }),
+        updatedAt: now,
+      } : candidate)
+    : card.variants;
+  const updatedCard: Card = {
+    ...card,
+    variants,
+    study: cardStudyFromReviewState(nextState),
+    studyRevision: card.studyRevision + 1,
+    updatedAt: now,
+  };
+  const event = createReviewEvent({ deck, card, variant, rating, responseTimeMs, now, previousState, nextState, flags: options.flags });
 
   return {
     deck: {
       ...deck,
-      cards,
-      reviewEvents: [committedEvent, ...(deck.reviewEvents ?? [])],
+      cards: deck.cards.map((candidate) => candidate.id === card.id ? updatedCard : candidate),
+      reviewEvents: [event, ...(deck.reviewEvents ?? [])],
       updatedAt: now,
     },
-    event: committedEvent,
-    updatedCard: committedCard,
-    learningItem: committedCard,
-    variant: committedCard.variants.find((variant) => variant.id === committedEvent.variantId) ?? null,
+    event,
+    updatedCard,
+    variant: updatedCard.variants.find((candidate) => candidate.id === event.variantId) ?? null,
   };
 }
 
-export function recordReviewRating(deck: Deck, reviewable: ReviewableItem, rating: ReviewRating, options: ReviewServiceOptions = {}) {
-  const sourceCardId = reviewable.sourceCardId ?? reviewable.card?.id ?? reviewable.id;
-  const card = (deck.cards ?? []).find((candidate) => candidate.id === sourceCardId);
-  const variantId = reviewable.reviewableType === "variant" ? reviewable.id : null;
-
-  return answerVariant(deck, sourceCardId, variantId, rating, options.responseTimeMs ?? null, options);
+function selectVariantForCard(card: Card, options: ReviewServiceOptions = {}): CardVariant | null {
+  return selectAutomaticReviewVariant(card, { allowLearningVariant: true, ...options });
 }
 
-function selectVariantForLearningItem(item: LearningItem, options: ReviewServiceOptions = {}): CardVariant | null {
-  return selectAutomaticReviewVariant(item, { allowLearningVariant: true, ...options });
-}
-
-function createFallbackViewModel(item: LearningItem) {
-  const state = item.reviewState;
+function createFallbackViewModel(card: Card) {
+  const state = card.study.extra;
   if (!state.fallbackUntilCorrect && !state.forcedVariantId) return null;
 
-  const forcedVariant = (item.variants ?? []).find((variant) => variant.id === state.forcedVariantId) ?? null;
-  const failedVariant = (item.variants ?? []).find((variant) => variant.id === state.lastFailedVariantId) ?? null;
+  const forcedVariant = (card.variants ?? []).find((variant) => variant.id === state.forcedVariantId) ?? null;
+  const failedVariant = (card.variants ?? []).find((variant) => variant.id === state.lastFailedVariantId) ?? null;
 
   return {
     active: true,
@@ -713,18 +635,18 @@ function createFallbackViewModel(item: LearningItem) {
   };
 }
 
-function createReviewItemViewModel(deck: Deck, selectedItem: LearningItem | null, options: ReviewServiceOptions = {}) {
-  if (!selectedItem) return null;
+function createReviewItemViewModel(deck: Deck, selectedCard: Card | null, options: ReviewServiceOptions = {}) {
+  if (!selectedCard) return null;
 
   const now = options.now ?? new Date().toISOString();
-  const reviewEvents = (options.reviewEvents ?? deck.reviewEvents ?? []) as LegacyReviewEvent[];
-  const variantReviewModel = createVariantReviewModel(selectedItem, reviewEvents, {
+  const reviewEvents = (options.reviewEvents ?? deck.reviewEvents ?? []) as ReviewEventInput[];
+  const variantReviewModel = createVariantReviewModel(selectedCard, reviewEvents, {
     now,
   });
-  const fallbackInfo = createFallbackViewModel(selectedItem);
-  const variant = selectVariantForLearningItem(selectedItem, { now, reviewEvents, variantSession: options.variantSession });
-  const fallbackTarget = getVariantFallbackTarget(selectedItem, variant);
-  const ratingButtonOptions = getReviewButtonOptions(selectedItem, variant, {
+  const fallbackInfo = createFallbackViewModel(selectedCard);
+  const variant = selectVariantForCard(selectedCard, { now, reviewEvents, variantSession: options.variantSession });
+  const fallbackTarget = getVariantFallbackTarget(selectedCard, variant);
+  const ratingButtonOptions = getReviewButtonOptions(selectedCard, variant, {
     now,
     reviewEvents,
     deckSettings: deck.deckSettings,
@@ -737,17 +659,12 @@ function createReviewItemViewModel(deck: Deck, selectedItem: LearningItem | null
   return {
     deckId: deck.id,
     deckName: deck.name,
-    learningItem: selectedItem,
-    card: selectedItem,
-    learningItemId: selectedItem.id,
-    cardId: selectedItem.id,
+    card: selectedCard,
+    cardId: selectedCard.id,
+    noteId: selectedCard.noteId,
     variant,
-    cardVariantId: variant?.id ?? selectedItem.id,
-    variantId: variant?.id ?? selectedItem.id,
-    front: variant?.front || getLearningItemQuestion(selectedItem),
-    back: variant?.back || getLearningItemAnswer(selectedItem),
-    state: selectedItem.reviewState,
-    reviewState: selectedItem.reviewState,
+    variantId: variant?.id ?? selectedCard.id,
+    study: selectedCard.study,
     maturity: variantReviewModel.maturity,
     variantReadiness: variantReviewModel.readiness,
     variantCoverage: variantReviewModel.coverage,
@@ -755,18 +672,17 @@ function createReviewItemViewModel(deck: Deck, selectedItem: LearningItem | null
     variantGenerationPlan: variantReviewModel.variantGenerationPlan,
     ratingButtonOptions,
     fallbackInfo,
-    answerSideAnchorMiniCard: getAnswerSideAnchorMiniCard(selectedItem, variant),
     schedulerInfo: {
-      schedulerVersion: selectedItem.reviewState.schedulerVersion ?? SCHEDULER_VERSION,
-      selectedBy: options.selectedBy ?? "due_learning_item",
+      schedulerVersion: selectedCard.study.extra.schedulerVersion ?? SCHEDULER_VERSION,
+      selectedBy: options.selectedBy ?? "due_card",
       queueKind: options.queueKind ?? null,
     },
   };
 }
 
-export function createDailyReviewSessionState(items: Array<{ deckId?: string; learningItemId?: string } | null | undefined> = []): DailyReviewSessionState {
+export function createDailyReviewSessionState(items: Array<{ deckId?: string; cardId?: string } | null | undefined> = []): DailyReviewSessionState {
   const initialKeys = items
-    .map((item) => item?.deckId && item.learningItemId ? reviewKey(item.deckId, item.learningItemId) : "")
+    .map((item) => item?.deckId && item.cardId ? reviewKey(item.deckId, item.cardId) : "")
     .filter((key, index, keys) => Boolean(key) && keys.indexOf(key) === index);
   return {
     initialKeys,
@@ -782,14 +698,14 @@ export type ReviewAnswerResult = ReturnType<typeof answerVariant>;
 
 export function reconcileDailyReviewSessionState(
   session: DailyReviewSessionState,
-  items: Array<{ deckId?: string; learningItemId?: string } | null | undefined> = [],
+  items: Array<{ deckId?: string; cardId?: string } | null | undefined> = [],
   options: { preserveInitialKey?: string } = {},
 ): DailyReviewSessionState {
   const completed = new Set(session.completedInitialKeys);
   const repeats = new Set(session.repeatKeys);
   const remainingInitialKeys = new Set(session.remainingInitialKeys.filter((key) => key === options.preserveInitialKey));
   for (const item of items) {
-    if (item?.deckId && item.learningItemId) remainingInitialKeys.add(reviewKey(item.deckId, item.learningItemId));
+    if (item?.deckId && item.cardId) remainingInitialKeys.add(reviewKey(item.deckId, item.cardId));
   }
   for (const key of completed) remainingInitialKeys.delete(key);
   for (const key of repeats) remainingInitialKeys.delete(key);
@@ -813,7 +729,7 @@ export function removeDailyReviewSessionItem(session: DailyReviewSessionState, k
 
 export function advanceDailyReviewSession(
   session: DailyReviewSessionState,
-  input: { key: string; rating: ReviewRating; nextReviewState: ReviewState },
+  input: { key: string; rating: ReviewRating; nextReviewState: Pick<CardStudyState, "state"> },
 ): DailyReviewSessionState {
   const wasInitial = session.remainingInitialKeys.includes(input.key);
   const wasRepeat = !wasInitial && session.repeatKeys.includes(input.key);
@@ -850,7 +766,7 @@ export function getNextDailyReviewSessionItem(
   const initialKey = session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
   const repeatKey = initialKey ? null : session.repeatKeys.find((candidate) => {
     const candidateEntry = entriesByKey.get(candidate);
-    return candidateEntry ? isLearningAvailable(candidateEntry.learningItem, now, learnAheadMinutes, options) : false;
+    return candidateEntry ? isLearningAvailable(candidateEntry.card, now, learnAheadMinutes, options) : false;
   }) ?? null;
   const key = initialKey ?? repeatKey;
   if (!key) return null;
@@ -858,12 +774,12 @@ export function getNextDailyReviewSessionItem(
   if (!entry) return null;
 
   const isRepeat = session.repeatKeys.includes(key) && !session.remainingInitialKeys.includes(key);
-  const item = createReviewItemViewModel(entry.deck, entry.learningItem, {
+  const item = createReviewItemViewModel(entry.deck, entry.card, {
     ...options,
     now,
     reviewEvents: sessionIndex.reviewEventsByKey.get(key) ?? [],
     selectedBy: isRepeat ? "session_repeat" : "session_initial",
-    queueKind: isRepeat ? "repeat" : isNewLearningItem(entry.learningItem) ? "new" : "due",
+    queueKind: isRepeat ? "repeat" : isNewCard(entry.card) ? "new" : "due",
   });
   if (!item) return null;
   return {
@@ -871,7 +787,7 @@ export function getNextDailyReviewSessionItem(
     sessionInfo: {
       key,
       isRepeat,
-      isEarlyRepeat: isRepeat && !isDue(entry.learningItem.reviewState, now),
+      isEarlyRepeat: isRepeat && !isDue(entry.card.study, now),
     },
   };
 }
@@ -895,24 +811,23 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
 
   for (const deck of scopeDecks) {
-    for (const learningItem of activeLearningItems(deck)) {
-      const key = reviewKey(deck.id, learningItem.id);
-      const entry = { deck, learningItem, key };
+    for (const card of activeCards(deck)) {
+      const key = reviewKey(deck.id, card.id);
+      const entry = { deck, card, key };
       if (dailyConsumption.reviewedTodayKeys.has(key)) reviewedEntries.set(key, entry);
       if (excludeKeys.has(key)) continue;
 
-      if (isNewLearningItem(learningItem)) {
-        const state = learningItem.reviewState;
-        if (isReviewDueByLearningDay(state, now, options)) newEntries.push(entry);
+      if (isNewCard(card)) {
+        if (isReviewDueByLearningDay(card.study, now, options)) newEntries.push(entry);
         continue;
       }
 
-      const state = learningItem.reviewState;
+      const state = card.study;
       if (isLearningState(state)) {
-        if (isLearningDueByToday(learningItem, now, options)) learningEntries.push(entry);
-        if (isIntradayLearning(learningItem, now, options)) {
-          if (isLearningAvailable(learningItem, now, learnAheadMinutes, options)) intradayLearningEntries.push(entry);
-        } else if (isLearningDueByToday(learningItem, now, options)) {
+        if (isLearningDueByToday(card, now, options)) learningEntries.push(entry);
+        if (isIntradayLearning(card, now, options)) {
+          if (isLearningAvailable(card, now, learnAheadMinutes, options)) intradayLearningEntries.push(entry);
+        } else if (isLearningDueByToday(card, now, options)) {
           interdayLearningEntries.push(entry);
         }
       } else if (state?.state === "review" && isReviewDueByLearningDay(state, now, options)) {
@@ -926,7 +841,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const retrievabilityByKey = rootSettings.reviewCardSortOrder === "lowest-retrievability"
     ? new Map(reviewEntries.map((entry) => [
       entry.key,
-      calculateRetrievability(entry.learningItem.reviewState, now),
+      calculateRetrievability(reviewStateFromCardStudy(entry.card.study), now),
     ]))
     : null;
   reviewEntries.sort((left, right) => compareReviewQueueEntries(left, right, retrievabilityByKey));
@@ -934,7 +849,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     ? `${getLocalReviewDateKey(now, options)}:${rootDeck?.id ?? ""}`
     : null;
   const randomKeys = randomSeed
-    ? new Map(newEntries.map((entry) => [entry.key, stableContentHash([randomSeed, entry.learningItem.id], "queue")]))
+    ? new Map(newEntries.map((entry) => [entry.key, stableContentHash([randomSeed, entry.card.id], "queue")]))
     : null;
   newEntries.sort((left, right) => compareNewQueueEntries(left, right, randomKeys));
 
@@ -973,9 +888,9 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, dailyProgressEntries, dailyConsumption.reviewedTodayKeys, now, options);
   const items: DailyReviewQueueEntry[] = selectedEntries.map((entry) => ({
     deckId: entry.deck.id,
-    learningItemId: entry.learningItem.id,
+    cardId: entry.card.id,
     key: entry.key,
-    queueKind: isNewLearningItem(entry.learningItem) ? "new" : "due",
+    queueKind: isNewCard(entry.card) ? "new" : "due",
   }));
 
   return {
@@ -1007,34 +922,19 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   };
 }
 
-export function recordVariantFeedback(deck: Deck, reviewable: ReviewableItem, options: ReviewServiceOptions = {}) {
+export function recordVariantFeedback(
+  deck: Deck,
+  reviewable: { cardId: string; variantId: string },
+  options: ReviewServiceOptions = {},
+): { deck: Deck; updatedCard: Card | null } {
   const now = new Date(options.now ?? new Date()).toISOString();
-  if (!reviewable?.isVariant || !reviewable.sourceCardId) {
-    return { deck, updatedCard: null };
-  }
-
-  let updatedCard: LearningItem | null = null;
-  const cards = (deck.cards ?? []).map((card) => {
-    if (card.id !== reviewable.sourceCardId) return card;
-    if (!(card.variants ?? []).some((variant) => variant.id === reviewable.id)) return card;
-
-    updatedCard =
-      options.action === "disable"
-        ? deactivateVariant(card, reviewable.id, options.reason ?? "Nutzer hat die Variante deaktiviert.")
-        : flagVariant(card, reviewable.id, options.feedbackType ?? "fachlich_falsch", options.note ?? "");
-    return updatedCard;
-  });
-
-  if (!updatedCard) {
-    return { deck, updatedCard: null };
-  }
-
+  const card = (deck.cards ?? []).find((candidate) => candidate.id === reviewable.cardId);
+  if (!card || !card.variants.some((variant) => variant.id === reviewable.variantId)) return { deck, updatedCard: null };
+  const updatedCard = options.action === "disable"
+    ? deactivateVariant(card, reviewable.variantId, options.reason ?? "Nutzer hat die Variante deaktiviert.")
+    : flagVariant(card, reviewable.variantId, options.feedbackType ?? "fachlich_falsch", options.note ?? "");
   return {
-    deck: {
-      ...deck,
-      cards,
-      updatedAt: now,
-    },
+    deck: { ...deck, cards: deck.cards.map((candidate) => candidate.id === card.id ? updatedCard : candidate), updatedAt: now },
     updatedCard,
   };
 }

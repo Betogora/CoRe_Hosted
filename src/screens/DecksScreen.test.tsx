@@ -2,25 +2,65 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DecksScreenProps } from "../appScreenProps.ts";
-import { applyLearningItemContent, createCardVariant, createCoreDeck, createCoreNoteTypeDefinition, createLearningItemDocumentFromLegacy, createLearningItemFromEditorValue, createManualCoreDeck, saveCardEditorValue, updateLearningItemStudyState } from "../coreModel.ts";
-import type { CardEditorValue, Deck } from "../coreTypes.ts";
-import { DecksScreen, type DecksScreenCardPageProps } from "./DecksScreen.tsx";
+import { addCardVariant, createBasicNote, createCoreDeck, createManualNoteContent, createNote, setCardSuspended, setNoteMarked, type ManualNoteInput } from "../coreModel.ts";
+import type { Deck } from "../coreTypes.ts";
+import type { DeckLibrarySummary } from "../libraryModel.ts";
+import { summarizeDeckReview } from "../scheduler.ts";
+import { catalogEntryFromCard, type NoteGraph } from "../workspaceReplica.ts";
+import { DecksScreen, type DecksCardPage } from "./DecksScreen.tsx";
 
-function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & DecksScreenCardPageProps> = {}) {
-  const props: DecksScreenProps & DecksScreenCardPageProps = {
+const NOW = "2026-08-06T10:00:00.000Z";
+const SORT = { field: "sortField", direction: "asc" } as const;
+
+function basicGraph(deckId: string, front: string, back: string, { reverse = false, cardId }: { reverse?: boolean; cardId?: string } = {}): NoteGraph {
+  const graph = createBasicNote(deckId, front, back, { reverse });
+  return cardId ? { ...graph, cards: graph.cards.map((card, index) => index === 0 ? { ...card, id: cardId } : card) } : graph;
+}
+
+function manualGraph(deckId: string, input: ManualNoteInput): NoteGraph {
+  return createNote({ deckId, content: createManualNoteContent(input) });
+}
+
+function deckOf(id: string, name: string, graphs: NoteGraph[], extra: Partial<Parameters<typeof createCoreDeck>[0]> = {}): Deck {
+  return createCoreDeck({ id, name, source: "manual", cards: graphs.flatMap((graph) => graph.cards), ...extra });
+}
+
+function cardPage(deckId: string, graphs: NoteGraph[], { totalCount, page = 0, selected = null }: { totalCount?: number; page?: number; selected?: DecksCardPage["selected"] } = {}): DecksCardPage {
+  const items = graphs.flatMap((graph) => graph.cards.map((card) => catalogEntryFromCard(card, graph.note)));
+  return { deckId, items, page, pageSize: 50, totalCount: totalCount ?? items.length, query: "", sort: SORT, selected };
+}
+
+function selectedOf(graph: NoteGraph, cardId = graph.cards[0].id) {
+  return { ...graph, cardId };
+}
+
+function summaryWithTotal(deck: Deck, totalCards: number): DeckLibrarySummary {
+  return {
+    inventory: { ...summarizeDeckReview(deck, NOW), totalCards },
+    dailyProgress: { completedTodayCount: 0, newCount: 0, inProgressCount: 0, dueCount: 0, total: 0 },
+    startableCount: 0,
+    additionalNewCount: 0,
+    effectiveNewLimit: 20,
+    introducedTodayCount: 0,
+    dateKey: "2026-08-06",
+  };
+}
+
+function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
+  const props: DecksScreenProps = {
     decks,
     onStartDeck: () => undefined,
-    now: "2026-08-06T10:00:00.000Z",
+    now: NOW,
     mediaStore: null,
     selectedDeckId: null,
     selectedCardId: null,
     onSelectDeck: () => undefined,
     onSetDeckCoreMode: () => undefined,
-    onSaveCard: () => undefined,
+    onSaveNote: async () => null,
     onSetCardStudyState: async () => null,
-    onDuplicateCard: async () => null,
-    onDeleteCard: async () => null,
-    onUndoDeleteCard: async () => null,
+    onDuplicateNote: async () => null,
+    onDeleteNote: async () => null,
+    onUndoDeleteNote: async () => null,
     onRescheduleCards: async () => [],
     onGenerateVariant: async () => ({
       variant: { front: "Neue Frage", back: "Neue Antwort" },
@@ -41,9 +81,12 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
 }
 
 test("deck content shows only its own cards without deck headings and uses the existing editor", () => {
-  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." } });
-  const other = createManualCoreDeck({ deckName: "Chemie", card: { cardType: "basic", front: "Was ist H2O?", back: "Wasser." } });
-  const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id });
+  const atp = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const water = basicGraph("deck-chem", "Was ist H2O?", "Wasser.");
+  const deck = deckOf("deck-bio", "Biologie", [atp]);
+  const other = deckOf("deck-chem", "Chemie", [water]);
+  const cardPages = { [deck.id]: cardPage(deck.id, [atp]), [other.id]: cardPage(other.id, [water]) };
+  const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, cardPages });
   assert.match(markup, /aria-label="Stapelinhalte"/);
   for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /Was ist ATP\?/);
@@ -51,39 +94,50 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.match(markup, /aria-label="Biologie lernen"/);
   assert.match(markup, /core-deck-content-study/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
-  const editor = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, selectedCardId: deck.cards[0].id });
+  const editor = renderScreen([deck, other], {
+    contentDeckId: deck.id,
+    selectedDeckId: deck.id,
+    selectedCardId: atp.cards[0].id,
+    cardPages: { ...cardPages, [deck.id]: cardPage(deck.id, [atp], { selected: selectedOf(atp) }) },
+  });
   assert.match(editor, /data-testid="card-detail-aside"/);
   assert.match(editor, /Karte bearbeiten/);
   assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten und Lernwerte/);
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
-  const deck = createCoreDeck({ id: "empty", name: "Leer", source: "manual", cards: [] });
+  const deck = deckOf("empty", "Leer", []);
   const empty = renderScreen([deck], { contentDeckId: deck.id });
   assert.match(empty, /disabled=""[^>]*aria-label="Leer lernen"/);
-  const catalog = renderScreen([{ ...deck, cardCount: 60 }], { contentDeckId: deck.id, cardPages: {} });
+  const catalog = renderScreen([deck], { contentDeckId: deck.id, cardPages: {}, deckSummaries: new Map([[deck.id, summaryWithTotal(deck, 60)]]) });
   assert.doesNotMatch(catalog, /disabled=""[^>]*aria-label="Leer lernen"/);
   assert.match(catalog, /aria-label="Leer lernen"/);
-  const child = createCoreDeck({ id: "child", name: "Unterstapel", source: "manual", parentDeckId: deck.id, cards: [] });
-  const subtree = renderScreen([deck, { ...child, cardCount: 1 }], { contentDeckId: deck.id });
+  const child = deckOf("child", "Unterstapel", [basicGraph("child", "Frage", "Antwort")], { parentDeckId: deck.id });
+  const subtree = renderScreen([deck, child], { contentDeckId: deck.id });
   assert.doesNotMatch(subtree, /disabled=""[^>]*aria-label="Leer lernen"/);
   assert.doesNotMatch(renderScreen([deck]), /core-deck-content-study/);
 });
 
 test("deck content includes its complete subtree without its parent or other branches", () => {
-  const parent = createManualCoreDeck({ deckName: "Elternstapel", card: { cardType: "basic", front: "Elternkarte", back: "Antwort" } });
-  const selected = createManualCoreDeck({ deckName: "Unterstapel", card: { cardType: "basic", front: "Eigene Karte", back: "Antwort" } });
-  const child = createManualCoreDeck({ deckName: "Nachfahre", card: { cardType: "basic", front: "Nachfahrenkarte", back: "Antwort" } });
-  const grandchild = createManualCoreDeck({ deckName: "Tiefer Unterstapel", card: { cardType: "basic", front: "Tiefe Karte", back: "Antwort" } });
-  const sibling = createManualCoreDeck({ deckName: "Andere Verzweigung", card: { cardType: "basic", front: "Andere Karte", back: "Antwort" } });
-  selected.parentDeckId = parent.id;
-  selected.hierarchyPath = [parent.name, selected.name];
-  child.parentDeckId = selected.id;
-  child.hierarchyPath = [...selected.hierarchyPath, child.name];
-  grandchild.parentDeckId = child.id;
-  sibling.parentDeckId = parent.id;
+  const parentGraph = basicGraph("parent", "Elternkarte", "Antwort");
+  const selectedGraph = basicGraph("selected", "Eigene Karte", "Antwort");
+  const childGraph = basicGraph("child", "Nachfahrenkarte", "Antwort");
+  const grandchildGraph = basicGraph("grandchild", "Tiefe Karte", "Antwort");
+  const siblingGraph = basicGraph("sibling", "Andere Karte", "Antwort");
+  const parent = deckOf("parent", "Elternstapel", [parentGraph]);
+  const selected = deckOf("selected", "Unterstapel", [selectedGraph], { parentDeckId: parent.id, hierarchyPath: ["Elternstapel", "Unterstapel"] });
+  const child = deckOf("child", "Nachfahre", [childGraph], { parentDeckId: selected.id, hierarchyPath: ["Elternstapel", "Unterstapel", "Nachfahre"] });
+  const grandchild = deckOf("grandchild", "Tiefer Unterstapel", [grandchildGraph], { parentDeckId: child.id });
+  const sibling = deckOf("sibling", "Andere Verzweigung", [siblingGraph], { parentDeckId: parent.id });
   const decks = [parent, selected, child, grandchild, sibling];
-  const markup = renderScreen(decks, { contentDeckId: selected.id, selectedDeckId: selected.id });
+  const cardPages = {
+    parent: cardPage("parent", [parentGraph]),
+    selected: cardPage("selected", [selectedGraph]),
+    child: cardPage("child", [childGraph]),
+    grandchild: cardPage("grandchild", [grandchildGraph]),
+    sibling: cardPage("sibling", [siblingGraph]),
+  };
+  const markup = renderScreen(decks, { contentDeckId: selected.id, selectedDeckId: selected.id, cardPages });
   assert.match(markup, /Eigene Karte/);
   assert.match(markup, /Nachfahrenkarte/);
   assert.match(markup, /Tiefe Karte/);
@@ -92,40 +146,55 @@ test("deck content includes its complete subtree without its parent or other bra
     assert.match(markup, new RegExp(`data-testid="deck-header-${deck.id}"`));
     assert.match(markup, new RegExp(`data-testid="deck-toggle-${deck.id}"[^>]*aria-expanded="true"`));
   }
-  const emptyParent = renderScreen(decks.map((deck) => deck.id === selected.id ? { ...deck, cards: [] } : deck), { contentDeckId: selected.id });
+  const emptyParent = renderScreen(decks.map((deck) => deck.id === selected.id ? { ...deck, cards: [] } : deck), {
+    contentDeckId: selected.id,
+    cardPages: { ...cardPages, selected: cardPage("selected", []) },
+  });
   assert.match(emptyParent, /Nachfahrenkarte/);
   assert.match(emptyParent, /Tiefe Karte/);
-  const editor = renderScreen(decks, { contentDeckId: selected.id, selectedDeckId: selected.id, selectedCardId: grandchild.cards[0].id });
+  const editor = renderScreen(decks, {
+    contentDeckId: selected.id,
+    selectedDeckId: selected.id,
+    selectedCardId: grandchildGraph.cards[0].id,
+    cardPages: { ...cardPages, grandchild: cardPage("grandchild", [grandchildGraph], { selected: selectedOf(grandchildGraph) }) },
+  });
   assert.match(editor, /data-testid="card-detail-aside"/);
   assert.match(editor, /Karte bearbeiten/);
   assert.doesNotMatch(editor, /Karte nicht gefunden/);
 });
 
 test("deck content renders paged subdecks and resolves a direct card link to its owning deck", () => {
-  const root = createCoreDeck({ id: "root", name: "Hauptstapel", source: "manual", cards: [] });
-  const child = createManualCoreDeck({ deckName: "Unterstapel", card: { cardType: "basic", front: "Katalog-Unterkarte", back: "Antwort" } });
-  child.parentDeckId = root.id;
-  const markup = renderScreen([root, { ...child, cards: [], cardCount: 60 }], {
+  const root = deckOf("root", "Hauptstapel", []);
+  const graph = basicGraph("child", "Katalog-Unterkarte", "Antwort");
+  const child = deckOf("child", "Unterstapel", [], { parentDeckId: root.id });
+  const markup = renderScreen([root, child], {
     contentDeckId: root.id,
     selectedDeckId: root.id,
-    selectedCardId: child.cards[0].id,
+    selectedCardId: graph.cards[0].id,
     cardPages: {
-      [root.id]: { deckId: root.id, items: [], selectedCard: child.cards[0], totalCount: 0, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
-      [child.id]: { deckId: child.id, items: child.cards, totalCount: 60, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
+      [root.id]: cardPage(root.id, []),
+      [child.id]: cardPage(child.id, [graph], { totalCount: 60, selected: selectedOf(graph) }),
     },
   });
   assert.match(markup, /Katalog-Unterkarte/);
   assert.match(markup, /Seite 1 von 2/);
   assert.match(markup, /data-testid="card-detail-aside"/);
   assert.match(markup, /Karte bearbeiten/);
-  const updated = updateLearningItemStudyState(saveCardEditorValue(child.cards[0], { cardType: "basic", front: "Aktualisierte Unterkarte", back: "Antwort", tags: [] }), { marked: true });
-  const updatedMarkup = renderScreen([root, { ...child, cards: [], cardCount: 60 }], {
+
+  const edited = {
+    ...graph,
+    note: setNoteMarked({
+      ...graph.note,
+      content: { ...graph.note.content, fields: graph.note.content.fields.map((field) => field.id === "front" ? { ...field, html: "Aktualisierte Unterkarte" } : field) },
+    }, true),
+  };
+  const updatedMarkup = renderScreen([root, child], {
     contentDeckId: root.id,
     selectedDeckId: root.id,
-    selectedCardId: updated.id,
+    selectedCardId: edited.cards[0].id,
     cardPages: {
-      [root.id]: { deckId: root.id, items: [], selectedCard: child.cards[0], totalCount: 0, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
-      [child.id]: { deckId: child.id, items: [updated], selectedCard: updated, totalCount: 60, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } },
+      [root.id]: cardPage(root.id, []),
+      [child.id]: cardPage(child.id, [edited], { totalCount: 60, selected: selectedOf(edited) }),
     },
   });
   const detailMarkup = updatedMarkup.slice(updatedMarkup.indexOf('data-testid="card-detail-aside"'));
@@ -134,11 +203,12 @@ test("deck content renders paged subdecks and resolves a direct card link to its
 });
 
 test("deck content preserves the paged catalog path without requiring group expansion", () => {
-  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Katalogkarte", back: "Antwort" } });
-  const markup = renderScreen([{ ...deck, cards: [] }], {
+  const graph = basicGraph("deck-bio", "Katalogkarte", "Antwort");
+  const deck = deckOf("deck-bio", "Biologie", []);
+  const markup = renderScreen([deck], {
     contentDeckId: deck.id,
     selectedDeckId: deck.id,
-    cardPages: { [deck.id]: { deckId: deck.id, items: deck.cards, totalCount: 60, page: 0, pageSize: 50, query: "", sort: { field: "sortField", direction: "asc" } } },
+    cardPages: { [deck.id]: cardPage(deck.id, [graph], { totalCount: 60 }) },
   });
   assert.match(markup, /Katalogkarte/);
   assert.match(markup, /Seite 1 von 2/);
@@ -149,32 +219,15 @@ test("deck content preserves the paged catalog path without requiring group expa
 });
 
 test("cards page consumes a direct query page and projects at most 50 items", () => {
-  const pageCards = Array.from({ length: 51 }, (_, index) => createLearningItemFromEditorValue(
-    "deck-paged",
-    { cardType: "basic", front: `Seitenkarte ${index}`, back: `Antwort ${index}`, tags: [] },
-    { id: `paged-card-${String(index).padStart(3, "0")}` },
-  ));
-  const directCard = createLearningItemFromEditorValue(
-    "deck-paged",
-    { cardType: "basic", front: "Direkt geladene Karte", back: "Direkte Antwort", tags: [] },
-    { id: "direct-card" },
-  );
-  const deck = createCoreDeck({ id: "deck-paged", name: "Abfragestapel", source: "manual", cards: [] });
+  const pageGraphs = Array.from({ length: 51 }, (_, index) => basicGraph("deck-paged", `Seitenkarte ${index}`, `Antwort ${index}`, { cardId: `paged-card-${String(index).padStart(3, "0")}` }));
+  const directGraph = basicGraph("deck-paged", "Direkt geladene Karte", "Direkte Antwort", { cardId: "direct-card" });
+  const deck = deckOf("deck-paged", "Abfragestapel", []);
   const markup = renderScreen([deck], {
     selectedDeckId: deck.id,
-    selectedCardId: directCard.id,
+    selectedCardId: "direct-card",
     expandedDeckIds: [deck.id],
     cardPages: {
-      [deck.id]: {
-        deckId: deck.id,
-        items: [...pageCards.slice(0, 49), directCard],
-        page: 4,
-        pageSize: 50,
-        totalCount: 501,
-        query: "",
-        sort: { field: "sortField", direction: "asc" },
-        selectedCard: directCard,
-      },
+      [deck.id]: cardPage(deck.id, [...pageGraphs.slice(0, 49), directGraph, ...pageGraphs.slice(49)], { page: 4, totalCount: 501, selected: selectedOf(directGraph) }),
     },
   });
 
@@ -186,18 +239,28 @@ test("cards page consumes a direct query page and projects at most 50 items", ()
   assert.match(markup, /Direkt geladene Karte/);
 });
 
+test("cards page ignores catalog pages for another query or sort", () => {
+  const graph = basicGraph("deck-query", "Gefilterte Karte", "Antwort");
+  const deck = deckOf("deck-query", "Suche", []);
+  const page = cardPage(deck.id, [graph]);
+  const render = (candidate: DecksCardPage) => renderScreen([deck], { expandedDeckIds: [deck.id], cardPages: { [deck.id]: candidate } });
+
+  assert.match(render(page), /Gefilterte Karte/);
+  assert.doesNotMatch(render({ ...page, query: "gefiltert" }), /Gefilterte Karte/);
+  assert.doesNotMatch(render({ ...page, sort: { field: "nextStudyDate", direction: "asc" } }), /Gefilterte Karte/);
+});
+
 test("cards page renders sortable collapsed deck sections without learning metrics", () => {
-  const originalDeck = createManualCoreDeck({
-    deckName: "Biologie",
-    card: { cardType: "basic", front: "<b>Was ist ATP?</b>", back: "Ein Energieträger." },
-  });
+  const atp = basicGraph("deck-bio", "<b>Was ist ATP?</b>", "Ein Energieträger.");
+  const originalDeck = deckOf("deck-bio", "Biologie", [atp]);
   const child = createCoreDeck({ id: "deck-child", name: "Zellbiologie", source: "manual", parentDeckId: originalDeck.id, hierarchyPath: ["Biologie", "Zellbiologie"], cards: [] });
   const grandchild = createCoreDeck({ id: "deck-grandchild", name: "Organellen", source: "manual", parentDeckId: child.id, hierarchyPath: ["Biologie", "Zellbiologie", "Organellen"], cards: [] });
   const greatGrandchild = createCoreDeck({ id: "deck-great-grandchild", name: "Mitochondrien", source: "manual", parentDeckId: grandchild.id, hierarchyPath: ["Biologie", "Zellbiologie", "Organellen", "Mitochondrien"], cards: [] });
   const deeperImport = createCoreDeck({ id: "deck-deeper-import", name: "Membran", source: "anki-apkg", parentDeckId: greatGrandchild.id, hierarchyPath: ["Biologie", "Zellbiologie", "Organellen", "Mitochondrien", "Membran"], cards: [] });
   const secondRoot = createCoreDeck({ id: "deck-second-root", name: "Chemie", source: "manual", hierarchyPath: ["Chemie"], cards: [] });
   const decks = [originalDeck, child, grandchild, greatGrandchild, deeperImport, secondRoot];
-  const markup = renderScreen(decks);
+  const cardPages = { [originalDeck.id]: cardPage(originalDeck.id, [atp]) };
+  const markup = renderScreen(decks, { cardPages });
 
   assert.match(markup, /<h2[^>]*>Lernen<\/h2>/);
   assert.match(markup, /aria-label="Bereich in Lernen"[^>]*data-size="regular"/);
@@ -256,12 +319,13 @@ test("cards page renders sortable collapsed deck sections without learning metri
     assert.match(markup, new RegExp(`data-testid="deck-header-${deckId}"[^>]*data-deck-depth="${depth}"[^>]*class="core-deck-summary-row`));
   }
 
-  const focusedMarkup = renderScreen(decks, { selectedDeckId: child.id });
+  const focusedMarkup = renderScreen(decks, { selectedDeckId: child.id, cardPages });
   assert.match(focusedMarkup, new RegExp(`data-testid="deck-header-${child.id}"[^>]*style="background-color:var\\(--core-info-surface\\)"`));
 
-  const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id] });
+  const expandedMarkup = renderScreen(decks, { expandedDeckIds: [originalDeck.id], cardPages });
   assert.match(expandedMarkup, /aria-label="Karten von Biologie einklappen"/);
   assert.match(expandedMarkup, /Was ist ATP\?/);
+  assert.doesNotMatch(expandedMarkup, /<b>/);
   assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
   assert.doesNotMatch(expandedMarkup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
   assert.match(expandedMarkup, /aria-label="Keine Varianten"/);
@@ -289,32 +353,32 @@ test("cards page keeps logical chevrons while capping visual depth at level six"
 });
 
 test("card selection opens a non-modal detail aside with editor, copy and visible tools", () => {
-  const originalDeck = createManualCoreDeck({
-    deckName: "Biologie",
-    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
-  });
-  const editedCard = saveCardEditorValue(originalDeck.cards[0], { cardType: "basic", front: "Welche Funktion hat ATP?", back: "Ein Energieträger.", tags: [] });
-  const reviewState = { ...editedCard.reviewState, dueAt: "2026-08-05T04:00:00.000Z" };
-  const card = { ...editedCard, reviewState };
-  const deck = { ...originalDeck, cards: [card] };
+  const graph = basicGraph("deck-bio", "Welche Funktion hat ATP?", "Ein Energieträger.");
+  const card = { ...graph.cards[0], study: { ...graph.cards[0].study, dueAt: "2026-08-05T04:00:00.000Z" } };
+  const selected = { ...graph, cards: [card] };
+  const deck = deckOf("deck-bio", "Biologie", [selected]);
   const markup = renderScreen([deck], {
     selectedDeckId: deck.id,
     selectedCardId: card.id,
     dayStartHour: 4,
     timeZone: "Europe/Berlin",
+    cardPages: { [deck.id]: cardPage(deck.id, [selected], { selected: selectedOf(selected) }) },
   });
 
   assert.match(markup, /<aside[^>]*aria-label="Kartendetail"/);
   assert.match(markup, /data-testid="card-detail-backdrop"/);
   assert.match(markup, /lg:w-1\/2/);
   assert.match(markup, /Karte bearbeiten/);
+  assert.match(markup, />Frage und Antwort</);
+  assert.doesNotMatch(markup, /Karten aus diesem Inhalt/);
   assert.match(markup, /aria-label="Karte markieren"/);
   assert.match(markup, /class="mb-3" data-card-study-state-controls="true"/);
   assert.match(markup, /aria-label="Aussetzstatus der Karte"/);
   assert.match(markup, />Nicht aussetzen</);
   assert.doesNotMatch(markup, /role="switch"/);
   assert.doesNotMatch(markup, /Aussetzen pausiert alle Varianten/);
-  assert.match(markup, /aria-label="Karten-Vorderseite"/);
+  assert.match(markup, /aria-label="Feld Vorderseite"/);
+  assert.match(markup, /aria-label="Feld Rückseite"/);
   assert.match(markup, /Vorschau<\/span><\/button>/);
   assert.match(markup, />Kopieren<\/button>/);
   assert.doesNotMatch(markup, /Sichere Karten-Vorschau/);
@@ -327,18 +391,21 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
   assert.doesNotMatch(markup, /<details|<summary/);
   assert.match(markup, /KI-Variante erzeugen/);
-  assert.match(markup, /Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter/);
+  assert.match(markup, /Sendet ausschließlich den bereinigten Text von Frage und Antwort an OpenRouter/);
   assert.match(markup, /Detailansicht schließen/);
+  assert.doesNotMatch(markup, /Karten entfernen\?|Karte löschen\?|Synchronisierung klären/);
 });
 
 test("cards page shows suspended rows and marked stars beside the fixed-width variant icon", () => {
-  const originalDeck = createManualCoreDeck({
-    deckName: "Biologie",
-    card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." },
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const marked = { note: setNoteMarked(graph.note, true), cards: [setCardSuspended(graph.cards[0], true)] };
+  const deck = deckOf("deck-bio", "Biologie", [marked]);
+  const markup = renderScreen([deck], {
+    expandedDeckIds: [deck.id],
+    selectedDeckId: deck.id,
+    selectedCardId: marked.cards[0].id,
+    cardPages: { [deck.id]: cardPage(deck.id, [marked], { selected: selectedOf(marked) }) },
   });
-  const card = updateLearningItemStudyState(originalDeck.cards[0], { marked: true, suspended: true });
-  const deck = { ...originalDeck, cards: [card] };
-  const markup = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: card.id });
 
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
@@ -352,8 +419,53 @@ test("cards page shows suspended rows and marked stars beside the fixed-width va
   assert.match(suspendControl, /aria-pressed="true"[^>]*>Aussetzen/);
 });
 
+test("the mark belongs to the content and is shown on every card of the selected content", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.", { reverse: true });
+  const [forward, reverse] = graph.cards;
+  const withVariant = addCardVariant(reverse, { front: "Andere Frage", back: "Antwort", qualityStatus: "active" });
+  const marked = { note: setNoteMarked(graph.note, true), cards: [forward, withVariant] };
+  const unmarked = { note: graph.note, cards: marked.cards };
+  const deck = deckOf("deck-bio", "Biologie", [marked]);
+  for (const contentDeckId of [undefined, deck.id]) {
+    const markup = renderScreen([deck], {
+      expandedDeckIds: [deck.id],
+      selectedDeckId: deck.id,
+      selectedCardId: forward.id,
+      contentDeckId,
+      cardPages: { [deck.id]: cardPage(deck.id, [marked], { selected: selectedOf(marked, forward.id) }) },
+    });
+    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-check[^>]*aria-label="Varianten vorhanden"/);
+    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Varianten"/);
+    assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
+    assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
+    assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
+    assert.match(markup, /aria-label="Markierung entfernen"/);
+  }
+  const unmarkedMarkup = renderScreen([deck], {
+    expandedDeckIds: [deck.id],
+    selectedDeckId: deck.id,
+    selectedCardId: withVariant.id,
+    cardPages: { [deck.id]: cardPage(deck.id, [unmarked], { selected: selectedOf(unmarked, withVariant.id) }) },
+  });
+  assert.doesNotMatch(unmarkedMarkup, /aria-label="Markiert"/);
+  assert.match(unmarkedMarkup, /aria-label="Karte markieren"/);
+});
+
+test("the editor names how many cards a content with siblings has", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.", { reverse: true });
+  const deck = deckOf("deck-bio", "Biologie", [graph]);
+  const markup = renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: graph.cards[1].id,
+    cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph, graph.cards[1].id) }) },
+  });
+
+  assert.match(markup, />Frage und Antwort mit Rückrichtung · 2 Karten aus diesem Inhalt</);
+  assert.equal([...markup.matchAll(/aria-label="Feld (Vorderseite|Rückseite)"/g)].length, 2);
+});
+
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {
-  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "ATP", back: "Energie" } });
+  const deck = deckOf("deck-bio", "Biologie", [basicGraph("deck-bio", "ATP", "Energie")]);
   const missingDeckMarkup = renderScreen([deck], { selectedDeckId: "missing-deck" });
   assert.match(missingDeckMarkup, /Stapel nicht gefunden/);
   assert.match(missingDeckMarkup, /Zu Lernen/);
@@ -362,67 +474,65 @@ test("cards page shows safe deterministic fallbacks for unavailable URL targets"
   const missingCardMarkup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: "missing-card" });
   assert.match(missingCardMarkup, /Karte nicht gefunden/);
   assert.match(missingCardMarkup, /Zur Kartenliste/);
-  assert.doesNotMatch(missingCardMarkup, /aria-label="Karten-Vorderseite"/);
+  assert.doesNotMatch(missingCardMarkup, /aria-label="Feld Vorderseite"/);
+
+  const failedPage = { ...cardPage(deck.id, []), loadError: "Die Karte konnte nicht geladen werden." };
+  const failedMarkup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: "missing-card", cardPages: { [deck.id]: failedPage }, onRequestCardPage: () => undefined });
+  assert.match(failedMarkup, /Karte noch nicht geladen/);
+  assert.match(failedMarkup, /Die Karte konnte nicht geladen werden\./);
+  assert.match(failedMarkup, />Erneut laden</);
 });
 
-function renderEditorFor(editorValue: CardEditorValue) {
-  const card = createLearningItemFromEditorValue("deck-editor", editorValue);
-  const deck = createCoreDeck({ id: "deck-editor", name: "Editor", source: "manual", cards: [card] });
-  return renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: card.id });
+function renderEditorFor(graph: NoteGraph) {
+  const deck = deckOf("deck-editor", "Editor", [graph]);
+  return renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: graph.cards[0].id,
+    cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
+  });
 }
 
-test("detail editor renders the supported independent-card field sets", () => {
-  const imageMarkup = renderEditorFor({ cardType: "basic-with-images", front: '<p>Vorne</p><img src="front-image">', back: '<p>Hinten</p><img src="back-image">', tags: [] });
-  assert.match(imageMarkup, /Basic \+ Bilder/);
-  assert.match(imageMarkup, /aria-label="Karten-Vorderseite"/);
-  assert.match(imageMarkup, /aria-label="Karten-Rückseite"/);
-  assert.match(imageMarkup, /KI-Varianten sind derzeit nur für Basic-Karten verfügbar/);
+test("detail editor renders one rich-text editor per content field plus choice options and tags", () => {
+  const imageMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "basic", front: '<p>Vorne</p><img src="front-image.png">', back: '<p>Hinten</p><img src="back-image.png">', additionalFields: [{ name: "Quelle", value: "Lehrbuch", placement: "back" }], tags: ["bio", "atp"] }));
+  assert.match(imageMarkup, />Frage und Antwort</);
+  assert.match(imageMarkup, /aria-label="Feld Vorderseite"/);
+  assert.match(imageMarkup, /aria-label="Feld Rückseite"/);
+  assert.match(imageMarkup, /aria-label="Feld Quelle"/);
+  assert.match(imageMarkup, /Tags<input[^>]*value="bio atp"/);
+  assert.doesNotMatch(imageMarkup, /Antwortoptionen/);
 
-  const clozeMarkup = renderEditorFor({ cardType: "cloze", textWithClozes: "{{c1::ATP}}", extra: "Energie", tags: [] });
-  assert.match(clozeMarkup, /aria-label="Cloze-Text"/);
-  assert.match(clozeMarkup, /aria-label="Cloze-Zusatzinfo"/);
+  const clozeMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "Energie", tags: [] }));
+  assert.match(clozeMarkup, />Lückentext</);
+  assert.match(clozeMarkup, /aria-label="Feld Text"/);
+  assert.match(clozeMarkup, /aria-label="Feld Zusatzinfo"/);
+  assert.match(clozeMarkup, /Lücken mit <code>\{\{c1::Begriff\}\}<\/code> markieren/);
+  assert.match(clozeMarkup, /KI-Umformulierungen sind nur für Karten mit Frage und Antwort verfügbar\./);
 
-  const scMarkup = renderEditorFor({ cardType: "single-choice", question: "Welche?", options: ["A", "B"], correctOptionIndex: 1, explanation: "Darum", tags: [] });
-  assert.match(scMarkup, /aria-label="Single-Choice-Frage"/);
-  assert.match(scMarkup, /Antwortoptionen und richtige Antwort/);
+  const scMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "single-choice", front: "Welche?", back: "Darum", answerOptions: ["A", "B"], correctOptionIndices: [1], tags: [] }));
+  assert.match(scMarkup, />Single Choice</);
+  assert.match(scMarkup, /aria-label="Feld Frage"/);
+  assert.match(scMarkup, /Antwortoptionen und richtige Antwort</);
   assert.match(scMarkup, /type="radio"/);
+  assert.match(scMarkup, /aria-label="Antwortoption 2"/);
+  assert.match(scMarkup, />Option hinzufügen</);
 
-  const mcMarkup = renderEditorFor({ cardType: "multiple-choice", question: "Welche?", options: ["A", "B", "C"], correctOptionIndices: [0, 1], explanation: "Darum", tags: [] });
-  assert.match(mcMarkup, /aria-label="Multiple-Choice-Frage"/);
+  const mcMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "multiple-choice", front: "Welche?", back: "Darum", answerOptions: ["A", "B", "C"], correctOptionIndices: [0, 1], tags: [] }));
+  assert.match(mcMarkup, />Multiple Choice</);
   assert.match(mcMarkup, /Antwortoptionen und richtige Antworten/);
   assert.match(mcMarkup, /type="checkbox"/);
   assert.match(mcMarkup, /Option 2 als richtig markieren/);
 });
 
-test("copy is disabled with a reason for read-only imported card types", () => {
-  const basic = createLearningItemFromEditorValue("deck-import", { cardType: "basic", front: "Bild", back: "Antwort", tags: [] });
-  const document = createLearningItemDocumentFromLegacy({
-    definitionVersionId: "definition-image-occlusion",
-    front: "Bild",
-    back: "Antwort",
+test("sync conflicts are named in the row and in the editor", () => {
+  const graph = basicGraph("deck-bio", "Konfliktkarte", "Antwort");
+  const deck = deckOf("deck-bio", "Biologie", [graph]);
+  const markup = renderScreen([deck], {
+    expandedDeckIds: [deck.id],
+    selectedDeckId: deck.id,
+    selectedCardId: graph.cards[0].id,
+    syncConflictCardIds: new Set([graph.cards[0].id]),
+    cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
   });
-  const definition = createCoreNoteTypeDefinition({ document, kind: "image-occlusion", interaction: "image-occlusion" });
-  const readOnlyCard = applyLearningItemContent({ previous: basic, document, definition, reason: "migration" }).item;
-  const deck = createCoreDeck({ id: "deck-import", name: "Import", source: "anki-apkg", cards: [readOnlyCard] });
-  const markup = renderScreen([deck], { selectedDeckId: deck.id, selectedCardId: readOnlyCard.id });
-
-  assert.match(markup, /title="Dieser importierte Kartentyp kann nicht kopiert werden\."/);
-  assert.match(markup, /disabled=""[^>]*>.*Kopieren/s);
-  assert.match(markup, /wird hier nur angezeigt und kann nicht kopiert werden/);
-});
-
-
-test("variant icons and marked stars use the same slots in collection and deck contents", () => {
-  const first = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Ohne Variante", back: "Antwort" } });
-  const second = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Mit Variante", back: "Antwort" } }).cards[0];
-  const variant = createCardVariant({ cardId: second.id, front: "Andere Frage", back: "Antwort", qualityStatus: "active" });
-  const deck = createCoreDeck({ ...first, cards: [updateLearningItemStudyState(first.cards[0], { marked: true }), updateLearningItemStudyState({ ...second, variants: [variant] }, { marked: true })] });
-  for (const contentDeckId of [undefined, deck.id]) {
-    const markup = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, contentDeckId });
-    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-check[^>]*aria-label="Varianten vorhanden"/);
-    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Varianten"/);
-    assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
-    assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
-    assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
-  }
+  assert.equal([...markup.matchAll(/Synchronisierung klären/g)].length, 2);
+  assert.match(markup, /Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange\./);
 });

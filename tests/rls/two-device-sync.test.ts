@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { listAccountSyncConflicts } from "../../src/cloudRepository.ts";
-import { createCoreRepository, normalizeWorkspaceState } from "../../src/coreRepository.ts";
-import { createManualCoreDeck } from "../../src/coreModel.ts";
-import type { WorkspaceState } from "../../src/coreWorkspace.ts";
+import { createCoreRepository } from "../../src/coreRepository.ts";
+import { createBasicNote, createCoreDeck, planNoteContentChange } from "../../src/coreModel.ts";
+import { answerVariant } from "../../src/reviewService.ts";
 import { createAccountSyncEngine, SYNC_MUTATION_TYPES } from "../../src/syncEngine.ts";
-import type { ReviewEvent } from "../../src/coreTypes.ts";
+import type { Card, Deck, Note, ReviewEvent } from "../../src/coreTypes.ts";
 import { isLocalSupabaseUrl } from "../../scripts/localE2EEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 
@@ -41,6 +41,33 @@ function createDevice(client: SupabaseClient, userId: string, id: string, isOnli
   });
 }
 
+/** One deck with one basic content; seeded through the cloud rows like a synchronized account. */
+async function seedDeckWithNote(client: SupabaseClient, deviceId: string, name: string, front: string, back: string) {
+  const { note, cards } = createBasicNote("pending", front, back);
+  const deck = createCoreDeck({ name, source: "manual" });
+  const card = { ...cards[0], deckId: deck.id };
+  const seeded = await seedAccountState(client, { ...createCoreRepository().getState(), decks: [{ ...deck, cards: [card] }], notes: [note] }, deviceId);
+  return {
+    deck: seeded.decks[0] as Deck,
+    note: seeded.notes[0] as Note,
+    card: seeded.decks[0].cards[0] as Card,
+  };
+}
+
+function reviewMutation(userId: string, deck: Deck, card: Card, answeredAt: string, id: string) {
+  const result = answerVariant({ ...deck, cards: [card], reviewEvents: [] }, card.id, null, "good", { now: answeredAt, responseTimeMs: 1200 });
+  const event: ReviewEvent = { ...result.event, id, userId, flags: { fixture: "two-device" } };
+  return {
+    id: `review-${id}`,
+    type: SYNC_MUTATION_TYPES.reviewAtomic,
+    payload: {
+      event,
+      card: { id: card.id, study: result.updatedCard.study, updatedAt: answeredAt },
+      variant: null,
+    },
+  };
+}
+
 async function readDeckRow(client: SupabaseClient, userId: string, deckId: string) {
   const { data, error } = await client.from("decks").select("id,name,revision,deleted_at").eq("user_id", userId).eq("id", deckId).single();
   if (error) throw error;
@@ -64,18 +91,8 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
   const { error: staleConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
   assert.ifError(staleConflictError);
 
-  const repository = createCoreRepository({ seedDefaultDecks: false });
-  const deckWithCard = createManualCoreDeck({
-    deckName: "Zwei-Geräte-Ausgang",
-    card: { cardType: "free-text", front: "Welche Änderung wird synchronisiert?", back: "Das Review." },
-  });
-  const deck = deckWithCard;
-  const learningItem = deckWithCard.cards.at(-1);
-  assert.ok(learningItem);
-  const initialState = normalizeWorkspaceState({ ...repository.getState(), decks: [deckWithCard] }) as WorkspaceState;
-  const seeded = await seedAccountState(clientA, initialState, "device_two_a");
-  const seededDeck = seeded.decks.find((item: { id: string }) => item.id === deck.id);
-  assert.ok(seededDeck);
+  const { deck: seededDeck, card } = await seedDeckWithNote(clientA, "device_two_a", "Zwei-Geräte-Ausgang", "Welche Änderung wird synchronisiert?", "Das Review.");
+  const deck = seededDeck;
 
   engineB.enqueueMutation({
     id: `content-b-${deck.id}`,
@@ -102,44 +119,14 @@ test("zwei Geräte schützen Entity-Revisionen, Offline-Reviews und Soft-Deletes
 
   let online = false;
   const offlineEngine = createDevice(clientA, userId, "device_two_offline", () => online);
-  const reviewEvent: ReviewEvent = {
-    id: `review_two_device_once_${learningItem.id}`,
-    userId,
-    deckId: deck.id,
-    learningItemId: learningItem.id,
-    variantId: null,
-    reviewableType: "card",
-    reviewableId: learningItem.id,
-    sourceCardId: learningItem.id,
-    rating: "good",
-    answeredAt: "2026-07-14T12:00:00.000Z",
-    responseTimeMs: 1200,
-    schedulerBefore: {},
-    schedulerAfter: {},
-    flags: { fixture: "two-device" },
-    createdAt: "2026-07-14T12:00:00.000Z",
-  };
-  offlineEngine.enqueueMutation({
-    id: `review-${learningItem.id}`,
-    type: SYNC_MUTATION_TYPES.reviewAtomic,
-    payload: {
-      event: reviewEvent,
-      deck: { id: deck.id },
-      card: {
-        id: learningItem.id,
-        reviewState: learningItem.reviewState,
-        coreState: learningItem.coreState,
-        updatedAt: reviewEvent.answeredAt,
-      },
-      variant: null,
-    },
-  });
+  const review = reviewMutation(userId, deck, card, "2026-07-14T12:00:00.000Z", `review_two_device_once_${card.id}`);
+  offlineEngine.enqueueMutation(review);
   await offlineEngine.flush();
   assert.equal(offlineEngine.pendingCount(), 1);
   online = true;
   await offlineEngine.flush({ force: true });
   await offlineEngine.flush({ force: true });
-  const { count: reviewCount, error: reviewError } = await clientA.from("review_events").select("id", { count: "exact", head: true }).eq("id", reviewEvent.id);
+  const { count: reviewCount, error: reviewError } = await clientA.from("review_events").select("id", { count: "exact", head: true }).eq("id", review.payload.event.id);
   assert.ifError(reviewError);
   assert.equal(reviewCount, 1);
 
@@ -181,10 +168,7 @@ test("eine Folgeänderung nach verlorener Insert-Antwort wird nur auf dem eigene
   const { error: staleConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
   assert.ifError(staleConflictError);
 
-  const { cards: _cards, reviewEvents: _reviewEvents, ...deck } = createManualCoreDeck({
-    deckName: "Verlorene Insert-Antwort",
-    card: { cardType: "free-text", front: "Frage", back: "Antwort" },
-  });
+  const { cards: _cards, reviewEvents: _reviewEvents, ...deck } = createCoreDeck({ name: "Verlorene Insert-Antwort", source: "manual" });
   const insertAndChange = (engine: ReturnType<typeof createDevice>, id: string, name: string) => engine.enqueueMutation({
     id,
     type: SYNC_MUTATION_TYPES.entityMutation,
@@ -205,6 +189,67 @@ test("eine Folgeänderung nach verlorener Insert-Antwort wird nur auf dem eigene
   const foreignFlush = await engineB.flush({ force: true });
   assert.ok(foreignFlush.conflicts.some((conflict: { entityId?: string }) => conflict.entityId === deck.id));
   assert.equal((await readDeckRow(clientA, userId, deck.id)).name, "Folgeänderung auf Gerät A");
+
+  const { error: cleanupError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
+  assert.ifError(cleanupError);
+});
+
+
+test("Review auf Gerät A und Inhaltskorrektur auf Gerät B laufen ohne Konflikt zusammen", async () => {
+  const url = requiredEnvironment("VITE_SUPABASE_URL");
+  const key = requiredEnvironment("VITE_SUPABASE_PUBLISHABLE_KEY");
+  const email = requiredEnvironment("CORE_TWO_DEVICE_EMAIL");
+  const password = requiredEnvironment("CORE_TWO_DEVICE_PASSWORD");
+  assert.equal(isLocalSupabaseUrl(url), true, "Der Zwei-Geräte-Test darf nur gegen lokales Supabase laufen.");
+
+  const clientA = await createAuthenticatedClient(url, key, email, password);
+  const clientB = await createAuthenticatedClient(url, key, email, password);
+  const { data: userData } = await clientA.auth.getUser();
+  assert.ok(userData.user);
+  const userId = userData.user.id;
+  const engineA = createDevice(clientA, userId, "device_review_a");
+  const engineB = createDevice(clientB, userId, "device_content_b");
+  const { error: staleConflictError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
+  assert.ifError(staleConflictError);
+
+  const { deck, note, card } = await seedDeckWithNote(clientA, "device_review_a", "Review und Korrektur", "Hauptstadt von Australien?", "Sydney");
+  const corrected = planNoteContentChange({ note, cards: [card] }, {
+    ...note.content,
+    fields: note.content.fields.map((field) => field.id === "back" ? { ...field, html: "Canberra" } : field),
+  });
+  assert.equal(corrected.changed, true);
+
+  // Gerät A lernt die Karte mit dem alten Text, Gerät B korrigiert gleichzeitig den Inhalt.
+  engineA.enqueueMutation(reviewMutation(userId, deck, card, "2026-07-15T08:00:00.000Z", `review_parallel_${card.id}`));
+  engineB.enqueueMutation({
+    id: `content-b-${note.id}`,
+    type: SYNC_MUTATION_TYPES.entityMutation,
+    entityId: note.id,
+    payload: { table: "notes", entity: corrected.note, baseRevision: note.revision },
+  });
+  const [flushA, flushB] = await Promise.all([engineA.flush({ force: true }), engineB.flush({ force: true })]);
+  assert.equal(flushA.conflicts.length, 0);
+  assert.equal(flushB.conflicts.length, 0);
+
+  const { data: noteRow, error: noteError } = await clientA.from("notes").select("content,content_revision,revision").eq("user_id", userId).eq("id", note.id).single();
+  assert.ifError(noteError);
+  assert.equal(noteRow.content_revision, note.contentRevision + 1);
+  assert.match(JSON.stringify(noteRow.content), /Canberra/);
+  const { data: cardRow, error: cardError } = await clientA.from("cards").select("reps,state,study_revision,revision").eq("user_id", userId).eq("id", card.id).single();
+  assert.ifError(cardError);
+  assert.equal(cardRow.reps, card.study.reps + 1);
+  assert.equal(cardRow.study_revision, card.studyRevision + 1);
+  assert.equal(cardRow.revision, card.revision, "Ein Review darf die Kartenrevision für Inhaltsänderungen nicht verbrauchen.");
+
+  // Eine zweite, veraltete Korrektur von Gerät A bleibt dagegen ein sichtbarer Konflikt.
+  engineA.enqueueMutation({
+    id: `stale-content-a-${note.id}`,
+    type: SYNC_MUTATION_TYPES.entityMutation,
+    entityId: note.id,
+    payload: { table: "notes", entity: { ...corrected.note, content: note.content }, baseRevision: note.revision },
+  });
+  const staleFlush = await engineA.flush({ force: true });
+  assert.ok(staleFlush.conflicts.some((conflict: { entityId?: string }) => conflict.entityId === note.id));
 
   const { error: cleanupError } = await clientA.from("sync_conflicts").delete().eq("user_id", userId);
   assert.ifError(cleanupError);

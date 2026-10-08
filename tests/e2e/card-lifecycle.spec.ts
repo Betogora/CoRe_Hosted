@@ -7,7 +7,7 @@ import { readActiveAccountState, resetToFreshLocalState } from "./support/appSta
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 
-const REIMPORT_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/import-quality-legacy.apkg", import.meta.url));
+const REIMPORT_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/matrix/standard-legacy2.apkg", import.meta.url));
 
 test.setTimeout(120_000);
 
@@ -20,14 +20,13 @@ async function resetLifecycleAccount() {
   if (error || !data.user) throw error ?? new Error("Der E2E-Lebenszyklusaccount fehlt.");
 
   try {
-    const { data: mediaRows, error: mediaReadError } = await client.from("media_assets").select("storage_bucket, storage_path").eq("user_id", data.user.id);
+    const { data: mediaRows, error: mediaReadError } = await client.from("media_files").select("storage_path").eq("user_id", data.user.id);
     if (mediaReadError) throw mediaReadError;
-    const { error: mediaDeleteError } = await client.from("media_assets").delete().eq("user_id", data.user.id);
+    const { error: mediaDeleteError } = await client.from("media_files").delete().eq("user_id", data.user.id);
     if (mediaDeleteError) throw mediaDeleteError;
-    const pathsByBucket = new Map<string, Set<string>>();
-    for (const row of mediaRows ?? []) pathsByBucket.set(row.storage_bucket, new Set([...(pathsByBucket.get(row.storage_bucket) ?? []), row.storage_path]));
-    for (const [bucket, paths] of pathsByBucket) {
-      const { error: objectDeleteError } = await client.storage.from(bucket).remove([...paths]);
+    const mediaPaths = (mediaRows ?? []).map((row) => row.storage_path);
+    if (mediaPaths.length) {
+      const { error: objectDeleteError } = await client.storage.from("core-media").remove(mediaPaths);
       if (objectDeleteError) throw objectDeleteError;
     }
     const { error: conflictError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
@@ -53,7 +52,17 @@ test.afterEach(async ({ page }) => {
   await resetLifecycleAccount();
 });
 
-async function waitForCloudCard(deckId: string, cardId: string, predicate: (card: any) => boolean) {
+/** Cloud rows return `timestamptz` as `+00:00`; the study state is compared by instant. */
+function comparableStudy(study: any) {
+  const instant = (value: string | null) => value === null ? null : Date.parse(value);
+  return { ...study, dueAt: instant(study.dueAt), lastReviewedAt: instant(study.lastReviewedAt) };
+}
+
+function fieldHtml(card: any, fieldName: string): string | undefined {
+  return card?.note?.content.fields.find((field: { name: string }) => field.name === fieldName)?.html;
+}
+
+async function waitForCloudCard(cardId: string, predicate: (card: { content: any; variants: any[] }) => boolean) {
   const environment = loadE2EEnvironment();
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
@@ -63,17 +72,15 @@ async function waitForCloudCard(deckId: string, cardId: string, predicate: (card
 
   try {
     await expect.poll(async () => {
-      const [{ data: cards, error: cardError }, { data: variants, error: variantError }] = await Promise.all([
-        client.from("cards").select("original_front, original_back").eq("user_id", data.user.id).eq("deck_id", deckId).eq("id", cardId).is("deleted_at", null),
+      const { data: card, error: cardError } = await client.from("cards").select("note_id").eq("user_id", data.user.id).eq("id", cardId).is("deleted_at", null).maybeSingle();
+      if (cardError) throw cardError;
+      if (!card) return false;
+      const [{ data: note, error: noteError }, { data: variants, error: variantError }] = await Promise.all([
+        client.from("notes").select("content").eq("user_id", data.user.id).eq("id", card.note_id).is("deleted_at", null).maybeSingle(),
         client.from("card_variants").select("front, back, meta").eq("user_id", data.user.id).eq("card_id", cardId).is("deleted_at", null),
       ]);
-      if (cardError || variantError) throw cardError ?? variantError;
-      const row = cards?.[0];
-      return Boolean(row && predicate({
-        originalFront: row.original_front,
-        originalBack: row.original_back,
-        variants: variants ?? [],
-      }));
+      if (noteError || variantError) throw noteError ?? variantError;
+      return Boolean(note && predicate({ content: note.content, variants: variants ?? [] }));
     }, { timeout: 30_000 }).toBe(true);
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
@@ -133,8 +140,8 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Basic Antwort alt");
   const deck = await finishManualCreation(page, deckName);
   await openCreatedCardEditor(page, deck);
-  const frontEditor = page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true });
-  const backEditor = page.getByRole("textbox", { name: "Karten-Rückseite", exact: true });
+  const frontEditor = page.getByRole("textbox", { name: "Feld Vorderseite", exact: true });
+  const backEditor = page.getByRole("textbox", { name: "Feld Rückseite", exact: true });
   await frontEditor.fill("Basic Frage neu");
   await expect(frontEditor).toContainText("Basic Frage neu");
   await backEditor.fill("Basic Antwort neu");
@@ -145,13 +152,15 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
 
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
-    return state.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0]?.originalFront;
+    return fieldHtml(state.decks.find((candidate: { id: string }) => candidate.id === deck.id)?.cards[0], "Vorderseite");
   }).toBe("<p>Basic Frage neu</p>");
   const savedState = await readActiveAccountState(page);
   const savedCard = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0];
-  expect(savedCard.originalBack).toBe("<p>Basic Antwort neu</p>");
-  expect("immutableOriginal" in savedCard).toBe(false);
-  expect("versionLog" in savedCard).toBe(false);
+  expect(fieldHtml(savedCard, "Rückseite")).toBe("<p>Basic Antwort neu</p>");
+  expect(savedCard.note.contentRevision).toBe(2);
+  expect(comparableStudy(savedCard.study)).toEqual(comparableStudy(deck.cards[0].study));
+  expect("immutableOriginal" in savedCard.note).toBe(false);
+  expect("versionLog" in savedCard.note).toBe(false);
   const sourceUrl = page.url();
   await page.getByRole("button", { name: "Kopieren", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt." })).toBeVisible();
@@ -161,16 +170,17 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   expect(copiedDeck.cards).toHaveLength(2);
   const copiedCard = copiedDeck.cards.find((candidate: { id: string }) => candidate.id !== savedCard.id);
   expect(copiedCard).toBeTruthy();
-  expect(copiedCard.reviewState.id).not.toBe(savedCard.reviewState.id);
-  expect(copiedCard.originalFront).toContain("Basic Frage neu");
-  expect(copiedCard.originalFront.match(/\(Kopie\)/g)).toHaveLength(1);
-  expect(copiedCard.originalBack).toBe(savedCard.originalBack);
+  expect(copiedCard.noteId).not.toBe(savedCard.noteId);
+  expect(copiedCard.promptKey).toBe(savedCard.promptKey);
+  expect(fieldHtml(copiedCard, "Vorderseite")).toContain("Basic Frage neu");
+  expect(fieldHtml(copiedCard, "Vorderseite")!.match(/\(Kopie\)/g)).toHaveLength(1);
+  expect(fieldHtml(copiedCard, "Rückseite")).toBe(fieldHtml(savedCard, "Rückseite"));
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
-  await waitForCloudCard(deck.id, copiedCard.id, (card) => card.originalFront.includes("(Kopie)"));
+  await waitForCloudCard(copiedCard.id, (card) => JSON.stringify(card.content).includes("(Kopie)"));
   await page.reload();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   await expect(page.getByTestId(`deck-card-${copiedCard.id}`)).toBeAttached();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Basic Frage neu");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Basic Frage neu");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -281,11 +291,11 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   }))).toEqual({ before: "Ungespeicherte ", after: "Erstellungsfrage" });
 
   await dialog.getByRole("button", { name: "Rückseite" }).click();
-  const creationAnswer = dialog.frameLocator('iframe[title="Antwort"]');
-  await expect(dialog.getByTestId("study-card-answer-separator")).toHaveCount(1);
-  await expect(creationQuestion.locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
-  await expect(creationAnswer.locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
-  await expect(creationAnswer.locator('img[alt="rueckseite.png"]')).toHaveAttribute("src", /^blob:/);
+  const creationRevealed = dialog.frameLocator('iframe[title="Aufgedeckte Karte"]');
+  await expect(creationRevealed.locator(".core-card-answer-separator")).toHaveCount(1);
+  await expect(creationRevealed.locator("body")).toContainText("Ungespeicherte Erstellungsfrage");
+  await expect(creationRevealed.locator("body")).toContainText("Ungespeicherte Erstellungsantwort");
+  await expect(creationRevealed.locator('img[alt="rueckseite.png"]')).toHaveAttribute("src", /^blob:/);
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(creationPreviewButton).toBeFocused();
@@ -301,21 +311,21 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   });
   await openCreatedCardEditor(page, deck);
   await expect(page.getByText("Sichere Karten-Vorschau", { exact: true })).toHaveCount(0);
-  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Ungespeicherte Editorfrage");
-  await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Ungespeicherte Editorantwort");
+  await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Ungespeicherte Editorfrage");
+  await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Ungespeicherte Editorantwort");
 
   const editorPreviewButton = page.getByTestId("card-detail-aside").getByRole("button", { name: "Vorschau", exact: true });
   await editorPreviewButton.click();
   const editorFrontBody = dialog.frameLocator('iframe[title="Frage"]').locator("body");
   await expect(editorFrontBody).toContainText("Ungespeicherte Editorfrage");
   await expect(editorFrontBody).not.toContainText("Ungespeicherte Editorantwort");
-  await dialog.getByRole("button", { name: "Rückseite" }).click();
-  const editorAnswerBody = dialog.frameLocator('iframe[title="Antwort"]').locator("body");
-  await expect(editorFrontBody).toContainText("Ungespeicherte Editorfrage");
-  await expect(editorAnswerBody).toContainText("Ungespeicherte Editorantwort");
   expect((await editorFrontBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
-  expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toBeNull();
-  expect((await editorAnswerBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
+  await dialog.getByRole("button", { name: "Rückseite" }).click();
+  const editorRevealedBody = dialog.frameLocator('iframe[title="Aufgedeckte Karte"]').locator("body");
+  await expect(editorRevealedBody).toContainText("Ungespeicherte Editorantwort");
+  await expect(dialog.locator('iframe[title="Frage"]')).toHaveCount(0);
+  expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
+  expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
   await page.getByRole("button", { name: "Kartenvorschau schließen" }).click();
   await expect(editorPreviewButton).toBeFocused();
 
@@ -380,7 +390,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
   const syncButton = page.locator('[data-navigation-utility="sync"]:visible');
   await expect(syncButton).toBeEnabled();
   await syncButton.click();
-  await waitForCloudCard(deck.id, deck.cards[0].id, (card) => card.variants.some((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated"));
+  await waitForCloudCard(deck.cards[0].id, (card) => card.variants.some((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated"));
 
   await page.reload();
   const reloadedState = await readActiveAccountState(page);
@@ -388,6 +398,7 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
   const generated = reloadedCard?.variants.find((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated");
   expect(generated).toMatchObject({ variantLevel: 2, isActive: true });
   expect("reviewState" in generated).toBe(false);
+  expect("study" in generated).toBe(false);
   expect("dueAt" in generated).toBe(false);
 });
 
@@ -397,33 +408,36 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse erzeugt zw
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Reverse vorne alt");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Reverse hinten alt");
   const deck = await finishManualCreation(page, deckName, 2);
-  const forward = deck.cards.find((card) => card.originalFront.includes("Reverse vorne alt"));
-  const reverse = deck.cards.find((card) => card.originalFront.includes("Reverse hinten alt"));
+  const forward = deck.cards.find((card) => card.promptKey === "forward");
+  const reverse = deck.cards.find((card) => card.promptKey === "reverse");
   expect(forward).toBeTruthy();
   expect(reverse).toBeTruthy();
   expect(forward!.id).not.toBe(reverse!.id);
-  expect(forward!.reviewState.id).not.toBe(reverse!.reviewState.id);
+  expect(forward!.noteId).toBe(reverse!.noteId);
+  expect([forward!.status, reverse!.status]).toEqual(["active", "active"]);
+  expect(fieldHtml(forward, "Vorderseite")).toContain("Reverse vorne alt");
+  expect(fieldHtml(forward, "Rückseite")).toContain("Reverse hinten alt");
   expect(forward!.variants).toHaveLength(0);
   expect(reverse!.variants).toHaveLength(0);
 
   await openCreatedCardEditor(page, deck);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Reverse vorne alt");
-  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Reverse vorne neu");
-  await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Reverse hinten neu");
+  await expect(page.getByTestId("card-detail-editor")).toContainText("2 Karten aus diesem Inhalt");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Reverse vorne alt");
+  await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Reverse vorne neu");
+  await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Reverse hinten neu");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
 
   const savedState = await readActiveAccountState(page);
   const savedDeck = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id);
-  const changedCard = savedDeck.cards.find((card: { originalFront: string }) => card.originalFront === "<p>Reverse vorne neu</p>");
-  expect(changedCard).toMatchObject({ id: deck.cards[0].id, originalBack: "<p>Reverse hinten neu</p>", reviewState: deck.cards[0].reviewState });
-  const untouchedCard = deck.cards.find((card) => card.id !== deck.cards[0].id)!;
-  expect(savedDeck.cards.find((card: { id: string }) => card.id !== changedCard!.id)).toMatchObject({
-    id: untouchedCard.id,
-    originalFront: untouchedCard.originalFront,
-    originalBack: untouchedCard.originalBack,
-    reviewState: untouchedCard.reviewState,
-  });
+  expect(savedDeck.cards).toHaveLength(2);
+  for (const card of [forward!, reverse!]) {
+    const saved = savedDeck.cards.find((candidate: { id: string }) => candidate.id === card.id);
+    expect(saved).toMatchObject({ id: card.id, noteId: card.noteId, promptKey: card.promptKey, studyRevision: card.studyRevision });
+    expect(comparableStudy(saved.study)).toEqual(comparableStudy(card.study));
+    expect(fieldHtml(saved, "Vorderseite")).toBe("<p>Reverse vorne neu</p>");
+    expect(fieldHtml(saved, "Rückseite")).toBe("<p>Reverse hinten neu</p>");
+  }
 });
 
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
@@ -433,26 +447,38 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe b
   await expect(page.getByRole("textbox", { name: "Cloze-Text" })).toBeVisible();
   await page.getByRole("textbox", { name: "Zusatzinfo" }).fill("Zellatmung");
   const deck = await finishManualCreation(page, deckName, 2);
-  expect(deck.cards.map((card) => card.projection.kind === "cloze" ? card.projection.clozeOrdinal : null).sort()).toEqual([1, 2]);
+  expect(deck.cards.map((card) => card.promptKey).sort()).toEqual(["cloze:1", "cloze:2"]);
+  expect(new Set(deck.cards.map((card) => card.noteId)).size).toBe(1);
   expect(deck.cards.every((card) => card.variants.length === 0)).toBe(true);
-  expect(new Set(deck.cards.map((card) => card.reviewState.id)).size).toBe(2);
+  const firstCloze = deck.cards.find((card) => card.promptKey === "cloze:1")!;
+  const secondCloze = deck.cards.find((card) => card.promptKey === "cloze:2")!;
 
   await openCreatedCardEditor(page, deck);
-  await page.getByRole("textbox", { name: "Cloze-Text", exact: true }).fill("{{c1::ATP} entsteht in Mitochondrien.");
+  await page.getByRole("textbox", { name: "Feld Text", exact: true }).fill("{{c1::ATP} entsteht in Mitochondrien.");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
-  await expect(page.getByText("Bitte gültige Lücken wie {{c1::Begriff}} verwenden.", { exact: true })).toBeVisible();
-  expect((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0].originalFront).toBe(deck.cards[0].originalFront);
+  await expect(page.getByRole("alert").filter({ hasText: "Feld „Text“ enthält eine nicht geschlossene Lücke." })).toBeVisible();
+  expect(fieldHtml((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0], "Text")).toBe(fieldHtml(deck.cards[0], "Text"));
 
-  await page.getByRole("textbox", { name: "Cloze-Text", exact: true }).fill("{{c1::ATP}} entsteht in Mitochondrien.");
-  await page.getByRole("textbox", { name: "Cloze-Zusatzinfo", exact: true }).fill("Zellatmung und Phosphorylierung");
+  await page.getByRole("textbox", { name: "Feld Text", exact: true }).fill("{{c1::ATP}} entsteht in Mitochondrien.");
+  await page.getByRole("textbox", { name: "Feld Zusatzinfo", exact: true }).fill("Zellatmung und Phosphorylierung");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  const removalDialog = page.getByRole("dialog", { name: "Karten entfernen?" });
+  await expect(removalDialog).toContainText("Durch diese Änderung entfällt eine Karte. Ihr Lernstand wird gelöscht.");
+  await removalDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
+  await expect(removalDialog).toHaveCount(0);
+  expect((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards).toHaveLength(2);
+
+  await page.getByRole("button", { name: "Speichern", exact: true }).click();
+  await removalDialog.getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
 
-  const savedState = await readActiveAccountState(page);
-  const savedDeck = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id);
-  expect(savedDeck.cards).toHaveLength(2);
-  expect(savedDeck.cards[0].id).toBe(deck.cards[0].id);
-  expect(savedDeck.cards[1]).toMatchObject({ id: deck.cards[1].id, originalFront: deck.cards[1].originalFront, reviewState: deck.cards[1].reviewState });
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards.length).toBe(1);
+  const savedDeck = (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id);
+  expect(savedDeck.cards[0]).toMatchObject({ id: firstCloze.id, promptKey: "cloze:1", studyRevision: firstCloze.studyRevision });
+  expect(comparableStudy(savedDeck.cards[0].study)).toEqual(comparableStudy(firstCloze.study));
+  expect(fieldHtml(savedDeck.cards[0], "Text")).toBe("<p>{{c1::ATP}} entsteht in Mitochondrien.</p>");
+  expect(fieldHtml(savedDeck.cards[0], "Zusatzinfo")).toBe("<p>Zellatmung und Phosphorylierung</p>");
+  expect(savedDeck.cards.some((card: { id: string }) => card.id === secondCloze.id)).toBe(false);
 });
 
 test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, Lösung und Erklärung bleiben synchron", async ({ page }) => {
@@ -479,7 +505,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await previewDialog.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await previewDialog.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(previewDialog.getByRole("button", { name: "Rückseite" })).toHaveAttribute("aria-pressed", "true");
-  await expect(previewDialog.getByText("Nicht ganz.", { exact: true })).toBeVisible();
+  await expect(previewDialog.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
   await expect(previewDialog.locator(".core-mcq-option-correct")).toContainText("Beta");
   await expect(previewDialog.getByRole("button", { name: /Bewertung/ })).toHaveCount(0);
   await previewDialog.getByRole("button", { name: "Vorderseite" }).click();
@@ -489,19 +515,22 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   const deck = await finishManualCreation(page, deckName);
 
   await openCreatedCardEditor(page, deck);
-  await page.getByRole("textbox", { name: "Multiple-Choice-Frage", exact: true }).fill("Welche Option ist jetzt richtig?");
+  await page.getByRole("textbox", { name: "Feld Frage", exact: true }).fill("Welche Option ist jetzt richtig?");
   await page.getByRole("textbox", { name: "Antwortoption 3", exact: true }).fill("Gamma neu");
   await page.getByLabel("Option 3 als richtig markieren").check();
   await page.getByLabel("Option 2 als richtig markieren").uncheck();
-  await page.getByRole("textbox", { name: "Erklärung zur richtigen Antwort", exact: true }).fill("Gamma neu ist nach der Bearbeitung richtig.");
+  await page.getByRole("textbox", { name: "Feld Erklärung", exact: true }).fill("Gamma neu ist nach der Bearbeitung richtig.");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Karte wurde erfolgreich gespeichert." }).last()).toBeVisible();
 
   const savedState = await readActiveAccountState(page);
   const savedCard = savedState.decks.find((candidate: { id: string }) => candidate.id === deck.id).cards[0];
-  expect(savedCard.contentDocument.interaction.choice.options).toEqual(["Alpha", "Beta", "Gamma neu"]);
-  expect(savedCard.contentDocument.interaction.choice.correctAnswers).toEqual(["Gamma neu"]);
-  expect(savedCard.contentDocument.interaction.choice.explanation).toContain("Gamma neu ist nach der Bearbeitung richtig.");
+  expect(savedCard.promptKey).toBe("choice");
+  expect(savedCard.note.content.interaction).toMatchObject({ kind: "choice", mode: "multiple" });
+  expect(savedCard.note.content.interaction.options.map((option: { html: string }) => option.html)).toEqual(["Alpha", "Beta", "Gamma neu"]);
+  expect(savedCard.note.content.interaction.options.map((option: { correct: boolean }) => option.correct)).toEqual([false, false, true]);
+  expect(fieldHtml(savedCard, "Frage")).toBe("<p>Welche Option ist jetzt richtig?</p>");
+  expect(fieldHtml(savedCard, "Erklärung")).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   const detail = page.getByTestId("card-detail-aside");
@@ -512,7 +541,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await page.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(page.locator(".core-mcq-option-correct")).toContainText("Gamma neu");
-  await expect(page.getByText("Nicht ganz.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Nicht ganz. Vergleiche deine Auswahl mit der Lösung.", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Gamma neu ist nach der Bearbeitung richtig.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 });
@@ -521,46 +550,49 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(REIMPORT_FIXTURE);
-  await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
+  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(REIMPORT_FIXTURE);
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await finishApkgImport(page);
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
   await page.reload();
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 
+  const importedQuestion = "Welches Hormon senkt den Blutzucker?";
   let state = await readActiveAccountState(page);
-  const importedDeck = state.decks.find((deck: { cards?: Array<{ originalFront: string }> }) => deck.cards?.some((card) => card.originalFront.includes("Welches Organell erzeugt ATP?")));
-  const importedCard = importedDeck.cards.find((card: { originalFront: string }) => card.originalFront.includes("Welches Organell erzeugt ATP?"));
-  const reviewStateBeforeReimport = importedCard.reviewState;
-  const learningItemStateBeforeReimport = importedCard.learningItemState;
+  const importedDeck = state.decks.find((deck: { cards?: unknown[] }) => deck.cards?.some((card) => fieldHtml(card, "Front")?.includes(importedQuestion)));
+  const importedCard = importedDeck.cards.find((card: unknown) => fieldHtml(card, "Front")?.includes(importedQuestion));
+  expect(importedCard.note).toMatchObject({ source: "anki-apkg", ankiGuid: "matrix-basic", contentRevision: 1, importedContentRevision: 1 });
+  const studyBeforeReimport = importedCard.study;
   await page.getByRole("button", { name: "Zur Übersicht" }).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Welches Organell erzeugt ATP");
-  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Welche Zellstruktur erzeugt lokal ATP?");
+  await expect(page.getByRole("textbox", { name: "Feld Front", exact: true })).toContainText(importedQuestion);
+  await page.getByRole("textbox", { name: "Feld Front", exact: true }).fill("Welches Hormon senkt lokal den Blutzucker?");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect.poll(async () => {
     const current = await readActiveAccountState(page);
-    return current.decks.find((deck: { id: string }) => deck.id === importedDeck.id)?.cards.find((card: { id: string }) => card.id === importedCard.id)?.originalFront;
-  }).toBe("<p>Welche Zellstruktur erzeugt lokal ATP?</p>");
-  await waitForCloudCard(importedDeck.id, importedCard.id, (card) => card.originalFront === "<p>Welche Zellstruktur erzeugt lokal ATP?</p>");
+    return fieldHtml(current.decks.find((deck: { id: string }) => deck.id === importedDeck.id)?.cards.find((card: { id: string }) => card.id === importedCard.id), "Front");
+  }).toBe("<p>Welches Hormon senkt lokal den Blutzucker?</p>");
+  await waitForCloudCard(importedCard.id, (card) => JSON.stringify(card.content).includes("Welches Hormon senkt lokal den Blutzucker?"));
 
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(REIMPORT_FIXTURE);
-  await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
+  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(REIMPORT_FIXTURE);
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
   await finishApkgImport(page);
   await expect(page.getByRole("heading", { name: "Import erfolgreich" })).toBeVisible({ timeout: 30_000 });
 
   state = await readActiveAccountState(page);
   const reimportedCard = state.decks.find((deck: { id: string }) => deck.id === importedDeck.id).cards.find((card: { id: string }) => card.id === importedCard.id);
-  expect(reimportedCard.originalFront).toBe("<p>Welche Zellstruktur erzeugt lokal ATP?</p>");
-  expect("versionLog" in reimportedCard).toBe(false);
-  expect(reimportedCard.reviewState).toEqual(reviewStateBeforeReimport);
-  expect(reimportedCard.learningItemState).toEqual(learningItemStateBeforeReimport);
+  expect(fieldHtml(reimportedCard, "Front")).toBe("<p>Welches Hormon senkt lokal den Blutzucker?</p>");
+  expect(reimportedCard.note).toMatchObject({ id: importedCard.noteId, contentRevision: 2, importedContentRevision: 1 });
+  expect("versionLog" in reimportedCard.note).toBe(false);
+  expect(reimportedCard.studyRevision).toBe(importedCard.studyRevision);
+  expect(comparableStudy(reimportedCard.study)).toEqual(comparableStudy(studyBeforeReimport));
+  expect(state.notes.filter((note: { ankiGuid: string | null }) => note.ankiGuid === "matrix-basic")).toHaveLength(1);
 });

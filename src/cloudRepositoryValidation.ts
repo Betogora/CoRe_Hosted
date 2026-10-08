@@ -1,5 +1,8 @@
 import * as v from "valibot";
-import type { Json, Tables, TablesInsert, TablesUpdate } from "./database.types.ts";
+import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, parseNoteContent } from "./coreModel.ts";
+import type { Card, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
+import type { Json } from "./database.types.ts";
+import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type {
   AccountStatisticsSnapshot,
   AccountStudyOverview,
@@ -9,101 +12,157 @@ import type {
   OfflineMediaManifestEntry,
 } from "./workspaceReplica.ts";
 
-type GeneratedAccountTable = "decks" | "cards" | "card_variants" | "review_events";
-export type AccountTable = GeneratedAccountTable | "note_type_definitions";
-export type AccountRow = Tables<GeneratedAccountTable> | Record<string, unknown>;
-export type AccountInsert = TablesInsert<GeneratedAccountTable> | Record<string, unknown>;
-export type AccountUpdate = TablesUpdate<GeneratedAccountTable> | Record<string, unknown>;
+export type AccountTable = "decks" | "note_type_sources" | "notes" | "note_sources" | "cards" | "card_variants" | "review_events";
 export type CloudJson = Json;
-export type MediaAssetRow = Tables<"media_assets">;
+export type AccountRow = Record<string, unknown>;
 
-const jsonObjectSchema = v.pipe(v.unknown(), v.check((value) => !Array.isArray(value)), v.record(v.string(), v.unknown()));
-const accountRowBaseSchema = {
+/** Anki template of an imported note type as stored in `note_type_sources.definition`. */
+export interface StoredNoteTypeSource {
+  id: string;
+  ankiNotetypeId: string;
+  name: string;
+  definition: Record<string, unknown>;
+  revision: number;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface StoredNoteSource {
+  id: string;
+  noteTypeSourceId: string;
+  fields: string[];
+  revision: number;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+const jsonObjectSchema = v.pipe(v.unknown(), v.check((value) => value !== null && typeof value === "object" && !Array.isArray(value)), v.record(v.string(), v.unknown()));
+const nonNegativeIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
+const positiveIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
+const sha1Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/));
+const syncRowSchema = {
   id: v.string(),
   user_id: v.string(),
-  sync_change_id: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  created_at: v.string(),
+  updated_at: v.string(),
+  revision: positiveIntegerSchema,
+  deleted_at: v.nullable(v.string()),
+  updated_by_device_id: v.nullable(v.string()),
 };
-const accountRowSchemas: Record<AccountTable, v.BaseSchema<unknown, unknown, v.BaseIssue<unknown>>> = {
+
+const accountRowSchemas = {
   decks: v.looseObject({
-    ...accountRowBaseSchema,
-    tags: v.optional(v.array(v.string())),
-    hierarchy_path: v.optional(v.array(v.string())),
-    import_meta: v.optional(jsonObjectSchema),
-    deck_settings: v.optional(jsonObjectSchema),
+    ...syncRowSchema,
+    parent_deck_id: v.nullable(v.string()),
+    name: v.string(),
+    description: v.string(),
+    source: v.picklist(["manual", "anki-apkg"]),
+    anki_deck_id: v.nullable(v.string()),
+    hierarchy_path: v.array(v.string()),
+    deck_settings: jsonObjectSchema,
+    sync_change_id: positiveIntegerSchema,
   }),
-  cards: v.looseObject({
-    ...accountRowBaseSchema,
-    note_type_definition_id: v.nullable(v.string()),
-    content_document: jsonObjectSchema,
-    content_revision: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
-    original_fields: v.optional(v.array(v.unknown())),
-    original_tags: v.optional(v.array(v.string())),
-    media_refs: v.optional(v.array(v.string())),
-    projection: jsonObjectSchema,
-    review_state: v.optional(jsonObjectSchema),
-    core_state: v.optional(jsonObjectSchema),
-    meta: v.optional(jsonObjectSchema),
-  }),
-  card_variants: v.looseObject({
-    ...accountRowBaseSchema,
-    transform_profile: v.optional(jsonObjectSchema),
-    changed_recognition_cues: v.optional(v.array(v.string())),
-    performance: v.optional(jsonObjectSchema),
-    feedback: v.optional(v.array(v.unknown())),
-    meta: v.optional(jsonObjectSchema),
-  }),
-  review_events: v.looseObject({
-    ...accountRowBaseSchema,
-    scheduler_before: v.optional(v.nullable(jsonObjectSchema)),
-    scheduler_after: v.optional(v.nullable(jsonObjectSchema)),
-    flags: v.optional(jsonObjectSchema),
-  }),
-  note_type_definitions: v.looseObject({
-    ...accountRowBaseSchema,
+  note_type_sources: v.looseObject({
+    ...syncRowSchema,
+    anki_notetype_id: v.string(),
     name: v.string(),
     definition: jsonObjectSchema,
-    revision: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
-    deleted_at: v.optional(v.nullable(v.string())),
   }),
-};
+  notes: v.looseObject({
+    ...syncRowSchema,
+    content: jsonObjectSchema,
+    media: v.record(v.string(), sha1Schema),
+    source: v.picklist(["manual", "anki-apkg"]),
+    anki_guid: v.nullable(v.string()),
+    note_type_source_id: v.nullable(v.string()),
+    translator_id: v.nullable(v.string()),
+    translator_version: v.nullable(positiveIntegerSchema),
+    marked: v.boolean(),
+    content_revision: positiveIntegerSchema,
+    imported_content_revision: v.nullable(positiveIntegerSchema),
+  }),
+  note_sources: v.looseObject({
+    ...syncRowSchema,
+    note_type_source_id: v.string(),
+    fields: v.array(v.string()),
+  }),
+  cards: v.looseObject({
+    ...syncRowSchema,
+    note_id: v.string(),
+    deck_id: v.string(),
+    prompt_key: v.string(),
+    anki_card_id: v.nullable(v.string()),
+    status: v.picklist(["active", "suspended"]),
+    anki_flag: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(7)),
+    state: v.picklist(["new", "learning", "review", "relearning"]),
+    due_at: v.string(),
+    stability: v.pipe(v.number(), v.minValue(0)),
+    difficulty: v.pipe(v.number(), v.minValue(0)),
+    reps: nonNegativeIntegerSchema,
+    lapses: nonNegativeIntegerSchema,
+    interval_days: v.pipe(v.number(), v.minValue(0)),
+    learning_step_index: nonNegativeIntegerSchema,
+    last_reviewed_at: v.nullable(v.string()),
+    last_rating: v.nullable(v.picklist(["again", "hard", "good", "easy"])),
+    study_extra: jsonObjectSchema,
+    source_scheduler: v.optional(v.unknown()),
+    study_revision: nonNegativeIntegerSchema,
+  }),
+  card_variants: v.looseObject({
+    ...syncRowSchema,
+    card_id: v.string(),
+    transform_profile: jsonObjectSchema,
+    changed_recognition_cues: v.array(v.string()),
+    performance: jsonObjectSchema,
+    feedback: v.array(v.unknown()),
+    meta: jsonObjectSchema,
+  }),
+  review_events: v.looseObject({
+    id: v.string(),
+    user_id: v.string(),
+    card_id: v.string(),
+    deck_id: v.string(),
+    variant_id: v.nullable(v.string()),
+    rating: v.picklist(["again", "hard", "good", "easy", "manual"]),
+    answered_at: v.string(),
+    response_time_ms: v.nullable(nonNegativeIntegerSchema),
+    scheduler_before: v.nullable(v.unknown()),
+    scheduler_after: v.nullable(v.unknown()),
+    flags: jsonObjectSchema,
+    created_at: v.string(),
+    created_by_device_id: v.nullable(v.string()),
+  }),
+} satisfies Record<AccountTable, v.GenericSchema>;
+
 const profileRowSchema = v.looseObject({
   id: v.string(),
   scheduler_preferences: v.optional(jsonObjectSchema),
   ui_preferences: v.optional(jsonObjectSchema),
 });
-const mediaAssetRowSchema = v.looseObject({
-  id: v.string(),
-  user_id: v.string(),
-  deck_id: v.string(),
-  card_id: v.nullable(v.string()),
-  sha1: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)),
-  size: v.pipe(v.number(), v.safeInteger(), v.minValue(0)),
+const mediaFileRowSchema = v.looseObject({
+  sha1: sha1Schema,
+  size: nonNegativeIntegerSchema,
   mime_type: v.string(),
   original_name: v.pipe(v.string(), v.minLength(1)),
-  storage_bucket: v.pipe(v.string(), v.minLength(1)),
   storage_path: v.pipe(v.string(), v.minLength(1)),
-  source: v.string(),
-  metadata: jsonObjectSchema,
   created_at: v.string(),
-  updated_at: v.string(),
-  deleted_at: v.nullable(v.string()),
 });
-const nonNegativeIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
-const positiveIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
 const cardCatalogRowSchema = v.looseObject({
   id: v.string(),
   deck_id: v.string(),
+  note_id: v.string(),
   front_preview: v.string(),
-  normalized_search_text: v.string(),
   sort_text: v.string(),
   due_at: v.nullable(v.string()),
   schedule_state: v.string(),
   maturity_band: v.string(),
   reviewable: v.boolean(),
+  marked: v.boolean(),
   has_active_variants: v.boolean(),
   active_variant_count: nonNegativeIntegerSchema,
   active_variant_id: v.nullable(v.string()),
   body_revision: positiveIntegerSchema,
+  study_revision: nonNegativeIntegerSchema,
   dependency_revision: positiveIntegerSchema,
   sync_change_id: positiveIntegerSchema,
   deleted_at: v.nullable(v.string()),
@@ -141,70 +200,221 @@ const accountStudyOverviewSchema = v.object({
   forecastByDay: v.record(v.string(), nonNegativeIntegerSchema),
   generatedAt: v.string(),
 });
+const dueForecastSchema = v.object({
+  contextKey: v.string(),
+  forecastByDay: v.record(v.string(), nonNegativeIntegerSchema),
+  generatedAt: v.string(),
+});
 const offlineCardManifestSchema = v.object({
   id: v.string(),
   bodyRevision: positiveIntegerSchema,
+  studyRevision: nonNegativeIntegerSchema,
   dependencyRevision: positiveIntegerSchema,
   bodyBytes: nonNegativeIntegerSchema,
   updatedAt: v.string(),
 });
 const offlineMediaManifestSchema = v.object({
-  id: v.string(),
-  sha1: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)),
+  sha1: sha1Schema,
   size: nonNegativeIntegerSchema,
   mimeType: v.string(),
   originalName: v.string(),
-  storageBucket: v.string(),
   storagePath: v.string(),
-  cardId: v.nullable(v.string()),
-  updatedAt: v.string(),
+  createdAt: v.string(),
 });
 
-export function validateAccountRows(table: AccountTable, input: unknown): AccountRow[] {
-  if (!Array.isArray(input)) throw new Error("Cloud-Daten hatten ein ungültiges Zeilenformat.");
-  const schema = accountRowSchemas[table];
-  const rows = input.map((row) => v.safeParse(schema, row));
-  if (rows.some((row) => !row.success)) throw new Error(`Cloud-Daten für ${table} hatten ein ungültiges Format.`);
-  return rows.map((row) => row.output as AccountRow);
-}
-
-export function validateProfileRows(input: unknown) {
-  if (!Array.isArray(input)) throw new Error("Cloud-Profildaten hatten ein ungültiges Zeilenformat.");
-  const rows = input.map((row) => v.safeParse(profileRowSchema, row));
-  if (rows.some((row) => !row.success)) throw new Error("Cloud-Profildaten hatten ein ungültiges Format.");
-  return rows.map((row) => row.output);
-}
-
-export function validateMediaAssetRows(input: unknown): MediaAssetRow[] {
-  if (!Array.isArray(input)) throw new Error("Cloud-Mediendaten hatten ein ungültiges Zeilenformat.");
-  const rows = input.map((row) => v.safeParse(mediaAssetRowSchema, row));
-  if (rows.some((row) => !row.success)) throw new Error("Cloud-Mediendaten hatten ein ungültiges Format.");
-  return rows.map((row) => row.output as MediaAssetRow);
-}
-
-export function validateIdRows(input: unknown, table: string) {
-  const result = v.safeParse(v.array(v.looseObject({ id: v.string() })), input);
-  if (!result.success) throw new Error(`Cloud-Daten für ${table} hatten ein ungültiges Format.`);
+function parseRows<T>(schema: v.GenericSchema<unknown, T>, input: unknown, message: string): T[] {
+  const result = v.safeParse(v.array(schema), input);
+  if (!result.success) throw new Error(message);
   return result.output;
 }
 
+export function validateAccountRows(table: AccountTable, input: unknown): AccountRow[] {
+  return parseRows(accountRowSchemas[table] as v.GenericSchema<unknown, AccountRow>, input, `Cloud-Daten für ${table} hatten ein ungültiges Format.`);
+}
+
+function syncMetadata(row: AccountRow) {
+  return {
+    createdAt: String(row.created_at),
+    updatedAt: String(row.updated_at),
+    revision: Number(row.revision),
+    deletedAt: (row.deleted_at as string | null) ?? null,
+    updatedByDeviceId: (row.updated_by_device_id as string | null) ?? null,
+  };
+}
+
+export function deckFromRow(row: AccountRow): Deck {
+  return createCoreDeck({
+    id: String(row.id),
+    ownerId: String(row.user_id),
+    parentDeckId: (row.parent_deck_id as string | null) ?? null,
+    name: String(row.name),
+    description: String(row.description ?? ""),
+    source: row.source as Deck["source"],
+    ankiDeckId: (row.anki_deck_id as string | null) ?? null,
+    hierarchyPath: row.hierarchy_path as string[],
+    deckSettings: row.deck_settings as Record<string, never>,
+    ...syncMetadata(row),
+  });
+}
+
+/** Note content is untrusted JSONB until the content parser validates and sanitizes it. */
+export function noteFromRow(row: AccountRow): Note {
+  const parsed = parseNoteContent(row.content);
+  if (!parsed.ok) throw new Error(`Inhalt ${String(row.id)} aus der Cloud ist ungültig: ${parsed.errors[0]}`);
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    content: parsed.value,
+    media: row.media as Record<string, string>,
+    source: row.source as Note["source"],
+    ankiGuid: (row.anki_guid as string | null) ?? null,
+    noteTypeSourceId: (row.note_type_source_id as string | null) ?? null,
+    translator: row.translator_id ? { id: String(row.translator_id), version: Number(row.translator_version) } : null,
+    marked: row.marked === true,
+    contentRevision: Number(row.content_revision),
+    importedContentRevision: row.imported_content_revision == null ? null : Number(row.imported_content_revision),
+    ...syncMetadata(row),
+  };
+}
+
+export function cardFromRow(row: AccountRow, variants: CardVariant[] = []): Card {
+  const study = cardStudyFromReviewState(createReviewState({
+    ...(row.study_extra as Record<string, unknown>),
+    state: row.state,
+    dueAt: row.due_at,
+    stability: row.stability,
+    difficulty: row.difficulty,
+    reps: row.reps,
+    lapses: row.lapses,
+    intervalDays: row.interval_days,
+    learningStepIndex: row.learning_step_index,
+    lastReviewedAt: row.last_reviewed_at,
+    lastRating: row.last_rating,
+    sourceSchedulerData: row.source_scheduler ?? null,
+  }));
+  return {
+    id: String(row.id),
+    noteId: String(row.note_id),
+    deckId: String(row.deck_id),
+    promptKey: String(row.prompt_key),
+    ankiCardId: (row.anki_card_id as string | null) ?? null,
+    status: row.status as Card["status"],
+    ankiFlag: Number(row.anki_flag),
+    study,
+    studyRevision: Number(row.study_revision),
+    variants,
+    ...syncMetadata(row),
+  };
+}
+
+export function variantFromRow(row: AccountRow): CardVariant {
+  return {
+    ...createCardVariant({
+      id: String(row.id),
+      cardId: String(row.card_id),
+      front: String(row.front ?? ""),
+      back: String(row.back ?? ""),
+      variantLevel: Number(row.variant_level ?? 2),
+      isActive: row.is_active !== false,
+      transformProfile: row.transform_profile as Record<string, unknown>,
+      modelRunId: (row.model_run_id as string | null) ?? null,
+      explanation: String(row.explanation ?? ""),
+      confidence: Number(row.confidence ?? 0),
+      semanticDelta: String(row.semantic_delta ?? ""),
+      changedRecognitionCues: row.changed_recognition_cues as string[],
+      qualityStatus: row.quality_status as CardVariant["qualityStatus"],
+      performance: row.performance as Record<string, never>,
+      feedback: row.feedback as CardVariant["feedback"],
+      meta: row.meta as Record<string, unknown>,
+      ...syncMetadata(row),
+    }),
+    contentHash: String(row.content_hash ?? ""),
+  };
+}
+
+export function noteTypeSourceFromRow(row: AccountRow): StoredNoteTypeSource {
+  return {
+    id: String(row.id),
+    ankiNotetypeId: String(row.anki_notetype_id),
+    name: String(row.name),
+    definition: row.definition as Record<string, unknown>,
+    revision: Number(row.revision),
+    updatedAt: String(row.updated_at),
+    deletedAt: (row.deleted_at as string | null) ?? null,
+  };
+}
+
+const noteTypeDefinitionSchema = v.object({
+  translator: v.object({ id: v.string(), version: positiveIntegerSchema }),
+  kind: v.number(),
+  originalStockKind: v.number(),
+  css: v.string(),
+  fields: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema })),
+  templates: v.array(v.object({ name: v.string(), ordinal: nonNegativeIntegerSchema, front: v.string(), back: v.string(), targetDeckId: v.nullable(v.string()) })),
+  config: v.unknown(),
+});
+
+/** The stored Anki template as translator input; null when the cloud definition does not have the expected shape. */
+export function noteTypeSourceForTranslation(source: StoredNoteTypeSource): NoteTypeSource | null {
+  const parsed = v.safeParse(noteTypeDefinitionSchema, source.definition);
+  return parsed.success ? { id: source.id, ankiNotetypeId: source.ankiNotetypeId, name: source.name, ...parsed.output } : null;
+}
+
+export function noteSourceForTranslation(source: StoredNoteSource): NoteSource | null {
+  return Array.isArray(source.fields) && source.fields.every((field) => typeof field === "string")
+    ? { noteId: source.id, noteTypeSourceId: source.noteTypeSourceId, fields: source.fields }
+    : null;
+}
+
+export function noteSourceFromRow(row: AccountRow): StoredNoteSource {
+  return {
+    id: String(row.id),
+    noteTypeSourceId: String(row.note_type_source_id),
+    fields: row.fields as string[],
+    revision: Number(row.revision),
+    updatedAt: String(row.updated_at),
+    deletedAt: (row.deleted_at as string | null) ?? null,
+  };
+}
+
+export function validateProfileRows(input: unknown) {
+  return parseRows(profileRowSchema, input, "Cloud-Profildaten hatten ein ungültiges Format.");
+}
+
+export function validateMediaFileRows(input: unknown): MediaFileReference[] {
+  return parseRows(mediaFileRowSchema, input, "Cloud-Mediendaten hatten ein ungültiges Format.").map((row) => ({
+    sha1: row.sha1,
+    size: row.size,
+    mimeType: row.mime_type,
+    originalName: row.original_name,
+    storagePath: row.storage_path,
+    createdAt: row.created_at,
+  }));
+}
+
+export function validateIdRows(input: unknown, table: string) {
+  return parseRows(v.looseObject({ id: v.string() }), input, `Cloud-Daten für ${table} hatten ein ungültiges Format.`);
+}
+
+/** Cloud catalog rows carry no full text; their search text is the preview. */
 export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
-  const result = v.safeParse(v.array(cardCatalogRowSchema), input);
-  if (!result.success) throw new Error("Cloud-Kartenkatalog hatte ein ungültiges Format.");
-  return result.output.map((row) => ({
+  return parseRows(cardCatalogRowSchema, input, "Cloud-Kartenkatalog hatte ein ungültiges Format.").map((row) => ({
     id: row.id,
     deckId: row.deck_id,
+    noteId: row.note_id,
     frontPreview: row.front_preview,
-    normalizedSearchText: row.normalized_search_text,
+    normalizedSearchText: row.front_preview.toLocaleLowerCase("de"),
     sortText: row.sort_text,
     dueAt: row.due_at,
     scheduleState: row.schedule_state,
     maturityBand: row.maturity_band,
     reviewable: row.reviewable,
+    marked: row.marked,
     hasActiveVariants: row.has_active_variants,
     activeVariantCount: row.active_variant_count,
     activeVariantId: row.active_variant_id,
     bodyRevision: row.body_revision,
+    studyRevision: row.study_revision,
     dependencyRevision: row.dependency_revision,
     syncChangeId: row.sync_change_id,
     deletedAt: row.deleted_at,
@@ -224,10 +434,14 @@ export function validateAccountStudyOverview(input: unknown): AccountStudyOvervi
   return result.output;
 }
 
+export function validateDueForecast(input: unknown) {
+  const result = v.safeParse(dueForecastSchema, input);
+  if (!result.success) throw new Error("Cloud-Fälligkeitsprognose hatte ein ungültiges Format.");
+  return result.output;
+}
+
 export function validateDeckStudySummaryRows(input: unknown): DeckStudySummary[] {
-  const result = v.safeParse(v.array(deckStudySummaryRowSchema), input);
-  if (!result.success) throw new Error("Cloud-Stapelstatistiken hatten ein ungültiges Format.");
-  return result.output.map((row) => ({
+  return parseRows(deckStudySummaryRowSchema, input, "Cloud-Stapelstatistiken hatten ein ungültiges Format.").map((row) => ({
     deckId: row.deck_id,
     totalCount: row.total_count,
     newCount: row.new_count,
@@ -326,3 +540,4 @@ export function validateAccountStatistics(input: unknown): AccountStatisticsSnap
   if (!result.success) throw new Error("Cloud-Statistik hatte ein ungültiges Format.");
   return result.output;
 }
+

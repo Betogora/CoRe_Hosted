@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Card, NoteContent, RevealPrompt } from "../coreTypes.ts";
-import { createCardVariant } from "./learningItems.ts";
+import { createCardVariant } from "./cards.ts";
 import { createNote, planNoteContentChange, planNoteDeletion } from "./notes.ts";
 
 const CREATED_AT = "2026-10-06T10:00:00.000Z";

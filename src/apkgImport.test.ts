@@ -1,327 +1,326 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import {
-  commitApkgImport,
-  createApkgReportDetails,
-  LOCAL_APKG_MAX_BYTES,
-  mapAnkiApkgToNormalizedDeck,
-  mergeImportedDeck,
-  parseApkgToNormalizedImport,
-  prepareApkgWorkerResult,
-  validateApkgFile,
-} from "./apkgImportInternal.ts";
-import { renderLearningItemPresentation } from "./cardPresentation.ts";
-import { createBasicLearningItem, createCardVariant, createCoreDeck, createReviewState } from "./coreModel.ts";
-import { projectLearningItemContent } from "./coreModel/learningItemContent.ts";
-import { importNormalizedDeck } from "./importService.ts";
-import { createApkgImportPreview } from "./apkgImport.ts";
+import { createApkgImportPreview, type ApkgImportPreview, type ImportGraphChunk } from "./apkgImport.ts";
+import { createImportGraphChunks, type ApkgImportGraph } from "./apkgNoteTranslation.ts";
 
-function parsedApkgFixture({ modelType = 0, fields = [{ name: "Front" }, { name: "Back" }], templates = [{ name: "Card 1", ord: 0, qfmt: "{{Front}}", afmt: "{{FrontSide}}<hr>{{Back}}" }], noteFields = "Front?\u001fBack.", cards = [{ id: 20, nid: 10, did: 1, ord: 0 }], decks = [{ id: "1", name: "Fixture Deck" }] }: any = {}) {
-  return {
-    file: { name: "fixture.apkg", size: 4096 },
-    decks,
-    colRows: [{
-      decks: JSON.stringify(Object.fromEntries(decks.map((deck: any) => [String(deck.id), deck]))),
-      models: JSON.stringify({ 99: { id: "99", name: "Fixture", type: modelType, flds: fields, tmpls: templates } }),
-    }],
-    notes: [{ id: 10, guid: "guid-10", mid: 99, tags: "tag", flds: noteFields, mod: 1_700_000_000 }],
-    cards,
-    reviewHistory: [],
-    mediaBundle: { mediaMap: {}, mediaFiles: [], manifest: { format: "none", assets: [], missingAssets: [] } },
-  };
+async function fixtureFile(path: string): Promise<File> {
+  const bytes = await readFile(new URL(`../fixtures/apkg/${path}`, import.meta.url));
+  return new File([bytes], path.split("/").at(-1)!);
 }
 
-function importImageFrontFixture() {
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
-    fields: [{ name: "Vorderseite" }, { name: "Rückseite" }],
-    templates: [{ name: "Karte 1", ord: 0, qfmt: "{{Vorderseite}}", afmt: "{{FrontSide}}<hr id=answer>{{Rückseite}}" }],
-    noteFields: '<img src="person.jpg">\u001fAntwort',
-  }));
-  return importNormalizedDeck(normalizedDeck, { dryRun: false });
+async function collectChunks(preview: ApkgImportPreview): Promise<ImportGraphChunk[]> {
+  const chunks: ImportGraphChunk[] = [];
+  await preview.commitGraph.streamChunks(async (chunk) => { chunks.push(chunk); });
+  return chunks;
 }
 
-test("validiert Dateityp und Browsergrößenlimit", () => {
-  assert.equal(validateApkgFile({ name: "deck.apkg", size: LOCAL_APKG_MAX_BYTES }).valid, true);
-  assert.equal(validateApkgFile({ name: "deck.zip", size: 1 }).valid, false);
-  assert.equal(validateApkgFile({ name: "deck.apkg", size: LOCAL_APKG_MAX_BYTES + 1 }).valid, false);
+function chunksOf<K extends ImportGraphChunk["kind"]>(chunks: ImportGraphChunk[], kind: K) {
+  return chunks.filter((chunk): chunk is Extract<ImportGraphChunk, { kind: K }> => chunk.kind === kind);
+}
+
+const VALID_DESCRIPTOR = {
+  rootDeckName: "Worker",
+  report: { errors: [], warnings: [] },
+  samples: [],
+  sampleMedia: [],
+  counts: { deckCount: 1, noteCount: 1, cardCount: 1, reviewEventCount: 0, mediaCount: 0, ankiGuids: ["guid-1"] },
+};
+
+type WorkerRequest = { type: string; requestId: string };
+type WorkerScript = (worker: FakeWorker, request: WorkerRequest) => void;
+
+class FakeWorker {
+  static script: WorkerScript = () => undefined;
+  static instances: FakeWorker[] = [];
+  onmessage: ((event: { data: unknown }) => void) | null = null;
+  onerror: (() => void) | null = null;
+  requests: WorkerRequest[] = [];
+  terminated = false;
+  constructor() { FakeWorker.instances.push(this); }
+  postMessage(request: WorkerRequest) {
+    this.requests.push(request);
+    queueMicrotask(() => FakeWorker.script(this, request));
+  }
+  reply(data: unknown) { this.onmessage?.({ data }); }
+  terminate() { this.terminated = true; }
+}
+
+async function withFakeWorker(script: WorkerScript, run: () => Promise<void>) {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "Worker");
+  FakeWorker.script = script;
+  FakeWorker.instances = [];
+  Object.defineProperty(globalThis, "Worker", { configurable: true, value: FakeWorker });
+  try {
+    await run();
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, "Worker", descriptor);
+    else Reflect.deleteProperty(globalThis, "Worker");
+  }
+}
+
+const workerFile = () => new File([new Uint8Array(1)], "worker.apkg");
+
+test("die World-Capitals-APKG ergibt eine Vorschau mit Bericht, Beispielen und Commitgraph", async () => {
+  const file = await fixtureFile("world-capitals.apkg");
+  const steps: string[] = [];
+  const preview = await createApkgImportPreview(file, { onStep: (step) => steps.push(step) });
+
+  assert.deepEqual(steps, ["validate", "collection", "cards", "translate"]);
+  assert.equal(preview.fileName, "world-capitals.apkg");
+  assert.equal(preview.fileSize, file.size);
+  assert.equal(preview.rootDeckName, "Welt-Hauptstädte");
+  assert.deepEqual(preview.report.detected, { decks: 8, notes: 245, cards: 245, reviewEvents: 0 });
+  assert.deepEqual(preview.report.imported, { decks: 8, notes: 245, cards: 245, mediaFiles: 0, reviewEvents: 0 });
+  assert.deepEqual(preview.report.notetypes.map((report) => [report.name, report.notes, report.cards]), [["Basic", 245, 245]]);
+  assert.deepEqual(preview.report.errors, []);
+  assert.equal(preview.samples.length, 5);
+  assert.equal(new Set(preview.samples.map((sample) => sample.note.id)).size, 5);
+  for (const { note, card, notetypeName } of preview.samples) {
+    assert.equal(card.noteId, note.id);
+    assert.equal(note.source, "anki-apkg");
+    assert.equal(notetypeName, "Basic");
+  }
+  assert.deepEqual(preview.sampleMedia, []);
+  const { deckCount, noteCount, cardCount, reviewEventCount, mediaCount, ankiGuids } = preview.commitGraph;
+  assert.deepEqual({ deckCount, noteCount, cardCount, reviewEventCount, mediaCount }, { deckCount: 8, noteCount: 245, cardCount: 245, reviewEventCount: 0, mediaCount: 0 });
+  assert.equal(new Set(ankiGuids).size, 245);
+});
+
+test("der Commitgraph streamt Stapel, Notiztypen und Inhalte mit ihren Quellen und Karten", async () => {
+  const preview = await createApkgImportPreview(await fixtureFile("world-capitals.apkg"));
+  const chunks = await collectChunks(preview);
+
+  assert.deepEqual(chunks.map((chunk) => chunk.kind), ["decks", "note-type-sources", "notes"]);
+  const [{ decks }] = chunksOf(chunks, "decks");
+  const [{ values: sources }] = chunksOf(chunks, "note-type-sources");
+  const notes = chunksOf(chunks, "notes").flatMap((chunk) => chunk.notes);
+  const noteSources = chunksOf(chunks, "notes").flatMap((chunk) => chunk.noteSources);
+  const cards = chunksOf(chunks, "notes").flatMap((chunk) => chunk.cards);
+  const deckIds = new Set(decks.map((deck) => deck.id));
+  const noteIds = new Set(notes.map((note) => note.id));
+
+  assert.equal(decks.length, 8);
+  assert.equal(decks.filter((deck) => deck.parentDeckId === null).length, 1);
+  assert.deepEqual(sources.map((source) => source.name), ["Basic"]);
+  assert.equal(notes.length, 245);
+  assert.deepEqual(noteSources.map((source) => source.noteId), notes.map((note) => note.id));
+  assert.ok(noteSources.every((source) => source.noteTypeSourceId === sources[0].id && source.fields.length > 0));
+  assert.ok(notes.every((note) => note.noteTypeSourceId === sources[0].id && note.importedContentRevision === note.contentRevision));
+  assert.equal(cards.length, 245);
+  assert.ok(cards.every((card) => noteIds.has(card.noteId) && deckIds.has(card.deckId) && card.ankiCardId !== null && card.variants.length === 0));
+  assert.equal(new Set(cards.map((card) => card.ankiCardId)).size, 245);
+});
+
+test("Stapelhierarchien bleiben mit direkten Eltern und vollständigen Pfaden erhalten", async () => {
+  const preview = await createApkgImportPreview(await fixtureFile("matrix/standard-latest.apkg"));
+  const chunks = await collectChunks(preview);
+  const [{ decks }] = chunksOf(chunks, "decks");
+  const byId = new Map(decks.map((deck) => [deck.id, deck]));
+
+  assert.equal(decks.length, preview.commitGraph.deckCount);
+  assert.ok(decks.some((deck) => deck.hierarchyPath.length > 2));
+  for (const deck of decks) {
+    assert.equal(deck.name, deck.hierarchyPath.at(-1));
+    if (deck.parentDeckId === null) {
+      assert.equal(deck.hierarchyPath.length, 1);
+      continue;
+    }
+    assert.deepEqual(byId.get(deck.parentDeckId)?.hierarchyPath, deck.hierarchyPath.slice(0, -1));
+  }
+});
+
+test("jede echte Anki-Karte bleibt eine eigene Karte desselben Inhalts", async () => {
+  const preview = await createApkgImportPreview(await fixtureFile("matrix/standard-latest.apkg"));
+  const chunks = await collectChunks(preview);
+  const notes = chunksOf(chunks, "notes").flatMap((chunk) => chunk.notes);
+  const cards = chunksOf(chunks, "notes").flatMap((chunk) => chunk.cards);
+  const reversedSource = chunksOf(chunks, "note-type-sources")[0].values.find((source) => source.name === "Basic (and reversed card)")!;
+  const reversedNote = notes.find((note) => note.noteTypeSourceId === reversedSource.id)!;
+  const reversedCards = cards.filter((card) => card.noteId === reversedNote.id);
+
+  assert.deepEqual(reversedCards.map((card) => card.promptKey), ["forward", "reverse"]);
+  assert.notEqual(reversedCards[0].ankiCardId, reversedCards[1].ankiCardId);
+  assert.notEqual(reversedCards[0].study, reversedCards[1].study);
+  assert.ok(cards.some((card) => card.promptKey === "cloze:2"));
+  assert.equal(cards.length, 16);
+});
+
+test("Lernstände und Wiederholungen werden übernommen und als eigener Abschnitt gestreamt", async () => {
+  const preview = await createApkgImportPreview(await fixtureFile("matrix/learning-latest.apkg"));
+  const chunks = await collectChunks(preview);
+  const cards = chunksOf(chunks, "notes").flatMap((chunk) => chunk.cards);
+  const reviews = chunksOf(chunks, "reviews").flatMap((chunk) => chunk.values);
+  const cardIds = new Set(cards.map((card) => card.id));
+
+  assert.deepEqual(chunks.map((chunk) => chunk.kind), ["decks", "note-type-sources", "notes", "reviews"]);
+  assert.deepEqual(preview.report.notetypes[0].study, { "fsrs-memory-state": 1, "revlog-replay": 5, "classic-state": 0, new: 2 });
+  assert.equal(preview.commitGraph.reviewEventCount, 12);
+  assert.equal(reviews.length, 12);
+  assert.ok(reviews.every((review) => cardIds.has(review.cardId)));
+  assert.equal(cards.filter((card) => card.study.state !== "new").length, 6);
+});
+
+test("Medien werden nach den Inhalten mit geprüfter SHA-1 gestreamt; fehlende Medien stehen im Bericht", async () => {
+  const preview = await createApkgImportPreview(await fixtureFile("matrix/media-latest.apkg"));
+  const chunks = await collectChunks(preview);
+  const media = chunksOf(chunks, "media").map((chunk) => chunk.file);
+  const notes = chunksOf(chunks, "notes").flatMap((chunk) => chunk.notes);
+
+  assert.deepEqual(chunks.map((chunk) => chunk.kind), ["decks", "note-type-sources", "notes", "media", "media", "media"]);
+  assert.deepEqual(media.map((file) => file.name).sort(), ["a&b.png", "mit leerzeichen.png", "Ä-Bild.png"].sort());
+  for (const file of media) {
+    assert.equal(createHash("sha1").update(file.bytes).digest("hex"), file.sha1, file.name);
+    assert.equal(file.size, file.bytes.length);
+    assert.equal(file.mimeType, "image/png");
+  }
+  const referenced = new Set(notes.flatMap((note) => Object.values(note.media)));
+  assert.ok(media.every((file) => referenced.has(file.sha1)));
+  assert.deepEqual(preview.report.missingMedia, ["fehlt.png"]);
+  assert.deepEqual(preview.report.warnings, ["1 referenziertes Medium fehlt im Paket."]);
+  assert.equal(preview.commitGraph.mediaCount, 3);
+  assert.ok(preview.sampleMedia.length > 0);
+  for (const file of preview.sampleMedia) assert.equal(createHash("sha1").update(file.bytes).digest("hex"), file.sha1);
+});
+
+test("eine beschädigte Mediendatei bricht den Commit mit ihrem Namen ab", async () => {
+  const graph = {
+    decks: [], notes: [], cards: [], reviewEvents: [], noteTypeSources: [], noteSources: [],
+    mediaFiles: [{ name: "bild.png", sha1: "0".repeat(40), size: 1, mimeType: "image/png", readBytes: async () => new Uint8Array([1]) }],
+  } as unknown as ApkgImportGraph;
+  const kinds: string[] = [];
+
+  await assert.rejects(async () => {
+    for await (const chunk of createImportGraphChunks(graph)) kinds.push(chunk.kind);
+  }, { message: "Die Mediendatei „bild.png“ ist beschädigt." });
+  assert.deepEqual(kinds, ["decks", "note-type-sources"]);
+});
+
+test("Pakete ohne importierbare Inhalte und kaputte Archive werden sichtbar abgelehnt", async () => {
+  await assert.rejects(createApkgImportPreview(await fixtureFile("matrix/empty-latest.apkg")), { message: "Keine importierbaren Anki-Inhalte mit Karten erkannt." });
+  await assert.rejects(createApkgImportPreview(await fixtureFile("matrix/broken.apkg")), { message: "Die APKG-Datei enthält kein gültiges ZIP-Verzeichnis." });
+  await assert.rejects(createApkgImportPreview(new File([], "stapel.zip")), /\.apkg oder \.colpkg/);
+});
+
+test("ohne Worker verweigert ein Browser den APKG-Import", async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", { configurable: true, value: {} });
+  try {
+    await assert.rejects(createApkgImportPreview(await fixtureFile("world-capitals.apkg")), { message: "APKG-Import benötigt einen unterstützten Web Worker." });
+  } finally {
+    if (descriptor) Object.defineProperty(globalThis, "window", descriptor);
+    else Reflect.deleteProperty(globalThis, "window");
+  }
 });
 
 test("APKG-Workerfehler beenden Vorschau und Commit sichtbar statt den Import hängen zu lassen", async () => {
   let phase: "parse" | "commit" = "parse";
-  let terminated = false;
-  class FailingWorker {
-    onmessage: ((event: { data: unknown }) => void) | null = null;
-    onerror: (() => void) | null = null;
-    postMessage(request: { type: string; requestId: string }) {
-      queueMicrotask(() => {
-        if (request.type === "commit" || phase === "parse") {
-          this.onerror?.();
-          return;
-        }
-        this.onmessage?.({ data: {
-          type: "result", requestId: request.requestId,
-          result: {
-            summary: createCoreDeck({ id: "worker-deck", name: "Worker", cards: [] }), sampleCards: [], mediaFiles: [],
-            report: { warnings: [], errors: [], apkg: { detectedDecks: 1, detectedCards: 0, detectedNotes: 0 } },
-            commitGraph: { kind: "worker-import", deckCount: 1, cardCount: 0 },
-          },
-        } });
-      });
+  await withFakeWorker((worker, request) => {
+    if (request.type === "commit" || phase === "parse") {
+      worker.onerror?.();
+      return;
     }
-    terminate() { terminated = true; }
-  }
-  const workerDescriptor = Object.getOwnPropertyDescriptor(globalThis, "Worker");
-  Object.defineProperty(globalThis, "Worker", { configurable: true, value: FailingWorker });
-  const file = { name: "worker.apkg", size: 1, arrayBuffer: async () => new ArrayBuffer(1) };
-  try {
-    await assert.rejects(createApkgImportPreview(file), /Worker.*abgebrochen/);
-    assert.equal(terminated, true);
+    worker.reply({ type: "result", requestId: request.requestId, result: VALID_DESCRIPTOR });
+  }, async () => {
+    await assert.rejects(createApkgImportPreview(workerFile()), { message: "APKG-Import-Worker ist unerwartet abgebrochen." });
+    assert.equal(FakeWorker.instances[0].terminated, true);
+
     phase = "commit";
-    terminated = false;
-    const { preview } = await createApkgImportPreview(file);
-    assert.ok(preview);
+    const preview = await createApkgImportPreview(workerFile());
+    const worker = FakeWorker.instances[1];
+    assert.equal(worker.terminated, false);
     let timeout: ReturnType<typeof setTimeout> | undefined;
     try {
       await assert.rejects(Promise.race([
         preview.commitGraph.streamChunks(async () => undefined),
         new Promise((_, reject) => { timeout = setTimeout(() => reject(new Error("Worker-Commit hängt.")), 2_000); }),
-      ]), /Worker.*abgebrochen/);
-      assert.equal(terminated, true);
+      ]), { message: "APKG-Import-Worker ist unerwartet abgebrochen." });
+      assert.equal(worker.terminated, true);
     } finally {
       clearTimeout(timeout);
       preview.commitGraph.dispose();
     }
-  } finally {
-    if (workerDescriptor) Object.defineProperty(globalThis, "Worker", workerDescriptor);
-    else Reflect.deleteProperty(globalThis, "Worker");
-  }
-});
-
-test("jede echte Anki-Karte wird als eigenständige CoRe-Karte importiert", () => {
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
-    templates: [
-      { name: "Vorwärts", ord: 0, qfmt: "{{Front}}", afmt: "{{Back}}" },
-      { name: "Rückwärts", ord: 1, qfmt: "{{Back}}", afmt: "{{Front}}" },
-    ],
-    cards: [{ id: 20, nid: 10, did: 1, ord: 0 }, { id: 21, nid: 10, did: 1, ord: 1 }],
-  }));
-  const deck = importNormalizedDeck(normalizedDeck, { dryRun: false }).deck;
-  assert.equal(deck?.cards.length, 2);
-  assert.deepEqual(deck?.cards.map((card: any) => card.sourceCardId), ["20", "21"]);
-  assert.equal(deck?.cards.every((card: any) => card.variants.length === 0), true);
-  assert.notEqual(deck?.cards[0].reviewState.id, deck?.cards[1].reviewState.id);
-});
-
-test("APKG-Import ordnet eine reine Bild-Vorderseite dem echten Anki-Template zu", () => {
-  const imported = importImageFrontFixture();
-  const card = imported.deck.cards[0];
-  const definition = imported.commitGraph.noteTypeDefinitions.find((candidate: any) => candidate.id === card.noteTypeDefinitionId);
-  const question = renderLearningItemPresentation({ item: card, definition, side: "question", surface: "review", theme: "light" });
-  const answer = renderLearningItemPresentation({ item: card, definition, side: "answer", surface: "review", theme: "light" });
-
-  assert.deepEqual(card.projection, { kind: "template", recipeId: definition.recipes[0].id, instanceKey: "default" });
-  assert.notEqual(card.originalFront, card.originalBack);
-  assert.match(question.srcdoc, /person\.jpg/);
-  assert.doesNotMatch(question.srcdoc, /Antwort/);
-  assert.equal(answer.accessibleText, "Antwort");
-  assert.doesNotMatch(answer.srcdoc, /person\.jpg/);
-});
-
-test("APKG-Import projiziert vorhandene Karten mit Anki-Anforderung none getrennt", () => {
-  const parsed = parsedApkgFixture({
-    fields: [{ name: "Vorderseite" }, { name: "Rückseite" }],
-    templates: [{ name: "Karte 1", ord: 0, qfmt: "{{Vorderseite}}", afmt: "{{Rückseite}}" }],
-    noteFields: "Nur vorne\u001fNur hinten",
   });
-  const models = JSON.parse(parsed.colRows[0].models);
-  models[99].req = [[0, "none", []]];
-  parsed.colRows[0].models = JSON.stringify(models);
-
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsed);
-  const imported = importNormalizedDeck(normalizedDeck, { dryRun: false });
-  const card = imported.deck.cards[0];
-
-  assert.equal(card.originalFront, "Nur vorne");
-  assert.equal(card.originalBack, "Nur hinten");
-  assert.notEqual(card.originalFront, card.originalBack);
-  assert.equal(card.projection.instanceKey, "default");
 });
 
-test("APKG-Bericht zählt und erkennt eigenständige Karten statt Notizen", () => {
-  const parsed = parsedApkgFixture({
-    templates: [
-      { name: "Vorwärts", ord: 0, qfmt: "{{Front}}", afmt: "{{Back}}" },
-      { name: "Rückwärts", ord: 1, qfmt: "{{Back}}", afmt: "{{Front}}" },
-    ],
-    cards: [{ id: 20, nid: 10, did: 1, ord: 0 }, { id: 21, nid: 10, did: 1, ord: 1 }],
-  });
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsed);
-  const existing = createCoreDeck({
-    id: "existing",
-    source: "anki-apkg",
-    cards: [createBasicLearningItem("existing", "Lokal geändert", "Andere Antwort", { id: "local-20", source: "anki-apkg", sourceType: "anki_import", sourceCardId: "20" })],
+test("Parserfehler und Berichtsfehler des Workers bleiben sichtbar", async () => {
+  await withFakeWorker((worker, request) => {
+    worker.reply({ type: "progress", requestId: request.requestId, step: "validate" });
+    worker.reply({ type: "error", requestId: request.requestId, message: "Die APKG-Datei enthält kein gültiges ZIP-Verzeichnis." });
+  }, async () => {
+    const steps: string[] = [];
+    await assert.rejects(createApkgImportPreview(workerFile(), { onStep: (step) => steps.push(step) }), { message: "Die APKG-Datei enthält kein gültiges ZIP-Verzeichnis." });
+    assert.deepEqual(steps, ["validate"]);
+    assert.equal(FakeWorker.instances[0].terminated, true);
   });
 
-  const report = createApkgReportDetails(parsed, normalizedDeck, [existing], { skipped: [], duplicates: [] });
-  assert.equal(report.createdCoreItems, 2);
-  assert.deepEqual(report.reimport, { newItems: 1, matchedItems: 1, skippedItems: 0 });
-});
-
-test("jede Anki-Cloze-Gruppe wird eigenständig importiert", () => {
-  const { normalizedDeck } = mapAnkiApkgToNormalizedDeck(parsedApkgFixture({
-    modelType: 1,
-    fields: [{ name: "Text" }, { name: "Extra" }],
-    templates: [{ name: "Cloze", ord: 0, qfmt: "{{cloze:Text}}", afmt: "{{cloze:Text}}<hr>{{Extra}}" }],
-    noteFields: "{{c1::Berlin}} und {{c2::Paris}}\u001fEuropa",
-    cards: [{ id: 20, nid: 10, did: 1, ord: 0 }, { id: 21, nid: 10, did: 1, ord: 1 }],
-  }));
-  const deck = importNormalizedDeck(normalizedDeck, { dryRun: false }).deck;
-  assert.equal(deck?.cards.length, 2);
-  assert.deepEqual(deck?.cards.map((card: any) => card.sourceCardId), ["20", "21"]);
-});
-
-test("APKG hierarchy imports immediate parents and complete paths beyond level eight", async () => {
-  const segments = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
-  const decks = segments.map((_, index) => ({ id: String(index + 1), name: segments.slice(0, index + 1).join("::") }));
-  const parsed = parsedApkgFixture({
-    decks,
-    cards: [{ id: 20, nid: 10, did: "10", ord: 0 }],
+  await withFakeWorker((worker, request) => {
+    worker.reply({ type: "result", requestId: request.requestId, result: { ...VALID_DESCRIPTOR, report: { errors: ["Keine importierbaren Anki-Inhalte mit Karten erkannt."], warnings: [] } } });
+  }, async () => {
+    await assert.rejects(createApkgImportPreview(workerFile()), { message: "Keine importierbaren Anki-Inhalte mit Karten erkannt." });
+    assert.equal(FakeWorker.instances[0].terminated, true);
   });
-  const first = prepareApkgWorkerResult(await parseApkgToNormalizedImport(parsed));
-  const second = prepareApkgWorkerResult(await parseApkgToNormalizedImport(parsed));
-  const importedDecks = first.commitGraph.decks;
-  const bySourcePath = new Map(importedDecks.map((deck: any) => [deck.importMeta.sourceMetadata.ankiDeckPath, deck]));
-  const g = bySourcePath.get("A::B::C::D::E::F::G") as any;
-  const h = bySourcePath.get("A::B::C::D::E::F::G::H") as any;
-  const i = bySourcePath.get("A::B::C::D::E::F::G::H::I") as any;
-  const j = bySourcePath.get("A::B::C::D::E::F::G::H::I::J") as any;
 
-  assert.deepEqual([h.parentDeckId, i.parentDeckId, j.parentDeckId], [g.id, h.id, i.id]);
-  assert.deepEqual(h.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "H"]);
-  assert.deepEqual(i.hierarchyPath, ["A", "B", "C", "D", "E", "F", "G", "H", "I"]);
-  assert.deepEqual(j.hierarchyPath, segments);
-  assert.equal(j.importMeta.sourceMetadata.ankiDeckDepth, undefined);
-  assert.equal(j.importMeta.sourceMetadata.ankiParentPath, undefined);
-  assert.equal(first.report.warnings.some((warning: string) => warning.includes("abgeflacht")), false);
-  assert.deepEqual(j.cards[0].tags, ["tag"]);
-  assert.deepEqual(second.commitGraph.decks.map((deck: any) => deck.id), importedDecks.map((deck: any) => deck.id));
-});
-
-test("Reimport ersetzt nur bei neuerer Anki-Änderungszeit den Inhalt und erhält den Lernstatus", () => {
-  const reviewState = createReviewState({ state: "review", repetitions: 12, stability: 30, dueAt: "2026-09-01T04:00:00.000Z" });
-  const existingCard = createBasicLearningItem("existing", "Alt", "Antwort", { id: "local", source: "anki-apkg", sourceType: "anki_import", sourceCardId: "20", reviewState, status: "suspended", meta: { ankiModifiedAt: "2026-08-20T10:00:00.000Z" } });
-  const incomingCard = createBasicLearningItem("incoming", "Neu", "Antwort", { id: "remote", source: "anki-apkg", sourceType: "anki_import", sourceCardId: "20", meta: { ankiModifiedAt: "2026-08-21T10:00:00.000Z" } });
-  const existing = createCoreDeck({
-    id: "existing",
-    name: "Lokaler Name",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    parentDeckId: "local-parent",
-    hierarchyPath: ["Lokale Ordnung", "Lokaler Name"],
-    deckSettings: { coreMode: "manual", newCardsPerDay: 7 },
-    cards: [existingCard],
+  await withFakeWorker((worker) => {
+    worker.reply({ type: "result", requestId: "fremd", result: VALID_DESCRIPTOR });
+  }, async () => {
+    await assert.rejects(createApkgImportPreview(workerFile()), { message: "APKG-Worker hat eine ungültige Nachricht geliefert." });
   });
-  const incoming = createCoreDeck({
-    id: "incoming",
-    name: "Anki Name",
-    source: "anki-apkg",
-    originalDeckId: "1",
-    parentDeckId: "anki-parent",
-    hierarchyPath: ["Anki Ordnung", "Anki Name"],
-    deckSettings: { coreMode: "off", newCardsPerDay: 20 },
-    cards: [incomingCard],
+});
+
+test("der Worker-Commit liefert Abschnitte einzeln nach Bestätigung und endet mit commit-done", async () => {
+  const chunks: ImportGraphChunk[] = [
+    { kind: "decks", decks: [] },
+    { kind: "reviews", values: [] },
+  ];
+  await withFakeWorker((worker, request) => {
+    if (request.type === "parse") {
+      worker.reply({ type: "result", requestId: request.requestId, result: VALID_DESCRIPTOR });
+      return;
+    }
+    const sent = worker.requests.filter((item) => item.type !== "parse").length - 1;
+    if (sent < chunks.length) worker.reply({ type: "commit-chunk", requestId: request.requestId, chunk: chunks[sent] });
+    else worker.reply({ type: "commit-done", requestId: request.requestId });
+  }, async () => {
+    const preview = await createApkgImportPreview(workerFile());
+    const worker = FakeWorker.instances[0];
+    assert.equal(preview.rootDeckName, "Worker");
+    assert.equal(preview.fileName, "worker.apkg");
+    assert.deepEqual(preview.commitGraph.ankiGuids, ["guid-1"]);
+    assert.equal(preview.commitGraph.cardCount, 1);
+
+    const visited: string[] = [];
+    await preview.commitGraph.streamChunks(async (chunk) => { visited.push(chunk.kind); });
+
+    assert.deepEqual(visited, ["decks", "reviews"]);
+    assert.deepEqual(worker.requests.map((item) => item.type), ["parse", "commit", "commit-next", "commit-next"]);
+    assert.equal(worker.terminated, true);
   });
-  const merged = mergeImportedDeck(incoming, [existing]);
-  assert.equal(merged.name, "Lokaler Name");
-  assert.equal(merged.parentDeckId, "local-parent");
-  assert.deepEqual(merged.hierarchyPath, ["Lokale Ordnung", "Lokaler Name"]);
-  assert.equal(merged.deckSettings.coreMode, "manual");
-  assert.equal(merged.deckSettings.newCardsPerDay, 7);
-  assert.equal(merged.cards[0].id, "local");
-  assert.equal(merged.cards[0].originalFront, "Neu");
-  assert.equal(merged.cards[0].reviewState.dueAt, reviewState.dueAt);
-  assert.equal(merged.cards[0].reviewState.repetitions, reviewState.repetitions);
-  assert.equal(merged.cards[0].reviewState.stability, reviewState.stability);
-  assert.equal(merged.cards[0].status, "suspended");
-
-  const older = mergeImportedDeck({ ...incoming, cards: [{ ...incomingCard, originalFront: "Zu alt", meta: { ankiModifiedAt: "2026-08-19T10:00:00.000Z" } }] }, [merged]);
-  assert.equal(older.cards[0].originalFront, "Neu");
 });
 
-test("Reimport repariert den unberührten alten Feld-Fallback bei gleichem Anki-Zeitstempel", () => {
-  const imported = importImageFrontFixture();
-  const incomingDeck = imported.deck;
-  const incomingCard = incomingDeck.cards[0];
-  const definition = imported.commitGraph.noteTypeDefinitions.find((candidate: any) => candidate.id === incomingCard.noteTypeDefinitionId);
-  const legacyProjection = projectLearningItemContent({
-    document: incomingCard.contentDocument,
-    definition: {
-      ...definition,
-      recipes: definition.recipes.map((recipe: any) => ({
-        ...recipe,
-        generationRule: { kind: "field", fieldId: "missing-field", present: true },
-      })),
-    },
-  }).cards[0];
-  const reviewState = createReviewState({ state: "review", repetitions: 9, stability: 21, dueAt: "2026-10-01T04:00:00.000Z" });
-  const variant = createCardVariant({ id: "variant-local", cardId: "local-card", front: "Variante", back: "Antwortvariante" });
-  const existingCard = {
-    ...incomingCard,
-    id: "local-card",
-    originalFront: legacyProjection.front,
-    originalBack: legacyProjection.back,
-    canonicalQuestion: legacyProjection.front,
-    canonicalAnswer: legacyProjection.back,
-    projection: legacyProjection.projection,
-    contentRevision: 1,
-    reviewState,
-    status: "suspended",
-    variants: [variant],
-    meta: { ...incomingCard.meta, marked: true },
-  };
-  const existingDeck = createCoreDeck({ ...incomingDeck, id: "existing-deck", cards: [existingCard] });
-  const repaired = mergeImportedDeck(incomingDeck, [existingDeck]).cards[0];
-
-  assert.equal(repaired.id, "local-card");
-  assert.match(repaired.originalFront, /person\.jpg/);
-  assert.doesNotMatch(repaired.originalFront, /Antwort/);
-  assert.match(repaired.originalBack, /Antwort/);
-  assert.notEqual(repaired.originalFront, repaired.originalBack);
-  assert.equal(repaired.reviewState.dueAt, reviewState.dueAt);
-  assert.equal(repaired.reviewState.repetitions, reviewState.repetitions);
-  assert.equal(repaired.status, "suspended");
-  assert.deepEqual(repaired.variants, [variant]);
-  assert.equal(repaired.meta.marked, true);
+test("ein fehlgeschlagener Commit-Abschnitt beendet den Worker mit der Fehlermeldung", async () => {
+  await withFakeWorker((worker, request) => {
+    if (request.type === "parse") worker.reply({ type: "result", requestId: request.requestId, result: VALID_DESCRIPTOR });
+    else worker.reply({ type: "commit-chunk", requestId: request.requestId, chunk: { kind: "decks", decks: [] } });
+  }, async () => {
+    const preview = await createApkgImportPreview(workerFile());
+    await assert.rejects(
+      preview.commitGraph.streamChunks(async () => { throw new Error("Speicher voll."); }),
+      { message: "Speicher voll." },
+    );
+    assert.equal(FakeWorker.instances[0].terminated, true);
+    assert.deepEqual(FakeWorker.instances[0].requests.map((item) => item.type), ["parse", "commit"]);
+  });
 });
 
-test("Reimport überschreibt keinen lokal bearbeiteten alten Feld-Fallback", () => {
-  const imported = importImageFrontFixture();
-  const incomingDeck = imported.deck;
-  const incomingCard = incomingDeck.cards[0];
-  const existingCard = {
-    ...incomingCard,
-    id: "local-card",
-    originalFront: "Lokal bearbeitete Vorderseite",
-    originalBack: "Lokal bearbeitete Rückseite",
-    canonicalQuestion: "Lokal bearbeitete Vorderseite",
-    canonicalAnswer: "Lokal bearbeitete Rückseite",
-    projection: { kind: "template" as const, recipeId: `${incomingCard.noteTypeDefinitionId}-forward`, instanceKey: "fallback" },
-    contentRevision: 2,
-  };
-  const existingDeck = createCoreDeck({ ...incomingDeck, id: "existing-deck", cards: [existingCard] });
-  const preserved = mergeImportedDeck(incomingDeck, [existingDeck]).cards[0];
+test("ein Abbruch beendet die Worker-Analyse als AbortError", async () => {
+  await withFakeWorker(() => undefined, async () => {
+    const controller = new AbortController();
+    const pending = createApkgImportPreview(workerFile(), { signal: controller.signal });
+    controller.abort();
 
-  assert.equal(preserved.id, "local-card");
-  assert.equal(preserved.originalFront, "Lokal bearbeitete Vorderseite");
-  assert.equal(preserved.originalBack, "Lokal bearbeitete Rückseite");
-});
-
-test("die echte World-Capitals-APKG bleibt importierbar", async () => {
-  const bytes = await readFile(new URL("../fixtures/apkg/world-capitals.apkg", import.meta.url));
-  const file = { name: "world-capitals.apkg", size: bytes.length, arrayBuffer: async () => bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) };
-  const prepared = prepareApkgWorkerResult(await parseApkgToNormalizedImport(file));
-  const committed = commitApkgImport(prepared);
-  assert.equal(committed.decks.length > 0, true);
-  assert.equal(committed.decks.flatMap((deck: any) => deck.cards).every((card: any) => card.sourceCardId && card.variants.length === 0), true);
+    await assert.rejects(pending, (error: unknown) => error instanceof DOMException && error.name === "AbortError" && error.message === "APKG-Import wurde abgebrochen.");
+    assert.equal(FakeWorker.instances[0].terminated, true);
+  });
 });

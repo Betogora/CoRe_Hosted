@@ -1,4 +1,5 @@
-import type { CardVariant, Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
+import type { Card, CardVariant, Deck, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
+import { reviewStateFromCardStudy } from "./coreModel.ts";
 import { learningDayIndexFromLocalTime, normalizeDayStartHour } from "./learningDay.ts";
 import { calculateRetrievability } from "./scheduler.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey, type StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -454,8 +455,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       if (!scopeIds.has(event.deckId)) return;
       const details = eventDetails(event);
       if (!details || details.before.intervalDays < 1 || details.local.dayIndex > nowLocal.dayIndex) return;
-      const reviewableId = event.reviewableId || event.variantId || event.learningItemId;
-      const key = `${reviewableId}\0${details.local.dayIndex}`;
+      const key = `${event.cardId}\0${details.local.dayIndex}`;
       if (key === lastRetentionKey) return;
       lastRetentionKey = key;
       addRetention(allRetention, details.before, details.rating);
@@ -468,22 +468,22 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         addRetention(previousRetention, details.before, details.rating);
       }
     },
-    addCard(deckId: string, item: LearningItem) {
+    addCard(deckId: string, card: Card) {
       if (!scopeIds.has(deckId)) return;
       learningItems += 1;
-      if (item.status === "suspended") suspendedItems += 1;
-      if (item.status === "deleted") deletedItems += 1;
-      const created = Date.parse(item.createdAt);
+      if (card.status === "suspended") suspendedItems += 1;
+      if (card.deletedAt) deletedItems += 1;
+      const created = Date.parse(card.createdAt);
       if (Number.isFinite(created)) {
         const createdDay = resolveLocalTime(created).dayIndex;
         earliestDay = Math.min(earliestDay, createdDay);
         addedByDay.set(createdDay, (addedByDay.get(createdDay) ?? 0) + 1);
       }
-      const state = item.reviewState;
-      if (item.status !== "deleted" && item.status !== "suspended" && item.draftStatus !== "draft" && state) addCurrentState(deckId, state);
-      const dueKey = getStudyHeatmapDayKey(state?.dueAt, timeZone, dayStartHour);
+      const state = reviewStateFromCardStudy(card.study);
+      if (!card.deletedAt && card.status === "active") addCurrentState(deckId, state);
+      const dueKey = getStudyHeatmapDayKey(state.dueAt, timeZone, dayStartHour);
       const nowKey = keyFromDayIndex(nowLocal.dayIndex);
-      if (dueKey && dueKey > nowKey && dueKey <= shiftDayKey(nowKey, 365) && item.status !== "deleted" && item.draftStatus !== "draft") {
+      if (dueKey && dueKey > nowKey && dueKey <= shiftDayKey(nowKey, 365) && !card.deletedAt) {
         forecastCounts.set(dueKey, (forecastCounts.get(dueKey) ?? 0) + 1);
       }
     },
@@ -595,9 +595,7 @@ export function projectStatistics(decks: Deck[], input: StatisticsSelection): St
   const events = decks.flatMap((deck) => deck.reviewEvents ?? []);
   for (const event of events) accumulator.addReview(event);
   for (const event of [...events].sort((left, right) => {
-    const leftId = left.reviewableId || left.variantId || left.learningItemId;
-    const rightId = right.reviewableId || right.variantId || right.learningItemId;
-    return leftId.localeCompare(rightId) || left.answeredAt.localeCompare(right.answeredAt) || left.id.localeCompare(right.id);
+    return left.cardId.localeCompare(right.cardId) || left.answeredAt.localeCompare(right.answeredAt) || left.id.localeCompare(right.id);
   })) accumulator.addRetentionReview(event);
   for (const deck of decks) for (const item of deck.cards ?? []) {
     accumulator.addCard(deck.id, item);

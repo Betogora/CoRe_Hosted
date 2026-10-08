@@ -1,77 +1,53 @@
-import type { ReviewRating, ReviewSchedulerState, ReviewState, ReviewStateBase, VariantPerformance } from "../coreTypes.ts";
-import { REVIEW_RATINGS, getMaturityBand, makeId, stableContentHash } from "./coreValues.ts";
+import type { CardStudyState, ReviewRating, ReviewSchedulerState, ReviewState, VariantPerformance } from "../coreTypes.ts";
+import { REVIEW_RATINGS, getMaturityBand, stableContentHash } from "./coreValues.ts";
 
 type StringMap = Record<string, unknown>;
-type ReviewStateInput = Partial<Omit<ReviewStateBase, "state" | "reps" | "repetitions">> & { state?: ReviewSchedulerState | null; reps?: number | null; repetitions?: number | null };
-interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> { id?: string | null; ratingCounts?: Partial<Record<ReviewRating, number>>; againCount?: number; hardCount?: number; goodCount?: number; easyCount?: number; attempts?: number | null; }
-interface VariantReviewEventInput { id?: string; userId?: string; deckId?: string; learningItemId?: string; variantId?: string; rating?: ReviewRating; answeredAt?: string; responseTimeMs?: number | null; schedulerBefore?: unknown; schedulerAfter?: unknown; flags?: StringMap; createdAt?: string; }
+type ReviewStateInput = Partial<Omit<ReviewState, "state" | "reps">> & { state?: ReviewSchedulerState | null; reps?: number | null };
+interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> { id?: string | null; ratingCounts?: Partial<Record<ReviewRating, number>>; attempts?: number | null; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 
-export function createLearningItemState({
-  id = makeId("state"),
-  learningItemId = "",
-  reviewableType = "card",
-  reviewableId = learningItemId,
-  userId = "local-user",
-  schedulerVersion = "fsrs_6_v1",
-  state = null,
-  dueAt = new Date().toISOString(),
-  intervalDays = 0,
-  ease = 2.5,
-  difficulty = 5,
-  stability = 0,
-  desiredRetention = 0.9,
-  retrievability = null,
-  reps = null,
-  repetitions = null,
-  lapses = 0,
-  maturityXp = 0,
-  lastReviewedAt = null,
-  lastRating = null,
-  preferredVariantLevel = 1,
-  forcedVariantId = null,
-  fallbackUntilCorrect = false,
-  lastFailedVariantId = null,
-  previousSuccessfulVariantId = null,
-  intervalMinutes = null,
-  learningStepIndex = 0,
-  learningSuccessCount = 0,
-  firstLearningAt = null,
-  lastLearningStepAt = null,
-  graduatedAt = null,
-  isGraduated = false,
-  sameDaySuccessCount = 0,
-  learningDayKey = null,
-  schedulerParamsJson = null,
-  sourceSchedulerData = null,
-}: ReviewStateInput = {}): ReviewState {
-  const normalizedLearningItemId = learningItemId || reviewableId || "";
-  const normalizedReviewableId = reviewableId || normalizedLearningItemId;
+/** Normalizes a flat scheduler state; unknown keys of older snapshots are ignored. */
+export function createReviewState(input: unknown = {}): ReviewState {
+  const {
+    schedulerVersion = "fsrs_6_v1",
+    state = null,
+    dueAt = new Date().toISOString(),
+    intervalDays = 0,
+    difficulty = 5,
+    stability = 0,
+    desiredRetention = 0.9,
+    reps = null,
+    lapses = 0,
+    maturityXp = 0,
+    lastReviewedAt = null,
+    lastRating = null,
+    preferredVariantLevel = 1,
+    forcedVariantId = null,
+    fallbackUntilCorrect = false,
+    lastFailedVariantId = null,
+    previousSuccessfulVariantId = null,
+    intervalMinutes = null,
+    learningStepIndex = 0,
+    learningSuccessCount = 0,
+    firstLearningAt = null,
+    lastLearningStepAt = null,
+    graduatedAt = null,
+    isGraduated = false,
+    learningDayKey = null,
+    sourceSchedulerData = null,
+  } = objectRecord(input) as ReviewStateInput;
   const normalizedMaturityXp = Math.max(0, Math.round(Number(maturityXp ?? 0)));
-  const normalizedReps = Math.max(0, Math.round(Number(reps ?? repetitions ?? 0) || 0));
-  const normalizedState: ReviewSchedulerState = state ?? (normalizedReps > 0 ? "review" : "new");
-  const normalizedDifficulty = Math.min(10, Math.max(1, Number(difficulty ?? 5) || 5));
-  const normalizedStability = Math.max(0, Number(stability ?? 0) || 0);
-  const normalizedDesiredRetention = Math.min(0.99, Math.max(0.5, Number(desiredRetention ?? 0.9) || 0.9));
-
+  const normalizedReps = Math.max(0, Math.round(Number(reps ?? 0) || 0));
   return {
-    id,
-    learningItemId: normalizedLearningItemId,
-    reviewableType,
-    reviewableId: normalizedReviewableId,
-    userId,
     schedulerVersion,
-    state: normalizedState,
+    state: state ?? (normalizedReps > 0 ? "review" : "new"),
     dueAt,
-    intervalDays,
-    ease,
-    difficulty: normalizedDifficulty,
-    stability: normalizedStability,
-    desiredRetention: normalizedDesiredRetention,
-    retrievability: retrievability == null ? null : Math.min(1, Math.max(0, Number(retrievability) || 0)),
+    intervalDays: Math.max(0, Number(intervalDays) || 0),
+    difficulty: Math.min(10, Math.max(1, Number(difficulty ?? 5) || 5)),
+    stability: Math.max(0, Number(stability ?? 0) || 0),
+    desiredRetention: Math.min(0.99, Math.max(0.5, Number(desiredRetention ?? 0.9) || 0.9)),
     reps: normalizedReps,
-    repetitions: normalizedReps,
-    lapses,
+    lapses: Math.max(0, Math.round(Number(lapses) || 0)),
     maturityXp: normalizedMaturityXp,
     maturityBand: getMaturityBand(normalizedMaturityXp),
     lastReviewedAt,
@@ -88,36 +64,59 @@ export function createLearningItemState({
     lastLearningStepAt,
     graduatedAt,
     isGraduated: Boolean(isGraduated || graduatedAt),
-    sameDaySuccessCount: Math.max(0, Math.round(Number(sameDaySuccessCount) || 0)),
     learningDayKey,
-    schedulerParamsJson,
     sourceSchedulerData,
-  } as ReviewState;
+  };
 }
 
-export function normalizeLearningItemState(state: unknown = {}, fallback: unknown = {}): ReviewState {
-  const safeState = objectRecord(state) as ReviewStateInput;
-  const safeFallback = objectRecord(fallback) as ReviewStateInput;
-  return createLearningItemState({
-    ...safeFallback,
-    ...safeState,
-    learningItemId: safeState.learningItemId || safeFallback.learningItemId || safeState.reviewableId || safeFallback.reviewableId || "",
-    reviewableType: safeState.reviewableType ?? safeFallback.reviewableType ?? "card",
-    reviewableId: safeState.reviewableId || safeState.learningItemId || safeFallback.reviewableId || safeFallback.learningItemId || "",
-  });
+/** Maps a scheduler state to the card's study columns. */
+export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
+  return {
+    state: state.state,
+    dueAt: state.dueAt,
+    stability: state.stability,
+    difficulty: state.difficulty,
+    reps: state.reps,
+    lapses: state.lapses,
+    intervalDays: state.intervalDays,
+    learningStepIndex: state.learningStepIndex,
+    lastReviewedAt: state.lastReviewedAt,
+    lastRating: state.lastRating,
+    extra: {
+      schedulerVersion: state.schedulerVersion,
+      desiredRetention: state.desiredRetention,
+      maturityXp: state.maturityXp,
+      maturityBand: state.maturityBand,
+      preferredVariantLevel: state.preferredVariantLevel,
+      forcedVariantId: state.forcedVariantId,
+      fallbackUntilCorrect: state.fallbackUntilCorrect,
+      lastFailedVariantId: state.lastFailedVariantId,
+      previousSuccessfulVariantId: state.previousSuccessfulVariantId,
+      intervalMinutes: state.intervalMinutes,
+      learningSuccessCount: state.learningSuccessCount,
+      firstLearningAt: state.firstLearningAt,
+      lastLearningStepAt: state.lastLearningStepAt,
+      graduatedAt: state.graduatedAt,
+      isGraduated: state.isGraduated,
+      learningDayKey: state.learningDayKey,
+      sourceSchedulerData: state.sourceSchedulerData,
+    },
+  };
 }
-export function createReviewState(state: unknown = {}): ReviewState {
-  const safeState = objectRecord(state) as ReviewStateInput;
-  return createLearningItemState({
-    ...safeState,
-    reviewableType: safeState.reviewableType ?? "card",
-    reviewableId: safeState.reviewableId ?? safeState.learningItemId ?? "",
-  });
+
+/** Flat scheduler view of the card's study columns (K2.5). */
+export function reviewStateFromCardStudy(study: CardStudyState): ReviewState {
+  const { extra, ...queue } = study;
+  return createReviewState({ ...extra, ...queue });
+}
+
+export function createCardStudy(dueAt: string): CardStudyState {
+  return cardStudyFromReviewState(createReviewState({ dueAt }));
 }
 
 export function createVariantPerformance({
   id = null,
-  learningItemId = "",
+  cardId = "",
   variantId = "",
   userId = "local-user",
   attempts = null,
@@ -125,10 +124,6 @@ export function createVariantPerformance({
   correctCount = 0,
   wrongCount = 0,
   ratingCounts = {},
-  againCount = 0,
-  hardCount = 0,
-  goodCount = 0,
-  easyCount = 0,
   avgResponseTimeMs = null,
   averageResponseTimeMs = null,
   lastReviewedAt = null,
@@ -143,8 +138,8 @@ export function createVariantPerformance({
   const normalizedAverageResponseTimeMs = averageResponseTimeMs ?? avgResponseTimeMs;
 
   return {
-    id: id ?? stableContentHash({ learningItemId, variantId, userId }, "variant_perf"),
-    learningItemId,
+    id: id ?? stableContentHash({ cardId, variantId, userId }, "variant_perf"),
+    cardId,
     variantId,
     userId,
     attempts: normalizedAttempts,
@@ -152,10 +147,10 @@ export function createVariantPerformance({
     correctCount: Math.max(0, Number(correctCount) || 0),
     wrongCount: Math.max(0, Number(wrongCount) || 0),
     ratingCounts: {
-      again: Math.max(0, Number(ratingCounts.again ?? againCount) || 0),
-      hard: Math.max(0, Number(ratingCounts.hard ?? hardCount) || 0),
-      good: Math.max(0, Number(ratingCounts.good ?? goodCount) || 0),
-      easy: Math.max(0, Number(ratingCounts.easy ?? easyCount) || 0),
+      again: Math.max(0, Number(ratingCounts.again) || 0),
+      hard: Math.max(0, Number(ratingCounts.hard) || 0),
+      good: Math.max(0, Number(ratingCounts.good) || 0),
+      easy: Math.max(0, Number(ratingCounts.easy) || 0),
     },
     avgResponseTimeMs: normalizedAverageResponseTimeMs,
     averageResponseTimeMs: normalizedAverageResponseTimeMs,
@@ -172,10 +167,10 @@ export function createVariantPerformance({
 export function updateVariantPerformance(
   performance: VariantPerformanceInput = {},
   rating: ReviewRating,
-  { responseTimeMs = null, reviewedAt = new Date().toISOString(), learningItemId = "", variantId = "" }: {
+  { responseTimeMs = null, reviewedAt = new Date().toISOString(), cardId = "", variantId = "" }: {
     responseTimeMs?: number | null;
     reviewedAt?: string;
-    learningItemId?: string;
+    cardId?: string;
     variantId?: string;
   } = {},
 ): VariantPerformance {
@@ -183,7 +178,7 @@ export function updateVariantPerformance(
     throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
   }
 
-  const previous = createVariantPerformance({ ...(performance ?? {}), learningItemId, variantId });
+  const previous = createVariantPerformance({ ...(performance ?? {}), cardId, variantId });
   const attempts = previous.attempts + 1;
   const isCorrect = rating !== "again";
   const previousAverage = Number(previous.avgResponseTimeMs ?? previous.averageResponseTimeMs ?? 0);
@@ -211,41 +206,4 @@ export function updateVariantPerformance(
     masterySignal,
     updatedAt: reviewedAt,
   });
-}
-
-export function createVariantReviewEvent({
-  id = makeId("review"),
-  userId = "local-user",
-  deckId = "",
-  learningItemId = "",
-  variantId = "",
-  rating,
-  answeredAt = new Date().toISOString(),
-  responseTimeMs = null,
-  schedulerBefore = null,
-  schedulerAfter = null,
-  flags = {},
-  createdAt = answeredAt,
-}: VariantReviewEventInput = {}) {
-  if (!rating || !REVIEW_RATINGS.includes(rating)) {
-    throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
-  }
-
-  return {
-    id,
-    userId,
-    deckId,
-    learningItemId,
-    variantId,
-    reviewableType: "variant",
-    reviewableId: variantId,
-    sourceCardId: learningItemId,
-    rating,
-    answeredAt,
-    responseTimeMs,
-    schedulerBefore,
-    schedulerAfter,
-    flags,
-    createdAt,
-  };
 }

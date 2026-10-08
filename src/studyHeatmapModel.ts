@@ -1,5 +1,4 @@
-import type { LearningItem } from "./coreTypes.ts";
-import { isLearningItemReviewBlocked } from "./coreModel.ts";
+import type { Card } from "./coreTypes.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
 const DAY_MS = 86_400_000;
@@ -208,21 +207,16 @@ export function getStudyHeatmapDayKey(value: DateInput | null | undefined, timeZ
 }
 
 export function createStudyHeatmapForecastCounts(
-  items: Iterable<LearningItem>,
+  cards: Iterable<Pick<Card, "status" | "deletedAt" | "study">>,
   { todayKey, timeZone, dayStartHour = 0 }: { todayKey: string; timeZone?: string; dayStartHour?: number },
 ): Map<string, number> {
   const forecastEndKey = shiftDayKey(todayKey, STUDY_HEATMAP_FORECAST_DAYS);
   const countsByDay = new Map<string, number>();
 
-  for (const item of items) {
-    if (
-      item.deletedAt
-      || item.draftStatus === "draft"
-      || item.status === "deleted"
-      || isLearningItemReviewBlocked(item)
-    ) continue;
+  for (const card of cards) {
+    if (card.deletedAt || card.status !== "active") continue;
 
-    const dueAt = item.reviewState.dueAt;
+    const dueAt = card.study.dueAt;
     const dueKey = getStudyHeatmapDayKey(dueAt, timeZone, dayStartHour);
     if (!dueKey || dueKey <= todayKey || dueKey > forecastEndKey) continue;
     countsByDay.set(dueKey, (countsByDay.get(dueKey) ?? 0) + 1);

@@ -1,7 +1,8 @@
-import { createBasicLearningItem, createCoreDeck, createReviewState, normalizeLearningItem } from "../coreModel.ts";
+import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import { simulateRatingOutcome } from "../scheduler.ts";
 import worldCapitalsSource from "../../fixtures/apkg/world-capitals.source.json" with { type: "json" };
-import type { Deck, LearningItem, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
+import type { Card, Deck, Note, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
+import type { ImportCommitGraph } from "../apkgImport.ts";
 
 type WorldCapitalItem = (typeof worldCapitalsSource.items)[number];
 
@@ -174,9 +175,9 @@ function responseTimeFor(profile: StudyProfile, cardIndex: number, eventIndex: n
   return Math.max(1600, profileBase + ratingPenalty + (cardIndex % 8) * 370 + eventIndex * 95);
 }
 
-function createHistoryEvent({ deckId, item, eventIndex, rating, reviewedAt, previousState, nextState, profile, cardIndex }: {
+function createHistoryEvent({ deckId, card, eventIndex, rating, reviewedAt, previousState, nextState, profile, cardIndex }: {
   deckId: string;
-  item: LearningItem;
+  card: Card;
   eventIndex: number;
   rating: ReviewRating;
   reviewedAt: string;
@@ -185,20 +186,18 @@ function createHistoryEvent({ deckId, item, eventIndex, rating, reviewedAt, prev
   profile: StudyProfile;
   cardIndex: number;
 }): ReviewEvent {
+  const snapshot = (state: ReviewState) => ({ card: { state: state.state, dueAt: state.dueAt, intervalDays: state.intervalDays, stability: state.stability, difficulty: state.difficulty, reps: state.reps, lapses: state.lapses } });
   return {
-    id: `review_world_capitals_${item.id.replace(/^card_world_capitals_/, "")}_${String(eventIndex + 1).padStart(2, "0")}`,
+    id: `review_world_capitals_${card.id.replace(/^card_world_capitals_/, "")}_${String(eventIndex + 1).padStart(2, "0")}`,
     userId: "local-user",
     deckId,
-    learningItemId: item.id,
+    cardId: card.id,
     variantId: null,
-    reviewableType: "card" as const,
-    reviewableId: item.id,
-    sourceCardId: item.id,
     rating,
     answeredAt: reviewedAt,
     responseTimeMs: responseTimeFor(profile, cardIndex, eventIndex, rating),
-    schedulerBefore: previousState,
-    schedulerAfter: nextState,
+    schedulerBefore: snapshot(previousState),
+    schedulerAfter: snapshot(nextState),
     flags: {
       fixture: "world-capitals",
       studyHistoryVersion: WORLD_CAPITALS_STUDY_HISTORY.version,
@@ -208,23 +207,24 @@ function createHistoryEvent({ deckId, item, eventIndex, rating, reviewedAt, prev
   };
 }
 
-function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedAt, lastReviewedAt, rollingState, item }: any) {
+function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedAt, lastReviewedAt, rollingState }: {
+  profile: StudyProfile;
+  cardIndex: number;
+  eventCount: number;
+  firstReviewedAt: string;
+  lastReviewedAt: string;
+  rollingState: ReviewState;
+}) {
   return createReviewState({
     ...rollingState,
-    learningItemId: item.id,
-    reviewableType: "card",
-    reviewableId: item.id,
     state: "review",
     dueAt: dueTimestamp(profile, cardIndex),
     intervalDays: profile.intervalDays(cardIndex),
     intervalMinutes: null,
-    ease: Math.max(1.3, 2.5 - (profile.difficulty(cardIndex) - 5) * 0.08),
     difficulty: profile.difficulty(cardIndex),
     stability: profile.stability(cardIndex),
     desiredRetention: 0.9,
-    retrievability: profile.retrievability,
     reps: eventCount,
-    repetitions: eventCount,
     lapses: typeof profile.lapses === "function" ? profile.lapses(cardIndex) : 0,
     maturityXp: profile.maturityXp(cardIndex),
     lastReviewedAt,
@@ -238,272 +238,118 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
     graduatedAt: rollingState.graduatedAt ?? firstReviewedAt,
     isGraduated: true,
     learningDayKey: null,
-    schedulerParamsJson: {
-      schedulerVersion: "fsrs_6_v1",
-      schedulerKind: "world_capitals_fixture_history",
-      studyProfile: profile.label,
-      studyHistoryVersion: WORLD_CAPITALS_STUDY_HISTORY.version,
-    },
   });
 }
 
-function createCardStudyHistory(deckId: string, card: LearningItem, cardIndex: number, continentIndex: number) {
-  const item = normalizeLearningItem(card);
+function withStudyHistory(deckId: string, card: Card, cardIndex: number, continentIndex: number) {
   const profile = selectStudyProfile(cardIndex);
   const introDay = Math.min(30, Math.floor(cardIndex / 9) + (continentIndex % 3));
-  let rollingState = createReviewState({
-    learningItemId: item.id,
-    reviewableType: "card",
-    reviewableId: item.id,
-    state: "new",
-    dueAt: addDaysIso(HISTORY_START_TIME, introDay),
-    reps: 0,
-    repetitions: 0,
-    maturityXp: 0,
-  });
-  const events: Array<ReturnType<typeof createHistoryEvent>> = [];
+  let rollingState = createReviewState({ state: "new", dueAt: addDaysIso(HISTORY_START_TIME, introDay), reps: 0, maturityXp: 0 });
+  const events: ReviewEvent[] = [];
 
   profile.ratings.forEach((rating, eventIndex) => {
     const plannedDay = introDay + (profile.offsets[eventIndex] ?? profile.offsets.at(-1) ?? 0);
     if (plannedDay > HISTORY_TOTAL_DAYS - 1) return;
-
     const reviewedAt = studyTimestamp(adjustStudyDay(plannedDay), cardIndex, eventIndex);
     const previousState = rollingState;
-    const outcome = simulateRatingOutcome({
-      learningItem: item,
-      previousState,
-      variant: null,
-      rating,
-      now: reviewedAt,
-    });
-    rollingState = outcome.nextReviewState;
-    events.push(
-      createHistoryEvent({
-        deckId,
-        item,
-        eventIndex,
-        rating,
-        reviewedAt,
-        previousState,
-        nextState: rollingState,
-        profile,
-        cardIndex,
-      }),
-    );
+    rollingState = simulateRatingOutcome({ previousState, variant: null, rating, now: reviewedAt }).nextReviewState;
+    events.push(createHistoryEvent({ deckId, card, eventIndex, rating, reviewedAt, previousState, nextState: rollingState, profile, cardIndex }));
   });
 
   const firstReviewedAt = events[0]?.answeredAt ?? addDaysIso(HISTORY_START_TIME, introDay);
   const lastReviewedAt = events.at(-1)?.answeredAt ?? firstReviewedAt;
-  const reviewState = createFinalReviewState({
-    profile,
-    cardIndex,
-    eventCount: events.length,
-    firstReviewedAt,
-    lastReviewedAt,
-    rollingState,
-    item,
-  });
-
+  const study = cardStudyFromReviewState(createFinalReviewState({ profile, cardIndex, eventCount: events.length, firstReviewedAt, lastReviewedAt, rollingState }));
   return {
-    card: normalizeLearningItem({
-      ...item,
-      reviewState,
-      createdAt: HISTORY_DECK_CREATED_AT,
-      updatedAt: HISTORY_DECK_UPDATED_AT,
-      meta: {
-        ...(item.meta ?? {}),
-        studyProfile: profile.label,
-        studyHistoryVersion: WORLD_CAPITALS_STUDY_HISTORY.version,
-        introducedAt: firstReviewedAt,
-      },
-    }),
+    card: { ...card, study, studyRevision: events.length, updatedAt: HISTORY_DECK_UPDATED_AT },
     events,
   };
 }
 
-function createStudyHistoryMaps(decks: Deck[] = []) {
-  const deckById = new Map(decks.map((deck) => [deck.id, deck]));
-  const cardsById = new Map<string, LearningItem>();
-  const eventsByDeckId = new Map<string, Array<ReturnType<typeof createHistoryEvent>>>();
-  let cardIndex = 0;
-
-  WORLD_CAPITALS_FIXTURE.continents.forEach((continent, continentIndex) => {
-    const deck = deckById.get(continent.deckId);
-    const existingCardsById = new Map((deck?.cards ?? []).map((card) => [card.id, card]));
-
-    continent.cards.forEach((fixtureItem) => {
-      const baseCard = existingCardsById.get(fixtureItem.id);
-      if (!baseCard) {
-        cardIndex += 1;
-        return;
-      }
-
-      const history = createCardStudyHistory(continent.deckId, baseCard, cardIndex, continentIndex);
-      cardsById.set(fixtureItem.id, history.card);
-      eventsByDeckId.set(continent.deckId, [...(eventsByDeckId.get(continent.deckId) ?? []), ...history.events]);
-      cardIndex += 1;
-    });
-  });
-
-  return { cardsById, eventsByDeckId };
-}
-
-function isWorldCapitalsDeck(deck: Deck) {
-  return deck?.id === WORLD_CAPITALS_FIXTURE.rootDeck.id || WORLD_CAPITALS_FIXTURE.continents.some((continent) => continent.deckId === deck?.id);
-}
-
-function hasWorldCapitalsStudyHistory(decks: Deck[] = []) {
-  return decks.some((deck) => {
-    const studyHistory = deck.importMeta?.studyHistory;
-    return isWorldCapitalsDeck(deck) && studyHistory != null && typeof studyHistory === "object" && "version" in studyHistory && studyHistory.version === WORLD_CAPITALS_STUDY_HISTORY.version;
-  });
-}
-
-function hasUserWorldCapitalsProgress(decks: Deck[] = []) {
-  return decks
-    .filter(isWorldCapitalsDeck)
-    .some(
-      (deck) =>
-        (deck.reviewEvents ?? []).length > 0 ||
-        (deck.cards ?? []).some((card: { reviewState: { repetitions: any; reps: any; lastReviewedAt: any; }; }) => Number(card.reviewState?.repetitions ?? card.reviewState?.reps ?? 0) > 0 || Boolean(card.reviewState?.lastReviewedAt)),
-    );
-}
-
-function hasWorldCapitalsSeed(decks: Deck[] = []) {
-  const ids = new Set(decks.map((deck) => deck.id));
-  return ids.has(WORLD_CAPITALS_FIXTURE.rootDeck.id) && WORLD_CAPITALS_FIXTURE.continents.every((continent) => ids.has(continent.deckId));
-}
-
-function withStudyHistoryMeta(importMeta: Record<string, unknown> = {}, extra: Record<string, unknown> = {}) {
-  return {
-    ...(importMeta ?? {}),
-    studyHistory: {
-      ...WORLD_CAPITALS_STUDY_HISTORY,
-      ...extra,
-    },
-  };
-}
-
-function createCapitalCard(deckId: string, item: WorldCapitalItem) {
+function createCapitalNote(deckId: string, item: WorldCapitalItem) {
   const front = `Was ist die Hauptstadt von ${item.country}?`;
   const back = item.capitals.length === 1 ? item.capitals[0] : `Hauptstädte: ${item.capitals.join(", ")}`;
-
-  return createBasicLearningItem(deckId, front, back, {
-    id: item.id,
-    source: "anki-apkg",
-    sourceType: "anki_import",
-    sourceRefId: String(item.ankiCardId),
-    sourceCardId: String(item.ankiCardId),
+  const created = createBasicNote(deckId, front, back, {
     tags: ["geo", "hauptstaedte", item.continentId, String(item.cca3).toLowerCase()],
     createdAt: HISTORY_DECK_CREATED_AT,
-    updatedAt: HISTORY_DECK_CREATED_AT,
-    reviewState: {
-      learningItemId: item.id,
-      reviewableType: "card",
-      reviewableId: item.id,
-      dueAt: "2026-07-07T00:00:00.000Z",
-      reps: 0,
-      repetitions: 0,
-      maturityXp: 0,
-    },
-    meta: {
-      fixture: "world-capitals",
-      source: WORLD_CAPITALS_FIXTURE.metadata.source,
-      sourceLicense: WORLD_CAPITALS_FIXTURE.metadata.sourceLicense,
-      sourceUrl: WORLD_CAPITALS_FIXTURE.metadata.sourceUrl,
-      snapshotDate: WORLD_CAPITALS_FIXTURE.metadata.snapshotDate,
-      countryCode: item.cca3,
-      countryCodeAlpha2: item.cca2,
-      countryEnglish: item.countryEnglish,
-      continent: item.continent,
-      ankiCardId: String(item.ankiCardId),
-    },
   });
+  const note: Note = {
+    ...created.note,
+    id: item.id.replace(/^card_/, "note_"),
+    source: "anki-apkg",
+    ankiGuid: String(item.ankiNoteId),
+    importedContentRevision: 1,
+  };
+  const card: Card = { ...created.cards[0], id: item.id, noteId: note.id, ankiCardId: String(item.ankiCardId) };
+  return { note, card };
 }
 
-export function applyWorldCapitalsStudyHistory(decks: Deck[] = []): Deck[] {
-  const history = createStudyHistoryMaps(decks);
-  const totalReviewEvents = [...history.eventsByDeckId.values()].reduce((sum, events) => sum + events.length, 0);
-
-  return decks.map((deck) => {
-    if (!isWorldCapitalsDeck(deck)) return deck;
-
-    const isRoot = deck.id === WORLD_CAPITALS_FIXTURE.rootDeck.id;
-    const nextCards = isRoot ? [] : (deck.cards ?? []).map((card: { id: any; }) => history.cardsById.get(card.id) ?? card);
-    const reviewEvents = isRoot ? [] : history.eventsByDeckId.get(deck.id) ?? [];
-
-    return createCoreDeck({
-      ...deck,
-      cards: nextCards,
-      reviewEvents,
-      createdAt: HISTORY_DECK_CREATED_AT,
-      updatedAt: HISTORY_DECK_UPDATED_AT,
-      importMeta: withStudyHistoryMeta(deck.importMeta, {
-        totalReviewEvents: isRoot ? totalReviewEvents : reviewEvents.length,
-        activeDays: HISTORY_TOTAL_DAYS,
-      }),
-    });
-  });
-}
-
-export function ensureWorldCapitalsStudyHistory(decks: Deck[] = []): Deck[] {
-  if (!hasWorldCapitalsSeed(decks) || hasWorldCapitalsStudyHistory(decks) || hasUserWorldCapitalsProgress(decks)) {
-    return decks;
-  }
-
-  return applyWorldCapitalsStudyHistory(decks);
-}
-
-export function createWorldCapitalsSeedDecks() {
+/** Demo and E2E seed: the world capitals tree with notes, cards and a three-month study history. */
+export function createWorldCapitalsSeed(): { decks: Deck[]; notes: Note[] } {
   const rootDeck = createCoreDeck({
     id: WORLD_CAPITALS_FIXTURE.rootDeck.id,
     name: WORLD_CAPITALS_FIXTURE.rootDeck.name,
     source: "anki-apkg",
     parentDeckId: null,
     hierarchyPath: [WORLD_CAPITALS_FIXTURE.rootDeck.name],
-    originalDeckId: "world-capitals-root",
-    cards: [],
-    tags: ["geo", "hauptstaedte"],
+    ankiDeckId: "world-capitals-root",
     createdAt: HISTORY_DECK_CREATED_AT,
-    updatedAt: HISTORY_DECK_CREATED_AT,
-    importMeta: {
-      fixture: "world-capitals",
-      fileName: "world-capitals.apkg",
-      source: WORLD_CAPITALS_FIXTURE.metadata.source,
-      sourceUrl: WORLD_CAPITALS_FIXTURE.metadata.sourceUrl,
-      sourceLicense: WORLD_CAPITALS_FIXTURE.metadata.sourceLicense,
-      snapshotDate: WORLD_CAPITALS_FIXTURE.metadata.snapshotDate,
-      detectedCards: WORLD_CAPITALS_FIXTURE.metadata.totalCards,
-      detectedDecks: WORLD_CAPITALS_FIXTURE.continents.length + 1,
-      isContainerDeck: true,
-    },
+    updatedAt: HISTORY_DECK_UPDATED_AT,
   });
-
-  const childDecks = WORLD_CAPITALS_FIXTURE.continents.map((continent) =>
-    createCoreDeck({
+  const notes: Note[] = [];
+  let cardIndex = 0;
+  const childDecks = WORLD_CAPITALS_FIXTURE.continents.map((continent, continentIndex) => {
+    const cards: Card[] = [];
+    const reviewEvents: ReviewEvent[] = [];
+    for (const item of continent.cards) {
+      const { note, card } = createCapitalNote(continent.deckId, item);
+      const history = withStudyHistory(continent.deckId, card, cardIndex, continentIndex);
+      notes.push(note);
+      cards.push(history.card);
+      reviewEvents.push(...history.events);
+      cardIndex += 1;
+    }
+    return createCoreDeck({
       id: continent.deckId,
       name: continent.label,
       source: "anki-apkg",
       parentDeckId: rootDeck.id,
       hierarchyPath: [rootDeck.name, continent.label],
-      originalDeckId: `world-capitals-${continent.id}`,
-      cards: continent.cards.map((item: any) => createCapitalCard(continent.deckId, item)),
-      tags: ["geo", "hauptstaedte", continent.id],
+      ankiDeckId: `world-capitals-${continent.id}`,
+      cards,
+      reviewEvents,
       createdAt: HISTORY_DECK_CREATED_AT,
-      updatedAt: HISTORY_DECK_CREATED_AT,
-      importMeta: {
-        fixture: "world-capitals",
-        fileName: "world-capitals.apkg",
-        source: WORLD_CAPITALS_FIXTURE.metadata.source,
-        sourceUrl: WORLD_CAPITALS_FIXTURE.metadata.sourceUrl,
-        sourceLicense: WORLD_CAPITALS_FIXTURE.metadata.sourceLicense,
-        snapshotDate: WORLD_CAPITALS_FIXTURE.metadata.snapshotDate,
-        ankiDeckPath: `${rootDeck.name}::${continent.label}`,
-        detectedCards: continent.cards.length,
-        isContainerDeck: false,
-      },
-    }),
-  );
+      updatedAt: HISTORY_DECK_UPDATED_AT,
+    });
+  });
+  return { decks: [rootDeck, ...childDecks], notes };
+}
 
-  return applyWorldCapitalsStudyHistory([rootDeck, ...childDecks]);
+/** The seed as an import graph, so the demo takes the same chunked commit as an Anki package. */
+export function createWorldCapitalsImportGraph(): ImportCommitGraph {
+  const { decks, notes } = createWorldCapitalsSeed();
+  const cards = decks.flatMap((deck) => deck.cards);
+  const reviews = decks.flatMap((deck) => deck.reviewEvents.flatMap((event) => event.rating === "manual" ? [] : [{
+    id: event.id,
+    cardId: event.cardId,
+    rating: event.rating,
+    answeredAt: event.answeredAt,
+    responseTimeMs: event.responseTimeMs,
+    schedulerBefore: event.schedulerBefore,
+    schedulerAfter: event.schedulerAfter,
+    flags: event.flags,
+  }]));
+  return {
+    deckCount: decks.length,
+    noteCount: notes.length,
+    cardCount: cards.length,
+    reviewEventCount: reviews.length,
+    mediaCount: 0,
+    ankiGuids: notes.flatMap((note) => note.ankiGuid ? [note.ankiGuid] : []),
+    async streamChunks(visit) {
+      await visit({ kind: "decks", decks: decks.map(({ id, ankiDeckId, name, hierarchyPath, parentDeckId }) => ({ id, ankiDeckId, name, hierarchyPath, parentDeckId })) });
+      await visit({ kind: "notes", notes, noteSources: [], cards });
+      await visit({ kind: "reviews", values: reviews });
+    },
+    dispose() {},
+  };
 }

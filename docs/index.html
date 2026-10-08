@@ -1146,9 +1146,6 @@ video {
 .top-20 {
   top: 5rem;
 }
-.top-3 {
-  top: 0.75rem;
-}
 .top-4 {
   top: 1rem;
 }
@@ -1230,10 +1227,6 @@ video {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
 }
-.my-8 {
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
 .-me-2 {
   margin-inline-end: -0.5rem;
 }
@@ -1263,9 +1256,6 @@ video {
 }
 .ml-auto {
   margin-left: auto;
-}
-.mr-2 {
-  margin-right: 0.5rem;
 }
 .mt-0\.5 {
   margin-top: 0.125rem;
@@ -1396,9 +1386,6 @@ video {
 }
 .h-0 {
   height: 0px;
-}
-.h-0\.5 {
-  height: 0.125rem;
 }
 .h-1 {
   height: 0.25rem;
@@ -4372,10 +4359,6 @@ summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sm\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .sm\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -4951,19 +4934,19 @@ Für jede Dokumentationsrolle gibt es genau eine verbindliche Quelle.</p>
 </tr>
 <tr>
 <td><a href="ui-elements.html">UI-Elements</a></td>
-<td>interaktive Design-Arbeitsfläche, vollständiges UI-Inventar einschließlich echter Produktansichten, vorbereiteter Kartenbausteine, Tokens, Typografie und Icons</td>
+<td>interaktive Design-Arbeitsfläche, vollständiges UI-Inventar einschließlich echter Produktansichten, Kartenbausteine, Tokens, Typografie und Icons</td>
 <td>App-Code; Demos in <code>scripts/uiCatalogDemos.tsx</code>, ergänzende Screen-Muster in <code>scripts/uiCatalogPatterns.html</code></td>
 </tr>
 <tr>
 <td><a href="card-types.html">Kartentypen</a></td>
-<td>sechs manuell erstellbare Formen im echten Reviewrenderer</td>
+<td>sechs manuell erstellbare Formen im echten Reviewrenderer (<code>NoteCardContent</code>)</td>
 <td>dieselben Demos und CoRe-Modellhelfer</td>
 </tr>
 </tbody></table>
-<p>Die <a href="ui-elements.html#note-content">vorbereiteten Kartenbausteine</a> zeigen den
-neuen Note-/Card-Renderer vor seinem Cutover: Feldrollen, Lücken, Bildmasken,
+<p>Die <a href="ui-elements.html#note-content">Kartenbausteine</a> zeigen den Note-/Card-
+Renderer mit allen Formen aus Anki-Importen: Feldrollen, Lücken, Bildmasken,
 Eintippen, Auswahl einschließlich Kprim, Formeln, Medien und System-Vorlesen.
-Die sechs bisherigen Kartentypen bleiben die Referenz des aktuellen App-Pfads.</p>
+Die sechs manuell erstellbaren Formen stehen gesammelt unter Kartentypen.</p>
 <p>Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
 Styles und Synonym-Fonts sind eingebettet; Journey-Diagramme nutzen <code>vendor/mermaid.min.js</code>.
 Der Live-Katalog lädt Amulya über denselben Fontshare-Pfad wie die App; offline
@@ -5052,7 +5035,7 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</
 <p>Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:</p>
 <ul>
 <li><a href="test-portfolio.md"><code>test-portfolio.md</code></a>: ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.</li>
-<li><a href="anki-format-analysis.md"><code>anki-format-analysis.md</code></a>: technische Referenz zu Anki/APKG, Templates, Medien und Learning Items.</li>
+<li><a href="anki-format-analysis.md"><code>anki-format-analysis.md</code></a>: technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.</li>
 <li><a href="file-naming-conventions.md"><code>file-naming-conventions.md</code></a>: Dateinamensregeln.</li>
 <li><a href="ui-elements.html"><code>ui-elements.html</code></a>: direkt aus produktiven Komponenten erzeugte Demos plus klar gekennzeichnete lokale Screen-Muster.</li>
 <li><a href="card-types.html"><code>card-types.html</code></a>: interaktive Referenz für Basic, Basic mit Bildern, Basic umgekehrt, Lückentext, Single Choice und Multiple Choice.</li>
@@ -5061,7 +5044,7 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</
 <ul>
 <li><a href="../AGENTS.md"><code>../AGENTS.md</code></a>: Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.</li>
 <li><a href="../src/screens/README.md"><code>../src/screens/README.md</code></a>: Screen-Landkarte.</li>
-<li><a href="../supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql"><code>../supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql</code></a>: einzige frische Pre-Release-Schemabaseline.</li>
+<li><a href="../supabase/migrations/20261008101057_kartenmodell_baseline.sql"><code>../supabase/migrations/20261008101057_kartenmodell_baseline.sql</code></a>: einzige frische Pre-Release-Schemabaseline (Kartenmodell <code>Note</code>/<code>Card</code>).</li>
 <li><a href="../supabase/verify_schema_v1.sql"><code>../supabase/verify_schema_v1.sql</code></a>: ausführbares Struktur-, RLS- und Policy-Gate.</li>
 </ul>
 <h2 id="readme--inventarregeln" class="core-heading-2" tabindex="-1">Inventarregeln <a class="docs-anchor" href="#readme--inventarregeln" aria-label="Link zu Inventarregeln">#</a></h2>

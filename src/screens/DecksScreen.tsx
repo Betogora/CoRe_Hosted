@@ -4,16 +4,17 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, Chev
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { createCoreNoteTypeDefinition, getCardEditorValue, isLearningItemMarked, projectCardPreviewDraft, validateCardEditorValue } from "../coreModel.ts";
-import { createVariantReviewModel } from "../coreVariantService.ts";
+import { noteEditorValue, noteTextIndex, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
+import { classifyCardEligibility, createVariantReviewModel } from "../coreVariantService.ts";
+import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import type { NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { CardHtml, useCardMediaUrls } from "../ui/cardMedia.tsx";
-import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
+import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
@@ -23,9 +24,9 @@ import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { cardTypeOptions, formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
+import { formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
-import type { CardEditorField, CardEditorFieldErrors, CardEditorValue, CardVariant, LearningItem } from "../coreTypes.ts";
+import type { CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
 
 interface PendingDetailAction {
   run: () => void;
@@ -46,6 +47,8 @@ function sameSort(left: CardTableSort, right: CardTableSort) {
 function normalizeCardQuery(value: string) {
   return value.trim().toLocaleLowerCase("de");
 }
+
+const CARD_SEARCH_DEBOUNCE_MS = 250;
 
 function SortHeader({ field, label, sort, onChange }: {
   field: CardTableSortField;
@@ -75,29 +78,57 @@ function SortHeader({ field, label, sort, onChange }: {
   );
 }
 
-function FieldError({ errors, field }: { errors: CardEditorFieldErrors; field: CardEditorField }) {
+function FieldError({ errors, field }: { errors: NoteEditorErrors; field: string }) {
   const message = errors[field];
   return message ? <p className="core-body font-medium text-core-text" role="alert">{message}</p> : null;
 }
 
-function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, mediaUrls = {}, onSaveCard, onSaveCardDocument, onSetStudyState, onDuplicateCard, onDeleteCard, onRescheduleCards, onGenerateVariant, onClose, onDraftStateChange }: any) {
-  const [cardEditorValue, cardContentKey] = React.useMemo(() => {
-    const value = card ? getCardEditorValue(card) : null;
+function noteKindLabel(note: Note) {
+  const interaction = note.content.interaction;
+  if (interaction.kind === "cloze") return "Lückentext";
+  if (interaction.kind === "image-occlusion") return "Bildverdeckung";
+  if (interaction.kind === "choice") return interaction.mode === "single" ? "Single Choice" : interaction.mode === "multiple" ? "Multiple Choice" : "Kprim";
+  return interaction.prompts.length > 1 ? "Frage und Antwort mit Rückrichtung" : "Frage und Antwort";
+}
+
+function removedCardsDescription(count: number) {
+  return count === 1
+    ? "Durch diese Änderung entfällt eine Karte. Ihr Lernstand wird gelöscht."
+    : `Durch diese Änderung entfallen ${count} Karten. Ihr Lernstand wird gelöscht.`;
+}
+
+interface DeckCardEditorProps {
+  deck: Deck;
+  graph: NoteGraph;
+  cardId: string;
+  now: string;
+  dayStartHour?: number;
+  timeZone?: string;
+  mediaUrls?: Record<string, string>;
+  onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<unknown>;
+  onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => unknown;
+  onDuplicateNote: () => Promise<NoteGraph | null>;
+  onDeleteNote: () => void;
+  onRescheduleCards: DecksScreenProps["onRescheduleCards"];
+  onGenerateVariant: (cardId: string) => Promise<AiCardVariantSuccess>;
+  onClose: () => void;
+  onDraftStateChange: (guard: CardDraftGuard | null) => void;
+  syncConflict: boolean;
+}
+
+function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onClose, onDraftStateChange }: DeckCardEditorProps) {
+  const { note } = graph;
+  const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
+  const [initialValue, contentKey] = React.useMemo(() => {
+    const value = noteEditorValue(note);
     return [value, JSON.stringify(value)] as const;
-  }, [card]);
-  const [form, setForm] = React.useState<CardEditorValue | null>(cardEditorValue);
-  const [savedForm, setSavedForm] = React.useState(cardContentKey);
-  const documentContentKey = React.useMemo(
-    () => JSON.stringify(card?.contentDocument?.fields?.map((field: any) => ({ id: field.id, value: field.value })) ?? []),
-    [card?.contentDocument?.fields],
-  );
-  const [documentFields, setDocumentFields] = React.useState<Array<{ id: string; value: string }>>(
-    () => card?.contentDocument?.fields?.map((field: any) => ({ id: field.id, value: field.value })) ?? [],
-  );
-  const [savedDocumentFields, setSavedDocumentFields] = React.useState(documentContentKey);
-  const [fieldErrors, setFieldErrors] = React.useState<CardEditorFieldErrors>({});
+  }, [note]);
+  const [form, setForm] = React.useState<NoteEditorValue>(initialValue);
+  const [savedForm, setSavedForm] = React.useState(contentKey);
+  const [fieldErrors, setFieldErrors] = React.useState<NoteEditorErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
+  const [pendingRemoval, setPendingRemoval] = React.useState<{ content: NoteContent; count: number } | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const setSuccessToast = useSuccessToast();
@@ -109,7 +140,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
   const [variantStatusWarning, setVariantStatusWarning] = React.useState(false);
   const [isGeneratingVariant, setIsGeneratingVariant] = React.useState(false);
   const learningDayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
-  const dueDateKey = getLearningDayKey(card?.reviewState?.dueAt, learningDayOptions) ?? "";
+  const dueDateKey = card?.study.dueAt ? getLearningDayKey(card.study.dueAt, learningDayOptions) ?? "" : "";
   const todayDateKey = getLearningDayKey(now, learningDayOptions) ?? "";
   const minimumDateKey = getLearningDayKey(addLearningDays(now, 1, learningDayOptions) ?? "", learningDayOptions) ?? "";
   const [rescheduleDate, setRescheduleDate] = React.useState(dueDateKey);
@@ -118,38 +149,27 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
   const editorHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const saveDraftRef = React.useRef<() => Promise<boolean>>(async () => false);
   const serializedForm = React.useMemo(() => JSON.stringify(form), [form]);
-  const dynamicDocumentMode = !form && Boolean(definition && onSaveCardDocument);
-  const serializedDocumentFields = React.useMemo(() => JSON.stringify(documentFields), [documentFields]);
-  const draftDirty = form ? serializedForm !== savedForm : dynamicDocumentMode && serializedDocumentFields !== savedDocumentFields;
+  const draftDirty = serializedForm !== savedForm;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
-    () => card ? createVariantReviewModel(card, deck?.reviewEvents ?? [], { now }) : null,
-    [card, deck?.reviewEvents, now],
+    () => card ? createVariantReviewModel(card, deck.reviewEvents ?? [], { now }) : null,
+    [card, deck.reviewEvents, now],
   );
-  const previewBundle = React.useMemo(() => {
-    if (!card || !definition) return null;
-    if (form) {
-      return projectCardPreviewDraft({ item: card, definition, draft: { kind: "editor", value: form } });
-    }
-    if (dynamicDocumentMode) {
-      return projectCardPreviewDraft({
-        item: card,
-        definition,
-        draft: { kind: "document", fields: documentFields, tags: card.tags },
-      });
-    }
-    return { item: card, variant: null, definition };
-  }, [card, definition, documentFields, dynamicDocumentMode, form]);
+  const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
+  // The preview shows the current draft; an invalid draft falls back to the saved content.
+  const previewNote = React.useMemo(() => {
+    const validation = validateNoteEditorValue(note, form);
+    return validation.ok ? { ...note, content: validation.content, contentRevision: note.contentRevision + (draftDirty ? 1 : 0) } : note;
+  }, [draftDirty, form, note]);
+
   React.useLayoutEffect(() => {
-    setForm(cardEditorValue);
-    setSavedForm(cardContentKey);
-    setDocumentFields(card?.contentDocument?.fields?.map((field: any) => ({ id: field.id, value: field.value })) ?? []);
-    setSavedDocumentFields(documentContentKey);
+    setForm(initialValue);
+    setSavedForm(contentKey);
     setFieldErrors({});
     setSaveError(false);
     setVariantStatus("");
     setVariantStatusWarning(false);
-  }, [card?.id, cardContentKey, documentContentKey]);
+  }, [note.id, contentKey]);
 
   React.useEffect(() => {
     setPreviewOpen(false);
@@ -158,23 +178,27 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
     setDuplicateStatus("");
     setDuplicateError(false);
     setRescheduleError("");
-  }, [card?.id]);
+  }, [cardId]);
 
   React.useEffect(() => {
     setRescheduleDate(dueDateKey);
     setRescheduleError("");
-  }, [card?.id, dueDateKey]);
+  }, [cardId, dueDateKey]);
 
   React.useEffect(() => {
-    onDraftStateChange?.(draftDirty ? { focus: focusDraft, save: () => saveDraftRef.current() } : null);
+    onDraftStateChange(draftDirty ? { focus: focusDraft, save: () => saveDraftRef.current() } : null);
   }, [draftDirty, focusDraft, onDraftStateChange]);
 
-  React.useEffect(() => () => onDraftStateChange?.(null), [onDraftStateChange]);
+  React.useEffect(() => () => onDraftStateChange(null), [onDraftStateChange]);
 
   if (!card) return null;
 
   const { maturity, readiness, coverage } = variantReviewModel!;
   const variants = card.variants ?? [];
+  const interaction = note.content.interaction;
+  const choiceMode = interaction.kind === "choice" ? interaction.mode : null;
+  const options = form.options ?? [];
+  const correctCount = options.filter((option) => option.correct).length;
   const canReschedule = Boolean(
     rescheduleDate
     && minimumDateKey
@@ -182,94 +206,61 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
     && rescheduleDate !== dueDateKey
   );
 
-  function update(key: string, value: string | string[] | number | number[]) {
-    setForm((current) => current ? ({ ...current, [key]: value } as CardEditorValue) : current);
-    setFieldErrors((current) => ({ ...current, [key]: undefined }));
+  function clearStatus() {
     setSaveStatus("");
     setSaveError(false);
     setSuccessToast("");
   }
 
-  function updateMcOption(index: number, option: string) {
-    if (form?.cardType !== "single-choice" && form?.cardType !== "multiple-choice") return;
-    update("options", form.options.map((current, optionIndex) => optionIndex === index ? option : current));
+  function updateField(fieldId: string, html: string) {
+    setForm((current) => ({ ...current, fields: { ...current.fields, [fieldId]: html } }));
+    setFieldErrors((current) => ({ ...current, [fieldId]: "", form: "" }));
+    clearStatus();
   }
 
-  function addMcOption() {
-    if (form?.cardType !== "single-choice" && form?.cardType !== "multiple-choice") return;
-    update("options", [...form.options, ""]);
+  function updateOptions(next: NoteEditorValue["options"]) {
+    setForm((current) => ({ ...current, options: next }));
+    setFieldErrors((current) => ({ ...current, options: "", form: "" }));
+    clearStatus();
   }
 
-  function removeMcOption(index: number) {
-    if ((form?.cardType !== "single-choice" && form?.cardType !== "multiple-choice") || form.options.length <= 2) return;
-    if (form.cardType === "multiple-choice") {
-      const isCorrect = form.correctOptionIndices.includes(index);
-      const falseOptionCount = form.options.length - form.correctOptionIndices.length;
-      if ((isCorrect && form.correctOptionIndices.length === 1) || (!isCorrect && falseOptionCount === 1)) return;
-    }
-    const options = form.options.filter((_, optionIndex) => optionIndex !== index);
-    if (form.cardType === "single-choice") {
-      const correctOptionIndex = form.correctOptionIndex === index ? 0 : form.correctOptionIndex > index ? form.correctOptionIndex - 1 : form.correctOptionIndex;
-      setForm({ ...form, options, correctOptionIndex });
-    } else {
-      const correctOptionIndices = form.correctOptionIndices
-        .filter((optionIndex) => optionIndex !== index)
-        .map((optionIndex) => optionIndex > index ? optionIndex - 1 : optionIndex);
-      setForm({ ...form, options, correctOptionIndices });
-    }
-    setFieldErrors((current) => ({ ...current, options: undefined, correctOptionIndex: undefined, correctOptionIndices: undefined }));
+  function addOption() {
+    const ids = new Set(options.map((option) => option.id));
+    let index = options.length + 1;
+    while (ids.has(`option-${index}`)) index += 1;
+    updateOptions([...options, { id: `option-${index}`, text: "", correct: false }]);
   }
 
-  function toggleCorrectOption(index: number) {
-    if (form?.cardType === "single-choice") {
-      update("correctOptionIndex", index);
+  function correctnessLocked(index: number) {
+    if (choiceMode !== "multiple") return false;
+    const isCorrect = options[index].correct;
+    return (isCorrect && correctCount === 1) || (!isCorrect && correctCount === options.length - 1);
+  }
+
+  function removeOption(index: number) {
+    if (options.length <= 2 || correctnessLocked(index)) return;
+    const next = options.filter((_, optionIndex) => optionIndex !== index);
+    if (choiceMode === "single" && options[index].correct) next[0] = { ...next[0], correct: true };
+    updateOptions(next);
+  }
+
+  function toggleCorrect(index: number) {
+    if (choiceMode === "single") {
+      updateOptions(options.map((option, optionIndex) => ({ ...option, correct: optionIndex === index })));
       return;
     }
-    if (form?.cardType !== "multiple-choice") return;
-    const isCorrect = form.correctOptionIndices.includes(index);
-    if ((isCorrect && form.correctOptionIndices.length === 1) || (!isCorrect && form.correctOptionIndices.length >= form.options.length - 1)) return;
-    update("correctOptionIndices", isCorrect
-      ? form.correctOptionIndices.filter((optionIndex) => optionIndex !== index)
-      : [...form.correctOptionIndices, index].sort((left, right) => left - right));
+    if (correctnessLocked(index)) return;
+    updateOptions(options.map((option, optionIndex) => optionIndex === index ? { ...option, correct: !option.correct } : option));
   }
 
-  async function saveEditorValue(): Promise<boolean> {
-    if (!form && !dynamicDocumentMode) return false;
-    if (!form) {
-      setIsSaving(true);
-      setSaveError(false);
-      setSuccessToast("");
-      setSaveStatus("Karte wird gespeichert …");
-      try {
-        await onSaveCardDocument(card.id, { fields: documentFields, tags: card.tags });
-        setSavedDocumentFields(JSON.stringify(documentFields));
-        onDraftStateChange?.(null);
-        setSaveStatus("");
-        setSuccessToast("Feldwerte wurden gespeichert. Alle Kartenvarianten verwenden die aktualisierte Darstellung.");
-        return true;
-      } catch {
-        setSaveError(true);
-        setSaveStatus("Die Feldwerte konnten nicht vollständig synchronisiert werden. Bitte später erneut versuchen.");
-        return false;
-      } finally {
-        setIsSaving(false);
-      }
-    }
-    const validation = validateCardEditorValue(form);
-    if (!validation.ok) {
-      setFieldErrors(validation.errors);
-      setSaveError(true);
-      setSaveStatus("Bitte die markierten Felder prüfen.");
-      return false;
-    }
+  async function persist(content: NoteContent): Promise<boolean> {
     setIsSaving(true);
     setSaveError(false);
     setSaveStatus("Karte wird gespeichert …");
     try {
-      await onSaveCard(card.id, validation.value);
-      setForm(validation.value);
-      setSavedForm(JSON.stringify(validation.value));
-      onDraftStateChange?.(null);
+      await onSaveNote(graph, content);
+      setSavedForm(serializedForm);
+      onDraftStateChange(null);
       setFieldErrors({});
       setSaveStatus("");
       setSuccessToast("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
@@ -283,12 +274,35 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
     }
   }
 
+  async function saveEditorValue(): Promise<boolean> {
+    const validation = validateNoteEditorValue(note, form);
+    if (!validation.ok) {
+      setFieldErrors(validation.errors);
+      setSaveError(true);
+      setSaveStatus(validation.errors.form ?? "Bitte die markierten Felder prüfen.");
+      return false;
+    }
+    const plan = planNoteContentChange(graph, validation.content);
+    if (!plan.changed) {
+      setSavedForm(serializedForm);
+      onDraftStateChange(null);
+      setFieldErrors({});
+      setSaveStatus("");
+      return true;
+    }
+    if (plan.removedCards.length > 0) {
+      setPendingRemoval({ content: validation.content, count: plan.removedCards.length });
+      return false;
+    }
+    return persist(validation.content);
+  }
+
   async function duplicateCard() {
     setIsDuplicating(true);
     setDuplicateStatus("Kopie wird erstellt …");
     setDuplicateError(false);
     try {
-      const result = await onDuplicateCard(card.id);
+      const result = await onDuplicateNote();
       if (result) {
         setDuplicateStatus("");
         setSuccessToast("Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt.");
@@ -305,7 +319,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
   }
 
   async function generateVariant() {
-    if (card.cardType !== "basic" || isGeneratingVariant) return;
+    if (!card || !eligibility?.eligible || isGeneratingVariant) return;
     setSuccessToast("");
     setIsGeneratingVariant(true);
     setVariantStatusWarning(false);
@@ -330,7 +344,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
 
   async function rescheduleCard() {
     const dueAt = getLearningDayStartForKey(rescheduleDate, learningDayOptions);
-    if (!dueAt || rescheduleDate < minimumDateKey || rescheduleDate === dueDateKey || isRescheduling) return;
+    if (!card || !dueAt || rescheduleDate < minimumDateKey || rescheduleDate === dueDateKey || isRescheduling) return;
     setRescheduleError("");
     setSuccessToast("");
     setIsRescheduling(true);
@@ -360,22 +374,19 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-core-text outline-none">Karte bearbeiten</h2>
-          <p className="mt-1 core-caption text-core-muted">{cardTypeOptions.find((option) => option.value === card.cardType)?.label ?? card.cardType}</p>
+          <p className="mt-1 core-caption text-core-muted">{noteKindLabel(note)}{graph.cards.length > 1 ? ` · ${graph.cards.length} Karten aus diesem Inhalt` : ""}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
-          {form || dynamicDocumentMode ? (
-            <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:opacity-60">
-              <Save size={16} aria-hidden="true" />
-              {isSaving ? "Speichert …" : "Speichern"}
-            </button>
-          ) : null}
+          <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:opacity-60">
+            <Save size={16} aria-hidden="true" />
+            {isSaving ? "Speichert …" : "Speichern"}
+          </button>
           <ActionButton
             ref={previewButtonRef}
             type="button"
             variant="secondary"
             icon={Eye}
-            disabled={!previewBundle}
             onClick={() => setPreviewOpen(true)}
           >
             Vorschau
@@ -383,9 +394,8 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           <button
             type="button"
             onClick={() => void duplicateCard()}
-            disabled={(!form && !dynamicDocumentMode) || isDuplicating}
-            title={form || dynamicDocumentMode ? "Eigenständige Kopie direkt unter dieser Karte erstellen" : "Dieser importierte Kartentyp kann nicht kopiert werden."}
-            aria-describedby={!form && !dynamicDocumentMode ? "copy-disabled-" + card.id : undefined}
+            disabled={isDuplicating}
+            title="Eigenständige Kopie direkt unter dieser Karte erstellen"
             className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Copy size={16} aria-hidden="true" />
@@ -393,7 +403,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           </button>
           <button
             type="button"
-            onClick={() => onDeleteCard(card.id)}
+            onClick={onDeleteNote}
             className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
           >
             <Trash2 size={16} aria-hidden="true" />
@@ -401,7 +411,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           </button>
         </div>
       </div>
-      {card.syncConflict ? (
+      {syncConflict ? (
         <div className="mb-6 rounded-control border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
           <p className="font-semibold">Synchronisierung klären</p>
           <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
@@ -409,7 +419,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
       ) : null}
       <CardStudyStateControls
         className="mb-3"
-        marked={isLearningItemMarked(card)}
+        marked={note.marked}
         suspended={card.status === "suspended"}
         onMarkedChange={(marked) => onSetStudyState(card.id, { marked })}
         onSuspendedChange={(suspended) => onSetStudyState(card.id, { suspended })}
@@ -435,107 +445,44 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
         </ActionButton>
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
-      {form ? (
-        <div className="grid min-w-0 gap-4">
-          {form.cardType === "basic" || form.cardType === "basic-with-images" || form.cardType === "basic-reversed" ? (
-            <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 core-body font-semibold text-core-secondary">
-                <span>Vorderseite</span>
-                <RichTextEditor value={form.front} onChange={(value) => update("front", value)} ariaLabel="Karten-Vorderseite" ariaInvalid={Boolean(fieldErrors.front)} minHeightClass="min-h-32" />
-                <FieldError errors={fieldErrors} field="front" />
-              </div>
-              <div className="grid gap-2 core-body font-semibold text-core-secondary">
-                <span>Rückseite</span>
-                <RichTextEditor value={form.back} onChange={(value) => update("back", value)} ariaLabel="Karten-Rückseite" ariaInvalid={Boolean(fieldErrors.back)} minHeightClass="min-h-32" />
-                <FieldError errors={fieldErrors} field="back" />
-              </div>
-            </div>
-          ) : null}
-          {form.cardType === "cloze" ? (
-            <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 core-body font-semibold text-core-secondary">
-                <span>Cloze-Text</span>
-                <RichTextEditor value={form.textWithClozes} onChange={(value) => update("textWithClozes", value)} ariaLabel="Cloze-Text" ariaInvalid={Boolean(fieldErrors.textWithClozes)} minHeightClass="min-h-32" />
-                <p className="core-body font-normal text-core-muted">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Reviewrichtung.</p>
-                <FieldError errors={fieldErrors} field="textWithClozes" />
-              </div>
-              <div className="grid gap-2 core-body font-semibold text-core-secondary">
-                <span>Zusatzinfo</span>
-                <RichTextEditor value={form.extra} onChange={(value) => update("extra", value)} ariaLabel="Cloze-Zusatzinfo" minHeightClass="min-h-32" />
-              </div>
-            </div>
-          ) : null}
-          {form.cardType === "single-choice" || form.cardType === "multiple-choice" ? (
-            <div className="grid min-w-0 gap-4">
-              <div className="grid gap-2 core-body font-semibold text-core-secondary">
-                <span>Frage</span>
-                <RichTextEditor value={form.question} onChange={(value) => update("question", value)} ariaLabel={`${form.cardType === "single-choice" ? "Single" : "Multiple"}-Choice-Frage`} ariaInvalid={Boolean(fieldErrors.question)} minHeightClass="min-h-32" />
-                <FieldError errors={fieldErrors} field="question" />
-              </div>
-              <fieldset className="grid gap-3 rounded-control border border-core-border p-4">
-                <legend className="px-1 core-body font-semibold text-core-secondary">Antwortoptionen und {form.cardType === "single-choice" ? "richtige Antwort" : "richtige Antworten"}</legend>
-                {form.options.map((option, index) => {
-                  const isCorrect = form.cardType === "single-choice" ? form.correctOptionIndex === index : form.correctOptionIndices.includes(index);
-                  const correctnessLocked = form.cardType === "multiple-choice"
-                    && ((isCorrect && form.correctOptionIndices.length === 1) || (!isCorrect && form.correctOptionIndices.length === form.options.length - 1));
-                  return (
-                    <div key={index} className="flex min-w-0 items-center gap-2">
-                      <input type={form.cardType === "single-choice" ? "radio" : "checkbox"} name={form.cardType === "single-choice" ? `correct-option-${card.id}` : undefined} checked={isCorrect} disabled={correctnessLocked} onChange={() => toggleCorrectOption(index)} aria-label={`Option ${index + 1} als richtig markieren`} aria-invalid={Boolean(fieldErrors.correctOptionIndex || fieldErrors.correctOptionIndices)} />
-                      <input className="min-h-11 min-w-0 flex-1 rounded-control border border-core-border px-3" value={option} onChange={(event) => updateMcOption(index, event.target.value)} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                      <button type="button" onClick={() => removeMcOption(index)} disabled={form.options.length <= 2 || correctnessLocked} className="grid size-11 place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
-                    </div>
-                  );
-                })}
-                <button type="button" onClick={addMcOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-control border border-core-border px-3 core-body font-semibold text-core-action"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button>
-                <FieldError errors={fieldErrors} field="options" />
-                <FieldError errors={fieldErrors} field="correctOptionIndex" />
-                <FieldError errors={fieldErrors} field="correctOptionIndices" />
-              </fieldset>
-              <div className="grid gap-2 core-body font-semibold text-core-secondary">
-                <span>Erklärung (optional)</span>
-                <RichTextEditor value={form.explanation} onChange={(value) => update("explanation", value)} ariaLabel="Erklärung zur richtigen Antwort" minHeightClass="min-h-28" />
-              </div>
-            </div>
-          ) : null}
-          <label className="grid gap-2 core-body font-semibold text-core-secondary">
-            Tags
-            <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => update("tags", event.target.value.split(/\s+/).filter(Boolean))} />
-          </label>
-          {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
-          {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
-        </div>
-      ) : dynamicDocumentMode ? (
-        <div className="grid min-w-0 gap-4">
-          <div className="rounded-control border border-core-border bg-core-subtle p-4">
-            <p className="core-body font-semibold text-core-text">{definition.name}</p>
-            <p className="mt-1 core-body text-core-muted">Feldnamen, Reihenfolge und Templates stammen aus dem Import und bleiben schreibgeschützt. Du bearbeitest nur die Werte.</p>
+      <div className="grid min-w-0 gap-4">
+        {note.content.fields.map((field) => (
+          <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
+            <span>{field.name}</span>
+            <RichTextEditor
+              value={form.fields[field.id] ?? ""}
+              onChange={(value) => updateField(field.id, value)}
+              ariaLabel={`Feld ${field.name}`}
+              ariaInvalid={Boolean(fieldErrors[field.id])}
+              minHeightClass={field.role === "prompt" || field.role === "answer" ? "min-h-32" : "min-h-28"}
+            />
+            {interaction.kind === "cloze" && field.role === "prompt" ? (
+              <p className="core-body font-normal text-core-muted">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Karte.</p>
+            ) : null}
+            <FieldError errors={fieldErrors} field={field.id} />
           </div>
-          {card.contentDocument.fields.map((field: any) => {
-            const value = documentFields.find((candidate) => candidate.id === field.id)?.value ?? "";
-            return (
-              <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-                <span>{field.name}</span>
-                <RichTextEditor
-                  value={value}
-                  onChange={(nextValue) => {
-                    setDocumentFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, value: nextValue } : candidate));
-                    setSaveStatus("");
-                    setSaveError(false);
-                    setSuccessToast("");
-                  }}
-                  ariaLabel={`Feld ${field.name}`}
-                  minHeightClass="min-h-28"
-                />
+        ))}
+        {choiceMode ? (
+          <fieldset className="grid gap-3 rounded-control border border-core-border p-4">
+            <legend className="px-1 core-body font-semibold text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
+            {options.map((option, index) => (
+              <div key={option.id} className="flex min-w-0 items-center gap-2">
+                <input type={choiceMode === "single" ? "radio" : "checkbox"} name={choiceMode === "single" ? `correct-option-${note.id}` : undefined} checked={option.correct} disabled={correctnessLocked(index)} onChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
+                <input className="min-h-11 min-w-0 flex-1 rounded-control border border-core-border px-3" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                <button type="button" onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} className="grid size-11 place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
               </div>
-            );
-          })}
-          {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
-        </div>
-      ) : (
-        <div id={"copy-disabled-" + card.id} className="rounded-control border border-core-warning bg-core-warning-soft p-4 core-body font-medium text-core-text" role="status">
-          Dieser importierte Kartentyp wird hier nur angezeigt und kann nicht kopiert werden. Typgerechtes Bearbeiten und Kopieren ist für Basic, Basic + Bilder, Reverse, Cloze, Single Choice und Multiple Choice verfügbar.
-        </div>
-      )}
+            ))}
+            {choiceMode !== "kprim" ? <button type="button" onClick={addOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-control border border-core-border px-3 core-body font-semibold text-core-action"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button> : null}
+            <FieldError errors={fieldErrors} field="options" />
+          </fieldset>
+        ) : null}
+        <label className="grid gap-2 core-body font-semibold text-core-secondary">
+          Tags
+          <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />
+        </label>
+        {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
+        {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
+      </div>
       <section className="mt-6 min-w-0" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
         <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten und Lernwerte</h3>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
@@ -543,7 +490,7 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Reifegrad</p>
           <p className="mt-2 break-words core-body-large font-semibold text-core-text">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
           <p className="mt-1 core-body text-core-muted">Score {maturity.score} · {maturity.description}</p>
-          <p className="mt-2 core-caption text-core-muted">Stability {getStateValue(card.reviewState, "stability")} · Difficulty {getStateValue(card.reviewState, "difficulty")} · Reps {getStateValue(card.reviewState, "reps", getStateValue(card.reviewState, "repetitions"))}</p>
+          <p className="mt-2 core-caption text-core-muted">Stability {getStateValue(card.study, "stability")} · Difficulty {getStateValue(card.study, "difficulty")} · Reps {getStateValue(card.study, "reps")}</p>
         </div>
         <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
           <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Variantenbereitschaft</p>
@@ -565,15 +512,15 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
           <span className="rounded-control bg-core-subtle px-3 py-1 core-caption font-semibold text-core-action">{variants.length} Formen</span>
         </div>
         <div className="mt-4 grid gap-3">
-          {variants.filter((variant: any): variant is CardVariant => variant != null).map((variant: CardVariant) => (
-              <article key={variant.id} className={`min-w-0 rounded-control border p-3 ${variant.isActive === false || variant.qualityStatus !== "active" ? "border-core-border bg-core-subtle" : "border-core-border bg-core-subtle"}`}>
+          {variants.map((variant: CardVariant) => (
+              <article key={variant.id} className="min-w-0 rounded-control border border-core-border bg-core-subtle p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
                   <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
                   <span>Level {variant.variantLevel}</span>
                   <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>
                 </div>
-                <p className="break-words core-body font-semibold text-core-text">{variant.front}</p>
-                <p className="mt-1 break-words core-body text-core-muted">{variant.back}</p>
+                <p className="break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
+                <p className="mt-1 break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
                 <p className="mt-2 core-caption text-core-muted">Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
               </article>
           ))}
@@ -587,15 +534,15 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
               variant="secondary"
               icon={Sparkles}
               loading={isGeneratingVariant}
-              disabled={card.cardType !== "basic" || isGeneratingVariant}
+              disabled={!eligibility?.eligible || isGeneratingVariant}
               onClick={() => void generateVariant()}
             >
               KI-Variante erzeugen
             </ActionButton>
             <p className="min-w-0 flex-1 core-caption text-core-muted">
-              {card.cardType === "basic"
-                ? "Sendet ausschließlich den bereinigten Text von Vorder- und Rückseite an OpenRouter. ZDR wird bevorzugt; ein kostenloser Non-ZDR-Fallback ist möglich."
-                : "KI-Varianten sind derzeit nur für Basic-Karten verfügbar."}
+              {eligibility?.eligible
+                ? "Sendet ausschließlich den bereinigten Text von Frage und Antwort an OpenRouter. ZDR wird bevorzugt; ein kostenloser Non-ZDR-Fallback ist möglich."
+                : eligibility?.reasons[0] ?? "KI-Varianten sind für diese Karte nicht verfügbar."}
             </p>
           </div>
           {variantStatus ? <p className={`core-body ${variantStatusWarning ? "text-core-warning" : "text-core-muted"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
@@ -604,12 +551,25 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
       </section>
       <CardPreviewDialog
         open={previewOpen}
-        item={previewBundle?.item}
-        variant={previewBundle?.variant}
-        definition={previewBundle?.definition}
+        note={previewNote}
+        card={card}
         mediaUrls={mediaUrls}
         onOpenChange={setPreviewOpen}
         returnFocusRef={previewButtonRef}
+      />
+      <ActionDialog
+        open={Boolean(pendingRemoval)}
+        title="Karten entfernen?"
+        description={pendingRemoval ? removedCardsDescription(pendingRemoval.count) : null}
+        confirmLabel="Speichern"
+        cancelLabel="Weiter bearbeiten"
+        confirmLoading={isSaving}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={() => {
+          const removal = pendingRemoval;
+          if (!removal) return;
+          void persist(removal.content).then(() => setPendingRemoval(null));
+        }}
       />
     </SoftPanel>
   );
@@ -617,9 +577,9 @@ function DeckCardEditor({ deck, card, definition, now, dayStartHour, timeZone, m
 
 export function DecksScreen({
   decks,
+  deckSummaries,
   onStartDeck,
   contentDeckId = null,
-  noteTypeDefinitions = [],
   now,
   dayStartHour,
   learnAheadMinutes,
@@ -630,12 +590,11 @@ export function DecksScreen({
   onSelectDeck,
   onCloseSelectedCard,
   onSetDeckCoreMode,
-  onSaveCard,
-  onSaveCardDocument,
+  onSaveNote,
   onSetCardStudyState,
-  onDuplicateCard,
-  onDeleteCard,
-  onUndoDeleteCard,
+  onDuplicateNote,
+  onDeleteNote,
+  onUndoDeleteNote,
   onRescheduleCards,
   onGenerateVariant,
   onMoveDeck,
@@ -647,6 +606,7 @@ export function DecksScreen({
   onSetDeckExpanded,
   cardPages,
   onRequestCardPage,
+  syncConflictCardIds,
 }: DecksScreenProps) {
   const [contentTab, setContentTab] = React.useState<typeof deckContentTabs[number]["value"]>("cards");
   const libraryDecks = React.useMemo(() => {
@@ -656,21 +616,26 @@ export function DecksScreen({
   }, [contentDeckId, decks]);
   const contentDeck = contentDeckId ? libraryDecks.find((deck) => deck.id === contentDeckId) : null;
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
-    !deck.deletedAt && (deck.cardCount > 0 || deck.cards.some((card) => card.status !== "deleted"))
-  )), [contentDeckId, libraryDecks]);
+    !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
+  )), [contentDeckId, deckSummaries, libraryDecks]);
   const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
-  const deferredQuery = React.useDeferredValue(query);
+  const [deferredQuery, setDeferredQuery] = React.useState("");
+  React.useEffect(() => {
+    if (query === deferredQuery) return;
+    const timer = window.setTimeout(() => setDeferredQuery(query), CARD_SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [deferredQuery, query]);
   const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
   const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
-  const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; card: LearningItem } | null>(null);
+  const [pendingCardDelete, setPendingCardDelete] = React.useState<{ deckId: string; cardId: string; graph: NoteGraph } | null>(null);
   const preserveToastForSelectionChange = React.useRef(false);
   const [deletingCard, setDeletingCard] = React.useState(false);
-  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; card: LearningItem; previousStatus: LearningItem["status"]; description: string } | null>(null);
+  const [deletedCardUndo, setDeletedCardUndo] = React.useState<{ deckId: string; cardId: string; undo: NoteGraph; deleted: NoteGraph; description: string } | null>(null);
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
@@ -680,12 +645,12 @@ export function DecksScreen({
   const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
   const tableModel = React.useMemo(() => {
     if (!usesCardPages) {
-      return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone });
+      return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries });
     }
     const originalDecks = new Map(libraryDecks.map((deck) => [deck.id, deck]));
     const baseModel = createCardTableModel(
       libraryDecks.map((deck) => ({ ...deck, cards: [] })),
-      { now, dayStartHour, learnAheadMinutes, timeZone },
+      { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries },
     );
     const normalizedQuery = normalizeCardQuery(deferredQuery);
     const allGroups = baseModel.allGroups.map((group) => {
@@ -693,15 +658,14 @@ export function DecksScreen({
       const page = candidate && candidate.query === deferredQuery && sameSort(candidate.sort, cardSort) ? candidate : undefined;
       const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
       const items = (page?.items ?? []).slice(0, pageSize);
-      const totalCardCount = Math.max(items.length, Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : group.deck.cardCount ?? 0)));
+      const totalCardCount = Math.max(items.length, Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : deckSummaries?.get(group.id)?.inventory.totalCards ?? 0)));
       const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
       const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
-      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(`${group.path} ${group.deck.tags?.join(" ") ?? ""}`).includes(normalizedQuery);
+      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(group.path).includes(normalizedQuery);
       return {
         ...group,
         deck: originalDecks.get(group.id) ?? group.deck,
-        activeCards: items,
-        cardRows: items.map((card) => createCardTableRow(card, { dayStartHour, timeZone })),
+        cardRows: items.map((entry) => createCardTableRow(entry, { dayStartHour, timeZone })),
         totalCardCount,
         page: currentPage,
         pageCount,
@@ -720,46 +684,28 @@ export function DecksScreen({
       groups,
       cardSort,
     };
-  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
+  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
-  const selectedContentCard = React.useMemo(() => {
+  const selectedContentDeckId = React.useMemo(() => {
     if (!contentDeckId || !selectedCardId) return null;
     for (const group of tableModel.allGroups) {
-      const directCard = cardPages?.[group.id]?.selectedCard;
-      if (directCard?.id === selectedCardId) return directCard;
-      const card = group.activeCards.find((candidate) => candidate.id === selectedCardId);
-      if (card) return card;
+      if (cardPages?.[group.id]?.selected?.cardId === selectedCardId) return group.id;
+      if (group.cardRows.some((row) => row.id === selectedCardId)) return group.id;
     }
     return null;
   }, [cardPages, contentDeckId, selectedCardId, tableModel.allGroups]);
-  const selectedDeckId = selectedContentCard?.deckId ?? focusedDeckId;
+  const selectedDeckId = selectedContentDeckId ?? focusedDeckId;
   const selectedGroup = selectedDeckId ? groupById.get(selectedDeckId) ?? null : null;
   const selectedDeck = selectedGroup?.deck ?? null;
   const selectedPage = selectedDeckId ? cardPages?.[selectedDeckId] : undefined;
-  const selectedCard = (selectedPage?.selectedCard?.id === selectedCardId ? selectedPage.selectedCard : null)
-    ?? selectedGroup?.activeCards.find((card) => card.id === selectedCardId && card.meta?.catalogOnly !== true)
-    ?? (selectedContentCard?.meta?.catalogOnly !== true ? selectedContentCard : null)
-    ?? null;
-  const selectedDefinition = React.useMemo(() => {
-    if (!selectedCard) return null;
-    return noteTypeDefinitions.find((definition) => definition.id === selectedCard.noteTypeDefinitionId)
-      ?? createCoreNoteTypeDefinition({
-        document: selectedCard.contentDocument,
-        kind: selectedCard.kind === "cloze" ? "cloze" : "normal",
-        interaction: selectedCard.kind === "single-choice" || selectedCard.kind === "multiple-choice" ? "choice" : undefined,
-      });
-  }, [noteTypeDefinitions, selectedCard]);
+  const selectedGraph = selectedPage?.selected?.cardId === selectedCardId ? selectedPage?.selected ?? null : null;
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
-  const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedCard);
-  const detailOpen = Boolean(selectedCard || selectedDeckMissing || selectedCardMissing);
-  const selectedMediaDeck = React.useMemo(
-    () => selectedDeck && selectedCard ? { ...selectedDeck, cards: [selectedCard] } : selectedDeck,
-    [selectedCard, selectedDeck],
-  );
-  const { urls: selectedDeckMediaUrls } = useCardMediaUrls(selectedMediaDeck, selectedCard?.id, mediaStore);
+  const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedGraph);
+  const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
+  const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
     onDraftStateChange(guard);
@@ -790,12 +736,7 @@ export function DecksScreen({
       const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
       const selectedCardForDeck = selectedDeckId === group.id ? selectedCardId : null;
       const current = cardPages?.[group.id];
-      const selectedItem = selectedCardForDeck
-        ? current?.items.find((card) => card.id === selectedCardForDeck)
-        : null;
-      const hasSelectedCard = !selectedCardForDeck
-        || current?.selectedCard?.id === selectedCardForDeck
-        || Boolean(selectedItem && selectedItem.meta?.catalogOnly !== true);
+      const hasSelectedCard = !selectedCardForDeck || current?.selected?.cardId === selectedCardForDeck;
       if (current
         && current.page === page
         && current.query === deferredQuery
@@ -950,27 +891,15 @@ export function DecksScreen({
     onSetDeckExpanded("deck-manager", deckId, expanded);
   }
 
-  function saveCard(cardId: string, value: CardEditorValue) {
-    if (!selectedDeck) return;
-    return onSaveCard(selectedDeck.id, cardId, value);
-  }
-
-  function saveCardDocument(cardId: string, value: { fields: Array<{ id: string; value: string }>; tags?: string[] }) {
-    if (!selectedDeck || !onSaveCardDocument) return;
-    return onSaveCardDocument(selectedDeck.id, cardId, value);
-  }
-
-  function requestCardDelete(cardId: string) {
-    if (!selectedDeck) return;
-    const card = selectedDeck.cards.find((candidate) => candidate.id === cardId)
-      ?? (selectedCard?.id === cardId ? selectedCard : null);
-    if (card) setPendingCardDelete({ deckId: selectedDeck.id, card });
+  function requestCardDelete() {
+    if (!selectedDeck || !selectedGraph) return;
+    setPendingCardDelete({ deckId: selectedDeck.id, cardId: selectedGraph.cardId, graph: selectedGraph });
   }
 
   async function confirmCardDelete() {
     if (!pendingCardDelete || deletingCard) return;
     const deletion = pendingCardDelete;
-    const description = stripHtml(deletion.card.originalFront).replace(/\s+/g, " ").trim() || "Karte ohne Vorderseitentext";
+    const description = noteTextIndex(deletion.graph.note.content).sortText || "Karte ohne Vorderseitentext";
     const contentRegion = document.querySelector<HTMLElement>('section[aria-label="Seiteninhalt"]');
     const contentBounds = contentRegion?.getBoundingClientRect();
     const visibleDeckHeader = contentRegion && contentBounds
@@ -987,14 +916,13 @@ export function DecksScreen({
     setDeckStatus("");
     setSuccessToast("");
     try {
-      const result = await onDeleteCard(deletion.deckId, deletion.card.id);
-      const deletedCard = result?.id === deletion.card.id && result.status === "deleted" && result.deletedAt ? result : null;
-      if (!deletedCard) throw new Error("Löschung fehlgeschlagen.");
-      setDeletedCardUndo({ deckId: deletion.deckId, card: deletedCard, previousStatus: deletion.card.status, description });
+      const result = await onDeleteNote(deletion.graph);
+      if (!result?.deleted.note.deletedAt) throw new Error("Löschung fehlgeschlagen.");
+      setDeletedCardUndo({ deckId: deletion.deckId, cardId: deletion.cardId, undo: result.undo, deleted: result.deleted, description });
       setPendingCardDelete(null);
       preserveToastForSelectionChange.current = true;
       onSelectDeck(deletion.deckId);
-      setSuccessToast("Karte wurde erfolgreich gelöscht.");
+      setSuccessToast(deletion.graph.cards.length > 1 ? `Inhalt mit ${deletion.graph.cards.length} Karten wurde erfolgreich gelöscht.` : "Karte wurde erfolgreich gelöscht.");
       if (contentRegion && visibleDeckHeader && visibleDeckHeaderTop !== undefined) {
         window.requestAnimationFrame(() => {
           if (visibleDeckHeader.isConnected) {
@@ -1014,15 +942,15 @@ export function DecksScreen({
   async function undoCardDelete() {
     if (!deletedCardUndo) return;
     try {
-      const result = await onUndoDeleteCard(deletedCardUndo.deckId, deletedCardUndo.card, deletedCardUndo.previousStatus);
+      const result = await onUndoDeleteNote(deletedCardUndo.undo, deletedCardUndo.deleted);
       if (!result) throw new Error("Undo fehlgeschlagen.");
-      onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.card.id);
+      onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.cardId);
       setDeckStatus("");
       setDeckStatusType("status");
       setSuccessToast("Kartenlöschung wurde erfolgreich rückgängig gemacht.");
       setDeletedCardUndo(null);
     } catch {
-      onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.card.id);
+      onSelectDeck(deletedCardUndo.deckId, deletedCardUndo.cardId);
       setDeckStatus("Kartenlöschung lokal rückgängig gemacht; die Cloud-Synchronisierung steht noch aus.");
       setDeckStatusType("alert");
       setDeletedCardUndo(null);
@@ -1070,22 +998,22 @@ export function DecksScreen({
               </div>}
             />
           </div>
-        ) : selectedDeck && selectedCard ? (
+        ) : selectedDeck && selectedGraph ? (
           <DeckCardEditor
             deck={selectedDeck}
-            card={selectedCard}
-            definition={selectedDefinition}
+            graph={selectedGraph}
+            cardId={selectedGraph.cardId}
+            syncConflict={syncConflictCardIds?.has(selectedGraph.cardId) ?? false}
             now={now}
             dayStartHour={dayStartHour}
             timeZone={timeZone}
-            mediaUrls={selectedDeckMediaUrls}
-            onSaveCard={saveCard}
-            onSaveCardDocument={onSaveCardDocument ? saveCardDocument : undefined}
-            onSetStudyState={(cardId: string, patch: Parameters<DecksScreenProps["onSetCardStudyState"]>[2]) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
-            onDuplicateCard={(cardId: string) => onDuplicateCard(selectedDeck.id, cardId)}
-            onDeleteCard={requestCardDelete}
+            mediaUrls={selectedNoteMediaUrls}
+            onSaveNote={onSaveNote}
+            onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
+            onDuplicateNote={() => onDuplicateNote(selectedGraph)}
+            onDeleteNote={requestCardDelete}
             onRescheduleCards={onRescheduleCards}
-            onGenerateVariant={(cardId: string) => onGenerateVariant(selectedDeck.id, cardId)}
+            onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
             onClose={() => requestDetailAction(closeDetail)}
             onDraftStateChange={handleEditorDraftStateChange}
           />
@@ -1214,10 +1142,10 @@ export function DecksScreen({
                       </td>
                     </tr>
                   ) : null}
-                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ card, frontPreview, nextStudyLabel, hasActiveVariants }) => {
-                    const suspended = card.status === "suspended";
-                    const marked = isLearningItemMarked(card);
+                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel, hasActiveVariants }) => {
+                    const suspended = !card.reviewable;
                     const selected = selectedCardId === card.id;
+                    const marked = selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked;
                     return (
                     <tr
                       key={card.id}
@@ -1239,7 +1167,7 @@ export function DecksScreen({
                           }}
                         >
                           {frontPreview}
-                          {card.syncConflict ? <span className="ml-2 rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
+                          {syncConflictCardIds?.has(card.id) ? <span className="ml-2 rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
                         </button>
                       </td>
                       <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
@@ -1313,8 +1241,8 @@ export function DecksScreen({
       />
       <ActionDialog
         open={Boolean(pendingCardDelete)}
-        title="Karte löschen?"
-        description={null}
+        title={pendingCardDelete && pendingCardDelete.graph.cards.length > 1 ? `Inhalt mit ${pendingCardDelete.graph.cards.length} Karten löschen?` : "Karte löschen?"}
+        description={pendingCardDelete && pendingCardDelete.graph.cards.length > 1 ? "Alle Karten dieses Inhalts werden gelöscht, auch in anderen Stapeln." : null}
         confirmLabel="Ja"
         cancelLabel="Nein"
         actionIcons={{ cancel: X, confirm: Check }}

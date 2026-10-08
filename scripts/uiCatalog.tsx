@@ -2,8 +2,7 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
-import { DEMO_GROUPS, Demo, StudyDemo } from "./uiCatalogDemos.tsx";
-import type { CardType } from "../src/coreTypes.ts";
+import { DEMO_GROUPS, Demo, StudyDemo, type CatalogCardKind } from "./uiCatalogDemos.tsx";
 import { loadDeferredBrowserAssets } from "../src/deferredBrowserAssets.ts";
 
 export interface CatalogData {
@@ -24,7 +23,7 @@ const cardTypes = [
   { kind: "cloze", label: "Lückentext", description: "Jede Lückengruppe ist eine eigenständige Karte." },
   { kind: "single-choice", label: "Single Choice", description: "Eine Auswahl deckt die Antwort unmittelbar auf." },
   { kind: "multiple-choice", label: "Multiple Choice", description: "Mehrere Optionen werden ausgewählt und gemeinsam geprüft." },
-] satisfies { kind: CardType; label: string; description: string }[];
+] satisfies { kind: CatalogCardKind; label: string; description: string }[];
 
 function Usage({ count, files }: { count: number; files: string[] }) {
   return <details><summary>{count} Verwendung{count === 1 ? "" : "en"} · {files.length} Datei{files.length === 1 ? "" : "en"}</summary><ul>{files.map((file) => <li key={file}><code>{file}</code></li>)}</ul></details>;
@@ -62,9 +61,9 @@ function Catalog() {
   </div></SuccessToastProvider></CoreTooltipProvider>;
 }
 
-function CardTypes() {
-  return <CoreTooltipProvider><SuccessToastProvider><main className="catalog catalog-card-types"><header className="catalog-intro"><p>CoRe · Reviewreferenz</p><h1>Kartentypen</h1><p>Alle sechs manuell erstellbaren Formen verwenden denselben Kartenrenderer wie die App. Aufdecken, Auswahl und Zurücksetzen sind interaktiv. Importierte Image-Occlusion-Karten werden zusätzlich über ihre erhaltenen Anki-Schablonen dargestellt.</p><p>Der neue Renderer ist vor dem Cutover als <a href="ui-elements.html#note-content">vorbereitete Kartenbausteine</a> im UI-Katalog prüfbar.</p><nav className="catalog-card-links" aria-label="Kartentypen">{cardTypes.map((type) => <a key={type.kind} href={`#${type.kind}`}>{type.label}</a>)}</nav></header>{cardTypes.map((type) => <Section key={type.kind} id={type.kind} title={type.label} lead={type.description}><div className="catalog-demo-grid"><Demo title={type.kind === "basic-reversed" ? "Vorwärtsrichtung" : "Review"}><StudyDemo cardType={type.kind} /></Demo>{type.kind === "basic-reversed" && <Demo title="Rückrichtung · eigenständige Karte"><StudyDemo cardType={type.kind} index={1} /></Demo>}</div></Section>)}</main></SuccessToastProvider></CoreTooltipProvider>;
+function CardForms() {
+  return <CoreTooltipProvider><SuccessToastProvider><main className="catalog catalog-card-types"><header className="catalog-intro"><p>CoRe · Reviewreferenz</p><h1>Kartentypen</h1><p>Alle sechs manuell erstellbaren Formen verwenden denselben Kartenrenderer wie die App. Aufdecken, Auswahl und Zurücksetzen sind interaktiv. Importierte Image-Occlusion-Karten werden zusätzlich über ihre erhaltenen Anki-Schablonen dargestellt.</p><p>Weitere Formen aus Anki-Importen zeigen die <a href="ui-elements.html#note-content">Kartenbausteine</a> im UI-Katalog.</p><nav className="catalog-card-links" aria-label="Kartentypen">{cardTypes.map((type) => <a key={type.kind} href={`#${type.kind}`}>{type.label}</a>)}</nav></header>{cardTypes.map((type) => <Section key={type.kind} id={type.kind} title={type.label} lead={type.description}><div className="catalog-demo-grid"><Demo title={type.kind === "basic-reversed" ? "Vorwärtsrichtung" : "Review"}><StudyDemo kind={type.kind} /></Demo>{type.kind === "basic-reversed" && <Demo title="Rückrichtung · eigenständige Karte"><StudyDemo kind={type.kind} index={1} /></Demo>}</div></Section>)}</main></SuccessToastProvider></CoreTooltipProvider>;
 }
 
 loadDeferredBrowserAssets(document);
-createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardTypes /> : <Catalog />);
+createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardForms /> : <Catalog />);

@@ -2,7 +2,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { saveCloudProfile } from "../../src/cloudAuth.ts";
 import { createCloudStateRows } from "../../src/cloudRepository.ts";
 
-const DELETE_ORDER = ["media_assets", "review_events", "card_variants", "cards", "decks", "note_type_definitions"] as const;
+const DELETE_ORDER = ["media_files", "review_events", "card_variants", "cards", "note_sources", "notes", "note_type_sources", "decks"] as const;
+const INSERT_ORDER = ["decks", "note_type_sources", "notes", "note_sources", "cards", "card_variants"] as const;
 
 export async function seedAccountState(client: SupabaseClient, state: any, deviceId: string) {
   const { data, error } = await client.auth.getUser();
@@ -14,7 +15,7 @@ export async function seedAccountState(client: SupabaseClient, state: any, devic
 
   const rows = createCloudStateRows(state, data.user.id, { deviceId });
   await saveCloudProfile(client, state.profile ?? {});
-  for (const table of ["decks", "note_type_definitions", "cards", "card_variants"] as const) {
+  for (const table of INSERT_ORDER) {
     if (!rows[table].length) continue;
     const result = await client.from(table).insert(rows[table].map((row: any) => ({ ...row, revision: 1, updated_by_device_id: deviceId })));
     if (result.error) throw result.error;
@@ -24,17 +25,15 @@ export async function seedAccountState(client: SupabaseClient, state: any, devic
     if (result.error) throw result.error;
   }
 
+  const seeded = <T extends object>(entity: T) => ({ ...entity, revision: 1, updatedByDeviceId: deviceId });
   return {
     ...state,
+    notes: (state.notes ?? []).map(seeded),
     decks: (state.decks ?? []).map((deck: any) => ({
-      ...deck,
-      revision: 1,
-      updatedByDeviceId: deviceId,
+      ...seeded(deck),
       cards: (deck.cards ?? []).map((card: any) => ({
-        ...card,
-        revision: 1,
-        updatedByDeviceId: deviceId,
-        variants: (card.variants ?? []).map((variant: any) => ({ ...variant, revision: 1, updatedByDeviceId: deviceId })),
+        ...seeded(card),
+        variants: (card.variants ?? []).map(seeded),
       })),
     })),
   };

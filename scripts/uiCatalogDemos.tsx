@@ -1,8 +1,11 @@
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
 import { BookOpen, ChevronRight, Home, Info, Layers, Plus, Save, Settings, Trash2, Type } from "lucide-react";
-import { createBasicLearningItem, createReviewState, createCoreDeck, createCoreNoteTypeDefinition, createManualCoreDeck } from "../src/coreModel.ts";
-import type { CardType, CoreMode, NewReviewOrder, NoteContent, NoteField } from "../src/coreTypes.ts";
+import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, type ManualContentKind } from "../src/coreModel.ts";
+import type { CoreMode, NewReviewOrder, NoteContent, NoteField } from "../src/coreTypes.ts";
+import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
+import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePresentationTheme } from "../src/notePresentation.ts";
+import { catalogEntryFromCard } from "../src/workspaceReplica.ts";
 import { createDeckLibraryModel } from "../src/libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
@@ -31,7 +34,6 @@ import { CardStudyStateControls } from "../src/ui/CardStudyStateControls.tsx";
 import { StudySettingsOverlay } from "../src/ui/StudySettingsOverlay.tsx";
 import { CardPreviewDialog } from "../src/ui/CardPreviewDialog.tsx";
 import { CardPresentationSurface } from "../src/ui/CardPresentationSurface.tsx";
-import { StudyCardContent } from "../src/ui/StudyCardContent.tsx";
 import { CardHtml } from "../src/ui/cardMedia.tsx";
 import { RichTextEditor } from "../src/ui/RichTextEditor.tsx";
 import { PdfDocumentViewer } from "../src/ui/PdfDocumentViewer.tsx";
@@ -56,20 +58,21 @@ import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
 import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
 import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
 import { StudyMode } from "../src/screens/StudyMode.tsx";
-import { createNote } from "../src/coreModel/notes.ts";
 import { NoteCardContent } from "../src/ui/NoteCardContent.tsx";
 
 const today = "2026-10-02";
 const imageReference = "a".repeat(40);
 const sampleMedia = { [imageReference]: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="160" viewBox="0 0 400 160"><rect width="400" height="160" rx="12" fill="#dde3ed"/><path d="M40 130V60l60-35 60 35v70M230 130V45h90v85M210 130h130" fill="none" stroke="#667492" stroke-width="6"/><text x="40" y="150" font-size="14">Lissabon · Beispielbild</text></svg>')}` };
-const deck = createManualCoreDeck({ deckName: "Welt-Hauptstädte", card: { cardType: "basic", front: "Was ist die Hauptstadt von Portugal?", back: "Lissabon" } });
-deck.id = "catalog-world";
-deck.cards = [{ ...deck.cards[0], deckId: deck.id }, createBasicLearningItem(deck.id, "Was ist die Hauptstadt von Spanien?", "Madrid")];
-const child = createManualCoreDeck({ deckName: "Europa – ein sehr langer Name für schmale Ansichten", card: { cardType: "basic", front: "Land", back: "Portugal" } });
-child.id = "catalog-europe";
-child.cards = child.cards.map((card) => ({ ...card, deckId: child.id }));
-child.parentDeckId = deck.id;
-child.hierarchyPath = [deck.name, child.name];
+const sampleGraphs = [
+  createBasicNote("catalog-world", "Was ist die Hauptstadt von Portugal?", "Lissabon"),
+  createBasicNote("catalog-world", "Was ist die Hauptstadt von Spanien?", "Madrid"),
+  createBasicNote("catalog-europe", "Land", "Portugal"),
+];
+const sampleNotes = sampleGraphs.map(({ note }) => note);
+const sampleNotesById = new Map(sampleNotes.map((note) => [note.id, note]));
+const deck = createCoreDeck({ id: "catalog-world", name: "Welt-Hauptstädte", source: "manual", cards: sampleGraphs.slice(0, 2).flatMap(({ cards }) => cards) });
+const childName = "Europa – ein sehr langer Name für schmale Ansichten";
+const child = createCoreDeck({ id: "catalog-europe", name: childName, source: "manual", parentDeckId: deck.id, hierarchyPath: [deck.name, childName], cards: sampleGraphs[2].cards });
 const sampleDecks = [deck, child, ...["Biologie", "Medizin", "Sprachen", "Geschichte"].map((name, index) => ({ ...deck, id: `catalog-${index}`, parentDeckId: null, name, hierarchyPath: [name], cards: [] }))];
 
 export function Demo({ title, children, wide = false }: { title: string; children: React.ReactNode; wide?: boolean }) {
@@ -181,21 +184,47 @@ function DecksDemo({ section }: { section: string }) {
   </>;
 }
 
-export function cardFixture(cardType: CardType = "basic", index = 0) {
-  const sample = createManualCoreDeck({ deckName: "Kartentypen", card: {
-    cardType, front: cardType === "cloze" ? "Die Hauptstadt von Portugal ist {{c1::Lissabon}}." : cardType === "multiple-choice" ? "Welche Städte liegen in Portugal?" : cardType === "basic-with-images" ? `<p>Welche Hauptstadt siehst du?</p><img src="${imageReference}" alt="Beispielansicht von Lissabon">` : "Was ist die Hauptstadt von Portugal?",
-    mediaRefs: cardType === "basic-with-images" ? [imageReference] : [],
-    back: cardType === "multiple-choice" ? "Lissabon und Porto" : "Lissabon", answerOptions: ["Lissabon", "Madrid", "Porto"], correctAnswers: cardType === "multiple-choice" ? ["Lissabon", "Porto"] : ["Lissabon"],
-  } });
-  const item = sample.cards[index] ?? sample.cards[0];
-  const definition = createCoreNoteTypeDefinition({ document: item.contentDocument, kind: cardType === "cloze" ? "cloze" : "normal", interaction: cardType === "single-choice" || cardType === "multiple-choice" ? "choice" : undefined, createdAt: "2026-10-02T12:00:00Z" });
-  return { item, definition, variant: item.variants[0], mediaUrls: sampleMedia };
+/** Manual content forms of the card reference; "basic-with-images" is a basic note with an inline image. */
+export type CatalogCardKind = ManualContentKind | "basic-with-images";
+
+export function cardFixture(kind: CatalogCardKind = "basic", index = 0) {
+  const front = kind === "cloze" ? "Die Hauptstadt von Portugal ist {{c1::Lissabon}}." : kind === "multiple-choice" ? "Welche Städte liegen in Portugal?" : kind === "basic-with-images" ? `<p>Welche Hauptstadt siehst du?</p><img src="${imageReference}" alt="Beispielansicht von Lissabon">` : "Was ist die Hauptstadt von Portugal?";
+  const content = createManualNoteContent({
+    kind: kind === "basic-with-images" ? "basic" : kind,
+    front,
+    back: kind === "multiple-choice" ? "Lissabon und Porto" : "Lissabon",
+    answerOptions: ["Lissabon", "Madrid", "Porto"],
+    correctOptionIndices: kind === "multiple-choice" ? [0, 2] : [0],
+  });
+  const { note, cards } = createNote({ content, deckId: "catalog-card-types", media: kind === "basic-with-images" ? { [imageReference]: imageReference } : {} });
+  return { note, card: cards[index] ?? cards[0], mediaUrls: sampleMedia };
 }
 
-export function StudyDemo({ cardType = "basic", index = 0 }: { cardType?: CardType; index?: number }) {
+export function StudyDemo({ kind = "basic", index = 0 }: { kind?: CatalogCardKind; index?: number }) {
   const [revealed, setRevealed] = useState(false);
-  const [choices, setChoices] = useState<string[]>([]);
-  return <div><StudyCardContent {...cardFixture(cardType, index)} revealed={revealed} selectedChoices={choices} onSelectedChoicesChange={setChoices} onReveal={() => setRevealed(true)} /><div className="catalog-row mt-6"><ActionButton variant="secondary" onClick={() => setRevealed((current) => !current)}>{revealed ? "Vorderseite zeigen" : "Antwort aufdecken"}</ActionButton><ActionButton variant="secondary" onClick={() => { setRevealed(false); setChoices([]); }}>Zurücksetzen</ActionButton></div></div>;
+  const [round, setRound] = useState(0);
+  const fixture = React.useMemo(() => cardFixture(kind, index), [kind, index]);
+  return <div><NoteCardContent key={round} {...fixture} revealed={revealed} onReveal={() => setRevealed(true)} /><div className="catalog-row mt-6"><ActionButton variant="secondary" onClick={() => setRevealed((current) => !current)}>{revealed ? "Vorderseite zeigen" : "Antwort aufdecken"}</ActionButton><ActionButton variant="secondary" onClick={() => { setRevealed(false); setRound((current) => current + 1); }}>Zurücksetzen</ActionButton></div></div>;
+}
+
+function catalogTheme(): NotePresentationTheme {
+  const style = getComputedStyle(document.documentElement);
+  return {
+    mode: document.documentElement.dataset.coreTheme === "dark" ? "dark" : "light",
+    colors: Object.fromEntries(NOTE_THEME_COLORS.map((name) => [name, style.getPropertyValue(`--core-${name}`).trim()])) as NotePresentationTheme["colors"],
+  };
+}
+
+function SurfaceDemo() {
+  const fixture = React.useMemo(() => cardFixture("basic-with-images"), []);
+  const [sides, setSides] = useState<Record<"question" | "answer", NotePresentationResult> | null>(null);
+  React.useEffect(() => {
+    let active = true;
+    void Promise.all((["question", "answer"] as const).map((side) => renderCard({ note: fixture.note, card: fixture.card, side, surface: "management", theme: catalogTheme() })))
+      .then(([question, answer]) => { if (active) setSides({ question, answer }); });
+    return () => { active = false; };
+  }, [fixture]);
+  return <><CardPresentationSurface presentation={sides?.question ?? null} title="Vorderseite" mediaUrls={fixture.mediaUrls} showCompatibility="warnings-only" /><CardPresentationSurface presentation={sides?.answer ?? null} title="Rückseite" mediaUrls={fixture.mediaUrls} showCompatibility="warnings-only" /><CardPresentationSurface presentation={null} title="Noch keine Karte" loadingLabel="Kartendarstellung wird vorbereitet …" /></>;
 }
 
 function ContentDemo({ section }: { section: string }) {
@@ -220,9 +249,9 @@ function ContentDemo({ section }: { section: string }) {
   const fixture = cardFixture();
   return <>
     {section === "inhalt" && <Demo title="CardHtml"><CardHtml html='<p>Sanitisiertes <strong>Karten-HTML</strong> mit <em>Hervorhebung</em>.</p>' /></Demo>}
-    {section === "inhalt" && <Demo title="CardPresentationSurface · Vorderseite, Rückseite und Ladezustand"><CardPresentationSurface {...fixture} title="Vorderseite" showCompatibility="warnings-only" /><CardPresentationSurface {...fixture} side="answer" title="Rückseite" showCompatibility="warnings-only" /><CardPresentationSurface title="Noch keine Karte" loadingLabel="Kartendarstellung wird vorbereitet …" /></Demo>}
-    {section === "inhalt" && <Demo title="StudyCardContent · Aufdecken und Auswahl" wide><StudyDemo /></Demo>}
-    {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog {...fixture} open={preview} onOpenChange={setPreview} /></Demo>}
+    {section === "inhalt" && <Demo title="CardPresentationSurface · Vorderseite, Rückseite und Ladezustand"><SurfaceDemo /></Demo>}
+    {section === "inhalt" && <Demo title="NoteCardContent · Aufdecken und Auswahl" wide><StudyDemo /></Demo>}
+    {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} card={fixture.card} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor · Toolbar und zusätzliche Werkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /><details><summary>Aktueller HTML-Inhalt</summary><pre>{text}</pre></details></Demo>}
     {section === "colors" && <Demo title="ColorWheelPicker"><ColorWheelPicker value={color} onValueCommit={setColor} /><code>{color}</code><ColorWheelPicker value={color} disabled onValueCommit={setColor} /></Demo>}
     {section === "colors" && <Demo title="ColorToolButton und ColorPopover"><ColorToolButton label="Textfarbe" icon={Type} color={slots[slot]} isOpen={colorOpen} menuId="catalog-color-popover" onToggle={() => setColorOpen((value) => !value)} buttonRef={buttonRef} />{colorOpen && <ColorPopover id="catalog-color-popover" label="Textfarbe" icon={Type} colors={slots} paletteColors={["#181d25", "#667492", "#047857"]} selectedSlot={slot} onSelectSlot={setSlot} onApply={(value) => { setColor(value); setColorOpen(false); }} onChangeSlot={(index, value) => setSlots((current) => current.map((entry, position) => position === index ? value : entry))} />}</Demo>}
@@ -280,16 +309,25 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     return { conflicts: conflicts.current };
   }, []);
   const statisticsDecks = React.useMemo(() => {
-    const cards = Array.from({ length: 8 }, (_, index) => ({ ...createBasicLearningItem("catalog-statistics", `Frage ${index + 1}`, "Antwort"), reviewState: createReviewState({ state: "review", dueAt: `2026-10-${String(3 + index).padStart(2, "0")}T12:00:00Z`, intervalDays: 3 + index * 5, stability: 5 + index * 10, difficulty: 2 + index, repetitions: 6 }) }));
+    const cards = Array.from({ length: 8 }, (_, index) => ({ ...createBasicNote("catalog-statistics", `Frage ${index + 1}`, "Antwort").cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", dueAt: `2026-10-${String(3 + index).padStart(2, "0")}T12:00:00Z`, intervalDays: 3 + index * 5, stability: 5 + index * 10, difficulty: 2 + index, reps: 6 })) }));
     return [createCoreDeck({ id: "catalog-statistics", name: "Welt-Hauptstädte", source: "manual", cards, reviewEvents: Array.from({ length: 28 }, (_, index) => {
       const item = cards[index % cards.length]; const answeredAt = `2026-09-${String(3 + index).padStart(2, "0")}T12:00:00Z`;
-      return { id: `catalog-review-${index}`, userId: "catalog", deckId: "catalog-statistics", learningItemId: item.id, variantId: null, reviewableType: "card" as const, reviewableId: item.id, sourceCardId: item.id, rating: (["again", "hard", "good", "easy"] as const)[index % 4], answeredAt, responseTimeMs: 1800 + index * 100, schedulerBefore: { card: { state: "review", intervalDays: 3 + index } }, schedulerAfter: {}, flags: {}, createdAt: answeredAt };
+      return { id: `catalog-review-${index}`, userId: "catalog", deckId: "catalog-statistics", cardId: item.id, variantId: null, rating: (["again", "hard", "good", "easy"] as const)[index % 4], answeredAt, responseTimeMs: 1800 + index * 100, schedulerBefore: { card: { state: "review", intervalDays: 3 + index } }, schedulerAfter: {}, flags: {}, createdAt: answeredAt };
     }) }), child];
   }, []);
   const toast = useSuccessToast();
   const workspace = React.useMemo(() => ({ ...createCoreRepository().getState(), decks: sampleDecks }), []);
   const navigate = React.useCallback<React.ComponentProps<typeof DashboardScreen>["onNavigate"]>((id, fields) => createViewRoute(id ?? "uebersicht", fields), []);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardPages, setCardPages] = useState<Record<string, DecksCardPage>>({});
+  // Local stand-in for the catalog query of the app: every deck shows its sample cards as one page.
+  const requestCardPage = React.useCallback((request: DecksCardPageRequest) => {
+    const deckCards = sampleDecks.find((candidate) => candidate.id === request.deckId)?.cards ?? [];
+    const selectedCard = deckCards.find((card) => card.id === request.selectedCardId);
+    const note = selectedCard ? sampleNotesById.get(selectedCard.noteId) : undefined;
+    const items = deckCards.map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null));
+    setCardPages((current) => ({ ...current, [request.deckId]: { deckId: request.deckId, items, page: 0, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null } }));
+  }, []);
   const noop = React.useCallback(() => undefined, []);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
@@ -316,11 +354,11 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
     {view === "manual" && <p className="core-caption text-core-muted">Zusatzfelder: ein Feld ohne Pfeile, mehrere Felder mit möglichen Verschieberichtungen. Platzierung auf Vorderseite, Rückseite oder beiden Seiten; Standard ist die Rückseite.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
-    {["decks", "deck-content"].includes(view) && <DecksScreen contentDeckId={view === "deck-content" ? deck.id : null} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} onSaveCard={noop} onSetCardStudyState={async () => null} onDuplicateCard={async () => null} onDeleteCard={async () => null} onUndoDeleteCard={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
+    {["decks", "deck-content"].includes(view) && <DecksScreen contentDeckId={view === "deck-content" ? deck.id : null} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} cardPages={cardPages} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={async () => null} onDuplicateNote={async () => null} onDeleteNote={async () => null} onUndoDeleteNote={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
     {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
     {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
-    {view === "study" && <StudyMode deck={deck} decks={sampleDecks} deckId={deck.id} variantSession={false} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} onSetCardStudyState={() => deck} onSetDeckReviewOrder={() => deck} onCardUpdated={noop} onReview={noop} />}
+    {view === "study" && <StudyMode deck={deck} decks={sampleDecks} notes={sampleNotes} deckId={deck.id} variantSession={false} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => deck} onCardUpdated={noop} onReview={noop} />}
     </section>
   </div>}</>;
 }
@@ -342,8 +380,8 @@ export const DEMO_GROUPS = [
   { id: "stapel", title: "Tabellen, Bäume und Menüs", description: "Gemeinsame Tabellenzeile mit oder ohne Lernstatus, Stapelbaum und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], render: () => <DecksDemo section="stapel" /> },
   { id: "charts", title: "Kennzahlen und Diagramme", description: "Kennzahlen, Ringdiagramme, Heatmap und die produktiven Statistikdiagramme.", components: ["StatTile", "SegmentedDonut", "StudyHeatmap", "StatisticsScreenContent"], render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /><ProductViewsDemo kind="statistics" /></> },
   { id: "symbols", title: "Icons und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
-  { id: "inhalt", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface", "StudyCardContent"], render: () => <ContentDemo section="inhalt" /> },
-  { id: "note-content", title: "Vorbereitete Kartenbausteine", description: "Phase 3: Renderer und Antwort-Host des Note-/Card-Modells. Bis zum Cutover ausschließlich hier nutzbar.", components: ["NoteCardContent"], render: NotePresentationDemos },
+  { id: "inhalt", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface"], render: () => <ContentDemo section="inhalt" /> },
+  { id: "note-content", title: "Kartenbausteine", description: "Renderer und Antwort-Host des Note-/Card-Modells für Feldrollen, Lücken, Bildverdeckung, Eintippen, Auswahl und Formeln.", components: ["NoteCardContent"], render: NotePresentationDemos },
   { id: "editor", title: "Texteditor und Werkzeuge", description: "Rich-Text-Toolbar, Lückentext, Bilder und Zusatzwerkzeuge.", components: ["RichTextEditor"], render: () => <ContentDemo section="editor" /> },
   { id: "media", title: "Medien und Dokumente", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], render: () => <ContentDemo section="media" /> },
 ] as const;

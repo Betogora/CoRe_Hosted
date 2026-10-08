@@ -124,8 +124,8 @@ test("profile and entity mutations coalesce without a snapshot fallback", async 
 
   engine.enqueueMutation({ id: "profile-old", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: { displayName: "Alt" } } });
   engine.enqueueMutation({ id: "profile-new", type: SYNC_MUTATION_TYPES.profilePatch, payload: { profile: { displayName: "Neu" } } });
-  engine.enqueueMutation({ id: "card-old", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1", originalFront: "Alt" } }, entityId: "card-1" });
-  engine.enqueueMutation({ id: "card-new", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1", originalFront: "Neu" } }, entityId: "card-1" });
+  engine.enqueueMutation({ id: "card-old", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1", status: "active" } }, entityId: "card-1" });
+  engine.enqueueMutation({ id: "card-new", type: SYNC_MUTATION_TYPES.entityMutation, payload: { table: "cards", entity: { id: "card-1", status: "suspended" } }, entityId: "card-1" });
 
   const result = await engine.flush();
 
@@ -237,7 +237,7 @@ test("entity batches preserve foreign-key order", async () => {
     device,
   });
 
-  for (const table of ["card_variants", "cards", "decks", "note_type_definitions"]) {
+  for (const table of ["review_events", "card_variants", "cards", "note_sources", "notes", "decks", "note_type_sources"]) {
     engine.enqueueMutation({
       id: `mutation-${table}`,
       type: SYNC_MUTATION_TYPES.entityMutation,
@@ -247,7 +247,26 @@ test("entity batches preserve foreign-key order", async () => {
   }
   await engine.flush();
 
-  assert.deepEqual(order, ["note_type_definitions", "decks", "cards", "card_variants"]);
+  assert.deepEqual(order, ["note_type_sources", "decks", "notes", "note_sources", "cards", "card_variants", "review_events"]);
+});
+
+test("tombstones follow the upserts in reverse foreign-key order", async () => {
+  const order: string[] = [];
+  const engine = createSyncEngine({
+    adapter: acknowledgingAdapter((batch) => order.push(...batch.map((mutation) => `${mutation.payload.tombstone ? "delete" : "upsert"}:${mutation.payload.table}`))),
+    outbox: createTestOutbox(),
+    device,
+  });
+  const tombstone = (table: string) => ({ table, entityId: `${table}-old`, baseRevision: 1, deletedAt: "2026-07-09T09:00:00.000Z", tombstone: true });
+
+  engine.enqueueMutation({ id: "delete-deck", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "decks-old", payload: tombstone("decks") });
+  engine.enqueueMutation({ id: "delete-note", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "notes-old", payload: tombstone("notes") });
+  engine.enqueueMutation({ id: "delete-card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "cards-old", payload: tombstone("cards") });
+  engine.enqueueMutation({ id: "upsert-card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-new", payload: { table: "cards", entity: { id: "card-new" } } });
+  engine.enqueueMutation({ id: "upsert-note", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "note-new", payload: { table: "notes", entity: { id: "note-new" } } });
+  await engine.flush();
+
+  assert.deepEqual(order, ["upsert:notes", "upsert:cards", "delete:cards", "delete:notes", "delete:decks"]);
 });
 
 test("confirmed rows update only affected local records before acknowledgement", async () => {
@@ -320,10 +339,10 @@ test("a mutation enqueued during an active flush survives for the next flush", a
     outbox: createTestOutbox(),
     device,
   });
-  engine.enqueueMutation({ id: "first", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", originalFront: "A" } } });
+  engine.enqueueMutation({ id: "first", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", status: "active" } } });
   const active = engine.flush();
   await waitForAsyncWork();
-  engine.enqueueMutation({ id: "second", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", originalFront: "B" } } });
+  engine.enqueueMutation({ id: "second", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1", status: "suspended" } } });
   release();
   await active;
 

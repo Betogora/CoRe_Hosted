@@ -1,13 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createManualCoreDeck } from "../coreModel.ts";
+import { createBasicNote, createCoreDeck } from "../coreModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { Deck } from "../coreTypes.ts";
 import type { OfflineDeckRecord } from "../workspaceReplica.ts";
 import { DeckSettingsScreen } from "./DeckSettingsScreen.tsx";
 
-const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Was ist ATP?", back: "Ein Energieträger." } });
+const deckId = "deck-biologie";
+const deck = createCoreDeck({ id: deckId, name: "Biologie", cards: createBasicNote(deckId, "Was ist ATP?", "Ein Energieträger.").cards });
 
 function renderScreen(currentDeck: Deck | null = deck, decks: Deck[] = [deck], settingsTarget: "new-cards-per-day" | null = null, offlineDeck: OfflineDeckRecord | null = null) {
   return renderToStaticMarkup(

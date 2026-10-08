@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createCoreCard, createCoreDeck } from "../coreModel.ts";
+import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import { createCoreRepository } from "../coreRepository.ts";
 import { createViewRoute } from "../appNavigation.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
+
+function basicCard(deckId: string, { id, front = "Frage", back = "Antwort", review = {} }: { id?: string; front?: string; back?: string; review?: Record<string, unknown> } = {}) {
+  const card = createBasicNote(deckId, front, back).cards[0];
+  return { ...card, id: id ?? card.id, study: cardStudyFromReviewState(createReviewState(review)) };
+}
 
 const dashboardCallbacks = {
   onNavigate: () => createViewRoute("uebersicht"),
@@ -41,16 +46,10 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
 test("populated dashboard shows the aggregated open daily learning overview", () => {
   const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
+    id: "biologie",
     name: "Biologie",
     source: "manual",
-    cards: [
-      createCoreCard({
-        source: "manual",
-        originalFront: "Was ist ATP?",
-        originalBack: "Ein Energieträger.",
-        reviewState: { dueAt: "2026-01-01T00:00:00.000Z" },
-      }),
-    ],
+    cards: [basicCard("biologie", { front: "Was ist ATP?", back: "Ein Energieträger.", review: { dueAt: "2026-01-01T00:00:00.000Z" } })],
   });
   const markup = renderToStaticMarkup(
     <DashboardScreen
@@ -109,16 +108,10 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
 test("dashboard projects future due cards through the supplied learning time", () => {
   const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
   const deck = createCoreDeck({
+    id: "zukunft",
     name: "Zukunft",
     source: "manual",
-    cards: [
-      createCoreCard({
-        source: "manual",
-        originalFront: "Wann bin ich fällig?",
-        originalBack: "In drei Tagen.",
-        reviewState: { state: "review", dueAt: "2026-08-09T09:00:00.000Z", repetitions: 2 },
-      }),
-    ],
+    cards: [basicCard("zukunft", { front: "Wann bin ich fällig?", back: "In drei Tagen.", review: { state: "review", dueAt: "2026-08-09T09:00:00.000Z", repetitions: 2 } })],
   });
   const props = {
     state: { ...baseState, decks: [deck] },
@@ -138,10 +131,9 @@ test("dashboard projects future due cards through the supplied learning time", (
 
 test("achieved dashboard keeps today's completed cards in the total and success bar", () => {
   const baseState = createCoreRepository({ seedDefaultDecks: false }).getState();
-  const completedCard = createCoreCard({
+  const completedCard = basicCard("completed-root", {
     id: "completed-today",
-    source: "manual",
-    reviewState: {
+    review: {
       state: "review",
       dueAt: "2026-08-07T10:00:00.000Z",
       lastReviewedAt: "2026-08-06T09:00:00.000Z",
@@ -155,12 +147,18 @@ test("achieved dashboard keeps today's completed cards in the total and success 
     cards: [completedCard],
     reviewEvents: [{
       id: "completed-event",
+      userId: "local-user",
       deckId: "completed-root",
-      learningItemId: completedCard.id,
+      cardId: completedCard.id,
+      variantId: null,
       rating: "good",
       answeredAt: "2026-08-06T09:00:00.000Z",
+      responseTimeMs: null,
       schedulerBefore: { card: { state: "review" } },
-    }] as any,
+      schedulerAfter: null,
+      flags: {},
+      createdAt: "2026-08-06T09:00:00.000Z",
+    }],
   });
 
   const markup = renderToStaticMarkup(
@@ -180,11 +178,7 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
     id: "waiting",
     name: "Warten",
     source: "manual",
-    cards: [createCoreCard({
-      id: "waiting-card",
-      source: "manual",
-      reviewState: { state: "learning", dueAt: "2026-08-06T12:00:00.000Z", reps: 1 },
-    })],
+    cards: [basicCard("waiting", { id: "waiting-card", review: { state: "learning", dueAt: "2026-08-06T12:00:00.000Z", reps: 1 } })],
   });
   const markup = renderToStaticMarkup(
     <DashboardScreen
@@ -207,7 +201,7 @@ test("achieved dashboard offers additional new cards only when stock remains bey
     name: "Zusatz",
     source: "manual",
     deckSettings: { newCardsPerDay: 0 },
-    cards: [createCoreCard({ id: "extra-card", source: "manual", reviewState: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 } })],
+    cards: [basicCard("extra", { id: "extra-card", review: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 } })],
   });
   const noExtraDeck = createCoreDeck({
     id: "no-extra",

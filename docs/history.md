@@ -5,6 +5,107 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-08 — Cutover auf das Kartenmodell `Note`/`Card` (Phase 4, K5.4, K5.7–K5.9)
+
+Umgesetzt auf dem Branch `kartenmodell-cutover`; K4.8 (Remote-Reset) wartet auf
+die Freigabe des Nutzers.
+
+- **Datenbank (K4.1, K4.3, K4.4):** Die einzige Migration
+  `20261008101057_kartenmodell_baseline.sql` ersetzt die Replica-v2-Baseline:
+  `notes`, `cards` mit typisierten Lernstandsspalten und eigener
+  `study_revision`, `note_type_sources`, `note_sources`, `media_files`,
+  `note_media`, Trigramm-Suche über `notes.search_text`, Reviewindex je Karte.
+  Katalog, Summaries und Statistikrollups werden über anweisungsbezogene
+  Trigger mengenbasiert gepflegt. Neue bzw. umgebaute RPCs: Bootstrap ohne
+  Prognose, `get_account_due_forecast`, Katalog mit Gesamtzahl nur auf Anfrage,
+  `hydrate_account_cards` nach Karten- und Inhalts-IDs, `load_reimport_targets`,
+  `list_retranslation_candidates`, `list_releasable_media`, Stapelbaum-Löschung
+  mit verwaisten Inhalten. `verify_schema_v1.sql`, RLS und generierte Typen
+  sind neu.
+- **Replica, Sync, Medien (K4.5–K4.7):** IndexedDB
+  `core.workspace.entities.v4` mit Cursor-Paging; Inhalte und Karten als
+  getrennte Mutationen; Medien je Account und SHA-1 mit persistenter Queue und
+  Freigabe nicht mehr referenzierter Dateien.
+- **App (K4.9):** Review, Vorschau, Kartenverwaltung (Inhaltseditor,
+  Geschwisterlöschung mit Undo, Bestätigung entfallender Karten, Markierung am
+  Inhalt, entprellte Suche mit Abbruch), manuelle Erstellung und KI-Varianten
+  arbeiten auf `Note`/`Card` und rendern über `NoteCardContent`.
+- **Import (K5.4, K5.7–K5.9):** Der Worker liest die `File` (`.apkg`, `.colpkg`
+  bis 2 GiB), übersetzt mit `translateAnkiPackage` und streamt begrenzte Chunks;
+  Medien werden beim Commit einzeln gelesen und SHA-1-geprüft. Reimport über
+  Anki-GUID und Kartenidentität, auch gegen Cloud-Ziele. Bericht je Notiztyp in
+  Vorschau und Abschluss. Automatische Neuübersetzung unbearbeiteter Importe
+  nach Übersetzer-Updates.
+- **Altpfad (K4.10) und Tests (K4.11):** `LearningItem`, Kartentypen,
+  Notiztyp-Definitionen, `cardPresentation.ts`, `ankiContentModel.ts`,
+  `importService.ts`, `StudyCardContent` und die Legacy-APKG-Abbildung sind
+  gelöscht; `grep -rnE "LearningItem|CardType|cardPresentation" src scripts api
+  tests` findet nichts. E2E-Specs nutzen Matrixpakete; der Generator und die
+  `import-quality`-Fixtures sind entfernt.
+- **Während der Umsetzung gefundene und behobene Fehler:** endlos wiederholte
+  Medien-Queue-Einträge ohne lokale Datei; Neuübersetzung verlor `anki-N`-Karten
+  statt sie umzuschlüsseln; Konfliktkarten über das gezielte Lernfenster
+  lernbar; lokal erstellte Inhalte vor dem Sync nicht im Editor zu öffnen;
+  ungesendete Varianten beim Hydrieren gelöscht; veraltete Kartenzeilen nach
+  Bearbeiten/Aussetzen/Markieren; Vorschau verwarf die Auswahl vor
+  `Antwort prüfen`; Fokusziel und Fokuswechsel im Review.
+
+**Nachweise (lokal, 2026-10-08):**
+
+- `npm run gate:push` grün (644 Modultests, Typecheck, Build, Chunk-Budget
+  209,2 KiB gzip Initialgraph), `db:types:check` grün, `test:rls:local` 17/17
+  einschließlich Zwei-Geräte-Test für Review und Inhaltskorrektur,
+  `npm run test:e2e:local` 108 bestanden, 1 übersprungen (im Beta-Schritt
+  bestanden), `docs:build`/`check:docs` grün.
+- **Speicher je 1.000 Inhalte** (`npm run measure:footprint`, MiB; Postgres
+  umfasst `notes`, `cards`, `card_catalog`, `note_sources`,
+  `note_type_sources`):
+
+  | Szenario | Karten | Postgres | Sync | Browser | Lernfenster 50 Karten |
+  | --- | ---: | ---: | ---: | ---: | ---: |
+  | APKG Basic | 1.000 | 2,90 (vorher 4,87) | 3,36 (4,66) | 2,03 (4,35) | 104 KiB (223) |
+  | APKG Basic und umgekehrt | 2.000 | 4,16 (10,60) | 4,63 (9,77) | 3,15 (9,16) | 81 KiB (235) |
+  | APKG Lückentext (4 Lücken) | 4.000 | 7,46 (23,84) | 7,14 (23,95) | 4,96 (22,72) | 63 KiB (291) |
+  | Manuell Basic | 1.000 | 2,28 (4,46) | 2,62 (4,07) | 1,93 (3,77) | 99 KiB (193) |
+  | Manuell Basic und umgekehrt | 2.000 | 3,49 (9,20) | 3,85 (8,16) | 3,02 (7,57) | 77 KiB (194) |
+  | Manuell Lückentext (4 Lücken) | 4.000 | 6,49 (22,46) | 6,15 (21,56) | 4,75 (20,37) | 61 KiB (261) |
+
+- **Startzeiten** (`npm run performance:measure:local`, zweiter Lauf, p75/p95):
+  Wiederholungsstart 634/656 ms (Ausgangsmessung 928/954), Offline-Kaltstart
+  465/593 ms (677/706), ohne Service Worker 1.284/1.292 ms (1.435/1.456),
+  neues Gerät bis Dashboard 2.883/3.003 ms (3.959/4.187), 4G-Preload
+  1.216/1.399 ms ohne Hintergrund-Long-Tasks, persistierte Summary p75 8,9 ms.
+  Alle Gates eingehalten. Der erste Lauf desselben Stands lag beim neuen Gerät
+  bei p75 3.023 ms (knapp über Budget, nicht schlechter als K3.7 mit 3.035 ms)
+  und hatte einen einzelnen Offline-Ausreißer (852 ms bei sonst höchstens
+  550 ms); der Wert schwankt um das Budget.
+- **Phasenaufschlüsselung „Neues Gerät bis Dashboard“** (K4.2, p75 zweiter
+  Lauf): Netz, Bundle und Anmeldung bis zur Sitzungsprüfung 2.576 ms,
+  Bootstrap-RPC 350 ms, IndexedDB-Schreiben 15 ms, erste Stapelzusammenfassung
+  8 ms, Rendern 2 ms. Die Datenbank ist damit nicht der Engpass.
+- **Datenbank** (`supabase/benchmark_replica_v2.sql`, 100k Inhalte/Karten,
+  1 Mio. Reviews, p75/p95): Statistik-RPC 453/465 ms (Ausgangsmessung 490/522),
+  Katalogsuche über den Inhaltstext 163/169 ms (125/295; K3.7 mit der alten
+  Vorschauprojektion 42/75), Bootstrap 8/35 ms, atomarer Review 4/27 ms,
+  Import-Schreibbatch mit 250 Inhalten und Karten 86/117 ms,
+  Clientprojektion höchstens 9,6 ms.
+- **K4.2 Projektionen:** Erste Kartenseite über `card_catalog` 1,8/10,1 ms
+  gegenüber 165/194 ms direkt über `cards` und `notes`; Stapelzähler aus
+  `deck_study_summaries` 0,1/0,2 ms gegenüber 30/37 ms direkter Aggregation.
+  Beide Projektionen bleiben (ADR-034, Ergänzung).
+- **APKG-Benchmark** (`npm run benchmark:apkg`, 25.000 Karten, 1.000 Medien,
+  ohne Parallel-Last): 3,7 s gesamt, 3,3 s Worker, Spitze 161 MiB
+  (Ausgangsmessung 10,2 s Worker, 425 MiB Heap), Main-Thread höchstens 16,6 ms,
+  Ergebnisübergabe 0 ms.
+- **Visuelle Pflichtmatrix** (320, 360, 390, 430, 1280, 1440 px; 390 und
+  1440 px zusätzlich dunkel): Review Frage/Antwort, Kartenverwaltung mit
+  Inhaltseditor, Vorschau Vorder-/Rückseite, manuelle Erstellung und
+  APKG-Importvorschau mit Notiztyp-Bericht und Beispielkarten per Screenshot
+  geprüft, ohne Befund aus dem Cutover. Vorbestehend und unverändert: Die
+  Beschriftung „Aussetzen“ in den Lernstandsaktionen wird bei 320 und 360 px
+  gekürzt; der Hinweis auf fehlende Medien steht in der Importvorschau
+  zusätzlich in der Warnungsliste.
+
 ## 2026-10-08 — Korpus: echte Bildverdeckung und echter Lernstand
 
 - `Image_Occlusion_Test_Pharmagrundlagen.apkg` (73 Inhalte, 84 Karten): 66

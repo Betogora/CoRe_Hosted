@@ -66,9 +66,8 @@ Die betroffene Kernjourney wird zusätzlich bei 200 % Zoom geprüft.
 Änderungen an Kartendarstellung oder APKG-Import prüfen zusätzlich die
 folgenden Referenzinhalte aus `fixtures/apkg/matrix/`. Jeder Fall wird in Light
 und Dark jeweils vor und nach dem Aufdecken in Review und Kartenvorschau bei
-mindestens 390 × 844 und 1440 × 900 betrachtet. Die Matrix beobachtet die
-vorbereitete Note-Übersetzung; bis zum Cutover zeigt die App noch den
-bisherigen Import mit den in `status.md` genannten Abweichungen.
+mindestens 390 × 844 und 1440 × 900 betrachtet. Die Matrix beobachtet dieselbe
+Note-Übersetzung, die auch der App-Import verwendet.
 
 | Fall | Fixture | Notiz-GUID |
 | --- | --- | --- |
@@ -136,7 +135,7 @@ Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Import
 
 Der lokale Production-Build vom 16. August 2026 maß 217,3 KiB gzip für den Initialgraphen und 163,1 KiB für den größten Lazy-Graphen. Damit ist das Initialziel eingehalten; der größte Lazy-Graph liegt zwischen Ziel und hartem Maximum.
 
-Supabase bleibt die Datenplattform, solange die Replica-v2-RPCs p95 höchstens 1 Sekunde benötigen, die Fehlerrate höchstens 0,1 Prozent beträgt, Cursor-Lag im Normalbetrieb unter 5 Sekunden bleibt und der 100k-/1m-Zieltest bei doppelter erwarteter Nutzerlast höchstens 70 Prozent DB-CPU und Connection-Pool belegt. Der normale Delta-Zyklus muss zusätzlich clientseitig p75 höchstens 2 und p95 höchstens 5 Sekunden halten. Zusätzlich müssen freigegebene Unit Economics und Regions-/Sync-Anforderungen erfüllt bleiben. Ein wiederholter Bruch wird zuerst mit Indizes, Query-Plan, RPC und Compute geprüft; danach ist ein eigener Sync-Dienst vor demselben Postgres der erste Plattformschritt, kein sofortiger Datenbankwechsel.
+Supabase bleibt die Datenplattform, solange die Replica-RPCs p95 höchstens 1 Sekunde benötigen, die Fehlerrate höchstens 0,1 Prozent beträgt, Cursor-Lag im Normalbetrieb unter 5 Sekunden bleibt und der 100k-/1m-Zieltest bei doppelter erwarteter Nutzerlast höchstens 70 Prozent DB-CPU und Connection-Pool belegt. Der normale Delta-Zyklus muss zusätzlich clientseitig p75 höchstens 2 und p95 höchstens 5 Sekunden halten. Zusätzlich müssen freigegebene Unit Economics und Regions-/Sync-Anforderungen erfüllt bleiben. Ein wiederholter Bruch wird zuerst mit Indizes, Query-Plan, RPC und Compute geprüft; danach ist ein eigener Sync-Dienst vor demselben Postgres der erste Plattformschritt, kein sofortiger Datenbankwechsel.
 
 Der 100k-/1m-Statistiknachweis verwendet den produktiven täglichen Rollup mit
 genau 1 Mio. logisch aggregierten Reviews. Er belegt Queryzeit, aber nicht die
@@ -147,7 +146,7 @@ und die physische Fixture erneut ausgeführt werden.
 
 ### Pre-Release-Reset der hybriden Replica
 
-Der aktuelle Stand besitzt keine Upgrade- oder Backfillkette. `20260817190000_prerelease_replica_v2_baseline.sql` ist die einzige Migration; `verify_schema_v1.sql` ist die einzige zusätzliche SQL-Verifikation. Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt zulässig.
+Der aktuelle Stand besitzt keine Upgrade- oder Backfillkette. `20261008101057_kartenmodell_baseline.sql` ist die einzige Migration; `verify_schema_v1.sql` ist die einzige zusätzliche SQL-Verifikation. Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt zulässig.
 
 1. Vor jeder Remote-Aktion die lokale Link-Konfiguration und die daraus gelesene Supabase-Projekt-Ref sichtbar ausgeben. Die Ref muss mit dem ausdrücklich freigegebenen Wegwerf-/Staging-Projekt übereinstimmen; bei Abweichung abbrechen.
 2. Lokal `supabase db reset --local --no-seed`, `npm run db:types:generate`, `npm run db:types:check`, `npm run test:rls:local` und `npm run test:e2e:local` ausführen. Danach die 100k-/1m-Fixture, Performance-Gates und `EXPLAIN (ANALYZE, BUFFERS)` für Bootstrap, Katalog-Delta, Kartenliste, Hydrierung, Manifest, Lernübersicht und Statistik nachweisen.
@@ -185,7 +184,7 @@ Das Beta-Gate umfasst ausschließlich E-Mail-/Passwort-Auth, fünf automatisiert
 npm run test:beta
 ```
 
-Die früheren Variablen `VITE_ENABLE_LABS` und `VITE_ENABLE_SERVER_APKG_IMPORT` haben keine Wirkung. Google und Magic Link bleiben über ihre getrennten Flags schaltbar und sind keine Beta-Core-Abnahmekriterien. APKG über 250 MB besitzt keinen Serverpfad.
+Die früheren Variablen `VITE_ENABLE_LABS` und `VITE_ENABLE_SERVER_APKG_IMPORT` haben keine Wirkung. Google und Magic Link bleiben über ihre getrennten Flags schaltbar und sind keine Beta-Core-Abnahmekriterien. Anki-Pakete über 2 GiB besitzen keinen Serverpfad.
 
 ### Voraussetzungen
 

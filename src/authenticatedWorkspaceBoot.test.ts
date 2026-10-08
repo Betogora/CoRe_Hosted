@@ -31,11 +31,10 @@ test("ein während des Bootstrap bereits versendeter Profilpatch wird nicht von 
   const repository = await createIndexedDbCoreRepository({
     userId,
     initialState: {
-      version: 5,
+      version: 6,
       profile: cloudProfile,
       decks: [],
-      noteTypeDefinitions: [],
-      cloudTombstones: [],
+      notes: [],
       updatedAt: "2026-08-17T10:00:00.000Z",
     },
   });
@@ -56,11 +55,10 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
   const knownDeviceRepository = await createIndexedDbCoreRepository({
     userId,
     initialState: {
-      version: 5,
+      version: 6,
       profile: completeProfile(userId),
       decks: [],
-      noteTypeDefinitions: [],
-      cloudTombstones: [],
+      notes: [],
       updatedAt: "2026-08-17T10:00:00.000Z",
     },
   });
@@ -68,17 +66,20 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
   knownDeviceRepository.close();
   let resolveBootstrap: ((value: unknown) => void) | null = null;
   const cloudBootstrap = new Promise((resolve) => { resolveBootstrap = resolve; });
+  const calledRpcs: string[] = [];
   const supabase = {
     auth: {},
     from() { return {}; },
     rpc(name: string) {
-      assert.equal(name, "get_account_bootstrap_v2");
-      return cloudBootstrap;
+      calledRpcs.push(name);
+      if (name === "get_account_bootstrap") return cloudBootstrap;
+      return Promise.resolve({ data: null, error: new Error(`${name} ist im Test nicht verfügbar.`) });
     },
   } as unknown as SupabaseBrowserClient;
 
   const boot = await bootAuthenticatedWorkspace(supabase, { id: userId } as User);
-  assert.equal(boot.state.version, 5);
+  assert.equal(boot.state.version, 6);
+  assert.deepEqual(boot.state.notes, []);
   assert.equal(boot.baselineState, "nonempty");
   assert.equal(boot.state.decks.every((deck) => deck.cards.length === 0), true);
   assert.equal(boot.initialDeckSummaries.summaries.size, 0);
@@ -102,6 +103,8 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
   });
   await boot.bootstrapFirstAttempt;
   await boot.cloudSync;
+  assert.equal(calledRpcs[0], "get_account_bootstrap", "der Bootstrap läuft vor jedem Sync-RPC");
+  assert.equal(boot.repository.getReplicaStatus().catalogServerCursor, 12);
   boot.stopCloudBootstrapRetry();
   boot.repository.close();
 });

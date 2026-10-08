@@ -87,10 +87,11 @@ Der Inhalt einer Card ist damit nicht einfach `front/back`. Die Anzeige wird
 aus Note-Feldern und Template gerendert. Eine fachliche Feldänderung wirkt auf
 alle daraus generierten Cards.
 
-CoRe-Folgerung: Ein CoRe-`LearningItem` entspricht einer reviewbaren Anki-Card,
-nicht einer Note. Jede importierte Card, jede Reverse-Richtung und jede
-Cloze-Gruppe wird eine eigenständige CoRe-Karte mit eigenem Lernzustand. Eine
-persistierte Notizinstanz oder Geschwisterkopplung gibt es in CoRe nicht.
+CoRe-Folgerung: Wie in Anki trennt CoRe Inhalt (`Note`) und Abfrage (`Card`).
+Eine Anki-Note wird zu einem Inhalt im universellen CoRe-Format, jede
+importierte Card, jede Reverse-Richtung und jede Cloze-Gruppe zu einer
+eigenständigen CoRe-Karte dieses Inhalts mit eigenem Lernzustand. Eine
+Feldänderung wirkt wie in Anki auf alle Geschwister.
 
 ### Templates und Stock-Formate
 
@@ -102,11 +103,11 @@ Kartengenerierung.
 Offizielle Stock-Notetypes umfassen unter anderem Basic, Basic and Reversed,
 Basic optional reversed, Basic typing, Cloze und Image Occlusion.
 
-CoRe-Folgerung: Die für die Darstellung benötigte Notetype-Definition wird als
-Render-Schablone erhalten und dokumentierte statische Semantik in einem eigenen
-sicheren Renderer übersetzt. Script, externe Ressourcen und Add-on-Filter
-werden nicht ausgeführt. Notizinhalte und Quelldokumente werden nicht als
-gemeinsame persistierte Instanz konserviert.
+CoRe-Folgerung: Ein versionierter Übersetzer überführt jede Notiz anhand ihres
+Notiztyps in das universelle CoRe-Inhaltsformat; die Darstellung übernimmt
+CoRes eigener sicherer Renderer. Script, externe Ressourcen, Template-CSS und
+Add-on-Filter werden nicht ausgeführt. Notiztyp-Vorlage und rohe Feldwerte
+bleiben unsichtbar für spätere Neuübersetzungen gespeichert.
 
 ### Review und Revlog
 
@@ -199,17 +200,17 @@ Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
   Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske.
 
 CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat.
-Der vorbereitete universelle Renderer verarbeitet übersetzte Feldrollen und
+Der universelle Renderer verarbeitet übersetzte Feldrollen und
 Interaktionen statt Anki-Templates: verschachtelte `{{c1,3::Text::Hinweis}}`
 werden vor dem Formelschritt aufgelöst; aktive äußere Lücken verbergen innere.
 MathJax-Delimiters sowie `[latex]`, `[$]` und `[$$]` gehen an KaTeX. Bei Fehlern bleibt
 die bereits maskierte Quellfassung sichtbar. Native Bildmasken werden als
 relative SVG-Formen über dem Bild gezeichnet, ohne die Anki-JavaScript-Laufzeit.
 `[sound:…mp4]` verwendet ein Video-Control; TTS-Metadaten werden ausschließlich
-im React-Host ausgewertet und duplizieren den Feldtext nicht. Die vorbereitete
+im React-Host ausgewertet und duplizieren den Feldtext nicht. Die
 APKG-Übersetzung auf diesen Vertrag beschreibt
-[`architecture.md`](architecture.md#vorbereitete-note-übersetzung).
+[`architecture.md`](architecture.md#note-übersetzung).
 
 `src/apkgImport.ts` bleibt die öffentliche Seam; Worker-Protokoll, ZIP, SQLite,
-Zstd, MediaEntries und Legacy-Mappings bleiben in ihren privaten
+Zstd und MediaEntries bleiben in ihren privaten
 Eigentümermodulen und außerhalb von React und dem kanonischen CoRe-Datenmodell.

@@ -92,6 +92,19 @@ function measureDatabase() {
   };
   const statisticsRpcMs = parseRuns("CORE_STATISTICS_RPC_MS");
   const catalogSearchMs = parseRuns("CORE_CATALOG_SEARCH_MS");
+  // K4.2: further write and read paths plus projection versus direct-index comparison.
+  const additional = Object.fromEntries([
+    ["bootstrapRpc", "CORE_BOOTSTRAP_RPC_MS"],
+    ["atomicReview", "CORE_ATOMIC_REVIEW_MS"],
+    ["importBatch250", "CORE_IMPORT_BATCH_MS"],
+    ["catalogPageProjection", "CORE_CATALOG_PAGE_MS"],
+    ["catalogPageDirect", "CORE_DIRECT_PAGE_MS"],
+    ["deckSummaryProjection", "CORE_SUMMARY_READ_MS"],
+    ["deckSummaryDirect", "CORE_DIRECT_SUMMARY_MS"],
+  ].map(([key, name]) => {
+    const values = parseRuns(name);
+    return [key, { runsMs: values, p75Ms: percentile(values, 0.75), p95Ms: percentile(values, 0.95) }];
+  }));
   return {
     statisticsRpcMs,
     statisticsRpcP75Ms: percentile(statisticsRpcMs, 0.75),
@@ -99,6 +112,7 @@ function measureDatabase() {
     catalogSearchMs,
     catalogSearchP75Ms: percentile(catalogSearchMs, 0.75),
     catalogSearchP95Ms: percentile(catalogSearchMs, 0.95),
+    ...additional,
   };
 }
 

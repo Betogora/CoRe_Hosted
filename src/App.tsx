@@ -1,7 +1,8 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CardEditorValue, CoreMode, Deck, ImportCommitGraph, ImportVerificationScope, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, SyncStatus } from "./coreTypes.ts";
+import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { markCloudBootstrapReady, markCloudSyncReady, markWorkspaceLocalReady } from "./appPerformance.ts";
@@ -25,9 +26,10 @@ import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
-import { addRephrasedVariant, createDefaultDeckSettings, createManualCoreDeck, duplicateLearningItemContent, getCardContentPayload, saveCardEditorValue, saveLearningItemDocumentValues, updateLearningItemStudyState } from "./coreModel.ts";
-import { collectDeckTreeIds, createWorkspaceDeck, restoreSoftDeletedCard, softDeleteCard, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
-import { createWorldCapitalsSeedDecks } from "./fixtures/worldCapitals.ts";
+import { addCardVariant, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, setCardSuspended, setNoteMarked } from "./coreModel.ts";
+import { cardVariantSource } from "./coreVariantService.ts";
+import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
+import { createWorldCapitalsImportGraph } from "./fixtures/worldCapitals.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
@@ -39,7 +41,9 @@ import { mergeAccountStatisticsSnapshot, type StatisticsDeckSelection, type Stat
 import { createMenuModel } from "./menuModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import { createWorkspaceHydrationService, type StudyWindowCursor } from "./workspaceHydrationService.ts";
-import type { AccountBaselineState, OfflineDeckRecord } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, type AccountBaselineState, type NoteGraph, type OfflineDeckRecord } from "./workspaceReplica.ts";
+import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
+import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
@@ -65,9 +69,6 @@ interface SignUpInput extends SignInInput { displayName: string }
 interface EmailInput { email: string }
 interface PasswordUpdateInput { password: string; passwordRepeat: string }
 type CreateDeckInput = Parameters<typeof createWorkspaceDeck>[1];
-type CardDocumentValue = { fields: Array<{ id: string; value: string }>; tags?: string[] };
-type CardVariantInput = { front: string; back: string; variantLevel?: number; qualityStatus?: "draft" | "active" | "rejected" | "flagged" | "disabled"; isActive?: boolean; meta?: Record<string, unknown> };
-type ManualCardInput = Parameters<typeof createManualCoreDeck>[0];
 type PendingNavigation = { run: () => void; source: "creation" | "card" };
 type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
 interface StateRefreshOptions { preserveCardPages?: boolean }
@@ -184,11 +185,11 @@ export function App() {
   const [deckSummaries, setDeckSummaries] = React.useState<ReadonlyMap<string, DeckLibrarySummary>>(new Map());
   const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
   const [studyDecks, setStudyDecks] = React.useState<Deck[] | null>(null);
-  const [studyDefinitions, setStudyDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
+  const [studyNotes, setStudyNotes] = React.useState<Note[]>([]);
   const [studyHasMoreCards, setStudyHasMoreCards] = React.useState(false);
   const [studyBufferSize, setStudyBufferSize] = React.useState(50);
-  const [visibleDefinitions, setVisibleDefinitions] = React.useState(state?.noteTypeDefinitions ?? []);
-  const cardPageRequestRef = React.useRef(new Map<string, string>());
+  const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
+  const cardPageRequestRef = React.useRef(new Map<string, { key: string; controller: AbortController }>());
   const [cloudUser, setCloudUser] = React.useState<User | null>(null);
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [syncEngine, setSyncEngine] = React.useState<AccountSyncEngine | null>(null);
@@ -575,7 +576,9 @@ export function App() {
   function setAppState(nextState: WorkspaceState | null, { preserveCardPages = false }: StateRefreshOptions = {}) {
     latestStateRef.current = nextState;
     setState(nextState);
+    if (workspaceRepository) setSyncConflictCardIds(workspaceRepository.getSyncConflictCardIds());
     if (preserveCardPages) return;
+    for (const { controller } of cardPageRequestRef.current.values()) controller.abort();
     cardPageRequestRef.current.clear();
     setCardPages({});
   }
@@ -584,14 +587,18 @@ export function App() {
     if (!workspaceRepository) return;
     const runId = bootRunRef.current;
     const requestKey = JSON.stringify(request);
-    cardPageRequestRef.current.set(request.deckId, requestKey);
+    // A newer request for the same deck (typing in the search) cancels the stale one.
+    cardPageRequestRef.current.get(request.deckId)?.controller.abort();
+    const controller = new AbortController();
+    cardPageRequestRef.current.set(request.deckId, { key: requestKey, controller });
+    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(request.deckId)?.key === requestKey;
     let page;
     try {
       page = workspaceHydrationService
-        ? await workspaceHydrationService.queryCardPage(request)
+        ? await workspaceHydrationService.queryCardPage({ ...request, signal: controller.signal })
         : await workspaceRepository.listCardPage(request.deckId, request);
     } catch (error) {
-      if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
+      if (!isCurrent() || controller.signal.aborted) return;
       setCardPages((current) => ({
         ...current,
         [request.deckId]: {
@@ -609,11 +616,7 @@ export function App() {
       }));
       return;
     }
-    if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
-    const definitionIds = [page.selectedCard, ...page.items].flatMap((card) => card?.noteTypeDefinitionId ? [card.noteTypeDefinitionId] : []);
-    const definitions = await workspaceRepository.loadNoteTypeDefinitions(definitionIds);
-    if (bootRunRef.current !== runId || cardPageRequestRef.current.get(request.deckId) !== requestKey) return;
-    setVisibleDefinitions((current) => [...new Map([...current, ...definitions].map((definition) => [definition.id, definition])).values()]);
+    if (!isCurrent()) return;
     setCardPages((current) => ({
       ...current,
       [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort, loadError: null },
@@ -700,11 +703,11 @@ export function App() {
             limit: 50,
             cursorByDeck: nextCursorByDeck,
           });
-      const cardsByDeck = new Map<string, LearningItem[]>();
-      for (const { deckId: cardDeckId, item } of session.cards) {
+      const cardsByDeck = new Map<string, Card[]>();
+      for (const { deckId: cardDeckId, card } of session.cards) {
         const bucket = cardsByDeck.get(cardDeckId);
-        if (bucket) bucket.push(item);
-        else cardsByDeck.set(cardDeckId, [item]);
+        if (bucket) bucket.push(card);
+        else cardsByDeck.set(cardDeckId, [card]);
       }
       const eventsByDeck = new Map<string, typeof session.reviewEvents>();
       for (const event of session.reviewEvents) {
@@ -734,10 +737,9 @@ export function App() {
           || previous.id !== cursor.id;
       });
       if (queue.total > 0 || !session.hasMore || !cursorAdvanced) {
-        const definitionIds = decks.flatMap((candidate) => candidate.cards.map((card) => card.noteTypeDefinitionId));
         return {
           decks,
-          definitions: await workspaceRepository.loadNoteTypeDefinitions(definitionIds),
+          notes: session.notes,
           queue,
           cursorByDeck: session.cursorByDeck,
           hasMoreCards: session.hasMore && cursorAdvanced,
@@ -767,7 +769,7 @@ export function App() {
       setStudyBufferSize(preparation.bufferSize);
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
         setStudyDecks(preparation.decks);
-        setStudyDefinitions(preparation.definitions);
+        setStudyNotes(preparation.notes);
         return;
       }
       if (preparation.queue.total === 0) {
@@ -781,7 +783,7 @@ export function App() {
       setStudyHasMoreCards(preparation.hasMoreCards);
       setStudyBufferSize(preparation.bufferSize);
       setStudyDecks(preparation.decks);
-      setStudyDefinitions(preparation.definitions);
+      setStudyNotes(preparation.notes);
     }).catch((error) => {
       if (!active) return;
       setStudyPreparationFailure({
@@ -795,21 +797,17 @@ export function App() {
   }, [loadStudyPreparation, navigateToRoute, state, studyDecks, studyRequest, workspaceRepository]);
 
   const loadMoreStudyCards = React.useCallback(async () => {
-    if (!studyRequest) return { decks: [], hasMoreCards: false, bufferSize: studyBufferSize };
+    if (!studyRequest) return { decks: [], notes: [], hasMoreCards: false, bufferSize: studyBufferSize };
     const preparation = await loadStudyPreparation(
       studyRequest.deckId,
       studyRequest.variantSession,
       studyQueueCursorRef.current,
     );
-    if (!preparation) return { decks: [], hasMoreCards: false, bufferSize: studyBufferSize };
+    if (!preparation) return { decks: [], notes: [], hasMoreCards: false, bufferSize: studyBufferSize };
     studyQueueCursorRef.current = preparation.cursorByDeck;
     setStudyHasMoreCards(preparation.hasMoreCards);
     setStudyBufferSize(preparation.bufferSize);
-    setStudyDefinitions((current) => {
-      const byId = new Map(current.map((definition) => [definition.id, definition]));
-      for (const definition of preparation.definitions) byId.set(definition.id, definition);
-      return [...byId.values()];
-    });
+    setStudyNotes((current) => [...new Map([...current, ...preparation.notes].map((note) => [note.id, note])).values()]);
     setStudyDecks((current) => current?.map((currentDeck) => {
       const page = preparation.decks.find((candidate) => candidate.id === currentDeck.id);
       if (!page) return currentDeck;
@@ -821,6 +819,7 @@ export function App() {
     }) ?? current);
     return {
       decks: preparation.decks,
+      notes: preparation.notes,
       hasMoreCards: preparation.hasMoreCards,
       bufferSize: preparation.bufferSize,
     };
@@ -979,11 +978,25 @@ export function App() {
     if (authPhase !== "ready" || !mediaStore || !syncEngine || !workspaceRepository) return undefined;
     return startAppMediaRetryLifecycle({
       mediaStore,
-      getState: () => latestStateRef.current,
       ensureCloudParents: async () => { await syncNow(); },
-      persistMediaDecks: (decks) => persistImportedDecks(decks, { mediaOnly: true }),
     });
   }, [authPhase, mediaStore, syncEngine, workspaceRepository]);
+
+  // K5.4: after a translator release, unedited imports are re-translated once in the background.
+  React.useEffect(() => {
+    if (authPhase !== "ready" || !syncEngine || !workspaceRepository || !supabase) return undefined;
+    let active = true;
+    void import("./importRetranslation.ts")
+      .then(({ runAccountRetranslation }) => runAccountRetranslation(supabase, workspaceRepository))
+      .then((count) => {
+        if (!active || count === 0) return;
+        setAppState(workspaceRepository.getShellState(), { preserveCardPages: true });
+        syncEngine.requestSync();
+        setSuccessToast(`${count.toLocaleString("de-DE")} ${count === 1 ? "Inhalt" : "Inhalte"} mit verbesserter Darstellung aktualisiert.`);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, [authPhase, supabase, syncEngine, workspaceRepository]);
 
   async function handleSignIn({ email, password }: SignInInput) {
     if (!supabase) return;
@@ -1166,56 +1179,31 @@ export function App() {
     return result;
   }
 
-  async function persistImportedDecks(decks: Deck[], { mediaOnly = false, commitGraph }: { mediaOnly?: boolean; commitGraph?: ImportCommitGraph } = {}) {
+  /** Commits an import graph chunk by chunk, applies global defaults to new decks and starts the cloud confirmation. */
+  async function commitImport(graph: ImportCommitGraph, { onMedia }: { onMedia: (file: ImportMediaFile) => Promise<void> }): Promise<ImportedDeckPersistence> {
     if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
-    const nextDecks = decks;
-    if (mediaOnly) {
-      workspaceRepository.saveDeckMetadata(nextDecks);
-      refresh();
-      return { decks: nextDecks, cloudTask: createTrackedImportCloudTask() };
-    }
-    const existingDeckIdsBeforeImport = new Set(latestStateRef.current?.decks.map((deck) => deck.id) ?? []);
-    let importedDecks: Array<{ id: string }>;
-    if (commitGraph) {
-      if (!workspaceHydrationService) throw new Error("Der Reimport-Abgleich ist noch nicht bereit.");
-      const importDeckIdentities = commitGraph.kind === "worker-import"
-        ? commitGraph.deckIdentities
-        : commitGraph.decks.map((deck) => ({ id: deck.id, originalDeckId: deck.originalDeckId }));
-      const existingDeckIds = [...new Set(importDeckIdentities.flatMap((incoming) => {
-        const existing = latestStateRef.current?.decks.find((candidate) => candidate.id === incoming.id || (
-          candidate.source === "anki-apkg" && incoming.originalDeckId != null && candidate.originalDeckId === incoming.originalDeckId
-        ));
-        return existing ? [existing.id] : [];
-      }))];
-      for (const existingDeckId of existingDeckIds) await workspaceHydrationService.hydrateDeckStructure(existingDeckId);
-      importedDecks = await workspaceRepository.commitImportGraph(commitGraph.kind === "worker-import" ? commitGraph : { ...commitGraph, decks: nextDecks });
-    } else {
-      importedDecks = await workspaceRepository.commitImportGraph({
-        decks: nextDecks,
-        noteTypeDefinitions: [],
-      });
-    }
-    const createdDeckIds = new Set(importedDecks.map((deck) => deck.id).filter((deckId) => !existingDeckIdsBeforeImport.has(deckId)));
-    if (createdDeckIds.size > 0) {
-      const currentProfile = latestStateRef.current?.profile;
-      const createdDecks = workspaceRepository.getShellState().decks
-        .filter((deck) => createdDeckIds.has(deck.id))
-        .map((deck) => applyGlobalLearningDefaultsToDeck(deck, getGlobalSchedulerPreferences(currentProfile)));
-      if (createdDecks.length > 0) workspaceRepository.saveDeckMetadata(createdDecks);
-    }
-    const verificationScope = commitGraph?.kind === "worker-import"
-      ? await workspaceRepository.createImportVerificationScope(importedDecks.map((deck) => deck.id))
-      : null;
+    const repository = workspaceRepository;
+    const reimportTargets = workspaceHydrationService ? await workspaceHydrationService.prepareReimport(graph.ankiGuids) : undefined;
+    const result = await repository.commitImportGraph(graph, {
+      deckSettings: createGlobalDefaultDeckSettings(globalSchedulerPreferences),
+      reimportTargets,
+      onMedia,
+    });
     const nextState = refresh();
-    const importedIds = new Set(importedDecks.map((deck) => deck.id));
+    const importedIds = new Set(result.decks.map((deck) => deck.id));
+    const decks = nextState?.decks.filter((deck) => importedIds.has(deck.id)) ?? [];
     return {
-      decks: nextState?.decks.filter((deck) => importedIds.has(deck.id)) ?? nextDecks,
-      cloudTask: createTrackedImportCloudTask(verificationScope),
+      decks,
+      rootDeck: decks.find((deck) => !deck.parentDeckId || !importedIds.has(deck.parentDeckId)) ?? decks[0] ?? null,
+      createdCount: result.scope.cardIds.length,
+      keptLocalEdits: result.keptLocalEdits,
+      missingInPackage: result.missingInPackage,
+      cloudTask: createTrackedImportCloudTask(result.scope),
     };
 
-    function createTrackedImportCloudTask(verificationScope: ImportVerificationScope | null = null) {
+    function createTrackedImportCloudTask(verificationScope: ImportVerificationScope) {
       const task = createImportCloudSyncTask(async () => {
-        await workspaceRepository!.flush();
+        await repository.flush();
         const activeSyncEngine = syncEngineRef.current;
         if (!activeSyncEngine) {
           return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus." };
@@ -1227,21 +1215,19 @@ export function App() {
         if (result?.deferred || activeSyncEngine.pendingCount() > 0) {
           return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus." };
         }
-        if (verificationScope) {
-          const { ImportGraphVerificationError, verifyAccountImportGraph } = await import("./cloudRepository.ts");
-          try {
-            await verifyAccountImportGraph(supabase, verificationScope);
-          } catch (error) {
-            const status = Number((error as { status?: unknown })?.status ?? 0);
-            const retryable = error instanceof ImportGraphVerificationError
-              || status >= 500
-              || /network|fetch|offline|timeout/i.test(String((error as Error)?.message ?? error));
-            if (!retryable) throw error;
-            if (error instanceof ImportGraphVerificationError) {
-              await workspaceRepository!.requeueImportVerificationScope(verificationScope, error.repairScope);
-            }
-            return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die vollständige Cloud-Bestätigung steht noch aus." };
+        const { ImportGraphVerificationError, verifyAccountImportGraph } = await import("./cloudRepository.ts");
+        try {
+          await verifyAccountImportGraph(supabase, verificationScope);
+        } catch (error) {
+          const status = Number((error as { status?: unknown })?.status ?? 0);
+          const retryable = error instanceof ImportGraphVerificationError
+            || status >= 500
+            || /network|fetch|offline|timeout/i.test(String((error as Error)?.message ?? error));
+          if (!retryable) throw error;
+          if (error instanceof ImportGraphVerificationError) {
+            await repository.requeueImportVerificationScope(verificationScope, error.repairScope);
           }
+          return { status: "local-pending", message: "Die Karten sind lokal gespeichert; die vollständige Cloud-Bestätigung steht noch aus." };
         }
         return { status: "cloud-ready", message: "Karten und Wiederholungen sind in der Cloud bestätigt." };
       });
@@ -1362,18 +1348,46 @@ export function App() {
     };
   }
 
-  function setCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
-    return runCardCommand(deckId, workspaceRepository?.updateCard(deckId, cardId, (card) => updateLearningItemStudyState(card, patch, new Date().toISOString())) ?? Promise.resolve(null));
+  /** Mark belongs to the content (all siblings show it); suspension belongs to the card. */
+  async function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
+    if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
+    const body = await workspaceRepository.loadCardBody(cardId);
+    if (!body) return null;
+    const updatedAt = new Date().toISOString();
+    const note = patch.marked === undefined ? body.note : setNoteMarked(body.note, patch.marked, updatedAt);
+    const card = patch.suspended === undefined ? body.card : setCardSuspended(body.card, patch.suspended, updatedAt);
+    if (note === body.note && card === body.card) return { note, card };
+    // A changed mark also refreshes the catalog rows of locally known siblings.
+    const siblings = note !== body.note ? (await workspaceRepository.loadNoteGraph(body.note.id))?.cards ?? [body.card] : [body.card];
+    await workspaceRepository.saveNoteGraphs([{
+      previous: { note: body.note, cards: siblings },
+      next: { note, cards: siblings.map((candidate) => candidate.id === card.id ? card : candidate) },
+    }]);
+    return { note, card };
   }
 
-  function setStudyCardStudyState(deckId: string, cardId: string, patch: LearningItemStudyStatePatch) {
+  async function setCardStudyState(_deckId: string, cardId: string, patch: CardStudyStatePatch) {
+    const result = await applyCardStudyState(cardId, patch);
+    if (!result) return null;
+    return reloadNoteGraph(result.note.id);
+  }
+
+  function setStudyCardStudyState(deckId: string, cardId: string, patch: CardStudyStatePatch) {
     const deck = studyDecks?.find((candidate) => candidate.id === deckId);
-    if (!deck) return null;
+    const card = deck?.cards.find((candidate) => candidate.id === cardId);
+    const note = card ? studyNotes.find((candidate) => candidate.id === card.noteId) : null;
+    if (!deck || !card || !note) return null;
     const updatedAt = new Date().toISOString();
-    const updated = { ...deck, updatedAt, cards: deck.cards.map((card) => card.id === cardId ? updateLearningItemStudyState(card, patch, updatedAt) : card) };
+    const nextNote = patch.marked === undefined ? note : setNoteMarked(note, patch.marked, updatedAt);
+    const nextCard = patch.suspended === undefined ? card : setCardSuspended(card, patch.suspended, updatedAt);
+    const updated = { ...deck, updatedAt, cards: deck.cards.map((candidate) => candidate.id === cardId ? nextCard : candidate) };
     setStudyDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
-    void setCardStudyState(deckId, cardId, patch);
-    return updated;
+    setStudyNotes((current) => current.map((candidate) => candidate.id === note.id ? nextNote : candidate));
+    void applyCardStudyState(cardId, patch).then(() => {
+      refresh({ preserveCardPages: true });
+      syncEngine?.requestSync();
+    });
+    return { deck: updated, note: nextNote };
   }
 
   function setStudyDeckReviewOrder(deckId: string, newReviewOrder: NewReviewOrder) {
@@ -1399,140 +1413,120 @@ export function App() {
     return runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(state.profile, { learningProfiles })));
   }
 
-  async function runCardCommand(deckId: string, command: Promise<LearningItem | null>, refreshPage = false) {
-    if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
-    const card = await command;
-    if (!card) return null;
-    refresh({ preserveCardPages: true });
-    setCardPages((current) => {
-      if (refreshPage) return { ...current, [deckId]: undefined };
-      const page = current[deckId];
-      if (!page) return current;
-      return {
-        ...current,
-        [deckId]: {
-          ...page,
-          items: page.items.map((candidate) => candidate.id === card.id ? card : candidate),
-          selectedCard: page.selectedCard?.id === card.id ? card : page.selectedCard,
-        },
-      };
-    });
-    syncEngine?.requestSync();
-    return card;
-  }
-
-  async function runCardDeletion(deckId: string, cardId: string) {
-    if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
-    const deleted = await workspaceRepository.updateCard(
-      deckId,
-      cardId,
-      (current) => softDeleteCard(current, new Date().toISOString()),
-    );
-    if (!deleted) return null;
-    refresh();
-    setCardPages((pages) => ({ ...pages, [deckId]: undefined }));
-    syncEngine?.requestSync();
-    return deleted;
-  }
-
-  async function saveDeckCard(deckId: string, cardId: string, value: CardEditorValue) {
-    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    const card = await workspaceRepository.loadCard(cardId);
-    if (!card) return null;
-    const [definition] = await workspaceRepository.loadNoteTypeDefinitions([card.noteTypeDefinitionId]);
-    return runCardCommand(deckId, workspaceRepository.updateCard(deckId, cardId, (current) => saveCardEditorValue(current, value, definition)));
-  }
-
-  async function saveDeckCardDocument(
-    deckId: string,
-    cardId: string,
-    value: CardDocumentValue,
-  ) {
-    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    const current = await workspaceRepository.loadCard(cardId);
-    if (!current) return null;
-    const [definition] = await workspaceRepository.loadNoteTypeDefinitions([current.noteTypeDefinitionId]);
-    if (!definition) throw new Error("Die Notetype-Definition der Karte fehlt.");
-    return runCardCommand(deckId, workspaceRepository.updateCard(deckId, cardId, (card) => saveLearningItemDocumentValues({ previous: card, definition, ...value }).item));
-  }
-
-  async function deleteDeckCard(deckId: string, cardId: string) {
-    return runCardDeletion(deckId, cardId);
-  }
-
-  async function duplicateDeckCard(deckId: string, cardId: string) {
+  /** Loads a content with all its cards (also in other decks) and refreshes every visible card page that shows it. */
+  async function reloadNoteGraph(noteId: string, refreshPages = false): Promise<NoteGraph | null> {
     if (!workspaceRepository) return null;
-    const source = await workspaceRepository.loadCard(cardId);
-    const copy = source ? duplicateLearningItemContent(source) : null;
-    return copy ? runCardCommand(deckId, workspaceRepository.insertCard(deckId, copy), true) : null;
+    const graph = workspaceHydrationService
+      ? await workspaceHydrationService.loadNoteGraph(noteId).catch(() => null)
+      : await workspaceRepository.loadNoteGraph(noteId);
+    refresh({ preserveCardPages: true });
+    // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
+    const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
+    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => {
+      if (!page) return [deckId, page];
+      if (refreshPages && graph?.cards.some((card) => card.deckId === deckId)) return [deckId, undefined];
+      const selected = page.selected && page.selected.note.id === noteId
+        ? graph?.cards.some((card) => card.id === page.selected!.cardId) ? { ...graph, cardId: page.selected.cardId } : null
+        : page.selected;
+      const items = page.items.map((item) => {
+        const entry = entries.get(item.id);
+        return entry ? { ...item, ...entry, syncChangeId: item.syncChangeId } : item;
+      });
+      return [deckId, { ...page, items, selected }];
+    })));
+    syncEngine?.requestSync();
+    return graph;
   }
 
-  function undoDeleteDeckCard(deckId: string, deletedCard: LearningItem, previousStatus: LearningItem["status"]) {
-    const tombstone = workspaceRepository?.getCloudTombstones().find((candidate) => candidate.entityTable === "cards" && candidate.entityId === deletedCard.id);
-    const restored = restoreSoftDeletedCard({ ...deletedCard, revision: tombstone?.revision ?? deletedCard.revision, updatedByDeviceId: tombstone?.updatedByDeviceId ?? deletedCard.updatedByDeviceId }, new Date().toISOString(), previousStatus);
-    workspaceRepository?.removeCloudTombstone("cards", restored.id);
-    return runCardCommand(deckId, workspaceRepository?.insertCard(deckId, restored) ?? Promise.resolve(null), true);
+  async function saveDeckNote(graph: NoteGraph, content: NoteContent) {
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const plan = planNoteContentChange(graph, content);
+    if (!plan.changed && !plan.newCards.length && !plan.removedCards.length) return graph;
+    const updatedAt = new Date().toISOString();
+    const removed = planNoteDeletion(plan.note, plan.removedCards, updatedAt).cards;
+    await workspaceRepository.saveNoteGraphs([{ previous: graph, next: { note: plan.note, cards: [...plan.keptCards, ...plan.newCards, ...removed] } }]);
+    return reloadNoteGraph(graph.note.id, plan.newCards.length > 0 || plan.removedCards.length > 0);
+  }
+
+  async function deleteDeckNote(graph: NoteGraph) {
+    if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
+    const plan = planNoteDeletion(graph.note, graph.cards);
+    const deleted = { note: plan.note, cards: plan.cards };
+    await workspaceRepository.saveNoteGraphs([{ previous: graph, next: deleted }]);
+    refresh();
+    syncEngine?.requestSync();
+    return { deleted, undo: plan.undo };
+  }
+
+  async function undoDeleteDeckNote(undo: NoteGraph, deleted: NoteGraph) {
+    if (!workspaceRepository) return null;
+    const restored = planNoteRestore(undo, deleted);
+    await workspaceRepository.saveNoteGraphs([{ previous: deleted, next: restored }]);
+    refresh();
+    syncEngine?.requestSync();
+    return restored;
+  }
+
+  async function duplicateDeckNote(graph: NoteGraph) {
+    if (!workspaceRepository) return null;
+    const copy = duplicateNote(graph.note, graph.cards);
+    await workspaceRepository.saveNoteGraphs([{ previous: null, next: copy }]);
+    refresh();
+    syncEngine?.requestSync();
+    return copy;
   }
 
   async function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
     if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
     const cards = await workspaceRepository.rescheduleCards(cardIds, dueAt, occurredAt);
     refresh({ preserveCardPages: true });
-    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => [deckId, page ? {
+    const byId = new Map(cards.map((card) => [card.id, card]));
+    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => [deckId, page?.selected && page.selected.cards.some((card) => byId.has(card.id)) ? {
       ...page,
-      items: page.items.map((item) => cards.find((card) => card.id === item.id) ?? item),
-      selectedCard: cards.find((card) => card.id === page.selectedCard?.id) ?? page.selectedCard,
+      selected: { ...page.selected, cards: page.selected.cards.map((card) => byId.get(card.id) ?? card) },
     } : page])));
     syncEngine?.requestSync();
     return cards;
   }
 
-  function addDeckCardVariant(deckId: string, cardId: string, variant: CardVariantInput) {
-    return runCardCommand(deckId, workspaceRepository?.updateCard(deckId, cardId, (card) => addRephrasedVariant(card, variant.front, variant.back, {
-      ...variant,
-      meta: { source: "deck-card-editor", ...(variant.meta ?? {}) },
-    })) ?? Promise.resolve(null));
-  }
-
-  async function generateDeckCardVariant(deckId: string, cardId: string) {
+  async function generateDeckCardVariant(_deckId: string, cardId: string) {
     if (!workspaceRepository) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
-    const sourceCard = await workspaceRepository.loadCard(cardId);
-    const sourcePayload = sourceCard ? getCardContentPayload(sourceCard) : null;
-    if (!sourcePayload) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
-    const generated = await requestAiCardVariant(sourcePayload, supabase ?? null);
+    const body = await workspaceRepository.loadCardBody(cardId);
+    const source = body ? cardVariantSource(body.note, body.card) : null;
+    if (!source) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
+    const generated = await requestAiCardVariant(source, supabase ?? null);
 
-    const currentCard = await workspaceRepository.loadCard(cardId);
-    const draft = createAiGeneratedVariantDraft(sourcePayload, currentCard, generated);
-    const saved = await addDeckCardVariant(deckId, cardId, { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } });
+    const current = await workspaceRepository.loadCardBody(cardId);
+    const draft = createAiGeneratedVariantDraft(source, current, generated);
+    const saved = await workspaceRepository.updateCard(cardId, (card) => addCardVariant(card, { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } }));
     if (!saved) throw new AiCardVariantContractError("save_failed", "Die KI-Variante konnte nicht gespeichert werden.");
+    await reloadNoteGraph(saved.note.id);
     return generated;
   }
 
-  async function completeCreatedDeck(deck: Deck) {
-    await persistImportedDecks([deck]);
-    return state?.decks.find((candidate) => candidate.id === deck.id) ?? deck;
-  }
-
-  async function completeManualCard(deckId: string, manualDeckInput: ManualCardInput) {
-    if (!workspaceRepository) return null;
-    const manualDeck = createManualCoreDeck(manualDeckInput);
-    const summary = state?.decks.find((deck) => deck.id === deckId);
-    if (!manualDeck.cards.length || !summary) return null;
-    const saved: LearningItem[] = [];
-    for (const card of manualDeck.cards) {
-      const result = await runCardCommand(deckId, workspaceRepository.insertCard(deckId, card), true);
-      if (result) saved.push(result);
+  /** Creates a manual content with its cards, in a new deck when no deck id is given. */
+  async function saveManualNote({ deckId, deckName, content, media }: ManualNoteSaveInput) {
+    if (!workspaceRepository || !latestStateRef.current) return null;
+    let deck = deckId ? latestStateRef.current.decks.find((candidate) => candidate.id === deckId) ?? null : null;
+    if (!deckId) {
+      const created = createWorkspaceDeck(latestStateRef.current.decks, {
+        name: deckName,
+        deckSettings: createGlobalDefaultDeckSettings(globalSchedulerPreferences),
+      });
+      deck = created ? workspaceRepository.saveDeckMetadata([created])[0] ?? null : null;
     }
-    return saved.length === manualDeck.cards.length
-      ? { ...summary, cards: saved, reviewEvents: [], updatedAt: saved.at(-1)!.updatedAt }
-      : null;
+    if (!deck) return null;
+    const graph = createNote({ content, deckId: deck.id, media });
+    await workspaceRepository.saveNoteGraphs([{ previous: null, next: graph }]);
+    refresh();
+    syncEngine?.requestSync();
+    return { deck, cardIds: graph.cards.map((card) => card.id) };
   }
 
   async function createDemo() {
-    const decks = createWorldCapitalsSeedDecks().map((deck) => ({ ...deck, reviewEvents: [] }));
-    await persistImportedDecks(decks);
+    const persisted = await commitImport(createWorldCapitalsImportGraph(), { onMedia: async () => {} });
     navigateToView("lernen");
-    return decks;
+    return persisted.decks;
   }
 
   function deckSettingsSourceViewRoute(deckId: string | null, clearSelection = false) {
@@ -1639,7 +1633,7 @@ export function App() {
       setStudyHasMoreCards(preparation.hasMoreCards);
       setStudyBufferSize(preparation.bufferSize);
       setStudyDecks(preparation.decks);
-      setStudyDefinitions(preparation.definitions);
+      setStudyNotes(preparation.notes);
       navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
         replace: activeView === "stapel-einstellungen",
       });
@@ -1798,19 +1792,19 @@ export function App() {
           contentDeckId={deckContent ? focusedDeckId : null}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
-          noteTypeDefinitions={visibleDefinitions}
+          deckSummaries={deckSummaries}
+          syncConflictCardIds={syncConflictCardIds}
           now={learningNow}
           dayStartHour={globalSchedulerPreferences.dayStartHour}
           learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
           timeZone={learningTimeZone}
           mediaStore={mediaStore}
           onSetDeckCoreMode={setDeckCoreMode}
-          onSaveCard={saveDeckCard}
-          onSaveCardDocument={saveDeckCardDocument}
+          onSaveNote={saveDeckNote}
           onSetCardStudyState={setCardStudyState}
-          onDuplicateCard={duplicateDeckCard}
-          onDeleteCard={deleteDeckCard}
-          onUndoDeleteCard={undoDeleteDeckCard}
+          onDuplicateNote={duplicateDeckNote}
+          onDeleteNote={deleteDeckNote}
+          onUndoDeleteNote={undoDeleteDeckNote}
           onRescheduleCards={rescheduleDeckCards}
           onGenerateVariant={generateDeckCardVariant}
           selectedDeckId={focusedDeckId}
@@ -1847,7 +1841,7 @@ export function App() {
         <CreationScreen
           decks={state.decks}
           mediaStore={mediaStore}
-          persistImportedDecks={persistImportedDecks}
+          commitImport={commitImport}
           apkgImportSession={apkgImportSession}
           onApkgImportSessionChange={setApkgImportSession}
           isApkgImportSessionCurrent={isApkgImportSessionCurrent}
@@ -1868,8 +1862,7 @@ export function App() {
             creationMethod: "manual",
             creationDeckId: deckId || null,
           })}
-          onCreated={completeCreatedDeck}
-          onAppendManualCard={completeManualCard}
+          onSaveManualNote={saveManualNote}
           onDraftStateChange={handleCreationDraftStateChange}
           onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {
             completedDeckId: completion.deckId,
@@ -2032,7 +2025,7 @@ export function App() {
         <StudyMode
           deck={studyDeck}
           decks={studyDecks ?? [studyDeck]}
-          noteTypeDefinitions={studyDefinitions}
+          notes={studyNotes}
           deckId={studyDeck.id}
           variantSession={studyRequest.variantSession}
           variantId={studyRequest.variantId}
@@ -2078,7 +2071,12 @@ export function App() {
           })}
           onSetCardStudyState={setStudyCardStudyState}
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
-          onCardUpdated={(deckId, card) => { void runCardCommand(deckId, workspaceRepository.updateCard(deckId, card.id, () => card)); }}
+          onCardUpdated={(_deckId, card) => {
+            void workspaceRepository.updateCard(card.id, (current) => ({ ...current, variants: card.variants, updatedAt: card.updatedAt })).then(() => {
+              refresh({ preserveCardPages: true });
+              syncEngine?.requestSync();
+            });
+          }}
           onReview={recordReview}
           sessionPlan={studySessionProjection ? {
             progress: studySessionProjection.progress,

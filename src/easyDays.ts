@@ -1,5 +1,5 @@
 import { get_fuzz_range } from "ts-fsrs";
-import type { EasyDayLevel, EasyDays, LearningItem } from "./coreTypes.ts";
+import type { Card, EasyDayLevel, EasyDays } from "./coreTypes.ts";
 import { getLearningDayKey, type LearningDayOptions } from "./learningDay.ts";
 
 export const EASY_DAY_KEYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] as const;
@@ -16,13 +16,6 @@ export const DEFAULT_EASY_DAYS: EasyDays = {
 
 const easyDayLevels = new Set<EasyDayLevel>(["normal", "reduced", "minimum"]);
 const easyDayWeights: Record<EasyDayLevel, number> = { normal: 1, reduced: 0.5, minimum: 0.0001 };
-
-function isReviewBlocked(item: LearningItem): boolean {
-  return item.status === "suspended"
-    || String(item.status) === "buried"
-    || item.meta?.suspended === true
-    || item.meta?.buried === true;
-}
 
 export interface EasyDaysSchedulingContext extends LearningDayOptions {
   easyDays: EasyDays;
@@ -67,7 +60,7 @@ function shiftDayKey(dayKey: string, days: number): string {
 }
 
 export function createEasyDaysDueCounts(
-  items: Iterable<LearningItem>,
+  cards: Iterable<Pick<Card, "id" | "status" | "deletedAt" | "study">>,
   now: string | number | Date,
   options: LearningDayOptions = {},
 ): Map<string, number> {
@@ -75,19 +68,12 @@ export function createEasyDaysDueCounts(
   if (!todayKey) return new Map();
   const endKey = shiftDayKey(todayKey, 90);
   const counts = new Map<string, number>();
-  const seenItemIds = new Set<string>();
-  for (const item of items) {
-    if (seenItemIds.has(item.id)) continue;
-    seenItemIds.add(item.id);
-    const state = item.reviewState;
-    if (
-      item.deletedAt
-      || item.draftStatus === "draft"
-      || item.status === "deleted"
-      || state?.state === "new"
-      || isReviewBlocked(item)
-    ) continue;
-    const dueKey = getLearningDayKey(state?.dueAt ?? Number.NaN, options);
+  const seenCardIds = new Set<string>();
+  for (const card of cards) {
+    if (seenCardIds.has(card.id)) continue;
+    seenCardIds.add(card.id);
+    if (card.deletedAt || card.status !== "active" || card.study.state === "new") continue;
+    const dueKey = getLearningDayKey(card.study.dueAt ?? Number.NaN, options);
     if (!dueKey || dueKey <= todayKey || dueKey > endKey) continue;
     counts.set(dueKey, (counts.get(dueKey) ?? 0) + 1);
   }

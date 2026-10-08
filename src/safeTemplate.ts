@@ -1,4 +1,14 @@
-import type { FieldDefinition, SafeTemplateAst, SafeTemplateAstNode } from "./coreTypes.ts";
+export type SafeTemplateAstNode =
+  | { kind: "text"; value: string }
+  | { kind: "field"; fieldId: string; sourceName: string; filters: string[] }
+  | { kind: "front-side" }
+  | { kind: "conditional"; fieldId: string; sourceName: string; inverted: boolean; children: SafeTemplateAstNode[] };
+
+export interface SafeTemplateAst {
+  schemaVersion: 1;
+  source: string;
+  nodes: SafeTemplateAstNode[];
+}
 
 export type TemplateCompatibility = "safe-equivalent" | "safe-with-differences" | "preserved-only";
 export interface TemplateDiagnostic { code: string; level: "info" | "warning" | "error"; message: string; detail: string | null }
@@ -11,7 +21,7 @@ function addDiagnostic(diagnostics: TemplateDiagnostic[], code: string, message:
   if (!diagnostics.some((candidate) => candidate.code === code && candidate.detail === detail)) diagnostics.push({ code, level, message, detail });
 }
 
-export function compileSafeTemplate(source: string, fields: readonly Pick<FieldDefinition, "id" | "name">[]): CompiledSafeTemplate {
+export function compileSafeTemplate(source: string, fields: readonly { id: string; name: string }[]): CompiledSafeTemplate {
   const diagnostics: TemplateDiagnostic[] = [];
   let compatibility: TemplateCompatibility = "safe-equivalent";
   if (/<script\b|\son[a-z]+\s*=|javascript:/i.test(source)) {

@@ -2,20 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createCoreDeck } from "../coreModel.ts";
-import { createDemoAnatomyDeck } from "../coreWorkspace.ts";
 import { CreationScreen } from "./CreationScreen.tsx";
 
 const callbacks = {
+  commitImport: async () => { throw new Error("Kein Import in der Darstellung."); },
   onMethodChange: () => undefined,
-  onCreated: () => undefined,
-  onAppendManualCard: () => undefined,
+  onSaveManualNote: async () => null,
   onStartDeck: () => undefined,
   onReviewDeck: () => undefined,
   onOpenDashboard: () => undefined,
 };
 
 test("completed manual creation keeps its follow-up actions", () => {
-  const deck = createDemoAnatomyDeck();
+  const deck = createCoreDeck({ id: "deck-anatomy", name: "Anatomie", source: "manual", cards: [] });
   const markup = renderToStaticMarkup(<CreationScreen decks={[deck]} completedDeckId={deck.id} {...callbacks} />);
 
   assert.match(markup, /Deine Karten sind bereit/);
@@ -24,7 +23,7 @@ test("completed manual creation keeps its follow-up actions", () => {
 });
 
 test("completed import shows the verified count and only study or dashboard actions", () => {
-  const deck = createDemoAnatomyDeck();
+  const deck = createCoreDeck({ id: "deck-anatomy", name: "Anatomie", source: "manual", cards: [] });
   const markup = renderToStaticMarkup(
     <CreationScreen decks={[deck]} completedDeckId={deck.id} completedCount={46} completionKind="import" {...callbacks} />,
   );
@@ -50,7 +49,9 @@ test("import creation exposes only APKG without a format selector", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="import" {...callbacks} />);
 
   assert.match(markup, />Erstellen<\/button>/);
-  assert.match(markup, /APKG-Dateien importieren/);
+  assert.match(markup, /Anki-Dateien importieren/);
+  assert.match(markup, /accept="\.apkg,\.colpkg"/);
+  assert.match(markup, /APKG- oder COLPKG-Datei hier ablegen \(Max\. 2 GiB\)/);
   assert.match(markup, /data-file-drop-field="true"/);
   assert.match(markup, />APKG-Datei auswählen<\/span>/);
   assert.doesNotMatch(markup, /Importformat|>APKG<|>Text<|>CSV<|>Excel\/Tabelle</);

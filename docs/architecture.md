@@ -1,11 +1,11 @@
 # CoRe-Architektur und Invarianten
 
-**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-07.
+**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-08.
 Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Gates: [Betrieb](operations.md). Offene Änderungen: [TODO](todo.md). Formatdetails: [Anki-Referenz](anki-format-analysis.md).
 
 ## Systemkontext
 
-CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kapseln Supabase Auth, Postgres und privaten Storage. Vercel liefert die SPA und eine authentifizierte Function für textbasierte Basic-Kartenvarianten. React orchestriert UI; Domänenmodule besitzen Validierung, Datenformung und Persistenz.
+CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kapseln Supabase Auth, Postgres und privaten Storage. Vercel liefert die SPA und eine authentifizierte Function für textbasierte Kartenvarianten. React orchestriert UI; Domänenmodule besitzen Validierung, Datenformung und Persistenz.
 
 ## Modulgrenzen
 
@@ -14,19 +14,19 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `App.tsx`, `screens/` | App-Koordination und Produkt-UI; [Screen-Landkarte](../src/screens/README.md) |
 | `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute, URL-Kontext und einzige Browser-History-Anbindung |
 | `ui/`, `styles.css`, `coreTheme.ts` | gemeinsame UI, semantische Tokens und validierte Theme-Präferenz; [UI-Verträge](../src/ui/README.md) |
-| `coreTypes.ts`, `coreModel.ts` | kanonische Typen, Learning-Item-Erzeugung, Normalisierung und validierte Editorprojektion |
-| `coreWorkspace.ts`, `coreRepository.ts` | Anwendungsbefehle, Platzierungs-/Zyklusprüfung und lokale Kartenoperationen |
+| `coreTypes.ts`, `coreModel.ts` | kanonische `Note`/`Card`-Typen; einzige Grenze für Inhaltserzeugung, Änderungs-, Lösch- und Wiederherstellungsplanung, Editorwerte und manuelle Formen |
+| `coreWorkspace.ts`, `coreRepository.ts` | Arbeitsbereichszustand, Stapelbefehle und Platzierungs-/Zyklusprüfung |
 | `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
 | `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
 | `reviewService.ts`, `scheduler.ts`, `easyDays.ts` | Queue, Bewertung, FSRS-6 und deterministische Intervallentlastung |
-| `coreVariantService.ts` | Reife, Eligibility, Variantenwahl und Original-Fallback |
+| `coreVariantService.ts` | Reife, Eligibility, Variantenquelle, Variantenwahl, Variantendarstellung und Original-Fallback |
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung, Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
-| `apkgImport.ts` | öffentliche APKG-Normalisierungsgrenze; Worker, Protokoll, ZIP und SQLite bleiben privat |
-| `apkgNoteTranslation.ts` | vorbereitete, noch unverdrahtete Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen |
-| `ankiContentModel.ts`, `cardPresentation.ts` | private Formatübersetzung sowie sicherer gemeinsamer Template-Compiler/Renderer |
-| `CardPresentationSurface`, `StudyCardContent`, `CardPreviewDialog` | React-Host, kontrollierte Kartenkomposition und transiente Entwurfsvorschau |
+| `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |
+| `apkgNoteTranslation.ts`, `importRetranslation.ts` | Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen und automatische Neuübersetzung unbearbeiteter Importe |
+| `notePresentation.ts`, `presentationFrame.ts` | asynchroner Kartenrenderer sowie gemeinsames CSP-Gerüst und Medienauflösung |
+| `CardPresentationSurface`, `NoteCardContent`, `CardPreviewDialog` | Iframe-Rahmen, Antwort-Host mit transientem Eingabe-/Auswahlzustand und Vorschau |
 | `indexedDbCoreRepository.ts`, `workspaceHydrationService.ts` | accountgebundene Web-Replica, begrenzte Hydrierung, Offline-Download und Quota-Bereinigung |
 | `cloudRepository.ts`, `cloudRepositoryValidation.ts` | accountgefilterte Cloudmutationen, Revisionen, Konflikte und Row-/JSONB-Validierung |
 | `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
@@ -46,57 +46,40 @@ Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Re
 
 ## Domäneninvarianten
 
-- Ein Deck enthält Learning Items. Jedes Item besitzt einen eigenen Review State und `dueAt`; Reverse-Richtungen, Cloze-Gruppen und reale Anki-Cards sind eigenständige Items.
-- Der ursprüngliche Inhalt bleibt am Learning Item. KI-Varianten in `variants[]` bleiben daran verankert, haben keinen eigenen Review State oder Termin und zählen nicht zusätzlich für Queue oder Bestand.
-- `LearningItemDocumentV1` und `NoteTypeDefinitionV1` sind Inhalts- und Darstellungswahrheit. Compatibility-Felder und Editorwerte werden atomar daraus projiziert. Feldnamen/-positionen sind keine semantischen Schlüssel.
-- `CardContentPayload` enthält validierte Editorwerte und stabile Medienreferenzen, keine Entitäts-/Reviewidentitäten, Bytes oder Signed URLs. Kopien erhalten frische Karten-, Review- und Scheduleridentitäten.
-- Importierte Feldwerte sind editierbar; Anki-Feldschema, Templates und CSS bleiben strukturell schreibgeschützt. Entwurfsvorschau persistiert oder revidiert nichts.
-- Templateauswertung, Sanitization und URL-Auflösung bleiben getrennt. Scripts und externe Ressourcen werden nicht ausgeführt; lokale Darstellung verwendet nur `blob:`/`data:`, Sandbox-CSP und eingebettete Basisschriften. Der Renderer besitzt die Anki-`FrontSide`-Komposition.
-- Manuelle Speicherung ist Single Flight mit unveränderlichem Snapshot. Reihenfolge: lokale Medienvorbereitung, Mediencache, lokale Karte, Upload und Referenzpersistenz. Cloudfehler nach lokalem Erfolg sind Teilabschlüsse. APKG-Medien werden nicht verkleinert.
-- Reimport identifiziert Karten über `sourceCardId`, bewahrt lokale Inhaltsänderungen, Review State, Markierung, Aussetzung und lokale Stapelordnung. Medienreferenzen werden vor ihrer Stilllegung ergänzt.
+- Ein Inhalt (`Note`) speichert Felder mit Rollen, Interaktion, Tags, Medienzuordnung (Name → SHA-1), Herkunft und Markierung genau einmal. Seine Abfrageschlüssel bestimmen die Kartenmenge; jede Karte (`Card`) trägt Stapel, Abfrageschlüssel, Status, Anki-Flagge, eigenen Lernstand und Varianten. Reverse-Richtungen, Lückengruppen und reale Anki-Karten sind Geschwister desselben Inhalts und dürfen in verschiedenen Stapeln liegen.
+- KI-Varianten in `card.variants[]` bleiben an ihre Karte gebunden, haben keinen eigenen Lernstand oder Termin und zählen nicht zusätzlich für Queue oder Bestand. Im Review werden sie als transienter Frage-/Antwort-Inhalt mit den Zusatz- und Quellenfeldern des Inhalts dargestellt.
+- Inhaltsänderungen laufen über `planNoteContentChange`: unveränderter bereinigter Inhalt meldet `changed: false` und schreibt nichts; neue Abfragen werden neue Karten, entfallende Karten werden erst nach Bestätigung soft-gelöscht. Löschen betrifft immer den Inhalt mit allen Geschwistern; Undo stellt die vorherigen Datensätze mit fortlaufenden Revisionen wieder her. Die Markierung erhöht nur die Entitätsrevision, nicht `contentRevision`.
+- Der Lernstand besitzt mit `studyRevision` eine eigene Konfliktgrenze. Reviews erhöhen sie atomar über `record_review_atomic`, Inhalts- und Kartenänderungen die Entitätsrevision; ein Review auf einem Gerät und eine Inhaltskorrektur auf einem anderen kollidieren daher nicht.
+- Darstellung, Sanitization und URL-Auflösung bleiben getrennt. Scripts und externe Ressourcen werden nicht ausgeführt; lokale Darstellung verwendet nur `blob:`/`data:`, Sandbox-CSP und eingebettete Basisschriften. Gerendertes HTML wird nie persistiert.
+- Manuelle Speicherung ist Single Flight mit unveränderlichem Snapshot. Reihenfolge: lokale Bildvorbereitung, Mediencache mit persistenter Upload-Queue, lokaler Inhalt samt Karten, Upload. Cloudfehler nach lokalem Erfolg sind Teilabschlüsse. APKG-Medien werden nicht verkleinert.
+- Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Kartenidentität zu (lokal und über `load_reimport_targets` in der Cloud). Lokale Inhaltsänderungen (`contentRevision` > `importedContentRevision`), Lernstand, Aussetzung, Markierung und Stapelordnung bleiben; neue Abfragen werden neue Karten, im Paket fehlende Karten werden nur gezählt.
 - Review Events sind append-only und accountgebunden. `revlog` wird deterministisch dedupliziert. Initialer Schedulerstate folgt FSRS-Memory-State, Revlog-Replay, klassischem Kartenstatus, neuer Karte; ab dem ersten CoRe-Review besitzt FSRS-6 den State.
-- KI-Varianten akzeptieren nur validierte Basic-Plaintexts. Toolname, Anzahl, Schema, Änderung, Duplikate und Größenlimits werden vor der bestehenden Variantenmutation geprüft. Eine inzwischen geänderte Karte verhindert die Mutation.
+- KI-Varianten entstehen nur aus den bereinigten Klartexten von Frage und Antwort einer Frage-/Antwort-Karte (`cardVariantSource`). Toolname, Anzahl, Schema, Änderung, Duplikate und Größenlimits werden vor der Variantenmutation geprüft. Ein inzwischen geänderter Inhalt verhindert die Mutation.
 - React kennt keine Parser-, Storage-, RLS-, Scheduler-, Provider- oder Persistenzdetails. Ein aktiver Workerfehler bleibt sichtbar; es gibt keinen stillen Direktparser-Retry.
 
-## Heutiges Compatibility-Modell
+## Inhalte und Karten
 
-`deck.cards[]`, einzelne `CoreCard`-Typgrenzen und die Cloudtabelle `cards` bezeichnen Learning Items. `cards.content_document` und `deck_note_type_definitions.definition` speichern normalisierte Dokumente/Definitionen; diese heutigen Namen werden nicht nebenbei migriert. Jeder zusätzliche Varianteninhalt bleibt einem vorhandenen Item untergeordnet. Geplante Umbauten stehen ausschließlich in [TODO](todo.md).
-
-### Vorbereitete Note-/Card-Domäne
-
-`coreTypes.ts` enthält zusätzlich `Note`, `Card` und `CardStudyState` nach
-ADR-032. Ein Inhalt besitzt Felder, Tags, Herkunft, Markierung und
-Inhaltsrevision ohne Stapel; die Markierung liegt außerhalb von `content` und
-zählt nicht als Inhaltsänderung. Eine Karte besitzt Inhaltsreferenz, Stapel,
-Abfrageschlüssel, Status, Anki-Flagge, Lernstand und Varianten. Queue-Werte sind direkt typisiert, die weiteren
-genutzten Lern- und Variantenwerte liegen in einem typisierten `study.extra`;
-`cardStudyFromReviewState` bildet einen Scheduler-Zustand darauf ab.
+`coreTypes.ts` definiert `Note`, `Card` und `CardStudyState` nach ADR-032 bis
+ADR-036. Queue-Werte des Lernstands sind direkt typisiert, weitere Lern- und
+Variantenwerte liegen typisiert in `study.extra`. Scheduler und Queue arbeiten
+auf der flachen Sicht `ReviewState`; `reviewStateFromCardStudy` und
+`cardStudyFromReviewState` bilden beide Formen verlustfrei aufeinander ab.
 Importierte Inhalte tragen `importedContentRevision` = `contentRevision` beim
-Import; ein höherer `contentRevision` bedeutet lokale Bearbeitung. Manuelle
-Inhalte tragen `null`.
+Import; manuelle Inhalte tragen `null`. `Deck.cards` enthält die geladenen
+Karten eines Stapels, nie Inhaltskopien.
 
-Das private Modul `coreModel/notes.ts` bietet `createNote`,
-`planNoteContentChange` und `planNoteDeletion`. Inhaltseingaben bleiben
-`unknown`, bis `parseNoteContent` sie validiert und bereinigt; dessen
-Abfrageschlüssel bestimmen die Kartenmenge. Änderungen erhalten bestehende
-Karten samt Lernstand unverändert, erhöhen Inhalts- und Entitätsrevision
-einmal und liefern entfallende Karten zur Bestätigung zurück. Ist der
-bereinigte Inhalt unverändert, meldet der Plan `changed: false` und behält
-den bisherigen Inhalt samt Revisionen. Neue Karten kommen in den Stapel der
-Karte, deren Abfrageschlüssel im bisherigen Inhalt zuerst abgeleitet wird;
-bestehende Platzierungen bleiben erhalten. Aufrufer übergeben jeweils die
-vollständige, nicht gelöschte Kartenmenge eines Inhalts; fremde Karten sowie
-doppelte Karten oder Abfrageschlüssel werden abgewiesen. `updatedByDeviceId`
-setzt die Persistenz beim Schreiben, nicht die reine Planung.
+`coreModel.ts` exportiert `createNote`, `planNoteContentChange`,
+`planNoteDeletion`, `planNoteRestore`, `setNoteMarked`, `duplicateNote`,
+`noteTextIndex`, die Editorwerte (`noteEditorValue`, `applyNoteEditorValue`,
+`validateNoteEditorValue`) und die manuellen Formen (`createManualNoteContent`,
+`validateManualNoteInput`; Basic, Basic mit Rückrichtung, Lückentext, Single und
+Multiple Choice). Inhaltseingaben bleiben `unknown`, bis `parseNoteContent` sie
+validiert und bereinigt. Aufrufer übergeben die vollständige, nicht gelöschte
+Kartenmenge eines Inhalts; fremde Karten sowie doppelte Karten oder
+Abfrageschlüssel werden abgewiesen. `updatedByDeviceId` setzt der Cloud-Write,
+nicht die Planung.
 
-Die Löschplanung liefert Soft-Delete-Datensätze für Inhalt und Geschwister
-mit gemeinsamem Zeitstempel sowie deren vollständige vorherige Datensätze
-als `undo`. Sie verändert weder Eingaben noch Persistenz. Löschung erhöht
-nur Entitätsrevisionen; Lernstand, Aussetzung und Inhaltsrevision bleiben
-erhalten. Die Funktionen werden von Modultests und vorbereiteten Katalog-Demos genutzt,
-noch nicht über `coreModel.ts` exportiert und ändern keinen App-Laufzeitpfad.
-
-### Vorbereitete Kartendarstellung
+### Kartendarstellung
 
 `notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron über
 `renderCard({ note, card, side, surface, theme, typedAnswer? })`. Das Ergebnis enthält
@@ -124,12 +107,11 @@ Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips
 Kartenende. Mit `typedAnswer` ersetzt die Antwortseite das Eingabefeld durch den
 Zeichenvergleich aus `compareTypedAnswer`.
 
-`cardPresentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
+`presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
 Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
-externen Ressourcen. `CardPresentationSurface` nimmt optional ein fertiges
-Renderergebnis entgegen; diese Variante erlaubt zusätzlich isolierte externe
-Popups und meldet Textauswahl an den Host. Der bisherige Learning-Item-Aufruf
-behält seinen bisherigen Vertrag.
+externen Ressourcen. `CardPresentationSurface` zeigt ein fertiges Renderergebnis
+im Sandbox-Iframe, erlaubt isolierte externe Popups und meldet Textauswahl an den
+Host.
 
 `ui/NoteCardContent.tsx` besitzt ausschließlich transienten Eingabe-, Auswahl-
 und Darstellungszustand. Das Eingabefeld steht bis zum Aufdecken im Host; danach
@@ -140,19 +122,20 @@ entsprechende Texte und die System-Sprachausgabe im Host. AMBOSS öffnet die Suc
 mit dem markierten Begriff. KaTeX wird nur bei erkannten Formeln (`\(…\)`,
 `\[…\]`, `[$]`, `[$$]`, `[latex]`) importiert;
 `noteMathAssets.ts` lädt lokale WOFF2-Assets einmal und bettet sie mit dem CSS
-als Data-URLs in den Rahmen ein. Die Bausteine sind nur im UI-Katalog angebunden;
-Import, App und Persistenz wechseln erst im Cutover auf diesen Vertrag.
+als Data-URLs in den Rahmen ein. Review, Vorschau, Kartenverwaltung, manuelle
+Erstellung und Importvorschau verwenden denselben Host; Medien-URLs löst
+`useNoteMediaUrls` über `note.media` auf.
 
 ## Persistenz, Sync und Medien
 
-- IndexedDB `core.workspace.entities.v3.<userId>` (Schema 1) trennt Deck-Hüllen, Summaries, Katalog, Kartenkörper, Varianten, Reviewereignisse, Notiztypen, Outbox und Konflikte. `accountStorage` hält nur `core.accountState.v2` und `core.syncDevice.v2`.
-- Hydrierung lädt begrenzte Karten-/Lernfenster. Offline-Downloads pinnen Karten, Varianten, Definitionen und hashgeprüfte Medien; Quota-Bereinigung entfernt ausschließlich ungepinnte bestätigte Körper/Medien.
-- Lokale Mutationen und Outbox werden atomar persistiert. Revisiongeprüfte Cloudwrites und bestätigte lokale Applies besitzen getrennte Abschlussgrenzen; fehlgeschlagener Cloud-Sync setzt den lokalen Erfolg nicht zurück.
-- Die Outbox hält je Entität höchstens eine ausstehende Mutation. Ersetzt eine Änderung einen noch nicht bestätigten Insert, bleibt sie ein Insert ohne Basisrevision. Existiert die Zeile in der Cloud bereits und hat sie zuletzt dasselbe Gerät geschrieben, war nur die Antwort verloren; die Mutation wird dann als Update auf diese Revision angewandt. Fremde oder gelöschte Zeilen bleiben Konflikte.
-- Konfliktmetadaten bleiben lokal erhalten. Betroffene Karten fehlen im Review-Scope und bleiben in der Verwaltung sichtbar. Auflösung betrifft ausschließlich geprüfte Konflikte und bewahrt konfliktfreie Inhalte, Reviews und Medien.
-- `card_catalog` und `deck_study_summaries` sind die Cloudprojektionen mit Account-RLS und Keyset-/Deck-/Sortier-/Reviewindizes. Trigger pflegen sie transaktional ohne fachliche Revisionsänderung. Fälligkeit wird für den Lerntag indexgestützt ermittelt.
-- `list_account_card_catalog()` liefert eine Keyset-Seite, `get_deck_offline_manifest()` Revisionen/Größen/Medienhashes und `get_account_statistics()` begrenzte Aggregate.
-- Medien liegen privat unter accountgebundenen SHA-1-Pfaden. Deckmodelle persistieren Referenzen, keine Bytes, Tokens oder Signed URLs. Die persistierte Queue besitzt Objekt-/Referenzentscheidung und monotone Bytezähler; Upload wartet auf bestätigte Cloud-Eltern.
+- IndexedDB `core.workspace.entities.v4.<userId>` trennt Deck-Hüllen, Summaries, Katalog, Inhalte, Kartenkörper, Varianten, Reviewereignisse, Anki-Vorlagen (`noteTypeSources`), rohe Anki-Felder (`noteSources`), Outbox und Konflikte. `accountStorage` hält nur `core.accountState.v2` und `core.syncDevice.v2`.
+- Hydrierung lädt begrenzte Karten-/Lernfenster samt Inhalten (`hydrate_account_cards` nach Karten- oder Inhalts-IDs); ein Kartenkörper ist aktuell, wenn Körper-, Lernstands- und Abhängigkeitsrevision zum Katalog passen. Die Kartenverwaltung lädt einen Inhalt online immer mit allen Geschwistern; offline nur bei vollständigem Katalog. Offline-Downloads pinnen Karten, Inhalte, Varianten und hashgeprüfte Medien; Quota-Bereinigung entfernt ausschließlich ungepinnte bestätigte Körper/Medien.
+- Lokale Mutationen und Outbox werden atomar persistiert (`saveNoteGraphs` schreibt Inhalt, Karten, Katalog, Summaries und Outbox in einer Transaktion). Revisiongeprüfte Cloudwrites und bestätigte lokale Applies besitzen getrennte Abschlussgrenzen; fehlgeschlagener Cloud-Sync setzt den lokalen Erfolg nicht zurück. Anki-Vorlagen und rohe Felder sind Upsert-Tabellen (letzter Write gewinnt).
+- Die Outbox hält je Entität höchstens eine ausstehende Mutation. Ersetzt eine Änderung einen noch nicht bestätigten Insert, bleibt sie ein Insert ohne Basisrevision. Existiert die Zeile in der Cloud bereits und hat sie zuletzt dasselbe Gerät geschrieben, war nur die Antwort verloren; die Mutation wird dann als Update auf diese Revision angewandt. Fremde oder gelöschte Zeilen bleiben Konflikte. Löschungen laufen nach Inserts und Updates in umgekehrter Fremdschlüsselreihenfolge.
+- Konfliktmetadaten bleiben lokal erhalten. Betroffene Karten – bei einem Inhaltskonflikt alle Geschwister – fehlen im Review-Scope und bleiben in der Verwaltung sichtbar. Auflösung betrifft ausschließlich geprüfte Konflikte und bewahrt konfliktfreie Inhalte, Reviews und Medien.
+- `card_catalog` und `deck_study_summaries` sind die Cloudprojektionen mit Account-RLS und Keyset-/Deck-/Sortier-/Reviewindizes; nur Stapel, Katalog und Summaries tragen `sync_change_id`. Anweisungsbezogene Trigger mit Übergangstabellen pflegen sie mengenbasiert ohne fachliche Revisionsänderung; der Katalog übernimmt Vorschau, Sortiertext und Markierung aus dem Inhalt. Die Suche läuft per Trigramm-Index über `notes.search_text`. Fälligkeit wird für den Lerntag indexgestützt ermittelt.
+- `get_account_bootstrap()` liefert Stapel, Summaries und Tagesübersicht, `get_account_due_forecast()` die Prognose nachgelagert, `list_account_card_catalog()` eine Keyset-Seite (Gesamtzahl nur auf Anfrage), `get_deck_offline_manifest()` Revisionen/Größen/Medienhashes, `get_account_statistics()` begrenzte Aggregate, `load_reimport_targets()` bestehende Inhalte je Anki-GUID und `list_retranslation_candidates()` unbearbeitete Importe älterer Übersetzerversionen.
+- Medien liegen privat unter `<userId>/<sha1>` im Bucket `core-media`; `media_files` registriert jede Datei einmal je Account, `note_media` wird per Trigger aus `notes.media` gepflegt. Inhalte persistieren nur Namen und SHA-1, keine Bytes, Tokens oder Signed URLs. Die lokale Mediendatenbank `core-media-store.v3` hält Dateien und eine persistente SHA-1-Upload-Queue; Upload wartet auf bestätigte Cloud-Eltern. Nicht mehr referenzierte Dateien gibt `list_releasable_media()` nach einem Tag (gelöschte Inhalte nach sieben Tagen) frei.
 - Profilpatches enthalten das vollständige Profil. Nur erfolgreicher Cloud-Bootstrap darf unvollständige alte Profilpatches ersetzen und gültige UI-Präferenzen retten; vollständige Offlinepatches und andere Outbox-Mutationen bleiben erhalten.
 
 Die Migrationsbaseline in `supabase/migrations/` und `supabase/verify_schema_v1.sql` sind die ausführbaren SQL-Quellen. `database.types.ts` wird ausschließlich aus der frisch aufgebauten lokalen Datenbank generiert. RLS schützt Nutzertabellen; Ownership stammt nicht aus veränderbaren User-Metadaten.
@@ -163,17 +146,16 @@ Die Migrationsbaseline in `supabase/migrations/` und `supabase/verify_schema_v1.
 
 ## Importregeln
 
-Der Worker normalisiert einmal; der Main Thread streamt den Commitgraphen in begrenzten Chunks nach IndexedDB. Persistierte IDs werden vor dem Schreiben zugeordnet. Die flüchtige APKG-Sitzung überlebt interne Navigation; Reload-Wiederanlauf gehört nur Outbox und Medienqueue. Legacy-JSON und V18-Protobuf sind unterstützte externe Anki-Formate, keine obsolete Appkompatibilität. Unbekannte Quellfelder bleiben im unveränderlichen Snapshot. Format-, Template-, Medien-, Identitäts- und Revlogdetails stehen in der [Anki-Referenz](anki-format-analysis.md); sichtbare Phasen, Dateigrenzen und Teilabschlüsse in [Specs](specs.md). Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, statt das Archiv vollständig zu laden.
+Der Worker erhält die `File`, liest sie mit `readAnkiPackage`, übersetzt einmal mit `translateAnkiPackage` und hält den Importgraphen bis zum Commit oder Verwerfen. Die Vorschau enthält Bericht, bis zu fünf Beispielinhalte und deren Medien (höchstens 20 MiB). Beim Commit streamt der Worker begrenzte Chunks (Stapel, Anki-Vorlagen, je 250 Inhalte mit rohen Feldern und Karten, je 500 Reviewereignisse, dann jede Mediendatei einzeln mit SHA-1-Prüfung); der Main Thread schreibt sie nach IndexedDB, bevor er den nächsten Chunk anfordert. Persistierte IDs werden vor dem Schreiben zugeordnet (Reimport). Die flüchtige APKG-Sitzung überlebt interne Navigation; Reload-Wiederanlauf gehört nur Outbox und Medienqueue. Legacy-JSON und V18-Protobuf sind unterstützte externe Anki-Formate. Format-, Template-, Medien-, Identitäts- und Revlogdetails stehen in der [Anki-Referenz](anki-format-analysis.md); sichtbare Phasen, Dateigrenzen und Teilabschlüsse in [Specs](specs.md). Der ZIP-Leser liest Einträge einzeln aus dem `Blob`, statt das Archiv vollständig zu laden.
 
-### Vorbereitete Note-Übersetzung
+### Note-Übersetzung
 
 `readAnkiPackage(file)` in `apkgImportInternal.ts` liest `.apkg` und `.colpkg`
 bis 2 GiB (`ANKI_PACKAGE_MAX_BYTES`) zu Stapeln mit Filterkennung, Notizen,
 Karten, Notiztypen, Revlog, Sammlungsdatum und einem Medienindex. Medien bleiben
 im Archiv und werden erst über `readBytes()` gelesen; moderne Pakete liefern
 SHA-1 und Größe aus `MediaEntries` (Eintrag *i* ist ZIP-Eintrag `i`), Legacy-Medien
-werden einzeln gehasht. Die sichtbare 250-MB-Grenze des heutigen Imports bleibt
-bis zum Cutover bestehen.
+werden einzeln gehasht.
 
 `translateAnkiPackage(pkg)` in `apkgNoteTranslation.ts` ist eine reine Funktion
 und liefert `{ decks, notes, cards, mediaFiles, reviewEvents, noteTypeSources,
@@ -225,8 +207,20 @@ noteSources, report }`:
 `noteTypeSources` enthält die unsichtbare Anki-Vorlage je genutztem Notiztyp,
 `noteSources` die rohen Anki-Feldwerte je Inhalt (Mediennamen bereits
 kanonisch), auch die vom Übersetzer verbrauchten Felder. Beide zusammen sind die
-Eingabe jeder späteren Neuübersetzung. Die Funktion ist nur an Matrix, Korpusbericht und
-Benchmark angebunden; Worker, Commit und Oberfläche wechseln im Cutover.
+Eingabe jeder Neuübersetzung.
+
+### Neuübersetzung (K5.4)
+
+`TRANSLATOR_VERSIONS` nennt die aktuelle Version je Übersetzer. Nach dem
+Cloud-Sync prüft `runAccountRetranslation` einmal je Übersetzerstand und Gerät
+die unbearbeiteten Importe älterer Versionen seitenweise. `planRetranslation`
+übersetzt die rohen Felder mit `retranslateNoteContent` neu: Karten behalten
+Identität und Lernstand (generische `anki-N`-Schlüssel erhalten den Schlüssel des
+besseren Übersetzers), neue Abfragen werden neue Karten. Würde eine Karte mit
+Lernstand entfallen oder ist der Inhalt nicht übersetzbar, bleibt er unverändert.
+Nur geänderte Inhalte werden geschrieben, mit `importedContentRevision` =
+`contentRevision`; Inhalte mit ausstehender lokaler Änderung werden
+übersprungen. Die App meldet die Zahl aktualisierter Inhalte.
 
 ## Architekturänderungen
 

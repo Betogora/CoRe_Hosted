@@ -1,17 +1,9 @@
 import * as v from "valibot";
 
-const fileMetadataSchema = v.object({
-  name: v.string(),
-  size: v.number(),
-  type: v.string(),
-  lastModified: v.number(),
-});
-
 const parseRequestSchema = v.object({
   type: v.literal("parse"),
   requestId: v.string(),
-  file: fileMetadataSchema,
-  buffer: v.instance(ArrayBuffer),
+  file: v.instance(Blob),
 });
 
 const commitRequestSchema = v.object({
@@ -33,11 +25,10 @@ const progressResponseSchema = v.object({
 });
 
 const resultPayloadSchema = v.looseObject({
-  summary: v.unknown(),
-  sampleCards: v.array(v.unknown()),
-  report: v.unknown(),
-  commitGraph: v.unknown(),
-  mediaFiles: v.array(v.unknown()),
+  rootDeckName: v.string(),
+  report: v.looseObject({ errors: v.array(v.string()) }),
+  samples: v.array(v.unknown()),
+  counts: v.looseObject({ ankiGuids: v.array(v.string()) }),
 });
 
 const resultResponseSchema = v.object({

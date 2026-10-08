@@ -101,11 +101,11 @@ K-Nummern verweisen. Ausgeführt wird in dieser Reihenfolge:
 ```text
 Phase 0   Ausgangsmessung und Inhaltsschema            ✔ abgeschlossen
 Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
-Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, unverdrahtet
-Phase 3   Renderer und Bausteine (reine Module)        implementiert, unverdrahtet; Gerätenachweise offen
-Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ abgeschlossen, unverdrahtet; Korpus offen
-Phase 4   Cutover: Datenbank, Replica, Sync, App       eigener Branch, ein Merge
-          + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      (im Cutover verdrahtet)
+Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, im Cutover verdrahtet
+Phase 3   Renderer und Bausteine (reine Module)        ✔ im Cutover verdrahtet; Gerätenachweise offen
+Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ im Cutover verdrahtet; Korpus offen
+Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ umgesetzt auf Branch; K4.8 nach Freigabe
+          + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        auf main
 Phase 7   Begraben von Geschwistern                     auf main
 Phase 8   Gesamtabnahme
@@ -153,8 +153,8 @@ Abgeschlossen am 2026-10-06 (siehe `history.md`). Die Ausgangsmessung ist mit
 `npm run measure:footprint`, `npm run performance:measure:local` und
 `npm run benchmark:apkg` reproduzierbar. Das Inhaltsschema `NoteContent` mit
 Validierung und Abfrageableitung liegt in `src/coreModel/noteContent.ts`, der
-Feld-HTML-Vertrag in `sanitizeNoteHtml` (`src/htmlSafety.ts`); beide sind noch
-nicht an Erstellung, Import oder Darstellung angeschlossen.
+Feld-HTML-Vertrag in `sanitizeNoteHtml` (`src/htmlSafety.ts`); seit dem Cutover
+nutzen Erstellung, Import und Darstellung beide.
 
 Merkwerte der Ausgangsmessung für spätere Vergleiche: 1.000 Lückentext-Notizen
 mit je vier Lücken belegen 23,84 MiB in Postgres und 23,95 MiB Sync-Volumen;
@@ -190,19 +190,15 @@ Hinweise zur Matrix für alle folgenden Phasen:
 
 ## Phase 2 — Kanonisches Modell in TypeScript
 
-Abgeschlossen am 2026-10-06 (siehe `history.md`). `Note`, `Card` und
-`CardStudyState` sind ergänzt; `src/coreModel/notes.ts` enthält vollständig
-getestete Erstellung, Änderungsabgleich und Löschplanung mit Undo-Zustand.
-Die Funktionen sind noch nicht an App, Import oder Persistenz angeschlossen.
-Die verbleibende Verdrahtung von K2.2, K2.4, K2.5 und K2.6 liegt in K4.9;
-das Lese-/Schreibinventar für den Scheduler-Cutover steht im Phasenbericht.
+Abgeschlossen am 2026-10-06 und im Cutover am 2026-10-08 verdrahtet (siehe
+`history.md`).
 
 ## Phase 3 — Offene Abnahme
 
 Renderer und Host-Bausteine sind implementiert und im UI-Katalog verfügbar.
 Die Umsetzung von K3.1 bis K3.10 und ihre Nachweise stehen datiert in
-`history.md`; die technischen Verträge stehen in `architecture.md`.
-App, APKG-Import und Persistenz verwenden sie erst im Cutover (K4.10).
+`history.md`; die technischen Verträge stehen in `architecture.md`. Seit dem
+Cutover verwenden Review, Vorschau, Verwaltung, Erstellung und Import sie.
 
 - [ ] **Gerätenachweise ergänzen.** Echte Smartphone-Bildschirmtastatur,
       physischer Touch/Screenreader, hörbare System-Sprachausgabe und nativer
@@ -217,9 +213,10 @@ vorbereiteten normalisierten Katalogbeispiele (Abnahme Phase 5).
 **5A ist abgeschlossen** (siehe `history.md`): `readAnkiPackage` und
 `translateAnkiPackage` (`src/apkgNoteTranslation.ts`) übersetzen Pakete in den
 Importgraphen; die APKG-Matrix beobachtet diese Pipeline und ist ohne
-`KNOWN_GAPS` grün. Den Vertrag beschreibt `architecture.md`. Offen sind die
-an Persistenz und Oberfläche gebundenen Teile (5B, im Cutover) und zwei
-Nachweise, die echte Anki-Daten brauchen.
+`KNOWN_GAPS` grün. Den Vertrag beschreibt `architecture.md`. Die an Persistenz
+und Oberfläche gebundenen Teile (K5.4, K5.7 bis K5.9) sind im Cutover umgesetzt
+(siehe `history.md`). Offen sind zwei Nachweise, die echte Anki-Daten brauchen,
+und die Übersetzung von Image Occlusion Enhanced in echte Masken (K5.10).
 
 - [ ] **K5.2 Drehung und Textgröße der Bildmasken prüfen.** Der Renderer dreht
       Rechteck und Ellipse um ihre linke obere Ecke und Polygone um die
@@ -253,51 +250,15 @@ Nachweise, die echte Anki-Daten brauchen.
       `transform`) bleiben `overlay`. Beleg: Das echte Deck
       `Image_Occlusion_Test_Pharmagrundlagen.apkg` enthält ausschließlich
       ungedrehte `rect`-Masken in beiden Modi. Matrixerwartung im Generator
-      anpassen, `architecture.md` (Form `overlay`) mitziehen. Reines Modul,
-      unabhängig vom Cutover umsetzbar.
-- [ ] **K5.4 Anki-Vorlage speichern und neu übersetzen (5B, im Cutover).**
-      `noteTypeSources` und die rohen Feldwerte `noteSources` aus dem
-      Importgraphen landen unsichtbar in `note_type_sources` und
-      `note_sources`. Nach einem Übersetzer-Update (`translator.version`)
-      übersetzt CoRe bestehende Importe **automatisch** neu (Entscheidung des
-      Nutzers 2026-10-07, ADR-033).
-      Leitplanken: (1) nur Inhalte ohne lokale Bearbeitung
-      (`contentRevision` = `importedContentRevision`; beide steigen gemeinsam);
-      (2) Karten werden über `ankiCardId` zugeordnet, Lernstand bleibt
-      unangetastet, neue Abfragen werden neue Karten; würde eine Karte mit
-      Lernstand entfallen, bleibt der Inhalt unverändert und wird berichtet;
-      (3) deterministisch und einmal je Account im Hintergrund, synchronisiert
-      wie eine normale Änderung, unveränderte Inhalte werden nicht geschrieben
-      (`changed: false`); (4) ein kurzer Hinweis nennt die Zahl aktualisierter
-      Inhalte. Übersetzer-Verbesserungen werden gebündelt ausgeliefert, weil
-      jede Version betroffene Inhalte neu synchronisiert.
-- [ ] **K5.7 Reimport (5B, im Cutover).** Inhalte über Anki-GUID, Karten über
-      Anki-Kartenidentität zuordnen; lokale Inhaltsänderungen, Lernstand,
-      Aussetzung, Markierung und Stapelordnung bleiben; neue Lücken erzeugen
-      neue Karten; in Anki entfallene Karten werden nur berichtet.
-  - **Lokal bearbeitet** heißt: `contentRevision` größer als
-    `importedContentRevision`. Speichern ohne inhaltliche Änderung erhöht die
-    Revision nicht (`planNoteContentChange` meldet `changed: false`). Ein
-    Reimport ohne lokale Bearbeitung setzt beide Werte gemeinsam neu.
-- [ ] **K5.8 Großstapel in der App (5B, im Cutover).** Der Worker erhält die
-      `File` statt eines ArrayBuffers und verwendet `readAnkiPackage`; die
-      sichtbare Grenze steigt von 250 MB auf 2 GiB (`ANKI_PACKAGE_MAX_BYTES`
-      ersetzt `LOCAL_APKG_MAX_BYTES`), die Dateiauswahl akzeptiert `.colpkg`.
-      Medienbytes werden erst beim Commit einzeln gelesen und gegen ihre SHA-1
-      geprüft. `specs.md` (Dateigrenzen) und `FileDropField` mitziehen.
-- [ ] **K5.9 Importbericht in der Oberfläche (5B, im Cutover).** Vorschau und
-      Abschluss in `src/screens/ApkgImportPanel.tsx` zeigen aus
-      `report.notetypes` je Notiztyp Übersetzer, Inhalte, Karten, generisch
-      übersetzte und nicht zugeordnete Felder, fehlende Medien und übernommenen
-      Lernstand. Die heutigen Warnungen des Altpfads (etwa „produktive
-      Medienablage bleibt ein späterer Ausbaupunkt“) entfallen mit ihm.
+      anpassen, `architecture.md` (Form `overlay`) mitziehen. Reines Modul im
+      Übersetzer.
 
 **Prüfung:** `npx tsx --test src/apkgNoteTranslation.test.ts
 src/apkgFormatMatrix.test.ts`, `npm run typecheck`, `npm test`,
 `npm run benchmark:apkg`, `npm run benchmark:apkg:large`, mit Korpus
 `npm run report:apkg-corpus`.
 
-**Abnahme (offen):** Golden-Flow APKG und Medien-E2E grün (nach dem Cutover);
+**Abnahme (offen):** Golden-Flow APKG und Medien-E2E sind seit dem Cutover grün;
 mit bereitgestelltem Korpus sind mindestens 95 % der Ankizin- und
 AnKing-Inhalte voll übersetzt und 0 % nicht darstellbar. Für Ankizin v5 belegt
 (99,9 % Lückentexte über den eigenen Übersetzer, Blickdiagnosen generisch,
@@ -310,192 +271,19 @@ sind bis dahin nur über die Matrix synthetisch belegt.
 
 ## Phase 4 — Cutover: Datenbank-Baseline, Replica, Sync und App
 
-**Ziel:** Die App läuft vollständig auf `Note`/`Card`, neuem Renderer und
-neuer Importpipeline. Der Altpfad ist gelöscht. Ausgeführt nach Phase 5A auf
-dem Branch `kartenmodell-cutover`.
+K4.1 bis K4.7 und K4.9 bis K4.11 sind auf dem Branch `kartenmodell-cutover`
+umgesetzt und lokal abgenommen (siehe `history.md`). Offen ist nur noch:
 
-**Vorgehen in dieser Reihenfolge:** K4.1 → K4.4 → K4.3 → K4.2 → K4.5 → K4.6 →
-K4.7 → K4.9 → K5.4/K5.7/K5.8/K5.9 (App) → K4.10 → K4.11 → Gates → K4.8 nach
-Freigabe.
-
-- [ ] **K4.1 Neue Baseline.** Eine einzige frische Migration ersetzt die
-      heutige: `decks`, `notes`, `cards` mit typisierten Lernstandsspalten,
-      `note_type_sources` (unsichtbare Anki-Vorlage je Notiztyp),
-      `note_sources` (rohe Anki-Feldwerte je importiertem Inhalt),
-      `media_files` je Account und SHA-1, `note_media`, `card_variants`,
-      `review_events`, `review_statistics_daily`, `sync_devices`,
-      `sync_conflicts`. `note_type_definitions` und gespeichertes Karten-HTML
-      entfallen.
-  - **Wo:** neue Datei per `npx supabase migration new kartenmodell_baseline`;
-    die alte Baseline
-    `supabase/migrations/20260817190000_prerelease_replica_v2_baseline.sql`
-    wird gelöscht (ADR-028, Cutover erlaubt). Vorhandene Funktionen,
-    Trigger und Policies der alten Baseline als Vorlage lesen.
-  - **Spalten (Richtwert):** `notes(user_id, id, anki_guid, content jsonb,
-    search_text, sort_text, source, note_type_source_id, translator_id,
-    translator_version, import_revision, content_revision, …Sync-Spalten)`;
-    `cards(user_id, id, note_id, deck_id, prompt_key, anki_card_id, status,
-    marked, anki_flag, state, due_at, stability, difficulty, reps, lapses,
-    interval_days, learning_step_index, last_reviewed_at, last_rating,
-    study_extra jsonb, source_scheduler jsonb, …Sync-Spalten)` mit
-    `unique(user_id, note_id, prompt_key)`; `media_files(user_id, sha1, size,
-    mime_type, storage_path, original_name)` mit Primärschlüssel
-    `(user_id, sha1)`; `note_media(user_id, note_id, sha1)`. Sync-Spalten wie
-    heute (`sync_change_id`, `revision`, `deleted_at`,
-    `updated_by_device_id`).
-  - **Indizes:** fällige Karten je Stapel (`user_id, deck_id, due_at` mit
-    `status = 'active'`), `cards(user_id, note_id)`, Sync-Indizes wie heute.
-    Zusätzlich, weil die alte Baseline hier ungestützt scannt: ein
-    `pg_trgm`-GIN-Index auf `notes.search_text` für die Inhaltssuche (die
-    alte Suche filtert per `position()` jede Zeile) und ein Index, der die
-    Prüfung auf neuere Reviewereignisse derselben Karte in der atomaren
-    Reviewaufzeichnung trägt (z. B. `review_events(user_id, card_id,
-    answered_at)`; heute fehlt ein Index auf `source_card_id`).
-- [ ] **K4.2 Projektionen prüfen.** Für `card_catalog` und
-      `deck_study_summaries` wird gemessen, ob direkte Indizes auf `cards` und
-      `notes` die Grenzen der Ausgangsmessung halten. Nur gerechtfertigte Projektionen
-      bleiben. Messung mit `npm run performance:measure:local`
-      (100k-Kartensuche, Statistik-RPC) und angepasstem
-      `supabase/benchmark_replica_v2.sql`. Der Benchmark misst zusätzlich
-      den Bootstrap, die atomare Reviewaufzeichnung und einen
-      Import-Schreibbatch; diese Pfade sind heute ungemessen, Rückschritte
-      dort fielen keinem Gate auf. Die Messung „Neues Gerät bis Dashboard“
-      wird nach Phasen aufgeschlüsselt (Netz und Anmeldung, Bootstrap-RPC,
-      IndexedDB-Schreiben, erste Stapelzusammenfassung, Rendern) und das
-      Ergebnis im Phasenbericht festgehalten.
-- [ ] **K4.3 RPCs.** Atomare Reviewaufzeichnung auf Kartenspalten, Bootstrap,
-      Katalog-Delta, Hydrierung von Karten mit ihren Inhalten,
-      Offline-Manifest, Stapelbaum-Löschung mit Anki-Regel für verwaiste
-      Inhalte, Statistik. Vorlagen: `record_review_atomic`,
-      `get_account_bootstrap_v2`, `pull_account_catalog_delta`,
-      `list_account_card_catalog`, `hydrate_account_cards`,
-      `get_deck_offline_manifest`, `get_account_statistics`,
-      `delete_account_deck_tree`. Verwaiste Inhalte: Hat ein Inhalt nach einer
-      Stapellöschung keine Karte mehr, wird er mitgelöscht.
-  - **Vorlagen nicht ungeprüft übernehmen:** Die alten RPCs enthalten
-    bekannte Mehrkosten, die nicht mitwandern.
-  - **Bootstrap:** liefert nur, was das Dashboard für den ersten Render
-    braucht (Stapelbaum, Fälligkeits- und Tageszahlen). Die
-    365-Tage-Prognose und andere Statistik werden nachgeladen statt auf der
-    ersten Seite accountweit berechnet.
-  - **Gesamtzahlen:** Katalogsuche und Offline-Manifest zählen nur auf
-    ausdrückliche Anforderung, nicht als zweiten Scan je erster Seite bzw.
-    auf jeder Manifestseite.
-  - **Import-Schreibpfad:** mengenbasiert. Ein Batch aktualisiert
-    Projektionen und Zusammenfassungen einmal je Batch statt je Zeile per
-    Trigger unter dem accountweiten Advisory-Lock, der parallele Upserts
-    heute serialisiert.
-- [ ] **K4.4 Sicherheit.** RLS für alle Tabellen, `verify_schema` neu,
-      generierte `database.types.ts`, vollständige RLS-Suite einschließlich
-      fremder Inhalte, Karten und Medien. `supabase/verify_schema_v1.sql`
-      anpassen; `npm run db:types:generate` (nie von Hand editieren);
-      `tests/rls/ownership-smoke.test.ts` und `two-device-sync.test.ts`
-      erweitern.
-- [ ] **K4.5 Web-Replica.** Neue IndexedDB-Datenbank ohne Upgradepfad mit
-      Stores für Stapel, Inhalte, Karten, Varianten, Reviewereignisse,
-      Outbox und Konflikte. Inhalt nach ADR-034: Stapelbaum, Lernfenster mit
-      Inhalten, zuletzt geöffnete Karten, Medien bei Bedarf und
-      Offline-Downloads pro Stapel. Wo: `src/indexedDbCoreRepository.ts`,
-      `src/workspaceHydrationService.ts`, `src/workspaceReplica.ts`; neuer
-      Datenbankname (z. B. `core.workspace.entities.v4.<userId>`), der alte
-      wird beim Start gelöscht statt gelesen. Lokales Paging von Katalog und
-      Lernfenster läuft über Cursor statt Seitenzahl oder Offset; heute
-      überspringt `listCatalogPage` Zeilen einzeln, und das Nachladen im
-      Lernfenster blättert dadurch quadratisch.
-- [ ] **K4.6 Sync und Konflikte.** Mutationen für Inhalt und Karte getrennt;
-      Inhaltsrevision und Lernstand bilden getrennte Konfliktgrenzen; ein
-      Offline-Review und eine parallele Inhaltskorrektur werden ohne Konflikt
-      zusammengeführt. Wo: `src/syncEngine.ts`, `src/syncMutationPlanner.ts`,
-      `src/cloudRepository.ts`, `src/cloudRepositoryValidation.ts`.
-- [ ] **K4.7 Medien.** Upload, Cache, Queue und Offline-Download auf
-      `media_files`/`note_media` umstellen; Speicherfreigabe erst, wenn kein
-      Inhalt mehr referenziert. Wo: `src/mediaStore.ts`,
-      `src/cloudMediaStore.ts`, `src/appMediaLifecycle.ts`.
 - [ ] **K4.8 Remote-Reset.** Nach grünen lokalen Gates wird das
       Pre-Release-Projekt gemäß ADR-028 mit unmittelbar davor geprüfter
       Projekt-Ref zurückgesetzt. **Nur nach ausdrücklicher Freigabe des
-      Nutzers im Chat**; Projekt-Ref vorher anzeigen.
-- [ ] **K4.9 App verdrahten (inklusive K2.2, K2.4, K2.5, K2.6).** Workspace
-      (`src/coreWorkspace.ts`, `src/coreRepository.ts`), Review
-      (`src/reviewService.ts`, `src/screens/StudyMode.tsx`,
-      `src/ui/StudyCardContent.tsx`), Vorschau (`src/ui/CardPreviewDialog.tsx`),
-      Kartenverwaltung (`src/screens/DecksScreen.tsx`), Erstellung
-      (`src/creationWorkflow.ts`, `src/screens/ManualCreationPanel.tsx`,
-      `src/coreModel/cardEditor.ts`), Import-Commit
-      (`src/apkgImportSession.ts`, `src/importService.ts`,
-      `src/importCloudSyncTask.ts`), Statistik (`src/statisticsModel.ts`) und
-      KI-Varianten (`src/coreVariantService.ts`, `src/aiCardVariant.ts`)
-      arbeiten auf `Note`/`Card`.
-  - **Phase-2-Verdrahtung:** Die Funktionen aus `src/coreModel/notes.ts`
-    über `src/coreModel.ts` exportieren (K2.4); Erstellung und Bearbeitung
-    verwenden die validierte Abfrageableitung (K2.2). Cloud-Zeilenvalidierung
-    bleibt in `cloudRepositoryValidation.ts`. Scheduler, Queue, Easy Days,
-    Tageslimits, Statistik und Varianten lesen `study` beziehungsweise
-    `study.extra` ohne Verhaltensänderung (K2.5); das Lese-/Schreibinventar
-    steht im Phase-2-Bericht in `history.md`. Ein Änderungsplan mit
-    `changed: false` schreibt weder Inhalt noch Karten.
-  - **Markierung am Inhalt:** Markieren in Review und Kartenverwaltung setzt
-    `note.marked` und erhöht nur die Entitätsrevision, nicht
-    `contentRevision`. Damit zeigen alle Geschwister den Stern; `specs.md`
-    (Kartenverwaltung, Review) beschreibt das im Cutover entsprechend.
-  - **Suche in der Kartenverwaltung:** Die Sucheingabe in `DecksScreen.tsx`
-    wird entprellt, und veraltete Anfragen werden per `AbortController`
-    abgebrochen statt nur verworfen. Heute löst jede Eingabe je Stapel eine
-    eigene Anfrage aus, offline einen vollständigen Scan.
-  - **Geräte-ID:** Die Persistenz setzt `updatedByDeviceId` beim Schreiben von
-    Inhalt und Karten; die reinen Planfunktionen setzen sie nicht.
-  - **Löschen und Undo (K2.6):** `planNoteDeletion` in `coreWorkspace.ts`
-    verdrahten; der Dialog in `DecksScreen.tsx` nennt die Geschwisterzahl.
-    Aufrufer laden alle Karten des Inhalts, auch in anderen Stapeln. Der
-    Undo-Befehl stellt Inhalt und Geschwister aus den vorherigen Datensätzen
-    wieder her; Persistenz-/Syncrevisionen folgen dem neuen Speichervertrag.
-  - **Editor-Parität:** Alles, was der Editor heute kann (Vorder- und
-    Rückseite, Bilder, Lückenaktion, Rückrichtung, Single und Multiple
-    Choice, Zusatzfelder, Tags, Batch-Erstellung), funktioniert danach
-    identisch. Neue Editorfunktionen kommen erst in Phase 6.
-  - **KI-Varianten:** Die Route `api/ai/card-variant.ts` bleibt unverändert
-    (`{ front, back }`); Quelle sind die Klartexte von Frage und Antwort der
-    Karte.
-  - **Import-Commit:** Der Worker übersetzt mit `readAnkiPackage` und
-    `translateAnkiPackage`; Stapel (`ImportDeck`), Inhalte, Karten,
-    Reviewereignisse (`ImportReviewEvent` mit `cardId`) und `noteTypeSources`
-    werden in begrenzten Chunks persistiert, Medien je SHA-1 aus `mediaFiles`
-    hochgeladen und über `noteContentMediaRefs` mit Inhalten verknüpft.
-- [ ] **K4.10 Altpfad löschen.** `LearningItem`, `LearningItemDocumentV1`,
-      `NoteTypeDefinitionV1`, `CardType`, `EditableCardType`, typspezifische
-      Editorwerte, `originalFront`/`originalBack`/`originalFields`/
-      `originalHtml`/`canonical*`, `src/cardPresentation.ts`,
-      `src/ankiContentModel.ts`, `src/coreModel/learningItemContent.ts`,
-      `src/coreModel/learningItemDocument.ts` und `sanitizeCardHtml` (sofern
-      unbenutzt) entfallen. In `src/apkgImportInternal.ts` entfallen die
-      Abbildung ab `mapAnkiApkgToNormalizedDeck` samt Hierarchie-, Bericht-,
-      Revlog- und Merge-Helfern, `readApkgPackage`, `parseAnkiMedia` mit den
-      materialisierenden Medienbündeln und `LOCAL_APKG_MAX_BYTES`; der Benchmark
-      misst danach nur noch die Note-Übersetzung. Prüfen mit
-      `grep -rnE "LearningItem|CardType|cardPresentation" src scripts api tests`:
-      keine Treffer. AGENTS.md-Begriffe („Learning Item“) mitziehen.
-- [ ] **K4.11 Testinfrastruktur auf die Matrix umstellen.** E2E-Specs, die
-      `fixtures/apkg/import-quality-*.apkg` nutzen
-      (`tests/e2e/apkg-quality-report.spec.ts` und weitere per `grep`), auf
-      Matrixpakete umstellen; danach `scripts/create_apkg_quality_fixtures.py`
-      (exportiert wegen `ExportLimit` statt `DeckIdLimit` die ganze Sammlung)
-      samt `import-quality*`-Fixtures löschen. `world-capitals.apkg` bleibt.
-
-**Prüfung:** `npm run gate:push`, `npm run db:types:check`,
-`npm run test:rls:local`, `npm run test:e2e:local`,
-`npm run performance:measure:local`, `npm run measure:footprint` (Skript dafür
-auf das neue Schema umstellen), visuelle Pflichtmatrix für Review, Vorschau,
-Kartenverwaltung, Erstellen und Import.
-
-**Abnahme:** `db:types:check`, `test:rls:local`, `test:e2e:local` und
-`performance:measure:local` grün; Speicher je 1.000 Lückentext-Inhalte
-nachweislich unter der Ausgangsmessung; p95-Werte mindestens auf deren Niveau; Zwei-Geräte-Test
-für Review und Inhaltskorrektur grün. „Neues Gerät bis Dashboard“ war schon in
-der Ausgangsmessung über Budget; der Cutover darf es nicht verschlechtern
-(Merge-Bedingung). Grün ist nicht verlangt, aber das schlanke Bootstrap aus
-K4.3 und die Phasenaufschlüsselung aus K4.2 sind Pflicht, damit nach dem
-Cutover feststeht, ob der Rest an Netz, Bundle oder Datenbank hängt.
-Ein Merge trotz rotem Gate nur mit ausdrücklicher Ausnahme des Nutzers.
+      Nutzers im Chat**; Projekt-Ref vorher anzeigen. Danach den Hosted-Smoke
+      aus `operations.md` ausführen und `status.md` (Projektstand) anpassen.
+- [ ] **Neues Gerät bis Dashboard unter Budget bringen.** Der Cutover hält den
+      Wert (p75 schwankt zwischen 2.883 und 3.023 ms, nicht schlechter als vorher); die
+      Phasenaufschlüsselung aus K4.2 zeigt, dass fast die gesamte Zeit vor dem
+      Bootstrap-RPC in Netz, Bundle und Anmeldung liegt. Ansatzpunkt ist daher
+      der Startpfad bis zur Sitzungsprüfung, nicht die Datenbank.
 
 ## Phase 6 — Erstellen, Bearbeiten, Verwaltung und KI-Varianten
 
@@ -591,13 +379,12 @@ Roadmap:
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
 - KI-Umformulierungen für Lückentext und andere Bausteine.
 
-## Offene Entscheidungen vor dem Cutover
+## Offene Entscheidungen
 
 Marker, Kprim-Teilpunkte und Bildbeschreibung sind entschieden und umgesetzt,
 die Neuübersetzung ist entschieden (K5.4, siehe `history.md`). Bereits einer Phase zugeordnet sind:
 Gerätenachweise (Phase 3, offene Abnahme), Drehung und Textgröße der
 Bildmasken (K5.2).
 
-Image Occlusion Enhanced ist entschieden (K5.10). Damit ist vor dem Cutover
-nichts mehr offen.
+Image Occlusion Enhanced ist entschieden (K5.10). Damit ist nichts mehr offen.
 

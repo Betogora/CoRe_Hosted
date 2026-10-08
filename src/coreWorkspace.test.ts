@@ -4,8 +4,6 @@ import { createCoreDeck } from "./coreModel.ts";
 import {
   createDeckPlacementValidator,
   createWorkspaceDeck,
-  restoreSoftDeletedCard,
-  softDeleteCard,
   updateDeckTreePlacement,
 } from "./coreWorkspace.ts";
 
@@ -101,19 +99,4 @@ test("deck tree placement keeps sibling names unique and updates descendant path
   assert.equal(result.deck?.name, "Thema+");
   assert.deepEqual(result.deck?.hierarchyPath, ["Ziel", "Thema+"]);
   assert.deepEqual(result.nextDecks?.find((deck) => deck.id === child.id)?.hierarchyPath, ["Ziel", "Thema+", "Kind"]);
-});
-
-test("soft delete and restore preserve the previous card status", () => {
-  const card = createCoreDeck({ name: "Test", source: "manual", cards: [] }).cards[0] ?? {
-    id: "card-1",
-    status: "suspended",
-    deletedAt: null,
-    updatedAt: "2026-08-12T10:00:00.000Z",
-  } as any;
-  const deleted = softDeleteCard(card, "2026-08-12T11:00:00.000Z");
-  const restored = restoreSoftDeletedCard(deleted, "2026-08-12T12:00:00.000Z", card.status);
-
-  assert.equal(deleted.status, "deleted");
-  assert.equal(restored.status, "suspended");
-  assert.equal(restored.deletedAt, null);
 });

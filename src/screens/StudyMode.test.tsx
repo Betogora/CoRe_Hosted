@@ -2,9 +2,36 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { addRephrasedVariant, createBasicLearningItem, createCoreDeck } from "../coreModel.ts";
+import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
+import type { Card, Deck, Note, ReviewEvent } from "../coreTypes.ts";
+import { variantPresentation } from "../coreVariantService.ts";
 import { StudyMode } from "./StudyMode.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
+
+function basicItem(deckId: string, front: string, back: string, { id, review = {} }: { id?: string; review?: Record<string, unknown> } = {}): { note: Note; card: Card } {
+  const { note, cards: [card] } = createBasicNote(deckId, front, back);
+  return { note, card: { ...card, id: id ?? card.id, study: cardStudyFromReviewState(createReviewState(review)) } };
+}
+
+function reviewEvent(id: string, deckId: string, cardId: string, answeredAt: string, schedulerBefore: unknown): ReviewEvent {
+  return { id, userId: "local-user", deckId, cardId, variantId: null, rating: "good", answeredAt, responseTimeMs: null, schedulerBefore, schedulerAfter: null, flags: {}, createdAt: answeredAt };
+}
+
+function studyCallbacks(deck: Deck, notes: Note[]) {
+  return {
+    mediaStore: null,
+    pomodoroTimer: null,
+    onStartPomodoro: () => undefined,
+    onExit: () => undefined,
+    onReturnToLearn: () => undefined,
+    onEditCard: () => undefined,
+    onEditDeck: () => undefined,
+    onSetCardStudyState: () => ({ deck, note: notes[0] }),
+    onSetDeckReviewOrder: () => deck,
+    onCardUpdated: () => undefined,
+    onReview: () => undefined,
+  };
+}
 
 test("review ratings keep their German labels, shortcuts and canonical color order", () => {
   assert.deepEqual(
@@ -26,25 +53,21 @@ test("review intervals abbreviate only minutes with lowercase min", () => {
 });
 
 test("StudyMode exposes no origin or scheduler hints before reveal", () => {
-  const item = addRephrasedVariant(
-    createBasicLearningItem("deck_study", "Welche Hauptstadt hat Côte d'Ivoire?", "Yamoussoukro", {
-      reviewState: {
-        state: "review",
-        repetitions: 4,
-        maturityXp: 140,
-        preferredVariantLevel: 2,
-        dueAt: "2026-07-01T08:00:00.000Z",
-      },
-    }),
-    "Nenne die Hauptstadt von Côte d'Ivoire.",
-    "Yamoussoukro",
-    { variantLevel: 2 },
-  );
+  const base = basicItem("deck_study", "Welche Hauptstadt hat Côte d'Ivoire?", "Yamoussoukro", {
+    review: {
+      state: "review",
+      repetitions: 4,
+      maturityXp: 140,
+      preferredVariantLevel: 2,
+      dueAt: "2026-07-01T08:00:00.000Z",
+    },
+  });
+  const card = addCardVariant(base.card, { front: "Nenne die Hauptstadt von Côte d'Ivoire.", back: "Yamoussoukro", variantLevel: 2 });
   const deck = createCoreDeck({
     id: "deck_study",
     name: "Geografie",
     source: "manual",
-    cards: [item],
+    cards: [card],
     reviewEvents: [],
   });
 
@@ -52,61 +75,51 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
     <StudyMode
       deck={deck}
       decks={[deck]}
+      notes={[base.note]}
       deckId={deck.id}
       variantSession
-      mediaStore={null}
       getNow={() => "2026-07-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
-      onExit={() => undefined}
-      onReturnToLearn={() => undefined}
-      onEditCard={() => undefined}
-      onEditDeck={() => undefined}
-      onSetCardStudyState={() => deck}
-      onSetDeckReviewOrder={() => deck}
-      onCardUpdated={() => undefined}
-      onReview={() => undefined}
+      {...studyCallbacks(deck, [base.note])}
     />,
   );
 
-  assert.match(markup, /Nenne die Hauptstadt/);
+  assert.match(markup, /Kartendarstellung wird vorbereitet …/);
+  assert.match(markup, /data-testid="study-card-content"/);
   assert.match(markup, /Antwort anzeigen/);
   assert.match(markup, /core-study-card/);
-  assert.match(markup, /core-study-card-front/);
   assert.doesNotMatch(markup, /core-study-card[^"]*min-h/);
   assert.doesNotMatch(markup, />Frage<\/p>|>Antwort<\/p>/);
   assert.doesNotMatch(markup, /core-study-card core-surface-raised/);
   assert.doesNotMatch(markup, /Original|Variante|Level|fsrs|Reifegrad/i);
   assert.doesNotMatch(markup, /original-anchor|source-anchor|schedulerVersion|variantLevel|generationSource/i);
+  assert.doesNotMatch(markup, /Grundkarte|Nicht mehr zeigen|Problem melden/);
+
+  const presented = variantPresentation(base.note, card, card.variants[0]);
+  assert.deepEqual(presented.note.content.fields.map((field) => [field.role, field.html]), [
+    ["prompt", "Nenne die Hauptstadt von Côte d'Ivoire."],
+    ["answer", "Yamoussoukro"],
+  ]);
+  assert.equal(presented.card.id, card.variants[0].id);
 });
 
 test("StudyMode uses a simulated same-day minute offset for queue and visible status", () => {
-  const item = createBasicLearningItem("deck_future", "Zukunftsfrage", "Zukunftsantwort", {
-    reviewState: {
+  const item = basicItem("deck_future", "Zukunftsfrage", "Zukunftsantwort", {
+    review: {
       state: "learning",
       repetitions: 2,
       dueAt: "2026-08-06T10:10:00.000Z",
     },
   });
-  const deck = createCoreDeck({ id: "deck_future", name: "Zukunft", source: "manual", cards: [item], reviewEvents: [] });
+  const deck = createCoreDeck({ id: "deck_future", name: "Zukunft", source: "manual", cards: [item.card], reviewEvents: [] });
   const commonProps = {
     deck,
     decks: [deck],
+    notes: [item.note],
     deckId: deck.id,
     variantSession: false,
     learnAheadMinutes: 0,
-    mediaStore: null,
-    pomodoroTimer: null,
-    onStartPomodoro: () => undefined,
-    onExit: () => undefined,
-    onReturnToLearn: () => undefined,
-    onEditCard: () => undefined,
-    onEditDeck: () => undefined,
-    onSetCardStudyState: () => deck,
-    onSetDeckReviewOrder: () => deck,
-    onCardUpdated: () => undefined,
-    onReview: () => undefined,
+    ...studyCallbacks(deck, [item.note]),
   };
 
   const todayMarkup = renderToStaticMarkup(
@@ -116,36 +129,50 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
     <StudyMode {...commonProps} getNow={() => "2026-08-06T10:10:00.000Z"} simulationOffsetMinutes={10} />,
   );
 
-  assert.doesNotMatch(todayMarkup, /Zukunftsfrage/);
-  assert.match(futureMarkup, /Zukunftsfrage/);
+  assert.doesNotMatch(todayMarkup, /data-testid="study-card-content"|Antwort anzeigen/);
+  assert.match(futureMarkup, /data-testid="study-card-content"/);
+  assert.match(futureMarkup, /Antwort anzeigen/);
   assert.match(futureMarkup, /Simulation aktiv/);
   assert.match(futureMarkup, /\+10 Minuten/);
 });
 
-test("StudyMode exposes labeled learning without an idle Pomodoro progress", () => {
-  const item = createBasicLearningItem("deck_progress", "Frage", "Antwort", {
-    reviewState: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 },
+test("StudyMode shows a loading status instead of an empty card while the content is missing", () => {
+  const item = basicItem("deck_missing_note", "Frage", "Antwort", {
+    review: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 },
   });
-  const deck = createCoreDeck({ id: "deck_progress", name: "Fortschritt", source: "manual", cards: [item], reviewEvents: [] });
+  const deck = createCoreDeck({ id: "deck_missing_note", name: "Ohne Inhalt", source: "manual", cards: [item.card], reviewEvents: [] });
   const markup = renderToStaticMarkup(
     <StudyMode
       deck={deck}
       decks={[deck]}
+      notes={[]}
       deckId={deck.id}
       variantSession={false}
-      mediaStore={null}
       getNow={() => "2026-08-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
-      onExit={() => undefined}
-      onReturnToLearn={() => undefined}
-      onEditCard={() => undefined}
-      onEditDeck={() => undefined}
-      onSetCardStudyState={() => deck}
-      onSetDeckReviewOrder={() => deck}
-      onCardUpdated={() => undefined}
-      onReview={() => undefined}
+      {...studyCallbacks(deck, [item.note])}
+    />,
+  );
+
+  assert.match(markup, /Karteninhalt wird geladen …/);
+  assert.doesNotMatch(markup, /Kartendarstellung wird vorbereitet/);
+});
+
+test("StudyMode exposes labeled learning without an idle Pomodoro progress", () => {
+  const item = basicItem("deck_progress", "Frage", "Antwort", {
+    review: { state: "new", dueAt: "2026-08-06T09:00:00.000Z", reps: 0 },
+  });
+  const deck = createCoreDeck({ id: "deck_progress", name: "Fortschritt", source: "manual", cards: [item.card], reviewEvents: [] });
+  const markup = renderToStaticMarkup(
+    <StudyMode
+      deck={deck}
+      decks={[deck]}
+      notes={[item.note]}
+      deckId={deck.id}
+      variantSession={false}
+      getNow={() => "2026-08-06T10:00:00.000Z"}
+      simulationOffsetMinutes={0}
+      {...studyCallbacks(deck, [item.note])}
     />,
   );
 
@@ -157,64 +184,45 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
 
 test("StudyMode renders the four daily progress segments in the canonical order and colors", () => {
   const deckId = "deck_segmented_progress";
-  const learned = createBasicLearningItem(deckId, "Gelernt", "Antwort", {
+  const learned = basicItem(deckId, "Gelernt", "Antwort", {
     id: "learned_today",
-    reviewState: { state: "review", reps: 5, dueAt: "2026-08-10T10:00:00.000Z" },
+    review: { state: "review", reps: 5, dueAt: "2026-08-10T10:00:00.000Z" },
   });
-  const inProgress = createBasicLearningItem(deckId, "Offen", "Antwort", {
+  const inProgress = basicItem(deckId, "Offen", "Antwort", {
     id: "in_progress",
-    reviewState: { state: "relearning", reps: 5, dueAt: "2026-08-09T10:15:00.000Z" },
+    review: { state: "relearning", reps: 5, dueAt: "2026-08-09T10:15:00.000Z" },
   });
-  const newCards = Array.from({ length: 3 }, (_value, index) => createBasicLearningItem(deckId, `Neu ${index + 1}`, "Antwort", {
+  const newItems = Array.from({ length: 3 }, (_value, index) => basicItem(deckId, `Neu ${index + 1}`, "Antwort", {
     id: `new_${index + 1}`,
-    reviewState: { state: "new", reps: 0, dueAt: "2026-08-09T10:00:00.000Z" },
+    review: { state: "new", reps: 0, dueAt: "2026-08-09T10:00:00.000Z" },
   }));
-  const dueCards = Array.from({ length: 5 }, (_value, index) => createBasicLearningItem(deckId, `Fällig ${index + 1}`, "Antwort", {
+  const dueItems = Array.from({ length: 5 }, (_value, index) => basicItem(deckId, `Fällig ${index + 1}`, "Antwort", {
     id: `due_${index + 1}`,
-    reviewState: { state: "review", reps: 4, dueAt: "2026-08-09T09:00:00.000Z" },
+    review: { state: "review", reps: 4, dueAt: "2026-08-09T09:00:00.000Z" },
   }));
+  const items = [learned, inProgress, ...newItems, ...dueItems];
   const deck = createCoreDeck({
     id: deckId,
     name: "Segmentierter Fortschritt",
     source: "manual",
     deckSettings: { newCardsPerDay: 3, maximumReviewsPerDay: 10 },
-    cards: [learned, inProgress, ...newCards, ...dueCards],
+    cards: items.map((item) => item.card),
     reviewEvents: [
-      {
-        id: "learned_event",
-        deckId,
-        learningItemId: learned.id,
-        answeredAt: "2026-08-09T08:00:00.000Z",
-        schedulerBefore: { card: { state: "review", reps: 4 } },
-      },
-      {
-        id: "in_progress_event",
-        deckId,
-        learningItemId: inProgress.id,
-        answeredAt: "2026-08-09T08:05:00.000Z",
-        schedulerBefore: { card: { state: "review", reps: 4 } },
-      },
-    ] as any,
+      reviewEvent("learned_event", deckId, learned.card.id, "2026-08-09T08:00:00.000Z", { card: { state: "review", reps: 4 } }),
+      reviewEvent("in_progress_event", deckId, inProgress.card.id, "2026-08-09T08:05:00.000Z", { card: { state: "review", reps: 4 } }),
+    ],
   });
+  const notes = items.map((item) => item.note);
   const markup = renderToStaticMarkup(
     <StudyMode
       deck={deck}
       decks={[deck]}
+      notes={notes}
       deckId={deck.id}
       variantSession={false}
-      mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
-      onExit={() => undefined}
-      onReturnToLearn={() => undefined}
-      onEditCard={() => undefined}
-      onEditDeck={() => undefined}
-      onSetCardStudyState={() => deck}
-      onSetDeckReviewOrder={() => deck}
-      onCardUpdated={() => undefined}
-      onReview={() => undefined}
+      {...studyCallbacks(deck, notes)}
     />,
   );
 
@@ -242,40 +250,34 @@ test("StudyMode renders the four daily progress segments in the canonical order 
 
 test("StudyMode uses the complete catalog projection before every card body is buffered", () => {
   const deckId = "deck_buffered_progress";
-  const newCard = createBasicLearningItem(deckId, "Neu", "Antwort", {
+  const newItem = basicItem(deckId, "Neu", "Antwort", {
     id: "new_buffered",
-    reviewState: { state: "new", reps: 0, dueAt: "2026-08-09T09:00:00.000Z" },
+    review: { state: "new", reps: 0, dueAt: "2026-08-09T09:00:00.000Z" },
   });
-  const openCards = Array.from({ length: 5 }, (_value, index) => createBasicLearningItem(deckId, `Offen ${index + 1}`, "Antwort", {
+  const openItems = Array.from({ length: 5 }, (_value, index) => basicItem(deckId, `Offen ${index + 1}`, "Antwort", {
     id: `open_buffered_${index + 1}`,
-    reviewState: { state: "learning", reps: 1, dueAt: "2026-08-09T09:00:00.000Z" },
+    review: { state: "learning", reps: 1, dueAt: "2026-08-09T09:00:00.000Z" },
   }));
-  const deck = createCoreDeck({ id: deckId, name: "Gepuffert", source: "manual", cards: [newCard, ...openCards] });
+  const items = [newItem, ...openItems];
+  const deck = createCoreDeck({ id: deckId, name: "Gepuffert", source: "manual", cards: items.map((item) => item.card) });
+  const notes = items.map((item) => item.note);
   const markup = renderToStaticMarkup(
     <StudyMode
       deck={deck}
       decks={[deck]}
+      notes={notes}
       deckId={deck.id}
       variantSession={false}
-      mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
-      onExit={() => undefined}
-      onReturnToLearn={() => undefined}
-      onEditCard={() => undefined}
-      onEditDeck={() => undefined}
-      onSetCardStudyState={() => deck}
-      onSetDeckReviewOrder={() => deck}
-      onCardUpdated={() => undefined}
-      onReview={() => undefined}
+      {...studyCallbacks(deck, notes)}
       sessionPlan={{
         progress: { completedTodayCount: 0, newCount: 1, inProgressCount: 5, dueCount: 1, total: 7 },
         initialCardCount: 7,
       }}
       bufferSize={5}
       hasMoreCards
+      onLoadMoreCards={async () => ({ decks: [], notes: [], hasMoreCards: false, bufferSize: 5 })}
     />,
   );
 
@@ -286,73 +288,54 @@ test("StudyMode uses the complete catalog projection before every card body is b
 });
 
 test("StudyMode says Für jetzt geschafft while same-day learning steps are still waiting", () => {
-  const item = createBasicLearningItem("deck_waiting", "Später", "Antwort", {
-    reviewState: { state: "learning", reps: 1, dueAt: "2026-08-09T10:30:00.000Z" },
+  const item = basicItem("deck_waiting", "Später", "Antwort", {
+    review: { state: "learning", reps: 1, dueAt: "2026-08-09T10:30:00.000Z" },
   });
   const deck = createCoreDeck({
     id: "deck_waiting",
     name: "Wartend",
     source: "manual",
-    deckSettings: { learnAheadMinutes: 20 },
-    cards: [item],
+    cards: [item.card],
   });
   const markup = renderToStaticMarkup(
     <StudyMode
       deck={deck}
       decks={[deck]}
+      notes={[item.note]}
       deckId={deck.id}
       variantSession={false}
-      mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
-      onExit={() => undefined}
-      onReturnToLearn={() => undefined}
-      onEditCard={() => undefined}
-      onEditDeck={() => undefined}
-      onSetCardStudyState={() => deck}
-      onSetDeckReviewOrder={() => deck}
-      onCardUpdated={() => undefined}
-      onReview={() => undefined}
+      {...studyCallbacks(deck, [item.note])}
     />,
   );
 
   assert.match(markup, /Für jetzt geschafft/);
   assert.match(markup, /bleiben „Offen“/);
-  assert.doesNotMatch(markup, /Später/);
+  assert.doesNotMatch(markup, /Antwort anzeigen|data-testid="study-card-content"/);
 });
 
 test("StudyMode explains when every due card is hidden by the daily limit", () => {
-  const item = createBasicLearningItem("deck_limited", "Begrenzt", "Antwort", {
-    reviewState: { state: "review", reps: 4, dueAt: "2026-08-09T09:00:00.000Z" },
+  const item = basicItem("deck_limited", "Begrenzt", "Antwort", {
+    review: { state: "review", reps: 4, dueAt: "2026-08-09T09:00:00.000Z" },
   });
   const deck = createCoreDeck({
     id: "deck_limited",
     name: "Begrenzt",
     source: "manual",
     deckSettings: { maximumReviewsPerDay: 0 },
-    cards: [item],
+    cards: [item.card],
   });
   const markup = renderToStaticMarkup(
     <StudyMode
       deck={deck}
       decks={[deck]}
+      notes={[item.note]}
       deckId={deck.id}
       variantSession={false}
-      mediaStore={null}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
-      pomodoroTimer={null}
-      onStartPomodoro={() => undefined}
-      onExit={() => undefined}
-      onReturnToLearn={() => undefined}
-      onEditCard={() => undefined}
-      onEditDeck={() => undefined}
-      onSetCardStudyState={() => deck}
-      onSetDeckReviewOrder={() => deck}
-      onCardUpdated={() => undefined}
-      onReview={() => undefined}
+      {...studyCallbacks(deck, [item.note])}
     />,
   );
 

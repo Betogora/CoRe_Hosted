@@ -31,7 +31,7 @@ documents and sections required for the current task.
   decisions.
 - `docs/history.md`: canonical completed work, dated verification, release IDs,
   and smoke records.
-- `docs/anki-format-analysis.md`: Anki/APKG, templates, media, and Learning Item
+- `docs/anki-format-analysis.md`: Anki/APKG, templates, media, and Note/Card
   behavior.
 - `docs/todo.md`: the only source for open scope, priorities, planning status,
   acceptance gates, and required evidence. It contains no completed work or
@@ -55,28 +55,26 @@ scope and gates.
   action, feedback, structure, form, progress, and specialized modules. Reuse
   them when their interface preserves the feature semantics; otherwise keep
   the feature local while still using the canonical semantic theme tokens.
-- `src/coreTypes.ts` is the canonical type source for normalized Deck, Learning
-  Item, Card Variant, and Review State forms.
+- `src/coreTypes.ts` is the canonical type source for normalized Deck, Note,
+  Card, Card Variant, and Review State forms.
 - Keep unvalidated external payloads typed as `unknown` until the owning module
   validates or normalizes them.
-- `src/coreModel.ts` is the only public core-model seam for Learning Item
-  creation and normalization. New manual, import, and AI paths must use these
-  helpers.
-- The new `Note`/`Card` types and `src/coreModel/notes.ts` are prepared for the
-  card-model cutover. Until K4.9, only prepared modules, focused tests and
-  UI catalog demos import `notes.ts`;
-  do not export it through `coreModel.ts` or connect it to the app or persistence.
-- `src/notePresentation.ts` and `src/ui/NoteCardContent.tsx` are the prepared
-  Note/Card renderer and host. Until the cutover, use them only in prepared
-  modules, tests and catalog demos. `src/apkgNoteTranslation.ts` and
-  `readAnkiPackage` are the prepared APKG note translation; until the cutover
-  only the format matrix, its tests, the corpus report and the APKG benchmark
-  use them. `src/cardPresentationFrame.ts` owns the
-  shared CSP and media URL resolution; never put scripts or interaction state
-  into rendered card HTML.
-- Deck `cards` remains the local compatibility collection for Learning Items.
-  Each item owns its original content and review state; generated variants
-  remain anchored to that item and own no independent review state.
+- `src/coreModel.ts` is the only public core-model seam for creating, changing,
+  deleting, restoring and duplicating notes and their cards, for note editor
+  values and manual note forms. New manual, import, and AI paths must use these
+  helpers; modules under `src/coreModel/` stay private behind it.
+- A `Note` owns its content (fields with roles, interaction, tags, media names
+  mapped to SHA-1, mark) exactly once; each `Card` owns deck, prompt key,
+  status, study state with its own `studyRevision`, and variants. Deck `cards`
+  holds loaded cards only, never content copies. Generated variants stay
+  anchored to their card and own no independent study state.
+- `src/notePresentation.ts` and `src/ui/NoteCardContent.tsx` are the only card
+  renderer and host. `src/presentationFrame.ts` owns the shared CSP and media
+  URL resolution; never put scripts or interaction state into rendered card
+  HTML, and never persist rendered HTML.
+- `src/apkgNoteTranslation.ts` (with `readAnkiPackage`) translates Anki
+  packages into the import graph; `src/importRetranslation.ts` re-translates
+  unedited imports after translator updates.
 - `src/apkgImport.ts` is the public APKG import and normalization seam. Keep
   worker, protocol, ZIP, and SQLite details private in
   `src/apkgImportWorker.ts`, `src/apkgImportWorkerProtocol.ts`,
@@ -99,9 +97,10 @@ scope and gates.
 - A documented product decision may authorize deliberate feature hiding or
   removal when the task includes that scope; remove obsolete UI, routing,
   state, and tests together without leaving parallel compatibility paths.
-- Preserve user-edited card fronts and backs during APKG reimport. Reimport may
-  update import metadata and media references but must not silently overwrite
-  local content edits.
+- Preserve locally edited notes (`contentRevision` > `importedContentRevision`)
+  during APKG reimport and automatic re-translation; study state, suspension,
+  mark and deck placement always survive. Re-translation never drops a card
+  with study state.
 - Parser failures from an active APKG worker must remain visible. Do not hide
   them through a silent direct-parser retry.
 - Keep AI provider credentials server-only. `/api/ai/*` routes may read them
@@ -171,7 +170,7 @@ Choose checks proportionate to the affected area.
   or credible regression risks.
 - This applies especially to scheduler/review behavior, variants and
   normalization, APKG/templates/media, AI jobs and chat contracts,
-  graph/community behavior, cloud repository behavior, and Learning Item
+  graph/community behavior, cloud repository behavior, and note/card
   creation.
 - Tests live beside the affected modules in `src/**/*.test.{ts,tsx}` unless the
   existing structure already establishes another location such as `api/` or

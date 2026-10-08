@@ -1,5 +1,4 @@
 import * as v from "valibot";
-import type { CardContentPayload } from "./coreTypes.js";
 import { stripHtml } from "./htmlSafety.js";
 
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
@@ -35,18 +34,19 @@ export function normalizeAiCardText(value: unknown): string {
   return stripHtml(value).replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();
 }
 
-export function createAiCardVariantRequest(payload: CardContentPayload): AiCardVariantRequest {
-  if (payload.editorValue.cardType !== "basic") {
-    throw new AiCardVariantContractError("unsupported_card_type", "KI-Varianten sind derzeit nur für Basic-Karten verfügbar.");
+/** Builds the request from the plain question and answer of a reveal card (`cardVariantSource`). */
+export function createAiCardVariantRequest(source: { front: string; back: string } | null): AiCardVariantRequest {
+  if (!source) {
+    throw new AiCardVariantContractError("unsupported_card_type", "KI-Varianten sind derzeit nur für Karten mit Frage und Antwort verfügbar.");
   }
   const parsed = v.safeParse(requestSchema, {
     source: {
-      front: normalizeAiCardText(payload.editorValue.front),
-      back: normalizeAiCardText(payload.editorValue.back),
+      front: normalizeAiCardText(source.front),
+      back: normalizeAiCardText(source.back),
     },
   });
   if (!parsed.success || parsed.output.source.front.length + parsed.output.source.back.length > MAX_AI_CARD_VARIANT_SOURCE_CHARS) {
-    throw new AiCardVariantContractError("invalid_source", "Die Basic-Karte ist leer oder für eine kompakte KI-Variante zu lang.");
+    throw new AiCardVariantContractError("invalid_source", "Die Karte ist leer oder für eine kompakte KI-Variante zu lang.");
   }
   return parsed.output;
 }

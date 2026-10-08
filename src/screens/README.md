@@ -28,7 +28,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 ## Design Rules
 
 - Do not add backend, provider, or persistence adapters in screen files.
-- Do not spread APKG, media, scheduler, variant, or Learning Item invariants into React callers.
+- Do not spread APKG, media, scheduler, variant, or note/card invariants into React callers.
 - Keep new screen interfaces narrow: pass callbacks from `App.tsx`, let `coreWorkspace.ts` and the domain modules hide update details.
 - Check [`../ui/README.md`](../ui/README.md) before implementing new UI. Reuse a listed module when its interface preserves the feature semantics; otherwise keep the specialized control local and use the same semantic theme, typography, focus and disabled tokens.
 - Use `screenConstants.ts` for shared screen labels/options, `src/ui/RichTextEditor.tsx` for card editing, `src/ui/cardMedia.tsx` for resolved card media, and `src/ui/coreUi.tsx` for shared presentation primitives.
