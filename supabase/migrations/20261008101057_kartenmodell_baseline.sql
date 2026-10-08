@@ -298,6 +298,7 @@ create table public.card_catalog (
   schedule_state text not null default 'new',
   maturity_band text not null default 'new',
   reviewable boolean not null default true,
+  marked boolean not null default false,
   has_active_variants boolean not null default false,
   active_variant_count integer not null default 0 check (active_variant_count >= 0),
   active_variant_id text,
@@ -493,7 +494,7 @@ begin
 
   insert into public.card_catalog (
     user_id, id, deck_id, note_id, front_preview, sort_text, due_at, schedule_state, maturity_band,
-    reviewable, has_active_variants, active_variant_count, active_variant_id,
+    reviewable, marked, has_active_variants, active_variant_count, active_variant_id,
     body_revision, study_revision, dependency_revision, sync_change_id, deleted_at, created_at, updated_at
   )
   select
@@ -507,6 +508,7 @@ begin
     card_row.state,
     coalesce(nullif(card_row.study_extra->>'maturityBand', ''), 'new'),
     card_row.deleted_at is null and card_row.status = 'active',
+    note_row.marked,
     coalesce(variant_row.active_count, 0) > 0,
     coalesce(variant_row.active_count, 0),
     variant_row.active_id,
@@ -539,6 +541,7 @@ begin
     schedule_state = excluded.schedule_state,
     maturity_band = excluded.maturity_band,
     reviewable = excluded.reviewable,
+    marked = excluded.marked,
     has_active_variants = excluded.has_active_variants,
     active_variant_count = excluded.active_variant_count,
     active_variant_id = excluded.active_variant_id,
@@ -551,13 +554,13 @@ begin
     updated_at = excluded.updated_at
   where (public.card_catalog.deck_id, public.card_catalog.note_id, public.card_catalog.front_preview,
     public.card_catalog.sort_text, public.card_catalog.due_at, public.card_catalog.schedule_state,
-    public.card_catalog.maturity_band, public.card_catalog.reviewable, public.card_catalog.has_active_variants,
+    public.card_catalog.maturity_band, public.card_catalog.reviewable, public.card_catalog.marked, public.card_catalog.has_active_variants,
     public.card_catalog.active_variant_count, public.card_catalog.active_variant_id,
     public.card_catalog.body_revision, public.card_catalog.study_revision, public.card_catalog.dependency_revision,
     public.card_catalog.deleted_at, public.card_catalog.created_at, public.card_catalog.updated_at)
   is distinct from
     (excluded.deck_id, excluded.note_id, excluded.front_preview, excluded.sort_text, excluded.due_at,
-    excluded.schedule_state, excluded.maturity_band, excluded.reviewable, excluded.has_active_variants,
+    excluded.schedule_state, excluded.maturity_band, excluded.reviewable, excluded.marked, excluded.has_active_variants,
     excluded.active_variant_count, excluded.active_variant_id, excluded.body_revision, excluded.study_revision,
     excluded.dependency_revision, excluded.deleted_at, excluded.created_at, excluded.updated_at);
 end

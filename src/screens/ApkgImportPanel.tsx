@@ -459,7 +459,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
 
         {reimport ? (
           <div className="core-status-info mt-4 core-body" role="status" data-testid="apkg-reimport-summary">
-            {reimport.keptLocalEdits > 0 ? <p>{reimport.keptLocalEdits} lokal bearbeitete {reimport.keptLocalEdits === 1 ? "Inhalt bleibt" : "Inhalte bleiben"} unverändert.</p> : null}
+            {reimport.keptLocalEdits > 0 ? <p>{reimport.keptLocalEdits} lokal {reimport.keptLocalEdits === 1 ? "bearbeiteter Inhalt bleibt" : "bearbeitete Inhalte bleiben"} unverändert.</p> : null}
             {reimport.missingInPackage > 0 ? <p>{reimport.missingInPackage} {reimport.missingInPackage === 1 ? "Karte fehlt" : "Karten fehlen"} im Paket und {reimport.missingInPackage === 1 ? "bleibt" : "bleiben"} erhalten.</p> : null}
           </div>
         ) : null}
@@ -528,7 +528,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
                   {report.missingMedia.length > 0 ? (
                     <div className="flex gap-2 rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text">
                       <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-                      <span>{report.missingMedia.length} referenzierte Medien fehlen im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
+                      <span>{report.missingMedia.length === 1 ? "1 referenziertes Medium fehlt" : `${report.missingMedia.length} referenzierte Medien fehlen`} im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
                     </div>
                   ) : null}
                   {previewWarnings.length > 0 ? (

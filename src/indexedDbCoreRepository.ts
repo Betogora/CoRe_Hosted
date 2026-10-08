@@ -1903,7 +1903,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         ))))
         : [];
       const [catalogByDeck, reviewEventsByDeck] = await Promise.all([
-        requestedCatalog ? requestedCatalog.then((rows) => [rows.filter((row): row is StoredCardCatalog => Boolean(row))]) : Promise.all(catalogPagePromises),
+        // Requested cards follow the same rule as the scan: a sync conflict keeps a card out of the session.
+        requestedCatalog ? requestedCatalog.then((rows) => [rows.filter((row): row is StoredCardCatalog => Boolean(row) && !syncConflictCardIds.has(row!.id))]) : Promise.all(catalogPagePromises),
         Promise.all(reviewEventPromises),
       ]);
       await transactionDone(transaction);

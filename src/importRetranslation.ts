@@ -16,26 +16,35 @@ const hasStudy = (card: Card) => card.study.reps > 0 || card.study.state !== "ne
 export function planRetranslation(note: Note, cards: Card[], source: NoteTypeSource, noteSource: NoteSource, updatedAt = new Date().toISOString()): RetranslationPlan {
   const translated = retranslateNoteContent(source, noteSource.fields, note.content.tags);
   if (!translated) return { status: "kept" };
-  // Generic and field-list cards are keyed by their Anki template ordinal; a better translator may name them.
-  const rekeyed = cards.map((card) => {
-    const ordinal = /^anki-(\d+)$/.exec(card.promptKey)?.[1];
-    const promptKey = ordinal === undefined ? card.promptKey : translated.promptKey(Number(ordinal));
-    return promptKey === card.promptKey ? card : { ...card, promptKey, revision: card.revision + 1, updatedAt };
-  });
   let plan: ReturnType<typeof planNoteContentChange>;
   try {
-    plan = planNoteContentChange({ note, cards: rekeyed }, translated.content, updatedAt);
+    plan = planNoteContentChange({ note, cards }, translated.content, updatedAt);
   } catch {
     return { status: "kept" };
   }
   if (!plan.changed) return { status: "unchanged" };
-  if (plan.removedCards.some(hasStudy)) return { status: "kept" };
+  // Generic and field-list cards are keyed by their Anki template ordinal; when the better translator names that
+  // prompt, the card keeps its identity and study state under the new key instead of being replaced.
+  const renamedByKey = new Map(plan.removedCards.flatMap((card) => {
+    const ordinal = /^anki-(\d+)$/.exec(card.promptKey)?.[1];
+    return ordinal === undefined ? [] : [[translated.promptKey(Number(ordinal)), card] as const];
+  }));
+  const renamed: Card[] = [];
+  const newCards = plan.newCards.filter((card) => {
+    const previous = renamedByKey.get(card.promptKey);
+    if (!previous) return true;
+    renamed.push({ ...previous, promptKey: card.promptKey, revision: previous.revision + 1, updatedAt });
+    return false;
+  });
+  const renamedIds = new Set(renamed.map((card) => card.id));
+  const removedCards = plan.removedCards.filter((card) => !renamedIds.has(card.id));
+  if (removedCards.some(hasStudy)) return { status: "kept" };
   const next: Note = { ...plan.note, translator: translated.translator, importedContentRevision: plan.note.contentRevision };
   return {
     status: "updated",
     change: {
       previous: { note, cards },
-      next: { note: next, cards: [...plan.keptCards, ...plan.newCards, ...planNoteDeletion(next, plan.removedCards, updatedAt).cards] },
+      next: { note: next, cards: [...plan.keptCards, ...renamed, ...newCards, ...planNoteDeletion(next, removedCards, updatedAt).cards] },
     },
   };
 }

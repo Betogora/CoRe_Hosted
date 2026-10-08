@@ -1,15 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreCard, createCoreDeck } from "./coreModel.ts";
-import type { ReviewEvent, ReviewRating } from "./coreTypes.ts";
+import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "./coreModel.ts";
+import type { Card, ReviewEvent, ReviewRating } from "./coreTypes.ts";
 import { mergeAccountStatisticsSnapshot, projectStatistics, type StatisticsPeriod } from "./statisticsModel.ts";
 import { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
 import type { AccountStatisticsSnapshot } from "./workspaceReplica.ts";
 
-function reviewEvent({ id, deckId, learningItemId, rating, answeredAt, state, intervalDays, responseTimeMs = null }: {
+function reviewEvent({ id, deckId, cardId, rating, answeredAt, state, intervalDays, responseTimeMs = null }: {
   id: string;
   deckId: string;
-  learningItemId: string;
+  cardId: string;
   rating: ReviewRating;
   answeredAt: string;
   state: "new" | "learning" | "review" | "relearning";
@@ -17,30 +17,28 @@ function reviewEvent({ id, deckId, learningItemId, rating, answeredAt, state, in
   responseTimeMs?: number | null;
 }): ReviewEvent {
   return {
-    id, userId: "user", deckId, learningItemId, variantId: `${learningItemId}_original`, reviewableType: "variant",
-    reviewableId: `${learningItemId}_original`, sourceCardId: learningItemId, rating, answeredAt, responseTimeMs,
+    id, userId: "user", deckId, cardId, variantId: null, rating, answeredAt, responseTimeMs,
     schedulerBefore: { card: { state, intervalDays } }, schedulerAfter: {}, flags: {}, createdAt: answeredAt,
   };
 }
 
+function statsCard(id: string, front: string, back: string, createdAt?: string, study?: Record<string, unknown>): Card {
+  const [card] = createBasicNote("deck", front, back, { createdAt }).cards;
+  return { ...card, id, ...(study ? { study: cardStudyFromReviewState(createReviewState(study)) } : {}) };
+}
+
 function fixture() {
-  const card = createCoreCard({
-    id: "card_stats",
-    source: "manual",
-    title: "Hippocampus",
-    originalFront: "Welche Aufgabe hat der Hippocampus?",
-    originalBack: "Gedächtniskonsolidierung",
-    createdAt: "2026-06-01T08:00:00.000Z",
-    reviewState: { state: "review", dueAt: "2026-07-08T08:00:00.000Z", intervalDays: 30, difficulty: 6, stability: 25, repetitions: 5 },
+  const card = statsCard("card_stats", "Welche Aufgabe hat der Hippocampus?", "Gedächtniskonsolidierung", "2026-06-01T08:00:00.000Z", {
+    state: "review", dueAt: "2026-07-08T08:00:00.000Z", intervalDays: 30, difficulty: 6, stability: 25, reps: 5,
   });
   const parent = createCoreDeck({ id: "deck_parent", name: "Medizin", source: "manual", cards: [] });
   const child = createCoreDeck({
     id: "deck_child", parentDeckId: parent.id, hierarchyPath: ["Medizin", "Neuro"], name: "Neuro", source: "manual", cards: [card],
     reviewEvents: [
-      reviewEvent({ id: "learning", deckId: "deck_child", learningItemId: card.id, rating: "good", answeredAt: "2026-07-04T08:00:00.000Z", state: "learning", intervalDays: 0, responseTimeMs: 2_000 }),
-      reviewEvent({ id: "relearning", deckId: "deck_child", learningItemId: card.id, rating: "again", answeredAt: "2026-07-05T08:00:00.000Z", state: "relearning", intervalDays: 2, responseTimeMs: 3_000 }),
-      reviewEvent({ id: "young", deckId: "deck_child", learningItemId: card.id, rating: "hard", answeredAt: "2026-07-06T08:00:00.000Z", state: "review", intervalDays: 10 }),
-      reviewEvent({ id: "mature", deckId: "deck_child", learningItemId: card.id, rating: "easy", answeredAt: "2026-07-07T08:00:00.000Z", state: "review", intervalDays: 30, responseTimeMs: 1_000 }),
+      reviewEvent({ id: "learning", deckId: "deck_child", cardId: card.id, rating: "good", answeredAt: "2026-07-04T08:00:00.000Z", state: "learning", intervalDays: 0, responseTimeMs: 2_000 }),
+      reviewEvent({ id: "relearning", deckId: "deck_child", cardId: card.id, rating: "again", answeredAt: "2026-07-05T08:00:00.000Z", state: "relearning", intervalDays: 2, responseTimeMs: 3_000 }),
+      reviewEvent({ id: "young", deckId: "deck_child", cardId: card.id, rating: "hard", answeredAt: "2026-07-06T08:00:00.000Z", state: "review", intervalDays: 10 }),
+      reviewEvent({ id: "mature", deckId: "deck_child", cardId: card.id, rating: "easy", answeredAt: "2026-07-07T08:00:00.000Z", state: "review", intervalDays: 30, responseTimeMs: 1_000 }),
     ],
   });
   return { parent, child };
@@ -64,7 +62,7 @@ test("statistics aggregate a parent scope once and keep every public series boun
 
 test("all periods share all-time heatmap counts while filtering the selected review count", () => {
   const { parent, child } = fixture();
-  child.reviewEvents.push(reviewEvent({ id: "older", deckId: child.id, learningItemId: child.cards[0].id, rating: "good", answeredAt: "2026-05-01T08:00:00.000Z", state: "review", intervalDays: 30 }));
+  child.reviewEvents.push(reviewEvent({ id: "older", deckId: child.id, cardId: child.cards[0].id, rating: "good", answeredAt: "2026-05-01T08:00:00.000Z", state: "review", intervalDays: 30 }));
   const expectations: Array<[StatisticsPeriod, number]> = [["30d", 4], ["90d", 5], ["365d", 5], ["all", 5]];
   for (const [period, expected] of expectations) {
     const result = projectStatistics([parent, child], { period, deckIds: "all", now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" });
@@ -77,7 +75,7 @@ test("all periods share all-time heatmap counts while filtering the selected rev
 
 test("retention keeps the first eligible review per reviewable and local day", () => {
   const { child } = fixture();
-  child.reviewEvents.push(reviewEvent({ id: "same-day-second", deckId: child.id, learningItemId: child.cards[0].id, rating: "again", answeredAt: "2026-07-07T09:00:00.000Z", state: "review", intervalDays: 30 }));
+  child.reviewEvents.push(reviewEvent({ id: "same-day-second", deckId: child.id, cardId: child.cards[0].id, rating: "again", answeredAt: "2026-07-07T09:00:00.000Z", state: "review", intervalDays: 30 }));
   const result = projectStatistics([child], { period: "30d", deckIds: "all", now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" });
   assert.equal(result.summary.reviewCount, 5);
   assert.equal(result.summary.trueRetentionSample, 3);
@@ -85,10 +83,10 @@ test("retention keeps the first eligible review per reviewable and local day", (
 });
 
 test("learning-day boundaries use timezone and configured start hour", () => {
-  const card = createCoreCard({ id: "card_zone", source: "manual" });
+  const card = statsCard("card_zone", "Frage", "Antwort");
   const deck = createCoreDeck({
     id: "deck_zone", name: "Zeitzone", source: "manual", cards: [card],
-    reviewEvents: [reviewEvent({ id: "early", deckId: "deck_zone", learningItemId: card.id, rating: "good", answeredAt: "2026-07-11T00:30:00.000Z", state: "review", intervalDays: 3 })],
+    reviewEvents: [reviewEvent({ id: "early", deckId: "deck_zone", cardId: card.id, rating: "good", answeredAt: "2026-07-11T00:30:00.000Z", state: "review", intervalDays: 3 })],
   });
   const result = projectStatistics([deck], { period: "30d", deckIds: "all", now: "2026-07-11T03:00:00.000Z", timeZone: "Europe/Berlin", dayStartHour: 3 });
   assert.equal(result.studyHeatmap.countsByDay.get("2026-07-10"), 1);
@@ -119,7 +117,7 @@ test("server aggregates replace a partial local history and retain pending revie
     deckReviews: { [child.id]: { reviews: 3, successful: 2, again: 1, remembered: 3, retentionTotal: 4, intervalTotal: 12, intervalCount: 3, nextDueAt: "2026-07-08T10:00:00.000Z" } },
     generatedAt: "2026-07-07T12:00:00.000Z",
   };
-  const merged = mergeAccountStatisticsSnapshot(local, snapshot, [reviewEvent({ id: "pending", deckId: child.id, learningItemId: child.cards[0].id, rating: "easy", answeredAt: "2026-07-07T08:00:00.000Z", state: "review", intervalDays: 30, responseTimeMs: 1_000 })]);
+  const merged = mergeAccountStatisticsSnapshot(local, snapshot, [reviewEvent({ id: "pending", deckId: child.id, cardId: child.cards[0].id, rating: "easy", answeredAt: "2026-07-07T08:00:00.000Z", state: "review", intervalDays: 30, responseTimeMs: 1_000 })]);
   const allTime = mergeAccountStatisticsSnapshot(
     projectStatistics([child], { period: "all", deckIds: "all", now: "2026-07-07T12:00:00.000Z", timeZone: "Europe/Berlin" }),
     snapshot,

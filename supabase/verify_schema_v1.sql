@@ -53,6 +53,7 @@ begin
     ('review_events', 'retention_first'),
     ('media_files', 'storage_path'),
     ('card_catalog', 'note_id'),
+    ('card_catalog', 'marked'),
     ('card_catalog', 'body_revision'),
     ('card_catalog', 'study_revision'),
     ('card_catalog', 'dependency_revision'),

@@ -196,10 +196,14 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const result = (async (): Promise<MediaSyncResult> => {
       const files: Array<{ sha1: string; name: string; size: number; mimeType: string; blob: Blob }> = [];
       try {
+        const orphaned: string[] = [];
         for (const record of await queuedRecords(sha1s)) {
           const asset = await readAsset(record.sha1);
           if (asset) files.push({ sha1: asset.sha1, name: asset.name, size: asset.size, mimeType: asset.mimeType, blob: asset.blob });
+          else orphaned.push(record.sha1);
         }
+        // Without a local file there is nothing left to upload; the entry would otherwise retry forever.
+        if (orphaned.length) await dequeue(orphaned);
         progress = { ...progress, total: files.length, totalBytes: files.reduce((sum, file) => sum + file.size, 0) };
         notify();
         resolveQueued();

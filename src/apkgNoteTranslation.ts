@@ -900,7 +900,7 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
   if (addedCards) warnings.push(`${addedCards} Karten wurden aus dem Inhalt neu abgeleitet, weil sie im Paket fehlten.`);
   const untranslatableNotes = notetypeReports.reduce((sum, report) => sum + report.untranslatableNotes, 0);
   if (untranslatableNotes) warnings.push(`${untranslatableNotes} Anki-Notizen enthielten keinen darstellbaren Inhalt und wurden übersprungen.`);
-  if (missingMedia.length) warnings.push(`${missingMedia.length} referenzierte Medien fehlen im Paket.`);
+  if (missingMedia.length) warnings.push(missingMedia.length === 1 ? "1 referenziertes Medium fehlt im Paket." : `${missingMedia.length} referenzierte Medien fehlen im Paket.`);
   return {
     decks,
     notes,

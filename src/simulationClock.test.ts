@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
+import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "./coreModel.ts";
 import { answerVariant } from "./reviewService.ts";
 import {
   MAX_SIMULATION_OFFSET_MINUTES,
@@ -51,14 +51,13 @@ test("simulation clock preserves local wall time across a daylight-saving bounda
 test("a future review is committed at simulated time and is not undone by resetting the clock", () => {
   const realNow = "2026-08-06T10:00:00.000Z";
   const simulatedNow = getSimulatedNow(realNow, 3 * SIMULATION_MINUTES_PER_DAY);
-  const item = createBasicLearningItem("deck_simulation", "Frage", "Antwort", {
-    reviewState: { state: "review", repetitions: 2, dueAt: simulatedNow },
-  });
+  const [created] = createBasicNote("deck_simulation", "Frage", "Antwort").cards;
+  const item = { ...created, study: cardStudyFromReviewState(createReviewState({ state: "review", reps: 2, dueAt: simulatedNow })) };
   const deck = createCoreDeck({ id: "deck_simulation", name: "Simulation", source: "manual", cards: [item] });
   const result = answerVariant(deck, item.id, null, "good", { now: simulatedNow });
 
   assert.equal(result.event.answeredAt, simulatedNow);
-  assert.equal(result.updatedCard.reviewState.lastReviewedAt, simulatedNow);
+  assert.equal(result.updatedCard.study.lastReviewedAt, simulatedNow);
   assert.equal(getSimulatedNow(realNow, 0), realNow);
-  assert.equal(result.deck.cards[0].reviewState.lastReviewedAt, simulatedNow);
+  assert.equal(result.deck.cards[0].study.lastReviewedAt, simulatedNow);
 });

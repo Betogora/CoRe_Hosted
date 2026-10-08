@@ -1,9 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createCoreDeck, createDefaultDeckSettings, createManualCoreDeck } from "./coreModel.ts";
+import { createBasicNote, createCoreDeck, createDefaultDeckSettings } from "./coreModel.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import { getGlobalSchedulerPreferences } from "./deckSettings.ts";
+import type { Deck } from "./coreTypes.ts";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, createGeneralSettingsDraft, createGlobalCardSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual } from "./settingsDraft.ts";
+
+function biologyDeck(): Deck {
+  const deck = createCoreDeck({ name: "Biologie" });
+  return { ...deck, cards: createBasicNote(deck.id, "Frage", "Antwort").cards };
+}
 
 test("general and global card drafts keep their settings domains separate", () => {
   const profile = createCoreRepository({ seedDefaultDecks: false }).getState().profile;
@@ -26,7 +32,7 @@ test("general and global card drafts keep their settings domains separate", () =
 });
 
 test("deck draft compares and normalizes identity, appearance, learning, scheduler, and CoRe values", () => {
-  const deck = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Frage", back: "Antwort" } });
+  const deck = biologyDeck();
   const baseline = createDeckSettingsDraft(deck);
   const changed = {
     ...baseline,
@@ -52,7 +58,7 @@ test("deck draft compares and normalizes identity, appearance, learning, schedul
 });
 
 test("deck-tree save applies only changed settings and keeps descendant identity and individual values", () => {
-  const parent = createManualCoreDeck({ deckName: "Biologie", card: { cardType: "basic", front: "Frage", back: "Antwort" } });
+  const parent = biologyDeck();
   const child = createCoreDeck({
     name: "Zellen",
     source: "manual",

@@ -27,6 +27,8 @@ export interface CardCatalogEntry {
   scheduleState: string;
   maturityBand: string;
   reviewable: boolean;
+  /** The mark of the card's content; all siblings show it. */
+  marked: boolean;
   hasActiveVariants: boolean;
   activeVariantCount: number;
   activeVariantId: string | null;
@@ -213,6 +215,7 @@ export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalog
     scheduleState: card.study.state,
     maturityBand: card.study.extra.maturityBand,
     reviewable: !isCardReviewBlocked(card),
+    marked: note?.marked ?? false,
     hasActiveVariants: activeVariants.length > 0,
     activeVariantCount: activeVariants.length,
     activeVariantId: activeVariants[0]?.id ?? null,

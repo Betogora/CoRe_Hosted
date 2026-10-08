@@ -2,17 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createCoreCard, createCoreDeck } from "../coreModel.ts";
+import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import { StatisticsScreen, StatisticsScreenContent } from "./StatisticsScreen.tsx";
 import { projectStatistics } from "../statisticsModel.ts";
 
 test("statistics screen exposes one global filter and the complete CoRe analysis sections", () => {
-  const card = createCoreCard({
+  const card = {
+    ...createBasicNote("deck_statistics_screen", "Frage", "Antwort").cards[0],
     id: "card_statistics_screen",
-    source: "manual",
-    originalFront: "Frage",
-    originalBack: "Antwort",
-    reviewState: {
+    study: cardStudyFromReviewState(createReviewState({
       state: "review",
       dueAt: "2026-08-07T08:00:00.000Z",
       intervalDays: 25,
@@ -21,8 +19,8 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
       reps: 4,
       repetitions: 4,
       lastReviewedAt: "2026-08-05T08:00:00.000Z",
-    },
-  });
+    })),
+  };
   const deck = createCoreDeck({ id: "deck_statistics_screen", name: "Biologie", source: "manual", cards: [card] });
   const selection = { period: "365d" as const, deckIds: "all" as const, now: "2026-08-06T12:00:00.000Z", timeZone: "Europe/Berlin" };
   const projection = projectStatistics([deck], selection);
@@ -87,7 +85,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
 });
 
 test("statistics refresh keeps previous results and shows the requested filter with an indeterminate inline bar", () => {
-  const deck = createCoreDeck({ id: "refresh_deck", name: "Biologie", source: "manual", cards: [createCoreCard({ id: "refresh_card", source: "manual", originalFront: "Frage", originalBack: "Antwort" })] });
+  const deck = createCoreDeck({ id: "refresh_deck", name: "Biologie", source: "manual", cards: [{ ...createBasicNote("refresh_deck", "Frage", "Antwort").cards[0], id: "refresh_card" }] });
   const dataset = { decks: [deck], projection: projectStatistics([deck], { period: "365d", deckIds: "all", now: "2026-09-30T12:00:00.000Z", timeZone: "Europe/Berlin" }) };
   dataset.projection.summary.reviewCount = 42;
   const render = (loading: boolean, error = false) => renderToStaticMarkup(<StatisticsScreenContent dataset={dataset} selection={{ period: "90d", deckIds: [deck.id] }} loading={loading} error={error} onRetry={() => undefined} now="2026-09-30T12:00:00.000Z" timeZone="Europe/Berlin" onNavigate={() => undefined} />);

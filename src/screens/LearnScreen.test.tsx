@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { createWorldCapitalsSeedDecks } from "../fixtures/worldCapitals.ts";
+import { createWorldCapitalsSeed } from "../fixtures/worldCapitals.ts";
 import { createCoreDeck } from "../coreModel.ts";
 import { LearnScreen } from "./LearnScreen.tsx";
 
 test("learning rows expose shared counts, direct activation, settings and drag-and-drop", () => {
   const markup = renderToStaticMarkup(
     <LearnScreen
-      decks={createWorldCapitalsSeedDecks()}
+      decks={createWorldCapitalsSeed().decks}
       now="2026-08-06T10:00:00.000Z"
       onStartDeck={() => undefined}
       onCreateDeck={() => null}
@@ -63,7 +63,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
 test("quick deck creation asks only for a name and optional parent deck", () => {
   const markup = renderToStaticMarkup(
     <LearnScreen
-      decks={createWorldCapitalsSeedDecks()}
+      decks={createWorldCapitalsSeed().decks}
       now="2026-08-06T10:00:00.000Z"
       initialParentDeckId="deck_world_capitals"
       onStartDeck={() => undefined}

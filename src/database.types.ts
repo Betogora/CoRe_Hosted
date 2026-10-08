@@ -22,6 +22,7 @@ export type Database = {
           front_preview: string
           has_active_variants: boolean
           id: string
+          marked: boolean
           maturity_band: string
           note_id: string
           reviewable: boolean
@@ -44,6 +45,7 @@ export type Database = {
           front_preview?: string
           has_active_variants?: boolean
           id: string
+          marked?: boolean
           maturity_band?: string
           note_id: string
           reviewable?: boolean
@@ -66,6 +68,7 @@ export type Database = {
           front_preview?: string
           has_active_variants?: boolean
           id?: string
+          marked?: boolean
           maturity_band?: string
           note_id?: string
           reviewable?: boolean
@@ -934,6 +937,7 @@ export type Database = {
         Args: { p_current_versions: Json; p_cursor?: string; p_limit?: number }
         Returns: Json
       }
+      load_reimport_targets: { Args: { p_guids: string[] }; Returns: Json }
       pull_account_catalog_delta: {
         Args: { p_cursor?: number; p_limit?: number; p_max_bytes?: number }
         Returns: Json

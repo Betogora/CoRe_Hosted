@@ -1357,7 +1357,12 @@ export function App() {
     const note = patch.marked === undefined ? body.note : setNoteMarked(body.note, patch.marked, updatedAt);
     const card = patch.suspended === undefined ? body.card : setCardSuspended(body.card, patch.suspended, updatedAt);
     if (note === body.note && card === body.card) return { note, card };
-    await workspaceRepository.saveNoteGraphs([{ previous: { note: body.note, cards: [body.card] }, next: { note, cards: [card] } }]);
+    // A changed mark also refreshes the catalog rows of locally known siblings.
+    const siblings = note !== body.note ? (await workspaceRepository.loadNoteGraph(body.note.id))?.cards ?? [body.card] : [body.card];
+    await workspaceRepository.saveNoteGraphs([{
+      previous: { note: body.note, cards: siblings },
+      next: { note, cards: siblings.map((candidate) => candidate.id === card.id ? card : candidate) },
+    }]);
     return { note, card };
   }
 

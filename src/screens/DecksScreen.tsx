@@ -618,7 +618,7 @@ export function DecksScreen({
   const contentDeck = contentDeckId ? libraryDecks.find((deck) => deck.id === contentDeckId) : null;
   const hasStudyCards = React.useMemo(() => Boolean(contentDeckId) && libraryDecks.some((deck) => (
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
-  )), [contentDeckId, libraryDecks]);
+  )), [contentDeckId, deckSummaries, libraryDecks]);
   const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
@@ -1147,7 +1147,7 @@ export function DecksScreen({
                   {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel, hasActiveVariants }) => {
                     const suspended = !card.reviewable;
                     const selected = selectedCardId === card.id;
-                    const marked = selectedGraph?.note.id === card.noteId && selectedGraph.note.marked;
+                    const marked = selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked;
                     return (
                     <tr
                       key={card.id}
