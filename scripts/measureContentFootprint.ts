@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { commitApkgImport, parseApkgToNormalizedImport, prepareApkgWorkerResult } from "../src/apkgImportInternal.ts";
@@ -6,6 +7,7 @@ import { createCloudStateRows } from "../src/cloudRepository.ts";
 import { createCoreDeck, createLearningItemsFromEditorValue } from "../src/coreModel.ts";
 import { normalizeContentEntities } from "../src/coreRepository.ts";
 import type { Deck, NoteTypeDefinitionV1 } from "../src/coreTypes.ts";
+import { localSupabaseDatabaseContainer } from "./localE2EEnvironment.ts";
 
 // Measures how many bytes 1,000 learning contents occupy in Postgres, on the
 // sync wire and in the browser replica. The APKG comes from
@@ -73,7 +75,7 @@ function utf8Bytes(value: unknown) {
 
 function databaseContainer() {
   const docker = process.platform === "win32" ? "docker.exe" : "docker";
-  const container = `supabase_db_${basename(process.cwd())}`;
+  const container = localSupabaseDatabaseContainer(readFileSync(resolve("supabase/config.toml"), "utf8"));
   const lookup = spawnSync(docker, ["ps", "--filter", `name=^/${container}$`, "--format", "{{.Names}}"], { encoding: "utf8" });
   if (lookup.status !== 0 || lookup.stdout.trim() !== container) {
     throw new Error(`Die lokale Supabase-Datenbank ${container} läuft nicht. Starte sie mit „npx supabase start“.`);

@@ -4,6 +4,7 @@ import {
   createLocalE2ERuntimeEnvironment,
   createLocalPrivilegedTestEnvironment,
   isLocalSupabaseUrl,
+  localSupabaseDatabaseContainer,
   parseSupabaseStatusEnvironment,
   provisionLocalE2EAccounts,
 } from "../scripts/localE2EEnvironment.ts";
@@ -35,6 +36,11 @@ test("parseSupabaseStatusEnvironment reads current Supabase CLI JSON output", ()
       SERVICE_ROLE_KEY: "must-not-be-used-by-the-runner",
     },
   );
+});
+
+test("localSupabaseDatabaseContainer folgt der project_id statt dem Checkout-Ordner", () => {
+  assert.equal(localSupabaseDatabaseContainer('# Kommentar\nproject_id = "CoRe_Hosted"\n# project_id = "anderes"\n'), "supabase_db_CoRe_Hosted");
+  assert.throws(() => localSupabaseDatabaseContainer("[api]\nport = 54321\n"), /project_id/);
 });
 
 test("isLocalSupabaseUrl only accepts loopback Supabase targets", () => {

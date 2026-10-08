@@ -21,10 +21,8 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
   Referenzfälle stehen im UI-Katalog unter „Vorbereitete Kartenbausteine“.
   Diese Module sind noch nicht an App, Import oder Persistenz
   angeschlossen; der folgende Laufzeitstand bleibt das Learning-Item-Modell.
-  Die Phase-3-Performance-Abnahme bleibt auf ausdrücklichen Nutzerwunsch offen:
-  der lokale Messlauf bricht im bestehenden Startpfad mit einem Timeout ab.
-  Die normalen Qualitäts- und Bundleprüfungen sind bestanden; dies ersetzt
-  weder diesen Laufzeitnachweis noch die noch offenen Gerätenachweise.
+  Die Phase-3-Performance-Abnahme ist vollständig gemessen (siehe
+  `history.md`); offen sind nur noch die Gerätenachweise.
 - Pflichtlogin mit Supabase E-Mail/Passwort, Profil-Upsert und accountgebundenem Browser-Cache.
 - Local-first Account-Boot mit expliziter Baseline: Ein bekanntes Gerät rendert seine IndexedDB-Shell sofort; ein neues wartet nur auf die erste gültige, bytebegrenzte `get_account_bootstrap_v2`-Seite aus Profil, Deck-Hüllen, zeitstabilen Summaries und `AccountStudyOverview`. `confirmed-empty` ist die einzige Freigabe der Leeransicht. Nach dem ersten erfolgreichen Bootstrap werden seine Retry- und Browserlistener entfernt; Online, Fokus und Sichtbarkeit gehören danach ausschließlich dem normalen Sync.
 - Inkrementeller Hybrid-Sync aus isoliertem Outbox-Push, servergestempeltem Katalog-Delta und Konfliktaktualisierung; manuell auch bei leerer Outbox sowie automatisch nach Debounce, Online, Fokus und sichtbar im wählbaren 1/5/15/30-Minuten-Intervall. Der normale Webpfad lädt keine sieben vollständigen Tabellen mehr. Deck-Hüllen, `deck_study_summaries` und `card_catalog` besitzen eigene bytebegrenzte Cursor; Kartenkörper und Abhängigkeiten werden höchstens zu 50 hydriert.
@@ -96,7 +94,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
 - Das ausführbare Beta-Core-Gate und der minimale Monitoring-/Alarmvertrag sind vorhanden; realer Alarmempfang sowie getrennte DB-/Storage-Restore-Proben fehlen noch.
 - Ein vollständiger 10-GB-Medienbestand ist im Browser nicht garantiert; verifizierte Deck-Downloads und Browser-Eviction bleiben Plattformgrenzen. Native Tauri-/SQLite-/Dateispeicherung und automatische Anki-artige Snapshots sind nicht implementiert.
-- Die gedrosselte Startmessung sowie Wiederholungs-, Offline-, Frischstart-, Summary- und Hintergrundgates bestehen. Lokale und gehostete 100k-Karten-/1m-logische-Review-Fixtures sowie die warmen Hosted-RPC-p95 bestehen. Offen bleiben die vollständige 100k-Browserjourney, Feld-p75/p95 und ausreichende Hosted-Rohdatenkapazität: 1 Mio. physische `review_events` überschreiten das aktuelle Volume, während der kanonische tägliche Statistikrollup funktioniert.
+- Die gedrosselte Startmessung sowie Wiederholungs-, Offline-, Summary- und Hintergrundgates bestehen; „Neues Gerät bis Dashboard“ liegt mit p75 3.035 ms knapp über der 3.000-ms-Grenze (Ausgangsmessung 3.959 ms). Lokale und gehostete 100k-Karten-/1m-logische-Review-Fixtures sowie die warmen Hosted-RPC-p95 bestehen. Offen bleiben die vollständige 100k-Browserjourney, Feld-p75/p95 und ausreichende Hosted-Rohdatenkapazität: 1 Mio. physische `review_events` überschreiten das aktuelle Volume, während der kanonische tägliche Statistikrollup funktioniert.
 
 ## Verifikation
 

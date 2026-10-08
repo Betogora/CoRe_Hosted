@@ -54,6 +54,12 @@ export function parseSupabaseStatusEnvironment(output: string) {
   );
 }
 
+export function localSupabaseDatabaseContainer(supabaseConfig: string) {
+  const projectId = supabaseConfig.match(/^project_id\s*=\s*"([^"]+)"/m)?.[1];
+  if (!projectId) throw new Error("supabase/config.toml enthält keine project_id.");
+  return `supabase_db_${projectId}`;
+}
+
 export function isLocalSupabaseUrl(value: string) {
   try {
     const url = new URL(String(value ?? ""));

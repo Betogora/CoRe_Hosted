@@ -102,7 +102,7 @@ K-Nummern verweisen. Ausgeführt wird in dieser Reihenfolge:
 Phase 0   Ausgangsmessung und Inhaltsschema            ✔ abgeschlossen
 Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
 Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, unverdrahtet
-Phase 3   Renderer und Bausteine (reine Module)        implementiert, unverdrahtet; Performance-Abnahme offen
+Phase 3   Renderer und Bausteine (reine Module)        implementiert, unverdrahtet; Gerätenachweise offen
 Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ abgeschlossen, unverdrahtet; Korpus offen
 Phase 4   Cutover: Datenbank, Replica, Sync, App       eigener Branch, ein Merge
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      (im Cutover verdrahtet)
@@ -204,16 +204,6 @@ Die Umsetzung von K3.1 bis K3.10 und ihre Nachweise stehen datiert in
 `history.md`; die technischen Verträge stehen in `architecture.md`.
 App, APKG-Import und Persistenz verwenden sie erst im Cutover (K4.10).
 
-- [ ] **K3.7 Performance-Abnahme nachholen.** Das verpflichtende
-      `npm run performance:measure:local` muss vollständig durchlaufen und
-      ein aktuelles Messartefakt erzeugen. Der Phase-3-Lauf endet im
-      4G-Szenario beim Warten auf `core:first_deck_summaries_ready` nach dem
-      Zehn-Minuten-Limit; deshalb fehlen auch Statistikbenchmark und
-      Grenzwertprüfung. Der Nutzer hat ausdrücklich entschieden, Phase 3
-      mit dieser offenen Abnahme festzuhalten. Die Grenzwerte bleiben
-      unverändert; die bereits gemessenen Überschreitungen der Ausgangslage
-      bleiben ebenfalls offen. Der bestehende Startpfad wird in Phase 3
-      nicht umgebaut.
 - [ ] **Gerätenachweise ergänzen.** Echte Smartphone-Bildschirmtastatur,
       physischer Touch/Screenreader, hörbare System-Sprachausgabe und nativer
       200-%-Browserzoom sind noch nicht geprüft. Die Chromium-Matrix und
@@ -576,10 +566,9 @@ Roadmap:
 ## Offene Entscheidungen vor dem Cutover
 
 Marker, Kprim-Teilpunkte und Bildbeschreibung sind entschieden und umgesetzt,
-die Neuübersetzung ist entschieden (K5.4, siehe `history.md`). Bereits einer Phase zugeordnet sind: Performance-Abnahme
-und Gerätenachweise (Phase 3, offene Abnahme), Drehung und Textgröße der
-Bildmasken (K5.2). Vor dem Branch `kartenmodell-cutover` soll die lokale
-E2E-Suite auf `main` wieder grün sein (siehe `status.md`).
+die Neuübersetzung ist entschieden (K5.4, siehe `history.md`). Bereits einer Phase zugeordnet sind:
+Gerätenachweise (Phase 3, offene Abnahme), Drehung und Textgröße der
+Bildmasken (K5.2).
 
 - [ ] **Image Occlusion Enhanced: Overlay oder Masken nachbauen.** Heute legt
       CoRe das Frage-/Antwort-SVG als `overlay`-Maske über das Bild (Farben des

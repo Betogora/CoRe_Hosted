@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { basename, resolve } from "node:path";
+import { resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 import { createCoreDeck } from "../src/coreModel.ts";
 import { mergeAccountStatisticsSnapshot, projectStatistics, type StatisticsPeriod } from "../src/statisticsModel.ts";
 import type { AccountStatisticsSnapshot } from "../src/workspaceReplica.ts";
+import { localSupabaseDatabaseContainer } from "./localE2EEnvironment.ts";
 
 const cardCount = 100_000;
 const reviewCount = 1_000_000;
@@ -67,7 +68,7 @@ function measure(period: StatisticsPeriod) {
 
 function measureDatabase() {
   const docker = process.platform === "win32" ? "docker.exe" : "docker";
-  const expectedContainer = `supabase_db_${basename(process.cwd())}`;
+  const expectedContainer = localSupabaseDatabaseContainer(readFileSync(resolve("supabase/config.toml"), "utf8"));
   const containerLookup = spawnSync(docker, ["ps", "--filter", `name=^/${expectedContainer}$`, "--format", "{{.Names}}"], {
     encoding: "utf8",
   });

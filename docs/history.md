@@ -5,6 +5,24 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-08 — Phase-3-Performance-Abnahme (K3.7)
+
+- `npm run performance:measure:local` lief erstmals seit Phase 3 vollständig:
+  Startmessung einschließlich 4G-Preload, 100k-/1m-Statistikbenchmark und
+  Grenzwertprüfung. Das 4G-Szenario, an dem der Phase-3-Lauf nach zehn Minuten
+  abbrach, lief durch. Benchmark und Speichermessung lesen den Datenbankcontainer
+  jetzt aus der `project_id` in `supabase/config.toml` statt aus dem
+  Ordnernamen, damit sie auch in Worktrees laufen.
+- Messwerte (p75/p95): Wiederholungsstart 665/703 ms, Offline-Kaltstart
+  513/556 ms, ohne Service Worker 1.259/1.335 ms, 4G-Preload 1.315/1.347 ms,
+  persistierte Summary p75 13,5 ms, keine Hintergrund-Long-Tasks;
+  Statistik-RPC 462/466 ms, 100k-Kartensuche 42/75 ms, Clientprojektion
+  höchstens 4,6 ms p95; Initialgraph 218,1 KiB gzip.
+- Einziger überschrittener Grenzwert: „Neues Gerät bis Dashboard“ p75
+  3.035 ms gegen 3.000 ms (Ausgangsmessung 3.959 ms). Die Überschreitung war
+  bekannt und bleibt in der Phase-4-Abnahme geführt; die Grenzwerte sind
+  unverändert.
+
 ## 2026-10-08 — Lokale Playwright-Suite wieder grün
 
 - Ursache der hängenden APKG-Importe und der Synchronisierungskonflikte: Eine
