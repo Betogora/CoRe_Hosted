@@ -30,10 +30,9 @@ import {
   type ReplicaStatus,
 } from "./workspaceReplica.ts";
 
-// ADR-034: a fresh database without upgrade path; the previous replica is deleted instead of read.
+// ADR-034: a fresh database without upgrade path.
 const DATABASE_VERSION = 1;
 const DATABASE_PREFIX = "core.workspace.entities.v4.";
-const RETIRED_DATABASE_PREFIX = "core.workspace.entities.v3.";
 const STORE = Object.freeze({
   meta: "meta",
   decks: "decks",
@@ -142,11 +141,6 @@ function iterateCursor<T>(request: IDBRequest<IDBCursorWithValue | null>, visit:
 }
 
 function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabase> {
-  try {
-    indexedDb.deleteDatabase(`${RETIRED_DATABASE_PREFIX}${userId}`);
-  } catch {
-    // A missing or blocked old replica does not affect the new one.
-  }
   return new Promise((resolve, reject) => {
     const request = indexedDb.open(`${DATABASE_PREFIX}${userId}`, DATABASE_VERSION);
     request.onupgradeneeded = () => {

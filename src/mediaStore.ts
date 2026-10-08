@@ -4,7 +4,6 @@ import type { OfflineMediaManifestEntry } from "./workspaceReplica.ts";
 
 // K4.7: one cached file per account and SHA-1; contents map their media names to SHA-1 (`Note.media`).
 const DB_NAME = "core-media-store.v3";
-const RETIRED_DB_NAME = "core-media-store.v2";
 const DB_VERSION = 1;
 const ASSET_STORE = "assets";
 const QUEUE_STORE = "upload_queue";
@@ -114,7 +113,6 @@ function trustedSignedMediaUrl(value: unknown, supabaseUrl: string) {
 
 export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB: indexedDb = globalThis.indexedDB, fetchImpl = globalThis.fetch }: { client: any; supabaseUrl: string; userId: string; indexedDB?: IDBFactory | null; fetchImpl?: typeof fetch }) {
   const databaseApi = indexedDb ?? null;
-  try { databaseApi?.deleteDatabase(RETIRED_DB_NAME); } catch { /* The retired cache is only removed opportunistically. */ }
 
   async function readAsset(sha1: string): Promise<AssetRecord | null> {
     const session = sessionAssets.get(keyFor(userId, sha1));
