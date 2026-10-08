@@ -192,11 +192,16 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true });
   for (const width of [320, 390, 430, 640, 768, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) {
+    for (const label of ["Notizen", "Mind Map", "Quiz", "Quelle", "Karteikarten"]) {
       const tab = tabs.getByRole("button", { name: label, exact: true });
       await tab.click();
       await expect(tab).toHaveAttribute("aria-pressed", "true");
-      await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+      if (label === "Karteikarten") {
+        await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+      } else {
+        await expect(page.getByRole("region", { name: label, exact: true })).toContainText("Demnächst verfügbar");
+        await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
+      }
     }
     if (width >= 768) expect(await tabs.evaluate(element => element.getBoundingClientRect().width)).toBeLessThanOrEqual(384);
     else expect(await tabs.evaluate(element => element.getBoundingClientRect().width === element.parentElement!.getBoundingClientRect().width)).toBe(true);
@@ -361,11 +366,11 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
         tableFitsContainer: Boolean(table && tableScroll && table.scrollWidth <= tableScroll.clientWidth + 1),
         headersDoNotOverlap: headerRects.every((rect, index) => index === 0 || rect.left >= headerRects[index - 1].right - 1),
         headerLabels: headerLabels.map((label) => label?.textContent?.trim()),
-        headerLabelsFit: headerLabels.every((label, index) => fitsWithin(label, headers[index]))
-          && headers.every((header) => header.scrollWidth <= header.clientWidth + 1),
+        headerAccessibleNames: headers.map((header) => header.querySelector("button")?.getAttribute("aria-label")),
+        headersFit: headers.every((header) => header.scrollWidth <= header.clientWidth + 1),
         dueLabels: dueCells.map((cell) => cell?.textContent?.trim()),
         dueLabelsFit: dueCells.every((cell) => fitsWithin(cell)),
-        variantLabels: variantTags.map((tag) => tag?.textContent?.trim()),
+        variantLabels: variantTags.map((tag) => tag?.getAttribute("aria-label")),
         variantTagsFit: variantTags.every((tag, index) => fitsWithin(tag, variantCells[index])),
         variantTagsAligned: variantTagRightEdges.every((right) => Math.abs(right - variantTagRightEdges[0]) <= 1),
         markSlotWidths: markSlots.map((slot) => slot?.getBoundingClientRect().width ?? 0),
@@ -383,10 +388,11 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     expect(geometry.sortFieldOverflow).toBe("ellipsis");
     expect(geometry.sortFieldWhiteSpace).toBe("nowrap");
     expect(geometry.headerLabels).toEqual(["Sortierfeld", "Datum", "Variante"]);
-    expect(geometry.headerLabelsFit).toBe(true);
+    expect(geometry.headerAccessibleNames).toEqual(["Sortierfeld aufsteigend sortieren", "Datum aufsteigend sortieren", "Variante aufsteigend sortieren"]);
+    expect(geometry.headersFit).toBe(true);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
     expect(geometry.dueLabelsFit).toBe(true);
-    expect(geometry.variantLabels).toEqual(["Nein", "Ja"]);
+    expect(geometry.variantLabels).toEqual(["Keine Varianten", "Varianten vorhanden"]);
     expect(geometry.variantTagsFit).toBe(true);
     expect(geometry.variantTagsAligned).toBe(true);
     expect(geometry.markSlotWidths).toEqual([18, 18]);
@@ -491,9 +497,11 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(page.getByTestId("card-detail-aside")).toBeVisible();
-  await overviewSegment.click();
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Verwerfen" }).click();
+  await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+  await overviewSegment.click();
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Stapelübersicht", exact: true })).toHaveAttribute("aria-pressed", "true");
@@ -552,7 +560,7 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
 
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
-  await page.getByTestId(`deck-toggle-${DECK_IDS.childB}`).click();
+  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.childB}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   const cardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`;
   await expect(page).toHaveURL(cardUrl);
@@ -672,7 +680,7 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
   const deckUrl = `/kartenstapel?deck=${DECK_IDS.childB}`;
   const firstCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`;
   const secondCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`;
-  await page.getByTestId(`deck-toggle-${DECK_IDS.childB}`).click();
+  await expect(page.getByTestId(`deck-toggle-${DECK_IDS.childB}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await page.goto(secondCardUrl);
   await waitForApp(page);

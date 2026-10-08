@@ -679,6 +679,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         forgetPending(replaced.id);
         removedIds.push(replaced.id);
       }
+      // Ersetzt eine Änderung einen noch ausstehenden Insert, bleibt sie ein Insert; die Cloud ordnet ihn der eigenen Anlage zu.
+      const keepsPendingInsert = replaced?.type === "entity-mutation" && replaced.baseRevision == null && !(replaced.payload as any)?.tombstone && !input.payload?.tombstone;
       const mutation: SyncOutboxMutation = {
         id: mutationId(),
         userId,
@@ -686,8 +688,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         type: input.type,
         table: input.table ?? null,
         entityId: input.entityId ?? null,
-        baseRevision: input.baseRevision ?? null,
-        payload: input.payload ?? {},
+        baseRevision: keepsPendingInsert ? null : input.baseRevision ?? null,
+        payload: keepsPendingInsert ? { ...input.payload, baseRevision: null } : input.payload ?? {},
         createdAt: new Date().toISOString(),
         flushedAt: null,
         retryCount: 0,

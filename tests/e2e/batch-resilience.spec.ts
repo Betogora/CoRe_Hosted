@@ -4,6 +4,7 @@ import path from "node:path";
 import { createCoreDeck, createLearningItemFromEditorValue } from "../../src/coreModel.ts";
 import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
 import type { Deck } from "../../src/coreTypes.ts";
+import { DECK_DEPTH_INDENT_PX } from "../../src/deckHierarchy.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
@@ -150,7 +151,7 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
     rootAOption.evaluate((option) => Number.parseFloat(getComputedStyle(option).paddingInlineStart)),
     childAOption.evaluate((option) => Number.parseFloat(getComputedStyle(option).paddingInlineStart)),
   ]);
-  expect(childPadding - rootPadding).toBe(16);
+  expect(childPadding - rootPadding).toBe(DECK_DEPTH_INDENT_PX);
   const [rootBackground, childBackground] = await Promise.all([
     rootBOption.evaluate((option) => getComputedStyle(option).backgroundColor),
     childBOption.evaluate((option) => getComputedStyle(option).backgroundColor),

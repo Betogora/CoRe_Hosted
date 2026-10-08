@@ -157,6 +157,7 @@ export function ManualCreationPanel({
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
   const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
+  const pendingFocusRef = React.useRef<ManualFocusTarget | null>(null);
   React.useEffect(() => {
     if (decks.length === 0) setUseNewDeck(true);
   }, [decks.length]);
@@ -184,9 +185,16 @@ export function ManualCreationPanel({
     const field = editorRootRef.current?.querySelector<HTMLElement>(`[data-manual-focus="${target}"]`);
     const focusable = field?.matches('input, [contenteditable="true"]')
       ? field
-      : field?.querySelector<HTMLElement>('input, [contenteditable="true"]');
+      : field?.querySelector<HTMLElement>('input:not([type="file"]), [contenteditable="true"]');
     focusable?.focus();
   }, [activeField]);
+
+  // Die Editorfläche ist während des Speicherns inert; der nächste Fokus folgt erst nach ihrer Freigabe.
+  React.useEffect(() => {
+    if (isSaving || !pendingFocusRef.current) return;
+    focusField(pendingFocusRef.current);
+    pendingFocusRef.current = null;
+  }, [focusField, isSaving]);
 
   const focusSaveProgress = React.useCallback(() => {
     saveProgressRef.current?.focus();
@@ -388,7 +396,7 @@ export function ManualCreationPanel({
     setFieldErrors({});
     const nextFocus = nextManualFocusTarget(nextState);
     setActiveField(nextFocus === "back" ? "back" : "front");
-    window.requestAnimationFrame(() => focusField(nextFocus));
+    pendingFocusRef.current = nextFocus;
     const pending = mediaStatus.status === "local-pending";
     const failed = !pending && mediaStatus.status !== "cloud-ready";
     setStatusType(failed ? "alert" : pending ? "warning" : "status");
@@ -588,7 +596,6 @@ export function ManualCreationPanel({
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
-            pruneInlineImages({ front: value, back, additionalFields });
             dispatchBatch({
               type: "draft",
               patch: {
@@ -642,7 +649,6 @@ export function ManualCreationPanel({
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
           <RichTextEditor value={back} onFocus={() => setActiveField("back")} onChange={(value) => {
-            pruneInlineImages({ front, back: value, additionalFields });
             dispatchBatch({ type: "draft", patch: { back: value } });
             setFieldErrors((current) => ({ ...current, back: undefined }));
           }} imageActions={imageActions} isActive={backFieldActive} minHeightClass="min-h-32" ariaLabel={answerLabel} ariaInvalid={Boolean(fieldErrors.back)} />
@@ -693,7 +699,6 @@ export function ManualCreationPanel({
               </div>
               <RichTextEditor value={field.value} onChange={(value) => {
                 const next = additionalFields.map((candidate) => candidate.id === field.id ? { ...candidate, value } : candidate);
-                pruneInlineImages({ front, back, additionalFields: next });
                 setAdditionalFields(next);
               }} imageActions={imageActions} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
             </div>

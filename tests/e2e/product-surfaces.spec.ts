@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { CORE_THEME_STORAGE_KEY } from "../../src/coreTheme.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 
 function mainMenu(page: Page) {
   return page.getByRole("navigation", { name: /Hauptmenü|Mobile Hauptnavigation/ }).filter({ visible: true });
@@ -163,39 +164,46 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   await expect(mobileHeader.getByRole("button", { name: "Dark Mode einschalten" }).locator("svg")).toHaveClass(/lucide-sun/);
 });
 
-test("global settings save multiple sections together through one save bar", async ({ page }) => {
+test("general and learning settings each save their sections together through one save bar", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
 
-  await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Allgemeine Einstellungen" })).toBeVisible();
   await page.getByLabel("Anzeigename").fill("CoRe Save-Bar E2E");
-  await page.locator('[data-in-page-navigation="desktop"]').getByRole("link", { name: "Lerntag & Fokus" }).click();
-  await page.getByTestId("settings-day-start-hour").fill("3");
-  await page.getByTestId("settings-learn-ahead").fill("45");
+  await chooseCoreSelectOption(page, page.getByRole("combobox", { name: "Intervall der automatischen Synchronisierung" }), "Alle 15 Minuten");
   const saveBar = page.getByTestId("settings-save-bar");
   await expect(saveBar).toHaveCount(1);
-  await expect(saveBar.getByRole("button", { name: "Speichern" })).toHaveCount(1);
-  await expect(saveBar.getByRole("button", { name: "Verwerfen" })).toHaveCount(0);
+  await expect(saveBar.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(1);
+  await expect(saveBar.getByRole("button", { name: "Änderungen verwerfen", exact: true })).toHaveCount(1);
   await expect(page.getByRole("button", { name: /^(Profil|Lerntag|Automatik) speichern$/ })).toHaveCount(0);
-  await saveBar.getByRole("button", { name: "Speichern" }).click();
+  await saveBar.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(saveBar).toHaveCount(0);
-  await expect(page.getByText("Globale Einstellungen wurden gespeichert.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Allgemeine Einstellungen wurden gespeichert.", { exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Lerneinstellungen", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Lerneinstellungen", exact: true })).toBeVisible();
+  await page.getByTestId("card-settings-day-start-hour").fill("3");
+  await page.getByTestId("card-settings-learn-ahead").fill("45");
+  await saveBar.getByRole("button", { name: "Auf alle neuen Stapel anwenden", exact: true }).click();
+  await expect(saveBar).toHaveCount(0);
+  await expect(page.getByText("Lerneinstellungen wurden als Standard für neue Stapel gespeichert.", { exact: true })).toBeVisible();
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     return {
       displayName: state.profile.displayName,
+      syncIntervalMinutes: state.profile.uiPreferences.syncIntervalMinutes,
       dayStartHour: state.profile.schedulerPreferences.dayStartHour,
       learnAheadMinutes: state.profile.schedulerPreferences.learnAheadMinutes,
     };
-  }).toEqual({ displayName: "CoRe Save-Bar E2E", dayStartHour: 3, learnAheadMinutes: 45 });
+  }).toEqual({ displayName: "CoRe Save-Bar E2E", syncIntervalMinutes: 15, dayStartHour: 3, learnAheadMinutes: 45 });
 
   await page.reload();
-  await expect(page.getByTestId("settings-day-start-hour")).toHaveValue("3");
-  await expect(page.getByTestId("settings-learn-ahead")).toHaveValue("45");
+  await expect(page.getByTestId("card-settings-day-start-hour")).toHaveValue("3");
+  await expect(page.getByTestId("card-settings-learn-ahead")).toHaveValue("45");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lerneinstellungen", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 });
 
@@ -217,7 +225,7 @@ test("settings save bar keeps its depth and responsive position in both themes",
       await expect(saveBar.getByRole("button", { name: "Speichern" })).toHaveCount(1);
       const layout = await saveBar.evaluate((bar) => {
         const status = bar.querySelector<HTMLElement>('[role="status"]')!;
-        const button = bar.querySelector<HTMLButtonElement>("button")!;
+        const button = [...bar.querySelectorAll<HTMLButtonElement>("button")].find((candidate) => candidate.textContent?.trim() === "Speichern")!;
         const bottomNavigation = document.querySelector<HTMLElement>('[data-navigation-layout="bottom-bar"]');
         const barRect = bar.getBoundingClientRect();
         const statusRect = status.getBoundingClientRect();
@@ -274,16 +282,16 @@ test("deck expansion preserves the complete profile across reload and an isolate
     await target.getByRole("button", { name: "Einstellungen öffnen" }).click();
     await expect(target.getByLabel("Anzeigename")).toHaveValue(expected.displayName);
     await expect(target.getByLabel("Login-E-Mail")).toHaveValue(expected.email);
+    await target.getByRole("button", { name: "Lerneinstellungen", exact: true }).click();
     await expect(target.getByText(expected.timezone, { exact: true })).toBeVisible();
-    await expect(target.getByTestId("settings-day-start-hour")).toHaveValue(expected.dayStartHour);
-    await expect(target.getByTestId("settings-learn-ahead")).toHaveValue(expected.learnAheadMinutes);
+    await expect(target.getByTestId("card-settings-day-start-hour")).toHaveValue(expected.dayStartHour);
+    await expect(target.getByTestId("card-settings-learn-ahead")).toHaveValue(expected.learnAheadMinutes);
   };
 
   await expectProfileSettings(page);
   await page.reload();
-  await expect(page.getByRole("heading", { name: "Globale Einstellungen" })).toBeVisible();
-  await expect(page.getByLabel("Anzeigename")).toHaveValue(expected.displayName);
-  await expect(page.getByLabel("Login-E-Mail")).toHaveValue(expected.email);
+  await expect(page.getByRole("heading", { name: "Lerneinstellungen", exact: true })).toBeVisible();
+  await expectProfileSettings(page);
 
   const isolatedContext = await browser.newContext({ storageState: await page.context().storageState() });
   try {
@@ -385,20 +393,20 @@ test("settings in-page navigation keeps responsive layout, hashes and browser hi
   const compactNavigation = page.locator('[data-in-page-navigation="compact"]');
   await expect(desktopNavigation).toBeVisible();
   await expect(compactNavigation).toBeHidden();
-  await expect(desktopNavigation.getByRole("link")).toHaveCount(4);
+  await expect(desktopNavigation.getByRole("link")).toHaveCount(3);
 
-  const focusLink = desktopNavigation.getByRole("link", { name: "Lerntag & Fokus" });
+  const focusLink = desktopNavigation.getByRole("link", { name: "Über uns" });
   await page.getByLabel("Anzeigename").fill("Hashnavigation bleibt frei");
   await focusLink.click();
-  await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);
+  await expect(page).toHaveURL(/\/einstellungen#settings-about$/);
   await expect(page.getByTestId("settings-save-bar")).toBeVisible();
   await expect(focusLink).toHaveAttribute("aria-current", "location");
-  await expect(page.getByRole("heading", { name: "Lerntag & Fokus" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Über uns", exact: true })).toBeVisible();
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
 
   await page.reload();
-  await expect(page).toHaveURL(/\/einstellungen#settings-learning-day$/);
-  await expect(desktopNavigation.getByRole("link", { name: "Lerntag & Fokus" })).toHaveAttribute("aria-current", "location");
+  await expect(page).toHaveURL(/\/einstellungen#settings-about$/);
+  await expect(focusLink).toHaveAttribute("aria-current", "location");
   await page.goBack();
   await expect(page).toHaveURL(/\/einstellungen$/);
   await expect(desktopNavigation.getByRole("link", { name: "Konto" })).toHaveAttribute("aria-current", "location");
@@ -408,7 +416,7 @@ test("settings in-page navigation keeps responsive layout, hashes and browser hi
   await expect(compactNavigation).toBeVisible();
   const summary = compactNavigation.locator('[data-in-page-navigation-summary="true"]');
   await summary.click();
-  await expect(compactNavigation.getByRole("link")).toHaveCount(4);
+  await expect(compactNavigation.getByRole("link")).toHaveCount(3);
   await compactNavigation.getByRole("link", { name: "Daten & Synchronisierung" }).click();
   await expect(page).toHaveURL(/\/einstellungen#settings-data-sync$/);
   await expect(summary).toContainText("Daten & Synchronisierung");
@@ -439,6 +447,7 @@ test("Pomodoro timer starts globally, persists and stays synchronized between ta
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await page.getByRole("button", { name: "Lerneinstellungen", exact: true }).click();
 
   const control = page.locator('[data-pomodoro-control="settings"]');
   await control.locator("button").first().click();
@@ -503,8 +512,10 @@ test("long desktop views use one content scrollbar without moving sidebar utilit
   ]) {
     await page.goto(view.path);
     await expect(page.getByRole("heading", { name: view.heading })).toBeVisible();
+    const contentRegion = page.getByRole("region", { name: "Seiteninhalt" });
+    await expect.poll(() => contentRegion.evaluate((screen) => screen.scrollHeight > screen.clientHeight)).toBe(true);
 
-    const layout = await page.getByRole("region", { name: "Seiteninhalt" }).evaluate((screen) => {
+    const layout = await contentRegion.evaluate((screen) => {
       const aside = screen.previousElementSibling as HTMLElement | null;
       const shell = screen.closest("main");
       return {

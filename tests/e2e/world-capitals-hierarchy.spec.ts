@@ -39,7 +39,7 @@ function createDeepDeckFixture() {
 }
 
 function mainMenu(page: Page) {
-  return page.locator('[data-app-navigation="true"]:visible').first();
+  return page.locator('nav[data-app-navigation="true"]:visible').first();
 }
 
 async function storedParentDeckId(page: Page, deckId: string) {
@@ -322,11 +322,11 @@ test("active deck header and rows fit every target width and toggle reliably on 
       return (measurement.getBoundingClientRect().width > deckName.clientWidth + 0.5) === (deckName.dataset.deckNameWrap === "true");
     }))).toBe(true);
     const layout = await page.getByTestId("learn-deck-list").evaluate((panel, { rootDeckId, rootLeafName }) => {
-      const rowViewport = panel.querySelector<HTMLElement>(".overflow-hidden.rounded-2xl");
+      const rowViewport = panel.querySelector<HTMLElement>(".core-deck-tree-rows");
       const tableHeader = panel.querySelector<HTMLElement>('[data-testid="deck-summary-header"] > div')!;
       const headerLabels = [
         tableHeader.firstElementChild as HTMLElement,
-        ...[...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-metric-label-full, .core-deck-summary-metric-label-short")]
+        ...[...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-metric-label-full")]
           .filter((label) => getComputedStyle(label).display !== "none"),
       ];
       const name = panel.querySelector<HTMLElement>(".core-deck-summary-name")!;
@@ -398,7 +398,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
     expect(layout.headerTitleInset).toBeCloseTo(8, 0);
     expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
-      ? ["STAPEL", "N", "O", "F"]
+      ? ["STAPEL"]
       : ["STAPEL", "NEU", "OFFEN", "FÄLLIG"]);
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
@@ -441,7 +441,7 @@ test("learning rows activate directly while expand and settings remain independe
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(page.getByTestId("learn-deck-list-header")).toContainText("Aktive Stapel");
   await expect(page.getByRole("button", { name: "Lernen öffnen" })).toHaveCount(0);
-  await expect(page.getByTestId("deck-summary-header")).toContainText("StapelNeuNOffenOFälligF");
+  await expect(page.getByTestId("deck-summary-header")).toHaveText("StapelNeuOffenFällig");
   await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "in-progress").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "due").locator("dt")).toHaveClass(/sr-only/);
@@ -568,8 +568,13 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await page.keyboard.press("Escape");
   await expect(wheel).toBeHidden();
   await iconTrigger.click();
-  const updatedIconColor = await iconTrigger.evaluate((element) => getComputedStyle(element).color);
-  expect(await iconGrid.locator("svg").evaluateAll((icons) => [...new Set(icons.map((icon) => getComputedStyle(icon).color))])).toEqual([updatedIconColor]);
+  await expect.poll(async () => {
+    const [updatedIconColor, gridIconColors] = await Promise.all([
+      iconTrigger.evaluate((element) => getComputedStyle(element).color),
+      iconGrid.locator("svg").evaluateAll((icons) => [...new Set(icons.map((icon) => getComputedStyle(icon).color))]),
+    ]);
+    return gridIconColors.length === 1 && gridIconColors[0] === updatedIconColor;
+  }).toBe(true);
   await page.keyboard.press("Escape");
 
   await page.setViewportSize({ width: 390, height: 844 });

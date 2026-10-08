@@ -174,7 +174,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByTestId(`learn-deck-row-${deck.id}`).click();
+  await page.getByTestId(`learn-deck-row-${deck.id}`).getByRole("button", { name: /lernen$/ }).click();
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Basic Frage neu", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await expect(page.frameLocator('iframe[title="Antwort"]').getByText("Basic Antwort neu", { exact: true })).toBeVisible();
@@ -212,7 +212,7 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByRole("textbox", { name: "Vorderseite" }).fill("Ungespeicherte Erstellungsfrage");
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Ungespeicherte Erstellungsantwort");
   await page.getByRole("textbox", { name: "Vorderseite" }).evaluate((editor) => {
-    const text = editor.firstChild;
+    const text = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT).nextNode();
     if (!text) throw new Error("Vorderseitentext fehlt.");
     const range = document.createRange();
     range.setStart(text, "Ungespeicherte ".length);
@@ -508,7 +508,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   if (!await detail.isVisible().catch(() => false)) await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByTestId(`learn-deck-row-${deck.id}`).click();
+  await page.getByTestId(`learn-deck-row-${deck.id}`).getByRole("button", { name: /lernen$/ }).click();
   await page.getByRole("button", { name: "Antwortoption A: Alpha" }).click();
   await page.getByRole("button", { name: "Antwort prüfen" }).click();
   await expect(page.locator(".core-mcq-option-correct")).toContainText("Gamma neu");
