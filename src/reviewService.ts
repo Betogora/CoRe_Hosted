@@ -729,7 +729,7 @@ export function removeDailyReviewSessionItem(session: DailyReviewSessionState, k
 
 export function advanceDailyReviewSession(
   session: DailyReviewSessionState,
-  input: { key: string; rating: ReviewRating; nextReviewState: ReviewState },
+  input: { key: string; rating: ReviewRating; nextReviewState: Pick<CardStudyState, "state"> },
 ): DailyReviewSessionState {
   const wasInitial = session.remainingInitialKeys.includes(input.key);
   const wasRepeat = !wasInitial && session.repeatKeys.includes(input.key);

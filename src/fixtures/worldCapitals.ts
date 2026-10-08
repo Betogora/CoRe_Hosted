@@ -2,6 +2,7 @@ import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReview
 import { simulateRatingOutcome } from "../scheduler.ts";
 import worldCapitalsSource from "../../fixtures/apkg/world-capitals.source.json" with { type: "json" };
 import type { Card, Deck, Note, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
+import type { ImportCommitGraph } from "../apkgImport.ts";
 
 type WorldCapitalItem = (typeof worldCapitalsSource.items)[number];
 
@@ -321,4 +322,34 @@ export function createWorldCapitalsSeed(): { decks: Deck[]; notes: Note[] } {
     });
   });
   return { decks: [rootDeck, ...childDecks], notes };
+}
+
+/** The seed as an import graph, so the demo takes the same chunked commit as an Anki package. */
+export function createWorldCapitalsImportGraph(): ImportCommitGraph {
+  const { decks, notes } = createWorldCapitalsSeed();
+  const cards = decks.flatMap((deck) => deck.cards);
+  const reviews = decks.flatMap((deck) => deck.reviewEvents.flatMap((event) => event.rating === "manual" ? [] : [{
+    id: event.id,
+    cardId: event.cardId,
+    rating: event.rating,
+    answeredAt: event.answeredAt,
+    responseTimeMs: event.responseTimeMs,
+    schedulerBefore: event.schedulerBefore,
+    schedulerAfter: event.schedulerAfter,
+    flags: event.flags,
+  }]));
+  return {
+    deckCount: decks.length,
+    noteCount: notes.length,
+    cardCount: cards.length,
+    reviewEventCount: reviews.length,
+    mediaCount: 0,
+    ankiGuids: notes.flatMap((note) => note.ankiGuid ? [note.ankiGuid] : []),
+    async streamChunks(visit) {
+      await visit({ kind: "decks", decks: decks.map(({ id, ankiDeckId, name, hierarchyPath, parentDeckId }) => ({ id, ankiDeckId, name, hierarchyPath, parentDeckId })) });
+      await visit({ kind: "notes", notes, noteSources: [], cards });
+      await visit({ kind: "reviews", values: reviews });
+    },
+    dispose() {},
+  };
 }

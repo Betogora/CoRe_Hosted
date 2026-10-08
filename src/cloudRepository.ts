@@ -608,7 +608,7 @@ export async function streamAccountCatalogChanges(
 }
 
 export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
-  const { data, error } = await client.rpc("list_account_card_catalog", {
+  const call = client.rpc("list_account_card_catalog", {
     p_deck_id: request.deckId,
     p_query: request.query ?? "",
     p_sort_field: request.sort?.field ?? "sortField",
@@ -617,6 +617,7 @@ export async function listAccountCardCatalog(client: any, request: CatalogPageRe
     p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
     p_include_total: request.knownTotalCount == null,
   });
+  const { data, error } = await (request.signal ? call.abortSignal(request.signal) : call);
   if (error) throw error;
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Kartenkatalog-Seite ist ungültig.");
   const candidate = data as Record<string, unknown>;

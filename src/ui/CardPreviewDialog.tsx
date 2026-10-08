@@ -1,10 +1,11 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import type { CardVariant, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
+import type { Card, Note } from "../coreTypes.ts";
 import { IconButton } from "./actionUi.tsx";
 import { CoreSegmentedControl } from "./coreUi.tsx";
-import { StudyCardContent } from "./StudyCardContent.tsx";
+import { StatusMessage } from "./feedbackUi.tsx";
+import { NoteCardContent } from "./NoteCardContent.tsx";
 import { useModalDialog } from "./useModalDialog.ts";
 
 type PreviewSide = "question" | "answer";
@@ -16,9 +17,8 @@ const PREVIEW_SIDE_OPTIONS = [
 
 export interface CardPreviewDialogProps {
   open: boolean;
-  item?: LearningItem | null;
-  variant?: CardVariant | null;
-  definition?: NoteTypeDefinitionV1 | null;
+  note: Note | null;
+  card: Card | null;
   mediaUrls?: Record<string, string>;
   onOpenChange: (open: boolean) => void;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
@@ -26,20 +26,17 @@ export interface CardPreviewDialogProps {
 
 export function CardPreviewDialog({
   open,
-  item,
-  variant,
-  definition,
+  note,
+  card,
   mediaUrls = {},
   onOpenChange,
   returnFocusRef,
 }: CardPreviewDialogProps) {
   const [side, setSide] = React.useState<PreviewSide>("question");
-  const [selectedChoices, setSelectedChoices] = React.useState<string[]>([]);
   const answerContentRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
   const closeDialog = React.useCallback(() => {
     setSide("question");
-    setSelectedChoices([]);
     onOpenChange(false);
   }, [onOpenChange]);
   const { dialogRef, initialFocusRef: closeButtonRef } = useModalDialog({
@@ -50,20 +47,12 @@ export function CardPreviewDialog({
   });
 
   React.useEffect(() => {
-    if (open) {
-      setSide("question");
-      setSelectedChoices([]);
-    }
+    if (open) setSide("question");
   }, [open]);
 
   React.useEffect(() => {
     if (open && side === "answer") answerContentRef.current?.focus();
   }, [open, side]);
-
-  function selectSide(nextSide: PreviewSide) {
-    setSide(nextSide);
-    if (nextSide === "question") setSelectedChoices([]);
-  }
 
   if (!open) return null;
 
@@ -92,17 +81,13 @@ export function CardPreviewDialog({
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-core-subtle p-3 sm:p-6">
           <div className="mx-auto grid min-h-full w-full max-w-5xl place-items-center">
             <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-panel border border-core-border bg-core-surface px-4 py-6 shadow-raised sm:px-8 sm:py-10">
-              <StudyCardContent
-                item={item}
-                variant={variant}
-                definition={definition}
-                mediaUrls={mediaUrls}
-                revealed={side === "answer"}
-                selectedChoices={selectedChoices}
-                onSelectedChoicesChange={setSelectedChoices}
-                onReveal={() => setSide("answer")}
-                answerRef={answerContentRef}
-              />
+              {note && card ? (
+                <div ref={answerContentRef} tabIndex={-1} className="min-w-0 outline-none">
+                  <NoteCardContent key={side === "question" ? "question" : "answer"} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
+                </div>
+              ) : (
+                <StatusMessage tone="info">Für die Vorschau fehlen noch Pflichtangaben.</StatusMessage>
+              )}
             </div>
           </div>
         </div>
@@ -112,7 +97,7 @@ export function CardPreviewDialog({
             ariaLabel="Kartenseite anzeigen"
             options={PREVIEW_SIDE_OPTIONS}
             value={side}
-            onValueChange={selectSide}
+            onValueChange={setSide}
             size="regular"
             className="w-full max-w-sm"
           />

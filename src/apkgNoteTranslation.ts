@@ -919,10 +919,11 @@ async function sha1Hex(bytes: Uint8Array): Promise<string> {
 /** Preview of a translated package: report, five sample cards and the counts the commit will stream. */
 export function describeImportGraph(graph: ApkgImportGraph) {
   const notesById = new Map(graph.notes.map((note) => [note.id, note]));
-  const samples: Array<{ note: Note; card: Card }> = [];
+  const notetypeNames = new Map(graph.noteTypeSources.map((source) => [source.id, source.name]));
+  const samples: Array<{ note: Note; card: Card; notetypeName: string }> = [];
   for (const card of graph.cards) {
     const note = notesById.get(card.noteId);
-    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card });
+    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card, notetypeName: notetypeNames.get(note.noteTypeSourceId ?? "") ?? "Anki-Notiztyp" });
     if (samples.length >= 5) break;
   }
   return {
@@ -938,6 +939,24 @@ export function describeImportGraph(graph: ApkgImportGraph) {
       ankiGuids: graph.notes.flatMap((note) => note.ankiGuid ? [note.ankiGuid] : []),
     },
   };
+}
+
+const SAMPLE_MEDIA_MAX_BYTES = 20 * 1024 * 1024;
+
+/** Media of the preview samples, checked like the commit and capped so the preview stays light. */
+export async function readSampleMedia(graph: ApkgImportGraph, samples: ReadonlyArray<{ note: Note }>) {
+  const filesBySha1 = new Map(graph.mediaFiles.map((file) => [file.sha1, file]));
+  const result: Array<{ name: string; sha1: string; size: number; mimeType: string; bytes: Uint8Array }> = [];
+  let total = 0;
+  for (const sha1 of new Set(samples.flatMap(({ note }) => Object.values(note.media)))) {
+    const file = filesBySha1.get(sha1);
+    if (!file || total + file.size > SAMPLE_MEDIA_MAX_BYTES) continue;
+    const bytes = await file.readBytes();
+    if (await sha1Hex(bytes) !== sha1) continue;
+    total += bytes.length;
+    result.push({ name: file.name, sha1, size: bytes.length, mimeType: file.mimeType, bytes });
+  }
+  return result;
 }
 
 /**

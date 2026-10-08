@@ -1,5 +1,5 @@
 import { readAnkiPackage } from "./apkgImportInternal.ts";
-import { createImportGraphChunks, describeImportGraph, translateAnkiPackage } from "./apkgNoteTranslation.ts";
+import { createImportGraphChunks, describeImportGraph, readSampleMedia, translateAnkiPackage } from "./apkgNoteTranslation.ts";
 import { parseApkgWorkerRequest, type ApkgWorkerResponse } from "./apkgImportWorkerProtocol.ts";
 
 interface WorkerScope {
@@ -62,7 +62,9 @@ workerScope.onmessage = async (event) => {
     translatedGraph = translateAnkiPackage(pkg);
     activeRequestId = requestId;
     workerScope.postMessage({ type: "progress", requestId, step: "preview" });
-    workerScope.postMessage({ type: "result", requestId, result: describeImportGraph(translatedGraph) as any });
+    const descriptor = describeImportGraph(translatedGraph);
+    const sampleMedia = await readSampleMedia(translatedGraph, descriptor.samples);
+    workerScope.postMessage({ type: "result", requestId, result: { ...descriptor, sampleMedia } as any }, sampleMedia.map((file) => file.bytes.buffer as ArrayBuffer));
   } catch (error) {
     workerScope.postMessage({ type: "error", requestId, message: error instanceof Error ? error.message : "APKG konnte im Import-Worker nicht gelesen werden." });
     workerScope.close();

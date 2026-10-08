@@ -1,24 +1,26 @@
 import React from "react";
 import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2 } from "lucide-react";
-import type { ApkgCreationPreview, CreationWorkflow, ImportCompletion } from "../creationWorkflow.ts";
-import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgPreviewMediaStatus, ApkgProgressPhase } from "../apkgImportSession.ts";
-import type { Deck, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
+import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.ts";
+import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgProgressPhase } from "../apkgImportSession.ts";
+import type { Card, Deck, Note } from "../coreTypes.ts";
 import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
-import type { AccountMediaStore, MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
-import { LOCAL_APKG_MAX_BYTES } from "../apkgImport.ts";
+import type { MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
+import { ANKI_PACKAGE_MAX_BYTES, type ApkgTranslationReport, type ImportMediaFile } from "../apkgImport.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
-import { useCardMediaUrls } from "../ui/cardMedia.tsx";
-import { CardPresentationSurface } from "../ui/CardPresentationSurface.tsx";
+import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
 
 type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile">;
 
+export interface ImportCompletion {
+  deck: Deck;
+  createdCount: number;
+}
+
 export interface ApkgImportPanelProps {
-  existingDecks: Deck[];
   workflow: ApkgWorkflow;
-  mediaStore: AccountMediaStore | null;
   session: ApkgImportSession;
   onSessionChange: React.Dispatch<React.SetStateAction<ApkgImportSession>>;
   isSessionCurrent: (version: number) => boolean;
@@ -30,14 +32,24 @@ const ANALYSIS_PROGRESS_BY_STEP: Record<string, number> = {
   validate: 5,
   collection: 25,
   cards: 50,
+  translate: 70,
   preview: 85,
 };
 
 const APKG_SAMPLE_CARD_LIMIT = 3;
-const APKG_CARD_SIDES = [
-  { side: "question", label: "Vorderseite", title: "APKG-Vorschau der Vorderseite" },
-  { side: "answer", label: "Rückseite", title: "APKG-Vorschau der Rückseite" },
-] as const;
+
+const TRANSLATOR_LABELS: Record<string, string> = {
+  "anki-basic": "Frage und Antwort",
+  "anki-cloze": "Lückentext",
+  "anki-image-occlusion": "Bildverdeckung",
+  "image-occlusion-enhanced": "Image Occlusion Enhanced",
+  "multiple-choice-for-anki": "Multiple Choice",
+  anking: "AnKing",
+  generic: "Generisch",
+  "field-list": "Feldliste",
+};
+
+const EMPTY_MEDIA: ImportMediaFile[] = [];
 
 function normalizeProgress(percent: number): number {
   return Math.max(0, Math.min(100, Math.round(percent)));
@@ -84,41 +96,71 @@ function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
   return <span className="rounded-control bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">{children}</span>;
 }
 
-function ApkgCardSample({ deck, card, definition, mediaStore }: { deck: Deck; card: LearningItem; definition: NoteTypeDefinitionV1 | null; mediaStore: AccountMediaStore | null }) {
-  const { urls: mediaUrls } = useCardMediaUrls({ ...deck, cards: [card] }, card.id, mediaStore);
-  if (!definition) return null;
+/** Object URLs for the sample media of the preview; they are revoked with the preview. */
+function useSampleMediaUrls(files: ImportMediaFile[]) {
+  const [urlsBySha1, setUrlsBySha1] = React.useState<Record<string, string>>({});
+  React.useEffect(() => {
+    if (typeof URL.createObjectURL !== "function") return undefined;
+    const urls = Object.fromEntries(files.map((file) => [file.sha1, URL.createObjectURL(new Blob([file.bytes as BlobPart], { type: file.mimeType }))]));
+    setUrlsBySha1(urls);
+    return () => Object.values(urls).forEach((url) => URL.revokeObjectURL(url));
+  }, [files]);
+  return urlsBySha1;
+}
+
+function ApkgCardSample({ note, card, notetypeName, urlsBySha1 }: { note: Note; card: Card; notetypeName: string; urlsBySha1: Record<string, string> }) {
+  const mediaUrls = React.useMemo(
+    () => Object.fromEntries(Object.entries(note.media).flatMap(([name, sha1]) => urlsBySha1[sha1] ? [[name, urlsBySha1[sha1]]] : [])),
+    [note.media, urlsBySha1],
+  );
   return (
     <article className="core-surface-raised rounded-panel p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <ApkgPreviewBadge>Originalkarte</ApkgPreviewBadge>
-        <span className="core-caption font-medium uppercase tracking-wide text-core-muted">{definition.name}</span>
+        <span className="core-caption font-medium uppercase tracking-wide text-core-muted">{notetypeName}</span>
       </div>
-      <div className="grid min-w-0 gap-4 xl:grid-cols-2">
-        {APKG_CARD_SIDES.map(({ side, label, title }) => (
-          <CardPresentationSurface
-            key={side}
-            item={card}
-            variant={null}
-            definition={definition}
-            side={side}
-            surface="editor-preview"
-            title={title}
-            mediaUrls={mediaUrls}
-            showCompatibility="warnings-only"
-            cornerBadge={<ApkgPreviewBadge>{label}</ApkgPreviewBadge>}
-          />
-        ))}
-      </div>
+      <NoteCardContent note={note} card={card} surface="preview" revealed onReveal={() => undefined} mediaUrls={mediaUrls} />
     </article>
   );
 }
 
-export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, onSessionChange, isSessionCurrent, onResetSession, onCompleted }: ApkgImportPanelProps) {
+function studyLabel(study: ApkgTranslationReport["notetypes"][number]["study"]) {
+  const migrated = study["fsrs-memory-state"] + study["revlog-replay"] + study["classic-state"];
+  return migrated === 0 ? "kein Lernstand" : `${migrated} mit Lernstand`;
+}
+
+function NotetypeReport({ report }: { report: ApkgTranslationReport }) {
+  return (
+    <section className="rounded-control border border-core-border bg-core-surface p-4" aria-labelledby="apkg-notetypes-heading">
+      <h4 id="apkg-notetypes-heading" className="font-semibold text-core-text">Notiztypen</h4>
+      <ul className="mt-3 grid gap-3 core-body text-core-muted">
+        {report.notetypes.map((notetype) => (
+          <li key={notetype.ankiNotetypeId} data-testid="apkg-notetype-report" className="grid gap-1 border-b border-core-subtle pb-3 last:border-0 last:pb-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="font-medium text-core-secondary">{notetype.name}</span>
+              <span>{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</span>
+            </div>
+            <p>
+              {notetype.notes} {notetype.notes === 1 ? "Inhalt" : "Inhalte"} · {notetype.cards} {notetype.cards === 1 ? "Karte" : "Karten"} · {studyLabel(notetype.study)}
+            </p>
+            {notetype.fallbackNotes > 0 ? <p className="text-core-text">{notetype.fallbackNotes} {notetype.fallbackNotes === 1 ? "Inhalt wird" : "Inhalte werden"} generisch als Feldliste übernommen.</p> : null}
+            {notetype.untranslatableNotes > 0 ? <p className="text-core-text">{notetype.untranslatableNotes} {notetype.untranslatableNotes === 1 ? "Inhalt ohne darstellbares Feld wird" : "Inhalte ohne darstellbares Feld werden"} übersprungen.</p> : null}
+            {notetype.unmappedFields.length > 0 ? <p>Nur im Editor sichtbar: {notetype.unmappedFields.join(", ")}</p> : null}
+            {notetype.missingMedia.length > 0 ? <p className="text-core-text">{notetype.missingMedia.length} {notetype.missingMedia.length === 1 ? "Medium fehlt" : "Medien fehlen"} im Paket.</p> : null}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionCurrent, onResetSession, onCompleted }: ApkgImportPanelProps) {
   const completionDeliveredRef = React.useRef(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
-  const { selectedFile, job, preview, mediaStatus, isParsing, mediaTask, cloudTask, cloudProgress, completedDeck, completedCount, phaseProgress } = session;
+  const { selectedFile, job, preview, mediaStatus, isParsing, mediaTask, cloudTask, cloudProgress, completedDeck, completedCount, reimport, phaseProgress } = session;
   const sessionVersion = session.version;
-  const completedMediaSyncStatus = mediaStatus && "status" in mediaStatus ? mediaStatus.status : null;
+  const completedMediaSyncStatus = mediaStatus?.status ?? null;
+  const sampleUrlsBySha1 = useSampleMediaUrls(preview?.sampleMedia ?? EMPTY_MEDIA);
 
   function updateSession(update: (current: ApkgImportSession) => ApkgImportSession) {
     onSessionChange((current) => current.version === sessionVersion ? update(current) : current);
@@ -132,7 +174,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
     updateSession((current) => ({ ...current, preview: typeof update === "function" ? update(current.preview) : update }));
   }
 
-  function setMediaStatus(value: ApkgPreviewMediaStatus | MediaSyncResult | null) { updateSession((current) => ({ ...current, mediaStatus: value })); }
+  function setMediaStatus(value: MediaSyncResult | null) { updateSession((current) => ({ ...current, mediaStatus: value })); }
   function setIsParsing(value: boolean) { updateSession((current) => ({ ...current, isParsing: value })); }
   function setMediaTask(value: MediaSyncTask | null) { updateSession((current) => ({ ...current, mediaTask: value })); }
   function setCloudTask(value: ApkgImportSession["cloudTask"]) { updateSession((current) => ({ ...current, cloudTask: value })); }
@@ -154,12 +196,12 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
   }, []);
 
   React.useEffect(() => {
-    if (job?.status !== "done" || completedMediaSyncStatus !== "cloud-ready" || !completedDeck) return;
+    if (job?.status !== "done" || (mediaTask && completedMediaSyncStatus !== "cloud-ready") || !completedDeck) return;
     if (completionDeliveredRef.current || !isSessionCurrent(sessionVersion)) return;
     completionDeliveredRef.current = true;
     onCompleted({ deck: completedDeck, createdCount: completedCount });
     onResetSession();
-  }, [completedCount, completedDeck, completedMediaSyncStatus, isSessionCurrent, job?.status, onCompleted, onResetSession, sessionVersion]);
+  }, [completedCount, completedDeck, completedMediaSyncStatus, isSessionCurrent, job?.status, mediaTask, onCompleted, onResetSession, sessionVersion]);
 
   function beginProgress(phase: ApkgProgressPhase) {
     setPhaseProgress({ phase, percent: 0 });
@@ -174,7 +216,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
   }
 
   async function parseFile(file: File) {
-    if (preview?.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
+    preview?.commitGraph.dispose();
     setSelectedFile(file);
     setPreview(null);
     setMediaStatus(null);
@@ -183,16 +225,17 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
     setCloudProgress(null);
     setCompletedDeck(null);
     setCompletedCount(0);
+    updateSession((current) => ({ ...current, reimport: null }));
     completionDeliveredRef.current = false;
     beginProgress("analyzing");
-    if (file.size > LOCAL_APKG_MAX_BYTES) {
+    if (file.size > ANKI_PACKAGE_MAX_BYTES) {
       setPhaseProgress(null);
       setJob({
         fileName: file.name,
         fileSize: file.size,
         status: "error",
         warnings: [],
-        errors: ["Die APKG-Datei ist größer als 250 MB. Bitte wähle eine kleinere Datei aus."],
+        errors: ["Die Anki-Datei ist größer als 2 GiB. Bitte wähle eine kleinere Datei aus."],
       });
       return;
     }
@@ -200,16 +243,14 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
     setIsParsing(true);
 
     try {
-      const result = await workflow.parseApkgFile(file as unknown as Parameters<ApkgWorkflow["parseApkgFile"]>[0], {
-        existingDecks,
+      const result = await workflow.parseApkgFile(file, {
         onStep: (step) => reportProgress("analyzing", ANALYSIS_PROGRESS_BY_STEP[step] ?? 0),
       });
       if (!isSessionCurrent(sessionVersion)) {
-        if (result.preview?.commitGraph.kind === "worker-import") result.preview.commitGraph.dispose();
+        result.preview?.commitGraph.dispose();
         return;
       }
       reportProgress("analyzing", 100);
-      setMediaStatus(result.mediaStatus);
       setJob(toImportJob(result.job));
       setPreview(result.preview);
     } catch (error) {
@@ -233,29 +274,16 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
     setIsParsing(true);
     try {
       const result = await workflow.commitApkgPreview(preview, {
-        existingDecks,
         onProgress: (percent) => reportProgress("committing", percent),
       });
-      if (result.report.errors.length > 0 || !result.deck) {
-        setJob((current) => ({
-          ...(current ?? { warnings: [], errors: [] }),
-          status: "error",
-          warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
-          errors: [...new Set([...(current?.errors ?? []), ...(result.report.errors ?? [])])],
-        }));
-        setPreview((current) => current ? { ...current, report: result.report } as ApkgCreationPreview : current);
-        return;
-      }
-      setJob((current) => ({
-        ...(current ?? { warnings: [], errors: [] }),
-        status: "syncing_cloud",
-        warnings: [...new Set([...(current?.warnings ?? []), ...(result.report.warnings ?? [])])],
-      }));
-      setPreview((current) => current ? { ...current, report: result.report } as ApkgCreationPreview : current);
-      const importedCount = "createdCount" in result ? Number(result.createdCount ?? 0) : result.deck.cardCount ?? 0;
+      if (!result.deck) throw new Error("Der Import hat keinen Stapel angelegt.");
+      setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_cloud" }));
       setCompletedDeck(result.deck);
-      setCompletedCount(importedCount);
-      if (!("cloudTask" in result) || !result.cloudTask || !result.mediaTask) throw new Error("Die Synchronisierungsaufgaben des Imports fehlen.");
+      setCompletedCount(result.createdCount);
+      updateSession((current) => ({
+        ...current,
+        reimport: result.keptLocalEdits > 0 || result.missingInPackage > 0 ? { keptLocalEdits: result.keptLocalEdits, missingInPackage: result.missingInPackage } : null,
+      }));
       const importCloudTask = result.cloudTask;
       const importMediaTask = result.mediaTask;
       let mediaStarted = false;
@@ -278,6 +306,10 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
         if (cloudResult.status !== "cloud-ready" || mediaStarted) return;
         mediaStarted = true;
         reportProgress("syncing_cloud", 100);
+        if (!importMediaTask) {
+          setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "done" }));
+          return;
+        }
         beginProgress("syncing_media");
         setJob((current) => ({ ...(current ?? { warnings: [], errors: [] }), status: "syncing_media" }));
         importMediaTask.subscribe((progress: MediaSyncProgress, status: MediaSyncStatus) => {
@@ -307,12 +339,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
       }));
     } finally {
       setIsParsing(false);
-      if (preview.commitGraph.kind === "worker-import") preview.commitGraph.dispose();
+      preview.commitGraph.dispose();
     }
   }
 
   const report = preview?.report ?? null;
-  const apkgReport = report?.apkg?.contractVersion === 1 ? report.apkg : null;
   const previewWarnings = [...new Set(report?.warnings ?? [])];
   const previewErrors = [...new Set([...(job?.errors ?? []), ...(report?.errors ?? [])])];
   const uiState = projectImportUiState({
@@ -344,8 +375,6 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
   const fileInteractionLocked = activeProgressPhase !== null;
   const progressRunning = fileInteractionLocked && !progressPaused;
   const previewVisible = Boolean(preview) && !["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
-  const presentMediaCount = apkgReport?.media.detected ?? 0;
-  const previewDefinitions = new Map(preview?.commitGraph.noteTypeDefinitions.map((definition) => [definition.id, definition]) ?? []);
 
   React.useEffect(() => {
     if (!activeProgressPhase || progressPaused || prefersReducedMotion) return undefined;
@@ -364,7 +393,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
       <SoftPanel className="p-6">
         <div className="mb-6 flex items-center gap-3">
           <OrbIcon icon={FileArchive} className="bg-core-success-soft text-core-text" />
-          <h2 className="core-heading-2 font-semibold text-core-text">APKG-Dateien importieren</h2>
+          <h2 className="core-heading-2 font-semibold text-core-text">Anki-Dateien importieren</h2>
         </div>
 
         <FileDropField
@@ -428,6 +457,13 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
           </div>
         ) : null}
 
+        {reimport ? (
+          <div className="core-status-info mt-4 core-body" role="status" data-testid="apkg-reimport-summary">
+            {reimport.keptLocalEdits > 0 ? <p>{reimport.keptLocalEdits} lokal bearbeitete {reimport.keptLocalEdits === 1 ? "Inhalt bleibt" : "Inhalte bleiben"} unverändert.</p> : null}
+            {reimport.missingInPackage > 0 ? <p>{reimport.missingInPackage} {reimport.missingInPackage === 1 ? "Karte fehlt" : "Karten fehlen"} im Paket und {reimport.missingInPackage === 1 ? "bleibt" : "bleiben"} erhalten.</p> : null}
+          </div>
+        ) : null}
+
         {uiState.status === "partial" ? (
           <div className="core-status-warning mt-4 core-body" role="status">
             <p className="font-semibold">Import teilweise abgeschlossen.</p>
@@ -466,7 +502,7 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="core-body font-semibold uppercase tracking-wide text-core-text">Importvorschau</p>
-                  <h3 className="mt-1 core-heading-2 font-semibold text-core-text">{preview.summary.name}</h3>
+                  <h3 className="mt-1 core-heading-2 font-semibold text-core-text">{preview.rootDeckName}</h3>
                 </div>
                 {uiState.status === "preview" ? (
                   <ActionButton type="button" variant="primary" icon={Database} loading={isParsing} disabled={previewErrors.length > 0} onClick={() => void handleCommit()}>Import übernehmen</ActionButton>
@@ -478,32 +514,21 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
               </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {[
-                  { label: "Erkannte Stapel", value: apkgReport?.decks.length ?? 0 },
-                  { label: "Karten", value: apkgReport?.detectedCards ?? 0 },
-                  { label: "Medien vorhanden", value: presentMediaCount },
-                  { label: "Medien fehlen", value: apkgReport?.media.missing.length ?? 0 },
+                  { label: "Erkannte Stapel", value: report?.imported.decks ?? 0 },
+                  { label: "Karten", value: report?.imported.cards ?? 0 },
+                  { label: "Medien vorhanden", value: report?.imported.mediaFiles ?? 0 },
+                  { label: "Medien fehlen", value: report?.missingMedia.length ?? 0 },
                 ].map(({ label, value }) => (
                   <StatTile key={label} data-testid="apkg-stat-tile" size="compact" label={label} value={value} />
                 ))}
               </div>
-              {apkgReport ? (
+              {report ? (
                 <div className="mt-6 grid gap-4">
-                  <section className="rounded-control border border-core-border bg-core-surface p-4" aria-labelledby="apkg-decks-heading">
-                    <h4 id="apkg-decks-heading" className="font-semibold text-core-text">Erkannte Stapel</h4>
-                    <div className="mt-3 grid gap-2 core-body text-core-muted">
-                      {apkgReport.decks.map((deck) => (
-                        <div key={deck.id} className="flex flex-wrap items-center justify-between gap-2 border-b border-core-subtle pb-2 last:border-0 last:pb-0">
-                          <span className="font-medium text-core-secondary">{deck.path}</span>
-                          <span>{deck.cardCount} Karten</span>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  {apkgReport.media.missing.length > 0 ? (
+                  <NotetypeReport report={report} />
+                  {report.missingMedia.length > 0 ? (
                     <div className="flex gap-2 rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text">
                       <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
-                      <span>{apkgReport.media.missing.length} referenzierte Medien fehlen im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
+                      <span>{report.missingMedia.length} referenzierte Medien fehlen im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
                     </div>
                   ) : null}
                   {previewWarnings.length > 0 ? (
@@ -517,15 +542,6 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
                       </ul>
                     </section>
                   ) : null}
-
-                  <section className="rounded-control border border-core-border bg-core-surface p-4" aria-labelledby="apkg-reimport-heading">
-                    <h4 id="apkg-reimport-heading" className="font-semibold text-core-text">Reimport</h4>
-                    <dl className="mt-3 grid grid-cols-2 gap-3 core-body sm:grid-cols-3">
-                      <div><dt className="text-core-muted">Neu</dt><dd className="font-semibold text-core-text">{apkgReport.reimport.newItems}</dd></div>
-                      <div><dt className="text-core-muted">Wiedererkannt</dt><dd className="font-semibold text-core-text">{apkgReport.reimport.matchedItems}</dd></div>
-                      <div><dt className="text-core-muted">Übersprungen</dt><dd className="font-semibold text-core-text">{apkgReport.reimport.skippedItems}</dd></div>
-                    </dl>
-                  </section>
                 </div>
               ) : null}
               {mediaTask && uiState.status === "syncing_media" && cloudProgress?.status !== "cloud-ready" && cloudProgress?.status !== "cancelled" ? (
@@ -536,11 +552,11 @@ export function ApkgImportPanel({ existingDecks, workflow, mediaStore, session, 
               ) : null}
             </SoftPanel>
 
-            {preview.sampleCards.length > 0 ? (
+            {preview.samples.length > 0 ? (
               <section className="core-surface-raised rounded-panel p-6" aria-labelledby="apkg-card-examples-heading">
                 <h3 id="apkg-card-examples-heading" className="font-semibold text-core-text">Kartenbeispiele</h3>
                 <div className="mt-4 grid gap-4">
-                  {preview.sampleCards.slice(0, APKG_SAMPLE_CARD_LIMIT).map((card) => <ApkgCardSample key={card.id} deck={preview.summary} card={card} definition={previewDefinitions.get(card.noteTypeDefinitionId) ?? null} mediaStore={mediaStore} />)}
+                  {preview.samples.slice(0, APKG_SAMPLE_CARD_LIMIT).map(({ note, card, notetypeName }) => <ApkgCardSample key={card.id} note={note} card={card} notetypeName={notetypeName} urlsBySha1={sampleUrlsBySha1} />)}
                 </div>
               </section>
             ) : null}

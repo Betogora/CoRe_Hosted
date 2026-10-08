@@ -5,8 +5,8 @@ import { ActionButton } from "./actionUi.tsx";
 
 const variants = {
   apkg: {
-    icon: Upload, accept: ".apkg", aria: "APKG-Datei auswählen oder ablegen",
-    prompt: "APKG-Datei hier ablegen (Max. 250 MB)", action: ["APKG-Datei auswählen", "Andere Datei auswählen"],
+    icon: Upload, accept: ".apkg,.colpkg", aria: "Anki-Datei (APKG oder COLPKG) auswählen oder ablegen",
+    prompt: "APKG- oder COLPKG-Datei hier ablegen (Max. 2 GiB)", action: ["APKG-Datei auswählen", "Andere Datei auswählen"],
   },
   image: {
     icon: ImagePlus, accept: "image/*", aria: "Bild einfügen oder ablegen", paste: true,

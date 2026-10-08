@@ -10,17 +10,12 @@ import { ApkgImportPanel } from "./ApkgImportPanel.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 
-type ManualCardInput = Parameters<CreationScreenProps["onAppendManualCard"]>[1];
-
-export interface CreationScreenViewProps extends Omit<Partial<CreationScreenProps>, "onCreated" | "onAppendManualCard"> {
-  onCreated?: (deck: Deck) => unknown;
-  onAppendManualCard?: (deckId: string, input: ManualCardInput) => unknown;
-}
+export type CreationScreenViewProps = Partial<CreationScreenProps>;
 
 export function CreationScreen({
   decks = [],
   mediaStore = null,
-  persistImportedDecks,
+  commitImport,
   apkgImportSession: controlledApkgImportSession,
   onApkgImportSessionChange: controlledApkgImportSessionChange,
   isApkgImportSessionCurrent: controlledIsApkgImportSessionCurrent,
@@ -32,8 +27,7 @@ export function CreationScreen({
   completionKind = "",
   onMethodChange = () => undefined,
   onTargetDeckChange = () => undefined,
-  onCreated = async (deck) => deck,
-  onAppendManualCard = async () => null,
+  onSaveManualNote = async () => null,
   onDraftStateChange = () => undefined,
   onSessionCompleted = () => undefined,
   onStartDeck = () => undefined,
@@ -53,15 +47,13 @@ export function CreationScreen({
   const selectedMethodMeta = creationMethods.find((method) => method.id === selectedMethod);
   const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
   const resolvedCompletionKind = sessionCompletion?.kind ?? completionKind;
-  const resolvedCompletedCount = sessionCompletion?.createdCount
-    ?? (completionKind ? completedCount : completedDeck?.cards.filter((card) => card.status !== "deleted").length)
-    ?? 0;
+  const resolvedCompletedCount = sessionCompletion?.createdCount ?? completedCount;
   const accountWorkflow = React.useMemo(
     () => createCreationWorkflow({
       mediaStore: mediaStore ?? undefined,
-      ...(persistImportedDecks ? { persistImportedDecks } : {}),
+      ...(commitImport ? { commitImport } : {}),
     }),
-    [mediaStore, persistImportedDecks],
+    [commitImport, mediaStore],
   );
 
   function completeSession(deckId: string, createdCount: number, kind: "import" | "manual") {
@@ -80,9 +72,7 @@ export function CreationScreen({
     if (selectedMethod === "import") {
       return (
         <ApkgImportPanel
-          existingDecks={decks}
           workflow={accountWorkflow}
-          mediaStore={mediaStore}
           session={apkgImportSession}
           onSessionChange={onApkgImportSessionChange}
           isSessionCurrent={isApkgImportSessionCurrent}
@@ -100,11 +90,7 @@ export function CreationScreen({
           workflow={accountWorkflow}
           initialTargetDeckId={initialTargetDeckId}
           onTargetDeckChange={onTargetDeckChange}
-          onCreated={onCreated}
-          onAppendManualCard={async (deckId, input) => {
-            const result = await onAppendManualCard(deckId, input);
-            return result && typeof result === "object" && "id" in result ? result as Deck : null;
-          }}
+          onSaveManualNote={onSaveManualNote}
           onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount, "manual")}
           onDraftStateChange={onDraftStateChange}
         />

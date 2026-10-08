@@ -39,14 +39,17 @@ export interface ApkgImportPreview {
   fileSize: number;
   rootDeckName: string;
   report: ApkgTranslationReport;
-  samples: Array<{ note: Note; card: Card }>;
+  samples: Array<{ note: Note; card: Card; notetypeName: string }>;
+  /** Media of the samples for the preview only; the commit reads every file again. */
+  sampleMedia: ImportMediaFile[];
   commitGraph: ImportCommitGraph;
 }
 
 export interface ApkgPreviewDescriptor {
   rootDeckName: string;
   report: ApkgTranslationReport;
-  samples: Array<{ note: Note; card: Card }>;
+  samples: Array<{ note: Note; card: Card; notetypeName: string }>;
+  sampleMedia: ImportMediaFile[];
   counts: Pick<ImportCommitGraph, "deckCount" | "noteCount" | "cardCount" | "reviewEventCount" | "mediaCount" | "ankiGuids">;
 }
 
@@ -56,14 +59,15 @@ function canUseWorker(): boolean {
 
 /** In-process translation for Node tests and scripts; browsers always use the worker. */
 async function translateInProcess(file: Blob & { name: string }, onStep: (step: string) => void) {
-  const [{ readAnkiPackage }, { translateAnkiPackage, createImportGraphChunks, describeImportGraph }] = await Promise.all([
+  const [{ readAnkiPackage }, { translateAnkiPackage, createImportGraphChunks, describeImportGraph, readSampleMedia }] = await Promise.all([
     import("./apkgImportInternal.ts"),
     import("./apkgNoteTranslation.ts"),
   ]);
   const pkg = await readAnkiPackage(file, onStep);
   onStep("translate");
   const graph = translateAnkiPackage(pkg);
-  const descriptor = describeImportGraph(graph);
+  const description = describeImportGraph(graph);
+  const descriptor: ApkgPreviewDescriptor = { ...description, sampleMedia: await readSampleMedia(graph, description.samples) };
   return {
     descriptor,
     commitGraph: {
@@ -183,6 +187,7 @@ export async function createApkgImportPreview(
     rootDeckName: descriptor.rootDeckName,
     report: descriptor.report,
     samples: descriptor.samples,
+    sampleMedia: descriptor.sampleMedia ?? [],
     commitGraph,
   };
 }

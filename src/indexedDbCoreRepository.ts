@@ -1564,6 +1564,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(write);
       return batch.queued.length;
     },
+    getSyncConflictCardIds: (): ReadonlySet<string> => new Set(syncConflictCardIds),
     async setSyncConflicts(conflicts: any[] = []) {
       syncConflictCardIds = new Set(conflicts.flatMap((conflict) => conflict?.cardId ? [String(conflict.cardId)] : []));
       const conflictedDeckIds = [...new Set(conflicts.filter((conflict) => conflict?.entityTable === "decks" && conflict?.entityId).map((conflict) => String(conflict.entityId)))];

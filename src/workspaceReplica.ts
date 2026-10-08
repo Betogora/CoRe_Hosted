@@ -120,6 +120,7 @@ export interface CatalogPageRequest {
   cursor?: { sortValue: string; id: string } | null;
   limit?: number;
   knownTotalCount?: number;
+  signal?: AbortSignal;
 }
 
 export interface CatalogPage {

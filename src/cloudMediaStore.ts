@@ -1,5 +1,5 @@
-import type { MediaAssetReference } from "./coreTypes.ts";
-import { validateMediaAssetRows } from "./cloudRepositoryValidation.ts";
+import { validateMediaFileRows } from "./cloudRepositoryValidation.ts";
+import type { MediaFileReference } from "./coreTypes.ts";
 
 const CORE_MEDIA_BUCKET = "core-media";
 const RESUMABLE_UPLOAD_THRESHOLD_BYTES = 6 * 1024 * 1024;
@@ -15,10 +15,6 @@ export interface CloudMediaFile {
   size: number;
   mimeType: string;
   blob?: Blob;
-  cardId?: string | null;
-  createReference?: boolean;
-  source?: string;
-  metadata?: Record<string, unknown>;
 }
 
 export interface CloudMediaControl {
@@ -28,18 +24,15 @@ export interface CloudMediaControl {
   setCancelHandler(handler: (() => void) | null): void;
 }
 
-interface SyncDeckInput { deckId: string; files: CloudMediaFile[]; previousReferences: MediaAssetReference[]; retainedReferences?: MediaAssetReference[]; preserveObjects?: boolean; }
-interface SyncOptions {
+interface UploadOptions {
   client: any;
   supabaseUrl: string;
   userId: string;
-  decks: SyncDeckInput[];
+  files: CloudMediaFile[];
   control: CloudMediaControl;
   uploadFile?(file: CloudMediaFile, path: string, onProgress: (processedBytes: number) => void): Promise<"uploaded" | "reused">;
   onProgress?(progress: { completed: number; total: number; uploaded: number; reused: number; currentName: string; processedBytes: number; totalBytes: number }): void;
 }
-
-function nowIso() { return new Date().toISOString(); }
 
 function chunks<T>(values: T[], size: number): T[][] {
   const result: T[][] = [];
@@ -85,29 +78,7 @@ export function classifyMediaError(error: unknown): MediaFailureKind {
   return "storage";
 }
 
-function toReference(row: ReturnType<typeof validateMediaAssetRows>[number]): MediaAssetReference {
-  return {
-    id: row.id, userId: row.user_id, deckId: row.deck_id!, cardId: row.card_id,
-    sha1: row.sha1, size: row.size, mimeType: row.mime_type, originalName: row.original_name,
-    storageBucket: row.storage_bucket, storagePath: row.storage_path, source: row.source,
-    metadata: row.metadata as Record<string, unknown>, createdAt: row.created_at,
-    updatedAt: row.updated_at, deletedAt: row.deleted_at,
-  };
-}
-
-function toRow(file: CloudMediaFile, userId: string, deckId: string, path: string, previous?: MediaAssetReference) {
-  const timestamp = nowIso();
-  const sha1 = requireSha1(file.sha1);
-  return {
-    id: previous?.id ?? `media_${deckId}_${file.cardId ?? "deck"}_${sha1}`,
-    user_id: userId, deck_id: deckId, card_id: file.cardId ?? null, sha1,
-    size: file.size, mime_type: file.mimeType || "application/octet-stream", original_name: file.name,
-    storage_bucket: CORE_MEDIA_BUCKET, storage_path: path, source: file.source ?? "apkg-media",
-    metadata: file.metadata ?? {}, created_at: previous?.createdAt ?? timestamp, updated_at: timestamp, deleted_at: null,
-  };
-}
-
-function accountObjectPath(userId: string, sha1: string) { return `${userId}/objects/${requireSha1(sha1)}`; }
+export function accountMediaPath(userId: string, sha1: string) { return `${userId}/${requireSha1(sha1)}`; }
 
 async function currentToken(client: any) {
   const { data, error } = await client.auth.getSession();
@@ -184,59 +155,36 @@ async function uploadLarge(client: any, supabaseUrl: string, userId: string, fil
   return run();
 }
 
-async function selectAccountHashRows(client: any, userId: string, hashes: string[]) {
-  const rows = [];
+async function selectMediaFiles(client: any, userId: string, hashes: string[]): Promise<MediaFileReference[]> {
+  const rows: MediaFileReference[] = [];
   for (const batch of chunks([...new Set(hashes)], MEDIA_METADATA_BATCH_SIZE)) {
-    const { data, error } = await client.from("media_assets").select("*").eq("user_id", userId).eq("storage_bucket", CORE_MEDIA_BUCKET).in("sha1", batch).is("deleted_at", null);
+    const { data, error } = await client.from("media_files").select("*").eq("user_id", userId).in("sha1", batch);
     if (error) throw error;
-    rows.push(...validateMediaAssetRows(data ?? []));
+    rows.push(...validateMediaFileRows(data ?? []));
   }
   return rows;
 }
 
-async function persistReferences(client: any, rows: ReturnType<typeof toRow>[]) {
-  const references: MediaAssetReference[] = [];
-  for (const batch of chunks(rows, MEDIA_METADATA_BATCH_SIZE)) {
-    const { data, error } = await client.from("media_assets").upsert(batch, { onConflict: "user_id,id" }).select("*");
-    if (error) throw error;
-    references.push(...validateMediaAssetRows(data ?? []).map(toReference));
-  }
-  return references;
-}
-
-async function retireStaleReferences(client: any, userId: string, previous: MediaAssetReference[], activeIds: Set<string>, preserveObjects = false) {
-  const stale = previous.filter((reference) => !activeIds.has(reference.id) && !reference.deletedAt);
-  for (const reference of stale) {
-    const deletedAt = nowIso();
-    const { error } = await client.from("media_assets").update({ deleted_at: deletedAt, updated_at: deletedAt }).eq("user_id", userId).eq("id", reference.id);
-    if (error) throw error;
-    const { data, error: countError } = await client.from("media_assets").select("id").eq("user_id", userId).eq("storage_bucket", reference.storageBucket).eq("storage_path", reference.storagePath).is("deleted_at", null);
-    if (countError) throw countError;
-    if (!preserveObjects && (data ?? []).length === 0) {
-      const { error: removeError } = await client.storage.from(reference.storageBucket).remove([reference.storagePath]);
-      if (removeError) throw removeError;
-    }
-  }
-}
-
-export async function syncReferences({ client, supabaseUrl, userId, decks, control, uploadFile, onProgress }: SyncOptions) {
-  const total = decks.reduce((sum, deck) => sum + deck.files.length, 0);
-  const totalBytes = decks.reduce((sum, deck) => sum + deck.files.reduce((deckSum, file) => deckSum + file.size, 0), 0);
+/**
+ * Uploads each file once per account and SHA-1, verifies the stored size and then records it in `media_files`.
+ * Contents reference files by SHA-1 (`notes.media`); the link rows follow from the contents on the server.
+ */
+export async function uploadMediaFiles({ client, supabaseUrl, userId, files, control, uploadFile, onProgress }: UploadOptions) {
+  const unique = [...new Map(files.map((file) => [requireSha1(file.sha1), file])).values()];
+  const total = unique.length;
+  const totalBytes = unique.reduce((sum, file) => sum + file.size, 0);
   let completed = 0, uploaded = 0, reused = 0;
   let completedBytes = 0, activeBytes = 0;
   const inFlightBytes = new Map<CloudMediaFile, number>();
-  const referencesByDeck = new Map<string, MediaAssetReference[]>();
-  const notifyProgress = (file: CloudMediaFile) => {
-    onProgress?.({
-      completed,
-      total,
-      uploaded,
-      reused,
-      currentName: file.name,
-      processedBytes: Math.min(totalBytes, completedBytes + activeBytes),
-      totalBytes,
-    });
-  };
+  const notifyProgress = (file: CloudMediaFile) => onProgress?.({
+    completed,
+    total,
+    uploaded,
+    reused,
+    currentName: file.name,
+    processedBytes: Math.min(totalBytes, completedBytes + activeBytes),
+    totalBytes,
+  });
   const reportProgress = (file: CloudMediaFile, processedBytes: number) => {
     const previousBytes = inFlightBytes.get(file) ?? 0;
     const nextBytes = Math.min(Math.max(0, file.size - 1), Math.max(previousBytes, processedBytes));
@@ -244,88 +192,81 @@ export async function syncReferences({ client, supabaseUrl, userId, decks, contr
     inFlightBytes.set(file, nextBytes);
     notifyProgress(file);
   };
-  for (const deck of decks) {
-    const references = new Map((deck.retainedReferences ?? []).map((reference) => [reference.id, reference]));
-    const previousByKey = new Map(deck.previousReferences.map((reference) => [`${reference.sha1}\u0000${reference.cardId ?? ""}`, reference]));
-    const previousByHash = new Map(deck.previousReferences.filter((reference) => reference.cardId == null).map((reference) => [reference.sha1, reference]));
-    const existingByHash = new Map((await selectAccountHashRows(client, userId, deck.files.map((file) => requireSha1(file.sha1))))
-      .map((reference) => [reference.sha1, reference]));
-    const processFile = async (file: CloudMediaFile) => {
-      await control.waitUntilResumed();
-      if (control.isCancelled()) throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
-      const sha1 = requireSha1(file.sha1);
-      const path = accountObjectPath(userId, sha1);
-      const matchingObject = existingByHash.get(sha1);
-      if (matchingObject && Number(matchingObject.size) !== file.size) throw mediaError("integrity", "Dieselbe SHA-1-Prüfsumme verweist auf unterschiedliche Dateigrößen.");
-      let outcome: "uploaded" | "reused";
-      if (matchingObject) {
-        await verifyStoredObject(client, matchingObject.storage_path, file.size);
-        outcome = "reused";
-      } else {
-        outcome = uploadFile
-          ? await uploadFile(file, path, (processedBytes) => reportProgress(file, processedBytes))
-          : file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
-            ? await uploadSmall(client, file, path)
-            : await uploadLarge(client, supabaseUrl, userId, file, path, control, (processedBytes) => reportProgress(file, processedBytes));
-        if (outcome === "uploaded" && !uploadFile) await verifyStoredObject(client, path, file.size);
-      }
-      if (control.isCancelled()) {
-        if (outcome === "uploaded") {
-          await client.storage.from(CORE_MEDIA_BUCKET).remove([path]);
-        }
-        throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
-      }
-      const oldReference = previousByKey.get(`${sha1}\u0000${file.cardId ?? ""}`) ?? previousByHash.get(sha1);
-      activeBytes -= inFlightBytes.get(file) ?? 0;
-      inFlightBytes.delete(file);
-      completedBytes += file.size;
-      completed += 1; outcome === "uploaded" ? uploaded += 1 : reused += 1;
-      notifyProgress(file);
-      return file.createReference === false
-        ? null
-        : toRow(file, userId, deck.deckId, matchingObject?.storage_path ?? path, oldReference);
-    };
-    const smallFiles = deck.files.filter((file) => uploadFile || file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES);
-    const largeFiles = deck.files.filter((file) => !uploadFile && file.size > RESUMABLE_UPLOAD_THRESHOLD_BYTES);
-    const rows = (await mapWithConcurrency(smallFiles, SMALL_UPLOAD_CONCURRENCY, processFile)).filter(Boolean) as ReturnType<typeof toRow>[];
-    for (const file of largeFiles) {
-      const row = await processFile(file);
-      if (row) rows.push(row);
+  const existingBySha1 = new Map((await selectMediaFiles(client, userId, unique.map((file) => file.sha1))).map((row) => [row.sha1, row]));
+  const processFile = async (file: CloudMediaFile) => {
+    await control.waitUntilResumed();
+    if (control.isCancelled()) throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
+    const sha1 = requireSha1(file.sha1);
+    const path = accountMediaPath(userId, sha1);
+    const existing = existingBySha1.get(sha1);
+    if (existing && Number(existing.size) !== file.size) throw mediaError("integrity", "Dieselbe SHA-1-Prüfsumme verweist auf unterschiedliche Dateigrößen.");
+    let outcome: "uploaded" | "reused";
+    if (existing) {
+      await verifyStoredObject(client, existing.storagePath, file.size);
+      outcome = "reused";
+    } else {
+      outcome = uploadFile
+        ? await uploadFile(file, path, (processedBytes) => reportProgress(file, processedBytes))
+        : file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES
+          ? await uploadSmall(client, file, path)
+          : await uploadLarge(client, supabaseUrl, userId, file, path, control, (processedBytes) => reportProgress(file, processedBytes));
+      if (outcome === "uploaded" && !uploadFile) await verifyStoredObject(client, path, file.size);
+      const { error } = await client.from("media_files").upsert({
+        user_id: userId,
+        sha1,
+        size: file.size,
+        mime_type: file.mimeType || "application/octet-stream",
+        original_name: file.name,
+        storage_path: path,
+      }, { onConflict: "user_id,sha1", ignoreDuplicates: true });
+      if (error) throw mediaError(classifyMediaError(error), "Die Mediendatei konnte nicht gespeichert werden.", error);
     }
-    for (const persisted of await persistReferences(client, rows)) references.set(persisted.id, persisted);
-    await retireStaleReferences(client, userId, deck.previousReferences, new Set(references.keys()), deck.preserveObjects === true);
-    referencesByDeck.set(deck.deckId, [...new Map([...(referencesByDeck.get(deck.deckId) ?? []), ...references.values()].map((reference) => [reference.id, reference])).values()]);
-  }
-  return { referencesByDeck, completed, total, uploaded, reused, processedBytes: completedBytes, totalBytes };
+    if (control.isCancelled()) throw mediaError("cancelled", "Der Medien-Upload wurde abgebrochen.");
+    activeBytes -= inFlightBytes.get(file) ?? 0;
+    inFlightBytes.delete(file);
+    completedBytes += file.size;
+    completed += 1;
+    if (outcome === "uploaded") uploaded += 1;
+    else reused += 1;
+    notifyProgress(file);
+    return sha1;
+  };
+  const smallFiles = unique.filter((file) => uploadFile || file.size <= RESUMABLE_UPLOAD_THRESHOLD_BYTES);
+  const largeFiles = unique.filter((file) => !uploadFile && file.size > RESUMABLE_UPLOAD_THRESHOLD_BYTES);
+  const syncedSha1s = await mapWithConcurrency(smallFiles, SMALL_UPLOAD_CONCURRENCY, processFile);
+  for (const file of largeFiles) syncedSha1s.push(await processFile(file));
+  return { syncedSha1s, completed, total, uploaded, reused, processedBytes: completedBytes, totalBytes };
 }
 
-export async function resolveReferences(client: any, references: MediaAssetReference[], expiresIn = 3_600) {
+/** Signed URLs by SHA-1; the storage path follows from account and SHA-1. */
+export async function signMediaUrls(client: any, userId: string, sha1s: string[], expiresIn = 3_600) {
   const urls: Record<string, string> = {};
-  const missing: MediaAssetReference[] = [];
+  const missing: string[] = [];
+  const unique = [...new Set(sha1s.map((sha1) => sha1.toLowerCase()).filter((sha1) => /^[a-f0-9]{40}$/.test(sha1)))];
   const expiresAt = new Date(Date.now() + expiresIn * 1_000).toISOString();
-  const byBucket = new Map<string, MediaAssetReference[]>();
-  for (const reference of references.filter((item) => !item.deletedAt)) {
-    const bucket = byBucket.get(reference.storageBucket);
-    if (bucket) bucket.push(reference);
-    else byBucket.set(reference.storageBucket, [reference]);
-  }
-  for (const [bucket, items] of byBucket) {
-    const paths = [...new Set(items.map((item) => item.storagePath))];
-    const storage = client.storage.from(bucket);
-    if (typeof storage.createSignedUrls === "function") {
-      const { data, error } = await storage.createSignedUrls(paths, expiresIn);
-      if (error) { missing.push(...items); continue; }
-      const urlByPath = new Map<string, string>((data ?? []).filter((item: any) => item.signedUrl).map((item: any) => [String(item.path), String(item.signedUrl)]));
-      for (const item of items) {
-        const url = urlByPath.get(item.storagePath);
-        if (!url) missing.push(item); else { urls[item.sha1] = url; urls[item.originalName] = url; }
-      }
-    } else {
-      for (const item of items) {
-        const { data, error } = await storage.createSignedUrl(item.storagePath, expiresIn);
-        if (error || !data?.signedUrl) missing.push(item); else { urls[item.sha1] = data.signedUrl; urls[item.originalName] = data.signedUrl; }
-      }
-    }
-  }
+  if (!unique.length) return { urls, missing, expiresAt };
+  const storage = client.storage.from(CORE_MEDIA_BUCKET);
+  const paths = unique.map((sha1) => accountMediaPath(userId, sha1));
+  const { data, error } = await storage.createSignedUrls(paths, expiresIn);
+  if (error) return { urls, missing: unique, expiresAt };
+  const urlByPath = new Map<string, string>((data ?? []).filter((item: any) => item.signedUrl).map((item: any) => [String(item.path), String(item.signedUrl)]));
+  unique.forEach((sha1, index) => {
+    const url = urlByPath.get(paths[index]);
+    if (url) urls[sha1] = url;
+    else missing.push(sha1);
+  });
   return { urls, missing, expiresAt };
+}
+
+/** Releases files no content references any more (K4.7): storage object first, then the `media_files` row. */
+export async function releaseUnreferencedMedia(client: any, userId: string) {
+  const { listReleasableMedia } = await import("./cloudRepository.ts");
+  const releasable = await listReleasableMedia(client);
+  const own = releasable.filter((entry) => entry.storagePath.startsWith(`${userId}/`));
+  if (!own.length) return 0;
+  const { error: removeError } = await client.storage.from(CORE_MEDIA_BUCKET).remove(own.map((entry) => entry.storagePath));
+  if (removeError) throw mediaError(classifyMediaError(removeError), "Freigegebene Medien konnten nicht entfernt werden.", removeError);
+  const { error } = await client.from("media_files").delete().eq("user_id", userId).in("sha1", own.map((entry) => entry.sha1));
+  if (error) throw error;
+  return own.length;
 }

@@ -1,15 +1,7 @@
 import React from "react";
-import type { PresentationResult } from "../cardPresentation.ts";
-import { renderLearningItemPresentation, resolvePresentationMedia } from "../cardPresentation.ts";
-import type { CardVariant, LearningItem, NoteTypeDefinitionV1 } from "../coreTypes.ts";
+import { resolvePresentationMedia } from "../cardPresentationFrame.ts";
 import type { NotePresentationResult } from "../notePresentation.ts";
 import { StatusMessage } from "./feedbackUi.tsx";
-
-const COMPATIBILITY_COPY: Record<PresentationResult["compatibility"], string> = {
-  "safe-equivalent": "Originalgetreu und sicher dargestellt.",
-  "safe-with-differences": "Sicher dargestellt, mit bekannten Plattformabweichungen.",
-  "preserved-only": "Originaldaten erhalten; Darstellung aus Sicherheitsgründen vereinfacht.",
-};
 
 const PRESENTATION_FONT_SOURCES = [
   { path: "/fonts/synonym-400.woff2", weight: 400 },
@@ -43,11 +35,6 @@ function loadPresentationFontCss(): Promise<string> {
   return presentationFontCssPromise;
 }
 
-function readPresentationTheme(): "light" | "dark" {
-  if (typeof document === "undefined") return "light";
-  return document.documentElement.dataset.coreTheme === "dark" ? "dark" : "light";
-}
-
 export function fitReviewFrameToContent(frame: HTMLIFrameElement, frameDocument: Document) {
   frame.style.height = "1px";
   const height = Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body.scrollHeight, 1);
@@ -55,13 +42,9 @@ export function fitReviewFrameToContent(frame: HTMLIFrameElement, frameDocument:
 }
 
 export interface CardPresentationSurfaceProps {
-  presentation?: NotePresentationResult;
+  presentation: NotePresentationResult | null;
   onTextSelectionChange?: (text: string) => void;
-  item?: LearningItem | null;
-  variant?: CardVariant | null;
-  definition?: NoteTypeDefinitionV1 | null;
-  side?: "question" | "answer";
-  surface?: "editor-preview" | "card-management" | "review";
+  surface?: "card-management" | "review";
   mediaUrls?: Record<string, string>;
   title: string;
   loadingLabel?: string;
@@ -73,10 +56,6 @@ export interface CardPresentationSurfaceProps {
 export function CardPresentationSurface({
   presentation,
   onTextSelectionChange,
-  item,
-  variant,
-  definition,
-  side = "question",
   surface = "card-management",
   mediaUrls = {},
   title,
@@ -85,7 +64,6 @@ export function CardPresentationSurface({
   cornerBadge,
   className = "",
 }: CardPresentationSurfaceProps) {
-  const [theme, setTheme] = React.useState<"light" | "dark">(readPresentationTheme);
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
   const frameResizeObserverRef = React.useRef<ResizeObserver | null>(null);
@@ -99,23 +77,11 @@ export function CardPresentationSurface({
     return () => { active = false; };
   }, []);
 
-  React.useEffect(() => {
-    const root = document.documentElement;
-    const observer = new MutationObserver(() => setTheme(readPresentationTheme()));
-    observer.observe(root, { attributes: true, attributeFilter: ["data-core-theme"] });
-    return () => observer.disconnect();
-  }, []);
-
   React.useEffect(() => () => { frameResizeObserverRef.current?.disconnect(); selectionCleanupRef.current?.(); }, []);
 
-  const effectivePresentation = React.useMemo<(NotePresentationResult & { compatibility?: PresentationResult["compatibility"] }) | null>(() => {
-    if (presentation) return presentation;
-    if (!item || !definition) return null;
-    return renderLearningItemPresentation({ item, variant, definition, side, surface, theme, fontFaceCss });
-  }, [definition, fontFaceCss, item, presentation, side, surface, theme, variant]);
   const srcdoc = React.useMemo(
-    () => effectivePresentation ? resolvePresentationMedia(presentation ? effectivePresentation.srcdoc.replace("<style>", `<style>${fontFaceCss}`) : effectivePresentation.srcdoc, mediaUrls) : "",
-    [effectivePresentation, fontFaceCss, mediaUrls, presentation],
+    () => presentation ? resolvePresentationMedia(presentation.srcdoc.replace("<style>", `<style>${fontFaceCss}`), mediaUrls) : "",
+    [fontFaceCss, mediaUrls, presentation],
   );
   const descriptionId = React.useId();
 
@@ -126,12 +92,11 @@ export function CardPresentationSurface({
     if (frameRef.current) frameRef.current.style.height = "1px";
   }, [srcdoc, surface]);
 
-  if (!effectivePresentation) {
+  if (!presentation) {
     return <StatusMessage tone="info" announce="polite" className={className}>{loadingLabel}</StatusMessage>;
   }
 
-  const compatibility = effectivePresentation.compatibility ?? null;
-  const warning = compatibility ? compatibility !== "safe-equivalent" : effectivePresentation.diagnostics.length > 0;
+  const warning = presentation.diagnostics.length > 0;
   const compatibilityVisible = showCompatibility === "warnings-only" ? warning : showCompatibility;
   const frameClassName = surface === "review"
     ? "h-px w-full border-0 bg-transparent"
@@ -153,10 +118,10 @@ export function CardPresentationSurface({
     <div className={`grid min-w-0 gap-3 ${className}`.trim()}>
       {compatibilityVisible ? (
         <StatusMessage id={descriptionId} tone={warning ? "warning" : "success"} announce="polite">
-          <span>{compatibility ? COMPATIBILITY_COPY[compatibility] : "Hinweise zur Kartendarstellung."}</span>
-          {effectivePresentation.diagnostics.length ? (
+          <span>{warning ? "Sicher dargestellt, mit bekannten Abweichungen vom Original." : "Originalgetreu und sicher dargestellt."}</span>
+          {warning ? (
             <ul className="mt-2 list-disc space-y-1 pl-6">
-              {effectivePresentation.diagnostics.map((diagnostic) => (
+              {presentation.diagnostics.map((diagnostic) => (
                 <li key={`${diagnostic.code}:${diagnostic.detail ?? ""}`}>{diagnostic.message}</li>
               ))}
             </ul>
@@ -169,7 +134,7 @@ export function CardPresentationSurface({
           ref={frameRef}
           title={title}
           aria-describedby={compatibilityVisible ? descriptionId : undefined}
-          sandbox={presentation ? "allow-same-origin allow-popups allow-popups-to-escape-sandbox" : surface === "review" ? "allow-same-origin" : ""}
+          sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
           scrolling={surface === "review" ? "no" : undefined}
           referrerPolicy="no-referrer"
           srcDoc={srcdoc}
@@ -178,7 +143,7 @@ export function CardPresentationSurface({
             resizeReviewFrame();
             selectionCleanupRef.current?.();
             const frameDocument = frameRef.current?.contentDocument;
-            if (presentation && onTextSelectionChange && frameDocument) {
+            if (onTextSelectionChange && frameDocument) {
               const update = () => onTextSelectionChange(frameDocument.getSelection()?.toString().trim() ?? "");
               frameDocument.addEventListener("selectionchange", update);
               selectionCleanupRef.current = () => frameDocument.removeEventListener("selectionchange", update);

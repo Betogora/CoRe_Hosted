@@ -174,8 +174,8 @@ async function finishAuthenticatedWorkspaceBootstrap(
   repository: IndexedDbCoreRepository,
 ): Promise<AuthenticatedWorkspaceBootstrapResult> {
   const pendingMutationsAtRequest = repository.outbox.listPending();
-  const { loadAccountCloudBootstrapV2 } = await import("./cloudRepository.ts");
-  const bootstrap = await loadAccountCloudBootstrapV2(supabase, user);
+  const { loadAccountCloudBootstrap, loadAccountDueForecast } = await import("./cloudRepository.ts");
+  const bootstrap = await loadAccountCloudBootstrap(supabase, user);
   const localCatalogCursor = repository.getReplicaStatus().catalogCursor;
   await repository.applyCloudCatalogPage({ table: "decks", entities: bootstrap.decks.map((entry) => entry.deck), reset: false, cursor: localCatalogCursor });
   await repository.applyCloudCatalogPage({ table: "deck_study_summaries", entities: bootstrap.decks.map((entry) => entry.summary), reset: false, cursor: localCatalogCursor });
@@ -183,6 +183,8 @@ async function finishAuthenticatedWorkspaceBootstrap(
   await applyBootstrapProfile(repository, bootstrap.profile, user.id, pendingMutationsAtRequest);
   await repository.setAccountBaselineState(bootstrap.confirmedEmpty ? "confirmed-empty" : "nonempty", bootstrap.serverCatalogCursor);
   markReplicaStartupGate("accountBaselineReady", { deckCount: bootstrap.decks.length });
+  // The 365-day forecast is not part of the first render; it completes the overview afterwards.
+  void loadAccountDueForecast(supabase).then(repository.applyDueForecast).catch(() => undefined);
   return { conflictCount: bootstrap.conflictCount };
 }
 

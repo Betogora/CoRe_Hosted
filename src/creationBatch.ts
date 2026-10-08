@@ -1,10 +1,10 @@
-import type { CardType } from "./coreTypes.ts";
+import type { ManualContentKind } from "./coreModel.ts";
 
 export type ManualPinnedField = "front" | "back";
 export type ManualFocusTarget = ManualPinnedField | "option-0";
 
 export interface ManualCreationDraft {
-  cardType: CardType;
+  kind: ManualContentKind;
   front: string;
   back: string;
   answerOptions: string[];
@@ -27,9 +27,9 @@ export type ManualBatchAction =
   | { type: "toggle-pin"; field: ManualPinnedField }
   | { type: "saved"; cardId: string; targetDeckId: string };
 
-export function createManualDraft(cardType: CardType = "basic"): ManualCreationDraft {
+export function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDraft {
   return {
-    cardType,
+    kind,
     front: "",
     back: "",
     answerOptions: ["", ""],
@@ -96,6 +96,6 @@ export function manualDraftsEqual(left: ManualCreationDraft, right: ManualCreati
 export function nextManualFocusTarget(state: ManualBatchSessionState): ManualFocusTarget {
   if (!state.pinnedFields.front) return "front";
   if (!state.pinnedFields.back) return "back";
-  if (state.currentDraft.cardType === "single-choice" || state.currentDraft.cardType === "multiple-choice") return "option-0";
+  if (state.currentDraft.kind === "single-choice" || state.currentDraft.kind === "multiple-choice") return "option-0";
   return "front";
 }

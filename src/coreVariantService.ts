@@ -31,6 +31,28 @@ export function cardVariantSource(note: Pick<Note, "content">, card: Pick<Card, 
   return front && back ? { front, back } : null;
 }
 
+/** A rephrased variant shown as a transient front/back content of its card; extra and source fields stay visible. */
+export function variantPresentation(note: Note, card: Card, variant: CardVariant): { note: Note; card: Card } {
+  const supplements = note.content.fields.filter((field) => field.role === "extra" || field.role === "source");
+  return {
+    note: {
+      ...note,
+      content: {
+        schemaVersion: 1,
+        fields: [
+          { id: "variant-front", name: "Vorderseite", role: "prompt", html: variant.front },
+          { id: "variant-back", name: "Rückseite", role: "answer", html: variant.back },
+          ...supplements,
+        ],
+        interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Variante", instruction: "", questionFieldIds: ["variant-front"], answerFieldIds: ["variant-back"], requires: null, typeInFieldId: null }] },
+        speech: [],
+        tags: note.content.tags,
+      },
+    },
+    card: { ...card, id: variant.id, promptKey: "forward" },
+  };
+}
+
 export function classifyCardEligibility(note: Pick<Note, "content">, card: Pick<Card, "id" | "promptKey">, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const reasons: string[] = [];

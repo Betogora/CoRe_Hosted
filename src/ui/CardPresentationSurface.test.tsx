@@ -1,33 +1,23 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { LearningItemDocumentV1 } from "../coreTypes.ts";
-import { applyLearningItemContent, createCoreNoteTypeDefinition } from "../coreModel.ts";
+import { buildSrcdoc } from "../cardPresentationFrame.ts";
+import type { NotePresentationResult } from "../notePresentation.ts";
 import { CardPresentationSurface, fitReviewFrameToContent } from "./CardPresentationSurface.tsx";
 
-const now = "2026-08-11T12:00:00.000Z";
-
-function fixture(source = '<img src="figure.png">{{Frage}}') {
-  const document: LearningItemDocumentV1 = {
-    schemaVersion: 1,
-    definitionVersionId: "surface-definition",
-    fields: [{ id: "front", sourceFieldId: null, name: "Frage", value: "Abbildung", placement: "front", semanticRole: "prompt" }],
-    tags: [],
-    mediaRefs: ["figure.png"],
+function fixture(diagnostics: NotePresentationResult["diagnostics"] = []): { presentation: NotePresentationResult } {
+  return {
+    presentation: {
+      srcdoc: buildSrcdoc('<img src="figure.png"><p>Abbildung</p>', "", "light"),
+      accessibleText: "Abbildung",
+      mediaReferences: ["figure.png"],
+      interactions: [],
+      diagnostics,
+    },
   };
-  const basicDefinition = createCoreNoteTypeDefinition({ document, createdAt: now });
-  const definition = {
-    ...basicDefinition,
-    recipes: basicDefinition.recipes.map((recipe) => ({
-      ...recipe,
-      front: { schemaVersion: 1 as const, source, nodes: [] },
-    })),
-  };
-  const item = applyLearningItemContent({ previous: null, document, definition, reason: "create" }).item;
-  return { item, variant: item.variants[0], definition };
 }
 
-test("renders an opaque scriptless iframe and resolves only controlled media URLs", () => {
+test("renders a scriptless iframe and resolves only controlled media URLs", () => {
   const rendered = fixture();
   const markup = renderToStaticMarkup(
     <CardPresentationSurface
@@ -37,19 +27,19 @@ test("renders an opaque scriptless iframe and resolves only controlled media URL
     />,
   );
 
-  assert.match(markup, /<iframe[^>]+sandbox=""/);
-  assert.doesNotMatch(markup, /allow-scripts|allow-same-origin/);
+  assert.match(markup, /<iframe[^>]+sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"/);
+  assert.doesNotMatch(markup, /allow-scripts/);
   assert.doesNotMatch(markup, /scrolling="no"/);
   assert.match(markup, /blob:https:\/\/core.local\/figure/);
   assert.doesNotMatch(markup, /tracker\.example/);
 });
 
 test("shows a color-independent compatibility warning with diagnostics", () => {
-  const rendered = fixture("{{custom:Frage}}");
+  const rendered = fixture([{ code: "math-error", level: "warning", message: "Diese Formel konnte nicht dargestellt werden.", detail: "\frac" }]);
   const markup = renderToStaticMarkup(<CardPresentationSurface {...rendered} title="Importierte Karte" showCompatibility="warnings-only" />);
 
-  assert.match(markup, /Originaldaten erhalten/);
-  assert.match(markup, /benutzerdefinierte Filter/);
+  assert.match(markup, /bekannten Abweichungen/);
+  assert.match(markup, /Formel konnte nicht dargestellt werden/);
   const statusTag = markup.match(/<div[^>]*role="status"[^>]*>/)?.[0] ?? "";
   const descriptionId = statusTag.match(/id="([^"]+)"/)?.[1];
   assert.ok(descriptionId);
@@ -77,7 +67,6 @@ test("renders review content without a framed card surface", () => {
   );
 
   const iframe = markup.match(/<iframe[^>]+>/)?.[0] ?? "";
-  assert.match(iframe, /sandbox="allow-same-origin"/);
   assert.match(iframe, /scrolling="no"/);
   assert.doesNotMatch(iframe, /allow-scripts/);
   assert.match(iframe, /border-0 bg-transparent/);
