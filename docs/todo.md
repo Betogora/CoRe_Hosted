@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-07
+Stand: 2026-10-08
 
 Dieses Dokument enthält ausschließlich offene Arbeit. Es beschreibt die
 Roadmap für das neue Kartenmodell nach [ADR-032 bis ADR-036](decisions.md).
@@ -327,12 +327,24 @@ Freigabe.
     `updated_by_device_id`).
   - **Indizes:** fällige Karten je Stapel (`user_id, deck_id, due_at` mit
     `status = 'active'`), `cards(user_id, note_id)`, Sync-Indizes wie heute.
+    Zusätzlich, weil die alte Baseline hier ungestützt scannt: ein
+    `pg_trgm`-GIN-Index auf `notes.search_text` für die Inhaltssuche (die
+    alte Suche filtert per `position()` jede Zeile) und ein Index, der die
+    Prüfung auf neuere Reviewereignisse derselben Karte in der atomaren
+    Reviewaufzeichnung trägt (z. B. `review_events(user_id, card_id,
+    answered_at)`; heute fehlt ein Index auf `source_card_id`).
 - [ ] **K4.2 Projektionen prüfen.** Für `card_catalog` und
       `deck_study_summaries` wird gemessen, ob direkte Indizes auf `cards` und
       `notes` die Grenzen der Ausgangsmessung halten. Nur gerechtfertigte Projektionen
       bleiben. Messung mit `npm run performance:measure:local`
       (100k-Kartensuche, Statistik-RPC) und angepasstem
-      `supabase/benchmark_replica_v2.sql`.
+      `supabase/benchmark_replica_v2.sql`. Der Benchmark misst zusätzlich
+      den Bootstrap, die atomare Reviewaufzeichnung und einen
+      Import-Schreibbatch; diese Pfade sind heute ungemessen, Rückschritte
+      dort fielen keinem Gate auf. Die Messung „Neues Gerät bis Dashboard“
+      wird nach Phasen aufgeschlüsselt (Netz und Anmeldung, Bootstrap-RPC,
+      IndexedDB-Schreiben, erste Stapelzusammenfassung, Rendern) und das
+      Ergebnis im Phasenbericht festgehalten.
 - [ ] **K4.3 RPCs.** Atomare Reviewaufzeichnung auf Kartenspalten, Bootstrap,
       Katalog-Delta, Hydrierung von Karten mit ihren Inhalten,
       Offline-Manifest, Stapelbaum-Löschung mit Anki-Regel für verwaiste
@@ -342,6 +354,19 @@ Freigabe.
       `get_deck_offline_manifest`, `get_account_statistics`,
       `delete_account_deck_tree`. Verwaiste Inhalte: Hat ein Inhalt nach einer
       Stapellöschung keine Karte mehr, wird er mitgelöscht.
+  - **Vorlagen nicht ungeprüft übernehmen:** Die alten RPCs enthalten
+    bekannte Mehrkosten, die nicht mitwandern.
+  - **Bootstrap:** liefert nur, was das Dashboard für den ersten Render
+    braucht (Stapelbaum, Fälligkeits- und Tageszahlen). Die
+    365-Tage-Prognose und andere Statistik werden nachgeladen statt auf der
+    ersten Seite accountweit berechnet.
+  - **Gesamtzahlen:** Katalogsuche und Offline-Manifest zählen nur auf
+    ausdrückliche Anforderung, nicht als zweiten Scan je erster Seite bzw.
+    auf jeder Manifestseite.
+  - **Import-Schreibpfad:** mengenbasiert. Ein Batch aktualisiert
+    Projektionen und Zusammenfassungen einmal je Batch statt je Zeile per
+    Trigger unter dem accountweiten Advisory-Lock, der parallele Upserts
+    heute serialisiert.
 - [ ] **K4.4 Sicherheit.** RLS für alle Tabellen, `verify_schema` neu,
       generierte `database.types.ts`, vollständige RLS-Suite einschließlich
       fremder Inhalte, Karten und Medien. `supabase/verify_schema_v1.sql`
@@ -355,7 +380,10 @@ Freigabe.
       Offline-Downloads pro Stapel. Wo: `src/indexedDbCoreRepository.ts`,
       `src/workspaceHydrationService.ts`, `src/workspaceReplica.ts`; neuer
       Datenbankname (z. B. `core.workspace.entities.v4.<userId>`), der alte
-      wird beim Start gelöscht statt gelesen.
+      wird beim Start gelöscht statt gelesen. Lokales Paging von Katalog und
+      Lernfenster läuft über Cursor statt Seitenzahl oder Offset; heute
+      überspringt `listCatalogPage` Zeilen einzeln, und das Nachladen im
+      Lernfenster blättert dadurch quadratisch.
 - [ ] **K4.6 Sync und Konflikte.** Mutationen für Inhalt und Karte getrennt;
       Inhaltsrevision und Lernstand bilden getrennte Konfliktgrenzen; ein
       Offline-Review und eine parallele Inhaltskorrektur werden ohne Konflikt
@@ -392,6 +420,10 @@ Freigabe.
     `note.marked` und erhöht nur die Entitätsrevision, nicht
     `contentRevision`. Damit zeigen alle Geschwister den Stern; `specs.md`
     (Kartenverwaltung, Review) beschreibt das im Cutover entsprechend.
+  - **Suche in der Kartenverwaltung:** Die Sucheingabe in `DecksScreen.tsx`
+    wird entprellt, und veraltete Anfragen werden per `AbortController`
+    abgebrochen statt nur verworfen. Heute löst jede Eingabe je Stapel eine
+    eigene Anfrage aus, offline einen vollständigen Scan.
   - **Geräte-ID:** Die Persistenz setzt `updatedByDeviceId` beim Schreiben von
     Inhalt und Karten; die reinen Planfunktionen setzen sie nicht.
   - **Löschen und Undo (K2.6):** `planNoteDeletion` in `coreWorkspace.ts`
@@ -441,7 +473,10 @@ Kartenverwaltung, Erstellen und Import.
 `performance:measure:local` grün; Speicher je 1.000 Lückentext-Inhalte
 nachweislich unter der Ausgangsmessung; p95-Werte mindestens auf deren Niveau; Zwei-Geräte-Test
 für Review und Inhaltskorrektur grün. „Neues Gerät bis Dashboard“ war schon in
-der Ausgangsmessung über Budget; der Cutover darf es nicht verschlechtern.
+der Ausgangsmessung über Budget; der Cutover darf es nicht verschlechtern
+(Merge-Bedingung). Grün ist nicht verlangt, aber das schlanke Bootstrap aus
+K4.3 und die Phasenaufschlüsselung aus K4.2 sind Pflicht, damit nach dem
+Cutover feststeht, ob der Rest an Netz, Bundle oder Datenbank hängt.
 Ein Merge trotz rotem Gate nur mit ausdrücklicher Ausnahme des Nutzers.
 
 ## Phase 6 — Erstellen, Bearbeiten, Verwaltung und KI-Varianten
