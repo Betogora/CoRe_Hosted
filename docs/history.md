@@ -5,6 +5,30 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-08 — Korpus: echte Bildverdeckung und echter Lernstand
+
+- `Image_Occlusion_Test_Pharmagrundlagen.apkg` (73 Inhalte, 84 Karten): 66
+  Image-Occlusion-Enhanced-Inhalte zu 100 % voll übersetzt, sieben Lückentexte
+  generisch, 0 % nicht darstellbar, keine fehlenden Medien. Die SVG-Masken
+  bestehen ausschließlich aus ungedrehten Rechtecken ohne Text, in beiden
+  Modi (`ao`, `oa`). Damit ist entschieden, IOE in echte CoRe-Masken zu
+  übersetzen (K5.10, Ergänzung zu ADR-033). Ankis eingebaute Bildverdeckung
+  enthält das Paket nicht; es hat keinen Lernstand.
+- `Pokemon_Gen_I_Auszug.apkg`: mit Ankis Python-Bibliothek 26.5 auf 40 von
+  151 Inhalten gekürzt (16 statt 60 MB), bevorzugt Karten mit Vergessen und
+  Wiederlernen. Alle 40 Karten übernehmen den FSRS-Gedächtniszustand, alle
+  116 Reviewereignisse (Lernen, Wiederholung, Wiederlernen über 7,7 Tage)
+  werden ohne Auslassung übernommen. Alle Karten stehen in der Wiederholung;
+  Lern-, ausgesetzte, begrabene und geflaggte Karten fehlen.
+- `CoRe_Bildverdeckung_nativ.apkg`: mit Ankis Python-Bibliothek im
+  Speicherformat des Anki-Editors erzeugt (aus Ankis Editor-Code 26.9
+  abgelesen), weil die Desktop-Steuerung nicht verfügbar war. Zwei Inhalte mit
+  je sieben Karten auf dem 2:1-Raster: ungedrehtes und gedrehtes Rechteck,
+  gedrehte Ellipse (`rx`/`ry`), gedrehtes Polygon, Text in zwei Größen (einmal
+  gedreht), eine Zweiergruppe mit eigener Füllfarbe; einmal „alle verdecken“,
+  einmal „eine verdecken“. Anki nimmt beide Inhalte an; CoRe übersetzt sie zu
+  100 % voll. Drehung und Textgröße prüft K5.2.
+
 ## 2026-10-08 — Phase-3-Performance-Abnahme (K3.7)
 
 - `npm run performance:measure:local` lief erstmals seit Phase 3 vollständig:
