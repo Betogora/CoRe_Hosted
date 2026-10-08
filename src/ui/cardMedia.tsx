@@ -1,5 +1,5 @@
 import React from "react";
-import { resolvePresentationMedia } from "../cardPresentationFrame.ts";
+import { resolvePresentationMedia } from "../presentationFrame.ts";
 import type { AccountMediaStore } from "../mediaStore.ts";
 
 interface NoteMediaState {

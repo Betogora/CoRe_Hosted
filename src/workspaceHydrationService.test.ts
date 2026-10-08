@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import test from "node:test";
 import { IDBFactory, IDBKeyRange } from "fake-indexeddb";
-import { createBasicNote, createCoreDeck } from "./coreModel.ts";
+import { addCardVariant, createBasicNote, createCoreDeck } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createCloudStateRows } from "./cloudRepository.ts";
@@ -332,4 +332,53 @@ test("Reimport-Ziele werden nur online und nur für vorhandene GUIDs geladen", a
   });
   assert.deepEqual(requested, [["guid-1"]]);
   repository.close();
+});
+
+test("ein lokal erstellter, noch nicht hochgeladener Inhalt öffnet sich aus der Replica", async () => {
+  const userId = randomUUID();
+  const local = graph("deck-local", "local", "Lokal", "2026-08-17T09:00:00.000Z");
+  const deck = createCoreDeck({ id: "deck-local", ownerId: userId, name: "Lokal", source: "manual", cards: local.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  const client = {
+    async rpc(name: string) {
+      if (name === "hydrate_account_cards") return { data: { cards: [], variants: [], notes: [] }, error: null };
+      throw new Error(`Unerwartete RPC ${name}`);
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+
+  await withNavigator({ onLine: true }, async () => {
+    const loaded = await service.loadNoteGraph("note-local");
+    assert.equal(loaded.note.id, "note-local");
+    assert.deepEqual(loaded.cards.map((card) => card.id), ["card-local"]);
+    await assert.rejects(service.loadNoteGraph("note-unbekannt"), /in der Cloud nicht mehr verfügbar/);
+  });
+});
+
+test("eine noch nicht synchronisierte Variante übersteht das Nachladen des Inhalts aus der Cloud", async () => {
+  const userId = randomUUID();
+  const basic = graph("deck-variant", "variant", "Variante", "2026-08-17T09:00:00.000Z");
+  const deck = createCoreDeck({ id: "deck-variant", ownerId: userId, name: "Varianten", source: "manual", cards: basic.cards });
+  const state = workspace(userId, [deck], [basic.note]);
+  const cloudRows = createCloudStateRows(state, userId);
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: state, indexedDb: new IDBFactory() });
+  await repository.updateCard("card-variant", (card) => addCardVariant(card, { id: "variant-lokal", front: "Lokale Umformulierung", back: "Antwort" }));
+  // The card row reaches the cloud first; its answer row carries no variants and must not drop the pending one.
+  repository.outbox.markFlushed(repository.outbox.listPending().filter((mutation) => mutation.table !== "card_variants").map((mutation) => mutation.id));
+  await repository.applyCloudPage({ table: "cards", entities: [{ ...basic.cards[0], variants: [] }], reset: false });
+  assert.deepEqual((await repository.loadCardBody("card-variant"))?.card.variants.map((variant) => variant.id), ["variant-lokal"]);
+  const client = {
+    async rpc(name: string, payload: any) {
+      if (name === "hydrate_account_cards") return { data: hydrateFrom(cloudRows, payload), error: null };
+      throw new Error(`Unerwartete RPC ${name}`);
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+
+  await withNavigator({ onLine: true }, async () => {
+    const loaded = await service.loadNoteGraph("note-variant");
+    assert.deepEqual(loaded.cards[0].variants.map((variant) => variant.id), ["variant-lokal"]);
+  });
+  assert.deepEqual((await repository.loadCardBody("card-variant"))?.card.variants.map((variant) => variant.id), ["variant-lokal"]);
+  assert.equal((await repository.listCatalogPage("deck-variant")).items[0].hasActiveVariants, true);
 });

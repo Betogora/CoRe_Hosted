@@ -1270,7 +1270,7 @@ export interface CloudEntityPage {
   reset: boolean;
 }
 
-export function projectCloudEntities(table: AccountTable, rows: any[]) {
+function projectCloudEntities(table: AccountTable, rows: any[]) {
   if (table === "decks") return rows.map(deckFromRow);
   if (table === "notes") return rows.map(noteFromRow);
   if (table === "cards") return rows.map((row) => cardFromRow(row));

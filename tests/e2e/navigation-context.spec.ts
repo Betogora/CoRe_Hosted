@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { createCoreCard, createCoreDeck, updateLearningItemStudyState } from "../../src/coreModel.ts";
-import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
-import type { Deck } from "../../src/coreTypes.ts";
+import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setNoteMarked } from "../../src/coreModel.ts";
+import { createCoreRepository } from "../../src/coreRepository.ts";
+import type { Deck, Note } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
@@ -33,22 +33,19 @@ type CardDetailObserverWindow = typeof window & {
   __coreCardDetailObserver?: MutationObserver;
 };
 
+const SEEDED_NOTES = new Map<string, Note>();
+
 function card(id: string, deckId: string, front: string, back: string, options: { dueAt?: string; hasActiveVariant?: boolean; marked?: boolean } = {}) {
-  const learningItem = createCoreCard({
+  const { note, cards: [created] } = createBasicNote(deckId, `<p>${front}</p>`, `<p>${back}</p>`);
+  SEEDED_NOTES.set(note.id, options.marked ? setNoteMarked(note, true) : note);
+  const seeded = {
+    ...created,
     id,
-    deckId,
-    source: "manual",
-    originalFront: `<p>${front}</p>`,
-    originalBack: `<p>${back}</p>`,
-    reviewState: options.dueAt ? { state: "review", dueAt: options.dueAt, repetitions: 1 } : null,
-    variants: options.hasActiveVariant ? [{
-      id: `${id}-variant`,
-      front: `${front} Variante`,
-      back,
-      qualityStatus: "active",
-    }] : [],
-  });
-  return options.marked ? updateLearningItemStudyState(learningItem, { marked: true }) : learningItem;
+    study: options.dueAt ? cardStudyFromReviewState(createReviewState({ state: "review", dueAt: options.dueAt, reps: 1 })) : created.study,
+  };
+  return options.hasActiveVariant
+    ? addCardVariant(seeded, { id: `${id}-variant`, front: `${front} Variante`, back, qualityStatus: "active" })
+    : seeded;
 }
 
 function seedDecks(): Deck[] {
@@ -86,11 +83,11 @@ async function seedAccount(decks: Deck[] = seedDecks()) {
   if (error || !data.user) throw error ?? new Error("Der Navigations-E2E-Account fehlt.");
   try {
     const state = createCoreRepository({ seedDefaultDecks: false }).getState();
-    const content = normalizeContentEntities(decks, []);
+    const noteIds = new Set(decks.flatMap((deck) => deck.cards.map((seededCard) => seededCard.noteId)));
     await seedAccountState(client, {
       ...state,
-      decks: content.decks,
-      noteTypeDefinitions: content.definitions,
+      decks,
+      notes: [...SEEDED_NOTES.values()].filter((note) => noteIds.has(note.id)),
       profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
     }, "e2e-navigation-context-reset");
   } finally {
@@ -212,18 +209,18 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1`);
   await page.reload();
-  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Geändert im Stapel");
+  await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Geändert im Stapel");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1`);
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Geändert im Stapel");
-  await page.getByRole("textbox", { name: "Karten-Rückseite", exact: true }).fill("Geändert in Gesamtverwaltung");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Geändert im Stapel");
+  await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Geändert in Gesamtverwaltung");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1`);
-  await expect(page.getByRole("textbox", { name: "Karten-Rückseite", exact: true })).toContainText("Geändert in Gesamtverwaltung");
+  await expect(page.getByRole("textbox", { name: "Feld Rückseite", exact: true })).toContainText("Geändert in Gesamtverwaltung");
   await page.goto("/lernen");
   await row.getByRole("button", { name: "Bereich B / Gemeinsam lernen", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`/decks/${DECK_IDS.childB}/review`));
@@ -248,14 +245,14 @@ test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den In
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&card=${CARD_IDS.b1}&content=1`);
   await page.reload();
-  await page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true }).fill("Unterkarte im Hauptstapel geändert");
+  await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Unterkarte im Hauptstapel geändert");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1`);
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toContainText("Unterkarte im Hauptstapel geändert");
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite", exact: true })).toContainText("Unterkarte im Hauptstapel geändert");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Unterkarte im Hauptstapel geändert");
 });
 
 test("[Vertrag: Kartenverwaltung] große Stapel bleiben beim Auf- und Zuklappen scrollstabil", async ({ page }) => {
@@ -450,7 +447,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
   await deckHeader.click();
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
-  const front = page.getByRole("textbox", { name: "Karten-Vorderseite" });
+  const front = page.getByRole("textbox", { name: "Feld Vorderseite" });
   const changesDialog = page.getByRole("dialog", { name: "Änderungen übernehmen?" });
   await front.fill("");
   await page.keyboard.press("Escape");
@@ -471,27 +468,27 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await expect(changesDialog).toBeHidden();
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);
     return state?.decks?.find((deck: Deck) => deck.id === DECK_IDS.childB)?.cards
-      ?.find((candidate: { id: string }) => candidate.id === CARD_IDS.b1)?.originalFront;
+      ?.find((candidate: { id: string }) => candidate.id === CARD_IDS.b1)?.note?.content.fields.find((field: { id: string }) => field.id === "front")?.html;
   }).toContain("Ungespeicherte Karte B1");
 
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
 
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
-  await page.getByRole("textbox", { name: "Karten-Vorderseite" }).fill("Diese Änderung wird verworfen");
+  await page.getByRole("textbox", { name: "Feld Vorderseite" }).fill("Diese Änderung wird verworfen");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await changesDialog.getByRole("button", { name: "Verwerfen" }).click();
   await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
   const finalState = await readActiveAccountState(page);
   expect(finalState.decks.find((deck: Deck) => deck.id === DECK_IDS.childB)?.cards
-    .find((candidate: { id: string }) => candidate.id === CARD_IDS.b2)?.originalFront).toContain("Karte B2");
+    .find((candidate: { id: string }) => candidate.id === CARD_IDS.b2)?.note?.content.fields.find((field: { id: string }) => field.id === "front")?.html).toContain("Karte B2");
 
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
-  await page.getByRole("textbox", { name: "Karten-Vorderseite" }).fill("Navigation bleibt geschützt");
+  await page.getByRole("textbox", { name: "Feld Vorderseite" }).fill("Navigation bleibt geschützt");
   const overviewSegment = page.getByRole("button", { name: "Stapelübersicht", exact: true });
   await page.getByTestId("card-detail-backdrop").click({ position: { x: 5, y: 5 } });
   await expect(changesDialog).toBeVisible();
@@ -564,18 +561,18 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   const cardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}`;
   await expect(page).toHaveURL(cardUrl);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
   await page.reload();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
 
   const directLinkPage = await context.newPage();
   await directLinkPage.goto(cardUrl);
   await waitForApp(directLinkPage);
-  await expect(directLinkPage.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(directLinkPage.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
   await directLinkPage.getByRole("button", { name: "Detailansicht schließen" }).click();
   await expect(directLinkPage).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
   await directLinkPage.goBack();
-  await expect(directLinkPage.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(directLinkPage.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
   await directLinkPage.keyboard.press("Escape");
   await expect(directLinkPage).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
   await expect(directLinkPage.getByTestId(`deck-card-${CARD_IDS.b2}`)).toBeFocused();
@@ -598,7 +595,7 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await completeReview(page);
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
   await expect(page).toHaveURL(cardUrl);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
 
   await page.goto("about:blank");
   await seedAccount();
@@ -628,7 +625,7 @@ test("[Vertrag: Review-Karteneditor] Bearbeiten und Schließen kehren reload-fä
   ));
   await page.reload();
 
-  const front = page.getByRole("textbox", { name: "Karten-Vorderseite" });
+  const front = page.getByRole("textbox", { name: "Feld Vorderseite" });
   await expect(front).toContainText("Karte A");
   await front.fill("Karte A bearbeitet");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
@@ -688,10 +685,10 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
 
   await page.goBack();
   await expect(page).toHaveURL(secondCardUrl);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B2");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B2");
   await page.goBack();
   await expect(page).toHaveURL(firstCardUrl);
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Karte B1");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Karte B1");
   await page.goBack();
   await expect(page).toHaveURL(deckUrl);
   await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);

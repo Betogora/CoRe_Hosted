@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { IDBFactory } from "fake-indexeddb";
-import { resolvePresentationMedia } from "./cardPresentationFrame.ts";
+import { resolvePresentationMedia } from "./presentationFrame.ts";
 import { createAccountMediaStore } from "./mediaStore.ts";
 import type { OfflineMediaManifestEntry } from "./workspaceReplica.ts";
 

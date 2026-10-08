@@ -132,7 +132,12 @@ export function createWorkspaceHydrationService({
     if (isOnline()) {
       const { hydrateAccountCards } = await import("./cloudRepository.ts");
       const result = await hydrateAccountCards(client, [], [noteId]);
-      if (!result.notes.some((note) => note.id === noteId)) throw new Error("Der Inhalt ist in der Cloud nicht mehr verfügbar.");
+      if (!result.notes.some((note) => note.id === noteId)) {
+        // A content created on this device stays local until its outbox entry reaches the cloud.
+        const localGraph = await repository.loadNoteGraph(noteId);
+        if (localGraph) return localGraph;
+        throw new Error("Der Inhalt ist in der Cloud nicht mehr verfügbar.");
+      }
       await repository.applyHydratedBodies(result);
       await repository.markCardBodiesResident(result.cards.map((card) => card.id), "cached");
     }

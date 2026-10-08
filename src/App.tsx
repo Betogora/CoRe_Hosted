@@ -41,7 +41,7 @@ import { mergeAccountStatisticsSnapshot, type StatisticsDeckSelection, type Stat
 import { createMenuModel } from "./menuModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import { createWorkspaceHydrationService, type StudyWindowCursor } from "./workspaceHydrationService.ts";
-import type { AccountBaselineState, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, type AccountBaselineState, type NoteGraph, type OfflineDeckRecord } from "./workspaceReplica.ts";
 import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
@@ -1420,13 +1420,19 @@ export function App() {
       ? await workspaceHydrationService.loadNoteGraph(noteId).catch(() => null)
       : await workspaceRepository.loadNoteGraph(noteId);
     refresh({ preserveCardPages: true });
+    // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
+    const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
     setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => {
       if (!page) return [deckId, page];
       if (refreshPages && graph?.cards.some((card) => card.deckId === deckId)) return [deckId, undefined];
       const selected = page.selected && page.selected.note.id === noteId
         ? graph?.cards.some((card) => card.id === page.selected!.cardId) ? { ...graph, cardId: page.selected.cardId } : null
         : page.selected;
-      return [deckId, { ...page, selected }];
+      const items = page.items.map((item) => {
+        const entry = entries.get(item.id);
+        return entry ? { ...item, ...entry, syncChangeId: item.syncChangeId } : item;
+      });
+      return [deckId, { ...page, items, selected }];
     })));
     syncEngine?.requestSync();
     return graph;

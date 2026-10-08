@@ -256,7 +256,7 @@ export function calculateRetrievability(studyState: unknown, now: DateInput = ne
   return round(scheduler.get_retrievability(toFsrsCard(state, nowDate), nowDate, false), 4);
 }
 
-export function getSchedulerStateForCard(card: Pick<Card, "study">): ReviewState {
+function getSchedulerStateForCard(card: Pick<Card, "study">): ReviewState {
   return reviewStateFromCardStudy(card.study);
 }
 

@@ -6,7 +6,7 @@ test.setTimeout(60_000);
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/docs/ui-elements.html#note-content");
-  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Vorbereitete Kartenbausteine");
+  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Kartenbausteine");
   await expect(page.locator('[data-note-demo="typed"] input')).toBeVisible();
 });
 
@@ -128,7 +128,7 @@ test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen
   const failures: string[] = [];
   page.on("pageerror", (error) => failures.push(error.message));
   await page.reload();
-  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Vorbereitete Kartenbausteine");
+  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Kartenbausteine");
   // Keep only the documentation chrome from covering component screenshots.
   await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   const sizes = [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }];
@@ -174,7 +174,8 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
       await page.evaluate((value) => document.documentElement.dataset.coreTheme = value, theme);
       const section = page.locator("#inhalt");
       const front = section.frameLocator('iframe[title="Vorderseite"]').locator("body");
-      await expect(front).toContainText("Was ist die Hauptstadt von Portugal?");
+      await expect(front).toContainText("Welche Hauptstadt siehst du?");
+      await expect(section.frameLocator('iframe[title="Vorderseite"]').locator('img[alt="Beispielansicht von Lissabon"]')).toHaveCount(1);
       await front.evaluate(async (body) => { await body.ownerDocument.fonts.ready; });
       await section.locator('iframe[title="Vorderseite"]').screenshot({ path: path.join(output, `${size.width}-${theme}-management-question.png`) });
       await section.screenshot({ path: path.join(output, `${size.width}-${theme}-content.png`), animations: "disabled" });
@@ -190,7 +191,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   const dialog = page.getByRole("dialog", { name: "Kartenvorschau", exact: true });
   await expect(dialog.frameLocator('iframe[title="Frage"]').locator("body")).not.toBeEmpty();
   await dialog.getByRole("button", { name: "Rückseite", exact: true }).click();
-  await expect(dialog.frameLocator('iframe[title="Antwort"]').locator("body")).not.toBeEmpty();
+  await expect(dialog.frameLocator('iframe[title="Aufgedeckte Karte"]').locator(".core-card-answer-separator")).toHaveCount(1);
   await dialog.screenshot({ path: path.join(output, "390-dark-preview-answer.png"), animations: "disabled" });
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();

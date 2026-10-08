@@ -16,6 +16,10 @@ export const appPerformanceMarks = {
   indexedDbStartupMetadataReady: "core:indexeddb_startup_metadata_ready",
   firstDeckSummariesStart: "core:first_deck_summaries_start",
   firstDeckSummariesReady: "core:first_deck_summaries_ready",
+  bootstrapRpcStart: "core:bootstrap_rpc_start",
+  bootstrapRpcReady: "core:bootstrap_rpc_ready",
+  bootstrapApplyStart: "core:bootstrap_apply_start",
+  bootstrapApplyReady: "core:bootstrap_apply_ready",
   serviceWorkerContext: "core:service_worker_context",
 } as const;
 
@@ -30,6 +34,8 @@ export const appPerformanceMeasures = {
   indexedDbShell: "core:indexeddb_shell",
   indexedDbStartupMetadata: "core:indexeddb_startup_metadata",
   firstDeckSummaries: "core:first_deck_summaries",
+  bootstrapRpc: "core:bootstrap_rpc",
+  bootstrapApply: "core:bootstrap_apply",
 } as const;
 
 const startupPerformancePhases = {
@@ -52,6 +58,16 @@ const startupPerformancePhases = {
     start: appPerformanceMarks.firstDeckSummariesStart,
     ready: appPerformanceMarks.firstDeckSummariesReady,
     measure: appPerformanceMeasures.firstDeckSummaries,
+  },
+  bootstrapRpc: {
+    start: appPerformanceMarks.bootstrapRpcStart,
+    ready: appPerformanceMarks.bootstrapRpcReady,
+    measure: appPerformanceMeasures.bootstrapRpc,
+  },
+  bootstrapApply: {
+    start: appPerformanceMarks.bootstrapApplyStart,
+    ready: appPerformanceMarks.bootstrapApplyReady,
+    measure: appPerformanceMeasures.bootstrapApply,
   },
 } as const;
 

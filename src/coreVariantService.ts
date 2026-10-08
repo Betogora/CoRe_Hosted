@@ -75,7 +75,7 @@ export function getReviewSuccessProfile(card: Card, reviewEvents: ReviewEventInp
   };
 }
 
-export function getCardMaturity(card: Card, now: DateInput = new Date(), reviewEvents: ReviewEventInput[] = []) {
+function getCardMaturity(card: Card, now: DateInput = new Date(), reviewEvents: ReviewEventInput[] = []) {
   const { study } = card;
   const profile = getReviewSuccessProfile(card, reviewEvents);
   const score = Number(study.extra.maturityXp ?? 0);

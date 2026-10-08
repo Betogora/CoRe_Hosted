@@ -1,7 +1,7 @@
 import React from "react";
 import { CheckCircle2, ExternalLink, Volume2, XCircle } from "lucide-react";
 import type { Card, Note } from "../coreTypes.ts";
-import { resolvePresentationMedia } from "../cardPresentationFrame.ts";
+import { resolvePresentationMedia } from "../presentationFrame.ts";
 import { NOTE_THEME_COLORS, evaluateNoteChoice, noteHasMath, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationResult, type NotePresentationTheme } from "../notePresentation.ts";
 import { ActionButton } from "./actionUi.tsx";
 import { CoreSegmentedControl } from "./coreUi.tsx";

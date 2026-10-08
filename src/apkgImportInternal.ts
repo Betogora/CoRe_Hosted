@@ -315,7 +315,7 @@ function getModelsFromCollection(colRows: any) {
   }));
 }
 
-export async function extractApkgArchive(file: any) {
+async function extractApkgArchive(file: any) {
   return readZipArchive(file);
 }
 
@@ -327,7 +327,7 @@ function hasZstdSignature(bytes: any) {
   return ZSTD_MAGIC.every((byte: any, index: any) => bytes[index] === byte);
 }
 
-export async function findReadableCollectionDatabase(archive: any) {
+async function findReadableCollectionDatabase(archive: any) {
   const entries = COLLECTION_NAMES.map((name: any) => archive.getEntry(name)).filter(Boolean);
 
   if (entries.length === 0) {
@@ -365,7 +365,7 @@ export async function findReadableCollectionDatabase(archive: any) {
   throw new Error("Keine lesbare SQLite-Collection gefunden. Dieses APKG nutzt vermutlich ein neueres Collection-Format, das der lokale MVP noch nicht entpacken kann.");
 }
 
-export function parseAnkiDecks(database: any) {
+function parseAnkiDecks(database: any) {
   const deckRows = database.readTable("decks");
 
   if (deckRows.length > 0) {
@@ -389,19 +389,19 @@ export function parseAnkiDecks(database: any) {
   }));
 }
 
-export function parseAnkiNotes(database: any) {
+function parseAnkiNotes(database: any) {
   return database.readTable("notes");
 }
 
-export function parseAnkiCards(database: any) {
+function parseAnkiCards(database: any) {
   return database.readTable("cards");
 }
 
-export function parseAnkiReviewHistory(database: { readTable(tableName: string): unknown }) {
+function parseAnkiReviewHistory(database: { readTable(tableName: string): unknown }) {
   return normalizeAnkiReviewHistory(database.readTable("revlog"));
 }
 
-export async function parsePackageMetadataBytes(bytes: any) {
+async function parsePackageMetadataBytes(bytes: any) {
   try {
     const { decodePackageMetadata } = await loadProtobufDecoders();
     return decodePackageMetadata(bytes);
@@ -410,7 +410,7 @@ export async function parsePackageMetadataBytes(bytes: any) {
   }
 }
 
-export async function parseMediaEntriesBytes(bytes: any) {
+async function parseMediaEntriesBytes(bytes: any) {
   try {
     const { decodeMediaEntries } = await loadProtobufDecoders();
     return decodeMediaEntries(bytes);
@@ -419,7 +419,7 @@ export async function parseMediaEntriesBytes(bytes: any) {
   }
 }
 
-export async function parseAnkiPackageMetadata(archive: any) {
+async function parseAnkiPackageMetadata(archive: any) {
   const metaEntry = archive.getEntry("meta");
 
   if (!metaEntry) {

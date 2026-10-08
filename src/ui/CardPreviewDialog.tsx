@@ -33,6 +33,8 @@ export function CardPreviewDialog({
   returnFocusRef,
 }: CardPreviewDialogProps) {
   const [side, setSide] = React.useState<PreviewSide>("question");
+  // A new round resets answer input when the front is shown again; revealing keeps the selection for evaluation.
+  const [round, setRound] = React.useState(0);
   const answerContentRef = React.useRef<HTMLDivElement>(null);
   const titleId = React.useId();
   const closeDialog = React.useCallback(() => {
@@ -83,7 +85,7 @@ export function CardPreviewDialog({
             <div className="core-card-preview-stage core-study-card flex min-h-[56vh] w-full flex-col justify-center rounded-panel border border-core-border bg-core-surface px-4 py-6 shadow-raised sm:px-8 sm:py-10">
               {note && card ? (
                 <div ref={answerContentRef} tabIndex={-1} className="min-w-0 outline-none">
-                  <NoteCardContent key={side === "question" ? "question" : "answer"} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
+                  <NoteCardContent key={round} note={note} card={card} surface="preview" mediaUrls={mediaUrls} revealed={side === "answer"} onReveal={() => setSide("answer")} />
                 </div>
               ) : (
                 <StatusMessage tone="info">Für die Vorschau fehlen noch Pflichtangaben.</StatusMessage>
@@ -97,7 +99,10 @@ export function CardPreviewDialog({
             ariaLabel="Kartenseite anzeigen"
             options={PREVIEW_SIDE_OPTIONS}
             value={side}
-            onValueChange={setSide}
+            onValueChange={(next) => {
+              if (next === "question") setRound((current) => current + 1);
+              setSide(next);
+            }}
             size="regular"
             className="w-full max-w-sm"
           />

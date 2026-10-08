@@ -2,7 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { clearCloudAuthRedirectParams, getCloudWorkspaceUser, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
-import { markReplicaStartupGate, markSessionChecked } from "./appPerformance.ts";
+import { markReplicaStartupGate, markSessionChecked, markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
 import { createIndexedDbCoreRepository, type IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
@@ -174,14 +174,18 @@ async function finishAuthenticatedWorkspaceBootstrap(
   repository: IndexedDbCoreRepository,
 ): Promise<AuthenticatedWorkspaceBootstrapResult> {
   const pendingMutationsAtRequest = repository.outbox.listPending();
+  markStartupPhaseStarted("bootstrapRpc");
   const { loadAccountCloudBootstrap, loadAccountDueForecast } = await import("./cloudRepository.ts");
   const bootstrap = await loadAccountCloudBootstrap(supabase, user);
+  markStartupPhaseReady("bootstrapRpc", { deckCount: bootstrap.decks.length });
+  markStartupPhaseStarted("bootstrapApply");
   const localCatalogCursor = repository.getReplicaStatus().catalogCursor;
   await repository.applyCloudCatalogPage({ table: "decks", entities: bootstrap.decks.map((entry) => entry.deck), reset: false, cursor: localCatalogCursor });
   await repository.applyCloudCatalogPage({ table: "deck_study_summaries", entities: bootstrap.decks.map((entry) => entry.summary), reset: false, cursor: localCatalogCursor });
   if (bootstrap.studyOverview) await repository.applyAccountStudyOverview(bootstrap.studyOverview);
   await applyBootstrapProfile(repository, bootstrap.profile, user.id, pendingMutationsAtRequest);
   await repository.setAccountBaselineState(bootstrap.confirmedEmpty ? "confirmed-empty" : "nonempty", bootstrap.serverCatalogCursor);
+  markStartupPhaseReady("bootstrapApply");
   markReplicaStartupGate("accountBaselineReady", { deckCount: bootstrap.decks.length });
   // The 365-day forecast is not part of the first render; it completes the overview afterwards.
   void loadAccountDueForecast(supabase).then(repository.applyDueForecast).catch(() => undefined);

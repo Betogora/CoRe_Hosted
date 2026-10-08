@@ -61,9 +61,9 @@ function Catalog() {
   </div></SuccessToastProvider></CoreTooltipProvider>;
 }
 
-function CardTypes() {
+function CardForms() {
   return <CoreTooltipProvider><SuccessToastProvider><main className="catalog catalog-card-types"><header className="catalog-intro"><p>CoRe · Reviewreferenz</p><h1>Kartentypen</h1><p>Alle sechs manuell erstellbaren Formen verwenden denselben Kartenrenderer wie die App. Aufdecken, Auswahl und Zurücksetzen sind interaktiv. Importierte Image-Occlusion-Karten werden zusätzlich über ihre erhaltenen Anki-Schablonen dargestellt.</p><p>Weitere Formen aus Anki-Importen zeigen die <a href="ui-elements.html#note-content">Kartenbausteine</a> im UI-Katalog.</p><nav className="catalog-card-links" aria-label="Kartentypen">{cardTypes.map((type) => <a key={type.kind} href={`#${type.kind}`}>{type.label}</a>)}</nav></header>{cardTypes.map((type) => <Section key={type.kind} id={type.kind} title={type.label} lead={type.description}><div className="catalog-demo-grid"><Demo title={type.kind === "basic-reversed" ? "Vorwärtsrichtung" : "Review"}><StudyDemo kind={type.kind} /></Demo>{type.kind === "basic-reversed" && <Demo title="Rückrichtung · eigenständige Karte"><StudyDemo kind={type.kind} index={1} /></Demo>}</div></Section>)}</main></SuccessToastProvider></CoreTooltipProvider>;
 }
 
 loadDeferredBrowserAssets(document);
-createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardTypes /> : <Catalog />);
+createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardForms /> : <Catalog />);

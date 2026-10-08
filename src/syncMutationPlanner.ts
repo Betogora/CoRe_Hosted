@@ -44,12 +44,12 @@ function tombstoneMutation(table: string, entity: RevisionedEntity) {
   };
 }
 
-export function deckEntity(deck: Deck) {
+function deckEntity(deck: Deck) {
   const { cards: _cards, reviewEvents: _events, ...entity } = deck;
   return entity;
 }
 
-export function cardEntity(card: Card) {
+function cardEntity(card: Card) {
   const { variants: _variants, ...entity } = card;
   return entity;
 }

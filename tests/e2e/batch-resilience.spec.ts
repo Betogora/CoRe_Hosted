@@ -1,9 +1,9 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import path from "node:path";
-import { createCoreDeck, createLearningItemFromEditorValue } from "../../src/coreModel.ts";
-import { createCoreRepository, normalizeContentEntities } from "../../src/coreRepository.ts";
-import type { Deck } from "../../src/coreTypes.ts";
+import { createBasicNote, createCoreDeck } from "../../src/coreModel.ts";
+import { createCoreRepository } from "../../src/coreRepository.ts";
+import type { Deck, Note } from "../../src/coreTypes.ts";
 import { DECK_DEPTH_INDENT_PX } from "../../src/deckHierarchy.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
@@ -17,14 +17,16 @@ const DECK_IDS = {
   childB: "batch-child-b",
   target: "batch-target",
 };
-const QUALITY_APKG_FIXTURE = path.join(process.cwd(), "fixtures", "apkg", "import-quality-latest.apkg");
+const MEDIA_APKG_FIXTURE = path.join(process.cwd(), "fixtures", "apkg", "matrix", "media-latest.apkg");
 
-function card(deckId: string, front: string, back: string) {
-  return createLearningItemFromEditorValue(deckId, { cardType: "basic", front, back, tags: [] });
-}
-
-function seedDecks(): Deck[] {
-  return [
+function seedContent(): { decks: Deck[]; notes: Note[] } {
+  const notes: Note[] = [];
+  const card = (deckId: string, front: string, back: string) => {
+    const created = createBasicNote(deckId, front, back);
+    notes.push(created.note);
+    return created.cards[0];
+  };
+  const decks = [
     createCoreDeck({ id: DECK_IDS.rootA, name: "Bereich A", hierarchyPath: ["Bereich A"], source: "manual", cards: [] }),
     createCoreDeck({
       id: DECK_IDS.childA,
@@ -58,6 +60,7 @@ function seedDecks(): Deck[] {
       cards: [],
     })),
   ];
+  return { decks, notes };
 }
 
 async function seedAccount() {
@@ -71,11 +74,11 @@ async function seedAccount() {
     const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
     if (conflictCleanupError) throw conflictCleanupError;
     const state = createCoreRepository({ seedDefaultDecks: false }).getState();
-    const content = normalizeContentEntities(seedDecks(), []);
+    const content = seedContent();
     await seedAccountState(client, {
       ...state,
       decks: content.decks,
-      noteTypeDefinitions: content.definitions,
+      notes: content.notes,
       profile: { ...state.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },
     }, "e2e-batch-resilience-reset");
   } finally {
@@ -311,7 +314,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await page.getByTestId(`deck-card-${existingCardId}`).click();
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
   await cardDialog.getByRole("button", { name: "Nein" }).click();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
   const contentRegion = page.locator('section[aria-label="Seiteninhalt"]');
   const scrollAnchor = page.getByTestId("deck-header-batch-scroll-3");
@@ -330,7 +333,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await deletionToast.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
   await expect(deletionToast).toHaveCount(0);
   await page.getByRole("button", { name: "Rückgängig" }).click();
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
   await expect.poll(async () => (await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
   await page.reload();
   if (await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).getAttribute("aria-expanded") !== "true") {
@@ -339,7 +342,7 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   if (await page.getByTestId("card-detail-aside").count() === 0) {
     await page.getByTestId(`deck-card-${existingCardId}`).click();
   }
-  await expect(page.getByRole("textbox", { name: "Karten-Vorderseite" })).toContainText("Bestehende Karte");
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
   await page.getByTestId("card-detail-backdrop").click({ position: { x: 5, y: 5 } });
 
   await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
@@ -401,11 +404,11 @@ test("[Vertrag: ausschließlicher APKG-Import und Terminalzustände] @beta-core 
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
   const importCreation = page.getByRole("region", { name: "Import" });
-  await expect(importCreation.getByRole("heading", { name: "APKG-Dateien importieren" })).toBeVisible();
+  await expect(importCreation.getByRole("heading", { name: "Anki-Dateien importieren" })).toBeVisible();
   await expect(importCreation.getByRole("button", { name: "Erstellen", exact: true })).toBeVisible();
   await expect(importCreation.getByRole("button", { name: /^(APKG|Text|CSV|Excel\/Tabelle)$/ })).toHaveCount(0);
   await expect(importCreation.getByRole("textbox", { name: "Importinhalt" })).toHaveCount(0);
-  await page.locator('input[type="file"][accept=".apkg"]').setInputFiles({
+  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles({
     name: "kaputt.apkg",
     mimeType: "application/octet-stream",
     buffer: Buffer.from("kein gueltiges apkg"),
@@ -417,7 +420,7 @@ test("[Vertrag: ausschließlicher APKG-Import und Terminalzustände] @beta-core 
 test("[Vertrag: partieller Importabschluss] @beta-core Karten bleiben nach Medienfehler nutzbar", async ({ page }) => {
   await mainMenu(page).getByRole("button", { name: "Erstellen" }).click();
   await page.getByRole("button", { name: /^Import\b/ }).click();
-  await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(QUALITY_APKG_FIXTURE);
+  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(MEDIA_APKG_FIXTURE);
   await expect(page.getByText("Importvorschau", { exact: true })).toBeVisible({ timeout: 30_000 });
   await page.route("**/storage/v1/object/core-media/**", (route) => route.abort("failed"));
   await page.getByRole("button", { name: "Import übernehmen" }).click();

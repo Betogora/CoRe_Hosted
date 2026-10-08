@@ -24,7 +24,7 @@ async function deckReviewEventCount(page: Page, deckId: string) {
 
 async function variantReviewEventCount(page: Page, deckId: string) {
   const state = await readAppState(page);
-  return state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.reviewEvents?.filter((event: { reviewableType: string; }) => event.reviewableType === "variant").length ?? 0;
+  return state.decks?.find((deck: { id: any; }) => deck.id === deckId)?.reviewEvents?.filter((event: { variantId: string | null }) => event.variantId !== null).length ?? 0;
 }
 
 async function storedCard(page: Page, deckId: string, cardId: string) {
@@ -32,9 +32,13 @@ async function storedCard(page: Page, deckId: string, cardId: string) {
   return state.decks?.find((deck: { id: string }) => deck.id === deckId)?.cards?.find((card: { id: string }) => card.id === cardId) ?? null;
 }
 
+function frontHtml(card: any): string | undefined {
+  return card?.note?.content.fields.find((field: { id: string }) => field.id === "front")?.html;
+}
+
 async function findPdfCreatedCard(page: Page) {
   const state = await readAppState(page);
-  return state.decks?.flatMap((deck: { cards: any; }) => deck.cards ?? []).find((card: { originalFront: any; canonicalQuestion: any; }) => String(card.originalFront ?? card.canonicalQuestion ?? "").includes("Mitochondrien erzeugen ATP")) ?? null;
+  return state.decks?.flatMap((deck: { cards: any; }) => deck.cards ?? []).find((card: any) => String(frontHtml(card) ?? card.frontPreview ?? "").includes("Mitochondrien erzeugen ATP")) ?? null;
 }
 
 function mainMenu(page: Page) {
@@ -575,7 +579,7 @@ test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge s
     const state = await readAppState(page);
     const currentDeck = state.decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe);
     return {
-      marked: currentDeck.cards.filter((card: { meta?: { marked?: boolean } }) => card.meta?.marked).length,
+      marked: currentDeck.cards.filter((card: { note?: { marked?: boolean } }) => card.note?.marked).length,
       order: currentDeck.deckSettings.newReviewOrder,
     };
   }).toEqual({ marked: 1, order: "new-first" });
@@ -903,7 +907,7 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(1);
   await page.getByRole("button", { name: "Grundkarte anzeigen" }).click();
   await expect(page.getByTestId("base-card-reference")).toHaveCount(1);
-  await expect(page.frameLocator('iframe[title="Frage der Grundkarte"]').getByText("Was ist die Hauptstadt von Côte d'Ivoire?", { exact: true })).toBeVisible();
+  await expect(page.getByTestId("base-card-reference").frameLocator('iframe[title="Aufgedeckte Karte"]').locator("body")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
   await page.getByRole("button", { name: "Unklar formuliert" }).click();
   await expect(page.getByRole("status")).toContainText("Der ausgewählte Grund wurde gespeichert.");
   await expect.poll(async () => {
@@ -935,7 +939,7 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
-  await expect(page.getByLabel("Karten-Vorderseite")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await expect(page.getByLabel("Feld Vorderseite")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
   await expect(page.getByRole("heading", { name: "Details und Herkunft" })).toHaveCount(0);
   await expect(page.getByText("Änderungslogeinträge")).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Version zum Wiederherstellen" })).toHaveCount(0);
@@ -967,20 +971,22 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   await expect(page.getByText("Die nächste Fälligkeit wurde erfolgreich neu geplant.")).toBeVisible();
 
   const scheduled = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
-  expect(scheduled.reviewState.dueAt).not.toBe(before.reviewState.dueAt);
-  expect({ ...scheduled.reviewState, dueAt: before.reviewState.dueAt }).toEqual(before.reviewState);
-  expect(scheduled.coreState).toEqual(before.coreState);
+  expect(scheduled.study.dueAt).not.toBe(before.study.dueAt);
+  expect({ ...scheduled.study, dueAt: before.study.dueAt }).toEqual(before.study);
+  expect(scheduled.studyRevision).toBe(before.studyRevision + 1);
   expect(scheduled.revision).toBe(before.revision);
-  expect(scheduled.contentRevision).toBe(before.contentRevision);
+  expect(scheduled.note.contentRevision).toBe(before.note.contentRevision);
   expect(scheduled.status).toBe("suspended");
   expect("versionLog" in scheduled).toBe(false);
   const events = (await readAppState(page)).decks
     .find((deck: { id: string }) => deck.id === DECK_IDS.africa).reviewEvents;
   expect(events).toHaveLength(reviewEventsBefore + 1);
-  expect(events.at(-1)).toMatchObject({ rating: "manual", sourceCardId: scheduled.id });
-  expect(events.at(-1).schedulerBefore).toEqual({ dueAt: before.reviewState.dueAt });
-  expect(events.at(-1).schedulerAfter).toEqual({ dueAt: scheduled.reviewState.dueAt });
-  expect(events.at(-1).flags).toEqual({ kind: "manual_reschedule" });
+  const manualEvents = events.filter((event: { rating: string }) => event.rating === "manual");
+  expect(manualEvents).toHaveLength(1);
+  expect(manualEvents[0]).toMatchObject({ rating: "manual", cardId: scheduled.id, variantId: null });
+  expect(manualEvents[0].schedulerBefore).toEqual({ card: { state: before.study.state, dueAt: before.study.dueAt, intervalDays: before.study.intervalDays } });
+  expect(manualEvents[0].schedulerAfter).toEqual({ card: { state: scheduled.study.state, dueAt: scheduled.study.dueAt, intervalDays: scheduled.study.intervalDays } });
+  expect(manualEvents[0].flags).toEqual({ kind: "manual_reschedule" });
 });
 
 test("shared CoRe date picker updates the simulator within its bounded range", async ({ page }: any) => {
@@ -1041,15 +1047,16 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   await expect.poll(async () => Boolean(await findPdfCreatedCard(page))).toBe(true);
   const createdCard = await findPdfCreatedCard(page);
   expect("sourceAnchors" in createdCard).toBe(false);
+  expect("sourceAnchors" in createdCard.note).toBe(false);
 
   const stateAfterCreation = await readAppState(page);
   const createdDeck = stateAfterCreation.decks.find((deck: { cards?: { id: string }[] }) => deck.cards?.some((card) => card.id === createdCard.id));
   expect(createdDeck?.id).toBeTruthy();
   await page.getByRole("button", { name: "Karten prüfen" }).click();
   await page.getByRole("button", { name: /Mitochondrien erzeugen ATP/ }).click();
-  await page.getByLabel("Karten-Vorderseite").fill("Warum erzeugen Mitochondrien ATP?");
+  await page.getByLabel("Feld Vorderseite").fill("Warum erzeugen Mitochondrien ATP?");
   await page.getByRole("button", { name: "Speichern" }).click();
-  await expect.poll(async () => (await storedCard(page, createdDeck.id, createdCard.id))?.originalFront).toBe("<p>Warum erzeugen Mitochondrien ATP?</p>");
+  await expect.poll(async () => frontHtml(await storedCard(page, createdDeck.id, createdCard.id))).toBe("<p>Warum erzeugen Mitochondrien ATP?</p>");
 
   const reviewsBefore = await deckReviewEventCount(page, createdDeck.id);
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();

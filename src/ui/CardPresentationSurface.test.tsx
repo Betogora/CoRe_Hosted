@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { buildSrcdoc } from "../cardPresentationFrame.ts";
+import { buildSrcdoc } from "../presentationFrame.ts";
 import type { NotePresentationResult } from "../notePresentation.ts";
 import { CardPresentationSurface, fitReviewFrameToContent } from "./CardPresentationSurface.tsx";
 

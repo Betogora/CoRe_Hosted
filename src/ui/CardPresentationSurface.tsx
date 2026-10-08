@@ -1,5 +1,5 @@
 import React from "react";
-import { resolvePresentationMedia } from "../cardPresentationFrame.ts";
+import { resolvePresentationMedia } from "../presentationFrame.ts";
 import type { NotePresentationResult } from "../notePresentation.ts";
 import { StatusMessage } from "./feedbackUi.tsx";
 

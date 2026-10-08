@@ -6,7 +6,7 @@ import { readActiveAccountState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 
-const SMALL_APKG_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/import-quality-legacy.apkg", import.meta.url));
+const SMALL_APKG_FIXTURE = fileURLToPath(new URL("../../fixtures/apkg/matrix/standard-legacy2.apkg", import.meta.url));
 
 async function resetAccountToEmpty() {
   const environment = loadE2EEnvironment();
@@ -106,7 +106,7 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
 test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core lokaler APKG-Commit wartet nicht auf den initialen Cloud-Sync", async ({ page }) => {
   let releaseCloudBootstrap!: () => void;
   const cloudBootstrapGate = new Promise<void>((resolve) => { releaseCloudBootstrap = resolve; });
-  await page.route("**/rest/v1/rpc/get_account_bootstrap_v2", async (route) => {
+  await page.route("**/rest/v1/rpc/get_account_bootstrap", async (route) => {
     await cloudBootstrapGate;
     await route.continue();
   });
@@ -114,8 +114,8 @@ test("[Vertrag: APKG-Vorschau bis Review] @golden-e2e @beta-core @hosted-core lo
   await expect(page.getByRole("button", { name: /Anki-Stapel importieren/ })).toBeVisible();
   await page.getByRole("button", { name: /Anki-Stapel importieren/ }).click();
   await expect(page).toHaveURL(/\/neue-karten\?method=import$/);
-  await page.locator('input[type="file"][accept=".apkg"]').setInputFiles(SMALL_APKG_FIXTURE);
-  await expect(page.getByRole("heading", { name: "Erkannte Stapel" })).toBeVisible();
+  await page.locator('input[type="file"][accept=".apkg,.colpkg"]').setInputFiles(SMALL_APKG_FIXTURE);
+  await expect(page.getByRole("button", { name: "Import übernehmen" })).toBeEnabled({ timeout: 30_000 });
   await page.getByRole("button", { name: "Import übernehmen" }).click();
 
   await expect(page.getByText("Die Karten sind lokal gespeichert; die Synchronisierung steht noch aus.")).toBeVisible();

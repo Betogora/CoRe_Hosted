@@ -335,6 +335,10 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
     if (showAnswer) answerContentRef.current?.focus();
   }, [showAnswer]);
 
+  // While a card is shown, loading further cards in the background must not take the focus away.
+  const focusTarget = current
+    ? `card:${current.cardId}:${current.variantId ?? ""}:${answeredCount}`
+    : `completion:${answeredCount}:${hasWaitingLearningCards}:${limitReachedAtStart}:${Boolean(loadMoreError)}:${loadingMoreCards}:${moreCardsAvailable}`;
   React.useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -342,7 +346,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
       else if (answeredCount > 0 || hasWaitingLearningCards || limitReachedAtStart || loadMoreError || loadingMoreCards || moreCardsAvailable) completionHeadingRef.current?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [current?.cardId, current?.variantId, answeredCount, hasWaitingLearningCards, limitReachedAtStart, loadMoreError, loadingMoreCards, moreCardsAvailable]);
+  }, [focusTarget]);
 
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -435,7 +439,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
                     </p>
                   ) : null}
-                  <div ref={showAnswer ? answerContentRef : questionContentRef} tabIndex={-1} className="min-w-0 outline-none" data-testid="study-card-content">
+                  <div ref={showAnswer ? answerContentRef : questionContentRef} tabIndex={-1} role="group" aria-label={showAnswer ? "Antwort" : "Frage"} className="min-w-0 outline-none" data-testid="study-card-content">
                     {presented ? (
                       <NoteCardContent note={presented.note} card={presented.card} mediaUrls={studyMediaUrls} revealed={showAnswer} onReveal={revealAnswer} />
                     ) : (

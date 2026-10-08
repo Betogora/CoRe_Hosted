@@ -22,11 +22,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_PATH = ROOT / "fixtures" / "apkg" / "world-capitals.source.json"
 APKG_PATH = ROOT / "fixtures" / "apkg" / "world-capitals.apkg"
-SEED_PATH = ROOT / "src" / "fixtures" / "worldCapitals.js"
 COUNTRIES_URL = "https://raw.githubusercontent.com/mledoze/countries/master/countries.json"
 SNAPSHOT_DATE = "2026-07-07"
 CREATED_AT = "2026-07-07T00:00:00.000Z"
-ROOT_DECK_ID = "deck_world_capitals"
 ROOT_DECK_NAME = "Welt-Hauptstädte"
 MODEL_ID = 1720300000001
 ANKI_ROOT_DECK_ID = 1720300000000
@@ -144,10 +142,6 @@ def build_source(refresh: bool):
     return load_json(SOURCE_PATH)
 
 
-def deck_id_for_continent(continent_id: str) -> str:
-    return f"deck_world_capitals_{continent_id}"
-
-
 def card_front(item) -> str:
     question = f"Was ist die Hauptstadt von {item['country']}?"
     media_name = item.get("benchmarkMedia")
@@ -161,131 +155,6 @@ def card_back(item) -> str:
         answer = "Hauptstädte: " + ", ".join(item["capitals"])
     media_name = item.get("benchmarkMedia")
     return f'{answer}<br><img src="{media_name}">' if media_name else answer
-
-
-def write_seed_module(source) -> None:
-    SEED_PATH.parent.mkdir(parents=True, exist_ok=True)
-    metadata = source["metadata"]
-    items = source["items"]
-    grouped = {
-        slug: [item for item in items if item["continentId"] == slug]
-        for slug, _label in CONTINENTS
-    }
-    continents = [
-        {
-            "id": slug,
-            "label": label,
-            "deckId": deck_id_for_continent(slug),
-            "cards": grouped[slug],
-        }
-        for slug, label in CONTINENTS
-    ]
-    payload = {
-        "metadata": metadata,
-        "rootDeck": {"id": ROOT_DECK_ID, "name": ROOT_DECK_NAME},
-        "continents": continents,
-    }
-    serialized = json.dumps(payload, ensure_ascii=False, indent=2)
-    code = f'''import {{ createBasicLearningItem, createCoreDeck }} from "../coreModel.ts";
-
-export const WORLD_CAPITALS_FIXTURE = {serialized};
-
-export const WORLD_CAPITALS_TOTAL_CARDS = WORLD_CAPITALS_FIXTURE.metadata.totalCards;
-export const WORLD_CAPITALS_COUNTS_BY_CONTINENT = WORLD_CAPITALS_FIXTURE.metadata.countsByContinent;
-
-function createCapitalCard(deckId, item) {{
-  const front = `Was ist die Hauptstadt von ${{item.country}}?`;
-  const back = item.capitals.length === 1 ? item.capitals[0] : `Hauptstädte: ${{item.capitals.join(", ")}}`;
-
-  return createBasicLearningItem(deckId, front, back, {{
-    id: item.id,
-    originalVariantId: item.variantId,
-    source: "anki-apkg",
-    sourceType: "anki_import",
-    sourceRefId: `anki-note-${{item.ankiNoteId}}`,
-    tags: ["geo", "hauptstaedte", item.continentId, String(item.cca3).toLowerCase()],
-    createdAt: "{CREATED_AT}",
-    updatedAt: "{CREATED_AT}",
-    reviewState: {{
-      learningItemId: item.id,
-      reviewableType: "card",
-      reviewableId: item.id,
-      dueAt: "{CREATED_AT}",
-      reps: 0,
-      repetitions: 0,
-      maturityXp: 0,
-    }},
-    meta: {{
-      fixture: "world-capitals",
-      source: WORLD_CAPITALS_FIXTURE.metadata.source,
-      sourceLicense: WORLD_CAPITALS_FIXTURE.metadata.sourceLicense,
-      sourceUrl: WORLD_CAPITALS_FIXTURE.metadata.sourceUrl,
-      snapshotDate: WORLD_CAPITALS_FIXTURE.metadata.snapshotDate,
-      countryCode: item.cca3,
-      countryCodeAlpha2: item.cca2,
-      countryEnglish: item.countryEnglish,
-      continent: item.continent,
-      ankiNoteId: String(item.ankiNoteId),
-      ankiCardId: String(item.ankiCardId),
-    }},
-  }});
-}}
-
-export function createWorldCapitalsSeedDecks() {{
-  const rootDeck = createCoreDeck({{
-    id: WORLD_CAPITALS_FIXTURE.rootDeck.id,
-    name: WORLD_CAPITALS_FIXTURE.rootDeck.name,
-    source: "anki-apkg",
-    parentDeckId: null,
-    hierarchyPath: [WORLD_CAPITALS_FIXTURE.rootDeck.name],
-    originalDeckId: "world-capitals-root",
-    cards: [],
-    tags: ["geo", "hauptstaedte"],
-    createdAt: "{CREATED_AT}",
-    updatedAt: "{CREATED_AT}",
-    importMeta: {{
-      fixture: "world-capitals",
-      fileName: "world-capitals.apkg",
-      source: WORLD_CAPITALS_FIXTURE.metadata.source,
-      sourceUrl: WORLD_CAPITALS_FIXTURE.metadata.sourceUrl,
-      sourceLicense: WORLD_CAPITALS_FIXTURE.metadata.sourceLicense,
-      snapshotDate: WORLD_CAPITALS_FIXTURE.metadata.snapshotDate,
-      detectedCards: WORLD_CAPITALS_FIXTURE.metadata.totalCards,
-      detectedDecks: WORLD_CAPITALS_FIXTURE.continents.length + 1,
-      isContainerDeck: true,
-    }},
-  }});
-
-  const childDecks = WORLD_CAPITALS_FIXTURE.continents.map((continent) =>
-    createCoreDeck({{
-      id: continent.deckId,
-      name: continent.label,
-      source: "anki-apkg",
-      parentDeckId: rootDeck.id,
-      hierarchyPath: [rootDeck.name, continent.label],
-      originalDeckId: `world-capitals-${{continent.id}}`,
-      cards: continent.cards.map((item) => createCapitalCard(continent.deckId, item)),
-      tags: ["geo", "hauptstaedte", continent.id],
-      createdAt: "{CREATED_AT}",
-      updatedAt: "{CREATED_AT}",
-      importMeta: {{
-        fixture: "world-capitals",
-        fileName: "world-capitals.apkg",
-        source: WORLD_CAPITALS_FIXTURE.metadata.source,
-        sourceUrl: WORLD_CAPITALS_FIXTURE.metadata.sourceUrl,
-        sourceLicense: WORLD_CAPITALS_FIXTURE.metadata.sourceLicense,
-        snapshotDate: WORLD_CAPITALS_FIXTURE.metadata.snapshotDate,
-        ankiDeckPath: `${{rootDeck.name}}::${{continent.label}}`,
-        detectedCards: continent.cards.length,
-        isContainerDeck: false,
-      }},
-    }}),
-  );
-
-  return [rootDeck, ...childDecks];
-}}
-'''
-    SEED_PATH.write_text(code, encoding="utf-8", newline="\n")
 
 
 def anki_tags(item) -> str:
@@ -537,10 +406,8 @@ def main() -> None:
         write_apkg(benchmark, output_path, media_files)
         print(f"wrote {output_path.relative_to(ROOT)}")
         return
-    write_seed_module(source)
     write_apkg(source)
     print(f"wrote {SOURCE_PATH.relative_to(ROOT)}")
-    print(f"wrote {SEED_PATH.relative_to(ROOT)}")
     print(f"wrote {APKG_PATH.relative_to(ROOT)}")
 
 

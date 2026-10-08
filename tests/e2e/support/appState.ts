@@ -1,12 +1,12 @@
 import type { Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createCoreRepository } from "../../../src/coreRepository.ts";
-import type { Deck } from "../../../src/coreTypes.ts";
+import type { Deck, Note } from "../../../src/coreTypes.ts";
 import { loadE2EEnvironment } from "./e2eEnvironment.ts";
 import { seedAccountState } from "../../support/seedAccountState.ts";
 
 const CORE_STORAGE_PREFIX = "core.";
-const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v3.";
+const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v4.";
 const SYNC_DEVICE_STORAGE_KEY = "core.syncDevice.v2";
 
 function isSupabaseAuthStorageKey(key: string) {
@@ -23,7 +23,7 @@ function createE2ESeedState(email: string) {
   };
 }
 
-export async function resetTestAccount(environment = loadE2EEnvironment(), additionalDecks: Deck[] = []) {
+export async function resetTestAccount(environment = loadE2EEnvironment(), additional: { decks?: Deck[]; notes?: Note[] } = {}) {
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
   });
@@ -31,14 +31,13 @@ export async function resetTestAccount(environment = loadE2EEnvironment(), addit
   if (error || !data.user) throw new Error(`Der dedizierte E2E-Testaccount konnte nicht angemeldet werden: ${error?.message ?? "kein Nutzer"}`);
 
   try {
-    const { data: mediaRows, error: mediaReadError } = await client.from("media_assets").select("storage_bucket, storage_path").eq("user_id", data.user.id);
+    const { data: mediaRows, error: mediaReadError } = await client.from("media_files").select("storage_path").eq("user_id", data.user.id);
     if (mediaReadError) throw new Error(`E2E-Medienreferenzen konnten nicht gelesen werden: ${mediaReadError.message}`);
-    const { error: mediaDeleteError } = await client.from("media_assets").delete().eq("user_id", data.user.id);
+    const { error: mediaDeleteError } = await client.from("media_files").delete().eq("user_id", data.user.id);
     if (mediaDeleteError) throw new Error(`E2E-Medienreferenzen konnten nicht zurückgesetzt werden: ${mediaDeleteError.message}`);
-    const pathsByBucket = new Map<string, Set<string>>();
-    for (const row of mediaRows ?? []) pathsByBucket.set(row.storage_bucket, new Set([...(pathsByBucket.get(row.storage_bucket) ?? []), row.storage_path]));
-    for (const [bucket, paths] of pathsByBucket) {
-      const { error: mediaObjectError } = await client.storage.from(bucket).remove([...paths]);
+    const mediaPaths = (mediaRows ?? []).map((row) => row.storage_path);
+    if (mediaPaths.length) {
+      const { error: mediaObjectError } = await client.storage.from("core-media").remove(mediaPaths);
       if (mediaObjectError) throw new Error(`E2E-Medienobjekte konnten nicht zurückgesetzt werden: ${mediaObjectError.message}`);
     }
     const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
@@ -46,18 +45,22 @@ export async function resetTestAccount(environment = loadE2EEnvironment(), addit
     const { error: deviceCleanupError } = await client.from("sync_devices").delete().eq("user_id", data.user.id);
     if (deviceCleanupError) throw new Error(`Registrierte E2E-Geräte konnten nicht zurückgesetzt werden: ${deviceCleanupError.message}`);
     const seedState = createE2ESeedState(environment.email);
-    await seedAccountState(client, { ...seedState, decks: [...seedState.decks, ...additionalDecks] }, "e2e-test-reset");
+    await seedAccountState(client, {
+      ...seedState,
+      decks: [...seedState.decks, ...(additional.decks ?? [])],
+      notes: [...seedState.notes, ...(additional.notes ?? [])],
+    }, "e2e-test-reset");
   } finally {
     await client.auth.signOut({ scope: "local" }).catch(() => undefined);
     client.auth.dispose?.();
   }
 }
 
-export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean; additionalDecks?: Deck[] } = {}) {
+export async function resetToFreshLocalState(page: Page, options: { resetCloud?: boolean; waitForCloud?: boolean; additionalDecks?: Deck[]; additionalNotes?: Note[] } = {}) {
   await page.goto("/");
   await page.waitForFunction((key: string) => Boolean(localStorage.getItem(key)), SYNC_DEVICE_STORAGE_KEY);
   await page.goto("/favicon.svg");
-  if (options.resetCloud !== false) await resetTestAccount(loadE2EEnvironment(), options.additionalDecks);
+  if (options.resetCloud !== false) await resetTestAccount(loadE2EEnvironment(), { decks: options.additionalDecks, notes: options.additionalNotes });
 
   const authKeyBefore = await page.evaluate(() =>
     Object.keys(localStorage).find((key) => key.startsWith("sb-") && key.endsWith("-auth-token")) ?? null,
@@ -144,49 +147,54 @@ export async function readActiveAccountState(page: Page) {
       request.onerror = () => reject(request.error ?? new Error(`E2E-Store ${store} konnte nicht gelesen werden.`));
     });
     try {
-      const [metaRows, deckRows, catalogRows, cardRows, variantRows, reviewEvents, definitions, syncRows] = await Promise.all([
+      const [metaRows, deckRows, noteRows, catalogRows, cardRows, variantRows, reviewEvents, noteTypeSources, noteSources, syncRows] = await Promise.all([
         readAll<any>("meta"),
         readAll<any>("decks"),
+        readAll<any>("notes"),
         readAll<any>("cardCatalog"),
         readAll<any>("cards"),
         readAll<any>("variants"),
         readAll<any>("reviewEvents"),
-        readAll<any>("noteTypeDefinitions"),
+        readAll<any>("noteTypeSources"),
+        readAll<any>("noteSources"),
         readAll<any>("syncMetadata"),
       ]);
       const meta = new Map(metaRows.map((row) => [row.key, row.value]));
       const sync = new Map(syncRows.map((row) => [row.key, row.value]));
+      const notesById = new Map(noteRows.map((note) => [note.id, note]));
       const variantsByCard = new Map<string, any[]>();
-      for (const { deckId: _deckId, ...variant } of variantRows) {
-        const cardId = String(variant.learningItemId ?? variant.cardId ?? "");
-        variantsByCard.set(cardId, [...(variantsByCard.get(cardId) ?? []), variant]);
+      for (const { deckId: _deckId, activeForSummary: _active, ...variant } of variantRows) {
+        variantsByCard.set(variant.cardId, [...(variantsByCard.get(variant.cardId) ?? []), variant]);
       }
       const cardsByDeck = new Map<string, any[]>();
       for (const catalog of catalogRows) {
         const placeholder = {
           id: catalog.id,
           deckId: catalog.deckId,
-          originalFront: catalog.frontPreview,
-          canonicalQuestion: catalog.frontPreview,
+          noteId: catalog.noteId,
+          frontPreview: catalog.frontPreview,
           variants: [],
           status: catalog.reviewable === 1 ? "active" : "suspended",
-          meta: { catalogOnly: true },
+          note: notesById.get(catalog.noteId) ?? null,
+          catalogOnly: true,
         };
         cardsByDeck.set(catalog.deckId, [...(cardsByDeck.get(catalog.deckId) ?? []), placeholder]);
       }
-      for (const { dueAt: _dueAt, normalizedSearchText: _searchText, ...card } of cardRows) {
-        const hydrated = { ...card, variants: variantsByCard.get(card.id) ?? [] };
+      for (const card of cardRows) {
+        const hydrated = { ...card, variants: variantsByCard.get(card.id) ?? [], note: notesById.get(card.noteId) ?? null };
         const existing = cardsByDeck.get(card.deckId) ?? [];
         cardsByDeck.set(card.deckId, [...existing.filter((candidate) => candidate.id !== card.id), hydrated]);
       }
       const reviewsByDeck = new Map<string, any[]>();
       for (const event of reviewEvents) reviewsByDeck.set(event.deckId, [...(reviewsByDeck.get(event.deckId) ?? []), event]);
       return {
-        version: 5,
+        version: 6,
         profile: meta.get("profile"),
         updatedAt: meta.get("updatedAt"),
+        notes: noteRows,
         decks: deckRows.map((deck) => ({ ...deck, cards: cardsByDeck.get(deck.id) ?? [], reviewEvents: reviewsByDeck.get(deck.id) ?? [] })),
-        noteTypeDefinitions: definitions,
+        noteTypeSources,
+        noteSources,
         cloudTombstones: sync.get("cloudTombstones") ?? [],
       };
     } finally {

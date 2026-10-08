@@ -4,6 +4,7 @@ insert into auth.users (id, email)
 values ('00000000-0000-0000-0000-000000000042', 'replica-benchmark@core.local');
 
 alter table public.decks disable trigger user;
+alter table public.notes disable trigger user;
 alter table public.cards disable trigger user;
 alter table public.review_events disable trigger user;
 alter table public.card_catalog disable trigger user;
@@ -22,78 +23,97 @@ insert into public.profiles (
 );
 
 insert into public.decks (
-  id, user_id, name, source, card_count, sync_change_id, revision,
+  id, user_id, name, source, sync_change_id, revision,
   created_at, updated_at
 ) values (
   'replica-benchmark-deck',
   '00000000-0000-0000-0000-000000000042',
   'Replica Benchmark',
   'manual',
-  100000,
   1,
   1,
   '2026-08-18T00:00:00Z',
   '2026-08-18T00:00:00Z'
 );
 
+-- 100.000 Basic-Inhalte mit je einer Karte; Such- und Sortiertext wie `noteTextIndex`.
+insert into public.notes (
+  id, user_id, content, media, search_text, sort_text, source,
+  content_revision, revision, created_at, updated_at
+)
+select
+  'replica-note-' || pg_catalog.lpad(series_id::text, 6, '0'),
+  '00000000-0000-0000-0000-000000000042',
+  pg_catalog.jsonb_build_object(
+    'schemaVersion', 1,
+    'fields', pg_catalog.jsonb_build_array(
+      pg_catalog.jsonb_build_object('id', 'front', 'name', 'Vorderseite', 'role', 'prompt', 'html', 'Skalierungsfrage ' || series_id),
+      pg_catalog.jsonb_build_object('id', 'back', 'name', 'Rückseite', 'role', 'answer', 'html', 'Skalierungsantwort ' || series_id)
+    ),
+    'interaction', '{"kind":"reveal","prompts":[{"key":"forward","name":"Vorwärts","instruction":"","questionFieldIds":["front"],"answerFieldIds":["back"],"requires":null,"typeInFieldId":null}]}'::jsonb,
+    'speech', '[]'::jsonb,
+    'tags', '[]'::jsonb
+  ),
+  '{}'::jsonb,
+  'skalierungsfrage ' || series_id || ' skalierungsantwort ' || series_id,
+  'Skalierungsfrage ' || series_id,
+  'manual',
+  1,
+  1,
+  '2025-08-18T00:00:00Z'::timestamptz + ((series_id % 365) || ' days')::interval,
+  '2026-08-18T00:00:00Z'
+from pg_catalog.generate_series(1, 100000) as series_id;
+
 insert into public.cards (
-  id, user_id, deck_id, source, kind, original_front, original_back,
-  review_state, sync_change_id, revision, created_at, updated_at
+  id, user_id, note_id, deck_id, prompt_key, state, due_at, stability, difficulty,
+  reps, interval_days, last_reviewed_at, study_revision, revision, created_at, updated_at
 )
 select
   'replica-card-' || pg_catalog.lpad(series_id::text, 6, '0'),
   '00000000-0000-0000-0000-000000000042',
+  'replica-note-' || pg_catalog.lpad(series_id::text, 6, '0'),
   'replica-benchmark-deck',
-  'manual',
-  'basic',
-  'Skalierungsfrage ' || series_id,
-  'Skalierungsantwort ' || series_id,
-  pg_catalog.jsonb_build_object(
-    'state', case when series_id % 5 = 0 then 'new' else 'review' end,
-    'dueAt', pg_catalog.to_char(
-      '2026-08-18T12:00:00Z'::timestamptz + ((series_id % 365) || ' days')::interval,
-      'YYYY-MM-DD"T"HH24:MI:SS"Z"'
-    ),
-    'intervalDays', greatest(1, series_id % 120),
-    'difficulty', 1 + (series_id % 10),
-    'stability', 1 + (series_id % 60),
-    'lastReviewedAt', '2026-08-17T12:00:00Z'
-  ),
-  series_id + 1,
+  'forward',
+  case when series_id % 5 = 0 then 'new' else 'review' end,
+  '2026-08-18T12:00:00Z'::timestamptz + ((series_id % 365) || ' days')::interval,
+  1 + (series_id % 60),
+  1 + (series_id % 10),
+  case when series_id % 5 = 0 then 0 else 3 end,
+  case when series_id % 5 = 0 then 0 else greatest(1, series_id % 120) end,
+  case when series_id % 5 = 0 then null else '2026-08-17T12:00:00Z'::timestamptz end,
+  1,
   1,
   '2025-08-18T00:00:00Z'::timestamptz + ((series_id % 365) || ' days')::interval,
   '2026-08-18T00:00:00Z'
 from pg_catalog.generate_series(1, 100000) as series_id;
 
 insert into public.card_catalog (
-  id, user_id, deck_id, front_preview, normalized_search_text, sort_text,
-  due_at, schedule_state, maturity_band, reviewable, has_active_variants,
-  active_variant_count, body_revision, dependency_revision, sync_change_id,
-  interval_days, difficulty, stability, last_reviewed_at, created_at, updated_at
+  id, user_id, deck_id, note_id, front_preview, sort_text, due_at, schedule_state,
+  maturity_band, reviewable, marked, has_active_variants, active_variant_count,
+  body_revision, study_revision, dependency_revision, sync_change_id, created_at, updated_at
 )
 select
   card_row.id,
   card_row.user_id,
   card_row.deck_id,
-  card_row.original_front,
-  lower(card_row.original_front || ' ' || card_row.original_back),
-  lower(card_row.original_front),
-  (card_row.review_state->>'dueAt')::timestamptz,
-  card_row.review_state->>'state',
-  case when (card_row.review_state->>'intervalDays')::integer >= 21 then 'mature' else 'young' end,
+  card_row.note_id,
+  note_row.sort_text,
+  lower(note_row.sort_text),
+  card_row.due_at,
+  card_row.state,
+  case when card_row.interval_days >= 21 then 'mature' else 'young' end,
   true,
+  false,
   false,
   0,
   1,
+  card_row.study_revision,
   1,
-  card_row.sync_change_id + 100000,
-  (card_row.review_state->>'intervalDays')::numeric,
-  (card_row.review_state->>'difficulty')::numeric,
-  (card_row.review_state->>'stability')::numeric,
-  (card_row.review_state->>'lastReviewedAt')::timestamptz,
+  pg_catalog.nextval('public.account_sync_change_id_seq'::regclass),
   card_row.created_at,
   card_row.updated_at
 from public.cards as card_row
+join public.notes as note_row on note_row.user_id = card_row.user_id and note_row.id = card_row.note_id
 where card_row.user_id = '00000000-0000-0000-0000-000000000042';
 
 insert into public.deck_study_summaries (
@@ -108,31 +128,30 @@ insert into public.deck_study_summaries (
   80000,
   0,
   0,
-  300001,
+  pg_catalog.nextval('public.account_sync_change_id_seq'::regclass),
   '2026-08-18T00:00:00Z'
 );
 
 insert into public.review_events (
-  id, user_id, deck_id, reviewable_type, reviewable_id, rating,
+  id, user_id, card_id, deck_id, rating,
   answered_at, response_time_ms, scheduler_before, scheduler_after,
   statistics_day, statistics_hour, statistics_category, statistics_interval_days,
-  sync_change_id, created_at
+  created_at
 )
 select
   'replica-review-' || pg_catalog.lpad(series_id::text, 7, '0'),
   '00000000-0000-0000-0000-000000000042',
-  'replica-benchmark-deck',
-  'card',
   'replica-card-' || pg_catalog.lpad(((series_id - 1) % 100000 + 1)::text, 6, '0'),
+  'replica-benchmark-deck',
   (array['again', 'hard', 'good', 'easy'])[(series_id - 1) % 4 + 1],
   '2026-08-18T12:00:00Z'::timestamptz
     - (((series_id - 1) % 365) || ' days')::interval
     - (((series_id - 1) % 86400) || ' seconds')::interval,
   1000 + (series_id % 4000),
-  pg_catalog.jsonb_build_object(
+  pg_catalog.jsonb_build_object('card', pg_catalog.jsonb_build_object(
     'state', case when series_id % 10 = 0 then 'learning' else 'review' end,
     'intervalDays', greatest(1, series_id % 120)
-  ),
+  )),
   '{}'::jsonb,
   (('2026-08-18T12:00:00Z'::timestamptz
     - (((series_id - 1) % 365) || ' days')::interval
@@ -148,7 +167,6 @@ select
     else 'young'
   end,
   greatest(1, series_id % 120),
-  series_id + 400000,
   '2026-08-18T12:00:00Z'::timestamptz
     - (((series_id - 1) % 365) || ' days')::interval
 from pg_catalog.generate_series(1, 1000000) as series_id;
@@ -195,12 +213,12 @@ with daily as materialized (
   from rating_rows
   group by user_id, deck_id, statistics_day
 ), first_reviews as materialized (
-  select distinct on (user_id, reviewable_id, statistics_day)
+  select distinct on (user_id, card_id, statistics_day)
     user_id, deck_id, statistics_day, statistics_category, rating
   from public.review_events
   where user_id = '00000000-0000-0000-0000-000000000042'
     and statistics_interval_days >= 1
-  order by user_id, reviewable_id, statistics_day, answered_at, id
+  order by user_id, card_id, statistics_day, answered_at, id
 ), retention as materialized (
   select user_id, deck_id, statistics_day,
     count(*) filter (where statistics_category = 'young')::integer as young_count,
@@ -233,6 +251,14 @@ left join hourly using (user_id, deck_id, statistics_day)
 left join ratings using (user_id, deck_id, statistics_day)
 left join retention using (user_id, deck_id, statistics_day);
 
+-- Die gemessenen Schreibpfade laufen mit den produktiven Triggern.
+alter table public.decks enable trigger user;
+alter table public.notes enable trigger user;
+alter table public.cards enable trigger user;
+alter table public.review_events enable trigger user;
+alter table public.card_catalog enable trigger user;
+
+analyze public.notes;
 analyze public.cards;
 analyze public.card_catalog;
 analyze public.review_events;
@@ -246,41 +272,113 @@ do $$
 declare
   started_at timestamptz;
   result jsonb;
+  row_count integer;
   statistics_runs numeric[] := '{}';
   catalog_runs numeric[] := '{}';
+  bootstrap_runs numeric[] := '{}';
+  review_runs numeric[] := '{}';
+  import_runs numeric[] := '{}';
+  catalog_page_runs numeric[] := '{}';
+  direct_page_runs numeric[] := '{}';
+  summary_runs numeric[] := '{}';
+  direct_summary_runs numeric[] := '{}';
 begin
   for run_number in 1..5 loop
     started_at := pg_catalog.clock_timestamp();
-    select public.get_account_statistics(
-      array['replica-benchmark-deck'],
-      null,
-      '2026-08-19T00:00:00Z',
-      'Europe/Berlin',
-      4
-    ) into result;
-    statistics_runs := pg_catalog.array_append(
-      statistics_runs,
-      round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2)
-    );
+    select public.get_account_statistics(array['replica-benchmark-deck'], null, '2026-08-19T00:00:00Z', 'Europe/Berlin', 4) into result;
+    statistics_runs := pg_catalog.array_append(statistics_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
 
     started_at := pg_catalog.clock_timestamp();
-    select public.list_account_card_catalog(
-      'replica-benchmark-deck',
-      'skalierungsfrage 99999',
-      'sortField',
-      'asc',
-      null,
-      50,
-      true
+    select public.list_account_card_catalog('replica-benchmark-deck', 'skalierungsfrage 99999', 'sortField', 'asc', null, 50, true) into result;
+    catalog_runs := pg_catalog.array_append(catalog_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    started_at := pg_catalog.clock_timestamp();
+    select public.get_account_bootstrap('', 200, 204800) into result;
+    bootstrap_runs := pg_catalog.array_append(bootstrap_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    -- Atomarer Review auf einer bislang unbewerteten Karte.
+    started_at := pg_catalog.clock_timestamp();
+    select public.record_review_atomic(
+      'replica-card-' || pg_catalog.lpad((run_number * 5)::text, 6, '0'),
+      '{"state":"learning","due_at":"2026-08-18T12:10:00Z","stability":1,"difficulty":5,"reps":1,"lapses":0,"interval_days":0,"learning_step_index":1,"last_reviewed_at":"2026-08-18T12:00:00Z","last_rating":"good","study_extra":{}}'::jsonb,
+      '2026-08-18T12:00:00Z',
+      null, null, null,
+      pg_catalog.jsonb_build_object(
+        'id', 'replica-atomic-review-' || run_number,
+        'card_id', 'replica-card-' || pg_catalog.lpad((run_number * 5)::text, 6, '0'),
+        'deck_id', 'replica-benchmark-deck',
+        'rating', 'good',
+        'answered_at', '2026-08-18T12:00:00Z',
+        'response_time_ms', 1500,
+        'scheduler_before', '{"card":{"state":"new"}}'::jsonb,
+        'scheduler_after', '{"card":{"state":"learning"}}'::jsonb,
+        'flags', '{}'::jsonb,
+        'created_at', '2026-08-18T12:00:00Z'
+      ),
+      'replica-benchmark-device'
     ) into result;
-    catalog_runs := pg_catalog.array_append(
-      catalog_runs,
-      round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2)
-    );
+    review_runs := pg_catalog.array_append(review_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    -- Import-Schreibbatch: 250 Inhalte und 250 Karten wie ein Commit-Chunk, mengenbasiert über die Trigger.
+    started_at := pg_catalog.clock_timestamp();
+    insert into public.notes (id, user_id, content, search_text, sort_text, source)
+    select 'replica-import-note-' || run_number || '-' || series_id, '00000000-0000-0000-0000-000000000042',
+      pg_catalog.jsonb_build_object('schemaVersion', 1,
+        'fields', pg_catalog.jsonb_build_array(
+          pg_catalog.jsonb_build_object('id', 'front', 'name', 'Vorderseite', 'role', 'prompt', 'html', 'Importfrage ' || series_id),
+          pg_catalog.jsonb_build_object('id', 'back', 'name', 'Rückseite', 'role', 'answer', 'html', 'Importantwort ' || series_id)),
+        'interaction', '{"kind":"reveal","prompts":[{"key":"forward","name":"Vorwärts","instruction":"","questionFieldIds":["front"],"answerFieldIds":["back"],"requires":null,"typeInFieldId":null}]}'::jsonb,
+        'speech', '[]'::jsonb, 'tags', '[]'::jsonb),
+      'importfrage ' || series_id || ' importantwort ' || series_id, 'Importfrage ' || series_id, 'manual'
+    from pg_catalog.generate_series(1, 250) as series_id;
+    insert into public.cards (id, user_id, note_id, deck_id, prompt_key, due_at)
+    select 'replica-import-card-' || run_number || '-' || series_id, '00000000-0000-0000-0000-000000000042',
+      'replica-import-note-' || run_number || '-' || series_id, 'replica-benchmark-deck', 'forward', '2026-08-18T12:00:00Z'
+    from pg_catalog.generate_series(1, 250) as series_id;
+    import_runs := pg_catalog.array_append(import_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    -- K4.2: erste Kartenseite über die Projektion gegenüber direkten Indizes auf `cards` und `notes`.
+    started_at := pg_catalog.clock_timestamp();
+    select public.list_account_card_catalog('replica-benchmark-deck', '', 'sortField', 'asc', null, 50, false) into result;
+    catalog_page_runs := pg_catalog.array_append(catalog_page_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    started_at := pg_catalog.clock_timestamp();
+    select count(*) into row_count from (
+      select card_row.id
+      from public.cards as card_row
+      join public.notes as note_row on note_row.user_id = card_row.user_id and note_row.id = card_row.note_id
+      where card_row.user_id = '00000000-0000-0000-0000-000000000042'
+        and card_row.deck_id = 'replica-benchmark-deck'
+        and card_row.deleted_at is null
+      order by lower(note_row.sort_text), card_row.id
+      limit 50
+    ) as page;
+    direct_page_runs := pg_catalog.array_append(direct_page_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    -- K4.2: Stapelzähler aus der Projektion gegenüber einer direkten Aggregation.
+    started_at := pg_catalog.clock_timestamp();
+    select count(*) into row_count from public.deck_study_summaries where user_id = '00000000-0000-0000-0000-000000000042';
+    summary_runs := pg_catalog.array_append(summary_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
+
+    started_at := pg_catalog.clock_timestamp();
+    select count(*) into row_count from (
+      select deck_id, count(*) filter (where state = 'new'), count(*) filter (where state in ('learning', 'relearning')), count(*) filter (where status = 'suspended')
+      from public.cards
+      where user_id = '00000000-0000-0000-0000-000000000042' and deleted_at is null
+      group by deck_id
+    ) as summary;
+    direct_summary_runs := pg_catalog.array_append(direct_summary_runs, round(extract(epoch from (pg_catalog.clock_timestamp() - started_at)) * 1000, 2));
   end loop;
 
   raise notice 'CORE_STATISTICS_RPC_MS=%', pg_catalog.array_to_json(statistics_runs);
   raise notice 'CORE_CATALOG_SEARCH_MS=%', pg_catalog.array_to_json(catalog_runs);
+  raise notice 'CORE_BOOTSTRAP_RPC_MS=%', pg_catalog.array_to_json(bootstrap_runs);
+  raise notice 'CORE_ATOMIC_REVIEW_MS=%', pg_catalog.array_to_json(review_runs);
+  raise notice 'CORE_IMPORT_BATCH_MS=%', pg_catalog.array_to_json(import_runs);
+  raise notice 'CORE_CATALOG_PAGE_MS=%', pg_catalog.array_to_json(catalog_page_runs);
+  raise notice 'CORE_DIRECT_PAGE_MS=%', pg_catalog.array_to_json(direct_page_runs);
+  raise notice 'CORE_SUMMARY_READ_MS=%', pg_catalog.array_to_json(summary_runs);
+  raise notice 'CORE_DIRECT_SUMMARY_MS=%', pg_catalog.array_to_json(direct_summary_runs);
 end
 $$;
 

@@ -88,10 +88,10 @@ export function createAiGeneratedVariantDraft(
   return {
     ...variant,
     variantLevel: 2,
-    generationSource: "ai_generated" as const,
     qualityStatus: "active" as const,
     isActive: true,
     meta: {
+      generationSource: "ai_generated" as const,
       source: "openrouter",
       model: generated.model,
       privacyMode: generated.privacyMode,

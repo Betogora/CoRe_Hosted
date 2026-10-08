@@ -857,8 +857,18 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       if (!pendingEntityMutation("notes", note.id)) transaction.objectStore(STORE.notes).put(note);
     }
     const catalogStore = transaction.objectStore(STORE.cardCatalog);
-    for (const card of cards) {
-      if (pendingEntityMutation("cards", card.id) || card.deletedAt) continue;
+    for (const hydrated of cards) {
+      if (pendingEntityMutation("cards", hydrated.id) || hydrated.deletedAt) continue;
+      // Variants still waiting for sync (e.g. a freshly generated AI variant) win over the cloud body.
+      const variantStore = transaction.objectStore(STORE.variants);
+      const storedVariants = await requestResult<StoredVariant[]>(variantStore.index("cardId").getAll(hydrated.id));
+      const pendingVariants = storedVariants
+        .filter((variant) => pendingEntityMutation("card_variants", variant.id))
+        .map(({ deckId: _deckId, activeForSummary: _active, ...variant }) => variant);
+      const card: Card = {
+        ...hydrated,
+        variants: [...hydrated.variants.filter((variant) => !pendingEntityMutation("card_variants", variant.id)), ...pendingVariants],
+      };
       const note = notesById.get(card.noteId) ?? await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(card.noteId)) ?? null;
       const before = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(card.id)) ?? null;
       const catalog = catalogRecordFor(card, note);
@@ -871,8 +881,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         ...residencyRecord(catalog, residency?.state === "downloaded" ? "downloaded" : state),
         protectedUntil: residency?.protectedUntil ?? null,
       });
-      const variantStore = transaction.objectStore(STORE.variants);
-      for (const key of await requestResult<IDBValidKey[]>(variantStore.index("cardId").getAllKeys(card.id))) variantStore.delete(key);
+      for (const variant of storedVariants) variantStore.delete(variant.id);
       for (const variant of card.variants) variantStore.put(variantRecord(variant, card.deckId));
     }
     await transactionDone(transaction);
