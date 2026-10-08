@@ -5,10 +5,29 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-08 — Remote-Reset des Pre-Release-Projekts (K4.8)
+
+Nach ausdrücklicher Freigabe des Nutzers im Chat; Projekt-Ref vorher aus
+`supabase/.temp/project-ref` angezeigt und gegen die Freigabe geprüft.
+
+- Projekt `CoRe-Database` (`hirbiuiydczmnjqtoyqx`). Vorher: 2 Auth-Konten,
+  6 Sitzungen, 213 Objekte in `core-media`, Migration `20260817190000`.
+- Storage-Objekte über die Storage-API gelöscht. Das Löschen der Konten über
+  die Admin-API scheiterte am alten Schema (HTTP 500), deshalb folgte
+  `supabase db reset --linked --no-seed` vor dem Kontolöschen; der Reset
+  entfernte die Konten mit.
+- Danach: 0 Konten, 0 Sitzungen, 0 Storage-Objekte, alle 15 Tabellen in
+  `public` leer, einzige Migration `20261008101057`. `verify_schema_v1.sql`
+  gegen das Projekt fehlerfrei; die aus dem Projekt generierten Typen
+  entsprechen `src/database.types.ts` bis auf CLI-Metadaten und Formatierung.
+- Production (`core-hosted.vercel.app`) läuft auf `d29cc99` und zeigt die
+  Anmeldung ohne Konsolenfehler. Der Hosted-Smoke braucht einen neu
+  registrierten Testaccount und steht noch aus.
+
 ## 2026-10-08 — Cutover auf das Kartenmodell `Note`/`Card` (Phase 4, K5.4, K5.7–K5.9)
 
-Umgesetzt auf dem Branch `kartenmodell-cutover`; K4.8 (Remote-Reset) wartet auf
-die Freigabe des Nutzers.
+Umgesetzt auf dem Branch `kartenmodell-cutover`, gemergt mit PR #9
+(`d29cc99`, CI grün). Der Remote-Reset (K4.8) folgte am selben Tag.
 
 - **Datenbank (K4.1, K4.3, K4.4):** Die einzige Migration
   `20261008101057_kartenmodell_baseline.sql` ersetzt die Replica-v2-Baseline:
