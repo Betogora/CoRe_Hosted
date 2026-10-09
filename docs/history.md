@@ -41,7 +41,9 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 (Übersetzer, Renderer, Inhaltsschema, Neuübersetzung, Matrix) grün,
 `report:apkg-corpus` ohne Verluste, `benchmark:apkg` 3,7 s gesamt, 3,35 s
 Worker, Spitze 162 MiB, Main-Thread höchstens 20,9 ms. UI-Katalog-Demo hell und
-dunkel geprüft.
+dunkel geprüft. Gemergt als `bcd4b04` (PR #13, CI grün); Hosted-Smoke gegen
+Production 10 von 10 grün. Die lokale E2E-Suite lief nicht, weil eine parallele
+Sitzung den gemeinsamen lokalen Supabase-Stack nutzte.
 
 ## 2026-10-08/09 — Remote-Reset des Pre-Release-Projekts (K4.8)
 
