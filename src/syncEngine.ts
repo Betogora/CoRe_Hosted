@@ -306,6 +306,7 @@ export function createSyncEngine({
   const syncDevice = normalizeDevice(device);
   let lastFlush: any = null;
   let activeFlush: any = null;
+  let flushRequestedDuringActive = false;
   let retryTimer: any = null;
   let localChangeTimer: any = null;
   let intervalTimer: any = null;
@@ -514,7 +515,10 @@ export function createSyncEngine({
     },
 
     async flush({ force = false }: any = {}) {
-      if (activeFlush) return activeFlush;
+      if (activeFlush) {
+        flushRequestedDuringActive = true;
+        return activeFlush;
+      }
       if (retryTimer !== null && !force) return deferredResult({ retryScheduled: true });
       if (!force && !safelyIsOnline()) {
         emitStatus(createSyncOfflineStatus({ pendingCount: outbox.count() }));
@@ -603,6 +607,11 @@ export function createSyncEngine({
         throw error;
       } finally {
         activeFlush = null;
+        // Mutations queued after the running batch was read would otherwise wait for the next interval.
+        if (flushRequestedDuringActive) {
+          flushRequestedDuringActive = false;
+          if (outbox.count() > 0) void api.flush().catch(() => undefined);
+        }
       }
     },
 
