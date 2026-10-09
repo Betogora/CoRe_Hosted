@@ -43,6 +43,8 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
   const compactNavigationRef = React.useRef<HTMLElement>(null);
   const compactSummaryRef = React.useRef<HTMLElement>(null);
   const layoutRef = React.useRef<HTMLDivElement>(null);
+  // A section reached via link, hash or history stays current until the user interacts; late layout shifts must not move the marker.
+  const navigationTargetRef = React.useRef<string | null>(null);
   const itemIds = items.map((item) => item.id).join("|");
   const currentItem = items.find((item) => item.id === activeId) ?? items[0];
   const compactStickyTop = compactHeaderHeight + 12;
@@ -92,12 +94,14 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
       if (`${window.location.pathname}${window.location.search}` !== mountedPath) return;
       const hashId = currentHashId();
       if (!hashId) {
+        navigationTargetRef.current = firstItemId;
         setActiveId(firstItemId);
         return;
       }
       if (!ids.has(hashId)) return;
       const section = document.getElementById(hashId);
       if (!section) return;
+      navigationTargetRef.current = hashId;
       setActiveId(hashId);
       window.requestAnimationFrame(() => section.scrollIntoView({ behavior, block: "start" }));
     };
@@ -112,10 +116,20 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
   }, [firstItemId, itemIds]);
 
   React.useEffect(() => {
+    const releaseNavigationTarget = () => {
+      navigationTargetRef.current = null;
+    };
+    const userInputEvents = ["keydown", "pointerdown", "touchstart", "wheel"] as const;
+    userInputEvents.forEach((type) => window.addEventListener(type, releaseNavigationTarget, { capture: true, passive: true }));
+    return () => userInputEvents.forEach((type) => window.removeEventListener(type, releaseNavigationTarget, { capture: true }));
+  }, []);
+
+  React.useEffect(() => {
     const sections = items.map((item) => document.getElementById(item.id)).filter((section): section is HTMLElement => Boolean(section));
     if (sections.length === 0) return undefined;
     const visibleSections = new Set<HTMLElement>();
     const updateFromVisibleSections = () => {
+      if (navigationTargetRef.current) return;
       const nextSection = [...visibleSections].sort((left, right) => left.getBoundingClientRect().top - right.getBoundingClientRect().top)[0];
       if (nextSection) setActiveId(nextSection.id);
     };
@@ -138,6 +152,7 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
+        if (navigationTargetRef.current) return;
         const atEnd = scrollRegion
           ? scrollRegion.scrollTop + scrollRegion.clientHeight >= scrollRegion.scrollHeight - 2
           : window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
@@ -161,6 +176,7 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
     if (window.location.hash !== nextHash) {
       window.history.pushState(window.history.state, "", `${window.location.pathname}${window.location.search}${nextHash}`);
     }
+    navigationTargetRef.current = item.id;
     setActiveId(item.id);
     section.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
 
