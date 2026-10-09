@@ -1337,6 +1337,10 @@ video {
   width: 2.5rem;
   height: 2.5rem;
 }
+.size-11 {
+  width: 2.75rem;
+  height: 2.75rem;
+}
 .size-12 {
   width: 3rem;
   height: 3rem;
@@ -1447,6 +1451,9 @@ video {
 .h-\[39rem\] {
   height: 39rem;
 }
+.h-auto {
+  height: auto;
+}
 .h-full {
   height: 100%;
 }
@@ -1494,6 +1501,9 @@ video {
 }
 .min-h-16 {
   min-height: 4rem;
+}
+.min-h-20 {
+  min-height: 5rem;
 }
 .min-h-24 {
   min-height: 6rem;
@@ -1651,9 +1661,6 @@ video {
 .min-w-0 {
   min-width: 0px;
 }
-.min-w-11 {
-  min-width: 2.75rem;
-}
 .min-w-16 {
   min-width: 4rem;
 }
@@ -1674,6 +1681,9 @@ video {
 }
 .min-w-\[42rem\] {
   min-width: 42rem;
+}
+.min-w-control {
+  min-width: var(--core-control-height);
 }
 .min-w-max {
   min-width: -moz-max-content;
@@ -1816,6 +1826,9 @@ video {
 }
 .cursor-grabbing {
   cursor: grabbing;
+}
+.cursor-move {
+  cursor: move;
 }
 .cursor-not-allowed {
   cursor: not-allowed;
@@ -2227,9 +2240,6 @@ video {
 }
 .p-2 {
   padding: 0.5rem;
-}
-.p-2\.5 {
-  padding: 0.625rem;
 }
 .p-3 {
   padding: 0.75rem;
@@ -3067,7 +3077,7 @@ button {
 }
 
 button[aria-label] {
-  min-width: 2.75rem;
+  min-width: var(--core-control-height);
 }
 
 .core-in-page-content > section[id] {
@@ -3707,7 +3717,7 @@ summary {
 
 .core-pdf-control {
   display: inline-flex;
-  min-width: 2.75rem;
+  min-width: var(--core-control-height);
   min-height: var(--core-control-height);
   align-items: center;
   justify-content: center;
@@ -4286,6 +4296,21 @@ summary {
   }
 }
 
+@media not all and (min-width: 1024px) {
+
+  .max-lg\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
 @media (min-width: 640px) {
 
   .sm\:static {
@@ -4606,6 +4631,10 @@ summary {
     width: 50%;
   }
 
+  .lg\:w-full {
+    width: 100%;
+  }
+
   .lg\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4626,6 +4655,10 @@ summary {
     grid-template-columns: 1fr 0.8fr;
   }
 
+  .lg\:grid-cols-\[minmax\(0\2c 1fr\)_15rem\] {
+    grid-template-columns: minmax(0,1fr) 15rem;
+  }
+
   .lg\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
     grid-template-columns: minmax(0,1fr) auto;
   }
@@ -4638,8 +4671,16 @@ summary {
     grid-template-columns: repeat(3,minmax(0,1fr));
   }
 
+  .lg\:items-start {
+    align-items: flex-start;
+  }
+
   .lg\:items-end {
     align-items: flex-end;
+  }
+
+  .lg\:justify-start {
+    justify-content: flex-start;
   }
 
   .lg\:px-6 {
@@ -5027,7 +5068,7 @@ html { scroll-behavior: smooth; }
 <strong>Stand:</strong> 2026-10-05</p>
 <p>Diese Spezifikation beschreibt CoRes Produktvertrag. Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und Roadmap stehen in der <a href="index.html#readme--document">Dokumentenlandkarte</a>.</p>
 <hr>
-<section class="core-surface-raised min-w-0 rounded-panel docs-code-footprint"><h2 id="specs--codeumfang" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">6.326</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">29.878</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">147</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 288 Zeilen, Lernen &amp; Karten: 2.589 Zeilen, Erstellen &amp; Import: 1.471 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 782 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.361148480744696 1.772052036298522 L 23.809237078423862 7.04856328894895 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="288"></path><path d="M 25.361148480744696 1.772052036298522 A 19 19 0 0 1 25.324928766360095 38.23856172051927 L 23.783502018203226 32.95897806457948 A 13.5 13.5 0 0 0 23.809237078423862 7.04856328894895 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2589"></path><path d="M 25.324928766360095 38.23856172051927 A 19 19 0 0 1 2.4544243356139397 27.290594941793415 L 7.533406764778327 25.180159563905846 A 13.5 13.5 0 0 0 23.783502018203226 32.95897806457948 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1471"></path><path d="M 2.4544243356139397 27.290594941793415 A 19 19 0 0 1 1.2623328435570116 16.853600544374935 L 6.686394388843141 17.764400386792715 A 13.5 13.5 0 0 0 7.533406764778327 25.180159563905846 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.2623328435570116 16.853600544374935 A 19 19 0 0 1 6.682237929885488 6.448719121654246 L 10.537379581760742 10.371458323280649 A 13.5 13.5 0 0 0 6.686394388843141 17.764400386792715 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 6.682237929885488 6.448719121654246 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.537379581760742 10.371458323280649 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="782"></path></svg></span><span class="core-caption">6.326 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>288</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.589</td><td>40,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.471</td><td>23,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>10 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>782</td><td>12,4 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></section><h2 id="specs--1-produktvision" class="core-heading-2" tabindex="-1">1. Produktvision <a class="docs-anchor" href="#specs--1-produktvision" aria-label="Link zu 1. Produktvision">#</a></h2>
+<section class="core-surface-raised min-w-0 rounded-panel docs-code-footprint"><h2 id="specs--codeumfang" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">6.381</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">30.330</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">149</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 288 Zeilen, Lernen &amp; Karten: 2.604 Zeilen, Erstellen &amp; Import: 1.511 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 782 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.316189972485276 1.7588891737249988 L 23.777292875186905 7.0392107286993415 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="288"></path><path d="M 25.316189972485276 1.7588891737249988 A 19 19 0 0 1 25.50449814017866 38.18517253766842 L 23.911090783811154 32.921043645185456 A 13.5 13.5 0 0 0 23.777292875186905 7.0392107286993415 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2604"></path><path d="M 25.50449814017866 38.18517253766842 A 19 19 0 0 1 2.333489285308154 26.99245301504974 L 7.447479229034741 24.96832187911429 A 13.5 13.5 0 0 0 23.911090783811154 32.921043645185456 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1511"></path><path d="M 2.333489285308154 26.99245301504974 A 19 19 0 0 1 1.3017927556682558 16.627012326138757 L 6.714431694816918 17.603403494888063 A 13.5 13.5 0 0 0 7.447479229034741 24.96832187911429 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.3017927556682558 16.627012326138757 A 19 19 0 0 1 6.773257509955236 6.359864989596165 L 10.602051388652406 10.30832512418675 A 13.5 13.5 0 0 0 6.714431694816918 17.603403494888063 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 6.773257509955236 6.359864989596165 A 19 19 0 0 1 19.99999999999998 1 L 19.999999999999986 6.5 A 13.5 13.5 0 0 0 10.602051388652406 10.30832512418675 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="782"></path></svg></span><span class="core-caption">6.381 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>288</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.604</td><td>40,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.511</td><td>23,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>9,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>782</td><td>12,3 %</td></tr></tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></section><h2 id="specs--1-produktvision" class="core-heading-2" tabindex="-1">1. Produktvision <a class="docs-anchor" href="#specs--1-produktvision" aria-label="Link zu 1. Produktvision">#</a></h2>
 <p>CoRe ergänzt Spaced Repetition um inhaltliche Wiederholung: Wissen auch bei veränderter Frage abrufen, statt Layout, Wortlaut oder Lückenposition wiederzuerkennen.</p>
 <p>CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit.</p>
 <h3 id="specs--zielgruppen" class="core-heading-3" tabindex="-1">Zielgruppen <a class="docs-anchor" href="#specs--zielgruppen" aria-label="Link zu Zielgruppen">#</a></h3>
@@ -5147,7 +5188,7 @@ html { scroll-behavior: smooth; }
 <li>Während des Versuchs zeigt der Aktionsbereich einen zugänglichen, monotonen Fortschrittsbalken mit den Phasen <code>Bilder werden lokal gesichert</code>, <code>Karte wird lokal gespeichert</code>, Upload mit ursprünglichem Dateinamen und Byteangaben. 100 Prozent erscheinen erst am Ende des gesamten Versuchs; Reduced Motion wird berücksichtigt.</li>
 <li>Vollständiger Cloudabschluss meldet <code>Karte wurde erfolgreich gespeichert.</code>. Ein erneut versuchbarer oder Offline-Teilabschluss meldet <code>Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt.</code>; ein nicht erneut versuchbarer Medienfehler nach lokaler Speicherung wird als unvollständiger Medienzustand angezeigt.</li>
 <li><code>Vorschau</code> im Erstellkopf öffnet den gemeinsamen modalen Kartendialog aus dem ungespeicherten Entwurf. Text, Typ, Zusatzfelder und Inline-Bilder verwenden dieselbe Projektion wie Speichern. Eine zusätzliche <code>Live-Vorschau</code> und pauschale Sicherheits-/Originaltreue-Werbung entfallen. <code>PDF/Text anfügen</code> steht in der Zurückzeile direkt neben <code>Erstellen</code>.</li>
-<li>Die manuelle Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. <code>Fragentyp</code> und <code>Lernrichtung</code> stehen ab 768 px gemeinsam in einer Zeile, sobald beide ohne Überlauf hineinpassen, sonst wie darunter in zwei sauber umbrechenden Gruppen. Die gemeinsame Fragentyp-Pill behält <code>Single Choice</code> und <code>Multiple Choice</code>; ihre Beschriftungen dürfen auf schmalen Ansichten innerhalb der unveränderten 44-px-Höhe zweizeilig werden. Bilder werden über die Rich-Text-Toolbar, Einfügen oder Drag-and-drop an der aktuellen Cursorposition in Vorderseite, Rückseite und Zusatzfelder eingefügt; separate Bild-Ablagefelder existieren nicht. <code>Lücke</code> markiert die gespeicherte Textauswahl als Cloze-Gruppe, Rückrichtung, Single Choice und Multiple Choice werden als direkte Steuerungen angeboten. Bei beiden Auswahltypen stehen die Antwortoptionen unmittelbar unter der Frage. Unter den Feldern stehen die gemeinsamen Inhaltsbausteine (<code>Bausteine</code>): <code>Antwort eintippen</code> (nur für Frage und Antwort ohne Auswahl; die Rückseite wird beim Lernen eingetippt und verglichen) sowie neue Felder mit der Rolle <code>Zusatzfrage</code> (Teil der Frage, in Rückrichtung Teil der Antwort), <code>Hinweis</code> (aufdeckbar auf der Frageseite), <code>Zusatz</code> und <code>Quelle</code> (beide nach der Antwort). Jedes zusätzliche Feld trägt einen frei benennbaren Namen und eine änderbare Rolle; neue Felder erhalten den Rollennamen, bei Wiederholung mit Nummer. Verschiebepfeile erscheinen erst ab zwei Zusatzfeldern und nur für tatsächlich mögliche Richtungen. Die Rich-Text-Toolbar setzt mit <code>Auswahl als Formel setzen</code> die markierte Auswahl als Formel.</li>
+<li>Die manuelle Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. <code>Fragentyp</code> und <code>Lernrichtung</code> stehen ab 768 px gemeinsam in einer Zeile, sobald beide ohne Überlauf hineinpassen, sonst wie darunter in zwei sauber umbrechenden Gruppen. Die gemeinsame Fragentyp-Pill bietet <code>Standard</code>, <code>Single Choice</code>, <code>Multiple Choice</code> und <code>Bildverdeckung</code>; ihre Beschriftungen dürfen auf schmalen Ansichten innerhalb der unveränderten 44-px-Höhe zweizeilig werden. Bilder werden über die Rich-Text-Toolbar, Einfügen oder Drag-and-drop an der aktuellen Cursorposition in Vorderseite, Rückseite und Zusatzfelder eingefügt; separate Bild-Ablagefelder existieren nicht. <code>Lücke</code> markiert die gespeicherte Textauswahl als Cloze-Gruppe, Rückrichtung, Single Choice und Multiple Choice werden als direkte Steuerungen angeboten. Bei beiden Auswahltypen stehen die Antwortoptionen unmittelbar unter der Frage. Unter den Feldern stehen die gemeinsamen Inhaltsbausteine (<code>Bausteine</code>): <code>Antwort eintippen</code> (nur für Frage und Antwort ohne Auswahl; die Rückseite wird beim Lernen eingetippt und verglichen) sowie neue Felder mit der Rolle <code>Zusatzfrage</code> (Teil der Frage, in Rückrichtung Teil der Antwort), <code>Hinweis</code> (aufdeckbar auf der Frageseite), <code>Zusatz</code> und <code>Quelle</code> (beide nach der Antwort). Jedes zusätzliche Feld trägt einen frei benennbaren Namen und eine änderbare Rolle; neue Felder erhalten den Rollennamen, bei Wiederholung mit Nummer. Verschiebepfeile erscheinen erst ab zwei Zusatzfeldern und nur für tatsächlich mögliche Richtungen. Die Rich-Text-Toolbar setzt mit <code>Auswahl als Formel setzen</code> die markierte Auswahl als Formel.</li>
 <li>Zielauswahlen zeigen vollständige hierarchische Stapelpfade. Erst <code>Fertig</code> öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, <code>Jetzt lernen</code> und <code>Karten prüfen</code>.</li>
 <li>Interne Navigation mit einem nichtleeren fachlichen Entwurf verlangt eine eigene Bestätigung. <code>Weiter bearbeiten</code> erhält Inhalt und Fokus; <code>Verwerfen und verlassen</code> verwirft nur den aktuellen Entwurf. Während eines laufenden Speicherversuchs bleibt die Navigation ohne Verwerfoption auf der Erstellungsseite und fokussiert den Fortschritt.</li>
 </ul>
@@ -5185,7 +5226,7 @@ html { scroll-behavior: smooth; }
 <li>Der Detailbereich zeigt den Inhaltseditor sowie <code>Speichern</code>, <code>Vorschau</code>, <code>Kopieren</code> und <code>Löschen</code> primär. Unter dem Titel nennt er die Inhaltsform, die Abfrage der geöffneten Karte (<code>Lückentext · Lücke 2 von 3</code>, <code>Rückwärts</code>, <code>Maske 1</code>) und bei mehreren Karten deren Zahl (<code>· 2 Karten aus diesem Inhalt</code>). Besitzt der Inhalt mehrere Karten, listet <code>Karten aus diesem Inhalt</code> alle Geschwister mit Abfrage, Stapel und Lernzustand; die geöffnete Karte ist hervorgehoben, ein Klick auf eine andere öffnet diese (mit der üblichen Rückfrage bei ungespeicherten Änderungen). Die Kartenliste selbst bleibt kartenbasiert. Für Karten mit Frage und Antwort folgen KI-Umformulierungen. Ändert eine Inhaltsänderung Frage oder Antwort einer Karte, werden deren aktive Umformulierungen als <code>veraltet</code> gekennzeichnet und nicht mehr abgefragt; die Speichermeldung nennt ihre Zahl. <code>KI-Variante neu erzeugen</code> ersetzt die veralteten Umformulierungen dieser Karte durch eine neue; Karten ohne geänderten Text behalten ihre Umformulierungen. Ein Herkunfts-, Versions-, Vergleichs- oder Restore-Abschnitt existiert nicht. Markieren und Aussetzen sind davon unabhängige, sofort gespeicherte Aktionen, sodass insbesondere eine ausgesetzte Karte direkt reaktiviert werden kann, ohne ungespeicherte Inhaltsänderungen zu übernehmen. Die Markierung gehört zum Inhalt: alle Karten des Inhalts zeigen den Stern. Die Aussetzung gehört zur einzelnen Karte.</li>
 <li>Direkt unter <code>Aussetzen</code> zeigt <code>Nächste Fälligkeit</code> den gemeinsamen, mit dem gespeicherten Lerntag vorbelegten CoRe-Datumspicker. Sein gerundetes Popover verwendet deutsche Wochentage, Monats- und Jahresnavigation sowie die semantischen Light-/Dark-Farben. <code>Neu planen</code> wird erst für einen anderen, mindestens nächsten fachlichen Lerntag aktiv; ein heutiger oder überfälliger gespeicherter Termin bleibt bis dahin sichtbar. Die getrennte Aktion setzt <code>dueAt</code> DST-sicher auf den Lerntagesbeginn in Profilzeitzone, lässt eine Aussetzung bestehen und bestätigt den Erfolg unabhängig vom Inhaltsspeichern. Der Simulator verwendet denselben Datumspicker mit einer Zehnjahresgrenze.</li>
 <li>Der gemeinsame modale Karten-Vorschau-Dialog zeigt bei jedem Öffnen zunächst ausschließlich den unbeantworteten Lerninhalt der Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Lernzustand aus Frage, einmaliger 2-px-Trennlinie und Antwort. Ein zusätzlicher Button <code>Antwort anzeigen</code> und die Review-Bewertungen erscheinen dort nicht. Single- und Multiple-Choice-Auswahl samt Feedback werden ausschließlich transient im Dialog simuliert; Single Choice deckt nach einer Auswahl direkt auf, Multiple Choice erst über <code>Antwort prüfen</code>. Die Rückkehr zur Vorderseite setzt die Auswahl zurück. Der Dialog folgt dem aktiven Light-/Dark-Theme, ist auf Desktop leicht vergrößert, füllt auf Mobilgeräten den Viewport und besitzt Fokusfalle, Escape-, Außenklick- und Fokuswiederherstellungsverhalten.</li>
-<li>Der Editor zeigt je Feld des Inhalts einen Rich-Text-Editor mit dem Feldnamen, bei Auswahlfragen die Antwortoptionen samt richtiger Antwort und die Tags. Lückentexte erklären die Markierung <code>{{c1::Begriff}}</code>. Bei Frage und Antwort ohne Auswahl stehen über den Feldern <code>Lernrichtung</code> (<code>Standard</code> oder <code>Beide Richtungen</code>) und unter den Feldern dieselben Bausteine wie in der manuellen Erstellung; hinzugefügte Felder sind umbenennbar und wieder entfernbar, Felder mit der letzten Frage oder Antwort einer Abfrage nicht. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung und Bausteine erscheinen dort nicht. Eine Live-Zeile nennt vor dem Speichern, was die Änderung bewirkt (<code>Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 KI-Umformulierung wird veraltet.</code>). Entfallen durch eine Änderung Karten (etwa eine Lücke oder die Rückrichtung), listet <code>Karten entfernen?</code> vor dem Speichern jede betroffene Karte mit Abfrage, Stapel und Lernzustand; deren Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden beim Speichern zu neuen Karten im Stapel des Inhalts. Vorschau und Review verwenden dieselbe Komposition, sodass die bereits sichtbare Frage außerhalb der Antwort bleibt.</li>
+<li>Der Editor zeigt je Feld des Inhalts einen Rich-Text-Editor mit dem Feldnamen, bei Auswahlfragen die Antwortoptionen samt richtiger Antwort und die Tags. Lückentexte erklären die Markierung <code>{{c1::Begriff}}</code>. Bei Frage und Antwort ohne Auswahl stehen über den Feldern <code>Lernrichtung</code> (<code>Standard</code> oder <code>Beide Richtungen</code>) und unter den Feldern dieselben Bausteine wie in der manuellen Erstellung; hinzugefügte Felder sind umbenennbar und wieder entfernbar, Felder mit der letzten Frage oder Antwort einer Abfrage nicht. Bei eigenen Bildverdeckungen zeigt der Editor denselben Masken-Editor; Gruppennummern bleiben beim Löschen erhalten, sodass verbleibende Karten ihren Lernstand behalten, und eine entfallende Gruppe erscheint im Entfernen-Dialog als <code>Maske N</code>. Das Bild selbst lässt sich dort nicht austauschen. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung, Bausteine und Masken-Editor erscheinen dort nicht. Eine Live-Zeile nennt vor dem Speichern, was die Änderung bewirkt (<code>Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 KI-Umformulierung wird veraltet.</code>). Entfallen durch eine Änderung Karten (etwa eine Lücke oder die Rückrichtung), listet <code>Karten entfernen?</code> vor dem Speichern jede betroffene Karte mit Abfrage, Stapel und Lernzustand; deren Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden beim Speichern zu neuen Karten im Stapel des Inhalts. Vorschau und Review verwenden dieselbe Komposition, sodass die bereits sichtbare Frage außerhalb der Antwort bleibt.</li>
 <li>Kartenrenderer erhalten Rich-Text-HTML einschließlich Absätzen, Fettung, Listen, Listenabständen und Medien. Wörtliche Markdown-Syntax wird nicht zusätzlich interpretiert. Die isolierte Kartenfläche verwendet die lokale Manrope-Typografie und die Farben des aktiven Themes; Anki-CSS wird nicht übernommen.</li>
 <li>Anki-Bedingungen prüfen den nichtleeren Feldinhalt statt nur sichtbaren Text. Reines Bild-, Audio- oder Video-Markup erfüllt eine positive Bedingung und unterdrückt die zugehörige invertierte Bedingung; reine Whitespace-Felder gelten weiterhin als leer.</li>
 <li>Das fokussierte Deck ist in Lernen und Kartenverwaltung derselbe URL-reproduzierbare Kontext, ohne parallele lokale Deckidentität.</li>
@@ -5205,6 +5246,7 @@ html { scroll-behavior: smooth; }
 <li>Vorderseite, Rückseite und Zusatzfelder werden als sanitisiertes Rich Text bearbeitet; Pflichtfelder werden direkt am Feld validiert. Medien sind optionale Inhalte und kein eigener Kartentyp.</li>
 <li>Reverse erzeugt zwei voneinander unabhängige Karten mit eigenem Lernstatus und eigener Fälligkeit. Rückrichtung wird für Single Choice und Multiple Choice nicht angeboten.</li>
 <li>Cloze ist eine Editoraktion. Jede Lückengruppe wird beim Speichern zu einer eigenständigen Karte mit eigenem Lernstatus und eigener Fälligkeit.</li>
+<li>Bildverdeckung ist ein Fragentyp der manuellen Erstellung. Die Vorderseite wird zur optionalen <code>Überschrift</code>, die Rückseite zum optionalen <code>Zusatz</code>; Hinweis-, Zusatz- und Quellenfelder bleiben als Bausteine möglich, Eintippen und Rückrichtung nicht. Ein Bild wird per Auswahl, Drag-and-drop oder Einfügen gewählt und wie Inline-Bilder lokal vorbereitet, verkleinert und hochgeladen. Der Editor <code>Bild und Masken</code> zeigt das Bild links und rechts die Spalte mit <code>Werkzeuge</code> (Auswählen, Rechteck, Ellipse, Polygon, Text), <code>Auswahl</code> (Gruppieren, Auflösen, Bleibt verdeckt, Löschen), <code>Verdecken</code> (<code>Alle</code> Masken oder <code>Nur eine</code>, die abgefragte) und der Kartenliste; unter 1024 px steht die Spalte unter dem Bild und Werkzeuge erscheinen als Symbole. Jede neue Maske ist eine eigene Karte, gruppierte Masken werden gemeinsam abgefragt, <code>Bleibt verdeckt</code> verdeckt eine Maske auf allen Karten ohne eigene Abfrage. Maus, Stift und Touch zeichnen per Ziehen, Polygone per Punkten (erster Punkt, Doppelklick oder Enter schließt). Per Tastatur sind Masken fokussierbar; Pfeiltasten verschieben, Entf löscht, Strg+G gruppiert, Strg+Umschalt+G löst auf, Escape hebt die Auswahl auf, Buchstaben wählen das Werkzeug. Gespeichert wird erst mit Bild und mindestens einer abgefragten Maske.</li>
 <li>Single Choice und Multiple Choice sind Antwortformate eines Inhalts mit genau einer Karte. Sie sind mit Medien und Zusatzfeldern kombinierbar, aber nicht zugleich die primäre Cloze-Interaktion.</li>
 <li>Single Choice bearbeitet Frage, mindestens zwei eindeutige Optionen, genau eine richtige Option und eine optionale Erklärung gemeinsam. Multiple Choice verwendet dieselben Felder, erlaubt mehrere richtige Optionen und verlangt jederzeit mindestens eine richtige und mindestens eine falsche Option. Reviewanzeige und Bewertung verwenden dieselbe gespeicherte Antwortmenge.</li>
 <li>PDF- und Textquellen helfen nur während der Erstellung; dauerhaft gespeichert werden der übernommene Karteninhalt und benötigte Medien.</li>

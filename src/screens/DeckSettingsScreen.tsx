@@ -37,7 +37,7 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
               const selected = option.key === value;
               return (
                 <Popover.Close asChild key={option.key}>
-                  <button type="button" aria-label={option.label} aria-pressed={selected} className={`grid size-control place-items-center rounded-control border transition ${selected ? "border-core-action bg-core-info-soft" : "border-transparent bg-core-surface hover:bg-core-subtle"}`} onClick={() => onChange(option.key)}>
+                  <button type="button" aria-label={option.label} aria-pressed={selected} className={`grid size-11 place-items-center rounded-control border transition ${selected ? "border-core-action bg-core-info-soft" : "border-transparent bg-core-surface hover:bg-core-subtle"}`} onClick={() => onChange(option.key)}>
                     <Icon size={20} aria-hidden="true" />
                   </button>
                 </Popover.Close>

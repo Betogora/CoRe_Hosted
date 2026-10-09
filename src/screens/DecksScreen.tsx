@@ -23,6 +23,7 @@ import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
+import { OcclusionEditor } from "../ui/OcclusionEditor.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
@@ -553,6 +554,20 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
       {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
+      {structureEditable && structure.interaction.kind === "image-occlusion" && mediaUrls[structure.interaction.image] ? (
+        <div className="mb-4 grid min-w-0 gap-2" data-testid="note-occlusion">
+          <span className="core-body font-semibold text-core-text">Bild und Masken</span>
+          <OcclusionEditor
+            imageUrl={mediaUrls[structure.interaction.image]}
+            imageAlt="Bild der Bildverdeckung"
+            masks={structure.interaction.masks}
+            mode={structure.interaction.mode}
+            disabled={isSaving}
+            onMasksChange={(masks) => structure.interaction.kind === "image-occlusion" && changeStructure({ ...structure, interaction: { ...structure.interaction, masks } })}
+            onModeChange={(mode) => structure.interaction.kind === "image-occlusion" && changeStructure({ ...structure, interaction: { ...structure.interaction, mode } })}
+          />
+        </div>
+      ) : null}
       {structureEditable && blocks.reverse !== null ? (
         <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3" data-testid="note-direction">
             <span className="core-body font-semibold text-core-text">Lernrichtung</span>

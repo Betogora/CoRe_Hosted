@@ -882,7 +882,7 @@ button {
 }
 
 button[aria-label] {
-  min-width: 2.75rem;
+  min-width: var(--core-control-height);
 }
 
 .core-in-page-content > section[id] {
@@ -1514,7 +1514,7 @@ summary {
 
 .core-pdf-control {
   display: inline-flex;
-  min-width: 2.75rem;
+  min-width: var(--core-control-height);
   min-height: var(--core-control-height);
   align-items: center;
   justify-content: center;

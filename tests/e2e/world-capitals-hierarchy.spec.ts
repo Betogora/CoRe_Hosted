@@ -398,12 +398,12 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.headerHeight).toBeLessThanOrEqual(30);
     expect(layout.headerTitleInset).toBeCloseTo(8, 0);
     expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
-      ? ["STAPEL"]
-      : ["STAPEL", "NEU", "OFFEN", "FÄLLIG"]);
+      ? ["Stapel"]
+      : ["Stapel", "Neu", "Offen", "Fällig"]);
     expect(layout.headerLabelsFit).toBe(true);
     expect(layout.rowLabelsHidden).toBe(true);
-    expect(layout.collapseControlSize).toEqual([44, 44]);
-    expect(layout.collapseSurfaceSize).toEqual([32, 36]);
+    expect(layout.collapseControlSize).toEqual(width < 768 ? [44, 44] : [40, 40]);
+    expect(layout.collapseSurfaceSize).toEqual(width < 768 ? [32, 36] : [28, 32]);
     expect(layout.collapseSurfaceIconGap).toBeGreaterThanOrEqual(2);
     expect(layout.collapseChevronCenterOffset).toBeCloseTo(0, 0);
     expect(layout.rootIconOffset).toBeCloseTo(0, 0);
@@ -509,10 +509,10 @@ test("deck presentation form saves name, icon and color together", async ({ page
   const primaryControls = page.getByTestId("deck-settings-primary-controls");
   const saveBar = page.getByTestId("settings-save-bar");
   const saveButton = saveBar.getByRole("button", { name: "Speichern" });
-  await expect(iconTrigger).toHaveCSS("width", "44px");
-  await expect(iconTrigger).toHaveCSS("height", "44px");
-  await expect(colorTrigger).toHaveCSS("width", "44px");
-  await expect(colorTrigger).toHaveCSS("height", "44px");
+  for (const trigger of [iconTrigger, colorTrigger]) {
+    await expect(trigger).toHaveCSS("width", "40px");
+    await expect(trigger).toHaveCSS("height", "40px");
+  }
   await expect(titleIcon).toBeVisible();
   await expect(primaryControls.getByRole("group", { name: "CoRe-Modus" })).toBeVisible();
   await expect(primaryControls.getByRole("button", { name: "Lernen", exact: true })).toHaveCount(0);

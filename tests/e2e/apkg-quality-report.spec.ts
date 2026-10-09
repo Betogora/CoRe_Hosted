@@ -33,8 +33,8 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(statTiles.filter({ hasText: "Medien fehlen" })).toContainText("1");
   for (const tile of await statTiles.all()) {
     await expect(tile).toHaveAttribute("data-size", "compact");
-    await expect(tile).toHaveCSS("border-width", "0px");
-    await expect(tile).toHaveCSS("box-shadow", "none");
+    await expect(tile).toHaveCSS("border-width", "1px");
+    await expect(tile).not.toHaveCSS("box-shadow", "none");
   }
   const notetypes = page.getByRole("region", { name: "Notiztypen" });
   await expect(notetypes.getByTestId("apkg-notetype-report")).toHaveCount(2);

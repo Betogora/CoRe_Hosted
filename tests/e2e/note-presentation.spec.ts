@@ -6,7 +6,7 @@ test.setTimeout(60_000);
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/docs/ui-elements.html#note-content");
-  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Kartenbausteine");
+  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenbausteine");
   await expect(page.locator('[data-note-demo="typed"] input')).toBeVisible();
 });
 
@@ -128,7 +128,7 @@ test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen
   const failures: string[] = [];
   page.on("pageerror", (error) => failures.push(error.message));
   await page.reload();
-  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Kartenbausteine");
+  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenbausteine");
   // Keep only the documentation chrome from covering component screenshots.
   await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   const sizes = [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }];
@@ -166,7 +166,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   test.setTimeout(180_000);
   const output = path.resolve("test-results/note-presentation/existing-frames");
   await mkdir(output, { recursive: true });
-  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Karteninhalte");
+  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
   await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   for (const size of [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(size);
@@ -185,7 +185,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
       await section.getByRole("button", { name: "Zurücksetzen", exact: true }).click();
     }
   }
-  await page.getByLabel("Elemente durchsuchen", { exact: true }).fill("Dialoge und Speicherleisten");
+  await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Dialog-Familie");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.getByRole("button", { name: "Kartenvorschau öffnen", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Kartenvorschau", exact: true });

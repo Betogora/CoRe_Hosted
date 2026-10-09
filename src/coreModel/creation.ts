@@ -20,7 +20,7 @@ export interface ManualNoteInput {
   tags?: unknown;
 }
 
-export type ManualNoteField = "front" | "back" | "options" | "correctOptions";
+export type ManualNoteField = "front" | "back" | "options" | "correctOptions" | "occlusion";
 export type ManualNoteErrors = Partial<Record<ManualNoteField, string>>;
 
 const FIELD_NAMES: Record<ManualContentKind, [string, string]> = {

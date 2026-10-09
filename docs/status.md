@@ -21,12 +21,14 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
   einschließlich Kprim, KaTeX, sichere Medien, System-Vorlesen und
   AMBOSS-Textauswahl). Die Phase-3-Performance-Abnahme ist gemessen (siehe
   `history.md`); offen sind nur noch die Gerätenachweise.
-- Erstellen und Bearbeiten arbeiten auf dem Inhalt (K6.1–K6.4): gemeinsame Bausteine
+- Erstellen und Bearbeiten arbeiten auf dem Inhalt (K6.1–K6.6): gemeinsame Bausteine
   (Antwort eintippen, Felder mit Rolle Zusatzfrage/Hinweis/Zusatz/Quelle), Lernrichtung
   im Editor, Formelwerkzeug, Live-Zusammenfassung der Kartenwirkung, Bestätigung
   entfallender Karten mit Lernstand, Geschwisterliste im Kartendetail und als
-  veraltet markierte KI-Umformulierungen mit gezielter Neuerzeugung. Importierte
-  Inhalte behalten ihr Feldschema.
+  veraltet markierte KI-Umformulierungen mit gezielter Neuerzeugung. Bildverdeckungen
+  entstehen manuell mit einem Masken-Editor (Rechteck, Ellipse, Polygon, Text,
+  Gruppen, Modus) und lassen sich im Karteneditor weiterbearbeiten; das Bild selbst
+  ist dort nicht austauschbar. Importierte Inhalte behalten ihr Feldschema.
 - Pflichtlogin mit Supabase E-Mail/Passwort, Profil-Upsert und accountgebundenem Browser-Cache.
 - Local-first Account-Boot mit expliziter Baseline: Ein bekanntes Gerät rendert seine IndexedDB-Shell sofort; ein neues wartet nur auf die erste gültige, bytebegrenzte `get_account_bootstrap`-Seite aus Profil, Deck-Hüllen, zeitstabilen Summaries und `AccountStudyOverview`; die Fälligkeitsprognose folgt nachgelagert über `get_account_due_forecast`. `confirmed-empty` ist die einzige Freigabe der Leeransicht. Nach dem ersten erfolgreichen Bootstrap werden seine Retry- und Browserlistener entfernt; Online, Fokus und Sichtbarkeit gehören danach ausschließlich dem normalen Sync.
 - Inkrementeller Hybrid-Sync aus isoliertem Outbox-Push, servergestempeltem Katalog-Delta und Konfliktaktualisierung; manuell auch bei leerer Outbox sowie automatisch nach Debounce, Online, Fokus und sichtbar im wählbaren 1/5/15/30-Minuten-Intervall. Der normale Webpfad lädt keine sieben vollständigen Tabellen mehr. Deck-Hüllen, `deck_study_summaries` und `card_catalog` besitzen eigene bytebegrenzte Cursor; Kartenkörper samt Inhalten und Varianten werden höchstens zu 50 hydriert.

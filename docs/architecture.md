@@ -21,7 +21,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
 | `reviewService.ts`, `scheduler.ts`, `easyDays.ts` | Queue, Bewertung, FSRS-6 und deterministische Intervallentlastung |
 | `coreVariantService.ts` | Reife, Eligibility, Variantenquelle, Variantenwahl, Variantendarstellung und Original-Fallback |
-| `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung, Batchzustand und getrennte lokale Medienvorbereitung |
+| `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung einschließlich Bildverdeckung (Bild als SHA-1-benanntes Medium), Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
 | `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |
 | `apkgNoteTranslation.ts`, `importRetranslation.ts` | Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen und automatische Neuübersetzung unbearbeiteter Importe |
@@ -75,7 +75,12 @@ Karten eines Stapels, nie Inhaltskopien.
 `validateNoteEditorValue`), die Inhaltsbausteine (`noteBlocks`, `setNoteReverse`,
 `setNoteTypeIn`, `addNoteField`, `canRemoveNoteField`, `removeNoteField`,
 `renameNoteField`; Richtung und Eintippen nur für reine Vorwärts-/Rückwärts-
-Abfragen, Feldrollen Zusatzfrage, Hinweis, Zusatz und Quelle) und die manuellen Formen (`createManualNoteContent`,
+Abfragen, Feldrollen Zusatzfrage, Hinweis, Zusatz und Quelle), die Maskenhelfer der
+Bildverdeckung (`createOcclusionNoteContent`, `validateOcclusionInput`,
+`addOcclusionMask`, `moveOcclusionMasks`, `updateOcclusionMaskShape`,
+`removeOcclusionMasks`, `groupOcclusionMasks`, `ungroupOcclusionMasks`,
+`setOcclusionMasksAlwaysOccluded`, `occlusionGroups`; Gruppennummern werden nie
+neu vergeben) und die manuellen Formen (`createManualNoteContent`,
 `validateManualNoteInput`; Basic, Basic mit Rückrichtung, Lückentext, Single und
 Multiple Choice; Zusatzfelder tragen eine Rolle, Basic optional Eintippen). Inhaltseingaben bleiben `unknown`, bis `parseNoteContent` sie
 validiert und bereinigt. Aufrufer übergeben die vollständige, nicht gelöschte

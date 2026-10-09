@@ -1337,6 +1337,10 @@ video {
   width: 2.5rem;
   height: 2.5rem;
 }
+.size-11 {
+  width: 2.75rem;
+  height: 2.75rem;
+}
 .size-12 {
   width: 3rem;
   height: 3rem;
@@ -1447,6 +1451,9 @@ video {
 .h-\[39rem\] {
   height: 39rem;
 }
+.h-auto {
+  height: auto;
+}
 .h-full {
   height: 100%;
 }
@@ -1494,6 +1501,9 @@ video {
 }
 .min-h-16 {
   min-height: 4rem;
+}
+.min-h-20 {
+  min-height: 5rem;
 }
 .min-h-24 {
   min-height: 6rem;
@@ -1651,9 +1661,6 @@ video {
 .min-w-0 {
   min-width: 0px;
 }
-.min-w-11 {
-  min-width: 2.75rem;
-}
 .min-w-16 {
   min-width: 4rem;
 }
@@ -1674,6 +1681,9 @@ video {
 }
 .min-w-\[42rem\] {
   min-width: 42rem;
+}
+.min-w-control {
+  min-width: var(--core-control-height);
 }
 .min-w-max {
   min-width: -moz-max-content;
@@ -1816,6 +1826,9 @@ video {
 }
 .cursor-grabbing {
   cursor: grabbing;
+}
+.cursor-move {
+  cursor: move;
 }
 .cursor-not-allowed {
   cursor: not-allowed;
@@ -2227,9 +2240,6 @@ video {
 }
 .p-2 {
   padding: 0.5rem;
-}
-.p-2\.5 {
-  padding: 0.625rem;
 }
 .p-3 {
   padding: 0.75rem;
@@ -3067,7 +3077,7 @@ button {
 }
 
 button[aria-label] {
-  min-width: 2.75rem;
+  min-width: var(--core-control-height);
 }
 
 .core-in-page-content > section[id] {
@@ -3707,7 +3717,7 @@ summary {
 
 .core-pdf-control {
   display: inline-flex;
-  min-width: 2.75rem;
+  min-width: var(--core-control-height);
   min-height: var(--core-control-height);
   align-items: center;
   justify-content: center;
@@ -4286,6 +4296,21 @@ summary {
   }
 }
 
+@media not all and (min-width: 1024px) {
+
+  .max-lg\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+}
+
 @media (min-width: 640px) {
 
   .sm\:static {
@@ -4606,6 +4631,10 @@ summary {
     width: 50%;
   }
 
+  .lg\:w-full {
+    width: 100%;
+  }
+
   .lg\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -4626,6 +4655,10 @@ summary {
     grid-template-columns: 1fr 0.8fr;
   }
 
+  .lg\:grid-cols-\[minmax\(0\2c 1fr\)_15rem\] {
+    grid-template-columns: minmax(0,1fr) 15rem;
+  }
+
   .lg\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
     grid-template-columns: minmax(0,1fr) auto;
   }
@@ -4638,8 +4671,16 @@ summary {
     grid-template-columns: repeat(3,minmax(0,1fr));
   }
 
+  .lg\:items-start {
+    align-items: flex-start;
+  }
+
   .lg\:items-end {
     align-items: flex-end;
+  }
+
+  .lg\:justify-start {
+    justify-content: flex-start;
   }
 
   .lg\:px-6 {
