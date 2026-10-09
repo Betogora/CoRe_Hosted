@@ -26,6 +26,7 @@ export {
   createCardVariant,
   getActiveVariants,
   isCardReviewBlocked,
+  replaceOutdatedVariants,
   rescheduleCard,
   setCardSuspended,
 } from "./coreModel/cards.ts";
@@ -41,6 +42,7 @@ export {
 } from "./coreModel/notes.ts";
 export {
   noteContentMediaRefs,
+  notePromptLabel,
   parseNoteContent,
 } from "./coreModel/noteContent.ts";
 export {

@@ -83,6 +83,14 @@ export function addCardVariant(card: Card, input: CardVariantInput, updatedAt = 
   return { ...card, variants: [...card.variants, variant], updatedAt };
 }
 
+/** A new rephrasing replaces the card's outdated ones (K6.4); they are deleted like any removed variant. */
+export function replaceOutdatedVariants(card: Card, input: CardVariantInput, updatedAt = new Date().toISOString()): Card {
+  const variants = card.variants.map((variant) => variant.meta.outdated === true && !variant.deletedAt
+    ? { ...variant, deletedAt: updatedAt, updatedAt, revision: variant.revision + 1 }
+    : variant);
+  return addCardVariant({ ...card, variants }, input, updatedAt);
+}
+
 export function getActiveVariants(card: Pick<Card, "variants"> | null | undefined): CardVariant[] {
   return (card?.variants ?? []).filter((variant) => variant.qualityStatus === "active" && variant.isActive && !variant.deletedAt);
 }

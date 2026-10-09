@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { Card, NoteContent, RevealPrompt } from "../coreTypes.ts";
-import { createCardVariant } from "./cards.ts";
-import { createNote, planNoteContentChange, planNoteDeletion } from "./notes.ts";
+import { addCardVariant, createCardVariant, getActiveVariants, replaceOutdatedVariants } from "./cards.ts";
+import { createManualNoteContent } from "./creation.ts";
+import { notePromptLabel } from "./noteContent.ts";
+import { createBasicNote, createNote, planNoteContentChange, planNoteDeletion } from "./notes.ts";
 
 const CREATED_AT = "2026-10-06T10:00:00.000Z";
 const CHANGED_AT = "2026-10-06T11:00:00.000Z";
@@ -194,6 +196,45 @@ for (const scenario of [
     assert.deepEqual(previous, before);
   });
 }
+
+test("Eine geänderte Frage oder Antwort macht die KI-Umformulierungen genau dieser Karten veraltet", () => {
+  const graph = createBasicNote("deck", "Was ist ATP?", "Energieträger", { reverse: true });
+  const withVariants = {
+    ...graph,
+    cards: graph.cards.map((card) => addCardVariant(card, { front: `Umformulierung ${card.promptKey}`, back: "x", variantLevel: 2, qualityStatus: "active", isActive: true })),
+  };
+  const unchanged = planNoteContentChange(withVariants, withVariants.note.content);
+  assert.deepEqual(unchanged.keptCards, withVariants.cards);
+
+  const content = structuredClone(withVariants.note.content);
+  content.fields.find((field) => field.id === "back")!.html = "Universeller Energieträger";
+  content.tags = ["Bio"];
+  const plan = planNoteContentChange(withVariants, content, "2026-10-09T10:00:00.000Z");
+  for (const card of plan.keptCards) {
+    const [variant] = card.variants;
+    assert.equal(variant.isActive, false, card.promptKey);
+    assert.equal(variant.meta.outdated, true);
+    assert.equal(variant.revision, 2);
+    assert.equal(getActiveVariants(card).length, 0);
+  }
+
+  // Tags alone are no question or answer and keep the rephrasings asked.
+  const tagsOnly = structuredClone(withVariants.note.content);
+  tagsOnly.tags = ["Bio"];
+  assert.deepEqual(planNoteContentChange(withVariants, tagsOnly).keptCards, withVariants.cards);
+
+  const regenerated = replaceOutdatedVariants(plan.keptCards[0], { front: "Neu", back: "x", variantLevel: 2, qualityStatus: "active", isActive: true }, "2026-10-09T11:00:00.000Z");
+  assert.equal(regenerated.variants.filter((variant) => !variant.deletedAt).length, 1);
+  assert.equal(getActiveVariants(regenerated)[0].front, "Neu");
+});
+
+test("Abfragen tragen kurze Namen für Editor und Bestätigungen", () => {
+  const cloze = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "{{c1::A}} {{c2::B}}", back: "" }) });
+  assert.deepEqual(cloze.cards.map((card) => notePromptLabel(cloze.note.content, card.promptKey)), ["Lücke 1", "Lücke 2"]);
+  const basic = createBasicNote("deck", "F", "A", { reverse: true });
+  assert.deepEqual(basic.cards.map((card) => notePromptLabel(basic.note.content, card.promptKey)), ["Vorwärts", "Rückwärts"]);
+  assert.equal(notePromptLabel(basic.note.content, "io:3"), "Maske 3");
+});
 
 test("Rückrichtung lässt sich zuschalten und wird beim Abschalten nur zur Entfernung vorgemerkt", () => {
   const previous = create(reveal());

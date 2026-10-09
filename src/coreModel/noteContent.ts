@@ -237,6 +237,16 @@ function requirementMet(requirement: NoteFieldRequirement | null, filled: Set<st
  * (`<prompt key>`), `choice`, one per cloze ordinal (`cloze:N`) or one per
  * occlusion group (`io:N`). A reveal prompt also needs a filled question field.
  */
+/** Short German name of a card's prompt within its content, such as „Lücke 2“, „Rückwärts“ or „Maske 1“. */
+export function notePromptLabel(content: NoteContent, promptKey: string): string {
+  const [kind, number] = promptKey.split(":");
+  if (kind === "cloze" && number) return `Lücke ${number}`;
+  if (kind === "io" && number) return `Maske ${number}`;
+  if (promptKey === "choice") return "Auswahl";
+  const prompt = content.interaction.kind === "reveal" ? content.interaction.prompts.find((candidate) => candidate.key === promptKey) : undefined;
+  return prompt?.name.trim() || promptKey;
+}
+
 export function deriveNotePromptKeys(content: NoteContent): string[] {
   const interaction = content.interaction;
   if (interaction.kind === "choice") return ["choice"];

@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, Chev
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { noteEditorValue, noteTextIndex, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
+import { noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
 import { classifyCardEligibility, createVariantReviewModel } from "../coreVariantService.ts";
 import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -12,7 +12,7 @@ import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
-import type { NoteGraph } from "../workspaceReplica.ts";
+import { catalogEntryFromCard, type NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
@@ -26,7 +26,7 @@ import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
-import type { CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
+import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
 
 interface PendingDetailAction {
   run: () => void;
@@ -93,8 +93,42 @@ function noteKindLabel(note: Note) {
 
 function removedCardsDescription(count: number) {
   return count === 1
-    ? "Durch diese Änderung entfällt eine Karte. Ihr Lernstand wird gelöscht."
-    : `Durch diese Änderung entfallen ${count} Karten. Ihr Lernstand wird gelöscht.`;
+    ? "Durch diese Änderung entfällt diese Karte samt ihrem Lernstand:"
+    : `Durch diese Änderung entfallen ${count} Karten samt ihrem Lernstand:`;
+}
+
+type CardLabelOptions = { dayStartHour?: number; timeZone?: string };
+
+/** Learning state of a card in the words of the card list: new, suspended or reviewed with its next due date. */
+function cardStateLabel(card: Card, note: Note, options: CardLabelOptions) {
+  if (card.status === "suspended") return "ausgesetzt";
+  if (card.study.reps === 0) return "neu, ohne Lernstand";
+  const { nextStudyLabel } = createCardTableRow(catalogEntryFromCard(card, note), options);
+  return `${card.study.reps === 1 ? "1 Wiederholung" : `${card.study.reps} Wiederholungen`} · fällig ${nextStudyLabel}`;
+}
+
+/** Kind of the content and, with siblings, the card's position, e.g. „Lückentext · Lücke 2 von 3“. */
+function cardHeaderLabel(note: Note, card: Card, count: number) {
+  if (count < 2) return noteKindLabel(note);
+  const label = notePromptLabel(note.content, card.promptKey);
+  const position = /^(cloze|io):\d+$/.test(card.promptKey) ? `${label} von ${count}` : `${label} · ${count} Karten aus diesem Inhalt`;
+  return `${noteKindLabel(note)} · ${position}`;
+}
+
+/** What saving the draft would do to the content's cards, or null when nothing beyond the text changes. */
+function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
+  const parts: string[] = [];
+  const labels = (cards: Card[], content: NoteContent) => cards.map((card) => notePromptLabel(content, card.promptKey)).join(", ");
+  if (plan.newCards.length) parts.push(`${plan.newCards.length === 1 ? "1 neue Karte" : `${plan.newCards.length} neue Karten`} (${labels(plan.newCards, plan.note.content)})`);
+  if (plan.removedCards.length) parts.push(`${plan.removedCards.length === 1 ? "1 Karte entfällt" : `${plan.removedCards.length} Karten entfallen`} (${labels(plan.removedCards, graph.note.content)})`);
+  const outdated = outdatedVariantCount(graph, plan);
+  if (outdated) parts.push(outdated === 1 ? "1 KI-Umformulierung wird veraltet" : `${outdated} KI-Umformulierungen werden veraltet`);
+  return parts.length ? `Beim Speichern: ${parts.join(" · ")}.` : null;
+}
+
+function outdatedVariantCount(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
+  const activeBefore = new Set(graph.cards.flatMap((card) => card.variants.filter((variant) => variant.isActive && !variant.deletedAt).map((variant) => variant.id)));
+  return plan.keptCards.flatMap((card) => card.variants).filter((variant) => variant.meta.outdated === true && activeBefore.has(variant.id)).length;
 }
 
 interface DeckCardEditorProps {
@@ -111,12 +145,14 @@ interface DeckCardEditorProps {
   onDeleteNote: () => void;
   onRescheduleCards: DecksScreenProps["onRescheduleCards"];
   onGenerateVariant: (cardId: string) => Promise<AiCardVariantSuccess>;
+  onSelectCard: (deckId: string, cardId: string) => void;
+  deckName: (deckId: string) => string;
   onClose: () => void;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   syncConflict: boolean;
 }
 
-function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onClose, onDraftStateChange }: DeckCardEditorProps) {
+function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
   const { note } = graph;
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
   const [initialValue, contentKey] = React.useMemo(() => {
@@ -128,7 +164,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const [fieldErrors, setFieldErrors] = React.useState<NoteEditorErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
-  const [pendingRemoval, setPendingRemoval] = React.useState<{ content: NoteContent; count: number } | null>(null);
+  const [pendingRemoval, setPendingRemoval] = React.useState<{ content: NoteContent; cards: Card[]; outdated: number } | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const setSuccessToast = useSuccessToast();
@@ -156,6 +192,17 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     [card, deck.reviewEvents, now],
   );
   const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
+  const draftPlan = React.useMemo(() => {
+    if (!draftDirty) return null;
+    const validation = validateNoteEditorValue(note, form);
+    if (!validation.ok) return null;
+    try {
+      return planNoteContentChange(graph, validation.content);
+    } catch {
+      return null;
+    }
+  }, [draftDirty, form, graph, note]);
+  const draftSummary = draftPlan ? draftChangeSummary(graph, draftPlan) : null;
   // The preview shows the current draft; an invalid draft falls back to the saved content.
   const previewNote = React.useMemo(() => {
     const validation = validateNoteEditorValue(note, form);
@@ -194,7 +241,10 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   if (!card) return null;
 
   const { maturity, readiness, coverage } = variantReviewModel!;
-  const variants = card.variants ?? [];
+  const variants = (card.variants ?? []).filter((variant) => !variant.deletedAt);
+  const hasOutdatedVariants = variants.some((variant) => variant.meta.outdated === true);
+  const labelOptions = { dayStartHour, timeZone };
+  const siblings = graph.cards.filter((candidate) => candidate.deletedAt === null);
   const interaction = note.content.interaction;
   const choiceMode = interaction.kind === "choice" ? interaction.mode : null;
   const options = form.options ?? [];
@@ -253,7 +303,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     updateOptions(options.map((option, optionIndex) => optionIndex === index ? { ...option, correct: !option.correct } : option));
   }
 
-  async function persist(content: NoteContent): Promise<boolean> {
+  async function persist(content: NoteContent, outdated = 0): Promise<boolean> {
     setIsSaving(true);
     setSaveError(false);
     setSaveStatus("Karte wird gespeichert …");
@@ -263,7 +313,9 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       onDraftStateChange(null);
       setFieldErrors({});
       setSaveStatus("");
-      setSuccessToast("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
+      setSuccessToast(outdated === 0
+        ? "Karte wurde erfolgreich gespeichert."
+        : `Karte wurde erfolgreich gespeichert. ${outdated === 1 ? "1 KI-Umformulierung ist veraltet und wird nicht mehr abgefragt." : `${outdated} KI-Umformulierungen sind veraltet und werden nicht mehr abgefragt.`}`);
       return true;
     } catch {
       setSaveError(true);
@@ -290,11 +342,12 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       setSaveStatus("");
       return true;
     }
+    const outdated = outdatedVariantCount(graph, plan);
     if (plan.removedCards.length > 0) {
-      setPendingRemoval({ content: validation.content, count: plan.removedCards.length });
+      setPendingRemoval({ content: validation.content, cards: plan.removedCards, outdated });
       return false;
     }
-    return persist(validation.content);
+    return persist(validation.content, outdated);
   }
 
   async function duplicateCard() {
@@ -332,7 +385,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         setVariantStatus("KI-Variante erstellt. Da kein passendes ZDR-Modell verfügbar war, wurde ein kostenloses Modell ohne Zero Data Retention verwendet.");
       } else {
         setVariantStatus("");
-        setSuccessToast("KI-Variante wurde erfolgreich erstellt.");
+        setSuccessToast(hasOutdatedVariants ? "Veraltete KI-Umformulierung wurde ersetzt." : "KI-Variante wurde erfolgreich erstellt.");
       }
     } catch (error) {
       setVariantStatusWarning(true);
@@ -374,7 +427,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-core-text outline-none">Karte bearbeiten</h2>
-          <p className="mt-1 core-caption text-core-muted">{noteKindLabel(note)}{graph.cards.length > 1 ? ` · ${graph.cards.length} Karten aus diesem Inhalt` : ""}</p>
+          <p className="mt-1 core-caption text-core-muted" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
@@ -417,6 +470,31 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
           <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
         </div>
       ) : null}
+      {siblings.length > 1 ? (
+        <section className="mb-6 min-w-0 rounded-control border border-core-border bg-core-surface p-3" aria-labelledby={`card-siblings-${card.id}`} data-testid="card-siblings">
+          <h3 id={`card-siblings-${card.id}`} className="core-body font-semibold text-core-text">Karten aus diesem Inhalt</h3>
+          <ul className="mt-2 grid gap-1">
+            {siblings.map((sibling) => {
+              const current = sibling.id === card.id;
+              const content = (
+                <>
+                  <span className="font-semibold text-core-text">{notePromptLabel(note.content, sibling.promptKey)}</span>
+                  <span className="min-w-0 truncate text-core-muted">{deckName(sibling.deckId)} · {cardStateLabel(sibling, note, labelOptions)}</span>
+                </>
+              );
+              return (
+                <li key={sibling.id}>
+                  {current ? (
+                    <p className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-subtle px-3 core-body" aria-current="true">{content}</p>
+                  ) : (
+                    <button type="button" onClick={() => onSelectCard(sibling.deckId, sibling.id)} className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-x-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus">{content}</button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
       <CardStudyStateControls
         className="mb-3"
         marked={note.marked}
@@ -445,6 +523,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         </ActionButton>
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
+      {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
       <div className="grid min-w-0 gap-4">
         {note.content.fields.map((field) => (
           <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
@@ -517,10 +596,13 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
                 <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
                   <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
                   <span>Level {variant.variantLevel}</span>
-                  <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>
+                  {variant.meta.outdated === true
+                    ? <span className="rounded-inset bg-core-warning-soft px-2 py-1 text-core-text">veraltet</span>
+                    : <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>}
                 </div>
                 <p className="break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
                 <p className="mt-1 break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
+                {variant.meta.outdated === true ? <p className="mt-2 core-caption text-core-muted">Frage oder Antwort wurden geändert; diese Umformulierung wird nicht mehr abgefragt.</p> : null}
                 <p className="mt-2 core-caption text-core-muted">Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
               </article>
           ))}
@@ -537,7 +619,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               disabled={!eligibility?.eligible || isGeneratingVariant}
               onClick={() => void generateVariant()}
             >
-              KI-Variante erzeugen
+              {hasOutdatedVariants ? "KI-Variante neu erzeugen" : "KI-Variante erzeugen"}
             </ActionButton>
             <p className="min-w-0 flex-1 core-caption text-core-muted">
               {eligibility?.eligible
@@ -560,7 +642,16 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       <ActionDialog
         open={Boolean(pendingRemoval)}
         title="Karten entfernen?"
-        description={pendingRemoval ? removedCardsDescription(pendingRemoval.count) : null}
+        description={pendingRemoval ? (
+          <>
+            <p>{removedCardsDescription(pendingRemoval.cards.length)}</p>
+            <ul className="mt-3 grid gap-1.5" data-testid="removed-cards">
+              {pendingRemoval.cards.map((removed) => (
+                <li key={removed.id} className="core-body"><span className="font-semibold text-core-text">{notePromptLabel(note.content, removed.promptKey)}</span> · {deckName(removed.deckId)} · {cardStateLabel(removed, note, labelOptions)}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
         confirmLabel="Speichern"
         cancelLabel="Weiter bearbeiten"
         confirmLoading={isSaving}
@@ -568,7 +659,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         onConfirm={() => {
           const removal = pendingRemoval;
           if (!removal) return;
-          void persist(removal.content).then(() => setPendingRemoval(null));
+          void persist(removal.content, removal.outdated).then(() => setPendingRemoval(null));
         }}
       />
     </SoftPanel>
@@ -689,6 +780,7 @@ export function DecksScreen({
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
+  const deckNameById = React.useMemo(() => new Map(decks.map((deck) => [deck.id, deck.name])), [decks]);
   const selectedContentDeckId = React.useMemo(() => {
     if (!contentDeckId || !selectedCardId) return null;
     for (const group of tableModel.allGroups) {
@@ -1014,6 +1106,8 @@ export function DecksScreen({
             onDeleteNote={requestCardDelete}
             onRescheduleCards={onRescheduleCards}
             onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
+            onSelectCard={requestCardSelection}
+            deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
             onClose={() => requestDetailAction(closeDetail)}
             onDraftStateChange={handleEditorDraftStateChange}
           />
