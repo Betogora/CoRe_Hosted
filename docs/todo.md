@@ -104,7 +104,7 @@ Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
 Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, im Cutover verdrahtet
 Phase 3   Renderer und Bausteine (reine Module)        ✔ im Cutover verdrahtet; Gerätenachweise offen
 Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ im Cutover verdrahtet; Korpus offen
-Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ auf main, Remote zurückgesetzt; Hosted-Smoke offen
+Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen; Startzeit neues Gerät offen
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        auf main
 Phase 7   Begraben von Geschwistern                     auf main
@@ -271,13 +271,9 @@ sind bis dahin nur über die Matrix synthetisch belegt.
 
 ## Phase 4 — Cutover: Datenbank-Baseline, Replica, Sync und App
 
-K4.1 bis K4.11 sind umgesetzt, auf `main` gemergt und das Pre-Release-Projekt
-ist zurückgesetzt (siehe `history.md`). Offen ist nur noch:
+K4.1 bis K4.11 sind abgeschlossen: auf `main` gemergt, Pre-Release-Projekt
+zurückgesetzt, Hosted-Smoke grün (siehe `history.md`). Offen ist nur noch:
 
-- [ ] **Hosted-Smoke nach dem Reset (Rest von K4.8).** Der erste Lauf war 9
-      von 10 grün; die Korrektur für den zehnten Test ist auf `main`. Nach dem
-      Production-Deployment `npm run test:beta:hosted` erneut ausführen und
-      den Satz zum ausstehenden Smoke in `status.md` streichen.
 - [ ] **Neues Gerät bis Dashboard unter Budget bringen.** Der Cutover hält den
       Wert (p75 schwankt zwischen 2.883 und 3.023 ms, nicht schlechter als vorher); die
       Phasenaufschlüsselung aus K4.2 zeigt, dass fast die gesamte Zeit vor dem
