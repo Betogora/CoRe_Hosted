@@ -1,4 +1,4 @@
-import type { ChoiceOption, Note, NoteContent } from "../coreTypes.ts";
+import type { ChoiceOption, Note, NoteContent, NoteField, NoteFieldRole, RevealPrompt } from "../coreTypes.ts";
 import { stripSanitizedHtml } from "../htmlSafety.ts";
 import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
 import { normalizeTags } from "./coreValues.ts";
@@ -54,6 +54,108 @@ export function applyNoteEditorValue(content: NoteContent, value: NoteEditorValu
     interaction,
     tags: normalizeTags(value.tags),
   };
+}
+
+// --- Building blocks (K6.1) ----------------------------------------------------------------
+
+/** Field roles the editor can add; a question field only where a prompt asks it. */
+export type AddableFieldRole = Extract<NoteFieldRole, "prompt" | "hint" | "extra" | "source">;
+
+/** Forward and optional reverse prompt of a plain question/answer content; null for any other structure. */
+function plainRevealPrompts(content: NoteContent): { forward: RevealPrompt; reverse: RevealPrompt | null } | null {
+  if (content.interaction.kind !== "reveal") return null;
+  const { prompts } = content.interaction;
+  const forward = prompts.find((prompt) => prompt.key === "forward");
+  if (!forward || prompts.some((prompt) => prompt.key !== "forward" && prompt.key !== "reverse")) return null;
+  return { forward, reverse: prompts.find((prompt) => prompt.key === "reverse") ?? null };
+}
+
+function reversePrompt(forward: RevealPrompt): RevealPrompt {
+  return { key: "reverse", name: "Rückwärts", instruction: "", questionFieldIds: forward.answerFieldIds, answerFieldIds: forward.questionFieldIds, requires: null, typeInFieldId: null };
+}
+
+/** Switchable building blocks of a content; null where its structure does not offer them. */
+export function noteBlocks(content: NoteContent): { reverse: boolean | null; typeIn: boolean | null; fieldRoles: AddableFieldRole[] } {
+  const plain = plainRevealPrompts(content);
+  const asksPromptFields = Boolean(plain) || content.interaction.kind === "cloze" || content.interaction.kind === "choice";
+  return {
+    reverse: plain ? plain.reverse !== null : null,
+    typeIn: plain ? plain.forward.typeInFieldId !== null : null,
+    fieldRoles: asksPromptFields ? ["prompt", "hint", "extra", "source"] : ["hint", "extra", "source"],
+  };
+}
+
+/** Adds or removes the reverse direction; the change planner turns it into a new or removed card. */
+export function setNoteReverse(content: NoteContent, enabled: boolean): NoteContent {
+  const plain = plainRevealPrompts(content);
+  if (!plain || (plain.reverse !== null) === enabled) return content;
+  return { ...content, interaction: { kind: "reveal", prompts: enabled ? [plain.forward, reversePrompt(plain.forward)] : [plain.forward] } };
+}
+
+/** The forward card asks to type its first answer field. */
+export function setNoteTypeIn(content: NoteContent, enabled: boolean): NoteContent {
+  const plain = plainRevealPrompts(content);
+  if (!plain) return content;
+  const typeInFieldId = enabled ? plain.forward.answerFieldIds[0] ?? null : null;
+  const forward = { ...plain.forward, typeInFieldId };
+  return { ...content, interaction: { kind: "reveal", prompts: plain.reverse ? [forward, plain.reverse] : [forward] } };
+}
+
+const NEW_FIELD_NAMES: Record<AddableFieldRole, string> = { prompt: "Zusatzfrage", hint: "Hinweis", extra: "Zusatz", source: "Quelle" };
+
+/** Adds an empty field; a question field joins the forward question and the reverse answer. */
+export function addNoteField(content: NoteContent, role: AddableFieldRole): { content: NoteContent; fieldId: string } {
+  if (!noteBlocks(content).fieldRoles.includes(role)) throw new Error("Dieser Inhalt kann kein solches Feld aufnehmen.");
+  const ids = new Set(content.fields.map((field) => field.id));
+  let index = 1;
+  while (ids.has(`field-${index}`)) index += 1;
+  const base = NEW_FIELD_NAMES[role];
+  const sameName = content.fields.filter((field) => field.name === base || field.name.startsWith(`${base} `)).length;
+  const field: NoteField = { id: `field-${index}`, name: sameName ? `${base} ${sameName + 1}` : base, role, html: "" };
+  const plain = role === "prompt" ? plainRevealPrompts(content) : null;
+  const interaction = plain
+    ? (() => {
+      const forward = { ...plain.forward, questionFieldIds: [...plain.forward.questionFieldIds, field.id] };
+      return { kind: "reveal" as const, prompts: plain.reverse ? [forward, { ...plain.reverse, answerFieldIds: forward.questionFieldIds }] : [forward] };
+    })()
+    : content.interaction;
+  return { content: { ...content, fields: [...content.fields, field], interaction }, fieldId: field.id };
+}
+
+/** A field may go when no prompt loses its last question or answer and a cloze or choice keeps a question. */
+export function canRemoveNoteField(content: NoteContent, fieldId: string): boolean {
+  const field = content.fields.find((candidate) => candidate.id === fieldId);
+  if (!field) return false;
+  const { interaction } = content;
+  if (interaction.kind === "reveal") {
+    return interaction.prompts.every((prompt) => prompt.questionFieldIds.some((id) => id !== fieldId) && prompt.answerFieldIds.some((id) => id !== fieldId));
+  }
+  if (interaction.kind === "image-occlusion") return true;
+  return field.role !== "prompt" || content.fields.some((candidate) => candidate.id !== fieldId && candidate.role === "prompt");
+}
+
+export function removeNoteField(content: NoteContent, fieldId: string): NoteContent {
+  if (!canRemoveNoteField(content, fieldId)) throw new Error("Dieses Feld trägt eine Abfrage und kann nicht entfernt werden.");
+  const without = (ids: string[]) => ids.filter((id) => id !== fieldId);
+  const interaction = content.interaction.kind === "reveal"
+    ? {
+      kind: "reveal" as const,
+      prompts: content.interaction.prompts.map((prompt) => ({
+        ...prompt,
+        questionFieldIds: without(prompt.questionFieldIds),
+        answerFieldIds: without(prompt.answerFieldIds),
+        typeInFieldId: prompt.typeInFieldId === fieldId ? null : prompt.typeInFieldId,
+        requires: prompt.requires && prompt.requires.fieldIds.includes(fieldId)
+          ? (without(prompt.requires.fieldIds).length ? { ...prompt.requires, fieldIds: without(prompt.requires.fieldIds) } : null)
+          : prompt.requires,
+      })),
+    }
+    : content.interaction;
+  return { ...content, fields: content.fields.filter((field) => field.id !== fieldId), interaction };
+}
+
+export function renameNoteField(content: NoteContent, fieldId: string, name: string): NoteContent {
+  return { ...content, fields: content.fields.map((field) => field.id === fieldId ? { ...field, name } : field) };
 }
 
 /**

@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, Chev
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
+import { addNoteField, canRemoveNoteField, noteBlocks, noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, removeNoteField, renameNoteField, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
 import { classifyCardEligibility, createVariantReviewModel } from "../coreVariantService.ts";
 import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -18,10 +18,11 @@ import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
@@ -99,6 +100,8 @@ function removedCardsDescription(count: number) {
 
 type CardLabelOptions = { dayStartHour?: number; timeZone?: string };
 
+const FIELD_ROLE_NAMES: Record<Note["content"]["fields"][number]["role"], string> = { ...NOTE_FIELD_ROLE_LABELS, prompt: "Frage", answer: "Antwort", note: "Notiz" };
+
 /** Learning state of a card in the words of the card list: new, suspended or reviewed with its next due date. */
 function cardStateLabel(card: Card, note: Note, options: CardLabelOptions) {
   if (card.status === "suspended") return "ausgesetzt";
@@ -157,9 +160,11 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
   const [initialValue, contentKey] = React.useMemo(() => {
     const value = noteEditorValue(note);
-    return [value, JSON.stringify(value)] as const;
+    return [value, JSON.stringify([value, note.content.fields.map(({ id, name, role }) => [id, name, role]), note.content.interaction])] as const;
   }, [note]);
   const [form, setForm] = React.useState<NoteEditorValue>(initialValue);
+  // Building blocks change the structure; field text stays in the form until both are saved together.
+  const [structure, setStructure] = React.useState(note.content);
   const [savedForm, setSavedForm] = React.useState(contentKey);
   const [fieldErrors, setFieldErrors] = React.useState<NoteEditorErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
@@ -184,7 +189,12 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const [isRescheduling, setIsRescheduling] = React.useState(false);
   const editorHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const saveDraftRef = React.useRef<() => Promise<boolean>>(async () => false);
-  const serializedForm = React.useMemo(() => JSON.stringify(form), [form]);
+  const serializedForm = React.useMemo(
+    () => JSON.stringify([form, structure.fields.map(({ id, name, role }) => [id, name, role]), structure.interaction]),
+    [form, structure],
+  );
+  const draftNote = React.useMemo(() => ({ ...note, content: structure }), [note, structure]);
+  const blocks = noteBlocks(structure);
   const draftDirty = serializedForm !== savedForm;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
@@ -194,23 +204,24 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
   const draftPlan = React.useMemo(() => {
     if (!draftDirty) return null;
-    const validation = validateNoteEditorValue(note, form);
+    const validation = validateNoteEditorValue(draftNote, form);
     if (!validation.ok) return null;
     try {
       return planNoteContentChange(graph, validation.content);
     } catch {
       return null;
     }
-  }, [draftDirty, form, graph, note]);
+  }, [draftDirty, draftNote, form, graph]);
   const draftSummary = draftPlan ? draftChangeSummary(graph, draftPlan) : null;
   // The preview shows the current draft; an invalid draft falls back to the saved content.
   const previewNote = React.useMemo(() => {
-    const validation = validateNoteEditorValue(note, form);
+    const validation = validateNoteEditorValue(draftNote, form);
     return validation.ok ? { ...note, content: validation.content, contentRevision: note.contentRevision + (draftDirty ? 1 : 0) } : note;
-  }, [draftDirty, form, note]);
+  }, [draftDirty, draftNote, form, note]);
 
   React.useLayoutEffect(() => {
     setForm(initialValue);
+    setStructure(note.content);
     setSavedForm(contentKey);
     setFieldErrors({});
     setSaveError(false);
@@ -260,6 +271,22 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     setSaveStatus("");
     setSaveError(false);
     setSuccessToast("");
+  }
+
+  function changeStructure(next: NoteContent, addedFieldId?: string) {
+    setStructure(next);
+    if (addedFieldId) setForm((current) => ({ ...current, fields: { ...current.fields, [addedFieldId]: "" } }));
+    clearStatus();
+  }
+
+  function addField(role: AddableFieldRole) {
+    const added = addNoteField(structure, role);
+    changeStructure(added.content, added.fieldId);
+  }
+
+  function removeField(fieldId: string) {
+    changeStructure(removeNoteField(structure, fieldId));
+    setForm((current) => ({ ...current, fields: Object.fromEntries(Object.entries(current.fields).filter(([id]) => id !== fieldId)) }));
   }
 
   function updateField(fieldId: string, html: string) {
@@ -327,7 +354,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   }
 
   async function saveEditorValue(): Promise<boolean> {
-    const validation = validateNoteEditorValue(note, form);
+    const validation = validateNoteEditorValue(draftNote, form);
     if (!validation.ok) {
       setFieldErrors(validation.errors);
       setSaveError(true);
@@ -524,10 +551,39 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
       {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
+      <div className="mb-4 grid min-w-0 gap-3" data-testid="note-structure-options">
+        {blocks.reverse !== null ? (
+          <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
+            <span className="core-body font-semibold text-core-text">Lernrichtung</span>
+            <CoreSegmentedControl
+              ariaLabel="Lernrichtung"
+              options={[{ value: "standard", label: "Standard" }, { value: "both", label: "Beide Richtungen" }]}
+              value={blocks.reverse ? "both" : "standard"}
+              onValueChange={(value) => changeStructure(setNoteReverse(structure, value === "both"))}
+            />
+          </div>
+        ) : null}
+        <NoteBlockControls
+          typeIn={blocks.typeIn}
+          fieldRoles={blocks.fieldRoles}
+          onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
+          onAddField={addField}
+        />
+      </div>
       <div className="grid min-w-0 gap-4">
-        {note.content.fields.map((field) => (
+        {structure.fields.map((field) => (
           <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-            <span>{field.name}</span>
+            {canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
+              <div className="flex min-w-0 items-end gap-2">
+                <label className="grid min-w-0 flex-1 gap-1">
+                  <span className="core-caption font-semibold text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
+                  <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={field.name} onChange={(event) => changeStructure(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
+                </label>
+                <IconButton label={`${field.name} entfernen`} icon={X} onClick={() => removeField(field.id)} />
+              </div>
+            ) : (
+              <span>{field.name}</span>
+            )}
             <RichTextEditor
               value={form.fields[field.id] ?? ""}
               onChange={(value) => updateField(field.id, value)}

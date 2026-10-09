@@ -17,7 +17,7 @@ test("Variantenquelle verbindet mehrere Fragefelder und verlangt Frage und Antwo
     kind: "basic",
     front: "Hauptstadt von",
     back: "Paris",
-    additionalFields: [{ id: "land", name: "Land", value: "Frankreich", placement: "front" }, { id: "info", name: "Info", value: "Seine", placement: "back" }],
+    additionalFields: [{ id: "land", name: "Land", value: "Frankreich", role: "prompt" }, { id: "info", name: "Info", value: "Seine", role: "extra" }],
   });
   const { note, cards } = createNote({ deckId: "deck", content });
   assert.deepEqual(cardVariantSource(note, cards[0]), { front: "Hauptstadt von Frankreich", back: "Paris" });
@@ -53,7 +53,7 @@ test("Variantendarstellung ersetzt Frage und Antwort und behält Zusatzfelder, T
     front: "Original-Frage",
     back: "Original-Antwort",
     tags: ["bio"],
-    additionalFields: [{ id: "hint", name: "Hinweis", value: "Vorne", placement: "front" }, { id: "info", name: "Info", value: "Quelle", placement: "back" }],
+    additionalFields: [{ id: "hint", name: "Hinweis", value: "Vorne", role: "prompt" }, { id: "info", name: "Info", value: "Quelle", role: "extra" }],
   });
   const { note, cards } = createNote({ deckId: "deck", content });
   const card = addCardVariant(cards[0], { id: "variant-1", front: "<b>Neue Frage</b>", back: "Neue Antwort" });

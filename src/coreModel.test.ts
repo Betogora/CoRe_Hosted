@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   addCardVariant,
+  addNoteField,
   applyNoteEditorValue,
+  canRemoveNoteField,
+  noteBlocks,
+  removeNoteField,
+  setNoteReverse,
+  setNoteTypeIn,
   cardStudyFromReviewState,
   createBasicNote,
   createCoreDeck,
@@ -190,4 +196,39 @@ test("Textindex durchsucht Felder, Lücken, Optionen und Tags und sortiert nach 
   assert.deepEqual(noteTextIndex(cloze.note.content), { searchText: "atp speichert energie zusatz bio", sortText: "ATP speichert Energie" });
   const choice = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "single-choice", front: "Frage", back: "", answerOptions: ["Mitochondrium", "Kern"], correctOptionIndices: [0] }) });
   assert.match(noteTextIndex(choice.note.content).searchText, /mitochondrium kern/);
+});
+
+test("Bausteine: Rückrichtung, Eintippen und Felder ändern den Inhalt so, dass die Karten folgen", () => {
+  const basic = createBasicNote("deck", "Was ist ATP?", "Energieträger");
+  assert.deepEqual(noteBlocks(basic.note.content), { reverse: false, typeIn: false, fieldRoles: ["prompt", "hint", "extra", "source"] });
+
+  const reversed = setNoteReverse(basic.note.content, true);
+  const plan = planNoteContentChange(basic, reversed);
+  assert.deepEqual(plan.newCards.map((card) => card.promptKey), ["reverse"]);
+  assert.deepEqual(planNoteContentChange({ note: plan.note, cards: [...plan.keptCards, ...plan.newCards] }, setNoteReverse(reversed, false)).removedCards.map((card) => card.promptKey), ["reverse"]);
+
+  const typed = setNoteTypeIn(reversed, true);
+  assert.ok(typed.interaction.kind === "reveal");
+  assert.equal(typed.interaction.prompts.find((prompt) => prompt.key === "forward")?.typeInFieldId, "back");
+
+  const { content: withQuestion, fieldId } = addNoteField(reversed, "prompt");
+  assert.ok(withQuestion.interaction.kind === "reveal");
+  assert.deepEqual(withQuestion.interaction.prompts.map((prompt) => [prompt.key, prompt.questionFieldIds, prompt.answerFieldIds]), [
+    ["forward", ["front", fieldId], ["back"]],
+    ["reverse", ["back"], ["front", fieldId]],
+  ]);
+  assert.equal(withQuestion.fields.at(-1)?.name, "Zusatzfrage");
+  assert.equal(canRemoveNoteField(withQuestion, "front"), true, "die Zusatzfrage trägt die Frage weiter");
+  assert.equal(canRemoveNoteField(withQuestion, "back"), false);
+  const removed = removeNoteField(withQuestion, fieldId);
+  assert.deepEqual(removed.interaction, reversed.interaction);
+
+  const { content: withHint } = addNoteField(basic.note.content, "hint");
+  assert.equal(withHint.fields.at(-1)?.role, "hint");
+  assert.equal(planNoteContentChange(basic, withHint).newCards.length, 0);
+
+  const cloze = createNote({ deckId: "deck", content: createManualNoteContent({ kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "" }) });
+  assert.deepEqual(noteBlocks(cloze.note.content), { reverse: null, typeIn: null, fieldRoles: ["prompt", "hint", "extra", "source"] });
+  assert.equal(canRemoveNoteField(cloze.note.content, "front"), false);
+  assert.equal(setNoteReverse(cloze.note.content, true), cloze.note.content);
 });

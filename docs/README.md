@@ -23,9 +23,8 @@ Eintippen, Auswahl einschließlich Kprim, Formeln, Medien und System-Vorlesen.
 Die sechs manuell erstellbaren Formen stehen gesammelt unter Kartentypen.
 
 Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
-Styles und Synonym-Fonts sind eingebettet; Journey-Diagramme nutzen `vendor/mermaid.min.js`.
-Der Live-Katalog lädt Amulya über denselben Fontshare-Pfad wie die App; offline
-greift deren Schriftfallback.
+Styles und die Schrift Manrope sind eingebettet; Journey-Diagramme nutzen
+`vendor/mermaid.min.js`. Externe Schriften lädt weder die App noch die Doku.
 Zum Teilen den ganzen `docs`-Ordner mitnehmen. Die Seiten lassen sich direkt
 öffnen oder über `npm run dev` unter `http://127.0.0.1:5190/docs/index.html` lesen.
 

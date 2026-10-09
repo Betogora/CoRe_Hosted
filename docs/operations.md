@@ -53,7 +53,8 @@ werden jeweils unmittelbar darunter und darauf geprüft. Light und Dark Mode
 gehören zur Matrix, auch wenn die Änderung nur in einem Modus entwickelt wurde.
 
 Prüfkriterien sind lesbare lange Inhalte, vollständige Beschriftungen,
-Überlagerungen, Umbrüche, mindestens 44 × 44 px große gewöhnliche Touchziele,
+Überlagerungen, Umbrüche, gewöhnliche Touchziele in Bedienhöhe (unter 768 px
+und auf Touchgeräten mindestens 44 × 44 px, sonst 40 px),
 Scrollbarkeit und die Erreichbarkeit der letzten Aktion oberhalb fester
 Navigation und Speicherleisten. Horizontales Hauptscrolling ist unzulässig;
 dokumentierte lokale Scrollbereiche werden auf Bedienbarkeit und erkennbare

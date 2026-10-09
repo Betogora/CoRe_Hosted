@@ -1,7 +1,7 @@
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
 import { BookOpen, ChevronRight, Home, Info, Layers, Plus, Save, Settings, Trash2, Type } from "lucide-react";
-import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, type ManualContentKind } from "../src/coreModel.ts";
+import { addNoteField, cardStudyFromReviewState, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { CoreMode, NewReviewOrder, NoteContent, NoteField } from "../src/coreTypes.ts";
 import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
 import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePresentationTheme } from "../src/notePresentation.ts";
@@ -54,6 +54,7 @@ import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
+import { NoteBlockControls } from "../src/ui/NoteBlockControls.tsx";
 import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
 import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
 import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
@@ -259,6 +260,23 @@ function ContentDemo({ section }: { section: string }) {
   </>;
 }
 
+/** Building blocks change a real content; the list shows the fields and cards that result. */
+function NoteBlocksDemo() {
+  const [content, setContent] = useState(() => createBasicNote("catalog", "Was speichert ATP?", "Chemische Energie").note.content);
+  const blocks = noteBlocks(content);
+  return (
+    <Demo title="NoteBlockControls · Eintippen und Felder mit Rolle" wide>
+      <NoteBlockControls
+        typeIn={blocks.typeIn}
+        fieldRoles={blocks.fieldRoles}
+        onTypeInChange={(enabled) => setContent((current) => setNoteTypeIn(current, enabled))}
+        onAddField={(role) => setContent((current) => addNoteField(current, role).content)}
+      />
+      <ul className="grid gap-1 core-body text-core-text">{content.fields.map((field) => <li key={field.id}><strong>{field.name}</strong> · Rolle <code>{field.role}</code></li>)}</ul>
+    </Demo>
+  );
+}
+
 function PdfDemo() {
   const [src, setSrc] = useState<string | null>(null);
   const [selection, setSelection] = useState("");
@@ -382,7 +400,7 @@ export const DEMO_GROUPS = [
   { id: "symbols", title: "Icons und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "inhalt", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface"], render: () => <ContentDemo section="inhalt" /> },
   { id: "note-content", title: "Kartenbausteine", description: "Renderer und Antwort-Host des Note-/Card-Modells für Feldrollen, Lücken, Bildverdeckung, Eintippen, Auswahl und Formeln.", components: ["NoteCardContent"], render: NotePresentationDemos },
-  { id: "editor", title: "Texteditor und Werkzeuge", description: "Rich-Text-Toolbar, Lückentext, Bilder und Zusatzwerkzeuge.", components: ["RichTextEditor"], render: () => <ContentDemo section="editor" /> },
+  { id: "editor", title: "Texteditor und Werkzeuge", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "media", title: "Medien und Dokumente", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], render: () => <ContentDemo section="media" /> },
 ] as const;
 

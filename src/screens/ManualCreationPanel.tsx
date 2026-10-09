@@ -7,7 +7,7 @@ import {
   reduceManualBatchSession,
   type ManualFocusTarget,
 } from "../creationBatch.ts";
-import { createNote, type ManualNoteErrors } from "../coreModel.ts";
+import { createNote, type AddableFieldRole, type ManualNoteErrors } from "../coreModel.ts";
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent } from "../coreTypes.ts";
@@ -19,6 +19,7 @@ import { FileDropField } from "../ui/FileDropField.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
+import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatBytes } from "./screenConstants.ts";
@@ -36,13 +37,9 @@ type ManualCreationWorkflow = Pick<
 >;
 type PdfSelectionOptions = Parameters<NonNullable<React.ComponentProps<typeof PdfDocumentViewer>["onSelection"]>>[1];
 type ActiveField = "front" | "back";
-type AdditionalField = { id: string; name: string; value: string; placement: "front" | "back" | "both" };
+type AdditionalField = { id: string; name: string; value: string; role: AddableFieldRole };
 type ManualSaveProgress = { label: string; percent: number };
-const FIELD_PLACEMENT_OPTIONS = [
-  { value: "front", label: "Vorderseite" },
-  { value: "back", label: "Rückseite" },
-  { value: "both", label: "Beide Seiten" },
-] as const;
+const FIELD_ROLE_OPTIONS = (["prompt", "hint", "extra", "source"] as const).map((value) => ({ value, label: NOTE_FIELD_ROLE_LABELS[value] }));
 const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "single-choice", label: "Single Choice" },
@@ -157,6 +154,7 @@ export function ManualCreationPanel({
   const [imageRegistryVersion, setImageRegistryVersion] = React.useState(0);
   const [isPreparingImage, setIsPreparingImage] = React.useState(false);
   const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
+  const [typeIn, setTypeIn] = React.useState(false);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
   const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
@@ -307,7 +305,18 @@ export function ManualCreationPanel({
       tags,
       mediaAttachments: Array.from(imageDraftsRef.current.values(), (image) => image.attachment),
       additionalFields,
+      typeIn: typeIn && (kind === "basic" || kind === "basic-reversed"),
     };
+  }
+
+  function addAdditionalField(role: AddableFieldRole) {
+    const id = `manual-field-${Date.now()}-${additionalFields.length}`;
+    setAdditionalFields((current) => {
+      const base = NOTE_FIELD_ROLE_LABELS[role];
+      const taken = current.filter((field) => field.name === base || field.name.startsWith(`${base} `)).length;
+      return [...current, { id, name: taken ? `${base} ${taken + 1}` : base, value: "", role }];
+    });
+    window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>(`[data-additional-field-name="${id}"]`)?.focus());
   }
 
   function togglePinnedField(field: ActiveField) {
@@ -493,7 +502,7 @@ export function ManualCreationPanel({
     if (!validation.ok) return null;
     const { note, cards } = createNote({ content: validation.content, deckId: "preview", media: validation.media });
     return { note, card: cards[0] };
-  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, previewOpen, tags, workflow]);
+  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, previewOpen, tags, typeIn, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -666,8 +675,8 @@ export function ManualCreationPanel({
                   {invalidAdditionalFieldIds.includes(field.id) ? <span id={`additional-field-error-${field.id}`} className="core-caption font-medium text-core-text" role="alert">Bitte einen eindeutigen Feldnamen eingeben.</span> : null}
                 </label>
                 <label className="grid gap-2 core-body font-semibold text-core-secondary">
-                  Platzierung
-                  <CoreSelect ariaLabel={`Platzierung von ${field.name || `Feld ${index + 1}`}`} value={field.placement} options={FIELD_PLACEMENT_OPTIONS} onValueChange={(placement) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, placement: placement as AdditionalField["placement"] } : candidate))} />
+                  Rolle
+                  <CoreSelect ariaLabel={`Rolle von ${field.name || `Feld ${index + 1}`}`} value={field.role} options={FIELD_ROLE_OPTIONS} onValueChange={(role) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, role: role as AddableFieldRole } : candidate))} />
                 </label>
                 <div className="flex items-end gap-1">
                   {index > 0 ? <IconButton type="button" icon={ArrowUp} label={`${field.name || `Feld ${index + 1}`} nach oben`} onClick={() => setAdditionalFields((current) => {
@@ -693,12 +702,12 @@ export function ManualCreationPanel({
               }} imageActions={imageActions} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
             </div>
           ))}
-          <ActionButton type="button" variant="secondary" icon={Plus} className="w-fit" onClick={() => setAdditionalFields((current) => [...current, {
-            id: `manual-field-${Date.now()}-${current.length}`,
-            name: `Zusatzfeld ${current.length + 1}`,
-            value: "",
-            placement: "back",
-          }])}>Feld hinzufügen</ActionButton>
+          <NoteBlockControls
+            typeIn={kind === "basic" || kind === "basic-reversed" ? typeIn : null}
+            fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value)}
+            onTypeInChange={setTypeIn}
+            onAddField={addAdditionalField}
+          />
       </div>
 
       <div className="grid gap-4">

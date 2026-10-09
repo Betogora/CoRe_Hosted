@@ -104,6 +104,8 @@ test("manual images are editor actions without separate drop fields", () => {
   assert.equal((markup.match(/aria-label="Bild an Cursorposition einfügen"/g) ?? []).length, 2);
   assert.equal((markup.match(/accept="image\/\*"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /Bild zur (?:Vorder|Rück)seite einfügen|kind="image"/);
-  assert.match(markup, />Feld hinzufügen<\/span><\/button>/);
+  const blocks = markup.slice(markup.indexOf('data-testid="note-blocks"'));
+  assert.match(blocks, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(blocks, new RegExp(`${label}</button>`));
   assert.doesNotMatch(markup, /<details|<summary|Weitere Felder/);
 });

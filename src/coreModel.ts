@@ -46,11 +46,18 @@ export {
   parseNoteContent,
 } from "./coreModel/noteContent.ts";
 export {
+  addNoteField,
   applyNoteEditorValue,
+  canRemoveNoteField,
+  noteBlocks,
   noteEditorValue,
+  removeNoteField,
+  renameNoteField,
+  setNoteReverse,
+  setNoteTypeIn,
   validateNoteEditorValue,
 } from "./coreModel/noteEditor.ts";
-export type { NoteEditorErrors, NoteEditorValue } from "./coreModel/noteEditor.ts";
+export type { AddableFieldRole, NoteEditorErrors, NoteEditorValue } from "./coreModel/noteEditor.ts";
 export {
   createManualNoteContent,
   validateManualNoteInput,

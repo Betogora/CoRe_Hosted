@@ -516,7 +516,7 @@ function renderEditorFor(graph: NoteGraph) {
 }
 
 test("detail editor renders one rich-text editor per content field plus choice options and tags", () => {
-  const imageMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "basic", front: '<p>Vorne</p><img src="front-image.png">', back: '<p>Hinten</p><img src="back-image.png">', additionalFields: [{ name: "Quelle", value: "Lehrbuch", placement: "back" }], tags: ["bio", "atp"] }));
+  const imageMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "basic", front: '<p>Vorne</p><img src="front-image.png">', back: '<p>Hinten</p><img src="back-image.png">', additionalFields: [{ name: "Quelle", value: "Lehrbuch", role: "extra" }], tags: ["bio", "atp"] }));
   assert.match(imageMarkup, />Frage und Antwort</);
   assert.match(imageMarkup, /aria-label="Feld Vorderseite"/);
   assert.match(imageMarkup, /aria-label="Feld Rückseite"/);
@@ -558,4 +558,18 @@ test("sync conflicts are named in the row and in the editor", () => {
   });
   assert.equal([...markup.matchAll(/Synchronisierung klären/g)].length, 2);
   assert.match(markup, /Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange\./);
+});
+
+test("the editor offers direction and building blocks where the content structure allows them", () => {
+  const basic = renderEditorFor(basicGraph("deck-editor", "Was ist ATP?", "Energieträger"));
+  const basicOptions = basic.slice(basic.indexOf('data-testid="note-structure-options"'));
+  assert.match(basicOptions, /aria-label="Lernrichtung"/);
+  assert.match(basicOptions, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicOptions, new RegExp(`${label}</button>`));
+
+  const cloze = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "" }));
+  const clozeOptions = cloze.slice(cloze.indexOf('data-testid="note-structure-options"'));
+  assert.doesNotMatch(clozeOptions.slice(0, clozeOptions.indexOf('data-testid="note-blocks"')), /aria-label="Lernrichtung"/);
+  assert.doesNotMatch(clozeOptions, /Antwort eintippen/);
+  assert.match(clozeOptions, /Hinweis<\/button>/);
 });
