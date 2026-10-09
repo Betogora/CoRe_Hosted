@@ -551,9 +551,8 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
       {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
-      <div className="mb-4 grid min-w-0 gap-3" data-testid="note-structure-options">
-        {blocks.reverse !== null ? (
-          <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
+      {blocks.reverse !== null ? (
+        <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3" data-testid="note-direction">
             <span className="core-body font-semibold text-core-text">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
@@ -561,15 +560,8 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               value={blocks.reverse ? "both" : "standard"}
               onValueChange={(value) => changeStructure(setNoteReverse(structure, value === "both"))}
             />
-          </div>
-        ) : null}
-        <NoteBlockControls
-          typeIn={blocks.typeIn}
-          fieldRoles={blocks.fieldRoles}
-          onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
-          onAddField={addField}
-        />
-      </div>
+        </div>
+      ) : null}
       <div className="grid min-w-0 gap-4">
         {structure.fields.map((field) => (
           <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
@@ -611,6 +603,12 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             <FieldError errors={fieldErrors} field="options" />
           </fieldset>
         ) : null}
+        <NoteBlockControls
+          typeIn={blocks.typeIn}
+          fieldRoles={blocks.fieldRoles}
+          onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
+          onAddField={addField}
+        />
         <label className="grid gap-2 core-body font-semibold text-core-secondary">
           Tags
           <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />

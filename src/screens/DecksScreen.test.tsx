@@ -562,14 +562,14 @@ test("sync conflicts are named in the row and in the editor", () => {
 
 test("the editor offers direction and building blocks where the content structure allows them", () => {
   const basic = renderEditorFor(basicGraph("deck-editor", "Was ist ATP?", "Energieträger"));
-  const basicOptions = basic.slice(basic.indexOf('data-testid="note-structure-options"'));
-  assert.match(basicOptions, /aria-label="Lernrichtung"/);
-  assert.match(basicOptions, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
-  for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicOptions, new RegExp(`${label}</button>`));
+  assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-label="Lernrichtung"/);
+  const basicBlocks = basic.slice(basic.indexOf('data-testid="note-blocks"'));
+  assert.match(basicBlocks, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicBlocks, new RegExp(`${label}</button>`));
 
   const cloze = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "" }));
-  const clozeOptions = cloze.slice(cloze.indexOf('data-testid="note-structure-options"'));
-  assert.doesNotMatch(clozeOptions.slice(0, clozeOptions.indexOf('data-testid="note-blocks"')), /aria-label="Lernrichtung"/);
-  assert.doesNotMatch(clozeOptions, /Antwort eintippen/);
-  assert.match(clozeOptions, /Hinweis<\/button>/);
+  assert.doesNotMatch(cloze, /data-testid="note-direction"/);
+  const clozeBlocks = cloze.slice(cloze.indexOf('data-testid="note-blocks"'));
+  assert.doesNotMatch(clozeBlocks, /Antwort eintippen/);
+  assert.match(clozeBlocks, /Hinweis<\/button>/);
 });
