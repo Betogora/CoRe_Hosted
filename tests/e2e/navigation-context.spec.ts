@@ -211,14 +211,14 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   await page.reload();
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Geändert im Stapel");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
-  await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1`);
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Geändert im Stapel");
   await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Geändert in Gesamtverwaltung");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
-  await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1`);
   await expect(page.getByRole("textbox", { name: "Feld Rückseite", exact: true })).toContainText("Geändert in Gesamtverwaltung");
   await page.goto("/lernen");
@@ -247,7 +247,7 @@ test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den In
   await page.reload();
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Unterkarte im Hauptstapel geändert");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
-  await expect(page.getByText("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1`);
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toContainText("Unterkarte im Hauptstapel geändert");

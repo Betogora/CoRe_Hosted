@@ -14,7 +14,7 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [Docs](index.html) | Orientierung und Quellen | diese README |
 | [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
 | [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
-| [UI-Elements](ui-elements.html) | interaktive Design-Arbeitsfläche, vollständiges UI-Inventar einschließlich echter Produktansichten, Kartenbausteine, Tokens, Typografie und Icons | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
+| [UI-Elements](ui-elements.html) | UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster mit echten Produktansichten und Kartenbausteinen, Icons und Zustandsmatrix; mit Suche und Kapitelnavigation | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
 | [Kartentypen](card-types.html) | sechs manuell erstellbare Formen im echten Reviewrenderer (`NoteCardContent`) | dieselben Demos und CoRe-Modellhelfer |
 
 Die [Kartenbausteine](ui-elements.html#note-content) zeigen den Note-/Card-
@@ -59,8 +59,8 @@ Die separate [Design-Freigabe](design-review.html) enthält Einstieg- und Meldun
 
 HTML-Ansichten ändern diese Zuständigkeiten nicht und sind keine zweite Quelle.
 
-Die Specs-Leseansicht verwendet dieselben CoRe-Tokens und den gemeinsamen
-Dokumentationsrahmen wie UI-Elements. Ihre Inhaltsnavigation markiert den
+Die Specs-Leseansicht verwendet dieselben CoRe-Tokens, die Schrift Manrope und den
+gemeinsamen Dokumentationsrahmen. Ihre Inhaltsnavigation markiert den
 aktuellen Abschnitt; unter 1280 px ist sie aufklappbar. Die ergänzende
 Codeumfang-Grafik wird aus den Quellen neu berechnet und verwendet den
 produktiven `SegmentedDonut` und `StatTile`. Sie zählt nichtleere Zeilen

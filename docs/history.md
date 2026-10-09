@@ -5,6 +5,39 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-09 — Erstellen und Bearbeiten auf dem Inhalt (K6.1–K6.4), Soft-Minimal-Design und neuer UI-Katalog
+
+- **K6.1:** Manuelle Erstellung und Karteneditor teilen die Bausteine
+  `NoteBlockControls` (Antwort eintippen; Felder mit Rolle Zusatzfrage, Hinweis,
+  Zusatz, Quelle). Gestaltung per `visual-ab-review` entschieden: Variante B
+  (Optionszeile, alle Bausteine sichtbar) statt Menü. Zusatzfelder tragen eine
+  Rolle statt einer Platzierung; der Editor bietet Lernrichtung, umbenennbare und
+  entfernbare Felder. Der Texteditor setzt eine Auswahl als Formel.
+  Importierte Inhalte behalten Feldschema und Abfragen.
+- **K6.2:** Eine Live-Zeile nennt vor dem Speichern neue und entfallende Karten
+  sowie veraltende KI-Umformulierungen; `Karten entfernen?` listet jede
+  entfallende Karte mit Abfrage, Stapel und Lernzustand.
+- **K6.3:** Das Kartendetail listet die Geschwister des Inhalts und wechselt per
+  Klick; der Untertitel nennt die Abfrage (`Lückentext · Lücke 2 von 3`).
+- **K6.4:** Geänderter Frage- oder Antworttext markiert aktive KI-Varianten der
+  betroffenen Karten als veraltet (`isActive: false`, `meta.outdated: true`);
+  `KI-Variante neu erzeugen` ersetzt sie.
+- **Design:** Der Stil „Soft Minimal“ (ADR-037) gilt appweit: Manrope in App,
+  Kartenfläche und Doku, Bedienhöhe 40 px (44 px bei Touch und unter 768 px),
+  schwebende 15-rem-Sidebar ohne Kopfleiste auf Desktop (Variante B der
+  Designstudie), randlose Utility-Symbole in einer Reihe. Buttons sind exakt
+  bedienhoch; Aussetz-Segment und Fragentyp-Zeile brechen auf schmalen Breiten
+  um statt überzulaufen.
+- **UI-Katalog:** `ui-elements.html` folgt dem Aufbau des BengtsToolBox-Katalogs
+  (Kopf, Kapitelnavigation, Suche; Grundlagen, Primitive, App-Muster,
+  CoRe-Fachmuster, Icons, Zustandsmatrix) und enthält weiterhin alle bisherigen
+  Demos und Inventare; `card-types.html` nutzt denselben Rahmen.
+- **Prüfung:** `npm run gate:push` grün; `check:docs` grün; visuelle Matrix für
+  Heute, Lernen, Erstellen, manuelle Erstellung, Kartenverwaltung, Review,
+  Statistik, Einstellungen und Hilfe bei 320/390/768/1280/1440 px, hell und
+  dunkel bei 390/1440 px gesichtet; lokale E2E-Specs `card-lifecycle`,
+  `navigation-context`, `core-stabilization` und `product-surfaces` grün.
+
 ## 2026-10-09 — Bildmasken wie in Anki (K5.2) und Image Occlusion Enhanced als CoRe-Masken (K5.10)
 
 - **K5.10:** Der Übersetzer für Image Occlusion Enhanced (Version 2) baut aus

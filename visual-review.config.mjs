@@ -48,16 +48,7 @@ export default {
       path: "/docs/ui-elements.html",
       run: async ({ page, click }) => {
         await click("Manuelle Erstellung öffnen");
-        await centerFirst(page, ['[data-testid="note-blocks"]', '[data-additional-field-name]', 'text=Feld hinzufügen']);
-      },
-    },
-    "erstellen-bausteinmenue": {
-      path: "/docs/ui-elements.html",
-      run: async ({ page, click }) => {
-        await click("Manuelle Erstellung öffnen");
-        await centerFirst(page, ['[data-testid="note-blocks"]', 'text=Feld hinzufügen']);
-        const menu = page.locator(".catalog-product-preview").getByRole("button", { name: "Baustein hinzufügen" });
-        if (await menu.count()) { await menu.click(); await page.waitForTimeout(300); }
+        await centerFirst(page, ['[data-testid="note-blocks"]']);
       },
     },
     "editor-bausteine": {
@@ -66,7 +57,7 @@ export default {
         await click("Kartenverwaltung öffnen");
         await page.locator('[data-testid^="deck-card-"]').first().click();
         await page.waitForTimeout(500);
-        await centerFirst(page, ['[data-testid="card-detail-editor"] [data-testid="note-blocks"]', '[data-testid="card-detail-editor"] [aria-label="Feld Rückseite"]']);
+        await centerFirst(page, ['[data-testid="card-detail-editor"] [data-testid="note-blocks"]']);
       },
     },
   },

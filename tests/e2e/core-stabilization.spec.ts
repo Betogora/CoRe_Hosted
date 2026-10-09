@@ -261,7 +261,7 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
 
     expect(layout.cellWidth).toBe(19);
     expect(layout.cellHeight).toBe(19);
-    expect(layout.cellRadius).toBe("4px");
+    expect(layout.cellRadius).toBe("6px");
     expect(layout.todayShadow).not.toBe("none");
     expect(layout.selectorBeforeNavigation).toBe(true);
     expect(layout.controlsRightAligned).toBeLessThanOrEqual(1);
@@ -776,7 +776,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen)$/ }).evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
     );
-    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= 44 && height >= 44)).toBe(true);
+    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= (viewport.width < 768 ? 44 : 40) && height >= (viewport.width < 768 ? 44 : 40))).toBe(true);
   }
 
   const iconButton = page.getByRole("button", { name: "Icon auswählen" });

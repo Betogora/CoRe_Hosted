@@ -641,7 +641,7 @@
     gap: var(--core-space-sm);
     border: var(--core-border-width) solid transparent;
     border-radius: var(--core-radius-control);
-    padding: 0.625rem var(--core-space-lg);
+    padding: 0.5rem var(--core-space-lg);
     font-family: var(--core-font-sans);
     font-size: var(--core-type-body);
     font-weight: var(--core-weight-emphasis);

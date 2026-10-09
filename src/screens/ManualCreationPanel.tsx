@@ -557,7 +557,7 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="grid min-w-0 gap-4 md:grid-cols-[max-content_max-content] md:items-center md:justify-start" data-testid="manual-card-options">
+        <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options">
           <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
             <span className="core-body font-semibold text-core-text">Fragentyp</span>
             <CoreSegmentedControl

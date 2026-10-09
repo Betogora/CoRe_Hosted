@@ -675,7 +675,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             className="pointer-events-none absolute z-10 grid size-7 -translate-x-1/2 -translate-y-1/2 place-items-center text-core-info transition-opacity duration-300 motion-reduce:transition-none"
             style={{
               left: `${(MEMORY_REVIEWS[1].reviewX / 960) * 100}%`,
-              top: `${(44 / 540) * 100}%`,
+              top: `${(40 / 540) * 100}%`,
               opacity: activeReviewId === null || activeReviewId === "variant" || activeParameterId === "d" ? 1 : 0.35,
             }}
             aria-hidden="true"

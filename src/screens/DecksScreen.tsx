@@ -195,6 +195,8 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   );
   const draftNote = React.useMemo(() => ({ ...note, content: structure }), [note, structure]);
   const blocks = noteBlocks(structure);
+  // Imported contents keep their Anki field schema; only own contents change structure.
+  const structureEditable = note.importedContentRevision === null;
   const draftDirty = serializedForm !== savedForm;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
@@ -551,7 +553,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
       {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
-      {blocks.reverse !== null ? (
+      {structureEditable && blocks.reverse !== null ? (
         <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3" data-testid="note-direction">
             <span className="core-body font-semibold text-core-text">Lernrichtung</span>
             <CoreSegmentedControl
@@ -565,7 +567,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       <div className="grid min-w-0 gap-4">
         {structure.fields.map((field) => (
           <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-            {canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
+            {structureEditable && canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
               <div className="flex min-w-0 items-end gap-2">
                 <label className="grid min-w-0 flex-1 gap-1">
                   <span className="core-caption font-semibold text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
@@ -603,12 +605,14 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             <FieldError errors={fieldErrors} field="options" />
           </fieldset>
         ) : null}
-        <NoteBlockControls
-          typeIn={blocks.typeIn}
-          fieldRoles={blocks.fieldRoles}
-          onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
-          onAddField={addField}
-        />
+        {structureEditable ? (
+          <NoteBlockControls
+            typeIn={blocks.typeIn}
+            fieldRoles={blocks.fieldRoles}
+            onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
+            onAddField={addField}
+          />
+        ) : null}
         <label className="grid gap-2 core-body font-semibold text-core-secondary">
           Tags
           <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />

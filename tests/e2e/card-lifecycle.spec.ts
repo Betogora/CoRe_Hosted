@@ -463,7 +463,8 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe b
   await page.getByRole("textbox", { name: "Feld Zusatzinfo", exact: true }).fill("Zellatmung und Phosphorylierung");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   const removalDialog = page.getByRole("dialog", { name: "Karten entfernen?" });
-  await expect(removalDialog).toContainText("Durch diese Änderung entfällt eine Karte. Ihr Lernstand wird gelöscht.");
+  await expect(removalDialog).toContainText("Durch diese Änderung entfällt diese Karte samt ihrem Lernstand:");
+  await expect(removalDialog.getByTestId("removed-cards")).toContainText("Lücke 2");
   await removalDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(removalDialog).toHaveCount(0);
   expect((await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards).toHaveLength(2);

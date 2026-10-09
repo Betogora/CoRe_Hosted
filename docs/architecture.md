@@ -48,7 +48,7 @@ Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Re
 
 - Ein Inhalt (`Note`) speichert Felder mit Rollen, Interaktion, Tags, Medienzuordnung (Name → SHA-1), Herkunft und Markierung genau einmal. Seine Abfrageschlüssel bestimmen die Kartenmenge; jede Karte (`Card`) trägt Stapel, Abfrageschlüssel, Status, Anki-Flagge, eigenen Lernstand und Varianten. Reverse-Richtungen, Lückengruppen und reale Anki-Karten sind Geschwister desselben Inhalts und dürfen in verschiedenen Stapeln liegen.
 - KI-Varianten in `card.variants[]` bleiben an ihre Karte gebunden, haben keinen eigenen Lernstand oder Termin und zählen nicht zusätzlich für Queue oder Bestand. Im Review werden sie als transienter Frage-/Antwort-Inhalt mit den Zusatz- und Quellenfeldern des Inhalts dargestellt.
-- Inhaltsänderungen laufen über `planNoteContentChange`: unveränderter bereinigter Inhalt meldet `changed: false` und schreibt nichts; neue Abfragen werden neue Karten, entfallende Karten werden erst nach Bestätigung soft-gelöscht. Löschen betrifft immer den Inhalt mit allen Geschwistern; Undo stellt die vorherigen Datensätze mit fortlaufenden Revisionen wieder her. Die Markierung erhöht nur die Entitätsrevision, nicht `contentRevision`.
+- Inhaltsänderungen laufen über `planNoteContentChange`: unveränderter bereinigter Inhalt meldet `changed: false` und schreibt nichts; neue Abfragen werden neue Karten, entfallende Karten werden erst nach Bestätigung soft-gelöscht. Ändert sich der bereinigte Frage- oder Antworttext einer behaltenen Karte, markiert die Planung deren aktive KI-Varianten als veraltet (`isActive: false`, `meta.outdated: true`, Revision +1); `replaceOutdatedVariants` ersetzt sie bei der Neuerzeugung durch eine neue Variante und soft-löscht die veralteten. Löschen betrifft immer den Inhalt mit allen Geschwistern; Undo stellt die vorherigen Datensätze mit fortlaufenden Revisionen wieder her. Die Markierung erhöht nur die Entitätsrevision, nicht `contentRevision`.
 - Der Lernstand besitzt mit `studyRevision` eine eigene Konfliktgrenze. Reviews erhöhen sie atomar über `record_review_atomic`, Inhalts- und Kartenänderungen die Entitätsrevision; ein Review auf einem Gerät und eine Inhaltskorrektur auf einem anderen kollidieren daher nicht.
 - Darstellung, Sanitization und URL-Auflösung bleiben getrennt. Scripts und externe Ressourcen werden nicht ausgeführt; lokale Darstellung verwendet nur `blob:`/`data:`, Sandbox-CSP und eingebettete Basisschriften. Gerendertes HTML wird nie persistiert.
 - Manuelle Speicherung ist Single Flight mit unveränderlichem Snapshot. Reihenfolge: lokale Bildvorbereitung, Mediencache mit persistenter Upload-Queue, lokaler Inhalt samt Karten, Upload. Cloudfehler nach lokalem Erfolg sind Teilabschlüsse. APKG-Medien werden nicht verkleinert.
@@ -70,10 +70,14 @@ Karten eines Stapels, nie Inhaltskopien.
 
 `coreModel.ts` exportiert `createNote`, `planNoteContentChange`,
 `planNoteDeletion`, `planNoteRestore`, `setNoteMarked`, `duplicateNote`,
-`noteTextIndex`, die Editorwerte (`noteEditorValue`, `applyNoteEditorValue`,
-`validateNoteEditorValue`) und die manuellen Formen (`createManualNoteContent`,
+`noteTextIndex`, `notePromptLabel` (sichtbarer Name einer Abfrage, etwa
+`Lücke 2`), die Editorwerte (`noteEditorValue`, `applyNoteEditorValue`,
+`validateNoteEditorValue`), die Inhaltsbausteine (`noteBlocks`, `setNoteReverse`,
+`setNoteTypeIn`, `addNoteField`, `canRemoveNoteField`, `removeNoteField`,
+`renameNoteField`; Richtung und Eintippen nur für reine Vorwärts-/Rückwärts-
+Abfragen, Feldrollen Zusatzfrage, Hinweis, Zusatz und Quelle) und die manuellen Formen (`createManualNoteContent`,
 `validateManualNoteInput`; Basic, Basic mit Rückrichtung, Lückentext, Single und
-Multiple Choice). Inhaltseingaben bleiben `unknown`, bis `parseNoteContent` sie
+Multiple Choice; Zusatzfelder tragen eine Rolle, Basic optional Eintippen). Inhaltseingaben bleiben `unknown`, bis `parseNoteContent` sie
 validiert und bereinigt. Aufrufer übergeben die vollständige, nicht gelöschte
 Kartenmenge eines Inhalts; fremde Karten sowie doppelte Karten oder
 Abfrageschlüssel werden abgewiesen. `updatedByDeviceId` setzt der Cloud-Write,

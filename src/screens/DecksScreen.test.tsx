@@ -572,4 +572,8 @@ test("the editor offers direction and building blocks where the content structur
   const clozeBlocks = cloze.slice(cloze.indexOf('data-testid="note-blocks"'));
   assert.doesNotMatch(clozeBlocks, /Antwort eintippen/);
   assert.match(clozeBlocks, /Hinweis<\/button>/);
+
+  const importedGraph = basicGraph("deck-editor", "Was ist ATP?", "Energieträger");
+  const imported = renderEditorFor({ ...importedGraph, note: { ...importedGraph.note, importedContentRevision: importedGraph.note.contentRevision } });
+  assert.doesNotMatch(imported, /data-testid="note-direction"|data-testid="note-blocks"| entfernen"/);
 });

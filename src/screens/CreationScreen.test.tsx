@@ -87,7 +87,7 @@ test("manual target selection shows complete deck paths", () => {
 test("manual options share one desktop row and keep labeled segmented choices", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /class="grid min-w-0 gap-4 md:grid-cols-\[max-content_max-content\] md:items-center md:justify-start" data-testid="manual-card-options"/);
+  assert.match(markup, /class="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options"/);
   assert.match(markup, />Fragentyp</);
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
