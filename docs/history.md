@@ -5,7 +5,7 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
-## 2026-10-08 — Remote-Reset des Pre-Release-Projekts (K4.8)
+## 2026-10-08/09 — Remote-Reset des Pre-Release-Projekts (K4.8)
 
 Nach ausdrücklicher Freigabe des Nutzers im Chat; Projekt-Ref vorher aus
 `supabase/.temp/project-ref` angezeigt und gegen die Freigabe geprüft.
@@ -38,6 +38,11 @@ Nach ausdrücklicher Freigabe des Nutzers im Chat; Projekt-Ref vorher aus
   dem Cutover; die Cloud-Abfrage nach dem Speichern hatte ihn zeitlich
   verdeckt. Seitdem folgt einem Sync, während dessen ein weiterer angefordert
   wurde, ein zweiter Durchlauf, wenn die Outbox noch Mutationen enthält.
+  Lokal dazu `test:e2e:local` 108 bestanden, 1 übersprungen, und
+  `performance:measure:local` mit allen Gates (neues Gerät p75 2.978 ms,
+  Wiederholungsstart 709 ms, offline 490 ms).
+- Dritter Hosted-Smoke gegen `2e7527f` (PR #11) am 2026-10-09: 10 von 10 grün.
+  K4.8 ist damit abgeschlossen.
 
 ## 2026-10-08 — Cutover auf das Kartenmodell `Note`/`Card` (Phase 4, K5.4, K5.7–K5.9)
 
