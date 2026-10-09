@@ -351,6 +351,34 @@ test("a mutation enqueued during an active flush survives for the next flush", a
   assert.deepEqual(batches, [["first"], ["second"]]);
 });
 
+test("a flush requested during an active flush sends mutations queued meanwhile", async () => {
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  const batches: string[][] = [];
+  const engine = createSyncEngine({
+    adapter: {
+      async applyMutationBatch(mutations: any[]) {
+        batches.push(mutations.map((mutation) => mutation.id));
+        if (batches.length === 1) await gate;
+        return { acknowledgedMutationIds: mutations.map((mutation) => mutation.id), failedMutationIds: [] };
+      },
+    },
+    outbox: createTestOutbox(),
+    device,
+  });
+  engine.enqueueMutation({ id: "card", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "card-1", payload: { table: "cards", entity: { id: "card-1" } } });
+  const active = engine.flush();
+  await waitForAsyncWork();
+  engine.enqueueMutation({ id: "variant", type: SYNC_MUTATION_TYPES.entityMutation, entityId: "variant-1", payload: { table: "card_variants", entity: { id: "variant-1" } } });
+  void engine.flush({ force: true });
+  release();
+  await active;
+  await waitForAsyncWork();
+
+  assert.deepEqual(batches, [["card"], ["variant"]]);
+  assert.equal(engine.pendingCount(), 0);
+});
+
 test("concurrent flush calls share one request", async () => {
   let calls = 0;
   const engine = createSyncEngine({

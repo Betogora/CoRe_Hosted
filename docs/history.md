@@ -30,6 +30,14 @@ Nach ausdrücklicher Freigabe des Nutzers im Chat; Projekt-Ref vorher aus
   den älteren Cloud-Stand liefern. `reloadNoteGraph` liest seitdem nach
   lokalen Änderungen nur noch die Replica. Der PDF-Test verzögert die
   Hydrierung um 3 s und scheitert ohne die Korrektur reproduzierbar.
+- Zweiter Hosted-Smoke gegen `1f138cd` (PR #10): 9 von 10 grün, der PDF-Test
+  jetzt grün. „KI-Basic-Variante … reloadfest gespeichert“ scheiterte in 1 von
+  3 Wiederholungen: Die Variante entstand, während der Sync von Stapel, Inhalt
+  und Karte lief, und die Sync-Anforderung dazu ging verloren, weil `flush`
+  bei laufendem Sync nur den laufenden zurückgab. Der Fehler bestand schon vor
+  dem Cutover; die Cloud-Abfrage nach dem Speichern hatte ihn zeitlich
+  verdeckt. Seitdem folgt einem Sync, während dessen ein weiterer angefordert
+  wurde, ein zweiter Durchlauf, wenn die Outbox noch Mutationen enthält.
 
 ## 2026-10-08 — Cutover auf das Kartenmodell `Note`/`Card` (Phase 4, K5.4, K5.7–K5.9)
 
