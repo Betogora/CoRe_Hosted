@@ -32,8 +32,8 @@ export default {
         bold: "var(--core-weight-heading)",
       },
       fontFamily: {
-        display: ["Amulya", "ui-sans-serif", "system-ui", "sans-serif"],
-        sans: ["Synonym", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Manrope Variable", "Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Manrope Variable", "Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         core: {

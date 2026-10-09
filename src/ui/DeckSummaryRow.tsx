@@ -134,7 +134,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
           <DeckAppearanceIcon
             data-deck-icon="true"
             deck={row.deck}
-            className={`${compactAtBase ? "size-8" : "size-9"} ${responsive ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""} rounded-round bg-core-subtle`}
+            className={`${compactAtBase ? "size-8" : "size-9"} ${responsive ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""} rounded-control bg-core-subtle`}
             iconSize={compact ? 15 : 18}
           />
           <span className="flex min-w-0 flex-1 items-center gap-1">

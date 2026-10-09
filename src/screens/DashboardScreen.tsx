@@ -207,7 +207,7 @@ function DailyLearningOverview({
               return (
                 <div key={segment.key} className="flex min-w-max flex-1 basis-[calc(50%-0.5rem)] items-center gap-2 sm:basis-0 sm:gap-3" data-daily-learning-metric={segment.key}>
                   <span
-                    className="grid size-10 shrink-0 place-items-center rounded-round"
+                    className="grid size-10 shrink-0 place-items-center rounded-control"
                     style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--core-surface))` }}
                   >
                     <MetricIcon size={18} aria-hidden="true" />
