@@ -1,9 +1,47 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-08
+**Stand:** 2026-10-09
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-09 — Bildmasken wie in Anki (K5.2) und Image Occlusion Enhanced als CoRe-Masken (K5.10)
+
+- **K5.10:** Der Übersetzer für Image Occlusion Enhanced (Version 2) baut aus
+  dem Frage-SVG echte CoRe-Masken: Pixelkoordinaten werden über
+  `width`/`height` des SVG auf 0–1 normiert, die Form oder Gruppe mit
+  `class="qshape"` ist die Abfrage `io:1`, alle übrigen Formen bleiben mit
+  `ordinal` 0 dauerhaft verdeckt und bilden keine eigene Karte (neu im Modell;
+  nur mit `alwaysOccluded` gültig). SVGs mit Beschriftungen, Pfaden oder
+  Transformationen bleiben eine `overlay`-Maske. `translateAnkiPackage` liest
+  dafür die Masken-SVGs vorab und ist asynchron; die Neuübersetzung ohne
+  Paketmedien lässt solche Inhalte unverändert. Realer Korpus
+  `Image_Occlusion_Test_Pharmagrundlagen.apkg`: 66 von 66 Notizen als
+  CoRe-Masken (vorher 66 Overlays), 84 Karten wie bisher, die SVG-Maskenbilder
+  werden nicht mehr gespeichert.
+- **K5.2:** Ankis Editor und Reviewer (26.9, nur gelesen) zeichnen Rechtecke,
+  Ellipsen und Text um `angle` Grad in Bildpixeln um ihre linke obere Ecke,
+  ignorieren den Winkel von Polygonen und verschieben deren Punkte auf
+  `left`/`top`; die Schriftgröße ist `fs` mal Bildhöhe mal `scale`. Der
+  Renderer zeichnet Rechtecke, Ellipsen und Beschriftungen deshalb als HTML in
+  einer Ebene in Bildgröße (CSS-Drehung, Schriftgröße in `cqh`), Polygone ohne
+  Drehung im SVG; Beschriftungen nutzen wie Anki Arial ab der linken oberen
+  Ecke. Das Modell erhält `fontSize` an Textmasken, Polygone verlieren
+  `angle`; der native Übersetzer (Version 2) liest `fs` und verschiebt
+  Polygone. Sichtvergleich mit `CoRe_Bildverdeckung_nativ.apkg` (2:1-Bild,
+  alle Formen, gedreht, Text in zwei Größen, Gruppe) gegen eine Kontur nach
+  Ankis Zeichenregeln bei 1280 und 375 px: alle Formen und Beschriftungen
+  deckungsgleich. Die Füllfarbe einzelner Masken (`fill`) übernimmt CoRe
+  weiterhin nicht.
+- Matrixgenerator: native Ellipsen mit `rx`/`ry`, realistische IOE-SVGs im
+  Modus `ao` und `oa`, neue Erwartung `occlusion` je Notiz; Matrix neu erzeugt
+  und grün.
+
+**Nachweise (lokal, 2026-10-09):** `gate:push` grün, fokussierte Tests
+(Übersetzer, Renderer, Inhaltsschema, Neuübersetzung, Matrix) grün,
+`report:apkg-corpus` ohne Verluste, `benchmark:apkg` 3,7 s gesamt, 3,35 s
+Worker, Spitze 162 MiB, Main-Thread höchstens 20,9 ms. UI-Katalog-Demo hell und
+dunkel geprüft.
 
 ## 2026-10-08/09 — Remote-Reset des Pre-Release-Projekts (K4.8)
 

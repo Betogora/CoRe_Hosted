@@ -65,7 +65,7 @@ async function translateInProcess(file: Blob & { name: string }, onStep: (step: 
   ]);
   const pkg = await readAnkiPackage(file, onStep);
   onStep("translate");
-  const graph = translateAnkiPackage(pkg);
+  const graph = await translateAnkiPackage(pkg);
   const description = describeImportGraph(graph);
   const descriptor: ApkgPreviewDescriptor = { ...description, sampleMedia: await readSampleMedia(graph, description.samples) };
   return {

@@ -159,13 +159,14 @@ function parseShape(value: unknown, label: string, errors: string[]): OcclusionS
     if (points.length < 3 || points.some((point) => point.length !== 2 || point.includes(null))) {
       errors.push(`${label} braucht mindestens drei Punkte zwischen 0 und 1.`);
     }
-    return { kind: "polygon", points: points.map(([x, y]) => [x ?? 0, y ?? 0]), angle };
+    return { kind: "polygon", points: points.map(([x, y]) => [x ?? 0, y ?? 0]) };
   }
   if (shape.kind === "text") {
     const [left, top] = [shape.left, shape.top].map(unitNumber);
     const scale = typeof shape.scale === "number" && shape.scale > 0 ? shape.scale : 1;
+    const fontSize = unitNumber(shape.fontSize) || null;
     if (left === null || top === null || !text(shape.text)) errors.push(`${label} braucht Text und eine Position zwischen 0 und 1.`);
-    return { kind: "text", left: left ?? 0, top: top ?? 0, text: text(shape.text), scale, angle };
+    return { kind: "text", left: left ?? 0, top: top ?? 0, text: text(shape.text), scale, fontSize, angle };
   }
   errors.push(`${label} hat keine gültige Form.`);
   return { kind: "rect", left: 0, top: 0, width: 0, height: 0, angle };
@@ -180,7 +181,7 @@ function parseImageOcclusion(input: Record<string, unknown>, errors: string[]): 
     const mask = record(candidate);
     const label = `Maske ${index + 1}`;
     if (!text(mask.id)) errors.push(`${label} hat keine ID.`);
-    if (!Number.isSafeInteger(mask.ordinal) || Number(mask.ordinal) < 1) errors.push(`${label} hat keine gültige Gruppennummer.`);
+    if (!Number.isSafeInteger(mask.ordinal) || Number(mask.ordinal) < (mask.alwaysOccluded === true ? 0 : 1)) errors.push(`${label} hat keine gültige Gruppennummer.`);
     return {
       id: text(mask.id),
       ordinal: Number(mask.ordinal),
@@ -188,7 +189,7 @@ function parseImageOcclusion(input: Record<string, unknown>, errors: string[]): 
       alwaysOccluded: mask.alwaysOccluded === true,
     };
   });
-  if (masks.length === 0) errors.push("Die Bildverdeckung braucht mindestens eine Maske.");
+  if (!masks.some((mask) => mask.ordinal > 0)) errors.push("Die Bildverdeckung braucht mindestens eine abgefragte Maske.");
   if (new Set(masks.map((mask) => mask.id)).size !== masks.length) errors.push("Masken brauchen eindeutige IDs.");
   return { kind: "image-occlusion", image, mode, masks };
 }
@@ -240,7 +241,7 @@ export function deriveNotePromptKeys(content: NoteContent): string[] {
   const interaction = content.interaction;
   if (interaction.kind === "choice") return ["choice"];
   if (interaction.kind === "image-occlusion") {
-    return [...new Set(interaction.masks.map((mask) => mask.ordinal))].sort((left, right) => left - right).map((ordinal) => `io:${ordinal}`);
+    return [...new Set(interaction.masks.map((mask) => mask.ordinal).filter((ordinal) => ordinal > 0))].sort((left, right) => left - right).map((ordinal) => `io:${ordinal}`);
   }
   if (interaction.kind === "cloze") {
     const ordinals = new Set(content.fields.filter((field) => field.role === "prompt").flatMap((field) => clozeOrdinals(field.html) ?? []));

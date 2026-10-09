@@ -1,4 +1,4 @@
-import type { Card, Note, NoteField, NoteInteraction, OcclusionShape } from "./coreTypes.ts";
+import type { Card, Note, NoteField, NoteInteraction } from "./coreTypes.ts";
 import type { CoreTheme } from "./coreTheme.ts";
 import type { TemplateDiagnostic } from "./safeTemplate.ts";
 import { sanitizeNoteHtml } from "./htmlSafety.ts";
@@ -116,32 +116,38 @@ function adjustedColors(html: string, colors: NotePresentationTheme["colors"]): 
   }).replace(/\scolor="([^"]*)"/gi, (_match, color: string) => ` color="${adjust(color, colors.surface)}"`);
 }
 
-function shapeHtml(shape: Exclude<OcclusionShape, { kind: "text" | "overlay" }>, className: string): string {
-  const rotate = shape.kind === "polygon" ? `rotate(${shape.angle} .5 .5)` : `rotate(${shape.angle} ${shape.left} ${shape.top})`;
-  const attrs = `class="${className}" transform="${rotate}" vector-effect="non-scaling-stroke"`;
-  if (shape.kind === "polygon") return `<polygon ${attrs} points="${shape.points.map((point) => point.join(",")).join(" ")}"/>`;
-  if (shape.kind === "rect") return `<rect ${attrs} x="${shape.left}" y="${shape.top}" width="${shape.width}" height="${shape.height}"/>`;
-  return `<ellipse ${attrs} cx="${shape.left + shape.width / 2}" cy="${shape.top + shape.height / 2}" rx="${shape.width / 2}" ry="${shape.height / 2}"/>`;
+function percent(value: number): string {
+  return `${Number((value * 100).toFixed(4))}%`;
 }
+
+// Rectangles, ellipses and labels are HTML in a layer the size of the image, so they turn in image pixels like in
+// Anki; polygons are never rotated and stay in the stretched 0–1 SVG.
 function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occlusion" }>, ordinal: number, side: "question" | "answer", alt: string): string {
-  let masks = "";
-  let labels = "";
+  let polygons = "";
+  let layer = "";
   for (const { shape, ordinal: group, alwaysOccluded } of interaction.masks) {
-    // Labels are HTML so the stretched 0–1 mask space cannot distort their glyphs; scale 1 is the card's body size.
     if (shape.kind === "text") {
-      labels += `<span class="mask-label" style="left:${shape.left * 100}%;top:${shape.top * 100}%;font-size:${shape.scale}em;transform:rotate(${shape.angle}deg)">${escapeHtml(shape.text)}</span>`;
+      // Anki's `fs` is relative to the image height; `cqh` refers to the height of the mask layer.
+      const fontSize = shape.fontSize ? `${Number((shape.fontSize * shape.scale * 100).toFixed(4))}cqh` : `${shape.scale}em`;
+      layer += `<span class="mask-label" style="left:${percent(shape.left)};top:${percent(shape.top)};font-size:${fontSize};transform:rotate(${shape.angle}deg)">${escapeHtml(shape.text)}</span>`;
       continue;
     }
     const active = group === ordinal;
     if (shape.kind === "overlay") {
       const overlay = side === "answer" ? shape.answer : shape.question;
-      if (active && overlay) labels += `<img class="mask-overlay" src="${escapeHtml(overlay)}" alt=""/>`;
+      if (active && overlay) layer += `<img class="mask-overlay" src="${escapeHtml(overlay)}" alt=""/>`;
       continue;
     }
     if (!active && !alwaysOccluded && interaction.mode === "hide-one-guess-one") continue;
-    masks += shapeHtml(shape, active && side === "answer" ? "mask-outline" : active ? "mask-target" : "mask-muted");
+    const className = active && side === "answer" ? "mask-outline" : active ? "mask-target" : "mask-muted";
+    if (shape.kind === "polygon") {
+      polygons += `<polygon class="${className}" vector-effect="non-scaling-stroke" points="${shape.points.map((point) => point.join(",")).join(" ")}"/>`;
+      continue;
+    }
+    const rotate = shape.angle ? `;transform:rotate(${shape.angle}deg)` : "";
+    layer += `<span class="mask mask-${shape.kind} ${className}" style="left:${percent(shape.left)};top:${percent(shape.top)};width:${percent(shape.width)};height:${percent(shape.height)}${rotate}"></span>`;
   }
-  return `<div class="core-occlusion"><img src="${escapeHtml(interaction.image)}" alt="${escapeHtml(alt)}"/><svg aria-hidden="true" viewBox="0 0 1 1" preserveAspectRatio="none">${masks}</svg>${labels}</div>`;
+  return `<div class="core-occlusion"><img src="${escapeHtml(interaction.image)}" alt="${escapeHtml(alt)}"/><div class="mask-layer"><svg aria-hidden="true" viewBox="0 0 1 1" preserveAspectRatio="none">${polygons}</svg>${layer}</div></div>`;
 }
 
 async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, side: "question" | "answer", theme: NotePresentationTheme, diagnostics: TemplateDiagnostic[], interactions: Set<NotePresentationResult["interactions"][number]>) {
@@ -241,11 +247,17 @@ const NOTE_CARD_CSS = `
   .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}
   .core-occlusion{position:relative;display:inline-block;max-width:100%;margin-top:.75rem;overflow:hidden;border:1px solid var(--core-border);border-radius:.75rem;vertical-align:top}
   .core-occlusion img{display:block;max-width:100%;height:auto}
-  .core-occlusion svg,.core-occlusion .mask-overlay{position:absolute;inset:0;width:100%;height:100%}
+  .core-occlusion svg,.core-occlusion .mask-overlay,.mask-layer{position:absolute;inset:0;width:100%;height:100%}
+  .mask-layer{container-type:size}
   .mask-target{fill:var(--core-success);stroke:var(--core-surface);stroke-width:2}
   .mask-muted{fill:var(--core-border-interactive);stroke:var(--core-surface);stroke-width:1.5}
   .mask-outline{fill:none;stroke:var(--core-success);stroke-width:3;stroke-dasharray:6 4}
-  .mask-label{position:absolute;transform-origin:0 0;padding:.1em .35em;border-radius:.3em;background:var(--core-surface);color:var(--core-text);font-weight:600;line-height:1.2;white-space:nowrap}
+  .mask{position:absolute;box-sizing:border-box;transform-origin:0 0}
+  .mask-ellipse{border-radius:50%}
+  span.mask-target{border:2px solid var(--core-surface);background:var(--core-success)}
+  span.mask-muted{border:1.5px solid var(--core-surface);background:var(--core-border-interactive)}
+  span.mask-outline{border:3px dashed var(--core-success)}
+  .mask-label{position:absolute;transform-origin:0 0;padding:0 .2em .15em 0;border-radius:.15em;background:var(--core-surface);color:var(--core-text);font-family:Arial,"Liberation Sans",Arimo,sans-serif;font-weight:400;line-height:1.1;white-space:nowrap}
   table{display:block;max-width:100%;margin:.75rem 0;overflow-x:auto;border-collapse:collapse;overflow-wrap:normal}
   td,th{padding:.375rem .625rem;border:1px solid var(--core-border);text-align:left;vertical-align:top}
   audio{display:block;width:100%;max-width:28rem;margin:.75rem 0}

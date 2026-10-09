@@ -57,7 +57,7 @@ function manualScenario(kind: Kind): Scenario {
 /** The footprint APKG through the app's translation; each scenario keeps only its deck's notes and sources. */
 async function importedScenarios(): Promise<Scenario[]> {
   const file = Object.assign(await openAsBlob(apkgPath), { name: basename(apkgPath) });
-  const graph = translateAnkiPackage(await readAnkiPackage(file));
+  const graph = await translateAnkiPackage(await readAnkiPackage(file));
   const kindForDeck: Record<string, Kind> = { "Basic": "basic", "Basic und umgekehrt": "reverse", "Lückentext": "cloze" };
   return KINDS.map((kind) => {
     const importDecks = graph.decks.filter((deck) => kindForDeck[deck.name] === kind);

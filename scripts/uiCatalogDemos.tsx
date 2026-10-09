@@ -403,8 +403,8 @@ const noteDemoImage = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http
 const noteDemoMasks: Extract<NoteContent["interaction"], { kind: "image-occlusion" }>["masks"] = [
   { id: "rect", ordinal: 1, shape: { kind: "rect", left: .18, top: .2, width: .24, height: .28, angle: 0 }, alwaysOccluded: false },
   { id: "ellipse", ordinal: 2, shape: { kind: "ellipse", left: .65, top: .34, width: .17, height: .25, angle: 0 }, alwaysOccluded: false },
-  { id: "polygon", ordinal: 2, shape: { kind: "polygon", points: [[.1, .1], [.18, .1], [.14, .2]], angle: 0 }, alwaysOccluded: true },
-  { id: "label", ordinal: 1, shape: { kind: "text", left: .18, top: .15, text: "Ziel", scale: 1, angle: 0 }, alwaysOccluded: false },
+  { id: "polygon", ordinal: 2, shape: { kind: "polygon", points: [[.1, .1], [.18, .1], [.14, .2]] }, alwaysOccluded: true },
+  { id: "label", ordinal: 1, shape: { kind: "text", left: .18, top: .15, text: "Ziel", scale: 1, fontSize: null, angle: 0 }, alwaysOccluded: false },
 ];
 const noteDemoCases = [
   { id: "roles", title: "Feldrollen · Hinweise, Zusatz und Quellen", value: noteDemoContent([noteDemoField("Frage", "prompt", "Welches Hormon senkt den Blutzucker?"), noteDemoField("Antwort", "answer", "Insulin"), noteDemoField("Hinweis", "hint", "Es wird in den Betazellen gebildet."), noteDemoField("Zusatz", "extra", "Insulin fördert die Aufnahme von Glukose."), noteDemoField("Quelle", "source", '<a href="https://www.amboss.com/de">AMBOSS</a>'), noteDemoField("Intern", "note", "Dieses Feld erscheint nur im Editor.")], noteDemoReveal()) },

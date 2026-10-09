@@ -185,6 +185,13 @@ Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
   nennen nur Name und Eintrag.
 - Image Occlusion speichert Ellipsen in aktuellen Versionen mit `rx`/`ry` statt
   `width`/`height`; Text in Eigenschaften maskiert `:` als `\:`.
+- Ankis Editor und Reviewer (26.9) normieren x-Werte (`left`, `width`, `rx`,
+  Polygon-x) auf die Bildbreite und y-Werte auf die Bildhöhe; `fs` ist die
+  Schriftgröße relativ zur Bildhöhe, `scale` vergrößert den Text zusätzlich.
+  Rechtecke, Ellipsen und Text drehen sich um `angle` Grad in Bildpixeln um ihre
+  linke obere Ecke (`left`/`top`). Polygone ignorieren `angle`; ihre Punkte
+  werden so verschoben, dass die linke obere Ecke ihres Umrisses auf
+  `left`/`top` liegt. Text zeichnet Anki in Arial auf einem weißen Kasten.
 - Ankizin-, Ankiphil- und Dellas-Notiztypen (Korpus, 2026-10-07) zeigen
   Quelle und Notiz-ID in einer Kopfzeile auf beiden Seiten, legen Zusatzfelder
   hinter Buttons oder `display:none` auf die Rückseite, führen Links als
@@ -192,7 +199,12 @@ Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
   `edit:` des Add-ons „Edit Field During Review“.
 - Image Occlusion Enhanced legt je Maske eine Notiz mit den Feldern `Image`,
   `Question Mask`, `Answer Mask` und `Original Mask` an; die Maskenfelder
-  verweisen auf SVG-Dateien in Bildgröße.
+  verweisen auf SVG-Dateien in Bildgröße (`width`/`height` in Pixeln). Das
+  Frage-SVG enthält die abgefragte Form mit `class="qshape"` (auch an einer
+  Gruppe) und im Modus „alle verdecken“ (`ao`, erkennbar an der ID
+  `…-ao-N`) alle übrigen Formen; im Modus „eine verdecken“ (`oa`) nur die
+  abgefragte. Der reale Korpus (66 Notizen) enthält ausschließlich ungedrehte
+  `rect`-Formen ohne Beschriftungen.
 - Das Add-on „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3) legt den
   Notiztyp `AllInOne (kprim, mc, sc)` mit den Feldern `Question`, `Title`,
   `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources` und
@@ -204,8 +216,9 @@ Der universelle Renderer verarbeitet übersetzte Feldrollen und
 Interaktionen statt Anki-Templates: verschachtelte `{{c1,3::Text::Hinweis}}`
 werden vor dem Formelschritt aufgelöst; aktive äußere Lücken verbergen innere.
 MathJax-Delimiters sowie `[latex]`, `[$]` und `[$$]` gehen an KaTeX. Bei Fehlern bleibt
-die bereits maskierte Quellfassung sichtbar. Native Bildmasken werden als
-relative SVG-Formen über dem Bild gezeichnet, ohne die Anki-JavaScript-Laufzeit.
+die bereits maskierte Quellfassung sichtbar. Native Bildmasken und die Masken
+aus Image Occlusion Enhanced werden als relative Formen über dem Bild
+gezeichnet, gedreht wie in Anki, ohne die Anki-JavaScript-Laufzeit.
 `[sound:…mp4]` verwendet ein Video-Control; TTS-Metadaten werden ausschließlich
 im React-Host ausgewertet und duplizieren den Feldtext nicht. Die
 APKG-Übersetzung auf diesen Vertrag beschreibt

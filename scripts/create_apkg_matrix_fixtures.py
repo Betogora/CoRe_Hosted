@@ -45,8 +45,10 @@ def png_bytes(width: int, height: int, rgb: tuple[int, int, int]) -> bytes:
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
 
 
-def svg_bytes(label: str) -> bytes:
-    return f'<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><rect width="10" height="10"/><title>{label}</title></svg>'.encode()
+def ioe_svg(masks: str) -> bytes:
+    """Mask SVG as Image Occlusion Enhanced writes it: pixel shapes on the image size, the asked one with class qshape."""
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><!-- Created with Image Occlusion Enhanced -->'
+            f'<g><title>Labels</title></g><g><title>Masks</title>{masks}</g></svg>').encode()
 
 
 @dataclass
@@ -74,6 +76,7 @@ class NoteSpec:
     instruction: dict[str, str] = field(default_factory=dict)
     speech: dict[str, str] = field(default_factory=dict)
     choice: dict[str, Any] | None = None
+    occlusion: list[dict[str, Any]] | None = None
 
 
 def ensure_anki() -> None:
@@ -159,6 +162,7 @@ def note_manifest(spec: NoteSpec, cards: list[dict[str, Any]], states: dict[int,
         "instruction": spec.instruction,
         "speech": spec.speech,
         "choice": spec.choice,
+        "occlusion": spec.occlusion,
         "tags": spec.tags,
         "marked": "marked" in [tag.lower() for tag in spec.tags],
         "media": spec.media,
@@ -421,7 +425,7 @@ def build_native_image_occlusion(col: Any, media_dir: Path) -> dict[str, Any]:
     image.write_bytes(png_bytes(40, 20, (200, 30, 30)))
     occlusions = (
         "{{c1::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4:oi=1}}"
-        "{{c2::image-occlusion:ellipse:left=.5:top=.5:width=.2:height=.2}}"
+        "{{c2::image-occlusion:ellipse:left=.5:top=.5:rx=.1:ry=.1}}"
         "{{c2::image-occlusion:polygon:points=.6,.1 .9,.1 .75,.4}}"
         "{{c2::image-occlusion:text:text=Aorta:left=.1:top=.8:scale=1:fs=.08}}"
     )
@@ -435,6 +439,8 @@ def build_native_image_occlusion(col: Any, media_dir: Path) -> dict[str, Any]:
                     {"Occlusion": "consumed", "Image": "consumed", "Header": "prompt", "Back Extra": "extra", "Comments": "note"}, "image-occlusion",
                     {0: CardSpec("io:1", ["Herzklappen"], ["image-occlusion:", "Auskultation"], ["Auskultation"], ["image-occlusion:"]),
                      1: CardSpec("io:2", ["Herzklappen"], ["image-occlusion:", "Auskultation"], ["Auskultation"], ["image-occlusion:"])},
+                    occlusion=[{"kind": "rect", "ordinal": 1, "alwaysOccluded": True}, {"kind": "ellipse", "ordinal": 2, "alwaysOccluded": False},
+                               {"kind": "polygon", "ordinal": 2, "alwaysOccluded": False}, {"kind": "text", "ordinal": 2, "alwaysOccluded": False}],
                     tags=["Anatomie"], media=["herzklappen.png"])
     return note_manifest(spec, place_cards(col, note_id, spec))
 
@@ -443,10 +449,17 @@ def build_image_occlusion_enhanced(col: Any) -> list[dict[str, Any]]:
     image = "ioe-original.png"
     col.media.write_data(image, png_bytes(40, 20, (30, 30, 200)))
     manifests = []
+    asked = ('<rect class="qshape" x="4" y="2" width="10" height="6" fill="#FF7E7E"/>', '<ellipse class="qshape" cx="30" cy="10" rx="6" ry="4" fill="#FF7E7E"/>')
+    other = '<rect x="20" y="10" width="12" height="8" fill="#00ffff"/>'
+    # Note 1 hides all and asks one (ao), note 2 hides one and asks one (oa).
+    masks = {1: {"Q": asked[0] + other, "A": other, "O": asked[0] + other},
+             2: {"Q": asked[1], "A": "", "O": asked[1] + other}}
+    expected_masks = {1: [{"kind": "rect", "ordinal": 1, "alwaysOccluded": False}, {"kind": "rect", "ordinal": 0, "alwaysOccluded": True}],
+                      2: [{"kind": "ellipse", "ordinal": 1, "alwaysOccluded": False}]}
     for index in (1, 2):
         names = {kind: f"ioe-{index}-{kind}.svg" for kind in ("Q", "A", "O")}
         for kind, name in names.items():
-            col.media.write_data(name, svg_bytes(f"{kind}{index}"))
+            col.media.write_data(name, ioe_svg(masks[index][kind]))
         spec = NoteSpec(f"matrix-ioe-{index}", "CoRe-Matrix Image Occlusion Enhanced", f"{SPECIAL_ROOT}::Image Occlusion Enhanced",
                         {"ID (hidden)": f"ioe-{index}", "Header": "Niere", "Image": f'<img src="{image}">',
                          "Question Mask": f'<img src="{names["Q"]}">', "Answer Mask": f'<img src="{names["A"]}">',
@@ -455,7 +468,7 @@ def build_image_occlusion_enhanced(col: Any) -> list[dict[str, Any]]:
                          "Remarks": "extra", "Sources": "source", "Extra 1": "extra", "Extra 2": "extra", "Answer Mask": "consumed", "Original Mask": "consumed"},
                         "image-occlusion",
                         {0: CardSpec("io:1", ["Niere"], [f"Struktur {index}"], [f"Struktur {index}"])},
-                        media=[image, names["Q"], names["A"], names["O"]])
+                        media=[image], occlusion=expected_masks[index])
         manifests.append(note_manifest(spec, add_note(col, spec)))
     return manifests
 

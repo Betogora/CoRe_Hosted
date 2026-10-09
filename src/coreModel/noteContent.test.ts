@@ -118,7 +118,7 @@ test("Bildverdeckung erzeugt eine Karte je Maskengruppe und verweist auf ihr Bil
     mode: "hide-all-guess-one",
     masks: [
       { id: "m1", ordinal: 2, shape: rect, alwaysOccluded: false },
-      { id: "m2", ordinal: 1, shape: { kind: "polygon", points: [[0, 0], [0.5, 0], [0.5, 0.5]], angle: 0 }, alwaysOccluded: false },
+      { id: "m2", ordinal: 1, shape: { kind: "polygon", points: [[0, 0], [0.5, 0], [0.5, 0.5]] }, alwaysOccluded: false },
       { id: "m3", ordinal: 2, shape: { kind: "ellipse", left: 0.5, top: 0.5, width: 0.2, height: 0.2, angle: 15 }, alwaysOccluded: true },
     ],
   }));

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { ANKI_PACKAGE_MAX_BYTES, readAnkiPackage, type AnkiPackage, type AnkiPackageMediaFile } from "./apkgImportInternal.ts";
-import { parseImageOcclusionField, translateAnkiPackage } from "./apkgNoteTranslation.ts";
+import { parseEnhancedMaskSvg, parseImageOcclusionField, retranslateNoteContent, translateAnkiPackage, type NoteTypeSource } from "./apkgNoteTranslation.ts";
 
 const IMPORTED_AT = "2026-10-07T12:00:00.000Z";
 const CREATED_SECONDS = Date.parse("2026-01-01T00:00:00.000Z") / 1000;
@@ -39,8 +39,8 @@ const basic = model("1", ["Front", "Back"], [["{{Front}}", "{{FrontSide}}<hr id=
 const note = (id: string, mid: string, fields: string[], tags = "") => ({ id, guid: `guid-${id}`, mid, flds: fields.join("\u001f"), tags });
 const card = (id: string, nid: string, ord = 0, state: Record<string, unknown> = {}) => ({ id, nid, did: "10", ord, type: 0, queue: 0, due: 1, ivl: 0, factor: 0, reps: 0, lapses: 0, odid: 0, odue: 0, flags: 0, data: "", ...state });
 
-test("Medien werden normalisiert, je SHA-1 einmal übernommen und nur aus src, poster und [sound:] gelesen", () => {
-  const graph = translateAnkiPackage(ankiPackage({
+test("Medien werden normalisiert, je SHA-1 einmal übernommen und nur aus src, poster und [sound:] gelesen", async () => {
+  const graph = await translateAnkiPackage(ankiPackage({
     models: { 1: basic },
     notes: [note("100", "1", ['<img src="kopie.png"> <img src="Ärzte.png"> <a href="link.png">Link</a>', "[sound:fehlt.mp3]"])],
     cards: [card("200", "100")],
@@ -55,11 +55,11 @@ test("Medien werden normalisiert, je SHA-1 einmal übernommen und nur aus src, p
   assert.deepEqual(graph.report.missingMedia, ["fehlt.mp3"]);
 });
 
-test("Ungültige Übersetzungen fallen auf eine Feldliste zurück, ohne die Anki-Karte zu verlieren", () => {
+test("Ungültige Übersetzungen fallen auf eine Feldliste zurück, ohne die Anki-Karte zu verlieren", async () => {
   const choice = model("2", ["Question", "QType (0=kprim,1=mc,2=sc)", "Q_1", "Q_2", "Q_3", "Answers"], [[
     '{{Question}}<table id="qtable"></table><div id="Q_solutions">{{Answers}}</div>', "{{Question}}",
   ]], { stock: 1 });
-  const graph = translateAnkiPackage(ankiPackage({
+  const graph = await translateAnkiPackage(ankiPackage({
     models: { 2: choice },
     notes: [note("100", "2", ["Welche?", "1", "A", "B", "C", "1 0"])],
     cards: [card("200", "100")],
@@ -74,13 +74,13 @@ test("Ungültige Übersetzungen fallen auf eine Feldliste zurück, ohne die Anki
   assert.deepEqual(graph.noteSources, [{ noteId: graph.notes[0].id, noteTypeSourceId: graph.noteTypeSources[0].id, fields: ["Welche?", "1", "A", "B", "C", "1 0"] }]);
 });
 
-test("Geänderte Basic-Vorlagen und Zusatzfelder werden generisch übersetzt; nur unveränderte Vorlagen gelten als Basic", () => {
+test("Geänderte Basic-Vorlagen und Zusatzfelder werden generisch übersetzt; nur unveränderte Vorlagen gelten als Basic", async () => {
   const changed = model("3", ["Front", "Back"], [["Frage: {{Front}}", "{{FrontSide}}<hr id=answer>{{Back}}"]], { stock: 1 });
   const anking = model("4", ["Text", "Extra", "Personal Notes", "One by one", "Amboss-Link"], [[
     '{{cloze:Text}}{{#Personal Notes}}<a class="hint" onclick="toggle()">Notizen</a><div>{{Personal Notes}}</div>{{/Personal Notes}}',
     "{{cloze:Text}}<hr>{{Extra}}{{Amboss-Link}}",
   ]], { kind: 1, stock: 5 });
-  const graph = translateAnkiPackage(ankiPackage({
+  const graph = await translateAnkiPackage(ankiPackage({
     models: { 1: basic, 3: changed, 4: anking },
     notes: [note("100", "1", ["F", "A"]), note("101", "3", ["F", "A"]), note("102", "4", ["{{c1::Troponin}}", "", "Eigene Notiz", "y", ""])],
     cards: [card("200", "100"), card("201", "101"), card("202", "102")],
@@ -95,7 +95,7 @@ test("Geänderte Basic-Vorlagen und Zusatzfelder werden generisch übersetzt; nu
   assert.equal(graph.notes[0].importedContentRevision, graph.notes[0].contentRevision);
 });
 
-test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Ziele und Anweisung aus der Fragezeile", () => {
+test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Ziele und Anweisung aus der Fragezeile", async () => {
   const header = '<div class="header"><strong>{{Source}}</strong> | {{#Note ID}}<button onclick="f()">ID</button>{{/Note ID}}<div style="display:none">{{Note ID}}</div>'
     + '<a href="https://forms.example/errata?entry={{Note ID}}"><button>Errata</button></a></div><hr>';
   const back = '{{#Klinik}}<button onclick="f()">Klinik</button><div>{{Klinik}}</div>{{/Klinik}}{{#AMBOSS-Link}}<a href="{{AMBOSS-Link}}">AMBOSS</a>{{/AMBOSS-Link}}';
@@ -103,7 +103,7 @@ test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Z
     `${header}<div class="titel">{{edit:Titel}}</div><p></p> Wo liegt der <i>Ursprung</i> des <div class="muskel">{{edit:Muskel}}</div>?<p></p>`,
     `${header}<div>{{Titel}}</div><p></p>{{edit:Ursprung}}${back}`,
   ]]);
-  const graph = translateAnkiPackage(ankiPackage({
+  const graph = await translateAnkiPackage(ankiPackage({
     models: { 6: muscles },
     notes: [note("100", "6", ["Rotatorenmanschette", "M. supraspinatus", "Fossa supraspinata", "Impingement", "https://next.amboss.com/de/article/x", "AMBOSS", "1565424901299"])],
     cards: [card("200", "100")],
@@ -116,22 +116,53 @@ test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Z
   assert.equal(content.fields.find((field) => field.name === "Note ID")?.html, "1565424901299");
 });
 
-test("Native Bildverdeckung liest Radien, maskierte Doppelpunkte, Drehung und dauerhaft verdeckte Formen", () => {
+test("Native Bildverdeckung liest Radien, maskierte Doppelpunkte, Drehung, Schriftgröße und dauerhaft verdeckte Formen", async () => {
   const masks = parseImageOcclusionField(
     "{{c1::image-occlusion:ellipse:left=.2:top=.3:rx=.1:ry=.05:angle=15:oi=1}}"
-    + "{{c2::image-occlusion:text:text=A\\:B:left=.5:top=.6:scale=1.5}}"
-    + "{{c2::image-occlusion:polygon:points=.1,.1 .2,.1 .15,.2}}",
+    + "{{c2::image-occlusion:text:text=A\\:B:left=.5:top=.6:scale=1.5:fs=.08}}"
+    + "{{c2::image-occlusion:text:text=Alt:left=.5:top=.7}}"
+    + "{{c2::image-occlusion:polygon:points=.1,.1 .2,.1 .15,.2}}"
+    + "{{c3::image-occlusion:polygon:left=.3:top=.4:angle=20:points=.1,.1 .2,.1 .15,.2}}",
   );
   assert.deepEqual(masks.map((mask) => [mask.ordinal, mask.alwaysOccluded, mask.shape]), [
     [1, true, { kind: "ellipse", left: 0.2, top: 0.3, width: 0.2, height: 0.1, angle: 15 }],
-    [2, false, { kind: "text", left: 0.5, top: 0.6, text: "A:B", scale: 1.5, angle: 0 }],
-    [2, false, { kind: "polygon", points: [[0.1, 0.1], [0.2, 0.1], [0.15, 0.2]], angle: 0 }],
+    [2, false, { kind: "text", left: 0.5, top: 0.6, text: "A:B", scale: 1.5, fontSize: 0.08, angle: 0 }],
+    [2, false, { kind: "text", left: 0.5, top: 0.7, text: "Alt", scale: 1, fontSize: null, angle: 0 }],
+    [2, false, { kind: "polygon", points: [[0.1, 0.1], [0.2, 0.1], [0.15, 0.2]] }],
+    // Like Anki: the polygon's top-left corner moves to left/top and its angle is ignored.
+    [3, false, { kind: "polygon", points: [[0.3, 0.4], [0.4, 0.4], [0.35, 0.5]] }],
   ]);
 });
 
-test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem Sammlungsdatum, zurückgesetzte Karten neu", () => {
+test("Image Occlusion Enhanced wird zu CoRe-Masken: aktive Form, übrige dauerhaft verdeckt, Pixel auf 0–1", () => {
+  const svg = (inner: string) => `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100"><g><title>Labels</title></g><g><title>Masks</title>${inner}</g></svg>`;
+  const allHidden = parseEnhancedMaskSvg(svg(
+    '<rect id="a" x="20" y="10" width="40" height="20" class="qshape" fill="#FF7E7E"/>'
+    + '<ellipse cx="150" cy="50" rx="25" ry="10" fill="#00ffff"/>'
+    + '<g class="qshape"><polygon points="0,0 100,0 50,100"/></g>'
+    + '<rect x="190" y="90" width="40" height="20"/>',
+  ));
+  assert.deepEqual(allHidden?.map((mask) => [mask.ordinal, mask.alwaysOccluded, mask.shape]), [
+    [1, false, { kind: "rect", left: 0.1, top: 0.1, width: 0.2, height: 0.2, angle: 0 }],
+    [0, true, { kind: "ellipse", left: 0.625, top: 0.4, width: 0.25, height: 0.2, angle: 0 }],
+    [1, false, { kind: "polygon", points: [[0, 0], [0.5, 0], [0.25, 1]] }],
+    // Shapes reaching past the image are cut at its edge.
+    [0, true, { kind: "rect", left: 0.95, top: 0.9, width: 0.05, height: 0.1, angle: 0 }],
+  ]);
+  assert.equal(parseEnhancedMaskSvg(svg('<rect x="0" y="0" width="10" height="10"/>')), null, "ohne abgefragte Form");
+  assert.equal(parseEnhancedMaskSvg(svg('<rect class="qshape" x="0" y="0" width="10" height="10" transform="rotate(5)"/>')), null);
+  assert.equal(parseEnhancedMaskSvg(svg('<path class="qshape" d="M0 0L10 10"/>')), null);
+  assert.equal(parseEnhancedMaskSvg(svg('<rect class="qshape" x="0" y="0" width="10" height="10"/>').replace("<title>Labels</title>", "<title>Labels</title><text>A</text>")), null);
+  // The masks live in package media, so a re-translation without them leaves the stored content untouched.
+  const fields = ["ID (hidden)", "Header", "Image", "Question Mask", "Footer", "Remarks", "Sources", "Extra 1", "Extra 2", "Answer Mask", "Original Mask"];
+  const source: NoteTypeSource = { id: "s", ankiNotetypeId: "1", name: "Image Occlusion Enhanced", translator: { id: "image-occlusion-enhanced", version: 1 }, kind: 0, originalStockKind: 0, css: "",
+    fields: fields.map((name, ordinal) => ({ name, ordinal })), templates: [{ name: "IO Card", ordinal: 0, front: "{{Question Mask}}", back: "{{Answer Mask}}", targetDeckId: null }], config: {} };
+  assert.equal(retranslateNoteContent(source, ["x-ao-1", "Niere", '<img src="bild.png">', '<img src="q.svg">', "", "", "", "", "", '<img src="a.svg">', '<img src="o.svg">'], []), null);
+});
+
+test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem Sammlungsdatum, zurückgesetzte Karten neu", async () => {
   const entry = { reviewId: "1767225600000", cardId: "201", rating: "good" as const, answeredAt: "2026-01-01T00:00:00.000Z", responseTimeMs: 4000, reviewType: 1, beforeState: "review" as const, afterState: "review" as const, beforeIntervalDays: 1, beforeIntervalMinutes: null, afterIntervalDays: 3, afterIntervalMinutes: null, ease: 2.5 };
-  const graph = translateAnkiPackage(ankiPackage({
+  const graph = await translateAnkiPackage(ankiPackage({
     models: { 1: basic },
     notes: [note("100", "1", ["Klassisch", "A"], " marked Leech "), note("101", "1", ["Zurückgesetzt", "A"])],
     cards: [card("200", "100", 0, { type: 2, queue: 2, due: 100, ivl: 10, factor: 2500, reps: 3, lapses: 1, flags: 9 }), card("201", "101")],
@@ -150,9 +181,9 @@ test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem S
   assert.deepEqual(graph.report.notetypes[0].study, { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 1, new: 1 });
 });
 
-test("Fehlende Karten werden aus dem Inhalt abgeleitet, überzählige Anki-Karten berichtet", () => {
+test("Fehlende Karten werden aus dem Inhalt abgeleitet, überzählige Anki-Karten berichtet", async () => {
   const cloze = model("5", ["Text", "Back Extra"], [["{{cloze:Text}}", "{{cloze:Text}}<br>{{Back Extra}}"]], { kind: 1, stock: 5 });
-  const graph = translateAnkiPackage(ankiPackage({
+  const graph = await translateAnkiPackage(ankiPackage({
     models: { 5: cloze },
     notes: [note("100", "5", ["{{c1::A}} und {{c2::B}}", ""])],
     cards: [card("200", "100", 0), card("204", "100", 4)],

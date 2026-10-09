@@ -11,7 +11,7 @@ interface WorkerScope {
 const workerScope = globalThis as unknown as WorkerScope;
 let activeRequestId = "";
 let commitChunks: AsyncIterator<any> | null = null;
-let translatedGraph: ReturnType<typeof translateAnkiPackage> | null = null;
+let translatedGraph: Awaited<ReturnType<typeof translateAnkiPackage>> | null = null;
 
 async function postNextCommitChunk() {
   if (!commitChunks || !activeRequestId) return;
@@ -59,7 +59,7 @@ workerScope.onmessage = async (event) => {
   try {
     const pkg = await readAnkiPackage(file as File, (step) => workerScope.postMessage({ type: "progress", requestId, step }));
     workerScope.postMessage({ type: "progress", requestId, step: "translate" });
-    translatedGraph = translateAnkiPackage(pkg);
+    translatedGraph = await translateAnkiPackage(pkg);
     activeRequestId = requestId;
     workerScope.postMessage({ type: "progress", requestId, step: "preview" });
     const descriptor = describeImportGraph(translatedGraph);
