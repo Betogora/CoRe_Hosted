@@ -77,9 +77,9 @@ test("Zusatzfelder ergänzen die Frage oder werden Zusatzinfo und erhalten einde
     front: "Hund",
     back: "dog",
     additionalFields: [
-      { id: "front", name: "Hinweis", value: "Haustier", placement: "front" },
-      { name: "Beispiel", value: "The dog barks.", placement: "back" },
-      { id: "both field", name: " Merkhilfe ", value: "bellt", placement: "both" },
+      { id: "front", name: "Hinweis", value: "Haustier", role: "prompt" },
+      { name: "Beispiel", value: "The dog barks.", role: "extra" },
+      { id: "both field", name: " Merkhilfe ", value: "bellt", role: "prompt" },
       { id: "leer", name: "  ", value: "verworfen" },
     ],
   }));
@@ -95,6 +95,23 @@ test("Zusatzfelder ergänzen die Frage oder werden Zusatzinfo und erhalten einde
   assert.deepEqual(prompts[0].questionFieldIds, ["front", "front-2", "both-field"]);
   assert.deepEqual(prompts[1].answerFieldIds, ["front", "front-2", "both-field"]);
   assert.deepEqual(cards.map((card) => card.promptKey), ["forward", "reverse"]);
+});
+
+test("Hinweis, Quelle und Eintippen werden als Rollen und Abfrage-Eigenschaft gespeichert", () => {
+  const { note } = create(manual({
+    kind: "basic",
+    front: "Hund",
+    back: "dog",
+    typeIn: true,
+    additionalFields: [
+      { id: "tipp", name: "Hinweis", value: "Haustier", role: "hint" },
+      { id: "quelle", name: "Quelle", value: "Duden", role: "source" },
+    ],
+  }));
+  const [forward] = reveal(note.content.interaction).prompts;
+  assert.deepEqual(note.content.fields.map((field) => field.role), ["prompt", "answer", "hint", "source"]);
+  assert.deepEqual(forward.questionFieldIds, ["front"]);
+  assert.equal(forward.typeInFieldId, "back");
 });
 
 test("Schlagwörter werden getrimmt, ohne leere Einträge und Duplikate übernommen", () => {

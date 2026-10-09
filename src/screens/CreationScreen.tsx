@@ -104,10 +104,10 @@ export function CreationScreen({
       <PageHeader eyebrow="Erstellen" title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
-          <span className="mx-auto grid size-16 place-items-center rounded-round bg-core-success-soft text-core-text">
+          <span className="mx-auto grid size-12 place-items-center rounded-control bg-core-success-soft text-core-text">
             <CheckCircle2 size={34} aria-hidden="true" />
           </span>
-          <p className="mt-6 core-body font-semibold uppercase tracking-wide text-core-text">Gespeichert</p>
+          <p className="mt-6 core-body font-semibold text-core-text">Gespeichert</p>
           <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-core-text outline-none">
             {resolvedCompletionKind === "import" ? "Import erfolgreich" : "Deine Karten sind bereit"}
           </h2>
@@ -131,7 +131,7 @@ export function CreationScreen({
         </SoftPanel>
       ) : selectedMethod ? (
         <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-4" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
-          <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action hover:bg-core-surface">
+          <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-control w-fit items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action hover:bg-core-surface">
             <ArrowLeft size={16} aria-hidden="true" />
             Erstellen
           </button>

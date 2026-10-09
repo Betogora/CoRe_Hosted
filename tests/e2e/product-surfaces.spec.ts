@@ -70,7 +70,7 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(desktopHelpButton).toBeVisible();
   await expect(desktopThemeButton).toBeVisible();
   await expect(desktopSettingsButton).toHaveAttribute("aria-current", "page");
-  await expect(desktopThemeButton).toHaveClass(/core-action-secondary/);
+  await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-left", "24px");
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-right", "24px");
   const desktopSyncBox = await desktopSyncButton.boundingBox();
@@ -81,16 +81,13 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   expect(desktopSettingsBox).not.toBeNull();
   expect(desktopHelpBox).not.toBeNull();
   expect(desktopThemeBox).not.toBeNull();
-  expect(desktopSyncBox!.x).toBeCloseTo(desktopSettingsBox!.x, 0);
-  expect(desktopHelpBox!.x).toBeCloseTo(desktopThemeBox!.x, 0);
-  expect(desktopSyncBox!.y).toBeCloseTo(desktopHelpBox!.y, 0);
-  expect(desktopSettingsBox!.y).toBeCloseTo(desktopThemeBox!.y, 0);
-  expect(desktopSettingsBox!.y).toBeGreaterThan(desktopSyncBox!.y);
-  expect(desktopSyncBox!.x).toBeLessThan(desktopHelpBox!.x);
-  expect(desktopSettingsBox!.x).toBeLessThan(desktopThemeBox!.x);
-  const horizontalUtilityGap = desktopHelpBox!.x - (desktopSyncBox!.x + desktopSyncBox!.width);
-  const verticalUtilityGap = desktopSettingsBox!.y - (desktopSyncBox!.y + desktopSyncBox!.height);
-  expect(horizontalUtilityGap).toBeCloseTo(verticalUtilityGap, 0);
+  const utilityRow = [desktopSyncBox!, desktopHelpBox!, desktopSettingsBox!, desktopThemeBox!];
+  for (const box of utilityRow) expect(box.y).toBeCloseTo(desktopSyncBox!.y, 0);
+  const utilityGaps = utilityRow.slice(1).map((box, index) => box.x - (utilityRow[index].x + utilityRow[index].width));
+  for (const gap of utilityGaps) {
+    expect(gap).toBeGreaterThanOrEqual(0);
+    expect(gap).toBeCloseTo(utilityGaps[0], 0);
+  }
   const desktopLayout = await sidebar.evaluate((element) => {
     const frame = element.parentElement;
     const sidebarRect = element.getBoundingClientRect();
@@ -120,12 +117,12 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
       labelsFit: menuLabels.every((label) => label.scrollWidth <= label.clientWidth),
       targetsAreLargeEnough: targets.every((target) => {
         const rect = target.getBoundingClientRect();
-        return rect.width >= 44 && rect.height >= 44;
+        return rect.width >= 40 && rect.height >= 40;
       }),
     };
   });
   expect(desktopLayout.frame).toEqual({ x: 0, y: 0, width: 1280, height: 900, borderWidth: "0px", borderRadius: "0px" });
-  expect(desktopLayout.sidebar).toEqual({ x: 0, y: 0, width: 152, height: 900, overflowX: "hidden", fits: true });
+  expect(desktopLayout.sidebar).toEqual({ x: 0, y: 0, width: 240, height: 900, overflowX: "hidden", fits: true });
   expect(desktopLayout.utilitiesFit).toBe(true);
   expect(desktopLayout.labelsFit).toBe(true);
   expect(desktopLayout.targetsAreLargeEnough).toBe(true);
@@ -139,7 +136,7 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   const sidebar = page.locator('[data-navigation-layout="sidebar"]');
   const desktopThemeButton = sidebar.getByRole("button", { name: "Dark Mode einschalten" });
   await expect(desktopThemeButton).toBeVisible();
-  await expect(desktopThemeButton).toHaveClass(/core-action-secondary/);
+  await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
   await expect(desktopThemeButton.locator("svg")).toHaveClass(/lucide-sun/);
   await desktopThemeButton.click();
 
@@ -155,7 +152,7 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
   const mobileThemeButton = mobileHeader.getByRole("button", { name: "Light Mode einschalten" });
   await expect(mobileThemeButton).toBeVisible();
-  await expect(mobileThemeButton).toHaveClass(/core-action-secondary/);
+  await expect(mobileThemeButton).toHaveClass(/core-action-ghost/);
   await expect(mobileThemeButton.locator("svg")).toHaveClass(/lucide-moon/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
 
@@ -245,7 +242,7 @@ test("settings save bar keeps its depth and responsive position in both themes",
         };
       });
 
-      expect(layout.buttonHeight).toBeGreaterThanOrEqual(44);
+      expect(layout.buttonHeight).toBeGreaterThanOrEqual(viewport.width < 768 ? 44 : 40);
       expect(layout.boxShadow).not.toBe("none");
       expect(layout.pageFitsViewport).toBe(true);
       expect(layout.barLeft).toBeGreaterThanOrEqual(0);

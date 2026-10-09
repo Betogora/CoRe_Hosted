@@ -26,7 +26,7 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
       style={{ bottom: "max(14dvh, calc(env(safe-area-inset-bottom) + 5rem))" }}
     >
       <div className={`flex min-w-0 items-center gap-3 ${mode === "deck-tree" || mode === "learning-global" ? "pr-12" : "pr-12 sm:pr-0"}`}>
-        <span className="core-settings-save-badge grid size-9 shrink-0 place-items-center rounded-round" aria-hidden="true">
+        <span className="core-settings-save-badge grid size-9 shrink-0 place-items-center rounded-control" aria-hidden="true">
           <Save size={17} />
         </span>
         <p className="core-body font-semibold text-core-text" role="status" aria-live="polite">
@@ -44,24 +44,24 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
       />
       {mode === "deck-tree" ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <ActionButton type="button" variant="primary" icon={Layers} className="min-h-11 w-full justify-center" loading={savingScope === "deck-tree"} disabled={saving} onClick={() => onSave("deck-tree")}>
+          <ActionButton type="button" variant="primary" icon={Layers} className="min-h-control w-full justify-center" loading={savingScope === "deck-tree"} disabled={saving} onClick={() => onSave("deck-tree")}>
             Stapel und Unterstapel speichern
           </ActionButton>
-          <ActionButton type="button" variant="secondary" icon={Save} className="min-h-11 w-full justify-center" loading={savingScope === "deck"} disabled={saving} onClick={() => onSave("deck")}>
+          <ActionButton type="button" variant="secondary" icon={Save} className="min-h-control w-full justify-center" loading={savingScope === "deck"} disabled={saving} onClick={() => onSave("deck")}>
             Nur diesen Stapel speichern
           </ActionButton>
         </div>
       ) : mode === "learning-global" ? (
         <div className="grid gap-2 sm:grid-cols-2">
-          <ActionButton type="button" variant="primary" icon={Layers} className="min-h-11 w-full justify-center" loading={savingScope === "all-decks"} disabled={saving} onClick={() => onSave("all-decks")}>
+          <ActionButton type="button" variant="primary" icon={Layers} className="min-h-control w-full justify-center" loading={savingScope === "all-decks"} disabled={saving} onClick={() => onSave("all-decks")}>
             Auf alle Stapel anwenden
           </ActionButton>
-          <ActionButton type="button" variant="secondary" icon={Save} className="min-h-11 w-full justify-center" loading={savingScope === "new-decks"} disabled={saving} onClick={() => onSave("new-decks")}>
+          <ActionButton type="button" variant="secondary" icon={Save} className="min-h-control w-full justify-center" loading={savingScope === "new-decks"} disabled={saving} onClick={() => onSave("new-decks")}>
             Auf alle neuen Stapel anwenden
           </ActionButton>
         </div>
       ) : (
-        <ActionButton type="button" variant="primary" icon={Save} className="min-h-11 w-full justify-center sm:col-start-2 sm:row-start-1 sm:w-auto sm:min-w-36" loading={saving} disabled={saving} onClick={() => onSave(mode === "deck" ? "deck" : undefined)}>
+        <ActionButton type="button" variant="primary" icon={Save} className="min-h-control w-full justify-center sm:col-start-2 sm:row-start-1 sm:w-auto sm:min-w-36" loading={saving} disabled={saving} onClick={() => onSave(mode === "deck" ? "deck" : undefined)}>
           {mode === "deck" ? "Stapeleinstellungen speichern" : "Speichern"}
         </ActionButton>
       )}

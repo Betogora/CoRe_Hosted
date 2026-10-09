@@ -21,6 +21,12 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
   einschließlich Kprim, KaTeX, sichere Medien, System-Vorlesen und
   AMBOSS-Textauswahl). Die Phase-3-Performance-Abnahme ist gemessen (siehe
   `history.md`); offen sind nur noch die Gerätenachweise.
+- Erstellen und Bearbeiten arbeiten auf dem Inhalt (K6.1–K6.4): gemeinsame Bausteine
+  (Antwort eintippen, Felder mit Rolle Zusatzfrage/Hinweis/Zusatz/Quelle), Lernrichtung
+  im Editor, Formelwerkzeug, Live-Zusammenfassung der Kartenwirkung, Bestätigung
+  entfallender Karten mit Lernstand, Geschwisterliste im Kartendetail und als
+  veraltet markierte KI-Umformulierungen mit gezielter Neuerzeugung. Importierte
+  Inhalte behalten ihr Feldschema.
 - Pflichtlogin mit Supabase E-Mail/Passwort, Profil-Upsert und accountgebundenem Browser-Cache.
 - Local-first Account-Boot mit expliziter Baseline: Ein bekanntes Gerät rendert seine IndexedDB-Shell sofort; ein neues wartet nur auf die erste gültige, bytebegrenzte `get_account_bootstrap`-Seite aus Profil, Deck-Hüllen, zeitstabilen Summaries und `AccountStudyOverview`; die Fälligkeitsprognose folgt nachgelagert über `get_account_due_forecast`. `confirmed-empty` ist die einzige Freigabe der Leeransicht. Nach dem ersten erfolgreichen Bootstrap werden seine Retry- und Browserlistener entfernt; Online, Fokus und Sichtbarkeit gehören danach ausschließlich dem normalen Sync.
 - Inkrementeller Hybrid-Sync aus isoliertem Outbox-Push, servergestempeltem Katalog-Delta und Konfliktaktualisierung; manuell auch bei leerer Outbox sowie automatisch nach Debounce, Online, Fokus und sichtbar im wählbaren 1/5/15/30-Minuten-Intervall. Der normale Webpfad lädt keine sieben vollständigen Tabellen mehr. Deck-Hüllen, `deck_study_summaries` und `card_catalog` besitzen eigene bytebegrenzte Cursor; Kartenkörper samt Inhalten und Varianten werden höchstens zu 50 hydriert.
@@ -63,7 +69,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Gebündelte Konfliktrichtung mit Remote-Revisionsprüfung und eingeklappter Einzelauflösung.
 - Zentral lazy geladene Produktscreens mit Promise-Cache und sicherem React-Fehlerfallback ohne sichtbare Buildmetadaten; Supabase-, Cloud-, Medien- und Statistikcode liegen ebenfalls außerhalb des initialen Importgraphen. Nach einer ruhigen Sekunde werden ausschließlich bei 4G oder fehlender Network-Information Lernen und Karten seriell automatisch vorgeladen; 3G erlaubt nur Hover, Fokus oder Touchstart. Save-Data, 2G, Hintergrundtabs und Nutzerinteraktion unterbrechen Spekulation. Synonym liegt lokal, Amulya wird nachgelagert geladen und Figma-Capture läuft nur in Entwicklung. Der verifizierte Production-Build vom 16. August umfasst 217,3 KiB gzip im Initialgraphen und 163,1 KiB gzip im größten Lazy-Graphen.
 - Installierbare PWA-App-Shell mit Runtime-Cache für bereits geladene statische Ressourcen, persistenter Speicheranfrage und sichtbarer Browserquote. Same-Origin-APIs, Supabase-Daten und pauschale Medienbestände werden nicht gecached.
-- Produktweites semantisches CoRe-Theme mit Light und Dark Mode, lokal persistiertem umrundetem Theme-Button, randlosen Vollviewport-Shells, halbierter horizontaler Inhaltsabstandsskala und einer 9,5-rem-Desktop-Sidebar mit gleichmäßigem zweizeiligem Utilityraster, hellen dekorativen Innenrahmen, Amulya/Synonym-Typografie sowie dokumentierten wiederverwendbaren Action-, Feedback-, Struktur- und Formularbausteinen.
+- Produktweites semantisches CoRe-Theme mit Light und Dark Mode, lokal persistiertem Theme-Button, Stil „Soft Minimal“ (hellgraue Arbeitsfläche, weiße Karten mit dünnem Rahmen und leichtem Schatten, weiche Radien, Icon-Flächen als weiche Quadrate, Auswahl-Schienen mit weißem Indikator, Manrope-Typografie in App, Kartenfläche und Doku), schwebender 15-rem-Desktop-Sidebar und schwebendem Mobilkopf sowie dokumentierten wiederverwendbaren Action-, Feedback-, Struktur- und Formularbausteinen.
 - Außer der authentifizierten Variantenroute `/api/ai/card-variant` werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
 - Das produktive CoRe-Schema entspricht dem Core-Zielzustand: pensionierte Labs-/Jobtabellen und -spalten sowie `core-imports` fehlen; das verifizierte Rückbaumanifest enthielt keine zu löschenden Labs-Pfade in `core-media`.
 

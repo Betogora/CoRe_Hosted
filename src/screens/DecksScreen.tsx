@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, Chev
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { noteEditorValue, noteTextIndex, planNoteContentChange, validateNoteEditorValue, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
+import { addNoteField, canRemoveNoteField, noteBlocks, noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, removeNoteField, renameNoteField, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
 import { classifyCardEligibility, createVariantReviewModel } from "../coreVariantService.ts";
 import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -12,21 +12,22 @@ import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
-import type { NoteGraph } from "../workspaceReplica.ts";
+import { catalogEntryFromCard, type NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
-import type { CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
+import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
 
 interface PendingDetailAction {
   run: () => void;
@@ -68,7 +69,7 @@ function SortHeader({ field, label, sort, onChange }: {
       <button
         type="button"
         onClick={() => onChange(field)}
-        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-semibold uppercase tracking-wide text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
+        className={`core-table-header-control flex w-full min-w-0 items-center ${headerGap} rounded-inset core-caption font-semibold text-core-muted hover:text-core-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)] ${rightAligned ? "justify-end" : ""}`}
         aria-label={`${label} ${directionLabel} sortieren`}
       >
         <span className="min-w-0 truncate">{label}</span>
@@ -93,8 +94,44 @@ function noteKindLabel(note: Note) {
 
 function removedCardsDescription(count: number) {
   return count === 1
-    ? "Durch diese Änderung entfällt eine Karte. Ihr Lernstand wird gelöscht."
-    : `Durch diese Änderung entfallen ${count} Karten. Ihr Lernstand wird gelöscht.`;
+    ? "Durch diese Änderung entfällt diese Karte samt ihrem Lernstand:"
+    : `Durch diese Änderung entfallen ${count} Karten samt ihrem Lernstand:`;
+}
+
+type CardLabelOptions = { dayStartHour?: number; timeZone?: string };
+
+const FIELD_ROLE_NAMES: Record<Note["content"]["fields"][number]["role"], string> = { ...NOTE_FIELD_ROLE_LABELS, prompt: "Frage", answer: "Antwort", note: "Notiz" };
+
+/** Learning state of a card in the words of the card list: new, suspended or reviewed with its next due date. */
+function cardStateLabel(card: Card, note: Note, options: CardLabelOptions) {
+  if (card.status === "suspended") return "ausgesetzt";
+  if (card.study.reps === 0) return "neu, ohne Lernstand";
+  const { nextStudyLabel } = createCardTableRow(catalogEntryFromCard(card, note), options);
+  return `${card.study.reps === 1 ? "1 Wiederholung" : `${card.study.reps} Wiederholungen`} · fällig ${nextStudyLabel}`;
+}
+
+/** Kind of the content and, with siblings, the card's position, e.g. „Lückentext · Lücke 2 von 3“. */
+function cardHeaderLabel(note: Note, card: Card, count: number) {
+  if (count < 2) return noteKindLabel(note);
+  const label = notePromptLabel(note.content, card.promptKey);
+  const position = /^(cloze|io):\d+$/.test(card.promptKey) ? `${label} von ${count}` : `${label} · ${count} Karten aus diesem Inhalt`;
+  return `${noteKindLabel(note)} · ${position}`;
+}
+
+/** What saving the draft would do to the content's cards, or null when nothing beyond the text changes. */
+function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
+  const parts: string[] = [];
+  const labels = (cards: Card[], content: NoteContent) => cards.map((card) => notePromptLabel(content, card.promptKey)).join(", ");
+  if (plan.newCards.length) parts.push(`${plan.newCards.length === 1 ? "1 neue Karte" : `${plan.newCards.length} neue Karten`} (${labels(plan.newCards, plan.note.content)})`);
+  if (plan.removedCards.length) parts.push(`${plan.removedCards.length === 1 ? "1 Karte entfällt" : `${plan.removedCards.length} Karten entfallen`} (${labels(plan.removedCards, graph.note.content)})`);
+  const outdated = outdatedVariantCount(graph, plan);
+  if (outdated) parts.push(outdated === 1 ? "1 KI-Umformulierung wird veraltet" : `${outdated} KI-Umformulierungen werden veraltet`);
+  return parts.length ? `Beim Speichern: ${parts.join(" · ")}.` : null;
+}
+
+function outdatedVariantCount(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
+  const activeBefore = new Set(graph.cards.flatMap((card) => card.variants.filter((variant) => variant.isActive && !variant.deletedAt).map((variant) => variant.id)));
+  return plan.keptCards.flatMap((card) => card.variants).filter((variant) => variant.meta.outdated === true && activeBefore.has(variant.id)).length;
 }
 
 interface DeckCardEditorProps {
@@ -111,24 +148,28 @@ interface DeckCardEditorProps {
   onDeleteNote: () => void;
   onRescheduleCards: DecksScreenProps["onRescheduleCards"];
   onGenerateVariant: (cardId: string) => Promise<AiCardVariantSuccess>;
+  onSelectCard: (deckId: string, cardId: string) => void;
+  deckName: (deckId: string) => string;
   onClose: () => void;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   syncConflict: boolean;
 }
 
-function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onClose, onDraftStateChange }: DeckCardEditorProps) {
+function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
   const { note } = graph;
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
   const [initialValue, contentKey] = React.useMemo(() => {
     const value = noteEditorValue(note);
-    return [value, JSON.stringify(value)] as const;
+    return [value, JSON.stringify([value, note.content.fields.map(({ id, name, role }) => [id, name, role]), note.content.interaction])] as const;
   }, [note]);
   const [form, setForm] = React.useState<NoteEditorValue>(initialValue);
+  // Building blocks change the structure; field text stays in the form until both are saved together.
+  const [structure, setStructure] = React.useState(note.content);
   const [savedForm, setSavedForm] = React.useState(contentKey);
   const [fieldErrors, setFieldErrors] = React.useState<NoteEditorErrors>({});
   const [saveStatus, setSaveStatus] = React.useState("");
   const [saveError, setSaveError] = React.useState(false);
-  const [pendingRemoval, setPendingRemoval] = React.useState<{ content: NoteContent; count: number } | null>(null);
+  const [pendingRemoval, setPendingRemoval] = React.useState<{ content: NoteContent; cards: Card[]; outdated: number } | null>(null);
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const setSuccessToast = useSuccessToast();
@@ -148,7 +189,14 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const [isRescheduling, setIsRescheduling] = React.useState(false);
   const editorHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
   const saveDraftRef = React.useRef<() => Promise<boolean>>(async () => false);
-  const serializedForm = React.useMemo(() => JSON.stringify(form), [form]);
+  const serializedForm = React.useMemo(
+    () => JSON.stringify([form, structure.fields.map(({ id, name, role }) => [id, name, role]), structure.interaction]),
+    [form, structure],
+  );
+  const draftNote = React.useMemo(() => ({ ...note, content: structure }), [note, structure]);
+  const blocks = noteBlocks(structure);
+  // Imported contents keep their Anki field schema; only own contents change structure.
+  const structureEditable = note.importedContentRevision === null;
   const draftDirty = serializedForm !== savedForm;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
   const variantReviewModel = React.useMemo(
@@ -156,14 +204,26 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     [card, deck.reviewEvents, now],
   );
   const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
+  const draftPlan = React.useMemo(() => {
+    if (!draftDirty) return null;
+    const validation = validateNoteEditorValue(draftNote, form);
+    if (!validation.ok) return null;
+    try {
+      return planNoteContentChange(graph, validation.content);
+    } catch {
+      return null;
+    }
+  }, [draftDirty, draftNote, form, graph]);
+  const draftSummary = draftPlan ? draftChangeSummary(graph, draftPlan) : null;
   // The preview shows the current draft; an invalid draft falls back to the saved content.
   const previewNote = React.useMemo(() => {
-    const validation = validateNoteEditorValue(note, form);
+    const validation = validateNoteEditorValue(draftNote, form);
     return validation.ok ? { ...note, content: validation.content, contentRevision: note.contentRevision + (draftDirty ? 1 : 0) } : note;
-  }, [draftDirty, form, note]);
+  }, [draftDirty, draftNote, form, note]);
 
   React.useLayoutEffect(() => {
     setForm(initialValue);
+    setStructure(note.content);
     setSavedForm(contentKey);
     setFieldErrors({});
     setSaveError(false);
@@ -194,7 +254,10 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   if (!card) return null;
 
   const { maturity, readiness, coverage } = variantReviewModel!;
-  const variants = card.variants ?? [];
+  const variants = (card.variants ?? []).filter((variant) => !variant.deletedAt);
+  const hasOutdatedVariants = variants.some((variant) => variant.meta.outdated === true);
+  const labelOptions = { dayStartHour, timeZone };
+  const siblings = graph.cards.filter((candidate) => candidate.deletedAt === null);
   const interaction = note.content.interaction;
   const choiceMode = interaction.kind === "choice" ? interaction.mode : null;
   const options = form.options ?? [];
@@ -210,6 +273,22 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     setSaveStatus("");
     setSaveError(false);
     setSuccessToast("");
+  }
+
+  function changeStructure(next: NoteContent, addedFieldId?: string) {
+    setStructure(next);
+    if (addedFieldId) setForm((current) => ({ ...current, fields: { ...current.fields, [addedFieldId]: "" } }));
+    clearStatus();
+  }
+
+  function addField(role: AddableFieldRole) {
+    const added = addNoteField(structure, role);
+    changeStructure(added.content, added.fieldId);
+  }
+
+  function removeField(fieldId: string) {
+    changeStructure(removeNoteField(structure, fieldId));
+    setForm((current) => ({ ...current, fields: Object.fromEntries(Object.entries(current.fields).filter(([id]) => id !== fieldId)) }));
   }
 
   function updateField(fieldId: string, html: string) {
@@ -253,7 +332,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     updateOptions(options.map((option, optionIndex) => optionIndex === index ? { ...option, correct: !option.correct } : option));
   }
 
-  async function persist(content: NoteContent): Promise<boolean> {
+  async function persist(content: NoteContent, outdated = 0): Promise<boolean> {
     setIsSaving(true);
     setSaveError(false);
     setSaveStatus("Karte wird gespeichert …");
@@ -263,7 +342,9 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       onDraftStateChange(null);
       setFieldErrors({});
       setSaveStatus("");
-      setSuccessToast("Karte wurde erfolgreich gespeichert. Reviewdarstellung, Varianten und Cloudstand wurden aktualisiert.");
+      setSuccessToast(outdated === 0
+        ? "Karte wurde erfolgreich gespeichert."
+        : `Karte wurde erfolgreich gespeichert. ${outdated === 1 ? "1 KI-Umformulierung ist veraltet und wird nicht mehr abgefragt." : `${outdated} KI-Umformulierungen sind veraltet und werden nicht mehr abgefragt.`}`);
       return true;
     } catch {
       setSaveError(true);
@@ -275,7 +356,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   }
 
   async function saveEditorValue(): Promise<boolean> {
-    const validation = validateNoteEditorValue(note, form);
+    const validation = validateNoteEditorValue(draftNote, form);
     if (!validation.ok) {
       setFieldErrors(validation.errors);
       setSaveError(true);
@@ -290,11 +371,12 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       setSaveStatus("");
       return true;
     }
+    const outdated = outdatedVariantCount(graph, plan);
     if (plan.removedCards.length > 0) {
-      setPendingRemoval({ content: validation.content, count: plan.removedCards.length });
+      setPendingRemoval({ content: validation.content, cards: plan.removedCards, outdated });
       return false;
     }
-    return persist(validation.content);
+    return persist(validation.content, outdated);
   }
 
   async function duplicateCard() {
@@ -332,7 +414,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         setVariantStatus("KI-Variante erstellt. Da kein passendes ZDR-Modell verfügbar war, wurde ein kostenloses Modell ohne Zero Data Retention verwendet.");
       } else {
         setVariantStatus("");
-        setSuccessToast("KI-Variante wurde erfolgreich erstellt.");
+        setSuccessToast(hasOutdatedVariants ? "Veraltete KI-Umformulierung wurde ersetzt." : "KI-Variante wurde erfolgreich erstellt.");
       }
     } catch (error) {
       setVariantStatusWarning(true);
@@ -374,11 +456,11 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-core-text outline-none">Karte bearbeiten</h2>
-          <p className="mt-1 core-caption text-core-muted">{noteKindLabel(note)}{graph.cards.length > 1 ? ` · ${graph.cards.length} Karten aus diesem Inhalt` : ""}</p>
+          <p className="mt-1 core-caption text-core-muted" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
-          <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="inline-flex min-h-11 items-center gap-2 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:opacity-60">
+          <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="core-action-primary">
             <Save size={16} aria-hidden="true" />
             {isSaving ? "Speichert …" : "Speichern"}
           </button>
@@ -396,7 +478,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             onClick={() => void duplicateCard()}
             disabled={isDuplicating}
             title="Eigenständige Kopie direkt unter dieser Karte erstellen"
-            className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:cursor-not-allowed disabled:opacity-50"
+            className="core-action-secondary"
           >
             <Copy size={16} aria-hidden="true" />
             {isDuplicating ? "Kopiert …" : "Kopieren"}
@@ -404,7 +486,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
           <button
             type="button"
             onClick={onDeleteNote}
-            className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-4 core-body font-semibold text-core-text"
+            className="core-action-destructive"
           >
             <Trash2 size={16} aria-hidden="true" />
             Löschen
@@ -416,6 +498,31 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
           <p className="font-semibold">Synchronisierung klären</p>
           <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
         </div>
+      ) : null}
+      {siblings.length > 1 ? (
+        <section className="mb-6 min-w-0 rounded-control border border-core-border bg-core-surface p-3" aria-labelledby={`card-siblings-${card.id}`} data-testid="card-siblings">
+          <h3 id={`card-siblings-${card.id}`} className="core-body font-semibold text-core-text">Karten aus diesem Inhalt</h3>
+          <ul className="mt-2 grid gap-1">
+            {siblings.map((sibling) => {
+              const current = sibling.id === card.id;
+              const content = (
+                <>
+                  <span className="font-semibold text-core-text">{notePromptLabel(note.content, sibling.promptKey)}</span>
+                  <span className="min-w-0 truncate text-core-muted">{deckName(sibling.deckId)} · {cardStateLabel(sibling, note, labelOptions)}</span>
+                </>
+              );
+              return (
+                <li key={sibling.id}>
+                  {current ? (
+                    <p className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-subtle px-3 core-body" aria-current="true">{content}</p>
+                  ) : (
+                    <button type="button" onClick={() => onSelectCard(sibling.deckId, sibling.id)} className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-x-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus">{content}</button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       ) : null}
       <CardStudyStateControls
         className="mb-3"
@@ -445,10 +552,32 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         </ActionButton>
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
+      {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
+      {structureEditable && blocks.reverse !== null ? (
+        <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3" data-testid="note-direction">
+            <span className="core-body font-semibold text-core-text">Lernrichtung</span>
+            <CoreSegmentedControl
+              ariaLabel="Lernrichtung"
+              options={[{ value: "standard", label: "Standard" }, { value: "both", label: "Beide Richtungen" }]}
+              value={blocks.reverse ? "both" : "standard"}
+              onValueChange={(value) => changeStructure(setNoteReverse(structure, value === "both"))}
+            />
+        </div>
+      ) : null}
       <div className="grid min-w-0 gap-4">
-        {note.content.fields.map((field) => (
+        {structure.fields.map((field) => (
           <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-            <span>{field.name}</span>
+            {structureEditable && canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
+              <div className="flex min-w-0 items-end gap-2">
+                <label className="grid min-w-0 flex-1 gap-1">
+                  <span className="core-caption font-semibold text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
+                  <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={field.name} onChange={(event) => changeStructure(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
+                </label>
+                <IconButton label={`${field.name} entfernen`} icon={X} onClick={() => removeField(field.id)} />
+              </div>
+            ) : (
+              <span>{field.name}</span>
+            )}
             <RichTextEditor
               value={form.fields[field.id] ?? ""}
               onChange={(value) => updateField(field.id, value)}
@@ -468,17 +597,25 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             {options.map((option, index) => (
               <div key={option.id} className="flex min-w-0 items-center gap-2">
                 <input type={choiceMode === "single" ? "radio" : "checkbox"} name={choiceMode === "single" ? `correct-option-${note.id}` : undefined} checked={option.correct} disabled={correctnessLocked(index)} onChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
-                <input className="min-h-11 min-w-0 flex-1 rounded-control border border-core-border px-3" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                <button type="button" onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} className="grid size-11 place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                <input className="min-h-control min-w-0 flex-1 rounded-control border border-core-border px-3" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                <button type="button" onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} className="grid size-control place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
               </div>
             ))}
-            {choiceMode !== "kprim" ? <button type="button" onClick={addOption} className="inline-flex min-h-11 w-fit items-center gap-2 rounded-control border border-core-border px-3 core-body font-semibold text-core-action"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button> : null}
+            {choiceMode !== "kprim" ? <button type="button" onClick={addOption} className="inline-flex min-h-control w-fit items-center gap-2 rounded-control border border-core-border px-3 core-body font-semibold text-core-action"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button> : null}
             <FieldError errors={fieldErrors} field="options" />
           </fieldset>
         ) : null}
+        {structureEditable ? (
+          <NoteBlockControls
+            typeIn={blocks.typeIn}
+            fieldRoles={blocks.fieldRoles}
+            onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
+            onAddField={addField}
+          />
+        ) : null}
         <label className="grid gap-2 core-body font-semibold text-core-secondary">
           Tags
-          <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />
+          <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />
         </label>
         {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
         {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
@@ -487,18 +624,18 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten und Lernwerte</h3>
         <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
         <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Reifegrad</p>
+          <p className="core-caption font-semibold text-core-muted">Reifegrad</p>
           <p className="mt-2 break-words core-body-large font-semibold text-core-text">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
           <p className="mt-1 core-body text-core-muted">Score {maturity.score} · {maturity.description}</p>
           <p className="mt-2 core-caption text-core-muted">Stability {getStateValue(card.study, "stability")} · Difficulty {getStateValue(card.study, "difficulty")} · Reps {getStateValue(card.study, "reps")}</p>
         </div>
         <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Variantenbereitschaft</p>
+          <p className="core-caption font-semibold text-core-muted">Variantenbereitschaft</p>
           <p className="mt-2 break-words core-body-large font-semibold text-core-text">{formatLevelList(readiness.allowedLevels)}</p>
           <p className="mt-1 break-words core-body text-core-muted">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
         </div>
         <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Variantenabdeckung</p>
+          <p className="core-caption font-semibold text-core-muted">Variantenabdeckung</p>
           <p className="mt-2 break-words core-body-large font-semibold text-core-text">{coverage.activeRephraseCount} nahe Varianten</p>
           <p className="mt-1 break-words core-body text-core-muted">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
         </div>
@@ -506,7 +643,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         <div className="mt-6 min-w-0 rounded-control border border-core-border bg-core-surface p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Varianten dieser Grundkarte</p>
+            <p className="core-caption font-semibold text-core-muted">Varianten dieser Grundkarte</p>
             <p className="mt-1 break-words core-body text-core-muted">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
           </div>
           <span className="rounded-control bg-core-subtle px-3 py-1 core-caption font-semibold text-core-action">{variants.length} Formen</span>
@@ -517,10 +654,13 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
                 <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
                   <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
                   <span>Level {variant.variantLevel}</span>
-                  <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>
+                  {variant.meta.outdated === true
+                    ? <span className="rounded-inset bg-core-warning-soft px-2 py-1 text-core-text">veraltet</span>
+                    : <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>}
                 </div>
                 <p className="break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
                 <p className="mt-1 break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
+                {variant.meta.outdated === true ? <p className="mt-2 core-caption text-core-muted">Frage oder Antwort wurden geändert; diese Umformulierung wird nicht mehr abgefragt.</p> : null}
                 <p className="mt-2 core-caption text-core-muted">Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
               </article>
           ))}
@@ -537,7 +677,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               disabled={!eligibility?.eligible || isGeneratingVariant}
               onClick={() => void generateVariant()}
             >
-              KI-Variante erzeugen
+              {hasOutdatedVariants ? "KI-Variante neu erzeugen" : "KI-Variante erzeugen"}
             </ActionButton>
             <p className="min-w-0 flex-1 core-caption text-core-muted">
               {eligibility?.eligible
@@ -560,7 +700,16 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       <ActionDialog
         open={Boolean(pendingRemoval)}
         title="Karten entfernen?"
-        description={pendingRemoval ? removedCardsDescription(pendingRemoval.count) : null}
+        description={pendingRemoval ? (
+          <>
+            <p>{removedCardsDescription(pendingRemoval.cards.length)}</p>
+            <ul className="mt-3 grid gap-1.5" data-testid="removed-cards">
+              {pendingRemoval.cards.map((removed) => (
+                <li key={removed.id} className="core-body"><span className="font-semibold text-core-text">{notePromptLabel(note.content, removed.promptKey)}</span> · {deckName(removed.deckId)} · {cardStateLabel(removed, note, labelOptions)}</li>
+              ))}
+            </ul>
+          </>
+        ) : null}
         confirmLabel="Speichern"
         cancelLabel="Weiter bearbeiten"
         confirmLoading={isSaving}
@@ -568,7 +717,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         onConfirm={() => {
           const removal = pendingRemoval;
           if (!removal) return;
-          void persist(removal.content).then(() => setPendingRemoval(null));
+          void persist(removal.content, removal.outdated).then(() => setPendingRemoval(null));
         }}
       />
     </SoftPanel>
@@ -689,6 +838,7 @@ export function DecksScreen({
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
+  const deckNameById = React.useMemo(() => new Map(decks.map((deck) => [deck.id, deck.name])), [decks]);
   const selectedContentDeckId = React.useMemo(() => {
     if (!contentDeckId || !selectedCardId) return null;
     for (const group of tableModel.allGroups) {
@@ -1014,6 +1164,8 @@ export function DecksScreen({
             onDeleteNote={requestCardDelete}
             onRescheduleCards={onRescheduleCards}
             onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
+            onSelectCard={requestCardSelection}
+            deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
             onClose={() => requestDetailAction(closeDetail)}
             onDraftStateChange={handleEditorDraftStateChange}
           />
@@ -1046,12 +1198,12 @@ export function DecksScreen({
         </SoftPanel>
       ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
-          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-11 items-center whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3> : null}
+          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3> : null}
           <div className="grid gap-3">
             <div className={contentDeckId ? "grid min-w-0 grid-cols-[minmax(0,1fr)_44px] items-end gap-3" : "min-w-0"}>
               <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
                 Karten durchsuchen
-                <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 font-normal text-core-muted transition">
+                <span className="flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 font-normal text-core-muted transition">
                   <Search size={17} aria-hidden="true" />
                   <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
                 </span>
@@ -1061,7 +1213,7 @@ export function DecksScreen({
                   label={`${contentDeck.name} lernen`}
                   icon={Play}
                   variant="ghost"
-                  className="core-deck-icon-action core-deck-content-study size-11"
+                  className="core-deck-icon-action core-deck-content-study size-control"
                   disabled={!hasStudyCards}
                   onClick={() => requestDetailAction(() => onStartDeck(contentDeck))}
                 />
@@ -1167,7 +1319,7 @@ export function DecksScreen({
                           }}
                         >
                           {frontPreview}
-                          {syncConflictCardIds?.has(card.id) ? <span className="ml-2 rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
+                          {syncConflictCardIds?.has(card.id) ? <span className="ml-2 rounded-inset bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
                         </button>
                       </td>
                       <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
@@ -1191,13 +1343,13 @@ export function DecksScreen({
                       <td colSpan={3} className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">
                           <CoreTooltip label="Vorherige Seite anzeigen">
-                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
+                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
                               <ChevronLeft size={16} aria-hidden="true" />
                             </button>
                           </CoreTooltip>
                           <span className="core-body text-core-muted">Seite {group.page + 1} von {group.pageCount}</span>
                           <CoreTooltip label="Nächste Seite anzeigen">
-                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
+                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
                               <ChevronRight size={16} aria-hidden="true" />
                             </button>
                           </CoreTooltip>

@@ -140,7 +140,7 @@ function CoreSelectOptions({ options }: Pick<CoreSelectProps, "options">) {
         key={option.value}
         value={encodeValue(option.value)}
         textValue={option.label}
-        className="relative flex min-h-11 cursor-default select-none items-center gap-3 rounded-inset py-2 pl-3 pr-9 core-body leading-5 text-core-text outline-none data-[highlighted]:bg-core-subtle data-[state=checked]:bg-core-info-soft"
+        className="relative flex min-h-control cursor-default select-none items-center gap-3 rounded-inset py-2 pl-3 pr-9 core-body leading-5 text-core-text outline-none data-[highlighted]:bg-core-subtle data-[state=checked]:bg-core-info-soft"
       >
         {Icon ? <Icon size={17} className="shrink-0 text-core-muted" aria-hidden="true" /> : null}
         <Select.ItemText className="min-w-0 break-words">{option.label}</Select.ItemText>
@@ -180,7 +180,7 @@ function SpecialOptionIcon({ option }: { option: DeckSelectSpecialOption }) {
   const danger = option.tone === "danger";
 
   return (
-    <span className={`grid size-7 shrink-0 place-items-center rounded-round border ${danger ? "border-core-danger bg-core-danger-soft text-core-danger" : "border-core-border bg-core-subtle text-core-muted"}`}>
+    <span className={`grid size-7 shrink-0 place-items-center rounded-inset border ${danger ? "border-core-danger bg-core-danger-soft text-core-danger" : "border-core-border bg-core-subtle text-core-muted"}`}>
       <Icon size={14} aria-hidden="true" />
     </span>
   );
@@ -257,7 +257,7 @@ function DeckPickerContent({
               placeholder="Stapel suchen"
               aria-label="Stapel suchen"
               aria-controls={listboxId}
-              className="min-h-11 min-w-0 flex-1 bg-transparent core-body text-core-text placeholder:text-core-muted"
+              className="min-h-control min-w-0 flex-1 bg-transparent core-body text-core-text placeholder:text-core-muted"
             />
             {query ? (
               <button type="button" onClick={() => onQueryChange("")} aria-label="Suche leeren" className="grid size-8 shrink-0 place-items-center text-core-muted">
@@ -322,7 +322,7 @@ export const CoreSelect = forwardRef<HTMLButtonElement, CoreSelectProps>(functio
             setOpen(false);
           }
         }}
-        className={`group inline-flex min-h-11 min-w-0 items-center gap-3 rounded-control border border-core-border-strong bg-core-surface px-4 text-left core-body text-core-text transition hover:border-core-action data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
+        className={`group inline-flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border-strong bg-core-surface px-4 text-left core-body text-core-text transition hover:border-core-action data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
       >
         {TriggerIcon ? <TriggerIcon size={17} className="shrink-0 text-core-text" aria-hidden="true" /> : null}
         <span className="min-w-0 flex-1 truncate">
@@ -391,7 +391,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
           data-state={open ? "open" : "closed"}
           data-deck-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className={`group inline-flex min-h-11 min-w-0 items-center gap-2 rounded-control border border-core-border-strong bg-core-surface px-3 text-left core-body text-core-text transition hover:border-core-action data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
+          className={`group inline-flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border-strong bg-core-surface px-3 text-left core-body text-core-text transition hover:border-core-action data-[state=open]:border-core-action data-[state=open]:shadow-selection ${className}`}
         >
           {selectedDeckRow ? (
             <DeckAppearanceIcon data-deck-icon="true" deck={selectedDeckRow.deck} className="size-8" iconSize={15} />
@@ -423,7 +423,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
             data-deck-picker-option="true"
             data-deck-select-special-option="true"
             onClick={() => selectValue(specialOption.value)}
-            className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
+            className="relative flex min-h-control w-full items-center gap-3 rounded-control py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
           >
             <SpecialOptionIcon option={specialOption} />
             <span className="min-w-0 flex-1 truncate">{specialOption.label}</span>
@@ -444,7 +444,7 @@ export const DeckSelect = forwardRef<HTMLButtonElement, DeckSelectProps>(functio
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => selectValue(row.deck.id)}
-              className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
+              className="relative flex min-h-control w-full items-center gap-3 rounded-control py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
               style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />
@@ -493,7 +493,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           data-state={open ? "open" : "closed"}
           data-deck-multi-select-trigger="true"
           data-deck-select-searchable={showSearch ? "true" : "false"}
-          className="group core-field flex min-h-11 w-full min-w-0 items-center justify-between gap-3 rounded-control px-3 text-left"
+          className="group core-field flex min-h-control w-full min-w-0 items-center justify-between gap-3 rounded-control px-3 text-left"
         >
           <span className="flex min-w-0 items-center gap-2">
             <Layers3 size={18} className="shrink-0 text-core-text" aria-hidden="true" />
@@ -520,7 +520,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
           aria-selected={value === "all"}
           data-deck-picker-option="true"
           onClick={() => onValueChange("all")}
-          className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
+          className="relative flex min-h-control w-full items-center gap-3 rounded-control py-2 pl-3 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft"
         >
           <FolderTree size={18} className="shrink-0 text-core-text" aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate">Gesamte Sammlung</span>
@@ -543,7 +543,7 @@ export function DeckMultiSelect({ decks, value, onValueChange }: DeckMultiSelect
               data-deck-select-option={row.deck.id}
               data-deck-depth={visibleDepth}
               onClick={() => toggle(row.deck.id)}
-              className="relative flex min-h-11 w-full items-center gap-3 rounded-control py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft disabled:cursor-default"
+              className="relative flex min-h-control w-full items-center gap-3 rounded-control py-2 pr-9 text-left core-body text-core-text hover:bg-core-subtle aria-selected:bg-core-info-soft disabled:cursor-default"
               style={{ paddingInlineStart: `calc(0.75rem + ${visibleDepth * DECK_DEPTH_INDENT_PX}px)` }}
             >
               <DeckAppearanceIcon data-deck-icon="true" deck={row.deck} className="size-7 shrink-0" iconSize={14} />

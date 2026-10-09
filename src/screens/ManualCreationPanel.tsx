@@ -7,7 +7,7 @@ import {
   reduceManualBatchSession,
   type ManualFocusTarget,
 } from "../creationBatch.ts";
-import { createNote, type ManualNoteErrors } from "../coreModel.ts";
+import { createNote, type AddableFieldRole, type ManualNoteErrors } from "../coreModel.ts";
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent } from "../coreTypes.ts";
@@ -19,6 +19,7 @@ import { FileDropField } from "../ui/FileDropField.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
+import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatBytes } from "./screenConstants.ts";
@@ -36,13 +37,9 @@ type ManualCreationWorkflow = Pick<
 >;
 type PdfSelectionOptions = Parameters<NonNullable<React.ComponentProps<typeof PdfDocumentViewer>["onSelection"]>>[1];
 type ActiveField = "front" | "back";
-type AdditionalField = { id: string; name: string; value: string; placement: "front" | "back" | "both" };
+type AdditionalField = { id: string; name: string; value: string; role: AddableFieldRole };
 type ManualSaveProgress = { label: string; percent: number };
-const FIELD_PLACEMENT_OPTIONS = [
-  { value: "front", label: "Vorderseite" },
-  { value: "back", label: "Rückseite" },
-  { value: "both", label: "Beide Seiten" },
-] as const;
+const FIELD_ROLE_OPTIONS = (["prompt", "hint", "extra", "source"] as const).map((value) => ({ value, label: NOTE_FIELD_ROLE_LABELS[value] }));
 const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "single-choice", label: "Single Choice" },
@@ -109,7 +106,7 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
         aria-label={title}
         aria-pressed={isPinned}
         onClick={onToggle}
-        className={`grid size-11 shrink-0 place-items-center rounded-inset border transition ${
+        className={`grid size-control shrink-0 place-items-center rounded-inset border transition ${
           isPinned
             ? "border-core-border-strong bg-core-subtle text-core-action shadow-selection"
             : "border-core-border bg-core-surface text-core-border-strong hover:border-core-border-strong hover:text-core-action"
@@ -157,6 +154,7 @@ export function ManualCreationPanel({
   const [imageRegistryVersion, setImageRegistryVersion] = React.useState(0);
   const [isPreparingImage, setIsPreparingImage] = React.useState(false);
   const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
+  const [typeIn, setTypeIn] = React.useState(false);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
   const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
@@ -307,7 +305,18 @@ export function ManualCreationPanel({
       tags,
       mediaAttachments: Array.from(imageDraftsRef.current.values(), (image) => image.attachment),
       additionalFields,
+      typeIn: typeIn && (kind === "basic" || kind === "basic-reversed"),
     };
+  }
+
+  function addAdditionalField(role: AddableFieldRole) {
+    const id = `manual-field-${Date.now()}-${additionalFields.length}`;
+    setAdditionalFields((current) => {
+      const base = NOTE_FIELD_ROLE_LABELS[role];
+      const taken = current.filter((field) => field.name === base || field.name.startsWith(`${base} `)).length;
+      return [...current, { id, name: taken ? `${base} ${taken + 1}` : base, value: "", role }];
+    });
+    window.requestAnimationFrame(() => editorRootRef.current?.querySelector<HTMLElement>(`[data-additional-field-name="${id}"]`)?.focus());
   }
 
   function togglePinnedField(field: ActiveField) {
@@ -493,7 +502,7 @@ export function ManualCreationPanel({
     if (!validation.ok) return null;
     const { note, cards } = createNote({ content: validation.content, deckId: "preview", media: validation.media });
     return { note, card: cards[0] };
-  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, previewOpen, tags, workflow]);
+  }, [additionalFields, answerOptions, back, kind, correctOptionIndices, front, imageRegistryVersion, previewOpen, tags, typeIn, workflow]);
   const frontFieldActive = activeField === "front";
   const backFieldActive = activeField === "back";
   const shouldShowPdfViewer = documentMode && isPdfDocument(document) && Boolean(documentObjectUrl);
@@ -527,7 +536,7 @@ export function ManualCreationPanel({
             ) : (
               <label className="grid min-w-0 flex-[1_1_16rem] gap-2 core-body font-semibold text-core-secondary">
                 Neuer Kartenstapel
-                <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
+                <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
               </label>
             )}
             <button type="button" onClick={() => setUseNewDeck((value) => {
@@ -536,7 +545,7 @@ export function ManualCreationPanel({
               if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
-            })} className="inline-flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action">
+            })} className="inline-flex min-h-control min-w-0 max-w-full items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action">
               <Database size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
@@ -548,7 +557,7 @@ export function ManualCreationPanel({
           ) : null}
         </div>
 
-        <div className="grid min-w-0 gap-4 md:grid-cols-[max-content_max-content] md:items-center md:justify-start" data-testid="manual-card-options">
+        <div className="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options">
           <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
             <span className="core-body font-semibold text-core-text">Fragentyp</span>
             <CoreSegmentedControl
@@ -580,7 +589,7 @@ export function ManualCreationPanel({
 
       <div className="grid min-w-0 gap-4">
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-          <div className="flex min-h-11 items-center justify-between gap-2">
+          <div className="flex min-h-control items-center justify-between gap-2">
             <span>{kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"}</span>
             <PinFieldButton isPinned={pinnedFields.front} label={kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
           </div>
@@ -611,7 +620,7 @@ export function ManualCreationPanel({
               const removalLocked = answerOptions.length <= 2 || (isMultipleChoice && correctnessLocked);
               return (
                 <div key={index} className="flex min-w-0 items-center gap-2">
-                  <label className="grid size-11 shrink-0 place-items-center">
+                  <label className="grid size-control shrink-0 place-items-center">
                     <input
                       className="size-5"
                       type={isSingleChoice ? "radio" : "checkbox"}
@@ -623,7 +632,7 @@ export function ManualCreationPanel({
                       aria-invalid={Boolean(fieldErrors.correctOptions)}
                     />
                   </label>
-                  <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-control border border-core-border px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                  <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-control min-w-0 flex-1 rounded-control border border-core-border px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
                   <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
                 </div>
               );
@@ -634,7 +643,7 @@ export function ManualCreationPanel({
           </fieldset>
         ) : null}
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-          <div className="flex min-h-11 items-center justify-between gap-2">
+          <div className="flex min-h-control items-center justify-between gap-2">
             <span>{answerLabel}</span>
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
@@ -653,7 +662,7 @@ export function ManualCreationPanel({
                 <label className="grid gap-2 core-body font-semibold text-core-secondary">
                   Feldname
                   <input
-                    className="min-h-11 min-w-0 rounded-control border border-core-border px-3"
+                    className="min-h-control min-w-0 rounded-control border border-core-border px-3"
                     value={field.name}
                     data-additional-field-name={field.id}
                     aria-invalid={invalidAdditionalFieldIds.includes(field.id) || undefined}
@@ -666,8 +675,8 @@ export function ManualCreationPanel({
                   {invalidAdditionalFieldIds.includes(field.id) ? <span id={`additional-field-error-${field.id}`} className="core-caption font-medium text-core-text" role="alert">Bitte einen eindeutigen Feldnamen eingeben.</span> : null}
                 </label>
                 <label className="grid gap-2 core-body font-semibold text-core-secondary">
-                  Platzierung
-                  <CoreSelect ariaLabel={`Platzierung von ${field.name || `Feld ${index + 1}`}`} value={field.placement} options={FIELD_PLACEMENT_OPTIONS} onValueChange={(placement) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, placement: placement as AdditionalField["placement"] } : candidate))} />
+                  Rolle
+                  <CoreSelect ariaLabel={`Rolle von ${field.name || `Feld ${index + 1}`}`} value={field.role} options={FIELD_ROLE_OPTIONS} onValueChange={(role) => setAdditionalFields((current) => current.map((candidate) => candidate.id === field.id ? { ...candidate, role: role as AddableFieldRole } : candidate))} />
                 </label>
                 <div className="flex items-end gap-1">
                   {index > 0 ? <IconButton type="button" icon={ArrowUp} label={`${field.name || `Feld ${index + 1}`} nach oben`} onClick={() => setAdditionalFields((current) => {
@@ -693,18 +702,18 @@ export function ManualCreationPanel({
               }} imageActions={imageActions} ariaLabel={`Inhalt von ${field.name || `Feld ${index + 1}`}`} minHeightClass="min-h-24" />
             </div>
           ))}
-          <ActionButton type="button" variant="secondary" icon={Plus} className="w-fit" onClick={() => setAdditionalFields((current) => [...current, {
-            id: `manual-field-${Date.now()}-${current.length}`,
-            name: `Zusatzfeld ${current.length + 1}`,
-            value: "",
-            placement: "back",
-          }])}>Feld hinzufügen</ActionButton>
+          <NoteBlockControls
+            typeIn={kind === "basic" || kind === "basic-reversed" ? typeIn : null}
+            fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value)}
+            onTypeInChange={setTypeIn}
+            onAddField={addAdditionalField}
+          />
       </div>
 
       <div className="grid gap-4">
         <label className="grid gap-2 core-body font-semibold text-core-secondary">
           Tags
-          <input className="min-h-11 rounded-control border border-core-border px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
+          <input className="min-h-control rounded-control border border-core-border px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
         </label>
       </div>
       </div>

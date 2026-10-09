@@ -1,7 +1,7 @@
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
-import { BookOpen, ChevronRight, Home, Info, Layers, Plus, Save, Settings, Trash2, Type } from "lucide-react";
-import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, type ManualContentKind } from "../src/coreModel.ts";
+import { Ban, BookOpen, ChevronRight, Copy, Eye, Home, Info, Layers, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
+import { addNoteField, cardStudyFromReviewState, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { CoreMode, NewReviewOrder, NoteContent, NoteField } from "../src/coreTypes.ts";
 import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
 import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePresentationTheme } from "../src/notePresentation.ts";
@@ -54,6 +54,7 @@ import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
+import { NoteBlockControls } from "../src/ui/NoteBlockControls.tsx";
 import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
 import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
 import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
@@ -76,7 +77,7 @@ const child = createCoreDeck({ id: "catalog-europe", name: childName, source: "m
 const sampleDecks = [deck, child, ...["Biologie", "Medizin", "Sprachen", "Geschichte"].map((name, index) => ({ ...deck, id: `catalog-${index}`, parentDeckId: null, name, hierarchyPath: [name], cards: [] }))];
 
 export function Demo({ title, children, wide = false }: { title: string; children: React.ReactNode; wide?: boolean }) {
-  return <article className={`catalog-demo${wide ? " catalog-demo-wide" : ""}`}><h3>{title}</h3><div className="catalog-demo-content">{children}</div></article>;
+  return <article className={`catalog-demo${wide ? " catalog-demo-wide" : ""}`}><h4>{title}</h4><div className="catalog-demo-content">{children}</div></article>;
 }
 
 function ActionsDemo({ section }: { section: string }) {
@@ -133,7 +134,7 @@ function FormsDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="DeckSelect · Hierarchie und Suche"><DeckSelect ariaLabel="Zielstapel" value={deckId} onValueChange={setDeckId} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="DeckMultiSelect · eingeschlossene Unterstapel"><DeckMultiSelect value={scope} onValueChange={setScope} decks={sampleDecks} /></Demo>}
     {section === "forms" && <Demo title="CoreDatePicker"><CoreDatePicker today={today} value={date} min="2026-09-01" max="2027-12-31" ariaLabel="Lerndatum wählen" onValueChange={setDate} /></Demo>}
-    {section === "forms" && <Demo title="Native Felder · Typen, Auswahl und Validierung"><label className="catalog-field">Suche<input type="search" placeholder="Karten durchsuchen" className="min-h-11 rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Stapelname<input className="min-h-11 rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-11 rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-11 rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-row"><input type="checkbox" defaultChecked /> Auswahl aktiviert</label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-11 rounded-control border border-core-border px-3" /></label><label className="catalog-row"><input type="radio" name="catalog-radio" defaultChecked /> Einzelwahl</label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-11 rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
+    {section === "forms" && <Demo title="Native Felder · Typen, Auswahl und Validierung"><label className="catalog-field">Suche<input type="search" placeholder="Karten durchsuchen" className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Stapelname<input className="min-h-control rounded-control border border-core-border px-3 text-core-text" defaultValue="Biologie" /></label><label className="catalog-field">Neue Karten pro Tag<input type="number" defaultValue={20} min={0} className="min-h-control rounded-control border border-core-border px-3 text-core-text" /></label><label className="catalog-field">Ungültige Eingabe<input aria-invalid="true" aria-describedby="catalog-input-error" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span id="catalog-input-error" className="text-core-danger">Bitte einen Namen eingeben.</span></label><label className="catalog-row"><input type="checkbox" defaultChecked /> Auswahl aktiviert</label><label className="catalog-field">Mehrzeiliger Inhalt<textarea defaultValue="Zusätzlicher Kontext" className="rounded-control border border-core-border p-3" /></label><label className="catalog-field">Passwort<input type="password" defaultValue="beispiel" className="min-h-control rounded-control border border-core-border px-3" /></label><label className="catalog-row"><input type="radio" name="catalog-radio" defaultChecked /> Einzelwahl</label><label className="catalog-field">Deaktiviertes Feld<input disabled defaultValue="Nicht verfügbar" className="min-h-control rounded-control border border-core-border px-3 disabled:opacity-50" /></label></Demo>}
     {section === "forms" && <Demo title="FileDropField · APKG, Bild und Quelle" wide><div className="catalog-three">{(["apkg", "image", "document"] as const).map((kind) => <FileDropField key={kind} kind={kind} selected={Boolean(fileName)} onFile={(file) => setFileName(file.name)}>{fileName && <p>{fileName}</p>}</FileDropField>)}</div><FileDropField kind="apkg" selected disabled busy onFile={() => undefined}><p>Import wird analysiert …</p></FileDropField></Demo>}
   </>;
 }
@@ -259,6 +260,23 @@ function ContentDemo({ section }: { section: string }) {
   </>;
 }
 
+/** Building blocks change a real content; the list shows the fields and cards that result. */
+function NoteBlocksDemo() {
+  const [content, setContent] = useState(() => createBasicNote("catalog", "Was speichert ATP?", "Chemische Energie").note.content);
+  const blocks = noteBlocks(content);
+  return (
+    <Demo title="NoteBlockControls · Eintippen und Felder mit Rolle" wide>
+      <NoteBlockControls
+        typeIn={blocks.typeIn}
+        fieldRoles={blocks.fieldRoles}
+        onTypeInChange={(enabled) => setContent((current) => setNoteTypeIn(current, enabled))}
+        onAddField={(role) => setContent((current) => addNoteField(current, role).content)}
+      />
+      <ul className="grid gap-1 core-body text-core-text">{content.fields.map((field) => <li key={field.id}><strong>{field.name}</strong> · Rolle <code>{field.role}</code></li>)}</ul>
+    </Demo>
+  );
+}
+
 function PdfDemo() {
   const [src, setSrc] = useState<string | null>(null);
   const [selection, setSelection] = useState("");
@@ -334,7 +352,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     ["dashboard", "DashboardScreen · Tagesübersicht", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
-    ["manual", "ManualCreationPanel · Formular und Zusatzfelder", "Manuelle Erstellung"],
+    ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
     ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
     ["deck-content", "DecksScreen · Stapelinhalte einschließlich Unterstapel", "Stapelinhalte"],
@@ -352,7 +370,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "help" && <HelpScreen />}
     {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
-    {view === "manual" && <p className="core-caption text-core-muted">Zusatzfelder: ein Feld ohne Pfeile, mehrere Felder mit möglichen Verschieberichtungen. Platzierung auf Vorderseite, Rückseite oder beiden Seiten; Standard ist die Rückseite.</p>}
+    {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
     {["decks", "deck-content"].includes(view) && <DecksScreen contentDeckId={view === "deck-content" ? deck.id : null} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} cardPages={cardPages} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={async () => null} onDuplicateNote={async () => null} onDeleteNote={async () => null} onUndoDeleteNote={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
@@ -363,28 +381,53 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   </div>}</>;
 }
 
+const ICON_ROLES: Array<[LucideIcon, string]> = [[Plus, "Hinzufügen"], [Save, "Speichern"], [Pencil, "Bearbeiten"], [Copy, "Kopieren"], [Trash2, "Löschen"], [X, "Schließen"], [Eye, "Vorschau"], [Star, "Markieren"], [Ban, "Aussetzen"], [RefreshCw, "Synchronisieren"], [Sparkles, "KI-Variante"], [Settings, "Einstellungen"]];
+
+function IconRolesDemo() {
+  return <Demo title="Aktionen und ihre Icons"><ul className="catalog-icon-roles">{ICON_ROLES.map(([Icon, label]) => <li key={label}><span className="grid size-control place-items-center rounded-control bg-core-surface-muted text-core-action"><Icon size={18} aria-hidden="true" /></span>{label}</li>)}</ul></Demo>;
+}
+
+/** Runtime, interaction and density states side by side, composed from the real components. */
+function StatesDemo({ section }: { section: "runtime" | "interaction" | "density" }) {
+  const rows = createDeckLibraryModel(sampleDecks, { now: `${today}T12:00:00Z`, timeZone: "Europe/Berlin" }).rows;
+  const row = rows.find((entry) => entry.id === deck.id)!;
+  const [tab, setTab] = useState("front");
+  return <>
+    {section === "runtime" && <Demo title="Laden, leer, Hinweis und Fehler" wide><div className="catalog-two"><CardPresentationSurface presentation={null} title="Lädt" loadingLabel="Kartendarstellung wird vorbereitet …" /><EmptyState icon={BookOpen} title="Leer" body="Noch keine Karten in diesem Stapel." /></div>{(["info", "success", "warning", "error"] as const).map((tone) => <StatusMessage key={tone} tone={tone}>{({ info: "Synchronisierung steht aus.", success: "Gespeichert.", warning: "Medien fehlen.", error: "Import fehlgeschlagen." })[tone]}</StatusMessage>)}</Demo>}
+    {section === "interaction" && <Demo title="Standard, ausgewählt, ungültig, deaktiviert und beschäftigt" wide><div className="catalog-row"><ActionButton variant="primary">Standard</ActionButton><ActionButton variant="secondary">Sekundär</ActionButton><ActionButton variant="primary" disabled>Deaktiviert</ActionButton><ActionButton variant="primary" loading>Lädt …</ActionButton></div><CoreSegmentedControl ariaLabel="Ausgewählter Zustand" value={tab} options={[{ value: "front", label: "Ausgewählt" }, { value: "back", label: "Nicht ausgewählt" }]} onValueChange={setTab} /><label className="catalog-field">Ungültig<input aria-invalid="true" className="min-h-control rounded-control border border-core-danger px-3" defaultValue="" /><span className="text-core-danger">Bitte einen Namen eingeben.</span></label></Demo>}
+    {section === "density" && <Demo title="DeckSummaryRow · schmal und breit" wide><div className="catalog-density"><div><p className="core-caption text-core-muted">Mobil · 22 rem</p><DeckSummaryRow row={row} density="responsive" leadingControl={<ChevronRight size={18} />} actions={<IconButton label="Stapeloptionen" icon={Settings} variant="ghost" />} learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }} studyAction={<IconButton label="Jetzt lernen" icon={BookOpen} variant="ghost" />} /></div><div><p className="core-caption text-core-muted">Desktop · volle Breite</p><DeckSummaryHeader /><DeckSummaryRow row={row} density="responsive" leadingControl={<ChevronRight size={18} />} actions={<IconButton label="Stapeloptionen" icon={Settings} variant="ghost" />} learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }} studyAction={<IconButton label="Jetzt lernen" icon={BookOpen} variant="ghost" />} /></div></div></Demo>}
+  </>;
+}
+
+/** Catalog chapters in the order of the shared UI catalog structure. */
+export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons" | "states";
+
 export const DEMO_GROUPS = [
-  { id: "screens", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], render: () => <>{["dashboard", "learn", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
-  { id: "colors", title: "Farbauswahl", description: "Farbkreis, Schnellfarben und Farb-Popover.", components: ["ColorWheelPicker", "ColorToolButton", "ColorPopover"], render: () => <ContentDemo section="colors" /> },
-  { id: "grundlagen", title: "Flächen und Leerzustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
-  { id: "headings", title: "Überschriften", description: "Seitentitel und Titel mit Bereichssteuerung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
-  { id: "aktionen", title: "Buttons und Aktionen", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
-  { id: "auswahl", title: "Segmentierte Controls", description: "Reguläre und kompakte Segmente, gleitende Tabs und CoRe-Modus.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreModeControl"], render: () => <ControlsDemo section="segments" /> },
-  { id: "formulare", title: "Eingaben und Auswahlfelder", description: "Text, Zahl, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei und zusammengesetzte Einstellungsformulare.", components: ["CoreSelect", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel", "AuthGateScreen", "SimulatorScreen"], render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /><ProductViewsDemo kind="auth" /><ProductViewsDemo kind="simulator" /></> },
-  { id: "feedback", title: "Status- und Toastmeldungen", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
-  { id: "badges", title: "Badges und Kennzeichnungen", description: "Bestehende lokale Beschriftungen für Original, Kartenseite und Synchronisierung.", components: [], render: BadgesDemo },
-  { id: "tooltips", title: "Tooltips", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
-  { id: "progress", title: "Fortschritt und Ladezustände", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
-  { id: "dialogs", title: "Dialoge und Speicherleisten", description: "Bestätigungen, Kartenvorschau, Sitzungsdialog, Speicherentscheidung und Konfliktvergleich.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay", "SyncConflictPanel"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /><ProductViewsDemo kind="conflict" /></> },
-  { id: "navigation", title: "Navigation", description: "Responsive Hauptnavigation und Sprunglinks.", components: ["AppNavigation", "InPageNavigation"], render: () => <NavigationDemo section="navigation" /> },
-  { id: "stapel", title: "Tabellen, Bäume und Menüs", description: "Gemeinsame Tabellenzeile mit oder ohne Lernstatus, Stapelbaum und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], render: () => <DecksDemo section="stapel" /> },
-  { id: "charts", title: "Kennzahlen und Diagramme", description: "Kennzahlen, Ringdiagramme, Heatmap und die produktiven Statistikdiagramme.", components: ["StatTile", "SegmentedDonut", "StudyHeatmap", "StatisticsScreenContent"], render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /><ProductViewsDemo kind="statistics" /></> },
-  { id: "symbols", title: "Icons und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
-  { id: "inhalt", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface"], render: () => <ContentDemo section="inhalt" /> },
-  { id: "note-content", title: "Kartenbausteine", description: "Renderer und Antwort-Host des Note-/Card-Modells für Feldrollen, Lücken, Bildverdeckung, Eintippen, Auswahl und Formeln.", components: ["NoteCardContent"], render: NotePresentationDemos },
-  { id: "editor", title: "Texteditor und Werkzeuge", description: "Rich-Text-Toolbar, Lückentext, Bilder und Zusatzwerkzeuge.", components: ["RichTextEditor"], render: () => <ContentDemo section="editor" /> },
-  { id: "media", title: "Medien und Dokumente", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], render: () => <ContentDemo section="media" /> },
-] as const;
+  { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
+  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Reguläre und kompakte Segmente, gleitende Tabs und CoRe-Modus.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreModeControl"], render: () => <ControlsDemo section="segments" /> },
+  { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei und zusammengesetzte Einstellungsformulare.", components: ["CoreSelect", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel", "AuthGateScreen", "SimulatorScreen"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /><ProductViewsDemo kind="auth" /><ProductViewsDemo kind="simulator" /></> },
+  { id: "badges", section: "primitive", title: "Badge", description: "Bestehende lokale Beschriftungen für Original, Kartenseite und Synchronisierung.", components: [], render: BadgesDemo },
+  { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
+  { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
+  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
+  { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigungen, Kartenvorschau, Sitzungsdialog, Speicherentscheidung und Konfliktvergleich.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay", "SyncConflictPanel"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /><ProductViewsDemo kind="conflict" /></> },
+  { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbkreis, Schnellfarben und Farb-Popover.", components: ["ColorWheelPicker", "ColorToolButton", "ColorPopover"], render: () => <ContentDemo section="colors" /> },
+  { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
+  { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel und Titel mit Bereichssteuerung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
+  { id: "navigation", section: "shared", title: "AppNavigation und InPageNavigation", description: "Responsive Hauptnavigation und Sprunglinks.", components: ["AppNavigation", "InPageNavigation"], render: () => <NavigationDemo section="navigation" /> },
+  { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Gemeinsame Tabellenzeile mit oder ohne Lernstatus, Stapelbaum und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },
+  { id: "charts", section: "fachmuster", title: "Kennzahlen und Diagramme", description: "Kennzahlen, Ringdiagramme, Heatmap und die produktiven Statistikdiagramme.", components: ["StatTile", "SegmentedDonut", "StudyHeatmap", "StatisticsScreenContent"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /><ProductViewsDemo kind="statistics" /></> },
+  { id: "inhalt", section: "fachmuster", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface"], wide: true, render: () => <ContentDemo section="inhalt" /> },
+  { id: "note-content", section: "fachmuster", title: "Kartenbausteine", description: "Renderer und Antwort-Host des Note-/Card-Modells für Feldrollen, Lücken, Bildverdeckung, Eintippen, Auswahl und Formeln.", components: ["NoteCardContent"], wide: true, render: NotePresentationDemos },
+  { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
+  { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
+  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
+  { id: "symbols", section: "icons", title: "Iconflächen und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
+  { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
+  { id: "laufzeit", section: "states", title: "Laufzeit- und Rückmeldungszustände", description: "Laden, leer, Hinweis, Erfolg, Warnung und Fehler.", components: [], wide: true, render: () => <StatesDemo section="runtime" /> },
+  { id: "interaktion", section: "states", title: "Interaktionszustände als visuelle Reihe", description: "Standard, ausgewählt, ungültig, deaktiviert und beschäftigt.", components: [], wide: true, render: () => <StatesDemo section="interaction" /> },
+  { id: "dichte", section: "states", title: "Responsive Informationsdichte", description: "Dieselbe Stapelzeile schmal und breit.", components: [], wide: true, render: () => <StatesDemo section="density" /> },
+] satisfies Array<{ id: string; section: CatalogSectionId; title: string; description: string; components: string[]; wide?: boolean; render: () => React.ReactNode }>;
 
 const noteDemoField = (id: string, role: NoteField["role"], html: string): NoteField => ({ id, name: id, role, html });
 const noteDemoContent = (fields: NoteField[], interaction: NoteContent["interaction"], speech: NoteContent["speech"] = []): NoteContent => ({ schemaVersion: 1, fields, interaction, speech, tags: [] });
@@ -430,7 +473,7 @@ function NoteDemo({ item }: { item: typeof noteDemoGraphs[number] }) {
   const [surface, setSurface] = React.useState<"review" | "preview">("review");
   const card = item.graph.cards.find((candidate) => candidate.promptKey === key)!;
   return <article className="catalog-demo catalog-demo-wide" data-note-demo={item.id}>
-    <h3>{item.title}</h3>
+    <h4>{item.title}</h4>
     <div className="catalog-demo-content grid gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <CoreSegmentedControl ariaLabel="Darstellung" value={surface} options={[{ value: "review", label: "Review" }, { value: "preview", label: "Vorschau" }]} onValueChange={(value) => { setSurface(value); setRevealed(false); }} />

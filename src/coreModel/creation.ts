@@ -1,11 +1,11 @@
 import type { ChoiceOption, NoteContent, NoteField, RevealPrompt } from "../coreTypes.ts";
+import type { AddableFieldRole } from "./noteEditor.ts";
 import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
 import { normalizeTags } from "./coreValues.ts";
 import { clozeOrdinals } from "./noteContent.ts";
 
 /** What the manual editor offers today; it only shapes the universal content, it is no persisted type. */
 export type ManualContentKind = "basic" | "basic-reversed" | "cloze" | "single-choice" | "multiple-choice";
-export type ManualFieldPlacement = "front" | "back" | "both";
 
 export interface ManualNoteInput {
   kind: ManualContentKind;
@@ -13,7 +13,10 @@ export interface ManualNoteInput {
   back: string;
   answerOptions?: string[];
   correctOptionIndices?: number[];
-  additionalFields?: Array<{ id?: string; name?: string; value?: string; placement?: ManualFieldPlacement }>;
+  /** Fields with a role; a question field joins the forward question and the reverse answer. */
+  additionalFields?: Array<{ id?: string; name?: string; value?: string; role?: AddableFieldRole }>;
+  /** The forward card of a question/answer content asks to type the back. */
+  typeIn?: boolean;
   tags?: unknown;
 }
 
@@ -80,7 +83,7 @@ export function createManualNoteContent(input: ManualNoteInput): NoteContent {
     .map((field, index): NoteField => ({
       id: additionalFieldId(field.id, index, used),
       name: String(field.name).trim(),
-      role: field.placement === "back" ? "extra" : "prompt",
+      role: field.role ?? "extra",
       html: String(field.value ?? ""),
     }));
   const fields: NoteField[] = [
@@ -90,7 +93,7 @@ export function createManualNoteContent(input: ManualNoteInput): NoteContent {
   ];
   const questionFieldIds = ["front", ...additional.filter((field) => field.role === "prompt").map((field) => field.id)];
   const prompts: RevealPrompt[] = [
-    { key: "forward", name: "Vorwärts", instruction: "", questionFieldIds, answerFieldIds: ["back"], requires: null, typeInFieldId: null },
+    { key: "forward", name: "Vorwärts", instruction: "", questionFieldIds, answerFieldIds: ["back"], requires: null, typeInFieldId: input.typeIn ? "back" : null },
     ...(input.kind === "basic-reversed"
       ? [{ key: "reverse", name: "Rückwärts", instruction: "", questionFieldIds: ["back"], answerFieldIds: questionFieldIds, requires: null, typeInFieldId: null }]
       : []),

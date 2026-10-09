@@ -6,10 +6,10 @@ import { DECK_ICON_PICKER_KEYS, DeckAppearanceIcon, deckIconOptions } from "./de
 
 test("deck appearance uses the selected color for icon, border and translucent round surface", () => {
   const markup = renderToStaticMarkup(
-    <DeckAppearanceIcon appearance={{ iconKey: "brain", iconColor: "#047857" }} className="size-11" />,
+    <DeckAppearanceIcon appearance={{ iconKey: "brain", iconColor: "#047857" }} className="size-control" />,
   );
 
-  assert.match(markup, /rounded-round border-strong/);
+  assert.match(markup, /rounded-control border size-control/);
   assert.match(markup, /color:#047857/);
   assert.match(markup, /border-color:#047857/);
   assert.match(markup, /background-color:#0478571f/);

@@ -4,9 +4,7 @@ import type { NotePresentationResult } from "../notePresentation.ts";
 import { StatusMessage } from "./feedbackUi.tsx";
 
 const PRESENTATION_FONT_SOURCES = [
-  { path: "/fonts/synonym-400.woff2", weight: 400 },
-  { path: "/fonts/synonym-500.woff2", weight: 500 },
-  { path: "/fonts/synonym-600.woff2", weight: 600 },
+  { path: "/fonts/manrope/manrope-variable.woff2", weight: "200 800" },
 ] as const;
 
 let cachedPresentationFontCss = "";
@@ -27,7 +25,7 @@ function loadPresentationFontCss(): Promise<string> {
     const response = await fetch(path);
     if (!response.ok) throw new Error(`Kartenschrift konnte nicht geladen werden: ${response.status}`);
     const dataUrl = await blobDataUrl(await response.blob());
-    return `@font-face{font-family:Synonym;src:url(${dataUrl}) format('woff2');font-style:normal;font-weight:${weight};font-display:swap}`;
+    return `@font-face{font-family:"Manrope Variable";src:url(${dataUrl}) format('woff2');font-style:normal;font-weight:${weight};font-display:swap}`;
   })).then((rules) => {
     cachedPresentationFontCss = rules.join("");
     return cachedPresentationFontCss;

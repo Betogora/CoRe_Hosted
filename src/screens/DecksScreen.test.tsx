@@ -451,7 +451,7 @@ test("the mark belongs to the content and is shown on every card of the selected
   assert.match(unmarkedMarkup, /aria-label="Karte markieren"/);
 });
 
-test("the editor names how many cards a content with siblings has", () => {
+test("the editor names the card's position and lists its siblings with deck and learning state", () => {
   const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.", { reverse: true });
   const deck = deckOf("deck-bio", "Biologie", [graph]);
   const markup = renderScreen([deck], {
@@ -460,8 +460,31 @@ test("the editor names how many cards a content with siblings has", () => {
     cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph, graph.cards[1].id) }) },
   });
 
-  assert.match(markup, />Frage und Antwort mit Rückrichtung · 2 Karten aus diesem Inhalt</);
+  assert.match(markup, />Frage und Antwort mit Rückrichtung · Rückwärts · 2 Karten aus diesem Inhalt</);
   assert.equal([...markup.matchAll(/aria-label="Feld (Vorderseite|Rückseite)"/g)].length, 2);
+  const siblings = markup.slice(markup.indexOf('data-testid="card-siblings"'));
+  assert.match(siblings, /<button[^>]*>.*?Vorwärts.*?Biologie · neu, ohne Lernstand/);
+  assert.match(siblings, /aria-current="true">.*?Rückwärts/);
+
+  const cloze = manualGraph("deck-bio", { kind: "cloze", front: "{{c1::ATP}} ist ein {{c2::Energieträger}} der {{c3::Zelle}}.", back: "" });
+  const clozeDeck = deckOf("deck-bio", "Biologie", [cloze]);
+  const clozeMarkup = renderScreen([clozeDeck], {
+    selectedDeckId: clozeDeck.id,
+    selectedCardId: cloze.cards[1].id,
+    cardPages: { [clozeDeck.id]: cardPage(clozeDeck.id, [cloze], { selected: selectedOf(cloze, cloze.cards[1].id) }) },
+  });
+  assert.match(clozeMarkup, />Lückentext · Lücke 2 von 3</);
+});
+
+test("outdated AI rephrasings are labelled and offer a targeted regeneration", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const card = addCardVariant(graph.cards[0], { front: "Wofür steht ATP?", back: "Energie", variantLevel: 2, qualityStatus: "active", isActive: true, meta: { generationSource: "ai_generated" } });
+  const outdated = { ...card, variants: card.variants.map((variant) => ({ ...variant, isActive: false, meta: { ...variant.meta, outdated: true } })) };
+  const stale = { ...graph, cards: [outdated] };
+  const markup = renderEditorFor(stale);
+  assert.match(markup, />veraltet</);
+  assert.match(markup, /diese Umformulierung wird nicht mehr abgefragt/);
+  assert.match(markup, />KI-Variante neu erzeugen</);
 });
 
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {
@@ -493,7 +516,7 @@ function renderEditorFor(graph: NoteGraph) {
 }
 
 test("detail editor renders one rich-text editor per content field plus choice options and tags", () => {
-  const imageMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "basic", front: '<p>Vorne</p><img src="front-image.png">', back: '<p>Hinten</p><img src="back-image.png">', additionalFields: [{ name: "Quelle", value: "Lehrbuch", placement: "back" }], tags: ["bio", "atp"] }));
+  const imageMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "basic", front: '<p>Vorne</p><img src="front-image.png">', back: '<p>Hinten</p><img src="back-image.png">', additionalFields: [{ name: "Quelle", value: "Lehrbuch", role: "extra" }], tags: ["bio", "atp"] }));
   assert.match(imageMarkup, />Frage und Antwort</);
   assert.match(imageMarkup, /aria-label="Feld Vorderseite"/);
   assert.match(imageMarkup, /aria-label="Feld Rückseite"/);
@@ -535,4 +558,22 @@ test("sync conflicts are named in the row and in the editor", () => {
   });
   assert.equal([...markup.matchAll(/Synchronisierung klären/g)].length, 2);
   assert.match(markup, /Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange\./);
+});
+
+test("the editor offers direction and building blocks where the content structure allows them", () => {
+  const basic = renderEditorFor(basicGraph("deck-editor", "Was ist ATP?", "Energieträger"));
+  assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-label="Lernrichtung"/);
+  const basicBlocks = basic.slice(basic.indexOf('data-testid="note-blocks"'));
+  assert.match(basicBlocks, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicBlocks, new RegExp(`${label}</button>`));
+
+  const cloze = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "" }));
+  assert.doesNotMatch(cloze, /data-testid="note-direction"/);
+  const clozeBlocks = cloze.slice(cloze.indexOf('data-testid="note-blocks"'));
+  assert.doesNotMatch(clozeBlocks, /Antwort eintippen/);
+  assert.match(clozeBlocks, /Hinweis<\/button>/);
+
+  const importedGraph = basicGraph("deck-editor", "Was ist ATP?", "Energieträger");
+  const imported = renderEditorFor({ ...importedGraph, note: { ...importedGraph.note, importedContentRevision: importedGraph.note.contentRevision } });
+  assert.doesNotMatch(imported, /data-testid="note-direction"|data-testid="note-blocks"| entfernen"/);
 });

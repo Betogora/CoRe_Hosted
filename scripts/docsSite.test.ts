@@ -101,6 +101,6 @@ test("Alle Kataloggruppen rendern ihre echten Komponenten mit gültigen Demodate
   for (const group of DEMO_GROUPS) {
     const rendered = renderToStaticMarkup(React.createElement(CoreTooltipProvider, null, React.createElement(SuccessToastProvider, null, React.createElement(group.render))));
     assert.match(rendered, /class="catalog-demo/);
-    assert.match(rendered, /<h3>/);
+    assert.match(rendered, /<h4>/);
   }
 });

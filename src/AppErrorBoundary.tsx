@@ -14,7 +14,7 @@ export function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps
         <div className="flex items-start gap-3">
           <OrbIcon icon={AlertTriangle} className="bg-core-danger-soft text-core-text" />
           <div className="min-w-0">
-            <p className="core-control-label uppercase tracking-wide text-core-text">Unerwarteter Fehler</p>
+            <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Unerwarteter Fehler</p>
             <h1 className="core-heading-1 mt-1 text-core-text">CoRe konnte nicht geladen werden</h1>
           </div>
         </div>

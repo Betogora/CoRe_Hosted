@@ -26,7 +26,7 @@ import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { bootAuthenticatedWorkspace, startAuthenticatedWorkspaceSessionLifecycle } from "./authenticatedWorkspaceBoot.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
-import { addCardVariant, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, setCardSuspended, setNoteMarked } from "./coreModel.ts";
+import { createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
 import { cardVariantSource } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { createWorldCapitalsImportGraph } from "./fixtures/worldCapitals.ts";
@@ -1497,7 +1497,7 @@ export function App() {
 
     const current = await workspaceRepository.loadCardBody(cardId);
     const draft = createAiGeneratedVariantDraft(source, current, generated);
-    const saved = await workspaceRepository.updateCard(cardId, (card) => addCardVariant(card, { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } }));
+    const saved = await workspaceRepository.updateCard(cardId, (card) => replaceOutdatedVariants(card, { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } }));
     if (!saved) throw new AiCardVariantContractError("save_failed", "Die KI-Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     return generated;
@@ -1728,10 +1728,10 @@ export function App() {
           body="Die verlinkte Lernsitzung kann nicht geöffnet werden, weil der Stapel gelöscht wurde oder in diesem Account nicht verfügbar ist."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
+              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-control items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
+              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-control items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
                 Zur Kartenverwaltung
               </button>
             </div>
@@ -2091,7 +2091,7 @@ export function App() {
 
   return (
     <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-core-text xl:h-dvh xl:overflow-y-hidden">
-      <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-surface xl:h-dvh xl:min-h-0 xl:grid-cols-[9.5rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
+      <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-canvas xl:h-dvh xl:min-h-0 xl:grid-cols-[15rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}
           activeView={activeView}

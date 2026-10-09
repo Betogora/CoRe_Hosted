@@ -200,7 +200,7 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
             href={`#${item.id}`}
             aria-current={active && compact !== desktop ? "location" : undefined}
             data-in-page-navigation-link={item.id}
-            className={`-ml-px flex min-h-11 min-w-0 items-center gap-3 rounded-r-control border-l-strong px-3 py-2 core-body no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus ${active ? "border-core-action bg-core-subtle font-semibold text-core-text" : "border-transparent font-medium text-core-secondary hover:bg-core-subtle hover:text-core-text"}`}
+            className={`-ml-px flex min-h-control min-w-0 items-center gap-3 rounded-r-control border-l-strong px-3 py-2 core-body no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus ${active ? "border-core-action bg-core-subtle font-semibold text-core-text" : "border-transparent font-medium text-core-secondary hover:bg-core-subtle hover:text-core-text"}`}
             onClick={(event) => selectSection(event, item, compact)}
           >
             <Icon className="size-[1.125rem] shrink-0" aria-hidden="true" />

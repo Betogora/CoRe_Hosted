@@ -48,8 +48,8 @@ test("theme declares all twelve palette primitives and a complete dark semantic 
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
   assert.match(dark, /color-scheme:\s*dark/);
-  assert.match(styles, /--core-border:\s*#d5dbe5/);
-  assert.match(dark, /--core-border:\s*#536078/);
+  assert.match(styles, /--core-border:\s*#e4e7ec/);
+  assert.match(dark, /--core-border:\s*#2b323d/);
   assert.equal((styles.match(/--core-group-depth-0:\s*var\(--core-surface\)/g) ?? []).length, 2);
   assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
   assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
@@ -92,8 +92,9 @@ test("only individually overflowing deck names use at most two lines", () => {
 
 test("six group depths retain endpoints and darken in light mode / lighten in dark mode", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const lightDepths = ["ffffff", "f8f9fb", "f1f4f7", "ebeef4", "e4e9f0", "dde3ec"];
-  const darkDepths = ["262e3a", "2a3340", "2e3846", "323c4b", "364151", "3a4657"];
+  // Soft Minimal keeps the first levels close to the surface; the steps grow towards the deepest level.
+  const lightDepths = ["ffffff", "fafbfc", "f5f6f9", "f0f2f6", "eaedf2", "dde3ec"];
+  const darkDepths = ["1b2029", "1e242d", "212832", "252c37", "29313c", "2d3541"];
 
   for (let depth = 1; depth <= 4; depth += 1) {
     assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
@@ -106,10 +107,10 @@ test("six group depths retain endpoints and darken in light mode / lighten in da
     const tokens = colors === lightDepths ? lightTokens : darkTokens;
     const actualColors = colors.map((_, depth) => tokenColor(`group-depth-${depth}`, tokens));
     const channels = actualColors.map((color) => color.match(/../g)!.map((channel) => Number.parseInt(channel, 16)));
-    for (let depth = 0; depth < 6; depth += 1) {
+    const direction = colors === lightDepths ? -1 : 1;
+    for (let depth = 1; depth < 6; depth += 1) {
       for (let channel = 0; channel < 3; channel += 1) {
-        const interpolated = channels[0][channel] + (channels[5][channel] - channels[0][channel]) * depth / 5;
-        assert.equal(channels[depth][channel], Math.round(interpolated));
+        assert.ok(Math.sign(channels[depth][channel] - channels[depth - 1][channel]) === direction, `depth ${depth} channel ${channel}`);
       }
     }
   }
@@ -121,18 +122,19 @@ test("six group depths retain endpoints and darken in light mode / lighten in da
 
 test("theme exposes the six canonical typography levels and AA primary contrast", () => {
   for (const [role, size, leading, weight, family] of [
-    ["heading-1", "2.25rem", "2.75rem", "heading", "Amulya"],
-    ["heading-2", "1.75rem", "2.25rem", "heading", "Amulya"],
-    ["heading-3", "1.375rem", "1.875rem", "control", "Amulya"],
-    ["body-large", "1rem", "1.5rem", "body", "Synonym"],
-    ["body", "0.875rem", "1.25rem", "body", "Synonym"],
-    ["caption", "0.75rem", "1rem", "body", "Synonym"],
+    ["heading-1", "1.875rem", "2.25rem", "heading"],
+    ["heading-2", "1.375rem", "1.75rem", "heading"],
+    ["heading-3", "1.125rem", "1.5rem", "emphasis"],
+    ["body-large", "1rem", "1.5rem", "body"],
+    ["body", "0.875rem", "1.25rem", "body"],
+    ["caption", "0.75rem", "1rem", "body"],
   ]) {
     assert.ok(lightTokens.includes(`--core-type-${role}: ${size};`));
     assert.ok(lightTokens.includes(`--core-leading-${role}: ${leading};`));
-    assert.ok(styles.includes(`font: var(--core-weight-${weight}) var(--core-type-${role})/var(--core-leading-${role}) ${family},`));
+    assert.ok(styles.includes(`font: var(--core-weight-${weight}) var(--core-type-${role})/var(--core-leading-${role}) var(--core-font-sans);`));
   }
-  for (const [role, weight] of [["body", 400], ["control", 500], ["emphasis", 600], ["heading", 700]]) {
+  assert.match(lightTokens, /--core-font-sans: "Manrope Variable", Manrope,/);
+  for (const [role, weight] of [["body", 400], ["control", 600], ["emphasis", 650], ["heading", 650]]) {
     assert.ok(lightTokens.includes(`--core-weight-${role}: ${weight};`));
   }
   for (const tokens of [lightTokens, darkTokens]) {

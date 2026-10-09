@@ -12,16 +12,13 @@ function fakeDocument() {
   };
 }
 
-test("lädt Fonts nachgelagert und Figma-Capture ausschließlich auf ausdrückliche Entwicklungsfreigabe", () => {
+test("lädt Figma-Capture ausschließlich auf ausdrückliche Entwicklungsfreigabe und keine externen Schriften", () => {
   const production = fakeDocument();
   loadDeferredBrowserAssets(production);
-  assert.equal(production.nodes.some((node) => node.id === "core-fontshare-styles"), true);
-  assert.equal(production.nodes.find((node) => node.id === "core-fontshare-styles")?.href.includes("synonym"), false);
-  assert.equal(production.nodes.some((node) => node.id === "core-figma-capture"), false);
+  assert.deepEqual(production.nodes, []);
 
   const development = fakeDocument();
   loadDeferredBrowserAssets(development, { enableFigmaCapture: true });
   loadDeferredBrowserAssets(development, { enableFigmaCapture: true });
   assert.equal(development.nodes.filter((node) => node.id === "core-figma-capture").length, 1);
-  assert.equal(development.nodes.filter((node) => node.id === "core-fontshare-styles").length, 1);
 });

@@ -28,6 +28,7 @@ export interface ManualCreationInput {
   correctOptionIndices?: number[];
   mediaAttachments?: ManualImageAttachment[];
   additionalFields?: ManualNoteInput["additionalFields"];
+  typeIn?: boolean;
 }
 
 export type ManualValidation =
@@ -211,6 +212,7 @@ function manualNoteInput(input: ManualCreationInput): ManualNoteInput {
     answerOptions: (input.answerOptions ?? []).map((option) => String(option)),
     correctOptionIndices: input.correctOptionIndices ?? [],
     additionalFields: input.additionalFields ?? [],
+    typeIn: input.typeIn === true,
     tags: input.tags,
   };
 }

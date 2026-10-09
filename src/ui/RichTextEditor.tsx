@@ -1,5 +1,5 @@
 import React from "react";
-import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, Palette, PenLine, Underline, Unlink } from "lucide-react";
+import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, Palette, PenLine, Sigma, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
@@ -126,7 +126,7 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: 
     <CoreTooltip label={label}>
       <button
         type="button"
-        className="grid size-11 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60"
+        className="grid size-control place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60"
         aria-label={label}
         disabled={disabled}
         onMouseDown={(event) => {
@@ -463,6 +463,20 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     setClozeStatus(`Lücke c${groupId} erstellt.`);
   }
 
+  /** Wraps the selection in KaTeX inline delimiters; without a selection the cursor lands between them. */
+  function addFormula() {
+    const editor = editorRef.current;
+    const range = getRestoredEditorRange();
+    const selectionOffsets = captureTextSelection();
+    if (!editor || !range || !selectionOffsets) return;
+    const selectedContent = range.extractContents();
+    const replacement = document.createDocumentFragment();
+    replacement.append(document.createTextNode("\\("), selectedContent, document.createTextNode("\\)"));
+    range.insertNode(replacement);
+    restoreTextSelection({ start: selectionOffsets.start + 2, end: selectionOffsets.end + 2 });
+    emitChange();
+  }
+
   function deleteTextRange(startOffset: number, endOffset: number) {
     const editor = editorRef.current;
     if (!editor || startOffset >= endOffset || typeof document === "undefined") return;
@@ -625,8 +639,9 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           </>
         ) : null}
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
+        <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
         <CoreTooltip label="Weitere Textwerkzeuge">
-          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
+          <button type="button" className="grid size-control shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
             <MoreHorizontal size={17} aria-hidden="true" />
           </button>
         </CoreTooltip>

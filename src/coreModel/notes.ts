@@ -93,6 +93,27 @@ function parseOrThrow(content: unknown) {
  * Removed cards are only proposed; the caller must obtain confirmation before deleting them.
  * Content that is unchanged after sanitizing keeps the previous note and its revisions.
  */
+/** Question and answer HTML a reveal card is asked with; AI rephrasings are made from exactly these fields. */
+function promptSourceHtml(content: NoteContent, promptKey: string): string | null {
+  if (content.interaction.kind !== "reveal") return null;
+  const prompt = content.interaction.prompts.find((candidate) => candidate.key === promptKey);
+  if (!prompt) return null;
+  const html = (ids: string[]) => ids.map((id) => content.fields.find((field) => field.id === id)?.html ?? "").join("\u001f");
+  return `${html(prompt.questionFieldIds)}\u001e${html(prompt.answerFieldIds)}`;
+}
+
+/** Active rephrasings of a card whose question or answer changed are outdated: no longer asked, but kept for regeneration. */
+function markVariantsOutdated(card: Card, updatedAt: string): Card {
+  if (!card.variants.some((variant) => variant.isActive && !variant.deletedAt)) return card;
+  return {
+    ...card,
+    variants: card.variants.map((variant) => variant.isActive && !variant.deletedAt
+      ? { ...variant, isActive: false, meta: { ...variant.meta, outdated: true }, updatedAt, revision: variant.revision + 1 }
+      : variant),
+    updatedAt,
+  };
+}
+
 export function planNoteContentChange(
   previous: { note: Note; cards: readonly Card[] },
   nextContent: unknown,
@@ -123,7 +144,8 @@ export function planNoteContentChange(
   for (const key of parsed.promptKeys) {
     const card = cardsByKey.get(key);
     if (card) {
-      keptCards.push(card);
+      const sourceChanged = changed && promptSourceHtml(previousParsed.value, key) !== promptSourceHtml(parsed.value, key);
+      keptCards.push(sourceChanged ? markVariantsOutdated(card, updatedAt) : card);
       cardsByKey.delete(key);
     }
     else newCards.push(createCard(note, deckId, key, updatedAt));

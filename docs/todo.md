@@ -251,26 +251,8 @@ zurückgesetzt, Hosted-Smoke grün (siehe `history.md`). Offen ist nur noch:
 **Ziel:** Die neuen Bausteine sind auch manuell nutzbar. Ausgeführt nach dem
 Cutover auf `main`.
 
-- [ ] **K6.1 Ein Editor.** Manuelle Erstellung und Bearbeitung arbeiten auf dem
-      Inhalt: Felder mit Rollen, Bausteine zuschaltbar, Hinweis-, Zusatz- und
-      Quellenfelder, Eintippen, Auswahl, Richtungen, Formeln. Der Editor zeigt,
-      wie viele Karten eine Änderung betrifft.
-  - **Wo:** `src/screens/ManualCreationPanel.tsx`, Editorteil von
-    `src/screens/DecksScreen.tsx`, `src/ui/RichTextEditor.tsx`.
-  - **Gestaltung:** vorhandene Optionsgruppen der heutigen Erstellung
-    erweitern (Antwortoptionen-Zeile), keine neue Kartentyp-Auswahl. Für
-    neue sichtbare Bedienelemente mit mehreren plausiblen Varianten den Skill
-    `visual-ab-review` nutzen.
-- [ ] **K6.2 Abfrageänderungen.** Hinzugefügte Lücken oder Richtungen erzeugen
-      Karten; für entfallende Abfragen nennt ein Bestätigungsdialog die Karten
-      samt Lernstand und löscht sie erst nach Zustimmung (nutzt
-      `planNoteContentChange` aus K2.3).
-- [ ] **K6.3 Kartenverwaltung.** Listet weiterhin Karten, zeigt Geschwister
-      (z. B. „Lücke 2 von 3“), sucht im Inhaltstext und bearbeitet Tags am
-      Inhalt; Kopieren erzeugt einen neuen Inhalt mit frischen Karten.
-- [ ] **K6.4 KI-Umformulierungen.** Bleiben an ihrer Karte; eine
-      Inhaltsänderung markiert die Umformulierungen aller betroffenen Karten
-      als veraltet und erlaubt gezielte Neuerzeugung.
+K6.1 bis K6.4 sind abgeschlossen (siehe `history.md`). Offen ist:
+
 - [ ] **K6.5 Bildverdeckungs-Editor.** Als letzter Schritt dieser Phase:
       Masken (Rechteck, Ellipse, Polygon, Text) auf einem Bild zeichnen,
       gruppieren, Verdeckungsmodus wählen und als Inhalt speichern.

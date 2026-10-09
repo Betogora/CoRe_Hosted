@@ -79,7 +79,7 @@ export function ColorToolButton({ label, icon: Icon, color, isOpen, menuId, onTo
       <button
         ref={buttonRef}
         type="button"
-        className="relative grid size-11 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle"
+        className="relative grid size-control place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle"
         aria-label={label}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
@@ -178,7 +178,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
 
   return (
     <div id={id} role="dialog" aria-label={label} className="core-overlay absolute left-0 top-full z-30 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-control p-3">
-      <div className="mb-3 flex items-center justify-between gap-2 core-caption font-semibold uppercase tracking-wide text-core-muted">
+      <div className="mb-3 flex items-center justify-between gap-2 core-caption font-semibold text-core-muted">
         <span>{label}</span>
         <Icon size={15} aria-hidden="true" />
       </div>
@@ -188,7 +188,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
           <CoreTooltip key={`${id}-${index}`} label={`${label} ${index + 1}`}>
             <button
               type="button"
-              className={`grid min-h-11 place-items-center rounded-inset border bg-core-surface transition hover:bg-core-subtle ${
+              className={`grid min-h-control place-items-center rounded-inset border bg-core-surface transition hover:bg-core-subtle ${
                 selectedSlot === index ? "border-core-action shadow-selection" : "border-core-border"
               }`}
               aria-label={`${label} ${index + 1}`}
@@ -270,7 +270,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
             <CoreTooltip key={`${id}-palette-${color}`} label={color ?? label}>
               <button
                 type="button"
-                className={`grid size-11 place-items-center rounded-inset border bg-core-surface transition hover:scale-105 ${
+                className={`grid size-control place-items-center rounded-inset border bg-core-surface transition hover:scale-105 ${
                   normalizeColor(color, selectedColor) === selectedColor ? "border-core-action" : "border-core-border"
                 }`}
                 aria-label={`${label} ${color}`}
@@ -296,7 +296,7 @@ export function ColorPopover({ id, label, icon: Icon, colors, paletteColors, sel
             inputMode="text"
             spellCheck="false"
             maxLength={7}
-            className="min-h-11 min-w-0 flex-1 rounded-inset border border-core-border bg-core-surface px-2 font-mono core-body font-semibold uppercase text-core-text outline-none transition"
+            className="min-h-control min-w-0 flex-1 rounded-inset border border-core-border bg-core-surface px-2 font-mono core-body font-semibold uppercase text-core-text outline-none transition"
             aria-label={`${label} als Hex-Farbe`}
             value={customColor}
             onChange={(event) => {

@@ -23,8 +23,8 @@ export const designReviewCss = `
 .design-review { max-width: 1440px; margin: auto; padding: 32px 24px; }
 .review-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin-top: 32px; }
 .review-option { min-width: 0; display: grid; align-content: start; gap: 16px; }
-.review-option > h3 { font: 600 22px/1.4 Amulya,Synonym,sans-serif; }
-.review-option > p { font: 400 14px/1.6 Synonym,sans-serif; color: var(--core-text-secondary); }
+.review-option > h3 { font: 650 18px/1.4 var(--core-font-sans); }
+.review-option > p { font: 400 14px/1.6 var(--core-font-sans); color: var(--core-text-secondary); }
 .review-actions { display: grid; gap: 12px; }
 .review-b .core-creation-action { padding: 16px; }
 .review-b .core-creation-action-icon { width: 48px; height: 48px; }

@@ -175,7 +175,7 @@ export function ActionDialog({
 
 export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
   return (
-    <div className={`grid size-12 shrink-0 place-items-center rounded-round ${className}`}>
+    <div className={`grid size-10 shrink-0 place-items-center rounded-control [&_svg]:size-[18px] ${className}`}>
       <Icon size={22} aria-hidden="true" />
     </div>
   );
@@ -301,9 +301,9 @@ export function StatTile({
     <dl
       {...props}
       data-size={size}
-      className={`${compact ? "flex flex-col rounded-control bg-core-subtle p-3" : "core-surface-raised rounded-panel p-6"} min-w-0 ${className}`.trim()}
+      className={`${compact ? "flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft" : "core-surface-raised rounded-panel p-5"} min-w-0 ${className}`.trim()}
     >
-      <dt className={`${compact ? "core-caption !font-semibold" : "core-status-label"} uppercase tracking-wide text-core-muted`}>
+      <dt className={`${compact ? "core-caption !font-semibold" : "core-status-label"} text-core-muted`}>
         {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
         <span className={Icon ? "mt-6 block" : undefined}>{label}</span>
       </dt>
@@ -316,8 +316,8 @@ export function StatTile({
 export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; title: ReactNode; action?: ReactNode }) {
   return (
     <header className={action ? "core-page-header-with-action flex min-w-0 items-end justify-between gap-3" : "min-w-0"}>
-      <div className="min-w-0 space-y-2">
-        {eyebrow ? <p className="core-control-label uppercase tracking-wide text-core-action">{eyebrow}</p> : null}
+      <div className="min-w-0 space-y-1">
+        {eyebrow ? <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">{eyebrow}</p> : null}
         <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
       </div>
       {action ? <div className="core-page-header-action min-w-0 shrink-0">{action}</div> : null}
@@ -458,7 +458,7 @@ export function CardMarkButton({ marked, onMarkedChange, disabled = false, class
       aria-label={marked ? "Markierung entfernen" : "Karte markieren"}
       disabled={disabled}
       onClick={() => onMarkedChange(!marked)}
-      className={`grid size-11 shrink-0 place-items-center rounded-control text-core-warning transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`grid size-control shrink-0 place-items-center rounded-control text-core-warning transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       <Star size={22} fill={marked ? "currentColor" : "none"} aria-hidden="true" />
     </button>

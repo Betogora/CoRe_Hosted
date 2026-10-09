@@ -1,5 +1,5 @@
 /* Gemeinsamer Dokumentationsrahmen mit den produktiven CoRe-Tokens. */
-body { margin: 0; color: var(--core-text); background: var(--core-canvas); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) Synonym, ui-sans-serif, system-ui, sans-serif; }
+body { margin: 0; color: var(--core-text); background: var(--core-canvas); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
 .docs-site-nav { box-sizing: border-box; position: sticky; top: 0; z-index: 45; min-height: 64px; display: flex; align-items: center; gap: var(--core-space-xl); padding: var(--core-space-sm) max(var(--core-space-lg), calc((100vw - 1440px) / 2 + var(--core-space-xl))); border-bottom: var(--core-border-width) solid var(--core-border); background: var(--core-surface); }
 .docs-brand { flex: none; color: var(--core-text); text-decoration: none; }
 .docs-brand span { color: var(--core-text-muted); }
@@ -13,7 +13,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-rail p, .docs-count { font-size: var(--core-type-caption); line-height: var(--core-leading-caption); color: var(--core-text-muted); }
 .docs-search { display: block; width: 100%; }
 .docs-toc { overflow: auto; min-height: 0; }
-.docs-toc a { display: flex; align-items: center; min-height: var(--core-control-height); padding: var(--core-space-sm) var(--core-space-md); border-left: var(--core-border-width-strong) solid transparent; border-radius: 0 var(--core-radius-control) var(--core-radius-control) 0; color: var(--core-text-secondary); font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) Synonym, sans-serif; text-decoration: none; overflow-wrap: anywhere; }
+.docs-toc a { display: flex; align-items: center; min-height: var(--core-control-height); padding: var(--core-space-sm) var(--core-space-md); border-left: var(--core-border-width-strong) solid transparent; border-radius: 0 var(--core-radius-control) var(--core-radius-control) 0; color: var(--core-text-secondary); font: var(--core-weight-control) var(--core-type-body)/var(--core-leading-body) var(--core-font-sans); text-decoration: none; overflow-wrap: anywhere; }
 .docs-toc a[data-depth="3"] { padding-left: var(--core-space-xl); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
 .docs-toc a:hover { background: var(--core-surface-muted); color: var(--core-text); }
 .docs-toc a[aria-current] { border-color: var(--core-action-primary); background: var(--core-surface-muted); color: var(--core-text); font-weight: var(--core-weight-emphasis); }
@@ -34,7 +34,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-document pre { overflow: auto; padding: var(--core-space-xl); border-radius: var(--core-radius-control); background: var(--core-surface-muted); }
 .docs-document table { width: 100%; border-collapse: collapse; font-size: var(--core-type-body); line-height: var(--core-leading-body); }
 .docs-document th, .docs-document td { border-bottom: var(--core-border-width) solid var(--core-border); padding: var(--core-space-md); text-align: left; vertical-align: top; }
-.docs-document thead th { color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) Synonym, sans-serif; text-transform: uppercase; }
+.docs-document thead th { color: var(--core-text-muted); font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); text-transform: uppercase; }
 .docs-document th:first-child, .docs-document td:first-child { min-width: 110px; }
 .docs-table-scroll { max-width: 100%; overflow: auto; }
 .docs-anchor { display: inline-flex; align-items: center; justify-content: center; min-width: var(--core-control-height); min-height: var(--core-control-height); font-size: var(--core-type-body); opacity: .45; }

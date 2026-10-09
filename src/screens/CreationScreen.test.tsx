@@ -87,7 +87,7 @@ test("manual target selection shows complete deck paths", () => {
 test("manual options share one desktop row and keep labeled segmented choices", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="manual" {...callbacks} />);
 
-  assert.match(markup, /class="grid min-w-0 gap-4 md:grid-cols-\[max-content_max-content\] md:items-center md:justify-start" data-testid="manual-card-options"/);
+  assert.match(markup, /class="grid min-w-0 gap-4 md:flex md:flex-wrap md:items-center md:gap-x-6" data-testid="manual-card-options"/);
   assert.match(markup, />Fragentyp</);
   assert.match(markup, /aria-label="Fragentyp"[^>]*core-segmented-control/);
   assert.match(markup, />Single Choice</);
@@ -104,6 +104,8 @@ test("manual images are editor actions without separate drop fields", () => {
   assert.equal((markup.match(/aria-label="Bild an Cursorposition einfügen"/g) ?? []).length, 2);
   assert.equal((markup.match(/accept="image\/\*"/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /Bild zur (?:Vorder|Rück)seite einfügen|kind="image"/);
-  assert.match(markup, />Feld hinzufügen<\/span><\/button>/);
+  const blocks = markup.slice(markup.indexOf('data-testid="note-blocks"'));
+  assert.match(blocks, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
+  for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(blocks, new RegExp(`${label}</button>`));
   assert.doesNotMatch(markup, /<details|<summary|Weitere Felder/);
 });

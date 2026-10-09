@@ -122,21 +122,21 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
             <div className="grid gap-4 md:grid-cols-3">
               <label className="grid gap-2 core-body font-semibold text-core-muted">
                 Neuer Tag beginnt um
-                <span className="flex min-h-11 items-center gap-2 rounded-control border border-core-border px-3">
+                <span className="flex min-h-control items-center gap-2 rounded-control border border-core-border px-3">
                   <input type="number" min="0" max="23" step="1" value={draft.dayStartHour} data-testid="card-settings-day-start-hour" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, dayStartHour: Number(event.target.value) }))} />
                   <span className="font-normal">Uhr</span>
                 </span>
               </label>
               <label className="grid gap-2 core-body font-semibold text-core-muted">
                 Lernkarten vorziehen
-                <span className="flex min-h-11 items-center gap-2 rounded-control border border-core-border px-3">
+                <span className="flex min-h-control items-center gap-2 rounded-control border border-core-border px-3">
                   <input type="number" min="0" max="720" step="1" value={draft.learnAheadMinutes} data-testid="card-settings-learn-ahead" className="min-w-0 flex-1 bg-transparent text-core-text outline-none" onChange={(event) => setDraft((current) => ({ ...current, learnAheadMinutes: Number(event.target.value) }))} />
                   <span className="font-normal">Min.</span>
                 </span>
               </label>
               <div className="grid gap-2 core-body font-semibold text-core-muted">
                 Profilzeitzone
-                <span className="flex min-h-11 items-center rounded-control border border-core-border bg-core-subtle px-3 font-normal text-core-text">{timeZone || "Nicht festgelegt"}</span>
+                <span className="flex min-h-control items-center rounded-control border border-core-border bg-core-subtle px-3 font-normal text-core-text">{timeZone || "Nicht festgelegt"}</span>
               </div>
             </div>
             <p className="mt-3 core-caption leading-5 text-core-muted">Diese Einstellungen gelten global für den Lerntag. Tagesrunde, Scheduler und CoRe kannst du weiter unten als Stapelstandard festlegen.</p>
@@ -178,7 +178,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
           <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Fokuswerkzeuge</h2>
           <SoftPanel className="overflow-hidden p-0">
             <button type="button" onClick={() => onNavigate("simulator")} className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-core-border px-4 py-3 text-left transition hover:bg-core-hover sm:px-6">
-              <span className="grid size-11 shrink-0 place-items-center rounded-round bg-core-warning-soft text-core-text"><CalendarClock size={20} aria-hidden="true" /></span>
+              <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-warning-soft text-core-text"><CalendarClock size={20} aria-hidden="true" /></span>
               <span className="min-w-0 flex-1"><span className="block core-body-large font-semibold text-core-text">Simulator</span><span className="block core-caption text-core-muted">{simulationOffsetMinutes > 0 ? `Aktiv: ${simulationDateLabel} · +${formatSimulationDuration(simulationOffsetMinutes)}` : "Lernfortschritt über simulierte Zeitpunkte prüfen"}</span></span>
             </button>
             <PomodoroTimerControl timer={pomodoroTimer} variant="settings" onStart={onStartPomodoro} />

@@ -7,6 +7,9 @@ export default {
   },
   theme: {
     extend: {
+      spacing: {
+        control: "var(--core-control-height)",
+      },
       borderRadius: {
         marker: "var(--core-radius-marker)",
         inset: "var(--core-radius-inset)",
@@ -20,6 +23,8 @@ export default {
         raised: "var(--core-shadow-raised)",
         inset: "var(--core-shadow-inset)",
         selection: "var(--core-shadow-selection)",
+        floating: "var(--core-shadow-floating)",
+        indicator: "var(--core-selection-indicator-shadow)",
       },
       borderWidth: {
         DEFAULT: "var(--core-border-width)",
@@ -32,8 +37,8 @@ export default {
         bold: "var(--core-weight-heading)",
       },
       fontFamily: {
-        display: ["Amulya", "ui-sans-serif", "system-ui", "sans-serif"],
-        sans: ["Synonym", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["Manrope Variable", "Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["Manrope Variable", "Manrope", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       colors: {
         core: {

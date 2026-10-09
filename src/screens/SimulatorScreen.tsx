@@ -60,7 +60,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
       <SoftPanel className="p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-round bg-core-info-soft text-core-action">
+            <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-info-soft text-core-action">
               <CalendarClock size={21} aria-hidden="true" />
             </span>
             <div className="min-w-0">
@@ -95,7 +95,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
                 type="button"
                 aria-pressed={offsetMinutes === option.minutes}
                 onClick={() => selectOffset(option.minutes)}
-                className={`min-h-11 rounded-control px-4 core-body font-semibold transition ${offsetMinutes === option.minutes ? "bg-core-action text-core-on-accent" : "border border-core-border bg-core-surface text-core-secondary hover:border-core-border-strong hover:bg-core-subtle"}`}
+                className={`min-h-control rounded-control px-4 core-body font-semibold transition ${offsetMinutes === option.minutes ? "bg-core-action text-core-on-accent" : "border border-core-border bg-core-surface text-core-secondary hover:border-core-border-strong hover:bg-core-subtle"}`}
               >
                 {option.label}
               </button>
