@@ -15,12 +15,11 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
 | [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
 | [UI-Elements](ui-elements.html) | UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster mit echten Produktansichten und Kartenbausteinen, Icons und Zustandsmatrix; mit Suche und Kapitelnavigation | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
-| [Kartentypen](card-types.html) | sechs manuell erstellbare Formen im echten Reviewrenderer (`NoteCardContent`) | dieselben Demos und CoRe-Modellhelfer |
+| [Kartenbausteine](card-types.html) | acht Bausteine (Frage und Antwort, Rückrichtung, Eintippen, Feldrollen, Lückentext, Auswahl, Bildverdeckung, Formeln und Medien) im echten Reviewrenderer (`NoteCardContent`), je mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 
-Die [Kartenbausteine](ui-elements.html#note-content) zeigen den Note-/Card-
-Renderer mit allen Formen aus Anki-Importen: Feldrollen, Lücken, Bildmasken,
-Eintippen, Auswahl einschließlich Kprim, Formeln, Medien und System-Vorlesen.
-Die sechs manuell erstellbaren Formen stehen gesammelt unter Kartentypen.
+Die [Kartenbausteine](card-types.html) ordnen den Note-/Card-Renderer nach
+Bausteinen statt nach Kartentypen; der UI-Katalog zeigt dieselben Fälle unter
+[CoRe-Fachmuster](ui-elements.html#note-content).
 
 Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
 Styles und die Schrift Manrope sind eingebettet; Journey-Diagramme nutzen
@@ -77,7 +76,7 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - [`anki-format-analysis.md`](anki-format-analysis.md): technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
 - [`ui-elements.html`](ui-elements.html): direkt aus produktiven Komponenten erzeugte Demos plus klar gekennzeichnete lokale Screen-Muster.
-- [`card-types.html`](card-types.html): interaktive Referenz für Basic, Basic mit Bildern, Basic umgekehrt, Lückentext, Single Choice und Multiple Choice.
+- [`card-types.html`](card-types.html): interaktive Referenz der Kartenbausteine mit ihrem Erstellungsweg.
 
 ## Technische Einstiegspunkte
 

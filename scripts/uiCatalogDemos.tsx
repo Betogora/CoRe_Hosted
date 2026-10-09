@@ -466,14 +466,14 @@ const noteDemoCases = [
 const notePromptLabel = (key: string) => ({ forward: "Vorwärts", reverse: "Rückwärts", choice: "Auswahl" } as Record<string, string>)[key] ?? key.replace(/^cloze:/, "Lücke ").replace(/^io:/, "Maske ");
 const noteDemoGraphs = noteDemoCases.map((item) => ({ ...item, graph: createNote({ id: `note-demo-${item.id}`, content: item.value, deckId: "catalog", createdAt: "2026-10-06T12:00:00.000Z" }) }));
 
-function NoteDemo({ item }: { item: typeof noteDemoGraphs[number] }) {
+function NoteDemo({ item, titled = true }: { item: typeof noteDemoGraphs[number]; titled?: boolean }) {
   const [revealed, setRevealed] = React.useState(false);
   const [generation, setGeneration] = React.useState(0);
   const [key, setKey] = React.useState(item.graph.cards[0].promptKey);
   const [surface, setSurface] = React.useState<"review" | "preview">("review");
   const card = item.graph.cards.find((candidate) => candidate.promptKey === key)!;
   return <article className="catalog-demo catalog-demo-wide" data-note-demo={item.id}>
-    <h4>{item.title}</h4>
+    {titled ? <h4>{item.title}</h4> : null}
     <div className="catalog-demo-content grid gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <CoreSegmentedControl ariaLabel="Darstellung" value={surface} options={[{ value: "review", label: "Review" }, { value: "preview", label: "Vorschau" }]} onValueChange={(value) => { setSurface(value); setRevealed(false); }} />
@@ -484,6 +484,13 @@ function NoteDemo({ item }: { item: typeof noteDemoGraphs[number] }) {
     </div>
   </article>;
 }
+
+/** One renderer case by id, without its own heading; the card reference shows it inside its card. */
+export function NoteCaseDemo({ id }: { id: string }) {
+  return <NoteDemo item={noteDemoGraphs.find((item) => item.id === id)!} titled={false} />;
+}
+
+export const NOTE_CASE_TITLES: Record<string, string> = Object.fromEntries(noteDemoCases.map((item) => [item.id, item.title]));
 
 export function NotePresentationDemos() {
   return <>{noteDemoGraphs.map((item) => <NoteDemo key={item.id} item={item} />)}</>;
