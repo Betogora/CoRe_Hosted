@@ -31,7 +31,7 @@ async function reportFile(path: string) {
   const name = basename(path);
   const bytes = statSync(path).size;
   try {
-    const graph = translateAnkiPackage(await readAnkiPackage(Object.assign(await openAsBlob(path), { name })));
+    const graph = await translateAnkiPackage(await readAnkiPackage(Object.assign(await openAsBlob(path), { name })));
     if (graph.report.errors.length) return { file: name, bytes, errors: graph.report.errors };
     return {
       file: name,

@@ -28,7 +28,7 @@ function ankiCard(id: string, ord: number) {
 }
 
 /** Translates one Anki note and returns the imported content, its cards and the stored sources. */
-function importNote(notetype: ReturnType<typeof model>, fields: string[], ords: number[], tags = "") {
+async function importNote(notetype: ReturnType<typeof model>, fields: string[], ords: number[], tags = "") {
   const pkg: AnkiPackage = {
     file: { name: "test.apkg", size: 1 },
     packageFormat: "latest",
@@ -40,7 +40,7 @@ function importNote(notetype: ReturnType<typeof model>, fields: string[], ords: 
     reviewHistory: { entries: [], totalRows: 0, skippedRows: 0 },
     media: { format: "media-entries", files: [], missing: [] },
   };
-  const graph = translateAnkiPackage(pkg, { importedAt: IMPORTED_AT });
+  const graph = await translateAnkiPackage(pkg, { importedAt: IMPORTED_AT });
   assert.equal(graph.notes.length, 1);
   return { note: graph.notes[0], cards: graph.cards, source: graph.noteTypeSources[0], noteSource: graph.noteSources[0] };
 }
@@ -53,14 +53,14 @@ function studied(card: Card): Card {
   return { ...card, studyRevision: 4, study: { ...createCardStudy("2026-10-20T00:00:00.000Z"), state: "review", reps: 4, stability: 12 } };
 }
 
-test("ein unveränderter Inhalt bleibt unverändert", () => {
-  const { note, cards, source, noteSource } = importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0], "Geografie");
+test("ein unveränderter Inhalt bleibt unverändert", async () => {
+  const { note, cards, source, noteSource } = await importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0], "Geografie");
 
   assert.deepEqual(planRetranslation(note, cards, source, noteSource, UPDATED_AT), { status: "unchanged" });
 });
 
-test("ein geänderter Inhalt wird aktualisiert, ohne den Lernstand der Karten zu berühren", () => {
-  const imported = importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0], "Geografie");
+test("ein geänderter Inhalt wird aktualisiert, ohne den Lernstand der Karten zu berühren", async () => {
+  const imported = await importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0], "Geografie");
   const card = studied(imported.cards[0]);
   const note = { ...imported.note, translator: { id: "anki-basic", version: 0 } };
   const plan = planRetranslation(note, [card], imported.source, withFields(imported.noteSource, ["Hauptstadt von Frankreich?", "<b>Paris</b>"]), UPDATED_AT);
@@ -80,8 +80,8 @@ test("ein geänderter Inhalt wird aktualisiert, ohne den Lernstand der Karten zu
   assert.deepEqual(next.cards, [card]);
 });
 
-test("eine neue Abfrage wird zu einer neuen Karte", () => {
-  const imported = importNote(CLOZE, ["{{c1::Paris}} liegt an der Seine.", ""], [0]);
+test("eine neue Abfrage wird zu einer neuen Karte", async () => {
+  const imported = await importNote(CLOZE, ["{{c1::Paris}} liegt an der Seine.", ""], [0]);
   const card = studied(imported.cards[0]);
   const plan = planRetranslation(imported.note, [card], imported.source, withFields(imported.noteSource, ["{{c1::Paris}} liegt an der {{c2::Seine}}.", ""]), UPDATED_AT);
 
@@ -98,8 +98,8 @@ test("eine neue Abfrage wird zu einer neuen Karte", () => {
   assert.equal(added.deletedAt, null);
 });
 
-test("entfiele eine Karte mit Lernstand, bleibt der Inhalt erhalten", () => {
-  const imported = importNote(CLOZE, ["{{c1::Paris}} liegt an der {{c2::Seine}}.", ""], [0, 1]);
+test("entfiele eine Karte mit Lernstand, bleibt der Inhalt erhalten", async () => {
+  const imported = await importNote(CLOZE, ["{{c1::Paris}} liegt an der {{c2::Seine}}.", ""], [0, 1]);
   const cards = [imported.cards[0], studied(imported.cards[1])];
 
   assert.deepEqual(
@@ -108,8 +108,8 @@ test("entfiele eine Karte mit Lernstand, bleibt der Inhalt erhalten", () => {
   );
 });
 
-test("eine entfallende Karte ohne Lernstand wird weich gelöscht", () => {
-  const imported = importNote(CLOZE, ["{{c1::Paris}} liegt an der {{c2::Seine}}.", ""], [0, 1]);
+test("eine entfallende Karte ohne Lernstand wird weich gelöscht", async () => {
+  const imported = await importNote(CLOZE, ["{{c1::Paris}} liegt an der {{c2::Seine}}.", ""], [0, 1]);
   const [first, second] = imported.cards;
   const plan = planRetranslation(imported.note, [first, second], imported.source, withFields(imported.noteSource, ["{{c1::Paris}} liegt an der Seine.", ""]), UPDATED_AT);
 
@@ -125,11 +125,11 @@ test("eine entfallende Karte ohne Lernstand wird weich gelöscht", () => {
 
 // Known defect: planRetranslation re-keys the cards before planNoteContentChange, which looks up the deck through the
 // previous content's prompt keys (anki-N) and therefore finds no card; the plan ends as "kept" instead of "updated".
-test("generische anki-N-Schlüssel erhalten den Abfrageschlüssel des besseren Übersetzers", () => {
-  const generic = importNote(CHANGED_BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
+test("generische anki-N-Schlüssel erhalten den Abfrageschlüssel des besseren Übersetzers", async () => {
+  const generic = await importNote(CHANGED_BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
   assert.deepEqual(generic.note.translator, { id: "generic", version: 1 });
   assert.deepEqual(generic.cards.map((card) => card.promptKey), ["anki-0"]);
-  const stock = importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
+  const stock = await importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
   const card = studied(generic.cards[0]);
   const plan = planRetranslation(generic.note, [card], stock.source, generic.noteSource, UPDATED_AT);
 
@@ -148,8 +148,8 @@ test("generische anki-N-Schlüssel erhalten den Abfrageschlüssel des besseren �
   assert.deepEqual(plan.change.previous?.cards, [card]);
 });
 
-test("Felder, die der Übersetzer nicht ausdrücken kann, lassen den Inhalt unverändert", () => {
-  const imported = importNote(CLOZE, ["{{c1::Paris}} liegt an der Seine.", ""], [0]);
+test("Felder, die der Übersetzer nicht ausdrücken kann, lassen den Inhalt unverändert", async () => {
+  const imported = await importNote(CLOZE, ["{{c1::Paris}} liegt an der Seine.", ""], [0]);
 
   assert.deepEqual(planRetranslation(imported.note, imported.cards, imported.source, withFields(imported.noteSource, ["", ""]), UPDATED_AT), { status: "kept" });
 });

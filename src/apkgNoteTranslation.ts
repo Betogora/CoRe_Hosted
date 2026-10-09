@@ -116,8 +116,13 @@ interface NotetypePlan {
   translator: TranslatorId;
   fieldRoles: Record<string, FieldRole>;
   promptKey(ordinal: number): string;
-  /** Untrusted content candidate validated by createNote; null when the note does not fit the translator. */
-  content(values: string[]): Omit<NoteContent, "tags"> | null;
+  /** Media whose text the content needs (Image Occlusion Enhanced mask SVGs); read before the translation. */
+  maskMedia?(values: string[]): string[];
+  /**
+   * Untrusted content candidate validated by createNote; null when the note does not fit the translator.
+   * `maskSvgs` holds the texts of `maskMedia` and is missing when the package media are unavailable.
+   */
+  content(values: string[], maskSvgs?: ReadonlyMap<string, string>): Omit<NoteContent, "tags"> | null;
 }
 
 interface AnkiModel {
@@ -132,8 +137,8 @@ interface AnkiModel {
 
 const BASIC = { id: "anki-basic", version: 1 };
 const CLOZE = { id: "anki-cloze", version: 1 };
-const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 1 };
-const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 1 };
+const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 2 };
+const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
 const ANKING = { id: "anking", version: 1 };
 const GENERIC = { id: "generic", version: 1 };
@@ -462,18 +467,76 @@ function imageOcclusionEnhancedPlan(model: AnkiModel): NotetypePlan | null {
     translator: IMAGE_OCCLUSION_ENHANCED,
     fieldRoles: roles,
     promptKey: () => "io:1",
-    content: (values) => ({
-      schemaVersion: 1,
-      fields: contentFields(model, roles, values),
-      interaction: {
-        kind: "image-occlusion",
-        image: firstImageSource(values[image] ?? ""),
-        mode: "hide-one-guess-one",
-        masks: [{ id: "m1", ordinal: 1, alwaysOccluded: false, shape: { kind: "overlay", question: firstImageSource(values[question] ?? ""), answer: firstImageSource(values[answer] ?? "") || null } }],
-      },
-      speech: [],
-    }),
+    maskMedia: (values) => [firstImageSource(values[question] ?? "")].filter(Boolean),
+    content: (values, maskSvgs) => {
+      if (!maskSvgs) return null;
+      const questionMask = firstImageSource(values[question] ?? "");
+      const svg = maskSvgs.get(questionMask);
+      // SVGs that CoRe masks cannot express keep the add-on's own mask images.
+      const masks: OcclusionMask[] = (svg ? parseEnhancedMaskSvg(svg) : null)
+        ?? [{ id: "m1", ordinal: 1, alwaysOccluded: false, shape: { kind: "overlay", question: questionMask, answer: firstImageSource(values[answer] ?? "") || null } }];
+      return {
+        schemaVersion: 1,
+        fields: contentFields(model, roles, values),
+        interaction: { kind: "image-occlusion", image: firstImageSource(values[image] ?? ""), mode: "hide-one-guess-one", masks },
+        speech: [],
+      };
+    },
   };
+}
+
+function svgNumber(attributes: string, name: string): number {
+  const match = new RegExp(`\\s${name}\\s*=\\s*["']([^"']*)["']`, "i").exec(attributes);
+  return match ? Number(match[1]) : Number.NaN;
+}
+
+/** Clamps a pixel range divided by the image size to 0–1 and returns its start and length; null when empty. */
+function unitRange(start: number, end: number): [number, number] | null {
+  const [from, to] = [Math.min(1, Math.max(0, start)), Math.min(1, Math.max(0, end))];
+  return Number.isFinite(from) && Number.isFinite(to) && to > from ? [Number(from.toFixed(6)), Number((to - from).toFixed(6))] : null;
+}
+
+/**
+ * Image Occlusion Enhanced draws one note's masks as pixel shapes in an SVG the size of the image: the shape (or
+ * group) with `class="qshape"` is asked, every other shape stays occluded without a card of its own. Null when the
+ * SVG holds anything CoRe masks cannot express, such as labels, paths or transforms.
+ */
+export function parseEnhancedMaskSvg(svg: string): OcclusionMask[] | null {
+  const root = /<svg\b([^>]*)>/i.exec(svg);
+  const [width, height] = root ? [svgNumber(root[1], "width"), svgNumber(root[1], "height")] : [Number.NaN, Number.NaN];
+  const labels = /<title>\s*Labels\s*<\/title>([\s\S]*?)<\/g>/i.exec(svg)?.[1] ?? "";
+  if (!(width > 0) || !(height > 0) || /<[a-z]/i.test(labels) || /<(?:path|text|line|polyline|circle|image|use)\b|\stransform\s*=/i.test(svg)) return null;
+  const masks: OcclusionMask[] = [];
+  const askedGroups: boolean[] = [];
+  for (const [, closing, tag, attributes] of svg.matchAll(/<(\/?)(g|rect|ellipse|polygon)\b([^>]*)>/gi)) {
+    const asked = /\sclass\s*=\s*["'][^"']*\bqshape\b/i.test(attributes) || askedGroups.at(-1) === true;
+    const kind = tag.toLowerCase();
+    if (kind === "g") {
+      if (closing) askedGroups.pop();
+      else if (!attributes.trim().endsWith("/")) askedGroups.push(asked);
+      continue;
+    }
+    let shape: OcclusionShape | null = null;
+    if (kind === "polygon") {
+      const numbers = (/\spoints\s*=\s*["']([^"']*)["']/i.exec(attributes)?.[1] ?? "").trim().split(/[\s,]+/).map(Number);
+      const points = Array.from({ length: Math.floor(numbers.length / 2) }, (_, index): [number, number] => [
+        Number(Math.min(1, Math.max(0, numbers[index * 2] / width)).toFixed(6)),
+        Number(Math.min(1, Math.max(0, numbers[index * 2 + 1] / height)).toFixed(6)),
+      ]);
+      if (points.length >= 3 && points.flat().every(Number.isFinite)) shape = { kind: "polygon", points };
+    } else {
+      const ellipse = kind === "ellipse";
+      const [rx, ry] = [svgNumber(attributes, "rx"), svgNumber(attributes, "ry")];
+      const x = ellipse ? svgNumber(attributes, "cx") - rx : svgNumber(attributes, "x");
+      const y = ellipse ? svgNumber(attributes, "cy") - ry : svgNumber(attributes, "y");
+      const horizontal = unitRange(x / width, (x + (ellipse ? 2 * rx : svgNumber(attributes, "width"))) / width);
+      const vertical = unitRange(y / height, (y + (ellipse ? 2 * ry : svgNumber(attributes, "height"))) / height);
+      if (horizontal && vertical) shape = { kind: ellipse ? "ellipse" : "rect", left: horizontal[0], top: vertical[0], width: horizontal[1], height: vertical[1], angle: 0 };
+    }
+    if (!shape) return null;
+    masks.push({ id: `m${masks.length + 1}`, ordinal: asked ? 1 : 0, shape, alwaysOccluded: !asked });
+  }
+  return masks.some((mask) => mask.ordinal === 1) ? masks : null;
 }
 
 /** AnKing/Ankizin family: cloze type with Text, Extra and button sections; roles follow their template position. */
@@ -507,9 +570,13 @@ export function parseImageOcclusionField(html: string): OcclusionMask[] {
       const height = props.has("ry") ? number("ry") * 2 : number("height");
       shape = { kind, left: number("left"), top: number("top"), width, height, angle };
     } else if (kind === "polygon") {
-      shape = { kind, points: (props.get("points") ?? "").trim().split(/\s+/).map((point) => point.split(",").map(Number) as [number, number]), angle };
+      // Anki ignores the angle of polygons and moves their points so that their top-left corner lies at left/top.
+      const points = (props.get("points") ?? "").trim().split(/\s+/).map((point) => point.split(",").map(Number) as [number, number]);
+      const dx = props.has("left") ? number("left") - Math.min(...points.map(([x]) => x)) : 0;
+      const dy = props.has("top") ? number("top") - Math.min(...points.map(([, y]) => y)) : 0;
+      shape = { kind, points: dx || dy ? points.map(([x, y]) => [Number((x + dx).toFixed(6)), Number((y + dy).toFixed(6))]) : points };
     } else if (kind === "text") {
-      shape = { kind, left: number("left"), top: number("top"), text: props.get("text") ?? "", scale: number("scale", 1), angle };
+      shape = { kind, left: number("left"), top: number("top"), text: props.get("text") ?? "", scale: number("scale", 1), fontSize: number("fs") || null, angle };
     } else continue;
     masks.push({ id: `m${masks.length + 1}`, ordinal: Number(match[1]), shape, alwaysOccluded: props.get("oi") === "1" });
   }
@@ -752,8 +819,10 @@ function deckGraph(pkg: AnkiPackage, homeDeckIds: Set<string>) {
 
 // --- Pipeline (K5.0) ----------------------------------------------------------------------
 
+const MAX_MASK_SVG_BYTES = 1024 * 1024;
+
 /** Translates a read package into the import graph of decks, notes, cards, media, review events and report. */
-export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: string } = {}): ApkgImportGraph {
+export async function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: string } = {}): Promise<ApkgImportGraph> {
   const importedAt = options.importedAt ?? new Date().toISOString();
   const ankiDeckIds = new Set(pkg.decks.map((deck) => deck.id));
   const filteredDeckIds = new Set(pkg.decks.filter((deck) => deck.filtered).map((deck) => deck.id));
@@ -819,6 +888,17 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
     return entry;
   };
 
+  // Mask SVGs are read once up front so the translation itself stays synchronous.
+  const maskSvgs = new Map<string, string>();
+  for (const ankiNote of notesWithCards) {
+    const { plan } = planFor(String(ankiNote.mid));
+    if (!plan.maskMedia) continue;
+    for (const name of plan.maskMedia(String(ankiNote.flds ?? "").split("\u001f").map(media.rewrite))) {
+      const file = media.byName.get(name);
+      if (file && !maskSvgs.has(name) && file.size <= MAX_MASK_SVG_BYTES) maskSvgs.set(name, new TextDecoder().decode(await file.readBytes()));
+    }
+  }
+
   const notes: Note[] = [];
   const noteSources: NoteSource[] = [];
   const cards: Card[] = [];
@@ -846,7 +926,7 @@ export function translateAnkiPackage(pkg: AnkiPackage, options: { importedAt?: s
     let created: ReturnType<typeof createNote>;
     let keyOf = entry.plan.promptKey;
     try {
-      const content = entry.plan.content(values);
+      const content = entry.plan.content(values, maskSvgs);
       if (!content) throw new Error("Der Inhalt passt nicht zum Übersetzer.");
       created = createNote({ ...input, content: { ...content, tags }, translator: entry.plan.translator });
     } catch {

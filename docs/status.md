@@ -17,7 +17,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
   Lernstand (`studyRevision` als eigene Konfliktgrenze), Stapel, Aussetzung und
   Varianten. Review, Vorschau, Kartenverwaltung, manuelle Erstellung und
   Importvorschau rendern über `notePresentation.ts` und `NoteCardContent`
-  (Feldrollen, verschachtelte Lücken, SVG-Bildmasken, Eintippen, Auswahl
+  (Feldrollen, verschachtelte Lücken, Bildmasken mit Ankis Drehung und Textgröße, Eintippen, Auswahl
   einschließlich Kprim, KaTeX, sichere Medien, System-Vorlesen und
   AMBOSS-Textauswahl). Die Phase-3-Performance-Abnahme ist gemessen (siehe
   `history.md`); offen sind nur noch die Gerätenachweise.
@@ -85,7 +85,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 
 ## Bekannte Lücken
 
-- Der lokale Realwelt-Korpus (Ankizin v5, Ankiphil, Dellas) wird vollständig übersetzt, Ankizin zu 99,9 % über den eigenen Übersetzer. AnKing, reale Bildverdeckung und reale Lernstände fehlen im Korpus; Lernstand ist nur synthetisch über die Matrix belegt.
+- Der lokale Realwelt-Korpus (Ankizin v5, Ankiphil, Dellas, Image-Occlusion-Enhanced-Deck, Anki-Bildverdeckung, Auszug mit FSRS-Lernstand) wird vollständig übersetzt, Ankizin zu 99,9 % über den eigenen Übersetzer, alle 66 Image-Occlusion-Enhanced-Notizen als CoRe-Masken. AnKing und Lernstände mit Lern-, Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten fehlen im Korpus; diese Zustände sind nur synthetisch über die Matrix belegt.
 - Das P0-Produktgate mit Zielviewports, Tastatur- und Screenreader-Abnahme ist offen.
 - Template-JavaScript, Add-on-/Custom-Filter, native LaTeX-Toolchains und nicht browserfähige Codecs werden erhalten, aber bewusst nicht ausgeführt.
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.

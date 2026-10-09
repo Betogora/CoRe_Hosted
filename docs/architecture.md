@@ -93,14 +93,19 @@ erreichen 4,5 : 1 zu ihrem Marker oder zum Kartenhintergrund; unlesbare farblose
 Textfarben übernehmen die Kartenschrift. `var(…)` in Farbwerten gilt als deckend.
 Das Bild einer Bildverdeckung trägt den ersten Fragetext als Beschreibung
 („Herzklappen – Bild mit verdeckten Bereichen“).
-Lücken werden verschachtelt tokenisiert, Bildmasken als relatives SVG dargestellt;
-Textbeschriftungen der Masken sind HTML (Skala 1 entspricht der Kartenschrift),
-damit die gestreckte Maskenfläche sie nicht verzerrt.
+Lücken werden verschachtelt tokenisiert. Bildmasken liegen in einer Ebene in
+Bildgröße; ihre Positionen sind relativ zu Bildbreite und -höhe. Rechtecke,
+Ellipsen und Beschriftungen drehen sich wie in Anki in Bildpixeln um ihre linke
+obere Ecke (HTML mit CSS-Drehung), Polygone werden nie gedreht und liegen im
+gestreckten 0–1-SVG. Beschriftungen verwenden Ankis Schrift Arial; `fontSize`
+ist wie Ankis `fs` relativ zur Bildhöhe (umgesetzt in `cqh`), ohne `fontSize`
+gilt `scale` als Vielfaches der Kartenschrift.
 `alwaysOccluded` hält fremde Maskengruppen auch im Modus „eine verdecken“ sichtbar;
-die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss. Eine Maske der
-Form `overlay` legt ein ganzes Maskenbild über das Bild (Frage- und optional
-Antwortbild, etwa aus Image Occlusion Enhanced); sie erscheint nur für die aktive
-Gruppe und zeichnet keinen Umriss.
+die aktive Gruppe wird auf der Antwortseite trotzdem zum Umriss. Masken mit
+`ordinal` 0 sind nur verdeckt und bilden keine eigene Karte; sie sind nur mit
+`alwaysOccluded` gültig. Eine Maske der Form `overlay` legt ein ganzes Maskenbild
+über das Bild (Frage- und optional Antwortbild, der Rückfall für Image Occlusion
+Enhanced); sie erscheint nur für die aktive Gruppe und zeichnet keinen Umriss.
 Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
 enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
 Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
@@ -157,17 +162,21 @@ im Archiv und werden erst über `readBytes()` gelesen; moderne Pakete liefern
 SHA-1 und Größe aus `MediaEntries` (Eintrag *i* ist ZIP-Eintrag `i`), Legacy-Medien
 werden einzeln gehasht.
 
-`translateAnkiPackage(pkg)` in `apkgNoteTranslation.ts` ist eine reine Funktion
-und liefert `{ decks, notes, cards, mediaFiles, reviewEvents, noteTypeSources,
-noteSources, report }`:
+`translateAnkiPackage(pkg)` in `apkgNoteTranslation.ts` liest vorab nur die
+Masken-SVGs von Image Occlusion Enhanced (je höchstens 1 MiB) aus dem Paket,
+übersetzt dann ohne weitere Ein- und Ausgabe und liefert asynchron `{ decks,
+notes, cards, mediaFiles, reviewEvents, noteTypeSources, noteSources, report }`:
 
 - **Stapel:** Karten liegen in `did`, in gefilterten Stapeln im Heimatstapel
   `odid`. Angelegt werden nur Stapel mit Karten und ihre Vorfahren; gefilterte
   Stapel nie.
 - **Übersetzer-Registry** in Erkennungsreihenfolge: native Image Occlusion
   (`originalStockKind` 6), „Multiple Choice for Anki“ (Felder plus
-  `qtable`/`Q_solutions`), Image Occlusion Enhanced (drei Maskenfelder, eine
-  `overlay`-Maske), AnKing-/Ankizin-Familie (Lückentyp mit `Text`, `Extra` und
+  `qtable`/`Q_solutions`), Image Occlusion Enhanced (drei Maskenfelder; die
+  Formen des Frage-SVG werden auf die SVG-Größe normiert zu CoRe-Masken, die
+  Form oder Gruppe mit `class="qshape"` als Abfrage `io:1`, alle übrigen mit
+  `ordinal` 0 dauerhaft verdeckt; nur SVGs mit Beschriftungen, Pfaden oder
+  Transformationen bleiben eine `overlay`-Maske), AnKing-/Ankizin-Familie (Lückentyp mit `Text`, `Extra` und
   Hinweis-Buttons), Anki-Standardtypen und der generische Übersetzer. Weil Anki
   `originalStockKind` auch an geklonte und neu angelegte Notiztypen vergibt,
   zählen Basic-Familie und Lückentext nur mit unveränderten Standardvorlagen
@@ -218,6 +227,9 @@ die unbearbeiteten Importe älterer Versionen seitenweise. `planRetranslation`
 Identität und Lernstand (generische `anki-N`-Schlüssel erhalten den Schlüssel des
 besseren Übersetzers), neue Abfragen werden neue Karten. Würde eine Karte mit
 Lernstand entfallen oder ist der Inhalt nicht übersetzbar, bleibt er unverändert.
+Image Occlusion Enhanced braucht dafür die Masken-SVGs des Pakets, die nach dem
+Import nicht mehr vorliegen; solche Inhalte bleiben bei der Neuübersetzung
+unverändert.
 Nur geänderte Inhalte werden geschrieben, mit `importedContentRevision` =
 `contentRevision`; Inhalte mit ausstehender lokaler Änderung werden
 übersprungen. Die App meldet die Zahl aktualisierter Inhalte.

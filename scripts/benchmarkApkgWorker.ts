@@ -16,7 +16,7 @@ const sampler = setInterval(sampleMemory, 25);
 // Like the app worker: the file is read lazily like a browser File and only the preview leaves the worker.
 async function runNotes(path: string, name: string) {
   const file = Object.assign(await openAsBlob(path), { name });
-  const graph = translateAnkiPackage(await readAnkiPackage(file, sampleMemory));
+  const graph = await translateAnkiPackage(await readAnkiPackage(file, sampleMemory));
   sampleMemory();
   const description = describeImportGraph(graph);
   const preview = { ...description, sampleMedia: await readSampleMedia(graph, description.samples) };

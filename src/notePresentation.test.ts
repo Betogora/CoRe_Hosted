@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { NoteContent, NoteField } from "./coreTypes.ts";
+import type { NoteContent, NoteField, OcclusionShape } from "./coreTypes.ts";
 import { createNote } from "./coreModel/notes.ts";
 import { colorContrast } from "./ui/colorMath.ts";
 import { compareTypedAnswer, evaluateNoteChoice, notePlainText, renderCard, renderNoteChoiceOptions, renderNoteSpeech, type NotePresentationTheme } from "./notePresentation.ts";
@@ -73,11 +73,11 @@ test("Feldrollen gelten auch bei expliziten Abfragereferenzen und beim Vorlesen"
 });
 
 test("Bildmasken verdecken fremde Gruppen dauerhaft und decken die aktive Gruppe ohne Scripts auf", async () => {
-  const shapes = [
-    { kind: "rect" as const, left: .1, top: .1, width: .2, height: .2, angle: 10 },
-    { kind: "ellipse" as const, left: .4, top: .2, width: .1, height: .2, angle: 0 },
-    { kind: "polygon" as const, points: [[0, 0], [.1, .2], [.2, .1]] as Array<[number, number]>, angle: 0 },
-    { kind: "text" as const, left: .1, top: .7, text: "Beschriftung", scale: .1, angle: 0 },
+  const shapes: OcclusionShape[] = [
+    { kind: "rect", left: .1, top: .1, width: .2, height: .2, angle: 10 },
+    { kind: "ellipse", left: .4, top: .2, width: .1, height: .2, angle: 0 },
+    { kind: "polygon", points: [[0, 0], [.1, .2], [.2, .1]] },
+    { kind: "text", left: .1, top: .7, text: "Beschriftung", scale: .1, fontSize: null, angle: 0 },
   ];
   for (const mode of ["hide-one-guess-one", "hide-all-guess-one"] as const) {
     const value = content({ kind: "image-occlusion", image: "bild.png", mode, masks: shapes.map((shape, index) => ({ id: String(index), ordinal: index === 0 ? 1 : 2, alwaysOccluded: index === 2, shape })) });
@@ -85,14 +85,27 @@ test("Bildmasken verdecken fremde Gruppen dauerhaft und decken die aktive Gruppe
     const answer = await render(value, "answer", "io:1");
     assert.match(question.srcdoc, /viewBox="0 0 1 1"/);
     assert.match(question.srcdoc, /preserveAspectRatio="none"/);
-    assert.match(answer.srcdoc, /class="mask-outline"/);
+    assert.match(answer.srcdoc, /class="mask mask-rect mask-outline"/);
     assert.match(answer.srcdoc, /<polygon/);
     assert.match(question.srcdoc, /<span class="mask-label" style="left:10%;top:70%;font-size:0.1em;transform:rotate\(0deg\)">Beschriftung<\/span>/);
     assert.doesNotMatch(question.srcdoc, /<text\b/);
-    assert.equal(/<ellipse/.test(question.srcdoc), mode === "hide-all-guess-one");
+    assert.equal(/class="mask mask-ellipse/.test(question.srcdoc), mode === "hide-all-guess-one");
     assert.match((await render(value, "answer", "io:2")).srcdoc, /<polygon class="mask-outline"/);
   }
   const overlay = content({ kind: "image-occlusion", image: "bild.png", mode: "hide-one-guess-one", masks: [{ id: "m", ordinal: 1, alwaysOccluded: false, shape: { kind: "overlay", question: "q.svg", answer: "a.svg" } }] });
+  // Anki turns rectangles, ellipses and labels in image pixels around their top-left corner and sizes labels by the
+  // image height, so neither may depend on the stretched 0–1 mask space of a non-square image.
+  const rotated = content({ kind: "image-occlusion", image: "bild.png", mode: "hide-all-guess-one", masks: [
+    { id: "r", ordinal: 1, alwaysOccluded: false, shape: { kind: "rect", left: .35, top: .08, width: .2, height: .16, angle: 30 } },
+    { id: "e", ordinal: 0, alwaysOccluded: true, shape: { kind: "ellipse", left: .66, top: .06, width: .16, height: .24, angle: 45 } },
+    { id: "t", ordinal: 1, alwaysOccluded: false, shape: { kind: "text", left: .58, top: .62, text: "Mitralklappe", scale: 1.5, fontSize: .08, angle: 15 } },
+  ] });
+  const rotatedQuestion = (await render(rotated, "question", "io:1")).srcdoc;
+  assert.match(rotatedQuestion, /<span class="mask mask-rect mask-target" style="left:35%;top:8%;width:20%;height:16%;transform:rotate\(30deg\)"><\/span>/);
+  assert.match(rotatedQuestion, /<span class="mask mask-ellipse mask-muted" style="left:66%;top:6%;width:16%;height:24%;transform:rotate\(45deg\)"><\/span>/);
+  assert.match(rotatedQuestion, /font-size:12cqh;transform:rotate\(15deg\)">Mitralklappe/);
+  assert.match(rotatedQuestion, /\.mask\{position:absolute;box-sizing:border-box;transform-origin:0 0\}/);
+  assert.match(rotatedQuestion, /\.mask-layer\{container-type:size\}/);
   assert.match((await render(overlay, "question", "io:1")).srcdoc, /<img class="mask-overlay" src="q\.svg" alt=""\/><\/div>/);
   assert.match((await render(overlay, "answer", "io:1")).srcdoc, /<img class="mask-overlay" src="a\.svg" alt=""\/><\/div>/);
   assert.match((await render(overlay, "question", "io:1")).srcdoc, /<img src="bild\.png" alt="Frage – Bild mit verdeckten Bereichen"\/>/);

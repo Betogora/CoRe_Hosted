@@ -175,15 +175,21 @@ export interface ChoiceOption {
   correct: boolean;
 }
 
+/**
+ * Positions are relative to the image (x to its width, y to its height). Like Anki, rectangles, ellipses and labels
+ * turn by `angle` degrees around their top-left corner in image pixels; polygons are not rotated.
+ */
 export type OcclusionShape =
   | { kind: "rect" | "ellipse"; left: number; top: number; width: number; height: number; angle: number }
-  | { kind: "polygon"; points: Array<[number, number]>; angle: number }
-  | { kind: "text"; left: number; top: number; text: string; scale: number; angle: number }
+  | { kind: "polygon"; points: Array<[number, number]> }
+  /** `fontSize` is relative to the image height (Anki's `fs`); without it `scale` multiplies the card's body size. */
+  | { kind: "text"; left: number; top: number; text: string; scale: number; fontSize: number | null; angle: number }
   /** Full-image mask images, e.g. from Image Occlusion Enhanced; the answer image replaces the question image after reveal. */
   | { kind: "overlay"; question: MediaRef; answer: MediaRef | null };
 
 export interface OcclusionMask {
   id: string;
+  /** Card group `io:<ordinal>`; 0 marks a mask without a card of its own, which only stays occluded. */
   ordinal: number;
   shape: OcclusionShape;
   alwaysOccluded: boolean;

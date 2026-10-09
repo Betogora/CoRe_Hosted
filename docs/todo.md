@@ -214,44 +214,10 @@ vorbereiteten normalisierten Katalogbeispiele (Abnahme Phase 5).
 `translateAnkiPackage` (`src/apkgNoteTranslation.ts`) übersetzen Pakete in den
 Importgraphen; die APKG-Matrix beobachtet diese Pipeline und ist ohne
 `KNOWN_GAPS` grün. Den Vertrag beschreibt `architecture.md`. Die an Persistenz
-und Oberfläche gebundenen Teile (K5.4, K5.7 bis K5.9) sind im Cutover umgesetzt
-(siehe `history.md`). Offen sind zwei Nachweise, die echte Anki-Daten brauchen,
-und die Übersetzung von Image Occlusion Enhanced in echte Masken (K5.10).
-
-- [ ] **K5.2 Drehung und Textgröße der Bildmasken prüfen.** Der Renderer dreht
-      Rechteck und Ellipse um ihre linke obere Ecke und Polygone um die
-      Bildmitte, jeweils in der auf 0–1 gestreckten Maskenfläche; bei nicht
-      quadratischen Bildern verzerrt das gedrehte Masken. Textbeschriftungen
-      nutzen `scale` als Vielfaches der Kartenschrift; Ankis Schriftgröße `fs`
-      wird noch nicht gelesen. Beides mit im Anki-Editor gezeichneten, gedrehten
-      Masken und Beschriftungen abgleichen und im Renderer korrigieren (Drehung
-      im Bildseitenverhältnis, Ankis Drehpunkt und Schriftgröße). Die Matrix
-      kann das nicht belegen, weil ihre Masken als Text erzeugt werden.
-      Befund aus Ankis Editor-Code (26.9): Masken sind fabric.js-Objekte mit
-      Ursprung links oben; gespeichert werden `left`/`top` (normiert auf
-      Bildbreite bzw. -höhe), `angle` in Grad, Rechtecke mit `width`/`height`,
-      Ellipsen mit `rx`/`ry`, Polygone mit `left`/`top` und absoluten
-      `points`, Text mit `text`, `scale` und `fs` (Schriftgröße relativ zur
-      Bildhöhe), optional `fill`. Gedreht wird also in Pixeln um die linke
-      obere Ecke. Der Matrixgenerator schreibt Ellipsen noch mit
-      `width`/`height`; auf `rx`/`ry` umstellen. Referenz:
-      `CoRe_Bildverdeckung_nativ.apkg` im Korpus (alle Formen, gedreht, Text in
-      zwei Größen, Gruppe, Füllfarbe, beide Modi, 2:1-Bild); in Anki
-      importiert zeigt Ankis eigener Reviewer die Sollansicht.
-- [ ] **K5.10 Image Occlusion Enhanced als CoRe-Masken.** Entschieden
-      2026-10-08 (Ergänzung zu ADR-033): Der IOE-Übersetzer baut aus den
-      SVG-Masken echte CoRe-Masken statt einer `overlay`-Maske. Je IOE-Inhalt
-      ist die Maske mit `class="qshape"` die aktive Abfrage; im Modus `ao`
-      (alle verdecken, eine erraten) bleiben die übrigen Masken als
-      `alwaysOccluded` verdeckt, im Modus `oa` entfallen sie. Koordinaten
-      werden über `width`/`height` des SVG auf 0–1 normiert; die Add-on-Farben
-      entfallen. Dafür braucht der Plan Zugriff auf die Medienbytes des
-      Pakets. Nur Masken mit unbekannten Elementen (`path`, `text`,
-      `transform`) bleiben `overlay`. Beleg: Das echte Deck
-      `Image_Occlusion_Test_Pharmagrundlagen.apkg` enthält ausschließlich
-      ungedrehte `rect`-Masken in beiden Modi. Matrixerwartung im Generator
-      anpassen, `architecture.md` (Form `overlay`) mitziehen. Reines Modul im
-      Übersetzer.
+und Oberfläche gebundenen Teile (K5.4, K5.7 bis K5.9) sind im Cutover umgesetzt,
+Image Occlusion Enhanced als CoRe-Masken (K5.10) sowie Drehung und Textgröße der
+Bildmasken wie in Anki (K5.2) danach (siehe `history.md`). Offen sind zwei
+Nachweise, die echte Anki-Daten brauchen.
 
 **Prüfung:** `npx tsx --test src/apkgNoteTranslation.test.ts
 src/apkgFormatMatrix.test.ts`, `npm run typecheck`, `npm test`,
@@ -377,9 +343,7 @@ Roadmap:
 ## Offene Entscheidungen
 
 Marker, Kprim-Teilpunkte und Bildbeschreibung sind entschieden und umgesetzt,
-die Neuübersetzung ist entschieden (K5.4, siehe `history.md`). Bereits einer Phase zugeordnet sind:
-Gerätenachweise (Phase 3, offene Abnahme), Drehung und Textgröße der
-Bildmasken (K5.2).
-
-Image Occlusion Enhanced ist entschieden (K5.10). Damit ist nichts mehr offen.
+die Neuübersetzung ist entschieden (K5.4, siehe `history.md`), Image Occlusion
+Enhanced ist umgesetzt (K5.10). Bereits einer Phase zugeordnet sind die
+Gerätenachweise (Phase 3, offene Abnahme). Damit ist nichts mehr offen.
 

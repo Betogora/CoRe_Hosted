@@ -31,6 +31,7 @@ interface ExpectedNote {
   instruction: Record<string, string>;
   speech: Record<string, string>;
   choice: { mode: "single" | "multiple" | "kprim"; options: string[]; correct: boolean[] } | null;
+  occlusion?: Array<{ kind: string; ordinal: number; alwaysOccluded: boolean }> | null;
   tags: string[];
   marked: boolean;
   cards: ExpectedCard[];
@@ -67,7 +68,7 @@ async function importFixture(fileName: string): Promise<{ errors: string[]; pkg:
   const file = new File([await readFile(new URL(fileName, MATRIX_DIR))], fileName);
   try {
     const pkg = await readAnkiPackage(file);
-    const graph = translateAnkiPackage(pkg);
+    const graph = await translateAnkiPackage(pkg);
     return { errors: graph.report.errors, pkg, graph: graph.report.errors.length ? null : graph };
   } catch (error) {
     return { errors: [error instanceof Error ? error.message : String(error)], pkg: null, graph: null };
@@ -170,6 +171,12 @@ async function runFixture(name: string, expected: ExpectedFixture) {
         assert.equal(interaction.mode, expectedNote.choice!.mode);
         assert.deepEqual(interaction.options.map((option) => notePlainText(option.html)), expectedNote.choice!.options);
         assert.deepEqual(interaction.options.map((option) => option.correct), expectedNote.choice!.correct);
+      });
+    }
+    if (expectedNote.occlusion) {
+      check("note.occlusion", expectedNote.guid, () => {
+        assert.ok(interaction.kind === "image-occlusion", "Keine Bildverdeckung.");
+        assert.deepEqual(interaction.masks.map(({ shape, ordinal, alwaysOccluded }) => ({ kind: shape.kind, ordinal, alwaysOccluded })), expectedNote.occlusion);
       });
     }
     check("note.fieldRoles", expectedNote.guid, () => {
