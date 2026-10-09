@@ -33,7 +33,7 @@ Zum Teilen den ganzen `docs`-Ordner mitnehmen. Die Seiten lassen sich direkt
 2. Designwünsche anhand der HTML-Referenz formulieren; danach in den angegebenen
    App-Quellen umsetzen. Gemeinsame UI-Änderungen aktualisieren ihre Live-Demo;
    lokale Screen-Muster zusätzlich ihre kuratierten Beispiele.
-3. `npm run docs:build` erzeugt die fünf Leseseiten und die separate Design-Freigabe. `npm run check:docs` prüft
+3. `npm run docs:build` erzeugt die fünf Leseseiten. `npm run check:docs` prüft
    Quellenstand, Dokumentverweise, Journey-Regeln und die vollständige Zuordnung
    exportierter UI-Komponenten zu Gruppen und Demos. `npm run typecheck` führt
    diesen Check ebenfalls aus. HTML-Ausgaben nie direkt bearbeiten.
@@ -42,7 +42,7 @@ Zum Teilen den ganzen `docs`-Ordner mitnehmen. Die Seiten lassen sich direkt
 
 Ein technischer Inventarcheck ersetzt keine visuelle Prüfung.
 
-Die separate [Design-Freigabe](design-review.html) enthält Einstieg- und Meldungsvarianten A/B/C. Unbestätigte Vorschau-Styles gehören ausschließlich in `scripts/designReview.tsx`; Übernahme in App und UI-Katalog erfolgt erst nach der Auswahl. Architektur und weiteres Projektwissen bleiben ausschließlich in Markdown.
+Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre, unversionierte Vergleichsseite vorgelegt und nach der Entscheidung gelöscht. Architektur und weiteres Projektwissen bleiben ausschließlich in Markdown.
 
 ## Kanonische Rollen
 
