@@ -10,30 +10,6 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: "Synonym";
-  src: url("/fonts/synonym-400.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Synonym";
-  src: url("/fonts/synonym-500.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Synonym";
-  src: url("/fonts/synonym-600.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-}
-
 @media (max-width: 18.75rem) {
   .core-centered-viewport {
     padding: 0.25rem;
@@ -224,6 +200,7 @@
   --core-action-soft: #eef1f6;
   --core-selection-track: #eceff3;
   --core-selection-indicator-shadow: 0 2px 6px rgba(24, 29, 37, 0.07);
+  --core-shadow-floating: 0 18px 50px -36px rgba(24, 29, 37, 0.55);
   --core-shadow-selection: 0 0 0 3px var(--core-focus-ring-soft);
   --core-selection: rgba(214, 163, 210, 0.46);
   --core-learning-status-learned: var(--core-info);
@@ -233,6 +210,13 @@
   --core-learning-progress-completed: #a7adb6;
   --core-learning-goal-achieved: #2f7d68;
 
+}
+
+/* Touch screens and narrow views keep 44 × 44 px touch targets; fine pointers use the compact 40 px controls. */
+@media (pointer: coarse), (max-width: 767px) {
+  :root {
+    --core-control-height: 2.75rem;
+  }
 }
 
 [data-core-theme="dark"] {
@@ -287,6 +271,7 @@
   --core-action-soft: #222b38;
   --core-selection-track: #10141a;
   --core-selection-indicator-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --core-shadow-floating: 0 18px 50px -30px rgba(0, 0, 0, 0.8);
   --core-selection: rgba(228, 181, 225, 0.42);
   --core-learning-status-learned: var(--core-info);
   --core-learning-status-new: var(--core-success);

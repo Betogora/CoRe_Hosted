@@ -312,7 +312,7 @@ function StoryStepCard<TSelection extends string>({
         onFocus={onFocus}
         aria-current={active ? "step" : undefined}
       >
-        <p className="core-caption font-semibold uppercase tracking-wide text-core-action">{step.eyebrow}</p>
+        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">{step.eyebrow}</p>
         <h3 className="core-heading-2 mt-3 font-semibold text-core-text">{step.title}</h3>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
         {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
@@ -449,7 +449,7 @@ function IntroSection() {
   return (
     <section className="grid min-w-0 min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
       <div className="max-w-2xl">
-        <p className="core-control-label uppercase tracking-wide text-core-action">Lernen, das wirklich bleibt</p>
+        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Lernen, das wirklich bleibt</p>
         <h2 id="help-intro-heading" className="core-heading-1 mt-4 font-semibold text-core-text">Wir wollen Lernen verbessern.</h2>
         <p className="mt-6 core-body-large leading-8 text-core-secondary">
           CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
@@ -461,7 +461,7 @@ function IntroSection() {
             className={methodLinkClass("border-core-success")}
             onClick={(event) => scrollToMethod(event, "active-recall")}
           >
-            <span className="core-caption font-semibold uppercase tracking-wide text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Active Recall</span>
+            <span className="core-caption font-semibold text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Active Recall</span>
             <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">Wissen aktiv aus dem Gedächtnis holen.</span>
           </a>
           <a
@@ -470,7 +470,7 @@ function IntroSection() {
             className={methodLinkClass("border-core-info")}
             onClick={(event) => scrollToMethod(event, "spaced-repetition")}
           >
-            <span className="core-caption font-semibold uppercase tracking-wide text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Spaced Repetition</span>
+            <span className="core-caption font-semibold text-core-secondary transition-[font-weight,color] group-hover:font-bold group-hover:text-core-text group-focus-visible:font-bold group-focus-visible:text-core-text motion-reduce:transition-none">Spaced Repetition</span>
             <span className="mt-2 block core-body font-semibold text-core-text transition-[font-weight] group-hover:font-bold group-focus-visible:font-bold motion-reduce:transition-none">Zum passenden Zeitpunkt wiederholen.</span>
           </a>
         </div>
@@ -556,7 +556,7 @@ function ActiveRecallStory() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
       <div className="max-w-3xl">
-        <p className="core-control-label uppercase tracking-wide text-core-action">Methode 1</p>
+        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Methode 1</p>
         <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Active Recall</h2>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] xl:gap-12">
@@ -689,7 +689,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
             const active = activeSelection === nextSelection;
             const label = parameterId === "r" ? "R · Abrufwahrscheinlichkeit" : parameterId === "s" ? "S · Stabilität" : "D · Schwierigkeit";
             return (
-              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-11 -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${parameterId === "r" ? "-translate-y-1/2 -rotate-90" : ""} ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
+              <button key={parameterId} type="button" className={`absolute z-20 flex min-h-control -translate-x-1/2 items-center px-2 core-caption font-semibold underline-offset-4 transition-opacity hover:underline motion-reduce:transition-none ${parameterId === "r" ? "-translate-y-1/2 -rotate-90" : ""} ${active ? "text-core-text underline decoration-2 opacity-100" : "text-core-secondary opacity-60"}`} style={PARAMETER_POSITIONS[parameterId]} {...buttonProps(nextSelection)} data-testid={`memory-parameter-${parameterId}`}>{label}</button>
             );
           })}
 
@@ -700,7 +700,7 @@ function MemoryCurveGraphic({ selection, onSelectionChange }: { selection: Explo
               <button
                 key={review.id}
                 type="button"
-                className="absolute z-20 grid size-11 place-items-center rounded-round border bg-core-raised core-body font-semibold shadow-soft transition-[transform,opacity] motion-reduce:transition-none"
+                className="absolute z-20 grid size-control place-items-center rounded-round border bg-core-raised core-body font-semibold shadow-soft transition-[transform,opacity] motion-reduce:transition-none"
                 style={{
                   left: `${(review.reviewX / 960) * 100}%`,
                   top: `${(248 / 540) * 100}%`,
@@ -740,7 +740,7 @@ function SpacedRepetitionStory() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
       <div className="max-w-3xl">
-        <p className="core-control-label uppercase tracking-wide text-core-action">Methode 2</p>
+        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Methode 2</p>
         <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
       </div>
@@ -762,7 +762,7 @@ function ReferenceSection() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
       <div>
-        <p className="core-control-label uppercase tracking-wide text-core-action">Zum Nachlesen</p>
+        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Zum Nachlesen</p>
         <h2 id="reference-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Das Wichtigste auf einen Blick</h2>
       </div>
 

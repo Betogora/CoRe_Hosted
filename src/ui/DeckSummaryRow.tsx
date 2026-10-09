@@ -76,7 +76,7 @@ export interface DeckSummaryRowProps {
 export function DeckSummaryHeader() {
   return (
     <div className="core-deck-summary-container min-w-0" data-testid="deck-summary-header" aria-hidden="true">
-      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-core-border px-1 core-caption font-semibold uppercase tracking-wide text-core-muted">
+      <div data-deck-study-header="true" className="core-deck-summary-responsive core-table-header-row grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-1 border-b border-core-border px-1 core-caption font-semibold text-core-muted">
         <span className="min-w-0 truncate whitespace-nowrap">Stapel</span>
         <div className="core-deck-summary-counts core-deck-summary-metrics grid items-center text-center">
           {DECK_COUNT_DEFINITIONS.map((count) => (
@@ -125,7 +125,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
   return (
     <div className={responsive ? "core-deck-summary-container min-w-0" : "min-w-0"}>
       <div
-        className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${gridClass} ${className}`}
+        className={`pointer-events-none relative z-[1] grid min-h-control min-w-0 items-center ${gridClass} ${className}`}
         data-deck-study-row={studyAction ? "true" : undefined}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
@@ -149,7 +149,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
           <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
             {DECK_COUNT_DEFINITIONS.map((count) => (
               <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
-                <dt className={compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-core-muted ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
+                <dt className={compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold text-core-muted ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
                 <dd className={`core-deck-summary-count-value ${compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{learningStatus.summary[count.valueKey]}</dd>
               </div>
             ))}

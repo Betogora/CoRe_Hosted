@@ -373,7 +373,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
       <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col sm:min-h-[calc(100vh-4rem)]">
         <header className="grid gap-4">
           <div className="flex items-center justify-between gap-4">
-            <button type="button" onClick={onExit} className="core-surface grid size-11 place-items-center rounded-round text-core-text" aria-label="Lernmodus verlassen">
+            <button type="button" onClick={onExit} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lernmodus verlassen">
               <X size={22} aria-hidden="true" />
             </button>
             <div className="text-center">
@@ -388,7 +388,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                       : "0 / 0"}
               </p>
             </div>
-            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-11 place-items-center rounded-round text-core-text" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
+            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
               <SlidersHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
@@ -398,7 +398,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
             </p>
           ) : null}
           <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-core-muted">
+            <div className="flex items-center justify-between gap-3 core-status-label text-core-muted">
               <span>Lernfortschritt</span>
               <span>{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
             </div>
@@ -452,13 +452,13 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                         <div className="mt-8 rounded-panel border border-core-border bg-core-subtle p-4" data-testid="review-answer-tools">
                           <div className="flex flex-wrap gap-2">
                             {isCurrentVariant ? (
-                              <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action">
+                              <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action">
                                 <Anchor size={16} aria-hidden="true" />
                                 {showAnchor ? "Grundkarte ausblenden" : "Grundkarte anzeigen"}
                               </button>
                             ) : null}
                             {isCurrentVariant ? (
-                              <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
+                              <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
                                 <Ban size={16} aria-hidden="true" />
                                 Nicht mehr zeigen
                               </button>
@@ -467,11 +467,11 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                           {isCurrentVariant ? (
                             <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Problem melden">
                               <span className="core-body font-semibold text-core-muted">Problem melden:</span>
-                              <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
+                              <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
                                 <CircleAlert size={16} aria-hidden="true" />
                                 Inhaltlich falsch
                               </button>
-                              <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
+                              <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
                                 <CircleAlert size={16} aria-hidden="true" />
                                 Unklar formuliert
                               </button>
@@ -488,7 +488,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                       ) : null}
                     </>
                   ) : (
-                    <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 inline-flex min-h-11 items-center gap-2 rounded-control bg-core-action px-6 core-body font-semibold text-core-on-accent">
+                    <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 core-action-primary">
                       <RotateCcw size={17} aria-hidden="true" />
                       Antwort anzeigen
                     </button>
@@ -500,7 +500,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                 <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Weitere Karten konnten nicht geladen werden</h1>
                 <p className="mt-3 text-core-muted">{loadMoreError}</p>
-                <button type="button" onClick={() => setLoadMoreError("")} className="mt-8 inline-flex min-h-11 items-center rounded-control bg-core-action px-6 core-body font-semibold text-core-on-accent">
+                <button type="button" onClick={() => setLoadMoreError("")} className="mt-8 core-action-primary">
                   Erneut versuchen
                 </button>
               </div>
@@ -514,7 +514,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                 <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Tageslimit erreicht</h1>
                 <p className="mt-3 text-core-muted">{limitSummaryText}</p>
-                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-control bg-core-action px-6 core-body font-semibold text-core-on-accent">
+                <button type="button" onClick={onReturnToLearn} className="mt-8 core-action-primary">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>
@@ -524,7 +524,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                 <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Für jetzt geschafft</h1>
                 <p className="mt-3 text-core-muted">Die restlichen Lernkarten sind vorgemerkt und bleiben „Offen“.</p>
                 {queue.limitSummary.reached ? <p className="mt-3 rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 core-body text-core-text" role="status">{limitSummaryText}</p> : null}
-                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-control bg-core-action px-6 core-body font-semibold text-core-on-accent">
+                <button type="button" onClick={onReturnToLearn} className="mt-8 core-action-primary">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>
@@ -536,7 +536,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
                   {completedInitialCount} {completedInitialCount === 1 ? "Karte" : "Karten"} · {repeatCount} {repeatCount === 1 ? "Wiederholung" : "Wiederholungen"}
                 </p>
                 {queue.limitSummary.reached ? <p className="mt-3 rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 core-body text-core-text" role="status">{limitSummaryText}</p> : null}
-                <button type="button" onClick={onReturnToLearn} className="mt-8 inline-flex min-h-11 items-center rounded-control bg-core-action px-6 core-body font-semibold text-core-on-accent">
+                <button type="button" onClick={onReturnToLearn} className="mt-8 core-action-primary">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>

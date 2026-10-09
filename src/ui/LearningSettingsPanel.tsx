@@ -89,7 +89,7 @@ function NumberField({ label, value, min, max, testId, onChange }: { label: stri
         step="1"
         value={inputValue}
         data-testid={testId}
-        className="min-h-11 rounded-control border border-core-border px-3 text-core-text"
+        className="min-h-control rounded-control border border-core-border px-3 text-core-text"
         onChange={(event) => updateInput(event.target.value)}
         onBlur={commitInput}
         onKeyDown={(event) => {
@@ -216,7 +216,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
           ) : null}
 
           <div className="mt-6 grid min-w-0 gap-3 border-t border-core-border pt-6 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end">
-            <label className="grid gap-2 core-body font-semibold text-core-muted">Name des eigenen Lernprofils<input className="min-h-11 min-w-0 rounded-control border border-core-border px-3 text-core-text" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
+            <label className="grid gap-2 core-body font-semibold text-core-muted">Name des eigenen Lernprofils<input className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
             <ActionButton type="button" variant="secondary" icon={Plus} onClick={createProfile}>Anlegen</ActionButton>
             <ActionButton type="button" variant="secondary" icon={Pencil} disabled={!selectedCustomProfile} onClick={renameProfile}>Umbenennen</ActionButton>
             <ActionButton type="button" variant="destructive" icon={Trash2} disabled={!selectedCustomProfile} onClick={() => setDeleteProfileId(selectedCustomProfile?.id ?? null)}>Löschen</ActionButton>

@@ -191,7 +191,7 @@ function PanelHeader({ title, titleId, snapshot = false }: { title: string; titl
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
-      {snapshot ? <span className="core-status-label rounded-round bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
+      {snapshot ? <span className="core-status-label rounded-inset bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
     </div>
   );
 }
@@ -536,7 +536,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
             <tbody>{statistics.deckRows.map((row) => (
               <tr key={row.id}>
                 <th scope="row">
-                  <button type="button" className="min-h-11 w-full text-left font-semibold [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelmenü öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
+                  <button type="button" className="min-h-control w-full text-left font-semibold [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelmenü öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
                 </th>
                 <td><StatTile size="compact" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
                 <td><StatTile size="compact" label="Erfolg" value={formatPercent(row.successPercent)} /></td>

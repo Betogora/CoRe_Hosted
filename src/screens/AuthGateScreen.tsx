@@ -87,14 +87,14 @@ export function AuthGateScreen({
               {isSignUp ? (
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
                   Anzeigename
-                  <input className="min-h-11 min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
+                  <input className="min-h-control min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
                 </label>
               ) : null}
 
               {needsEmail ? (
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
                   E-Mail
-                  <span className="flex min-h-11 min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3">
+                  <span className="flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3">
                     <Mail size={17} className="text-core-muted" aria-hidden="true" />
                     <input className="min-w-0 flex-1 bg-transparent text-core-text outline-none" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
                   </span>
@@ -105,7 +105,7 @@ export function AuthGateScreen({
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
                   {isRecovery ? "Neues Passwort" : "Passwort"}
                   <input
-                    className="min-h-11 min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text"
+                    className="min-h-control min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -120,7 +120,7 @@ export function AuthGateScreen({
                 <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
                   Passwort wiederholen
                   <input
-                    className="min-h-11 min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text"
+                    className="min-h-control min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text"
                     type="password"
                     value={passwordRepeat}
                     onChange={(event) => setPasswordRepeat(event.target.value)}
@@ -131,7 +131,7 @@ export function AuthGateScreen({
                 </label>
               ) : null}
 
-              <button type="submit" disabled={!configured || busy} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-control bg-core-action px-6 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]">
+              <button type="submit" disabled={!configured || busy} className="core-action-primary">
                 <PrimaryIcon size={17} aria-hidden="true" />
                 {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>
@@ -142,7 +142,7 @@ export function AuthGateScreen({
                 type="button"
                 onClick={onGoogleSignIn}
                 disabled={!configured || busy}
-                className="mt-3 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-text disabled:text-[var(--core-action-disabled-text)]"
+                className="mt-3 inline-flex min-h-control w-full items-center justify-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-text disabled:text-[var(--core-action-disabled-text)]"
               >
                 <Chrome size={17} aria-hidden="true" />
                 Mit Google anmelden

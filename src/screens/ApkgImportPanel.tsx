@@ -117,7 +117,7 @@ function ApkgCardSample({ note, card, notetypeName, urlsBySha1 }: { note: Note; 
     <article className="core-surface-raised rounded-panel p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
         <ApkgPreviewBadge>Originalkarte</ApkgPreviewBadge>
-        <span className="core-caption font-medium uppercase tracking-wide text-core-muted">{notetypeName}</span>
+        <span className="core-caption font-medium text-core-muted">{notetypeName}</span>
       </div>
       <NoteCardContent note={note} card={card} surface="preview" revealed onReveal={() => undefined} mediaUrls={mediaUrls} />
     </article>
@@ -501,7 +501,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
             <SoftPanel className="p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="core-body font-semibold uppercase tracking-wide text-core-text">Importvorschau</p>
+                  <p className="core-body font-semibold text-core-text">Importvorschau</p>
                   <h3 className="mt-1 core-heading-2 font-semibold text-core-text">{preview.rootDeckName}</h3>
                 </div>
                 {uiState.status === "preview" ? (

@@ -397,7 +397,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
       <DeckDragFocusOverlay maskId={dragMaskId} holes={focusHoles} />
       {dragFocusLayout?.topLevelTarget ? (
         <div
-          className={`pointer-events-auto grid min-h-11 w-full place-items-center rounded-control border-strong border-dashed px-4 text-center core-body font-semibold transition ${
+          className={`pointer-events-auto grid min-h-control w-full place-items-center rounded-control border-strong border-dashed px-4 text-center core-body font-semibold transition ${
             topDropActive && dropIntent?.error
               ? "border-core-danger bg-core-danger-soft text-core-danger"
               : topDropActive
@@ -434,7 +434,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="grid gap-6">
-          <div className="core-deck-tree-header grid min-h-11 items-center gap-3" data-testid={`${mode}-deck-list-header`}>
+          <div className="core-deck-tree-header grid min-h-control items-center gap-3" data-testid={`${mode}-deck-list-header`}>
             <h3 className="core-deck-tree-title whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
             {headerAction ? <div className="core-deck-tree-header-action justify-self-end whitespace-nowrap">{headerAction}</div> : null}
           </div>

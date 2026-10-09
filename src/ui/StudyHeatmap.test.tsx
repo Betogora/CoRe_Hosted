@@ -69,7 +69,7 @@ test("shared study heatmap defaults to seven days with the streak title and shar
   assert.doesNotMatch(markup, /aria-label="Heatmap-Farbe ändern"[^>]*border-\[var\(--core-border-interactive\)\]/);
   assert.match(markup, /background-color:var\(--core-learning-status-new\)/);
   assert.match(markup, /role="combobox"[\s\S]*aria-label="Heatmap-Zeitraum"/);
-  assert.equal((markup.match(/inline-flex size-11 shrink-0/g) ?? []).length, 2);
+  assert.equal((markup.match(/inline-flex size-control shrink-0/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /core-segmented-control-option/);
   assert.match(markup, />Woche</);
   assert.match(markup, /Frühere sieben Tage anzeigen/);

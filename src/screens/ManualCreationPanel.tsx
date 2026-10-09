@@ -109,7 +109,7 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
         aria-label={title}
         aria-pressed={isPinned}
         onClick={onToggle}
-        className={`grid size-11 shrink-0 place-items-center rounded-inset border transition ${
+        className={`grid size-control shrink-0 place-items-center rounded-inset border transition ${
           isPinned
             ? "border-core-border-strong bg-core-subtle text-core-action shadow-selection"
             : "border-core-border bg-core-surface text-core-border-strong hover:border-core-border-strong hover:text-core-action"
@@ -527,7 +527,7 @@ export function ManualCreationPanel({
             ) : (
               <label className="grid min-w-0 flex-[1_1_16rem] gap-2 core-body font-semibold text-core-secondary">
                 Neuer Kartenstapel
-                <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
+                <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={deckName} onChange={(event) => setDeckName(event.target.value)} />
               </label>
             )}
             <button type="button" onClick={() => setUseNewDeck((value) => {
@@ -536,7 +536,7 @@ export function ManualCreationPanel({
               if (!next && nextDeckId !== initialTargetDeckId) onTargetDeckChange(nextDeckId);
               dispatchBatch({ type: "target-deck", deckId: nextDeckId });
               return next;
-            })} className="inline-flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action">
+            })} className="inline-flex min-h-control min-w-0 max-w-full items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action">
               <Database size={16} aria-hidden="true" />
               {useNewDeck && decks.length > 0 ? "Stapel auswählen" : "Neuen Stapel erstellen"}
             </button>
@@ -580,7 +580,7 @@ export function ManualCreationPanel({
 
       <div className="grid min-w-0 gap-4">
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-          <div className="flex min-h-11 items-center justify-between gap-2">
+          <div className="flex min-h-control items-center justify-between gap-2">
             <span>{kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"}</span>
             <PinFieldButton isPinned={pinnedFields.front} label={kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
           </div>
@@ -611,7 +611,7 @@ export function ManualCreationPanel({
               const removalLocked = answerOptions.length <= 2 || (isMultipleChoice && correctnessLocked);
               return (
                 <div key={index} className="flex min-w-0 items-center gap-2">
-                  <label className="grid size-11 shrink-0 place-items-center">
+                  <label className="grid size-control shrink-0 place-items-center">
                     <input
                       className="size-5"
                       type={isSingleChoice ? "radio" : "checkbox"}
@@ -623,7 +623,7 @@ export function ManualCreationPanel({
                       aria-invalid={Boolean(fieldErrors.correctOptions)}
                     />
                   </label>
-                  <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-11 min-w-0 flex-1 rounded-control border border-core-border px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                  <input data-manual-focus={index === 0 ? "option-0" : undefined} className="min-h-control min-w-0 flex-1 rounded-control border border-core-border px-3" value={option} onChange={(event) => updateAnswerOption(index, event.target.value)} placeholder={`Option ${index + 1}`} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
                   <IconButton type="button" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeAnswerOption(index)} disabled={removalLocked} />
                 </div>
               );
@@ -634,7 +634,7 @@ export function ManualCreationPanel({
           </fieldset>
         ) : null}
         <div data-manual-focus="back" className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-          <div className="flex min-h-11 items-center justify-between gap-2">
+          <div className="flex min-h-control items-center justify-between gap-2">
             <span>{answerLabel}</span>
             <PinFieldButton isPinned={pinnedFields.back} label={answerLabel} onToggle={() => togglePinnedField("back")} />
           </div>
@@ -653,7 +653,7 @@ export function ManualCreationPanel({
                 <label className="grid gap-2 core-body font-semibold text-core-secondary">
                   Feldname
                   <input
-                    className="min-h-11 min-w-0 rounded-control border border-core-border px-3"
+                    className="min-h-control min-w-0 rounded-control border border-core-border px-3"
                     value={field.name}
                     data-additional-field-name={field.id}
                     aria-invalid={invalidAdditionalFieldIds.includes(field.id) || undefined}
@@ -704,7 +704,7 @@ export function ManualCreationPanel({
       <div className="grid gap-4">
         <label className="grid gap-2 core-body font-semibold text-core-secondary">
           Tags
-          <input className="min-h-11 rounded-control border border-core-border px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
+          <input className="min-h-control rounded-control border border-core-border px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
         </label>
       </div>
       </div>

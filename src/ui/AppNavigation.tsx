@@ -92,7 +92,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
         icon={SyncIcon}
         onClick={onSyncNow}
         disabled={syncStatus.status === "saving"}
-        className={`size-10 shrink-0 rounded-control ${syncStatus.status === "saving" ? "[&_svg]:animate-spin" : ""}`}
+        className={`size-control shrink-0 rounded-control ${syncStatus.status === "saving" ? "[&_svg]:animate-spin" : ""}`}
       />
       {syncStatus.status === "conflict" ? <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-round bg-core-warning px-1 core-caption font-bold text-core-text" aria-hidden="true">{syncStatus.conflictCount}</span> : null}
     </span>
@@ -109,7 +109,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       onPointerEnter={() => onPreloadView?.("einstellungen")}
       onFocus={() => onPreloadView?.("einstellungen")}
       onTouchStart={() => onPreloadView?.("einstellungen")}
-      className={`size-10 shrink-0 rounded-control ${settingsActive ? "!bg-[var(--core-action-soft)] !text-core-action" : ""}`}
+      className={`size-control shrink-0 rounded-control ${settingsActive ? "!bg-[var(--core-action-soft)] !text-core-action" : ""}`}
       aria-current={settingsActive ? "page" : undefined}
     />
   );
@@ -121,7 +121,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
       icon={ThemeIcon}
       onClick={onToggleTheme}
-      className="size-10 shrink-0 rounded-control"
+      className="size-control shrink-0 rounded-control"
     />
   );
   const helpButton = (
@@ -136,7 +136,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       onPointerEnter={() => onPreloadView?.("hilfe")}
       onFocus={() => onPreloadView?.("hilfe")}
       onTouchStart={() => onPreloadView?.("hilfe")}
-      className={`size-10 shrink-0 rounded-control ${helpActive ? "!bg-[var(--core-action-soft)] !text-core-action" : ""}`}
+      className={`size-control shrink-0 rounded-control ${helpActive ? "!bg-[var(--core-action-soft)] !text-core-action" : ""}`}
       aria-current={helpActive ? "page" : undefined}
     />
   );
@@ -168,8 +168,8 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
 function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
     <aside className="hidden p-2 pr-0 xl:block xl:overflow-x-hidden xl:overflow-y-auto" data-navigation-layout="sidebar">
-      <div className="flex h-full flex-col rounded-panel border border-core-border bg-core-surface px-3 pb-3 pt-5 shadow-[0_18px_50px_-36px_rgba(24,29,37,0.55)]">
-        <h1 className="px-2.5 text-[1.25rem] font-bold leading-none tracking-normal text-core-text">
+      <div className="flex h-full flex-col rounded-panel border border-core-border bg-core-surface px-3 pb-3 pt-5 shadow-floating">
+        <h1 className="px-2.5 core-heading-2 font-bold leading-none text-core-text">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
 
@@ -224,18 +224,18 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
 function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
-      <div className="flex h-14 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-[0_18px_50px_-36px_rgba(24,29,37,0.55)]">
-        <h1 className="core-mobile-brand shrink-0 text-[1.0625rem] font-bold leading-none text-core-text">
+      <div className="flex h-14 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
+        <h1 className="core-mobile-brand shrink-0 core-heading-3 font-bold leading-none text-core-text">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
         <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="header" />
       </div>
       {simulationOffsetMinutes > 0 ? (
-        <div className="mt-2 flex min-h-11 items-center gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
+        <div className="mt-2 flex min-h-control items-center gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
           <CalendarClock className="shrink-0" size={17} aria-hidden="true" />
           <span className="min-w-0 flex-1 truncate core-caption font-semibold">Simulation · {simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</span>
-          <button type="button" data-reset-simulation="true" className="min-h-11 shrink-0 px-2 core-body font-semibold text-core-action" onClick={onResetSimulation}>Heute</button>
+          <button type="button" data-reset-simulation="true" className="min-h-control shrink-0 px-2 core-body font-semibold text-core-action" onClick={onResetSimulation}>Heute</button>
         </div>
       ) : null}
     </header>
@@ -267,7 +267,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
             onPointerEnter={() => onPreloadView?.(view.id)}
             onFocus={() => onPreloadView?.(view.id)}
             onTouchStart={() => onPreloadView?.(view.id)}
-            className={`relative z-[1] flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-control px-1 py-1.5 transition-colors ${isActive ? "bg-core-surface text-core-action shadow-[var(--core-selection-indicator-shadow)]" : "text-core-muted hover:text-core-text"}`}
+            className={`relative z-[1] flex min-h-[3.25rem] min-w-0 flex-col items-center justify-center gap-0.5 rounded-control px-1 py-1.5 transition-colors ${isActive ? "bg-core-surface text-core-action shadow-indicator" : "text-core-muted hover:text-core-text"}`}
             aria-current={isActive ? "page" : undefined}
           >
             <NavIcon size={18} aria-hidden="true" />

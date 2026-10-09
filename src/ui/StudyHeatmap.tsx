@@ -94,7 +94,7 @@ function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: s
         <button
           type="button"
           aria-label="Heatmap-Farbe ändern"
-          className={`size-11 shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition hover:border-core-action ${className}`}
+          className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition hover:border-core-action ${className}`}
         >
           <span aria-hidden="true" className="block size-full rounded-inset border border-core-border shadow-inset" style={{ backgroundColor: selectedOption.tone }} />
         </button>
@@ -110,7 +110,7 @@ function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: s
                     type="button"
                     aria-label={option.label}
                     aria-pressed={selected}
-                    className={`grid size-11 place-items-center rounded-control border bg-core-surface transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus ${selected ? "border-core-action shadow-selection" : "border-core-border"}`}
+                    className={`grid size-control place-items-center rounded-control border bg-core-surface transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus ${selected ? "border-core-action shadow-selection" : "border-core-border"}`}
                     onClick={() => onValueCommit(option.color)}
                   >
                     <span aria-hidden="true" className="size-7 rounded-inset border border-core-border shadow-inset" style={{ backgroundColor: option.tone }} />
@@ -384,7 +384,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.previousAnchorKey)}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={navigationLabels.previous}
             >
               <ChevronLeft size={16} aria-hidden="true" />
@@ -395,7 +395,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.nextAnchorKey)}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
               aria-label={navigationLabels.next}
             >
               <ChevronRight size={16} aria-hidden="true" />

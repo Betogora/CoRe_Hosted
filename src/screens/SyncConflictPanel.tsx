@@ -145,11 +145,11 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
         <div className="flex items-center gap-3">
           <OrbIcon icon={AlertTriangle} className="bg-core-warning-soft text-core-text" />
           <div>
-            <p className="core-body font-semibold uppercase tracking-wide text-core-text">Synchronisierung</p>
+            <p className="core-body font-semibold text-core-text">Synchronisierung</p>
             <h3 className="core-heading-3 font-semibold text-core-text">Änderungskonflikte lösen</h3>
           </div>
         </div>
-        <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">
+        <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">
           <RefreshCw size={16} aria-hidden="true" />
           Neu laden
         </button>
@@ -169,13 +169,13 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
             <h4 className="core-body-large font-semibold text-core-text">Cloud im Account übernehmen</h4>
             <p className="mt-2 core-body text-core-muted">{previewText(cloudPreview)}</p>
             <p className="mt-2 core-caption text-core-muted">Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
-            <button type="button" className="mt-4 min-h-11 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
+            <button type="button" className="mt-4 core-action-secondary" disabled={Boolean(busyId)} onClick={() => void resolveAll("cloud")}>Cloud-Stand für diese Konflikte übernehmen</button>
           </div>
           <div className="rounded-panel border border-core-border bg-core-subtle p-4">
             <h4 className="core-body-large font-semibold text-core-text">Diesen Browser übernehmen</h4>
             <p className="mt-2 core-body text-core-muted">{previewText(localPreview)}</p>
             <p className="mt-2 core-caption text-core-muted">Konfliktfreie Inhalte, Reviews und Medien bleiben erhalten.</p>
-            <button type="button" className="mt-4 min-h-11 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
+            <button type="button" className="mt-4 core-action-primary" disabled={Boolean(busyId)} onClick={() => void resolveAll("local")}>Lokalen Stand für diese Konflikte übernehmen</button>
           </div>
         </div>
       ) : null}
@@ -193,11 +193,11 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
             <article key={conflict.id} className="rounded-panel border border-core-warning bg-core-warning-soft p-4" data-testid={`sync-conflict-${conflict.id}`}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="core-caption font-semibold uppercase tracking-wide text-core-text">{conflict.entityLabel}</p>
+                  <p className="core-caption font-semibold text-core-text">{conflict.entityLabel}</p>
                   <h4 className="mt-1 core-body-large font-semibold text-core-text">{conflict.title}</h4>
                   <p className="mt-1 core-caption text-core-muted">Erkannt am {formatConflictDate(conflict.createdAt)}</p>
                 </div>
-                <span className="rounded-round bg-core-warning-soft px-3 py-1 core-caption font-semibold text-core-text">Entscheidung nötig</span>
+                <span className="rounded-inset bg-core-warning-soft px-3 py-1 core-caption font-semibold text-core-text">Entscheidung nötig</span>
               </div>
 
               {conflict.fields.length > 0 ? (
@@ -207,11 +207,11 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                       <p className="core-body font-semibold text-core-secondary">{field.label}</p>
                       <div className="mt-2 grid gap-2 md:grid-cols-2">
                         <div className="min-w-0 rounded-inset bg-core-subtle p-3">
-                          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Dieser Browser</p>
+                          <p className="core-caption font-semibold text-core-muted">Dieser Browser</p>
                           <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.localText}</pre>
                         </div>
                         <div className="min-w-0 rounded-inset bg-core-subtle p-3">
-                          <p className="core-caption font-semibold uppercase tracking-wide text-core-muted">Cloud im Account</p>
+                          <p className="core-caption font-semibold text-core-muted">Cloud im Account</p>
                           <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words font-sans core-body text-core-text">{field.remoteText}</pre>
                         </div>
                       </div>
@@ -221,15 +221,15 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
               ) : <p className="mt-4 core-body text-core-muted">Eine Seite wurde gelöscht oder ist nicht mehr vorhanden.</p>}
 
               <div className="mt-4 flex flex-wrap gap-2">
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="min-h-11 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="min-h-11 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-local" })} className="core-action-primary" aria-label={`${conflict.title}: Diesen Browser übernehmen`}>Diesen Browser übernehmen</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "keep-remote" })} className="core-action-secondary" aria-label={`${conflict.title}: Cloud übernehmen`}>Cloud übernehmen</button>
                 {conflict.allowedActions.includes("merge-fields") ? (
-                  <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" data-testid={`sync-conflict-merge-${conflict.id}`}>
+                  <button type="button" disabled={busy} aria-expanded={merging} aria-controls={`sync-conflict-merge-fields-${conflict.id}`} onClick={() => toggleMerge(conflict.id)} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border bg-core-surface px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]" data-testid={`sync-conflict-merge-${conflict.id}`}>
                     <GitMerge size={16} aria-hidden="true" />
                     Manuell zusammenführen
                   </button>
                 ) : null}
-                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="min-h-11 rounded-control px-4 core-body font-semibold text-core-muted disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
+                <button type="button" disabled={busy} onClick={() => decide(conflict, { action: "ignore" })} className="min-h-control rounded-control px-4 core-body font-semibold text-core-muted disabled:text-[var(--core-action-disabled-text)]" aria-label={`${conflict.title}: Später entscheiden`}>Später entscheiden</button>
               </div>
 
               {merging ? (
@@ -241,7 +241,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                         <span className="core-body font-semibold text-core-secondary">{field.label}</span>
                         <div className="flex gap-4">
                           {FIELD_SOURCES.map(([source, label]: any) => (
-                            <label key={source} className="inline-flex min-h-11 items-center gap-2 core-body text-core-secondary">
+                            <label key={source} className="inline-flex min-h-control items-center gap-2 core-body text-core-secondary">
                               <input type="radio" name={`${conflict.id}-${field.key}`} checked={choices[field.key] === source} onChange={() => chooseField(conflict.id, field.key, source)} aria-label={`${field.label}: ${label}`} />
                               {label}
                             </label>
@@ -250,7 +250,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                       </div>
                     ))}
                   </div>
-                  <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-4 min-h-11 rounded-control bg-core-action px-4 core-body font-semibold text-core-on-accent disabled:bg-[var(--core-action-disabled-bg)]">Zusammenführung speichern</button>
+                  <button type="button" disabled={busy || !allFieldsChosen} onClick={() => decide(conflict, { action: "merge-fields", fieldChoices: choices })} className="mt-4 core-action-primary">Zusammenführung speichern</button>
                 </fieldset>
               ) : null}
             </article>
@@ -270,7 +270,7 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
                 <div>
                   <p className="core-body font-semibold text-core-text">{conflict.entityLabel}: {conflict.title}</p>
                 </div>
-                <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="inline-flex min-h-11 items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">
+                <button type="button" disabled={busyId === conflict.id} onClick={() => decide(conflict, { action: "reopen" })} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">
                   <RotateCcw size={16} aria-hidden="true" />
                   Wieder aufnehmen
                 </button>

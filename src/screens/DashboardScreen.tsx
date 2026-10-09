@@ -188,7 +188,7 @@ function DailyLearningOverview({
           </div>
 
           <div className="mt-6 grid gap-2">
-            <div className="flex items-center justify-between gap-3 core-status-label uppercase tracking-wide text-core-muted">
+            <div className="flex items-center justify-between gap-3 core-status-label text-core-muted">
               <span>Tagesziel</span>
               <span data-testid="daily-learning-total">{plan.progress.completedTodayCount} / {plan.progress.total} Karten</span>
             </div>
@@ -252,7 +252,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
 
         <SoftPanel className="overflow-hidden p-6 sm:p-9">
           <div className="max-w-3xl">
-            <p className="core-body font-semibold uppercase tracking-wide text-[var(--core-action-secondary)]">Dein erster Lernerfolg</p>
+            <p className="core-body font-semibold text-[var(--core-action-secondary)]">Dein erster Lernerfolg</p>
             <h2 className="mt-2 core-heading-2 font-semibold text-core-text">Womit möchtest du starten?</h2>
             <p className="mt-3 max-w-2xl core-body-large leading-7 text-core-muted">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
           </div>

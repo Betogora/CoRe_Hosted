@@ -45,7 +45,7 @@ test("CrossLinkButton centralizes the compact cross-link style for buttons and a
     </>,
   );
 
-  assert.match(markup, /<button type="button"[^>]*min-h-11[^>]*>Alle ansehen/);
-  assert.match(markup, /<a href="#global"[^>]*min-h-11[^>]*>Globale Einstellungen/);
+  assert.match(markup, /<button type="button"[^>]*min-h-control[^>]*>Alle ansehen/);
+  assert.match(markup, /<a href="#global"[^>]*min-h-control[^>]*>Globale Einstellungen/);
   assert.equal(markup.match(/lucide-chevron-right/g)?.length, 2);
 });

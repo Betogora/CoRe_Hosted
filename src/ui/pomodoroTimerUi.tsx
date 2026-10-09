@@ -96,7 +96,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
       >
         <span className="flex min-w-0 flex-1 items-center gap-3">
           <span className={isSettings
-            ? "grid size-11 shrink-0 place-items-center rounded-round bg-core-subtle text-[var(--core-action-secondary)]"
+            ? "grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-[var(--core-action-secondary)]"
             : "contents"}
           >
             <TomatoIcon className="shrink-0 text-core-text" size={isSettings ? 20 : 18} />
@@ -193,7 +193,7 @@ export function PomodoroProgress({ timer, variant }: PomodoroProgressProps) {
       {isSidebar ? (
         <p className="min-w-0 truncate text-right core-caption font-semibold text-core-muted">{sidebarValueText}</p>
       ) : (
-        <div className={`flex items-center justify-between gap-2 ${isHeader ? "core-caption" : "core-status-label uppercase tracking-wide"} text-core-muted`}>
+        <div className={`flex items-center justify-between gap-2 ${isHeader ? "core-caption" : "core-status-label"} text-core-muted`}>
           <span className="min-w-0 truncate">Pomodoro-Timer</span>
           <span className="shrink-0">{valueText}</span>
         </div>

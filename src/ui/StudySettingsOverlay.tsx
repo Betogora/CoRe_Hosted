@@ -49,7 +49,7 @@ function EditMenuRow({ icon: Icon, label, disabled = false, onClick }: {
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="flex min-h-11 w-full items-center justify-between gap-3 py-1 text-left core-body font-semibold text-core-secondary transition hover:text-core-text disabled:cursor-not-allowed disabled:text-core-muted"
+      className="flex min-h-control w-full items-center justify-between gap-3 py-1 text-left core-body font-semibold text-core-secondary transition hover:text-core-text disabled:cursor-not-allowed disabled:text-core-muted"
     >
       <span className="flex min-w-0 items-center gap-3">
         <Icon className="shrink-0 text-core-text" size={18} aria-hidden="true" />
@@ -103,14 +103,14 @@ export function StudySettingsOverlay({
       >
         <div className="mx-auto mt-2 h-1 w-10 rounded-round bg-core-border md:hidden" aria-hidden="true" />
         <header className="flex min-h-14 items-center justify-between gap-4 border-b border-core-border px-4 sm:px-6">
-          <span className="size-11" aria-hidden="true" />
+          <span className="size-control" aria-hidden="true" />
           <h2 id={titleId} className="core-body-large text-center font-semibold text-core-text">Lerneinstellungen</h2>
           <IconButton ref={closeButtonRef} label="Lerneinstellungen schließen" icon={X} variant="ghost" onClick={closeDialog} />
         </header>
 
         <div className="min-h-0 overflow-y-auto overscroll-contain px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">
           <section className="py-3" aria-labelledby={`${titleId}-card`}>
-            <h3 id={`${titleId}-card`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Karte</h3>
+            <h3 id={`${titleId}-card`} className="core-status-label text-[var(--core-action-secondary)]">Karte</h3>
             <div className="mt-1">
               <EditMenuRow
                 icon={Pencil}
@@ -140,7 +140,7 @@ export function StudySettingsOverlay({
           </section>
 
           <section className="py-3" aria-labelledby={`${titleId}-session`}>
-            <h3 id={`${titleId}-session`} className="core-status-label uppercase tracking-wide text-[var(--core-action-secondary)]">Sitzung</h3>
+            <h3 id={`${titleId}-session`} className="core-status-label text-[var(--core-action-secondary)]">Sitzung</h3>
             <div className="mt-1">
               <PomodoroTimerControl
                 timer={pomodoroTimer}
@@ -150,7 +150,7 @@ export function StudySettingsOverlay({
                   closeDialog();
                 }}
               />
-              <div className="grid min-h-11 gap-2 py-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center">
+              <div className="grid min-h-control gap-2 py-1 sm:grid-cols-[minmax(0,1fr)_minmax(12rem,16rem)] sm:items-center">
                 <span className="flex min-w-0 items-center gap-3 core-body font-semibold text-core-secondary">
                   <ListOrdered className="shrink-0 text-core-text" size={18} aria-hidden="true" />
                   <span>Kartenreihenfolge</span>

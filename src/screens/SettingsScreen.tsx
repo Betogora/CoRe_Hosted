@@ -130,11 +130,11 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
           <div className="grid min-w-0 gap-4 md:grid-cols-2">
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Anzeigename
-              <input className="min-h-11 min-w-0 rounded-control border border-core-border px-3 text-core-text" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
+              <input className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
             </label>
             <label className="grid gap-2 core-body font-semibold text-core-muted">
               Login-E-Mail
-              <input className="min-h-11 min-w-0 rounded-control border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
+              <input className="min-h-control min-w-0 rounded-control border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
               <span id="login-email-help" className="font-normal leading-5">Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.</span>
             </label>
           </div>

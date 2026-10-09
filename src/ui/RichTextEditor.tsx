@@ -126,7 +126,7 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: 
     <CoreTooltip label={label}>
       <button
         type="button"
-        className="grid size-11 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60"
+        className="grid size-control place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60"
         aria-label={label}
         disabled={disabled}
         onMouseDown={(event) => {
@@ -626,7 +626,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         ) : null}
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
         <CoreTooltip label="Weitere Textwerkzeuge">
-          <button type="button" className="grid size-11 shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
+          <button type="button" className="grid size-control shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
             <MoreHorizontal size={17} aria-hidden="true" />
           </button>
         </CoreTooltip>

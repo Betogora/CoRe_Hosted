@@ -1728,10 +1728,10 @@ export function App() {
           body="Die verlinkte Lernsitzung kann nicht geöffnet werden, weil der Stapel gelöscht wurde oder in diesem Account nicht verfügbar ist."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-11 items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
+              <button type="button" onClick={() => openLearn(null)} className="inline-flex min-h-control items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
                 Zu Lernen
               </button>
-              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-11 items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
+              <button type="button" onClick={() => openDecks(null)} className="inline-flex min-h-control items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
                 Zur Kartenverwaltung
               </button>
             </div>

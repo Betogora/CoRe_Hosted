@@ -43,7 +43,8 @@ test("app navigation exposes four primary entries and marks learning active for 
   assert.match(markup, /data-navigation-layout="sidebar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
-  assert.match(markup, /hidden border-r[^\"]*xl:block/);
+  assert.match(markup, /hidden p-2 pr-0 xl:block/);
+  assert.match(markup, /rounded-panel border border-core-border bg-core-surface px-3 pb-3 pt-5 shadow-floating/);
   assert.match(markup, /xl:overflow-x-hidden/);
   assert.match(markup, /xl:hidden/);
   assert.doesNotMatch(markup, /md:block|md:hidden/);
@@ -59,9 +60,9 @@ test("app navigation exposes four primary entries and marks learning active for 
   assert.equal((markup.match(/aria-current="page"/g) ?? []).length, 2);
   assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
   assert.match(markup, /left-\[50dvw\]/);
-  assert.match(markup, /w-\[calc\(100dvw-4rem\)\]/);
+  assert.match(markup, /w-\[calc\(100dvw-2rem\)\]/);
   assert.match(markup, /sm:w-\[calc\(100dvw-6rem\)\]/);
-  assert.match(markup, /bg-core-raised/);
+  assert.match(markup, /bg-\[var\(--core-selection-track\)\]/);
   assert.match(markup, /bottom:max\(0\.75rem, env\(safe-area-inset-bottom\)\)/);
 });
 
@@ -111,17 +112,15 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
-  assert.match(sidebarMarkup, /class="[^"]*grid-cols-\[repeat\(2,2\.75rem\)\][^"]*gap-2[^"]*" data-navigation-utilities="true" data-navigation-utility-layout="sidebar"/);
-  assert.match(sidebarMarkup, /px-4 pb-6 pt-10/);
-  assert.doesNotMatch(sidebarMarkup, /border-t/);
+  assert.match(sidebarMarkup, /class="flex w-full items-center justify-between gap-1 border-t border-core-border pt-3" data-navigation-utilities="true" data-navigation-utility-layout="sidebar"/);
   assert.doesNotMatch(sidebarMarkup, /Content Repetition/);
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="sync"') < sidebarMarkup.indexOf('data-navigation-utility="help"'));
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="help"') < sidebarMarkup.indexOf('data-navigation-utility="settings"'));
   assert.ok(sidebarMarkup.indexOf('data-navigation-utility="settings"') < sidebarMarkup.indexOf('data-navigation-utility="theme"'));
   assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="help"'));
   assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="help"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
-  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-secondary/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-ghost/g) ?? []).length, 0);
+  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-ghost[^"]*size-control/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-secondary/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);
 });
