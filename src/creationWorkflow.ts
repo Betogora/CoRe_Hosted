@@ -1,8 +1,8 @@
-import { createManualNoteContent, parseNoteContent, validateManualNoteInput, type ManualContentKind, type ManualNoteErrors, type ManualNoteInput } from "./coreModel.ts";
+import { createManualNoteContent, createOcclusionNoteContent, parseNoteContent, validateManualNoteInput, validateOcclusionInput, type ManualContentKind, type ManualNoteErrors, type ManualNoteInput, type OcclusionMode } from "./coreModel.ts";
 import { createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
 import { createAccountMediaStore, type MediaSyncProgress, type MediaSyncStatus, type MediaSyncTask } from "./mediaStore.ts";
-import type { Deck, NoteContent } from "./coreTypes.ts";
+import type { Deck, NoteContent, OcclusionMask } from "./coreTypes.ts";
 import { ANKI_PACKAGE_MAX_BYTES, type ApkgImportPreview, type ImportCommitGraph, type ImportMediaFile } from "./apkgImport.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import type { ApkgImportJob } from "./apkgImportSession.ts";
@@ -29,6 +29,8 @@ export interface ManualCreationInput {
   mediaAttachments?: ManualImageAttachment[];
   additionalFields?: ManualNoteInput["additionalFields"];
   typeIn?: boolean;
+  /** Image occlusion: front becomes the heading, back the extra; the image is a manual image named by its SHA-1. */
+  occlusion?: { image: string; mode: OcclusionMode; masks: OcclusionMask[] };
 }
 
 export type ManualValidation =
@@ -167,7 +169,7 @@ function normalizeManualImageAttachment(value: unknown): ManualImageAttachment |
   };
 }
 
-export function getManualImageReferences(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields"> = {}): string[] {
+export function getManualImageReferences(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields" | "occlusion"> = {}): string[] {
   const values = [
     input.front ?? "",
     input.back ?? "",
@@ -188,6 +190,8 @@ export function getManualImageReferences(input: Pick<ManualCreationInput, "front
       match = IMAGE_SOURCE_PATTERN.exec(html);
     }
   }
+  const image = input.occlusion?.image.toLowerCase();
+  if (image && SHA1_PATTERN.test(image) && !seen.has(image)) references.push(image);
   return references;
 }
 
@@ -219,6 +223,13 @@ function manualNoteInput(input: ManualCreationInput): ManualNoteInput {
 
 /** Validates the editor input and shapes it into content; manual images are named by their SHA-1. */
 function validateManualCard(input: ManualCreationInput = {}): ManualValidation {
+  if (input.occlusion) {
+    const errors = validateOcclusionInput(input.occlusion);
+    if (errors.image || errors.masks) return { ok: false, content: null, media: null, errors: { occlusion: errors.image ?? errors.masks } };
+    const parsed = parseNoteContent(createOcclusionNoteContent({ ...input.occlusion, header: input.front, extra: input.back, additionalFields: input.additionalFields, tags: input.tags }));
+    if (!parsed.ok) return { ok: false, content: null, media: null, errors: { occlusion: parsed.errors.join(" ") } };
+    return { ok: true, content: parsed.value, media: Object.fromEntries(getManualImageReferences(input).map((sha1) => [sha1, sha1])), errors: {} };
+  }
   const noteInput = manualNoteInput(input);
   const errors = validateManualNoteInput(noteInput);
   if (Object.keys(errors).length > 0) return { ok: false, content: null, media: null, errors };

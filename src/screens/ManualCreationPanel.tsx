@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
 import {
   createManualBatchSession,
   manualDraftsEqual,
@@ -7,10 +7,10 @@ import {
   reduceManualBatchSession,
   type ManualFocusTarget,
 } from "../creationBatch.ts";
-import { createNote, type AddableFieldRole, type ManualNoteErrors } from "../coreModel.ts";
+import { createNote, type AddableFieldRole, type ManualNoteErrors, type OcclusionMode } from "../coreModel.ts";
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
-import type { Deck, NoteContent } from "../coreTypes.ts";
+import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
@@ -20,6 +20,7 @@ import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
+import { OcclusionEditor } from "../ui/OcclusionEditor.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatBytes } from "./screenConstants.ts";
@@ -44,7 +45,10 @@ const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "single-choice", label: "Single Choice" },
   { value: "multiple-choice", label: "Multiple Choice" },
+  { value: "image-occlusion", label: "Bildverdeckung" },
 ] as const;
+/** Image occlusion draft; the image is a prepared manual image named by its SHA-1. */
+type OcclusionDraft = { image: string | null; mode: OcclusionMode; masks: OcclusionMask[] };
 const LEARNING_DIRECTION_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "both", label: "Beide Richtungen" },
@@ -155,6 +159,7 @@ export function ManualCreationPanel({
   const [isPreparingImage, setIsPreparingImage] = React.useState(false);
   const [additionalFields, setAdditionalFields] = React.useState<AdditionalField[]>([]);
   const [typeIn, setTypeIn] = React.useState(false);
+  const [occlusion, setOcclusion] = React.useState<OcclusionDraft | null>(null);
   const [invalidAdditionalFieldIds, setInvalidAdditionalFieldIds] = React.useState<string[]>([]);
   const [saveProgress, setSaveProgress] = React.useState<ManualSaveProgress | null>(null);
   const isSaving = Boolean(saveProgress && saveProgress.percent < 100);
@@ -202,7 +207,7 @@ export function ManualCreationPanel({
   }, []);
 
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
-  const draftDirty = textDraftDirty || additionalFields.length > 0;
+  const draftDirty = textDraftDirty || additionalFields.length > 0 || Boolean(occlusion?.image || occlusion?.masks.length);
 
   React.useEffect(() => {
     onDraftStateChange(draftDirty, isSaving ? focusSaveProgress : () => focusField(), isSaving);
@@ -282,7 +287,7 @@ export function ManualCreationPanel({
     prepare: prepareInlineImage,
   }), [inlineMediaUrls, prepareInlineImage]);
 
-  function pruneInlineImages(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields">) {
+  function pruneInlineImages(input: Pick<ManualCreationInput, "front" | "back" | "additionalFields" | "occlusion">) {
     if (imageDraftsRef.current.size === 0) return;
     const references = new Set(workflow.getManualImageReferences(input));
     let changed = false;
@@ -305,8 +310,19 @@ export function ManualCreationPanel({
       tags,
       mediaAttachments: Array.from(imageDraftsRef.current.values(), (image) => image.attachment),
       additionalFields,
-      typeIn: typeIn && (kind === "basic" || kind === "basic-reversed"),
+      typeIn: typeIn && !occlusion && (kind === "basic" || kind === "basic-reversed"),
+      occlusion: occlusion ? { image: occlusion.image ?? "", mode: occlusion.mode, masks: occlusion.masks } : undefined,
     };
+  }
+
+  async function chooseOcclusionImage(file: File) {
+    try {
+      const { reference } = await prepareInlineImage(file);
+      setOcclusion((current) => current && { ...current, image: reference });
+      setFieldErrors((current) => ({ ...current, occlusion: undefined }));
+    } catch (error) {
+      setFieldErrors((current) => ({ ...current, occlusion: error instanceof Error ? error.message : "Das Bild konnte nicht vorbereitet werden." }));
+    }
   }
 
   function addAdditionalField(role: AddableFieldRole) {
@@ -391,6 +407,7 @@ export function ManualCreationPanel({
     cleanDraftRef.current = nextState.currentDraft;
     dispatchBatch({ type: "saved", cardId: savedCardId, targetDeckId: deck.id });
     setAdditionalFields([]);
+    setOcclusion((current) => current && { ...current, image: null, masks: [] });
     pruneInlineImages({ front: nextState.currentDraft.front, back: nextState.currentDraft.back, additionalFields: [] });
     setInvalidAdditionalFieldIds([]);
     setFieldErrors({});
@@ -491,7 +508,9 @@ export function ManualCreationPanel({
   const isSingleChoice = kind === "single-choice";
   const isMultipleChoice = kind === "multiple-choice";
   const isChoice = isSingleChoice || isMultipleChoice;
-  const answerLabel = kind === "cloze" ? "Zusatzinfo" : isChoice ? "Erklärung (optional)" : "Rückseite";
+  const isOcclusion = occlusion !== null;
+  const answerLabel = isOcclusion ? "Zusatz (optional)" : kind === "cloze" ? "Zusatzinfo" : isChoice ? "Erklärung (optional)" : "Rückseite";
+  const frontLabel = isOcclusion ? "Überschrift (optional)" : kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite";
   const isCloze = kind === "cloze";
   const isReverse = kind === "basic-reversed";
   const nextClozeGroup = Math.max(0, ...Array.from(front.matchAll(/\{\{c(\d+)::/gi), (match) => Number(match[1]) || 0)) + 1;
@@ -564,14 +583,14 @@ export function ManualCreationPanel({
               ariaLabel="Fragentyp"
               className="core-question-type-control"
               options={QUESTION_TYPE_OPTIONS}
-              value={isChoice ? kind : "standard"}
-              onValueChange={(value) => dispatchBatch({
+              value={isOcclusion ? "image-occlusion" : isChoice ? kind : "standard"}
+              onValueChange={(value) => value === "image-occlusion" ? (setOcclusion((current) => current ?? { image: null, mode: "hide-all-guess-one", masks: [] }), dispatchBatch({ type: "draft", patch: { kind: "basic" } })) : (setOcclusion(null), dispatchBatch({
                 type: "draft",
                 patch: {
                   kind: value === "standard" ? (isChoice ? "basic" : kind) : value,
                   correctOptionIndices: value === "single-choice" ? [correctOptionIndices[0] ?? 0] : correctOptionIndices,
                 },
-              })}
+              }))}
             />
           </div>
           <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3">
@@ -580,7 +599,7 @@ export function ManualCreationPanel({
               ariaLabel="Lernrichtung"
               options={LEARNING_DIRECTION_OPTIONS}
               value={isReverse ? "both" : "standard"}
-              disabled={isChoice || isCloze}
+              disabled={isChoice || isCloze || isOcclusion}
               onValueChange={(value) => dispatchBatch({ type: "draft", patch: { kind: value === "both" ? "basic-reversed" : "basic" } })}
             />
           </div>
@@ -590,8 +609,8 @@ export function ManualCreationPanel({
       <div className="grid min-w-0 gap-4">
         <div data-manual-focus="front" className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
           <div className="flex min-h-control items-center justify-between gap-2">
-            <span>{kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"}</span>
-            <PinFieldButton isPinned={pinnedFields.front} label={kind === "cloze" ? "Cloze-Text" : isChoice ? "Frage" : "Vorderseite"} onToggle={() => togglePinnedField("front")} />
+            <span>{frontLabel}</span>
+            <PinFieldButton isPinned={pinnedFields.front} label={frontLabel} onToggle={() => togglePinnedField("front")} />
           </div>
           <RichTextEditor value={front} onFocus={() => setActiveField("front")} onChange={(value) => {
             const hasClozeMarkup = /\{\{c\d+::/i.test(value);
@@ -599,14 +618,36 @@ export function ManualCreationPanel({
               type: "draft",
               patch: {
                 front: value,
-                ...(!isChoice ? { kind: hasClozeMarkup ? "cloze" : kind === "cloze" ? "basic" : kind } : {}),
+                ...(!isChoice && !isOcclusion ? { kind: hasClozeMarkup ? "cloze" : kind === "cloze" ? "basic" : kind } : {}),
               },
             });
             setFieldErrors((current) => ({ ...current, front: undefined }));
-          }} clozeActions={isChoice ? undefined : { groupId: nextClozeGroup }} imageActions={imageActions} isActive={frontFieldActive} minHeightClass="min-h-32" ariaLabel={kind === "cloze" ? "Cloze-Text" : isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : "Vorderseite"} ariaInvalid={Boolean(fieldErrors.front)} />
-          {!isChoice ? <p className="core-body font-normal text-core-muted">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
+          }} clozeActions={isChoice || isOcclusion ? undefined : { groupId: nextClozeGroup }} imageActions={imageActions} isActive={frontFieldActive} minHeightClass={isOcclusion ? "min-h-20" : "min-h-32"} ariaLabel={isChoice ? `${isSingleChoice ? "Single" : "Multiple"}-Choice-Frage` : frontLabel} ariaInvalid={Boolean(fieldErrors.front)} />
+          {!isChoice && !isOcclusion ? <p className="core-body font-normal text-core-muted">Markiere Text und wähle in der Toolbar „Lücke“. CoRe erzeugt die Lückengruppe automatisch.</p> : null}
           {fieldErrors.front ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.front}</p> : null}
         </div>
+        {occlusion ? (
+          <div data-manual-focus="occlusion" className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
+            <span>Bild und Masken</span>
+            {occlusion.image && inlineMediaUrls[occlusion.image] ? (
+              <>
+                <OcclusionEditor
+                  imageUrl={inlineMediaUrls[occlusion.image]}
+                  imageAlt={imageDraftsRef.current.get(occlusion.image)?.attachment.originalName ?? "Bild"}
+                  masks={occlusion.masks}
+                  mode={occlusion.mode}
+                  disabled={isSaving}
+                  onMasksChange={(masks) => { setOcclusion((current) => current && { ...current, masks }); setFieldErrors((current) => ({ ...current, occlusion: undefined })); }}
+                  onModeChange={(mode) => setOcclusion((current) => current && { ...current, mode })}
+                />
+                <ActionButton type="button" variant="secondary" icon={ImagePlus} className="w-fit" disabled={isSaving} onClick={() => setOcclusion((current) => current && { ...current, image: null })}>Anderes Bild wählen</ActionButton>
+              </>
+            ) : (
+              <FileDropField kind="image" selected={false} busy={isPreparingImage} disabled={isSaving} onFile={chooseOcclusionImage} />
+            )}
+            {fieldErrors.occlusion ? <p className="core-body font-medium text-core-text" role="alert">{fieldErrors.occlusion}</p> : null}
+          </div>
+        ) : null}
         {isChoice ? (
           <fieldset className="grid gap-3 rounded-control border border-core-border p-4">
             <legend className="px-1 core-body font-semibold text-core-secondary">
@@ -691,7 +732,7 @@ export function ManualCreationPanel({
                   })} /> : null}
                   <IconButton type="button" icon={X} label={`${field.name || `Feld ${index + 1}`} entfernen`} onClick={() => {
                     const next = additionalFields.filter((candidate) => candidate.id !== field.id);
-                    pruneInlineImages({ front, back, additionalFields: next });
+                    pruneInlineImages({ front, back, additionalFields: next, occlusion: occlusion?.image ? { image: occlusion.image, mode: occlusion.mode, masks: occlusion.masks } : undefined });
                     setAdditionalFields(next);
                   }} />
                 </div>
@@ -703,8 +744,8 @@ export function ManualCreationPanel({
             </div>
           ))}
           <NoteBlockControls
-            typeIn={kind === "basic" || kind === "basic-reversed" ? typeIn : null}
-            fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value)}
+            typeIn={!isOcclusion && (kind === "basic" || kind === "basic-reversed") ? typeIn : null}
+            fieldRoles={FIELD_ROLE_OPTIONS.map((option) => option.value).filter((role) => !isOcclusion || role !== "prompt")}
             onTypeInChange={setTypeIn}
             onAddField={addAdditionalField}
           />

@@ -175,3 +175,22 @@ test("nur KI-Umformulierungen bleiben Varianten und besitzen keinen eigenen Lern
   assert.equal(updated.study, cards[0].study);
   assert.equal(updated.studyRevision, cards[0].studyRevision);
 });
+
+test("Bildverdeckung braucht Bild und abgefragte Maske; das Bild wird über seine SHA-1 gespeichert", () => {
+  const workflow = createCreationWorkflow();
+  const image = "b".repeat(40);
+  const mask = { id: "mask-1", ordinal: 1, shape: { kind: "rect" as const, left: 0.1, top: 0.1, width: 0.2, height: 0.2, angle: 0 }, alwaysOccluded: false };
+  assert.deepEqual(workflow.validateManualCard({ occlusion: { image: "", mode: "hide-all-guess-one", masks: [mask] } }).errors, { occlusion: "Bitte ein Bild wählen." });
+  assert.deepEqual(workflow.validateManualCard({ occlusion: { image, mode: "hide-all-guess-one", masks: [] } }).errors, { occlusion: "Bitte mindestens eine Maske zeichnen, die abgefragt wird." });
+  const validation = workflow.validateManualCard({
+    front: "Herz",
+    back: "<p>Vier Kammern</p>",
+    additionalFields: [{ name: "Quelle", value: "Lehrbuch", role: "source" }],
+    occlusion: { image, mode: "hide-one-guess-one", masks: [mask] },
+  });
+  assert.equal(validation.ok, true);
+  assert.deepEqual(validation.media, { [image]: image });
+  assert.equal(validation.content?.interaction.kind, "image-occlusion");
+  assert.deepEqual(validation.content?.fields.map((field) => [field.name, field.role]), [["Überschrift", "prompt"], ["Zusatz", "extra"], ["Quelle", "source"]]);
+  assert.deepEqual(createNote({ deckId: "deck", content: validation.content!, media: validation.media!, createdAt: CREATED_AT }).cards.map((card) => card.promptKey), ["io:1"]);
+});

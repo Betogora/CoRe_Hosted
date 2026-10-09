@@ -63,4 +63,18 @@ export {
   validateManualNoteInput,
 } from "./coreModel/creation.ts";
 export type { ManualContentKind, ManualNoteErrors, ManualNoteInput } from "./coreModel/creation.ts";
+export {
+  addOcclusionMask,
+  clampOcclusionShape,
+  createOcclusionNoteContent,
+  groupOcclusionMasks,
+  moveOcclusionMasks,
+  occlusionGroups,
+  removeOcclusionMasks,
+  setOcclusionMasksAlwaysOccluded,
+  ungroupOcclusionMasks,
+  updateOcclusionMaskShape,
+  validateOcclusionInput,
+} from "./coreModel/occlusion.ts";
+export type { DrawnOcclusionShape, OcclusionMode, OcclusionNoteInput } from "./coreModel/occlusion.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";

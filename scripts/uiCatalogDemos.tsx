@@ -1,8 +1,8 @@
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
 import { Ban, BookOpen, ChevronRight, Copy, Eye, Home, Info, Layers, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
-import { addNoteField, cardStudyFromReviewState, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
-import type { CoreMode, NewReviewOrder, NoteContent, NoteField } from "../src/coreTypes.ts";
+import { addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
+import type { CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask } from "../src/coreTypes.ts";
 import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
 import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePresentationTheme } from "../src/notePresentation.ts";
 import { catalogEntryFromCard } from "../src/workspaceReplica.ts";
@@ -55,6 +55,7 @@ import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
 import { NoteBlockControls } from "../src/ui/NoteBlockControls.tsx";
+import { OcclusionEditor } from "../src/ui/OcclusionEditor.tsx";
 import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
 import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
 import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
@@ -399,6 +400,18 @@ function StatesDemo({ section }: { section: "runtime" | "interaction" | "density
   </>;
 }
 
+/** Masks on the sample heart: two single cards, one group of two and a mask that stays hidden. */
+function OcclusionEditorDemo() {
+  const [masks, setMasks] = useState<OcclusionMask[]>([
+    { id: "mask-1", ordinal: 1, shape: { kind: "rect", left: 0.2, top: 0.22, width: 0.22, height: 0.28, angle: 0 }, alwaysOccluded: false },
+    { id: "mask-2", ordinal: 2, shape: { kind: "ellipse", left: 0.63, top: 0.3, width: 0.2, height: 0.3, angle: 0 }, alwaysOccluded: false },
+    { id: "mask-3", ordinal: 2, shape: { kind: "polygon", points: [[0.5, 0.62], [0.6, 0.62], [0.55, 0.75]] }, alwaysOccluded: false },
+    { id: "mask-4", ordinal: 0, shape: { kind: "text", left: 0.7, top: 0.06, text: "Vorhof", scale: 1, fontSize: 0.07, angle: 0 }, alwaysOccluded: true },
+  ]);
+  const [mode, setMode] = useState<OcclusionMode>("hide-all-guess-one");
+  return <Demo title="OcclusionEditor · zeichnen, gruppieren und Modus wählen" wide><OcclusionEditor imageUrl={noteDemoImage} imageAlt="Schematisches Herz" masks={masks} mode={mode} onMasksChange={setMasks} onModeChange={setMode} /></Demo>;
+}
+
 /** Catalog chapters in the order of the shared UI catalog structure. */
 export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmuster" | "icons" | "states";
 
@@ -420,6 +433,7 @@ export const DEMO_GROUPS = [
   { id: "inhalt", section: "fachmuster", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface"], wide: true, render: () => <ContentDemo section="inhalt" /> },
   { id: "note-content", section: "fachmuster", title: "Kartenbausteine", description: "Renderer und Antwort-Host des Note-/Card-Modells für Feldrollen, Lücken, Bildverdeckung, Eintippen, Auswahl und Formeln.", components: ["NoteCardContent"], wide: true, render: NotePresentationDemos },
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
+  { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken als Rechteck, Ellipse, Polygon oder Text zeichnen, zu Karten gruppieren und den Verdeckungsmodus wählen; per Maus, Touch und Tastatur.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
   { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
   { id: "symbols", section: "icons", title: "Iconflächen und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
@@ -466,14 +480,14 @@ const noteDemoCases = [
 const notePromptLabel = (key: string) => ({ forward: "Vorwärts", reverse: "Rückwärts", choice: "Auswahl" } as Record<string, string>)[key] ?? key.replace(/^cloze:/, "Lücke ").replace(/^io:/, "Maske ");
 const noteDemoGraphs = noteDemoCases.map((item) => ({ ...item, graph: createNote({ id: `note-demo-${item.id}`, content: item.value, deckId: "catalog", createdAt: "2026-10-06T12:00:00.000Z" }) }));
 
-function NoteDemo({ item }: { item: typeof noteDemoGraphs[number] }) {
+function NoteDemo({ item, titled = true }: { item: typeof noteDemoGraphs[number]; titled?: boolean }) {
   const [revealed, setRevealed] = React.useState(false);
   const [generation, setGeneration] = React.useState(0);
   const [key, setKey] = React.useState(item.graph.cards[0].promptKey);
   const [surface, setSurface] = React.useState<"review" | "preview">("review");
   const card = item.graph.cards.find((candidate) => candidate.promptKey === key)!;
   return <article className="catalog-demo catalog-demo-wide" data-note-demo={item.id}>
-    <h4>{item.title}</h4>
+    {titled ? <h4>{item.title}</h4> : null}
     <div className="catalog-demo-content grid gap-4">
       <div className="flex flex-wrap items-center gap-3">
         <CoreSegmentedControl ariaLabel="Darstellung" value={surface} options={[{ value: "review", label: "Review" }, { value: "preview", label: "Vorschau" }]} onValueChange={(value) => { setSurface(value); setRevealed(false); }} />
@@ -484,6 +498,13 @@ function NoteDemo({ item }: { item: typeof noteDemoGraphs[number] }) {
     </div>
   </article>;
 }
+
+/** One renderer case by id, without its own heading; the card reference shows it inside its card. */
+export function NoteCaseDemo({ id }: { id: string }) {
+  return <NoteDemo item={noteDemoGraphs.find((item) => item.id === id)!} titled={false} />;
+}
+
+export const NOTE_CASE_TITLES: Record<string, string> = Object.fromEntries(noteDemoCases.map((item) => [item.id, item.title]));
 
 export function NotePresentationDemos() {
   return <>{noteDemoGraphs.map((item) => <NoteDemo key={item.id} item={item} />)}</>;

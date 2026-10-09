@@ -9,7 +9,7 @@ export const DOC_PAGES = [
   { file: "specs.html", label: "Specs" },
   { file: "journeys.html", label: "Journeys" },
   { file: "ui-elements.html", label: "UI-Elements" },
-  { file: "card-types.html", label: "Kartentypen" },
+  { file: "card-types.html", label: "Kartenbausteine" },
 ] as const;
 
 export const DOCUMENT_PAGES: Record<string, string> = {

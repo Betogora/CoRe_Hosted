@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Search } from "lucide-react";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
-import { DEMO_GROUPS, Demo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
+import { DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
 import { loadDeferredBrowserAssets } from "../src/deferredBrowserAssets.ts";
 
 export interface CatalogData {
@@ -17,14 +17,18 @@ export interface CatalogData {
 }
 
 const data = JSON.parse(document.getElementById("catalog-data")!.textContent!) as CatalogData;
-const cardTypes = [
-  { kind: "basic", label: "Basic", description: "Frage und Antwort als eigenständige Karte." },
-  { kind: "basic-with-images", label: "Basic mit Bildern", description: "Bilder sind Teil des Rich-Text-Inhalts; die Lernlogik entspricht Basic." },
-  { kind: "basic-reversed", label: "Basic umgekehrt", description: "Vorwärts- und Rückrichtung sind zwei eigenständige Karten mit jeweils eigenem Lernzustand." },
-  { kind: "cloze", label: "Lückentext", description: "Jede Lückengruppe ist eine eigenständige Karte." },
-  { kind: "single-choice", label: "Single Choice", description: "Eine Auswahl deckt die Antwort unmittelbar auf." },
-  { kind: "multiple-choice", label: "Multiple Choice", description: "Mehrere Optionen werden ausgewählt und gemeinsam geprüft." },
-] satisfies { kind: CatalogCardKind; label: string; description: string }[];
+/** Building blocks of the card reference; each demo is either a manual form or a renderer case. */
+type BlockDemo = { manual: CatalogCardKind; index?: number; title: string } | { case: string };
+const CARD_BLOCKS: { id: string; label: string; description: string; creation: string; demos: BlockDemo[] }[] = [
+  { id: "frage-antwort", label: "Frage und Antwort", description: "Eine Frage, eine Antwort, eine Karte. Bilder sind Teil des Rich-Text-Inhalts.", creation: "Erstellen: Fragentyp Standard, Lernrichtung Standard.", demos: [{ manual: "basic", title: "Frage und Antwort" }, { manual: "basic-with-images", title: "Mit Bild im Text" }] },
+  { id: "rueckrichtung", label: "Rückrichtung", description: "Vorwärts und rückwärts sind zwei Karten mit eigenem Lernstand aus demselben Inhalt.", creation: "Erstellen und Bearbeiten: Lernrichtung Beide Richtungen.", demos: [{ manual: "basic-reversed", title: "Vorwärts" }, { manual: "basic-reversed", index: 1, title: "Rückwärts · eigene Karte" }] },
+  { id: "eintippen", label: "Antwort eintippen", description: "Die Antwort wird eingetippt und Zeichen für Zeichen mit der Rückseite verglichen.", creation: "Baustein Antwort eintippen.", demos: [{ case: "typed" }] },
+  { id: "feldrollen", label: "Feldrollen", description: "Zusatzfrage, aufklappbarer Hinweis, Zusatz und Quelle nach der Antwort; Notizen erscheinen nur im Editor.", creation: "Bausteine Zusatzfrage, Hinweis, Zusatz und Quelle.", demos: [{ case: "roles" }] },
+  { id: "lueckentext", label: "Lückentext", description: "Jede Lückengruppe ist eine eigene Karte; Lücken dürfen mehrere Nummern, Hinweise und Verschachtelung tragen.", creation: "Text markieren und in der Toolbar Lücke wählen.", demos: [{ manual: "cloze", title: "Eine Lücke" }, { case: "cloze" }, { case: "nested" }, { case: "cloze-math" }] },
+  { id: "auswahl", label: "Auswahl", description: "Single Choice, Multiple Choice und Kprim sind Antwortformate eines Inhalts mit genau einer Karte.", creation: "Fragentyp Single Choice oder Multiple Choice; Kprim entsteht aus Anki-Importen.", demos: [{ manual: "single-choice", title: "Single Choice" }, { manual: "multiple-choice", title: "Multiple Choice" }, { case: "kprim" }, { case: "choice-rich" }] },
+  { id: "bildverdeckung", label: "Bildverdeckung", description: "Masken verdecken Bereiche eines Bildes; jede Maskengruppe ist eine eigene Karte.", creation: "Erstellen: Fragentyp Bildverdeckung; Masken zeichnen und gruppieren.", demos: [{ case: "occlusion-all" }, { case: "occlusion-one" }] },
+  { id: "formeln-medien", label: "Formeln, Medien und Vorlesen", description: "Formeln, Tabellen, Audio, Video, System-Vorlesen und die AMBOSS-Textauswahl funktionieren in jedem Baustein.", creation: "Formeln über Auswahl als Formel setzen; Medien über die Toolbar oder Einfügen.", demos: [{ case: "math" }, { case: "rich-media" }, { case: "speech" }] },
+];
 
 /** Catalog chapters; the navigation labels follow the shared catalog structure. */
 export const CATALOG_SECTIONS: { id: CatalogSectionId; nav: string; title: string }[] = [
@@ -178,22 +182,21 @@ function Catalog() {
   </CatalogFrame></SuccessToastProvider></CoreTooltipProvider>;
 }
 
-function CardForms() {
+function CardBlocks() {
   return <CoreTooltipProvider><SuccessToastProvider><CatalogFrame
-    title="Kartentypen"
-    lede="Alle sechs manuell erstellbaren Formen verwenden denselben Kartenrenderer wie die App. Aufdecken, Auswahl und Zurücksetzen sind interaktiv."
-    navigation={cardTypes.map((type) => ({ id: type.kind, label: type.label }))}
-    footer={<>Weitere Formen aus Anki-Importen zeigen die <a href="ui-elements.html#note-content">Kartenbausteine</a> im UI-Elemente-Katalog.</>}
+    title="Kartenbausteine"
+    lede="Jede Karte entsteht aus einem Inhalt und seinen Bausteinen. Alle Beispiele nutzen den Renderer der App; Aufdecken, Auswahl und Eintippen sind interaktiv."
+    navigation={CARD_BLOCKS.map((block) => ({ id: block.id, label: block.label }))}
+    footer={<>Alle Komponenten der Oberfläche zeigt der <a href="ui-elements.html">UI-Elemente-Katalog</a>.</>}
   >
-    {cardTypes.map((type) => <section key={type.kind} id={type.kind} className="catalog-section">
-      <div className="catalog-section-heading"><h2>{type.label}</h2><p>{type.description}</p></div>
-      <div className="catalog-grid">
-        <article className="catalog-card"><div className="catalog-card-header"><h3>{type.kind === "basic-reversed" ? "Vorwärtsrichtung" : "Review"}</h3></div><div className="catalog-preview"><Demo title="Lernansicht"><StudyDemo kind={type.kind} /></Demo></div></article>
-        {type.kind === "basic-reversed" && <article className="catalog-card"><div className="catalog-card-header"><h3>Rückrichtung · eigenständige Karte</h3></div><div className="catalog-preview"><Demo title="Lernansicht"><StudyDemo kind={type.kind} index={1} /></Demo></div></article>}
-      </div>
+    {CARD_BLOCKS.map((block) => <section key={block.id} id={block.id} className="catalog-section">
+      <div className="catalog-section-heading"><h2>{block.label}</h2><p>{block.description} {block.creation}</p></div>
+      <div className="catalog-grid">{block.demos.map((demo) => "case" in demo
+        ? <article key={demo.case} className="catalog-card catalog-card-wide"><div className="catalog-card-header"><h3>{NOTE_CASE_TITLES[demo.case]}</h3></div><div className="catalog-preview"><NoteCaseDemo id={demo.case} /></div></article>
+        : <article key={`${demo.manual}-${demo.index ?? 0}`} className="catalog-card"><div className="catalog-card-header"><h3>{demo.title}</h3></div><div className="catalog-preview"><StudyDemo kind={demo.manual} index={demo.index} /></div></article>)}</div>
     </section>)}
   </CatalogFrame></SuccessToastProvider></CoreTooltipProvider>;
 }
 
 loadDeferredBrowserAssets(document);
-createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardForms /> : <Catalog />);
+createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardBlocks /> : <Catalog />);

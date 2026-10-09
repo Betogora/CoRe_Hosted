@@ -334,7 +334,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
       >
         {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
       </button>
-    ) : <span className="size-9 shrink-0" aria-hidden="true" />;
+    ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
     const optionsMenu = (
       <DeckOptionsMenu
         row={row}

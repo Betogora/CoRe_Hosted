@@ -5,6 +5,32 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Bildverdeckungs-Editor (K6.5) und Kartenbausteine in den Docs (K6.6)
+
+- **K6.5:** Bildverdeckung ist ein Fragentyp der manuellen Erstellung. Ein Bild
+  wird wie Inline-Bilder vorbereitet (Verkleinerung, SHA-1, Upload-Queue);
+  `OcclusionEditor` zeichnet Rechtecke, Ellipsen, Polygone und Texte, gruppiert
+  Masken zu Karten, setzt Masken auf „bleibt verdeckt“ und wählt den Modus. Maus,
+  Stift und Touch teilen Pointer-Events; Masken sind per Tastatur fokussierbar,
+  verschiebbar und löschbar. Der Karteneditor bearbeitet eigene Bildverdeckungen
+  mit demselben Editor; Gruppennummern werden nie neu vergeben, sodass
+  verbleibende Karten ihren Lernstand behalten. Gestaltung per `visual-ab-review`
+  entschieden: Variante C (Seitenleiste neben dem Bild) statt Werkzeugleiste.
+  Das Bild lässt sich im Karteneditor noch nicht austauschen, weil der Editor
+  keine neuen Medien speichert.
+- **K6.6:** `card-types.html` heißt „Kartenbausteine“ und zeigt acht Bausteine
+  mit echtem Renderer und Erstellungsweg statt sechs Kartentypen.
+- **Nachgezogen:** Symbolbuttons sind auf Desktop quadratisch 40 × 40 px (vorher
+  44 × 40 durch eine globale Mindestbreite); der Platzhalter von Stapeln ohne
+  Unterstapel folgt der Bedienhöhe, sodass Icons bündig bleiben. Die E2E-Verträge
+  für Katalogsuche, Kennzahl-Kacheln, Tabellenköpfe und Bedienhöhen erwarten das
+  Soft-Minimal-Design.
+- **Abnahme Phase 6:** `npm run gate:push` grün; volle lokale E2E-Suite
+  (110 Tests) mit anschließend korrigierten Specs vollständig grün, darunter
+  Golden-Flows, Kartenlebenszyklus und der neue Vertrag „Bildverdeckung erstellen
+  und bearbeiten“; visuelle Matrix für Erstellen und Katalog-Editor bei 320, 390,
+  1280 und 1440 px, hell und dunkel.
+
 ## 2026-10-09 — Erstellen und Bearbeiten auf dem Inhalt (K6.1–K6.4), Soft-Minimal-Design und neuer UI-Katalog
 
 - **K6.1:** Manuelle Erstellung und Karteneditor teilen die Bausteine

@@ -482,6 +482,42 @@ test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe b
   expect(savedDeck.cards.some((card: { id: string }) => card.id === secondCloze.id)).toBe(false);
 });
 
+test("[Vertrag: Bildverdeckung erstellen und bearbeiten] @beta-core gezeichnete Masken werden Karten; eine gelöschte Maske entfernt nur ihre Karte", async ({ page }) => {
+  const deckName = "Bildverdeckung";
+  await openManualCreation(page, deckName, "basic");
+  await page.getByRole("button", { name: "Bildverdeckung", exact: true }).click();
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="480"><rect width="800" height="480" fill="#edf1f6"/><circle cx="250" cy="240" r="120" fill="#e28b68"/><rect x="520" y="150" width="140" height="110" fill="#6f7e9e"/></svg>';
+  await page.locator('[data-manual-focus="occlusion"] input[type="file"]').setInputFiles({ name: "herz.svg", mimeType: "image/svg+xml", buffer: Buffer.from(svg) });
+  async function drawMasks(canvas: ReturnType<Page["locator"]>, rects: number[][]) {
+    await canvas.scrollIntoViewIfNeeded();
+    const box = (await canvas.boundingBox())!;
+    for (const [x1, y1, x2, y2] of rects) {
+      await page.mouse.move(box.x + box.width * x1, box.y + box.height * y1);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width * x2, box.y + box.height * y2, { steps: 4 });
+      await page.mouse.up();
+    }
+  }
+  await drawMasks(page.locator('[data-testid="occlusion-canvas"] svg'), [[0.2, 0.3, 0.4, 0.6], [0.65, 0.3, 0.85, 0.55]]);
+  await expect(page.getByTestId("occlusion-groups").getByRole("button")).toHaveText(["Karte 1", "Karte 2"]);
+  const deck = await finishManualCreation(page, deckName, 2);
+  expect(deck.cards.map((card: { promptKey: string }) => card.promptKey).sort()).toEqual(["io:1", "io:2"]);
+
+  await openCreatedCardEditor(page, deck);
+  const occlusion = page.getByTestId("note-occlusion");
+  await expect(occlusion.getByTestId("occlusion-canvas").locator("svg")).toBeVisible();
+  await occlusion.getByRole("button", { name: "Auswählen", exact: true }).click();
+  await occlusion.locator('[data-mask-id="mask-1"]').click();
+  await occlusion.getByRole("button", { name: "Löschen", exact: true }).click();
+  await expect(page.getByTestId("draft-change-summary")).toContainText("1 Karte entfällt (Maske 1)");
+  await page.getByRole("button", { name: "Speichern", exact: true }).first().click();
+  const removalDialog = page.getByRole("dialog", { name: "Karten entfernen?" });
+  await expect(removalDialog.getByTestId("removed-cards")).toContainText("Maske 1");
+  await removalDialog.getByRole("button", { name: "Speichern" }).click();
+  await expect(removalDialog).toHaveCount(0);
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id).cards.map((card: { promptKey: string }) => card.promptKey)).toEqual(["io:2"]);
+});
+
 test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, Lösung und Erklärung bleiben synchron", async ({ page }) => {
   const deckName = "Lebenszyklus Multiple Choice";
   await openManualCreation(page, deckName, "multiple-choice");

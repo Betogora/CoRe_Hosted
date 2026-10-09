@@ -106,7 +106,7 @@ Phase 3   Renderer und Bausteine (reine Module)        ✔ im Cutover verdrahtet
 Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ im Cutover verdrahtet; Korpus offen
 Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen; Startzeit neues Gerät offen
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
-Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        auf main
+Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        ✔ abgeschlossen
 Phase 7   Begraben von Geschwistern                     auf main
 Phase 8   Gesamtabnahme
 ```
@@ -246,30 +246,6 @@ zurückgesetzt, Hosted-Smoke grün (siehe `history.md`). Offen ist nur noch:
       Bootstrap-RPC in Netz, Bundle und Anmeldung liegt. Ansatzpunkt ist daher
       der Startpfad bis zur Sitzungsprüfung, nicht die Datenbank.
 
-## Phase 6 — Erstellen, Bearbeiten, Verwaltung und KI-Varianten
-
-**Ziel:** Die neuen Bausteine sind auch manuell nutzbar. Ausgeführt nach dem
-Cutover auf `main`.
-
-K6.1 bis K6.4 sind abgeschlossen (siehe `history.md`). Offen ist:
-
-- [ ] **K6.5 Bildverdeckungs-Editor.** Als letzter Schritt dieser Phase:
-      Masken (Rechteck, Ellipse, Polygon, Text) auf einem Bild zeichnen,
-      gruppieren, Verdeckungsmodus wählen und als Inhalt speichern.
-      Bedienung per Maus und Touch; Tastaturalternative für Auswahl und
-      Löschen. Vor Beginn Gestaltung per `visual-ab-review` mit dem Nutzer
-      klären.
-- [ ] **K6.6 Kartenkatalog in den Docs.** `card-types.html` und seine Demos
-      zeigen Bausteine statt sechs Kartentypen (`scripts/uiCatalogDemos.tsx`,
-      `scripts/generateDocs.ts`).
-
-**Prüfung:** `npm run gate:push`, `npm run test:e2e:local`, visuelle
-Pflichtmatrix.
-
-**Abnahme:** Golden-Flows 1, 3, 5 und 6 sowie der Kartenlebenszyklus laufen auf
-dem neuen Modell; visuelle Pflichtmatrix für Erstellen, Kartenverwaltung und
-Review geprüft.
-
 ## Phase 7 — Begraben von Geschwistern
 
 - [ ] **K7.1 Drei Lernoptionen** wie in Anki: neue Geschwister, Review-
@@ -304,8 +280,7 @@ Verhalten nachweislich nicht.
 
 Alle Grundsatzfragen dieser Roadmap sind entschieden. Begriffe und das
 Entfernen einzelner Abfragen regelt ADR-032; Großstapel-Grenzen,
-Korpus-Zielquote und der Bildverdeckungs-Editor sind als Abnahmekriterien in
-K5.8, Phase 5 und K6.5 festgelegt. Offen sind:
+Korpus-Zielquote sind als Abnahmekriterien in K5.8 und Phase 5 festgelegt. Offen sind:
 
 - AnKing und ein Lernstand mit Lern-, Wiederlern-, ausgesetzten, begrabenen
   und geflaggten Karten für den Korpus (Phase-5-Abnahme).

@@ -22,7 +22,7 @@ test("IconButton exposes its required accessible name, semantic variant and squa
   const markup = renderToStaticMarkup(<IconButton label="Löschen" icon={Trash2} variant="destructive" />);
   assert.match(markup, /aria-label="Löschen"/);
   assert.match(markup, /core-action-destructive/);
-  assert.match(markup, /min-w-11/);
+  assert.match(markup, /min-w-control/);
 });
 
 test("IconButton uses the outlined secondary action by default", () => {
@@ -34,7 +34,7 @@ test("IconButton uses the outlined secondary action by default", () => {
 test("IconButton offers a borderless ghost action with the same square target", () => {
   const markup = renderToStaticMarkup(<IconButton label="Optionen" icon={Save} variant="ghost" />);
   assert.match(markup, /core-action-ghost/);
-  assert.match(markup, /min-w-11/);
+  assert.match(markup, /min-w-control/);
 });
 
 test("CrossLinkButton centralizes the compact cross-link style for buttons and anchors", () => {

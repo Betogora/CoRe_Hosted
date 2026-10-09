@@ -61,7 +61,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.doesNotMatch(markup, /pointer-events-auto flex items-center justify-end/);
   assert.ok(markup.indexOf("Unterstapel von Bereich ausblenden") < markup.indexOf('data-deck-icon="true"'));
   assert.match(markup, /<button[^>]*class="[^"]*-me-2[^"]*"[^>]*aria-label="Unterstapel von Bereich ausblenden"/);
-  assert.match(markup, /<span class="size-9 shrink-0" aria-hidden="true"><\/span>/);
+  assert.match(markup, /<span class="-me-2 size-control shrink-0" aria-hidden="true"><\/span>/);
   assert.match(markup, /<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Bereich"/);

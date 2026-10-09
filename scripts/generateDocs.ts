@@ -208,7 +208,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
     }
   }
   const uiAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", (?:nav|section): /g)].map((match) => match[1]), ...DEMO_GROUPS.map((group) => group.id)]);
-  const cardAnchors = new Set([...text("scripts/uiCatalog.tsx").matchAll(/\{ kind: "([a-z-]+)"/g)].map((match) => match[1]));
+  const cardAnchors = new Set([...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", label: /g)].map((match) => match[1]));
   const linkSources = new Map([...results].filter(([file]) => file !== "ui-elements.html" && file !== "card-types.html"));
   for (const file of readdirSync(docs).filter((file) => file.endsWith(".md"))) {
     linkSources.set(file, renderMarkdown(text(`docs/${file}`), file));
