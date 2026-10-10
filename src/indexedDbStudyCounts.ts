@@ -1,4 +1,4 @@
-// Private to indexedDbCoreRepository.ts: daily counters, overview buckets and sibling burying for the counters.
+// Private to indexedDbCoreRepository.ts: daily counters, overview buckets and the today-answered data sibling burying needs.
 import {
   catalogSummaryContribution,
   emptyDeckStudySummary,

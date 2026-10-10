@@ -11,9 +11,9 @@ import {
 } from "./workspaceReplica.ts";
 
 // ADR-034: a fresh database without upgrade path.
-export const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 1;
 
-export const DATABASE_PREFIX = "core.workspace.entities.v4.";
+const DATABASE_PREFIX = "core.workspace.entities.v4.";
 
 export const STORE = Object.freeze({
   meta: "meta",
@@ -38,7 +38,7 @@ export const LOCAL_WRITE_CHUNK_SIZE = 250;
 
 export const CATALOG_PAGE_LIMIT = 50;
 
-export const NO_DUE_DATE = "9999-12-31T23:59:59.999Z";
+const NO_DUE_DATE = "9999-12-31T23:59:59.999Z";
 
 export type StoredCard = Omit<Card, "variants">;
 
