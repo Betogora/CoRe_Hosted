@@ -95,9 +95,9 @@ export interface StatisticsProjection {
   };
   status: {
     activeVariants: number;
-    learningItems: number;
-    suspendedItems: number;
-    deletedItems: number;
+    cards: number;
+    suspendedCards: number;
+    deletedCards: number;
     rows: Array<{ key: string; label: string; count: number; percent: number }>;
   };
   intervals: { points: StatisticsDistributionPoint[]; averageDays: number; medianDays: number; percentile95Days: number };
@@ -366,9 +366,9 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
   let successCount = 0;
   let timedCount = 0;
   let totalDurationMs = 0;
-  let learningItems = 0;
-  let suspendedItems = 0;
-  let deletedItems = 0;
+  let cards = 0;
+  let suspendedCards = 0;
+  let deletedCards = 0;
   let activeVariants = 0;
   let difficultyEligible = 0;
   let retrievabilityEligible = 0;
@@ -470,9 +470,9 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
     },
     addCard(deckId: string, card: Card) {
       if (!scopeIds.has(deckId)) return;
-      learningItems += 1;
-      if (card.status === "suspended") suspendedItems += 1;
-      if (card.deletedAt) deletedItems += 1;
+      cards += 1;
+      if (card.status === "suspended") suspendedCards += 1;
+      if (card.deletedAt) deletedCards += 1;
       const created = Date.parse(card.createdAt);
       if (Number.isFinite(created)) {
         const createdDay = resolveLocalTime(created).dayIndex;
@@ -578,7 +578,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         addedCards: added,
         studyHeatmap,
         planning: { points: planning, overdue, dueTomorrow, dueInHorizon: planning.reduce((sum, point) => sum + point.total, 0), dailyWorkload: Math.round(dailyWorkload * 10) / 10 },
-        status: { activeVariants, learningItems, suspendedItems, deletedItems, rows: [...status].map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeVariants) })) },
+        status: { activeVariants, cards, suspendedCards, deletedCards, rows: [...status].map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeVariants) })) },
         intervals: { points: distribution(intervals, input.period === "all" ? Math.max(1, intervals.max) : PERIOD_DAYS[input.period], 60, "Tage"), averageDays: intervals.total ? Math.round((intervals.sum / intervals.total) * 10) / 10 : 0, medianDays: percentile(intervals, 0.5), percentile95Days: percentile(intervals, 0.95) },
         fsrs: { difficulty, stability: distribution(stability, Math.max(1, stability.max), 40, "Tage"), retrievability },
         hourly: hours.map(({ success, ...row }) => ({ ...row, successPercent: percentage(success, row.reviews) })),
@@ -770,9 +770,9 @@ export function mergeAccountStatisticsSnapshot(
     status: {
       ...projection.status,
       activeVariants: snapshotValue.status.activeVariants,
-      learningItems: snapshotValue.cards.total,
-      suspendedItems: snapshotValue.cards.suspended,
-      deletedItems: snapshotValue.status.deletedItems,
+      cards: snapshotValue.cards.total,
+      suspendedCards: snapshotValue.cards.suspended,
+      deletedCards: snapshotValue.status.deletedItems,
       rows: Object.entries(statusCounts).map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeCount) })),
     },
     intervals: snapshotValue.intervals,

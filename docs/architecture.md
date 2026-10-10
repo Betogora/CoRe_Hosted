@@ -12,6 +12,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | Eigentümer | Verantwortung |
 | --- | --- |
 | `App.tsx`, `screens/` | App-Koordination und Produkt-UI; [Screen-Landkarte](../src/screens/README.md) |
+| `useAccountWorkspace.ts`, `useStudySession.ts` | Sitzung, accountgebundener Workspace-Start und Cloud-Bootstrap; Lernfenster der laufenden Sitzung samt Nachladen |
 | `appNavigation.ts`, `useAppNavigation.ts` | typisierter AppRoute, URL-Kontext und einzige Browser-History-Anbindung |
 | `ui/`, `styles.css`, `coreTheme.ts` | gemeinsame UI, semantische Tokens und validierte Theme-Präferenz; [UI-Verträge](../src/ui/README.md) |
 | `coreTypes.ts`, `coreModel.ts` | kanonische `Note`/`Card`-Typen; einzige Grenze für Inhaltserzeugung, Änderungs-, Lösch- und Wiederherstellungsplanung, Editorwerte und manuelle Formen |
@@ -19,7 +20,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
 | `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
-| `reviewService.ts`, `scheduler.ts`, `easyDays.ts` | Queue, Bewertung, FSRS-6 und deterministische Intervallentlastung |
+| `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |
 | `coreVariantService.ts` | Reife, Eligibility, Variantenquelle, Variantenwahl, Variantendarstellung und Original-Fallback |
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung einschließlich Bildverdeckung (Bild als SHA-1-benanntes Medium), Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
@@ -27,7 +28,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `apkgNoteTranslation.ts`, `importRetranslation.ts` | Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen und automatische Neuübersetzung unbearbeiteter Importe |
 | `notePresentation.ts`, `presentationFrame.ts` | asynchroner Kartenrenderer sowie gemeinsames CSP-Gerüst und Medienauflösung |
 | `CardPresentationSurface`, `NoteCardContent`, `CardPreviewDialog` | Iframe-Rahmen, Antwort-Host mit transientem Eingabe-/Auswahlzustand und Vorschau |
-| `indexedDbCoreRepository.ts`, `workspaceHydrationService.ts` | accountgebundene Web-Replica, begrenzte Hydrierung, Offline-Download und Quota-Bereinigung |
+| `indexedDbCoreRepository.ts`, `workspaceHydrationService.ts` | accountgebundene Web-Replica, begrenzte Hydrierung, Offline-Download und Quota-Bereinigung; `indexedDbStore.ts` (Schema, Datensatzformen) und `indexedDbStudyCounts.ts` (Tageszähler) bleiben privat |
 | `cloudRepository.ts`, `cloudRepositoryValidation.ts` | accountgefilterte Cloudmutationen, Revisionen, Konflikte und Row-/JSONB-Validierung |
 | `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
 | `mediaStore.ts`, `cloudMediaStore.ts` | öffentliche Cache-/Queue-/URL-Grenze; private Storage-, Signed-URL- und TUS-Details |
@@ -67,7 +68,9 @@ auf der flachen Sicht `ReviewState`; `reviewStateFromCardStudy` und
 
 Das Begraben von Geschwistern (`buryNewSiblings`, `buryReviewSiblings`,
 `buryInterdayLearningSiblings` in `LearningSettings`) ist kein persistiertes
-Feld. `createDailyReviewQueue` leitet es bei jedem Aufbau ab: Heutige
+Feld. Die Regel steht einmal in `siblingBurying.ts`; Queue und lokale Zähler
+nutzen sie, das SQL in `get_account_bootstrap` bildet sie nach und wird im
+RLS-Test gegen dieselben Fälle geprüft. `createDailyReviewQueue` leitet es bei jedem Aufbau ab: Heutige
 Reviewereignisse der gelernten Stapel und `options.answeredToday` (heute
 beantwortete Karten mit Inhalt und Stapel) markieren Inhalte als gesehen, danach
 folgen Lernschritte des Tages, tagesübergreifende Lern- und fällige Karten und

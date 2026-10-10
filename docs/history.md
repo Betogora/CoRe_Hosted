@@ -5,6 +5,22 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Refactoring zum Abschluss der Kartenmodell-Roadmap
+
+- Statistik zeigt „Karten · ausgesetzt · gelöscht“ statt des Altbegriffs
+  „Learning Items · suspendiert“.
+- Die Begrabregel steht einmal in `siblingBurying.ts`; Queue und lokale Zähler
+  nutzen sie, der RLS-Test prüft das SQL für neue und fällige Geschwister.
+- `App.tsx` 2.215 → 1.947 Zeilen: Lernfenster, Nachladen und Begraben-Daten in
+  `useStudySession.ts` (statt drei kopierter Übernahmeblöcke ein `adopt`),
+  Sitzung, Workspace-Start und Cloud-Bootstrap in `useAccountWorkspace.ts`;
+  Abmelden, abgelehnte Sitzung und Passwort-Recovery verwerfen den Workspace
+  über einen gemeinsamen Weg.
+- `indexedDbCoreRepository.ts` 2.062 → 1.718 Zeilen: Schema und
+  Datensatzformen in `indexedDbStore.ts`, Tageszähler in
+  `indexedDbStudyCounts.ts`, beide privat; die öffentliche Schnittstelle bleibt.
+- `main` ist geschützt (Pflicht-Check `quality`), Auto-Merge wartet auf die CI.
+
 ## 2026-10-10 — Hosted-Smoke nach Phase 4, 7, 8 und K7.4
 
 - `npm run test:beta:hosted` gegen `https://core-hosted.vercel.app` mit dem

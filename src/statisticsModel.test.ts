@@ -125,7 +125,7 @@ test("server aggregates replace a partial local history and retain pending revie
 
   assert.equal(merged.summary.reviewCount, 4);
   assert.equal(merged.summary.totalDurationMs, 5_000);
-  assert.equal(merged.status.learningItems, 10);
+  assert.equal(merged.status.cards, 10);
   assert.equal(merged.studyHeatmap.countsByDay.get("2026-07-07"), 1);
   assert.equal(merged.deckRows[0].reviewCount, 3);
   assert.equal(allTime.summary.reviewCount, 3);
