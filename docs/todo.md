@@ -107,7 +107,7 @@ Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ im Cutover verdrahte
 Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        ✔ abgeschlossen
-Phase 7   Begraben von Geschwistern                     ✔ abgeschlossen; Migration remote offen
+Phase 7   Begraben von Geschwistern                     ✔ abgeschlossen; Hosted-Smoke offen
 Phase 8   Gesamtabnahme                                 ✔ technisch abgeschlossen; wartet auf Phase 3 und 5
 ```
 
@@ -237,12 +237,11 @@ sind bis dahin nur über die Matrix synthetisch belegt.
 
 ## Phase 7 — Begraben von Geschwistern
 
-- [ ] **K7.4 im Pre-Release-Projekt.** `20261010093049_bury_siblings_in_day_counts.sql` mit dem
-      Ablauf aus `operations.md` auf `CoRe-Database` anwenden, danach
-      `verify_schema_v1.sql` und Hosted-Smoke.
+- [ ] **Hosted-Smoke nach K7.4.** `20261010093049_bury_siblings_in_day_counts.sql` ist auf `CoRe-Database`
+      angewandt und `verify_schema_v1.sql` grün; offen ist nur
+      `npm run test:beta:hosted` gegen Production.
 
-**Abnahme:** Die Bootstrap-Übersicht im Pre-Release-Projekt zieht begrabene
-Geschwister ab; Hosted-Smoke grün.
+**Abnahme:** Hosted-Smoke grün.
 
 ## Planungsstand
 

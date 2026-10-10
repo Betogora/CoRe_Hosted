@@ -17,7 +17,9 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
   bleibt unverändert.
 - Server: Die additive Migration `20261010093049_bury_siblings_in_day_counts.sql` ersetzt
   `get_account_bootstrap`; die Übersicht für Geräte mit unvollständigem Katalog
-  zieht dieselben Geschwister ab. Lokal angewandt; im Pre-Release-Projekt offen.
+  zieht dieselben Geschwister ab. Lokal und am 2026-10-10 per `supabase db push`
+  im Pre-Release-Projekt `CoRe-Database` angewandt; `verify_schema_v1.sql` gegen
+  das Projekt grün.
 - Nachweise: IndexedDB-Test (Stapel A verliert ein neues Geschwister nur, wenn
   der Stapel der Antwort begräbt), RLS-Test der Bootstrap-Übersicht,
   `test:rls:local` mit Schema-Prüfung und Typdrift, `gate:push`.
