@@ -25,6 +25,7 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
   ergänzt; Bildverdeckung gilt nicht mehr als disabled, der Import-Renderer ist
   auf das Übersetzermodell korrigiert. `specs.html` folgt dem Aufbau des
   UI-Katalogs.
+- Leerer Lernstart: `Tageslimit erreicht` erscheint, sobald Tageslimits fällige oder neue Karten zurückhalten, und nennt deren Anzahl. Die Spec beschreibt das Vorziehfenster durchgehend als accountweit.
 - Build vom 10. Oktober: Initialgraph 208,6 KiB gzip, größter Lazy-Graph
   170,8 KiB gzip (Statistik).
 

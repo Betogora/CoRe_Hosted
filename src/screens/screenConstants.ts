@@ -24,6 +24,15 @@ export const ratingButtons = [
   { key: "easy", shortcutKey: RATING_SHORTCUT_KEYS.easy, label: "Leicht", className: "border-core-info bg-core-info-soft text-core-text" },
 ];
 
+/** Cards that only the daily limits hold back, as one German sentence. */
+export function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
+  const parts = [
+    hiddenDueCount > 0 ? `${hiddenDueCount} ${hiddenDueCount === 1 ? "fällige Karte" : "fällige Karten"}` : "",
+    hiddenNewCount > 0 ? `${hiddenNewCount} ${hiddenNewCount === 1 ? "neue Karte" : "neue Karten"}` : "",
+  ].filter(Boolean);
+  return `${parts.join(" und ")} ${parts.length === 1 ? "bleibt" : "bleiben"} wegen deiner Tageslimits für später vorgemerkt.`;
+}
+
 export function formatReviewIntervalLabel(label: string) {
   return label.replace(/ Min\.$/, " min");
 }

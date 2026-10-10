@@ -94,8 +94,9 @@ test("ungenutzte neue Karten verlinken gezielt zum fokussierten Tageslimit", asy
 
   await page.goto(`/lernen?deck=${encodeURIComponent(deckId)}`);
   await page.getByTestId(`learn-deck-row-${deckId}`).getByRole("button", { name: /lernen/ }).click();
-  const emptyDialog = page.getByRole("dialog", { name: "Keine fälligen Karten" });
+  const emptyDialog = page.getByRole("dialog", { name: "Tageslimit erreicht" });
   await expect(emptyDialog).toBeVisible();
+  await expect(emptyDialog).toContainText("1 neue Karte bleibt wegen deiner Tageslimits für später vorgemerkt.");
   await emptyDialog.getByRole("button", { name: "Neue Karten pro Tag anpassen" }).click();
 
   await expect(page).toHaveURL(new RegExp(`/stapel-einstellungen\\?deck=${deckId}.*target=new-cards-per-day`));

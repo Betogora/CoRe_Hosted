@@ -29,16 +29,8 @@ import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
+import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewRating } from "../coreTypes.ts";
-
-function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
-  const parts = [
-    hiddenDueCount > 0 ? `${hiddenDueCount} ${hiddenDueCount === 1 ? "fällige Karte" : "fällige Karten"}` : "",
-    hiddenNewCount > 0 ? `${hiddenNewCount} ${hiddenNewCount === 1 ? "neue Karte" : "neue Karten"}` : "",
-  ].filter(Boolean);
-  return `${parts.join(" und ")} ${parts.length === 1 ? "bleibt" : "bleiben"} wegen deiner Tageslimits für später vorgemerkt.`;
-}
 
 function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS, now: string | number | Date, dayStartHour: number, timeZone?: string) {
   return {

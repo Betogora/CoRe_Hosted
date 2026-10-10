@@ -31,6 +31,7 @@ import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getLearningDayRange, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
 import { createDeckLibraryModel } from "./libraryModel.ts";
+import { formatLimitSummary } from "./screens/screenConstants.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import { mergeAccountStatisticsSnapshot, type StatisticsDeckSelection, type StatisticsPeriod } from "./statisticsModel.ts";
@@ -73,7 +74,8 @@ interface EmptyStudyStart {
   deckId: string;
   deckName: string;
   hasAdditionalNewCards: boolean;
-  limitReached: boolean;
+  /** Cards held back only by daily limits, as a sentence; null when the deck has nothing for today. */
+  limitSummary: string | null;
   returnContext: SettingsReturnContext;
 }
 interface StudyPreparationFailure {
@@ -102,7 +104,7 @@ function createEmptyStudyStart(
     deckId,
     deckName: queue.deckName,
     hasAdditionalNewCards: queue.availableNewCards > 0,
-    limitReached: queue.availableDueCards > 0 || queue.limitSummary.hiddenDueCount > 0,
+    limitSummary: queue.limitSummary.reached ? formatLimitSummary(queue.limitSummary.hiddenDueCount, queue.limitSummary.hiddenNewCount) : null,
     returnContext: reviewReturnContextToSettingsReturnContext(returnContext),
   };
 }
@@ -1892,12 +1894,12 @@ export function App() {
       />
       <ActionDialog
         open={Boolean(emptyStudyStart)}
-        title={emptyStudyStart?.limitReached ? "Tageslimit erreicht" : "Keine fälligen Karten"}
+        title={emptyStudyStart?.limitSummary ? "Tageslimit erreicht" : "Keine fälligen Karten"}
         description={emptyStudyStart ? (
           <div className="grid gap-2">
             <p>
-              {emptyStudyStart.limitReached
-                ? `Die heute verfügbaren Karten in „${emptyStudyStart.deckName}“ bleiben wegen deiner Tageslimits für später vorgemerkt.`
+              {emptyStudyStart.limitSummary
+                ? `„${emptyStudyStart.deckName}“: ${emptyStudyStart.limitSummary}`
                 : `Dieser Stapel hat für heute keine Karten in der Lern-Queue.`}
             </p>
             {emptyStudyStart.hasAdditionalNewCards ? (
