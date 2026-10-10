@@ -5,6 +5,18 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — KI-Variantenroute gehärtet
+
+- OpenRouter erhält die drei beliebtesten passenden Free-Modelle als
+  Fallbackkette in einem Aufruf; `reasoning` ist keine Auswahlbedingung mehr.
+- Accountweite Free-Limits (Tag, Minute) brechen sofort mit eigener Meldung ab;
+  nur Verfügbarkeitsfehler führen einmal in den Non-ZDR-Fallback. Fehler mit
+  HTTP 200 werden erkannt.
+- Gesamtfrist 25 s für Route und Browser, Katalog-Weiterverwendung bei
+  Abruffehlern, lokale JWT-Prüfung über JWKS statt Auth-Roundtrip, eine
+  inhaltsfreie Logzeile je Erzeugung, neutrale Meldung bei Schlüsselfehlern.
+- OpenRouter-Account geprüft: 11 Credits gekauft, Free-Tageslimit 1.000.
+
 ## 2026-10-10 — Kartensuche, Medienbereinigung, Rendering, tote Spalten und Exporte
 
 - Kartensuche: `search_account_card_catalog` liefert die erste Seite aller
@@ -18,7 +30,9 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
   50 ms.
 - Sechs nie gelesene Variantenspalten per Migration entfernt; 96 nur intern
   genutzte Exporte und vier ungenutzte Typen entfernt.
-- Beide Migrationen lokal angewandt, RLS-Gate grün (17 Tests); gehostet offen.
+- Beide Migrationen lokal angewandt, RLS-Gate grün (17 Tests). Nach dem Production-Deploy
+  von `3feb6cd` (Vercel und CI grün) per `supabase db push` im Pre-Release-Projekt
+  `CoRe-Database` angewandt; `verify_schema_v1.sql` gegen das Projekt grün.
 
 ## 2026-10-10 — P0-Fehler aus dem App-Audit, Sync- und Bundle-Entlastung
 
