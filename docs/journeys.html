@@ -785,14 +785,32 @@ video {
       line-height: var(--core-leading-heading-2);
     }
 
+    .core-question-type-control {
+      grid-auto-columns: auto;
+    }
+
     .core-question-type-control .core-segmented-control-option {
       white-space: normal;
+      hyphens: manual;
       padding-inline: 0.25rem;
       line-height: var(--core-leading-caption);
     }
 
     .core-learning-area-control .core-segmented-control-option {
       padding-inline: 0.25rem;
+    }
+  }
+
+  /* Four question types do not fit one row below 360 px; two rows keep every label inside its option. */
+  @media (max-width: 22.4375rem) {
+    .core-question-type-control {
+      height: auto;
+      grid-auto-flow: row;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .core-question-type-control .core-segmented-control-option {
+      min-height: calc(var(--core-control-height) - 0.5rem);
     }
   }
 
@@ -2055,6 +2073,9 @@ video {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.whitespace-normal {
+  white-space: normal;
 }
 .whitespace-nowrap {
   white-space: nowrap;
@@ -4557,6 +4578,10 @@ summary {
     display: none;
   }
 
+  .md\:w-auto {
+    width: auto;
+  }
+
   .md\:max-w-xl {
     max-width: 36rem;
   }
@@ -5109,7 +5134,7 @@ N4[&quot;Synchronisierung oder Teilabschluss sehen&quot;]</pre><ol><li>Erstellen
 <li>Während des Versuchs zeigt der Aktionsbereich einen zugänglichen, monotonen Fortschrittsbalken mit den Phasen <code>Bilder werden lokal gesichert</code>, <code>Karte wird lokal gespeichert</code>, Upload mit ursprünglichem Dateinamen und Byteangaben. 100 Prozent erscheinen erst am Ende des gesamten Versuchs; Reduced Motion wird berücksichtigt.</li>
 <li>Vollständiger Cloudabschluss meldet <code>Karte wurde erfolgreich gespeichert.</code>. Ein erneut versuchbarer oder Offline-Teilabschluss meldet <code>Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt.</code>; ein nicht erneut versuchbarer Medienfehler nach lokaler Speicherung wird als unvollständiger Medienzustand angezeigt.</li>
 <li><code>Vorschau</code> im Erstellkopf öffnet den gemeinsamen modalen Kartendialog aus dem ungespeicherten Entwurf. Text, Typ, Zusatzfelder und Inline-Bilder verwenden dieselbe Projektion wie Speichern. Eine zusätzliche <code>Live-Vorschau</code> und pauschale Sicherheits-/Originaltreue-Werbung entfallen. <code>PDF/Text anfügen</code> steht in der Zurückzeile direkt neben <code>Erstellen</code>.</li>
-<li>Die manuelle Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. <code>Fragentyp</code> und <code>Lernrichtung</code> stehen ab 768 px gemeinsam in einer Zeile, sobald beide ohne Überlauf hineinpassen, sonst wie darunter in zwei sauber umbrechenden Gruppen. Die gemeinsame Fragentyp-Pill bietet <code>Standard</code>, <code>Single Choice</code>, <code>Multiple Choice</code> und <code>Bildverdeckung</code>; ihre Beschriftungen dürfen auf schmalen Ansichten innerhalb der unveränderten 44-px-Höhe zweizeilig werden. Bilder werden über die Rich-Text-Toolbar, Einfügen oder Drag-and-drop an der aktuellen Cursorposition in Vorderseite, Rückseite und Zusatzfelder eingefügt; separate Bild-Ablagefelder existieren nicht. <code>Lücke</code> markiert die gespeicherte Textauswahl als Cloze-Gruppe, Rückrichtung, Single Choice und Multiple Choice werden als direkte Steuerungen angeboten. Bei beiden Auswahltypen stehen die Antwortoptionen unmittelbar unter der Frage. Unter den Feldern stehen die gemeinsamen Inhaltsbausteine (<code>Bausteine</code>): <code>Antwort eintippen</code> (nur für Frage und Antwort ohne Auswahl; die Rückseite wird beim Lernen eingetippt und verglichen) sowie neue Felder mit der Rolle <code>Zusatzfrage</code> (Teil der Frage, in Rückrichtung Teil der Antwort), <code>Hinweis</code> (aufdeckbar auf der Frageseite), <code>Zusatz</code> und <code>Quelle</code> (beide nach der Antwort). Jedes zusätzliche Feld trägt einen frei benennbaren Namen und eine änderbare Rolle; neue Felder erhalten den Rollennamen, bei Wiederholung mit Nummer. Verschiebepfeile erscheinen erst ab zwei Zusatzfeldern und nur für tatsächlich mögliche Richtungen. Die Rich-Text-Toolbar setzt mit <code>Auswahl als Formel setzen</code> die markierte Auswahl als Formel.</li>
+<li>Die manuelle Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. <code>Fragentyp</code> und <code>Lernrichtung</code> stehen ab 768 px gemeinsam in einer Zeile, sobald beide ohne Überlauf hineinpassen, sonst wie darunter in zwei sauber umbrechenden Gruppen. Die gemeinsame Fragentyp-Pill bietet <code>Standard</code>, <code>Single Choice</code>, <code>Multiple Choice</code> und <code>Bildverdeckung</code>; ihre Beschriftungen dürfen auf schmalen Ansichten innerhalb der unveränderten 44-px-Höhe zweizeilig werden, <code>Bildverdeckung</code> trennt dabei als <code>Bild-verdeckung</code>; unter 360 px stehen die vier Fragentypen in zwei Reihen. Bilder werden über die Rich-Text-Toolbar, Einfügen oder Drag-and-drop an der aktuellen Cursorposition in Vorderseite, Rückseite und Zusatzfelder eingefügt; separate Bild-Ablagefelder existieren nicht. <code>Lücke</code> markiert die gespeicherte Textauswahl als Cloze-Gruppe, Rückrichtung, Single Choice und Multiple Choice werden als direkte Steuerungen angeboten. Bei beiden Auswahltypen stehen die Antwortoptionen unmittelbar unter der Frage. Unter den Feldern stehen die gemeinsamen Inhaltsbausteine (<code>Bausteine</code>): <code>Antwort eintippen</code> (nur für Frage und Antwort ohne Auswahl; die Rückseite wird beim Lernen eingetippt und verglichen) sowie neue Felder mit der Rolle <code>Zusatzfrage</code> (Teil der Frage, in Rückrichtung Teil der Antwort), <code>Hinweis</code> (aufdeckbar auf der Frageseite), <code>Zusatz</code> und <code>Quelle</code> (beide nach der Antwort). Jedes zusätzliche Feld trägt einen frei benennbaren Namen und eine änderbare Rolle; neue Felder erhalten den Rollennamen, bei Wiederholung mit Nummer. Verschiebepfeile erscheinen erst ab zwei Zusatzfeldern und nur für tatsächlich mögliche Richtungen. Die Rich-Text-Toolbar setzt mit <code>Auswahl als Formel setzen</code> die markierte Auswahl als Formel.</li>
 <li>Zielauswahlen zeigen vollständige hierarchische Stapelpfade. Erst <code>Fertig</code> öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, <code>Jetzt lernen</code> und <code>Karten prüfen</code>.</li>
 <li>Interne Navigation mit einem nichtleeren fachlichen Entwurf verlangt eine eigene Bestätigung. <code>Weiter bearbeiten</code> erhält Inhalt und Fokus; <code>Verwerfen und verlassen</code> verwirft nur den aktuellen Entwurf. Während eines laufenden Speicherversuchs bleibt die Navigation ohne Verwerfoption auf der Erstellungsseite und fokussiert den Fortschritt.</li>
 </ul>

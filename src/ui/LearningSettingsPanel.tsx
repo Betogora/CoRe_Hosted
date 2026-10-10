@@ -226,7 +226,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
             <ActionButton type="button" variant="secondary" icon={Pencil} disabled={!selectedCustomProfile} onClick={renameProfile}>Umbenennen</ActionButton>
             <ActionButton type="button" variant="destructive" icon={Trash2} disabled={!selectedCustomProfile} onClick={() => setDeleteProfileId(selectedCustomProfile?.id ?? null)}>Löschen</ActionButton>
           </div>
-          <ActionButton type="button" variant="secondary" icon={Save} className="mt-3" disabled={!selectedCustomProfile} onClick={updateProfile}>Vorlage mit aktuellen Werten aktualisieren</ActionButton>
+          <ActionButton type="button" variant="secondary" icon={Save} className="mt-3 w-full whitespace-normal md:w-auto" disabled={!selectedCustomProfile} onClick={updateProfile}>Vorlage mit aktuellen Werten aktualisieren</ActionButton>
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
             <legend className="mb-1 core-body-large font-semibold text-core-text">Tagespensum und Reihenfolge</legend>

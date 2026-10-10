@@ -45,7 +45,8 @@ const QUESTION_TYPE_OPTIONS = [
   { value: "standard", label: "Standard" },
   { value: "single-choice", label: "Single Choice" },
   { value: "multiple-choice", label: "Multiple Choice" },
-  { value: "image-occlusion", label: "Bildverdeckung" },
+  // The soft hyphen lets the long word break at 320 px; the accessible name stays „Bildverdeckung“.
+  { value: "image-occlusion", label: "Bild\u00ADverdeckung" },
 ] as const;
 /** Image occlusion draft; the image is a prepared manual image named by its SHA-1. */
 type OcclusionDraft = { image: string | null; mode: OcclusionMode; masks: OcclusionMask[] };

@@ -5,6 +5,60 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Gesamtabnahme der Kartenmodell-Roadmap (Phase 8)
+
+Technisch abgeschlossen; offen bleiben nur die Gerätenachweise (Phase 3), die
+Korpusabnahme mit AnKing und echtem Lernstand (Phase 5) und K7.4.
+
+- **K8.1:** Auf `main` (`d9f9320`) sind `npm test`, `gate:push` und
+  `gate:nightly` grün: Quality, RLS 10/10 und 17/17, vollständige lokale
+  Browser-Suite 110 bestanden (das Beta-Auth-Artefakt läuft planmäßig separat
+  und besteht), APKG-Benchmark. `performance:measure:local` auf identischem Code
+  besteht alle Gates.
+- **K8.2 Vergleich mit der Ausgangsmessung (K0.1, 2026-10-06):**
+
+  | Speicher je 1.000 Inhalte (MiB) | Postgres vorher → jetzt | Sync | Browser-Kartenkörper | Lernfenster 50 Karten (KiB) |
+  | --- | ---: | ---: | ---: | ---: |
+  | APKG Basic | 4,87 → 2,90 | 4,66 → 3,36 | 4,35 → 2,03 | 223 → 104 |
+  | APKG Basic und umgekehrt | 10,60 → 4,16 | 9,77 → 4,63 | 9,16 → 3,15 | 235 → 81 |
+  | APKG Lückentext (4 Lücken) | 23,84 → 7,46 | 23,95 → 7,15 | 22,72 → 4,96 | 291 → 63 |
+  | Manuell Basic | 4,46 → 2,28 | 4,07 → 2,62 | 3,77 → 1,93 | 193 → 99 |
+  | Manuell Basic und umgekehrt | 9,20 → 3,49 | 8,16 → 3,85 | 7,57 → 3,02 | 194 → 77 |
+  | Manuell Lückentext (4 Lücken) | 22,46 → 6,49 | 21,56 → 6,15 | 20,37 → 4,75 | 261 → 61 |
+
+  Postgres enthält jetzt Inhalte, Karten, Katalog und bei APKG die rohen
+  Anki-Felder (0,49 bis 0,65 MiB); der Inhalt liegt einmal statt je Karte.
+
+  | Start (p75 / p95) | vorher | jetzt |
+  | --- | ---: | ---: |
+  | Neues Gerät bis Dashboard | 3.959 / 4.187 ms | 2.574 / 2.618 ms |
+  | Wiederkehrender Start | 928 / 954 ms | 490 / 531 ms |
+  | Offline-Kaltstart | 677 / 706 ms | 490 / 516 ms |
+  | Start ohne Service Worker | 1.435 / 1.456 ms | 1.019 / 1.064 ms |
+  | 4G-Preload, längste Aufgabe | 73 ms | 0 ms |
+  | Persistierte Stapelzusammenfassung | 18,7 ms | 11,7 ms |
+
+  Datenbank (100k Karten, 1 Mio. Reviews, je fünf Läufe): Statistik-RPC p75
+  468 bis 524 ms in vier Läufen dieses Tages (vorher 490 ms), Katalogsuche p75
+  95 bis 264 ms (vorher 125 ms). Bei fünf Läufen ist p95 der kalte erste Lauf
+  (Statistik 527 bis 963 ms, Suche 106 bis 735 ms) und schwankt mit der
+  Rechnerlast; alle Gates bestehen. Ladevolumen: Initialgraph 210,0 KiB gzip
+  (3. Oktober 217,5 KiB). APKG-Import mit 25.000 Karten und 1.000 Medien: Median
+  4,5 s im Einzellauf und 2,8 s in `gate:nightly` (vorher 10,5 s), Worker-Heap
+  141 bis 149 MiB (vorher 425 MiB), längste Main-Thread-Verzögerung 19 bis 28 ms
+  (vorher 32 ms).
+- **K8.3 Visuelle Pflichtmatrix:** 120 Screenshots von Lernen, Kartenverwaltung,
+  Karteneditor, Kartenvorschau, manueller Erstellung, Bildverdeckungs-Editor,
+  Importvorschau, Review vor und nach dem Aufdecken und Stapeleinstellungen bei
+  320, 360, 390, 430, 1280 und 1440 px, jeweils hell und dunkel; kein
+  horizontaler Seitenüberlauf. Zwei Befunde behoben: „Bildverdeckung“ ragte bei
+  320 und 390 px aus dem Fragentyp-Schalter (jetzt weicher Trennstrich, unter
+  360 px zwei Reihen), „Vorlage mit aktuellen Werten aktualisieren“ war bei
+  320 px abgeschnitten (bricht jetzt um). Screenshots lagen nur temporär vor.
+- **K8.4:** Die sechs genannten Dokumente beschreiben das Modell `Note`/`Card`;
+  das Testportfolio nennt jetzt Bildverdeckung und Begraben im
+  Kartenlebenszyklus.
+
 ## 2026-10-10 — Startzeit „Neues Gerät bis Dashboard“ unter Budget (Phase 4)
 
 - **Vorladen:** Der Build lädt den Supabase-Client-Chunk per `modulepreload` mit
