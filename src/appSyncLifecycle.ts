@@ -14,6 +14,7 @@ export function startAppSyncLifecycle({
   syncEngine: AccountSyncEngine | null;
   onStatus: (status: SyncStatus) => void;
   syncIntervalMinutes: SyncIntervalMinutes;
+  /** Runs after a completed sync that pushed mutations, pulled catalog changes or reported conflicts. */
   onSynced?: () => void;
 }): () => void {
   if (authPhase !== "ready" || !syncEngine) return () => {};
@@ -23,8 +24,9 @@ export function startAppSyncLifecycle({
     onStatus(status: SyncStatus) {
       if (active) onStatus(status);
     },
-    onFlush() {
-      if (active) onSynced?.();
+    onFlush(result: { mutations?: number; pulledChanges?: boolean; conflicts?: unknown[] } | undefined) {
+      const unchanged = result?.mutations === 0 && result.pulledChanges === false && !result.conflicts?.length;
+      if (active && !unchanged) onSynced?.();
     },
   });
   return () => {

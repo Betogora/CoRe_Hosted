@@ -47,32 +47,43 @@ export interface RichTextImageActions {
   prepare: (file: File) => Promise<PreparedRichTextImage>;
 }
 
+/** SHA-1 references are case-insensitive; imported file names keep their exact spelling. */
+function mediaReference(value: string): string {
+  return stableImageReferencePattern.test(value.toLowerCase()) ? value.toLowerCase() : value;
+}
+
+/** Restores stored references of displayed media; with image actions, foreign URLs (blob:, data:, http:) are dropped, plain media names stay. */
 function canonicalizeRichTextMedia(html: string, stripUnmanagedImages: boolean): string {
   const sanitized = sanitizeCardHtml(html);
   if (typeof document === "undefined" || !/<img\b/i.test(sanitized)) return sanitized;
   const root = document.createElement("div");
   root.innerHTML = sanitized;
   for (const image of Array.from(root.querySelectorAll("img"))) {
-    const reference = String(image.getAttribute(inlineMediaReferenceAttribute) ?? image.getAttribute("src") ?? "").trim().toLowerCase();
-    if (stableImageReferencePattern.test(reference)) {
-      image.setAttribute("src", reference);
+    const stored = String(image.getAttribute(inlineMediaReferenceAttribute) ?? "").trim();
+    const source = String(image.getAttribute("src") ?? "").trim();
+    if (stored) {
+      image.setAttribute("src", mediaReference(stored));
       image.removeAttribute(inlineMediaReferenceAttribute);
-    } else if (stripUnmanagedImages) {
+    } else if (stableImageReferencePattern.test(source.toLowerCase())) {
+      image.setAttribute("src", source.toLowerCase());
+    } else if (stripUnmanagedImages && (!source || /^[a-z][a-z0-9+.-]*:/i.test(source))) {
       image.remove();
     }
   }
   return sanitizeCardHtml(root.innerHTML);
 }
 
+/** Shows stored media (SHA-1 or imported file names) through their local preview URLs. */
 function hydrateRichTextMedia(html: string, mediaUrls: Record<string, string>): string {
   const normalized = normalizeRichTextForEditor(html);
   if (typeof document === "undefined" || !/<img\b/i.test(normalized) || Object.keys(mediaUrls).length === 0) return normalized;
   const root = document.createElement("div");
   root.innerHTML = normalized;
   for (const image of Array.from(root.querySelectorAll("img"))) {
-    const reference = String(image.getAttribute("src") ?? "").trim().toLowerCase();
+    const source = String(image.getAttribute("src") ?? "").trim();
+    const reference = mediaReference(source);
     const previewUrl = mediaUrls[reference];
-    if (!stableImageReferencePattern.test(reference) || !/^(?:blob:|data:image\/)/i.test(previewUrl ?? "")) continue;
+    if (!reference || /^[a-z][a-z0-9+.-]*:/i.test(reference) || !/^(?:blob:|data:image\/)/i.test(previewUrl ?? "")) continue;
     image.setAttribute(inlineMediaReferenceAttribute, reference);
     image.setAttribute("src", previewUrl);
   }

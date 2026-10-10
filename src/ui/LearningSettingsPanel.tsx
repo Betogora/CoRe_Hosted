@@ -22,6 +22,10 @@ const learningStepOptions = [
   { value: "5,15", label: "Standard · 5 Min. → 15 Min." },
   { value: "10,30", label: "Ruhig · 10 Min. → 30 Min." },
 ];
+/** Keeps a stored value that is not one of the presets (from a template or an import) visible and selectable. */
+function withCurrentOption(options: Array<{ value: string; label: string }>, value: string, label: string) {
+  return options.some((option) => option.value === value) ? options : [...options, { value, label }];
+}
 const reviewOrderOptions = [
   { value: "reviews-first", label: "Fällige Karten zuerst" },
   { value: "mixed", label: "Neue und fällige mischen" },
@@ -164,7 +168,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
     if (!onApplyProfile(nextDraft)) return;
     setSelectedProfileId(selectedProfile.id);
     setSuccessToast(context === "global"
-      ? `Lernprofil „${selectedProfile.name}“ ist als globaler Standard ausgewählt.`
+      ? `Lernprofil „${selectedProfile.name}“ ist ausgewählt. Speichere die Änderungen, um es als Standard zu übernehmen.`
       : `Lernprofil „${selectedProfile.name}“ wurde auf diesen Stapel angewandt.`);
   }
 
@@ -264,8 +268,8 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
           <fieldset className="grid gap-4">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Brain size={19} aria-hidden="true" />Lernablauf</legend>
             <div className="grid gap-4 md:grid-cols-2">
-              <SelectField label="Lernschritte" value={draft.schedulerProfile.learningStepsMinutes.join(",")} options={learningStepOptions} testId="learning-settings-steps" onChange={(value) => editLearning({ schedulerProfile: { learningStepsMinutes: value.split(",").map(Number) } })} />
-              <SelectField label="Nach einem Fehler erneut zeigen" value={draft.schedulerProfile.relearningStepMinutes} options={relearningStepOptions} testId="learning-settings-relearning" onChange={(value) => editLearning({ schedulerProfile: { relearningStepMinutes: Number(value) } })} />
+              <SelectField label="Lernschritte" value={draft.schedulerProfile.learningStepsMinutes.join(",")} options={withCurrentOption(learningStepOptions, draft.schedulerProfile.learningStepsMinutes.join(","), `Eigene · ${draft.schedulerProfile.learningStepsMinutes.map((minutes) => `${minutes} Min.`).join(" → ")}`)} testId="learning-settings-steps" onChange={(value) => editLearning({ schedulerProfile: { learningStepsMinutes: value.split(",").map(Number) } })} />
+              <SelectField label="Nach einem Fehler erneut zeigen" value={draft.schedulerProfile.relearningStepMinutes} options={withCurrentOption(relearningStepOptions, String(draft.schedulerProfile.relearningStepMinutes), `${draft.schedulerProfile.relearningStepMinutes} Min.`)} testId="learning-settings-relearning" onChange={(value) => editLearning({ schedulerProfile: { relearningStepMinutes: Number(value) } })} />
             </div>
           </fieldset>
 

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { collectBudgetedJavaScriptFiles, collectCompressedBudgetGroups, findCompressedBudgetViolations, findOversizedBuildChunks } from "../scripts/verifyBuildChunks.ts";
+import { collectBudgetedJavaScriptFiles, collectCompressedBudgetGroups, findCompressedBudgetViolations, findOversizedBuildChunks, readModulePreloads } from "../scripts/verifyBuildChunks.ts";
 
 const manifest = {
   "index.html": { file: "assets/index.js", isEntry: true, name: "index" },
@@ -45,4 +45,14 @@ test("compressed budgets cover the initial graph, lazy additions and workers", (
     { kind: "initial", name: "initialer Importgraph", bytes: 300 * 1024 + 1, maxBytes: 300 * 1024 },
     { kind: "lazy-route", name: "CreationScreen", bytes: 200 * 1024 + 1, maxBytes: 200 * 1024 },
   ]);
+});
+
+test("modulepreloaded chunks count toward the initial graph instead of the lazy route", () => {
+  const preloaded = readModulePreloads('<link rel="modulepreload" crossorigin href="/assets/vendor.js"><script type="module" src="/assets/index.js"></script>');
+  assert.deepEqual(preloaded, ["assets/vendor.js"]);
+  assert.deepEqual(collectCompressedBudgetGroups(manifest, preloaded), {
+    initial: ["assets/index.js", "assets/vendor.js"],
+    lazyRoutes: { CreationScreen: ["assets/creation.js"] },
+    workers: ["assets/pdf.worker.mjs"],
+  });
 });

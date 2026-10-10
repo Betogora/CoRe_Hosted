@@ -32,3 +32,24 @@ test("app sync lifecycle stops the account-bound engine and ignores late statuse
   assert.equal(intervalMinutes, 5);
   assert.deepEqual(statuses, ["saved"]);
 });
+
+test("app sync lifecycle rebuilds the workspace only after syncs that changed something", () => {
+  let flush: ((result: unknown) => void) | null = null;
+  const engine = {
+    startSyncLifecycle(options: { onFlush(result: unknown): void }) {
+      flush = options.onFlush;
+      return () => {};
+    },
+  } as unknown as AccountSyncEngine;
+  let synced = 0;
+  const cleanup = startAppSyncLifecycle({ authPhase: "ready", syncEngine: engine, syncIntervalMinutes: 5, onStatus() {}, onSynced() { synced += 1; } });
+  const report = flush as unknown as (result: unknown) => void;
+
+  report({ mutations: 0, pulledChanges: false, conflicts: [] });
+  assert.equal(synced, 0);
+  report({ mutations: 1, pulledChanges: false, conflicts: [] });
+  report({ mutations: 0, pulledChanges: true, conflicts: [] });
+  report({ mutations: 0, pulledChanges: false, conflicts: [{}] });
+  assert.equal(synced, 3);
+  cleanup();
+});

@@ -25,7 +25,6 @@ import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importClo
 import { createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
 import { cardVariantSource } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
-import { createWorldCapitalsImportGraph } from "./fixtures/worldCapitals.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
@@ -34,7 +33,7 @@ import { createDeckLibraryModel } from "./libraryModel.ts";
 import { formatLimitSummary } from "./screens/screenConstants.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
-import { mergeAccountStatisticsSnapshot, type StatisticsDeckSelection, type StatisticsPeriod } from "./statisticsModel.ts";
+import type { StatisticsDeckSelection, StatisticsPeriod } from "./statisticsModel.ts";
 import { createMenuModel } from "./menuModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import { createWorkspaceHydrationService } from "./workspaceHydrationService.ts";
@@ -291,7 +290,8 @@ export function App() {
       return () => { active = false; };
     }
     void workspaceRepository.listOfflineDecks().then((records) => {
-      if (active) setOfflineDecks(Object.fromEntries(records.map((record) => [record.deckId, record])));
+      // No download survives a reload; an interrupted one is offered for resumption from its manifest cursor.
+      if (active) setOfflineDecks(Object.fromEntries(records.map((record) => [record.deckId, record.state === "downloading" ? { ...record, state: "error" } : record])));
     });
     return () => { active = false; };
   }, [workspaceRepository]);
@@ -648,6 +648,7 @@ export function App() {
         const pendingReviews = workspaceRepository.outbox.listPending().flatMap((mutation) => mutation.type === "review-atomic" && (mutation.payload as any)?.event
           ? [(mutation.payload as any).event]
           : []);
+        const { mergeAccountStatisticsSnapshot } = await import("./statisticsModel.ts");
         return mergeAccountStatisticsSnapshot(projection, snapshot, pendingReviews);
       } catch (error) {
         throw error instanceof Error ? error : new Error("Statistik konnte nicht geladen werden.");
@@ -1292,6 +1293,7 @@ export function App() {
   }
 
   async function createDemo() {
+    const { createWorldCapitalsImportGraph } = await import("./fixtures/worldCapitals.ts");
     const persisted = await commitImport(createWorldCapitalsImportGraph(), { onMedia: async () => {} });
     navigateToView("lernen");
     return persisted.decks;

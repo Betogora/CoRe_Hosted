@@ -17,6 +17,9 @@ type ApkgWorkflow = Pick<CreationWorkflow, "commitApkgPreview" | "parseApkgFile"
 export interface ImportCompletion {
   deck: Deck;
   createdCount: number;
+  /** Cards are stored locally while cloud or media sync is still pending. */
+  partial: boolean;
+  reimport: ApkgImportSession["reimport"];
 }
 
 export interface ApkgImportPanelProps {
@@ -199,9 +202,9 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
     if (job?.status !== "done" || (mediaTask && completedMediaSyncStatus !== "cloud-ready") || !completedDeck) return;
     if (completionDeliveredRef.current || !isSessionCurrent(sessionVersion)) return;
     completionDeliveredRef.current = true;
-    onCompleted({ deck: completedDeck, createdCount: completedCount });
+    onCompleted({ deck: completedDeck, createdCount: completedCount, partial: false, reimport });
     onResetSession();
-  }, [completedCount, completedDeck, completedMediaSyncStatus, isSessionCurrent, job?.status, mediaTask, onCompleted, onResetSession, sessionVersion]);
+  }, [completedCount, completedDeck, completedMediaSyncStatus, isSessionCurrent, job?.status, mediaTask, onCompleted, onResetSession, reimport, sessionVersion]);
 
   function beginProgress(phase: ApkgProgressPhase) {
     setPhaseProgress({ phase, percent: 0 });
@@ -474,7 +477,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
               {mediaTask && cloudProgress?.status === "paused" ? <ActionButton type="button" variant="primary" onClick={() => mediaTask.resume()}>Medien-Sync fortsetzen</ActionButton> : null}
               {completedDeck ? <ActionButton type="button" variant="secondary" onClick={() => {
                 completionDeliveredRef.current = true;
-                onCompleted({ deck: completedDeck, createdCount: completedCount });
+                onCompleted({ deck: completedDeck, createdCount: completedCount, partial: true, reimport });
                 onResetSession();
               }}>Karten jetzt verwenden</ActionButton> : null}
             </div>

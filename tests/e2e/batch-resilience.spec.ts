@@ -73,7 +73,7 @@ async function seedAccount() {
   try {
     const { error: conflictCleanupError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
     if (conflictCleanupError) throw conflictCleanupError;
-    const state = createCoreRepository({ seedDefaultDecks: false }).getState();
+    const state = createCoreRepository().getState();
     const content = seedContent();
     await seedAccountState(client, {
       ...state,

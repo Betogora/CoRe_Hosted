@@ -363,22 +363,27 @@ export function applyLearningProfileTemplateToDeckSettings<T extends Record<stri
   };
 }
 
+/**
+ * The global default is a copy like a deck's settings: stored values win, a later profile update does not change them.
+ * Only a fresh account (or a source without stored values) takes its values from the referenced template once.
+ */
 function normalizeGlobalLearningDefaults(value: unknown, profiles: LearningProfileTemplate[]): GlobalLearningDefaults {
   const input = objectRecord(value);
   const hasStoredDefaults = value !== null && typeof value === "object" && !Array.isArray(value);
-  const source = normalizeLearningProfileSource(input.learningProfileSource)
-    ?? (hasStoredDefaults ? null : { id: "builtin:standard", contentVersion: 1 });
+  const storedSource = normalizeLearningProfileSource(input.learningProfileSource);
+  const source = storedSource ?? (hasStoredDefaults ? null : { id: "builtin:standard", contentVersion: 1 });
   const selectedProfile = source ? getLearningProfileTemplate(profiles, source.id) : null;
-  const settings = selectedProfile
-    ? (selectedProfile.id.startsWith("builtin:")
+  const hasStoredValues = "newCardsPerDay" in input;
+  const settings = hasStoredValues || !selectedProfile
+    ? normalizeLearningSettings(input as LearningSettingsInput)
+    : selectedProfile.id.startsWith("builtin:")
       ? normalizeLearningSettings(selectedProfile.settings)
-      : markLearningSettingsCustom(selectedProfile.settings))
-    : normalizeLearningSettings(input as LearningSettingsInput);
+      : markLearningSettingsCustom(selectedProfile.settings);
 
   return {
     ...settings,
     learningProfileSource: selectedProfile
-      ? { id: selectedProfile.id, contentVersion: selectedProfile.contentVersion }
+      ? { id: selectedProfile.id, contentVersion: hasStoredValues && storedSource ? storedSource.contentVersion : selectedProfile.contentVersion }
       : null,
     variantThresholdXp: wholeNumber(input.variantThresholdXp, 121, 1, 10000),
     maxActiveVariantsPerCard: wholeNumber(input.maxActiveVariantsPerCard, 2, 1, 10),

@@ -82,7 +82,7 @@ async function seedAccount(decks: Deck[] = seedDecks()) {
   const { data, error } = await client.auth.signInWithPassword({ email: environment.email, password: environment.password });
   if (error || !data.user) throw error ?? new Error("Der Navigations-E2E-Account fehlt.");
   try {
-    const state = createCoreRepository({ seedDefaultDecks: false }).getState();
+    const state = createCoreRepository().getState();
     const noteIds = new Set(decks.flatMap((deck) => deck.cards.map((seededCard) => seededCard.noteId)));
     await seedAccountState(client, {
       ...state,

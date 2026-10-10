@@ -1,7 +1,6 @@
 import { normalizeCoreDeck } from "./coreModel.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { withGlobalSchedulerPreferences } from "./deckSettings.ts";
-import { createWorldCapitalsSeed } from "./fixtures/worldCapitals.ts";
 import { DEFAULT_UI_PREFERENCES, normalizeUiPreferences } from "./uiPreferences.ts";
 
 function createDefaultProfile() {
@@ -16,13 +15,12 @@ function createDefaultProfile() {
   };
 }
 
-function createDefaultState({ seedDefaultDecks = false }: { seedDefaultDecks?: boolean } = {}): WorkspaceState {
-  const seed = seedDefaultDecks ? createWorldCapitalsSeed() : { decks: [], notes: [] };
+function createDefaultState(): WorkspaceState {
   return {
     version: 6,
     profile: createDefaultProfile(),
-    decks: seed.decks,
-    notes: seed.notes,
+    decks: [],
+    notes: [],
     updatedAt: new Date().toISOString(),
   };
 }
@@ -49,6 +47,7 @@ export function normalizeWorkspaceState(rawState: any): WorkspaceState {
   };
 }
 
-export function createCoreRepository(options: { seedDefaultDecks?: boolean } = {}): { getState(): WorkspaceState } {
-  return { getState: () => createDefaultState({ seedDefaultDecks: options.seedDefaultDecks === true }) };
+/** An empty account workspace; tests that need content add the world capitals seed themselves. */
+export function createCoreRepository(): { getState(): WorkspaceState } {
+  return { getState: () => createDefaultState() };
 }

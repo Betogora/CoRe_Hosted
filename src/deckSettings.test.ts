@@ -95,7 +95,7 @@ test("version-two scheduler preferences normalize to version three with a standa
   assert.equal(normalizeLearnAheadMinutes("invalid"), 20);
 });
 
-test("global defaults follow the selected template while deletion keeps the resolved snapshot", () => {
+test("global defaults keep their copied values when the template is updated or deleted", () => {
   const profile = {
     id: "profile-1",
     name: "Prüfung",
@@ -117,9 +117,9 @@ test("global defaults follow the selected template while deletion keeps the reso
   const deleted = withGlobalSchedulerPreferences(updated, { learningProfiles: [] });
 
   assert.equal(resolveGlobalLearningDefaults(saved.schedulerPreferences).newCardsPerDay, 40);
-  assert.equal(resolveGlobalLearningDefaults(updated.schedulerPreferences).newCardsPerDay, 55);
-  assert.deepEqual(updated.schedulerPreferences.defaultLearningSettings.learningProfileSource, { id: profile.id, contentVersion: 3 });
-  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.newCardsPerDay, 55);
+  assert.equal(resolveGlobalLearningDefaults(updated.schedulerPreferences).newCardsPerDay, 40);
+  assert.deepEqual(updated.schedulerPreferences.defaultLearningSettings.learningProfileSource, { id: profile.id, contentVersion: 2 });
+  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.newCardsPerDay, 40);
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.learningProfileSource, null);
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.variantThresholdXp, 181);
 });

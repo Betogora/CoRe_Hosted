@@ -1,3 +1,4 @@
+import { SYNC_MUTATION_TYPES } from "./syncMutationPlanner.ts";
 import {
   applyEntityMutation,
   applyEntityMutationBatch,
@@ -112,12 +113,6 @@ function orderMutationBatch(mutations: any[]) {
     .map(({ mutation }) => mutation);
 }
 
-export const SYNC_MUTATION_TYPES = Object.freeze({
-  profilePatch: "profile-patch",
-  entityMutation: "entity-mutation",
-  reviewAtomic: "review-atomic",
-  deckCommand: "deck-command",
-});
 
 export interface SyncOutboxMutation {
   id: string;
@@ -570,7 +565,8 @@ export function createSyncEngine({
 
         if (batchFailure) throw batchFailure;
         await outbox.flushPersistence?.();
-        await pullChanges?.();
+        // A pull that reports `false` changed nothing locally, so callers can skip rebuilding their state.
+        result.pulledChanges = (await pullChanges?.()) !== false;
         result.conflicts = await refreshConflicts();
         resetRetry();
         result.syncStatus = emitStatus(result.conflicts.length > 0
@@ -633,6 +629,8 @@ export function createSyncEngine({
         retryAttempt = 0;
         if (syncIntervalMinutes > 0) {
           flushForActiveLifecycle();
+          // A lifecycle that started offline has no interval yet.
+          if (intervalTimer === null) scheduleInterval();
         } else if (currentStatus.status === "offline") {
           emitStatus(lastOnlineStatus);
         }

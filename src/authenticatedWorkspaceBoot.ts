@@ -49,7 +49,7 @@ export async function bootAuthenticatedWorkspace(
   supabase: SupabaseBrowserClient,
   user: User,
 ): Promise<AuthenticatedWorkspaceBootResult> {
-  const seedRepository = createCoreRepository({ seedDefaultDecks: false });
+  const seedRepository = createCoreRepository();
   const repository = await createIndexedDbCoreRepository({
     userId: user.id,
     initialState: seedRepository.getState(),
@@ -216,13 +216,11 @@ async function finishAuthenticatedWorkspaceCloudSync(
     import("./syncEngine.ts"),
   ]);
   const pullChanges = async () => {
-    const nextCursor = await streamAccountCatalogChanges(
-      supabase,
-      repository.getReplicaStatus().catalogCursor,
-      repository.applyCloudCatalogPage,
-    );
+    const previousCursor = repository.getReplicaStatus().catalogCursor;
+    const nextCursor = await streamAccountCatalogChanges(supabase, previousCursor, repository.applyCloudCatalogPage);
     await repository.completeCatalogReconciliation(nextCursor);
     markReplicaStartupGate("catalogReconciled", { cursor: nextCursor });
+    return nextCursor !== previousCursor;
   };
   const syncEngine = createAccountSyncEngine(supabase, {
     userId,

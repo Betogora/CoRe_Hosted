@@ -29,9 +29,15 @@ function manifestGraph(manifest: ViteManifest, entryKey: string, collected = new
   return collected;
 }
 
-export function collectCompressedBudgetGroups(manifest: ViteManifest = {}) {
+/** Files `index.html` preloads with `<link rel="modulepreload">`; the browser fetches them at start like the entry graph. */
+export function readModulePreloads(html: string): string[] {
+  return [...html.matchAll(/<link\b[^>]*rel="modulepreload"[^>]*href="\/?([^"]+)"/g)].map((match) => match[1]);
+}
+
+export function collectCompressedBudgetGroups(manifest: ViteManifest = {}, preloadedFiles: string[] = []) {
   const entries = Object.entries(manifest);
-  const initialKeys = entries.filter(([, entry]) => entry.isEntry).map(([key]) => key);
+  const preloaded = new Set(preloadedFiles);
+  const initialKeys = entries.filter(([, entry]) => entry.isEntry || preloaded.has(entry.file)).map(([key]) => key);
   const initialGraphKeys = new Set(initialKeys.flatMap((key) => [...manifestGraph(manifest, key)]));
   const filesForKeys = (keys: Iterable<string>) => [...new Set([...keys].map((key) => manifest[key]?.file).filter((file): file is string => Boolean(file && /\.m?js$/i.test(file))))].sort();
   const initial = filesForKeys(initialGraphKeys);
@@ -49,8 +55,9 @@ export function findCompressedBudgetViolations(
   manifest: ViteManifest,
   gzipSizeByFile: Record<string, number>,
   budgets = { initial: DEFAULT_INITIAL_GZIP_BYTES, lazyRoute: DEFAULT_LAZY_ROUTE_GZIP_BYTES, worker: DEFAULT_WORKER_GZIP_BYTES },
+  preloadedFiles: string[] = [],
 ) {
-  const groups = collectCompressedBudgetGroups(manifest);
+  const groups = collectCompressedBudgetGroups(manifest, preloadedFiles);
   const total = (files: string[]) => files.reduce((sum, file) => sum + Number(gzipSizeByFile[file] ?? 0), 0);
   const violations: Array<{ kind: "initial" | "lazy-route" | "worker"; name: string; bytes: number; maxBytes: number }> = [];
   const initialBytes = total(groups.initial);
@@ -87,7 +94,8 @@ export async function verifyBuildChunks({ distDirectory = "dist", maxBytes = DEF
   const manifestPath = path.join(distDirectory, ".vite", "manifest.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as ViteManifest;
   const files = collectBudgetedJavaScriptFiles(manifest);
-  const compressedGroups = collectCompressedBudgetGroups(manifest);
+  const preloadedFiles = readModulePreloads(await readFile(path.join(distDirectory, "index.html"), "utf8"));
+  const compressedGroups = collectCompressedBudgetGroups(manifest, preloadedFiles);
   const compressedFiles = [...new Set([...compressedGroups.initial, ...Object.values(compressedGroups.lazyRoutes).flat(), ...compressedGroups.workers])];
   const sizeByFile = Object.fromEntries(
     await Promise.all(
@@ -103,7 +111,7 @@ export async function verifyBuildChunks({ distDirectory = "dist", maxBytes = DEF
     throw new Error(`Build-Chunk-Budget von ${(maxBytes / 1000).toFixed(0)} kB überschritten:\n${details}`);
   }
   const gzipSizeByFile = Object.fromEntries(await Promise.all(compressedFiles.map(async (file) => [file, gzipSync(await readFile(path.join(distDirectory, file))).byteLength])));
-  const compressedViolations = findCompressedBudgetViolations(manifest, gzipSizeByFile);
+  const compressedViolations = findCompressedBudgetViolations(manifest, gzipSizeByFile, undefined, preloadedFiles);
   if (compressedViolations.length > 0) {
     const details = compressedViolations.map((entry) => `${entry.kind} ${entry.name}: ${(entry.bytes / 1024).toFixed(1)} KiB (max. ${(entry.maxBytes / 1024).toFixed(0)} KiB)`).join("\n");
     throw new Error(`Komprimiertes Build-Budget überschritten:\n${details}`);

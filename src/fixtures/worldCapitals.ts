@@ -271,8 +271,8 @@ function createCapitalNote(deckId: string, item: WorldCapitalItem) {
   return { note, card };
 }
 
-/** Demo and E2E seed: the world capitals tree with notes, cards and a three-month study history. */
-export function createWorldCapitalsSeed(): { decks: Deck[]; notes: Note[] } {
+/** World capitals tree with notes and cards; the E2E seed adds a three-month study history, the demo starts fresh. */
+export function createWorldCapitalsSeed({ withStudyHistory: includeHistory = true }: { withStudyHistory?: boolean } = {}): { decks: Deck[]; notes: Note[] } {
   const rootDeck = createCoreDeck({
     id: WORLD_CAPITALS_FIXTURE.rootDeck.id,
     name: WORLD_CAPITALS_FIXTURE.rootDeck.name,
@@ -290,7 +290,7 @@ export function createWorldCapitalsSeed(): { decks: Deck[]; notes: Note[] } {
     const reviewEvents: ReviewEvent[] = [];
     for (const item of continent.cards) {
       const { note, card } = createCapitalNote(continent.deckId, item);
-      const history = withStudyHistory(continent.deckId, card, cardIndex, continentIndex);
+      const history = includeHistory ? withStudyHistory(continent.deckId, card, cardIndex, continentIndex) : { card, events: [] };
       notes.push(note);
       cards.push(history.card);
       reviewEvents.push(...history.events);
@@ -312,9 +312,9 @@ export function createWorldCapitalsSeed(): { decks: Deck[]; notes: Note[] } {
   return { decks: [rootDeck, ...childDecks], notes };
 }
 
-/** The seed as an import graph, so the demo takes the same chunked commit as an Anki package. */
+/** The demo as an import graph without study history, so it takes the same chunked commit as an Anki package. */
 export function createWorldCapitalsImportGraph(): ImportCommitGraph {
-  const { decks, notes } = createWorldCapitalsSeed();
+  const { decks, notes } = createWorldCapitalsSeed({ withStudyHistory: false });
   const cards = decks.flatMap((deck) => deck.cards);
   const reviews = decks.flatMap((deck) => deck.reviewEvents.flatMap((event) => event.rating === "manual" ? [] : [{
     id: event.id,

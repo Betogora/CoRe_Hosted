@@ -6,7 +6,7 @@ import { createCreationWorkflow } from "../creationWorkflow.ts";
 import type { Deck } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
-import { ApkgImportPanel } from "./ApkgImportPanel.tsx";
+import { ApkgImportPanel, type ImportCompletion } from "./ApkgImportPanel.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
 
@@ -35,7 +35,7 @@ export function CreationScreen({
   onOpenDashboard = () => undefined,
 }: CreationScreenViewProps) {
   const completionHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual" } | null>(null);
+  const [sessionCompletion, setSessionCompletion] = React.useState<{ deckId: string; createdCount: number; kind: "import" | "manual"; importResult?: Pick<ImportCompletion, "partial" | "reimport"> } | null>(null);
   const [localApkgImportSession, setLocalApkgImportSession] = React.useState(() => createEmptyApkgImportSession());
   const apkgImportSession = controlledApkgImportSession ?? localApkgImportSession;
   const apkgImportSessionRef = React.useRef(apkgImportSession);
@@ -48,6 +48,7 @@ export function CreationScreen({
   const completedDeck = decks.find((deck) => deck.id === (sessionCompletion?.deckId || completedDeckId)) ?? null;
   const resolvedCompletionKind = sessionCompletion?.kind ?? completionKind;
   const resolvedCompletedCount = sessionCompletion?.createdCount ?? completedCount;
+  const importResult = sessionCompletion?.importResult;
   const accountWorkflow = React.useMemo(
     () => createCreationWorkflow({
       mediaStore: mediaStore ?? undefined,
@@ -56,10 +57,9 @@ export function CreationScreen({
     [commitImport, mediaStore],
   );
 
-  function completeSession(deckId: string, createdCount: number, kind: "import" | "manual") {
-    const completion = { deckId, createdCount, kind };
-    setSessionCompletion(completion);
-    onSessionCompleted(completion);
+  function completeSession(deckId: string, createdCount: number, kind: "import" | "manual", importResult?: Pick<ImportCompletion, "partial" | "reimport">) {
+    setSessionCompletion({ deckId, createdCount, kind, importResult });
+    onSessionCompleted({ deckId, createdCount, kind });
   }
 
   React.useEffect(() => {
@@ -78,7 +78,7 @@ export function CreationScreen({
           isSessionCurrent={isApkgImportSessionCurrent}
           onResetSession={onResetApkgImportSession}
           onCompleted={(completion) => {
-            completeSession(completion.deck.id, completion.createdCount, "import");
+            completeSession(completion.deck.id, completion.createdCount, "import", { partial: completion.partial, reimport: completion.reimport });
           }}
         />
       );
@@ -109,11 +109,14 @@ export function CreationScreen({
           </span>
           <p className="mt-6 core-body font-semibold text-core-text">Gespeichert</p>
           <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-core-text outline-none">
-            {resolvedCompletionKind === "import" ? "Import erfolgreich" : "Deine Karten sind bereit"}
+            {resolvedCompletionKind !== "import" ? "Deine Karten sind bereit" : importResult?.partial ? "Import lokal abgeschlossen" : "Import erfolgreich"}
           </h2>
           <p className="mx-auto mt-3 max-w-xl core-body-large leading-7 text-core-muted">
-            {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ {resolvedCompletionKind === "import" ? "vollständig gespeichert." : "gespeichert."}
+            {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ {resolvedCompletionKind === "import" && !importResult?.partial ? "vollständig gespeichert." : "gespeichert."}
           </p>
+          {importResult?.partial ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">Die Karten sind nutzbar. Cloud- und Mediensynchronisierung laufen im Hintergrund weiter.</p> : null}
+          {importResult?.reimport?.keptLocalEdits ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.keptLocalEdits} lokal {importResult.reimport.keptLocalEdits === 1 ? "bearbeiteter Inhalt blieb" : "bearbeitete Inhalte blieben"} unverändert.</p> : null}
+          {importResult?.reimport?.missingInPackage ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">{importResult.reimport.missingInPackage} {importResult.reimport.missingInPackage === 1 ? "Karte fehlt" : "Karten fehlen"} im Paket und {importResult.reimport.missingInPackage === 1 ? "bleibt" : "bleiben"} erhalten.</p> : null}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <ActionButton type="button" variant="primary" onClick={() => onStartDeck(completedDeck)}>Jetzt lernen</ActionButton>
             {resolvedCompletionKind === "import" ? (

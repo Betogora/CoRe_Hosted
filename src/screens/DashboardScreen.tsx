@@ -246,9 +246,26 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
     () => loadedHeatmap ?? createStudyHeatmapModel(state.decks, { now, timeZone, dayStartHour: globalSettings.dayStartHour }),
     [globalSettings.dayStartHour, loadedHeatmap, now, state.decks, timeZone],
   );
+  const [demoStatus, setDemoStatus] = React.useState<"idle" | "busy" | "error">("idle");
+  const demoBusyRef = React.useRef(false);
   const displayName = state.profile?.displayName?.trim();
   const welcomeTitle = displayName ? <><span className="sr-only">Willkommen zurück, </span><span className="core-dashboard-name">{displayName}!</span></> : "Willkommen bei CoRe";
   const welcomeEyebrow = displayName ? <span aria-hidden="true" className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined;
+
+  async function createDemo() {
+    // A ref, not state: a fast double click must not start a second commit before the re-render.
+    if (demoBusyRef.current) return;
+    demoBusyRef.current = true;
+    setDemoStatus("busy");
+    try {
+      await onCreateDemo();
+      setDemoStatus("idle");
+    } catch {
+      setDemoStatus("error");
+    } finally {
+      demoBusyRef.current = false;
+    }
+  }
 
   if (state.decks.length === 0) {
     return (
@@ -265,8 +282,9 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
             <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} tone="info" onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
             <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={FileArchive} tone="success" onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
-            <CreationActionCard title="Demo ausprobieren" description="Beispielstapel nur auf deinen Klick anlegen." icon={Sparkles} tone="info" onSelect={onCreateDemo} />
+            <CreationActionCard title="Demo ausprobieren" description={demoStatus === "busy" ? "Beispielstapel wird angelegt …" : "Beispielstapel mit neuen Karten nur auf deinen Klick anlegen."} icon={Sparkles} tone="info" onSelect={() => void createDemo()} />
           </div>
+          {demoStatus === "error" ? <StatusMessage className="mt-4" tone="error" announce="assertive">Die Demo konnte nicht angelegt werden. Bitte versuche es erneut.</StatusMessage> : null}
         </SoftPanel>
 
         <SoftPanel className="p-6">

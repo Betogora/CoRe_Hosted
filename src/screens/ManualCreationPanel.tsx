@@ -13,7 +13,7 @@ import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { PdfDocumentViewer } from "../ui/PdfDocumentViewer.tsx";
@@ -137,6 +137,7 @@ export function ManualCreationPanel({
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
+  const [finishConfirmOpen, setFinishConfirmOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
@@ -206,6 +207,7 @@ export function ManualCreationPanel({
 
   const textDraftDirty = React.useMemo(() => !manualDraftsEqual(currentDraft, cleanDraftRef.current), [currentDraft]);
   const draftDirty = textDraftDirty || additionalFields.length > 0 || Boolean(occlusion?.image || occlusion?.masks.length);
+  const finish = () => onFinish({ createdCount: batchState.createdCount, targetDeckId: batchState.targetDeckId });
 
   React.useEffect(() => {
     onDraftStateChange(draftDirty, isSaving ? focusSaveProgress : () => focusField(), isSaving);
@@ -789,15 +791,22 @@ export function ManualCreationPanel({
           type="button"
           variant="secondary"
           disabled={batchState.createdCount === 0 || isSaving}
-          onClick={() => onFinish({
-            createdCount: batchState.createdCount,
-            targetDeckId: batchState.targetDeckId,
-          })}
+          onClick={() => draftDirty ? setFinishConfirmOpen(true) : finish()}
         >
           Fertig
         </ActionButton>
       </div>
       <p className="core-body font-medium text-core-muted">{batchState.createdCount} {batchState.createdCount === 1 ? "Karte" : "Karten"} in dieser Sitzung erstellt.</p>
+      <ActionDialog
+        open={finishConfirmOpen}
+        title="Ungespeicherten Entwurf verwerfen?"
+        description="Deine gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte gehen verloren."
+        confirmLabel="Verwerfen und abschließen"
+        cancelLabel="Weiter bearbeiten"
+        destructive
+        onCancel={() => setFinishConfirmOpen(false)}
+        onConfirm={() => { setFinishConfirmOpen(false); finish(); }}
+      />
       {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : statusType === "warning" ? "core-status-warning" : "core-status-info"}`} role={statusType === "alert" ? "alert" : "status"} aria-live="polite">{status}</p> : null}
       <CardPreviewDialog
         open={previewOpen}

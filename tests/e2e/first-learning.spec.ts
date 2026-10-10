@@ -17,7 +17,7 @@ async function resetAccountToEmpty() {
   if (error || !data.user) throw new Error(`Der leere E2E-Account konnte nicht vorbereitet werden: ${error?.message ?? "Nutzer fehlt"}`);
 
   try {
-    const emptyState = createCoreRepository({ seedDefaultDecks: false }).getState();
+    const emptyState = createCoreRepository().getState();
     await seedAccountState(client, {
       ...emptyState,
       profile: { ...emptyState.profile, email: environment.email, displayName: "CoRe E2E", onboardingComplete: true },

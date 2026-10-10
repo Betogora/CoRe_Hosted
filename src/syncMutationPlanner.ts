@@ -1,5 +1,12 @@
 import type { Card, Deck, Note } from "./coreTypes.ts";
-import { SYNC_MUTATION_TYPES } from "./syncEngine.ts";
+
+/** Outbox mutation kinds; kept here so the local repository does not pull the cloud sync engine into the start bundle. */
+export const SYNC_MUTATION_TYPES = Object.freeze({
+  profilePatch: "profile-patch",
+  entityMutation: "entity-mutation",
+  reviewAtomic: "review-atomic",
+  deckCommand: "deck-command",
+});
 
 interface RevisionedEntity {
   id: string;

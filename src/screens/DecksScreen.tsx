@@ -23,11 +23,17 @@ import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
-import { OcclusionEditor } from "../ui/OcclusionEditor.tsx";
-import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
+import type { ManualImageAttachment } from "../creationWorkflow.ts";
+import type { AccountMediaStore } from "../mediaStore.ts";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
+
+// Only own image occlusions need the mask editor; it stays out of the card management bundle until then.
+const OcclusionEditor = React.lazy(() => import("../ui/OcclusionEditor.tsx").then((module) => ({ default: module.OcclusionEditor })));
+/** Image preparation and local storage of the creation workflow, loaded only when an image is inserted or saved. */
+const loadImageWorkflow = async (mediaStore: AccountMediaStore) => (await import("../creationWorkflow.ts")).createCreationWorkflow({ mediaStore });
 
 interface PendingDetailAction {
   run: () => void;
@@ -142,6 +148,7 @@ interface DeckCardEditorProps {
   dayStartHour?: number;
   timeZone?: string;
   mediaUrls?: Record<string, string>;
+  mediaStore: AccountMediaStore | null;
   onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<unknown>;
   onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => unknown;
   onDuplicateNote: () => Promise<NoteGraph | null>;
@@ -155,7 +162,7 @@ interface DeckCardEditorProps {
   syncConflict: boolean;
 }
 
-function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
+function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, mediaStore, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
   const { note } = graph;
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
   const [initialValue, contentKey] = React.useMemo(() => {
@@ -199,6 +206,25 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const structureEditable = note.importedContentRevision === null;
   const draftDirty = serializedForm !== savedForm;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
+  // Images inserted in this editor; stored locally and queued for upload only when the content is saved.
+  const imageDraftsRef = React.useRef(new Map<string, { attachment: ManualImageAttachment; previewUrl: string }>());
+  const [imageDraftVersion, setImageDraftVersion] = React.useState(0);
+  React.useEffect(() => () => {
+    for (const draft of imageDraftsRef.current.values()) URL.revokeObjectURL(draft.previewUrl);
+  }, []);
+  const imageActions = React.useMemo<RichTextImageActions | undefined>(() => mediaStore ? {
+    mediaUrls: { ...mediaUrls, ...Object.fromEntries([...imageDraftsRef.current].map(([sha1, draft]) => [sha1, draft.previewUrl])) },
+    async prepare(file) {
+      const attachment = await (await loadImageWorkflow(mediaStore)).prepareManualImage(file);
+      const existing = imageDraftsRef.current.get(attachment.sha1);
+      const previewUrl = existing?.previewUrl ?? URL.createObjectURL(attachment.blob);
+      if (!existing) {
+        imageDraftsRef.current.set(attachment.sha1, { attachment, previewUrl });
+        setImageDraftVersion((version) => version + 1);
+      }
+      return { reference: attachment.sha1, previewUrl, alt: attachment.originalName };
+    },
+  } : undefined, [imageDraftVersion, mediaStore, mediaUrls]);
   const variantReadiness = React.useMemo(() => card ? describeVariantReadiness(card, deck.deckSettings) : null, [card, deck.deckSettings]);
   const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
   const draftPlan = React.useMemo(() => {
@@ -333,6 +359,9 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     setSaveError(false);
     setSaveStatus("Karte wird gespeichert …");
     try {
+      const html = content.fields.map((field) => field.html).join(" ");
+      const newImages = [...imageDraftsRef.current].filter(([sha1]) => html.includes(sha1) && !graph.note.media[sha1]).map(([, draft]) => draft.attachment);
+      if (newImages.length && mediaStore) await (await loadImageWorkflow(mediaStore)).prepareManualMedia(newImages);
       await onSaveNote(graph, content);
       setSavedForm(serializedForm);
       onDraftStateChange(null);
@@ -552,6 +581,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       {structureEditable && structure.interaction.kind === "image-occlusion" && mediaUrls[structure.interaction.image] ? (
         <div className="mb-4 grid min-w-0 gap-2" data-testid="note-occlusion">
           <span className="core-body font-semibold text-core-text">Bild und Masken</span>
+          <React.Suspense fallback={<p className="core-body text-core-muted" role="status">Masken-Editor wird geladen …</p>}>
           <OcclusionEditor
             imageUrl={mediaUrls[structure.interaction.image]}
             imageAlt="Bild der Bildverdeckung"
@@ -561,6 +591,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             onMasksChange={(masks) => structure.interaction.kind === "image-occlusion" && changeStructure({ ...structure, interaction: { ...structure.interaction, masks } })}
             onModeChange={(mode) => structure.interaction.kind === "image-occlusion" && changeStructure({ ...structure, interaction: { ...structure.interaction, mode } })}
           />
+          </React.Suspense>
         </div>
       ) : null}
       {structureEditable && blocks.reverse !== null ? (
@@ -593,6 +624,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               onChange={(value) => updateField(field.id, value)}
               ariaLabel={`Feld ${field.name}`}
               ariaInvalid={Boolean(fieldErrors[field.id])}
+              imageActions={imageActions}
               minHeightClass={field.role === "prompt" || field.role === "answer" ? "min-h-32" : "min-h-28"}
             />
             {interaction.kind === "cloze" && field.role === "prompt" ? (
@@ -1161,6 +1193,7 @@ export function DecksScreen({
             dayStartHour={dayStartHour}
             timeZone={timeZone}
             mediaUrls={selectedNoteMediaUrls}
+            mediaStore={mediaStore}
             onSaveNote={onSaveNote}
             onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
             onDuplicateNote={() => onDuplicateNote(selectedGraph)}

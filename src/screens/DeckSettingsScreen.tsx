@@ -188,7 +188,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   const offlineLabel = offlineDeck?.state === "downloading" ? "Wird heruntergeladen …"
     : offlineDeck?.state === "available" ? "Offline verfügbar"
       : offlineDeck?.state === "outdated" ? "Aktualisierung ausstehend"
-        : offlineDeck?.state === "error" ? "Download fehlgeschlagen"
+        : offlineDeck?.state === "error" ? "Download nicht abgeschlossen"
           : bodyCache && bodyCache.cached + bodyCache.downloaded > 0 ? "Teilweise zwischengespeichert" : "Nur online";
 
   async function updateOfflineDownload(remove = false) {
@@ -238,7 +238,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
               </div>
               {offlineDeck && offlineDeck.state !== "none" ? (
                 <div className="flex flex-wrap gap-2">
-                  {offlineDeck.state === "outdated" || offlineDeck.state === "error" ? <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>Aktualisieren</ActionButton> : null}
+                  {offlineDeck.state === "outdated" || offlineDeck.state === "error" ? <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>{offlineDeck.state === "error" ? "Download fortsetzen" : "Aktualisieren"}</ActionButton> : null}
                   <ActionButton type="button" variant="secondary" icon={Trash2} disabled={offlineBusy || offlineDeck.state === "downloading"} onClick={() => void updateOfflineDownload(true)}>Offline-Daten entfernen</ActionButton>
                 </div>
               ) : <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>Offline verfügbar machen</ActionButton>}

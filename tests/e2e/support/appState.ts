@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { createCoreRepository } from "../../../src/coreRepository.ts";
+import { createWorldCapitalsSeed } from "../../../src/fixtures/worldCapitals.ts";
 import type { Deck, Note } from "../../../src/coreTypes.ts";
 import { loadE2EEnvironment } from "./e2eEnvironment.ts";
 import { seedAccountState } from "../../support/seedAccountState.ts";
@@ -14,7 +15,7 @@ function isSupabaseAuthStorageKey(key: string) {
 }
 
 function createE2ESeedState(email: string) {
-  const seedState = createCoreRepository({ seedDefaultDecks: true }).getState();
+  const seedState = { ...createCoreRepository().getState(), ...createWorldCapitalsSeed() };
   return {
     ...seedState,
     decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),

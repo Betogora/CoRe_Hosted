@@ -5,6 +5,22 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — P0-Fehler aus dem App-Audit, Sync- und Bundle-Entlastung
+
+- Importabschluss unterscheidet Teilabschluss (`Import lokal abgeschlossen`) und
+  zeigt Reimport-Zahlen; `Fertig` fragt bei ungespeichertem Entwurf nach.
+- Unterbrochene Offline-Downloads lassen sich nach Reload fortsetzen; der
+  Intervall-Sync startet auch nach einem Offline-Kaltstart.
+- Globaler Lernstandard ist eine Kopie: Profiländerungen übernehmen ihn nicht mehr
+  still, der Hinweis auf eine neuere Vorlage erscheint. „Als Standardprofil
+  verwenden“ meldet nur noch die Auswahl.
+- Lern- und Wiederlernschritte außerhalb der Voreinstellungen bleiben sichtbar.
+- Demo ohne erfundene Lernhistorie, mit Lade- und Fehlerzustand.
+- Karteneditor zeigt gespeicherte Bilder (auch importierte Dateinamen) und fügt
+  neue ein; importierte Bildreferenzen werden beim Bearbeiten nicht mehr verworfen.
+- Sync ohne Änderungen baut die Oberfläche nicht neu auf. Initialgraph jetzt
+  ehrlich inklusive `modulepreload` gemessen: 226,6 KiB gzip.
+
 ## 2026-10-10 — CoRe-Modus An/Aus, wirksame Variantenregeln, Aufräumen und Spec-Umbau
 
 - CoRe-Modus auf `An`/`Aus` reduziert (ADR-039). Die Variantenwahl im Review

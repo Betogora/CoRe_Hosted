@@ -44,7 +44,7 @@ test("pre-release storage uses only fresh account and device namespaces", () => 
   const storage = createMemoryStorage();
   storage.setItem("core.appState.v4", JSON.stringify({ decks: [{ id: "deck_1" }] }));
   assert.equal(createAccountStorage("user-a", storage).getItem("core.appState.v4"), null);
-  assert.deepEqual(createCoreRepository({ seedDefaultDecks: false }).getState().decks, []);
+  assert.deepEqual(createCoreRepository().getState().decks, []);
   assert.equal(accountStorageKeys.ACCOUNT_STORAGE_PREFIX, "core.accountState.v2");
   assert.equal(accountStorageKeys.SYNC_DEVICE_KEY, "core.syncDevice.v2");
 });

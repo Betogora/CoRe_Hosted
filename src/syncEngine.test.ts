@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createSyncEngine, SYNC_MUTATION_TYPES } from "./syncEngine.ts";
+import { createSyncEngine } from "./syncEngine.ts";
+import { SYNC_MUTATION_TYPES } from "./syncMutationPlanner.ts";
 
 function createMemoryStorage() {
   const values = new Map<string, string>();
@@ -199,6 +200,20 @@ test("autosync interval controls both periodic and debounced local triggers", ()
   manual.requestSync();
   assert.equal(manualTimers.count(), 0);
   stopManual();
+});
+
+test("a lifecycle started offline schedules its interval once the network returns", () => {
+  const timers = createFakeTimers();
+  const networkTarget = createNetworkTarget(false);
+  const engine = createSyncEngine({
+    adapter: acknowledgingAdapter(), outbox: createTestOutbox(), device, networkTarget,
+    setTimer: timers.setTimer, clearTimer: timers.clearTimer,
+  });
+  const stop = engine.startSyncLifecycle({ intervalMinutes: 5, onStatus() {} });
+  assert.equal(timers.delays.includes(300_000), false);
+  networkTarget.setOnline(true);
+  assert.equal(timers.delays.includes(300_000), true);
+  stop();
 });
 
 test("focus and visibility run a full sync only for active automatic lifecycle", async () => {

@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
 import { createCoreRepository } from "../../src/coreRepository.ts";
+import { createWorldCapitalsSeed } from "../../src/fixtures/worldCapitals.ts";
 import type { Deck } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
@@ -31,7 +32,7 @@ async function resetLifecycleAccount() {
     }
     const { error: conflictError } = await client.from("sync_conflicts").delete().eq("user_id", data.user.id);
     if (conflictError) throw conflictError;
-    const seedState = createCoreRepository({ seedDefaultDecks: true }).getState();
+    const seedState = { ...createCoreRepository().getState(), ...createWorldCapitalsSeed() };
     await seedAccountState(client, {
       ...seedState,
       decks: seedState.decks.map((deck: Deck) => ({ ...deck, reviewEvents: [] })),

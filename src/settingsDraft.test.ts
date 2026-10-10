@@ -12,7 +12,7 @@ function biologyDeck(): Deck {
 }
 
 test("general and global card drafts keep their settings domains separate", () => {
-  const profile = createCoreRepository({ seedDefaultDecks: false }).getState().profile;
+  const profile = createCoreRepository().getState().profile;
   const preferences = getGlobalSchedulerPreferences(profile);
   const generalDraft = createGeneralSettingsDraft(profile);
   const cardDraft = createGlobalCardSettingsDraft({
