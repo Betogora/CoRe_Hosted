@@ -14,7 +14,7 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
   Gestaltungsstandards der Kartenflächen nach `specs.md` (Abschnitt
   „Kartenflächen“), Lizenzgrenze und Arbeitsregeln nach `AGENTS.md`, die
   Pflegeregeln der APKG-Matrix nach `test-portfolio.md`. Der Feature-Freeze der
-  Roadmap entfällt.
+  Roadmap entfällt (Entscheidung des Nutzers).
 
 ## 2026-10-10 — Refactoring zum Abschluss der Kartenmodell-Roadmap
 

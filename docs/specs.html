@@ -5459,18 +5459,13 @@ html { scroll-behavior: smooth; }
 </ul>
 <p>Der <a href="../src/ui/README.md"><code>src/ui</code>-Katalog</a> beschreibt die Wiederverwendung. Bestehende Module werden bei passender Fachsemantik genutzt; abweichende lokale Controls behalten dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.</p>
 <h3 id="specs--kartenflächen" class="core-heading-3" tabindex="-1">Kartenflächen <a class="docs-anchor" href="#specs--kartenflächen" aria-label="Link zu Kartenflächen">#</a></h3>
-<p>Alle Inhalte erscheinen unabhängig von ihrer Herkunft im CoRe-Design (ADR-033); Review, Vorschau, Editor und Importvorschau verwenden dieselbe Darstellung.</p>
+<p>Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor und Importvorschau gleich.</p>
 <ul>
-<li>Ein fester Anweisungstext der Vorlage steht klein und gedämpft über der Frage und wird auf der Rückseite nicht wiederholt.</li>
-<li>Frage und Antwort stehen ohne Feldbeschriftung. Beim Aufdecken bleibt die Frage stehen, darunter folgen genau eine Trennlinie und die Antwort.</li>
-<li>Jedes Hinweisfeld ist ein zugeklappter, per Tastatur bedienbarer Abschnitt mit dem Feldnamen als Beschriftung unter der Frage und schon vor dem Aufdecken nutzbar; der Kartenrahmen enthält kein Script.</li>
-<li><code>Zusatz</code> erscheint erst nach dem Aufdecken unter der Antwort mit kleinem, gedämpftem Feldnamen. <code>Quelle</code> erscheint danach am Kartenende als Link-Chips mit Externer-Link-Icon; Quellen ohne Link als Absatz mit Feldnamen. <code>Notiz</code> erscheint nur im Editor.</li>
-<li>Im Lückentext erscheint die aktive Lücke als <code>[…]</code> beziehungsweise <code>[Hinweis]</code> mit Akzent-Hintergrund, andere Lücken ausgeschrieben. Beim Aufdecken ersetzt die gefüllte Fassung die Vorderseite an derselben Stelle; die zuvor aktive Lücke bleibt hervorgehoben.</li>
-<li>Bildverdeckungen zeigen Masken über dem Bild: die aktive Gruppe in Akzentfarbe, übrige Masken neutral gedeckt. Die Rückseite entfernt die aktive Maske und zeigt nur ihren Umriss.</li>
-<li>Eintippen zeigt unter der Frage ein Feld <code>Antwort eingeben</code>; Enter deckt auf. Danach vergleicht die Karte zeichengenau wie Anki (richtig grün, falsch rot, fehlend unterstrichen) unter <code>Deine Antwort</code> und <code>Richtig</code>.</li>
-<li>Single Choice deckt nach der Auswahl direkt auf, Multiple Choice und Kprim über <code>Antwort prüfen</code>; Kprim fragt je Aussage <code>richtig</code> oder <code>falsch</code>.</li>
-<li>Formeln in <code>\(…\)</code> stehen inline, in <code>\[…\]</code> als abgesetzter Block. Bei einem Renderfehler bleibt der Quelltext in Monospace mit Diagnose sichtbar.</li>
-<li>Farbiger Feldtext behält seine Farbe; unterschreitet sie 4,5 : 1 Kontrast zum Kartenhintergrund des aktiven Themes, wird nur ihre Helligkeit angepasst.</li>
+<li>Frage und Antwort ohne Feldbeschriftung; beim Aufdecken bleibt die Frage stehen, darunter eine Trennlinie und die Antwort. Ein fester Anweisungstext steht klein über der Frage.</li>
+<li>Hinweise sind zugeklappte, per Tastatur bedienbare Abschnitte unter der Frage. <code>Zusatz</code> und <code>Quelle</code> (als Link-Chips) erscheinen erst nach dem Aufdecken, <code>Notiz</code> nur im Editor.</li>
+<li>Lückentext zeigt die aktive Lücke als <code>[…]</code> mit Akzent; Bildverdeckung die aktive Maske in Akzentfarbe, nach dem Aufdecken nur ihren Umriss.</li>
+<li>Eintippen vergleicht zeichengenau wie Anki; Single Choice deckt direkt auf, Multiple Choice und Kprim über <code>Antwort prüfen</code>.</li>
+<li>Formeln rendern mit KaTeX, bei Fehlern bleibt der Quelltext sichtbar. Farbiger Text wird nur so weit aufgehellt oder abgedunkelt, dass er 4,5 : 1 Kontrast erreicht.</li>
 </ul>
 <h3 id="specs--synchronisierung" class="core-heading-3" tabindex="-1">Synchronisierung <a class="docs-anchor" href="#specs--synchronisierung" aria-label="Link zu Synchronisierung">#</a></h3>
 <ul>

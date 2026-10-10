@@ -371,18 +371,13 @@ Der [`src/ui`-Katalog](../src/ui/README.md) beschreibt die Wiederverwendung. Bes
 
 ### Kartenflächen
 
-Alle Inhalte erscheinen unabhängig von ihrer Herkunft im CoRe-Design (ADR-033); Review, Vorschau, Editor und Importvorschau verwenden dieselbe Darstellung.
+Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor und Importvorschau gleich.
 
-- Ein fester Anweisungstext der Vorlage steht klein und gedämpft über der Frage und wird auf der Rückseite nicht wiederholt.
-- Frage und Antwort stehen ohne Feldbeschriftung. Beim Aufdecken bleibt die Frage stehen, darunter folgen genau eine Trennlinie und die Antwort.
-- Jedes Hinweisfeld ist ein zugeklappter, per Tastatur bedienbarer Abschnitt mit dem Feldnamen als Beschriftung unter der Frage und schon vor dem Aufdecken nutzbar; der Kartenrahmen enthält kein Script.
-- `Zusatz` erscheint erst nach dem Aufdecken unter der Antwort mit kleinem, gedämpftem Feldnamen. `Quelle` erscheint danach am Kartenende als Link-Chips mit Externer-Link-Icon; Quellen ohne Link als Absatz mit Feldnamen. `Notiz` erscheint nur im Editor.
-- Im Lückentext erscheint die aktive Lücke als `[…]` beziehungsweise `[Hinweis]` mit Akzent-Hintergrund, andere Lücken ausgeschrieben. Beim Aufdecken ersetzt die gefüllte Fassung die Vorderseite an derselben Stelle; die zuvor aktive Lücke bleibt hervorgehoben.
-- Bildverdeckungen zeigen Masken über dem Bild: die aktive Gruppe in Akzentfarbe, übrige Masken neutral gedeckt. Die Rückseite entfernt die aktive Maske und zeigt nur ihren Umriss.
-- Eintippen zeigt unter der Frage ein Feld `Antwort eingeben`; Enter deckt auf. Danach vergleicht die Karte zeichengenau wie Anki (richtig grün, falsch rot, fehlend unterstrichen) unter `Deine Antwort` und `Richtig`.
-- Single Choice deckt nach der Auswahl direkt auf, Multiple Choice und Kprim über `Antwort prüfen`; Kprim fragt je Aussage `richtig` oder `falsch`.
-- Formeln in `\(…\)` stehen inline, in `\[…\]` als abgesetzter Block. Bei einem Renderfehler bleibt der Quelltext in Monospace mit Diagnose sichtbar.
-- Farbiger Feldtext behält seine Farbe; unterschreitet sie 4,5 : 1 Kontrast zum Kartenhintergrund des aktiven Themes, wird nur ihre Helligkeit angepasst.
+- Frage und Antwort ohne Feldbeschriftung; beim Aufdecken bleibt die Frage stehen, darunter eine Trennlinie und die Antwort. Ein fester Anweisungstext steht klein über der Frage.
+- Hinweise sind zugeklappte, per Tastatur bedienbare Abschnitte unter der Frage. `Zusatz` und `Quelle` (als Link-Chips) erscheinen erst nach dem Aufdecken, `Notiz` nur im Editor.
+- Lückentext zeigt die aktive Lücke als `[…]` mit Akzent; Bildverdeckung die aktive Maske in Akzentfarbe, nach dem Aufdecken nur ihren Umriss.
+- Eintippen vergleicht zeichengenau wie Anki; Single Choice deckt direkt auf, Multiple Choice und Kprim über `Antwort prüfen`.
+- Formeln rendern mit KaTeX, bei Fehlern bleibt der Quelltext sichtbar. Farbiger Text wird nur so weit aufgehellt oder abgedunkelt, dass er 4,5 : 1 Kontrast erreicht.
 
 ### Synchronisierung
 
