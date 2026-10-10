@@ -356,6 +356,27 @@ test("Karten mit offenem Synchronisierungskonflikt werden nicht zum Lernen gelad
   reopened.close();
 });
 
+test("Tageszähler ziehen Geschwister heute beantworteter Inhalte ab, wenn der Stapel der Antwort begräbt", async () => {
+  async function newCountsAfterAnswer(buryNewSiblings: boolean) {
+    const shared = basicGraph("deck-a", 0, { reverseDeckId: "deck-b" });
+    const other = basicGraph("deck-a", 1);
+    const deckB = createCoreDeck({ id: "deck-b", name: "B", source: "manual", cards: [shared.cards[1]], deckSettings: { buryNewSiblings } });
+    const repository = await openRepository(state([
+      createCoreDeck({ id: "deck-a", name: "A", source: "manual", cards: [shared.cards[0], other.cards[0]] }),
+      deckB,
+    ], [shared.note, other.note]));
+    await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
+    await repository.completeCatalogReconciliation();
+    repository.recordReview(answerVariant(deckB, "card-0-reverse", null, "good", { now: "2026-08-21T10:00:00.000Z" }));
+    await repository.flush();
+    const { summaries } = await repository.listDeckSummaries(SUMMARY_CONTEXT);
+    repository.close();
+    return [summaries.get("deck-a")?.dailyProgress.newCount, summaries.get("deck-a")?.startableCount, summaries.get("deck-a")?.inventory.dueCards];
+  }
+  assert.deepEqual(await newCountsAfterAnswer(false), [2, 2, 0]);
+  assert.deepEqual(await newCountsAfterAnswer(true), [1, 1, 0], "Das neue Geschwister in Stapel A wartet bis morgen.");
+});
+
 test("das Lernfenster liefert heute beantwortete Karten samt Geschwistern anderer Stapel nur bei aktivem Begraben", async () => {
   const repository = await openRepository(twoDeckState());
   const deckB = createCoreDeck({ id: "deck-b", name: "B", source: "manual", cards: [basicGraph("deck-a", 0, { reverseDeckId: "deck-b" }).cards[1]] });

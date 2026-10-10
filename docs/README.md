@@ -82,7 +82,7 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
 - [`../AGENTS.md`](../AGENTS.md): Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.
 - [`../src/screens/README.md`](../src/screens/README.md): Screen-Landkarte.
-- [`../supabase/migrations/20261008101057_kartenmodell_baseline.sql`](../supabase/migrations/20261008101057_kartenmodell_baseline.sql): einzige frische Pre-Release-Schemabaseline (Kartenmodell `Note`/`Card`).
+- [`../supabase/migrations/20261008101057_kartenmodell_baseline.sql`](../supabase/migrations/20261008101057_kartenmodell_baseline.sql): einzige frische Pre-Release-Schemabaseline (Kartenmodell `Note`/`Card`); additiv danach [`20261010093049_bury_siblings_in_day_counts.sql`](../supabase/migrations/20261010093049_bury_siblings_in_day_counts.sql).
 - [`../supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql): ausführbares Struktur-, RLS- und Policy-Gate.
 
 ## Inventarregeln
