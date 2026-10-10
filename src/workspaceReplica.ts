@@ -4,7 +4,7 @@ import type { CardTableSort } from "./libraryModel.ts";
 
 export type AccountBaselineState = "uninitialized" | "nonempty" | "confirmed-empty";
 export type BodyResidency = "catalog-only" | "cached" | "downloaded";
-export type OfflineDeckState = "none" | "downloading" | "available" | "outdated" | "error";
+type OfflineDeckState = "none" | "downloading" | "available" | "outdated" | "error";
 
 /** A loaded content with all its (non-deleted) cards, including siblings in other decks. */
 export interface NoteGraph {

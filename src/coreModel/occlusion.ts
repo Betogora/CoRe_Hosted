@@ -1,7 +1,7 @@
 import type { MediaRef, NoteContent, NoteFieldRole, NoteInteraction, OcclusionMask, OcclusionShape } from "../coreTypes.ts";
 import { normalizeTags } from "./coreValues.ts";
 
-export type OcclusionInteraction = Extract<NoteInteraction, { kind: "image-occlusion" }>;
+type OcclusionInteraction = Extract<NoteInteraction, { kind: "image-occlusion" }>;
 export type OcclusionMode = OcclusionInteraction["mode"];
 /** Shapes the editor draws; overlay masks only come from imports. */
 export type DrawnOcclusionShape = Exclude<OcclusionShape, { kind: "overlay" }>;

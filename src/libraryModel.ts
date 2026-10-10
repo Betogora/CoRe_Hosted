@@ -159,9 +159,9 @@ function cardNextStudyTimestamp(entry: Pick<CardCatalogEntry, "scheduleState" | 
     : null;
   return dueDayKey ? Date.parse(`${dueDayKey}T12:00:00.000Z`) : Number.POSITIVE_INFINITY;
 }
-export type CardTableRow = ReturnType<typeof createCardTableRow>;
+type CardTableRow = ReturnType<typeof createCardTableRow>;
 
-export type CardTableGroup = DeckLibraryRow & {
+type CardTableGroup = DeckLibraryRow & {
   cardRows: CardTableRow[];
   totalCardCount: number;
   page: number;

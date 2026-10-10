@@ -3,7 +3,7 @@ import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRe
 import type { CardTableSort } from "./libraryModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
 import { requestPersistentWorkspaceStorage } from "./workspaceStorage.ts";
-import type { CardCatalogEntry, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
+import type { CardCatalogEntry, CatalogPage, NoteGraph, OfflineDeckRecord } from "./workspaceReplica.ts";
 import { markReplicaStartupGate } from "./appPerformance.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
@@ -98,9 +98,11 @@ export function createWorkspaceHydrationService({
   repository: IndexedDbCoreRepository;
   mediaStore: AccountMediaStore | null;
 }) {
+  // Paging state per deck, query and sort, so parallel deck pages never overwrite each other's cursors.
   const pageCursors = new Map<string, Map<number, { sortValue: string; id: string } | null>>();
-  let activePageKey = "";
-  let activeTotalCount: number | null = null;
+  const totalCounts = new Map<string, number>();
+  const MAX_TRACKED_PAGE_KEYS = 256;
+  let pendingSearch: { key: string; deckIds: Set<string>; pages: Promise<Map<string, CatalogPage>> } | null = null;
   const pageKey = (request: CardPageRequest) => JSON.stringify([
     request.deckId,
     request.query ?? "",
@@ -149,16 +151,47 @@ export function createWorkspaceHydrationService({
     return graph;
   };
 
+  /**
+   * First search pages of all decks requested in the same turn travel in one request;
+   * the card management asks per deck, so this replaces one round trip per expanded deck.
+   */
+  const searchFirstPage = (request: CardPageRequest): Promise<CatalogPage> => {
+    const query = request.query!.trim();
+    const limit = Math.min(50, Math.max(1, request.pageSize ?? 50));
+    const key = JSON.stringify([query, request.sort?.field ?? "sortField", request.sort?.direction ?? "asc", limit]);
+    if (!pendingSearch || pendingSearch.key !== key) {
+      const batch: NonNullable<typeof pendingSearch> = { key, deckIds: new Set(), pages: Promise.resolve(new Map()) };
+      batch.pages = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(async () => {
+        if (pendingSearch === batch) pendingSearch = null;
+        const { searchAccountCardCatalog } = await import("./cloudRepository.ts");
+        const pages = await searchAccountCardCatalog(client, { deckIds: [...batch.deckIds], query, sort: request.sort, limit });
+        const entities = [...pages.values()].flatMap((page) => page.items);
+        if (entities.length) await repository.applyCloudCatalogPage({ table: "card_catalog", entities, reset: false, cursor: repository.getReplicaStatus().catalogCursor });
+        return pages;
+      });
+      pendingSearch = batch;
+    }
+    pendingSearch.deckIds.add(request.deckId);
+    return pendingSearch.pages.then((pages) => pages.get(request.deckId) ?? { items: [], totalCount: 0, hasMore: false, nextCursor: null });
+  };
+
   const fetchCatalogPage = async (request: CardPageRequest) => {
     const key = pageKey(request);
-    if (key !== activePageKey) {
-      pageCursors.clear();
-      activePageKey = key;
-      activeTotalCount = null;
+    if (!pageCursors.has(key) && pageCursors.size >= MAX_TRACKED_PAGE_KEYS) {
+      const oldest = pageCursors.keys().next().value!;
+      pageCursors.delete(oldest);
+      totalCounts.delete(oldest);
     }
     const requestedPage = Math.max(0, Math.floor(request.page ?? 0));
     const cursors = pageCursors.get(key) ?? new Map([[0, null]]);
     pageCursors.set(key, cursors);
+    if (requestedPage === 0 && request.query?.trim()) {
+      const page = await searchFirstPage(request);
+      request.signal?.throwIfAborted();
+      totalCounts.set(key, page.totalCount);
+      if (page.hasMore && page.nextCursor) cursors.set(1, page.nextCursor);
+      return page;
+    }
     const { listAccountCardCatalog } = await import("./cloudRepository.ts");
     for (let page = 0; page <= requestedPage; page += 1) {
       if (page > 0 && !cursors.has(page)) break;
@@ -169,11 +202,11 @@ export function createWorkspaceHydrationService({
         sort: request.sort,
         cursor: cursors.get(page) ?? null,
         limit: Math.min(50, Math.max(1, request.pageSize ?? 50)),
-        knownTotalCount: activeTotalCount ?? undefined,
+        knownTotalCount: totalCounts.get(key),
         signal: request.signal,
       });
       request.signal?.throwIfAborted();
-      activeTotalCount = cloudPage.totalCount;
+      totalCounts.set(key, cloudPage.totalCount);
       await repository.applyCloudCatalogPage({
         table: "card_catalog",
         entities: cloudPage.items,
@@ -193,10 +226,10 @@ export function createWorkspaceHydrationService({
 
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
-    if (status.catalogCompleteness === "complete") {
+    // A complete local catalog serves unfiltered pages itself; only searches keep using the cloud cursors.
+    if (status.catalogCompleteness === "complete" && !request.query?.trim()) {
       pageCursors.clear();
-      activePageKey = "";
-      activeTotalCount = null;
+      totalCounts.clear();
     }
     let cloudPage = null;
     let cloudError: unknown = null;
@@ -404,6 +437,8 @@ export function createWorkspaceHydrationService({
       record = { ...record, state: "available", failureMessage: null, updatedAt: new Date().toISOString() };
       await repository.saveOfflineDeck(record);
       notify();
+      // A large download can push the browser over 80 %; unpinned data makes room right away.
+      await enforceQuota(manifest.cards.map((card) => card.id));
       return record;
     } catch (error) {
       record = { ...record, state: "error", failureMessage: error instanceof Error ? error.message : String(error), updatedAt: new Date().toISOString() };
@@ -418,24 +453,20 @@ export function createWorkspaceHydrationService({
     await mediaStore?.removeCachedDeckMedia(deckId);
   };
 
-  const enforceQuota = async (protectedCardIds: string[] = [], activeDeckIds: string[] = []) => {
-    const storage = typeof navigator === "undefined" ? null : navigator.storage;
-    if (!storage) return { evictedCount: 0, freedBytes: 0 };
-    const estimate = await storage?.estimate?.();
-    if (!estimate?.usage || !estimate.quota || estimate.usage / estimate.quota < 0.8) return { evictedCount: 0, freedBytes: 0 };
-    const target = Math.max(0, estimate.usage - estimate.quota * 0.7);
-    const result = await repository.evictCachedCardBodies(target, protectedCardIds);
-    let current = await storage.estimate();
-    if (mediaStore && current.usage && current.quota && current.usage / current.quota >= 0.8) {
-      const pinned = new Set((await repository.listOfflineDecks()).filter((deck) => ["available", "downloading", "outdated"].includes(deck.state)).map((deck) => deck.deckId));
-      for (const deck of repository.getShellState().decks) {
-        if (pinned.has(deck.id) || activeDeckIds.includes(deck.id)) continue;
-        await mediaStore.removeCachedDeckMedia(deck.id);
-        current = await storage.estimate();
-        if (!current.usage || !current.quota || current.usage / current.quota <= 0.7) break;
-      }
-    }
-    return result;
+  let runningQuotaCheck: Promise<{ evictedCount: number; freedBytes: number }> | null = null;
+  /** From 80 % browser quota, unpinned card bodies and then unpinned media are evicted until 70 % is reached. */
+  const enforceQuota = (protectedCardIds: string[] = []) => {
+    runningQuotaCheck ??= (async () => {
+      const storage = typeof navigator === "undefined" ? null : navigator.storage;
+      const estimate = await storage?.estimate?.();
+      if (!storage || !estimate?.usage || !estimate.quota || estimate.usage / estimate.quota < 0.8) return { evictedCount: 0, freedBytes: 0 };
+      const bodies = await repository.evictCachedCardBodies(Math.max(0, estimate.usage - estimate.quota * 0.7), protectedCardIds);
+      const current = await storage.estimate();
+      if (!mediaStore || !current.usage || !current.quota || current.usage / current.quota < 0.8) return bodies;
+      const media = await mediaStore.evictUnpinnedMedia(Math.max(0, current.usage - current.quota * 0.7));
+      return { evictedCount: bodies.evictedCount + media.evictedCount, freedBytes: bodies.freedBytes + media.freedBytes };
+    })().finally(() => { runningQuotaCheck = null; });
+    return runningQuotaCheck;
   };
 
   const refreshStatistics = async (deckIds: string[] | null = null, from: string | null = null, to: string | null = null, timeZone = "UTC", dayStartHour = 0) => {

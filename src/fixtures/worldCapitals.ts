@@ -39,9 +39,9 @@ function createWorldCapitalsFixture(source: typeof worldCapitalsSource) {
   };
 }
 
-export const WORLD_CAPITALS_FIXTURE = createWorldCapitalsFixture(worldCapitalsSource);
+const WORLD_CAPITALS_FIXTURE = createWorldCapitalsFixture(worldCapitalsSource);
 
-export const WORLD_CAPITALS_STUDY_HISTORY = {
+const WORLD_CAPITALS_STUDY_HISTORY = {
   fixture: "world-capitals",
   version: "study-history-v1",
   startedAt: "2026-04-07T07:00:00.000Z",

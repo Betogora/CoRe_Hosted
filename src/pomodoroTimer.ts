@@ -18,7 +18,7 @@ export interface PomodoroTimer {
   endsAt: number;
 }
 
-export interface PomodoroTimerSnapshot {
+interface PomodoroTimerSnapshot {
   running: boolean;
   remainingMilliseconds: number;
   remainingMinutes: number;

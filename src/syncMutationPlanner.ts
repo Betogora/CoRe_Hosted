@@ -16,7 +16,7 @@ interface RevisionedEntity {
 }
 
 /** Flat entity lists; a deck contributes only its metadata, cards carry their variants. */
-export interface EntityMutationGraph {
+interface EntityMutationGraph {
   decks?: Deck[];
   notes?: Note[];
   cards?: Card[];

@@ -14,6 +14,14 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
       95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
       `npm run report:apkg-corpus`.
 
+## Betrieb
+
+- [ ] **Gehostete Migrationen anwenden:** `20261010180000_drop_unused_variant_columns.sql`
+      und `20261010190000_search_account_card_catalog.sql` im Pre-Release-Projekt
+      nach dem App-Deploy einspielen (die neue App schreibt die entfernten Spalten
+      nicht mehr; ältere geöffnete Tabs würden nach dem Entfernen beim Speichern
+      von Varianten scheitern). Danach Schema-Prüfung und Hosted-Smoke.
+
 ## Später
 
 - Native App nach ADR-036.

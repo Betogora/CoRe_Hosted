@@ -23,7 +23,7 @@ import { scheduleWithFsrs } from "./scheduler.ts";
 // ADR-033: versioned translators turn Anki note types into the universal CoRe content.
 // The pipeline is pure apart from reading media for nothing but its index; it is wired into the app in the cutover (K4.9).
 
-export interface TranslatorId { id: string; version: number }
+interface TranslatorId { id: string; version: number }
 type FieldRole = NoteFieldRole | "consumed";
 
 export interface ImportDeck {
@@ -66,7 +66,7 @@ export interface NoteSource {
   fields: string[];
 }
 
-export type StudyMigration = "fsrs-memory-state" | "revlog-replay" | "classic-state" | "new";
+type StudyMigration = "fsrs-memory-state" | "revlog-replay" | "classic-state" | "new";
 
 export interface ApkgNotetypeReport {
   ankiNotetypeId: string;

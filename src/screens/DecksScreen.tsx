@@ -12,9 +12,10 @@ import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
-import { catalogEntryFromCard, type NoteGraph } from "../workspaceReplica.ts";
+import { catalogEntryFromCard, type CardCatalogEntry, type NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
+import { useStableCallback } from "../ui/useStableCallback.ts";
 import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
 import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
@@ -759,6 +760,62 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   );
 }
 
+interface CardTableRowViewProps {
+  deckId: string;
+  card: CardCatalogEntry;
+  frontPreview: string;
+  nextStudyLabel: string;
+  hasActiveVariants: boolean;
+  selected: boolean;
+  marked: boolean;
+  syncConflict: boolean;
+  onSelect: (deckId: string, cardId: string) => void;
+}
+
+/** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
+const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, hasActiveVariants, selected, marked, syncConflict, onSelect }: CardTableRowViewProps) {
+  const suspended = !card.reviewable;
+  return (
+    <tr
+      onClick={() => onSelect(deckId, card.id)}
+      className={`cursor-pointer border-b border-core-border transition ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft hover:bg-core-subtle" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
+      data-selected={selected ? "true" : undefined}
+      data-suspended={suspended ? "true" : undefined}
+      data-card-row="true"
+    >
+      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
+        <button
+          type="button"
+          data-testid={"deck-card-" + card.id}
+          aria-pressed={selected}
+          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelect(deckId, card.id);
+          }}
+        >
+          {frontPreview}
+          {syncConflict ? <span className="ml-2 rounded-inset bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
+        </button>
+      </td>
+      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
+        {nextStudyLabel}
+        {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
+      </td>
+      <td className="min-w-0 px-1 py-1 text-right align-middle">
+        <span className="inline-flex items-center justify-end gap-1 align-middle">
+          {hasActiveVariants
+            ? <Check size={18} className="shrink-0 text-core-muted" role="img" aria-label="Varianten vorhanden" />
+            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Varianten" />}
+          <span className="grid size-[1.125rem] place-items-center">
+            {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
+          </span>
+        </span>
+      </td>
+    </tr>
+  );
+});
+
 export function DecksScreen({
   decks,
   deckSummaries,
@@ -1024,6 +1081,7 @@ export function DecksScreen({
       else onSelectDeck(deckId, cardId);
     });
   }
+  const stableRequestCardSelection = useStableCallback(requestCardSelection);
 
   async function savePendingDetailDraft() {
     const guard = cardDraftGuardRef.current;
@@ -1330,51 +1388,20 @@ export function DecksScreen({
                       </td>
                     </tr>
                   ) : null}
-                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel, hasActiveVariants }) => {
-                    const suspended = !card.reviewable;
-                    const selected = selectedCardId === card.id;
-                    const marked = selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked;
-                    return (
-                    <tr
+                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel, hasActiveVariants }) => (
+                    <CardTableRowView
                       key={card.id}
-                      onClick={() => requestCardSelection(group.id, card.id)}
-                      className={`cursor-pointer border-b border-core-border transition ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft hover:bg-core-subtle" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
-                      data-selected={selected ? "true" : undefined}
-                      data-suspended={suspended ? "true" : undefined}
-                      data-card-row="true"
-                    >
-                      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
-                        <button
-                          type="button"
-                          data-testid={"deck-card-" + card.id}
-                          aria-pressed={selectedCardId === card.id}
-                          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            requestCardSelection(group.id, card.id);
-                          }}
-                        >
-                          {frontPreview}
-                          {syncConflictCardIds?.has(card.id) ? <span className="ml-2 rounded-inset bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
-                        </button>
-                      </td>
-                      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
-                        {nextStudyLabel}
-                        {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
-                      </td>
-                      <td className="min-w-0 px-1 py-1 text-right align-middle">
-                        <span className="inline-flex items-center justify-end gap-1 align-middle">
-                          {hasActiveVariants
-                            ? <Check size={18} className="shrink-0 text-core-muted" role="img" aria-label="Varianten vorhanden" />
-                            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Varianten" />}
-                          <span className="grid size-[1.125rem] place-items-center">
-                            {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
-                          </span>
-                        </span>
-                      </td>
-                    </tr>
-                    );
-                  })}{group.pageCount > 1 ? (
+                      deckId={group.id}
+                      card={card}
+                      frontPreview={frontPreview}
+                      nextStudyLabel={nextStudyLabel}
+                      hasActiveVariants={hasActiveVariants}
+                      selected={selectedCardId === card.id}
+                      marked={selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
+                      syncConflict={Boolean(syncConflictCardIds?.has(card.id))}
+                      onSelect={stableRequestCardSelection}
+                    />
+                  ))}{group.pageCount > 1 ? (
                     <tr className="border-b border-core-border bg-core-surface" data-testid={`card-page-${group.id}`}>
                       <td colSpan={3} className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">

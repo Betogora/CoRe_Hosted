@@ -75,6 +75,7 @@ import {
   buriedSiblingsByDeck,
   loadAnsweredTodayFrom,
 } from "./indexedDbStudyCounts.ts";
+import { createMainThreadBudget } from "./mainThreadBudget.ts";
 
 export type { WorkspaceDeckSummary, WorkspaceShell } from "./indexedDbStore.ts";
 
@@ -84,7 +85,7 @@ interface IndexedDbRepositoryOptions {
   indexedDb?: IDBFactory | null;
 }
 
-export interface CatalogCursor {
+interface CatalogCursor {
   sortValue: string;
   id: string;
 }
@@ -101,7 +102,7 @@ export interface ReimportTargets {
   noteTypeSources: Array<{ id: string; ankiNotetypeId: string }>;
 }
 
-export interface ImportCommitResult {
+interface ImportCommitResult {
   decks: WorkspaceDeckSummary[];
   scope: ImportVerificationScope;
   /** Reimported contents whose local edits were kept. */
@@ -1494,7 +1495,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         : new Map<string, BuriedSiblingCounts>();
       const summaries = new Map(summaryRows.map((summary) => [summary.deckId, summary]));
       const result = new Map<string, DeckLibrarySummary>();
+      const pause = createMainThreadBudget();
       for (const [index, deck] of shell!.decks.entries()) {
+        await pause();
         const summary = summaries.get(deck.id) ?? emptyDeckStudySummary(deck.id);
         const introduced = new Set<string>();
         const reviewed = new Set<string>();

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  AI_CARD_VARIANT_DEADLINE_MS,
   AI_CARD_VARIANT_ENDPOINT,
   AI_CARD_VARIANT_PROMPT_VERSION,
   AiCardVariantContractError,
@@ -29,6 +30,7 @@ export async function requestAiCardVariant(
   }
 
   let response: Response;
+  let body: unknown;
   try {
     response = await fetchImpl(AI_CARD_VARIANT_ENDPOINT, {
       method: "POST",
@@ -37,16 +39,15 @@ export async function requestAiCardVariant(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(request),
+      // The route ends itself after its deadline; the margin covers authentication and network.
+      signal: AbortSignal.timeout(AI_CARD_VARIANT_DEADLINE_MS + 5_000),
     });
-  } catch {
+    body = await response.json().catch(() => null);
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new AiCardVariantContractError("timeout", "Die KI hat nicht rechtzeitig geantwortet. Bitte versuche es erneut.");
+    }
     throw new AiCardVariantContractError("network_error", "Die KI-Variante konnte nicht angefordert werden. Prüfe deine Verbindung.");
-  }
-
-  let body: unknown;
-  try {
-    body = await response.json();
-  } catch {
-    throw new AiCardVariantContractError("invalid_response", "Die KI-Antwort konnte nicht gelesen werden.");
   }
   if (!response.ok) {
     const parsedError = parseAiCardVariantError(body);

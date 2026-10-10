@@ -56,9 +56,7 @@ const commitDoneResponseSchema = v.object({
 
 const workerResponseSchema = v.union([progressResponseSchema, resultResponseSchema, errorResponseSchema, commitChunkResponseSchema, commitDoneResponseSchema]);
 
-export type ApkgWorkerRequest = v.InferOutput<typeof workerRequestSchema>;
 export type ApkgWorkerResponse = v.InferOutput<typeof workerResponseSchema>;
-export type ApkgWorkerResult = v.InferOutput<typeof resultPayloadSchema>;
 
 export function parseApkgWorkerRequest(input: unknown) {
   return v.safeParse(workerRequestSchema, input);

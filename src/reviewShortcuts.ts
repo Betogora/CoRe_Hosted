@@ -18,7 +18,7 @@ const RATING_KEY_MAP: Record<string, "again" | "hard" | "good" | "easy"> = {
 
 const EDITABLE_TARGETS = ["input", "textarea", "select", "button", "a", "summary"];
 
-export function isEditableShortcutTarget(target: EventTarget | null = null) {
+function isEditableShortcutTarget(target: EventTarget | null = null) {
   const element = target && typeof target === "object" ? target as { tagName?: unknown; isContentEditable?: boolean } : null;
   const tagName = String(element?.tagName ?? "").toLowerCase();
   return EDITABLE_TARGETS.includes(tagName) || element?.isContentEditable === true;

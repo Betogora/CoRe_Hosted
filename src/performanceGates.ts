@@ -34,7 +34,7 @@ export interface PerformanceSnapshot {
   devWarmReloadMs?: number;
 }
 
-export const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; maximum: number; label: string }> = [
+const PERFORMANCE_GATES: ReadonlyArray<{ key: keyof PerformanceSnapshot; maximum: number; label: string }> = [
   { key: "ttfbMs", maximum: 800, label: "TTFB" },
   { key: "lcpMs", maximum: 2_500, label: "LCP" },
   { key: "inpMs", maximum: 200, label: "INP" },

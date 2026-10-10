@@ -7,7 +7,7 @@ interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" 
   id?: string | null;
   attempts?: number | null;
 }
-export interface CardVariantInput extends Partial<Omit<CardVariant, "cardId" | "performance">> {
+interface CardVariantInput extends Partial<Omit<CardVariant, "cardId" | "performance">> {
   cardId?: string | null;
   performance?: VariantPerformanceInput | null;
 }
@@ -19,14 +19,8 @@ export function createCardVariant({
   variantLevel = 2,
   front = "",
   back = "",
-  explanation = "",
   isActive = true,
   transformType = "rephrase",
-  transformProfile = {},
-  modelRunId = null,
-  confidence = 0.75,
-  semanticDelta = "none",
-  changedRecognitionCues = [],
   qualityStatus = "active",
   performance = null,
   feedback = [],
@@ -51,14 +45,8 @@ export function createCardVariant({
     variantLevel: Math.min(3, Math.max(1, Math.round(Number(variantLevel) || 2))),
     front: sanitizedFront,
     back: sanitizedBack,
-    explanation,
     isActive: active,
     transformType: "rephrase",
-    transformProfile,
-    modelRunId,
-    confidence: Math.min(1, Math.max(0, Number(confidence) || 0)),
-    semanticDelta,
-    changedRecognitionCues,
     qualityStatus: active ? "active" : qualityStatus === "active" ? "disabled" : qualityStatus,
     contentHash: stableContentHash({
       cardId,

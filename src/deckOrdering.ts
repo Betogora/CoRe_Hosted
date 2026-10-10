@@ -5,7 +5,7 @@ const deckNameCollator = new Intl.Collator("de-DE", {
   sensitivity: "base",
 });
 
-export function compareDeckNames(left: Pick<Deck, "name">, right: Pick<Deck, "name">): number {
+function compareDeckNames(left: Pick<Deck, "name">, right: Pick<Deck, "name">): number {
   return deckNameCollator.compare(left.name, right.name);
 }
 

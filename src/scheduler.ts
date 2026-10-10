@@ -74,7 +74,7 @@ type ReviewButtonOption = Pick<RatingOutcome,
 >;
 
 export const SCHEDULER_VERSION = "fsrs_6_v1";
-export const FSRS_SCHEDULER_VERSION = SCHEDULER_VERSION;
+const FSRS_SCHEDULER_VERSION = SCHEDULER_VERSION;
 export const MINUTE_MS = 60 * 1000;
 export const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -172,7 +172,7 @@ function intervalParts({ intervalMinutes = null, intervalDays = null, intervalMs
   };
 }
 
-export function formatIntervalLabel(input: number | IntervalInput = {}): string {
+function formatIntervalLabel(input: number | IntervalInput = {}): string {
   const parts = typeof input === "number" ? intervalParts({ intervalDays: input }) : intervalParts(input);
   const minutes = Math.max(0, Math.round(parts.intervalMs / MINUTE_MS));
 
@@ -242,7 +242,7 @@ export function calculateRetrievability(studyState: unknown, now: DateInput = ne
   return round(scheduler.get_retrievability(toFsrsCard(state, nowDate), nowDate, false), 4);
 }
 
-export function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
+function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
   if (!REVIEW_RATINGS.includes(rating)) throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
   const variantBonus = wasVariant && (rating === "good" || rating === "easy") ? 4 : 0;
   return Math.max(0, Math.round(Number(oldXp ?? 0) + RATING_XP[rating] + variantBonus));

@@ -229,6 +229,7 @@ begin
      or to_regprocedure('public.get_account_due_forecast()') is null
      or to_regprocedure('public.pull_account_catalog_delta(bigint,integer,integer)') is null
      or to_regprocedure('public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean)') is null
+     or to_regprocedure('public.search_account_card_catalog(text[],text,text,text,integer)') is null
      or to_regprocedure('public.hydrate_account_cards(text[],text[])') is null
      or to_regprocedure('public.get_deck_offline_manifest(text,text,integer,boolean)') is null
      or to_regprocedure('public.get_account_statistics(text[],timestamp with time zone,timestamp with time zone,text,integer)') is null
@@ -250,6 +251,7 @@ begin
       'public.get_account_due_forecast()',
       'public.pull_account_catalog_delta(bigint,integer,integer)',
       'public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean)',
+      'public.search_account_card_catalog(text[],text,text,text,integer)',
       'public.hydrate_account_cards(text[],text[])',
       'public.get_deck_offline_manifest(text,text,integer,boolean)',
       'public.get_account_statistics(text[],timestamp with time zone,timestamp with time zone,text,integer)',
@@ -270,7 +272,7 @@ begin
     where namespace_row.nspname = 'public'
       and procedure_row.proname in (
         'record_review_atomic', 'get_account_bootstrap', 'get_account_due_forecast', 'pull_account_catalog_delta',
-        'list_account_card_catalog', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
+        'list_account_card_catalog', 'search_account_card_catalog', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
         'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets'
       )
       and procedure_row.prosecdef
@@ -283,7 +285,7 @@ begin
     join pg_namespace namespace_row on namespace_row.oid = procedure_row.pronamespace
     where (namespace_row.nspname = 'private' or (namespace_row.nspname = 'public' and procedure_row.proname in (
         'record_review_atomic', 'get_account_bootstrap', 'get_account_due_forecast', 'pull_account_catalog_delta',
-        'list_account_card_catalog', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
+        'list_account_card_catalog', 'search_account_card_catalog', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
         'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets'
       )))
       and not coalesce(procedure_row.proconfig, '{}'::text[]) @> array['search_path=""']::text[]

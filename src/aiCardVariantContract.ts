@@ -4,9 +4,11 @@ import { stripHtml } from "./htmlSafety.js";
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
 export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v1";
 export const MAX_AI_CARD_VARIANT_FIELD_CHARS = 1_200;
-export const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
+const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
 export const MAX_AI_CARD_VARIANT_REQUEST_BYTES = 8 * 1_024;
 export const MAX_AI_CARD_VARIANT_OUTPUT_TOKENS = 1_024;
+/** Total time the route may spend on model selection and generation; the browser waits slightly longer. */
+export const AI_CARD_VARIANT_DEADLINE_MS = 25_000;
 
 const textSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_FIELD_CHARS));
 const sourceSchema = v.strictObject({ front: textSchema, back: textSchema });
@@ -28,7 +30,6 @@ const errorSchema = v.strictObject({
 
 export type AiCardVariantRequest = v.InferOutput<typeof requestSchema>;
 export type AiCardVariantSuccess = v.InferOutput<typeof successSchema>;
-export type AiCardVariantErrorPayload = v.InferOutput<typeof errorSchema>;
 
 export function normalizeAiCardText(value: unknown): string {
   return stripHtml(value).replace(/\s+/g, " ").replace(/\s+([,.;:!?])/g, "$1").trim();

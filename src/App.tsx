@@ -744,10 +744,7 @@ export function App() {
     void requestPersistentWorkspaceStorage().then(async (status) => {
       if (active) setStorageStatus(status);
       if (workspaceHydrationService) {
-        await workspaceHydrationService.enforceQuota(
-          study.decks?.flatMap((deck) => deck.cards.map((card) => card.id)) ?? [],
-          studyRequest ? [studyRequest.deckId] : [],
-        );
+        await workspaceHydrationService.enforceQuota(study.decks?.flatMap((deck) => deck.cards.map((card) => card.id)) ?? []);
       }
     });
     return () => { active = false; };

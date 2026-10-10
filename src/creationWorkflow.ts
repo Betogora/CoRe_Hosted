@@ -33,7 +33,7 @@ export interface ManualCreationInput {
   occlusion?: { image: string; mode: OcclusionMode; masks: OcclusionMask[] };
 }
 
-export type ManualValidation =
+type ManualValidation =
   | { ok: true; content: NoteContent; media: Record<string, string>; errors: ManualNoteErrors }
   | { ok: false; content: null; media: null; errors: ManualNoteErrors };
 

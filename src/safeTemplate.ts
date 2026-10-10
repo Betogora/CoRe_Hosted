@@ -4,15 +4,15 @@ export type SafeTemplateAstNode =
   | { kind: "front-side" }
   | { kind: "conditional"; fieldId: string; sourceName: string; inverted: boolean; children: SafeTemplateAstNode[] };
 
-export interface SafeTemplateAst {
+interface SafeTemplateAst {
   schemaVersion: 1;
   source: string;
   nodes: SafeTemplateAstNode[];
 }
 
-export type TemplateCompatibility = "safe-equivalent" | "safe-with-differences" | "preserved-only";
+type TemplateCompatibility = "safe-equivalent" | "safe-with-differences" | "preserved-only";
 export interface TemplateDiagnostic { code: string; level: "info" | "warning" | "error"; message: string; detail: string | null }
-export interface CompiledSafeTemplate { ast: SafeTemplateAst; compatibility: TemplateCompatibility; diagnostics: TemplateDiagnostic[] }
+interface CompiledSafeTemplate { ast: SafeTemplateAst; compatibility: TemplateCompatibility; diagnostics: TemplateDiagnostic[] }
 
 const SAFE_FILTERS = new Set(["cloze", "furigana", "hint", "kana", "kanji", "text", "tts", "type"]);
 const SPECIAL_FIELDS = new Set(["Tags", "Deck", "Subdeck", "Card", "Type"]);

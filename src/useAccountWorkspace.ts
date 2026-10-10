@@ -15,7 +15,7 @@ import type { AccountBaselineState } from "./workspaceReplica.ts";
 type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
 
 /** What the app does with the account's workspace; the hook owns session, start and cloud bootstrap. */
-export interface AccountWorkspaceEvents {
+interface AccountWorkspaceEvents {
   /** The local workspace is open, before the cloud has answered. */
   opened: (boot: AuthenticatedWorkspaceBootResult) => void;
   /** The cloud bootstrap or the first sync brought a newer shell state. */

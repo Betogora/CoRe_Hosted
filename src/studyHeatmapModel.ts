@@ -2,7 +2,7 @@ import type { Card } from "./coreTypes.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
 const DAY_MS = 86_400_000;
-export const STUDY_HEATMAP_FORECAST_DAYS = 365;
+const STUDY_HEATMAP_FORECAST_DAYS = 365;
 const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const HEATMAP_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 

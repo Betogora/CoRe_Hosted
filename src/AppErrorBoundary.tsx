@@ -7,7 +7,7 @@ interface AppErrorBoundaryProps { children?: React.ReactNode }
 interface AppErrorBoundaryState { hasError: boolean }
 interface AppErrorFallbackProps { onReload: () => void; onOpenHome: () => void }
 
-export function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps) {
+function AppErrorFallback({ onReload, onOpenHome }: AppErrorFallbackProps) {
   return (
     <main className="core-centered-viewport grid min-h-dvh min-w-0 place-items-center bg-core-surface px-6 py-10 text-core-text">
       <SoftPanel className="w-full max-w-xl p-6 sm:p-8" role="alert" aria-live="assertive">

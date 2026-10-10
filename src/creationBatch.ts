@@ -1,9 +1,9 @@
 import type { ManualContentKind } from "./coreModel.ts";
 
-export type ManualPinnedField = "front" | "back";
+type ManualPinnedField = "front" | "back";
 export type ManualFocusTarget = ManualPinnedField | "option-0";
 
-export interface ManualCreationDraft {
+interface ManualCreationDraft {
   kind: ManualContentKind;
   front: string;
   back: string;
@@ -12,20 +12,20 @@ export interface ManualCreationDraft {
   tags: string;
 }
 
-export interface ManualBatchSessionState {
+interface ManualBatchSessionState {
   createdCount: number;
   targetDeckId: string;
   currentDraft: ManualCreationDraft;
   pinnedFields: Record<ManualPinnedField, boolean>;
 }
 
-export type ManualBatchAction =
+type ManualBatchAction =
   | { type: "draft"; patch: Partial<ManualCreationDraft> }
   | { type: "target-deck"; deckId: string }
   | { type: "toggle-pin"; field: ManualPinnedField }
   | { type: "saved"; targetDeckId: string };
 
-export function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDraft {
+function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDraft {
   return {
     kind,
     front: "",
@@ -45,7 +45,7 @@ export function createManualBatchSession(targetDeckId = ""): ManualBatchSessionS
   };
 }
 
-export function resetManualDraft(
+function resetManualDraft(
   draft: ManualCreationDraft,
   pinnedFields: ManualBatchSessionState["pinnedFields"],
 ): ManualCreationDraft {

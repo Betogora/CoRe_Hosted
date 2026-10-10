@@ -1,6 +1,6 @@
 import { createMenuModel, type MenuViewId } from "./menuModel.ts";
 
-export const APP_HISTORY_STATE_KEY = "coreAppRoute";
+const APP_HISTORY_STATE_KEY = "coreAppRoute";
 
 const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
@@ -11,8 +11,8 @@ const settingsReturnViews = [...reviewReturnViews, "review"] as const;
 const settingsTargets = ["new-cards-per-day"] as const;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
-export type ReviewReturnView = typeof reviewReturnViews[number];
-export type SettingsReturnView = typeof settingsReturnViews[number];
+type ReviewReturnView = typeof reviewReturnViews[number];
+type SettingsReturnView = typeof settingsReturnViews[number];
 export type SettingsTarget = typeof settingsTargets[number];
 
 export interface ReviewReturnContext {

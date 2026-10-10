@@ -1,7 +1,6 @@
 import * as v from "valibot";
 import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, parseNoteContent } from "./coreModel.ts";
 import type { Card, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
-import type { Json } from "./database.types.ts";
 import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type {
   AccountStatisticsSnapshot,
@@ -13,11 +12,10 @@ import type {
 } from "./workspaceReplica.ts";
 
 export type AccountTable = "decks" | "note_type_sources" | "notes" | "note_sources" | "cards" | "card_variants" | "review_events";
-export type CloudJson = Json;
-export type AccountRow = Record<string, unknown>;
+type AccountRow = Record<string, unknown>;
 
 /** Anki template of an imported note type as stored in `note_type_sources.definition`. */
-export interface StoredNoteTypeSource {
+interface StoredNoteTypeSource {
   id: string;
   ankiNotetypeId: string;
   name: string;
@@ -27,7 +25,7 @@ export interface StoredNoteTypeSource {
   deletedAt: string | null;
 }
 
-export interface StoredNoteSource {
+interface StoredNoteSource {
   id: string;
   noteTypeSourceId: string;
   fields: string[];
@@ -111,8 +109,6 @@ const accountRowSchemas = {
   card_variants: v.looseObject({
     ...syncRowSchema,
     card_id: v.string(),
-    transform_profile: jsonObjectSchema,
-    changed_recognition_cues: v.array(v.string()),
     performance: jsonObjectSchema,
     feedback: v.array(v.unknown()),
     meta: jsonObjectSchema,
@@ -316,12 +312,6 @@ export function variantFromRow(row: AccountRow): CardVariant {
       back: String(row.back ?? ""),
       variantLevel: Number(row.variant_level ?? 2),
       isActive: row.is_active !== false,
-      transformProfile: row.transform_profile as Record<string, unknown>,
-      modelRunId: (row.model_run_id as string | null) ?? null,
-      explanation: String(row.explanation ?? ""),
-      confidence: Number(row.confidence ?? 0),
-      semanticDelta: String(row.semantic_delta ?? ""),
-      changedRecognitionCues: row.changed_recognition_cues as string[],
       qualityStatus: row.quality_status as CardVariant["qualityStatus"],
       performance: row.performance as Record<string, never>,
       feedback: row.feedback as CardVariant["feedback"],

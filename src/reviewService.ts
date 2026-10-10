@@ -64,7 +64,7 @@ interface QueueEntry {
   key: string;
 }
 
-export interface DailyReviewQueueEntry {
+interface DailyReviewQueueEntry {
   deckId: string;
   cardId: string;
   key: string;
@@ -76,7 +76,7 @@ interface DailyReviewSessionIndexEntry {
   card: Card;
 }
 
-export interface DailyReviewSessionIndex {
+interface DailyReviewSessionIndex {
   entriesByKey: Map<string, DailyReviewSessionIndexEntry>;
 }
 
@@ -88,7 +88,7 @@ export interface DailyReviewProgressSummary {
   total: number;
 }
 
-export type DailyReviewProgressKind = "completed" | "new" | "in-progress" | "due";
+type DailyReviewProgressKind = "completed" | "new" | "in-progress" | "due";
 
 const dailyReviewProgressCountKey: Record<DailyReviewProgressKind, keyof Omit<DailyReviewProgressSummary, "total">> = {
   completed: "completedTodayCount",
@@ -243,7 +243,7 @@ function compareQueueEntries(left: QueueEntry, right: QueueEntry): number {
   return leftDue - rightDue || String(left.card.createdAt ?? "").localeCompare(String(right.card.createdAt ?? ""));
 }
 
-export function getLocalReviewDateKey(now: DateInput = new Date(), options: ReviewServiceOptions = {}): string {
+function getLocalReviewDateKey(now: DateInput = new Date(), options: ReviewServiceOptions = {}): string {
   return learningDayKey(now, options) ?? new Date(now).toISOString().slice(0, 10);
 }
 
@@ -269,7 +269,7 @@ function compareReviewQueueEntries(left: QueueEntry, right: QueueEntry, retrieva
   return dueComparison || left.card.id.localeCompare(right.card.id);
 }
 
-export function getEffectiveNewCardsPerDay(deck: Deck | null, options: ReviewServiceOptions = {}): number {
+function getEffectiveNewCardsPerDay(deck: Deck | null, options: ReviewServiceOptions = {}): number {
   const settings = createDefaultDeckSettings(deck?.deckSettings ?? {});
   const dateKey = options.dateKey ?? getLocalReviewDateKey(options.now ?? new Date(), options);
   const override = settings.newCardsTodayOverride;

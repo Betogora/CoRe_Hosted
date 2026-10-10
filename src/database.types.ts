@@ -100,23 +100,17 @@ export type Database = {
         Row: {
           back: string
           card_id: string
-          changed_recognition_cues: string[]
-          confidence: number | null
           content_hash: string | null
           created_at: string
           deleted_at: string | null
-          explanation: string
           feedback: Json
           front: string
           id: string
           is_active: boolean
           meta: Json
-          model_run_id: string | null
           performance: Json
           quality_status: string
           revision: number
-          semantic_delta: string | null
-          transform_profile: Json
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
@@ -125,23 +119,17 @@ export type Database = {
         Insert: {
           back?: string
           card_id: string
-          changed_recognition_cues?: string[]
-          confidence?: number | null
           content_hash?: string | null
           created_at?: string
           deleted_at?: string | null
-          explanation?: string
           feedback?: Json
           front?: string
           id: string
           is_active?: boolean
           meta?: Json
-          model_run_id?: string | null
           performance?: Json
           quality_status?: string
           revision?: number
-          semantic_delta?: string | null
-          transform_profile?: Json
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
@@ -150,23 +138,17 @@ export type Database = {
         Update: {
           back?: string
           card_id?: string
-          changed_recognition_cues?: string[]
-          confidence?: number | null
           content_hash?: string | null
           created_at?: string
           deleted_at?: string | null
-          explanation?: string
           feedback?: Json
           front?: string
           id?: string
           is_active?: boolean
           meta?: Json
-          model_run_id?: string | null
           performance?: Json
           quality_status?: string
           revision?: number
-          semantic_delta?: string | null
-          transform_profile?: Json
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string
@@ -952,6 +934,16 @@ export type Database = {
           p_variant_id: string
           p_variant_performance: Json
           p_variant_updated_at: string
+        }
+        Returns: Json
+      }
+      search_account_card_catalog: {
+        Args: {
+          p_deck_ids: string[]
+          p_limit?: number
+          p_query: string
+          p_sort_direction?: string
+          p_sort_field?: string
         }
         Returns: Json
       }

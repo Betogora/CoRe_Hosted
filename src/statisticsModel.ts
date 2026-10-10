@@ -7,7 +7,7 @@ import type { AccountStatisticsSnapshot } from "./workspaceReplica.ts";
 
 export type StatisticsPeriod = "30d" | "90d" | "365d" | "all";
 export type StatisticsDeckSelection = "all" | string[];
-export type StatisticsReviewCategory = "learning" | "relearning" | "young" | "mature";
+type StatisticsReviewCategory = "learning" | "relearning" | "young" | "mature";
 
 export interface StatisticsSelection {
   period: StatisticsPeriod;
@@ -17,7 +17,7 @@ export interface StatisticsSelection {
   dayStartHour?: number;
 }
 
-export interface StatisticsSeriesPoint {
+interface StatisticsSeriesPoint {
   key: string;
   label: string;
   rangeLabel: string;
@@ -35,14 +35,14 @@ export interface StatisticsSeriesPoint {
   timedCount: number;
 }
 
-export interface StatisticsDistributionPoint {
+interface StatisticsDistributionPoint {
   key: string;
   label: string;
   count: number;
   cumulativePercent: number;
 }
 
-export interface StatisticsRatingPoint {
+interface StatisticsRatingPoint {
   category: StatisticsReviewCategory;
   label: string;
   again: number;
@@ -53,13 +53,13 @@ export interface StatisticsRatingPoint {
   successPercent: number;
 }
 
-export interface StatisticsRetentionCell {
+interface StatisticsRetentionCell {
   remembered: number;
   total: number;
   percent: number;
 }
 
-export interface StatisticsRetentionRow {
+interface StatisticsRetentionRow {
   key: "selected" | "previous" | "all";
   label: string;
   young: StatisticsRetentionCell;

@@ -113,6 +113,24 @@ test("ausstehende Uploads halten entpinnte Medien lokal", async () => {
   resolved.revoke();
 });
 
+test("Quota-Bereinigung entfernt ungepinnte Medien nach letzter Nutzung, nie gepinnte oder noch nicht hochgeladene", async () => {
+  const thirdHash = "fedcba9876543210fedcba9876543210fedcba98";
+  const pendingHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const store = createAccountMediaStore({ client: null, supabaseUrl: LOCAL_URL, userId: "evict-user", indexedDB: new IDBFactory() });
+  await store.cacheMedia([file, otherFile], { queueUpload: false });
+  await store.cacheMedia([{ ...file, sha1: thirdHash, name: "pinned.png" }], { queueUpload: false, pinDeckId: "deck-offline" });
+  await store.cacheMedia([{ ...file, sha1: pendingHash, name: "pending.png" }]);
+  await new Promise((resolve) => setTimeout(resolve, 5));
+  (await store.resolveMedia({ "card.png": HASH })).revoke();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  assert.deepEqual(await store.evictUnpinnedMedia(1), { evictedCount: 1, freedBytes: 3 }, "die länger ungenutzte Datei geht zuerst");
+  assert.deepEqual(await store.evictUnpinnedMedia(100), { evictedCount: 1, freedBytes: 4 });
+  const remaining = await store.resolveMedia({ pinned: thirdHash, pending: pendingHash, card: HASH, other: OTHER_HASH });
+  assert.deepEqual(Object.keys(remaining.urls).sort(), ["pending", "pinned"]);
+  remaining.revoke();
+});
+
 test("Offline-Download prüft Größe und SHA-1 und verwendet den persistenten Mediencache", async () => {
   const indexedDB = new IDBFactory();
   const signed: string[][] = [];

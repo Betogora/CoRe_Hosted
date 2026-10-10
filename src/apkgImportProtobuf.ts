@@ -1,12 +1,12 @@
 import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
 
-export interface AnkiCardRequirementConfig {
+interface AnkiCardRequirementConfig {
   cardOrdinal: number;
   kind: number;
   fieldOrdinals: number[];
 }
 
-export interface AnkiNotetypeConfig {
+interface AnkiNotetypeConfig {
   format: "protobuf-v18";
   rawBase64: string;
   kind: number;
@@ -22,7 +22,7 @@ export interface AnkiNotetypeConfig {
   otherBase64: string | null;
 }
 
-export interface AnkiFieldConfig {
+interface AnkiFieldConfig {
   format: "protobuf-v18";
   rawBase64: string;
   sticky: boolean;
@@ -39,7 +39,7 @@ export interface AnkiFieldConfig {
   otherBase64: string | null;
 }
 
-export interface AnkiTemplateConfig {
+interface AnkiTemplateConfig {
   format: "protobuf-v18";
   rawBase64: string;
   questionFormat: string;

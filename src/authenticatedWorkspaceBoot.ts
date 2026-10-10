@@ -35,11 +35,11 @@ export interface AuthenticatedWorkspaceBootResult {
   stopCloudBootstrapRetry: () => void;
 }
 
-export interface AuthenticatedWorkspaceBootstrapResult {
+interface AuthenticatedWorkspaceBootstrapResult {
   conflictCount: number;
 }
 
-export interface AuthenticatedWorkspaceCloudResult {
+interface AuthenticatedWorkspaceCloudResult {
   syncEngine: AccountSyncEngine;
   conflictCount: number;
   pendingCount: number;

@@ -2,8 +2,9 @@ import { TRANSLATOR_VERSIONS, retranslateNoteContent, type NoteSource, type Note
 import { planNoteContentChange, planNoteDeletion } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, NoteGraphChange } from "./indexedDbCoreRepository.ts";
+import { createMainThreadBudget } from "./mainThreadBudget.ts";
 
-export type RetranslationPlan =
+type RetranslationPlan =
   | { status: "unchanged" | "kept" }
   | { status: "updated"; change: NoteGraphChange };
 
@@ -80,7 +81,9 @@ export async function runAccountRetranslation(client: unknown, repository: Pick<
     // A content with a pending local change is left alone; the next release run sees it again if still unedited.
     const localRevisions = new Map((await repository.loadNotes(page.notes.map((note) => note.id))).map((note) => [note.id, note.revision]));
     const changes: NoteGraphChange[] = [];
+    const pause = createMainThreadBudget();
     for (const note of page.notes) {
+      await pause();
       if ((localRevisions.get(note.id) ?? note.revision) !== note.revision) continue;
       const source = note.noteTypeSourceId ? sources.get(note.noteTypeSourceId) : undefined;
       const noteSource = noteSources.get(note.id);

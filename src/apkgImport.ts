@@ -45,7 +45,7 @@ export interface ApkgImportPreview {
   commitGraph: ImportCommitGraph;
 }
 
-export interface ApkgPreviewDescriptor {
+interface ApkgPreviewDescriptor {
   rootDeckName: string;
   report: ApkgTranslationReport;
   samples: Array<{ note: Note; card: Card; notetypeName: string }>;

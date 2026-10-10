@@ -13,7 +13,7 @@ import type {
 import { sanitizeNoteHtml, stripSanitizedHtml } from "../htmlSafety.ts";
 import { normalizeTags } from "./coreValues.ts";
 
-export type NoteContentParseResult =
+type NoteContentParseResult =
   | { ok: true; value: NoteContent; promptKeys: string[] }
   | { ok: false; errors: string[] };
 

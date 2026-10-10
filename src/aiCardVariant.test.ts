@@ -75,6 +75,17 @@ test("browser request reports missing auth and provider errors", async () => {
     requestAiCardVariant(source, supabase, async () => Response.json({ variant: { front: "Nur vorne" } })),
     (error: unknown) => error instanceof AiCardVariantContractError && error.code === "invalid_response",
   );
+  await assert.rejects(
+    requestAiCardVariant(source, supabase, async () => new Response("An error occurred with your deployment", { status: 504 })),
+    (error: unknown) => error instanceof AiCardVariantContractError && error.code === "request_failed",
+  );
+  await assert.rejects(
+    requestAiCardVariant(source, supabase, async (_url, init) => {
+      assert.ok(init?.signal);
+      throw new DOMException("The operation timed out.", "TimeoutError");
+    }),
+    (error: unknown) => error instanceof AiCardVariantContractError && error.code === "timeout",
+  );
 });
 
 test("generated draft rejects changed sources and duplicate variants", () => {

@@ -1,4 +1,4 @@
-export interface AppRuntimeInfo {
+interface AppRuntimeInfo {
   version: string;
 }
 

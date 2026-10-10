@@ -5,6 +5,21 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Kartensuche, Medienbereinigung, Rendering, tote Spalten und Exporte
+
+- Kartensuche: `search_account_card_catalog` liefert die erste Seite aller
+  Stapel in einer Abfrage; Blätter-Cursor und Gesamtzahlen gelten je Stapel,
+  Suche und Sortierung statt global.
+- Medienbereinigung: ungepinnte, hochgeladene Medien werden ab 80 % Quota nach
+  letzter Nutzung entfernt; die Prüfung läuft auch nach Offline-Downloads und nie
+  parallel.
+- Rendering: Stapelbaum- und Kartenzeilen sind memoisiert mit stabilen
+  Callbacks; Stapelzähler und Neuübersetzung arbeiten in Scheiben von höchstens
+  50 ms.
+- Sechs nie gelesene Variantenspalten per Migration entfernt; 96 nur intern
+  genutzte Exporte und vier ungenutzte Typen entfernt.
+- Beide Migrationen lokal angewandt, RLS-Gate grün (17 Tests); gehostet offen.
+
 ## 2026-10-10 — P0-Fehler aus dem App-Audit, Sync- und Bundle-Entlastung
 
 - Importabschluss unterscheidet Teilabschluss (`Import lokal abgeschlossen`) und

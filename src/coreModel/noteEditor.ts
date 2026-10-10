@@ -13,7 +13,7 @@ export interface NoteEditorValue {
 
 export type NoteEditorErrors = Record<string, string>;
 
-export type NoteEditorValidation =
+type NoteEditorValidation =
   | { ok: true; content: NoteContent; errors: Record<string, never> }
   | { ok: false; content: null; errors: NoteEditorErrors };
 

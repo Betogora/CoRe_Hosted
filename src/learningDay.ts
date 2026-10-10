@@ -1,5 +1,5 @@
-export const DEFAULT_DAY_START_HOUR = 0;
-export const MAX_DAY_START_HOUR = 23;
+const DEFAULT_DAY_START_HOUR = 0;
+const MAX_DAY_START_HOUR = 23;
 
 type DateInput = string | number | Date;
 
@@ -94,7 +94,7 @@ export function learningDayIndexFromLocalTime(dayIndex: number, hour: number, da
   return dayIndex - (hour < normalizeDayStartHour(dayStartHour) ? 1 : 0);
 }
 
-export function getLearningDayIndex(value: DateInput, options: LearningDayOptions = {}): number | null {
+function getLearningDayIndex(value: DateInput, options: LearningDayOptions = {}): number | null {
   const local = localDayParts(value, options.timeZone);
   return local ? learningDayIndexFromLocalTime(local.dayIndex, local.hour, options.dayStartHour) : null;
 }

@@ -5,7 +5,7 @@ import { normalizeUiPreferences } from "./uiPreferences.ts";
 
 const SESSION_MISSING_CODES = new Set(["AuthSessionMissingError", "session_not_found"]);
 
-export type CloudAuthRedirectOutcome =
+type CloudAuthRedirectOutcome =
   | { kind: "none" }
   | { kind: "recovery" }
   | { kind: "error"; code: string; message: string };

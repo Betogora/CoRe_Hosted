@@ -31,7 +31,7 @@ export interface AnkiReviewHistoryEntry {
   ease: number;
 }
 
-export interface AnkiReviewHistoryPayload {
+interface AnkiReviewHistoryPayload {
   entries: AnkiReviewHistoryEntry[];
   totalRows: number;
   skippedRows: number;

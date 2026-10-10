@@ -184,7 +184,7 @@ const UPDATE_CASES = {
   notes: { column: "marked", value: true },
   note_sources: { column: "fields", value: ["aktualisiert"] },
   cards: { column: "anki_flag", value: 1 },
-  card_variants: { column: "explanation", value: "aktualisiert" },
+  card_variants: { column: "front", value: "aktualisiert" },
   review_events: { column: "flags", value: { verified: true } },
   media_files: { column: "original_name", value: "aktualisiert.png" },
   sync_devices: { column: "label", value: "Aktualisierter Browser" },
@@ -372,6 +372,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const searchA = assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_query: "antwort a" }), "Volltextsuche für Nutzer A");
       assert.ok(searchA.items.some((entry: any) => entry.id === fixtureA.cards.id), "Die Suche findet auch Text der Antwort");
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", catalogRequest), "fremden Kartenkatalog für Nutzer B").items, []);
+      const searchRequest = { p_deck_ids: [fixtureA.decks.id], p_query: "antwort a", p_sort_field: "sortField", p_sort_direction: "asc", p_limit: 50 };
+      const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
+      assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
+      assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});
 
       const hydratedA = assertNoError(await clientA.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id, fixtureB.cards.id], p_note_ids: [fixtureB.notes.id] }), "Kartenkörper für Nutzer A");
       assert.deepEqual(hydratedA.cards.map((entry: any) => entry.id), [fixtureA.cards.id]);

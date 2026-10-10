@@ -105,7 +105,6 @@ const CONFLICT_FIELD_LABELS = Object.freeze({
   is_active: "Aktiv",
   transform_profile: "Transformationsprofil",
   explanation: "Erklärung",
-  confidence: "Konfidenz",
   semantic_delta: "Semantische Abweichung",
   changed_recognition_cues: "Geänderte Erkennungshinweise",
   quality_status: "Qualitätsstatus",
@@ -144,7 +143,7 @@ class CloudRevisionConflictError extends Error {
   }
 }
 
-export class SyncConflictChangedError extends Error {
+class SyncConflictChangedError extends Error {
   readonly code = "sync_conflict_changed";
 
   constructor() {
@@ -487,7 +486,7 @@ export async function verifyAccountImportGraph(client: any, scope: ImportVerific
   };
 }
 
-export interface AccountBootstrapPage {
+interface AccountBootstrapPage {
   profile: ReturnType<typeof createCloudProfile>;
   decks: Array<{ deck: Deck; summary: DeckStudySummary }>;
   nextCursor: string;
@@ -540,7 +539,7 @@ export async function loadAccountCloudBootstrap(
 }
 
 const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries"] as const;
-export type CatalogCloudTable = typeof CATALOG_TABLES[number];
+type CatalogCloudTable = typeof CATALOG_TABLES[number];
 
 export interface CloudCatalogPage {
   table: CatalogCloudTable;
@@ -598,21 +597,10 @@ export async function streamAccountCatalogChanges(
   }
 }
 
-export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
-  const call = client.rpc("list_account_card_catalog", {
-    p_deck_id: request.deckId,
-    p_query: request.query ?? "",
-    p_sort_field: request.sort?.field ?? "sortField",
-    p_sort_direction: request.sort?.direction ?? "asc",
-    p_cursor: request.cursor ?? null,
-    p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
-    p_include_total: request.knownTotalCount == null,
-  });
-  const { data, error } = await (request.signal ? call.abortSignal(request.signal) : call);
-  if (error) throw error;
+function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage {
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Kartenkatalog-Seite ist ungültig.");
   const candidate = data as Record<string, unknown>;
-  const totalCount = candidate.totalCount == null ? request.knownTotalCount : Number(candidate.totalCount);
+  const totalCount = candidate.totalCount == null ? knownTotalCount : Number(candidate.totalCount);
   if (!Array.isArray(candidate.items) || !Number.isSafeInteger(totalCount) || totalCount! < 0 || typeof candidate.hasMore !== "boolean") {
     throw new Error("Kartenkatalog-Seite ist unvollständig.");
   }
@@ -628,6 +616,39 @@ export async function listAccountCardCatalog(client: any, request: CatalogPageRe
     hasMore: candidate.hasMore,
     nextCursor: nextCursor as CatalogPage["nextCursor"],
   };
+}
+
+export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
+  const call = client.rpc("list_account_card_catalog", {
+    p_deck_id: request.deckId,
+    p_query: request.query ?? "",
+    p_sort_field: request.sort?.field ?? "sortField",
+    p_sort_direction: request.sort?.direction ?? "asc",
+    p_cursor: request.cursor ?? null,
+    p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
+    p_include_total: request.knownTotalCount == null,
+  });
+  const { data, error } = await (request.signal ? call.abortSignal(request.signal) : call);
+  if (error) throw error;
+  return parseCatalogPage(data, request.knownTotalCount);
+}
+
+/** First search page of every requested deck in one request; decks without hits are absent from the result. */
+export async function searchAccountCardCatalog(
+  client: any,
+  request: { deckIds: string[]; query: string; sort?: CatalogPageRequest["sort"]; limit?: number },
+): Promise<Map<string, CatalogPage>> {
+  const { data, error } = await client.rpc("search_account_card_catalog", {
+    p_deck_ids: request.deckIds,
+    p_query: request.query,
+    p_sort_field: request.sort?.field ?? "sortField",
+    p_sort_direction: request.sort?.direction ?? "asc",
+    p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
+  });
+  if (error) throw error;
+  const groups = data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>).groups : null;
+  if (!groups || typeof groups !== "object" || Array.isArray(groups)) throw new Error("Kartensuche lieferte eine ungültige Antwort.");
+  return new Map(Object.entries(groups).map(([deckId, page]) => [deckId, parseCatalogPage(page)]));
 }
 
 /** Card bodies with their contents and variants; note ids additionally load all sibling cards. */
@@ -648,7 +669,7 @@ export async function hydrateAccountCards(client: any, cardIds: string[], noteId
   };
 }
 
-export interface DeckOfflineManifestPage {
+interface DeckOfflineManifestPage {
   cards: OfflineCardManifestEntry[];
   media: OfflineMediaManifestEntry[];
   nextCursor: string;
@@ -878,7 +899,7 @@ export function deckToCloudRow(deck: any, userId: any) {
   };
 }
 
-export function noteToCloudRow(note: Note, userId: string) {
+function noteToCloudRow(note: Note, userId: string) {
   const text = noteTextIndex(note.content);
   return {
     id: note.id,
@@ -901,7 +922,7 @@ export function noteToCloudRow(note: Note, userId: string) {
   };
 }
 
-export function studyToCloudColumns(study: Card["study"]) {
+function studyToCloudColumns(study: Card["study"]) {
   const { sourceSchedulerData: _source, ...extra } = study.extra;
   return {
     state: study.state,
@@ -918,7 +939,7 @@ export function studyToCloudColumns(study: Card["study"]) {
   };
 }
 
-export function cardToCloudRow(card: Card, userId: string) {
+function cardToCloudRow(card: Card, userId: string) {
   return {
     id: card.id,
     user_id: userId,
@@ -937,7 +958,7 @@ export function cardToCloudRow(card: Card, userId: string) {
   };
 }
 
-export function variantToCloudRow(variant: CardVariant, userId: string) {
+function variantToCloudRow(variant: CardVariant, userId: string) {
   return {
     id: variant.id,
     user_id: userId,
@@ -946,12 +967,6 @@ export function variantToCloudRow(variant: CardVariant, userId: string) {
     back: variant.back ?? "",
     variant_level: variant.variantLevel ?? 2,
     is_active: variant.isActive !== false,
-    transform_profile: toJson(variant.transformProfile, {}),
-    model_run_id: variant.modelRunId ?? null,
-    explanation: variant.explanation ?? "",
-    confidence: variant.confidence ?? null,
-    semantic_delta: variant.semanticDelta ?? null,
-    changed_recognition_cues: toArray(variant.changedRecognitionCues),
     quality_status: variant.qualityStatus ?? "active",
     content_hash: variant.contentHash ?? null,
     performance: toJson(variant.performance, {}),
@@ -981,7 +996,7 @@ export function reviewEventToCloudRow(event: ReviewEvent, userId: string, { devi
   };
 }
 
-export function noteTypeSourceToCloudRow(source: any, userId: string) {
+function noteTypeSourceToCloudRow(source: any, userId: string) {
   const { id, ankiNotetypeId, name, revision, createdAt, updatedAt, deletedAt, updatedByDeviceId, ...definition } = toObject(source);
   const timestamp = updatedAt ?? createdAt ?? nowIso();
   return {
@@ -998,7 +1013,7 @@ export function noteTypeSourceToCloudRow(source: any, userId: string) {
   };
 }
 
-export function noteSourceToCloudRow(source: any, userId: string) {
+function noteSourceToCloudRow(source: any, userId: string) {
   const timestamp = source.updatedAt ?? source.createdAt ?? nowIso();
   return {
     id: source.noteId ?? source.id,

@@ -25,13 +25,13 @@ function extensionOf(fileName: any = "") {
   return match?.[0] ?? "";
 }
 
-export function isTextReadableFile(file: any) {
+function isTextReadableFile(file: any) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
   return type.startsWith("text/") || TEXT_EXTENSIONS.includes(extension);
 }
 
-export function isPdfFile(file: any) {
+function isPdfFile(file: any) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
@@ -54,7 +54,7 @@ function normalizePdfTextItem(item: any) {
   };
 }
 
-export function formatPdfTextContentItems(items: any = [], { pageNumber = null }: any = {}) {
+function formatPdfTextContentItems(items: any = [], { pageNumber = null }: any = {}) {
   const normalizedItems = items.map(normalizePdfTextItem).filter((item: any) => item.text);
   if (normalizedItems.length === 0) return pageNumber ? `Seite ${pageNumber}\nKein Textlayer gefunden.` : "";
 

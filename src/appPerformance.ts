@@ -23,7 +23,7 @@ export const appPerformanceMarks = {
   serviceWorkerContext: "core:service_worker_context",
 } as const;
 
-export type ReplicaStartupGate = "accountBaselineReady" | "catalogUsable" | "workingSetReady" | "catalogReconciled";
+type ReplicaStartupGate = "accountBaselineReady" | "catalogUsable" | "workingSetReady" | "catalogReconciled";
 
 export const appPerformanceMeasures = {
   sessionCheck: "core:session_check",
@@ -71,7 +71,7 @@ const startupPerformancePhases = {
   },
 } as const;
 
-export type StartupPerformancePhase = keyof typeof startupPerformancePhases;
+type StartupPerformancePhase = keyof typeof startupPerformancePhases;
 
 interface PerformanceRecorder {
   mark(name: string, options?: { startTime?: number; detail?: unknown }): void;

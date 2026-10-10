@@ -11,7 +11,7 @@ export type ImportUiState =
   | { status: "failed_terminal" }
   | { status: "cancelled" };
 
-export interface ImportUiProjectionInput {
+interface ImportUiProjectionInput {
   jobStatus?: string | null;
   mediaStatus?: string | null;
   cloudStatus?: string | null;

@@ -13,7 +13,7 @@ import {
 
 export type CreationMethod = "manual" | "import" | "";
 
-export interface AppNavigationProjection {
+interface AppNavigationProjection {
   activeView: AppViewId;
   studyRequest: StudyRoute | null;
   focusedDeckId: string | null;

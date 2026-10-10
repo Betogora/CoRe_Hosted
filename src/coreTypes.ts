@@ -322,14 +322,8 @@ export interface CardVariant {
   variantLevel: number;
   front: RichTextContent;
   back: RichTextContent;
-  explanation: string;
   isActive: boolean;
   transformType: TransformType;
-  transformProfile: Record<string, unknown>;
-  modelRunId: string | null;
-  confidence: number;
-  semanticDelta: string;
-  changedRecognitionCues: string[];
   qualityStatus: VariantQualityStatus;
   contentHash: string;
   performance: VariantPerformance;

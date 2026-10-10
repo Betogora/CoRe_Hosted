@@ -9,7 +9,7 @@ interface DeckSettingsInput extends LearningSettingsInput {
 }
 export const CORE_DECK_SOURCES = ["anki-apkg", "manual"] as const satisfies readonly DeckSource[];
 
-export const CORE_MODES = ["on", "off"] as const satisfies readonly CoreMode[];
+const CORE_MODES = ["on", "off"] as const satisfies readonly CoreMode[];
 export const DECK_ICON_KEYS = [
   "book-open",
   "folder",
@@ -42,7 +42,7 @@ export const DECK_ICON_KEYS = [
   "badge-dollar",
   "school",
 ];
-export const DEFAULT_DECK_APPEARANCE = {
+const DEFAULT_DECK_APPEARANCE = {
   iconKey: "book-open",
   iconColor: "#6f7e9e",
 };
@@ -50,7 +50,7 @@ export const VARIANT_TRANSFORMS = ["rephrase"] as const satisfies readonly Trans
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
 export const CARD_VARIANT_TYPES = ["basic"] as const satisfies readonly CardVariantType[];
-export const MATURITY_BANDS = [
+const MATURITY_BANDS = [
   { id: "new", min: 0, max: 20, label: "Neu" },
   { id: "learning", min: 21, max: 50, label: "Aufbau" },
   { id: "young", min: 51, max: 80, label: "Jung" },

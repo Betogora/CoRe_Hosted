@@ -8,7 +8,7 @@ const SHA1_NAME = /^[0-9a-f]{40}$/;
 const SEARCH_TEXT_LIMIT = 4_000;
 const SORT_TEXT_LIMIT = 240;
 
-export interface CreateNoteInput {
+interface CreateNoteInput {
   content: unknown;
   deckId: string;
   id?: string;

@@ -2,7 +2,7 @@ import React from "react";
 import { ChevronDown, ChevronRight, Play } from "lucide-react";
 import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
-import type { CoreMode } from "../coreTypes.ts";
+import type { CoreMode, Deck } from "../coreTypes.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { SoftPanel } from "./coreUi.tsx";
@@ -11,6 +11,7 @@ import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
 import { IconButton } from "./actionUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { getDeckAppearance } from "./deckAppearance.tsx";
+import { useStableCallback } from "./useStableCallback.ts";
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
@@ -127,6 +128,77 @@ function getVisibleRows(rows: DeckLibraryRow[], collapsedDeckIds: Set<string>) {
 
   return visibleRows;
 }
+
+interface DeckTreeRowProps {
+  row: DeckLibraryRow;
+  mode: DeckTreeProps["mode"];
+  decks: Deck[];
+  isCollapsed: boolean;
+  isDragged: boolean;
+  dropState: "valid" | "invalid" | undefined;
+  onToggle: (deckId: string) => void;
+  onActivate: (row: DeckLibraryRow) => void;
+  onPointerDown: (event: React.PointerEvent<HTMLButtonElement>, row: DeckLibraryRow) => void;
+  onKeyDown: () => void;
+  onStudy: (row: DeckLibraryRow) => void;
+  onOpenSettings: DeckTreeProps["onOpenSettings"];
+  onSetCoreMode: DeckTreeProps["onSetDeckCoreMode"];
+  onMoveDeck: DeckTreeProps["onMoveDeck"];
+}
+
+/** One deck row; memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
+const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, decks, isCollapsed, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
+  const activationLabel = `Inhalte von ${row.path} öffnen`;
+  const collapseControl = row.hasChildren ? (
+    <button
+      type="button"
+      onClick={() => onToggle(row.id)}
+      className="pointer-events-auto relative -me-2 grid size-9 shrink-0 place-items-center rounded-inset text-core-action before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
+      aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
+      aria-expanded={!isCollapsed}
+    >
+      {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+    </button>
+  ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
+
+  return (
+    <div
+      data-testid={`${mode}-deck-row-${row.id}`}
+      data-deck-row="true"
+      data-deck-id={row.id}
+      data-deck-depth={getVisibleDeckDepth(row.depth)}
+      data-drop-state={dropState}
+      data-drag-state={isDragged ? "active" : undefined}
+      className="core-deck-summary-row relative min-w-0 select-none"
+    >
+      <button
+        type="button"
+        onClick={() => onActivate(row)}
+        onPointerDown={(event) => onPointerDown(event, row)}
+        onKeyDown={onKeyDown}
+        aria-label={activationLabel}
+        data-deck-drag-source="true"
+        data-deck-row-activation="true"
+        className={`absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)] ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
+      >
+        <span className="sr-only">{activationLabel}</span>
+      </button>
+
+      <DeckSummaryRow
+        row={row}
+        learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }}
+        studyAction={
+          <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
+            <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action pointer-events-auto" onClick={() => onStudy(row)} />
+          </CoreTooltip>
+        }
+        leadingControl={collapseControl}
+        actions={<DeckOptionsMenu row={row} decks={decks} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />}
+        density="responsive"
+      />
+    </div>
+  );
+});
 
 export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
@@ -319,71 +391,14 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
     onActivate(row);
   }
 
-  function renderRow(row: DeckLibraryRow): React.ReactNode {
-    const isCollapsed = collapsedDeckIdSet.has(row.id);
-    const isDragged = draggedDeckId === row.id;
-    const isDropTarget = dropIntent?.targetDeckId === row.id;
-    const activationLabel = `Inhalte von ${row.path} öffnen`;
-    const collapseControl = row.hasChildren ? (
-      <button
-        type="button"
-        onClick={() => toggleCollapsed(row.id)}
-        className="pointer-events-auto relative -me-2 grid size-9 shrink-0 place-items-center rounded-inset text-core-action before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
-        aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
-        aria-expanded={!isCollapsed}
-      >
-        {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
-      </button>
-    ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
-    const optionsMenu = (
-      <DeckOptionsMenu
-        row={row}
-        decks={decks}
-        onSetCoreMode={onSetDeckCoreMode}
-        onOpenSettings={onOpenSettings}
-        onMoveDeck={onMoveDeck}
-      />
-    );
-
-    return (
-      <div
-        key={row.id}
-        data-testid={`${mode}-deck-row-${row.id}`}
-        data-deck-row="true"
-        data-deck-id={row.id}
-        data-deck-depth={getVisibleDeckDepth(row.depth)}
-        data-drop-state={isDropTarget ? (dropIntent?.error ? "invalid" : "valid") : undefined}
-        data-drag-state={isDragged ? "active" : undefined}
-        className="core-deck-summary-row relative min-w-0 select-none"
-      >
-        <button
-          type="button"
-          onClick={() => activate(row)}
-          onPointerDown={(event) => startPointer(event, row)}
-          onKeyDown={() => { suppressedClickDeckIdRef.current = null; }}
-          aria-label={activationLabel}
-          data-deck-drag-source="true"
-          data-deck-row-activation="true"
-          className={`absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)] ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
-        >
-          <span className="sr-only">{activationLabel}</span>
-        </button>
-
-        <DeckSummaryRow
-          row={row}
-          learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }}
-          studyAction={
-            <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
-              <IconButton label={`${row.path} lernen`} icon={Play} variant="ghost" className="core-deck-icon-action pointer-events-auto" onClick={() => onStudy(row)} />
-            </CoreTooltip>
-          }
-          leadingControl={collapseControl}
-          actions={optionsMenu}
-          density="responsive"
-        />
-      </div>
-    );
-  }
+  const stableToggle = useStableCallback(toggleCollapsed);
+  const stableActivate = useStableCallback(activate);
+  const stablePointerDown = useStableCallback(startPointer);
+  const stableKeyDown = useStableCallback(() => { suppressedClickDeckIdRef.current = null; });
+  const stableStudy = useStableCallback(onStudy);
+  const stableOpenSettings = useStableCallback(onOpenSettings);
+  const stableSetCoreMode = useStableCallback(onSetDeckCoreMode);
+  const stableMoveDeck = useStableCallback(onMoveDeck);
 
   const topDropActive = draggedDeckId && dropIntent?.targetDeckId === null;
   const focusHoles = [
@@ -442,7 +457,25 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, onActiva
           {visibleRows.length > 0 ? (
             <div className="core-deck-tree-rows min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border">
               <DeckSummaryHeader />
-              {visibleRows.map(renderRow)}
+              {visibleRows.map((row) => (
+                <DeckTreeRow
+                  key={row.id}
+                  row={row}
+                  mode={mode}
+                  decks={decks}
+                  isCollapsed={collapsedDeckIdSet.has(row.id)}
+                  isDragged={draggedDeckId === row.id}
+                  dropState={dropIntent?.targetDeckId === row.id ? (dropIntent.error ? "invalid" : "valid") : undefined}
+                  onToggle={stableToggle}
+                  onActivate={stableActivate}
+                  onPointerDown={stablePointerDown}
+                  onKeyDown={stableKeyDown}
+                  onStudy={stableStudy}
+                  onOpenSettings={stableOpenSettings}
+                  onSetCoreMode={stableSetCoreMode}
+                  onMoveDeck={stableMoveDeck}
+                />
+              ))}
             </div>
           ) : null}
         </div>

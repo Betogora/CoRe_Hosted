@@ -382,3 +382,41 @@ test("eine noch nicht synchronisierte Variante übersteht das Nachladen des Inha
   assert.deepEqual((await repository.loadCardBody("card-variant"))?.card.variants.map((variant) => variant.id), ["variant-lokal"]);
   assert.equal((await repository.listCatalogPage("deck-variant")).items[0].hasActiveVariants, true);
 });
+
+test("Parallele Stapelsuchen gehen in einer Anfrage und blättern je Stapel mit eigenem Cursor", async () => {
+  const userId = randomUUID();
+  const first = graph("deck-search-a", "search-a", "Gesucht A", "2026-08-17T09:00:00.000Z");
+  const second = graph("deck-search-b", "search-b", "Gesucht B", "2026-08-17T09:00:00.000Z");
+  const deckA = createCoreDeck({ id: "deck-search-a", ownerId: userId, name: "A", source: "manual", cards: first.cards });
+  const deckB = createCoreDeck({ id: "deck-search-b", ownerId: userId, name: "B", source: "manual", cards: second.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deckA, deckB], [first.note, second.note]), indexedDb: new IDBFactory() });
+  const rowA = catalogRow((await repository.listCatalogPage(deckA.id)).items[0]);
+  const rowB = catalogRow((await repository.listCatalogPage(deckB.id)).items[0]);
+  const calls: Array<{ name: string; payload: any }> = [];
+  const client = {
+    async rpc(name: string, payload: any) {
+      calls.push({ name, payload });
+      if (name === "search_account_card_catalog") return { data: { groups: {
+        [deckA.id]: { items: [rowA], totalCount: 51, hasMore: true, nextCursor: { sortValue: "a", id: rowA.id } },
+        [deckB.id]: { items: [rowB], totalCount: 1, hasMore: false, nextCursor: null },
+      } }, error: null };
+      if (name === "list_account_card_catalog") return { data: { items: [], totalCount: null, hasMore: false, nextCursor: null }, error: null };
+      throw new Error(`Unerwartete RPC ${name}`);
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+  const request = { page: 0, pageSize: 50, query: "gesucht", sort: { field: "sortField", direction: "asc" } as const };
+  const [pageA, pageB] = await withNavigator({ onLine: true }, () => Promise.all([
+    service.queryCardPage({ ...request, deckId: deckA.id }),
+    service.queryCardPage({ ...request, deckId: deckB.id }),
+  ]));
+
+  assert.deepEqual(calls.map((call) => call.name), ["search_account_card_catalog"]);
+  assert.deepEqual(calls[0].payload.p_deck_ids, [deckA.id, deckB.id]);
+  assert.deepEqual([pageA.totalCount, pageB.totalCount], [51, 1]);
+
+  await withNavigator({ onLine: true }, () => service.queryCardPage({ ...request, deckId: deckA.id, page: 1 }));
+  assert.equal(calls[1].name, "list_account_card_catalog");
+  assert.deepEqual(calls[1].payload.p_cursor, { sortValue: "a", id: rowA.id }, "Stapel A blättert mit seinem eigenen Cursor weiter");
+  assert.equal(calls[1].payload.p_include_total, false, "die bekannte Gesamtzahl wird nicht erneut gezählt");
+});

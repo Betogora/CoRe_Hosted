@@ -31,13 +31,14 @@ const assetRecordSchema = v.looseObject({
 });
 const queueRecordSchema = v.looseObject({ key: v.string(), userId: v.string(), sha1: sha1Schema, queuedAt: v.string() });
 
-interface AssetRecord { key: string; userId: string; sha1: string; name: string; size: number; mimeType: string; blob: Blob; pinnedDeckIds: string[]; updatedAt: string; }
+/** `accessedAt` orders the eviction of unpinned files; a file without it counts as last used at `updatedAt`. */
+interface AssetRecord { key: string; userId: string; sha1: string; name: string; size: number; mimeType: string; blob: Blob; pinnedDeckIds: string[]; updatedAt: string; accessedAt?: string; }
 interface QueueRecord { key: string; userId: string; sha1: string; queuedAt: string; }
 export type MediaSyncStatus = "cloud-ready" | "local-pending" | "partial" | "paused" | "cancelled" | "blocked";
 export interface MediaSyncProgress { completed: number; total: number; uploaded: number; reused: number; currentName: string; processedBytes: number; totalBytes: number; }
 export interface MediaSyncResult { status: MediaSyncStatus; progress: MediaSyncProgress; failureKind?: MediaFailureKind; message: string; }
 export interface MediaSyncTask { queued: Promise<void>; result: Promise<MediaSyncResult>; readonly progress: MediaSyncProgress; pause(): Promise<void>; resume(): void; cancel(): Promise<void>; subscribe(listener: (progress: MediaSyncProgress, status: MediaSyncStatus) => void): () => void; }
-export interface ResolvedMedia { urls: Record<string, string>; missing: Array<{ name: string; status: string }>; expiresAt: string | null; revoke(): void; }
+interface ResolvedMedia { urls: Record<string, string>; missing: Array<{ name: string; status: string }>; expiresAt: string | null; revoke(): void; }
 
 const sessionAssets = new Map<string, AssetRecord>();
 const sessionQueue = new Map<string, QueueRecord>();
@@ -253,16 +254,20 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     const namesBySha1 = new Map<string, string[]>();
     for (const [name, sha1] of Object.entries(media)) namesBySha1.set(sha1, [...(namesBySha1.get(sha1) ?? []), name]);
     const cloudSha1s: string[] = [];
+    const localSha1s: string[] = [];
     for (const [sha1, names] of namesBySha1) {
       const record = await readAsset(sha1);
       if (!record || typeof URL?.createObjectURL !== "function") {
         cloudSha1s.push(sha1);
         continue;
       }
+      localSha1s.push(sha1);
       const url = URL.createObjectURL(record.blob);
       objectUrls.push(url);
       for (const name of names) urls[name] = url;
     }
+    // Recording the access must not delay showing the card.
+    void touchAssets(localSha1s).catch(() => undefined);
     let expiresAt: string | null = null;
     if (cloudSha1s.length && client && fetchImpl && typeof URL?.createObjectURL === "function") {
       const signed = await signMediaUrls(client, userId, cloudSha1s).catch(() => ({ urls: {} as Record<string, string>, missing: cloudSha1s, expiresAt: null }));
@@ -334,6 +339,54 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     return { completed, total: unique.length, downloadedBytes };
   }
 
+  /** Marks local files as just used, so the quota eviction removes the longest unused ones first. */
+  async function touchAssets(sha1s: string[]) {
+    if (!sha1s.length) return;
+    const accessedAt = new Date().toISOString();
+    for (const sha1 of sha1s) {
+      const session = sessionAssets.get(keyFor(userId, sha1));
+      if (session) sessionAssets.set(session.key, { ...session, accessedAt });
+    }
+    const db = await openDatabase(databaseApi).catch(() => null);
+    if (!db) return;
+    const transaction = db.transaction(ASSET_STORE, "readwrite");
+    const store = transaction.objectStore(ASSET_STORE);
+    for (const sha1 of sha1s) {
+      const record = await requestResult<AssetRecord | undefined>(store.get(keyFor(userId, sha1)));
+      if (record) store.put({ ...record, accessedAt });
+    }
+    await transactionDone(transaction);
+    db.close();
+  }
+
+  /**
+   * Frees at least `targetBytes` by deleting unpinned files, longest unused first.
+   * Files of offline decks (pinned) and files whose upload is still pending are never deleted; the cloud copy reloads on demand.
+   */
+  async function evictUnpinnedMedia(targetBytes: number) {
+    const pending = new Set((await queuedRecords()).map((record) => record.sha1));
+    const db = await openDatabase(databaseApi).catch(() => null);
+    const stored = db ? await getAllByIndex<AssetRecord>(db, ASSET_STORE, "userId", userId) : [...sessionAssets.values()].filter((record) => record.userId === userId);
+    const candidates = stored
+      .filter((record) => !record.pinnedDeckIds?.length && !pending.has(record.sha1))
+      .sort((left, right) => (left.accessedAt ?? left.updatedAt).localeCompare(right.accessedAt ?? right.updatedAt));
+    const evicted: AssetRecord[] = [];
+    let freedBytes = 0;
+    for (const record of candidates) {
+      if (freedBytes >= targetBytes) break;
+      evicted.push(record);
+      freedBytes += record.size;
+    }
+    for (const record of evicted) sessionAssets.delete(record.key);
+    if (db) {
+      const transaction = db.transaction(ASSET_STORE, "readwrite");
+      for (const record of evicted) transaction.objectStore(ASSET_STORE).delete(record.key);
+      await transactionDone(transaction);
+      db.close();
+    }
+    return { evictedCount: evicted.length, freedBytes };
+  }
+
   /** Unpins a deck's offline files; a file stays while another deck pins it or its upload is pending. */
   async function removeCachedDeckMedia(deckId: string) {
     const pending = new Set((await queuedRecords()).map((record) => record.sha1));
@@ -381,6 +434,7 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     resolveMedia,
     cacheCloudManifestMedia,
     removeCachedDeckMedia,
+    evictUnpinnedMedia,
     releaseUnreferencedMedia: () => client ? releaseUnreferencedMedia(client, userId) : Promise.resolve(0),
     startRetryLifecycle,
   };

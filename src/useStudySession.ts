@@ -6,7 +6,7 @@ import { createDailyReviewQueue, type AnsweredTodayCard } from "./reviewService.
 import { buriesSiblings } from "./siblingBurying.ts";
 import type { StudyWindowCursor, WorkspaceHydrationService } from "./workspaceHydrationService.ts";
 
-export interface StudySessionContext {
+interface StudySessionContext {
   workspaceRepository: IndexedDbCoreRepository | null;
   workspaceHydrationService: WorkspaceHydrationService | null;
   latestStateRef: React.RefObject<WorkspaceState | null>;

@@ -14,7 +14,7 @@ import type {
 } from "./appScreenProps.ts";
 import { markAppPerformance, measureAppPerformance } from "./appPerformance.ts";
 
-export type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
+type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
 
 const featureLoaders = {
   "card-settings": () => import("./screens/GlobalCardSettingsScreen.tsx").then(({ GlobalCardSettingsScreen }) => ({ default: GlobalCardSettingsScreen })),
@@ -32,7 +32,7 @@ const featureLoaders = {
 
 const featurePromises = new Map<AppFeatureId, Promise<{ default: React.ComponentType<any> }>>();
 
-export function loadAppFeature(feature: AppFeatureId): Promise<{ default: React.ComponentType<any> }> {
+function loadAppFeature(feature: AppFeatureId): Promise<{ default: React.ComponentType<any> }> {
   const cached = featurePromises.get(feature);
   if (cached) return cached;
   const startMark = `core:feature:${feature}:start`;
