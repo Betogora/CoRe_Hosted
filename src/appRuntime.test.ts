@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { manualChunkForModule, resolveReleaseInfo } from "../vite.config.ts";
+import { manualChunkForModule, resolveReleaseInfo, sessionClientPreloadTags } from "../vite.config.ts";
 import { normalizeAppRuntimeInfo } from "./appRuntime.ts";
 
 test("release info exposes only the package version", () => {
@@ -38,4 +38,16 @@ test("build chunking isolates React and Supabase without inventing broad vendor 
   assert.equal(manualChunkForModule("C:/repo/src/mediaStore.ts"), undefined);
   assert.equal(manualChunkForModule("C:/repo/node_modules/lucide-react/dist/index.js"), undefined);
   assert.equal(manualChunkForModule("C:\\repo\\src\\App.tsx"), undefined);
+});
+
+test("the entry preloads the Supabase client chunk for the session check", () => {
+  const bundle = {
+    "assets/index.js": { type: "chunk", fileName: "assets/index.js", facadeModuleId: "/app/src/main.tsx", imports: [] },
+    "assets/supabaseClient.js": { type: "chunk", fileName: "assets/supabaseClient.js", facadeModuleId: "/app/src/supabaseClient.ts", imports: ["assets/supabase-vendor.js", "assets/index.js"] },
+  };
+  assert.deepEqual(
+    sessionClientPreloadTags(bundle, '<script type="module" src="/assets/index.js"></script>').map((tag) => tag.attrs?.href),
+    ["/assets/supabase-vendor.js", "/assets/supabaseClient.js"],
+  );
+  assert.deepEqual(sessionClientPreloadTags({}, ""), []);
 });

@@ -118,6 +118,7 @@ test("session lifecycle reports missing browser configuration without starting w
     onRedirectError() {},
     onPasswordRecovery() {},
     async onBoot() {},
+    onSessionRejected() {},
     onFailure() {},
   });
   assert.equal(unavailable, true);
@@ -150,6 +151,7 @@ test("session lifecycle ignores boot and recovery results after unmount", async 
     onRedirectError() {},
     onPasswordRecovery() { recoveries += 1; },
     async onBoot() { boots += 1; },
+    onSessionRejected() {},
     onFailure() {},
   });
   cleanup();
@@ -185,9 +187,70 @@ test("session lifecycle cold-starts offline from the persisted Supabase session"
     onRedirectError() {},
     onPasswordRecovery() {},
     async onBoot(nextUser) { bootedUser = nextUser; },
+    onSessionRejected(error) { throw error; },
     onFailure(error) { throw error; },
   });
   await new Promise((resolve) => setTimeout(resolve, 0));
   assert.equal((bootedUser as User | null)?.id, user.id);
   cleanup();
+});
+
+function sessionClient(user: User, confirm: () => Promise<{ data: { user: User | null }; error: unknown }>) {
+  const calls: string[] = [];
+  const supabase = {
+    auth: {
+      async getSession() { calls.push("getSession"); return { data: { session: { user } }, error: null }; },
+      async getUser() { calls.push("getUser"); return confirm(); },
+      async signOut(options: unknown) { calls.push(`signOut:${JSON.stringify(options)}`); return { error: null }; },
+      onAuthStateChange() { return { data: { subscription: { unsubscribe() {} } } }; },
+    },
+    from() { return {}; },
+  } as unknown as SupabaseBrowserClient;
+  return { supabase, calls };
+}
+
+function lifecycle(supabase: SupabaseBrowserClient, events: string[]) {
+  return startAuthenticatedWorkspaceSessionLifecycle({
+    supabase,
+    onUnavailable() { events.push("unavailable"); },
+    onSignedOut() { events.push("signed-out"); },
+    onRedirectError() { events.push("redirect-error"); },
+    onPasswordRecovery() { events.push("recovery"); },
+    async onBoot(user) { events.push(`boot:${user.id}`); },
+    onSessionRejected(error) { events.push(`rejected:${error ? (error as Error).message : "null"}`); },
+    onFailure(error) { events.push(`failure:${(error as Error).message}`); },
+  });
+}
+
+test("session lifecycle starts the workspace from the persisted session while the server confirms it", async () => {
+  const user = { id: "account-a" } as User;
+  let confirmUser!: () => void;
+  const { supabase, calls } = sessionClient(user, () => new Promise((resolve) => { confirmUser = () => resolve({ data: { user }, error: null }); }));
+  const events: string[] = [];
+  const cleanup = lifecycle(supabase, events);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(events, ["boot:account-a"], "Der Start wartet nicht auf die Serverbestätigung.");
+  confirmUser();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(events, ["boot:account-a"]);
+  assert.deepEqual(calls, ["getSession", "getUser"]);
+  cleanup();
+});
+
+test("session lifecycle discards the start when the server rejects the persisted session", async () => {
+  const user = { id: "account-a" } as User;
+  const active =sessionClient(user, async () => ({ data: { user: null }, error: null }));
+  const events: string[] = [];
+  const cleanup = lifecycle(active.supabase, events);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(events, ["boot:account-a", "rejected:null"]);
+  assert.ok(active.calls.includes('signOut:{"scope":"local"}'));
+  cleanup();
+
+  const failing = sessionClient(user, async () => ({ data: { user: null }, error: new Error("Serverfehler") }));
+  const failingEvents: string[] = [];
+  const stop = lifecycle(failing.supabase, failingEvents);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.deepEqual(failingEvents, ["boot:account-a", "rejected:Serverfehler"]);
+  stop();
 });

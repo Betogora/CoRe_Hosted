@@ -246,7 +246,7 @@ export async function getCloudUser(client: any) {
   return getCurrentUser(client);
 }
 
-async function getPersistedCloudUser(client: any) {
+export async function getPersistedCloudUser(client: any) {
   await assertCloudClient(client);
   if (typeof client?.auth?.getSession !== "function") return null;
   const { data, error } = await client.auth.getSession();
