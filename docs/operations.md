@@ -147,7 +147,7 @@ und die physische Fixture erneut ausgeführt werden.
 
 ### Pre-Release-Reset der hybriden Replica
 
-Der aktuelle Stand besitzt keine Upgrade- oder Backfillkette. `20261008101057_kartenmodell_baseline.sql` ist die einzige Migration; `verify_schema_v1.sql` ist die einzige zusätzliche SQL-Verifikation. Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt zulässig.
+Der aktuelle Stand besitzt keine Upgrade- oder Backfillkette. `20261008101057_kartenmodell_baseline.sql` ist die Baseline, `20261010093049_bury_siblings_in_day_counts.sql` die einzige additive Migration danach (ersetzt `get_account_bootstrap`); `verify_schema_v1.sql` ist die einzige zusätzliche SQL-Verifikation. Ein Reset löscht Auth-Konten, Storage-Objekte und fachliche Daten unwiederbringlich und ist ausschließlich für das bestätigte Pre-Release-Projekt zulässig.
 
 1. Vor jeder Remote-Aktion die lokale Link-Konfiguration und die daraus gelesene Supabase-Projekt-Ref sichtbar ausgeben. Die Ref muss mit dem ausdrücklich freigegebenen Wegwerf-/Staging-Projekt übereinstimmen; bei Abweichung abbrechen.
 2. Lokal `supabase db reset --local --no-seed`, `npm run db:types:generate`, `npm run db:types:check`, `npm run test:rls:local` und `npm run test:e2e:local` ausführen. Danach die 100k-/1m-Fixture, Performance-Gates und `EXPLAIN (ANALYZE, BUFFERS)` für Bootstrap, Katalog-Delta, Kartenliste, Hydrierung, Manifest, Lernübersicht und Statistik nachweisen.

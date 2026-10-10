@@ -78,8 +78,12 @@ verbrauchen kein Limit. Die Queue liefert `buriedKeys`; die Sitzung entfernt
 damit offene Geschwister nach einer Antwort. `loadReviewSession` lädt
 `answeredToday` aus Katalog und Reviewereignissen (auch Geschwister geladener
 Karten in anderen Stapeln), aber nur mit `answeredSiblings`, das die App setzt,
-wenn ein Stapel der Auswahl eine Option aktiviert hat. Stapelzähler aus
-`listDeckSummaries` bleiben zählbasiert und berücksichtigen das Begraben nicht.
+wenn ein Stapel der Auswahl eine Option aktiviert hat. Die Tageszahlen
+(`listDeckSummaries` bei vollständigem Katalog, sonst die Übersicht aus
+`get_account_bootstrap`) ziehen nach derselben Regel Geschwister heute
+beantworteter Inhalte ab; beide lesen dafür nur heutige Antworten und deren
+Geschwister, und lokal nur, wenn ein Stapel begräbt. Das Begraben unter noch
+unbeantworteten Geschwistern kennt nur die Queue.
 Importierte Inhalte tragen `importedContentRevision` = `contentRevision` beim
 Import; manuelle Inhalte tragen `null`. `Deck.cards` enthält die geladenen
 Karten eines Stapels, nie Inhaltskopien.

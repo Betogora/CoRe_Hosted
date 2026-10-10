@@ -345,6 +345,16 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(bootstrapA.decks.find((entry: any) => entry.deck.id === fixtureA.decks.id)?.summary.activeVariantCount, 3);
       assert.equal(bootstrapA.studyOverview.introducedTodayByDeck[fixtureA.decks.id], 1, "Tagesfortschritt zählt eindeutige Karten statt Ereignisse");
 
+      // K7.4: a new sibling of the card answered today leaves the day counts once its deck buries new siblings.
+      const siblingId = `${prefix}_sibling_reverse`;
+      assertNoError(await clientA.from("cards").insert({ ...fixtureA.cards, id: siblingId, prompt_key: "reverse" }), "neues Geschwister anlegen");
+      const newCount = async () => assertNoError(await clientA.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap mit Geschwister").studyOverview.availableNewByDeck[fixtureA.decks.id] ?? 0;
+      const withoutBurying = await newCount();
+      assertNoError(await clientA.from("decks").update({ deck_settings: { buryNewSiblings: true } }).eq("id", fixtureA.decks.id), "Begraben neuer Geschwister einschalten");
+      assert.equal(await newCount(), withoutBurying - 1, "Das neue Geschwister wartet bis zum nächsten Lerntag");
+      assertNoError(await clientA.from("decks").update({ deck_settings: {} }).eq("id", fixtureA.decks.id), "Begraben wieder ausschalten");
+      assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", siblingId), "Geschwister entfernen");
+
       const deltaA = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: 0, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta für Nutzer A");
       assert.ok(deltaA.changes.length > 0);
       assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));

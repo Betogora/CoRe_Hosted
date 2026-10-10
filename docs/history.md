@@ -5,10 +5,30 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Zähler mit Begraben (K7.4)
+
+- Entscheidung des Nutzers: Die Zähler ziehen Geschwister heute beantworteter
+  Inhalte ab (wie Ankis Begraben bei der Antwort); das Begraben unter zwei noch
+  unbeantworteten Geschwistern bleibt der Queue vorbehalten.
+- Lokal: `listDeckSummaries` liest bei vollständigem Katalog die heutigen
+  Antworten, deren Geschwister über den Katalogindex `noteId` und zieht
+  begrabene neue, fällige und tagesübergreifende Lernkarten von den Tageszahlen
+  ab; ohne aktive Option wird nichts zusätzlich gelesen. Der Bestand (Donut)
+  bleibt unverändert.
+- Server: Die additive Migration `20261010093049_bury_siblings_in_day_counts.sql` ersetzt
+  `get_account_bootstrap`; die Übersicht für Geräte mit unvollständigem Katalog
+  zieht dieselben Geschwister ab. Lokal und am 2026-10-10 per `supabase db push`
+  im Pre-Release-Projekt `CoRe-Database` angewandt; `verify_schema_v1.sql` gegen
+  das Projekt grün.
+- Nachweise: IndexedDB-Test (Stapel A verliert ein neues Geschwister nur, wenn
+  der Stapel der Antwort begräbt), RLS-Test der Bootstrap-Übersicht,
+  `test:rls:local` mit Schema-Prüfung und Typdrift, `gate:push`.
+
 ## 2026-10-10 — Gesamtabnahme der Kartenmodell-Roadmap (Phase 8)
 
-Technisch abgeschlossen; offen bleiben nur die Gerätenachweise (Phase 3), die
-Korpusabnahme mit AnKing und echtem Lernstand (Phase 5) und K7.4.
+Technisch abgeschlossen; offen bleiben nur die Gerätenachweise (Phase 3) und die
+Korpusabnahme mit AnKing und echtem Lernstand (Phase 5). K7.4 ist inzwischen
+umgesetzt (siehe oben).
 
 - **K8.1:** Auf `main` (`d9f9320`) sind `npm test`, `gate:push` und
   `gate:nightly` grün: Quality, RLS 10/10 und 17/17, vollständige lokale

@@ -371,6 +371,69 @@ function writeState(database: IDBDatabase, state: WorkspaceState): Promise<void>
   return transactionDone(transaction);
 }
 
+interface BuriedSiblingCounts {
+  newCards: number;
+  learningCards: number;
+  dueCards: number;
+}
+
+/**
+ * Siblings buried today per deck, for the counters: cards of a content with another card answered today, when the
+ * deck of the answered card buries their kind. Same rule as the queue's seeding from today's answers; a sibling that
+ * is itself answered today stays countable. Reads nothing unless a deck buries.
+ */
+async function buriedSiblingsByDeck(
+  database: IDBDatabase,
+  decks: readonly WorkspaceDeckSummary[],
+  range: { start: number; end: number },
+  todayEvents: ReviewEvent[][] | null,
+): Promise<Map<string, BuriedSiblingCounts>> {
+  const settingsByDeck = new Map(decks.map((deck) => [deck.id, createDefaultDeckSettings(deck.deckSettings)]));
+  const buries = (settings: DeckSettings | undefined) => Boolean(settings && (settings.buryNewSiblings || settings.buryReviewSiblings || settings.buryInterdayLearningSiblings));
+  const result = new Map<string, BuriedSiblingCounts>();
+  if (![...settingsByDeck.values()].some(buries)) return result;
+
+  const start = new Date(range.start).toISOString();
+  const end = new Date(range.end).toISOString();
+  const events = todayEvents ?? await (async () => {
+    const index = database.transaction(STORE.reviewEvents, "readonly").objectStore(STORE.reviewEvents).index("deckAnswered");
+    return Promise.all(decks.map((deck) => requestResult<ReviewEvent[]>(index.getAll(IDBKeyRange.bound([deck.id, start, ""], [deck.id, end, ""], false, true)))));
+  })();
+  const answeredIds = new Set(events.flat().filter((event) => event.rating !== "manual").map((event) => event.cardId));
+  if (answeredIds.size === 0) return result;
+
+  const catalog = database.transaction(STORE.cardCatalog, "readonly").objectStore(STORE.cardCatalog);
+  const answeredRows = await Promise.all([...answeredIds].map((id) => requestResult<StoredCardCatalog | undefined>(catalog.get(id))));
+  const modeByNote = new Map<string, Pick<DeckSettings, "buryNewSiblings" | "buryReviewSiblings" | "buryInterdayLearningSiblings">>();
+  for (const row of answeredRows) {
+    const settings = row ? settingsByDeck.get(row.deckId) : undefined;
+    if (!row || !buries(settings)) continue;
+    const previous = modeByNote.get(row.noteId);
+    modeByNote.set(row.noteId, {
+      buryNewSiblings: Boolean(previous?.buryNewSiblings || settings!.buryNewSiblings),
+      buryReviewSiblings: Boolean(previous?.buryReviewSiblings || settings!.buryReviewSiblings),
+      buryInterdayLearningSiblings: Boolean(previous?.buryInterdayLearningSiblings || settings!.buryInterdayLearningSiblings),
+    });
+  }
+  const noteIds = [...modeByNote.keys()];
+  const siblingRows = await Promise.all(noteIds.map((noteId) => requestResult<StoredCardCatalog[]>(catalog.index("noteId").getAll(noteId))));
+  for (const [index, rows] of siblingRows.entries()) {
+    const mode = modeByNote.get(noteIds[index])!;
+    for (const row of rows) {
+      if (answeredIds.has(row.id) || row.reviewable !== 1 || row.deletedAt || !(row.dueSort < end)) continue;
+      const kind = row.scheduleState === "new" ? (mode.buryNewSiblings ? "newCards" : null)
+        : row.scheduleState === "review" ? (mode.buryReviewSiblings ? "dueCards" : null)
+          : row.scheduleState === "learning" || row.scheduleState === "relearning" ? (mode.buryInterdayLearningSiblings ? "learningCards" : null)
+            : null;
+      if (!kind) continue;
+      const counts = result.get(row.deckId) ?? { newCards: 0, learningCards: 0, dueCards: 0 };
+      counts[kind] += 1;
+      result.set(row.deckId, counts);
+    }
+  }
+  return result;
+}
+
 /**
  * Cards answered today with their content: those of the studied decks and siblings of the loaded cards in other decks,
  * so sibling burying holds for the whole learning day and across decks.
@@ -1778,6 +1841,10 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         await transactionDone(cacheTransaction);
       }
 
+      // Counts from the server overview already leave out today's buried siblings.
+      const buriedByDeck = dayRange && catalogIsComplete
+        ? await buriedSiblingsByDeck(database, shell!.decks, dayRange, overviewMatches ? null : todayEventRows)
+        : new Map<string, BuriedSiblingCounts>();
       const summaries = new Map(summaryRows.map((summary) => [summary.deckId, summary]));
       const result = new Map<string, DeckLibrarySummary>();
       for (const [index, deck] of shell!.decks.entries()) {
@@ -1798,12 +1865,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const dueCards = catalogIsComplete ? dueRows[index] ?? 0 : overviewMatches ? studyOverview!.dueByDeck[deck.id] ?? 0 : 0;
         const availableNewCards = catalogIsComplete ? availableNewRows[index] ?? 0 : overviewMatches ? studyOverview!.availableNewByDeck?.[deck.id] ?? 0 : 0;
         const availableLearningCards = catalogIsComplete ? availableLearningRows[index] ?? 0 : overviewMatches ? studyOverview!.availableLearningByDeck?.[deck.id] ?? 0 : 0;
+        const buried = buriedByDeck.get(deck.id);
+        const studyNewCards = Math.max(0, availableNewCards - (buried?.newCards ?? 0));
+        const studyLearningCards = Math.max(0, availableLearningCards - (buried?.learningCards ?? 0));
+        const studyDueCards = Math.max(0, dueCards - (buried?.dueCards ?? 0));
         const settings = createDefaultDeckSettings(deck.deckSettings);
         const newLimit = Math.max(0, settings.newCardsTodayOverride?.date === todayKey ? settings.newCardsTodayOverride.limit : settings.newCardsPerDay);
         const remainingNew = Math.max(0, newLimit - introducedCount);
         const remainingReviews = Math.max(0, settings.maximumReviewsPerDay - introducedCount - reviewedCount);
-        const selectedNew = Math.min(availableNewCards, remainingNew, remainingReviews);
-        const selectedDue = Math.min(dueCards + availableLearningCards, Math.max(0, remainingReviews - selectedNew));
+        const selectedNew = Math.min(studyNewCards, remainingNew, remainingReviews);
+        const selectedDue = Math.min(studyDueCards + studyLearningCards, Math.max(0, remainingReviews - selectedNew));
         const completedTodayCount = introducedCount + reviewedCount;
         result.set(deck.id, {
           inventory: {
@@ -1815,9 +1886,9 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
             activeVariants: summary.activeVariantCount,
             averageMaturityXp: 0,
           },
-          dailyProgress: { completedTodayCount, newCount: selectedNew, inProgressCount: availableLearningCards, dueCount: Math.max(0, selectedDue - availableLearningCards), total: completedTodayCount + selectedNew + selectedDue },
+          dailyProgress: { completedTodayCount, newCount: selectedNew, inProgressCount: studyLearningCards, dueCount: Math.max(0, selectedDue - studyLearningCards), total: completedTodayCount + selectedNew + selectedDue },
           startableCount: selectedNew + selectedDue,
-          additionalNewCount: Math.max(0, availableNewCards - selectedNew),
+          additionalNewCount: Math.max(0, studyNewCards - selectedNew),
           effectiveNewLimit: newLimit,
           introducedTodayCount: introducedCount,
           dateKey: todayKey,
