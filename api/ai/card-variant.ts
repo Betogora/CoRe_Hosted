@@ -73,7 +73,7 @@ type Environment = Record<string, string | undefined>;
 type PrivacyMode = AiCardVariantSuccess["privacyMode"];
 type ModelCandidate = v.InferOutput<typeof modelSchema>;
 type Selection = { models: string[]; privacyMode: PrivacyMode; reasoning: boolean };
-export type CardVariantLogEntry = {
+type CardVariantLogEntry = {
   event: "ai_card_variant";
   outcome: string;
   status: number;
@@ -160,15 +160,10 @@ function createAuthenticator(env: Environment) {
     ? createClient<Database>(url, publishableKey, { auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false } })
     : null;
   return async (accessToken: string) => {
-    if (!client) throw new HttpError(503, "auth_unavailable", "Die Anmeldung kann gerade nicht geprüft werden.");
-    let verified: Awaited<ReturnType<typeof client.auth.getClaims>>;
-    try {
-      verified = await client.auth.getClaims(accessToken);
-    } catch {
-      throw new HttpError(503, "auth_unavailable", "Die Anmeldung kann gerade nicht geprüft werden.");
-    }
-    const { data, error } = verified;
-    if (isAuthRetryableFetchError(error)) throw new HttpError(503, "auth_unavailable", "Die Anmeldung kann gerade nicht geprüft werden.");
+    const unavailable = () => new HttpError(503, "auth_unavailable", "Die Anmeldung kann gerade nicht geprüft werden.");
+    if (!client) throw unavailable();
+    const { data, error } = await client.auth.getClaims(accessToken).catch(() => { throw unavailable(); });
+    if (isAuthRetryableFetchError(error)) throw unavailable();
     const claims = data?.claims;
     if (error || claims?.role !== "authenticated" || !claims.sub) throw new HttpError(401, "unauthorized", "Deine Sitzung ist ungültig oder abgelaufen.");
     return claims.sub;
@@ -380,11 +375,7 @@ async function callOpenRouter(fetchImpl: typeof fetch, apiKey: string, input: Ai
     const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
     throw new HttpError(502, timedOut ? "provider_timeout" : "provider_unavailable", timedOut ? "Das Modell hat nicht rechtzeitig geantwortet." : "Das Modell ist gerade nicht erreichbar.", true);
   }
-  let payload: unknown;
-  try { payload = await response.json(); } catch {
-    if (!response.ok) throw classifyProviderError(response.status, null, response.headers);
-    throw new HttpError(502, "invalid_provider_response", "Die Modellantwort konnte nicht gelesen werden.");
-  }
+  const payload: unknown = await response.json().catch(() => null);
   // Generation errors may arrive with HTTP 200 and an error body.
   if (!response.ok || v.is(providerErrorSchema, payload)) throw classifyProviderError(response.status, payload, response.headers);
   return extractGeneratedVariant(payload, input, selection.models[0], selection.privacyMode);
