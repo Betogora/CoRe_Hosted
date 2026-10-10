@@ -5,6 +5,27 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Begraben von Geschwistern (K7.1–K7.3)
+
+- **K7.1:** `buryNewSiblings`, `buryReviewSiblings` und
+  `buryInterdayLearningSiblings` in `LearningSettings`, standardmäßig aus und in
+  allen drei Vorlagen aus; sichtbar als Checkboxen unter „Geschwisterkarten
+  begraben“ in Lern- und Stapeleinstellungen, gespeichert in Lernprofilen und im
+  globalen Standard. Keine Migration: Stapeleinstellungen und Profile sind JSONB.
+- **K7.2:** `createDailyReviewQueue` begräbt nach Ankis Reihenfolge (heute
+  beantwortet, Lernschritte des Tages, tagesübergreifend und fällig, neu); die
+  Optionen der vorher gesehenen Geschwister entscheiden, begrabene Karten
+  verbrauchen kein Limit. `loadReviewSession` liefert heute beantwortete Karten
+  samt Geschwistern anderer Stapel nur bei aktiver Option, sodass das Begraben
+  Reload und Stapelgrenzen übersteht. Die Lernsitzung entfernt begrabene
+  Geschwister nach einer Antwort samt Zählern.
+- **K7.3:** Scheduler-Tests für ausgeschaltete Optionen (Queue und Fortschritt
+  unverändert), Bevorzugung, Tagesgrenze mit Tagesbeginn, Zeitsimulator,
+  Unterstapel mit unterschiedlichen Optionen und Limits; Profiltest und
+  IndexedDB-Test für das Lernfenster; E2E-Vertrag „Geschwister begraben“.
+- **Offen als K7.4:** Stapelzähler und Sitzungsplan berücksichtigen das Begraben
+  noch nicht.
+
 ## 2026-10-10 — Bildverdeckungs-Editor (K6.5) und Kartenbausteine in den Docs (K6.6)
 
 - **K6.5:** Bildverdeckung ist ein Fragentyp der manuellen Erstellung. Ein Bild

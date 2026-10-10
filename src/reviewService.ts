@@ -20,6 +20,7 @@ import type {
   CardStudyState,
   CardVariant,
   Deck,
+  LearningSettings,
   NewReviewOrder,
   ReviewRating,
   ReviewEvent,
@@ -57,7 +58,17 @@ interface ReviewServiceOptions {
   reviewEvents?: unknown[];
   easyDaysContext?: EasyDaysSchedulingContext | null;
   sessionIndex?: DailyReviewSessionIndex;
+  /** Cards answered today that may not be loaded, so their siblings stay buried for the whole learning day. */
+  answeredToday?: readonly AnsweredTodayCard[];
 }
+
+export interface AnsweredTodayCard {
+  cardId: string;
+  noteId: string;
+  deckId: string;
+}
+
+type SiblingBuryMode = Pick<LearningSettings, "buryNewSiblings" | "buryReviewSiblings" | "buryInterdayLearningSiblings">;
 
 interface QueueEntry {
   deck: Deck;
@@ -334,6 +345,7 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
   const dayRange = getLearningDayRange(now, { dayStartHour: options.dayStartHour, timeZone: options.timeZone });
   const byDeckId = new Map<string, { introduced: number; reviewed: number }>();
   const reviewedTodayKeys = new Set<string>();
+  const answeredToday: Array<{ deck: Deck; cardId: string }> = [];
   let introducedTotal = 0;
   let reviewedTotal = 0;
   for (const deck of scopeDecks) {
@@ -347,7 +359,10 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
         ? !Number.isFinite(eventTime) || eventTime < dayRange.start || eventTime >= dayRange.end
         : learningDayKey(eventDate, options) !== dateKey) continue;
       const key = reviewKey(deck.id, event.cardId);
-      if (event.cardId) reviewedTodayKeys.add(key);
+      if (event.cardId) {
+        reviewedTodayKeys.add(key);
+        answeredToday.push({ deck, cardId: event.cardId });
+      }
       if (wasNewBeforeReview(event)) introduced.add(key);
       else reviewed.add(key);
     }
@@ -357,7 +372,7 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
     introducedTotal += consumption.introduced;
     reviewedTotal += consumption.reviewed;
   }
-  return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys };
+  return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys, answeredToday };
 }
 
 function isIntradayLearning(card: Card, now: DateInput, options: ReviewServiceOptions): boolean {
@@ -400,11 +415,13 @@ function createDeckPaths(scopeDecks: Deck[], rootDeckId: string | null): Map<str
   return paths;
 }
 
+/** Cards beyond a limit are neither selected nor seen; a buried card uses no limit. */
 function takeWithinDeckLimits(
   entries: QueueEntry[],
   paths: Map<string, string[]>,
   limits: Map<string, RemainingDeckLimits>,
   kind: "review" | "new",
+  isBuried: (entry: QueueEntry) => boolean,
 ): QueueEntry[] {
   const selected: QueueEntry[] = [];
   for (const entry of entries) {
@@ -413,7 +430,7 @@ function takeWithinDeckLimits(
       const remaining = limits.get(deckId);
       return Boolean(remaining && remaining.reviews > 0 && (kind === "review" || remaining.newCards > 0));
     });
-    if (!fits) continue;
+    if (!fits || isBuried(entry)) continue;
     selected.push(entry);
     for (const deckId of path) {
       const remaining = limits.get(deckId);
@@ -799,6 +816,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const rootDeck = allDecks.find((deck) => deck.id === rootDeckId) ?? allDecks[0] ?? null;
   const scopeDecks = collectDeckScope(decksOrDeck, rootDeckId);
   const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
+  const settingsByDeckId = new Map(scopeDecks.map((deck) => [deck.id, createDefaultDeckSettings(deck.deckSettings ?? {})]));
   const excludeKeys = new Set(options.excludeKeys ?? []);
   const dailyConsumption = summarizeDailyCardConsumption(scopeDecks, now, options);
   const deckPaths = createDeckPaths(scopeDecks, rootDeck?.id ?? null);
@@ -866,7 +884,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   }
   for (const deck of scopeDecks) {
     const consumption = subtreeConsumption.get(deck.id) ?? { introduced: 0, reviewed: 0 };
-    const settings = createDefaultDeckSettings(deck.deckSettings ?? {});
+    const settings = settingsByDeckId.get(deck.id)!;
     limits.set(deck.id, {
       newCards: Math.max(0, getEffectiveNewCardsPerDay(deck, { ...options, now }) - consumption.introduced),
       reviews: Math.max(0, settings.maximumReviewsPerDay - consumption.introduced - consumption.reviewed),
@@ -880,11 +898,53 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const remainingNewCards = rootLimits.newCards;
   const remainingReviews = rootLimits.reviews;
   const reviewCandidates = [...interdayLearningEntries, ...reviewEntries];
-  const selectedReviewEntries = takeWithinDeckLimits(reviewCandidates, deckPaths, limits, "review");
-  const selectedNewEntries = takeWithinDeckLimits(newEntries, deckPaths, limits, "new");
+
+  // Sibling burying as in Anki: siblings answered today count as seen first, then the queue sees intraday learning,
+  // interday learning and reviews, then new cards. The deck options of the siblings seen before decide whether a card waits.
+  const noteIdByCardId = new Map((options.answeredToday ?? []).map((answered) => [answered.cardId, answered.noteId]));
+  for (const deck of scopeDecks) for (const card of deck.cards ?? []) noteIdByCardId.set(card.id, card.noteId);
+  const seenNotes = new Map<string, SiblingBuryMode>();
+  const answeredCardIds = new Set<string>();
+  const buriedKeys = new Set<string>();
+  const markSeen = (noteId: string, deckId: string): SiblingBuryMode | undefined => {
+    const settings = settingsByDeckId.get(deckId) ?? rootSettings;
+    const previous = seenNotes.get(noteId);
+    seenNotes.set(noteId, {
+      buryNewSiblings: Boolean(previous?.buryNewSiblings || settings.buryNewSiblings),
+      buryReviewSiblings: Boolean(previous?.buryReviewSiblings || settings.buryReviewSiblings),
+      buryInterdayLearningSiblings: Boolean(previous?.buryInterdayLearningSiblings || settings.buryInterdayLearningSiblings),
+    });
+    return previous;
+  };
+  for (const { deck, cardId } of dailyConsumption.answeredToday) {
+    const noteId = noteIdByCardId.get(cardId);
+    if (!noteId) continue;
+    answeredCardIds.add(cardId);
+    markSeen(noteId, deck.id);
+  }
+  // A sibling answered in a deck outside the studied scope follows the options of the studied deck.
+  for (const answered of options.answeredToday ?? []) {
+    if (settingsByDeckId.has(answered.deckId)) continue;
+    answeredCardIds.add(answered.cardId);
+    markSeen(answered.noteId, answered.deckId);
+  }
+  for (const entry of intradayLearningEntries) markSeen(entry.card.noteId, entry.deck.id);
+  const buryIfSiblingSeen = (entry: QueueEntry) => {
+    const previous = markSeen(entry.card.noteId, entry.deck.id);
+    const buried = !answeredCardIds.has(entry.card.id) && Boolean(isNewCard(entry.card)
+      ? previous?.buryNewSiblings
+      : isLearningState(entry.card.study) ? previous?.buryInterdayLearningSiblings : previous?.buryReviewSiblings);
+    if (buried) buriedKeys.add(entry.key);
+    return buried;
+  };
+
+  const selectedReviewEntries = takeWithinDeckLimits(reviewCandidates, deckPaths, limits, "review", buryIfSiblingSeen);
+  const selectedNewEntries = takeWithinDeckLimits(newEntries, deckPaths, limits, "new", buryIfSiblingSeen);
+  const availableReviewCount = reviewCandidates.length - reviewCandidates.filter((entry) => buriedKeys.has(entry.key)).length;
+  const availableNewCount = newEntries.length - newEntries.filter((entry) => buriedKeys.has(entry.key)).length;
   const selectedDueEntries = [...intradayLearningEntries, ...selectedReviewEntries];
   const selectedEntries = orderDailyQueueEntries(selectedDueEntries, selectedNewEntries, rootSettings.newReviewOrder);
-  const dailyProgressEntries = [...learningEntries, ...selectedReviewEntries, ...selectedNewEntries];
+  const dailyProgressEntries = [...learningEntries.filter((entry) => !buriedKeys.has(entry.key)), ...selectedReviewEntries, ...selectedNewEntries];
   const dailyProgress = summarizeDailyReviewProgress(reviewedEntries, dailyProgressEntries, dailyConsumption.reviewedTodayKeys, now, options);
   const items: DailyReviewQueueEntry[] = selectedEntries.map((entry) => ({
     deckId: entry.deck.id,
@@ -901,23 +961,25 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     total: items.length,
     dailyProgress,
     dueCount: selectedReviewEntries.length,
-    availableDueCards: reviewCandidates.length,
+    availableDueCards: availableReviewCount,
     inProgressCount: dailyProgress.inProgressCount,
-    availableLearningCards: learningEntries.length,
+    availableLearningCards: learningEntries.filter((entry) => !buriedKeys.has(entry.key)).length,
     maximumReviewsPerDay: rootSettings.maximumReviewsPerDay,
     reviewsCompletedToday,
     remainingReviews,
     newReviewOrder: rootSettings.newReviewOrder,
     newCount: selectedNewEntries.length,
-    availableNewCards: newEntries.length,
+    availableNewCards: availableNewCount,
     newCardsPerDay: newLimit,
     newCardsIntroducedToday: introducedToday,
     remainingNewCards,
     limitSummary: {
-      hiddenDueCount: reviewCandidates.length - selectedReviewEntries.length,
-      hiddenNewCount: newEntries.length - selectedNewEntries.length,
-      reached: reviewCandidates.length > selectedReviewEntries.length || newEntries.length > selectedNewEntries.length,
+      hiddenDueCount: availableReviewCount - selectedReviewEntries.length,
+      hiddenNewCount: availableNewCount - selectedNewEntries.length,
+      reached: availableReviewCount > selectedReviewEntries.length || availableNewCount > selectedNewEntries.length,
     },
+    /** Siblings waiting until the next learning day; derived from today's answers, never persisted. */
+    buriedKeys: [...buriedKeys],
     dateKey: getLocalReviewDateKey(now, options),
   };
 }

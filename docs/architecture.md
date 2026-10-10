@@ -64,6 +64,22 @@ ADR-036. Queue-Werte des Lernstands sind direkt typisiert, weitere Lern- und
 Variantenwerte liegen typisiert in `study.extra`. Scheduler und Queue arbeiten
 auf der flachen Sicht `ReviewState`; `reviewStateFromCardStudy` und
 `cardStudyFromReviewState` bilden beide Formen verlustfrei aufeinander ab.
+
+Das Begraben von Geschwistern (`buryNewSiblings`, `buryReviewSiblings`,
+`buryInterdayLearningSiblings` in `LearningSettings`) ist kein persistiertes
+Feld. `createDailyReviewQueue` leitet es bei jedem Aufbau ab: Heutige
+Reviewereignisse der gelernten Stapel und `options.answeredToday` (heute
+beantwortete Karten mit Inhalt und Stapel) markieren Inhalte als gesehen, danach
+folgen Lernschritte des Tages, tagesübergreifende Lern- und fällige Karten und
+neue Karten. Eine Karte ist begraben, wenn ihr Inhalt vorher gesehen wurde und
+die vereinigten Optionen der Stapel der zuvor gesehenen Geschwister ihre Art
+begraben; Karten jenseits eines Limits zählen nicht als gesehen, begrabene
+verbrauchen kein Limit. Die Queue liefert `buriedKeys`; die Sitzung entfernt
+damit offene Geschwister nach einer Antwort. `loadReviewSession` lädt
+`answeredToday` aus Katalog und Reviewereignissen (auch Geschwister geladener
+Karten in anderen Stapeln), aber nur mit `answeredSiblings`, das die App setzt,
+wenn ein Stapel der Auswahl eine Option aktiviert hat. Stapelzähler aus
+`listDeckSummaries` bleiben zählbasiert und berücksichtigen das Begraben nicht.
 Importierte Inhalte tragen `importedContentRevision` = `contentRevision` beim
 Import; manuelle Inhalte tragen `null`. `Deck.cards` enthält die geladenen
 Karten eines Stapels, nie Inhaltskopien.

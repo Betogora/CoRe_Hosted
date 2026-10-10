@@ -12,7 +12,7 @@ import type { CommitImport } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import type { PomodoroTimer } from "./pomodoroTimer.ts";
 import type { StatisticsDeckSelection, StatisticsPeriod, StatisticsProjection } from "./statisticsModel.ts";
-import type { DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
+import type { AnsweredTodayCard, DailyReviewProgressSummary, ReviewAnswerResult } from "./reviewService.ts";
 import type { CreationMethod } from "./useAppNavigation.ts";
 import type { WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import type { DeckExpansionSurface } from "./uiPreferences.ts";
@@ -229,6 +229,8 @@ export interface StudyModeProps {
   deck: Deck;
   decks: Deck[];
   notes: Note[];
+  /** Cards answered earlier today, for sibling burying. */
+  answeredToday?: readonly AnsweredTodayCard[];
   deckId: string;
   variantSession: boolean;
   variantId?: string;

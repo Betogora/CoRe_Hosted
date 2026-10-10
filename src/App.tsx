@@ -45,7 +45,7 @@ import { catalogEntryFromCard, type AccountBaselineState, type NoteGraph, type O
 import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
-import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
+import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type AnsweredTodayCard, type ReviewAnswerResult } from "./reviewService.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
 import type { AccountSyncEngine } from "./syncEngine.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
@@ -186,6 +186,7 @@ export function App() {
   const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
   const [studyDecks, setStudyDecks] = React.useState<Deck[] | null>(null);
   const [studyNotes, setStudyNotes] = React.useState<Note[]>([]);
+  const [studyAnsweredToday, setStudyAnsweredToday] = React.useState<AnsweredTodayCard[]>([]);
   const [studyHasMoreCards, setStudyHasMoreCards] = React.useState(false);
   const [studyBufferSize, setStudyBufferSize] = React.useState(50);
   const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
@@ -687,6 +688,8 @@ export function App() {
       }
     }
     const ids = [...scopeIds];
+    const answeredSiblings = shellState.decks.some((deck) => scopeIds.has(deck.id)
+      && (deck.deckSettings.buryNewSiblings || deck.deckSettings.buryReviewSiblings || deck.deckSettings.buryInterdayLearningSiblings));
     let nextCursorByDeck = cursorByDeck;
     while (true) {
       const session = workspaceHydrationService
@@ -695,6 +698,7 @@ export function App() {
             dayStartHour: globalSchedulerPreferences.dayStartHour,
             timeZone: learningTimeZone,
             cursorByDeck: nextCursorByDeck,
+            answeredSiblings,
           })
         : await workspaceRepository.loadReviewSession(ids, {
             now: learningNow,
@@ -702,6 +706,7 @@ export function App() {
             timeZone: learningTimeZone,
             limit: 50,
             cursorByDeck: nextCursorByDeck,
+            answeredSiblings,
           });
       const cardsByDeck = new Map<string, Card[]>();
       for (const { deckId: cardDeckId, card } of session.cards) {
@@ -727,6 +732,7 @@ export function App() {
         learnAheadMinutes: globalSchedulerPreferences.learnAheadMinutes,
         timeZone: learningTimeZone,
         variantSession,
+        answeredToday: session.answeredToday,
       });
       const cursorAdvanced = Object.entries(session.cursorByDeck).some(([candidateDeckId, cursor]) => {
         const previous = nextCursorByDeck[candidateDeckId];
@@ -740,6 +746,7 @@ export function App() {
         return {
           decks,
           notes: session.notes,
+          answeredToday: session.answeredToday,
           queue,
           cursorByDeck: session.cursorByDeck,
           hasMoreCards: session.hasMore && cursorAdvanced,
@@ -770,6 +777,7 @@ export function App() {
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
         setStudyDecks(preparation.decks);
         setStudyNotes(preparation.notes);
+        setStudyAnsweredToday(preparation.answeredToday);
         return;
       }
       if (preparation.queue.total === 0) {
@@ -784,6 +792,7 @@ export function App() {
       setStudyBufferSize(preparation.bufferSize);
       setStudyDecks(preparation.decks);
       setStudyNotes(preparation.notes);
+      setStudyAnsweredToday(preparation.answeredToday);
     }).catch((error) => {
       if (!active) return;
       setStudyPreparationFailure({
@@ -808,6 +817,7 @@ export function App() {
     setStudyHasMoreCards(preparation.hasMoreCards);
     setStudyBufferSize(preparation.bufferSize);
     setStudyNotes((current) => [...new Map([...current, ...preparation.notes].map((note) => [note.id, note])).values()]);
+    setStudyAnsweredToday((current) => [...new Map([...current, ...preparation.answeredToday].map((answered) => [answered.cardId, answered])).values()]);
     setStudyDecks((current) => current?.map((currentDeck) => {
       const page = preparation.decks.find((candidate) => candidate.id === currentDeck.id);
       if (!page) return currentDeck;
@@ -1633,6 +1643,7 @@ export function App() {
       setStudyBufferSize(preparation.bufferSize);
       setStudyDecks(preparation.decks);
       setStudyNotes(preparation.notes);
+      setStudyAnsweredToday(preparation.answeredToday);
       navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
         replace: activeView === "stapel-einstellungen",
       });
@@ -2025,6 +2036,7 @@ export function App() {
           deck={studyDeck}
           decks={studyDecks ?? [studyDeck]}
           notes={studyNotes}
+          answeredToday={studyAnsweredToday}
           deckId={studyDeck.id}
           variantSession={studyRequest.variantSession}
           variantId={studyRequest.variantId}

@@ -5,9 +5,13 @@ import {
   BUILT_IN_LEARNING_PROFILE_TEMPLATES,
   createLearningProfileTemplate,
   deleteLearningProfileTemplate,
+  getGlobalSchedulerPreferences,
   getLearningProfileTemplate,
+  markLearningSettingsCustom,
+  normalizeLearningSettings,
   renameLearningProfileTemplate,
   updateLearningProfileTemplate,
+  withGlobalSchedulerPreferences,
 } from "./learningProfiles.ts";
 
 test("built-in learning profiles have stable identities, versions and canonical settings", () => {
@@ -67,3 +71,22 @@ test("copy-on-apply changes exactly one settings object and records source prove
   assert.deepEqual(applied.learningProfileSource, { id: "profile-exam", contentVersion: 1 });
   assert.equal(first.newCardsPerDay, 20);
 });
+
+test("sibling burying is off by default, survives custom profiles and travels with global defaults", () => {
+  const off = { buryNewSiblings: false, buryReviewSiblings: false, buryInterdayLearningSiblings: false };
+  for (const profile of BUILT_IN_LEARNING_PROFILE_TEMPLATES) assert.deepEqual(pick(profile.settings), off);
+  assert.deepEqual(pick(normalizeLearningSettings({})), off);
+  assert.deepEqual(pick(normalizeLearningSettings({ buryNewSiblings: "ja", buryReviewSiblings: 1 })), off, "Nur echte Wahrheitswerte schalten das Begraben ein.");
+
+  const custom = markLearningSettingsCustom({ ...normalizeLearningSettings({}), buryNewSiblings: true, buryInterdayLearningSiblings: true });
+  assert.equal(custom.schedulerProfile.presetId, "custom");
+  const { profiles, template } = createLearningProfileTemplate([], { name: "Begraben", settings: custom });
+  assert.deepEqual(pick(template.settings), { ...off, buryNewSiblings: true, buryInterdayLearningSiblings: true });
+  assert.deepEqual(pick(applyLearningProfileTemplateToDeckSettings({}, template)), pick(template.settings));
+  const preferences = getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { learningProfiles: profiles, defaultLearningSettings: { learningProfileSource: { id: template.id, contentVersion: 1 } } }));
+  assert.deepEqual(pick(preferences.defaultLearningSettings), pick(template.settings));
+});
+
+function pick(settings: { buryNewSiblings: boolean; buryReviewSiblings: boolean; buryInterdayLearningSiblings: boolean }) {
+  return { buryNewSiblings: settings.buryNewSiblings, buryReviewSiblings: settings.buryReviewSiblings, buryInterdayLearningSiblings: settings.buryInterdayLearningSiblings };
+}

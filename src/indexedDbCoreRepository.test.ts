@@ -356,6 +356,22 @@ test("Karten mit offenem Synchronisierungskonflikt werden nicht zum Lernen gelad
   reopened.close();
 });
 
+test("das Lernfenster liefert heute beantwortete Karten samt Geschwistern anderer Stapel nur bei aktivem Begraben", async () => {
+  const repository = await openRepository(twoDeckState());
+  const deckB = createCoreDeck({ id: "deck-b", name: "B", source: "manual", cards: [basicGraph("deck-a", 0, { reverseDeckId: "deck-b" }).cards[1]] });
+  repository.recordReview(answerVariant(deckB, "card-0-reverse", null, "good", { now: "2026-08-21T10:00:00.000Z" }));
+  await repository.flush();
+
+  const options = { now: "2026-08-21T12:00:00.000Z", timeZone: "UTC" };
+  assert.deepEqual((await repository.loadReviewSession(["deck-a"], options)).answeredToday, []);
+  const session = await repository.loadReviewSession(["deck-a"], { ...options, answeredSiblings: true });
+  assert.deepEqual(session.cards.map(({ card }) => card.id), ["card-0", "card-1"]);
+  assert.deepEqual(session.answeredToday, [{ cardId: "card-0-reverse", noteId: "note-0", deckId: "deck-b" }]);
+  const nextDay = await repository.loadReviewSession(["deck-a"], { ...options, now: "2026-08-22T12:00:00.000Z", answeredSiblings: true });
+  assert.deepEqual(nextDay.answeredToday, []);
+  repository.close();
+});
+
 test("eine Änderung an einem noch nicht gesendeten Stapel bleibt ein Cloud-Insert", async () => {
   const userId = randomUUID();
   const repository = await openRepository(workspaceState(0), userId);

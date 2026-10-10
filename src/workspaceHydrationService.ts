@@ -23,6 +23,7 @@ interface StudyWindowOptions {
   dayStartHour?: number;
   timeZone?: string;
   cursorByDeck?: Record<string, StudyWindowCursor>;
+  answeredSiblings?: boolean;
 }
 
 export interface StudyWindowCursor {

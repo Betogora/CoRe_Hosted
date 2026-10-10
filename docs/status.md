@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-08
+**Stand:** 2026-10-10
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -52,6 +52,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Stapelübersicht und Kartenverwaltung bleiben getrennte Lazy-Screens innerhalb von `Lernen` mit einem gemeinsamen kanonischen URL-Kontext für Deck, Karte, Erstellziel und allowlist-basierten Review-Rückweg; Reload, Direktlink sowie Browser-Zurück/-Vorwärts erhalten den semantischen Kontext.
 - Ungültige oder nicht verfügbare Deck-/Kartenlinks zeigen sichere deutsche Fallbacks und öffnen nicht still eine andere Karte.
 - Reverse erzeugt zwei unabhängige Karten, jede Cloze-Lückengruppe eine unabhängige Karte. Jede reale Anki-Karte wird ebenfalls als eigene CoRe-Karte importiert.
+- Begraben von neuen, fälligen und tagesübergreifenden Lern-Geschwisterkarten ist wie in Anki als drei standardmäßig ausgeschaltete Optionen in Lernprofilen, Stapeleinstellungen und globalem Standard verfügbar. Die Lernqueue leitet es je Lerntag aus den heutigen Antworten ab, auch über Stapelgrenzen und nach einem Reload.
 - Ausschließlicher APKG-Import mit getrennten UI-Phasen und Terminalzuständen; die vier laufenden Phasen einschließlich Cloud-Sync zeigen jeweils einen monotonen Prozentfortschritt in der Dateizeile. Die flüchtige accountgebundene APKG-Sitzung überlebt interne Navigation, aber keinen Reload. Der Worker liest die Datei (`.apkg` oder `.colpkg` bis 2 GiB) und übersetzt sie mit der Note-Übersetzung; Vorschau und Abschluss zeigen den Bericht je Notiztyp. Der lokale Commit macht Inhalte und Karten sofort verfügbar und reiht Medien dauerhaft ein, während `Fertig` bestätigten Cloud- und Mediensync voraussetzt. Reimporte ordnen über Anki-GUID und Kartenidentität zu und melden behaltene lokale Bearbeitungen. Text-, CSV- und Tabellenimporte sowie eine Formatwahl sind entfernt.
 - Stapelbäume besitzen kein fachliches Tiefenlimit. Manuelles Anlegen, bestätigtes Verschieben, Desktop-Drag und APKG-Import erhalten die vollständige logische Elternbeziehung samt Unterbaum; Reimporte bewahren die lokale Ordnung. Ab Ebene 6 bleiben Einrückung und Tiefenfarbe visuell konstant, während Chevron, Reihenfolge, vollständiger zugänglicher Pfad und Auf-/Zuklappen der echten Hierarchie folgen. APKG- und Inhalts-Tags bleiben unverändert; es gibt keine Überlaufprojektion oder System-Tags.
 - APKG-Reviewereignisse laufen tabellenweise durch begrenzte Cloud-Batches und bleiben über stabile IDs idempotent.
@@ -95,6 +96,7 @@ Die verbindliche Reifeentscheidung steht in [ADR-001](decisions.md#adr-001--core
 
 - Der lokale Realwelt-Korpus (Ankizin v5, Ankiphil, Dellas, Image-Occlusion-Enhanced-Deck, Anki-Bildverdeckung, Auszug mit FSRS-Lernstand) wird vollständig übersetzt, Ankizin zu 99,9 % über den eigenen Übersetzer, alle 66 Image-Occlusion-Enhanced-Notizen als CoRe-Masken. AnKing und Lernstände mit Lern-, Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten fehlen im Korpus; diese Zustände sind nur synthetisch über die Matrix belegt.
 - Das P0-Produktgate mit Zielviewports, Tastatur- und Screenreader-Abnahme ist offen.
+- Stapelzähler und geplante Sitzungsgröße berücksichtigen begrabene Geschwister nicht; sie zählen sie weiter als neu oder fällig. Die Lernsitzung selbst zeigt sie nicht und korrigiert ihre Zähler, sobald eine Antwort ein Geschwister begräbt.
 - Template-JavaScript, Add-on-/Custom-Filter, native LaTeX-Toolchains und nicht browserfähige Codecs werden erhalten, aber bewusst nicht ausgeführt.
 - Hosted-Account-Lifecycle, vollständiger Art.-15-Export und Löschung fehlen.
 - Das ausführbare Beta-Core-Gate und der minimale Monitoring-/Alarmvertrag sind vorhanden; realer Alarmempfang sowie getrennte DB-/Storage-Restore-Proben fehlen noch.
