@@ -109,6 +109,17 @@ scope and gates.
   in the browser, or secret persistence in `localStorage` or exports.
 - Never log raw secrets. Log raw prompts or payloads only when they are
   explicitly sanitized and operationally required.
+- Read Anki and add-on source code only as a reference; never copy it.
+  Real-world decks stay local in `fixtures/apkg/corpus/` and are never committed.
+
+## Working Agreements
+
+- Commit and push only after asking the user. Before committing finished work,
+  run the `audit-last-change` skill.
+- Create temporary and probe files only in the session scratchpad; none may
+  remain in the repository.
+- Others work in the same checkout: do not switch branches in the main working
+  folder without agreement; read shelved work with `git show <commit>`.
 
 ## Architecture Guidance
 

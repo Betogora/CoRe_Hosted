@@ -5,6 +5,17 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Roadmap-Dokument aufgelöst
+
+- `todo.md` enthält nur noch die offenen Abnahmen (Gerätenachweise, Korpus mit
+  AnKing und echtem Lernstand) und die späteren Roadmaps. Die erledigten
+  Phasen stehen hier datiert, die Entscheidungen in ADR-032 bis ADR-038.
+- Dauerhafte Inhalte der Roadmap sind an ihren Ort gezogen: die
+  Gestaltungsstandards der Kartenflächen nach `specs.md` (Abschnitt
+  „Kartenflächen“), Lizenzgrenze und Arbeitsregeln nach `AGENTS.md`, die
+  Pflegeregeln der APKG-Matrix nach `test-portfolio.md`. Der Feature-Freeze der
+  Roadmap entfällt.
+
 ## 2026-10-10 — Refactoring zum Abschluss der Kartenmodell-Roadmap
 
 - Statistik zeigt „Karten · ausgesetzt · gelöscht“ statt des Altbegriffs

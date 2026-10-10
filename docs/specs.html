@@ -5458,6 +5458,20 @@ html { scroll-behavior: smooth; }
 <li>Bestehendes Karten-HTML und persistierte benutzerdefinierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate <code>#6F7E9E</code>. Stapel-Icons erscheinen produktweit rund mit Symbol und Rand in der gewählten Farbe sowie einer dezenten transparenten Flächentönung derselben Farbe. In den Stapel-Einstellungen zeigt der Seitentitel das aktuelle Icon in seiner Farbe und den gespeicherten Stapelnamen. Der Bereich <code>Stapel</code> enthält Namensfeld, das zugängliche 5-mal-5-Raster mit 25 repräsentativen Lucide-Icons und den runden Farbkreis; alle drei Werte gehören ohne eigene Speichern-Aktion zum gemeinsamen Seitendraft. Rich-Text-Schnellfarben stammen weiterhin aus der CoRe-Palette.</li>
 </ul>
 <p>Der <a href="../src/ui/README.md"><code>src/ui</code>-Katalog</a> beschreibt die Wiederverwendung. Bestehende Module werden bei passender Fachsemantik genutzt; abweichende lokale Controls behalten dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.</p>
+<h3 id="specs--kartenflächen" class="core-heading-3" tabindex="-1">Kartenflächen <a class="docs-anchor" href="#specs--kartenflächen" aria-label="Link zu Kartenflächen">#</a></h3>
+<p>Alle Inhalte erscheinen unabhängig von ihrer Herkunft im CoRe-Design (ADR-033); Review, Vorschau, Editor und Importvorschau verwenden dieselbe Darstellung.</p>
+<ul>
+<li>Ein fester Anweisungstext der Vorlage steht klein und gedämpft über der Frage und wird auf der Rückseite nicht wiederholt.</li>
+<li>Frage und Antwort stehen ohne Feldbeschriftung. Beim Aufdecken bleibt die Frage stehen, darunter folgen genau eine Trennlinie und die Antwort.</li>
+<li>Jedes Hinweisfeld ist ein zugeklappter, per Tastatur bedienbarer Abschnitt mit dem Feldnamen als Beschriftung unter der Frage und schon vor dem Aufdecken nutzbar; der Kartenrahmen enthält kein Script.</li>
+<li><code>Zusatz</code> erscheint erst nach dem Aufdecken unter der Antwort mit kleinem, gedämpftem Feldnamen. <code>Quelle</code> erscheint danach am Kartenende als Link-Chips mit Externer-Link-Icon; Quellen ohne Link als Absatz mit Feldnamen. <code>Notiz</code> erscheint nur im Editor.</li>
+<li>Im Lückentext erscheint die aktive Lücke als <code>[…]</code> beziehungsweise <code>[Hinweis]</code> mit Akzent-Hintergrund, andere Lücken ausgeschrieben. Beim Aufdecken ersetzt die gefüllte Fassung die Vorderseite an derselben Stelle; die zuvor aktive Lücke bleibt hervorgehoben.</li>
+<li>Bildverdeckungen zeigen Masken über dem Bild: die aktive Gruppe in Akzentfarbe, übrige Masken neutral gedeckt. Die Rückseite entfernt die aktive Maske und zeigt nur ihren Umriss.</li>
+<li>Eintippen zeigt unter der Frage ein Feld <code>Antwort eingeben</code>; Enter deckt auf. Danach vergleicht die Karte zeichengenau wie Anki (richtig grün, falsch rot, fehlend unterstrichen) unter <code>Deine Antwort</code> und <code>Richtig</code>.</li>
+<li>Single Choice deckt nach der Auswahl direkt auf, Multiple Choice und Kprim über <code>Antwort prüfen</code>; Kprim fragt je Aussage <code>richtig</code> oder <code>falsch</code>.</li>
+<li>Formeln in <code>\(…\)</code> stehen inline, in <code>\[…\]</code> als abgesetzter Block. Bei einem Renderfehler bleibt der Quelltext in Monospace mit Diagnose sichtbar.</li>
+<li>Farbiger Feldtext behält seine Farbe; unterschreitet sie 4,5 : 1 Kontrast zum Kartenhintergrund des aktiven Themes, wird nur ihre Helligkeit angepasst.</li>
+</ul>
 <h3 id="specs--synchronisierung" class="core-heading-3" tabindex="-1">Synchronisierung <a class="docs-anchor" href="#specs--synchronisierung" aria-label="Link zu Synchronisierung">#</a></h3>
 <ul>
 <li>Ein vollständiger Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt danach ausschließlich vorgemerkte Outbox-Mutationen, lädt anschließend alle Cloud-Deltas seit den gespeicherten <code>sync_change_id</code>-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten. Ein Konflikt blockiert nur seine Entität; konfliktfreie Geschwister und Reviews laufen weiter.</li>

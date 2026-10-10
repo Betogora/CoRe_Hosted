@@ -369,6 +369,21 @@ Akzeptanz:
 
 Der [`src/ui`-Katalog](../src/ui/README.md) beschreibt die Wiederverwendung. Bestehende Module werden bei passender Fachsemantik genutzt; abweichende lokale Controls behalten dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.
 
+### Kartenflächen
+
+Alle Inhalte erscheinen unabhängig von ihrer Herkunft im CoRe-Design (ADR-033); Review, Vorschau, Editor und Importvorschau verwenden dieselbe Darstellung.
+
+- Ein fester Anweisungstext der Vorlage steht klein und gedämpft über der Frage und wird auf der Rückseite nicht wiederholt.
+- Frage und Antwort stehen ohne Feldbeschriftung. Beim Aufdecken bleibt die Frage stehen, darunter folgen genau eine Trennlinie und die Antwort.
+- Jedes Hinweisfeld ist ein zugeklappter, per Tastatur bedienbarer Abschnitt mit dem Feldnamen als Beschriftung unter der Frage und schon vor dem Aufdecken nutzbar; der Kartenrahmen enthält kein Script.
+- `Zusatz` erscheint erst nach dem Aufdecken unter der Antwort mit kleinem, gedämpftem Feldnamen. `Quelle` erscheint danach am Kartenende als Link-Chips mit Externer-Link-Icon; Quellen ohne Link als Absatz mit Feldnamen. `Notiz` erscheint nur im Editor.
+- Im Lückentext erscheint die aktive Lücke als `[…]` beziehungsweise `[Hinweis]` mit Akzent-Hintergrund, andere Lücken ausgeschrieben. Beim Aufdecken ersetzt die gefüllte Fassung die Vorderseite an derselben Stelle; die zuvor aktive Lücke bleibt hervorgehoben.
+- Bildverdeckungen zeigen Masken über dem Bild: die aktive Gruppe in Akzentfarbe, übrige Masken neutral gedeckt. Die Rückseite entfernt die aktive Maske und zeigt nur ihren Umriss.
+- Eintippen zeigt unter der Frage ein Feld `Antwort eingeben`; Enter deckt auf. Danach vergleicht die Karte zeichengenau wie Anki (richtig grün, falsch rot, fehlend unterstrichen) unter `Deine Antwort` und `Richtig`.
+- Single Choice deckt nach der Auswahl direkt auf, Multiple Choice und Kprim über `Antwort prüfen`; Kprim fragt je Aussage `richtig` oder `falsch`.
+- Formeln in `\(…\)` stehen inline, in `\[…\]` als abgesetzter Block. Bei einem Renderfehler bleibt der Quelltext in Monospace mit Diagnose sichtbar.
+- Farbiger Feldtext behält seine Farbe; unterschreitet sie 4,5 : 1 Kontrast zum Kartenhintergrund des aktiven Themes, wird nur ihre Helligkeit angepasst.
+
 ### Synchronisierung
 
 - Ein vollständiger Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt danach ausschließlich vorgemerkte Outbox-Mutationen, lädt anschließend alle Cloud-Deltas seit den gespeicherten `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten. Ein Konflikt blockiert nur seine Entität; konfliktfreie Geschwister und Reviews laufen weiter.
