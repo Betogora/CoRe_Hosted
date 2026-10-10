@@ -19,6 +19,9 @@ export interface LearningSettingsInput {
   newReviewOrder?: unknown;
   newCardSortOrder?: unknown;
   reviewCardSortOrder?: unknown;
+  buryNewSiblings?: unknown;
+  buryReviewSiblings?: unknown;
+  buryInterdayLearningSiblings?: unknown;
   coreMode?: unknown;
   variantThresholdXp?: unknown;
   maxActiveVariantsPerCard?: unknown;
@@ -95,6 +98,9 @@ const presetDefinitions = {
       newReviewOrder: "reviews-first",
       newCardSortOrder: "oldest-first",
       reviewCardSortOrder: "most-overdue",
+      buryNewSiblings: false,
+      buryReviewSiblings: false,
+      buryInterdayLearningSiblings: false,
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "standard",
@@ -115,6 +121,9 @@ const presetDefinitions = {
       newReviewOrder: "mixed",
       newCardSortOrder: "oldest-first",
       reviewCardSortOrder: "most-overdue",
+      buryNewSiblings: false,
+      buryReviewSiblings: false,
+      buryInterdayLearningSiblings: false,
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "intensive",
@@ -135,6 +144,9 @@ const presetDefinitions = {
       newReviewOrder: "reviews-first",
       newCardSortOrder: "oldest-first",
       reviewCardSortOrder: "most-overdue",
+      buryNewSiblings: false,
+      buryReviewSiblings: false,
+      buryInterdayLearningSiblings: false,
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "relaxed",
@@ -167,6 +179,9 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
     || settings.newReviewOrder !== undefined
     || settings.newCardSortOrder !== undefined
     || settings.reviewCardSortOrder !== undefined
+    || settings.buryNewSiblings !== undefined
+    || settings.buryReviewSiblings !== undefined
+    || settings.buryInterdayLearningSiblings !== undefined
     || Object.keys(profile).length > 0;
   const requestedPreset = typeof profile.presetId === "string" && presetIds.has(profile.presetId as SchedulerPreset)
     ? profile.presetId as SchedulerPreset
@@ -188,6 +203,9 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
       ?? (typeof settings.reviewCardSortOrder === "string" && reviewCardSortOrders.has(settings.reviewCardSortOrder as ReviewCardSortOrder)
         ? settings.reviewCardSortOrder as ReviewCardSortOrder
         : "most-overdue"),
+    buryNewSiblings: preset?.settings.buryNewSiblings ?? settings.buryNewSiblings === true,
+    buryReviewSiblings: preset?.settings.buryReviewSiblings ?? settings.buryReviewSiblings === true,
+    buryInterdayLearningSiblings: preset?.settings.buryInterdayLearningSiblings ?? settings.buryInterdayLearningSiblings === true,
     schedulerProfile: {
       settingsVersion: 2,
       presetId: requestedPreset,

@@ -440,6 +440,41 @@ test("[Vertrag: typgerechter Reverse-Lebenszyklus] @beta-core Reverse erzeugt zw
   }
 });
 
+test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwisterkarte bis zum nächsten Lerntag zurück", async ({ page }) => {
+  const deckName = "Begraben Reverse";
+  await openManualCreation(page, deckName, "basic-reversed");
+  await page.getByRole("textbox", { name: "Vorderseite" }).fill("Hauptstadt von Island");
+  await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavík");
+  const deck = await finishManualCreation(page, deckName, 2);
+
+  await page.goto(`/stapel-einstellungen?deck=${encodeURIComponent(deck.id)}&returnView=learn`);
+  const buryNew = page.getByRole("checkbox", { name: "Neue Geschwisterkarten begraben" });
+  await expect(buryNew).not.toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Fällige Geschwisterkarten begraben" })).not.toBeChecked();
+  await buryNew.check();
+  await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
+  await expect.poll(async () => (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id)?.deckSettings.buryNewSiblings).toBe(true);
+
+  const startLearning = async () => {
+    await page.goto(`/lernen?deck=${encodeURIComponent(deck.id)}`);
+    await page.getByTestId(`learn-deck-row-${deck.id}`).getByRole("button", { name: /lernen/ }).click();
+  };
+  await startLearning();
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await page.getByRole("button", { name: /Bewertung Leicht/ }).click();
+  await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
+
+  const answered = (await readActiveAccountState(page)).decks.find((candidate: { id: string }) => candidate.id === deck.id);
+  const buried = answered.cards.find((card: { study: { reps: number } }) => card.study.reps === 0);
+  const original = deck.cards.find((card) => card.id === buried.id)!;
+  expect(answered.reviewEvents).toHaveLength(1);
+  expect(comparableStudy(buried.study)).toEqual(comparableStudy(original.study));
+
+  await page.reload();
+  await startLearning();
+  await expect(page.getByRole("dialog", { name: "Keine fälligen Karten" })).toBeVisible();
+});
+
 test("[Vertrag: typgerechter Cloze-Lebenszyklus] @beta-core jede Lückengruppe bleibt eine unabhängige Karte", async ({ page }) => {
   const deckName = "Lebenszyklus Cloze";
   await openManualCreation(page, deckName, "cloze");

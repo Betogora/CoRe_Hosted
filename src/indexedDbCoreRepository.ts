@@ -5,7 +5,7 @@ import type { WorkspaceState } from "./coreWorkspace.ts";
 import type { CardTableSort, DeckLibrarySummary } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
-import type { ReviewAnswerResult } from "./reviewService.ts";
+import type { AnsweredTodayCard, ReviewAnswerResult } from "./reviewService.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
@@ -369,6 +369,35 @@ function writeState(database: IDBDatabase, state: WorkspaceState): Promise<void>
     } satisfies ReplicaStatus,
   });
   return transactionDone(transaction);
+}
+
+/**
+ * Cards answered today with their content: those of the studied decks and siblings of the loaded cards in other decks,
+ * so sibling burying holds for the whole learning day and across decks.
+ */
+async function loadAnsweredTodayFrom(
+  database: IDBDatabase,
+  reviewEvents: ReviewEvent[],
+  loadedNoteIds: string[],
+  deckIds: string[],
+  range: { start: number; end: number },
+): Promise<AnsweredTodayCard[]> {
+  const catalog = database.transaction(STORE.cardCatalog, "readonly").objectStore(STORE.cardCatalog);
+  const answeredIds = [...new Set(reviewEvents.filter((event) => event.rating !== "manual").map((event) => event.cardId))];
+  const [answeredRows, siblingRows] = await Promise.all([
+    Promise.all(answeredIds.map((id) => requestResult<StoredCardCatalog | undefined>(catalog.get(id)))),
+    Promise.all([...new Set(loadedNoteIds)].map((noteId) => requestResult<StoredCardCatalog[]>(catalog.index("noteId").getAll(noteId)))),
+  ]);
+  const scope = new Set(deckIds);
+  const outside = siblingRows.flat().filter((row) => !scope.has(row.deckId));
+  const answeredIndex = database.transaction(STORE.reviewEvents, "readonly").objectStore(STORE.reviewEvents).index("cardAnswered");
+  const start = new Date(range.start).toISOString();
+  const end = new Date(range.end).toISOString();
+  const outsideEvents = await Promise.all(outside.map((row) => requestResult<ReviewEvent[]>(answeredIndex.getAll(IDBKeyRange.bound([row.id, start, ""], [row.id, end, ""], false, true)))));
+  return [
+    ...answeredRows.flatMap((row) => row ? [{ cardId: row.id, noteId: row.noteId, deckId: row.deckId }] : []),
+    ...outside.flatMap((row, index) => outsideEvents[index].some((event) => event.rating !== "manual") ? [{ cardId: row.id, noteId: row.noteId, deckId: row.deckId }] : []),
+  ];
 }
 
 export async function createIndexedDbCoreRepository({ userId, initialState, indexedDb = globalThis.indexedDB }: IndexedDbRepositoryOptions) {
@@ -1843,6 +1872,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       limit?: number;
       cursorByDeck?: Record<string, { dueAt: string; id: string }>;
       cardIds?: string[];
+      /** Also returns the cards answered today that sibling burying needs; only set while a burying option is on. */
+      answeredSiblings?: boolean;
     } = {}) {
       await writeChain;
       const limit = Math.min(50, Math.max(1, Math.floor(options.limit ?? 50)));
@@ -1897,10 +1928,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const catalog = selectedCatalog.find((entry) => entry.id === card.id)!;
         cursorByDeck[card.deckId] = { dueAt: catalog.dueSort, id: card.id };
       }
+      const reviewEvents = reviewEventsByDeck.flat();
       return {
         cards: bodies.map(({ card }) => ({ deckId: card.deckId, card })),
         notes: [...new Map(bodies.map(({ note }) => [note.id, note])).values()],
-        reviewEvents: reviewEventsByDeck.flat(),
+        reviewEvents,
+        answeredToday: options.answeredSiblings && range
+          ? await loadAnsweredTodayFrom(database, reviewEvents, bodies.map(({ card }) => card.noteId), deckIds, range)
+          : [],
         cursorByDeck,
         hasMore: candidates.length > bodies.length || catalogByDeck.some((rows) => rows.length >= perDeckLimit),
       };

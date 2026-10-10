@@ -90,6 +90,10 @@ export interface LearningSettings {
   newReviewOrder: NewReviewOrder;
   newCardSortOrder: NewCardSortOrder;
   reviewCardSortOrder: ReviewCardSortOrder;
+  /** Anki's sibling burying: after a sibling was shown or answered, cards of this kind wait until the next learning day. */
+  buryNewSiblings: boolean;
+  buryReviewSiblings: boolean;
+  buryInterdayLearningSiblings: boolean;
   schedulerProfile: SchedulerProfile;
 }
 
@@ -134,6 +138,9 @@ export interface DeckSettings {
   newReviewOrder: NewReviewOrder;
   newCardSortOrder: NewCardSortOrder;
   reviewCardSortOrder: ReviewCardSortOrder;
+  buryNewSiblings: boolean;
+  buryReviewSiblings: boolean;
+  buryInterdayLearningSiblings: boolean;
   learningProfileSource: LearningProfileSource | null;
   newCardsTodayOverride: {
     date: string;

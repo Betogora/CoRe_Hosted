@@ -35,7 +35,12 @@ const reviewCardSortOptions = [
   { value: "most-overdue", label: "Längst fällig zuerst" },
   { value: "lowest-retrievability", label: "Wahrscheinlich vergessen zuerst" },
 ];
-const relearningStepOptions = [1, 3, 5, 10, 20, 30].map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
+const buryOptions = [
+  { key: "buryNewSiblings", label: "Neue Geschwisterkarten begraben", testId: "learning-settings-bury-new" },
+  { key: "buryReviewSiblings", label: "Fällige Geschwisterkarten begraben", testId: "learning-settings-bury-review" },
+  { key: "buryInterdayLearningSiblings", label: "Tagesübergreifende Lern-Geschwisterkarten begraben", testId: "learning-settings-bury-interday" },
+] as const;
+const relearningStepOptions =[1, 3, 5, 10, 20, 30].map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
 const variantThresholdOptions = [
   { value: "81", label: "Stabil · früher" },
   { value: "121", label: "CoRe-ready · Standard" },
@@ -236,6 +241,19 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
               <SelectField label="Fällige Karten sortieren" value={draft.reviewCardSortOrder} options={reviewCardSortOptions} testId="learning-settings-review-sort" onChange={(value) => editLearning({ reviewCardSortOrder: value })} />
             </div>
             {draft.reviewCardSortOrder === "lowest-retrievability" ? <p className="core-caption leading-5 text-core-muted">Zeigt zuerst Karten, die du wahrscheinlich eher vergessen hast.</p> : null}
+          </fieldset>
+
+          <fieldset className="mt-6 grid gap-3 border-t border-core-border pt-6">
+            <legend className="mb-1 core-body-large font-semibold text-core-text">Geschwisterkarten begraben</legend>
+            <p className="core-caption leading-5 text-core-muted">Karten aus demselben Inhalt warten nach einer Antwort bis zum nächsten Lerntag. Lernstand und Fälligkeit bleiben unverändert.</p>
+            <div className="grid gap-1">
+              {buryOptions.map((option) => (
+                <label key={option.key} className="flex min-h-control items-center gap-3 core-body text-core-text">
+                  <input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={draft[option.key]} data-testid={option.testId} onChange={(event) => editLearning({ [option.key]: event.target.checked })} />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           </fieldset>
         </SoftPanel>
       </section>

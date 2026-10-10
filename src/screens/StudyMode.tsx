@@ -49,7 +49,7 @@ function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS
   };
 }
 
-export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -107,6 +107,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
         easyDaysContext,
         language: "de",
         variantSession,
+        answeredToday,
       }),
     };
   }
@@ -160,6 +161,16 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
   }, [bufferSize, hasMoreCards]);
 
   React.useEffect(() => {
+    // A sibling buried by the last answer leaves the session and its counts.
+    const buried = new Set(queue.buriedKeys);
+    const newlyBuried = (reviewSession?.remainingInitialKeys ?? []).filter((key) => buried.has(key));
+    if (newlyBuried.length > 0) {
+      setPlannedSessionTotal((total) => Math.max(0, total - newlyBuried.length));
+      setSessionDailyProgress((progress) => newlyBuried.reduce((next, key) => {
+        const study = sessionIndexRef.current?.entriesByKey.get(key)?.card.study;
+        return study ? moveDailyReviewProgress(next, classifyDailyReviewProgress(study, false, getNow(), { dayStartHour, timeZone }), null) : next;
+      }, progress));
+    }
     setReviewSession((currentSession) => currentSession
       ? reconcileDailyReviewSessionState(currentSession, queue.items)
       : createDailyReviewSessionState(queue.items));
@@ -320,6 +331,7 @@ export function StudyMode({ deck, decks, notes, deckId, variantSession, mediaSto
       easyDaysContext: nextEasyDaysContext,
       language: "de",
       variantSession,
+      answeredToday,
     });
     const currentKey = current?.sessionInfo?.key ?? (current ? `${current.deckId}:${current.cardId}` : undefined);
 

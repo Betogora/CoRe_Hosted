@@ -107,7 +107,7 @@ Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ im Cutover verdrahte
 Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen; Startzeit neues Gerät offen
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        ✔ abgeschlossen
-Phase 7   Begraben von Geschwistern                     auf main
+Phase 7   Begraben von Geschwistern                     ✔ abgeschlossen; Zähler offen
 Phase 8   Gesamtabnahme
 ```
 
@@ -248,21 +248,14 @@ zurückgesetzt, Hosted-Smoke grün (siehe `history.md`). Offen ist nur noch:
 
 ## Phase 7 — Begraben von Geschwistern
 
-- [ ] **K7.1 Drei Lernoptionen** wie in Anki: neue Geschwister, Review-
-      Geschwister und tagesübergreifende Lerngeschwister begraben; Standard für
-      alle drei aus; in Lerneinstellungen, Stapeleinstellungen und Lernprofilen.
-      Wo: `src/deckSettings.ts`, `src/globalLearningDefaults.ts`,
-      `src/learningProfiles.ts`, `src/ui/LearningSettingsPanel.tsx`.
-- [ ] **K7.2 Queue-Regel.** Nach einer Antwort werden Geschwister in der
-      gewählten Phase bis zum nächsten Lerntag zurückgestellt, ohne Lernstand
-      oder Fälligkeit zu verändern; Reihenfolge der Bevorzugung wie in Anki.
-      Wo: `src/reviewService.ts`; „begraben“ ist Sitzungs- und
-      Lerntagszustand, kein persistiertes Feld.
-- [ ] **K7.3 Tests** für Tagesgrenze, Zeitsimulator, Unterstapel und
-      Limits.
+- [ ] **K7.4 Zähler mit Begraben.** Stapelliste, Lernstart und geplante
+      Sitzungsgröße zählen begrabene Geschwister heute als neu oder fällig.
+      Ziel: Die zählbasierten Summaries (`listDeckSummaries`, Cloud-Übersicht)
+      ziehen Geschwister heute beantworteter Inhalte ab, ohne große Stapel im
+      Listen- oder Lernstartpfad zu materialisieren.
 
-**Abnahme:** Scheduler-Tests grün; ausgeschaltete Optionen ändern das bisherige
-Verhalten nachweislich nicht.
+**Abnahme:** Stapelzähler und Sitzungsplan stimmen bei aktivem Begraben mit der
+Lernqueue überein; die Performance-Gates bleiben grün.
 
 ## Phase 8 — Gesamtabnahme
 
