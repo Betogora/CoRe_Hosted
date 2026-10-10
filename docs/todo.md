@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-08
+Stand: 2026-10-10
 
 Dieses Dokument enthält ausschließlich offene Arbeit. Es beschreibt die
 Roadmap für das neue Kartenmodell nach [ADR-032 bis ADR-036](decisions.md).
@@ -108,7 +108,7 @@ Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        ✔ abgeschlossen
 Phase 7   Begraben von Geschwistern                     ✔ abgeschlossen; Zähler offen
-Phase 8   Gesamtabnahme
+Phase 8   Gesamtabnahme                                 ✔ technisch abgeschlossen; wartet auf Phase 3 und 5
 ```
 
 Warum so: Wer `LearningItem` vor dem Datenbankumbau entfernt, bricht
@@ -245,18 +245,6 @@ sind bis dahin nur über die Matrix synthetisch belegt.
 
 **Abnahme:** Stapelzähler und Sitzungsplan stimmen bei aktivem Begraben mit der
 Lernqueue überein; die Performance-Gates bleiben grün.
-
-## Phase 8 — Gesamtabnahme
-
-- [ ] **K8.1** `npm test`, `gate:push`, `gate:nightly` und
-      `performance:measure:local` grün.
-- [ ] **K8.2** Vergleich mit der Ausgangsmessung in `history.md`: Speicher, Ladevolumen,
-      p95-Werte und Importzeiten.
-- [ ] **K8.3** Visuelle Pflichtmatrix für alle Screens, die Karten anzeigen
-      oder bearbeiten, mit Screenshots.
-- [ ] **K8.4** `specs.md`, `architecture.md`, `status.md`,
-      `anki-format-analysis.md`, `test-portfolio.md` und `AGENTS.md`
-      beschreiben ausschließlich das neue Modell.
 
 ## Planungsstand
 

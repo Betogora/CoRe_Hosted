@@ -785,14 +785,32 @@ video {
       line-height: var(--core-leading-heading-2);
     }
 
+    .core-question-type-control {
+      grid-auto-columns: auto;
+    }
+
     .core-question-type-control .core-segmented-control-option {
       white-space: normal;
+      hyphens: manual;
       padding-inline: 0.25rem;
       line-height: var(--core-leading-caption);
     }
 
     .core-learning-area-control .core-segmented-control-option {
       padding-inline: 0.25rem;
+    }
+  }
+
+  /* Four question types do not fit one row below 360 px; two rows keep every label inside its option. */
+  @media (max-width: 22.4375rem) {
+    .core-question-type-control {
+      height: auto;
+      grid-auto-flow: row;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .core-question-type-control .core-segmented-control-option {
+      min-height: calc(var(--core-control-height) - 0.5rem);
     }
   }
 
@@ -2055,6 +2073,9 @@ video {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.whitespace-normal {
+  white-space: normal;
 }
 .whitespace-nowrap {
   white-space: nowrap;
@@ -4555,6 +4576,10 @@ summary {
 
   .md\:hidden {
     display: none;
+  }
+
+  .md\:w-auto {
+    width: auto;
   }
 
   .md\:max-w-xl {
