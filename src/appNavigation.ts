@@ -49,8 +49,6 @@ export interface ViewRoute {
 export interface StudyRoute {
   mode: "study";
   deckId: string;
-  variantSession: boolean;
-  variantId?: string;
   returnContext: ReviewReturnContext;
 }
 
@@ -69,8 +67,6 @@ interface ReviewReturnContextInput {
 
 interface ReviewResumeContextInput {
   deckId?: unknown;
-  variantSession?: unknown;
-  variantId?: unknown;
   returnContext?: ReviewReturnContextInput;
 }
 
@@ -98,8 +94,6 @@ interface ViewRouteInput {
 type StudyRouteInput = {
   mode?: unknown;
   deckId?: unknown;
-  variantSession?: unknown;
-  variantId?: unknown;
   returnContext?: ReviewReturnContextInput;
   returnRoute?: ViewRouteInput;
 };
@@ -218,14 +212,10 @@ function normalizeReviewResumeContext(
   const deckId = cleanIdentifier(context?.deckId);
   if (
     !deckId
-    || typeof context?.variantSession !== "boolean"
-    || !reviewReturnViews.includes(String(context.returnContext?.view) as ReviewReturnView)
+    || !reviewReturnViews.includes(String(context?.returnContext?.view) as ReviewReturnView)
   ) return null;
-  const variantId = cleanIdentifier(context?.variantId);
   return {
     deckId,
-    variantSession: context?.variantSession === true || Boolean(variantId),
-    ...(variantId ? { variantId } : {}),
     returnContext: normalizeReviewReturnContext(context?.returnContext, deckId),
   };
 }
@@ -267,12 +257,9 @@ export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {
       ? legacyViewRouteToReturnContext(studyRoute.returnRoute, deckId)
       : undefined;
     const returnContext = normalizeReviewReturnContext(studyRoute.returnContext ?? legacyReturnContext, deckId);
-    const variantId = cleanIdentifier(studyRoute.variantId);
     return {
       mode: "study",
       deckId,
-      variantSession: studyRoute.variantSession === true || Boolean(variantId),
-      ...(variantId ? { variantId } : {}),
       returnContext,
     };
   }
@@ -307,12 +294,9 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
   if (pathSegments.length === 0) return createViewRoute(defaultViewId, {}, options);
   if (isReviewPath(pathSegments)) {
     const deckId = pathSegments[1];
-    const variant = cleanIdentifier(url.searchParams.get("variant"));
     return normalizeAppRoute({
       mode: "study",
       deckId,
-      variantSession: variant === "1" || Boolean(variant),
-      variantId: variant && variant !== "1" ? variant : undefined,
       returnContext: {
         view: url.searchParams.get("returnView") ?? undefined,
         deckId: url.searchParams.get("returnDeck") ?? undefined,
@@ -325,8 +309,6 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
   const reviewReturnRoute = reviewReturnValue ? parseAppRouteFromUrl(reviewReturnValue, options) : null;
   const cardEditorReturnContext = reviewReturnRoute?.mode === "study" ? {
     deckId: reviewReturnRoute.deckId,
-    variantSession: reviewReturnRoute.variantSession,
-    variantId: reviewReturnRoute.variantId,
     returnContext: reviewReturnRoute.returnContext,
   } : undefined;
   return normalizeAppRoute({
@@ -355,8 +337,6 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   const normalized = normalizeAppRoute(route, options);
   if (normalized.mode === "study") {
     const params = new URLSearchParams();
-    if (normalized.variantId) params.set("variant", normalized.variantId);
-    else if (normalized.variantSession) params.set("variant", "1");
     params.set("returnView", normalized.returnContext.view);
     if (normalized.returnContext.deckId) params.set("returnDeck", normalized.returnContext.deckId);
     if (normalized.returnContext.cardId) params.set("returnCard", normalized.returnContext.cardId);

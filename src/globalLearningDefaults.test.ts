@@ -22,7 +22,7 @@ test("new deck settings use the complete global learning default", () => {
   assert.equal(settings.maximumReviewsPerDay, 360);
   assert.equal(settings.variantThresholdXp, 181);
   assert.equal(settings.maxActiveVariantsPerCard, 3);
-  assert.equal(settings.coreMode, "auto");
+  assert.equal(settings.coreMode, "on");
 });
 
 test("applying global defaults preserves deck identity, appearance, cards, history and core mode", () => {
@@ -34,7 +34,7 @@ test("applying global defaults preserves deck identity, appearance, cards, histo
     reviewEvents: [{ id: "review-1" } as any],
     deckSettings: {
       ...createGlobalDefaultDeckSettings(getGlobalSchedulerPreferences({})),
-      coreMode: "manual",
+      coreMode: "off",
       appearance: { iconKey: "brain", iconColor: "#123456" },
       newCardsTodayOverride: { date: "2026-08-28", limit: 5 },
     },
@@ -46,7 +46,7 @@ test("applying global defaults preserves deck identity, appearance, cards, histo
   assert.strictEqual(applied.cards, deck.cards);
   assert.strictEqual(applied.reviewEvents, deck.reviewEvents);
   assert.deepEqual(applied.deckSettings.appearance, deck.deckSettings.appearance);
-  assert.equal(applied.deckSettings.coreMode, "manual");
+  assert.equal(applied.deckSettings.coreMode, "off");
   assert.equal(applied.deckSettings.newCardsPerDay, 48);
   assert.equal(applied.deckSettings.newCardsTodayOverride, null);
 });

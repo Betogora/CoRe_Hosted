@@ -5,14 +5,14 @@ import { buildSrcdoc } from "../presentationFrame.ts";
 import type { NotePresentationResult } from "../notePresentation.ts";
 import { CardPresentationSurface, fitReviewFrameToContent } from "./CardPresentationSurface.tsx";
 
-function fixture(diagnostics: NotePresentationResult["diagnostics"] = []): { presentation: NotePresentationResult } {
+function fixture(): { presentation: NotePresentationResult } {
   return {
     presentation: {
       srcdoc: buildSrcdoc('<img src="figure.png"><p>Abbildung</p>', "", "light"),
       accessibleText: "Abbildung",
       mediaReferences: ["figure.png"],
       interactions: [],
-      diagnostics,
+      diagnostics: [],
     },
   };
 }
@@ -34,34 +34,9 @@ test("renders a scriptless iframe and resolves only controlled media URLs", () =
   assert.doesNotMatch(markup, /tracker\.example/);
 });
 
-test("shows a color-independent compatibility warning with diagnostics", () => {
-  const rendered = fixture([{ code: "math-error", level: "warning", message: "Diese Formel konnte nicht dargestellt werden.", detail: "\frac" }]);
-  const markup = renderToStaticMarkup(<CardPresentationSurface {...rendered} title="Importierte Karte" showCompatibility="warnings-only" />);
-
-  assert.match(markup, /bekannten Abweichungen/);
-  assert.match(markup, /Formel konnte nicht dargestellt werden/);
-  const statusTag = markup.match(/<div[^>]*role="status"[^>]*>/)?.[0] ?? "";
-  const descriptionId = statusTag.match(/id="([^"]+)"/)?.[1];
-  assert.ok(descriptionId);
-  assert.ok(markup.includes(`aria-describedby="${descriptionId}"`));
-});
-
-test("hides equivalent compatibility advertising in warnings-only mode", () => {
-  const markup = renderToStaticMarkup(
-    <CardPresentationSurface
-      {...fixture()}
-      title="Importierte Vorderseite"
-      showCompatibility="warnings-only"
-    />,
-  );
-
-  assert.doesNotMatch(markup, /Originalgetreu und sicher dargestellt/);
-  assert.doesNotMatch(markup, /aria-describedby=/);
-});
-
 test("renders review content without a framed card surface", () => {
   const markup = renderToStaticMarkup(
-    <CardPresentationSurface {...fixture()} title="Reviewfrage" surface="review" showCompatibility={false} />,
+    <CardPresentationSurface {...fixture()} title="Reviewfrage" surface="review" />,
   );
 
   const iframe = markup.match(/<iframe[^>]+>/)?.[0] ?? "";

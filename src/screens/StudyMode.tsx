@@ -30,7 +30,7 @@ import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
-import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewEvent, ReviewRating } from "../coreTypes.ts";
+import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewRating } from "../coreTypes.ts";
 
 function formatLimitSummary(hiddenDueCount: number, hiddenNewCount: number) {
   const parts = [
@@ -49,7 +49,7 @@ function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS
   };
 }
 
-export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSession, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -84,7 +84,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSe
     dayStartHour,
     learnAheadMinutes,
     timeZone ?? null,
-    variantSession,
     easyDays,
     rootDeck?.deckSettings ?? null,
     sessionDecks.map((candidate) => `${candidate.id}:${candidate.updatedAt}:${candidate.cards.length}:${candidate.reviewEvents.length}:${candidate.cards.at(-1)?.id ?? ""}`),
@@ -105,8 +104,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSe
         learnAheadMinutes,
         timeZone,
         easyDaysContext,
-        language: "de",
-        variantSession,
         answeredToday,
       }),
     };
@@ -116,8 +113,8 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSe
   const [plannedSessionTotal, setPlannedSessionTotal] = React.useState(() => Math.max(0, sessionPlan?.initialCardCount ?? queue.total));
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   const current = React.useMemo(
-    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, language: "de", variantSession, sessionIndex: sessionIndexRef.current! }),
-    [dayStartHour, easyDaysContext, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone, variantSession],
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, sessionIndex: sessionIndexRef.current! }),
+    [dayStartHour, easyDaysContext, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone],
   );
   const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
   const sessionTotal = Math.max(plannedSessionTotal, effectiveReviewSession.initialKeys.length);
@@ -153,7 +150,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSe
     setShowSettings(false);
     setFeedbackStatus("");
     feedbackDeckRef.current = null;
-  }, [deckId, variantSession, decks.length]);
+  }, [deckId, decks.length]);
 
   React.useEffect(() => {
     setMoreCardsAvailable(hasMoreCards);
@@ -262,13 +259,11 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSe
   function grade(rating: ReviewRating) {
     if (!current || !currentDeck) return;
     const responseTimeMs = responseTimer.stop();
-    const reviewEvents = (sessionIndexRef.current?.reviewEventsByKey.get(current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`) ?? [])
-      .filter((event) => Boolean(event.id)) as ReviewEvent[];
     const feedbackCard = feedbackDeckRef.current?.cards.find((card) => card.id === current.cardId);
     const result = answerVariant({
       ...(feedbackDeckRef.current ?? currentDeck),
       cards: [feedbackCard ?? current.card],
-      reviewEvents,
+      reviewEvents: [],
     }, current.cardId, current.variant?.id ?? null, rating, {
       now: getNow(),
       dayStartHour,
@@ -329,8 +324,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, variantSe
       learnAheadMinutes,
       timeZone,
       easyDaysContext: nextEasyDaysContext,
-      language: "de",
-      variantSession,
       answeredToday,
     });
     const currentKey = current?.sessionInfo?.key ?? (current ? `${current.deckId}:${current.cardId}` : undefined);

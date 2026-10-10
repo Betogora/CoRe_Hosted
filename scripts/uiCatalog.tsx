@@ -4,7 +4,6 @@ import { Search } from "lucide-react";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
 import { DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
-import { loadDeferredBrowserAssets } from "../src/deferredBrowserAssets.ts";
 
 export interface CatalogData {
   components: { name: string; file: string; group: string; usage: number; usedIn: string[] }[];
@@ -198,5 +197,4 @@ function CardBlocks() {
   </CatalogFrame></SuccessToastProvider></CoreTooltipProvider>;
 }
 
-loadDeferredBrowserAssets(document);
 createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardBlocks /> : <Catalog />);

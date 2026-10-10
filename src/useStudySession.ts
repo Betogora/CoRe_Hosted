@@ -59,7 +59,6 @@ function groupByDeck<T extends { deckId: string }>(items: readonly T[]): Map<str
 async function prepareStudyWindow(
   context: StudySessionContext,
   deckId: string,
-  variantSession: boolean,
   cursorByDeck: Record<string, StudyWindowCursor>,
 ): Promise<StudyPreparation | null> {
   const { workspaceRepository, workspaceHydrationService, now, dayStartHour, learnAheadMinutes, timeZone } = context;
@@ -79,7 +78,7 @@ async function prepareStudyWindow(
       if (!summary) return [];
       return [{ ...summary, cards: (cardsByDeck.get(id) ?? []).map(({ card }) => card), reviewEvents: eventsByDeck.get(id) ?? [] } as Deck];
     });
-    const queue = createDailyReviewQueue(decks, { deckId, now, dayStartHour, learnAheadMinutes, timeZone, variantSession, answeredToday: session.answeredToday });
+    const queue = createDailyReviewQueue(decks, { deckId, now, dayStartHour, learnAheadMinutes, timeZone, answeredToday: session.answeredToday });
     const cursorAdvanced = Object.entries(session.cursorByDeck).some(([candidateDeckId, cursor]) => {
       const previous = nextCursorByDeck[candidateDeckId];
       const queueRank = "queueRank" in cursor ? cursor.queueRank : undefined;
@@ -115,10 +114,9 @@ export function useStudySession(context: StudySessionContext) {
   const { workspaceRepository, workspaceHydrationService, latestStateRef, now, dayStartHour, learnAheadMinutes, timeZone } = context;
 
   const prepare = React.useCallback(
-    (deckId: string, variantSession: boolean, cursorByDeck: Record<string, StudyWindowCursor> = {}) => prepareStudyWindow(
+    (deckId: string, cursorByDeck: Record<string, StudyWindowCursor> = {}) => prepareStudyWindow(
       { workspaceRepository, workspaceHydrationService, latestStateRef, now, dayStartHour, learnAheadMinutes, timeZone },
       deckId,
-      variantSession,
       cursorByDeck,
     ),
     [dayStartHour, latestStateRef, learnAheadMinutes, now, timeZone, workspaceHydrationService, workspaceRepository],
@@ -144,8 +142,8 @@ export function useStudySession(context: StudySessionContext) {
   }, []);
 
   /** Loads the next window and merges it into the running session. */
-  const loadMore = React.useCallback(async (deckId: string, variantSession: boolean) => {
-    const preparation = await prepare(deckId, variantSession, cursorRef.current);
+  const loadMore = React.useCallback(async (deckId: string) => {
+    const preparation = await prepare(deckId, cursorRef.current);
     if (!preparation) return { decks: [], notes: [], hasMoreCards: false, bufferSize };
     cursorRef.current = preparation.cursorByDeck;
     setHasMoreCards(preparation.hasMoreCards);

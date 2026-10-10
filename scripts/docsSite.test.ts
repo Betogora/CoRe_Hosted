@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
-import { codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection } from "./generateDocs.ts";
+import { codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, specsCatalog } from "./generateDocs.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
@@ -53,6 +53,41 @@ test("Journey-Projektion erhält sämtliche Akzeptanzregeln der sieben Kernjourn
     const rendered = renderMarkdown(rule[0], "specs.md").match(/<li>([\s\S]*?)<\/li>/)?.[1];
     assert.ok(rendered && html.includes(rendered), `Akzeptanz fehlt: ${rule[1].slice(0, 80)}`);
   }
+});
+
+test("Specs-Leseansicht bildet Titel, Kapitel und Unterabschnitte auf Hero, Kapitel und Karten ab", () => {
+  const html = specsCatalog([
+    "# Vertrag", "", "**Status:** Entwurf", "**Stand:** 2026-01-01", "", "Einleitung mit [Docs](README.md).", "", "---", "",
+    "## 1. Begriffe", "", "| A | B |", "| --- | --- |", "| 1 | 2 |", "",
+    "## 2. Abläufe", "", "Einführung.", "", "- Vorab", "",
+    "### 2.1 Kurz", "", "Text.", "", "Akzeptanz:", "", "- Punkt", "", "#### Detail", "", "Mehr.", "",
+    "### 2.2 Lang", "", ...Array.from({ length: 7 }, (_, index) => `- Regel ${index}`), "",
+  ].join("\n"));
+  assert.match(html, /<header class="catalog-hero">[\s\S]*<h1 id="specs--vertrag">Vertrag<\/h1><p class="catalog-lede">Einleitung mit <a href="index.html#readme--document">/);
+  assert.match(html, /<ul class="specs-meta"><li class="core-status-label"><span>Status<\/span> Entwurf<\/li><li class="core-status-label"><span>Stand<\/span> 2026-01-01<\/li><\/ul>/);
+  assert.deepEqual([...html.matchAll(/<nav class="catalog-nav"[\s\S]*?<\/nav>/g)][0][0].match(/href="#[^"]+"/g), ['href="#specs--1-begriffe"', 'href="#specs--2-abläufe"']);
+  assert.match(html, /<section id="specs--1-begriffe" class="catalog-section"><div class="catalog-section-heading"><h2>1\. Begriffe<\/h2><\/div><div class="catalog-grid"><article id="specs--1-begriffe--inhalt" class="catalog-card catalog-card-wide"><div class="catalog-preview specs-prose"><div class="docs-table-scroll"/);
+  assert.match(html, /<h2>2\. Abläufe<\/h2><p>Einführung\.<\/p>\n*<\/div>/);
+  assert.match(html, /id="specs--2-abläufe--überblick" class="catalog-card"><div class="catalog-card-header"><h3>Überblick<\/h3>/);
+  assert.match(html, /id="specs--21-kurz" class="catalog-card"><div class="catalog-card-header"><h3>2\.1 Kurz<\/h3>[\s\S]*<p class="catalog-label">Akzeptanz<\/p>[\s\S]*<h4 id="specs--detail" class="catalog-label" tabindex="-1">Detail<\/h4>/);
+  assert.match(html, /id="specs--22-lang" class="catalog-card catalog-card-wide"/);
+  assert.match(html, /<div class="catalog-toolbar"[^>]*><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen<\/span><svg[\s\S]*?<input id="specs-search" type="search"/);
+  assert.match(html, /<p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche\.<\/p>/);
+});
+
+test("Specs-Leseansicht enthält je Kapitel einen Navigationseintrag, je Unterabschnitt eine Karte und gültige Anker", () => {
+  const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
+  const html = specsCatalog(specs);
+  const ids = new Set([...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1]));
+  const outline = specs.replace(/^```[\s\S]*?^```/gm, "");
+  const chapters = [...outline.matchAll(/^## (.+)$/gm)].map((match) => `specs--${markdownAnchor(match[1])}`);
+  const nav = html.match(/<nav class="catalog-nav"[\s\S]*?<\/nav>/)![0];
+  assert.deepEqual([...nav.matchAll(/href="#([^"]+)"/g)].map((match) => match[1]), chapters);
+  for (const id of chapters) assert.match(html, new RegExp(`<section id="${id}" class="catalog-section">`));
+  for (const [, title] of outline.matchAll(/^### (.+)$/gm)) assert.match(html, new RegExp(`<article id="specs--${markdownAnchor(title)}" class="catalog-card`), title);
+  for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Anker #${anchor} fehlt`);
+  for (const [, anchor] of journeyProjection(specs).matchAll(/href="specs\.html#([^"]+)"/g)) assert.ok(ids.has(anchor), `Journey-Anker ${anchor} fehlt`);
+  assert.ok(ids.has("specs--document") && ids.has("specs--5-kernjourneys"));
 });
 
 test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte ins Ringdiagramm", () => {

@@ -58,7 +58,7 @@ export interface CreationScreenProps {
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
-  onStartDeck: (deck: Deck, variantSession?: boolean) => void;
+  onStartDeck: (deck: Deck) => void;
   onReviewDeck: (deckId?: string | null) => void;
   onOpenDashboard: () => void;
 }
@@ -69,7 +69,7 @@ export interface DashboardScreenProps {
   studyHeatmap?: StudyHeatmapModel;
   now: string;
   onNavigate: NavigateToView;
-  onStartDeck: (deck: Deck, variantSession?: boolean) => void;
+  onStartDeck: (deck: Deck) => void;
   onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
   onCreateDemo: () => Promise<Deck[] | null>;
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
@@ -166,7 +166,7 @@ export interface LearnScreenProps {
   dayStartHour?: number;
   learnAheadMinutes?: number;
   timeZone?: string;
-  onStartDeck: (deck: Deck, variantSession?: boolean) => void;
+  onStartDeck: (deck: Deck) => void;
   onCreateDeck: (input: CreateDeckInput) => Deck | null;
   focusedDeckId: string | null;
   initialParentDeckId: string;
@@ -232,8 +232,6 @@ export interface StudyModeProps {
   /** Cards answered earlier today, for sibling burying. */
   answeredToday?: readonly AnsweredTodayCard[];
   deckId: string;
-  variantSession: boolean;
-  variantId?: string;
   mediaStore: AccountMediaStore | null;
   getNow: () => string;
   learningDayKey?: string;

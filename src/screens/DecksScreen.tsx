@@ -5,7 +5,7 @@ import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { addNoteField, canRemoveNoteField, noteBlocks, noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, removeNoteField, renameNoteField, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
-import { classifyCardEligibility, createVariantReviewModel } from "../coreVariantService.ts";
+import { classifyCardEligibility, describeVariantReadiness } from "../coreVariantService.ts";
 import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
@@ -26,7 +26,6 @@ import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockContro
 import { OcclusionEditor } from "../ui/OcclusionEditor.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { formatLevelList, getStateValue, maturityStageLabels } from "./screenConstants.ts";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
 
@@ -200,10 +199,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const structureEditable = note.importedContentRevision === null;
   const draftDirty = serializedForm !== savedForm;
   const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
-  const variantReviewModel = React.useMemo(
-    () => card ? createVariantReviewModel(card, deck.reviewEvents ?? [], { now }) : null,
-    [card, deck.reviewEvents, now],
-  );
+  const variantReadiness = React.useMemo(() => card ? describeVariantReadiness(card, deck.deckSettings) : null, [card, deck.deckSettings]);
   const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
   const draftPlan = React.useMemo(() => {
     if (!draftDirty) return null;
@@ -254,7 +250,6 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
 
   if (!card) return null;
 
-  const { maturity, readiness, coverage } = variantReviewModel!;
   const variants = (card.variants ?? []).filter((variant) => !variant.deletedAt);
   const hasOutdatedVariants = variants.some((variant) => variant.meta.outdated === true);
   const labelOptions = { dayStartHour, timeZone };
@@ -637,22 +632,16 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       </div>
       <section className="mt-6 min-w-0" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
         <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten und Lernwerte</h3>
-        <div className="mt-4 grid min-w-0 gap-4 lg:grid-cols-[repeat(3,minmax(0,1fr))]">
+        <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2">
         <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold text-core-muted">Reifegrad</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{(maturityStageLabels as Record<string, string>)[maturity.stage] ?? maturity.label}</p>
-          <p className="mt-1 core-body text-core-muted">Score {maturity.score} · {maturity.description}</p>
-          <p className="mt-2 core-caption text-core-muted">Stability {getStateValue(card.study, "stability")} · Difficulty {getStateValue(card.study, "difficulty")} · Reps {getStateValue(card.study, "reps")}</p>
+          <p className="core-caption font-semibold text-core-muted">Lernstufe</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{variantReadiness!.maturityXp} von {variantReadiness!.thresholdXp} XP</p>
+          <p className="mt-1 break-words core-body text-core-muted">{variantReadiness!.reason}</p>
         </div>
         <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold text-core-muted">Variantenbereitschaft</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{formatLevelList(readiness.allowedLevels)}</p>
-          <p className="mt-1 break-words core-body text-core-muted">Bevorzugt Level {readiness.preferredLevel}. {readiness.reason}</p>
-        </div>
-        <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold text-core-muted">Variantenabdeckung</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{coverage.activeRephraseCount} nahe Varianten</p>
-          <p className="mt-1 break-words core-body text-core-muted">{coverage.hasEnoughVariants ? "Genug Varianten vorhanden." : "Weitere nahe Umformulierungen möglich."}</p>
+          <p className="core-caption font-semibold text-core-muted">Aktive Varianten</p>
+          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{variantReadiness!.activeCount} von {variantReadiness!.maxActive}</p>
+          <p className="mt-1 break-words core-body text-core-muted">Höchstzahl laut Stapeleinstellungen.</p>
         </div>
         </div>
         <div className="mt-6 min-w-0 rounded-control border border-core-border bg-core-surface p-4">
@@ -668,7 +657,6 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               <article key={variant.id} className="min-w-0 rounded-control border border-core-border bg-core-subtle p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
                   <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
-                  <span>Level {variant.variantLevel}</span>
                   {variant.meta.outdated === true
                     ? <span className="rounded-inset bg-core-warning-soft px-2 py-1 text-core-text">veraltet</span>
                     : <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>}
@@ -676,7 +664,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
                 <p className="break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
                 <p className="mt-1 break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
                 {variant.meta.outdated === true ? <p className="mt-2 core-caption text-core-muted">Frage oder Antwort wurden geändert; diese Umformulierung wird nicht mehr abgefragt.</p> : null}
-                <p className="mt-2 core-caption text-core-muted">Attempts {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
+                <p className="mt-2 core-caption text-core-muted">Abgefragt {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
               </article>
           ))}
         </div>

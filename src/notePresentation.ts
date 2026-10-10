@@ -324,7 +324,7 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
     : `${surface === "review" ? "" : question}<hr class="core-card-answer-separator"/>${answer}${supplements()}`;
   const colors = Object.entries(theme.colors).map(([name, value]) => `--core-${name}:${value}`).join(";");
   return {
-    srcdoc: buildSrcdoc(body, `:root{${colors}}${NOTE_CARD_CSS}${mathCss}`, theme.mode, "", surface === "review"),
+    srcdoc: buildSrcdoc(body, `:root{${colors}}${NOTE_CARD_CSS}${mathCss}`, theme.mode, surface === "review"),
     accessibleText: notePlainText(body),
     mediaReferences: noteContentMediaRefs(content),
     interactions: [...interactions],

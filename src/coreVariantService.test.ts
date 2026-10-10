@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
-import { cardVariantSource, classifyCardEligibility, variantPresentation } from "./coreVariantService.ts";
-import type { NoteContent } from "./coreTypes.ts";
+import { cardVariantSource, classifyCardEligibility, describeVariantReadiness, selectReviewVariant, variantPresentation } from "./coreVariantService.ts";
+import type { Card, NoteContent } from "./coreTypes.ts";
+
+const ON = { coreMode: "on", variantThresholdXp: 121, maxActiveVariantsPerCard: 2 } as const;
+
+/** A review card at the given learning level with two rephrasings created one after another. */
+function matureCard(maturityXp = 140, reps = 0): Card {
+  const { cards } = createBasicNote("deck", "Frage", "Antwort");
+  const base: Card = { ...cards[0], study: { ...cards[0].study, state: "review", reps, lastRating: "good", extra: { ...cards[0].study.extra, maturityXp } } };
+  const first = addCardVariant(base, { id: "v1", front: "F1", back: "A" }, "2026-10-01T08:00:00.000Z");
+  return addCardVariant(first, { id: "v2", front: "F2", back: "A" }, "2026-10-02T08:00:00.000Z");
+}
 
 test("Variantenquelle liefert reinen Text der Abfrage, auch für die Rückrichtung", () => {
   const { note, cards } = createBasicNote("deck", "<p>Was ist <b>ATP</b> genau?&nbsp;</p>", "<p>Energieträger</p>", { reverse: true });
@@ -32,14 +42,15 @@ test("Lückentext und Auswahl liefern keine Variantenquelle und sind nicht geeig
     assert.equal(cardVariantSource(note, cards[0]), null);
     const eligibility = classifyCardEligibility(note, cards[0]);
     assert.equal(eligibility.eligible, false);
-    assert.deepEqual(eligibility.blockedTransforms, ["rephrase"]);
-    assert.equal(eligibility.cardId, cards[0].id);
   }
 });
 
-test("Eignung hängt vom CoRe-Modus und vollständiger Frage und Antwort ab", () => {
+test("Eignung hängt vom CoRe-Modus, vollständiger Frage und Antwort und der Variantenhöchstzahl ab", () => {
   const { note, cards } = createBasicNote("deck", "Frage", "Antwort");
-  assert.deepEqual(classifyCardEligibility(note, cards[0]), { eligible: true, reasons: [], blockedTransforms: [], cardId: cards[0].id });
+  assert.deepEqual(classifyCardEligibility(note, cards[0]), { eligible: true, reasons: [] });
+  const full = addCardVariant(addCardVariant(cards[0], { front: "F1", back: "A" }), { front: "F2", back: "A" });
+  assert.match(classifyCardEligibility(note, full).reasons[0], /bereits 2 aktive Varianten/);
+  assert.equal(classifyCardEligibility(note, full, { maxActiveVariantsPerCard: 3 }).eligible, true);
   const off = classifyCardEligibility(note, cards[0], { coreMode: "off" });
   assert.equal(off.eligible, false);
   assert.match(off.reasons[0], /ausgeschaltet/);
@@ -76,4 +87,30 @@ test("Variantendarstellung ersetzt Frage und Antwort und behält Zusatzfelder, T
   assert.equal(presented.card.study, card.study);
   assert.equal(presented.card.noteId, card.noteId);
   assert.equal(note.content.fields[0].html, "Original-Frage");
+});
+
+test("Review wechselt reife Karten reihum zwischen Karte und Varianten ab", () => {
+  assert.deepEqual([0, 1, 2, 3].map((reps) => selectReviewVariant(matureCard(140, reps), ON)?.id ?? null), [null, "v1", "v2", null]);
+});
+
+test("Review zeigt die Karte selbst bei ausgeschaltetem CoRe, unter der Lernstufe, in Lernphasen und nach einem Fehler", () => {
+  const card = matureCard(140, 1);
+  assert.equal(selectReviewVariant(card, { ...ON, coreMode: "off" }), null);
+  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdXp: 181 }), null);
+  assert.equal(selectReviewVariant({ ...card, study: { ...card.study, state: "relearning" } }, ON), null);
+  assert.equal(selectReviewVariant({ ...card, study: { ...card.study, lastRating: "again" } }, ON), null);
+  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdXp: 81 })?.id, "v1");
+});
+
+test("Review fragt höchstens so viele Varianten ab, wie der Stapel erlaubt", () => {
+  assert.deepEqual([0, 1, 2].map((reps) => selectReviewVariant(matureCard(140, reps), { ...ON, maxActiveVariantsPerCard: 1 })?.id ?? null), [null, "v1", null]);
+});
+
+test("Bereitschaft nennt Lernstufe, Schwelle und Variantenzahl des Stapels", () => {
+  assert.deepEqual(
+    { ...describeVariantReadiness(matureCard(90), { variantThresholdXp: 121 }), reason: "" },
+    { maturityXp: 90, thresholdXp: 121, ready: false, reason: "", activeCount: 2, maxActive: 2 },
+  );
+  assert.equal(describeVariantReadiness(matureCard(140)).ready, true);
+  assert.match(describeVariantReadiness(matureCard(140), { coreMode: "off" }).reason, /ausgeschaltet/);
 });

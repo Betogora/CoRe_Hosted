@@ -1251,10 +1251,6 @@ async function insertRowsReturning(client: any, table: any, rows: any) {
   return inserted;
 }
 
-export async function softDeleteEntity(client: any, input: any, options: any = {}) {
-  return softDeleteEntityForUser(client, await getAuthenticatedUser(client), input, options);
-}
-
 export interface CloudEntityPage {
   table: AccountTable;
   entities: any[];

@@ -1,7 +1,7 @@
 import React from "react";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
 import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
-import { createDeckLibraryModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
+import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
@@ -159,7 +159,7 @@ function DailyLearningOverview({
       setAdditionalDialogOpen(true);
       return;
     }
-    if (firstStartableDeck) onStartDeck(firstStartableDeck, false);
+    if (firstStartableDeck) onStartDeck(firstStartableDeck);
   }
 
   return (
@@ -237,10 +237,15 @@ function DailyLearningOverview({
 export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
-    () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries, studyHeatmap: loadedHeatmap }),
-    [deckSummaries, globalSettings.dayStartHour, globalSettings.learnAheadMinutes, loadedHeatmap, now, state.decks, state.profile.timezone],
+    () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries }),
+    [deckSummaries, globalSettings.dayStartHour, globalSettings.learnAheadMinutes, now, state.decks, state.profile.timezone],
   );
-  const { dailyLearningPlan, studyHeatmap } = library;
+  const { dailyLearningPlan } = library;
+  const timeZone = state.profile.timezone || undefined;
+  const studyHeatmap = React.useMemo(
+    () => loadedHeatmap ?? createStudyHeatmapModel(state.decks, { now, timeZone, dayStartHour: globalSettings.dayStartHour }),
+    [globalSettings.dayStartHour, loadedHeatmap, now, state.decks, timeZone],
+  );
   const displayName = state.profile?.displayName?.trim();
   const welcomeTitle = displayName ? <><span className="sr-only">Willkommen zurück, </span><span className="core-dashboard-name">{displayName}!</span></> : "Willkommen bei CoRe";
   const welcomeEyebrow = displayName ? <span aria-hidden="true" className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined;
@@ -267,7 +272,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
         <SoftPanel className="p-6">
           <h2 className="core-heading-3 font-semibold text-core-text">Das macht CoRe</h2>
           <ul className="mt-6 grid gap-3 md:grid-cols-3">
-            {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Original und Quelle bleiben sichtbar."].map((point) => (
+            {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Die Originalkarte bleibt erhalten."].map((point) => (
               <li key={point} className="flex gap-3 core-body leading-6 text-core-secondary">
                 <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-core-text" aria-hidden="true" />
                 {point}
@@ -301,7 +306,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
           <CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle ansehen</CrossLinkButton>
         )}
         onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
-        onStudy={(row) => onStartDeck(row.deck, false)}
+        onStudy={(row) => onStartDeck(row.deck)}
         onOpenSettings={onOpenDeckSettings}
         onSetDeckCoreMode={onSetDeckCoreMode}
         onMoveDeck={onMoveDeck}

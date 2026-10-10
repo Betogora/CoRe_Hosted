@@ -3,7 +3,7 @@ import { REVIEW_RATINGS, getMaturityBand, stableContentHash } from "./coreValues
 
 type StringMap = Record<string, unknown>;
 type ReviewStateInput = Partial<Omit<ReviewState, "state" | "reps">> & { state?: ReviewSchedulerState | null; reps?: number | null };
-interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> { id?: string | null; ratingCounts?: Partial<Record<ReviewRating, number>>; attempts?: number | null; }
+interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "attempts">> { id?: string | null; attempts?: number | null; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
 
 /** Normalizes a flat scheduler state; unknown keys of older snapshots are ignored. */
@@ -21,11 +21,6 @@ export function createReviewState(input: unknown = {}): ReviewState {
     maturityXp = 0,
     lastReviewedAt = null,
     lastRating = null,
-    preferredVariantLevel = 1,
-    forcedVariantId = null,
-    fallbackUntilCorrect = false,
-    lastFailedVariantId = null,
-    previousSuccessfulVariantId = null,
     intervalMinutes = null,
     learningStepIndex = 0,
     learningSuccessCount = 0,
@@ -52,11 +47,6 @@ export function createReviewState(input: unknown = {}): ReviewState {
     maturityBand: getMaturityBand(normalizedMaturityXp),
     lastReviewedAt,
     lastRating,
-    preferredVariantLevel: Math.min(3, Math.max(1, Math.round(Number(preferredVariantLevel) || 1))),
-    forcedVariantId,
-    fallbackUntilCorrect: Boolean(fallbackUntilCorrect),
-    lastFailedVariantId,
-    previousSuccessfulVariantId,
     intervalMinutes: intervalMinutes == null ? null : Math.max(0, Math.round(Number(intervalMinutes) || 0)),
     learningStepIndex: Math.max(0, Math.round(Number(learningStepIndex) || 0)),
     learningSuccessCount: Math.max(0, Math.round(Number(learningSuccessCount) || 0)),
@@ -87,11 +77,6 @@ export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
       desiredRetention: state.desiredRetention,
       maturityXp: state.maturityXp,
       maturityBand: state.maturityBand,
-      preferredVariantLevel: state.preferredVariantLevel,
-      forcedVariantId: state.forcedVariantId,
-      fallbackUntilCorrect: state.fallbackUntilCorrect,
-      lastFailedVariantId: state.lastFailedVariantId,
-      previousSuccessfulVariantId: state.previousSuccessfulVariantId,
       intervalMinutes: state.intervalMinutes,
       learningSuccessCount: state.learningSuccessCount,
       firstLearningAt: state.firstLearningAt,
@@ -120,50 +105,29 @@ export function createVariantPerformance({
   variantId = "",
   userId = "local-user",
   attempts = null,
-  reviewCount = 0,
   correctCount = 0,
   wrongCount = 0,
-  ratingCounts = {},
-  avgResponseTimeMs = null,
   averageResponseTimeMs = null,
   lastReviewedAt = null,
-  lastRating = null,
-  localDifficultyEstimate = null,
-  masterySignal = null,
-  maturityXp = 0,
   createdAt = new Date().toISOString(),
   updatedAt = createdAt,
 }: VariantPerformanceInput = {}): VariantPerformance {
-  const normalizedAttempts = Math.max(0, Number(attempts ?? reviewCount) || 0);
-  const normalizedAverageResponseTimeMs = averageResponseTimeMs ?? avgResponseTimeMs;
-
   return {
     id: id ?? stableContentHash({ cardId, variantId, userId }, "variant_perf"),
     cardId,
     variantId,
     userId,
-    attempts: normalizedAttempts,
-    reviewCount: normalizedAttempts,
+    attempts: Math.max(0, Number(attempts) || 0),
     correctCount: Math.max(0, Number(correctCount) || 0),
     wrongCount: Math.max(0, Number(wrongCount) || 0),
-    ratingCounts: {
-      again: Math.max(0, Number(ratingCounts.again) || 0),
-      hard: Math.max(0, Number(ratingCounts.hard) || 0),
-      good: Math.max(0, Number(ratingCounts.good) || 0),
-      easy: Math.max(0, Number(ratingCounts.easy) || 0),
-    },
-    avgResponseTimeMs: normalizedAverageResponseTimeMs,
-    averageResponseTimeMs: normalizedAverageResponseTimeMs,
+    averageResponseTimeMs,
     lastReviewedAt,
-    lastRating,
-    localDifficultyEstimate,
-    masterySignal,
-    maturityXp: Math.max(0, Math.round(Number(maturityXp) || 0)),
     createdAt,
     updatedAt,
   };
 }
 
+/** Counts one answer of a variant; its study state stays on the card. */
 export function updateVariantPerformance(
   performance: VariantPerformanceInput = {},
   rating: ReviewRating,
@@ -181,29 +145,17 @@ export function updateVariantPerformance(
   const previous = createVariantPerformance({ ...(performance ?? {}), cardId, variantId });
   const attempts = previous.attempts + 1;
   const isCorrect = rating !== "again";
-  const previousAverage = Number(previous.avgResponseTimeMs ?? previous.averageResponseTimeMs ?? 0);
-  const avgResponseTimeMs =
-    responseTimeMs == null
-      ? previous.avgResponseTimeMs
-      : Math.round(((previousAverage * previous.attempts) + Number(responseTimeMs)) / attempts);
-  const masterySignal =
-    rating === "easy" ? "strong" : rating === "good" ? "steady" : rating === "hard" ? "weak" : "failed";
+  const averageResponseTimeMs = responseTimeMs == null
+    ? previous.averageResponseTimeMs
+    : Math.round(((Number(previous.averageResponseTimeMs ?? 0) * previous.attempts) + Number(responseTimeMs)) / attempts);
 
   return createVariantPerformance({
     ...previous,
     attempts,
-    reviewCount: attempts,
     correctCount: previous.correctCount + (isCorrect ? 1 : 0),
     wrongCount: previous.wrongCount + (isCorrect ? 0 : 1),
-    ratingCounts: {
-      ...previous.ratingCounts,
-      [rating]: (previous.ratingCounts?.[rating] ?? 0) + 1,
-    },
-    avgResponseTimeMs,
-    averageResponseTimeMs: avgResponseTimeMs,
+    averageResponseTimeMs,
     lastReviewedAt: reviewedAt,
-    lastRating: rating,
-    masterySignal,
     updatedAt: reviewedAt,
   });
 }

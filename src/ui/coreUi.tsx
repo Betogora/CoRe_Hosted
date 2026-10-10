@@ -362,8 +362,7 @@ export interface CoreSegmentedControlProps<T extends string> {
 
 const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
   { value: "off", label: "Aus" },
-  { value: "auto", label: "Auto" },
-  { value: "manual", label: "Manuell" },
+  { value: "on", label: "An" },
 ];
 const useSelectionLayoutEffect = typeof window === "undefined" ? React.useEffect : React.useLayoutEffect;
 

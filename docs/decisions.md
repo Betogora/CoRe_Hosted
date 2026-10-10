@@ -321,3 +321,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Online startet die im Browser gespeicherte Supabase-Sitzung (`getSession()`) die accountgebundene Shell und den Bootstrap sofort; `getUser()` bestätigt die Sitzung parallel. Lehnt der Server sie ab, meldet er einen anderen Nutzer oder scheitert die Bestätigung mit einem Nicht-Netzwerkfehler, verwirft CoRe den laufenden Start, meldet die Sitzung lokal ab und zeigt die Anmeldung. Offline, ohne gespeicherte Sitzung und beim Passwort-Recovery bleibt die sequenzielle Prüfung.
 **Konsequenzen:** Bis zur Bestätigung laufen nur Abrufe, die der Server ohnehin mit dem gespeicherten Token autorisiert; es werden keine Daten eines anderen Accounts sichtbar. Ein verworfener Start beendet seine Bootstrap-Wiederholungen. ADR-024 bleibt ansonsten gültig.
 **Datum:** 2026-10-10
+
+## ADR-039 — CoRe-Modus An/Aus und wirksame Variantenregeln
+
+**Status:** angenommen
+**Kontext:** Der CoRe-Modus bot `Aus`, `Auto` und `Manuell`; `Auto` und `Manuell` verhielten sich gleich, eine automatische Variantenerzeugung gab es nicht, und `Aus` wirkte nur auf den Erzeugen-Button. Die Stapelwerte `Varianten einsetzen ab Lernstufe` und `Aktive Varianten pro Karte` wurden gespeichert, aber nie ausgewertet. Im Review kam die Originalkarte nach der ersten Variante nicht wieder, und nach einem Fehler gab es keinen Rückfall auf das Original.
+**Entscheidung:** Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten werden ausschließlich manuell erzeugt; Erzeugen ist bei `Aus` und bei erreichter Höchstzahl aktiver Varianten gesperrt. Im Review wechselt eine Karte nur bei `An`, in der Reviewphase, ohne aktuelle `Nochmal`-Bewertung und ab der Lernstufen-Schwelle des Stapels reihum zwischen sich selbst und ihren ältesten aktiven Varianten bis zur Höchstzahl. Rückfall-, Bevorzugungs- und Ausschlussfelder ohne Wirkung entfallen.
+**Konsequenzen:** Unbekannte gespeicherte Moduswerte normalisieren auf `An`, ohne eigenen Umwandlungspfad. Eine automatische Erzeugung bei Reife bleibt eine spätere Produktentscheidung mit eigener Kosten- und Datenschutzbewertung. Die Variantenwahl ist eine reine Funktion von Stapeleinstellungen und Lernstand und braucht keine Reviewhistorie.
+**Datum:** 2026-10-10

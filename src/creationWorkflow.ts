@@ -1,5 +1,5 @@
 import { createManualNoteContent, createOcclusionNoteContent, parseNoteContent, validateManualNoteInput, validateOcclusionInput, type ManualContentKind, type ManualNoteErrors, type ManualNoteInput, type OcclusionMode } from "./coreModel.ts";
-import { createDocumentFromFile, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "./documentModel.ts";
+import { createDocumentFromFile } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
 import { createAccountMediaStore, type MediaSyncProgress, type MediaSyncStatus, type MediaSyncTask } from "./mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "./coreTypes.ts";
@@ -244,9 +244,6 @@ export function createCreationWorkflow({
   commitImport = async () => ({ decks: [], rootDeck: null, createdCount: 0, keptLocalEdits: 0, missingInPackage: 0, cloudTask: createReadyCloudTask() }),
 }: { mediaStore?: AccountMediaStore; commitImport?: CommitImport } = {}) {
   return {
-    readableSourceDocumentAccept: READABLE_SOURCE_DOCUMENT_ACCEPT,
-    readableSourceDocumentLabel: READABLE_SOURCE_DOCUMENT_LABEL,
-
     async prepareManualImage(file: Blob & { name?: string }): Promise<ManualImageAttachment> {
       if (!(file instanceof Blob) || !file.type.startsWith("image/")) {
         throw new Error("Bitte füge eine Bilddatei ein.");
@@ -347,11 +344,10 @@ export function createCreationWorkflow({
 
     captureManualSelection({ activeField = "front", front = "", back = "", selectedText = "" }: SelectionInput = {}) {
       const selection = String(selectedText ?? "").trim();
-      if (!selection) return { changed: false, front, back, selection: "" };
+      if (!selection) return { changed: false, front, back };
 
       return {
         changed: true,
-        selection,
         front: activeField === "back" ? front : appendPlainTextToCardHtml(front, selection),
         back: activeField === "back" ? appendPlainTextToCardHtml(back, selection) : back,
       };

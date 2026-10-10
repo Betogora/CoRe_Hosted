@@ -2,10 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CircleAlert, Languages } from "lucide-react";
+import { CircleAlert, Languages, Scale, SlidersHorizontal } from "lucide-react";
 import { createCoreDeck } from "../coreModel.ts";
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "./selectUi.tsx";
-import { cardTypeOptions } from "../screens/screenConstants.ts";
 
 test("CoreSelect renders the controlled value with an accessible combobox trigger", () => {
   const markup = renderToStaticMarkup(
@@ -43,18 +42,21 @@ test("CoreSelect accepts an empty external value without losing its label", () =
   assert.match(markup, />Als Hauptstapel</);
 });
 
-test("CoreSelect shows the selected card type icon before its label", () => {
+test("CoreSelect shows the selected option icon before its label", () => {
   const markup = renderToStaticMarkup(
     <CoreSelect
-      ariaLabel="Kartentyp"
-      value="basic-with-images"
-      options={cardTypeOptions}
+      ariaLabel="Lernprofil"
+      value="custom"
+      options={[
+        { value: "builtin:standard", label: "Standard", icon: Scale },
+        { value: "custom", label: "Eigene Einstellungen", icon: SlidersHorizontal },
+      ]}
       onValueChange={() => undefined}
     />,
   );
 
-  assert.match(markup, /lucide-images/);
-  assert.match(markup, />Basic \+ Bilder</);
+  assert.match(markup, /lucide-sliders-horizontal/);
+  assert.match(markup, />Eigene Einstellungen</);
 });
 
 test("DeckSelect renders the selected deck icon and complete hierarchy path", () => {

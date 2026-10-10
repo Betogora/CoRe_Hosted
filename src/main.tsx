@@ -4,7 +4,6 @@ import { App } from "./App.tsx";
 import { AppErrorBoundary } from "./AppErrorBoundary.tsx";
 import { markAppStarted, markServiceWorkerContext } from "./appPerformance.ts";
 import { initializeCoreTheme } from "./coreTheme.ts";
-import { scheduleDeferredBrowserAssets } from "./deferredBrowserAssets.ts";
 import { registerCoreServiceWorker } from "./pwa.ts";
 import { SuccessToastProvider } from "./ui/feedbackUi.tsx";
 import { CoreTooltipProvider } from "./ui/tooltipUi.tsx";
@@ -39,5 +38,4 @@ createRoot(rootElement).render(
   </AppErrorBoundary>,
 );
 
-scheduleDeferredBrowserAssets({ enableFigmaCapture: import.meta.env.DEV });
 if (import.meta.env.PROD) void registerCoreServiceWorker();

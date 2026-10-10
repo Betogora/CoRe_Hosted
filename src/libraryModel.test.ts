@@ -65,25 +65,21 @@ function createDeckWithInactiveCards() {
     name: "Neuro::Myelin",
     source: "manual",
     hierarchyPath: ["Medizin", "Neuro", "Myelin"],
-    deckSettings: { coreMode: "auto" },
+    deckSettings: { coreMode: "on" },
     cards: [active, deletedCard],
   });
 }
 
-test("library model hides reviewable-card filtering and deck selection fallback", () => {
+test("library model hides reviewable-card filtering", () => {
   const deck = createDeckWithInactiveCards();
-  const library = createDeckLibraryModel([deck], {
-    query: "medizin",
-    coreMode: "auto",
-    now: "2026-07-01T08:00:00.000Z",
-  });
+  const library = createDeckLibraryModel([deck], { now: "2026-07-01T08:00:00.000Z" });
+  const [row] = library.rows;
 
-  assert.equal(library.dueCards, 1);
-  assert.equal(library.filteredRows.length, 1);
-  assert.equal(library.selectedRow.id, deck.id);
-  assert.equal(library.selectedRow.path, "Medizin / Neuro / Myelin");
-  assert.equal(library.selectedRow.summary.totalCards, 1);
-  assert.equal(library.selectedRow.summary.activeVariants, 1);
+  assert.equal(row.directSummary.dueCards, 1);
+  assert.equal(row.path, "Medizin / Neuro / Myelin");
+  assert.equal(row.coreMode, "on");
+  assert.equal(row.summary.totalCards, 1);
+  assert.equal(row.summary.activeVariants, 1);
 
   const table = createCardTableModel([deck], { now: "2026-07-01T08:00:00.000Z", notesById });
   assert.deepEqual(table.groups[0].cardRows.map((row) => row.id), ["card_active"]);
@@ -95,17 +91,6 @@ test("card table shows a placeholder preview for cards without a loaded note", (
   const table = createCardTableModel([deck], { now: "2026-07-01T08:00:00.000Z" });
   assert.equal(table.groups[0].cardRows[0].frontPreview, "Leere Karte");
   assert.equal(table.groups[0].cardRows[0].hasActiveVariants, true);
-});
-
-test("library model keeps an explicitly selected deck even when filters hide it", () => {
-  const deck = createDeckWithInactiveCards();
-  const library = createDeckLibraryModel([deck], {
-    query: "anatomie",
-    selectedDeckId: deck.id,
-  });
-
-  assert.equal(library.filteredRows.length, 0);
-  assert.equal(library.selectedRow.id, deck.id);
 });
 
 test("library model projects deck hierarchies with aggregate parent summaries", () => {
@@ -130,7 +115,7 @@ test("library model projects deck hierarchies with aggregate parent summaries", 
   assert.equal(parentRow.summary.totalCards, 1);
   assert.equal(parentRow.summary.newCards, 1);
   assert.equal(childRow.summary.totalCards, 1);
-  assert.equal(library.dueCards, 0);
+  assert.equal(library.rows.reduce((total, row) => total + row.directSummary.dueCards, 0), 0);
   assert.deepEqual(library.rows.map((row) => row.id), [parent.id, child.id]);
   assert.equal(library.rows[0].summary.totalCards, 1);
 });
@@ -187,7 +172,7 @@ test("library model keeps new, in-progress and due deck counts disjoint", () => 
     },
     { newCards: 1, inProgressCards: 1, dueCards: 1 },
   );
-  assert.equal(library.dueCards, 1);
+  assert.equal(library.rows.reduce((total, row) => total + row.directSummary.dueCards, 0), 1);
 });
 
 test("daily learning plan aggregates sorted root sessions without counting descendants twice", () => {
@@ -409,7 +394,6 @@ test("deck and card searches use the complete logical hierarchy path", () => {
     cards: [libraryCard("source-card", { front: "Frage", back: "Antwort" })],
   });
 
-  assert.deepEqual(createDeckLibraryModel([deck], { query: "ebene 9 / ebene 10 / ebene 11" }).filteredRows.map((row) => row.id), [deck.id]);
   assert.deepEqual(createCardTableModel([deck], { query: "ebene 10 / ebene 11 / ebene 12", notesById }).groups.map((group) => group.id), [deck.id]);
 });
 
@@ -702,10 +686,11 @@ test("library metrics, card dates and heatmap share the configured learning day"
   };
 
   const library = createDeckLibraryModel([deck], options);
+  const heatmap = createStudyHeatmapModel([deck], options);
   const table = createCardTableModel([deck], options);
 
   assert.equal(library.rows[0].statusDistribution.dueCards, 1);
-  assert.equal(library.studyHeatmap.todayKey, "2026-07-10");
-  assert.equal(library.studyHeatmap.countsByDay.get("2026-07-10"), 1);
+  assert.equal(heatmap.todayKey, "2026-07-10");
+  assert.equal(heatmap.countsByDay.get("2026-07-10"), 1);
   assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");
 });

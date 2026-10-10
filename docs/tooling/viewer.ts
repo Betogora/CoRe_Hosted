@@ -14,6 +14,8 @@ function initializeDocsViewer() {
     document.documentElement.dataset.coreTheme = dark ? "dark" : "light";
     theme.setAttribute("aria-label", `${dark ? "Light" : "Dark"} Mode einschalten`);
   });
+  const specsSearch = document.getElementById("specs-search") as HTMLInputElement | null;
+  if (specsSearch) return initializeSpecsCatalog(specsSearch);
   const toc = document.getElementById("docs-toc");
   if (!toc) return;
   const search = document.getElementById("docs-search") as HTMLInputElement;
@@ -100,5 +102,57 @@ function initializeDocsViewer() {
   document.fonts.ready.then(scheduleLocation);
   updateLocation();
   filter();
+}
+/** Specs im Katalogaufbau: Kartensuche, leere Kapitel ausblenden und Kapitel-Scrollspy. */
+function initializeSpecsCatalog(search: HTMLInputElement) {
+  const normalize = (value: string | null) => (value ?? "").toLocaleLowerCase("de");
+  const sections = [...document.querySelectorAll<HTMLElement>(".catalog-section")].map((section) => ({
+    section,
+    heading: normalize(section.querySelector(".catalog-section-heading")!.textContent),
+    cards: [...section.querySelectorAll<HTMLElement>(".catalog-card")].map((card) => ({ card, text: normalize(card.textContent) })),
+  }));
+  const empty = document.getElementById("specs-empty")!;
+  const nav = document.querySelector<HTMLElement>(".catalog-nav")!;
+  const links = [...nav.querySelectorAll<HTMLAnchorElement>("a")];
+  const targets = links.map((link) => ({ link, target: document.getElementById(decodeURIComponent(link.hash.slice(1)))! }));
+  search.addEventListener("input", () => {
+    const query = normalize(search.value.trim());
+    let visible = 0;
+    for (const { section, heading, cards } of sections) {
+      const all = !query || heading.includes(query);
+      let shown = 0;
+      for (const { card, text } of cards) { card.hidden = !all && !text.includes(query); if (!card.hidden) shown++; }
+      section.hidden = shown === 0;
+      visible += shown;
+    }
+    empty.hidden = visible > 0;
+    schedule();
+  });
+  document.addEventListener("keydown", (event) => {
+    const target = event.target as HTMLElement;
+    if (event.key === "/" && !event.ctrlKey && !event.metaKey && !event.altKey && !/INPUT|TEXTAREA|SELECT/.test(target.tagName) && !target.isContentEditable) {
+      event.preventDefault();
+      search.focus();
+    }
+  });
+  let frame = 0;
+  function update() {
+    frame = 0;
+    const visible = targets.filter(({ target }) => !target.hidden);
+    const passed = visible.filter(({ target }) => target.getBoundingClientRect().top <= parseFloat(getComputedStyle(target).scrollMarginTop) + 8);
+    const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+    const active = ((atEnd ? visible : passed).at(-1) ?? visible[0] ?? targets[0]).link;
+    if (active.getAttribute("aria-current")) return;
+    links.forEach((link) => link === active ? link.setAttribute("aria-current", "location") : link.removeAttribute("aria-current"));
+    const link = active.getBoundingClientRect();
+    const box = nav.getBoundingClientRect();
+    if (link.left < box.left || link.right > box.right) nav.scrollLeft += link.left - box.left - 16;
+    if (link.top < box.top || link.bottom > box.bottom) nav.scrollTop += link.top - box.top - 48;
+  }
+  function schedule() { if (!frame) frame = requestAnimationFrame(update); }
+  window.addEventListener("scroll", schedule, { passive: true });
+  window.addEventListener("resize", schedule);
+  document.fonts.ready.then(schedule);
+  update();
 }
 initializeDocsViewer();

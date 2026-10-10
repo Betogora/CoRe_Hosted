@@ -63,7 +63,7 @@ test("model eligibility accepts text-only models and excludes paid or incomplete
 
 test("OpenRouter payload forces one compact tool call and privacy routing", () => {
   const payload = buildOpenRouterPayload(input, "provider/model:free", "zdr");
-  assert.equal(payload.max_tokens, 256);
+  assert.equal(payload.max_tokens, 1_024);
   assert.equal(payload.stream, false);
   assert.deepEqual(payload.tool_choice, { type: "function", function: { name: "create_card_variant" } });
   assert.deepEqual(payload.reasoning, { effort: "none" });

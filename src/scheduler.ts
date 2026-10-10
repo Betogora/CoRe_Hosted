@@ -15,7 +15,6 @@ import { addLearningDays, getLearningDayKey } from "./learningDay.ts";
 import type {
   Card,
   CardVariant,
-  CardVariantType,
   Deck,
   ReviewRating,
   ReviewSchedulerState,
@@ -36,13 +35,7 @@ interface SchedulerContext {
   dayStartHour?: number;
   timeZone?: string;
   isVariant?: boolean;
-  variantId?: string | null;
-  variantIsOriginal?: boolean;
-  variantLevel?: number;
-  variantType?: CardVariantType;
-  fallbackVariantId?: string | null;
   deckSettings?: LearningSettingsInput | null;
-  reviewEvents?: unknown[];
   easyDaysContext?: EasyDaysSchedulingContext | null;
   [key: string]: unknown;
 }
@@ -58,7 +51,6 @@ interface RatingSimulationInput extends SchedulerContext {
 
 interface ReviewButtonOptions extends SchedulerContext {
   now?: DateInput;
-  fallbackVariantIdByRating?: Partial<Record<ReviewRating, string | null>>;
 }
 
 interface RatingOutcome {
@@ -74,17 +66,11 @@ interface RatingOutcome {
   intervalMinutes: number | null;
   intervalMs: number;
   intervalLabel: string;
-  nextMaturity: { stage: string; label: string };
-  fallbackEffect: {
-    fallbackUntilCorrect: boolean;
-    forcedVariantId: string | null;
-    lastFailedVariantId: string | null;
-  };
   commit: boolean;
 }
 
 type ReviewButtonOption = Pick<RatingOutcome,
-  "rating" | "label" | "intervalLabel" | "dueAt" | "nextState" | "nextMaturity" | "schedulerVersion" | "effect" | "intervalDays" | "intervalMinutes"
+  "rating" | "label" | "intervalLabel" | "dueAt" | "nextState" | "schedulerVersion" | "effect" | "intervalDays" | "intervalMinutes"
 >;
 
 export const SCHEDULER_VERSION = "fsrs_6_v1";
@@ -262,51 +248,6 @@ export function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVarian
   return Math.max(0, Math.round(Number(oldXp ?? 0) + RATING_XP[rating] + variantBonus));
 }
 
-function nextPreferredVariantLevel(oldState: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}): number {
-  const currentLevel = Math.min(3, Math.max(1, Number(oldState.preferredVariantLevel ?? context.variantLevel ?? 1) || 1));
-  if (rating === "again" || rating === "hard") return Math.max(1, currentLevel - 1);
-  return Math.min(3, currentLevel + 1);
-}
-
-function fallbackStateForRating(state: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}) {
-  const shouldClearFallback =
-    rating !== "again" &&
-    Boolean(state.fallbackUntilCorrect) &&
-    (!state.forcedVariantId || state.forcedVariantId === context.variantId || context.variantIsOriginal);
-  const nextForcedVariantId =
-    rating === "again"
-      ? context.fallbackVariantId ?? state.forcedVariantId ?? null
-      : shouldClearFallback
-        ? null
-        : state.forcedVariantId ?? null;
-
-  return {
-    forcedVariantId: nextForcedVariantId,
-    fallbackUntilCorrect: rating === "again" ? Boolean(context.fallbackVariantId) : shouldClearFallback ? false : Boolean(state.fallbackUntilCorrect),
-    lastFailedVariantId: rating === "again" ? context.variantId ?? state.lastFailedVariantId ?? null : state.lastFailedVariantId ?? null,
-    previousSuccessfulVariantId: rating === "again" ? state.previousSuccessfulVariantId ?? null : context.variantId ?? state.previousSuccessfulVariantId ?? null,
-  };
-}
-
-function deriveOutcomeMaturity(state: ReviewStateInput): { stage: string; label: string } {
-  const reps = getStateReps(state);
-  const successfulReviews = Math.max(0, reps - Number(state.lapses ?? 0));
-  const stability = Number(state.stability ?? 0) || 0;
-  const intervalDays = Number(state.intervalDays ?? 0) || 0;
-  const recentFailure = state.lastRating === "again" || state.fallbackUntilCorrect;
-
-  if (state.state === "relearning" || state.lastRating === "again") return { stage: "relearning", label: "Wiederlernen" };
-  if (state.state === "new" || reps === 0) return { stage: "new", label: "Neu" };
-  if (state.state === "learning") return { stage: "learning", label: "Lernen" };
-  if (state.state === "review") {
-    if ((stability >= 30 || intervalDays >= 21) && !recentFailure) return { stage: "mastered", label: "Sicher" };
-    if ((stability >= 10 || intervalDays >= 7 || successfulReviews >= 4) && !recentFailure) return { stage: "mature", label: "Reif" };
-    if ((stability >= 4 || successfulReviews >= 3) && !recentFailure) return { stage: "variant_ready", label: "Bereit für Varianten" };
-    return { stage: "early_review", label: "Frühes Review" };
-  }
-  return { stage: "new", label: "Neu" };
-}
-
 function learningProgress(previousState: ReviewState, nextPhase: ReviewSchedulerState, rating: ReviewRating, nextStep: number, now: Date, context: SchedulerContext) {
   const previousPhase = phaseForState(previousState);
   const isLearningFlow = previousPhase === "new" || previousPhase === "learning";
@@ -375,12 +316,10 @@ function projectFsrsResult(
   const intervalMs = Math.max(0, new Date(dueAt).getTime() - now.getTime());
   const intervalMinutes = intervalDays === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
   const maturityXp = updateMaturityXp(previousState.maturityXp, rating, Boolean(context.isVariant));
-  const fallback = fallbackStateForRating(previousState, rating, context);
   const progress = learningProgress(previousState, nextPhase, rating, nextCard.learning_steps, now, context);
 
   return createReviewState({
     ...previousState,
-    ...fallback,
     ...progress,
     schedulerVersion: FSRS_SCHEDULER_VERSION,
     state: nextPhase,
@@ -396,7 +335,6 @@ function projectFsrsResult(
     maturityBand: getMaturityBand(maturityXp),
     lastReviewedAt: now.toISOString(),
     lastRating: rating,
-    preferredVariantLevel: nextPhase === "learning" || nextPhase === "relearning" ? 1 : nextPreferredVariantLevel(previousState, rating, context),
   });
 }
 
@@ -406,7 +344,6 @@ export function simulateRatingOutcome({
   variant = null,
   rating,
   now = new Date().toISOString(),
-  reviewEvents = [],
   deckSettings = null,
   commit = false,
   ...context
@@ -422,12 +359,7 @@ export function simulateRatingOutcome({
   const variantContext = {
     ...context,
     deckSettings,
-    reviewEvents,
     isVariant: context.isVariant ?? Boolean(variant),
-    variantId: context.variantId ?? variant?.id ?? null,
-    variantIsOriginal: context.variantIsOriginal ?? !variant,
-    variantLevel: context.variantLevel ?? variant?.variantLevel ?? 1,
-    variantType: context.variantType ?? variant?.variantType ?? "basic",
   };
   const schedulerMeta = createFsrsScheduler(deckSettings, state);
   const fsrsInputCard = toFsrsCard(state, nowDate);
@@ -451,12 +383,6 @@ export function simulateRatingOutcome({
     intervalMinutes: nextReviewState.intervalMinutes,
     intervalMs: interval.intervalMs,
     intervalLabel: formatIntervalLabel(interval),
-    nextMaturity: deriveOutcomeMaturity(nextReviewState),
-    fallbackEffect: {
-      fallbackUntilCorrect: nextReviewState.fallbackUntilCorrect,
-      forcedVariantId: nextReviewState.forcedVariantId,
-      lastFailedVariantId: nextReviewState.lastFailedVariantId,
-    },
     commit: Boolean(commit),
   };
 }
@@ -465,30 +391,23 @@ export function getReviewButtonOptions(
   card: Card,
   variant: CardVariant | null = null,
   nowOrOptions: DateInput | ReviewButtonOptions = new Date().toISOString(),
-  reviewEvents: unknown[] = [],
 ) {
-  const options = typeof nowOrOptions === "object" && nowOrOptions !== null && !(nowOrOptions instanceof Date)
+  const options: ReviewButtonOptions = typeof nowOrOptions === "object" && nowOrOptions !== null && !(nowOrOptions instanceof Date)
     ? nowOrOptions
-    : { now: nowOrOptions, reviewEvents };
+    : { now: nowOrOptions };
   const now = options.now ?? new Date().toISOString();
-  const events = options.reviewEvents ?? reviewEvents ?? [];
   const ratings: ReviewRating[] = ["again", "hard", "good", "easy"];
 
   return ratings.reduce<Partial<Record<ReviewRating, ReviewButtonOption>>>((result, rating) => {
-    const fallbackVariantId = rating === "again"
-      ? options.fallbackVariantIdByRating?.[rating] ?? options.fallbackVariantId ?? null
-      : null;
     const outcome = simulateRatingOutcome({
       card,
       variant,
       rating,
       now,
-      reviewEvents: events,
       deckSettings: options.deckSettings,
       dayStartHour: options.dayStartHour,
       timeZone: options.timeZone,
       easyDaysContext: options.easyDaysContext,
-      fallbackVariantId,
     });
     result[rating] = {
       rating,
@@ -496,7 +415,6 @@ export function getReviewButtonOptions(
       intervalLabel: outcome.intervalLabel,
       dueAt: outcome.dueAt,
       nextState: outcome.nextState,
-      nextMaturity: outcome.nextMaturity,
       schedulerVersion: outcome.schedulerVersion,
       effect: outcome.effect,
       intervalDays: outcome.intervalDays,

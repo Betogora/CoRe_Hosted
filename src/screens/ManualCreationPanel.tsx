@@ -36,7 +36,6 @@ type ManualCreationWorkflow = Pick<
   | "prepareManualMedia"
   | "syncManualMedia"
 >;
-type PdfSelectionOptions = Parameters<NonNullable<React.ComponentProps<typeof PdfDocumentViewer>["onSelection"]>>[1];
 type ActiveField = "front" | "back";
 type AdditionalField = { id: string; name: string; value: string; role: AddableFieldRole };
 type ManualSaveProgress = { label: string; percent: number };
@@ -69,7 +68,7 @@ export interface ManualCreationPanelProps {
   initialTargetDeckId?: string;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
   onTargetDeckChange?: (deckId: string) => unknown;
-  onFinish?: (result: { createdCount: number; targetDeckId: string; lastSavedCardId: string | null }) => void;
+  onFinish?: (result: { createdCount: number; targetDeckId: string }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
 }
 
@@ -88,10 +87,8 @@ function documentStatusMessage(document: TransientSourceDocument | null): string
   if (!document) return "";
   if (document.textExtractionStatus === "success") return "Text ist bereit.";
   if (document.textExtractionStatus === "empty") return "Kein Textlayer gefunden.";
-  if (document.textExtractionStatus === "unsupported" && document.metadata.userMessage) return String(document.metadata.userMessage);
   if (document.textExtractionStatus === "unsupported") return "Dieses Dateiformat kann in diesem Schritt noch nicht ausgelesen werden.";
-  if (document.textExtractionStatus === "error") return String(document.metadata.extractionError || "Dokument konnte nicht ausgelesen werden.");
-  return "Dokument als Quelle gespeichert; Textextraktion steht aus.";
+  return String(document.metadata.extractionError || "Dokument konnte nicht ausgelesen werden.");
 }
 
 function isPdfDocument(document: TransientSourceDocument | null): boolean {
@@ -144,7 +141,7 @@ export function ManualCreationPanel({
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
   const { currentDraft, pinnedFields } = batchState;
-  const { kind, front, back, answerOptions, correctOptionIndices, tags, selection } = currentDraft;
+  const { kind, front, back, answerOptions, correctOptionIndices, tags } = currentDraft;
   const [activeField, setActiveField] = React.useState<ActiveField>("front");
   const [documentMode, setDocumentMode] = React.useState(false);
   const [document, setDocument] = React.useState<TransientSourceDocument | null>(null);
@@ -234,7 +231,7 @@ export function ManualCreationPanel({
     setStatus(documentStatusMessage(nextDocument));
   }
 
-  function applySelection(selectedText: string, _sourceAnchorOptions: Partial<PdfSelectionOptions> = {}) {
+  function applySelection(selectedText: string) {
     const next = workflow.captureManualSelection({
       activeField,
       front,
@@ -245,7 +242,6 @@ export function ManualCreationPanel({
     dispatchBatch({
       type: "draft",
       patch: {
-        selection: next.selection,
         front: next.front,
         back: next.back,
       },
@@ -403,10 +399,10 @@ export function ManualCreationPanel({
     }));
   }
 
-  function recordSavedCard(deck: Deck, savedCardId: string, mediaStatus: { status: string; message: string }) {
-    const nextState = reduceManualBatchSession(batchState, { type: "saved", cardId: savedCardId, targetDeckId: deck.id });
+  function recordSavedCard(deck: Deck, mediaStatus: { status: string; message: string }) {
+    const nextState = reduceManualBatchSession(batchState, { type: "saved", targetDeckId: deck.id });
     cleanDraftRef.current = nextState.currentDraft;
-    dispatchBatch({ type: "saved", cardId: savedCardId, targetDeckId: deck.id });
+    dispatchBatch({ type: "saved", targetDeckId: deck.id });
     setAdditionalFields([]);
     setOcclusion((current) => current && { ...current, image: null, masks: [] });
     pruneInlineImages({ front: nextState.currentDraft.front, back: nextState.currentDraft.back, additionalFields: [] });
@@ -495,7 +491,7 @@ export function ManualCreationPanel({
         label: "Speichervorgang abgeschlossen",
         percent: 100,
       });
-      recordSavedCard(saved.deck, saved.cardIds[0], mediaResult);
+      recordSavedCard(saved.deck, mediaResult);
     } catch (error) {
       setSaveProgress(null);
       setSuccessToast("");
@@ -796,7 +792,6 @@ export function ManualCreationPanel({
           onClick={() => onFinish({
             createdCount: batchState.createdCount,
             targetDeckId: batchState.targetDeckId,
-            lastSavedCardId: batchState.lastSavedCardId,
           })}
         >
           Fertig

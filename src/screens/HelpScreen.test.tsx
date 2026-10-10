@@ -47,7 +47,8 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.match(markup, /persönliche Optimierung der Parameter[^.]+noch nicht aktiviert/);
   assert.match(markup, /zweiten Kontakt nach 15 Minuten/);
   assert.match(markup, /höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/);
-  assert.match(markup, /bereit für Varianten/);
+  assert.match(markup, /erst ab der Lernstufe des Stapels/);
+  assert.match(markup, /Nach einem Fehler fragt CoRe wieder die Originalkarte ab/);
   assert.match(markup, /keine garantierte Reviewnummer/);
   assert.match(markup, /Abrufwahrscheinlichkeit/);
   assert.match(markup, /Stabilität/);

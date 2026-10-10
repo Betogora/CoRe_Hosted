@@ -6,11 +6,10 @@ interface DeckSettingsInput extends LearningSettingsInput {
   newCardsTodayOverride?: { date?: unknown; limit?: unknown } | null;
   variantThresholdXp?: number;
   maxActiveVariantsPerCard?: number;
-  blacklist?: Partial<DeckSettings["blacklist"]>;
 }
 export const CORE_DECK_SOURCES = ["anki-apkg", "manual"] as const satisfies readonly DeckSource[];
 
-export const CORE_MODES = ["off", "auto", "manual"] as const satisfies readonly CoreMode[];
+export const CORE_MODES = ["on", "off"] as const satisfies readonly CoreMode[];
 export const DECK_ICON_KEYS = [
   "book-open",
   "folder",
@@ -118,7 +117,7 @@ export function normalizeDeckAppearance(appearance: Partial<DeckAppearance> = {}
 export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): DeckSettings {
   const coreMode = typeof settings.coreMode === "string" && CORE_MODES.includes(settings.coreMode as CoreMode)
     ? settings.coreMode as CoreMode
-    : "auto";
+    : "on";
   const learningSettings = normalizeLearningSettings(settings);
   const override = settings.newCardsTodayOverride;
   const newCardsTodayOverride =
@@ -140,10 +139,5 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
     newCardsTodayOverride,
     variantThresholdXp: typeof settings.variantThresholdXp === "number" && Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
-    blacklist: {
-      tags: settings.blacklist?.tags ?? [],
-      transforms: settings.blacklist?.transforms ?? [],
-      cardIds: settings.blacklist?.cardIds ?? [],
-    },
   };
 }

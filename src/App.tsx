@@ -78,7 +78,6 @@ interface EmptyStudyStart {
 }
 interface StudyPreparationFailure {
   deckId: string;
-  variantSession: boolean;
   message: string;
 }
 
@@ -116,7 +115,7 @@ function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): 
     ...deck.deckSettings,
     ...normalized,
     learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
-    coreMode: settings.coreMode === "off" || settings.coreMode === "auto" || settings.coreMode === "manual" ? settings.coreMode : deck.deckSettings.coreMode,
+    coreMode: settings.coreMode === "on" || settings.coreMode === "off" ? settings.coreMode : deck.deckSettings.coreMode,
     ...(Number.isFinite(variantThresholdXp) ? { variantThresholdXp } : {}),
     ...(Number.isFinite(maxActiveVariantsPerCard) ? { maxActiveVariantsPerCard } : {}),
     ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
@@ -687,10 +686,10 @@ export function App() {
       resetStudySession();
       return;
     }
-    const preparationKey = `${studyRequest.deckId}:${studyRequest.variantSession ? "variants" : "standard"}`;
+    const preparationKey = studyRequest.deckId;
     if (study.preparedKeyRef.current === preparationKey && study.decks) return;
     let active = true;
-    void prepareStudyWindow(studyRequest.deckId, studyRequest.variantSession).then((preparation) => {
+    void prepareStudyWindow(studyRequest.deckId).then((preparation) => {
       if (!active || !preparation) return;
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
         adoptStudyWindow(preparation, null);
@@ -707,7 +706,6 @@ export function App() {
       if (!active) return;
       setStudyPreparationFailure({
         deckId: studyRequest.deckId,
-        variantSession: studyRequest.variantSession,
         message: studyPreparationFailureMessage(error),
       });
       navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
@@ -716,7 +714,7 @@ export function App() {
   }, [adoptStudyWindow, navigateToRoute, prepareStudyWindow, resetStudySession, state, study.decks, studyRequest, workspaceRepository]);
 
   const loadMoreStudyCards = React.useCallback(async () => studyRequest
-    ? study.loadMore(studyRequest.deckId, studyRequest.variantSession)
+    ? study.loadMore(studyRequest.deckId)
     : { decks: [], notes: [], hasMoreCards: false, bufferSize: study.bufferSize }, [study.bufferSize, study.loadMore, studyRequest]);
 
   React.useEffect(() => {
@@ -1314,8 +1312,6 @@ export function App() {
     }
     if (clearSelection) return createViewRoute("lernen");
     return createStudyRoute(settingsReturnContext.reviewReturnContext.deckId, {
-      variantSession: settingsReturnContext.reviewReturnContext.variantSession,
-      variantId: settingsReturnContext.reviewReturnContext.variantId,
       returnContext: settingsReturnContext.reviewReturnContext.returnContext,
     });
   }
@@ -1368,7 +1364,7 @@ export function App() {
     }), { preserveCardPages: true });
   }
 
-  async function prepareDeckStart(deck: { id: string; }, variantSession = false) {
+  async function prepareDeckStart(deck: { id: string; }) {
     const currentRoute = getStudyReturnRoute();
     const returnRoute = activeView === "kartenstapel"
       ? createViewRoute("kartenstapel", {
@@ -1384,12 +1380,12 @@ export function App() {
         ? createViewRoute("lernen", { focusedDeckId: deck.id })
         : currentRoute;
     const returnContext = createReviewReturnContext(returnRoute, deck.id);
-    const preparationKey = `${deck.id}:${variantSession ? "variants" : "standard"}`;
+    const preparationKey = deck.id;
     if (study.preparingKeyRef.current === preparationKey) return;
     study.preparingKeyRef.current = preparationKey;
     try {
       setStudyPreparationFailure(null);
-      const preparation = await prepareStudyWindow(deck.id, variantSession);
+      const preparation = await prepareStudyWindow(deck.id);
       if (study.preparingKeyRef.current !== preparationKey) return;
       if (!preparation || !preparation.decks.some((candidate) => candidate.id === deck.id)) return;
       if (preparation.queue.total === 0) {
@@ -1397,13 +1393,12 @@ export function App() {
         return;
       }
       adoptStudyWindow(preparation, preparationKey);
-      navigateToRoute(createStudyRoute(deck.id, { variantSession, returnContext }), {
+      navigateToRoute(createStudyRoute(deck.id, { returnContext }), {
         replace: activeView === "stapel-einstellungen",
       });
     } catch (error) {
       setStudyPreparationFailure({
         deckId: deck.id,
-        variantSession,
         message: studyPreparationFailureMessage(error),
       });
     } finally {
@@ -1411,8 +1406,8 @@ export function App() {
     }
   }
 
-  function startDeck(deck: { id: string; }, variantSession = false) {
-    void prepareDeckStart(deck, variantSession);
+  function startDeck(deck: { id: string; }) {
+    void prepareDeckStart(deck);
   }
 
   function startAdditionalCards(deckId: string, requestedCount: number): { ok: boolean; message?: string } {
@@ -1580,8 +1575,6 @@ export function App() {
           onCloseSelectedCard={cardEditorReturnContext ? () => navigateToRoute(createStudyRoute(
             cardEditorReturnContext.deckId,
             {
-              variantSession: cardEditorReturnContext.variantSession,
-              variantId: cardEditorReturnContext.variantId,
               returnContext: cardEditorReturnContext.returnContext,
             },
           ), { replace: true }) : undefined}
@@ -1788,8 +1781,6 @@ export function App() {
           notes={study.notes}
           answeredToday={study.answeredToday}
           deckId={studyDeck.id}
-          variantSession={studyRequest.variantSession}
-          variantId={studyRequest.variantId}
           mediaStore={mediaStore}
           getNow={getLearningNow}
           learningDayKey={learningDayKey}
@@ -1813,8 +1804,6 @@ export function App() {
             selectedCardId: cardId,
             cardEditorReturnContext: {
               deckId: studyRequest.deckId,
-              variantSession: studyRequest.variantSession,
-              variantId: studyRequest.variantId,
               returnContext: studyRequest.returnContext,
             },
           })}
@@ -1824,8 +1813,6 @@ export function App() {
               view: "review",
               reviewReturnContext: {
                 deckId: studyRequest.deckId,
-                variantSession: studyRequest.variantSession,
-                variantId: studyRequest.variantId,
                 returnContext: studyRequest.returnContext,
               },
             },
@@ -1939,7 +1926,7 @@ export function App() {
           const retry = studyPreparationFailure;
           setStudyPreparationFailure(null);
           const deck = retry ? latestStateRef.current?.decks.find((candidate) => candidate.id === retry.deckId) : null;
-          if (retry && deck) startDeck(deck, retry.variantSession);
+          if (retry && deck) startDeck(deck);
         }}
       />
     </main>

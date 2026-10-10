@@ -76,7 +76,6 @@ test("Quelltext wird nur flüchtig in das aktive Feld übernommen", () => {
   const selection = workflow.captureManualSelection({ activeField: "back", front: "Was ist ATP?", back: "", selectedText: "  ATP ist ein Energieträger.  " });
 
   assert.equal(selection.changed, true);
-  assert.equal(selection.selection, "ATP ist ein Energieträger.");
   assert.equal(selection.front, "Was ist ATP?");
   assert.match(selection.back, /ATP ist ein Energieträger/);
   const validation = workflow.validateManualCard({ front: selection.front, back: selection.back });
@@ -85,7 +84,7 @@ test("Quelltext wird nur flüchtig in das aktive Feld übernommen", () => {
   assert.equal(JSON.stringify(validation.content).includes("sourceDocument"), false);
 
   const unchanged = workflow.captureManualSelection({ front: "Frage", back: "Antwort", selectedText: "   " });
-  assert.deepEqual(unchanged, { changed: false, front: "Frage", back: "Antwort", selection: "" });
+  assert.deepEqual(unchanged, { changed: false, front: "Frage", back: "Antwort" });
   assert.match(workflow.captureManualSelection({ front: "Frage", selectedText: "Zitat" }).front, /Frage[\s\S]*Zitat/);
 });
 
@@ -96,7 +95,6 @@ test("eine Quelldatei wird als flüchtiges Textdokument gelesen", async () => {
   assert.equal(document.fileName, "quelle.txt");
   assert.equal(document.text, "ATP ist ein Energieträger.");
   assert.equal(document.textExtractionStatus, "success");
-  assert.equal(workflow.readableSourceDocumentLabel, "PDF, Text, Markdown, CSV oder TSV");
 });
 
 test("manuelle Validierung meldet die deutschen Feldfehler und erzeugt sonst geprüften Inhalt", () => {

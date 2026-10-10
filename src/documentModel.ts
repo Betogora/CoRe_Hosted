@@ -6,7 +6,7 @@ export interface TransientSourceDocument {
   fileName: string;
   mimeType: string;
   text: string;
-  textExtractionStatus: string;
+  textExtractionStatus: "success" | "empty" | "error" | "unsupported";
   metadata: Record<string, unknown>;
 }
 
@@ -207,24 +207,4 @@ export async function createDocumentFromFile(file: any) {
       extractionMethod: "unsupported",
     }),
   });
-}
-
-export function splitDocumentIntoPassages(text: any, maxPassages: any = 12) {
-  const clean = String(text ?? "").replace(/\r/g, "").trim();
-  if (!clean) return [];
-
-  const paragraphPassages = clean
-    .split(/\n{2,}/)
-    .map((passage: any) => passage.replace(/\s+/g, " ").trim())
-    .filter((passage: any) => passage.length >= 24);
-
-  if (paragraphPassages.length > 0) {
-    return paragraphPassages.slice(0, maxPassages);
-  }
-
-  return clean
-    .split(/(?<=[.!?])\s+/)
-    .map((passage: any) => passage.trim())
-    .filter((passage: any) => passage.length >= 24)
-    .slice(0, maxPassages);
 }

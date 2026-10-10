@@ -10,7 +10,6 @@ export interface ManualCreationDraft {
   answerOptions: string[];
   correctOptionIndices: number[];
   tags: string;
-  selection: string;
 }
 
 export interface ManualBatchSessionState {
@@ -18,14 +17,13 @@ export interface ManualBatchSessionState {
   targetDeckId: string;
   currentDraft: ManualCreationDraft;
   pinnedFields: Record<ManualPinnedField, boolean>;
-  lastSavedCardId: string | null;
 }
 
 export type ManualBatchAction =
   | { type: "draft"; patch: Partial<ManualCreationDraft> }
   | { type: "target-deck"; deckId: string }
   | { type: "toggle-pin"; field: ManualPinnedField }
-  | { type: "saved"; cardId: string; targetDeckId: string };
+  | { type: "saved"; targetDeckId: string };
 
 export function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDraft {
   return {
@@ -35,7 +33,6 @@ export function createManualDraft(kind: ManualContentKind = "basic"): ManualCrea
     answerOptions: ["", ""],
     correctOptionIndices: [0],
     tags: "",
-    selection: "",
   };
 }
 
@@ -45,7 +42,6 @@ export function createManualBatchSession(targetDeckId = ""): ManualBatchSessionS
     targetDeckId,
     currentDraft: createManualDraft(),
     pinnedFields: { front: false, back: false },
-    lastSavedCardId: null,
   };
 }
 
@@ -60,7 +56,6 @@ export function resetManualDraft(
     answerOptions: ["", ""],
     correctOptionIndices: [0],
     tags: "",
-    selection: "",
   };
 }
 
@@ -85,7 +80,6 @@ export function reduceManualBatchSession(
     createdCount: state.createdCount + 1,
     targetDeckId: action.targetDeckId,
     currentDraft: resetManualDraft(state.currentDraft, state.pinnedFields),
-    lastSavedCardId: action.cardId,
   };
 }
 

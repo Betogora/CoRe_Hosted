@@ -1,11 +1,5 @@
 import { SCHEDULER_VERSION, calculateRetrievability, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
-import {
-  createVariantReviewModel,
-  deactivateVariant,
-  flagVariant,
-  getVariantFallbackTarget,
-  selectAutomaticReviewVariant,
-} from "./coreVariantService.ts";
+import { deactivateVariant, flagVariant, selectReviewVariant } from "./coreVariantService.ts";
 import {
   cardStudyFromReviewState,
   createDefaultDeckSettings,
@@ -44,9 +38,6 @@ interface ReviewServiceOptions {
   dateKey?: string;
   deckId?: string | null;
   excludeKeys?: string[];
-  variantSession?: boolean;
-  language?: string;
-  autoGenerateAllowed?: boolean;
   responseTimeMs?: number | null;
   flags?: Record<string, unknown>;
   selectedBy?: string;
@@ -55,7 +46,6 @@ interface ReviewServiceOptions {
   reason?: string;
   feedbackType?: VariantFeedbackType;
   note?: string;
-  reviewEvents?: unknown[];
   easyDaysContext?: EasyDaysSchedulingContext | null;
   sessionIndex?: DailyReviewSessionIndex;
   /** Cards answered today that may not be loaded, so their siblings stay buried for the whole learning day. */
@@ -88,7 +78,6 @@ interface DailyReviewSessionIndexEntry {
 
 export interface DailyReviewSessionIndex {
   entriesByKey: Map<string, DailyReviewSessionIndexEntry>;
-  reviewEventsByKey: Map<string, ReviewEventInput[]>;
 }
 
 export interface DailyReviewProgressSummary {
@@ -229,20 +218,12 @@ function reviewKey(deckId: string, cardId: string | undefined): string {
 
 export function createDailyReviewSessionIndex(decksOrDeck: Deck | Deck[]): DailyReviewSessionIndex {
   const entriesByKey = new Map<string, DailyReviewSessionIndexEntry>();
-  const reviewEventsByKey = new Map<string, ReviewEventInput[]>();
   for (const deck of asDeckArray(decksOrDeck)) {
     for (const card of activeCards(deck)) {
       entriesByKey.set(reviewKey(deck.id, card.id), { deck, card });
     }
-    for (const event of (deck.reviewEvents ?? []) as ReviewEventInput[]) {
-      if (!event.cardId) continue;
-      const key = reviewKey(deck.id, event.cardId);
-      const events = reviewEventsByKey.get(key);
-      if (events) events.push(event);
-      else reviewEventsByKey.set(key, [event]);
-    }
   }
-  return { entriesByKey, reviewEventsByKey };
+  return { entriesByKey };
 }
 
 export function updateDailyReviewSessionIndex(
@@ -253,13 +234,6 @@ export function updateDailyReviewSessionIndex(
   const key = reviewKey(updatedDeck.id, updatedCard.id);
   if (!isCardReviewBlocked(updatedCard)) index.entriesByKey.set(key, { deck: updatedDeck, card: updatedCard });
   else index.entriesByKey.delete(key);
-
-  const latestEvent = ((updatedDeck.reviewEvents ?? []) as ReviewEventInput[])
-    .find((event) => event.cardId === updatedCard.id);
-  if (latestEvent) {
-    const events = index.reviewEventsByKey.get(key) ?? [];
-    if (!events.some((event) => event.id === latestEvent.id)) index.reviewEventsByKey.set(key, [latestEvent, ...events]);
-  }
   return index;
 }
 
@@ -574,7 +548,6 @@ export function answerVariant(
   }
 
   const previousState = reviewStateFromCardStudy(card.study);
-  const fallbackInfo = rating === "again" ? getVariantFallbackTarget(card, variant) : null;
   const outcome = simulateRatingOutcome({
     card,
     previousState,
@@ -586,12 +559,6 @@ export function answerVariant(
     timeZone: options.timeZone,
     easyDaysContext: options.easyDaysContext,
     isVariant: Boolean(variant),
-    variantId: variant?.id ?? null,
-    variantIsOriginal: !variant,
-    variantLevel: variant?.variantLevel ?? 1,
-    variantType: variant?.variantType ?? "basic",
-    variantPerformance: variant?.performance ?? null,
-    fallbackVariantId: fallbackInfo?.fallbackVariantId ?? null,
   });
   const nextState = outcome.nextReviewState;
   const variants = variant
@@ -628,47 +595,17 @@ export function answerVariant(
   };
 }
 
-function selectVariantForCard(card: Card, options: ReviewServiceOptions = {}): CardVariant | null {
-  return selectAutomaticReviewVariant(card, { allowLearningVariant: true, ...options });
-}
-
-function createFallbackViewModel(card: Card) {
-  const state = card.study.extra;
-  if (!state.fallbackUntilCorrect && !state.forcedVariantId) return null;
-
-  const forcedVariant = (card.variants ?? []).find((variant) => variant.id === state.forcedVariantId) ?? null;
-  const failedVariant = (card.variants ?? []).find((variant) => variant.id === state.lastFailedVariantId) ?? null;
-
-  return {
-    active: true,
-    fallbackVariantId: forcedVariant?.id ?? null,
-    failedVariantId: failedVariant?.id ?? state.lastFailedVariantId ?? null,
-    shouldUseOriginal: !forcedVariant,
-    fallbackReason: failedVariant
-      ? `Nach Fehler bei Level ${failedVariant.variantLevel ?? 1}: Rückfall auf ${forcedVariant ? `Level ${forcedVariant.variantLevel ?? 1}` : "Grundkarte"}.`
-      : "Fallback aktiv: CoRe nutzt Original oder eine einfachere Variante, bis wieder korrekt geantwortet wurde.",
-  };
-}
-
 function createReviewItemViewModel(deck: Deck, selectedCard: Card | null, options: ReviewServiceOptions = {}) {
   if (!selectedCard) return null;
 
   const now = options.now ?? new Date().toISOString();
-  const reviewEvents = (options.reviewEvents ?? deck.reviewEvents ?? []) as ReviewEventInput[];
-  const variantReviewModel = createVariantReviewModel(selectedCard, reviewEvents, {
-    now,
-  });
-  const fallbackInfo = createFallbackViewModel(selectedCard);
-  const variant = selectVariantForCard(selectedCard, { now, reviewEvents, variantSession: options.variantSession });
-  const fallbackTarget = getVariantFallbackTarget(selectedCard, variant);
+  const variant = selectReviewVariant(selectedCard, deck.deckSettings);
   const ratingButtonOptions = getReviewButtonOptions(selectedCard, variant, {
     now,
-    reviewEvents,
     deckSettings: deck.deckSettings,
     dayStartHour: options.dayStartHour,
     timeZone: options.timeZone,
     easyDaysContext: options.easyDaysContext,
-    fallbackVariantId: fallbackTarget?.fallbackVariantId ?? null,
   });
 
   return {
@@ -680,13 +617,7 @@ function createReviewItemViewModel(deck: Deck, selectedCard: Card | null, option
     variant,
     variantId: variant?.id ?? selectedCard.id,
     study: selectedCard.study,
-    maturity: variantReviewModel.maturity,
-    variantReadiness: variantReviewModel.readiness,
-    variantCoverage: variantReviewModel.coverage,
-    variantGenerationRecommendation: variantReviewModel.variantGenerationRecommendation,
-    variantGenerationPlan: variantReviewModel.variantGenerationPlan,
     ratingButtonOptions,
-    fallbackInfo,
     schedulerInfo: {
       schedulerVersion: selectedCard.study.extra.schedulerVersion ?? SCHEDULER_VERSION,
       selectedBy: options.selectedBy ?? "due_card",
@@ -792,7 +723,6 @@ export function getNextDailyReviewSessionItem(
   const item = createReviewItemViewModel(entry.deck, entry.card, {
     ...options,
     now,
-    reviewEvents: sessionIndex.reviewEventsByKey.get(key) ?? [],
     selectedBy: isRepeat ? "session_repeat" : "session_initial",
     queueKind: isRepeat ? "repeat" : isNewCard(entry.card) ? "new" : "due",
   });

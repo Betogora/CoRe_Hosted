@@ -103,7 +103,7 @@ test("eine normale Bewertung aktualisiert nur den Karten-Lernstatus", () => {
   assert.equal(variantResult.event.variantId, variantId);
   assert.equal(variantResult.variant?.id, variantId);
   assert.equal(variantResult.variant?.performance.attempts, 1);
-  assert.equal(variantResult.variant?.performance.avgResponseTimeMs, 1200);
+  assert.equal(variantResult.variant?.performance.averageResponseTimeMs, 1200);
   assert.equal("study" in variantResult.updatedCard.variants[0], false);
 });
 

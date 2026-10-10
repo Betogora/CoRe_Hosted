@@ -58,11 +58,13 @@ Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre, unvers
 
 HTML-Ansichten ändern diese Zuständigkeiten nicht und sind keine zweite Quelle.
 
-Die Specs-Leseansicht verwendet dieselben CoRe-Tokens, die Schrift Manrope und den
-gemeinsamen Dokumentationsrahmen. Ihre Inhaltsnavigation markiert den
-aktuellen Abschnitt; unter 1280 px ist sie aufklappbar. Die ergänzende
-Codeumfang-Grafik wird aus den Quellen neu berechnet und verwendet den
-produktiven `SegmentedDonut` und `StatTile`. Sie zählt nichtleere Zeilen
+Die Specs-Leseansicht folgt dem Aufbau des UI-Elemente-Katalogs: Titel und
+Einleitung als Kopf, je `##`-Kapitel ein Abschnitt mit Navigationseintrag und je
+`###`-Unterabschnitt eine Karte; Kapitel ohne Unterabschnitte bilden eine breite
+Karte. Die Suche filtert Karten, die Navigation markiert das aktuelle Kapitel und
+läuft unter 1050 px als waagerechte Leiste. Anker behalten das Schema
+`specs--<Überschrift>`. Die ergänzende Codeumfang-Grafik am Ende wird aus den
+Quellen neu berechnet und verwendet den produktiven `SegmentedDonut` und `StatTile`. Sie zählt nichtleere Zeilen
 einschließlich Kommentaren in `src/` und `api/` (TS/TSX) sowie `src/styles.css`,
 ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
 werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;

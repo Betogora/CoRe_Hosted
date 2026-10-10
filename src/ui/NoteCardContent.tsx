@@ -96,7 +96,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
   const oneFrame = interaction.kind === "cloze" || interaction.kind === "image-occlusion" || surface !== "review";
   const diagnostics = [...presentation.question.diagnostics, ...(answerResult?.diagnostics ?? [])].filter((item, index, all) => all.findIndex((candidate) => candidate.code === item.code && candidate.detail === item.detail) === index);
   const speech = presentation.speech[revealed ? "answer" : "question"];
-  const frameProps = { surface: "review" as const, showCompatibility: false, mediaUrls, onTextSelectionChange: setSelectedText };
+  const frameProps = { surface: "review" as const, mediaUrls, onTextSelectionChange: setSelectedText };
   const speak = (item: Speech[number]) => {
     const utterance = new SpeechSynthesisUtterance(item.text);
     utterance.lang = item.language;

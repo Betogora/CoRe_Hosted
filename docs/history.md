@@ -1,9 +1,32 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-09
+**Stand:** 2026-10-10
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-10 — CoRe-Modus An/Aus, wirksame Variantenregeln, Aufräumen und Spec-Umbau
+
+- CoRe-Modus auf `An`/`Aus` reduziert (ADR-039). Die Variantenwahl im Review
+  berücksichtigt jetzt Modus, Lernstufen-Schwelle und Höchstzahl des Stapels,
+  hält die Originalkarte im Wechsel und zeigt in Lern-, Wiederlernphase und
+  nach `Nochmal` die Originalkarte. Erzeugen ist bei `Aus` und erreichter
+  Höchstzahl gesperrt; das Kartendetail zeigt Lernstufe und aktive Varianten
+  auf Deutsch. KI-Ausgabelimit von 256 auf 1.024 Tokens angehoben.
+- Entfernt ohne Ersatz: Drei-Wege-Modus, `variantSession`/`?variant=1`,
+  `DeckSettings.blacklist`, Rückfall- und Bevorzugungsfelder im Lernstand,
+  ungenutzte Variantenleistungs- und Review-View-Model-Felder,
+  `libraryModel`-Filter und die ungelesene Heatmap-Berechnung außerhalb des
+  Dashboards, `authModel.ts`, `softDeleteEntity`, Kompatibilitätshinweis im
+  Kartenrahmen, unerreichbare Import-Jobstatus, tote Dokumentmodell-Zweige,
+  ungenutzte CSS-Klassen, das Labs-Bereinigungsskript und das Figma-Skript.
+- `specs.md` neu gegliedert (Zwischenüberschriften je Themenblock, Synchronisierung
+  als 6.8, Performance als Tabelle) und um Kprim, Vorlesen und AMBOSS-Nachschlagen
+  ergänzt; Bildverdeckung gilt nicht mehr als disabled, der Import-Renderer ist
+  auf das Übersetzermodell korrigiert. `specs.html` folgt dem Aufbau des
+  UI-Katalogs.
+- Build vom 10. Oktober: Initialgraph 208,6 KiB gzip, größter Lazy-Graph
+  170,8 KiB gzip (Statistik).
 
 ## 2026-10-10 — Roadmap-Dokument aufgelöst
 

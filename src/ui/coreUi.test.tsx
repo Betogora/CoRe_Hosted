@@ -106,7 +106,7 @@ test("segmented controls expose one icon-free pressed brick in both densities", 
         onValueChange={() => undefined}
         size="compact"
       />
-      <CoreModeControl value="auto" onChange={() => undefined} />
+      <CoreModeControl value="on" onChange={() => undefined} />
     </>,
   );
 
@@ -114,7 +114,7 @@ test("segmented controls expose one icon-free pressed brick in both densities", 
   assert.match(markup, /aria-label="Zeitraum"[^>]*data-size="compact"[^>]*core-segmented-control/);
   assert.match(markup, /aria-label="CoRe-Modus"[^>]*data-size="regular"[^>]*core-segmented-control/);
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 6);
+  assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 5);
   assert.doesNotMatch(markup, /<svg/);
 });
 

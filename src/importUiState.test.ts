@@ -14,7 +14,5 @@ test("import UI projection separates every active and terminal phase", () => {
   assert.equal(projectImportUiState({ jobStatus: "syncing_media", mediaStatus: "local-pending", hasMediaTask: true }).status, "syncing_media");
   assert.equal(projectImportUiState({ jobStatus: "done" }).status, "succeeded");
   assert.equal(projectImportUiState({ mediaStatus: "local-pending" }).status, "partial");
-  assert.equal(projectImportUiState({ progressStatus: "failed", retryable: true }).status, "failed_retryable");
   assert.equal(projectImportUiState({ jobStatus: "error" }).status, "failed_terminal");
-  assert.equal(projectImportUiState({ jobStatus: "cancelled", hasPreview: true }).status, "cancelled");
 });

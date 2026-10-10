@@ -15,7 +15,7 @@ import autoprefixer from "autoprefixer";
 import tailwindConfig from "../tailwind.config.ts";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
-import { SegmentedDonut, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
+import { SegmentedDonut, StatTile } from "../src/ui/coreUi.tsx";
 import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 
 const root = process.cwd();
@@ -62,8 +62,67 @@ export function codeFootprintMarkup() {
     React.createElement(StatTile, { size: "compact", label: "Quelldateien", value: number(footprint.files) }),
   ));
   const rows = footprint.areas.map((area) => `<tr><th scope="row"><span class="docs-code-dot" style="background:${area.color}" aria-hidden="true"></span>${area.label}</th><td>${number(area.lines)}</td><td>${(area.lines / footprint.screens * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</td></tr>`).join("");
-  const contents = `<h2 id="specs--codeumfang" class="core-heading-2" tabindex="-1">Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>${tiles}<div class="docs-code-chart"><div class="docs-code-donut">${chart}<span class="core-caption">${number(footprint.screens)} Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
-  return renderToStaticMarkup(React.createElement(SoftPanel, { className: "docs-code-footprint", dangerouslySetInnerHTML: { __html: contents } }));
+  return `${tiles}<div class="docs-code-chart"><div class="docs-code-donut">${chart}<span class="core-caption">${number(footprint.screens)} Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
+}
+
+type SpecsCard = { id: string; title: string; html: string; wide?: boolean };
+type SpecsSection = { id: string; title: string; intro: string; cards: SpecsCard[] };
+
+const plainText = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[name]!);
+
+function specsCard({ id, title, html, wide }: SpecsCard) {
+  const body = html.trim()
+    .replace(/<h([4-6]) (id="[^"]+") class="[^"]*" tabindex="-1">([\s\S]*?) <a class="docs-anchor"[^>]*>#<\/a><\/h\1>/g, '<h$1 $2 class="catalog-label" tabindex="-1">$3</h$1>')
+    .replace(/<p>(\p{L}[\p{L}\s/-]{0,40}):<\/p>/gu, '<p class="catalog-label">$1</p>')
+    .replace(/<table>/g, '<div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table>').replace(/<\/table>/g, "</table></div>");
+  return `<article id="${id}" class="catalog-card${wide ? " catalog-card-wide" : ""}">${title ? `<div class="catalog-card-header"><h3>${title}</h3></div>` : ""}<div class="catalog-preview specs-prose">${body}</div></article>`;
+}
+
+/** Projiziert docs/specs.md in den Katalogaufbau: `##`-Kapitel werden Abschnitte, `###`-Unterabschnitte Karten. */
+export function specsCatalog(markdown: string, appendix?: { section: SpecsSection; label: string }) {
+  const parts = renderMarkdown(markdown, "specs.md").split(/(<h[123] id="[^"]+" class="[^"]*" tabindex="-1">[\s\S]*?<\/h[123]>\n?)/);
+  let title = { id: "", html: "" };
+  let intro = "";
+  const sections: SpecsSection[] = [];
+  for (let index = 1; index < parts.length; index += 2) {
+    const [, depth, id, html] = parts[index].match(/^<h([123]) id="([^"]+)"[^>]*>([\s\S]*?) <a class="docs-anchor"/)!;
+    const content = parts[index + 1].replace(/<hr>\n?/g, "");
+    if (depth === "1") { title = { id, html }; intro += content; }
+    else if (depth === "2") sections.push({ id, title: html, intro: content, cards: [] });
+    else if (sections.length) sections.at(-1)!.cards.push({ id, title: html, html: content });
+  }
+  if (!title.html || !sections.length) throw new Error("docs/specs.md braucht einen Titel und nummerierte Kapitel.");
+  for (const section of sections) {
+    if (!section.cards.length) {
+      section.cards.push({ id: `${section.id}--inhalt`, title: "", html: section.intro, wide: true });
+      section.intro = "";
+      continue;
+    }
+    const lead = section.intro.match(/^(?:<p>[\s\S]*?<\/p>\n*)*/)![0];
+    const rest = section.intro.slice(lead.length).trim();
+    section.intro = lead;
+    if (rest) section.cards.unshift({ id: `${section.id}--überblick`, title: "Überblick", html: rest });
+    for (const card of section.cards) card.wide ||= /<table/.test(card.html) || (card.html.match(/<li>/g)?.length ?? 0) > 6 || plainText(card.html).length > 700;
+    // Eine ungerade schmale Karte vor einer breiten füllt die Zeile, statt eine Lücke zu lassen.
+    let narrow = 0;
+    section.cards.forEach((card, index) => {
+      narrow = card.wide ? 0 : narrow + 1;
+      if (narrow % 2 && section.cards[index + 1]?.wide !== false) card.wide = true;
+    });
+  }
+  if (appendix) sections.push(appendix.section);
+  const meta: string[] = [];
+  const lede: string[] = [];
+  for (const block of intro.trim().split(/\n(?=<(?:p|ul|ol|div|table|blockquote|pre)[\s>])/).filter(Boolean)) {
+    const entries = block.match(/^<p>([\s\S]*)<\/p>$/)?.[1].split("\n").map((line) => line.match(/^<strong>([^<]+):<\/strong>\s*([\s\S]+)$/));
+    if (entries?.every(Boolean)) meta.push(...entries.map((entry) => `<li class="core-status-label"><span>${entry![1]}</span> ${entry![2]}</li>`));
+    else lede.push(block.replace(/^<p>/, '<p class="catalog-lede">'));
+  }
+  const navigation = sections.map((section) => `<a href="#${section.id}">${plainText(section === appendix?.section ? appendix.label : section.title)}</a>`).join("");
+  const search = renderToStaticMarkup(React.createElement(lucide.Search, { "aria-hidden": true }));
+  const cards = sections.reduce((sum, section) => sum + section.cards.length, 0);
+  const body = sections.map((section) => `<section id="${section.id}" class="catalog-section"><div class="catalog-section-heading"><h2>${section.title}</h2>${section.intro}</div><div class="catalog-grid">${section.cards.map(specsCard).join("")}</div></section>`).join("");
+  return `<div id="specs--document" class="catalog" data-specs-catalog><header class="catalog-hero"><div class="catalog-hero-inner"><h1 id="${title.id}">${title.html}</h1>${lede.join("")}${meta.length ? `<ul class="specs-meta">${meta.join("")}</ul>` : ""}</div></header><div class="catalog-shell"><nav class="catalog-nav" aria-label="Specs-Kapitel"><strong>Inhalt</strong>${navigation}</nav><main class="catalog-main"><div class="catalog-toolbar" aria-label="Specs-Suche"><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen</span>${search}<input id="specs-search" type="search" placeholder="Anforderung, Journey oder Begriff suchen …" autocomplete="off"></label></div><p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche.</p>${body}</main></div><footer class="catalog-footer">CoRe Specs · ${sections.length} Kapitel · ${cards} Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div>`;
 }
 
 export function createCatalogData(): CatalogData {
@@ -189,8 +248,8 @@ export async function synchronizeDocs(mode: "write" | "check") {
   }
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
   reader("index.html", "Docs", document("README.md"));
-  const specs = document("specs.md");
-  reader("specs.html", "Specs", specs.replace(/(<h2 id="specs--1-produktvision"[^>]*>)/, `${codeFootprintMarkup()}$1`));
+  const footprint = { id: "specs--codeumfang", title: "Codeumfang der Produktbereiche", intro: "<p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>", cards: [{ id: "specs--codeumfang-bereiche", title: "Bildschirmcode je Produktbereich", html: codeFootprintMarkup(), wide: true }] };
+  results.set("specs.html", htmlPage("specs.html", specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }), css, viewer));
   reader("journeys.html", "Journeys", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
   results.set("journeys.html", results.get("journeys.html")!.replace("</body>", '<script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body>'));
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {

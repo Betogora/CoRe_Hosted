@@ -339,11 +339,6 @@
     box-shadow: var(--core-shadow-soft);
   }
 
-  .core-surface-muted {
-    border: var(--core-border-width) solid var(--core-border);
-    background: var(--core-surface-muted);
-  }
-
   .core-segmented-control {
     position: relative;
     display: inline-grid;
@@ -1264,20 +1259,8 @@ summary {
   overflow: visible;
 }
 
-.core-study-card .core-study-card-front .card-html {
-  font: var(--core-weight-emphasis) clamp(2rem, 3vw, 3rem)/1.25 var(--core-font-sans);
-}
-
-.core-study-card .core-study-card-back .card-html {
-  font: var(--core-weight-emphasis) clamp(1.625rem, 2.4vw, 2.375rem)/1.3 var(--core-font-sans);
-}
-
 .core-study-card .core-mcq-option {
   font: var(--core-weight-emphasis) clamp(1.125rem, 1.4vw, 1.375rem)/1.4 var(--core-font-sans);
-}
-
-.core-study-card .core-mcq-feedback {
-  font: var(--core-weight-body) clamp(1rem, 1.15vw, 1.125rem)/1.5 var(--core-font-sans);
 }
 
 .core-help-keyword {

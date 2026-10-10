@@ -28,7 +28,6 @@
     "db:types:check": "tsx scripts/databaseTypes.ts --check",
     "docs:build": "tsx scripts/generateDocs.ts --write",
     "check:docs": "tsx --test scripts/docsSite.test.ts && tsx scripts/generateDocs.ts --check",
-    "storage:retire-labs": "tsx scripts/retireLabsStorage.ts",
     "build": "vite build",
     "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg --benchmark-repeat 5000 --benchmark-item-count 5 --benchmark-media-count 1000 && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",
     "benchmark:apkg:large": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-large-benchmark.apkg --benchmark-repeat 5000 --benchmark-item-count 5 --benchmark-media-count 1000 --benchmark-media-bytes 2100000 && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-large-benchmark.apkg --large",

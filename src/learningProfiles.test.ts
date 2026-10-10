@@ -58,7 +58,7 @@ test("copy-on-apply changes exactly one settings object and records source prove
     settings: { newCardsPerDay: 60, maximumReviewsPerDay: 400 },
   }).template;
   const first = {
-    coreMode: "manual",
+    coreMode: "off",
     newCardsPerDay: 20,
     newCardsTodayOverride: { date: "2026-08-11", limit: 5 },
   };
@@ -66,7 +66,7 @@ test("copy-on-apply changes exactly one settings object and records source prove
 
   assert.equal(applied.newCardsPerDay, 60);
   assert.equal(applied.maximumReviewsPerDay, 400);
-  assert.equal(applied.coreMode, "manual");
+  assert.equal(applied.coreMode, "off");
   assert.equal(applied.newCardsTodayOverride, null);
   assert.deepEqual(applied.learningProfileSource, { id: "profile-exam", contentVersion: 1 });
   assert.equal(first.newCardsPerDay, 20);

@@ -111,7 +111,7 @@ function FoundationsDemo({ section }: { section: string }) {
 }
 
 function ControlsDemo({ section }: { section: string }) {
-  const [mode, setMode] = useState<CoreMode>("auto");
+  const [mode, setMode] = useState<CoreMode>("on");
   const [tab, setTab] = useState("front");
   const [marked, setMarked] = useState(false);
   const [suspended, setSuspended] = useState(false);
@@ -226,7 +226,7 @@ function SurfaceDemo() {
       .then(([question, answer]) => { if (active) setSides({ question, answer }); });
     return () => { active = false; };
   }, [fixture]);
-  return <><CardPresentationSurface presentation={sides?.question ?? null} title="Vorderseite" mediaUrls={fixture.mediaUrls} showCompatibility="warnings-only" /><CardPresentationSurface presentation={sides?.answer ?? null} title="Rückseite" mediaUrls={fixture.mediaUrls} showCompatibility="warnings-only" /><CardPresentationSurface presentation={null} title="Noch keine Karte" loadingLabel="Kartendarstellung wird vorbereitet …" /></>;
+  return <><CardPresentationSurface presentation={sides?.question ?? null} title="Vorderseite" mediaUrls={fixture.mediaUrls} /><CardPresentationSurface presentation={sides?.answer ?? null} title="Rückseite" mediaUrls={fixture.mediaUrls} /><CardPresentationSurface presentation={null} title="Noch keine Karte" loadingLabel="Kartendarstellung wird vorbereitet …" /></>;
 }
 
 function ContentDemo({ section }: { section: string }) {
@@ -294,7 +294,7 @@ function PdfDemo() {
     setSrc(url);
     return () => URL.revokeObjectURL(url);
   }, []);
-  return <>{src && <PdfDocumentViewer src={src} document={{ id: "catalog-pdf", fileName: "lernhinweis.pdf", mimeType: "application/pdf", text: "CoRe – Lernen mit Kontext", textExtractionStatus: "ready", metadata: {} }} onSelection={setSelection} />}<p className="core-body">Auswahl: {selection || "Noch kein Text markiert"}</p></>;
+  return <>{src && <PdfDocumentViewer src={src} document={{ id: "catalog-pdf", fileName: "lernhinweis.pdf", mimeType: "application/pdf", text: "CoRe – Lernen mit Kontext", textExtractionStatus: "success", metadata: {} }} onSelection={setSelection} />}<p className="core-body">Auswahl: {selection || "Noch kein Text markiert"}</p></>;
 }
 
 function LearningDemo({ section }: { section: string }) {
@@ -377,7 +377,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
     {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
     {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
-    {view === "study" && <StudyMode deck={deck} decks={sampleDecks} notes={sampleNotes} deckId={deck.id} variantSession={false} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => deck} onCardUpdated={noop} onReview={noop} />}
+    {view === "study" && <StudyMode deck={deck} decks={sampleDecks} notes={sampleNotes} deckId={deck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => deck} onCardUpdated={noop} onReview={noop} />}
     </section>
   </div>}</>;
 }

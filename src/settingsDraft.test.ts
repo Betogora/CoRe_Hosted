@@ -42,7 +42,7 @@ test("deck draft compares and normalizes identity, appearance, learning, schedul
       ...baseline.learning,
       newCardsPerDay: 42,
       schedulerProfile: { ...baseline.learning.schedulerProfile, presetId: "custom" as const, desiredRetention: 0.95 },
-      coreMode: "manual" as const,
+      coreMode: "off" as const,
     },
   };
 
@@ -51,7 +51,7 @@ test("deck draft compares and normalizes identity, appearance, learning, schedul
   assert.equal(normalized.name, "Neue Biologie");
   assert.equal(normalized.learning.newCardsPerDay, 42);
   assert.equal(normalized.learning.schedulerProfile.desiredRetention, 0.95);
-  assert.equal(normalized.learning.coreMode, "manual");
+  assert.equal(normalized.learning.coreMode, "off");
   assert.notEqual(normalized.appearance.iconKey, "invalid");
   assert.match(normalized.appearance.iconColor, /^#[0-9a-f]{6}$/);
   assert.equal(settingsDraftsEqual(baseline, baseline), true);

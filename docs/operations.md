@@ -304,13 +304,7 @@ Dieser Ablauf darf ausschließlich gegen das verifizierte CoRe-Produktionsprojek
 2. Aktive Trigger- und APKG-Jobs ausschließen. Die CoRe-Projekt-Ref aus der verifizierten Vercel-Production-Konfiguration ermitteln und gegen die Supabase-URL prüfen.
 3. Vor der Migration ausschließlich IDs und Storage-Pfade der zu löschenden Daten in ein unversioniertes Manifest unter `test-results/` schreiben. Das Manifest enthält keine Nutzdaten oder Objektbytes und ist kein Backup.
 4. Löschzahlen und Projekt-Ref im Vier-Augen-Prinzip bestätigen, dann `20260801103920_retire_labs_and_server_apkg.sql` anwenden.
-5. `SUPABASE_URL` und `SUPABASE_SECRET_KEY` für exakt dieses Projekt setzen und den Storage-Rückbau mit derselben Projekt-Ref bestätigen:
-
-   ```powershell
-   npm run storage:retire-labs -- test-results/<manifest>.json --confirm-project-ref <core-project-ref>
-   ```
-
-   Das Skript entfernt manifestierte, nicht mehr referenzierte Objekte aus `core-media`, leert `core-imports` über die Storage-API und löscht danach den Bucket. Direkte Deletes in `storage.objects` oder `storage.buckets` sind verboten.
+5. `SUPABASE_URL` und `SUPABASE_SECRET_KEY` für exakt dieses Projekt setzen und den Storage-Rückbau mit derselben Projekt-Ref bestätigen. Das damalige Skript `scripts/retireLabsStorage.ts` wurde nach dem abgeschlossenen Lauf am 2026-10-10 entfernt und ist nur noch über die Git-Historie abrufbar. Es entfernte manifestierte, nicht mehr referenzierte Objekte aus `core-media`, leert `core-imports` über die Storage-API und löscht danach den Bucket. Direkte Deletes in `storage.objects` oder `storage.buckets` sind verboten.
 6. Tabellen-/Spaltenabwesenheit, Quellen-Constraints, Bucket-Abwesenheit und Löschzahlen prüfen. Danach Trigger.dev-Konfiguration, dedizierte KI-/Upstash-Ressourcen und ihre Secrets außerhalb des Repositories entfernen.
 7. Supabase Security- und Performance-Advisors prüfen und Ergebnis ohne Dateninhalte in [`history.md`](history.md) protokollieren.
 

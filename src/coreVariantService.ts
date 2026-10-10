@@ -1,14 +1,11 @@
-import { createDefaultDeckSettings, getActiveVariants, reviewStateFromCardStudy, stableContentHash } from "./coreModel.ts";
+import { createDefaultDeckSettings, getActiveVariants, stableContentHash } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
-import { calculateRetrievability } from "./scheduler.ts";
-import type { Card, CardVariant, Note, ReviewRating, VariantFeedbackType } from "./coreTypes.ts";
+import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
+import type { Card, CardVariant, Note, VariantFeedbackType } from "./coreTypes.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
-type DateInput = string | number | Date;
-interface ReviewEventInput { cardId?: string; rating?: ReviewRating | "manual"; answeredAt?: string; createdAt?: string; variantId?: string | null }
-interface VariantServiceOptions { now?: DateInput }
 
-export { selectAutomaticReviewVariant } from "./coreVariantService/variantSelection.ts";
+export { selectReviewVariant } from "./coreVariantService/variantSelection.ts";
 
 function plainText(html: string): string {
   return stripSanitizedHtml(html).replace(/&nbsp;/gi, " ").replace(/\s+/g, " ").trim();
@@ -52,116 +49,38 @@ export function variantPresentation(note: Note, card: Card, variant: CardVariant
   };
 }
 
-export function classifyCardEligibility(note: Pick<Note, "content">, card: Pick<Card, "id" | "promptKey">, deckSettings: DeckSettingsInput = {}) {
+/** Whether a new rephrasing may be generated for the card; the reasons explain a disabled action. */
+export function classifyCardEligibility(note: Pick<Note, "content">, card: Card, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const reasons: string[] = [];
-  if (settings.coreMode === "off") reasons.push("CoRe-Modus ist für diesen Stapel ausgeschaltet.");
+  if (settings.coreMode === "off") reasons.push("Content Repetition ist für diesen Stapel ausgeschaltet.");
   if (note.content.interaction.kind !== "reveal") reasons.push("KI-Umformulierungen sind nur für Karten mit Frage und Antwort verfügbar.");
   else if (!cardVariantSource(note, card)) reasons.push("Frage oder Antwort fehlt.");
-  return { eligible: reasons.length === 0, reasons, blockedTransforms: reasons.length ? ["rephrase"] : [], cardId: card.id };
+  if (getActiveVariants(card).length >= settings.maxActiveVariantsPerCard) {
+    reasons.push(`Die Karte hat bereits ${settings.maxActiveVariantsPerCard === 1 ? "eine aktive Variante" : `${settings.maxActiveVariantsPerCard} aktive Varianten`}; mehr erlaubt der Stapel nicht.`);
+  }
+  return { eligible: reasons.length === 0, reasons };
 }
 
-function getReviewSuccessProfile(card: Card, reviewEvents: ReviewEventInput[] = []) {
-  const events = reviewEvents
-    .filter((event) => event.rating !== "manual" && event.cardId === card.id)
-    .sort((left, right) => String(left.answeredAt ?? left.createdAt).localeCompare(String(right.answeredAt ?? right.createdAt)));
-  const positive = events.filter((event) => event.rating === "good" || event.rating === "easy");
+/** Learning level of a card compared with the deck's threshold for asking rephrasings. */
+export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsInput = {}) {
+  const settings = createDefaultDeckSettings(deckSettings);
+  const ready = isCardReadyForVariants(card, settings);
+  const reason = settings.coreMode === "off"
+    ? "Content Repetition ist für diesen Stapel ausgeschaltet."
+    : ready
+      ? "Im Review wechseln sich die Karte und ihre Varianten ab."
+      : card.study.state !== "review" || card.study.lastRating === "again"
+        ? "Bis zur nächsten richtigen Wiederholung wird die Karte selbst abgefragt."
+        : "Bis zur Lernstufe des Stapels wird die Karte selbst abgefragt.";
   return {
-    reviewCount: events.length,
-    successfulReviewCount: positive.length,
-    recentFailureCount: events.slice(-5).filter((event) => event.rating === "again").length,
-    lastSuccessfulVariantId: [...positive].reverse().find((event) => event.variantId)?.variantId ?? null,
+    maturityXp: card.study.extra.maturityXp,
+    thresholdXp: settings.variantThresholdXp,
+    ready,
+    reason,
+    activeCount: getActiveVariants(card).length,
+    maxActive: settings.maxActiveVariantsPerCard,
   };
-}
-
-function getCardMaturity(card: Card, now: DateInput = new Date(), reviewEvents: ReviewEventInput[] = []) {
-  const { study } = card;
-  const profile = getReviewSuccessProfile(card, reviewEvents);
-  const score = Number(study.extra.maturityXp ?? 0);
-  const stage = study.extra.maturityBand ?? "new";
-  return {
-    stage,
-    score,
-    label: stage,
-    description: score >= 121 ? "Bereit für KI-Umformulierungen." : "Grundkarte weiter festigen.",
-    isStable: score >= 121,
-    isFragile: profile.recentFailureCount > 0,
-    successfulReviewCount: profile.successfulReviewCount,
-    consecutivePositiveReviews: profile.successfulReviewCount,
-    consecutiveGoodOrEasy: profile.successfulReviewCount,
-    recentFailureCount: profile.recentFailureCount,
-    retrievability: calculateRetrievability(reviewStateFromCardStudy(study), now),
-    stability: Number(study.stability ?? 0),
-    difficulty: Number(study.difficulty ?? 0),
-    intervalDays: Number(study.intervalDays ?? 0),
-    reps: Number(study.reps ?? 0),
-    reasons: [] as string[],
-  };
-}
-
-function getVariantReadiness(card: Card, reviewEvents: ReviewEventInput[] = [], options: VariantServiceOptions = {}) {
-  const maturity = getCardMaturity(card, options.now, reviewEvents);
-  const ready = maturity.isStable && !maturity.isFragile;
-  return {
-    allowedLevels: ready ? [2, 3] : [] as number[],
-    preferredLevel: ready ? 2 : 1,
-    maxAllowedLevel: ready ? 3 : 1,
-    allowAiRephrasing: ready,
-    allowAdvancedVariants: false,
-    shouldPreferOriginal: !ready,
-    shouldFallbackToOriginal: maturity.isFragile,
-    reason: ready ? "Lernstand ist stabil." : "Grundkarte hat Vorrang.",
-    maturity,
-  };
-}
-
-function getVariantCoverage(card: Card) {
-  const active = getActiveVariants(card);
-  const levelCounts = Object.fromEntries([1, 2, 3].map((level) => [level, active.filter((variant) => variant.variantLevel === level).length]));
-  return {
-    originalCount: 0,
-    activeRephraseCount: active.length,
-    aiGeneratedCount: active.length,
-    userEditedCount: 0,
-    levelCounts,
-    hasOriginal: false,
-    hasNearRephrases: active.length > 0,
-    hasEnoughVariants: active.length >= 2,
-    missingRecommendedLevels: [2, 3].filter((level) => !levelCounts[level]),
-    warnings: [] as string[],
-  };
-}
-
-export function createVariantReviewModel(card: Card, reviewEvents: ReviewEventInput[] = [], options: VariantServiceOptions = {}) {
-  const maturity = getCardMaturity(card, options.now, reviewEvents);
-  const readiness = getVariantReadiness(card, reviewEvents, options);
-  const coverage = getVariantCoverage(card);
-  const shouldSuggest = readiness.allowAiRephrasing && !coverage.hasEnoughVariants;
-  const variantGenerationRecommendation = {
-    shouldSuggest,
-    shouldAutoGenerate: false,
-    shouldShowInUi: true,
-    mode: "manual",
-    recommendedVariantCount: shouldSuggest ? 1 : 0,
-    recommendedLevels: readiness.allowedLevels,
-    allowedVariantTypes: ["basic"] as const,
-    reason: readiness.reason,
-    warnings: coverage.warnings,
-    maturity,
-    readiness,
-    coverage,
-  };
-  return {
-    maturity,
-    readiness,
-    coverage,
-    variantGenerationRecommendation,
-    variantGenerationPlan: { shouldGenerate: false, recommendation: variantGenerationRecommendation, cardId: card.id },
-  };
-}
-
-export function getVariantFallbackTarget(_card: Card, failedVariant: CardVariant | null) {
-  return { fallbackVariantId: null, fallbackReason: failedVariant ? "Nach einer falschen Antwort folgt wieder die Grundkarte." : "Grundkarte erneut zeigen.", shouldUseOriginal: true, previousVariantId: failedVariant?.id ?? null };
 }
 
 export function deactivateVariant(card: Card, variantId: string, _reason = "Nutzer hat die Variante deaktiviert."): Card {

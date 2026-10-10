@@ -151,8 +151,6 @@ test("roundtrips an allowlisted review return from the selected card editor", ()
     selectedCardId: "card_current",
     cardEditorReturnContext: {
       deckId: "deck_root",
-      variantSession: true,
-      variantId: "variant_current",
       returnContext: { view: "learn", deckId: "deck_root" },
     },
   });
@@ -183,8 +181,6 @@ test("roundtrips an allowlisted review return from deck settings", () => {
       view: "review",
       reviewReturnContext: {
         deckId: "deck_root",
-        variantSession: true,
-        variantId: "variant_current",
         returnContext: { view: "decks", deckId: "deck_child", cardId: "card_current" },
       },
     },
@@ -219,16 +215,14 @@ test("falls back to today for retired labs and test-mode routes", () => {
   }
 });
 
-test("roundtrips review deck, variant and allowlisted return context through the URL", () => {
+test("roundtrips review deck and allowlisted return context through the URL", () => {
   const route = parseAppRouteFromUrl(
-    "/decks/deck%2Fspecial/review?variant=variant%2Ftwo&returnView=decks&returnDeck=deck%2Fspecial&returnCard=card%2Ftwo",
+    "/decks/deck%2Fspecial/review?returnView=decks&returnDeck=deck%2Fspecial&returnCard=card%2Ftwo",
   );
 
   assert.deepEqual(route, {
     mode: "study",
     deckId: "deck/special",
-    variantSession: true,
-    variantId: "variant/two",
     returnContext: {
       view: "decks",
       deckId: "deck/special",
@@ -237,31 +231,29 @@ test("roundtrips review deck, variant and allowlisted return context through the
   });
   assert.equal(
     appRouteToUrl(route),
-    "/decks/deck%2Fspecial/review?variant=variant%2Ftwo&returnView=decks&returnDeck=deck%2Fspecial&returnCard=card%2Ftwo",
+    "/decks/deck%2Fspecial/review?returnView=decks&returnDeck=deck%2Fspecial&returnCard=card%2Ftwo",
   );
 });
 
-test("reads old review URLs and normalizes free return values to the safe learning fallback", () => {
-  const legacyRoute = parseAppRouteFromUrl("/decks/deck_a/review?variant=1");
+test("ignores unknown review parameters and normalizes free return values to the safe learning fallback", () => {
+  const plainRoute = parseAppRouteFromUrl("/decks/deck_a/review?variant=1");
   const unsafeRoute = parseAppRouteFromUrl(
     "/review/deck_a?returnView=https%3A%2F%2Fevil.example&returnDeck=deck_b&returnCard=card_b",
   );
 
-  assert.deepEqual(legacyRoute, {
+  assert.deepEqual(plainRoute, {
     mode: "study",
     deckId: "deck_a",
-    variantSession: true,
     returnContext: { view: "learn", deckId: "deck_a" },
   });
   assert.deepEqual(unsafeRoute, {
     mode: "study",
     deckId: "deck_a",
-    variantSession: false,
     returnContext: { view: "learn", deckId: "deck_b" },
   });
   assert.equal(
-    appRouteToUrl(legacyRoute),
-    "/decks/deck_a/review?variant=1&returnView=learn&returnDeck=deck_a",
+    appRouteToUrl(plainRoute),
+    "/decks/deck_a/review?returnView=learn&returnDeck=deck_a",
   );
 });
 
@@ -277,7 +269,6 @@ test("keeps an unknown review deck id so the product can render a not-found fall
   assert.deepEqual(parseAppRouteFromUrl("/decks/missing/review"), {
     mode: "study",
     deckId: "missing",
-    variantSession: false,
     returnContext: { view: "learn", deckId: "missing" },
   });
   assert.deepEqual(createStudyRoute(""), { mode: "view", viewId: "lernen" });

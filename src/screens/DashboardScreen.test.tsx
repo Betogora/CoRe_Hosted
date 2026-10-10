@@ -39,7 +39,7 @@ test("empty dashboard offers only explicit first-learning paths without seeded s
   assert.match(markup, /Demo ausprobieren/);
   assert.match(markup, /Zeitlich passend wiederholen\./);
   assert.match(markup, /Später anders formuliert prüfen\./);
-  assert.match(markup, /Original und Quelle bleiben sichtbar\./);
+  assert.match(markup, /Die Originalkarte bleibt erhalten\./);
   assert.doesNotMatch(markup, /Noemi|Guten Morgen|Lern-Heatmap|Aktive Stapel/);
 });
 

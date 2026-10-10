@@ -45,7 +45,7 @@ export function createGlobalCardSettingsDraft(
     easyDays: normalizeEasyDays(preferences.easyDays),
     learning: createDeckLearningSettingsDraft({
       ...preferences.defaultLearningSettings,
-      coreMode: "auto",
+      coreMode: "on",
     }),
   };
 }
@@ -55,7 +55,7 @@ export function createDeckLearningSettingsDraft(
 ): DeckLearningSettingsDraft {
   return {
     ...normalizeLearningSettings(settings),
-    coreMode: settings.coreMode === "off" || settings.coreMode === "manual" ? settings.coreMode : "auto",
+    coreMode: settings.coreMode === "off" ? "off" : "on",
     variantThresholdXp: Number.isFinite(Number(settings.variantThresholdXp)) ? Number(settings.variantThresholdXp) : 121,
     maxActiveVariantsPerCard: Number.isFinite(Number(settings.maxActiveVariantsPerCard)) ? Number(settings.maxActiveVariantsPerCard) : 2,
     learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),

@@ -6,7 +6,7 @@ import {
   getStudyHeatmapDayKey,
 } from "./studyHeatmapModel.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
-import type { CoreMode, Deck, Note } from "./coreTypes.ts";
+import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 
@@ -16,18 +16,15 @@ type DateInput = string | number | Date;
 
 interface LibraryOptions {
   query?: unknown;
-  coreMode?: CoreMode | "all";
   cardLimit?: number;
   now?: DateInput;
   timeZone?: string;
   dayStartHour?: number;
   learnAheadMinutes?: number;
-  selectedDeckId?: string;
   cardSort?: CardTableSort;
   cardPageByDeckId?: Record<string, number>;
   cardPageSize?: number;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
-  studyHeatmap?: ReturnType<typeof createStudyHeatmapModelFromCounts>;
   /** Contents of locally loaded cards; without one, a card row shows its catalog preview. */
   notesById?: ReadonlyMap<string, Note>;
 }
@@ -124,7 +121,7 @@ function createDeckRow(
     childrenCount,
     hasChildren: childrenCount > 0,
     descendantCount: 0,
-    coreMode: deck.deckSettings?.coreMode ?? "auto",
+    coreMode: deck.deckSettings?.coreMode ?? "on",
     summary: directSummary,
     directSummary,
     statusDistribution: createDeckStatusDistribution(directInventory),
@@ -172,14 +169,6 @@ export type CardTableGroup = DeckLibraryRow & {
   pageSize: number;
   deckMatches: boolean;
 };
-
-function matchesDeckRow(row: DeckLibraryRow, query: string, coreMode: CoreMode | "all"): boolean {
-  const haystack = normalizeQuery(`${row.name} ${row.path}`);
-  const matchesQuery = !query || haystack.includes(query);
-  const matchesMode = coreMode === "all" || row.coreMode === coreMode;
-
-  return matchesQuery && matchesMode;
-}
 
 type DeckInventorySummary = ReturnType<typeof summarizeDeckReview>;
 
@@ -398,13 +387,9 @@ export function createStudyHeatmapModel(decks: Deck[] = [], options: LibraryOpti
 }
 
 export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const query = normalizeQuery(options.query);
-  const coreMode = options.coreMode ?? "all";
   const cardLimit = options.cardLimit ?? 80;
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone, deckSummaries: options.deckSummaries });
-  const filteredRows = rows.filter((row) => matchesDeckRow(row, query, coreMode));
-  const selectedRow = rows.find((row) => row.id === options.selectedDeckId) ?? filteredRows[0] ?? null;
   const sessions = rows
     .filter((row) => row.depth === 0)
     .map((row) => row.dailyLearningSession);
@@ -421,19 +406,11 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
     firstStartableDeckId,
   };
 
-  return {
-    rows,
-    filteredRows,
-    selectedRow,
-    dueCards: rows.reduce((total, row) => total + row.directSummary.dueCards, 0),
-    dailyLearningPlan,
-    studyHeatmap: options.studyHeatmap ?? createStudyHeatmapModel(decks, { now, timeZone: options.timeZone, dayStartHour: options.dayStartHour }),
-  };
+  return { rows, dailyLearningPlan };
 }
 
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
   const query = normalizeQuery(options.query);
-  const coreMode = options.coreMode ?? "all";
   const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;
   const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(options.cardPageSize ?? CARD_TABLE_PAGE_SIZE)));
   const now = options.now ?? new Date();
@@ -460,10 +437,7 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
       deckMatches,
     };
   });
-  const groups = allGroups.filter((group) => (
-    (coreMode === "all" || group.coreMode === coreMode)
-    && (!query || group.deckMatches || group.totalCardCount > 0)
-  ));
+  const groups = allGroups.filter((group) => !query || group.deckMatches || group.totalCardCount > 0);
 
   return {
     allGroups,

@@ -58,7 +58,6 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       state: "review",
       repetitions: 4,
       maturityXp: 140,
-      preferredVariantLevel: 2,
       dueAt: "2026-07-01T08:00:00.000Z",
     },
   });
@@ -77,7 +76,6 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
       decks={[deck]}
       notes={[base.note]}
       deckId={deck.id}
-      variantSession
       getNow={() => "2026-07-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, [base.note])}
@@ -117,7 +115,6 @@ test("StudyMode uses a simulated same-day minute offset for queue and visible st
     decks: [deck],
     notes: [item.note],
     deckId: deck.id,
-    variantSession: false,
     learnAheadMinutes: 0,
     ...studyCallbacks(deck, [item.note]),
   };
@@ -147,7 +144,6 @@ test("StudyMode shows a loading status instead of an empty card while the conten
       decks={[deck]}
       notes={[]}
       deckId={deck.id}
-      variantSession={false}
       getNow={() => "2026-08-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, [item.note])}
@@ -169,7 +165,6 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
       decks={[deck]}
       notes={[item.note]}
       deckId={deck.id}
-      variantSession={false}
       getNow={() => "2026-08-06T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, [item.note])}
@@ -219,7 +214,6 @@ test("StudyMode renders the four daily progress segments in the canonical order 
       decks={[deck]}
       notes={notes}
       deckId={deck.id}
-      variantSession={false}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, notes)}
@@ -267,7 +261,6 @@ test("StudyMode uses the complete catalog projection before every card body is b
       decks={[deck]}
       notes={notes}
       deckId={deck.id}
-      variantSession={false}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, notes)}
@@ -303,7 +296,6 @@ test("StudyMode says Für jetzt geschafft while same-day learning steps are stil
       decks={[deck]}
       notes={[item.note]}
       deckId={deck.id}
-      variantSession={false}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, [item.note])}
@@ -332,7 +324,6 @@ test("StudyMode explains when every due card is hidden by the daily limit", () =
       decks={[deck]}
       notes={[item.note]}
       deckId={deck.id}
-      variantSession={false}
       getNow={() => "2026-08-09T10:00:00.000Z"}
       simulationOffsetMinutes={0}
       {...studyCallbacks(deck, [item.note])}

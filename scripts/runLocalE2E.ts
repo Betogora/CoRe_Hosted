@@ -9,7 +9,6 @@ import {
   provisionLocalE2EAccounts,
 } from "./localE2EEnvironment.ts";
 import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
-import { retireLabsStorage } from "./retireLabsStorage.ts";
 
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
@@ -155,15 +154,6 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
     const statusEnvironment = parseSupabaseStatusEnvironment(stdout);
     const testEnvironment = createLocalE2ERuntimeEnvironment(statusEnvironment, process.env);
     const privilegedTestEnvironment = createLocalPrivilegedTestEnvironment(statusEnvironment, process.env);
-
-    console.log("Ausgemusterten lokalen Import-Bucket über die Storage-API entfernen …");
-    await retireLabsStorage({
-      supabaseUrl: String(privilegedTestEnvironment.SUPABASE_URL),
-      secretKey: String(privilegedTestEnvironment.SUPABASE_SECRET_KEY),
-      manifest: { projectRef: "local", retiredDeckIds: [], retiredCardIds: [], coreMediaPaths: [] },
-      confirmedProjectRef: "local",
-      allowLocal: true,
-    });
 
     console.log("Bestätigte lokale Auth-/RLS-Testaccounts provisionieren …");
     await provisionLocalE2EAccounts(privilegedTestEnvironment);

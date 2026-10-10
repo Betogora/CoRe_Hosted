@@ -1,4 +1,5 @@
-export type CoreMode = "off" | "auto" | "manual";
+/** Content Repetition per deck: "on" shows mature cards' AI rephrasings in review, "off" never does. */
+export type CoreMode = "on" | "off";
 export type ReviewRating = "again" | "hard" | "good" | "easy";
 export type DeckSource = "manual" | "anki-apkg";
 export type CardVariantType = "basic";
@@ -124,12 +125,6 @@ export interface GlobalSchedulerPreferences {
   defaultLearningSettings: GlobalLearningDefaults;
 }
 
-export interface VariantBlacklist {
-  tags: string[];
-  transforms: TransformType[];
-  cardIds: string[];
-}
-
 export interface DeckSettings {
   coreMode: CoreMode;
   appearance: DeckAppearance;
@@ -149,7 +144,6 @@ export interface DeckSettings {
   variantThresholdXp: number;
   maxActiveVariantsPerCard: number;
   schedulerProfile: SchedulerProfile;
-  blacklist: VariantBlacklist;
 }
 
 export type NoteFieldRole = "prompt" | "answer" | "hint" | "extra" | "source" | "note";
@@ -247,11 +241,6 @@ export interface CardStudyExtra {
   desiredRetention: number;
   maturityXp: number;
   maturityBand: MaturityBand;
-  preferredVariantLevel: number;
-  forcedVariantId: string | null;
-  fallbackUntilCorrect: boolean;
-  lastFailedVariantId: string | null;
-  previousSuccessfulVariantId: string | null;
   intervalMinutes: number | null;
   learningSuccessCount: number;
   firstLearningAt: string | null;
@@ -309,17 +298,10 @@ export interface VariantPerformance {
   variantId: string;
   userId: string;
   attempts: number;
-  reviewCount: number;
   correctCount: number;
   wrongCount: number;
-  ratingCounts: Record<ReviewRating, number>;
-  avgResponseTimeMs: number | null;
   averageResponseTimeMs: number | null;
   lastReviewedAt: string | null;
-  lastRating: ReviewRating | null;
-  localDifficultyEstimate: "easy" | "medium" | "hard" | null;
-  masterySignal: "strong" | "steady" | "weak" | "failed" | null;
-  maturityXp: number;
   createdAt: string;
   updatedAt: string;
 }

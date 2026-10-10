@@ -46,7 +46,6 @@ export interface CardPresentationSurfaceProps {
   mediaUrls?: Record<string, string>;
   title: string;
   loadingLabel?: string;
-  showCompatibility?: boolean | "warnings-only";
   className?: string;
 }
 
@@ -57,7 +56,6 @@ export function CardPresentationSurface({
   mediaUrls = {},
   title,
   loadingLabel = "Kartendarstellung wird vorbereitet …",
-  showCompatibility = true,
   className = "",
 }: CardPresentationSurfaceProps) {
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
@@ -79,7 +77,6 @@ export function CardPresentationSurface({
     () => presentation ? resolvePresentationMedia(presentation.srcdoc.replace("<style>", `<style>${fontFaceCss}`), mediaUrls) : "",
     [fontFaceCss, mediaUrls, presentation],
   );
-  const descriptionId = React.useId();
 
   React.useLayoutEffect(() => {
     selectionCleanupRef.current?.();
@@ -92,8 +89,6 @@ export function CardPresentationSurface({
     return <StatusMessage tone="info" announce="polite" className={className}>{loadingLabel}</StatusMessage>;
   }
 
-  const warning = presentation.diagnostics.length > 0;
-  const compatibilityVisible = showCompatibility === "warnings-only" ? warning : showCompatibility;
   const frameClassName = surface === "review"
     ? "h-px w-full border-0 bg-transparent"
     : "min-h-72 w-full rounded-control border border-core-border bg-core-surface";
@@ -112,23 +107,10 @@ export function CardPresentationSurface({
   };
   return (
     <div className={`grid min-w-0 gap-3 ${className}`.trim()}>
-      {compatibilityVisible ? (
-        <StatusMessage id={descriptionId} tone={warning ? "warning" : "success"} announce="polite">
-          <span>{warning ? "Sicher dargestellt, mit bekannten Abweichungen vom Original." : "Originalgetreu und sicher dargestellt."}</span>
-          {warning ? (
-            <ul className="mt-2 list-disc space-y-1 pl-6">
-              {presentation.diagnostics.map((diagnostic) => (
-                <li key={`${diagnostic.code}:${diagnostic.detail ?? ""}`}>{diagnostic.message}</li>
-              ))}
-            </ul>
-          ) : null}
-        </StatusMessage>
-      ) : null}
       <div className="relative min-w-0">
         <iframe
           ref={frameRef}
           title={title}
-          aria-describedby={compatibilityVisible ? descriptionId : undefined}
           sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
           scrolling={surface === "review" ? "no" : undefined}
           referrerPolicy="no-referrer"

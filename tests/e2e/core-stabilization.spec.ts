@@ -896,7 +896,7 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
     ?.find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?")?.back).toBe("Yamoussoukro");
 
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
-  await page.goto(`/decks/${DECK_IDS.africa}/review?variant=1&returnView=decks&returnDeck=${DECK_IDS.africa}`);
+  await page.goto(`/decks/${DECK_IDS.africa}/review?returnView=decks&returnDeck=${DECK_IDS.africa}`);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);

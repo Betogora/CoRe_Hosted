@@ -1,7 +1,7 @@
 import React from "react";
 import { AlertCircle, ChevronLeft, ChevronRight, FileText, Loader2, Minus, Plus, Scan } from "lucide-react";
 import { loadPdfJs } from "../pdfRuntime.ts";
-import { createPdfSelectionBbox, firstSelectionRectOnPage, normalizePdfSelectionText } from "../pdfSelection.ts";
+import { normalizePdfSelectionText } from "../pdfSelection.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 
 const MIN_ZOOM = 0.7;
@@ -107,7 +107,7 @@ function PdfPage({ entry, pdfjs, scale }: { entry: PdfPageEntry & { page: any };
 interface PdfDocumentViewerProps {
   document: TransientSourceDocument;
   src: string;
-  onSelection?: (text: string, selection: { pageNumber: number; bbox: ReturnType<typeof createPdfSelectionBbox> }) => void;
+  onSelection?: (text: string) => void;
 }
 
 export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentViewerProps) {
@@ -251,15 +251,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
     const startElement = range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer as Element : range.startContainer.parentElement;
     const pageElement = startElement?.closest<HTMLElement>("[data-pdf-page-number]");
     if (!pageElement || !viewerRef.current?.contains(pageElement)) return;
-
-    const pageNumber = Number(pageElement.dataset.pdfPageNumber);
-    const pageEntry = pages[pageNumber - 1];
-    if (!pageEntry?.page) return;
-    const pageRect = pageElement.getBoundingClientRect();
-    const selectionRect = firstSelectionRectOnPage(Array.from(range.getClientRects()), pageRect) ?? range.getBoundingClientRect();
-    const scale = pageScale(pageEntry, containerWidth, zoom);
-    const bbox = createPdfSelectionBbox({ selectionRect, pageRect, viewport: pageEntry.page.getViewport({ scale }) });
-    onSelectionRef.current?.(selectedText, { pageNumber, bbox });
+    onSelectionRef.current?.(selectedText);
   }
 
   const pageCount = pages.length;

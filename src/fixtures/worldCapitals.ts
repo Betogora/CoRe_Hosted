@@ -40,8 +40,6 @@ function createWorldCapitalsFixture(source: typeof worldCapitalsSource) {
 }
 
 export const WORLD_CAPITALS_FIXTURE = createWorldCapitalsFixture(worldCapitalsSource);
-export const WORLD_CAPITALS_TOTAL_CARDS = WORLD_CAPITALS_FIXTURE.metadata.totalCards;
-export const WORLD_CAPITALS_COUNTS_BY_CONTINENT = WORLD_CAPITALS_FIXTURE.metadata.countsByContinent;
 
 export const WORLD_CAPITALS_STUDY_HISTORY = {
   fixture: "world-capitals",
@@ -67,7 +65,6 @@ interface StudyProfile {
   difficulty(index: number): number;
   intervalDays(index: number): number;
   dueOffsetDays(index: number): number;
-  preferredVariantLevel: number;
   lapses?: (index: number) => number;
   retrievability: number;
 }
@@ -82,7 +79,6 @@ const STUDY_PROFILES = {
     difficulty: (index: number) => 2.1 + (index % 6) / 10,
     intervalDays: (index: number) => 34 + (index % 24),
     dueOffsetDays: (index: number) => 30 + (index % 26),
-    preferredVariantLevel: 3,
     retrievability: 0.97,
   },
   variantReady: {
@@ -94,7 +90,6 @@ const STUDY_PROFILES = {
     difficulty: (index: number) => 3.8 + (index % 12) / 10,
     intervalDays: (index: number) => 14 + (index % 14),
     dueOffsetDays: (index: number) => 8 + (index % 18),
-    preferredVariantLevel: 2,
     retrievability: 0.91,
   },
   stubbornMature: {
@@ -106,7 +101,6 @@ const STUDY_PROFILES = {
     difficulty: (index: number) => 6.4 + (index % 14) / 10,
     intervalDays: (index: number) => 10 + (index % 10),
     dueOffsetDays: (index: number) => 4 + (index % 12),
-    preferredVariantLevel: 2,
     lapses: (index: number) => 2 + (index % 2),
     retrievability: 0.84,
   },
@@ -119,7 +113,6 @@ const STUDY_PROFILES = {
     difficulty: (index: number) => 5.0 + (index % 14) / 10,
     intervalDays: (index: number) => 7 + (index % 8),
     dueOffsetDays: (index: number) => -1 - (index % 4),
-    preferredVariantLevel: 2,
     retrievability: 0.68,
   },
   steadyYoung: {
@@ -131,7 +124,6 @@ const STUDY_PROFILES = {
     difficulty: (index: number) => 4.5 + (index % 12) / 10,
     intervalDays: (index: number) => 5 + (index % 7),
     dueOffsetDays: (index: number) => 3 + (index % 11),
-    preferredVariantLevel: 1,
     retrievability: 0.86,
   },
 } satisfies Record<string, StudyProfile>;
@@ -229,10 +221,6 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
     maturityXp: profile.maturityXp(cardIndex),
     lastReviewedAt,
     lastRating: "good",
-    preferredVariantLevel: profile.preferredVariantLevel,
-    forcedVariantId: null,
-    fallbackUntilCorrect: false,
-    lastFailedVariantId: null,
     firstLearningAt: firstReviewedAt,
     lastLearningStepAt: firstReviewedAt,
     graduatedAt: rollingState.graduatedAt ?? firstReviewedAt,

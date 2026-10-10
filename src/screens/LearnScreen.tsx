@@ -124,7 +124,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         collapsedDeckIds={collapsedDeckIds}
         onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
         onActivate={(row) => onOpenDeckContent(row.id)}
-        onStudy={(row) => onStartDeck(row.deck, false)}
+        onStudy={(row) => onStartDeck(row.deck)}
         onOpenSettings={onOpenDeckSettings}
         onSetDeckCoreMode={onSetDeckCoreMode}
         onMoveDeck={onMoveDeck}

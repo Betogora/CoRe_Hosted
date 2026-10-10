@@ -22,7 +22,6 @@ test("projects view and study routes into one exhaustive shell state", () => {
   });
 
   const studyRoute = createStudyRoute("deck-1", {
-    variantSession: true,
     returnContext: { view: "decks", deckId: "deck-1", cardId: "card-2" },
   });
   assert.equal(studyRoute.mode, "study");
@@ -70,7 +69,6 @@ test("projects the settings return context only on the settings route", () => {
 
   const reviewReturnContext = {
     deckId: "deck-1",
-    variantSession: false,
     returnContext: { view: "learn" as const, deckId: "deck-1" },
   };
   assert.deepEqual(projectAppRoute(createViewRoute("stapel-einstellungen", {

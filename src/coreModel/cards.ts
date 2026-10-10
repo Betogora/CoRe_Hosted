@@ -3,9 +3,8 @@ import type { Card, CardVariant, VariantPerformance } from "../coreTypes.ts";
 import { VARIANT_STATUSES, makeId, stableContentHash } from "./coreValues.ts";
 import { createVariantPerformance } from "./reviewState.ts";
 
-interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "ratingCounts" | "attempts">> {
+interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "attempts">> {
   id?: string | null;
-  ratingCounts?: Partial<Record<"again" | "hard" | "good" | "easy", number>>;
   attempts?: number | null;
 }
 export interface CardVariantInput extends Partial<Omit<CardVariant, "cardId" | "performance">> {
@@ -49,7 +48,7 @@ export function createCardVariant({
     id,
     cardId,
     variantType: "basic",
-    variantLevel: Math.min(5, Math.max(2, Math.round(Number(variantLevel) || 2))),
+    variantLevel: Math.min(3, Math.max(1, Math.round(Number(variantLevel) || 2))),
     front: sanitizedFront,
     back: sanitizedBack,
     explanation,

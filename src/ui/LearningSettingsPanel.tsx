@@ -280,7 +280,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
-            <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."}</p>
+            <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."} Varianten wechseln sich erst ab der gewählten Lernstufe mit der Karte ab; die Höchstzahl begrenzt Erzeugen und Abfragen.</p>
             <div className="grid gap-4 md:grid-cols-2">
               <SelectField label="Varianten einsetzen ab Lernstufe" value={draft.variantThresholdXp} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdXp: Number(value) })} />
               <SelectField label="Aktive Varianten pro Karte" value={draft.maxActiveVariantsPerCard} options={activeVariantOptions} testId="learning-settings-active-variants" onChange={(value) => editCore({ maxActiveVariantsPerCard: Number(value) })} />
