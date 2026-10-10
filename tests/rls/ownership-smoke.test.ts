@@ -352,6 +352,12 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const withoutBurying = await newCount();
       assertNoError(await clientA.from("decks").update({ deck_settings: { buryNewSiblings: true } }).eq("id", fixtureA.decks.id), "Begraben neuer Geschwister einschalten");
       assert.equal(await newCount(), withoutBurying - 1, "Das neue Geschwister wartet bis zum nächsten Lerntag");
+      // Same rule as src/siblingBurying.ts: each option buries only its own kind.
+      assertNoError(await clientA.from("cards").update({ state: "review" }).eq("id", siblingId), "Geschwister fällig machen");
+      const dueCount = async () => assertNoError(await clientA.rpc("get_account_bootstrap", { p_cursor: "", p_limit: 50, p_max_bytes: 204800 }), "Bootstrap mit fälligem Geschwister").studyOverview.dueByDeck[fixtureA.decks.id] ?? 0;
+      const dueWithNewOnly = await dueCount();
+      assertNoError(await clientA.from("decks").update({ deck_settings: { buryReviewSiblings: true } }).eq("id", fixtureA.decks.id), "Begraben fälliger Geschwister einschalten");
+      assert.equal(await dueCount(), dueWithNewOnly - 1, "Nur die Option für fällige Geschwister begräbt ein fälliges Geschwister");
       assertNoError(await clientA.from("decks").update({ deck_settings: {} }).eq("id", fixtureA.decks.id), "Begraben wieder ausschalten");
       assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", siblingId), "Geschwister entfernen");
 

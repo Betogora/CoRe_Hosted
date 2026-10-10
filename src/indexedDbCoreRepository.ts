@@ -6,6 +6,7 @@ import type { CardTableSort, DeckLibrarySummary } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
 import type { AnsweredTodayCard, ReviewAnswerResult } from "./reviewService.ts";
+import { buriesSiblings, createSiblingBurying, type SiblingKind } from "./siblingBurying.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
@@ -389,9 +390,8 @@ async function buriedSiblingsByDeck(
   todayEvents: ReviewEvent[][] | null,
 ): Promise<Map<string, BuriedSiblingCounts>> {
   const settingsByDeck = new Map(decks.map((deck) => [deck.id, createDefaultDeckSettings(deck.deckSettings)]));
-  const buries = (settings: DeckSettings | undefined) => Boolean(settings && (settings.buryNewSiblings || settings.buryReviewSiblings || settings.buryInterdayLearningSiblings));
   const result = new Map<string, BuriedSiblingCounts>();
-  if (![...settingsByDeck.values()].some(buries)) return result;
+  if (![...settingsByDeck.values()].some(buriesSiblings)) return result;
 
   const start = new Date(range.start).toISOString();
   const end = new Date(range.end).toISOString();
@@ -404,32 +404,22 @@ async function buriedSiblingsByDeck(
 
   const catalog = database.transaction(STORE.cardCatalog, "readonly").objectStore(STORE.cardCatalog);
   const answeredRows = await Promise.all([...answeredIds].map((id) => requestResult<StoredCardCatalog | undefined>(catalog.get(id))));
-  const modeByNote = new Map<string, Pick<DeckSettings, "buryNewSiblings" | "buryReviewSiblings" | "buryInterdayLearningSiblings">>();
-  for (const row of answeredRows) {
-    const settings = row ? settingsByDeck.get(row.deckId) : undefined;
-    if (!row || !buries(settings)) continue;
-    const previous = modeByNote.get(row.noteId);
-    modeByNote.set(row.noteId, {
-      buryNewSiblings: Boolean(previous?.buryNewSiblings || settings!.buryNewSiblings),
-      buryReviewSiblings: Boolean(previous?.buryReviewSiblings || settings!.buryReviewSiblings),
-      buryInterdayLearningSiblings: Boolean(previous?.buryInterdayLearningSiblings || settings!.buryInterdayLearningSiblings),
-    });
-  }
-  const noteIds = [...modeByNote.keys()];
-  const siblingRows = await Promise.all(noteIds.map((noteId) => requestResult<StoredCardCatalog[]>(catalog.index("noteId").getAll(noteId))));
-  for (const [index, rows] of siblingRows.entries()) {
-    const mode = modeByNote.get(noteIds[index])!;
-    for (const row of rows) {
-      if (answeredIds.has(row.id) || row.reviewable !== 1 || row.deletedAt || !(row.dueSort < end)) continue;
-      const kind = row.scheduleState === "new" ? (mode.buryNewSiblings ? "newCards" : null)
-        : row.scheduleState === "review" ? (mode.buryReviewSiblings ? "dueCards" : null)
-          : row.scheduleState === "learning" || row.scheduleState === "relearning" ? (mode.buryInterdayLearningSiblings ? "learningCards" : null)
-            : null;
-      if (!kind) continue;
-      const counts = result.get(row.deckId) ?? { newCards: 0, learningCards: 0, dueCards: 0 };
-      counts[kind] += 1;
-      result.set(row.deckId, counts);
-    }
+  const burying = createSiblingBurying((deckId) => settingsByDeck.get(deckId));
+  for (const row of answeredRows) if (row) burying.answered(row.id, row.noteId, row.deckId);
+  // Siblings not answered today are not in an intraday learning step, so learning means interday learning here.
+  const kinds: Record<string, [SiblingKind, keyof BuriedSiblingCounts]> = {
+    new: ["new", "newCards"],
+    review: ["review", "dueCards"],
+    learning: ["interday-learning", "learningCards"],
+    relearning: ["interday-learning", "learningCards"],
+  };
+  const siblingRows = await Promise.all(burying.buryingNoteIds().map((noteId) => requestResult<StoredCardCatalog[]>(catalog.index("noteId").getAll(noteId))));
+  for (const row of siblingRows.flat()) {
+    const kind = kinds[row.scheduleState];
+    if (!kind || row.reviewable !== 1 || row.deletedAt || !(row.dueSort < end) || !burying.buriedBySeen(row, kind[0])) continue;
+    const counts = result.get(row.deckId) ?? { newCards: 0, learningCards: 0, dueCards: 0 };
+    counts[kind[1]] += 1;
+    result.set(row.deckId, counts);
   }
   return result;
 }

@@ -20,7 +20,6 @@ import type {
   CardStudyState,
   CardVariant,
   Deck,
-  LearningSettings,
   NewReviewOrder,
   ReviewRating,
   ReviewEvent,
@@ -30,6 +29,7 @@ import type {
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
 import type { EasyDaysSchedulingContext } from "./easyDays.ts";
+import { createSiblingBurying } from "./siblingBurying.ts";
 
 type DateInput = string | number | Date;
 
@@ -67,8 +67,6 @@ export interface AnsweredTodayCard {
   noteId: string;
   deckId: string;
 }
-
-type SiblingBuryMode = Pick<LearningSettings, "buryNewSiblings" | "buryReviewSiblings" | "buryInterdayLearningSiblings">;
 
 interface QueueEntry {
   deck: Deck;
@@ -903,37 +901,20 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   // interday learning and reviews, then new cards. The deck options of the siblings seen before decide whether a card waits.
   const noteIdByCardId = new Map((options.answeredToday ?? []).map((answered) => [answered.cardId, answered.noteId]));
   for (const deck of scopeDecks) for (const card of deck.cards ?? []) noteIdByCardId.set(card.id, card.noteId);
-  const seenNotes = new Map<string, SiblingBuryMode>();
-  const answeredCardIds = new Set<string>();
+  // A sibling answered in a deck outside the studied scope follows the options of the studied deck.
+  const burying = createSiblingBurying((deckId) => settingsByDeckId.get(deckId) ?? rootSettings);
   const buriedKeys = new Set<string>();
-  const markSeen = (noteId: string, deckId: string): SiblingBuryMode | undefined => {
-    const settings = settingsByDeckId.get(deckId) ?? rootSettings;
-    const previous = seenNotes.get(noteId);
-    seenNotes.set(noteId, {
-      buryNewSiblings: Boolean(previous?.buryNewSiblings || settings.buryNewSiblings),
-      buryReviewSiblings: Boolean(previous?.buryReviewSiblings || settings.buryReviewSiblings),
-      buryInterdayLearningSiblings: Boolean(previous?.buryInterdayLearningSiblings || settings.buryInterdayLearningSiblings),
-    });
-    return previous;
-  };
   for (const { deck, cardId } of dailyConsumption.answeredToday) {
     const noteId = noteIdByCardId.get(cardId);
-    if (!noteId) continue;
-    answeredCardIds.add(cardId);
-    markSeen(noteId, deck.id);
+    if (noteId) burying.answered(cardId, noteId, deck.id);
   }
-  // A sibling answered in a deck outside the studied scope follows the options of the studied deck.
   for (const answered of options.answeredToday ?? []) {
-    if (settingsByDeckId.has(answered.deckId)) continue;
-    answeredCardIds.add(answered.cardId);
-    markSeen(answered.noteId, answered.deckId);
+    if (!settingsByDeckId.has(answered.deckId)) burying.answered(answered.cardId, answered.noteId, answered.deckId);
   }
-  for (const entry of intradayLearningEntries) markSeen(entry.card.noteId, entry.deck.id);
+  for (const entry of intradayLearningEntries) burying.see(entry.card.noteId, entry.deck.id);
   const buryIfSiblingSeen = (entry: QueueEntry) => {
-    const previous = markSeen(entry.card.noteId, entry.deck.id);
-    const buried = !answeredCardIds.has(entry.card.id) && Boolean(isNewCard(entry.card)
-      ? previous?.buryNewSiblings
-      : isLearningState(entry.card.study) ? previous?.buryInterdayLearningSiblings : previous?.buryReviewSiblings);
+    const kind = isNewCard(entry.card) ? "new" : isLearningState(entry.card.study) ? "interday-learning" : "review";
+    const buried = burying.buries({ id: entry.card.id, noteId: entry.card.noteId, deckId: entry.deck.id }, kind);
     if (buried) buriedKeys.add(entry.key);
     return buried;
   };
