@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Hosted-Smoke nach Phase 4, 7, 8 und K7.4
+
+- `npm run test:beta:hosted` gegen `https://core-hosted.vercel.app` mit dem
+  Production-Deployment von `42d4cbd` (Vercel fertig 10:38 UTC) und der
+  angewandten Migration `20261010093049`: 10 von 10 bestanden in 1,5 min.
+
 ## 2026-10-10 — Zähler mit Begraben (K7.4)
 
 - Entscheidung des Nutzers: Die Zähler ziehen Geschwister heute beantworteter
