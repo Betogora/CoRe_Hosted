@@ -104,7 +104,7 @@ Phase 1   Format-Matrix und Realwelt-Korpus            ✔ abgeschlossen
 Phase 2   Kanonisches Modell (reine Module)            ✔ abgeschlossen, im Cutover verdrahtet
 Phase 3   Renderer und Bausteine (reine Module)        ✔ im Cutover verdrahtet; Gerätenachweise offen
 Phase 5A  Übersetzer und Importgraph (reine Module)    ✔ im Cutover verdrahtet; Korpus offen
-Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen; Startzeit neues Gerät offen
+Phase 4   Cutover: Datenbank, Replica, Sync, App       ✔ abgeschlossen
           + K2.4–K2.6, K5.4, K5.7, K5.8/K5.9-App      ✔ im Cutover verdrahtet
 Phase 6   Erstellen, Bearbeiten, Verwaltung, KI        ✔ abgeschlossen
 Phase 7   Begraben von Geschwistern                     ✔ abgeschlossen; Zähler offen
@@ -234,17 +234,6 @@ und ein echter Export mit FSRS-Lernstand und Revlog sind belegt (siehe
 `history.md`). Offen bleiben AnKing und ein Lernstand mit Lern-,
 Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten; diese Zustände
 sind bis dahin nur über die Matrix synthetisch belegt.
-
-## Phase 4 — Cutover: Datenbank-Baseline, Replica, Sync und App
-
-K4.1 bis K4.11 sind abgeschlossen: auf `main` gemergt, Pre-Release-Projekt
-zurückgesetzt, Hosted-Smoke grün (siehe `history.md`). Offen ist nur noch:
-
-- [ ] **Neues Gerät bis Dashboard unter Budget bringen.** Der Cutover hält den
-      Wert (p75 schwankt zwischen 2.883 und 3.023 ms, nicht schlechter als vorher); die
-      Phasenaufschlüsselung aus K4.2 zeigt, dass fast die gesamte Zeit vor dem
-      Bootstrap-RPC in Netz, Bundle und Anmeldung liegt. Ansatzpunkt ist daher
-      der Startpfad bis zur Sitzungsprüfung, nicht die Datenbank.
 
 ## Phase 7 — Begraben von Geschwistern
 

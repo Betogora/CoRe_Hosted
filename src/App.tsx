@@ -847,10 +847,12 @@ export function App() {
 
     if (!supabase) throw new Error("Supabase ist für diese Umgebung nicht konfiguriert.");
     const boot = await bootAuthenticatedWorkspace(supabase, user);
+    if (bootRunRef.current !== runId) {
+      boot.stopCloudBootstrapRetry();
+      return;
+    }
     retryCloudBootstrapRef.current = boot.retryCloudBootstrap;
     stopCloudBootstrapRetryRef.current = boot.stopCloudBootstrapRetry;
-
-    if (bootRunRef.current !== runId) return;
 
     setWorkspaceRepository(boot.repository);
     setCardPages({});
@@ -936,6 +938,22 @@ export function App() {
       },
       onPasswordRecovery: recoverPassword,
       onBoot: bootAuthenticatedUser,
+      onSessionRejected(error) {
+        bootRunRef.current += 1;
+        stopCloudBootstrapRetryRef.current?.();
+        stopCloudBootstrapRetryRef.current = null;
+        retryCloudBootstrapRef.current = null;
+        syncEngineRef.current = null;
+        setSyncEngine(null);
+        setCloudUser(null);
+        setWorkspaceRepository(null);
+        setCardPages({});
+        lastAcknowledgedStateRef.current = null;
+        setAppState(null);
+        setAuthPhase(authPhases.signedOut);
+        setAuthMessage(error ? formatCloudAuthError(error, "Sitzung konnte nicht geladen werden.") : "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.");
+        setAuthMessageType(error ? "alert" : "status");
+      },
       onFailure(error) {
         setAuthPhase("signed-out");
         setAuthMessage(formatCloudAuthError(error, "Sitzung konnte nicht geladen werden."));

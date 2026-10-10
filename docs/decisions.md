@@ -313,3 +313,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** CoRe verwendet den Stil „Soft Minimal“ mit unveränderter CoRe-Palette: hellgraue Arbeitsfläche, weiße Karten mit 1-px-Rahmen und leichtem Schatten, weiche Radien, Icon-Flächen als weiche Quadrate, Auswahl-Schienen mit weißem Indikator, Labels in normaler Schreibung und die lokal eingebettete variable Schrift Manrope in App, Kartenfläche und Doku. Externe Schriften entfallen. Die Bedienhöhe beträgt 40 px bei feinem Zeiger ab 768 px und bleibt auf Touchgeräten sowie unter 768 px bei 44 × 44 px. Auf Desktop navigiert eine schwebende Seitenleiste (keine Kopfleiste wie in der ToolBox); der UI-Katalog übernimmt den Aufbau des ToolBox-Katalogs.
 **Konsequenzen:** Tokens in `src/styles.css` und die gemeinsamen Klassen tragen den Stil; Screens verwenden die gemeinsamen Button-Klassen statt eigener Klassenketten. Die Touchziel-Anforderung bleibt für Touchgeräte unverändert. Die visuellen Verträge in `specs.md`, `src/ui/README.md` und die Theme-Tests beschreiben den neuen Stil.
 **Datum:** 2026-10-09
+
+## ADR-038 — Serverbestätigung der Sitzung parallel zum Start
+
+**Status:** angenommen
+**Kontext:** ADR-024 öffnet die IndexedDB-Shell erst nach genau einer Supabase-Sitzungsprüfung. Online ist diese Prüfung `getUser()`, ein Netzwerk-Roundtrip, auf den der Bootstrap-RPC bisher wartete. „Neues Gerät bis Dashboard“ lag damit dauerhaft knapp am 3.000-ms-Budget.
+**Entscheidung:** Online startet die im Browser gespeicherte Supabase-Sitzung (`getSession()`) die accountgebundene Shell und den Bootstrap sofort; `getUser()` bestätigt die Sitzung parallel. Lehnt der Server sie ab, meldet er einen anderen Nutzer oder scheitert die Bestätigung mit einem Nicht-Netzwerkfehler, verwirft CoRe den laufenden Start, meldet die Sitzung lokal ab und zeigt die Anmeldung. Offline, ohne gespeicherte Sitzung und beim Passwort-Recovery bleibt die sequenzielle Prüfung.
+**Konsequenzen:** Bis zur Bestätigung laufen nur Abrufe, die der Server ohnehin mit dem gespeicherten Token autorisiert; es werden keine Daten eines anderen Accounts sichtbar. Ein verworfener Start beendet seine Bootstrap-Wiederholungen. ADR-024 bleibt ansonsten gültig.
+**Datum:** 2026-10-10

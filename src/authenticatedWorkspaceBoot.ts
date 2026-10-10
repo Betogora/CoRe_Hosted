@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js";
-import { clearCloudAuthRedirectParams, getCloudWorkspaceUser, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
+import { clearCloudAuthRedirectParams, getCloudWorkspaceUser, getPersistedCloudUser, readCloudAuthRedirectOutcome } from "./cloudAuth.ts";
 import { createCoreRepository } from "./coreRepository.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { markReplicaStartupGate, markSessionChecked, markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
@@ -17,6 +17,8 @@ interface AuthenticatedWorkspaceSessionLifecycleOptions {
   onRedirectError: (message: string) => void;
   onPasswordRecovery: (user: User) => void;
   onBoot: (user: User) => Promise<void>;
+  /** The server rejected the persisted session the workspace already started with; the start must be discarded. */
+  onSessionRejected: (error: unknown) => void;
   onFailure: (error: unknown) => void;
 }
 
@@ -261,6 +263,7 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
   onRedirectError,
   onPasswordRecovery,
   onBoot,
+  onSessionRejected,
   onFailure,
 }: AuthenticatedWorkspaceSessionLifecycleOptions): () => void {
   if (!supabase) {
@@ -276,6 +279,31 @@ export function startAuthenticatedWorkspaceSessionLifecycle({
       if (redirectOutcome.kind === "error") {
         clearCloudAuthRedirectParams();
         if (active) onRedirectError(redirectOutcome.message);
+        return;
+      }
+      // Online, the persisted session starts the workspace and its bootstrap while the server confirms it;
+      // a rejection discards the start. Offline and recovery keep the sequential check.
+      const online = typeof navigator === "undefined" || navigator.onLine !== false;
+      const persisted = online && redirectOutcome.kind !== "recovery" ? await getPersistedCloudUser(supabase) : null;
+      if (!active) return;
+      if (persisted) {
+        markSessionChecked();
+        const boot = onBoot(persisted);
+        boot.catch(() => undefined);
+        let confirmed: User | null;
+        try {
+          confirmed = await getCloudWorkspaceUser(supabase);
+        } catch (error) {
+          if (active) onSessionRejected(error);
+          return;
+        }
+        if (!active) return;
+        if (confirmed?.id !== persisted.id) {
+          await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+          if (active) onSessionRejected(null);
+          return;
+        }
+        await boot;
         return;
       }
       const user = await getCloudWorkspaceUser(supabase);

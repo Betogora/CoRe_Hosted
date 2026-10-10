@@ -5,6 +5,29 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Startzeit „Neues Gerät bis Dashboard“ unter Budget (Phase 4)
+
+- **Vorladen:** Der Build lädt den Supabase-Client-Chunk per `modulepreload` mit
+  dem Einstieg; die Sitzungsprüfung wartet nicht mehr auf den ersten Render.
+- **Parallele Sitzungsbestätigung (ADR-038):** Online startet die gespeicherte
+  Sitzung Shell und Bootstrap; `getUser()` bestätigt parallel, eine Ablehnung
+  verwirft den Start samt Bootstrap-Wiederholungen und zeigt die Anmeldung.
+- **Messung** (`performance:measure:local`, je zehn gedrosselte Läufe, p75/p95):
+
+  | Kennzahl | `main` vorher | nur Vorladen | Vorladen und parallel |
+  | --- | ---: | ---: | ---: |
+  | Neues Gerät bis Dashboard | 2.856 ms | 2.736 ms | 2.574 / 2.618 ms |
+  | davon bis Sitzungsprüfung | 2.529 ms | 2.392 ms | 2.176 ms |
+  | Wiederkehrender Start | 714 ms | 654 ms | 490 / 531 ms |
+  | Offline-Kaltstart | 474 ms | 420 ms | 490 / 516 ms |
+
+  Alle Gates bestehen. Ein Zwischenlauf hatte einen einzelnen 57-ms-Task im
+  automatischen 4G-Preload (Grenze 50 ms); die Wiederholung lag bei 0 ms wie die
+  Läufe davor.
+- **Tests:** Lebenszyklus-Tests für Start ohne Warten, Ablehnung durch den Server
+  und Bestätigungsfehler; Unit-Test des Preload-Tags; E2E `auth-gate`,
+  `auth-lifecycle`, `auth-resilience` und `first-learning` grün (19/19).
+
 ## 2026-10-10 — Begraben von Geschwistern (K7.1–K7.3)
 
 - **K7.1:** `buryNewSiblings`, `buryReviewSiblings` und
