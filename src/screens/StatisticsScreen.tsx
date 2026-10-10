@@ -364,7 +364,7 @@ function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
           </div>
         ))}
         <p className="core-caption mt-2 text-core-muted">
-          {formatNumber(status.learningItems)} Learning Items · {formatNumber(status.suspendedItems)} suspendiert · {formatNumber(status.deletedItems)} gelöscht
+          {formatNumber(status.cards)} Karten · {formatNumber(status.suspendedCards)} ausgesetzt · {formatNumber(status.deletedCards)} gelöscht
         </p>
       </div>
     </div>
