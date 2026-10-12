@@ -35,3 +35,9 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
   Flaggenwahl in Lernen und Editor (Strg+1–7), Farbpunkt in der Kartentabelle,
   Filter in der Suche, optional eigene Namen je Farbe; der Konfliktvergleich
   zeigt die Flagge dann zu Recht.
+- Login-Wege: Magic Link und Google sind gebaut, aber per Flag aus. Für Magic
+  Link braucht es einen eigenen SMTP-Server in Supabase, freigegebene
+  Redirect-Adressen (Produktion, Preview), eine deutsche Mailvorlage und
+  zusätzlich einen 6-stelligen Code zum Eintippen, weil der Link auf Mobilgeräten
+  oft im falschen Browser landet. Google erst nach Entscheidung über den
+  OAuth-Prüfprozess und den Datenschutztext; sonst Code und Flag entfernen.

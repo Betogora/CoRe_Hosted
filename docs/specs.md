@@ -82,15 +82,14 @@ Akzeptanz:
 - Datenschutztexte versprechen nur technisch wirksames Verhalten.
 - Sync-, Offline- und Konfliktstatus sind ohne Tabellen-, Revisions- oder Geräteterminologie verständlich.
 - Demo-Daten entstehen nur durch eine ausdrückliche Nutzeraktion oder im Entwicklungs-/Testmodus. Die Demo legt Beispielstapel mit neuen Karten ohne Lernhistorie an, zeigt währenddessen ihren Ladezustand, startet bei Mehrfachklick nur einmal und meldet Fehler sichtbar.
-- Die Begrüßung trennt `Willkommen zurück,` vom kleineren, vollständig umbrechbaren Profilnamen.
+- Die Begrüßung trennt `Willkommen zurück,` vom vollständig umbrechbaren Profilnamen.
 
 #### Tageslernfläche
 
 - Ein befülltes Dashboard zeigt genau eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung.
-- `Gelernt`, `Neu`, `Offen` und `Fällig` folgen den Reviewfarben in vollständig gefüllter Segmentreihenfolge; `Gelernt` nutzt die Slate-Rolle von `Leicht`. `X / Y Karten` zählt eindeutige heute relevante Karten. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.
-- Zustände: `Dein Lernen heute`, deaktiviertes `Später weiterlernen` bei noch nicht verfügbaren heutigen Lernschritten oder der grüne Abschluss `Tagesziel erreicht` (auch bei `0 / 0 Karten`).
-- Das randlose Play-Icon oben rechts entspricht der Stapel-Lernaktion und startet als `Jetzt lernen` die erste verfügbare Hauptstapel-Session. Name und Tooltip folgen dem Zustand; im Wartezustand ist es deaktiviert. Buttonspalte und Plan-Vorschauen entfallen.
-- Die vier Kennzahlen zeigen einzeilige Zahlen und Labels gleicher Schriftgröße; nur ihre Gruppen umbrechen.
+- Vier beschriftete Segmente `Gelernt`, `Neu`, `Offen` und `Fällig` zeigen den Tagesstand. `X / Y Karten` zählt eindeutige heute relevante Karten. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.
+- Zustände: `Dein Lernen heute`, deaktiviertes `Später weiterlernen` bei noch nicht verfügbaren heutigen Lernschritten oder der Abschluss `Tagesziel erreicht` (auch bei `0 / 0 Karten`).
+- Die Lernaktion `Jetzt lernen` startet die erste verfügbare Hauptstapel-Session. Name und Tooltip folgen dem Zustand; im Wartezustand ist sie deaktiviert. Plan-Vorschauen entfallen.
 - Nach Zielerreichung öffnet `Zusätzliche Karten lernen` nur bei weiteren neuen Karten jenseits des Tageslimits einen Dialog. Hauptstapel und `+5`, `+10` oder `+20` sind auf den tatsächlichen Rest begrenzt. Bestätigung erhöht nur `newCardsTodayOverride` dieses Stapels für den aktuellen Lerntag und startet die Session; Wiederholungen werden nicht vorgezogen. Veraltete Auswahlen ändern nichts und melden einen verständlichen Fehler.
 
 ### 5.2 Stapel importieren oder manuell anlegen
@@ -115,14 +114,14 @@ Akzeptanz:
 
 #### Manuelle Erstellung
 
-- Die Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite. `Fragentyp` und `Lernrichtung` teilen ab 768 px eine Zeile, sobald beide ohne Überlauf hineinpassen, sonst umbrechen sie in zwei Gruppen.
-- Die Fragentyp-Pill bietet `Standard`, `Single Choice`, `Multiple Choice` und `Bildverdeckung`. Beschriftungen dürfen auf schmalen Ansichten in der unveränderten 44-px-Höhe zweizeilig werden (`Bild-verdeckung`); unter 360 px stehen die vier Typen in zwei Reihen.
+- Die Erstellung beginnt ohne Kartentypauswahl mit Vorder- und Rückseite.
+- `Fragentyp` bietet `Standard`, `Single Choice`, `Multiple Choice` und `Bildverdeckung`.
 - Bilder werden über die Rich-Text-Toolbar, Einfügen oder Drag-and-drop an der Cursorposition in Vorderseite, Rückseite und Zusatzfelder eingefügt; separate Bild-Ablagefelder gibt es nicht.
-- `Lücke` markiert die gespeicherte Textauswahl als Cloze-Gruppe. Rückrichtung, Single Choice und Multiple Choice sind direkte Steuerungen; bei Auswahltypen stehen die Antwortoptionen unmittelbar unter der Frage. `Auswahl als Formel setzen` macht die markierte Auswahl zur Formel.
-- Die gemeinsamen Bausteine unter den Feldern: `Antwort eintippen` (nur Frage und Antwort ohne Auswahl; die Rückseite wird beim Lernen eingetippt und verglichen) sowie neue Felder mit den Rollen `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (aufdeckbar auf der Frageseite), `Zusatz` und `Quelle` (beide nach der Antwort).
+- `Lücke` markiert die gespeicherte Textauswahl als Cloze-Gruppe. Rückrichtung, Single Choice und Multiple Choice sind direkte Steuerungen; bei Auswahltypen zeigt der Editor die Antwortoptionen. `Auswahl als Formel setzen` macht die markierte Auswahl zur Formel.
+- Die gemeinsamen Bausteine: `Antwort eintippen` (nur Frage und Antwort ohne Auswahl; die Rückseite wird beim Lernen eingetippt und verglichen) sowie neue Felder mit den Rollen `Zusatzfrage` (Teil der Frage, in Rückrichtung Teil der Antwort), `Hinweis` (aufdeckbar auf der Frageseite), `Zusatz` und `Quelle` (beide nach der Antwort).
 - Zusätzliche Felder tragen einen frei benennbaren Namen und eine änderbare Rolle; neue Felder heißen wie ihre Rolle, bei Wiederholung mit Nummer. Verschiebepfeile erscheinen erst ab zwei Zusatzfeldern und nur für mögliche Richtungen.
-- `Vorschau` im Erstellkopf öffnet den gemeinsamen Kartendialog aus dem ungespeicherten Entwurf mit derselben Projektion wie Speichern. Eine zusätzliche `Live-Vorschau` und pauschale Sicherheits- oder Originaltreue-Werbung entfallen.
-- `PDF/Text anfügen` steht in der Zurückzeile direkt neben `Erstellen`. Unterstützte Quellen sind PDF, Text, Markdown, CSV und TSV; andere Formate sind nicht auswählbar und werden auch beim Ablegen mit Meldung abgelehnt, ohne eine geöffnete Quelle zu ersetzen. `Quelle schließen` verwirft den Anhang.
+- `Vorschau` öffnet den gemeinsamen Kartendialog aus dem ungespeicherten Entwurf mit derselben Projektion wie Speichern. Eine zusätzliche `Live-Vorschau` und pauschale Sicherheits- oder Originaltreue-Werbung entfallen.
+- `PDF/Text anfügen` hängt eine Quelle an. Unterstützte Quellen sind PDF, Text, Markdown, CSV und TSV; andere Formate sind nicht auswählbar und werden auch beim Ablegen mit Meldung abgelehnt, ohne eine geöffnete Quelle zu ersetzen. `Quelle schließen` verwirft den Anhang.
 - Nach `Speichern` bleibt der Editor offen: Angeheftete Felder bleiben, andere werden geleert, das Zieldeck bleibt gewählt, und der Fokus springt in das erste freie Pflichtfeld.
 - Speichern startet genau einen exklusiven Versuch. Entwurf, Zielstapel, `Fertig` und interne Navigation bleiben bis zum Abschluss gesperrt; Mehrfachklick und Tastaturaktivierung erzeugen höchstens eine Karte. Reload und Tab-Schließen zeigen währenddessen die Browserwarnung.
 - Bilder werden vor der Karte im accountgebundenen lokalen Medienspeicher gesichert, danach wird die Karte lokal gespeichert und der Upload versucht. Ein Fehler vor der lokalen Kartenspeicherung erhält den Entwurf und erhöht den Sitzungszähler nicht. Ein späterer Medien- oder Cloudfehler zählt die lokale Karte genau einmal und erzwingt keinen erneuten Save.
@@ -136,7 +135,7 @@ Akzeptanz:
 
 - Bei `Bildverdeckung` wird die Vorderseite zur optionalen `Überschrift`, die Rückseite zum optionalen `Zusatz`. Hinweis-, Zusatz- und Quellenfelder bleiben möglich, Eintippen und Rückrichtung nicht.
 - Das Bild wird per Auswahl, Drag-and-drop oder Einfügen gewählt und wie Inline-Bilder lokal vorbereitet, verkleinert und hochgeladen.
-- Der Editor `Bild und Masken` zeigt links das Bild und rechts `Werkzeuge` (Auswählen, Rechteck, Ellipse, Polygon, Text), `Auswahl` (Gruppieren, Auflösen, Bleibt verdeckt, Löschen), `Verdecken` (`Alle` Masken oder `Nur eine`) und die Kartenliste. Unter 1024 px steht die Spalte unter dem Bild, Werkzeuge erscheinen als Symbole.
+- Der Editor `Bild und Masken` zeigt das Bild mit `Werkzeuge` (Auswählen, Rechteck, Ellipse, Polygon, Text), `Auswahl` (Gruppieren, Auflösen, Bleibt verdeckt, Löschen), `Verdecken` (`Alle` Masken oder `Nur eine`) und der Kartenliste. Als Symbole dargestellte Werkzeuge behalten zugängliche Namen.
 - Jede neue Maske ist eine eigene Karte; gruppierte Masken werden gemeinsam abgefragt; `Bleibt verdeckt` verdeckt eine Maske auf allen Karten ohne eigene Abfrage.
 - Maus, Stift und Touch zeichnen per Ziehen, Polygone per Punkten (erster Punkt, Doppelklick oder Enter schließt). Per Tastatur sind Masken fokussierbar: Pfeiltasten verschieben, Entf löscht, Strg+G gruppiert, Strg+Umschalt+G löst auf, Escape hebt die Auswahl auf, Buchstaben wählen das Werkzeug.
 - Gespeichert wird erst mit Bild und mindestens einer abgefragten Maske.
@@ -150,18 +149,17 @@ Akzeptanz:
 #### Navigation und Seitenkopf
 
 - Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Erstellen`, `Statistik`. Auf `/kartenstapel` ist `Lernen` aktiv; ein Klick auf `Lernen` öffnet stets die Stapelübersicht. Der Schriftzug `CoRe` navigiert zu `Heute`.
-- Beide Lernen-Bereiche zeigen `REVIEW` und `Lernen` im Seitenkopf. Das segmentierte Control und der sekundäre Button `Lerneinstellungen` teilen Bedienhöhe und Typografie; `Lerneinstellungen` behält sein Icon und steht links vor der rechtsbündigen Bereichs-Pill.
-- Über 42 rem Kopfbreite stehen die Controls rechts neben der Überschrift, zwischen 32 und 42 rem gemeinsam darunter. Bis 32 rem steht `Lerneinstellungen` neben `Lernen`, und die Bereichsauswahl füllt die nächste Zeile. Nichts überlagert sich, kein horizontaler Seitenüberlauf.
-- Der Auswahlindikator aller segmentierten Controls (auch `Woche`, `Monat`, `Jahr`) gleitet zwischen den Positionen und passt seine Breite an; bei reduzierter Bewegung entfällt der Übergang.
+- Beide Lernen-Bereiche zeigen `REVIEW` und `Lernen` im Seitenkopf; Bereichsauswahl und `Lerneinstellungen` sind in beiden erreichbar.
+- Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.
 
 #### Stapelbäume
 
-- `Heute`, `Lernen` und `Kartenverwaltung` teilen Stapeldaten, Tiefenfarbe, Chevron, Icon und Drei-Punkte-Aktion. Die Hierarchie ist unbegrenzt; Einrückung (8 px je Ebene, höchstens 40 px), Tiefenfarbe und `data-deck-depth` bleiben ab Ebene 6 konstant. Jeder Elternstapel behält seinen Chevron; Einklappen verbirgt den gesamten Unterbaum.
-- Zeilen zeigen lokale Namen; nur zu lange Namen werden zweizeilig. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (`Stapel 10` vor `Stapel 9`); Elternstapel bleiben mit ihrem Unterbaum zusammen.
-- `Heute` und `Lernen` zeigen `Neu`, `Offen`, `Fällig` und den Gesamtfortschrittsdonut unter einer etwa 28 px hohen, nicht sortierbaren Kopfzeile. Auf schmalen Panels entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen oder Donut, auch nicht assistiv.
+- `Heute`, `Lernen` und `Kartenverwaltung` teilen Stapeldaten, Chevron, Icon und Drei-Punkte-Aktion. Die Hierarchie ist unbegrenzt. Jeder Elternstapel behält seinen Chevron; Einklappen verbirgt den gesamten Unterbaum.
+- Zeilen zeigen lokale Namen. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (`Stapel 10` vor `Stapel 9`); Elternstapel bleiben mit ihrem Unterbaum zusammen.
+- `Heute` und `Lernen` zeigen `Neu`, `Offen`, `Fällig` und den Gesamtfortschrittsdonut unter einer nicht sortierbaren Kopfzeile. Auf schmalen Panels entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen oder Donut, auch nicht assistiv.
 - Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (`Neu`), heutiges Learning/Relearning (`Offen`) und ausgewählte fällige Reviews (`Fällig`). Der Donut zeigt den gesamten aktiven Bestand ohne Limits als `Neu`, `Offen`, `Fällig` und `Gelernt`. Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.
-- Die Stapelfläche öffnet `/kartenstapel?deck=<ID>&content=1`. Ein eigener randloser Play-Button links von `Neu` startet den Reviewpfad samt Unterstapeln und Limits; sein zugänglicher Name enthält den Stapelpfad, sein Tooltip den lokalen Namen mit Stapel-Icon. Auf-/Zuklappen, Lernen und Stapeloptionen lösen die Flächenaktion nicht aus; die Fläche ist per Enter und Leertaste bedienbar.
-- Donut, Play-Button und Stapeloptionen haben gleiche schmale Abstände und 44-px-Klickflächen; die Drei-Punkte-Grafik misst 32 px. Icons füllen sich bei Hover, Betätigung und offenem Menü ohne zusätzliche Hoverfläche. Pointer-Hover füllt Zeilen neutral grau; Stapelköpfe haben keine Trennlinie, Kartenzeilen behalten ihre dünnen Grenzen.
+- Die Stapelfläche öffnet `/kartenstapel?deck=<ID>&content=1`. Eine eigene Lernaktion startet den Reviewpfad samt Unterstapeln und Limits; ihr zugänglicher Name enthält den Stapelpfad, ihr Tooltip den lokalen Namen. Auf-/Zuklappen, Lernen und Stapeloptionen lösen die Flächenaktion nicht aus; die Fläche ist per Enter und Leertaste bedienbar.
+- Lernaktion und Stapeloptionen haben 44-px-Klickflächen.
 - Dashboard und Lernen verwenden dasselbe Panel `Aktive Stapel`; nur das Dashboard zeigt `Alle ansehen`. Lernen zeigt darunter dauerhaft das Schnellformular `Stapelname`, `Ebene`, `Anlegen`, auch ohne Stapel und nach dem Anlegen.
 - Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne Präferenz starten die Sektionen der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte öffnet und speichert die betroffene Sektion. Eine leere, als `Nicht festgelegt` dargestellte Profilzeitzone blockiert das Speichern nicht.
 
@@ -169,49 +167,49 @@ Akzeptanz:
 
 - Die Inhaltsansicht zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet sie die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Kopf. `Aktive Stapel` und der Bereichsumschalter entfallen.
 - Sie nutzt dieselben Kartenzeilen, denselben Editor und dieselben Mutationen wie die Gesamtverwaltung; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.
-- Darüber steht eine segmentierte Navigation mit gleitendem Indikator: `Karteikarten`, `Notizen`, `Mind Map`, `Quiz`, `Quelle`. Unter 768 px füllt sie die Breite, darüber höchstens 24 rem. Nur die aktive Auswahl zeigt Icon und Wort. Initial ist `Karteikarten` aktiv; die übrigen Bereiche zeigen Icon, Namen und `Demnächst verfügbar`.
-- Rechts neben der Suche startet ein unbeschrifteter Dreieck-Button (`<Stapelname> lernen`) die Sitzung samt Unterstapeln. Er hat Rahmen und Rundung des Suchfelds, füllt sich beim Hover und ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst ihn nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.
+- Eine segmentierte Navigation bietet `Karteikarten`, `Notizen`, `Mind Map`, `Quiz`, `Quelle`. Initial ist `Karteikarten` aktiv; die übrigen Bereiche zeigen ihren Namen und `Demnächst verfügbar`.
+- Die Aktion `<Stapelname> lernen` startet die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.
 
 #### Kartenverwaltung
 
 - Ein gemeinsames Panel bündelt `Aktive Stapel`, die Suche mit sichtbarem Label `Karten durchsuchen` und die gruppierte Gesamttabelle. Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.
-- Die Tabelle zeigt je Karte nur `Sortierfeld` (bereinigte Vorderseite), `Datum` (`Neu` oder `TT.MM.JJJJ`) und `Variante` (grauer Haken bei aktiven Varianten, sonst grauer Strich, gleich breit und zugänglich beschriftet). Alle Spalten sind auf- und absteigend sortierbar; Standard ist `Sortierfeld` A–Z, einheitlich für alle Sektionen und nicht persistiert. Leere aufgeklappte Stapel zeigen `Keine Karten`.
-- Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, erhalten eine gelbe Warnfläche über die ganze Zeile und die zugängliche Kennzeichnung `Ausgesetzt`. Markierte Karten zeigen rechts neben dem Variantenicon einen gelben Stern in einer gleich ausgerichteten Spalte. Beides kann gleichzeitig erscheinen.
-- Zeilen und Köpfe bleiben einzeilig und etwa 28 px hoch; lange Sortierfelder erhalten Ellipsen. Stapelköpfe sind höchstens etwa 48 px hoch. Kartenverwaltung und `Aktive Stapel` erzeugen keinen horizontalen Überlauf; `Datum` und `Variante` bleiben ungekürzt. Bis 24 rem Zeilenbreite steht in Dashboard und Lernen der Name über Aktion, Kennzahlen und Optionen.
-- Bei mehreren Seiten stehen darunter umrundete Chevron-Pfeile wie in der Heatmap mit `Seite X von Y` in Kartenfragen-Schriftgröße; an den Enden ist der Pfeil deaktiviert.
+- Die Tabelle zeigt je Karte nur `Sortierfeld` (bereinigte Vorderseite), `Datum` (`Neu` oder `TT.MM.JJJJ`) und `Variante` (zugänglich beschrifteter Indikator für aktive Varianten). Alle Spalten sind auf- und absteigend sortierbar; Standard ist `Sortierfeld` A–Z, einheitlich für alle Sektionen und nicht persistiert. Leere aufgeklappte Stapel zeigen `Keine Karten`.
+- Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung `Ausgesetzt`. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.
+- Lange Sortierfelder erhalten Ellipsen. Kartenverwaltung und `Aktive Stapel` erzeugen keinen horizontalen Überlauf; `Datum` und `Variante` bleiben ungekürzt.
+- Bei mehreren Seiten zeigt die Seitennavigation `Seite X von Y`; an den Enden ist der jeweilige Pfeil deaktiviert.
 - Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags, startet 250 ms nach der letzten Eingabe, bricht veraltete Anfragen ab und öffnet passende Sektionen nur während der Suche. Einen Modusfilter gibt es nicht.
 
 #### Stapeloptionen, Verschieben und Löschen
 
-- Jede Stapelgruppe besitzt dasselbe Drei-Punkte-Menü mit Icon, lokalem Namen, CoRe-Modus (`Aus`/`An`), `Einstellungen` und bestätigtem `Verschieben`. Der randlose Trigger trägt den Tooltip `Stapeloptionen für <lokaler Stapelname>` mit 16-px-Stapel-Icon; sein zugänglicher Name enthält den vollständigen Pfad. Auch `Stapel umbenennen` zeigt dieses Icon.
-- Der Bereich `Stapel` in den Stapeleinstellungen ordnet Name, Icon und Farbe sowie darunter ohne Trennlinie `Unterstapel anlegen`, den segmentierten `CoRe-Modus` und `Löschen` an. Unterstapel entstehen dort mit vorausgewähltem Elternstapel oder über die Ebenenauswahl des Schnellformulars.
+- Jede Stapelgruppe besitzt dasselbe Drei-Punkte-Menü mit Icon, lokalem Namen, CoRe-Modus (`Aus`/`An`), `Einstellungen` und bestätigtem `Verschieben`. Der Trigger trägt den Tooltip `Stapeloptionen für <lokaler Stapelname>`; sein zugänglicher Name enthält den vollständigen Pfad.
+- Der Bereich `Stapel` in den Stapeleinstellungen bündelt Name, Icon und Farbe sowie `Unterstapel anlegen`, den segmentierten `CoRe-Modus` und `Löschen`. Unterstapel entstehen dort mit vorausgewähltem Elternstapel oder über die Ebenenauswahl des Schnellformulars.
 - In Dashboard und Lernen verschiebt ein Desktop-Drag den vollständigen Baum als direkten Unterstapel des hervorgehobenen Ziels; die Hauptebenen-Zone entfernt die Elternzuordnung. Nach kurzer Bewegungsschwelle reagiert die Zeile direkt auf Maus und Trackpad und hält den Griff auch außerhalb der Zeile.
-- Während des Drags dunkelt ein Fokus-Overlay die Oberfläche ab; Quelle (eckig ausgespart), aktuelles Ziel und Hauptebenen-Zone bleiben hell. Die Zone ersetzt nahezu vollflächig die Desktop-Sidebar oder positionsgetreu die mobile Bottom-Bar; im Panelkopf erscheint keine zweite Zone. Gültige Ziele tragen einen verstärkten Warnfarb-Indikator, ein erfolgreicher Drop klappt das Ziel auf. Selbst-, Nachfahren- und unveränderte Ziele ändern nichts.
+- Während des Drags sind Quelle, aktuelles Ziel und Hauptebenen-Zone erkennbar hervorgehoben; es gibt genau eine Hauptebenen-Zone. Gültige Ziele sind als solche erkennbar, ein erfolgreicher Drop klappt das Ziel auf. Selbst-, Nachfahren- und unveränderte Ziele ändern nichts.
 - Ein beendeter Drag startet keine Sitzung. Erfolg, Fehler und No-op werden über eine Live-Region gemeldet; Bestätigung und Rückgängig gibt es dabei nicht. Die Kartenverwaltung, Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
 - Stapelanzahl und Verschieben samt Unterbaum haben kein fachliches Limit. APKG-Hierarchien behalten Elternbeziehung, Pfad, Importidentitäten und `ankiDeckPath`; Inhalts- und Anki-Tags bleiben unverändert.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; Abbruch ändert nichts.
-- Kartenlöschung verwendet `Karte löschen?` mit `Nein` (Kreuz) und `Ja` (Haken), bei mehreren Karten `Inhalt mit N Karten löschen?` mit dem Hinweis, dass alle Karten des Inhalts auch in anderen Stapeln gelöscht werden. `Nein`, Escape und Außenklick brechen ab; der Außenklick schließt zusätzlich das Detail. `Ja` löscht lokal persistent (Soft Delete), schließt Dialog und Detail, hält die Scrollposition und meldet oben rechts `Karte wurde erfolgreich gelöscht.` bzw. `Inhalt mit N Karten wurde erfolgreich gelöscht.` mit sofortigem Undo samt Lernstand. Eine ausstehende Synchronisierung blockiert den Abschluss nicht.
+- Kartenlöschung verwendet `Karte löschen?` mit `Nein` und `Ja`, bei mehreren Karten `Inhalt mit N Karten löschen?` mit dem Hinweis, dass alle Karten des Inhalts auch in anderen Stapeln gelöscht werden. `Nein`, Escape und Außenklick brechen ab; der Außenklick schließt zusätzlich das Detail. `Ja` löscht lokal persistent (Soft Delete), schließt Dialog und Detail, hält die Scrollposition und meldet `Karte wurde erfolgreich gelöscht.` bzw. `Inhalt mit N Karten wurde erfolgreich gelöscht.` mit sofortigem Undo samt Lernstand. Eine ausstehende Synchronisierung blockiert den Abschluss nicht.
 - Programmatische Fokusführung, Fokusfallen und Tastaturbedienung bleiben erhalten. Fokus per Tastatur zeigt appweit einen einheitlichen Rahmen (WCAG 2.4.7); Maus-, Touch- und programmatischer Fokus nach einem Klick zeigen keinen, reine `focus-within`-Rahmen gibt es nicht. Eingabefelder behalten ihre eigene Fokusfläche.
 
 #### Kartendetail und Editor
 
-- Ein Kartenklick setzt Deck- und Karten-ID in die URL und öffnet rechts ein nicht-modales, eigenständig scrollendes `aside`: ab 1024 px über der rechten Tabellenhälfte, darunter in voller Breite. X, Escape und Außenklick schließen es; ein Klick auf eine andere Kartenzeile wechselt dorthin. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch; danach kehrt der Fokus zur Zeile zurück.
+- Ein Kartenklick setzt Deck- und Karten-ID in die URL und öffnet ein nicht-modales, eigenständig scrollendes `aside`. X, Escape und Außenklick schließen es; ein Klick auf eine andere Kartenzeile wechselt dorthin. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch; danach kehrt der Fokus zur Zeile zurück.
 - Aus einer Review-Sitzung über `Karte bearbeiten` geöffnet, trägt die URL einen allowlist-validierten Rückkontext; Schließen führt in die Sitzung zurück.
-- Das Detail zeigt den Inhaltseditor mit `Speichern`, `Vorschau`, `Kopieren` und `Löschen`. Unter dem Titel stehen Inhaltsform, Abfrage der Karte (`Lückentext · Lücke 2 von 3`, `Rückwärts`, `Maske 1`) und bei mehreren Karten deren Zahl. `Karten aus diesem Inhalt` listet alle Geschwister mit Abfrage, Stapel und Lernzustand; die geöffnete ist hervorgehoben.
-- Der Editor zeigt je Feld einen Rich-Text-Editor mit den gespeicherten Bildern, bei Auswahlfragen Antwortoptionen samt richtiger Antwort, und die Tags. Neue Bilder werden wie bei der Erstellung eingefügt und erst beim Speichern lokal gesichert; vorhandene Bilder, auch importierte Anki-Dateien, bleiben erhalten. Lückentexte erklären `{{c1::Begriff}}`. Bei eigenen Inhalten mit Frage und Antwort stehen darüber `Lernrichtung` (`Standard`, `Beide Richtungen`) und darunter dieselben Bausteine wie bei der Erstellung. Hinzugefügte Felder lassen sich wie dort umbenennen, in der Rolle ändern und mit Pfeilen umsortieren; Vorder- und Rückseite bleiben vorn, der Lernstand bleibt. Die Felder mit der letzten Frage oder Antwort einer Abfrage lassen sich nicht entfernen.
+- Das Detail zeigt den Inhaltseditor mit `Speichern`, `Vorschau`, `Kopieren` und `Löschen`. Es nennt Inhaltsform, Abfrage der Karte (`Lückentext · Lücke 2 von 3`, `Rückwärts`, `Maske 1`) und bei mehreren Karten deren Zahl. `Karten aus diesem Inhalt` listet alle Geschwister mit Abfrage, Stapel und Lernzustand; die geöffnete ist hervorgehoben.
+- Der Editor zeigt je Feld einen Rich-Text-Editor mit den gespeicherten Bildern, bei Auswahlfragen Antwortoptionen samt richtiger Antwort, und die Tags. Neue Bilder werden wie bei der Erstellung eingefügt und erst beim Speichern lokal gesichert; vorhandene Bilder, auch importierte Anki-Dateien, bleiben erhalten. Lückentexte erklären `{{c1::Begriff}}`. Bei eigenen Inhalten mit Frage und Antwort bietet er `Lernrichtung` (`Standard`, `Beide Richtungen`) und dieselben Bausteine wie bei der Erstellung. Hinzugefügte Felder lassen sich wie dort umbenennen, in der Rolle ändern und mit Pfeilen umsortieren; Vorder- und Rückseite bleiben vorn, der Lernstand bleibt. Die Felder mit der letzten Frage oder Antwort einer Abfrage lassen sich nicht entfernen.
 - Eigene Bildverdeckungen zeigen den Masken-Editor; Gruppennummern bleiben beim Löschen erhalten, sodass verbleibende Karten ihren Lernstand behalten. Das Bild lässt sich dort nicht austauschen. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung, Bausteine und Masken-Editor erscheinen dort nicht.
 - Eine Live-Zeile nennt vor dem Speichern die Wirkung (`Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 KI-Umformulierung wird veraltet.`). Entfallen Karten, listet `Karten entfernen?` jede mit Abfrage, Stapel und Lernzustand; ihr Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden neue Karten im Stapel des Inhalts.
 - Ungespeicherte Änderungen an Feldern, Antwortoptionen und Tags lösen beim Schließen, Kartenwechsel oder interner Navigation einen Dialog mit `Speichern`, `Verwerfen` und `Weiter bearbeiten` aus. Varianteneingaben und Terminwahl sind davon ausgenommen.
 - `Markieren` (gehört zum Inhalt, alle Geschwister zeigen den Stern) und `Aussetzen` (gehört zur einzelnen Karte) sind sofort gespeicherte Aktionen ohne Übernahme ungespeicherter Inhaltsänderungen.
-- Darunter zeigt `Nächste Fälligkeit` den gemeinsamen Datumspicker (deutsche Wochentage, Monats- und Jahresnavigation, Light/Dark). `Neu planen` wird erst für einen anderen, mindestens nächsten Lerntag aktiv, setzt `dueAt` DST-sicher auf den Lerntagesbeginn in Profilzeitzone, lässt eine Aussetzung bestehen und bestätigt den Erfolg separat. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.
+- `Nächste Fälligkeit` zeigt den gemeinsamen Datumspicker (deutsche Wochentage, Monats- und Jahresnavigation). `Neu planen` wird erst für einen anderen, mindestens nächsten Lerntag aktiv, setzt `dueAt` DST-sicher auf den Lerntagesbeginn in Profilzeitzone, lässt eine Aussetzung bestehen und bestätigt den Erfolg separat. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.
 - `Kopieren` legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig `(Kopie)`. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu.
 - Einen Herkunfts-, Versions-, Vergleichs- oder Restore-Abschnitt gibt es nicht.
 
 #### Vorschau und Darstellung
 
-- Der modale Vorschau-Dialog zeigt zunächst nur die unbeantwortete Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Zustand aus Frage, einmaliger 2-px-Trennlinie und Antwort. `Antwort anzeigen` und Bewertungen erscheinen dort nicht.
-- Auswahl samt Feedback wird nur transient simuliert: Single Choice deckt nach einer Auswahl auf, Multiple Choice und Kprim über `Antwort prüfen`; die Rückkehr zur Vorderseite setzt die Auswahl zurück. Der Dialog folgt dem Theme, ist auf Desktop leicht vergrößert, füllt mobil den Viewport und besitzt Fokusfalle, Escape, Außenklick und Fokuswiederherstellung.
-- Kartenrenderer erhalten Rich-Text-HTML mit Absätzen, Fettung, Listen und Medien; wörtliche Markdown-Syntax wird nicht interpretiert. Die Kartenfläche verwendet Manrope und die Farben des aktiven Themes; Anki-CSS wird nicht übernommen.
+- Der modale Vorschau-Dialog zeigt zunächst nur die unbeantwortete Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Zustand aus Frage, einmaliger Trennlinie und Antwort. `Antwort anzeigen` und Bewertungen erscheinen dort nicht.
+- Auswahl samt Feedback wird nur transient simuliert: Single Choice deckt nach einer Auswahl auf, Multiple Choice und Kprim über `Antwort prüfen`; die Rückkehr zur Vorderseite setzt die Auswahl zurück. Der Dialog folgt dem Theme und besitzt Fokusfalle, Escape, Außenklick und Fokuswiederherstellung.
+- Kartenrenderer erhalten Rich-Text-HTML mit Absätzen, Fettung, Listen und Medien; wörtliche Markdown-Syntax wird nicht interpretiert. Die Kartenfläche folgt dem aktiven Theme; Anki-CSS wird nicht übernommen.
 - Vorschau und Review verwenden dieselbe Komposition, sodass die sichtbare Frage außerhalb der Antwort bleibt.
 - Anki-Bedingungen prüfen den nichtleeren Feldinhalt: Reines Bild-, Audio- oder Video-Markup erfüllt eine positive Bedingung und unterdrückt die invertierte; reine Leerzeichen gelten als leer.
 
@@ -236,18 +234,18 @@ Akzeptanz:
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 
-Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, direkt auf der Seitenfläche ohne großen Kartencontainer, gerahmte Teilflächen oder Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine 2-px-Linie; die Antwort wiederholt die Frage nicht. Vier Bewertungen aktualisieren den Lernzustand.
+Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar; die Antwort wiederholt die Frage nicht. Vier Bewertungen aktualisieren den Lernzustand.
 
 Akzeptanz:
 
 #### Bewertung und Tagesfortschritt
 
-- `Nochmal`, `Schwer`, `Gut` und `Leicht` sind per Maus und Tastatur (`1` bis `4`) erreichbar. Die kompakten Flächen zeigen zweizeilig die Bewertung und darunter kleiner das dynamische Intervall (`min` für Minuten); die Ziffern erscheinen nur in den Tooltips `Taste 1` bis `Taste 4`. Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.
+- `Nochmal`, `Schwer`, `Gut` und `Leicht` sind per Maus und Tastatur (`1` bis `4`) erreichbar. Jede Bewertung zeigt ihre Bezeichnung und das dynamische Intervall (`min` für Minuten); die Ziffern erscheinen nur in den Tooltips `Taste 1` bis `Taste 4`. Intervallvorschauen passen zur tatsächlich angewendeten Bewertung.
 - Vor dem Aufdecken erscheinen keine Herkunfts-, Varianten-, Reife- oder Schedulerhinweise.
-- Über der Karte steht ein beschrifteter, vollständig gefüllter Tagesfortschritt mit vier Segmenten: `Gelernt` (Slate wie `Leicht`), `Neu` (Lilac wie `Nochmal`), `Offen` (Orange wie `Schwer`) und `Fällig` (Gelb wie `Gut`). Jede abgeschlossene Karte wechselt nach `Gelernt`; ein abgeschlossener Tag ist ganz Slate. Jedes Segment zeigt beim Hover einen einzeiligen Tooltip mit farbigem Squircle, Bezeichnung und Anzahl. Der Zähler nennt gelernte und heute relevante Karten; ein zugänglicher Text nennt alle vier Werte.
+- Ein beschrifteter, vollständig gefüllter Tagesfortschritt zeigt vier Segmente: `Gelernt`, `Neu`, `Offen` und `Fällig`. Jede abgeschlossene Karte wechselt nach `Gelernt`; ein abgeschlossener Tag besteht ganz aus `Gelernt`. Jedes Segment zeigt beim Hover einen Tooltip mit Bezeichnung und Anzahl. Der Zähler nennt gelernte und heute relevante Karten; ein zugänglicher Text nennt alle vier Werte.
 - Die Tagesmenge vereinigt die nach Stapel- und Tageslimits ausgewählte Queue mit den heute bereits bearbeiteten, weiterhin reviewbaren Karten. Der Sitzungsstart bildet daraus einen stabilen Plan; Zähler und Fortschritt nutzen dessen Gesamtzahl unabhängig vom Puffer. Nachladeseiten gehören zur Sitzung; ein Nachladefehler verkleinert den Tagesumfang nicht und täuscht keinen Abschluss vor.
 - Eine heute beantwortete Karte zählt als `Gelernt`, sobald heute kein weiterer Schritt ansteht; steht noch ein Schritt am selben Lerntag an, wechselt sie nach `Offen`. Eine Learning-Karte mit nächstem Schritt morgen zählt heute als `Gelernt` und morgen als `Offen`. Reviewkarten sind am ganzen Fälligkeitstag verfügbar; Varianten und Wiederholungen zählen dieselbe Karte nicht mehrfach.
-- Nur während eines laufenden Pomodoro-Timers zeigt ein schlanker Balken darunter die aufgerundeten Restminuten und den sekündlich sinkenden Anteil.
+- Nur während eines laufenden Pomodoro-Timers zeigt ein Balken die aufgerundeten Restminuten und den sekündlich sinkenden Anteil.
 
 #### Werkzeuge auf der Karte
 
@@ -256,22 +254,22 @@ Akzeptanz:
 
 #### Sitzungs-Overlay
 
-- Die Lerneinstellungen der Sitzung erscheinen unter 768 px als Bottom Sheet, darüber als zentriertes Overlay, beide in normaler App-Typografie mit den Abschnitten `Karte` und `Sitzung`, verdichtet auf die Bedienhöhe und ohne Trennlinien oder Icon-Hintergründe. Escape und Außenklick schließen; der Fokus bleibt im Dialog und kehrt danach zurück.
+- Die Lerneinstellungen der Sitzung erscheinen als Dialog mit den Abschnitten `Karte` und `Sitzung`. Escape und Außenklick schließen; der Fokus bleibt im Dialog und kehrt danach zurück.
 - `Karte bearbeiten` öffnet den Einzelkarten-Editor. `Stapel bearbeiten` öffnet die Einstellungen des Sitzungsstapels und kehrt auch nach Reload in dieselbe Sitzung zurück. Anki-Flaggen werden appweit weder angeboten noch dargestellt.
-- `Markieren` ist ein gelber Stern-Button mit `aria-pressed`; der aktive Zustand ist gefüllt und verändert die Queue nicht.
-- `Aussetzen` ist ein rechtsbündiges Segment `Nicht aussetzen` / `Aussetzen`. Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen, Fortschritt und Donut. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, das Overlay schließt, die nächste Karte erhält den Fokus und der Toast lautet `Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.` Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.
+- `Markieren` ist ein Umschalter mit `aria-pressed` und verändert die Queue nicht.
+- `Aussetzen` ist ein Segment `Nicht aussetzen` / `Aussetzen`. Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen, Fortschritt und Donut. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, das Overlay schließt, die nächste Karte erhält den Fokus und der Toast lautet `Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.` Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.
 - `Kartenreihenfolge` bietet `Fällige Karten zuerst`, `Neue und fällige mischen` und `Neue Karten zuerst`. Die Wahl wird im gestarteten Wurzelstapel gespeichert und sortiert nur noch unbeantwortete Initialkarten neu.
-- `Pomodoro-Timer` klappt im Abschnitt `Sitzung` auf (neutrales Tomaten-Icon) und bietet `15`, `25` (Standard) und `45` Minuten im segmentierten Control sowie eigene positive Ganzzahlen. Erst `Start` startet; auf Desktop stehen Dauer, Schnellauswahl und Start in einer Zeile. Ein Start schließt den Dialog; beim nächsten Öffnen ist der Timer eingeklappt. Kartenverwaltung, Reset, Mischen und `Nur normale Karten` gehören nicht zu diesen Einstellungen.
+- `Pomodoro-Timer` klappt im Abschnitt `Sitzung` auf und bietet `15`, `25` (Standard) und `45` Minuten im segmentierten Control sowie eigene positive Ganzzahlen. Erst `Start` startet. Ein Start schließt den Dialog; beim nächsten Öffnen ist der Timer eingeklappt. Kartenverwaltung, Reset, Mischen und `Nur normale Karten` gehören nicht zu diesen Einstellungen.
 
 #### Pomodoro-Timer
 
-- Derselbe ausklappbare Start steht unter `Lerneinstellungen → Fokuswerkzeuge` unter dem Simulator. Jeder Start ersetzt einen laufenden Countdown.
+- Derselbe ausklappbare Start steht unter `Lerneinstellungen → Fokuswerkzeuge`. Jeder Start ersetzt einen laufenden Countdown.
 - Es gibt accountbezogen genau einen browserlokalen Timer mit realer Endzeit. Er übersteht Navigation, Hintergrund, Reload und weitere Tabs, nutzt aber weder Cloud, Deckdaten noch simulierte Lernzeit.
-- Während des Laufs erscheint der Fortschritt im Review, ab 1280 px unten in der Sidebar über der Utility-Gruppe und darunter im kompakten Kopf zwischen `CoRe` und Utility-Gruppe. Beim Ablauf verschwinden die Anzeigen und ein schließbarer Toast meldet `Timer abgelaufen.` Pause, Stopp, Töne und Pausenzyklen gibt es nicht.
+- Während des Laufs erscheint der Fortschritt im Review und in der App-Navigation. Beim Ablauf verschwinden die Anzeigen und ein schließbarer Toast meldet `Timer abgelaufen.` Pause, Stopp, Töne und Pausenzyklen gibt es nicht.
 
 #### Tagesgrenzen, Lerntag und Lernprofile
 
-- `Neue Karten pro Tag` (0–500) und `Wiederholungen pro Tag` (0–2.000) werden nur in den Stapeleinstellungen als kompakte Ganzzahlfelder ohne Slider bearbeitet; `Maximales Intervall in Tagen` (30–36.500) ebenso. Eine Änderung des Neulimits hebt einen Tages-Override auf. Ohne bewusste Änderung bleibt die geplante Sitzungsgröße stabil.
+- `Neue Karten pro Tag` (0–500) und `Wiederholungen pro Tag` (0–2.000) werden nur in den Stapeleinstellungen als Ganzzahlfelder ohne Slider bearbeitet; `Maximales Intervall in Tagen` (30–36.500) ebenso. Eine Änderung des Neulimits hebt einen Tages-Override auf. Ohne bewusste Änderung bleibt die geplante Sitzungsgröße stabil.
 - `Lerneinstellungen → Lerntag & Planung` enthält accountweit den Tagesbeginn (0–23 Uhr), das Vorziehfenster (0–720 Minuten, Standard 20, 0 deaktiviert) und den Wochenrhythmus aus sieben Easy-Days-Stufen (`Normal`, `Weniger`, `Minimal`; sieben gleiche Werte sind neutral). Bei Tagesbeginn 3 gehört 02:59:59 noch zum Vortag. Das Vorziehfenster gilt für Queue und laufende Sitzung aller Stapel. Diese Werte werden weder in Stapel kopiert noch von Lernprofilen verändert.
 - Die unveränderlichen Vorlagen `Standard`, `Intensiv` und `Entspannt` setzen neue Karten, tägliche Wiederholungen und maximales Intervall auf `20 / 200 / 1.000`, `30 / 300 / 365` bzw. `10 / 100 / 2.000`, dazu die Position und Sortierung neuer Karten (Alter oder stabiler Lerntagszufall) und die Sortierung fälliger Karten (Überfälligkeit oder Abrufwahrscheinlichkeit).
 - Eigene benannte Lernprofile sind kontoweite Vorlagen in Lern- und Stapeleinstellungen. `Auf diesen Stapel anwenden` kopiert Werte und Herkunftsversion in genau einen Stapel; `Als Standardprofil verwenden` übernimmt sie in den globalen Standard. Es gibt keine Live-Vererbung: Direkte Änderungen machen Stapel bzw. Standard zu `Eigene Einstellungen`; Umbenennen, Aktualisieren oder bestätigtes Löschen ändert keinen Stapel; eine neuere Version wird an älteren Kopien sichtbar und kann erneut angewandt werden.
@@ -305,31 +303,30 @@ Akzeptanz:
 
 ### 5.6 Lernlogik verstehen
 
-Das Fragezeichen neben dem Theme-Schalter öffnet `/hilfe` in der App-Shell. Ein Einstieg und zwei Scrollgeschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern.
+`Hilfe öffnen` in der App-Shell öffnet `/hilfe` in der App-Shell. Ein Einstieg und zwei Scrollgeschichten erklären wechselnde Abrufreize und die FSRS-Kurve, ohne Workspace oder Scheduler zu verändern.
 
 Akzeptanz:
 
 #### Einstieg
 
-- Der Einstieg zeigt ein Kartenstapel-Muster: weiße Vorderkarte, dahinter eine hellblaue nach links oben und eine dunklere blaue nach rechts oben gedrehte Karte. Im Dark Mode wechseln alle Ebenen ins dunkle Gegenstück mit gleicher Ebenenfolge und Kontraststufung. Einstiegs- und Originalstapel haben dieselbe responsive Größe; alle Ebenen teilen Größe, Radien, Abstände und Schatten.
-- Der Einstieg fragt nach Grundsätzen nachhaltigen Lernens. `Grundsätze`, `nutzt CoRe`, `Lernen` und `nachhaltig zu gestalten` sind Lilac markiert; gelbe Pfeile verbinden `Active Recall → Smarter Recall` und `Spaced Repetition → Content Repetition`.
-- Die beiden Methodeneinträge sind eine Abschnittsnavigation mit dünnen oberen Linien; nur der fokussierte Eintrag wird kräftiger. Beide scrollen gleich lang und flüssig zu ihrer Überschrift, ohne Sprung im Bereich der Active-Recall-Schritte; bei reduzierter Bewegung sofort. Auf kleineren Ansichten scrollt das Dokument, ab Desktopbreite der Inhaltsbereich.
+- Der Einstieg fragt nach Grundsätzen nachhaltigen Lernens und verbindet `Active Recall → Smarter Recall` und `Spaced Repetition → Content Repetition`.
+- Die beiden Methodeneinträge sind eine Abschnittsnavigation. Beide scrollen gleich lang und flüssig zu ihrer Überschrift, ohne Sprung im Bereich der Active-Recall-Schritte; bei reduzierter Bewegung sofort.
 
 #### Active Recall
 
-- Die Überschrift lautet `Active Recall`. Drei Textschritte steuern eine rahmenlose Kartenvisualisierung: lesbare Originalkarte mit orange hervorgehobenen Schlüsselstellen, dieselbe Form mit verpixeltem Fragetext und schließlich zwei versetzte Variantenkarten mit derselben Antwort und gelben Sternen.
-- Beim Verpixeln bleiben Textfluss, Umbrüche, Trennlinie und Antwort an ihrer Position. Inaktive Textschritte bleiben lesbar. Ab Desktopbreite bleibt die Visualisierung im Abschnitt stehen und wechselt mit dem aktiven Schritt; darunter ist die Abfolge linear.
+- Die Überschrift lautet `Active Recall`. Drei Textschritte steuern eine Kartenvisualisierung: lesbare Originalkarte mit hervorgehobenen Schlüsselstellen, dieselbe Form mit verpixeltem Fragetext und schließlich zwei Variantenkarten mit derselben Antwort.
+- Beim Verpixeln bleiben Textfluss, Umbrüche, Trennlinie und Antwort an ihrer Position. Inaktive Textschritte bleiben lesbar. Die Visualisierung wechselt mit dem aktiven Schritt.
 
 #### Spaced Repetition und FSRS
 
 - Die Erklärung nennt `R` (Abrufwahrscheinlichkeit), `S` (Stabilität, die Zeit, in der `R` von 100 auf 90 Prozent fällt), `D` (Schwierigkeit), Zielerinnerung, Intervall, Original und Variante und zeigt die Kette Bewertung → Gedächtniszustand → Vergessensprognose → nächster Termin.
 - FSRS-6 berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag und verwendet 21 Modellparameter. CoRe nutzt die offiziellen Standardparameter; persönliche Optimierung ist noch nicht aktiviert. Höhere Zielerinnerung bedeutet mehr Reviews bei geringerem Vergessensrisiko.
 - Variantenbereitschaft wird als Lernstufe aus Bewertungen erklärt: Varianten erscheinen erst ab der Stapelschwelle und nur in der Wiederholungsphase; nach einem Fehler folgt die Originalkarte. Eine feste Reviewnummer wird nicht versprochen.
-- Eine als vereinfacht gekennzeichnete Lernkurve führt zu einer gemeinsamen Wiederholung und fächert in die vier Pfade `Nochmal`, `Schwer`, `Gut` und `Leicht` mit nach rechts zeigenden Intervallpfeilen auf. Am Ende des längsten Intervalls folgt eine Wiederholung mit naher Variante (Kreis mit `…`, Beschriftung `x. Wiederholung · Variante`, Stern über der oberen Markierung). Zwei diagonale Striche kennzeichnen die unterbrochene Y-Achse.
+- Eine als vereinfacht gekennzeichnete Lernkurve führt zu einer gemeinsamen Wiederholung und fächert in die vier Pfade `Nochmal`, `Schwer`, `Gut` und `Leicht` mit Intervallen auf. Am Ende des längsten Intervalls folgt eine Wiederholung mit naher Variante, beschriftet `x. Wiederholung · Variante`.
 - `R` ist an Kurven und Zielerinnerung, `S` an den vier Intervallspannen und `D` an den beiden Wiederholungspunkten sichtbar; die Darstellung bleibt qualitativ ohne scheinbar exakte Werte.
-- Die Geschichte führt in sieben Textschritten durch Grundidee, erste Wiederholung, die vier Antwortpfade gemeinsam, Variantenwiederholung sowie `D`, `R` und `S`; die Grundidee zeigt das Diagramm ohne Hervorhebung. Ab Desktopbreite bleibt das Diagramm stehen und hebt den erklärten Teil hervor; kleinere Ansichten sind linear, ohne verschachtelten Scrollcontainer.
+- Die Geschichte führt in sieben Textschritten durch Grundidee, erste Wiederholung, die vier Antwortpfade gemeinsam, Variantenwiederholung sowie `D`, `R` und `S`; die Grundidee zeigt das Diagramm ohne Hervorhebung, die übrigen Schritte heben den erklärten Teil hervor.
 - Kurvenabschnitte reagieren auf Mausberührung; Wiederholungspunkte und `R`-, `S`- und `D`-Texte sind per Maus, Touch und Tastatur auswählbar und führen zum zugehörigen Schritt.
-- Farbe ist nie der einzige Bedeutungsträger. Begriffe, Reviewübersicht und Bewertungen verwenden eine ruhige Gliederung mit Trennlinien. Mobil scrollt nur der Grafikbereich horizontal, ohne Dokument-Overflow und ohne Sticky-Projektion.
+- Farbe ist nie der einzige Bedeutungsträger. Mobil scrollt nur der Grafikbereich horizontal, ohne Dokument-Overflow.
 - Die offizielle FSRS-Einführung ist als externer weiterführender Link gekennzeichnet.
 
 ### 5.7 Lernfortschritt über simulierte Tage prüfen
@@ -350,10 +347,10 @@ Akzeptanz:
 
 - E-Mail und Passwort sind die freigegebene Kernanmeldung.
 - Das Profil enthält Anzeigename und Login-E-Mail; Hochschule, Fachgebiet und Spracheinstellung gibt es nicht, die Oberfläche ist deutsch. Ohne Community-Funktion gibt es keinen Privatsphäre-Bereich.
-- Das Zahnrad öffnet `Allgemeine Einstellungen` mit `Konto`, `Daten & Synchronisierung` und `Über uns`. Die Seite `Lerneinstellungen` gliedert sich in `Lerntag & Planung`, `Tagesrunde & Lernprofile`, `Scheduler & CoRe` und `Fokuswerkzeuge`; Stapeleinstellungen in `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`.
-- Alle Seiten haben Querlinks und dieselbe iconunterstützte Inhaltsnavigation: ab 1.280 px eine vertikale Sticky-Rail, darunter ein Sticky-Disclosure mit dem aktuellen Abschnitt. Scrollspy markiert genau einen Abschnitt; Auswahl nutzt Hashlinks und Browser-Zurück. Auf Karten- und Simulatorrouten bleibt `Lernen` aktiv; nur die allgemeinen Einstellungen markieren das Zahnrad.
+- `Einstellungen öffnen` öffnet `Allgemeine Einstellungen` mit `Konto`, `Daten & Synchronisierung` und `Über uns`. Die Seite `Lerneinstellungen` gliedert sich in `Lerntag & Planung`, `Tagesrunde & Lernprofile`, `Scheduler & CoRe` und `Fokuswerkzeuge`; Stapeleinstellungen in `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`.
+- Alle Seiten haben Querlinks und dieselbe Inhaltsnavigation, die den aktuellen Abschnitt nennt. Scrollspy markiert genau einen Abschnitt; Auswahl nutzt Hashlinks und Browser-Zurück. Auf Karten- und Simulatorrouten bleibt `Lernen` aktiv; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen` als aktiv.
 - `Über uns` verlinkt auf `/hilfe`, zeigt `Impressum` und `Datenschutzerklärung` als `In Vorbereitung` und die Paketversion mit `v`. Keine andere Oberfläche zeigt Version, Umgebung oder Commit.
-- Weicht ein Einstellungsfeld vom gespeicherten Stand ab, erscheint seitenweit genau eine nichtmodale Leiste `Änderungen speichern?` unten im Viewport mit dezentem dunklem Lilac-Akzent, nebeneinander auf breiten, untereinander auf mobilen Ansichten. Ein Kreuz verwirft den Seitenentwurf; während des Speicherns sind beide Aktionen gesperrt.
+- Weicht ein Einstellungsfeld vom gespeicherten Stand ab, erscheint seitenweit genau eine nichtmodale Leiste `Änderungen speichern?`. `Änderungen verwerfen` verwirft den Seitenentwurf; während des Speicherns sind beide Aktionen gesperrt.
 - Reichweiten: allgemeine Einstellungen eine Speicheraktion, Lerneinstellungen `Auf alle Stapel anwenden` und `Auf alle neuen Stapel anwenden`, Stapeleinstellungen Stapel oder Stapelbaum. Erfolg schließt die Leiste und meldet die Reichweite einmal; Fehler lassen sie offen und erscheinen beim betroffenen Bereich.
 - Bei ungespeicherten Einstellungen werden App-Navigation, Querlinks, Zurück, Stapelwechsel, Abmelden und Browser-Zurück/-Vorwärts abgebrochen. Lernprofil-Aktionen, `Auf diesen Stapel anwenden`, manueller Sync und die Lerneinstellungen einer Sitzung wirken unmittelbar.
 - Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile und der globale Stapelstandard sind accountweite Scheduler-Präferenzen im Profil-Sync.
@@ -362,13 +359,13 @@ Akzeptanz:
 ### 6.2 Deck-Hierarchie und Stapeleinstellungen
 
 - Stapel bilden Eltern- und Unterstapel; APKG-Hierarchien bleiben ohne Tiefenlimit mit unmittelbaren Eltern und vollständigen Pfaden erhalten.
-- Dashboard und Lernen projizieren denselben einklappbaren Stapelbaum als flache Folge kompakter Zeilen; Eltern aggregieren alle Unterstapel. Die Kartenverwaltung projiziert dieselben Zeilen in der gruppierten Tabelle.
+- Dashboard und Lernen projizieren denselben einklappbaren Stapelbaum; Eltern aggregieren alle Unterstapel. Die Kartenverwaltung projiziert dieselben Zeilen in der gruppierten Tabelle.
 - Lernen und Kartenverwaltung sind getrennte, lazy geladene Bereiche derselben Hauptseite mit gemeinsamem Deckkontext ohne parallele lokale Deckidentität. Lernen-, Kartenverwaltungs- und Erstelllinks erhalten Deck und Karte über Reload und Direktlink; gleichnamige Unterstapel unterscheidet der vollständige Pfad.
 - Direktes Drag-and-drop ist eine Desktop-Interaktion in Dashboard und Lernen für Maus und Trackpad und markiert keinen Zeilentext; sonst gilt der bestätigte Verschiebeablauf.
-- Stapelbezogene Auswahlfelder zeigen geschlossen Icon und vollständigen Pfad. Geöffnet sind sie eine höchstens 320 px hohe, je Ebene alphabetisch sortierte Baumliste mit Icon, einzeiligem Namen und derselben Einrückung wie die Stapellisten. Ab fünf auswählbaren Stapeln erscheint eine Pfadsuche; Sonderziele zählen nicht mit. Auswahl zeigt eine neutrale Fläche mit Haken rechts.
+- Stapelbezogene Auswahlfelder zeigen geschlossen Icon und vollständigen Pfad. Geöffnet sind sie eine je Ebene alphabetisch sortierte Baumliste mit Icon und Namen. Ab fünf auswählbaren Stapeln erscheint eine Pfadsuche; Sonderziele zählen nicht mit. Die Auswahl ist nicht nur durch Farbe erkennbar.
 - Stapelname, Icon, Farbe, Tagespensum, `Kartenreihenfolge`, `Neue Karten sortieren`, `Fällige Karten sortieren`, die drei Begraben-Optionen, Schedulerwerte (Lernschritte, Wiederlernschritt, gewünschte Erinnerungsrate, maximales Intervall), CoRe-Modus, `Varianten einsetzen ab Lernstufe` (81, 121, 181 XP) und `Aktive Varianten pro Karte` (1, 2, 3) bilden einen gemeinsamen Entwurf und werden atomar über die Speicherleiste übernommen. Die Reviewpriorität heißt `Wahrscheinlich vergessen zuerst`; der Text zum Reviewlimit erklärt, dass es fällige, tagesübergreifende Lern- und neue Karten umfasst und Wiederholungen Vorrang haben.
 - CoRe-Modus und Variantenwerte gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert. Normales und variantenfokussiertes Lernen wird nicht angeboten.
-- Die Speicherleiste bezeichnet ihre Aktion ausdrücklich. Mit Unterstapeln ist `Stapel und Unterstapel speichern` die Hauptaktion vor `Nur diesen Stapel speichern`; sie überträgt rekursiv nur die geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte. Ohne Unterstapel gibt es nur `Stapeleinstellungen speichern`. Beide speichern lokal persistent in einer Mutation, bleiben auf der Seite und bestätigen den Geltungsbereich. Das Kreuz verwirft den Entwurf.
+- Die Speicherleiste bezeichnet ihre Aktion ausdrücklich. Mit Unterstapeln ist `Stapel und Unterstapel speichern` die Hauptaktion vor `Nur diesen Stapel speichern`; sie überträgt rekursiv nur die geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte. Ohne Unterstapel gibt es nur `Stapeleinstellungen speichern`. Beide speichern lokal persistent in einer Mutation, bleiben auf der Seite und bestätigen den Geltungsbereich. `Änderungen verwerfen` verwirft den Entwurf.
 - Stapeloptionen merken sich ihren URL-reproduzierbaren Ursprung (Dashboard, Lernen, Stapel, optional Karte); Direktlinks ohne Ursprung fallen auf Lernen zurück. Ohne gewählten Stapel zeigt die Route eine suchbare Stapelauswahl. Titel, Zurück und Quernavigation bleiben bei 390 px sichtbar.
 - Neue Stapel erhalten materialisierte Standardwerte, importierte behalten ihre Werte.
 - Löschen eines Baums ist destruktiv, bestätigt und darf gelöschte Inhalte nicht durch späteren Sync reaktivieren.
@@ -418,15 +415,15 @@ Akzeptanz:
 
 ### 6.7 Statistik
 
-- Beim ersten Eintritt zeigt die Statistik ihren Ladezustand. Zeitraum- und Stapelwechsel lassen Filter, Diagramme und Kennzahlen sichtbar: Die Auswahl reagiert sofort, das letzte Ergebnis bleibt abgeblendet bis zum Ersatz. Ein unbestimmter 3-px-Prozessindikator unter den Filtern hat immer reservierten Platz (inklusive 8 px Abstand), keinen Ladetext und keinen Höhensprung; Screenreader erhalten Namen und Live-Status. Fehler erhalten Filter und letzte Daten mit Wiederholungsaktion. Fokus und Scrollposition bleiben, verspätete Antworten überschreiben keine neuere Auswahl. Lazy Loading bleibt ohne zusätzliche Abfragen, Vorladungen oder Zeitraum-Caches.
-- Eine globale Filterleiste steuert alles außer der Heatmap: `30 Tage`, `90 Tage`, `1 Jahr`, `Gesamt` sowie gesamte Sammlung, ein oder mehrere Stapel. Standard ist `Gesamte Sammlung · 1 Jahr`; Oberstapel schließen Unterstapel dedupliziert ein. In der Stapelauswahl stehen Suche, `Gesamte Sammlung` und Baum untereinander mit einer Trennlinie nur vor dem Baum; eingeschlossene Unterstapel bleiben markiert und deaktiviert, ohne Gruppentöne.
-- Die Inhaltsnavigation gliedert in `Überblick`, `Lernaktivität`, `Planung & Kartenbestand`, `FSRS-Gedächtnismodell`, `Antwortverhalten` und gegebenenfalls `Stapelvergleich`: ab 1280 px als scrollbare Sticky-Rail, darunter als Sticky-Disclosure. Der Überblick zeigt in einer umrandeten Fläche sieben Kennzahlen als rand- und schattenlose graue Flächen ohne Icons.
+- Beim ersten Eintritt zeigt die Statistik ihren Ladezustand. Zeitraum- und Stapelwechsel lassen Filter, Diagramme und Kennzahlen sichtbar: Die Auswahl reagiert sofort, das letzte Ergebnis bleibt abgeblendet bis zum Ersatz. Ein unbestimmter Prozessindikator hat immer reservierten Platz, keinen Ladetext und keinen Höhensprung; Screenreader erhalten Namen und Live-Status. Fehler erhalten Filter und letzte Daten mit Wiederholungsaktion. Fokus und Scrollposition bleiben, verspätete Antworten überschreiben keine neuere Auswahl. Lazy Loading bleibt ohne zusätzliche Abfragen, Vorladungen oder Zeitraum-Caches.
+- Eine globale Filterleiste steuert alles außer der Heatmap: `30 Tage`, `90 Tage`, `1 Jahr`, `Gesamt` sowie gesamte Sammlung, ein oder mehrere Stapel. Standard ist `Gesamte Sammlung · 1 Jahr`; Oberstapel schließen Unterstapel dedupliziert ein. Die Stapelauswahl bietet Suche, `Gesamte Sammlung` und den Baum; eingeschlossene Unterstapel bleiben markiert und deaktiviert.
+- Die Inhaltsnavigation gliedert in `Überblick`, `Lernaktivität`, `Planung & Kartenbestand`, `FSRS-Gedächtnismodell`, `Antwortverhalten` und gegebenenfalls `Stapelvergleich`. Der Überblick zeigt sieben Kennzahlen.
 - Historische Bereiche: Übersicht, gestapelte Wiederholungen, gemessene Lernzeit mit Abdeckung, hinzugefügte Karten, Lern-Heatmap, Antwortzeitpunkt, Antwortknöpfe, wahre Erinnerungsquote und Stapelvergleich.
-- Die Heatmap folgt nur dem Stapel-Scope und wählt ihren Zeitraum lokal (`Woche`, `Monat`, `Jahr`; Standard die letzten sieben Lerntage) über das gemeinsame Dropdown. Die Wochenansicht zeigt Kürzel und Datum zweizeilig (`Fr` über `25.09.`); Monat und Jahr zeigen ganze Kalenderzeiträume, Pfeile wechseln einen ganzen Zeitraum, das Jahresraster scrollt schmal horizontal. Farbauswahl, Zeitraum und Pfeile bilden eine feste Gruppe; ab 37 rem steht sie neben dem Streak, darunter dauerhaft unter dem Titel.
-- Der Titel zeigt den Streak der gewählten Stapel; ein Lerntag zählt ab einem validen Review, der sichtbare Zeitraum begrenzt den Streak nicht. Von morgen bis Tag +365 zeigt eine getrennte Grauskala die nächste Fälligkeit jeder aktiven Karte genau einmal (ohne Varianten, Entwürfe, gelöschte, ausgesetzte und begrabene Karten), ohne Folgetermine zu simulieren. Spätere Resttage sind abgeblendet und beschriftet.
-- Die Legende `Weniger` bis `Mehr` erklärt nur vergangene Aktivität. Ihre browserlokal für Dashboard und Statistik gemeinsame Grundfarbe ist über ein 2×2-Raster auf `Gelernt`, `Neu`, `Offen` und `Fällig` beschränkt; Standard ist Lilac (`Neu`), ungültige Werte werden darauf normalisiert. Prognose-Grauskala und blauer Heute-Rahmen bleiben unberührt.
+- Die Heatmap folgt nur dem Stapel-Scope und wählt ihren Zeitraum lokal (`Woche`, `Monat`, `Jahr`; Standard die letzten sieben Lerntage) über das gemeinsame Dropdown. Die Wochenansicht zeigt Wochentagskürzel und Datum (`Fr`, `25.09.`); Monat und Jahr zeigen ganze Kalenderzeiträume, Pfeile wechseln einen ganzen Zeitraum, das Jahresraster scrollt auf schmalen Flächen lokal horizontal.
+- Der Titel zeigt den Streak der gewählten Stapel; ein Lerntag zählt ab einem validen Review, der sichtbare Zeitraum begrenzt den Streak nicht. Von morgen bis Tag +365 zeigt eine von der Aktivität unterscheidbare, beschriftete Prognose die nächste Fälligkeit jeder aktiven Karte genau einmal (ohne Varianten, Entwürfe, gelöschte, ausgesetzte und begrabene Karten), ohne Folgetermine zu simulieren. Spätere Resttage sind abgeblendet und beschriftet.
+- Die Legende `Weniger` bis `Mehr` erklärt nur vergangene Aktivität. Ihre browserlokal für Dashboard und Statistik gemeinsame Grundfarbe ist auf die Rollen `Gelernt`, `Neu`, `Offen` und `Fällig` beschränkt; Standard ist `Neu`, ungültige Werte werden darauf normalisiert. Prognose und Heute-Markierung bleiben von der Wahl unberührt.
 - Die wahre Erinnerungsquote verwendet nur die erste geeignete Wiederholung einer Karte je Lerntag mit vorherigem Intervall von mindestens einem Tag. Ändert sich der Tagesbeginn, werden Reviews neu gruppiert.
-- Der Stapelvergleich zeigt auf schmalen Flächen je Stapel sechs beschriftete Kennzahlflächen, breit eine Tabelle. Der lokale Stapelname öffnet die Stapelinhalte ohne zusätzlichen Pfad.
+- Der Stapelvergleich zeigt je Stapel sechs beschriftete Kennzahlen. Der lokale Stapelname öffnet die Stapelinhalte ohne zusätzlichen Pfad.
 - Planung zeigt Rückstand, künftige Fälligkeiten, kumulierten Verlauf und geschätztes Tagespensum; der Zeitraum ist ihr Zukunftshorizont.
 - Status, FSRS-Schwierigkeit, Stabilität und aktuelle Abrufwahrscheinlichkeit sind Momentaufnahmen mit `Stand heute`; bei Intervallen begrenzt der Zeitraum nur die Anzeige.
 - Historische Kategorien kommen aus dem Zustand vor der Antwort: Lernen, Wiederlernen, Jung, Reif (ab 21 Tagen). Klassische Anki-Leichtigkeit und ein separater Schwierigkeitsstatus werden nicht angezeigt; der FSRS-Parameter Schwierigkeit bleibt.
@@ -436,7 +433,7 @@ Akzeptanz:
 
 - Ein Sync-Zyklus schreibt zuerst lokale IndexedDB-Transaktionen, überträgt dann nur vorgemerkte Outbox-Mutationen, lädt alle Cloud-Deltas seit den gespeicherten `sync_change_id`-Cursorn und aktualisiert zuletzt Konflikt- und Statusdaten. Ein Konflikt blockiert nur seine Entität.
 - Manueller und automatischer Sync nutzen denselben Zyklus. Ein Sync ohne gesendete Änderungen, neue Cloud-Daten oder Konflikte baut die Oberfläche nicht neu auf. Startet die App offline, beginnt das Intervall mit der Rückkehr des Netzes. Automatik läuft entprellt nach lokalen Änderungen, bei Netzrückkehr, Fokus und im sichtbaren Tab alle 1, 5, 15 oder 30 Minuten (Standard 5); `Aus` heißt manuell. Sie endet bei Logout oder Accountwechsel.
-- Der Sync-Button in Desktop-Navigation und mobilem Kopf zeigt synchronisiert, ausstehend, laufend, offline oder die Konfliktanzahl. `Daten & Synchronisierung` zeigt Intervall, letzten Erfolg, ausstehende Änderungen und den manuellen Sync.
+- Der Sync-Button der App-Navigation zeigt synchronisiert, ausstehend, laufend, offline oder die Konfliktanzahl. `Daten & Synchronisierung` zeigt Intervall, letzten Erfolg, ausstehende Änderungen und den manuellen Sync.
 - `revision` ist die fachliche Entitätsversion; der Lernstand besitzt mit `studyRevision` eine eigene Grenze, sodass Review und Inhaltskorrektur auf zwei Geräten keinen Konflikt erzeugen. Geräte-, Zeit-, Zähler-, Importzusammenfassungs-, Eigentümer- und Schedulerprojektionen erzeugen allein keinen Inhaltskonflikt. Kartenwrites erhalten den Cloud-Lernstand, Varianteninhaltswrites ihre Performance.
 - Reviewereignisse sind unveränderlich und idempotent; beide Geräteereignisse bleiben, nur das jüngste projiziert den Lernstand. Neuplanungen laufen als manuelle Reviewereignisse über dieselbe offline persistente `review-atomic`-Outbox und `record_review_atomic`; die jeweils spätere Aktion bestimmt den Termin.
 - Für Konflikte zeigt CoRe die Folgen beider Richtungen als hinzugefügte, aktualisierte und entfernte Stapel, Karten und Varianten. `Dieser Browser` oder `Cloud im Account` betrifft nur diese Konflikte; die Vorschau wird vor Ausführung gegen aktuelle Remote-Revisionen geprüft. Der Einzelauflöser bleibt eingeklappt verfügbar.
@@ -459,7 +456,7 @@ Der [`src/ui`-Katalog](../src/ui/README.md) beschreibt die Wiederverwendung. Bes
 
 Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor und Importvorschau gleich.
 
-- Frage und Antwort ohne Feldbeschriftung; beim Aufdecken bleibt die Frage stehen, darunter eine Trennlinie und die Antwort. Ein fester Anweisungstext steht klein über der Frage.
+- Frage und Antwort ohne Feldbeschriftung; beim Aufdecken bleibt die Frage stehen, und die Antwort folgt. Ein fester Anweisungstext begleitet die Frage.
 - Hinweise sind zugeklappte, per Tastatur bedienbare Abschnitte unter der Frage. `Zusatz` und `Quelle` (als Link-Chips) erscheinen erst nach dem Aufdecken, `Notiz` nur im Editor.
 - Lückentext zeigt die aktive Lücke als `[…]` mit Akzent; Bildverdeckung die aktive Maske in Akzentfarbe, nach dem Aufdecken nur ihren Umriss.
 - Eintippen vergleicht zeichengenau wie Anki; Single Choice deckt direkt auf, Multiple Choice und Kprim über `Antwort prüfen`.
@@ -467,23 +464,21 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor un
 
 ### Farben und Theme
 
-- Die produktive UI verwendet die CoRe-Palette Slate `#6F7E9E`, Mist `#A9B5C7`, Cloud `#DDE3EC`, Coral `#E28B68`, Lilac `#D6A3D2`, Marigold `#E4BF63` und die Dark-Werte Midnight `#181D25`, Graphite `#262E3A`, Highlight `#8FA0BF`, Coral Glow `#F0A07E`, Lilac Glow `#E4B5E1`, Golden Glow `#F0CC77` ausschließlich über semantische Theme-Rollen.
-- Light und Dark nutzen denselben Tokensatz. Ein Iconbutton wechselt über `data-core-theme`; Sonne bzw. Mond zeigen den aktuellen Modus, der zugängliche Name die Aktion. Theme und Timer bleiben lokal im Browser; keine automatische Aktivierung über die Systempräferenz.
-- Dekorative Rahmen sind heller als interaktive Feld-, Auswahl- und Fokusgrenzen. Bedeutung ist immer zusätzlich durch Text, Icon oder Zahl erkennbar.
-- Bestehendes Karten-HTML und persistierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate. Rich-Text-Schnellfarben stammen aus der CoRe-Palette.
+- Die produktive UI verwendet Farben ausschließlich über semantische Theme-Rollen.
+- Light und Dark nutzen denselben Tokensatz. Ein Theme-Schalter wechselt den Modus; sein zugänglicher Name nennt die Aktion. Theme und Timer bleiben lokal im Browser; keine automatische Aktivierung über die Systempräferenz.
+- Bedeutung ist immer zusätzlich durch Text, Icon oder Zahl erkennbar.
+- Bestehendes Karten-HTML und persistierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate.
 
 ### App-Shell und Navigation
 
-- App-Shell, Login, Sitzungsprüfung, lokale Datenübernahme und Fehlerzustand füllen den dynamischen Viewport ohne äußeren Rahmen, Radius oder Schatten; der horizontale Innenabstand beträgt 10, 16 bzw. 24 px.
-- Unter 1280 px ersetzt eine schwebende, Safe-Area-fähige Bottom Bar mit `Heute`, `Lernen`, `Erstellen` und `Statistik` die Sidebar, stabil am unteren Rand. Ein kompakter Kopf zeigt `CoRe` (zu `Heute`), bei aktivem Timer dessen Balken und rechts die Utility-Gruppe aus Sync, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
-- Ab 1280 px gibt es eine schwebende, 15 rem breite Sidebar ohne Markenunterzeile und Kopfleiste; ihre Utility-Gruppe steht unten in einer Reihe: Sync, Hilfe, Einstellungen, Theme. Das Fragezeichen hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren das Zahnrad, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
-- Die Hauptnavigation nutzt denselben gleitenden Indikator wie segmentierte Controls; Icon und Name stehen zweizeilig. Reduced Motion deaktiviert Gleitbewegung und Statistik-Laufanimation.
+- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Erstellen` und `Statistik`. Ein kompakter Kopf bietet `CoRe` (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
+- Die Sidebar bietet dieselben Ziele und Utility-Aktionen. `Hilfe öffnen` hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
+- Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.
 
 ### Bedienelemente
 
-- Primäre, sekundäre, tertiäre und destruktive Actions sowie Info-, Erfolgs-, Warn- und Fehlerzustände haben einheitliche Hover-, Active-, Focus- und Disabled-Zustände.
-- Einzeilige Buttons, Icon-Aktionen, Eingaben und Auswahlfelder nutzen `--core-control-height`: 40 px bei feinem Zeiger ab 768 px, sonst 44 × 44 px. Fachliche Großflächen wie Auswahlantworten und Bewertungen dürfen höher sein.
-- Auswahlfelder nutzen denselben Trigger und ein erhöhtes, abgerundetes Overlay. Erneutes Antippen, Außenberührung und Escape schließen ohne Wertänderung; gewählte und fokussierte Optionen sind zusätzlich zur Farbe markiert und per Tastatur bedienbar.
+- Buttons, Icon-Aktionen, Eingaben und Auswahlfelder haben ohne feinen Zeiger oder unter 768 px Zielflächen von mindestens 44 × 44 px.
+- Auswahlfelder nutzen denselben Trigger und ein Overlay. Erneutes Antippen, Außenberührung und Escape schließen ohne Wertänderung; gewählte und fokussierte Optionen sind zusätzlich zur Farbe markiert und per Tastatur bedienbar.
 - Modale Bestätigungsdialoge behandeln Escape und Klick auf den Hintergrund wie Abbrechen; Klicks im Dialog oder einem Auswahl-Overlay schließen nicht. Abbrechen verändert keine Fachdaten und stellt den Fokus wieder her.
 - Einstellungsfelder haben eindeutige Titel ohne wiederholende Untertitel; Hinweise erklären nur Folgen, Abwägungen, Warnungen oder nicht offensichtliches Verhalten.
 - Fachliche Inhalte, Warnungen und Folgeaktionen bleiben ohne generische Disclosure-Flächen sichtbar; ausklappbar sind nur Navigation, Hierarchien und kompakte Werkzeuge.
@@ -491,20 +486,18 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor un
 
 ### Rückmeldungen
 
-- Kurze abgeschlossene Erfolgsmeldungen erscheinen als schließbares Overlay oben rechts mit Erfolgsicon. Nach zehn Sekunden blenden sie mit kurzer Deckkraft-/Transformationsanimation aus (ohne Übergang bei reduzierter Bewegung) und halten schmal den Seitenabstand ein.
+- Kurze abgeschlossene Erfolgsmeldungen erscheinen als schließbares Overlay. Nach zehn Sekunden blenden sie aus, ohne Übergang bei reduzierter Bewegung.
 - Fehler, laufende Vorgänge und Ergebnisse mit Details oder Folgeaktionen bleiben im fachlichen Kontext sichtbar.
 
 ### Stapeldarstellung
 
-- Stapelgruppen nutzen die gerahmten Flächen `--core-group-depth-0` bis `--core-group-depth-5`: Hauptstapel Depth 0 ohne Schatten, Unterebenen Depth 1 bis 5. Die Töne interpolieren linear in sRGB, größere Tiefe wird auf 5 begrenzt; Light wird mit der Tiefe dunkler, Dark heller. Hover füllt neutral; Auswahl, Fokus und Drop-Ziele reagieren am Außenrand ohne eingerückte Ebene.
-- Stapelkarten in Dashboard und Lernen zeigen nur die disjunkten, budgetbegrenzten Kennzahlen `Neu`, `Offen` (Learning und Relearning heute, auch noch nicht vorziehbar) und `Fällig` in den Rollen von `Nochmal`, `Schwer` und `Gut`; eine Gesamtzahl erscheint nicht. Unter 44 rem Zeilenbreite entfallen die sichtbaren Labels bei erhaltenen zugänglichen Namen.
-- Der Donut verwendet für `Neu`, `Offen`, `Fällig` und `Gelernt` die Rollen von `Nochmal`, `Schwer`, `Gut` und `Leicht`. Seine Segmente beginnen bei zwölf Uhr, haben dünne Rahmenlinien und ein transparentes Zentrum; ein leerer Bestand zeigt einen neutralen Ring. Die zugängliche Beschriftung nennt Gesamtzahl und alle vier Werte.
-- Stapel-Icons sind rund mit Symbol und Rand in der gewählten Farbe und dezenter Tönung. Die Stapeleinstellungen zeigen im Titel Icon und gespeicherten Namen; der Bereich `Stapel` enthält Namensfeld, ein 5×5-Raster aus 25 Lucide-Icons und den Farbkreis, alle im gemeinsamen Seitenentwurf.
+- Stapelkarten in Dashboard und Lernen zeigen nur die disjunkten, budgetbegrenzten Kennzahlen `Neu`, `Offen` (Learning und Relearning heute, auch noch nicht vorziehbar) und `Fällig`; eine Gesamtzahl erscheint nicht.
+- Tageslernfläche, Tagesfortschritt, Stapelkennzahlen und Donut verwenden für `Neu`, `Offen`, `Fällig` und `Gelernt` die Farbrollen der Bewertungen `Nochmal` (Lilac), `Schwer` (Orange), `Gut` (Gelb) und `Leicht` (Slate). Bei leerem Bestand zeigt der Donut einen neutralen Ring; seine zugängliche Beschriftung nennt Gesamtzahl und alle vier Werte.
+- Stapel-Icons zeigen Symbol und gewählte Farbe. Die Stapeleinstellungen zeigen im Titel Icon und gespeicherten Namen; der Bereich `Stapel` enthält Namensfeld, Icon- und Farbauswahl, alle im gemeinsamen Seitenentwurf.
 
 ### Typografie
 
-- Die gesamte Oberfläche einschließlich Kartenfläche nutzt die lokal eingebettete variable Schrift Manrope im Stil „Soft Minimal“: Überschriften `30/36`, `22/28` und `18/24` mit leicht verringerter Laufweite, Body Large `16/24`, Body und Controls `14/20`, Caption und Statuslabel `12/16`.
-- Kennzahl-, Abschnitts- und Tabellenbeschriftungen stehen in normaler Schreibung; nur Eyebrows über Titeln sind klein in Versalien. Semantische HTML-Ebene und visuelle Stufe dürfen abweichen.
+- Die gesamte Oberfläche einschließlich Kartenfläche nutzt die lokal eingebettete Schrift Manrope; Schriftstufen zeigt der UI-Katalog. Semantische HTML-Ebene und visuelle Stufe dürfen abweichen.
 
 ## 8. Nichtfunktionale Anforderungen
 
