@@ -1,7 +1,7 @@
 import React from "react";
 import type { CardStudyStatePatch, CoreMode, Deck, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, NoteContent, SyncStatus } from "./coreTypes.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
-import { ArrowRight, Database, Layers } from "lucide-react";
+import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
@@ -22,7 +22,7 @@ import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } fr
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
-import { createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
+import { addCardVariant, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
 import { cardVariantSource, deleteVariant, reactivateVariant } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
@@ -55,6 +55,9 @@ import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
+import { VariantGenerationBar } from "./ui/VariantGenerationBar.tsx";
+import { useCardVariantBatch } from "./useCardVariantBatch.ts";
+import { CARD_VARIANT_BATCH_LIMIT, type CardVariantBatchMode } from "./cardVariantBatch.ts";
 import { SettingsSaveBar } from "./ui/SettingsSaveBar.tsx";
 import { applyDeckSettingsDraftChanges, createDeckSettingsDraft, normalizeDeckSettingsDraft, type DeckLearningSettingsDraft, type DeckSettingsDraft, type GeneralSettingsDraft, type GlobalCardSettingsDraft } from "./settingsDraft.ts";
 const menu = createMenuModel();
@@ -288,6 +291,9 @@ export function App() {
       ? createWorkspaceHydrationService({ client: supabase, repository: workspaceRepository, mediaStore })
       : null
   ), [mediaStore, supabase, workspaceRepository]);
+  const variantBatch = useCardVariantBatch({ cards: workspaceHydrationService, generate: generateDeckCardVariant, onToast: setSuccessToast });
+  const [coreEnableDeckId, setCoreEnableDeckId] = React.useState<string | null>(null);
+  const [generateOnCoreEnable, setGenerateOnCoreEnable] = React.useState(true);
   React.useEffect(() => {
     let active = true;
     if (!workspaceRepository) {
@@ -1084,6 +1090,23 @@ export function App() {
     return runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, { coreMode }));
   }
 
+  /** Switching CoRe on from a deck menu first explains it and offers generating variants right away. */
+  function requestDeckCoreMode(deckId: string, coreMode: CoreMode) {
+    const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === deckId);
+    if (coreMode !== "on" || !deck || createDefaultDeckSettings(deck.deckSettings).coreMode === "on") return setDeckCoreMode(deckId, coreMode);
+    setGenerateOnCoreEnable(!variantBatch.running);
+    setCoreEnableDeckId(deckId);
+    return undefined;
+  }
+
+  function confirmCoreEnable() {
+    const deck = latestStateRef.current?.decks.find((candidate) => candidate.id === coreEnableDeckId);
+    setCoreEnableDeckId(null);
+    if (!deck) return;
+    void setDeckCoreMode(deck.id, "on");
+    if (generateOnCoreEnable) variantBatch.start(deck, { deckSettings: { ...deck.deckSettings, coreMode: "on" } });
+  }
+
   function saveDeckLearningSettings(
     deckId: string,
     settings: LearningSettingsInput = {},
@@ -1276,16 +1299,21 @@ export function App() {
     return cards;
   }
 
-  async function generateDeckCardVariant(_deckId: string, cardId: string) {
+  /** `refresh` replaces all earlier variants of the card with the new one; otherwise it adds one and replaces outdated ones. */
+  async function generateDeckCardVariant(_deckId: string, cardId: string, mode: CardVariantBatchMode = "missing") {
     if (!workspaceRepository) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
     const body = await workspaceRepository.loadCardBody(cardId);
     const source = body ? cardVariantSource(body.note, body.card) : null;
-    if (!source) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
-    const generated = await requestAiCardVariant(source, supabase ?? null);
+    if (!source || !body) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
+    const existing = body.card.variants.filter((variant) => !variant.deletedAt).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+    const generated = await requestAiCardVariant(source, supabase ?? null, { avoid: existing.map((variant) => variant.front) });
 
     const current = await workspaceRepository.loadCardBody(cardId);
     const draft = createAiGeneratedVariantDraft(source, current, generated);
-    const saved = await workspaceRepository.updateCard(cardId, (card) => replaceOutdatedVariants(card, { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } }));
+    const input = { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } };
+    const saved = await workspaceRepository.updateCard(cardId, (card) => mode === "refresh"
+      ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
+      : replaceOutdatedVariants(card, input));
     if (!saved) throw new AiCardVariantContractError("save_failed", "Die KI-Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     return generated;
@@ -1552,6 +1580,8 @@ export function App() {
           }}
           onSelectDeck={(deckId) => navigateToViewNow("stapel-einstellungen", { focusedDeckId: deckId }, { replace: true })}
           onOpenGlobalSettings={() => navigateToView("karten-einstellungen")}
+          variantGenerationRunning={variantBatch.running}
+          onGenerateVariants={workspaceHydrationService ? (deck, mode) => variantBatch.start(deck, { mode }) : undefined}
           offlineDeck={focusedDeckId ? offlineDecks[focusedDeckId] ?? null : null}
           bodyCache={focusedDeckBodyCache}
           onDownloadDeck={workspaceHydrationService && workspaceRepository ? async (deckId) => {
@@ -1587,7 +1617,7 @@ export function App() {
           learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
           timeZone={learningTimeZone}
           mediaStore={mediaStore}
-          onSetDeckCoreMode={setDeckCoreMode}
+          onSetDeckCoreMode={requestDeckCoreMode}
           onSaveNote={saveDeckNote}
           onSetCardStudyState={setCardStudyState}
           onDuplicateNote={duplicateDeckNote}
@@ -1682,7 +1712,7 @@ export function App() {
           onOpenDeckContent={(deckId) => navigateToView("kartenstapel", { focusedDeckId: deckId, deckContent: true })}
           onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
-          onSetDeckCoreMode={setDeckCoreMode}
+          onSetDeckCoreMode={requestDeckCoreMode}
           onMoveDeck={moveDeck}
           collapsedDeckIds={state.profile.uiPreferences.learnCollapsedDeckIds}
           onSetDeckExpanded={saveDeckExpansion}
@@ -1751,7 +1781,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
+    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
   }
 
   if (authPhase === "checking-session") {
@@ -1871,6 +1901,8 @@ export function App() {
     );
   }
 
+  const coreEnableDeck = coreEnableDeckId ? state.decks.find((deck) => deck.id === coreEnableDeckId) ?? null : null;
+
   return (
     <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-core-text xl:h-dvh xl:overflow-y-hidden">
       <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-canvas xl:h-dvh xl:min-h-0 xl:grid-cols-[15rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
@@ -1903,6 +1935,51 @@ export function App() {
           : activeView === "karten-einstellungen" ? "learning-global" : "global"}
         onSave={(scope) => { void saveSettingsDraft(scope); }}
         onDiscard={discardSettingsDraft}
+      />
+      {variantBatch.batch ? (
+        <VariantGenerationBar
+          deck={variantBatch.batch.deck}
+          title={variantBatch.batch.mode === "refresh" ? "Varianten neu generieren" : "Varianten generieren"}
+          done={variantBatch.batch.done}
+          total={variantBatch.batch.total}
+          outcome={variantBatch.batch.outcome}
+          onCancel={variantBatch.cancel}
+          onClose={variantBatch.dismiss}
+        />
+      ) : null}
+      <ActionDialog
+        open={Boolean(coreEnableDeck)}
+        title={`CoRe für „${coreEnableDeck?.name ?? ""}“ einschalten`}
+        description={(
+          <div className="grid gap-3">
+            <p>CoRe fragt Karten ab einer Lernstufe auch umformuliert ab, damit du das Wissen statt des Wortlauts lernst. Die Umformulierungen erzeugt eine KI.</p>
+            <ul className="grid list-disc gap-1 pl-5 core-body text-core-muted">
+              <li>Varianten erscheinen beim Lernen erst, wenn eine Karte die Lernstufe des Stapels erreicht.</li>
+              <li>Nur der bereinigte Text von Frage und Antwort geht an GPT-6 Luna; der Anbieter speichert ihn nicht.</li>
+            </ul>
+            <label className="flex items-start gap-3 rounded-control border border-core-border p-3 core-body font-semibold text-core-text">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-5 shrink-0 accent-core-action"
+                checked={generateOnCoreEnable}
+                disabled={variantBatch.running}
+                data-testid="core-enable-generate-variants"
+                onChange={(event) => setGenerateOnCoreEnable(event.target.checked)}
+              />
+              <span>
+                Jetzt Varianten für bis zu {CARD_VARIANT_BATCH_LIMIT} Karten generieren
+                <span className="mt-0.5 block core-caption font-normal text-core-muted">
+                  {variantBatch.running ? "Es läuft bereits eine Generierung; starte sie danach in den Stapeleinstellungen." : "Läuft im Hintergrund, solange CoRe geöffnet ist."}
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
+        confirmLabel="Einschalten"
+        cancelLabel="Abbrechen"
+        actionIcons={{ confirm: Sparkles }}
+        onCancel={() => setCoreEnableDeckId(null)}
+        onConfirm={confirmCoreEnable}
       />
       <ActionDialog
         open={Boolean(pendingNavigation)}

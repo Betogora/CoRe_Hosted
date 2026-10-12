@@ -1130,6 +1130,9 @@ video {
 .bottom-1 {
   bottom: 0.25rem;
 }
+.bottom-\[calc\(env\(safe-area-inset-bottom\)\+5\.5rem\)\] {
+  bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+}
 .left-0 {
   left: 0px;
 }
@@ -2376,6 +2379,9 @@ video {
 }
 .pl-3 {
   padding-left: 0.75rem;
+}
+.pl-5 {
+  padding-left: 1.25rem;
 }
 .pl-6 {
   padding-left: 1.5rem;
@@ -4338,6 +4344,14 @@ summary {
   }
 }
 
+@media not all and (min-width: 640px) {
+
+  .max-sm\:px-2\.5 {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+}
+
 @media (min-width: 640px) {
 
   .sm\:static {
@@ -4370,6 +4384,10 @@ summary {
 
   .sm\:row-start-1 {
     grid-row-start: 1;
+  }
+
+  .sm\:inline {
+    display: inline;
   }
 
   .sm\:h-\[21rem\] {
@@ -4726,6 +4744,14 @@ summary {
     position: sticky;
   }
 
+  .xl\:bottom-4 {
+    bottom: 1rem;
+  }
+
+  .xl\:left-\[calc\(50dvw\+7\.5rem\)\] {
+    left: calc(50dvw + 7.5rem);
+  }
+
   .xl\:top-6 {
     top: 1.5rem;
   }
@@ -4760,6 +4786,10 @@ summary {
 
   .xl\:min-h-\[68svh\] {
     min-height: 68svh;
+  }
+
+  .xl\:w-\[min\(42rem\2c calc\(100dvw-19rem\)\)\] {
+    width: min(42rem, calc(100dvw - 19rem));
   }
 
   .xl\:min-w-0 {
@@ -5221,7 +5251,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 </ul>
 <h4 id="journey-3-rules--stapeloptionen-verschieben-und-löschen" class="core-control-label" tabindex="-1">Stapeloptionen, Verschieben und Löschen <a class="docs-anchor" href="#journey-3-rules--stapeloptionen-verschieben-und-löschen" aria-label="Link zu Stapeloptionen, Verschieben und Löschen">#</a></h4>
 <ul>
-<li>Jede Stapelgruppe besitzt dasselbe Drei-Punkte-Menü mit Icon, lokalem Namen, CoRe-Modus (<code>Aus</code>/<code>An</code>), <code>Einstellungen</code> und bestätigtem <code>Verschieben</code>. Der Trigger trägt den Tooltip <code>Stapeloptionen für &lt;lokaler Stapelname&gt;</code>; sein zugänglicher Name enthält den vollständigen Pfad.</li>
+<li>Jede Stapelgruppe besitzt dasselbe Drei-Punkte-Menü mit Icon, lokalem Namen, CoRe-Modus (<code>Aus</code>/<code>An</code>), <code>Einstellungen</code> und bestätigtem <code>Verschieben</code>. <code>An</code> öffnet zuerst den Dialog <code>CoRe für „&lt;Stapel&gt;“ einschalten</code> (siehe KI-Umformulierungen); <code>Aus</code> wirkt sofort. Der Trigger trägt den Tooltip <code>Stapeloptionen für &lt;lokaler Stapelname&gt;</code>; sein zugänglicher Name enthält den vollständigen Pfad.</li>
 <li>Der Bereich <code>Stapel</code> in den Stapeleinstellungen bündelt Name, Icon und Farbe sowie <code>Unterstapel anlegen</code>, den segmentierten <code>CoRe-Modus</code> und <code>Löschen</code>. Unterstapel entstehen dort mit vorausgewähltem Elternstapel oder über die Ebenenauswahl des Schnellformulars.</li>
 <li>In Dashboard und Lernen verschiebt ein Desktop-Drag den vollständigen Baum als direkten Unterstapel des hervorgehobenen Ziels; die Hauptebenen-Zone entfernt die Elternzuordnung. Nach kurzer Bewegungsschwelle reagiert die Zeile direkt auf Maus und Trackpad und hält den Griff auch außerhalb der Zeile.</li>
 <li>Während des Drags sind Quelle, aktuelles Ziel und Hauptebenen-Zone erkennbar hervorgehoben; es gibt genau eine Hauptebenen-Zone. Gültige Ziele sind als solche erkennbar, ein erfolgreicher Drop klappt das Ziel auf. Selbst-, Nachfahren- und unveränderte Ziele ändern nichts.</li>
@@ -5268,9 +5298,13 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <ul>
 <li>Eine Karte mit Frage und Antwort kann als KI-Variante umformuliert werden; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erklären den deaktivierten Zugang. Bei ausgeschaltetem CoRe-Modus oder erreichter Höchstzahl aktiver Varianten des Stapels ist die Aktion ebenfalls deaktiviert und begründet.</li>
 <li>Die Variante bleibt der Karte untergeordnet, besitzt keinen eigenen Lernstand und wird nicht als Karte gezählt.</li>
-<li>An den Anbieter gehen ausschließlich der bereinigte Text von Frage und Antwort mit je höchstens 1.200 Zeichen; Tags, IDs, Quellen, Reviewdaten, Metadaten und Medien nicht. Der Anbieter darf den Text weder speichern noch damit trainieren.</li>
+<li>An den Anbieter gehen ausschließlich der bereinigte Text von Frage und Antwort mit je höchstens 1.200 Zeichen sowie die Fragen bis zu fünf vorhandener Varianten derselben Karte, damit die neue Variante sich davon unterscheidet; Tags, IDs, Quellen, Reviewdaten, Metadaten und Medien nicht. Der Anbieter darf den Text weder speichern noch damit trainieren. Die neue Frage soll möglichst nicht mit denselben ersten Wörtern beginnen wie das Original; das ist eine Anweisung an die KI, keine harte Prüfung.</li>
+<li>Besitzt die Karte schon Varianten, heißt die Aktion <code>Weitere KI-Variante erzeugen</code>. Liefert die KI dennoch eine vorhandene Formulierung, wird nichts gespeichert und die Meldung bittet um einen neuen Versuch.</li>
 <li>CoRe speichert die Variante nur, wenn die Karte während des Aufrufs unverändert blieb und dieselbe Front/Back-Kombination noch nicht existiert. Fehler verändern nichts; während des Aufrufs ist die Aktion gesperrt.</li>
 <li>Der Bereich <code>Varianten</code> im Detail nennt <code>X von Y aktiv</code> und <code>Lernstufe X von Y XP</code> samt Hinweis, ob Varianten im Review erscheinen; Erklärtexte und Untertitel gibt es dort nicht. Ändert eine Inhaltsänderung Frage oder Antwort, werden aktive Umformulierungen <code>veraltet</code> und nicht mehr abgefragt; die Speichermeldung nennt ihre Zahl. <code>KI-Variante neu erzeugen</code> ersetzt die veralteten Umformulierungen durch eine neue.</li>
+<li>Beim Einschalten über das Stapelmenü erklärt ein Dialog Wirkung, Lernstufe und Datenschutz; die vorausgewählte Option <code>Jetzt Varianten für bis zu 50 Karten generieren</code> startet nach <code>Einschalten</code> die Stapelgenerierung. <code>Abbrechen</code> lässt den CoRe-Modus aus. Läuft bereits eine Generierung, ist die Option gesperrt.</li>
+<li>Bei eingeschaltetem CoRe-Modus bieten die Stapeleinstellungen <code>Varianten generieren</code> und <code>Varianten neu generieren</code>. <code>Varianten neu generieren</code> ersetzt nach Rückfrage die Varianten von Karten, deren aktive Varianten aus einer älteren Version der KI-Anweisung stammen, durch je eine neue und löscht dabei deren bisherige Varianten; Lernstand und Karten bleiben. Eine Generierung erzeugt je Karte genau eine Variante und bearbeitet nacheinander die ersten höchstens 50 passenden Karten in Stapelreihenfolge; <code>Varianten generieren</code> nimmt Karten ohne aktive Variante; Karten ohne Frage-/Antwort-Abfrage werden übersprungen. Jede Variante wird sofort gespeichert; ein weiterer Start bearbeitet die nächsten Karten. App-weit läuft höchstens eine Generierung, solange CoRe geöffnet ist.</li>
+<li>Eine zweizeilige Leiste über der Navigation zeigt Stapel-Icon, <code>Varianten generieren X von Y</code> und <code>Abbrechen</code>, darunter den Fortschrittsbalken. Abbrechen behält Erzeugtes. Ein vollständiger Erfolg, ein Abbruch oder kein Fund endet mit einem Toast; einzelne Fehlschläge oder ein Stopp bei Fehlern, die jede Karte träfen (Anmeldung, Verbindung, Budget, Anfragelimit), bleiben mit Zahl und Grund in der Leiste, bis sie geschlossen wird.</li>
 <li>Jede Variante im Detail trägt eine farbig unterschiedene Zustandsmarke (<code>aktiv</code>, <code>abgeschaltet</code>, <code>gemeldet: inhaltlich falsch</code>, <code>gemeldet: unklar formuliert</code>, <code>veraltet</code>). Abgeschaltete und gemeldete Varianten lassen sich <code>Reaktivieren</code>, solange die Höchstzahl aktiver Varianten nicht erreicht ist; der Meldeverlauf bleibt. Veraltete nicht. <code>Löschen</code> entfernt eine Variante nach Rückfrage auf allen Geräten; Grundkarte und Lernstand bleiben.</li>
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--53-karten-bearbeiten-und-eine-sitzung-starten">Produktvertrag 5.3</a> · <a href="ui-elements.html#stapel">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>

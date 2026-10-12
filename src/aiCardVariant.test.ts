@@ -46,7 +46,7 @@ test("browser request authenticates, sends only card text and validates the resp
   let requestBody = "";
   const result = await requestAiCardVariant(cardVariantSource(note, card), {
     auth: { getSession: async () => ({ data: { session: { access_token: "session-secret" } }, error: null }) },
-  } as any, async (_url, init) => {
+  } as any, { avoid: ["Alte <b>Variante</b>", "Alte Variante", ""], fetchImpl: async (_url, init) => {
     assert.equal((init?.headers as Record<string, string>).Authorization, "Bearer session-secret");
     requestBody = String(init?.body);
     return Response.json({
@@ -55,9 +55,9 @@ test("browser request authenticates, sends only card text and validates the resp
       privacyMode: "zdr",
       usage: null,
     });
-  });
+  } });
 
-  assert.deepEqual(JSON.parse(requestBody), { source: { front: "Frage", back: "Antwort" } });
+  assert.deepEqual(JSON.parse(requestBody), { source: { front: "Frage", back: "Antwort" }, avoid: ["Alte Variante"] });
   assert.equal(requestBody.includes("secret-tag"), false);
   assert.equal(requestBody.includes("secret-media"), false);
   assert.equal(result.variant.front, "Neu gefragt");
@@ -68,22 +68,22 @@ test("browser request reports missing auth and provider errors", async () => {
   await assert.rejects(requestAiCardVariant(source, null), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "auth_unavailable");
   const supabase = { auth: { getSession: async () => ({ data: { session: { access_token: "token" } }, error: null }) } } as any;
   await assert.rejects(
-    requestAiCardVariant(source, supabase, async () => Response.json({ error: { code: "rate_limited", message: "Zu viele Anfragen." } }, { status: 429 })),
+    requestAiCardVariant(source, supabase, { fetchImpl: async () => Response.json({ error: { code: "rate_limited", message: "Zu viele Anfragen." } }, { status: 429 }) }),
     (error: unknown) => error instanceof AiCardVariantContractError && error.code === "rate_limited",
   );
   await assert.rejects(
-    requestAiCardVariant(source, supabase, async () => Response.json({ variant: { front: "Nur vorne" } })),
+    requestAiCardVariant(source, supabase, { fetchImpl: async () => Response.json({ variant: { front: "Nur vorne" } }) }),
     (error: unknown) => error instanceof AiCardVariantContractError && error.code === "invalid_response",
   );
   await assert.rejects(
-    requestAiCardVariant(source, supabase, async () => new Response("An error occurred with your deployment", { status: 504 })),
+    requestAiCardVariant(source, supabase, { fetchImpl: async () => new Response("An error occurred with your deployment", { status: 504 }) }),
     (error: unknown) => error instanceof AiCardVariantContractError && error.code === "request_failed",
   );
   await assert.rejects(
-    requestAiCardVariant(source, supabase, async (_url, init) => {
+    requestAiCardVariant(source, supabase, { fetchImpl: async (_url, init) => {
       assert.ok(init?.signal);
       throw new DOMException("The operation timed out.", "TimeoutError");
-    }),
+    } }),
     (error: unknown) => error instanceof AiCardVariantContractError && error.code === "timeout",
   );
 });
@@ -101,7 +101,7 @@ test("generated draft rejects changed sources and duplicate variants", () => {
   const draft = createAiGeneratedVariantDraft(source, original, generated);
   assert.equal(draft.meta.generationSource, "ai_generated");
   assert.equal(draft.front, "Anders gefragt");
-  assert.equal(draft.meta.promptVersion, "card-variant-v2");
+  assert.equal(draft.meta.promptVersion, "card-variant-v4");
   assert.equal(draft.meta.model, "provider/model:free");
 
   const changedContent = structuredClone(original.note.content);
@@ -112,4 +112,12 @@ test("generated draft rejects changed sources and duplicate variants", () => {
 
   const withDuplicate = addCardVariant(original.card, { front: "Anders gefragt", back: "Gleiche Antwort" });
   assert.throws(() => createAiGeneratedVariantDraft(source, { note: original.note, card: withDuplicate }, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "duplicate_variant");
+});
+
+test("existing variants are sent within the request limits, newest first", () => {
+  const request = createAiCardVariantRequest({ front: "Frage", back: "Antwort" }, ["Eins", "Zwei", "Drei", "Vier", "Fünf", "Sechs", "x".repeat(1_201)]);
+  assert.deepEqual(request.avoid, ["Eins", "Zwei", "Drei", "Vier", "Fünf"]);
+  assert.equal("avoid" in createAiCardVariantRequest({ front: "Frage", back: "Antwort" }), false);
+  assert.equal(parseAiCardVariantRequest({ source: { front: "Frage", back: "Antwort" }, avoid: Array.from({ length: 6 }, (_, index) => `V${index}`) }).success, false);
+  assert.equal(parseAiCardVariantRequest({ source: { front: "Frage", back: "Antwort" }, avoid: ["y".repeat(1_000), "y".repeat(1_000), "y".repeat(1_001)] }).success, false);
 });

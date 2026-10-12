@@ -15,12 +15,13 @@ import { cardVariantSource } from "./coreVariantService.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 
+/** `avoid` carries the questions of the card's existing variants so the new one differs from them. */
 export async function requestAiCardVariant(
   source: { front: string; back: string } | null,
   supabase: SupabaseClient<Database> | null,
-  fetchImpl: typeof fetch = globalThis.fetch,
+  { avoid = [], fetchImpl = globalThis.fetch }: { avoid?: string[]; fetchImpl?: typeof fetch } = {},
 ): Promise<AiCardVariantSuccess> {
-  const request = createAiCardVariantRequest(source);
+  const request = createAiCardVariantRequest(source, avoid);
   if (!supabase) throw new AiCardVariantContractError("auth_unavailable", "Die Anmeldung ist noch nicht bereit.");
 
   const { data, error } = await supabase.auth.getSession();
@@ -84,7 +85,7 @@ export function createAiGeneratedVariantDraft(
     front: normalizeAiCardText(candidate.front),
     back: normalizeAiCardText(candidate.back),
   }) === generatedKey);
-  if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Diese Kartenvariante ist bereits vorhanden.");
+  if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Die KI hat eine schon vorhandene Formulierung geliefert. Bitte erneut versuchen.");
 
   return {
     ...variant,

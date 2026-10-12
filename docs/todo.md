@@ -16,23 +16,19 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 
 ## KI-Varianten (Proof of Concept)
 
-Bewusst einfacher Probelauf; Auswahl und Oberfläche werden danach
-geglättet. Braucht eine Ergänzung zu ADR-011.
+Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
+geglättet.
 
-- [ ] **Stapelaktion (Logik):** Eine Aktion erzeugt Varianten für die ersten 50
-      Karten eines Stapels ohne aktive Variante, in Stapelreihenfolge; die Grenze
-      zählt Anfragen, nicht Karten. Die App arbeitet im offenen Tab nacheinander,
-      mit Abbruch; jede Variante wird sofort gespeichert. Eine weitere Aktion
-      bearbeitet die nächsten 50.
-- [ ] **Fortschritt:** Eine app-weite Aufgabenleiste zeigt Stapel, Stand und
-      Abbrechen, auch beim Seitenwechsel; am Ende Toast bei vollem Erfolg, sonst
-      eine stehende Meldung mit übersprungenen Karten und Gründen.
-- [ ] **Einstiege:** Dialog beim Einschalten des CoRe-Modus mit Option zum
-      Erzeugen; Knopf mit Zähler in den Stapeleinstellungen und in der
-      Kartenverwaltung; der Einzelknopf im Editor bleibt.
+- [ ] **Production-Smoke:** Stapelgenerierung und `Varianten neu generieren`
+      einmal in Production mit einem kleinen Teststapel prüfen. `vercel dev`
+      scheitert lokal am Legacy-Builder (`@vercel/static-build` verlangt `yarn`).
+- [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
+      (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
+      „neu generieren“ wechselt) und ein Einstieg in der Kartenverwaltung;
+      fehlgeschlagene Karten einzeln benennen und Stoppgründe in der Leiste kurz
+      halten (z. B. „Keine Verbindung“).
 - [ ] **Kennzeichnung:** Variantenzahl und Filter „ohne Variante“ in der
-      Kartentabelle, Ausschalten und Löschen im Editor, Abzeichen „KI-Variante“
-      im Lernen erst nach dem Aufdecken.
+      Kartentabelle, Abzeichen „KI-Variante“ im Lernen erst nach dem Aufdecken.
 
 ## Betrieb
 

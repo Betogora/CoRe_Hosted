@@ -153,3 +153,35 @@ test("offline usage distinguishes cache, protected download and pending updates"
   assert.match(outdated, />Aktualisieren</);
   assert.match(outdated, />Offline-Daten entfernen</);
 });
+
+test("variant generation is offered only for decks with CoRe switched on and locks while running", () => {
+  const render = (currentDeck: Deck, running: boolean) => renderToStaticMarkup(
+    <DeckSettingsScreen
+      deck={currentDeck}
+      decks={[currentDeck]}
+      learningProfiles={getGlobalSchedulerPreferences({}).learningProfiles}
+      onSaveSettings={() => null}
+      onApplyLearningProfile={() => null}
+      onSaveLearningProfiles={() => undefined}
+      onDraftStateChange={() => undefined}
+      onRequestContextAction={(action) => action()}
+      onCreateSubdeck={() => undefined}
+      onDeleteDeck={async () => null}
+      onSelectDeck={() => undefined}
+      onOpenGlobalSettings={() => undefined}
+      onGenerateVariants={() => undefined}
+      variantGenerationRunning={running}
+      onBack={() => undefined}
+    />,
+  );
+  const coreOn = { ...deck, deckSettings: { ...deck.deckSettings, coreMode: "on" as const } };
+  const coreOff = { ...deck, deckSettings: { ...deck.deckSettings, coreMode: "off" as const } };
+
+  assert.doesNotMatch(render(coreOff, false), /deck-settings-variant-generation/);
+  const idle = render(coreOn, false);
+  assert.match(idle, /data-testid="deck-settings-variant-generation"/);
+  assert.match(idle, />Varianten generieren</);
+  assert.match(idle, />Varianten neu generieren</);
+  assert.match(idle, /Je eine Variante für bis zu 50 Karten/);
+  assert.match(render(coreOn, true), /<button[^>]*disabled=""[^>]*>.*Varianten generieren/);
+});

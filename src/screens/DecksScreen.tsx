@@ -759,7 +759,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             disabled={!eligibility?.eligible || isGeneratingVariant}
             onClick={() => void generateVariant()}
           >
-            {hasOutdatedVariants ? "KI-Variante neu erzeugen" : "KI-Variante erzeugen"}
+            {hasOutdatedVariants ? "KI-Variante neu erzeugen" : variants.length ? "Weitere KI-Variante erzeugen" : "KI-Variante erzeugen"}
           </ActionButton>
           <p className="min-w-0 flex-1 basis-56 core-caption text-core-muted">
             {eligibility?.eligible

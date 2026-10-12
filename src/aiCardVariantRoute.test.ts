@@ -51,9 +51,14 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
   assert.equal(payload.max_tokens, 1_024);
   assert.equal(payload.stream, false);
   assert.deepEqual(payload.tool_choice, { type: "function", function: { name: "create_card_variant" } });
-  assert.deepEqual(payload.reasoning, { effort: "none" });
+  assert.deepEqual(payload.reasoning, { effort: "low" });
   assert.deepEqual(payload.provider, { require_parameters: true, data_collection: "deny", zdr: true });
   assert.equal(JSON.stringify(payload).includes("genau einmal create_card_variant"), true);
+  assert.deepEqual(JSON.parse(payload.messages[1].content), { source: input.source });
+
+  const withAvoid = buildOpenRouterPayload({ ...input, avoid: ["Wofür steht ATP?"] });
+  assert.deepEqual(JSON.parse(withAvoid.messages[1].content), { source: input.source, avoid: ["Wofür steht ATP?"] });
+  assert.match(withAvoid.messages[0].content, /nicht mit denselben ersten Wörtern/);
 });
 
 test("provider errors map to stable codes without exposing configuration", () => {

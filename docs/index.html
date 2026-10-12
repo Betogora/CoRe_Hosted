@@ -1130,6 +1130,9 @@ video {
 .bottom-1 {
   bottom: 0.25rem;
 }
+.bottom-\[calc\(env\(safe-area-inset-bottom\)\+5\.5rem\)\] {
+  bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+}
 .left-0 {
   left: 0px;
 }
@@ -2376,6 +2379,9 @@ video {
 }
 .pl-3 {
   padding-left: 0.75rem;
+}
+.pl-5 {
+  padding-left: 1.25rem;
 }
 .pl-6 {
   padding-left: 1.5rem;
@@ -4338,6 +4344,14 @@ summary {
   }
 }
 
+@media not all and (min-width: 640px) {
+
+  .max-sm\:px-2\.5 {
+    padding-left: 0.625rem;
+    padding-right: 0.625rem;
+  }
+}
+
 @media (min-width: 640px) {
 
   .sm\:static {
@@ -4370,6 +4384,10 @@ summary {
 
   .sm\:row-start-1 {
     grid-row-start: 1;
+  }
+
+  .sm\:inline {
+    display: inline;
   }
 
   .sm\:h-\[21rem\] {
@@ -4726,6 +4744,14 @@ summary {
     position: sticky;
   }
 
+  .xl\:bottom-4 {
+    bottom: 1rem;
+  }
+
+  .xl\:left-\[calc\(50dvw\+7\.5rem\)\] {
+    left: calc(50dvw + 7.5rem);
+  }
+
   .xl\:top-6 {
     top: 1.5rem;
   }
@@ -4760,6 +4786,10 @@ summary {
 
   .xl\:min-h-\[68svh\] {
     min-height: 68svh;
+  }
+
+  .xl\:w-\[min\(42rem\2c calc\(100dvw-19rem\)\)\] {
+    width: min(42rem, calc(100dvw - 19rem));
   }
 
   .xl\:min-w-0 {

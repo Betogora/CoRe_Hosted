@@ -1,8 +1,9 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, RefreshCw, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { DeckSettingsSaveScope, DeckSettingsScreenProps } from "../appScreenProps.ts";
-import { normalizeDeckAppearance } from "../coreModel.ts";
+import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
+import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
@@ -50,12 +51,13 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
   );
 }
 
-export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
   const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const draftDeckIdRef = React.useRef(deck?.id ?? null);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [refreshDialogOpen, setRefreshDialogOpen] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [feedback, setFeedback] = React.useState("");
   const [offlineBusy, setOfflineBusy] = React.useState(false);
@@ -230,6 +232,18 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
             </div>
             <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-start" onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
           </div>
+          {onGenerateVariants && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-4" data-testid="deck-settings-variant-generation">
+              <div>
+                <p className="core-body font-semibold text-core-text">KI-Varianten</p>
+                <p className="mt-1 core-caption text-core-muted">{variantGenerationRunning ? "Es läuft bereits eine Generierung." : `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateVariants(deck, "missing")}>Varianten generieren</ActionButton>
+                <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
+              </div>
+            </div>
+          ) : null}
           {onDownloadDeck && onRemoveDeckDownload ? (
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-4">
               <div>
@@ -251,6 +265,19 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
       </InPageNavigation>
 
       <ActionDialog open={deleteDialogOpen} title="Stapelbaum löschen?" description={<div className="grid gap-2"><p>„{deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p><ul className="list-disc pl-6"><li>{deckRow?.descendantCount ?? 0} Unterstapel</li><li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li></ul></div>} confirmLabel="Stapelbaum löschen" cancelLabel="Abbrechen" confirmLoading={deleting} destructive onCancel={() => setDeleteDialogOpen(false)} onConfirm={() => void confirmDelete()} />
+      <ActionDialog
+        open={refreshDialogOpen}
+        title="Varianten neu generieren?"
+        description={`Karten, deren Varianten aus einer älteren Version der KI-Anweisung stammen, erhalten je eine neue Variante – bis zu ${CARD_VARIANT_BATCH_LIMIT} pro Durchgang. Ihre bisherigen Varianten werden dabei gelöscht, auch abgeschaltete und gemeldete. Lernstand und Karten bleiben unverändert.`}
+        confirmLabel="Neu generieren"
+        cancelLabel="Abbrechen"
+        actionIcons={{ confirm: RefreshCw }}
+        onCancel={() => setRefreshDialogOpen(false)}
+        onConfirm={() => {
+          setRefreshDialogOpen(false);
+          onGenerateVariants?.(deck, "refresh");
+        }}
+      />
     </div>
   );
 }

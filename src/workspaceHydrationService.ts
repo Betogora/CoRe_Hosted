@@ -267,6 +267,9 @@ export function createWorkspaceHydrationService({
     return body;
   };
 
+  /** Several card bodies in one hydration, in the given order; a missing body stays null. */
+  const openCards = (cardIds: string[]) => hydrateCards(cardIds);
+
   const prepareStudyWindow = async (deckIds: string[], options: StudyWindowOptions = {}) => {
     const bufferSize = constrainedConnection() ? 5 : 50;
     const catalogPageSize = 50;
@@ -494,6 +497,7 @@ export function createWorkspaceHydrationService({
   return {
     queryCardPage,
     openCard,
+    openCards,
     loadNoteGraph,
     prepareStudyWindow,
     downloadDeck,

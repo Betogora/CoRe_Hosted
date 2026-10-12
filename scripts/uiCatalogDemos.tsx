@@ -20,6 +20,7 @@ import { ColorWheelPicker } from "../src/ui/ColorWheelPicker.tsx";
 import { ColorPopover, ColorToolButton } from "../src/ui/colorPicker.tsx";
 import { FileDropField } from "../src/ui/FileDropField.tsx";
 import { SettingsSaveBar } from "../src/ui/SettingsSaveBar.tsx";
+import { VariantGenerationBar } from "../src/ui/VariantGenerationBar.tsx";
 import { AppNavigation } from "../src/ui/AppNavigation.tsx";
 import { InPageNavigation } from "../src/ui/InPageNavigation.tsx";
 import { DeckAppearanceIcon } from "../src/ui/deckAppearance.tsx";
@@ -145,6 +146,7 @@ function FeedbackDemo({ section }: { section: string }) {
   const [bar, setBar] = useState(false);
   const [barFailed, setBarFailed] = useState(false);
   const [barMode, setBarMode] = useState<"global" | "learning-global" | "deck-tree">("global");
+  const [variantBar, setVariantBar] = useState<"running" | "outcome" | null>(null);
   const toast = useSuccessToast();
   const progress = { total: 40, completedTodayCount: 16, newCount: 12, inProgressCount: 4, dueCount: 8 };
   return <>
@@ -153,6 +155,7 @@ function FeedbackDemo({ section }: { section: string }) {
     {section === "dialogs" && <Demo title="ActionDialog · Bestätigung, Verwerfen und Information"><ActionButton variant="destructive" onClick={() => setDialog(true)}>Löschdialog öffnen</ActionButton><ActionDialog open={dialog} title="Stapel löschen?" description="Diese Demo verändert ausschließlich ihren eigenen Zustand." confirmLabel="Löschen" cancelLabel="Abbrechen" discardLabel="Entwurf verwerfen" destructive onConfirm={() => { setDialog(false); toast("Beispiel bestätigt."); }} onCancel={() => setDialog(false)} onDiscard={() => setDialog(false)} /></Demo>}
     {section === "dialogs" && <Demo title="SettingsSaveBar · Speicherreichweiten"><CoreSelect ariaLabel="Speicherleisten-Modus" value={barMode} onValueChange={(value) => setBarMode(value as typeof barMode)} options={[{ value: "global", label: "Allgemeine Einstellungen" }, { value: "learning-global", label: "Globale Lernwerte" }, { value: "deck-tree", label: "Stapelbaum" }]} /><ActionButton variant="secondary" onClick={() => { setBarFailed(false); setBar(true); }}>Speicherleiste öffnen</ActionButton><ActionButton variant="secondary" onClick={() => { setBarFailed(true); setBar(true); }}>Fehlgeschlagenes Speichern zeigen</ActionButton><SettingsSaveBar open={bar} failed={barFailed} mode={barMode} onSave={() => { setBar(false); toast("Beispiel gespeichert."); }} onDiscard={() => setBar(false)} /></Demo>}
     {section === "progress" && <Demo title="DailyReviewProgress · offen, erreicht und leer"><DailyReviewProgress progress={progress} /><DailyReviewProgress progress={{ ...progress, completedTodayCount: 40, newCount: 0, inProgressCount: 0, dueCount: 0 }} achieved /><DailyReviewProgress progress={{ total: 0, completedTodayCount: 0, newCount: 0, inProgressCount: 0, dueCount: 0 }} achieved /></Demo>}
+    {section === "progress" && <Demo title="VariantGenerationBar · laufend und mit Ergebnis"><div className="catalog-row"><ActionButton variant="secondary" onClick={() => setVariantBar("running")}>Laufend anzeigen</ActionButton><ActionButton variant="secondary" onClick={() => setVariantBar("outcome")}>Mit Ergebnis anzeigen</ActionButton></div><p className="core-body text-core-muted">Zweizeilig über der Navigation: Stapel, Stand und Aktion, darunter der Balken im Stil des Pomodoro-Fortschritts.</p>{variantBar ? <VariantGenerationBar deck={deck} done={7} total={18} outcome={variantBar === "outcome" ? "16 Varianten generiert, 2 fehlgeschlagen" : null} onCancel={() => setVariantBar(null)} onClose={() => setVariantBar(null)} /> : null}</Demo>}
     {section === "progress" && <Demo title="Prozessindikator · unbestimmter Statistik-Ladezustand"><div className="core-statistics-load-track" role="progressbar" aria-label="Statistik wird aktualisiert"><span className="core-statistics-load-segment" /></div><p className="core-body text-core-muted">Filter und letzte Daten bleiben sichtbar.</p></Demo>}
   </>;
 }
@@ -423,7 +426,7 @@ export const DEMO_GROUPS = [
   { id: "badges", section: "primitive", title: "Badge", description: "Bestehende lokale Beschriftungen für Original, Kartenseite und Synchronisierung.", components: [], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
   { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
-  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
+  { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
   { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigungen, Kartenvorschau, Sitzungsdialog, Speicherentscheidung und Konfliktvergleich.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay", "SyncConflictPanel"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /><ProductViewsDemo kind="conflict" /></> },
   { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbkreis, Schnellfarben und Farb-Popover.", components: ["ColorWheelPicker", "ColorToolButton", "ColorPopover"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },

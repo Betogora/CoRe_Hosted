@@ -97,6 +97,9 @@ export interface DeckSettingsScreenProps {
   bodyCache?: { total: number; cached: number; downloaded: number } | null;
   onDownloadDeck?: (deckId: string) => Promise<unknown>;
   onRemoveDeckDownload?: (deckId: string) => Promise<unknown>;
+  /** Starts AI variants for the deck's next cards without one, or refreshes variants from an older prompt version; absent while generation is unavailable. */
+  onGenerateVariants?: (deck: Deck, mode: "missing" | "refresh") => unknown;
+  variantGenerationRunning?: boolean;
   onBack: () => unknown;
   backLabel?: string;
 }

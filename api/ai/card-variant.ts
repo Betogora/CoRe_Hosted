@@ -16,7 +16,7 @@ import {
 import type { Database } from "../../src/database.types.js";
 
 export const OPENROUTER_CHAT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
-/** Chosen in the 2026-10 playtest: most reliable rephrasings at about 0.00002 USD per variant (ADR-011). */
+/** Chosen in the 2026-10 playtest; low reasoning guards the meaning when the sentence structure changes (ADR-011). */
 export const OPENROUTER_MODEL = "openai/gpt-6-luna";
 
 const SYSTEM_PROMPT = [
@@ -25,6 +25,10 @@ const SYSTEM_PROMPT = [
   "Schreibe Vorder- und Rückseite in der Sprache der Karte, auch wenn diese Anweisung deutsch ist.",
   "Die neue Vorderseite fragt nach genau derselben Antwort wie die originale; vertausche niemals Frage und Antwort.",
   "Formuliere die Vorderseite erkennbar um, etwa mit anderer Satzstellung, anderem Fragewort oder anderem Blickwinkel.",
+  "Beginne die neue Frage möglichst nicht mit denselben ersten Wörtern wie das Original; wechsle Fragewort, Satzbau oder Blickwinkel, statt nur ein einzelnes Wort zu tauschen. Die Frage soll natürlich klingen.",
+  "Statt „Wie viele …“ eignet sich zum Beispiel „Aus wie vielen …“, „Welche Anzahl …“ oder eine Aussage wie „Nenne die Zahl der …“.",
+  "Prüfe vor dem Antworten, dass die Rückseite die richtige Antwort auf deine neue Frage ist; achte besonders auf Richtungswörter wie vor und nach oder folgt auf und geht voraus.",
+  "Enthält avoid bereits vorhandene Formulierungen, formuliere deutlich anders als das Original und als jede davon.",
   "Die Rückseite bleibt inhaltlich gleich und knapp; übernimm Fachbegriffe, Namen, Zahlen, Einheiten und Formeln zeichengenau.",
   "Ergänze keine neuen Fakten oder Konzepte und behalte die Schwierigkeit bei.",
   "Rufe genau einmal create_card_variant mit front und back auf und gib sonst nichts aus.",
@@ -151,7 +155,7 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
     model: OPENROUTER_MODEL,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: JSON.stringify({ source: input.source }) },
+      { role: "user", content: JSON.stringify(input.avoid?.length ? { source: input.source, avoid: input.avoid } : { source: input.source }) },
     ],
     tools: [{
       type: "function",
@@ -170,7 +174,7 @@ export function buildOpenRouterPayload(input: AiCardVariantRequest) {
       },
     }],
     tool_choice: { type: "function", function: { name: "create_card_variant" } },
-    reasoning: { effort: "none" },
+    reasoning: { effort: "low" },
     max_tokens: MAX_AI_CARD_VARIANT_OUTPUT_TOKENS,
     stream: false,
     provider: { require_parameters: true, data_collection: "deny", zdr: true },

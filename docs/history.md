@@ -5,6 +5,31 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — KI-Varianten: Prompt v4, Neu-Generieren und vorhandene Varianten
+
+- Live-Probe mit einem 10-Karten-Teststapel: Prompt v2 lieferte korrekte, aber
+  oft nur im Verb geänderte Fragen (3/10 mit anderem Satzanfang); v3 hob das auf
+  6/10, kehrte aber einmal die Fragerichtung um (Jahreszeit). Prompt v4 mit
+  Beispielen für Zählfragen, Selbstcheck und Reasoning `low`: 20/20 inhaltlich
+  korrekt, 4/20 mit gleichem Satzanfang, etwa 0,00006 USD und 1,8 s je Variante.
+- Die Anfrage nimmt die Fragen vorhandener Varianten als `avoid` mit; die
+  Editoraktion heißt bei vorhandenen Varianten `Weitere KI-Variante erzeugen`.
+- Stapeleinstellungen: `Varianten neu generieren` ersetzt Varianten älterer
+  Prompt-Versionen nach Rückfrage durch je eine neue.
+
+## 2026-10-12 — Stapelgenerierung für KI-Varianten (Proof of Concept)
+
+- Einschalten des CoRe-Modus im Stapelmenü öffnet einen Dialog mit
+  vorausgewählter Option, Varianten für bis zu 50 Karten zu generieren; die
+  Stapeleinstellungen bieten `Varianten generieren`.
+- Die Generierung nimmt die ersten Karten ohne aktive Variante, lädt sie
+  seitenweise gebündelt, erzeugt nacheinander und speichert sofort; sie stoppt
+  bei Fehlern, die jede Karte träfen.
+- Zweizeilige Leiste über der Navigation mit Stapel-Icon, „Varianten generieren
+  X von Y“, Abbrechen und neutralem Balken im Stil des Pomodoro-Fortschritts;
+  Auswahl der Varianten per Mockup-Vergleich (Leiste unten, Dialog mit
+  Häkchen).
+
 ## 2026-10-12 — KI-Varianten über GPT-6 Luna mit ZDR
 
 - Befund: Kostenlose OpenRouter-Endpunkte bieten kein ZDR und verlangen eine
