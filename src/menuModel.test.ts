@@ -8,6 +8,7 @@ test("lists the navigation items in product order", () => {
   assert.deepStrictEqual(menu.listNavigationItems(), [
     { id: "uebersicht", label: "Heute", iconKey: "home" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
+    { id: "pruefungen", label: "Prüfungen", iconKey: "exam" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
     { id: "statistik", label: "Statistik", iconKey: "chart" },
   ]);

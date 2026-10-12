@@ -123,6 +123,38 @@ export interface GlobalSchedulerPreferences {
   easyDays: EasyDays;
   learningProfiles: LearningProfileTemplate[];
   defaultLearningSettings: GlobalLearningDefaults;
+  examPlanning: ExamPlanningSettings;
+}
+
+/** One exam of the user's global planner (ADR-042); decks are chosen per exam, the time budget is shared. */
+export interface ExamPlan {
+  id: string;
+  name: string;
+  status: "active" | "paused" | "completed";
+  priority: "low" | "normal" | "high";
+  deckIds: string[];
+  examDate: string;
+  desiredRetention: number;
+  variants: boolean;
+  bufferDays: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Study minutes per day shared by all active exams. */
+export interface StudyTimeCapacity {
+  weekdayMinutes: number;
+  weekendMinutes: number;
+  weekdays: boolean[];
+  reserveFraction: number;
+  minimumMinutes: number;
+  dateOverrides: Array<{ date: string; minutes: number }>;
+}
+
+export interface ExamPlanningSettings {
+  version: 1;
+  exams: ExamPlan[];
+  capacity: StudyTimeCapacity;
 }
 
 export interface DeckSettings {

@@ -117,11 +117,14 @@ export function createWorkspaceHydrationService({
     if (missing.length > 0) {
       if (!isOnline()) throw new Error("Diese Karten sind noch nicht offline verfügbar.");
       const { hydrateAccountCards } = await import("./cloudRepository.ts");
-      for (const batch of chunk(missing)) {
-        const result = await hydrateAccountCards(client, batch);
-        const returnedIds = new Set(result.cards.map((card) => card.id));
-        if (batch.some((id) => !returnedIds.has(id))) throw new Error("Mindestens eine Karte ist in der Cloud nicht mehr verfügbar.");
-        await repository.applyHydratedBodies(result, residency);
+      // Up to four requests at once: a long list (an exam unit) waits for a quarter of the round trips.
+      for (const group of chunk(chunk(missing), 4)) {
+        await Promise.all(group.map(async (batch) => {
+          const result = await hydrateAccountCards(client, batch);
+          const returnedIds = new Set(result.cards.map((card) => card.id));
+          if (batch.some((id) => !returnedIds.has(id))) throw new Error("Mindestens eine Karte ist in der Cloud nicht mehr verfügbar.");
+          await repository.applyHydratedBodies(result, residency);
+        }));
       }
     }
     const idsToMark = residency === "downloaded" ? ids : missing;
@@ -481,6 +484,22 @@ export function createWorkspaceHydrationService({
     return snapshot;
   };
 
+  /** Study states and answer statistics of the exam decks (ADR-042); the forecast needs current server values. */
+  const loadExamPlanningData = async (
+    deckIds: string[],
+    statistics: { from: string; to: string; timeZone: string; dayStartHour: number },
+    signal?: AbortSignal,
+  ) => {
+    if (!isOnline()) throw new Error("Die Prüfungsplanung braucht eine Verbindung.");
+    if (!deckIds.length) return { cards: [], statistics: null };
+    const { listAccountCardStudyStates, loadAccountStatistics } = await import("./cloudRepository.ts");
+    const [cards, snapshot] = await Promise.all([
+      listAccountCardStudyStates(client, deckIds, signal),
+      loadAccountStatistics(client, { deckIds, ...statistics }),
+    ]);
+    return { cards, statistics: snapshot };
+  };
+
   const refreshDueForecast = async () => {
     if (!isOnline()) return;
     const { loadAccountDueForecast } = await import("./cloudRepository.ts");
@@ -504,6 +523,7 @@ export function createWorkspaceHydrationService({
     removeDeckDownload,
     enforceQuota,
     refreshStatistics,
+    loadExamPlanningData,
     refreshDueForecast,
     prepareReimport,
   };

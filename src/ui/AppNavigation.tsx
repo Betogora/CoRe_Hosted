@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, BarChart3, BookOpen, CalendarClock, CircleHelp, Cloud, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, Cloud, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
 import { createPortal } from "react-dom";
 import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
@@ -32,6 +32,7 @@ export interface AppNavigationProps {
 
 const iconByKey: Record<string, LucideIcon> = {
   chart: BarChart3,
+  exam: CalendarCheck,
   home: Home,
   layers: Layers,
   learn: BookOpen,
@@ -251,7 +252,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
       data-app-navigation="true"
       data-navigation-layout="bottom-bar"
       data-sliding={indicator ? "true" : undefined}
-      className="core-mobile-bottom-navigation fixed left-[50dvw] z-40 grid w-[calc(100dvw-2rem)] max-w-[34rem] -translate-x-1/2 grid-cols-4 gap-1 rounded-panel border border-core-border bg-[var(--core-selection-track)] p-[3px] shadow-raised sm:w-[calc(100dvw-6rem)] xl:hidden"
+      className="core-mobile-bottom-navigation fixed left-[50dvw] z-40 grid w-[calc(100dvw-2rem)] max-w-[34rem] -translate-x-1/2 grid-cols-5 gap-1 rounded-panel border border-core-border bg-[var(--core-selection-track)] p-[3px] shadow-raised sm:w-[calc(100dvw-6rem)] xl:hidden"
       style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
     >
       {indicator ? <span aria-hidden="true" className="core-segmented-control-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} /> : null}

@@ -5,6 +5,7 @@ import type {
   DashboardScreenProps,
   DeckSettingsScreenProps,
   DecksScreenProps,
+  ExamPlanningScreenProps,
   GlobalCardSettingsScreenProps,
   LearnScreenProps,
   SettingsScreenProps,
@@ -14,7 +15,7 @@ import type {
 } from "./appScreenProps.ts";
 import { markAppPerformance, measureAppPerformance } from "./appPerformance.ts";
 
-type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
+type AppFeatureId = "card-settings" | "creation" | "dashboard" | "deck-settings" | "decks" | "exams" | "help" | "learn" | "settings" | "simulator" | "statistics" | "study";
 
 const featureLoaders = {
   "card-settings": () => import("./screens/GlobalCardSettingsScreen.tsx").then(({ GlobalCardSettingsScreen }) => ({ default: GlobalCardSettingsScreen })),
@@ -22,6 +23,7 @@ const featureLoaders = {
   dashboard: () => import("./screens/DashboardScreen.tsx").then(({ DashboardScreen }) => ({ default: DashboardScreen })),
   "deck-settings": () => import("./screens/DeckSettingsScreen.tsx").then(({ DeckSettingsScreen }) => ({ default: DeckSettingsScreen })),
   decks: () => import("./screens/DecksScreen.tsx").then(({ DecksScreen }) => ({ default: DecksScreen })),
+  exams: () => import("./screens/ExamPlanningScreen.tsx").then(({ ExamPlanningScreen }) => ({ default: ExamPlanningScreen })),
   help: () => import("./screens/HelpScreen.tsx").then(({ HelpScreen }) => ({ default: HelpScreen })),
   learn: () => import("./screens/LearnScreen.tsx").then(({ LearnScreen }) => ({ default: LearnScreen })),
   settings: () => import("./screens/SettingsScreen.tsx").then(({ SettingsScreen }) => ({ default: SettingsScreen })),
@@ -55,6 +57,7 @@ const featureByView: Record<AppViewId, AppFeatureId> = {
   kartenstapel: "decks",
   "neue-karten": "creation",
   lernen: "learn",
+  pruefungen: "exams",
   statistik: "statistics",
   simulator: "simulator",
   hilfe: "help",
@@ -71,6 +74,7 @@ export const CreationScreen = React.lazy<React.ComponentType<CreationScreenProps
 export const DashboardScreen = React.lazy<React.ComponentType<DashboardScreenProps>>(() => loadAppFeature("dashboard") as Promise<{ default: React.ComponentType<DashboardScreenProps> }>);
 export const DeckSettingsScreen = React.lazy<React.ComponentType<DeckSettingsScreenProps>>(() => loadAppFeature("deck-settings") as Promise<{ default: React.ComponentType<DeckSettingsScreenProps> }>);
 export const DecksScreen = React.lazy<React.ComponentType<DecksScreenProps>>(() => loadAppFeature("decks") as Promise<{ default: React.ComponentType<DecksScreenProps> }>);
+export const ExamPlanningScreen = React.lazy<React.ComponentType<ExamPlanningScreenProps>>(() => loadAppFeature("exams") as Promise<{ default: React.ComponentType<ExamPlanningScreenProps> }>);
 export const HelpScreen = React.lazy(() => loadAppFeature("help"));
 export const LearnScreen = React.lazy<React.ComponentType<LearnScreenProps>>(() => loadAppFeature("learn") as Promise<{ default: React.ComponentType<LearnScreenProps> }>);
 export const GlobalCardSettingsScreen = React.lazy<React.ComponentType<GlobalCardSettingsScreenProps>>(() => loadAppFeature("card-settings") as Promise<{ default: React.ComponentType<GlobalCardSettingsScreenProps> }>);

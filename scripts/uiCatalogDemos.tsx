@@ -49,9 +49,12 @@ import { HelpScreen } from "../src/screens/HelpScreen.tsx";
 import { projectStatistics, type StatisticsSelection } from "../src/statisticsModel.ts";
 import { createMenuModel } from "../src/menuModel.ts";
 import { createCoreRepository } from "../src/coreRepository.ts";
-import { getGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
+import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
+import { createExamPlan, normalizeExamPlanningSettings, upsertExamPlan } from "../src/examPlanSettings.ts";
+import { estimateExamHistory } from "../src/examPlanning.ts";
 import { createViewRoute, type DeckContentTab } from "../src/appNavigation.ts";
 import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
+import { ExamPlanningScreen } from "../src/screens/ExamPlanningScreen.tsx";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
@@ -357,10 +360,25 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     setCardPages((current) => ({ ...current, [request.deckId]: { deckId: request.deckId, items, page: 0, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null } }));
   }, []);
   const noop = React.useCallback(() => undefined, []);
+  // One planned exam over the first sample deck; study states come from the sample cards.
+  const examWorkspace = React.useMemo(() => {
+    const today = selection.now.slice(0, 10);
+    const exam = { ...createExamPlan(today, [deck.id]), id: "exam-demo", name: "Anatomie" };
+    return { ...workspace, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: upsertExamPlan(normalizeExamPlanningSettings(undefined), exam) }) };
+  }, [deck.id, selection.now, workspace]);
+  const loadExamPlanningData = React.useCallback(async (deckIds: string[]) => ({
+    cards: sampleDecks.flatMap((candidate) => candidate.cards).filter((card) => deckIds.includes(card.deckId)).map((card) => {
+      const { extra, ...study } = card.study;
+      // Sample cards carry their real creation time; new ones are due on the catalog's simulated day.
+      return { cardId: card.id, deckId: card.deckId, noteId: card.noteId, status: card.status, study: { ...study, dueAt: study.state === "new" ? selection.now : study.dueAt }, studyRevision: 0, activeVariantCount: card.variants.length, createdAt: card.createdAt, maturityXp: extra.maturityXp ?? 0 };
+    }),
+    history: estimateExamHistory(null, selection.now.slice(0, 10)),
+  }), [selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
     ["dashboard", "DashboardScreen · Tagesübersicht", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
+    ["exams", "ExamPlanningScreen · Heute, Woche und Prüfungen", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
@@ -379,6 +397,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
     {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async () => toast("In der Vorschau wird nicht gespeichert.")} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
@@ -444,7 +463,7 @@ export const DEMO_GROUPS = [
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken als Rechteck, Ellipse, Polygon oder Text zeichnen, zu Karten gruppieren und den Verdeckungsmodus wählen; per Maus, Touch und Tastatur.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
-  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
+  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
   { id: "symbols", section: "icons", title: "Iconflächen und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
   { id: "laufzeit", section: "states", title: "Laufzeit- und Rückmeldungszustände", description: "Laden, leer, Hinweis, Erfolg, Warnung und Fehler.", components: [], wide: true, render: () => <StatesDemo section="runtime" /> },

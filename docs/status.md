@@ -11,6 +11,11 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 
 ## Implementiert
 
+- Prüfungsplaner als Hauptbereich `Prüfungen` (ADR-042): mehrere Prüfungen mit
+  gemeinsamer Lernzeit, Wochenatelier, Machbarkeitsprüfung, heutige Einheit und
+  Blöcke als Lernsitzung mit Prüfungsretention; `Heute` führt bei aktiver Prüfung
+  mit `Heutige Einheit lernen`. Lernstände kommen über
+  `list_account_card_study_states`, Zeiten aus den Statistik-Rollups.
 - Kartenmodell `Note`/`Card` (ADR-032 bis ADR-036) in App, Import, Persistenz
   und Sync: Ein Inhalt speichert Felder mit Rollen, Interaktion, Tags, Medien und
   Markierung einmal; jede Abfrage ist eine eigenständige Karte mit eigenem

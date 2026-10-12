@@ -11,7 +11,7 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await resetToFreshLocalState(page);
 
   const menu = mainMenu(page);
-  await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Erstellen", "Statistik"]);
+  await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"]);
   for (const retired of ["Graph", "Community", "Assistent", "KI-Jobs", "Lernplan"]) {
     await expect(page.getByRole("button", { name: new RegExp(retired, "i") })).toHaveCount(0);
   }

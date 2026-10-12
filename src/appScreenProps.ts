@@ -3,7 +3,9 @@ import type { AppRoute, AppViewId, DeckContentTab, SettingsTarget, createViewRou
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
+import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
+import type { ExamHistory } from "./examPlanning.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -79,6 +81,23 @@ export interface DashboardScreenProps {
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  /** Starts today's exam unit (ADR-042); the action leads the page while an exam is active. */
+  onStartExamUnit?: () => Promise<void>;
+}
+
+/** Study states and observed history the exam forecast runs on. */
+export interface ExamPlanningData {
+  cards: CardStudySnapshot[];
+  history: ExamHistory;
+}
+
+export interface ExamPlanningScreenProps {
+  state: WorkspaceState;
+  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
+  now: string;
+  onLoadPlanningData: (deckIds: string[], signal: AbortSignal) => Promise<ExamPlanningData>;
+  onSavePlanning: (settings: ExamPlanningSettings) => Promise<void>;
+  onStartUnit: (blockId: string | null) => Promise<void>;
 }
 
 export interface DeckSettingsScreenProps {

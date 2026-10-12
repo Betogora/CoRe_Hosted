@@ -148,7 +148,7 @@ Akzeptanz:
 
 #### Navigation und Seitenkopf
 
-- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Erstellen`, `Statistik`. Auf `/kartenstapel` ist `Lernen` aktiv; ein Klick auf `Lernen` öffnet stets die Stapelübersicht. Der Schriftzug `CoRe` navigiert zu `Heute`.
+- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Prüfungen`, `Erstellen`, `Statistik`. Auf `/kartenstapel` ist `Lernen` aktiv; ein Klick auf `Lernen` öffnet stets die Stapelübersicht. Der Schriftzug `CoRe` navigiert zu `Heute`.
 - Beide Lernen-Bereiche zeigen `REVIEW` und `Lernen` im Seitenkopf; Bereichsauswahl und `Lerneinstellungen` sind in beiden erreichbar.
 - Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.
 
@@ -459,6 +459,16 @@ Akzeptanz:
 - Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig vorbereitet werden; Save-Data, 2G, unsichtbarer Tab oder Interaktion stoppen das. Andere Ziele lädt CoRe nur bei Hover, Fokus oder Touchstart vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.
 - Die Einstellungen zeigen persistenten Speicher sowie belegten und verfügbaren Platz. Die PWA cached die App-Shell; Browsermedien bleiben selektiv, Eviction ist ohne persistente Freigabe möglich.
 
+### 6.9 Prüfungsplanung
+
+- `Prüfungen` (`/pruefungen`) plant alle Prüfungen eines Kontos gemeinsam (ADR-042). Eine Prüfung hat Name, Datum innerhalb von 365 Tagen, einen oder mehrere Stapel samt ganzen Zweigen, Sicherheitsniveau (`Bestehen` 85 %, `Solide` 90 %, `Sehr gut` 95 %, `Maximal` 97 %), Priorität, Puffertage ohne neuen Stoff und den Schalter `Varianten`. Quizformen sind sichtbar, aber gesperrt.
+- Die Lernzeit gilt für alle Prüfungen: Minuten für Mo–Fr und Sa–So, Lerntage, Mindestzeit, Reserve sowie Ausnahmetage, die im Wochenatelier je Tag gesetzt oder auf den Wochenrhythmus zurückgesetzt werden. Prüfungstage bleiben frei.
+- Die Prognose plant jeden Tag zuerst fällige Wiederholungen und Lernschritte, dann neue Karten in Kapitelreihenfolge des Stapelbaums; höhere Priorität und nähere Prüfung gehen vor. Bereits heute gelernte Minuten verringern das heutige Budget. Gemeinsame Karten mehrerer Prüfungen werden einmal gelernt und anteilig gezählt.
+- Der Editor zeigt die Machbarkeit (benötigte und verfügbare Zeit, Lerntage, Karten, noch neue Karten, Sicherheit am Termin) mit dem ersten Engpass; gefährdete Pläne lassen sich nur ausdrücklich aktivieren.
+- Die Übersicht zeigt `Heute` mit geplanten Minuten, Lernblöcken je Stapel und Art sowie `Heutige Einheit lernen`, die nächsten sieben Tage und je Prüfung bearbeiteten Anteil, Sicherheit am Termin, Aufwand und Stapelfortschritt. Prüfungen lassen sich bearbeiten, pausieren, fortsetzen, abschließen und löschen; Löschen lässt Karten und Lernstände unverändert.
+- Eine Prüfungssitzung lernt genau die Karten der heutigen Einheit oder eines Blocks mit der Zielsicherheit der Prüfung und ohne Tageslimits; Stapeleinstellungen bleiben unverändert. Bei aktiver Prüfung führt `Heute` mit `Heutige Einheit lernen`.
+- Ohne Verbindung meldet der Planer, dass er eine Verbindung braucht.
+
 ## 7. Visueller Produktvertrag
 
 Der [`src/ui`-Katalog](../src/ui/README.md) beschreibt die Wiederverwendung. Bestehende Module werden bei passender Fachsemantik genutzt; lokale Controls behalten dieselben Theme-, Typografie-, Fokus- und Disabled-Rollen.
@@ -482,7 +492,7 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor un
 
 ### App-Shell und Navigation
 
-- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Erstellen` und `Statistik`. Ein kompakter Kopf bietet `CoRe` (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
+- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Prüfungen`, `Erstellen` und `Statistik`. Ein kompakter Kopf bietet `CoRe` (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
 - Die Sidebar bietet dieselben Ziele und Utility-Aktionen. `Hilfe öffnen` hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
 - Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.
 

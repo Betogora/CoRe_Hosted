@@ -923,6 +923,7 @@ export type Database = {
         Returns: {
           active_variant_count: number
           card_id: string
+          created_at: string
           deck_id: string
           difficulty: number
           due_at: string
@@ -931,6 +932,7 @@ export type Database = {
           last_rating: string
           last_reviewed_at: string
           learning_step_index: number
+          maturity_xp: number
           note_id: string
           reps: number
           stability: number

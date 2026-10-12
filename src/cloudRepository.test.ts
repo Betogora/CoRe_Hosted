@@ -175,6 +175,7 @@ test("Lernstände ganzer Stapel kommen ohne Kartenkörper und seitenweise nach K
     card_id: `card-${String(index).padStart(5, "0")}`, deck_id: "deck-a", note_id: `note-${index}`, status: "active", state: "review",
     due_at: "2026-10-20T08:00:00+00:00", stability: 12.5, difficulty: 4.2, reps: 3, lapses: 1, interval_days: 9, learning_step_index: 0,
     last_reviewed_at: "2026-10-11T08:00:00+00:00", last_rating: "good", study_revision: 4, active_variant_count: 2,
+    created_at: "2026-10-01T08:00:00+00:00", maturity_xp: 140,
   });
   const requests: Array<Record<string, unknown>> = [];
   const client = {
@@ -198,6 +199,8 @@ test("Lernstände ganzer Stapel kommen ohne Kartenkörper und seitenweise nach K
     study: { state: "review", dueAt: "2026-10-20T08:00:00+00:00", stability: 12.5, difficulty: 4.2, reps: 3, lapses: 1, intervalDays: 9, learningStepIndex: 0, lastReviewedAt: "2026-10-11T08:00:00+00:00", lastRating: "good" },
     studyRevision: 4,
     activeVariantCount: 2,
+    createdAt: "2026-10-01T08:00:00+00:00",
+    maturityXp: 140,
   });
   assert.deepEqual(await listAccountCardStudyStates(client, []), []);
   assert.equal(requests.length, 2, "ohne Stapel entsteht keine Anfrage");

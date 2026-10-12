@@ -6,8 +6,8 @@ const menu = createMenuModel();
 const defaultViewId = menu.defaultViewId;
 const studyFallbackViewId: AppViewId = "lernen";
 const extraRoutableViewIds = ["stapel-einstellungen", "karten-einstellungen"] as const;
-const reviewReturnViews = ["today", "learn", "decks"] as const;
-const settingsReturnViews = [...reviewReturnViews, "review"] as const;
+const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
+const settingsReturnViews = ["today", "learn", "decks", "review"] as const;
 const settingsTargets = ["new-cards-per-day"] as const;
 const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
 
@@ -186,6 +186,7 @@ function legacyViewRouteToReturnContext(route: ViewRouteInput | undefined, fallb
   const viewId = String(route?.viewId ?? studyFallbackViewId);
   const focusedDeckId = cleanIdentifier(route?.focusedDeckId) || fallbackDeckId;
   if (viewId === "uebersicht") return { view: "today" };
+  if (viewId === "pruefungen") return { view: "exams" };
   if (viewId === "kartenstapel") {
     const selectedCardId = cleanIdentifier(route?.selectedCardId);
     return {
@@ -213,7 +214,7 @@ function normalizeReviewReturnContext(
   const cardId = cleanIdentifier(context?.cardId);
   return {
     view,
-    ...(view !== "today" && deckId ? { deckId } : {}),
+    ...(view !== "today" && view !== "exams" && deckId ? { deckId } : {}),
     ...(view === "decks" && deckId && cardId ? { cardId } : {}),
     ...(view === "decks" && deckId && context?.deckContent === true ? { deckContent: true } : {}),
     ...(view === "decks" && deckId && context?.deckContent === true && normalizeDeckContentTab(context.deckContentTab) ? { deckContentTab: normalizeDeckContentTab(context.deckContentTab) } : {}),
@@ -243,6 +244,7 @@ export function reviewReturnContextToViewRoute(
   options: RouteOptions = {},
 ): ViewRoute {
   if (context.view === "today") return createViewRoute("uebersicht", {}, options);
+  if (context.view === "exams") return createViewRoute("pruefungen", {}, options);
   if (context.view === "decks") {
     return createViewRoute("kartenstapel", {
       focusedDeckId: context.deckId,

@@ -4,6 +4,7 @@ export type MenuViewId =
   | "kartenstapel"
   | "neue-karten"
   | "lernen"
+  | "pruefungen"
   | "statistik"
   | "simulator"
   | "hilfe"
@@ -108,6 +109,15 @@ const views: MenuView[] = [
     stats: [],
   },
   {
+    id: "pruefungen",
+    label: "Prüfungen",
+    iconKey: "exam",
+    navigation: "primary",
+    title: "Prüfungen",
+    eyebrow: "Planung",
+    stats: [],
+  },
+  {
     id: "einstellungen",
     label: "Einstellungen",
     iconKey: "settings",
@@ -117,7 +127,7 @@ const views: MenuView[] = [
     stats: [],
   },
 ];
-const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "statistik"];
+const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "pruefungen", "neue-karten", "statistik"];
 
 function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };

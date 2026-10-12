@@ -1322,6 +1322,9 @@ video {
 .mt-auto {
   margin-top: auto;
 }
+.\!block {
+  display: block !important;
+}
 .block {
   display: block;
 }
@@ -1590,6 +1593,9 @@ video {
 .min-h-\[58svh\] {
   min-height: 58svh;
 }
+.min-h-\[6\.5rem\] {
+  min-height: 6.5rem;
+}
 .min-h-\[72svh\] {
   min-height: 72svh;
 }
@@ -1701,6 +1707,9 @@ video {
 .min-w-\[15rem\] {
   min-width: 15rem;
 }
+.min-w-\[35rem\] {
+  min-width: 35rem;
+}
 .min-w-\[38rem\] {
   min-width: 38rem;
 }
@@ -1767,6 +1776,9 @@ video {
 }
 .shrink-0 {
   flex-shrink: 0;
+}
+.basis-40 {
+  flex-basis: 10rem;
 }
 .basis-44 {
   flex-basis: 11rem;
@@ -1908,8 +1920,14 @@ video {
 .grid-cols-\[1\.25rem_1fr\] {
   grid-template-columns: 1.25rem 1fr;
 }
+.grid-cols-\[6\.5rem_minmax\(0\2c 1fr\)_auto\] {
+  grid-template-columns: 6.5rem minmax(0,1fr) auto;
+}
 .grid-cols-\[auto_1fr_auto\] {
   grid-template-columns: auto 1fr auto;
+}
+.grid-cols-\[auto_minmax\(0\2c 1fr\)\] {
+  grid-template-columns: auto minmax(0,1fr);
 }
 .grid-cols-\[auto_minmax\(0\2c 1fr\)_auto\] {
   grid-template-columns: auto minmax(0,1fr) auto;
@@ -1955,6 +1973,9 @@ video {
 }
 .content-start {
   align-content: flex-start;
+}
+.content-between {
+  align-content: space-between;
 }
 .items-start {
   align-items: flex-start;
@@ -2018,6 +2039,9 @@ video {
 }
 .gap-4 {
   gap: 1rem;
+}
+.gap-5 {
+  gap: 1.25rem;
 }
 .gap-6 {
   gap: 1.5rem;
@@ -2301,6 +2325,10 @@ video {
 .p-\[3px\] {
   padding: 3px;
 }
+.\!px-0 {
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
 .px-1 {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
@@ -2397,6 +2425,9 @@ video {
 }
 .pr-0 {
   padding-right: 0px;
+}
+.pr-1 {
+  padding-right: 0.25rem;
 }
 .pr-12 {
   padding-right: 3rem;
@@ -4433,6 +4464,10 @@ summary {
   padding-bottom: 0px;
 }
 
+.odd\:bg-core-subtle:nth-child(odd) {
+  background-color: var(--core-surface-muted);
+}
+
 .hover\:-translate-y-0\.5:hover {
   --tw-translate-y: -0.125rem;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -4595,6 +4630,11 @@ summary {
 
 .disabled\:opacity-60:disabled {
   opacity: 0.6;
+}
+
+.group[open] .group-open\:rotate-180 {
+  --tw-rotate: 180deg;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
 .group:hover .group-hover\:font-bold {
@@ -4782,6 +4822,10 @@ summary {
 
   .sm\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .sm\:grid-cols-4 {
@@ -5002,6 +5046,14 @@ summary {
 
 @media (min-width: 1024px) {
 
+  .lg\:order-1 {
+    order: 1;
+  }
+
+  .lg\:order-2 {
+    order: 2;
+  }
+
   .lg\:w-1\/2 {
     width: 50%;
   }
@@ -5036,6 +5088,10 @@ summary {
 
   .lg\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
     grid-template-columns: minmax(0,1fr) auto;
+  }
+
+  .lg\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(0\2c 24rem\)\] {
+    grid-template-columns: minmax(0,1fr) minmax(0,24rem);
   }
 
   .lg\:grid-cols-\[minmax\(220px\2c 0\.8fr\)_1fr\] {
@@ -5544,7 +5600,7 @@ N3[&quot;Sitzung vorbereiten&quot;] --&gt; N4
 N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><li>Stapel und Karten verwalten</li><li>Inhalt und Lernwerte prüfen</li><li>Sitzung vorbereiten</li><li>Erste verfügbare Karte lernen</li></ol></div><h3 id="journey-3-rules--regeln-zustände-und-akzeptanz" class="core-heading-3" tabindex="-1">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-3-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <h4 id="journey-3-rules--navigation-und-seitenkopf" class="core-control-label" tabindex="-1">Navigation und Seitenkopf <a class="docs-anchor" href="#journey-3-rules--navigation-und-seitenkopf" aria-label="Link zu Navigation und Seitenkopf">#</a></h4>
 <ul>
-<li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht. Der Schriftzug <code>CoRe</code> navigiert zu <code>Heute</code>.</li>
+<li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht. Der Schriftzug <code>CoRe</code> navigiert zu <code>Heute</code>.</li>
 <li>Beide Lernen-Bereiche zeigen <code>REVIEW</code> und <code>Lernen</code> im Seitenkopf; Bereichsauswahl und <code>Lerneinstellungen</code> sind in beiden erreichbar.</li>
 <li>Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.</li>
 </ul>

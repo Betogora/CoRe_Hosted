@@ -420,3 +420,32 @@ test("Parallele Stapelsuchen gehen in einer Anfrage und blättern je Stapel mit 
   assert.deepEqual(calls[1].payload.p_cursor, { sortValue: "a", id: rowA.id }, "Stapel A blättert mit seinem eigenen Cursor weiter");
   assert.equal(calls[1].payload.p_include_total, false, "die bekannte Gesamtzahl wird nicht erneut gezählt");
 });
+
+test("viele fehlende Kartenkörper laden in bis zu vier gleichzeitigen 50er-Anfragen", async () => {
+  const userId = randomUUID();
+  const graphs = Array.from({ length: 230 }, (_value, index) => graph("deck-many", `many-${index}`, `Frage ${index}`, "2026-08-17T09:00:00.000Z"));
+  const deck = createCoreDeck({ id: "deck-many", ownerId: userId, name: "Viele", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const state = workspace(userId, [deck], graphs.map((entry) => entry.note));
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: state, indexedDb: new IDBFactory() });
+  await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
+  const cloudRows = createCloudStateRows(state, userId);
+  let inFlight = 0, maxInFlight = 0, requests = 0;
+  const client = {
+    async rpc(name: string, payload: any) {
+      assert.equal(name, "hydrate_account_cards");
+      requests++;
+      maxInFlight = Math.max(maxInFlight, ++inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight--;
+      return { data: hydrateFrom(cloudRows, payload), error: null };
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+
+  const ids = graphs.map((entry) => entry.cards[0].id);
+  const bodies = await withNavigator({ onLine: true }, () => service.openCards(ids));
+
+  assert.equal(requests, 5);
+  assert.equal(maxInFlight, 4);
+  assert.deepEqual(bodies.map((body) => body?.card.id), ids, "die Reihenfolge der Anfrage bleibt erhalten");
+});

@@ -1,5 +1,5 @@
 import React from "react";
-import type { CardStudyStatePatch, CoreMode, Deck, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, NoteContent, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SyncStatus } from "./coreTypes.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
@@ -17,7 +17,7 @@ import type {
   SettingsSaveScope,
   GlobalLearningSettingsSaveScope,
 } from "./appScreenProps.ts";
-import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
+import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
@@ -41,7 +41,8 @@ import { catalogEntryFromCard, type NoteGraph, type OfflineDeckRecord } from "./
 import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
 import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
-import { updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
+import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
+import { EXAM_SESSION_DECK_ID, validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { useStudySession, type StudyPreparation } from "./useStudySession.ts";
 import { useAccountWorkspace } from "./useAccountWorkspace.ts";
 import { formatSimulationDate, getSimulatedNow, normalizeSimulationOffsetMinutes } from "./simulationClock.ts";
@@ -713,6 +714,61 @@ export function App() {
   });
   const { prepare: prepareStudyWindow, adopt: adoptStudyWindow, reset: resetStudySession } = study;
 
+  /** Study states for the exam forecast (ADR-042); answers still waiting for sync replace the server's values. */
+  const loadExamPlanningData = React.useCallback(async (deckIds: string[], signal?: AbortSignal) => {
+    if (!workspaceRepository || !workspaceHydrationService) throw new Error("Die Kartenablage ist noch nicht bereit.");
+    const now = getLearningNow();
+    const dayOptions = { timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour };
+    const startRange = getLearningDayRange(new Date(Date.parse(now) - 89 * 86_400_000).toISOString(), dayOptions);
+    const endRange = getLearningDayRange(now, dayOptions);
+    const todayKey = getLearningDayKey(now, dayOptions);
+    if (!startRange || !endRange || !todayKey) throw new Error("Der Lerntag konnte nicht bestimmt werden.");
+    const { estimateExamHistory } = await import("./examPlanning.ts");
+    const data = await workspaceHydrationService.loadExamPlanningData(deckIds, {
+      from: new Date(startRange.start).toISOString(),
+      to: new Date(endRange.end).toISOString(),
+      ...dayOptions,
+    }, signal);
+    const scope = new Set(deckIds);
+    const cards = new Map(data.cards.map((card) => [card.cardId, card]));
+    let pendingTodayMinutes = 0;
+    for (const mutation of workspaceRepository.outbox.listPending()) {
+      if (mutation.type !== "review-atomic") continue;
+      const { event, card } = mutation.payload as { event: ReviewEvent; card: { id: string; study: CardStudyState } };
+      const snapshot = cards.get(card.id);
+      if (snapshot) {
+        const { extra, ...study } = card.study;
+        cards.set(card.id, { ...snapshot, study, maturityXp: extra.maturityXp ?? snapshot.maturityXp });
+      }
+      if (scope.has(event.deckId) && getLearningDayKey(event.answeredAt, dayOptions) === todayKey) pendingTodayMinutes += Math.min(60_000, event.responseTimeMs ?? 0) / 60_000;
+    }
+    const history = estimateExamHistory(data.statistics, todayKey);
+    return { cards: [...cards.values()], history: { ...history, spentTodayMinutes: history.spentTodayMinutes + pendingTodayMinutes } };
+  }, [getLearningNow, globalSchedulerPreferences.dayStartHour, learningTimeZone, workspaceHydrationService, workspaceRepository]);
+
+  /** Today's exam unit, or one of its blocks, as a study session over exactly the planned cards. */
+  const prepareExamUnit = React.useCallback(async (blockId: string | null): Promise<StudyPreparation> => {
+    const currentState = latestStateRef.current;
+    if (!workspaceHydrationService || !currentState) throw new Error("Die Kartenablage ist noch nicht bereit.");
+    const preferences = getGlobalSchedulerPreferences(currentState.profile);
+    const { exams, capacity } = preferences.examPlanning;
+    const now = getLearningNow();
+    const civilToday = getLearningDayKey(now, { timeZone: learningTimeZone })!;
+    const todayKey = getLearningDayKey(now, { timeZone: learningTimeZone, dayStartHour: preferences.dayStartHour })!;
+    const { createExamPortfolioForecast, createExamSessionDecks, getActiveExamDeckIds, getExamSessionCardIds } = await import("./examPlanning.ts");
+    const data = await loadExamPlanningData(getActiveExamDeckIds(currentState.decks, exams, civilToday));
+    const forecast = await createExamPortfolioForecast(currentState.decks, data.cards, exams, { now, preferences, timeZone: learningTimeZone, capacity, history: data.history, todayOnly: true });
+    const day = forecast.days[0];
+    const ids = day?.key === todayKey ? getExamSessionCardIds(day, blockId) : [];
+    if (!ids.length) throw new Error("Für heute ist in der Prüfungsplanung nichts mehr offen.");
+    const bodies = (await workspaceHydrationService.openCards(ids)).filter((body): body is { card: Card; note: Note } => Boolean(body));
+    const decks = createExamSessionDecks(currentState.decks, bodies.map(({ card }) => card), exams, todayKey);
+    const queue = createDailyReviewQueue(decks, { deckId: EXAM_SESSION_DECK_ID, now, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, timeZone: learningTimeZone });
+    if (!queue.total) throw new Error("Gerade ist keine Karte der heutigen Einheit fällig.");
+    const notes = [...new Map(bodies.map(({ note }) => [note.id, note])).values()];
+    return { decks, notes, answeredToday: [], queue, cursorByDeck: {}, hasMoreCards: false, bufferSize: 50, dueForecast: null };
+  }, [getLearningNow, latestStateRef, learningTimeZone, loadExamPlanningData, workspaceHydrationService]);
+
   React.useEffect(() => {
     if (!workspaceRepository || !state || !studyRequest) {
       resetStudySession();
@@ -721,7 +777,9 @@ export function App() {
     const preparationKey = studyRequest.deckId;
     if (study.preparedKeyRef.current === preparationKey && study.decks) return;
     let active = true;
-    void prepareStudyWindow(studyRequest.deckId).then((preparation) => {
+    // After a reload an exam session resumes as today's whole unit.
+    const preparing = studyRequest.deckId === EXAM_SESSION_DECK_ID ? prepareExamUnit(null) : prepareStudyWindow(studyRequest.deckId);
+    void preparing.then((preparation) => {
       if (!active || !preparation) return;
       if (!preparation.decks.some((deck) => deck.id === studyRequest.deckId)) {
         adoptStudyWindow(preparation, null);
@@ -743,7 +801,7 @@ export function App() {
       navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
     });
     return () => { active = false; };
-  }, [adoptStudyWindow, navigateToRoute, prepareStudyWindow, resetStudySession, state, study.decks, studyRequest, workspaceRepository]);
+  }, [adoptStudyWindow, navigateToRoute, prepareExamUnit, prepareStudyWindow, resetStudySession, state, study.decks, studyRequest, workspaceRepository]);
 
   const loadMoreStudyCards = React.useCallback(async () => studyRequest
     ? study.loadMore(studyRequest.deckId)
@@ -1038,6 +1096,27 @@ export function App() {
     }
   }
 
+  async function startExamUnit(blockId: string | null) {
+    if (study.preparingKeyRef.current === EXAM_SESSION_DECK_ID) return;
+    study.preparingKeyRef.current = EXAM_SESSION_DECK_ID;
+    try {
+      const preparation = await prepareExamUnit(blockId);
+      adoptStudyWindow(preparation, EXAM_SESSION_DECK_ID);
+      const returnRoute = createViewRoute(activeView === "pruefungen" ? "pruefungen" : "uebersicht");
+      navigateToRoute(createStudyRoute(EXAM_SESSION_DECK_ID, { returnContext: createReviewReturnContext(returnRoute) }));
+    } finally {
+      study.preparingKeyRef.current = "";
+    }
+  }
+
+  async function saveExamPlanning(settings: ExamPlanningSettings) {
+    const currentState = latestStateRef.current;
+    const saved = currentState
+      ? runRepositoryMutation((repository) => repository.saveProfile(withGlobalSchedulerPreferences(currentState.profile, { examPlanning: validateExamPlanningSettings(settings) })), { preserveCardPages: true })
+      : null;
+    if (!saved) throw new Error("Die Prüfungsplanung konnte nicht gespeichert werden.");
+  }
+
   function recordReview(result: ReviewAnswerResult) {
     if (!workspaceRepository) return;
     workspaceRepository.recordReview(result);
@@ -1217,7 +1296,8 @@ export function App() {
       deckSettings: nextDeckSettings,
     };
     study.setDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
-    runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, nextDeckSettings), { preserveCardPages: true });
+    // The exam session root exists only in the session.
+    if (deckId !== EXAM_SESSION_DECK_ID) runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, nextDeckSettings), { preserveCardPages: true });
     return updated;
   }
 
@@ -1726,6 +1806,18 @@ export function App() {
         />
       );
     }
+    if (activeView === "pruefungen") {
+      return (
+        <ExamPlanningScreen
+          state={state}
+          deckSummaries={deckSummaries}
+          now={learningNow}
+          onLoadPlanningData={loadExamPlanningData}
+          onSavePlanning={saveExamPlanning}
+          onStartUnit={startExamUnit}
+        />
+      );
+    }
     if (activeView === "statistik") {
       return (
         <StatisticsScreen
@@ -1788,7 +1880,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
+    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={() => startExamUnit(null)} />;
   }
 
   if (authPhase === "checking-session") {
@@ -1877,7 +1969,7 @@ export function App() {
               returnContext: studyRequest.returnContext,
             },
           })}
-          onEditDeck={(currentDeckId) => navigateToViewNow("stapel-einstellungen", {
+          onEditDeck={(currentDeckId) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToViewNow("pruefungen") : navigateToViewNow("stapel-einstellungen", {
             focusedDeckId: currentDeckId,
             settingsReturnContext: {
               view: "review",

@@ -5,6 +5,31 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Prüfungsplanung aus `fitzbert` als globaler Bereich (ADR-042)
+
+- Neuer Hauptbereich `Prüfungen` (`/pruefungen`), fünfter Eintrag der Navigation.
+  Pläne liegen in `schedulerPreferences.examPlanning` (20 Prüfungen × 200 Stapel).
+- Prognose-Engine aus `fitzbert` auf `CardStudySnapshot` portiert: Tagessimulation,
+  gemeinsames Budget, Reserve, Puffertage, Priorität, Bewertungsmix (Fehlerquote
+  aus den Rollups), Machbarkeit. Geändert nach Entscheidung: Kapitelreihenfolge
+  statt Schwierigkeit, immer 100 % Stoff, keine Phasen, kein Zuschlag für
+  Auswahlfragen, kein Monatskalender, Zeiten aus `get_account_statistics` statt aus
+  lokalen Reviews, Editor als Seite statt Dialog, keine Altlasten.
+- Migration `20261012204943_card_study_states_planning_columns.sql`: die
+  Lernstandsabfrage liefert zusätzlich `created_at` und `maturity_xp`.
+- Heutige Einheit und Blöcke laufen als Lernsitzung über genau die geplanten Karten;
+  `Heute` führt bei aktiver Prüfung mit `Heutige Einheit lernen`.
+- Performance: Der Sitzungsstart plant nur den heutigen Tag (2.000 Karten: 1,4 s →
+  70 ms). Die Prognose berechnet den Beginn eines Prüfungstags einmal je Datum statt
+  je Karte und gibt den Hauptthread über `createMainThreadBudget` erst nach 50 ms ab
+  statt alle 128 Schritte (2.000 Karten, zwei Prüfungen, 4-ms-Browsertimer:
+  1,7 s → 0,4–0,6 s, gleiches Ergebnis). `hydrateCards` lädt fehlende Kartenkörper
+  in bis zu vier gleichzeitigen 50er-Anfragen. Eine schlanke Statistikabfrage nur
+  für Antwortzeiten bleibt aus: Der Planer fragt einmal je Öffnen, wie die Statistik.
+- Nachweise: 14 Engine- und 4 Ablage-Tests, `npm test` grün, `npm run typecheck`,
+  `test:rls:local` 17/17, `db:types:generate`, Verify-SQL, Advisors ohne Befund,
+  E2E `exam-planning.spec.ts` (Plan anlegen, Einheit lernen, Pausieren, 320 px).
+
 ## 2026-10-12 — Escape in Dialogen, Stapelkopf-E2E nach der fitzbert-Übernahme
 
 - Escape schließt Dialoge wieder auch ohne Fokus im Dialog (Verlassen-Dialog im

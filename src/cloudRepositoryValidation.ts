@@ -174,6 +174,8 @@ const cardStudyStateRowSchema = v.object({
   note_id: v.string(),
   ...cardStudyColumnsSchema,
   active_variant_count: nonNegativeIntegerSchema,
+  created_at: v.string(),
+  maturity_xp: v.pipe(v.number(), v.minValue(0)),
 });
 
 /** Study state of one card without its body; planning reads it for whole decks (ADR-034). */
@@ -185,6 +187,8 @@ export interface CardStudySnapshot {
   study: Omit<CardStudyState, "extra">;
   studyRevision: number;
   activeVariantCount: number;
+  createdAt: string;
+  maturityXp: number;
 }
 
 const deckStudySummarySchema = v.looseObject({
@@ -455,6 +459,8 @@ export function validateCardStudyStateRows(input: unknown): CardStudySnapshot[] 
     },
     studyRevision: row.study_revision,
     activeVariantCount: row.active_variant_count,
+    createdAt: row.created_at,
+    maturityXp: row.maturity_xp,
   }));
 }
 

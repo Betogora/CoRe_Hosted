@@ -41,10 +41,9 @@ main.
       Migration, Verify-SQL und Sync statt der lokalen Browser-Datenbank aus
       `fitzbert`. KI-Route nach dem Muster der Variantenroute (fest
       `openai/gpt-6-luna`, ZDR, `getClaims`, Kostenlog) mit Ergänzung zu ADR-011.
-- [ ] **Prüfungsplanung:** Prognose und Lernblöcke auf Card portieren;
-      `withGlobalSchedulerPreferences` muss die Pläne erhalten. Datenbasis ist
-      `listAccountCardStudyStates` (ADR-034, Ergänzung 2026-10-12); die
-      Prognose liest Lernstände darüber statt Kartenkörper zu laden.
+- [ ] **Prüfungsplanung, Migration:** `20261012204943_card_study_states_planning_columns.sql`
+      (und die E10-Migration davor) im Pre-Release-Projekt anwenden, bevor der Planer
+      dort genutzt wird.
 
 ## Betrieb
 

@@ -36,9 +36,9 @@ test("sync action exposes the current state in both navigation layouts", () => {
   assert.equal((singularConflict.match(/aria-label="1 Synchronisierungskonflikt klären"/g) ?? []).length, 2);
 });
 
-test("app navigation exposes four primary entries and marks learning active for the hidden cards route", () => {
+test("app navigation exposes five primary entries and marks learning active for the hidden cards route", () => {
   const markup = renderNavigation("kartenstapel");
-  const expectedTabOrder = ["Heute", "Lernen", "Erstellen", "Statistik"];
+  const expectedTabOrder = ["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"];
 
   assert.match(markup, /data-navigation-layout="sidebar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
@@ -53,7 +53,7 @@ test("app navigation exposes four primary entries and marks learning active for 
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
     assert.ok(bottomBarMarkup.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < bottomBarMarkup.indexOf(`>${expectedTabOrder[index]}</span>`));
   }
-  assert.match(bottomBarMarkup, /grid-cols-4/);
+  assert.match(bottomBarMarkup, /grid-cols-5/);
   assert.doesNotMatch(bottomBarMarkup, /lucide-layers/);
   assert.doesNotMatch(bottomBarMarkup, />Karten<\/span>/);
   assert.doesNotMatch(bottomBarMarkup, />Mehr<\/span>/);
@@ -77,10 +77,10 @@ test("bottom navigation keeps every icon above its visible label and exactly one
     const markup = renderNavigation(activeView);
     const bottomBar = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
     assert.equal((bottomBar.match(/aria-current="page"/g) ?? []).length, 1);
-    assert.equal((bottomBar.match(/flex-col/g) ?? []).length, 4);
-    assert.equal((bottomBar.match(/aria-hidden="true"/g) ?? []).length, 4);
+    assert.equal((bottomBar.match(/flex-col/g) ?? []).length, 5);
+    assert.equal((bottomBar.match(/aria-hidden="true"/g) ?? []).length, 5);
     assert.doesNotMatch(bottomBar, /sr-only/);
-    for (const label of ["Heute", "Lernen", "Erstellen", "Statistik"]) assert.match(bottomBar, new RegExp(`</svg><span[^>]*>${label}</span>`));
+    for (const label of ["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"]) assert.match(bottomBar, new RegExp(`</svg><span[^>]*>${label}</span>`));
   }
 });
 
