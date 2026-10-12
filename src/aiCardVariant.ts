@@ -15,7 +15,7 @@ import { cardVariantSource } from "./coreVariantService.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 
-/** `avoid` carries the questions of the card's existing variants so the new one differs from them. */
+/** `avoid` carries the questions of the card's variants so the new one differs from them. */
 export async function requestAiCardVariant(
   source: { front: string; back: string } | null,
   supabase: SupabaseClient<Database> | null,
@@ -63,7 +63,17 @@ export async function requestAiCardVariant(
   return parsed.output;
 }
 
-/** Rejects the response when question or answer changed meanwhile or the rephrasing already exists. */
+/**
+ * Questions the new variant must differ from: existing variants first, then deleted ones, each newest first.
+ * Deleted phrasings count as duplicates in `createAiGeneratedVariantDraft`, so the model has to know them too.
+ */
+export function aiCardVariantAvoidTexts(card: Pick<Card, "variants">): string[] {
+  return [...card.variants]
+    .sort((left, right) => Number(Boolean(left.deletedAt)) - Number(Boolean(right.deletedAt)) || right.createdAt.localeCompare(left.createdAt))
+    .map((variant) => variant.front);
+}
+
+/** Rejects the response when question or answer changed meanwhile or the rephrasing already exists, deleted ones included. */
 export function createAiGeneratedVariantDraft(
   source: { front: string; back: string },
   current: { note: Note; card: Card } | null | undefined,

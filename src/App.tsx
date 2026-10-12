@@ -3,7 +3,7 @@ import type { CardStudyStatePatch, CoreMode, Deck, ImportVerificationScope, Lear
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
-import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
+import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
@@ -1305,8 +1305,7 @@ export function App() {
     const body = await workspaceRepository.loadCardBody(cardId);
     const source = body ? cardVariantSource(body.note, body.card) : null;
     if (!source || !body) throw new AiCardVariantContractError("card_not_found", "Die Ausgangskarte ist nicht mehr verfügbar.");
-    const existing = body.card.variants.filter((variant) => !variant.deletedAt).sort((left, right) => right.createdAt.localeCompare(left.createdAt));
-    const generated = await requestAiCardVariant(source, supabase ?? null, { avoid: existing.map((variant) => variant.front) });
+    const generated = await requestAiCardVariant(source, supabase ?? null, { avoid: aiCardVariantAvoidTexts(body.card) });
 
     const current = await workspaceRepository.loadCardBody(cardId);
     const draft = createAiGeneratedVariantDraft(source, current, generated);

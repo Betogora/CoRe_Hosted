@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
+import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import {
   AiCardVariantContractError,
   createAiCardVariantRequest,
@@ -112,6 +112,17 @@ test("generated draft rejects changed sources and duplicate variants", () => {
 
   const withDuplicate = addCardVariant(original.card, { front: "Anders gefragt", back: "Gleiche Antwort" });
   assert.throws(() => createAiGeneratedVariantDraft(source, { note: original.note, card: withDuplicate }, generated), (error: unknown) => error instanceof AiCardVariantContractError && error.code === "duplicate_variant");
+});
+
+test("deleted variants are avoided after the existing ones, each newest first", () => {
+  const { card } = basic("Frage", "Antwort");
+  const withVariants = [
+    { front: "Alt gelöscht", createdAt: "2026-10-01T00:00:00.000Z", deletedAt: "2026-10-05T00:00:00.000Z" },
+    { front: "Alt aktiv", createdAt: "2026-10-02T00:00:00.000Z" },
+    { front: "Neu gelöscht", createdAt: "2026-10-03T00:00:00.000Z", deletedAt: "2026-10-05T00:00:00.000Z" },
+    { front: "Neu aktiv", createdAt: "2026-10-04T00:00:00.000Z" },
+  ].reduce((next, variant) => addCardVariant(next, { back: "Antwort", ...variant }), card);
+  assert.deepEqual(aiCardVariantAvoidTexts(withVariants), ["Neu aktiv", "Alt aktiv", "Neu gelöscht", "Alt gelöscht"]);
 });
 
 test("existing variants are sent within the request limits, newest first", () => {

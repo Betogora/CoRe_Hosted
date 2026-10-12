@@ -48,7 +48,7 @@ function withinRequestLimits(request: AiCardVariantRequest) {
 
 /**
  * Builds the request from the plain question and answer of a reveal card (`cardVariantSource`) and the
- * questions of its existing variants, newest first; entries beyond the limits are left out.
+ * questions of its variants (`aiCardVariantAvoidTexts`); entries beyond the limits are left out.
  */
 export function createAiCardVariantRequest(source: { front: string; back: string } | null, avoid: string[] = []): AiCardVariantRequest {
   if (!source) {
