@@ -41,3 +41,18 @@ test("manual batch session supports the inverse pin matrix and deterministic foc
   assert.equal(nextManualFocusTarget(saved), "front");
   assert.equal(manualDraftsEqual(saved.currentDraft, { ...saved.currentDraft }), true);
 });
+
+test("a cleared cloze front starts a standard draft; a pinned cloze front stays cloze", () => {
+  let state = createManualBatchSession("deck-a");
+  state = reduceManualBatchSession(state, {
+    type: "draft",
+    patch: { kind: "cloze", front: "<p>{{c1::ATP}} entsteht in {{c2::Mitochondrien}}.</p>", back: "<p>Zellatmung</p>" },
+  });
+  const saved = reduceManualBatchSession(state, { type: "saved", targetDeckId: "deck-a" });
+
+  assert.equal(saved.currentDraft.kind, "basic");
+
+  const pinned = reduceManualBatchSession(reduceManualBatchSession(state, { type: "toggle-pin", field: "front" }), { type: "saved", targetDeckId: "deck-a" });
+  assert.equal(pinned.currentDraft.kind, "cloze");
+  assert.equal(pinned.currentDraft.front, state.currentDraft.front);
+});

@@ -5,15 +5,6 @@ Stand: 2026-10-12
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-## Release-Gate (`npm run test:e2e:local`)
-
-Lauf vom 2026-10-12 (6e47284): 107 bestanden, 3 fehlgeschlagen.
-
-- [ ] **Cloze-Erstellung:** Nach `Originalkarte speichern` einer Lückentext-Karte
-      fragt `Fertig` „Ungespeicherten Entwurf verwerfen?“, obwohl das Formular
-      leer ist (`card-lifecycle.spec.ts`, Cloze-Lebenszyklus). Verdacht: 0bba802
-      (Editorfokus in `RichTextEditor.tsx`). Ursache im Produktcode beheben.
-
 ## Offene Abnahmen der Kartenmodell-Roadmap
 
 - [ ] **Gerätenachweise (Phase 3):** Bildschirmtastatur, Touch, Screenreader,

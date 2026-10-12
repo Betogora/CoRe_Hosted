@@ -5,6 +5,19 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Leerer Cloze-Entwurf nach dem Speichern nicht mehr ungespeichert
+
+- Ursache des fehlschlagenden Cloze-Lebenszyklus (`card-lifecycle.spec.ts`): Nach
+  dem Speichern leerte der Batch-Reset die Vorderseite, behielt aber den Typ
+  `cloze`. Beim Klick auf `Fertig` meldete das fokussierte Editorfeld beim
+  Verlassen den leeren Wert; die Vorderseite leitete daraus wieder `basic` ab,
+  und der Entwurf wich vom gemerkten sauberen Stand ab. 0bba802 war nicht der
+  Auslöser (Test scheitert auch mit dem vorherigen `RichTextEditor.tsx`).
+- Seitdem setzt der Reset eine nicht angeheftete Cloze-Vorderseite auf den
+  Standardtyp zurück; angeheftete Lückentexte bleiben `cloze`. Unit-Test in
+  `creationBatch.test.ts`; lokal `card-lifecycle.spec.ts` und
+  `batch-resilience.spec.ts` grün (17 Tests).
+
 ## 2026-10-12 — Release-Gate: Validierung in der Speicherleiste, Boot-Fetch im Test
 
 - Ein leerer Stapelname gilt nicht mehr als fehlgeschlagenes Speichern: Der

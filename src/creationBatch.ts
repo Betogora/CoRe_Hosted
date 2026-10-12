@@ -51,6 +51,8 @@ function resetManualDraft(
 ): ManualCreationDraft {
   return {
     ...draft,
+    // Cloze follows the front markup, so a cleared front is a standard draft again.
+    kind: draft.kind === "cloze" && !pinnedFields.front ? "basic" : draft.kind,
     front: pinnedFields.front ? draft.front : "",
     back: pinnedFields.back ? draft.back : "",
     answerOptions: ["", ""],
