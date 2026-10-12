@@ -228,8 +228,8 @@ Akzeptanz:
 
 - Eine Karte mit Frage und Antwort kann als KI-Variante umformuliert werden; Lückentexte, Auswahlfragen, Bildverdeckungen und Karten ohne Fragetext erklären den deaktivierten Zugang. Bei ausgeschaltetem CoRe-Modus oder erreichter Höchstzahl aktiver Varianten des Stapels ist die Aktion ebenfalls deaktiviert und begründet.
 - Die Variante bleibt der Karte untergeordnet, besitzt keinen eigenen Lernstand und wird nicht als Karte gezählt.
-- An den Anbieter gehen ausschließlich der bereinigte Text von Frage und Antwort mit je höchstens 1.200 Zeichen; Tags, IDs, Quellen, Reviewdaten, Metadaten und Medien nicht.
-- CoRe speichert die Variante nur, wenn die Karte während des Aufrufs unverändert blieb und dieselbe Front/Back-Kombination noch nicht existiert. Fehler verändern nichts; während des Aufrufs ist die Aktion gesperrt. Nach einem kostenlosen Non-ZDR-Fallback erscheint eine sichtbare Warnung.
+- An den Anbieter gehen ausschließlich der bereinigte Text von Frage und Antwort mit je höchstens 1.200 Zeichen; Tags, IDs, Quellen, Reviewdaten, Metadaten und Medien nicht. Der Anbieter darf den Text weder speichern noch damit trainieren.
+- CoRe speichert die Variante nur, wenn die Karte während des Aufrufs unverändert blieb und dieselbe Front/Back-Kombination noch nicht existiert. Fehler verändern nichts; während des Aufrufs ist die Aktion gesperrt.
 - Das Detail zeigt `Lernstufe` (`X von Y XP` und ob Varianten im Review erscheinen) und `Aktive Varianten` (`X von Y`). Ändert eine Inhaltsänderung Frage oder Antwort, werden aktive Umformulierungen `veraltet` und nicht mehr abgefragt; die Speichermeldung nennt ihre Zahl. `KI-Variante neu erzeugen` ersetzt die veralteten Umformulierungen durch eine neue.
 
 ### 5.4 Karte bewerten, neu laden und fortfahren

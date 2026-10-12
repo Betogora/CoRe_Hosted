@@ -170,13 +170,13 @@ Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPAB
 
 ### OpenRouter-Schlüssel für Basic-Varianten
 
-- Im OpenRouter-Account wird ein modellagnostischer Schlüssel namens `CoRe` mit Free-only-/Null-Kosten-Schutz angelegt. Ein globaler ZDR-Zwang bleibt aus, weil die Route ihren ausdrücklich sichtbaren kostenlosen Non-ZDR-Fallback selbst steuert.
+- Im OpenRouter-Account wird ein modellagnostischer Schlüssel namens `CoRe` mit Ausgabenlimit angelegt. Die Route verlangt ZDR und verbietet Training je Anfrage selbst; ein globaler ZDR-Zwang im Account ist nicht nötig.
 - In Vercel wird `OPENROUTER_API_KEY` für Production und Preview als sensitive Variable gesetzt. Vercel unterstützt Sensitive nicht für Development; dort wird derselbe Name separat als normal verschlüsselte, für berechtigte Projektmitglieder aber grundsätzlich einsehbare Variable hinterlegt oder lokal über eine ignorierte `.env.local` bereitgestellt. Der Wert wird nur direkt durch die berechtigte Person eingetragen, weder in Chat, Logs noch Nachweise kopiert.
-- Ein enges OpenRouter-Key-Limit darf als zusätzlicher Not-Aus dienen. Die eigentliche Free-only-Garantie bleibt die serverseitige Modellauswahl, die kostenpflichtige Modelle und Modelle ohne Texteingabe oder Tool-Unterstützung verwirft.
+- Das Key-Limit ist die Kostenbremse: Die Route nutzt fest das bezahlte Modell `openai/gpt-6-luna` (gemessen etwa 0,00002 USD je Variante, 1 USD reicht für rund 50.000 Varianten). Ist es erreicht, meldet die Route `provider_budget_exhausted`; das Limit wird dann bewusst im OpenRouter-Account angehoben.
 - Nach Anlage oder Rotation ist ein neues Deployment erforderlich. Geprüft werden nur Variablenname, Umgebungszuordnung und ein authentifizierter Funktionsaufruf mit einer freigegebenen Basic-Testkarte.
-- Das Free-Kontingent hängt an den insgesamt gekauften Credits des Accounts: unter 10 Credits 50, ab 10 Credits 1.000 Anfragen an `:free`-Modelle pro UTC-Tag, immer höchstens 20 pro Minute. Andere Projekte desselben OpenRouter-Accounts teilen dieses Kontingent. Stand und Restmenge zeigt `GET https://openrouter.ai/api/v1/key` (`is_free_tier`, `free_model_daily_requests`); Stand 2026-10-10: 11 Credits gekauft, Tageslimit 1.000.
-- Jeder Erzeugungsversuch schreibt genau eine JSON-Logzeile `ai_card_variant` mit Ergebnis-Code, HTTP-Status, Latenz, Versuchen, Modell, Datenschutzmodus und Tokenzahl in die Vercel-Logs. `daily_limit_reached` und `rate_limited` sind erreichte Account-Limits, `provider_rate_limited`, `no_provider_endpoint` und `provider_timeout` Engpässe der kostenlosen Modelle.
-- Bei Providerfehlern zuerst diese Logzeilen, OpenRouter-Verfügbarkeit, Free-Limit und Modellauswahl prüfen. Karteninhalte, Bearer und Providerantworten dürfen nicht in Diagnoseausgaben übernommen werden.
+- Verbrauch und Restbudget des Schlüssels zeigt `GET https://openrouter.ai/api/v1/key` (`usage`, `limit_remaining`). Andere Projekte desselben Accounts teilen das Guthaben, nicht das Key-Limit.
+- Jeder Erzeugungsversuch schreibt genau eine JSON-Logzeile `ai_card_variant` mit Ergebnis-Code, HTTP-Status, Latenz, Modell, Tokenzahl und Kosten in USD in die Vercel-Logs. `rate_limited` ist ein Anfragelimit, `provider_budget_exhausted` das erreichte Key-Limit, `no_provider_endpoint` ein fehlender ZDR-Endpunkt für das Modell.
+- Bei Providerfehlern zuerst diese Logzeilen, OpenRouter-Verfügbarkeit und Key-Limit prüfen. Karteninhalte, Bearer und Providerantworten dürfen nicht in Diagnoseausgaben übernommen werden.
 
 ## 3. Preview- und Production-Freigabe
 

@@ -435,15 +435,9 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     setVariantStatusWarning(false);
     setVariantStatus("KI-Variante wird erzeugt …");
     try {
-      const result = await onGenerateVariant(card.id);
-      const usedFallback = result.privacyMode === "non_zdr";
-      setVariantStatusWarning(usedFallback);
-      if (usedFallback) {
-        setVariantStatus("KI-Variante erstellt. Da kein passendes ZDR-Modell verfügbar war, wurde ein kostenloses Modell ohne Zero Data Retention verwendet.");
-      } else {
-        setVariantStatus("");
-        setSuccessToast(hasOutdatedVariants ? "Veraltete KI-Umformulierung wurde ersetzt." : "KI-Variante wurde erfolgreich erstellt.");
-      }
+      await onGenerateVariant(card.id);
+      setVariantStatus("");
+      setSuccessToast(hasOutdatedVariants ? "Veraltete KI-Umformulierung wurde ersetzt." : "KI-Variante wurde erfolgreich erstellt.");
     } catch (error) {
       setVariantStatusWarning(true);
       setVariantStatus(error instanceof Error ? error.message : "Die KI-Variante konnte nicht erstellt werden.");
@@ -734,7 +728,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             </ActionButton>
             <p className="min-w-0 flex-1 core-caption text-core-muted">
               {eligibility?.eligible
-                ? "Sendet ausschließlich den bereinigten Text von Frage und Antwort an OpenRouter. ZDR wird bevorzugt; ein kostenloser Non-ZDR-Fallback ist möglich."
+                ? "Sendet ausschließlich den bereinigten Text von Frage und Antwort über OpenRouter an GPT-6 Luna; der Anbieter speichert ihn nicht und trainiert nicht damit."
                 : eligibility?.reasons[0] ?? "KI-Varianten sind für diese Karte nicht verfügbar."}
             </p>
           </div>

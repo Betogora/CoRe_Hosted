@@ -2,12 +2,12 @@ import * as v from "valibot";
 import { stripHtml } from "./htmlSafety.js";
 
 export const AI_CARD_VARIANT_ENDPOINT = "/api/ai/card-variant";
-export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v1";
+export const AI_CARD_VARIANT_PROMPT_VERSION = "card-variant-v2";
 export const MAX_AI_CARD_VARIANT_FIELD_CHARS = 1_200;
 const MAX_AI_CARD_VARIANT_SOURCE_CHARS = 2_400;
 export const MAX_AI_CARD_VARIANT_REQUEST_BYTES = 8 * 1_024;
 export const MAX_AI_CARD_VARIANT_OUTPUT_TOKENS = 1_024;
-/** Total time the route may spend on model selection and generation; the browser waits slightly longer. */
+/** Total time the route may spend on generation; the browser waits slightly longer. */
 export const AI_CARD_VARIANT_DEADLINE_MS = 25_000;
 
 const textSchema = v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(MAX_AI_CARD_VARIANT_FIELD_CHARS));
@@ -21,7 +21,7 @@ const usageSchema = v.nullable(v.strictObject({
 const successSchema = v.strictObject({
   variant: sourceSchema,
   model: v.pipe(v.string(), v.trim(), v.minLength(1)),
-  privacyMode: v.picklist(["zdr", "non_zdr"]),
+  privacyMode: v.literal("zdr"),
   usage: usageSchema,
 });
 const errorSchema = v.strictObject({

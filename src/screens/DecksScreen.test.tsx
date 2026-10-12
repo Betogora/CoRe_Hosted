@@ -391,7 +391,7 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
   assert.doesNotMatch(markup, /<details|<summary/);
   assert.match(markup, /KI-Variante erzeugen/);
-  assert.match(markup, /Sendet ausschließlich den bereinigten Text von Frage und Antwort an OpenRouter/);
+  assert.match(markup, /Sendet ausschließlich den bereinigten Text von Frage und Antwort über OpenRouter an GPT-6 Luna/);
   assert.match(markup, /Detailansicht schließen/);
   assert.doesNotMatch(markup, /Karten entfernen\?|Karte löschen\?|Synchronisierung klären/);
 });

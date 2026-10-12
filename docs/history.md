@@ -5,6 +5,20 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — KI-Varianten über GPT-6 Luna mit ZDR
+
+- Befund: Kostenlose OpenRouter-Endpunkte bieten kein ZDR und verlangen eine
+  Trainingserlaubnis; mit `data_collection: "deny"` lieferte die Route nur 404.
+- Playtest mit sechs Prüfkarten (Kurzfakt, Definition, Fachbegriff, Formel,
+  Englisch, Anweisung im Karteninhalt), je zwei Läufe: Prompt v1 5/12, Prompt v2
+  mit Nemotron-3-Super 10/12, GPT-6 Luna 12/12 bei geringerer Abwechslung;
+  Gemma war überlastet, drei weitere Free-Modelle lehnten das erzwungene
+  Werkzeug ab.
+- Route fest auf `openai/gpt-6-luna` ohne Reasoning, mit ZDR und ohne Training;
+  gemessen etwa 0,00002 USD je Variante. Prompt `card-variant-v2` hält Sprache,
+  Fragerichtung und Formeln fest. Katalog, Free-Filter und Non-ZDR-Warnung
+  entfallen; die Logzeile nennt die Kosten.
+
 ## 2026-10-12 — Spec ohne Layoutdetails, ehrlichere Speicher- und Syncmeldungen
 
 - `specs.md` beschreibt Verhalten statt Bildschirmposition (rund 1.000 Wörter
