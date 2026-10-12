@@ -29,6 +29,8 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Nachweise: 14 Engine- und 4 Ablage-Tests, `npm test` grün, `npm run typecheck`,
   `test:rls:local` 17/17, `db:types:generate`, Verify-SQL, Advisors ohne Befund,
   E2E `exam-planning.spec.ts` (Plan anlegen, Einheit lernen, Pausieren, 320 px).
+- Pre-Release-Projekt: beide Migrationen am 2026-10-13 angewandt; Verify-SQL und
+  Advisors ohne Befund.
 
 ## 2026-10-12 — Escape in Dialogen, Stapelkopf-E2E nach der fitzbert-Übernahme
 
@@ -51,7 +53,7 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Nachweise: lokale Migration per `supabase db reset`, `npm run db:types:generate`
   und `db:types:check`, `npm run test:rls:local` 17/17 (Eigentümertrennung der
   neuen RPC), Unit-Test für Seiten, Deduplizierung und Validierung.
-- Pre-Release-Projekt: Migration noch nicht angewandt.
+- Pre-Release-Projekt: am 2026-10-13 per `supabase db push --linked` angewandt.
 
 ## 2026-10-12 — Leerer Cloze-Entwurf nach dem Speichern nicht mehr ungespeichert
 

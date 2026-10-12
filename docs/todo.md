@@ -41,9 +41,6 @@ main.
       Migration, Verify-SQL und Sync statt der lokalen Browser-Datenbank aus
       `fitzbert`. KI-Route nach dem Muster der Variantenroute (fest
       `openai/gpt-6-luna`, ZDR, `getClaims`, Kostenlog) mit Ergänzung zu ADR-011.
-- [ ] **Prüfungsplanung, Migration:** `20261012204943_card_study_states_planning_columns.sql`
-      (und die E10-Migration davor) im Pre-Release-Projekt anwenden, bevor der Planer
-      dort genutzt wird.
 
 ## Betrieb
 
