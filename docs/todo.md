@@ -19,14 +19,15 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 Bewusst einfacher Probelauf (ADR-011); Auswahl und Oberfläche werden danach
 geglättet.
 
-- [ ] **Production-Smoke:** Stapelgenerierung und `Varianten neu generieren`
-      einmal in Production mit einem kleinen Teststapel prüfen. `vercel dev`
-      scheitert lokal am Legacy-Builder (`@vercel/static-build` verlangt `yarn`).
 - [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
       (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
       „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
       zum Filter „Ohne Variante“; Stoppgründe in der Leiste kurz halten (z. B.
       „Keine Verbindung“).
+- [ ] **Nachweise:** `npm run test:e2e:local` mit der Marke `Kartenvariante`
+      nach dem Aufdecken und die visuelle Pflichtmatrix für Fortschrittsleiste,
+      Einschalt-Dialog, Variantenbereich der Stapeleinstellungen und Filter
+      `Ohne Variante`.
 
 ## Betrieb
 

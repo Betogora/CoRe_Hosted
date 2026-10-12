@@ -5,6 +5,22 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Production-Smoke der KI-Varianten
+
+- Production (`core-hosted.vercel.app`, E2E-Testaccount): Einschalt-Dialog mit
+  vorausgewählter Generierung, Leiste „Varianten generieren 2 von 3“, 3/3
+  Varianten `ok` (1,0–1,5 s, je etwa 0,00006 USD); der Production-Key hat
+  Budget. Kartenverwaltung zeigt je eine Variante, `Ohne Variante` danach
+  `Keine Karten`. `Varianten neu generieren` meldet bei aktuellen Varianten
+  „bereits aus der aktuellen Version“ ohne Anfrage.
+- Fund: Beim Ersetzen zweier v3-Varianten im 10-Karten-Teststapel lieferte die
+  Route zweimal `ok`, beide Ergebnisse wurden aber verworfen; gelöschte
+  Formulierungen gelten als Duplikat, standen aber nicht in `avoid`. Seit
+  3e346bd nennt `avoid` sie nach den vorhandenen Varianten; erneuter Lauf in
+  Production: „2 Varianten neu generiert“, beide inhaltlich korrekt.
+- Nicht live geprüft: Marke `Kartenvariante` im Lernen (Varianten erscheinen erst
+  ab der Lernstufe des Stapels); Smoke-Stapel danach gelöscht.
+
 ## 2026-10-12 — Kartenvarianten gekennzeichnet und filterbar
 
 - Begriffe: Oberfläche spricht von `Variante`/`Kartenvariante` und
