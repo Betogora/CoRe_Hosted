@@ -68,6 +68,7 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
       privacyMode: "zdr",
       usage: null,
     }),
+    onUpdateVariant: async () => undefined,
     onMoveDeck: () => null,
     onOpenLearn: () => undefined,
     onOpenCardSettings: () => undefined,
@@ -485,6 +486,20 @@ test("outdated AI rephrasings are labelled and offer a targeted regeneration", (
   assert.match(markup, />veraltet</);
   assert.match(markup, /diese Umformulierung wird nicht mehr abgefragt/);
   assert.match(markup, />KI-Variante neu erzeugen</);
+});
+
+test("reported or switched-off variants can be reactivated; every variant can be deleted", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const card = addCardVariant(graph.cards[0], { front: "Wofür steht ATP?", back: "Energie", qualityStatus: "active", isActive: true });
+  const reported = { ...card, variants: card.variants.map((variant) => ({ ...variant, isActive: false, qualityStatus: "flagged" as const, feedback: [{ id: "f", type: "unklar_formuliert" as const, note: "", createdAt: NOW }] })) };
+  const markup = renderEditorFor({ ...graph, cards: [reported] });
+  assert.match(markup, />gemeldet: unklar formuliert</);
+  assert.match(markup, /aria-label="Variante 1 reaktivieren"/);
+  assert.match(markup, /aria-label="Variante 1 löschen"/);
+
+  const active = renderEditorFor({ ...graph, cards: [card] });
+  assert.doesNotMatch(active, /reaktivieren/, "aktive Varianten bieten nur Löschen an");
+  assert.match(active, /aria-label="Variante 1 löschen"/);
 });
 
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {

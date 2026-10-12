@@ -88,6 +88,28 @@ export function deactivateVariant(card: Card, variantId: string, _reason = "Nutz
   return { ...card, variants: card.variants.map((variant) => variant.id === variantId ? { ...variant, isActive: false, qualityStatus: "disabled", updatedAt, revision: variant.revision + 1 } : variant), updatedAt };
 }
 
+/** Takes a disabled or reported variant back into rotation; outdated or deleted ones stay out. Feedback history stays. */
+export function reactivateVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
+  return {
+    ...card,
+    variants: card.variants.map((variant) => variant.id === variantId && !variant.deletedAt && variant.meta.outdated !== true
+      ? { ...variant, isActive: true, qualityStatus: "active", updatedAt, revision: variant.revision + 1 }
+      : variant),
+    updatedAt,
+  };
+}
+
+/** Removes a variant; like replaced outdated variants it stays as a tombstone so sync deletes it everywhere. */
+export function deleteVariant(card: Card, variantId: string, updatedAt = new Date().toISOString()): Card {
+  return {
+    ...card,
+    variants: card.variants.map((variant) => variant.id === variantId && !variant.deletedAt
+      ? { ...variant, isActive: false, deletedAt: updatedAt, updatedAt, revision: variant.revision + 1 }
+      : variant),
+    updatedAt,
+  };
+}
+
 export function flagVariant(card: Card, variantId: string, type: VariantFeedbackType, note = ""): Card {
   const updatedAt = new Date().toISOString();
   return {

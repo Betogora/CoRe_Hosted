@@ -30,6 +30,8 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Import-Warnungen sind zugeklappt zusammengefasst und aufklappbar.
 - `Daten & Synchronisierung` zeigt den letzten Erfolg auch bei ausstehenden oder
   Offline-Änderungen.
+- Karteneditor: Varianten zeigen Meldegrund, lassen sich reaktivieren (bis zur
+  Höchstzahl) und nach Rückfrage löschen.
 
 ## 2026-10-10 — Audit-Lücken: Easy Days, Import, Quellen, Editor, Fokus, Hilfe
 

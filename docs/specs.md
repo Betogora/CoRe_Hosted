@@ -231,6 +231,7 @@ Akzeptanz:
 - An den Anbieter gehen ausschließlich der bereinigte Text von Frage und Antwort mit je höchstens 1.200 Zeichen; Tags, IDs, Quellen, Reviewdaten, Metadaten und Medien nicht. Der Anbieter darf den Text weder speichern noch damit trainieren.
 - CoRe speichert die Variante nur, wenn die Karte während des Aufrufs unverändert blieb und dieselbe Front/Back-Kombination noch nicht existiert. Fehler verändern nichts; während des Aufrufs ist die Aktion gesperrt.
 - Das Detail zeigt `Lernstufe` (`X von Y XP` und ob Varianten im Review erscheinen) und `Aktive Varianten` (`X von Y`). Ändert eine Inhaltsänderung Frage oder Antwort, werden aktive Umformulierungen `veraltet` und nicht mehr abgefragt; die Speichermeldung nennt ihre Zahl. `KI-Variante neu erzeugen` ersetzt die veralteten Umformulierungen durch eine neue.
+- Jede Variante im Detail nennt ihren Zustand (`aktiv`, `abgeschaltet`, `gemeldet: inhaltlich falsch`, `gemeldet: unklar formuliert`, `veraltet`). Abgeschaltete und gemeldete Varianten lassen sich `Reaktivieren`, solange die Höchstzahl aktiver Varianten nicht erreicht ist; der Meldeverlauf bleibt. Veraltete nicht. `Löschen` entfernt eine Variante nach Rückfrage auf allen Geräten; Grundkarte und Lernstand bleiben.
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 

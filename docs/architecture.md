@@ -21,7 +21,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
 | `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |
-| `coreVariantService.ts` | Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Lernstufen-Bereitschaft, Variantenquelle, Variantenwahl im Review und Variantendarstellung |
+| `coreVariantService.ts` | Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Lernstufen-Bereitschaft, Variantenquelle, Variantenwahl im Review, Variantendarstellung sowie Abschalten, Melden, Reaktivieren und Löschen einzelner Varianten |
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung einschließlich Bildverdeckung (Bild als SHA-1-benanntes Medium), Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
 | `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |

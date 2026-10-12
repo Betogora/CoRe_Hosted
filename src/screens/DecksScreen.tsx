@@ -137,6 +137,12 @@ function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteCo
   return parts.length ? `Beim Speichern: ${parts.join(" · ")}.` : null;
 }
 
+/** Visible state of a variant that is not outdated; a report names its reason. */
+function variantStateLabel(variant: CardVariant): string {
+  if (variant.qualityStatus === "flagged") return variant.feedback.at(-1)?.type === "unklar_formuliert" ? "gemeldet: unklar formuliert" : "gemeldet: inhaltlich falsch";
+  return variant.isActive && variant.qualityStatus === "active" ? "aktiv" : "abgeschaltet";
+}
+
 function outdatedVariantCount(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
   const activeBefore = new Set(graph.cards.flatMap((card) => card.variants.filter((variant) => variant.isActive && !variant.deletedAt).map((variant) => variant.id)));
   return plan.keptCards.flatMap((card) => card.variants).filter((variant) => variant.meta.outdated === true && activeBefore.has(variant.id)).length;
@@ -157,6 +163,7 @@ interface DeckCardEditorProps {
   onDeleteNote: () => void;
   onRescheduleCards: DecksScreenProps["onRescheduleCards"];
   onGenerateVariant: (cardId: string) => Promise<AiCardVariantSuccess>;
+  onUpdateVariant: DecksScreenProps["onUpdateVariant"];
   onSelectCard: (deckId: string, cardId: string) => void;
   deckName: (deckId: string) => string;
   onClose: () => void;
@@ -164,7 +171,7 @@ interface DeckCardEditorProps {
   syncConflict: boolean;
 }
 
-function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, mediaStore, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
+function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, mediaStore, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onUpdateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
   const { note } = graph;
   const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
   const [initialValue, contentKey] = React.useMemo(() => {
@@ -189,6 +196,8 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   const [variantStatus, setVariantStatus] = React.useState("");
   const [variantStatusWarning, setVariantStatusWarning] = React.useState(false);
   const [isGeneratingVariant, setIsGeneratingVariant] = React.useState(false);
+  const [updatingVariantId, setUpdatingVariantId] = React.useState<string | null>(null);
+  const [pendingVariantDeletion, setPendingVariantDeletion] = React.useState<CardVariant | null>(null);
   const learningDayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
   const dueDateKey = card?.study.dueAt ? getLearningDayKey(card.study.dueAt, learningDayOptions) ?? "" : "";
   const todayDateKey = getLearningDayKey(now, learningDayOptions) ?? "";
@@ -281,6 +290,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
 
   const variants = (card.variants ?? []).filter((variant) => !variant.deletedAt);
   const hasOutdatedVariants = variants.some((variant) => variant.meta.outdated === true);
+  const reactivationBlocked = Boolean(variantReadiness && variantReadiness.activeCount >= variantReadiness.maxActive);
   const labelOptions = { dayStartHour, timeZone };
   const siblings = graph.cards.filter((candidate) => candidate.deletedAt === null);
   const interaction = note.content.interaction;
@@ -443,6 +453,21 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       setVariantStatus(error instanceof Error ? error.message : "Die KI-Variante konnte nicht erstellt werden.");
     } finally {
       setIsGeneratingVariant(false);
+    }
+  }
+
+  async function updateVariant(variant: CardVariant, action: "reactivate" | "delete") {
+    setUpdatingVariantId(variant.id);
+    setVariantStatusWarning(false);
+    setVariantStatus("");
+    try {
+      await onUpdateVariant(card!.id, variant.id, action);
+      setSuccessToast(action === "reactivate" ? "Die Variante wird wieder abgefragt." : "Die Variante wurde gelöscht.");
+    } catch (error) {
+      setVariantStatusWarning(true);
+      setVariantStatus(error instanceof Error ? error.message : "Die Variante konnte nicht geändert werden.");
+    } finally {
+      setUpdatingVariantId(null);
     }
   }
 
@@ -697,20 +722,31 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
           <span className="rounded-control bg-core-subtle px-3 py-1 core-caption font-semibold text-core-action">{variants.length} Formen</span>
         </div>
         <div className="mt-4 grid gap-3">
-          {variants.map((variant: CardVariant) => (
+          {variants.map((variant: CardVariant, index) => {
+            const outdated = variant.meta.outdated === true;
+            const inactive = variant.isActive === false || variant.qualityStatus !== "active";
+            return (
               <article key={variant.id} className="min-w-0 rounded-control border border-core-border bg-core-subtle p-3">
                 <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
                   <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
-                  {variant.meta.outdated === true
+                  {outdated
                     ? <span className="rounded-inset bg-core-warning-soft px-2 py-1 text-core-text">veraltet</span>
-                    : <span>{variant.isActive === false || variant.qualityStatus !== "active" ? "inaktiv" : "aktiv"}</span>}
+                    : <span>{variantStateLabel(variant)}</span>}
                 </div>
                 <p className="break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
                 <p className="mt-1 break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
                 {variant.meta.outdated === true ? <p className="mt-2 core-caption text-core-muted">Frage oder Antwort wurden geändert; diese Umformulierung wird nicht mehr abgefragt.</p> : null}
                 <p className="mt-2 core-caption text-core-muted">Abgefragt {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {inactive && !outdated ? (
+                    <ActionButton type="button" variant="secondary" icon={RotateCcw} aria-label={`Variante ${index + 1} reaktivieren`} loading={updatingVariantId === variant.id} disabled={updatingVariantId !== null || reactivationBlocked} onClick={() => void updateVariant(variant, "reactivate")}>Reaktivieren</ActionButton>
+                  ) : null}
+                  <ActionButton type="button" variant="secondary" icon={Trash2} aria-label={`Variante ${index + 1} löschen`} disabled={updatingVariantId !== null} onClick={() => setPendingVariantDeletion(variant)}>Löschen</ActionButton>
+                </div>
+                {inactive && !outdated && reactivationBlocked ? <p className="mt-2 core-caption text-core-muted">Die Karte hat bereits die im Stapel erlaubte Zahl aktiver Varianten.</p> : null}
               </article>
-          ))}
+            );
+          })}
         </div>
         <div className="mt-4 grid gap-3 border-t border-core-border pt-4">
           <p className="core-body font-semibold text-core-text">Nahe KI-Umformulierung hinzufügen</p>
@@ -736,6 +772,20 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         </div>
         </div>
       </section>
+      <ActionDialog
+        open={Boolean(pendingVariantDeletion)}
+        title="Variante löschen?"
+        description="Die Umformulierung wird auf allen Geräten entfernt. Grundkarte und Lernstand bleiben unverändert."
+        confirmLabel="Variante löschen"
+        cancelLabel="Behalten"
+        destructive
+        onCancel={() => setPendingVariantDeletion(null)}
+        onConfirm={() => {
+          const variant = pendingVariantDeletion;
+          setPendingVariantDeletion(null);
+          if (variant) void updateVariant(variant, "delete");
+        }}
+      />
       <CardPreviewDialog
         open={previewOpen}
         note={previewNote}
@@ -849,6 +899,7 @@ export function DecksScreen({
   onUndoDeleteNote,
   onRescheduleCards,
   onGenerateVariant,
+  onUpdateVariant,
   onMoveDeck,
   onOpenLearn,
   onOpenCardSettings,
@@ -1269,6 +1320,7 @@ export function DecksScreen({
             onDeleteNote={requestCardDelete}
             onRescheduleCards={onRescheduleCards}
             onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
+            onUpdateVariant={onUpdateVariant}
             onSelectCard={requestCardSelection}
             deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
             onClose={() => requestDetailAction(closeDetail)}

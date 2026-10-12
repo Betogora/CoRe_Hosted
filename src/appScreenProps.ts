@@ -120,6 +120,7 @@ export interface DecksScreenProps {
   onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
   onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
+  onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;
   selectedCardId: string | null;
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;

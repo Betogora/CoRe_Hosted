@@ -23,7 +23,7 @@ import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import { createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
-import { cardVariantSource } from "./coreVariantService.ts";
+import { cardVariantSource, deleteVariant, reactivateVariant } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -1291,6 +1291,14 @@ export function App() {
     return generated;
   }
 
+  async function updateDeckCardVariant(cardId: string, variantId: string, action: "reactivate" | "delete") {
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const saved = await workspaceRepository.updateCard(cardId, (card) => action === "reactivate" ? reactivateVariant(card, variantId) : deleteVariant(card, variantId));
+    if (!saved) throw new Error("Die Variante konnte nicht gespeichert werden.");
+    await reloadNoteGraph(saved.note.id);
+    syncEngine?.requestSync();
+  }
+
   /** Creates a manual content with its cards, in a new deck when no deck id is given. */
   async function saveManualNote({ deckId, deckName, content, media }: ManualNoteSaveInput) {
     if (!workspaceRepository || !latestStateRef.current) return null;
@@ -1587,6 +1595,7 @@ export function App() {
           onUndoDeleteNote={undoDeleteDeckNote}
           onRescheduleCards={rescheduleDeckCards}
           onGenerateVariant={generateDeckCardVariant}
+          onUpdateVariant={updateDeckCardVariant}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
           onSelectDeck={deckContent ? (deckId, cardId) => navigateToViewNow("kartenstapel", {

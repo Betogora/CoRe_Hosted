@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
-import { cardVariantSource, classifyCardEligibility, describeVariantReadiness, selectReviewVariant, variantPresentation } from "./coreVariantService.ts";
+import { cardVariantSource, classifyCardEligibility, deleteVariant, describeVariantReadiness, flagVariant, reactivateVariant, selectReviewVariant, variantPresentation } from "./coreVariantService.ts";
 import type { Card, NoteContent } from "./coreTypes.ts";
 
 const ON = { coreMode: "on", variantThresholdXp: 121, maxActiveVariantsPerCard: 2 } as const;
@@ -113,4 +113,23 @@ test("Bereitschaft nennt Lernstufe, Schwelle und Variantenzahl des Stapels", () 
   );
   assert.equal(describeVariantReadiness(matureCard(140)).ready, true);
   assert.match(describeVariantReadiness(matureCard(140), { coreMode: "off" }).reason, /ausgeschaltet/);
+});
+
+test("reactivating a reported variant returns it to rotation with its feedback; outdated ones stay out; deleting leaves a tombstone", () => {
+  const base = createBasicNote("deck", "Was ist ATP?", "Energieträger").cards[0];
+  const card = addCardVariant(base, { front: "Wofür steht ATP?", back: "Energie" });
+  const [variant] = card.variants;
+  const reported = flagVariant(card, variant.id, "fachlich_falsch");
+  const reactivated = reactivateVariant(reported, variant.id).variants[0];
+  assert.equal(reactivated.isActive, true);
+  assert.equal(reactivated.qualityStatus, "active");
+  assert.equal(reactivated.feedback.length, 1, "der Meldeverlauf bleibt");
+  assert.equal(reactivated.revision, variant.revision + 2);
+
+  const outdated = { ...reported, variants: reported.variants.map((entry) => ({ ...entry, meta: { ...entry.meta, outdated: true } })) };
+  assert.equal(reactivateVariant(outdated, variant.id).variants[0].isActive, false);
+
+  const deleted = deleteVariant(card, variant.id, "2026-10-12T10:00:00.000Z").variants[0];
+  assert.equal(deleted.deletedAt, "2026-10-12T10:00:00.000Z");
+  assert.equal(deleted.isActive, false);
 });
