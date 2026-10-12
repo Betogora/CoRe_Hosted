@@ -2,7 +2,7 @@ import React from "react";
 import { CircleHelp, Database, FileText, Info, RefreshCw, User, X } from "lucide-react";
 import { formatSyncStatusText } from "../accountSession.ts";
 import { APP_RUNTIME_INFO } from "../appRuntime.ts";
-import type { SettingsScreenProps } from "../appScreenProps.ts";
+import type { SettingsSaveOutcome, SettingsScreenProps } from "../appScreenProps.ts";
 import type { SyncIntervalMinutes } from "../coreTypes.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
@@ -48,7 +48,7 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
 
   const dirty = !settingsDraftsEqual(draft, baseline);
 
-  const saveDraft = React.useCallback(async () => {
+  const saveDraft = React.useCallback(async (): Promise<SettingsSaveOutcome> => {
     const normalized: GeneralSettingsDraft = {
       displayName: draft.displayName.trim(),
       syncIntervalMinutes: draft.syncIntervalMinutes,
@@ -61,10 +61,10 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
       setDraft(savedDraft);
       setAccountMessage("");
       setSuccessToast("Allgemeine Einstellungen wurden gespeichert.", { appearance: "neutral" });
-      return true;
+      return "saved";
     } catch (error) {
       setAccountMessage(error instanceof Error ? error.message : "Allgemeine Einstellungen konnten nicht gespeichert werden.");
-      return false;
+      return "failed";
     }
   }, [draft, onSaveSettings, setSuccessToast]);
 

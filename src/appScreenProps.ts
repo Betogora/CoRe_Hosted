@@ -31,8 +31,11 @@ export interface CardDraftGuard {
   save: () => Promise<boolean>;
 }
 
+/** `invalid` means the draft was rejected with feedback at the field; only `failed` is a failed save. */
+export type SettingsSaveOutcome = "saved" | "invalid" | "failed";
+
 export interface SettingsDraftGuard {
-  save: (scope?: SettingsSaveScope) => Promise<boolean>;
+  save: (scope?: SettingsSaveScope) => Promise<SettingsSaveOutcome>;
   discard: () => void;
 }
 

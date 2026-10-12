@@ -524,8 +524,9 @@ export function App() {
     setSavingSettingsDraft(scope ?? "global");
     setSettingsSaveFailed(false);
     try {
-      if (!await guard.save(scope).catch(() => false)) {
-        setSettingsSaveFailed(true);
+      const outcome = await guard.save(scope).catch(() => "failed" as const);
+      if (outcome !== "saved") {
+        setSettingsSaveFailed(outcome === "failed");
         return;
       }
       settingsDraftGuardRef.current = null;

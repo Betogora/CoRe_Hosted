@@ -2,6 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { fileURLToPath } from "node:url";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { collectBrowserErrors } from "./support/browserErrors.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 
@@ -449,11 +450,7 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 });
 
 test("Lerneinstellungen wechseln bei 768 px zwischen Bottom Sheet und zentriertem Overlay", async ({ page }: any) => {
-  const browserErrors: string[] = [];
-  page.on("console", (message: { type: () => string; text: () => string }) => {
-    if (message.type() === "error") browserErrors.push(message.text());
-  });
-  page.on("pageerror", (error: Error) => browserErrors.push(error.message));
+  const browserErrors = collectBrowserErrors(page);
   await page.setViewportSize({ width: 767, height: 640 });
   await resetToFreshLocalState(page);
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -734,11 +731,7 @@ test("review flow records a rating through accessible controls", async ({ page }
 });
 
 test("deck settings save appearance, learning, scheduler and CoRe values together", async ({ page }: any) => {
-  const runtimeErrors: string[] = [];
-  page.on("pageerror", (error: Error) => runtimeErrors.push(error.message));
-  page.on("console", (message: { type: () => string; text: () => string }) => {
-    if (message.type() === "error") runtimeErrors.push(message.text());
-  });
+  const runtimeErrors = collectBrowserErrors(page);
 
   await resetToFreshLocalState(page);
   const initialState = await readAppState(page);
@@ -860,10 +853,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     .deckSettings.schedulerProfile.desiredRetention).toBe(nextRetentionPercent / 100);
   await page.goto(`/stapel-einstellungen?deck=${DECK_IDS.africa}&returnView=learn`);
   await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
-  const unexpectedRuntimeErrors = runtimeErrors.filter((error) => !(
-    error.includes("Failed to fetch") && error.includes("@supabase_supabase-js")
-  ));
-  expect(unexpectedRuntimeErrors).toEqual([]);
+  expect(runtimeErrors).toEqual([]);
 });
 
 test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-core @hosted-core Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {

@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarClock, CalendarRange, Sparkles, Timer } from "lucide-react";
-import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope } from "../appScreenProps.ts";
+import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
 import type { EasyDayLevel, EasyDays } from "../coreTypes.ts";
@@ -65,7 +65,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
   }, [persistedDraftKey]);
 
   const dirty = !settingsDraftsEqual(draft, baseline);
-  const saveDraft = React.useCallback(async (scope: GlobalLearningSettingsSaveScope = "new-decks") => {
+  const saveDraft = React.useCallback(async (scope: GlobalLearningSettingsSaveScope = "new-decks"): Promise<SettingsSaveOutcome> => {
     const normalized: GlobalCardSettingsDraft = {
       dayStartHour: normalizeDayStartHour(draft.dayStartHour),
       learnAheadMinutes: normalizeLearnAheadMinutes(draft.learnAheadMinutes),
@@ -81,10 +81,10 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
       setSuccessToast(scope === "all-decks"
         ? "Lerneinstellungen wurden auf alle Stapel angewandt und als Standard gespeichert."
         : "Lerneinstellungen wurden als Standard für neue Stapel gespeichert.", { appearance: "neutral" });
-      return true;
+      return "saved";
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Lerneinstellungen konnten nicht gespeichert werden.");
-      return false;
+      return "failed";
     }
   }, [draft, onSaveSettings, setSuccessToast]);
 

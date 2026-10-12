@@ -44,7 +44,8 @@ setup("dedizierten Testaccount zurücksetzen und Auth-Session speichern", async 
 
   await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible({ timeout: 30_000 });
   await page.getByRole("navigation", { name: /Hauptmen/ }).getByRole("button", { name: "Lernen" }).click();
-  await expect(page.getByTestId("learn-deck-row-deck_world_capitals")).toContainText("Welt-Hauptstädte");
+  // Auch der Lernen-Chunk wird hier zum ersten Mal transformiert.
+  await expect(page.getByTestId("learn-deck-row-deck_world_capitals")).toContainText("Welt-Hauptstädte", { timeout: 30_000 });
 
   const syncDeviceId = await readSyncDeviceId(page);
   const devicesAfterLogin = await readRegisteredDevices(environment);

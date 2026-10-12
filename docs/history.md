@@ -5,6 +5,21 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Release-Gate: Validierung in der Speicherleiste, Boot-Fetch im Test
+
+- Ein leerer Stapelname gilt nicht mehr als fehlgeschlagenes Speichern: Der
+  Hinweis steht nur beim Feld, die Speicherleiste bleibt bei
+  `Änderungen speichern?`. Der Einstellungs-Guard unterscheidet dafür
+  `saved`, `invalid` und `failed`.
+- Der einmalige `Failed to fetch` beim Boot stammt aus `auth-js`, das einen
+  gescheiterten Fetch selbst loggt; `getCloudWorkspaceUser` behandelt ihn als
+  Verbindungsfehler und nutzt die gespeicherte Session. E2E-Tests filtern ihn
+  gemeinsam über `tests/e2e/support/browserErrors.ts`.
+- `auth.setup.ts` wartet beim Vite-Kaltstart bis zu 30 s auf den Lernen-Bereich.
+- Nachweise: `npm run test:e2e:local` mit Setup und den drei betroffenen Tests
+  grün (RLS 17/17) auf 086a4bb; nach dem Rebase auf 7ac3a22 `npm run
+  typecheck` und die fokussierten Unit-Tests, E2E dort nicht erneut.
+
 ## 2026-10-12 — Stapel-UI aus `fitzbert` übernommen (ADR-041)
 
 - Aus dem Arbeitsstand `fitzbert` (Basis vor dem Note/Card-Cutover) übernommen:

@@ -1,7 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, RefreshCw, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
-import type { DeckSettingsSaveScope, DeckSettingsScreenProps } from "../appScreenProps.ts";
+import type { DeckSettingsSaveScope, DeckSettingsScreenProps, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
 import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
@@ -95,17 +95,17 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   const draftBelongsToDeck = draftDeckIdRef.current === deck?.id;
   const dirty = Boolean(draftBelongsToDeck && activeDraft && baseline && !settingsDraftsEqual(activeDraft, baseline));
 
-  const saveDraft = React.useCallback(async (scope: DeckSettingsSaveScope = "deck") => {
-    if (!deck || !activeDraft || !baseline) return false;
+  const saveDraft = React.useCallback(async (scope: DeckSettingsSaveScope = "deck"): Promise<SettingsSaveOutcome> => {
+    if (!deck || !activeDraft || !baseline) return "failed";
     const normalized = normalizeDeckSettingsDraft(activeDraft);
     if (!normalized.name) {
       setFeedback("Bitte gib einen Stapelnamen ein.");
-      return false;
+      return "invalid";
     }
     const result = onSaveSettings(deck.id, normalized, scope, baseline);
     if (!result?.ok || !result.deck) {
       setFeedback(result?.error ?? "Die Stapeleinstellungen konnten nicht gespeichert werden.");
-      return false;
+      return "failed";
     }
     const savedDraft = createDeckSettingsDraft(result.deck);
     setBaseline(savedDraft);
@@ -114,7 +114,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     setSuccessToast(scope === "deck-tree"
       ? "Stapeleinstellungen wurden für den Stapel und alle Unterstapel gespeichert."
       : "Stapeleinstellungen wurden für den Stapel gespeichert.", { appearance: "neutral" });
-    return true;
+    return "saved";
   }, [activeDraft, baseline, deck, onSaveSettings, setSuccessToast]);
 
   const saveDraftRef = React.useRef(saveDraft);
