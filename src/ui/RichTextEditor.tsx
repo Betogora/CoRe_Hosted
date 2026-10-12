@@ -290,15 +290,21 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     return visit(node) ?? fallback;
   }
 
-  function restoreTextSelection(selectionOffsets: { start: number; end: number; }|null) {
+  function rangeFromTextOffsets(selectionOffsets: TextSelectionOffsets | null) {
     const editor = editorRef.current;
-    if (!editor || !selectionOffsets || typeof document === "undefined" || typeof window === "undefined") return;
+    if (!editor || !selectionOffsets || typeof document === "undefined") return null;
 
     const start = findTextPosition(editor, selectionOffsets.start);
     const end = findTextPosition(editor, selectionOffsets.end);
     const range = document.createRange();
     range.setStart(start.node, start.offset);
     range.setEnd(end.node, end.offset);
+    return range;
+  }
+
+  function restoreTextSelection(selectionOffsets: TextSelectionOffsets | null) {
+    const range = rangeFromTextOffsets(selectionOffsets);
+    if (!range || typeof window === "undefined") return;
 
     const selection = window.getSelection();
     selection?.removeAllRanges();
@@ -540,7 +546,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     lastEmittedNormalizedHtmlRef.current = normalizedHtml;
     if (editor.innerHTML !== hydratedHtml) {
       editor.innerHTML = hydratedHtml;
-      restoreTextSelection(selectionOffsets);
+      // Only remember the range: a document selection inside this editor would pull focus back from the newly clicked field.
+      selectionRef.current = rangeFromTextOffsets(selectionOffsets);
     }
     onChange?.(normalizedHtml);
   }

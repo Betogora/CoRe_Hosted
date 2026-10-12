@@ -167,8 +167,11 @@ test("[Vertrag: Batch, Pins, Deckpfade und Draftschutz] @beta-core fünf Karten 
   await page.getByRole("option", { name: "Batch-Ziel", exact: true }).click();
 
   for (let index = 1; index <= 5; index += 1) {
-    await page.getByRole("textbox", { name: "Vorderseite" }).fill(`Batch-Frage ${index}`);
-    await page.getByRole("textbox", { name: "Rückseite" }).fill(`Batch-Antwort ${index}`);
+    await page.getByRole("textbox", { name: "Vorderseite" }).click();
+    await page.keyboard.type(`Batch-Frage ${index}`);
+    await page.getByRole("textbox", { name: "Rückseite" }).click();
+    await expect(page.getByRole("textbox", { name: "Rückseite" })).toBeFocused();
+    await page.keyboard.type(`Batch-Antwort ${index}`);
     await page.getByRole("button", { name: "Originalkarte speichern" }).click();
     await expect(page.getByRole("status")).toContainText("Karte wurde erfolgreich gespeichert.");
     await expect(page.getByRole("heading", { name: "Karte selbst erstellen" })).toBeVisible();
