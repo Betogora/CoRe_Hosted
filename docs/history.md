@@ -5,6 +5,16 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Escape in Dialogen, Stapelkopf-E2E nach der fitzbert-Übernahme
+
+- Escape schließt Dialoge wieder auch ohne Fokus im Dialog (Verlassen-Dialog im
+  `batch-resilience.spec.ts`); übergangen wird es nur aus Radix-Poppern wie
+  Auswahllisten und Datums-Popovern.
+- Der Stapelkopf-E2E folgt der gruppierten Liste: feste Kennzahlspalten (44/52 px),
+  in schmalen Gruppen gestapelte Zeilen mit Beschriftung statt Tabellenkopf.
+- Der PDF-Smoke scheitert nur im Worktree: Vite verweigert dort den PDF-Worker aus
+  dem verlinkten `node_modules` (403).
+
 ## 2026-10-12 — Lernstände ganzer Stapel ohne Kartenkörper
 
 - Migration `20261012195419_list_account_card_study_states.sql`: RPC

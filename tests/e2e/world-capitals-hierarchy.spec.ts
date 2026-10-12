@@ -388,13 +388,23 @@ test("active deck header and rows fit every target width and toggle reliably on 
     }, { rootDeckId: DECK_IDS.root, rootLeafName });
 
     expect(layout.fits).toBe(true);
-    expect(layout.headerHeight).toBeLessThanOrEqual(30);
-    expect(layout.headerTitleInset).toBeCloseTo(8, 0);
-    expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
-      ? ["Stapel"]
-      : ["Stapel", "Neu", "Offen", "Fällig"]);
-    expect(layout.headerLabelsFit).toBe(true);
-    expect(layout.rowLabelsHidden).toBe(true);
+    // Narrow groups stack each row and label its counts instead of showing the table header (ADR-041).
+    const stacked = layout.headerHeight === 0;
+    if (stacked) {
+      expect(layout.rowLabelsHidden).toBe(false);
+    } else {
+      expect(layout.headerHeight).toBeLessThanOrEqual(30);
+      expect(layout.headerTitleInset).toBeCloseTo(12, 0);
+      expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
+        ? ["Stapel"]
+        : ["Stapel", "Neu", "Offen", "Fällig"]);
+      expect(layout.headerLabelsFit).toBe(true);
+      expect(layout.rowLabelsHidden).toBe(true);
+      expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
+      if (layout.headerLabels.length > 1) expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
+      // The grouped list keeps fixed metric columns: 2.75rem in narrow trees, 3.25rem otherwise.
+      expect(layout.metricWidth).toBeCloseTo(layout.summaryWidth <= 512 ? 44 : 52, 0);
+    }
     expect(layout.collapseControlSize).toEqual(width < 768 ? [44, 44] : [40, 40]);
     expect(layout.collapseSurfaceSize).toEqual(width < 768 ? [32, 36] : [28, 32]);
     expect(layout.collapseSurfaceIconGap).toBeGreaterThanOrEqual(2);
@@ -402,16 +412,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.rootIconOffset).toBeCloseTo(0, 0);
     if (layout.nameWrapping.some(Boolean) && layout.nameWrapping.some((wraps) => !wraps)) mixedNameWrappingSeen = true;
     expect(layout.statusGapSpread).toBeLessThanOrEqual(1);
-    expect(layout.headerStatusGapSpread).toBeLessThanOrEqual(1);
-    expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
-    if (layout.summaryWidth <= 512) {
-      expect(layout.metricWidth).toBeCloseTo(24, 0);
-      expect(layout.nameWidth).toBeGreaterThan(0);
-    } else if (layout.summaryWidth < 768) {
-      expect(layout.metricWidth).toBeCloseTo(44, 0);
-    } else {
-      expect(layout.metricWidth).toBeCloseTo(80, 0);
-    }
+    expect(layout.nameWidth).toBeGreaterThan(0);
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
   expect(mixedNameWrappingSeen).toBe(true);
