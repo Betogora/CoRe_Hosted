@@ -116,13 +116,18 @@ async function readJsonBody(req: any): Promise<unknown> {
     if (typeof req.body !== "string") return req.body;
     try { return JSON.parse(req.body); } catch { throw new HttpError(400, "invalid_json", "Die Anfrage enthält kein gültiges JSON."); }
   }
-  let raw = "";
+  // Collect bytes, not strings: a multibyte character may span two chunks.
+  const chunks: Buffer[] = [];
+  let size = 0;
   for await (const chunk of req) {
-    raw += chunk;
-    if (Buffer.byteLength(raw, "utf8") > MAX_AI_CARD_VARIANT_REQUEST_BYTES) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    size += bytes.length;
+    if (size > MAX_AI_CARD_VARIANT_REQUEST_BYTES) {
       throw new HttpError(413, "request_too_large", "Die Anfrage ist zu groß.");
     }
+    chunks.push(bytes);
   }
+  const raw = Buffer.concat(chunks).toString("utf8");
   try { return raw ? JSON.parse(raw) : {}; } catch { throw new HttpError(400, "invalid_json", "Die Anfrage enthält kein gültiges JSON."); }
 }
 

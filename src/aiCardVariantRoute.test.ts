@@ -156,6 +156,26 @@ test("route enforces method and request-size limits", async () => {
   assert.equal(oversized.statusCode, 413);
 });
 
+test("route decodes a streamed body whose multibyte character spans two chunks", async () => {
+  const bodies: string[] = [];
+  const handler = createCardVariantHandler({
+    env: { OPENROUTER_API_KEY: "secret" },
+    authenticate: async () => "user-id",
+    log: silent,
+    fetchImpl: async (_url, init) => { bodies.push(String(init?.body)); return response(completion()); },
+  });
+  const bytes = Buffer.from(JSON.stringify({ source: { front: "Was regelt Übergewicht?", back: "Ein Energieträger." } }));
+  const cut = bytes.indexOf(0xc3) + 1;
+  const streamed = Object.assign(request({ body: undefined }), {
+    async *[Symbol.asyncIterator]() { yield bytes.subarray(0, cut); yield bytes.subarray(cut); },
+  });
+  const res = resultResponse();
+  await handler(streamed, res);
+
+  assert.equal(res.statusCode, 200);
+  assert.equal(JSON.parse(JSON.parse(bodies[0]).messages[1].content).source.front, "Was regelt Übergewicht?");
+});
+
 test("route reports provider errors and timeouts without retrying or leaking details", async () => {
   let chatCalls = 0;
   const timeoutHandler = createCardVariantHandler({

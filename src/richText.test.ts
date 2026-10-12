@@ -1,10 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appendPlainTextToCardHtml, hasCardRichTextContent, normalizeRichTextForEditor, textToCardHtml } from "./richText.ts";
+import { appendPlainTextToCardHtml, hasCardRichTextContent, normalizeRichTextEditorHtml, normalizeRichTextForEditor, textToCardHtml } from "./richText.ts";
 
 test("rich text helpers convert plain text into card html", () => {
   assert.equal(textToCardHtml("Frage\nmit Zeile\n\nAntwortblock"), "<p>Frage<br>mit Zeile</p><p>Antwortblock</p>");
   assert.equal(normalizeRichTextForEditor("ATP"), "<p>ATP</p>");
+});
+
+test("DOM-Textknoten behalten HTML-Entities beim Speichern und erneuten Normalisieren", () => {
+  const html = normalizeRichTextEditorHtml("Portugal &amp; Spanien&nbsp;");
+  assert.equal(html, "<p>Portugal &amp; Spanien&nbsp;</p>");
+  assert.equal(normalizeRichTextEditorHtml(html), html);
+  assert.equal(normalizeRichTextForEditor(html), html);
+  assert.equal(normalizeRichTextEditorHtml("&lt;b&gt;\nZeile\n\nAbsatz"), "<p>&lt;b&gt;<br>Zeile</p><p>Absatz</p>");
+  assert.equal(normalizeRichTextEditorHtml('<p>Text<script>evil()</script></p>'), "<p>Text</p>");
+  assert.equal(textToCardHtml("&amp;"), "<p>&amp;amp;</p>");
 });
 
 test("rich text helpers detect meaningful editor content", () => {

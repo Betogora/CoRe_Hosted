@@ -27,6 +27,14 @@ export function normalizeRichTextForEditor(value = "") {
   return HTML_TAG_PATTERN.test(sanitized) ? sanitized : textToCardHtml(sanitized);
 }
 
+// DOM-serialisiertes HTML enthält bereits maskierte Textknoten. Diese dürfen
+// beim Ergänzen der Absatzstruktur nicht erneut als Klartext maskiert werden.
+export function normalizeRichTextEditorHtml(html = "") {
+  const sanitized = sanitizeCardHtml(html).replace(/\r\n?/g, "\n").trim();
+  if (!sanitized || HTML_TAG_PATTERN.test(sanitized)) return sanitized;
+  return sanitized.split(/\n{2,}/).map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br>")}</p>`).join("");
+}
+
 export function hasCardRichTextContent(value = "") {
   const sanitized = sanitizeCardHtml(value);
   if (MEDIA_TAG_PATTERN.test(sanitized)) return true;
