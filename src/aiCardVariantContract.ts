@@ -52,7 +52,7 @@ function withinRequestLimits(request: AiCardVariantRequest) {
  */
 export function createAiCardVariantRequest(source: { front: string; back: string } | null, avoid: string[] = []): AiCardVariantRequest {
   if (!source) {
-    throw new AiCardVariantContractError("unsupported_card_type", "KI-Varianten sind derzeit nur für Karten mit Frage und Antwort verfügbar.");
+    throw new AiCardVariantContractError("unsupported_card_type", "Varianten gibt es derzeit nur für Karten mit Frage und Antwort.");
   }
   const avoidTexts: string[] = [];
   let avoidChars = 0;
@@ -69,7 +69,7 @@ export function createAiCardVariantRequest(source: { front: string; back: string
     ...(avoidTexts.length ? { avoid: avoidTexts } : {}),
   });
   if (!parsed.success || !withinRequestLimits(parsed.output)) {
-    throw new AiCardVariantContractError("invalid_source", "Die Karte ist leer oder für eine kompakte KI-Variante zu lang.");
+    throw new AiCardVariantContractError("invalid_source", "Die Karte ist leer oder für eine kompakte Variante zu lang.");
   }
   return parsed.output;
 }

@@ -106,7 +106,7 @@ export async function runCardVariantBatch({
       await generate(cardId);
       result.created += 1;
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Die KI-Variante konnte nicht erstellt werden.";
+      const message = error instanceof Error ? error.message : "Die Variante konnte nicht generiert werden.";
       if (error instanceof AiCardVariantContractError && STOPPING_ERROR_CODES.has(error.code)) {
         result.stopped = { reason: "error", message };
         result.hasMore = true;

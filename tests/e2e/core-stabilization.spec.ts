@@ -894,7 +894,7 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
       usage: null,
     }),
   }));
-  await page.getByRole("button", { name: "KI-Variante erzeugen" }).click();
+  await page.getByRole("button", { name: "Variante generieren" }).click();
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0).toBe(variantsBefore + 1);
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants
     ?.find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?")?.back).toBe("Yamoussoukro");
@@ -904,8 +904,10 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);
+  await expect(page.getByTestId("review-variant-badge")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
+  await expect(page.getByTestId("review-variant-badge")).toHaveText("Kartenvariante");
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').locator("body")).toContainText("Yamoussoukro");
   await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(1);

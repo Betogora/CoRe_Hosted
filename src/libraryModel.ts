@@ -140,6 +140,18 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
+/**
+ * Rows of a page sorted by variants ascending, cut at the first card with an active variant; the cut also
+ * fixes the total, since all later pages only hold cards with variants.
+ */
+export function cardsWithoutVariants(items: CardCatalogEntry[], page: number, pageSize: number, totalCount: number) {
+  const withoutVariants = items.filter((entry) => !entry.hasActiveVariants);
+  return {
+    items: withoutVariants,
+    totalCount: withoutVariants.length < items.length ? page * pageSize + withoutVariants.length : Math.max(withoutVariants.length, totalCount),
+  };
+}
+
 export function createCardTableRow(entry: CardCatalogEntry, options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> = {}) {
   const nextStudyTimestamp = cardNextStudyTimestamp(entry, options);
   return {
@@ -148,7 +160,6 @@ export function createCardTableRow(entry: CardCatalogEntry, options: Pick<Librar
     frontPreview: entry.frontPreview.replace(/\s+/g, " ").trim() || "Leere Karte",
     nextStudyTimestamp,
     nextStudyLabel: Number.isFinite(nextStudyTimestamp) ? cardDueDateFormatter.format(nextStudyTimestamp) : "Neu",
-    hasActiveVariants: entry.hasActiveVariants,
   };
 }
 

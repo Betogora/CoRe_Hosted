@@ -90,6 +90,9 @@ test("deck content shows only its own cards without deck headings and uses the e
   const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, cardPages });
   assert.match(markup, /aria-label="Stapelinhalte"/);
   for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
+  assert.match(markup, /aria-label="Karten nach Variante filtern"/);
+  assert.match(markup, />Ohne Variante</);
+  assert.doesNotMatch(markup, /Für diese Karten Varianten generieren/, "the generation action appears only while the filter is on");
   assert.match(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Chemie|Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
   assert.match(markup, /aria-label="Biologie lernen"/);
@@ -329,10 +332,10 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.doesNotMatch(expandedMarkup, /<b>/);
   assert.match(expandedMarkup, /<tr[^>]*class="cursor-pointer border-b border-core-border[^"]*"[^>]*data-card-row="true"/);
   assert.doesNotMatch(expandedMarkup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
-  assert.match(expandedMarkup, /aria-label="Keine Varianten"/);
+  assert.match(expandedMarkup, /aria-label="Keine Variante"/);
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
   assert.doesNotMatch(expandedMarkup, /inline-block whitespace-nowrap rounded-round/);
-  assert.match(expandedMarkup, /aria-label="Keine Varianten"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
+  assert.match(expandedMarkup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
 
 test("cards page keeps logical chevrons while capping visual depth at level six", () => {
@@ -391,7 +394,7 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.doesNotMatch(markup, /Details und Herkunft|Version zum Wiederherstellen|Frühere Version wiederherstellen|Änderungslogeinträge|Details, Herkunft und Versionen/);
   assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
   assert.doesNotMatch(markup, /<details|<summary/);
-  assert.match(markup, /KI-Variante erzeugen/);
+  assert.match(markup, /Variante generieren/);
   assert.match(markup, /Sendet nur Frage und Antwort an GPT-6 Luna/);
   assert.match(markup, /Detailansicht schließen/);
   assert.doesNotMatch(markup, /Karten entfernen\?|Karte löschen\?|Synchronisierung klären/);
@@ -414,7 +417,7 @@ test("cards page shows suspended rows and marked stars beside the fixed-width va
   assert.match(markup, /data-testid="card-detail-aside"[^>]*\[scrollbar-gutter:stable\]/);
   const editorSurface = markup.match(/<section[^>]*data-testid="card-detail-editor"[^>]*>/)?.[0] ?? "";
   assert.match(editorSurface, /style="background-color:var\(--core-warning-surface\)"/);
-  assert.match(markup, /aria-label="Keine Varianten"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
+  assert.match(markup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
   const suspendControl = markup.match(/<div[^>]*aria-label="Aussetzstatus der Karte"[\s\S]*?<\/div>/)?.[0] ?? "";
   assert.match(suspendControl, /aria-pressed="true"[^>]*>Aussetzen/);
@@ -435,8 +438,8 @@ test("the mark belongs to the content and is shown on every card of the selected
       contentDeckId,
       cardPages: { [deck.id]: cardPage(deck.id, [marked], { selected: selectedOf(marked, forward.id) }) },
     });
-    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-check[^>]*aria-label="Varianten vorhanden"/);
-    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Varianten"/);
+    assert.match(markup, /aria-label="1 aktive Variante">1<\/span>/);
+    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Variante"/);
     assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
     assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
     assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
@@ -484,7 +487,7 @@ test("outdated AI rephrasings are labelled and offer a targeted regeneration", (
   const stale = { ...graph, cards: [outdated] };
   const markup = renderEditorFor(stale);
   assert.match(markup, />veraltet</);
-  assert.match(markup, />KI-Variante neu erzeugen</);
+  assert.match(markup, />Variante neu generieren</);
 });
 
 test("reported or switched-off variants can be reactivated; every variant can be deleted", () => {
@@ -545,7 +548,7 @@ test("detail editor renders one rich-text editor per content field plus choice o
   assert.match(clozeMarkup, /aria-label="Feld Text"/);
   assert.match(clozeMarkup, /aria-label="Feld Zusatzinfo"/);
   assert.match(clozeMarkup, /Lücken mit <code>\{\{c1::Begriff\}\}<\/code> markieren/);
-  assert.match(clozeMarkup, /KI-Umformulierungen sind nur für Karten mit Frage und Antwort verfügbar\./);
+  assert.match(clozeMarkup, /Varianten gibt es nur für Karten mit Frage und Antwort\./);
 
   const scMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "single-choice", front: "Welche?", back: "Darum", answerOptions: ["A", "B"], correctOptionIndices: [1], tags: [] }));
   assert.match(scMarkup, />Single Choice</);

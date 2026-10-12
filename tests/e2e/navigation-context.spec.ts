@@ -389,7 +389,7 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
     expect(geometry.headersFit).toBe(true);
     expect(geometry.dueLabels).toEqual(["23.08.2026", "Neu"]);
     expect(geometry.dueLabelsFit).toBe(true);
-    expect(geometry.variantLabels).toEqual(["Keine Varianten", "Varianten vorhanden"]);
+    expect(geometry.variantLabels).toEqual(["Keine Variante", "1 aktive Variante"]);
     expect(geometry.variantTagsFit).toBe(true);
     expect(geometry.variantTagsAligned).toBe(true);
     expect(geometry.markSlotWidths).toEqual([18, 18]);

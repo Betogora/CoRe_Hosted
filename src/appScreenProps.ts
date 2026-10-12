@@ -123,6 +123,9 @@ export interface DecksScreenProps {
   onUndoDeleteNote: (undo: NoteGraph, deleted: NoteGraph) => Promise<NoteGraph | null>;
   onRescheduleCards: (cardIds: string[], dueAt: string, occurredAt: string) => Promise<Card[]>;
   onGenerateVariant: (deckId: string, cardId: string) => Promise<AiCardVariantSuccess>;
+  /** Starts variants for the opened deck's cards without one; absent while generation is unavailable. */
+  onGenerateDeckVariants?: (deck: Deck) => unknown;
+  variantGenerationRunning?: boolean;
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;
   selectedCardId: string | null;

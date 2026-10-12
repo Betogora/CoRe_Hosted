@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
+import type { CardCatalogEntry } from "./workspaceReplica.ts";
 import {
   type CardTableSort,
+  cardsWithoutVariants,
   createCardTableModel,
   createDeckLibraryModel,
   createStudyHeatmapModel,
@@ -90,7 +92,7 @@ test("card table shows a placeholder preview for cards without a loaded note", (
   const deck = createDeckWithInactiveCards();
   const table = createCardTableModel([deck], { now: "2026-07-01T08:00:00.000Z" });
   assert.equal(table.groups[0].cardRows[0].frontPreview, "Leere Karte");
-  assert.equal(table.groups[0].cardRows[0].hasActiveVariants, true);
+  assert.equal(table.groups[0].cardRows[0].entry.hasActiveVariants, true);
 });
 
 test("library model projects deck hierarchies with aggregate parent summaries", () => {
@@ -432,7 +434,7 @@ test("card table sorts all columns and projects next-study labels and variant st
   const defaultRows = createCardTableModel([deck], { notesById }).groups[0].cardRows;
   assert.deepEqual(defaultRows.map((row) => row.id), ["card-new", "card-earlier", "card-later"]);
   assert.deepEqual(defaultRows.map((row) => row.nextStudyLabel), ["Neu", "10.08.2026", "20.09.2026"]);
-  assert.deepEqual(defaultRows.map((row) => row.hasActiveVariants), [false, true, false]);
+  assert.deepEqual(defaultRows.map((row) => row.entry.hasActiveVariants), [false, true, false]);
 
   for (const [cardSort, expected] of [
     [{ field: "sortField", direction: "desc" }, ["card-later", "card-earlier", "card-new"]],
@@ -693,4 +695,15 @@ test("library metrics, card dates and heatmap share the configured learning day"
   assert.equal(heatmap.todayKey, "2026-07-10");
   assert.equal(heatmap.countsByDay.get("2026-07-10"), 1);
   assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");
+});
+
+test("the variant filter cuts a variant-sorted page at the first card with a variant and fixes the total", () => {
+  const entry = (id: string, hasActiveVariants: boolean) => ({ id, hasActiveVariants } as CardCatalogEntry);
+  const mixed = cardsWithoutVariants([entry("a", false), entry("b", false), entry("c", true)], 1, 50, 120);
+  assert.deepEqual(mixed.items.map((item) => item.id), ["a", "b"]);
+  assert.equal(mixed.totalCount, 52);
+
+  const full = cardsWithoutVariants([entry("a", false), entry("b", false)], 0, 2, 120);
+  assert.equal(full.items.length, 2);
+  assert.equal(full.totalCount, 120, "a page without any variant keeps the known total so paging continues");
 });

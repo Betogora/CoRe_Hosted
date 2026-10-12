@@ -1,5 +1,5 @@
 import React from "react";
-import { Anchor, Ban, CheckCircle2, CircleAlert, RotateCcw, SlidersHorizontal, X } from "lucide-react";
+import { Anchor, Ban, CheckCircle2, CircleAlert, RotateCcw, Shuffle, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
@@ -477,7 +477,13 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
                     <>
                       {hasAnswerTools ? (
                         <div className="mt-8 rounded-panel border border-core-border bg-core-subtle p-4" data-testid="review-answer-tools">
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            {isCurrentVariant ? (
+                              <span className="inline-flex min-h-control items-center gap-2 rounded-control bg-core-surface px-3 core-body font-semibold text-core-secondary" data-testid="review-variant-badge">
+                                <Shuffle size={16} aria-hidden="true" />
+                                Kartenvariante
+                              </span>
+                            ) : null}
                             {isCurrentVariant ? (
                               <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action">
                                 <Anchor size={16} aria-hidden="true" />

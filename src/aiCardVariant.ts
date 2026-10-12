@@ -46,20 +46,20 @@ export async function requestAiCardVariant(
     body = await response.json().catch(() => null);
   } catch (error) {
     if (error instanceof Error && error.name === "TimeoutError") {
-      throw new AiCardVariantContractError("timeout", "Die KI hat nicht rechtzeitig geantwortet. Bitte versuche es erneut.");
+      throw new AiCardVariantContractError("timeout", "Die Generierung hat zu lange gedauert. Bitte versuche es erneut.");
     }
-    throw new AiCardVariantContractError("network_error", "Die KI-Variante konnte nicht angefordert werden. Prüfe deine Verbindung.");
+    throw new AiCardVariantContractError("network_error", "Die Variante konnte nicht angefordert werden. Prüfe deine Verbindung.");
   }
   if (!response.ok) {
     const parsedError = parseAiCardVariantError(body);
     throw new AiCardVariantContractError(
       parsedError.success ? parsedError.output.error.code : "request_failed",
-      parsedError.success ? parsedError.output.error.message : "Die KI-Variante konnte nicht erstellt werden.",
+      parsedError.success ? parsedError.output.error.message : "Die Variante konnte nicht generiert werden.",
     );
   }
 
   const parsed = parseAiCardVariantSuccess(body);
-  if (!parsed.success) throw new AiCardVariantContractError("invalid_response", "Die KI-Antwort hatte ein ungültiges Format.");
+  if (!parsed.success) throw new AiCardVariantContractError("invalid_response", "Die generierte Antwort hatte ein ungültiges Format.");
   return parsed.output;
 }
 
@@ -70,11 +70,11 @@ export function createAiGeneratedVariantDraft(
   generated: AiCardVariantSuccess,
 ) {
   if (!current) {
-    throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Erstellung geändert. Bitte starte die KI-Variante erneut.");
+    throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const currentSource = cardVariantSource(current.note, current.card);
   if (!currentSource || aiCardVariantSourceKey(createAiCardVariantRequest(currentSource).source) !== aiCardVariantSourceKey(createAiCardVariantRequest(source).source)) {
-    throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Erstellung geändert. Bitte starte die KI-Variante erneut.");
+    throw new AiCardVariantContractError("source_changed", "Die Karte wurde während der Generierung geändert. Bitte starte sie erneut.");
   }
   const variant = {
     front: normalizeAiCardText(generated.variant.front),
@@ -85,7 +85,7 @@ export function createAiGeneratedVariantDraft(
     front: normalizeAiCardText(candidate.front),
     back: normalizeAiCardText(candidate.back),
   }) === generatedKey);
-  if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Die KI hat eine schon vorhandene Formulierung geliefert. Bitte erneut versuchen.");
+  if (duplicate) throw new AiCardVariantContractError("duplicate_variant", "Diese Variante gibt es schon. Bitte erneut generieren.");
 
   return {
     ...variant,

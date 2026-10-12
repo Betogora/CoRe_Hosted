@@ -24,11 +24,9 @@ geglättet.
       scheitert lokal am Legacy-Builder (`@vercel/static-build` verlangt `yarn`).
 - [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
       (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
-      „neu generieren“ wechselt) und ein Einstieg in der Kartenverwaltung;
-      fehlgeschlagene Karten einzeln benennen und Stoppgründe in der Leiste kurz
-      halten (z. B. „Keine Verbindung“).
-- [ ] **Kennzeichnung:** Variantenzahl und Filter „ohne Variante“ in der
-      Kartentabelle, Abzeichen „KI-Variante“ im Lernen erst nach dem Aufdecken.
+      „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
+      zum Filter „Ohne Variante“; Stoppgründe in der Leiste kurz halten (z. B.
+      „Keine Verbindung“).
 
 ## Betrieb
 

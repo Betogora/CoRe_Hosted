@@ -235,7 +235,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
           {onGenerateVariants && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-4" data-testid="deck-settings-variant-generation">
               <div>
-                <p className="core-body font-semibold text-core-text">KI-Varianten</p>
+                <p className="core-body font-semibold text-core-text">Kartenvarianten</p>
                 <p className="mt-1 core-caption text-core-muted">{variantGenerationRunning ? "Es läuft bereits eine Generierung." : `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`}</p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -268,7 +268,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
       <ActionDialog
         open={refreshDialogOpen}
         title="Varianten neu generieren?"
-        description={`Karten, deren Varianten aus einer älteren Version der KI-Anweisung stammen, erhalten je eine neue Variante – bis zu ${CARD_VARIANT_BATCH_LIMIT} pro Durchgang. Ihre bisherigen Varianten werden dabei gelöscht, auch abgeschaltete und gemeldete. Lernstand und Karten bleiben unverändert.`}
+        description={`Karten, deren Varianten aus einer älteren Version der Generierung stammen, erhalten je eine neue Variante – bis zu ${CARD_VARIANT_BATCH_LIMIT} pro Durchgang. Ihre bisherigen Varianten werden dabei gelöscht, auch abgeschaltete und gemeldete. Lernstand und Karten bleiben unverändert.`}
         confirmLabel="Neu generieren"
         cancelLabel="Abbrechen"
         actionIcons={{ confirm: RefreshCw }}

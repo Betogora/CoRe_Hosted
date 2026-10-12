@@ -5,6 +5,17 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Kartenvarianten gekennzeichnet und filterbar
+
+- Begriffe: Oberfläche spricht von `Variante`/`Kartenvariante` und
+  `generieren` statt „KI-Variante“; nur der Datenschutzhinweis nennt das Modell.
+- Lernen: Nach dem Aufdecken steht vor den Variantenwerkzeugen die Marke
+  `Kartenvariante`; vor dem Aufdecken bleibt die Herkunft verborgen.
+- Kartenverwaltung: Spalte `Variante` zeigt die Zahl aktiver Varianten; Filter
+  `Ohne Variante` (Sortierung nach Variante, abgeschnitten an der ersten Karte
+  mit Variante, ohne Datenbankänderung) und in Stapelinhalten
+  `Für diese Karten Varianten generieren`.
+
 ## 2026-10-12 — KI-Varianten: Prompt v4, Neu-Generieren und vorhandene Varianten
 
 - Live-Probe mit einem 10-Karten-Teststapel: Prompt v2 lieferte korrekte, aber

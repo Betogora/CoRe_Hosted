@@ -233,13 +233,13 @@ export function classifyProviderError(status: number, payload: unknown): HttpErr
   const parsed = v.safeParse(providerErrorSchema, payload);
   const metadata = parsed.success ? parsed.output.error.metadata : undefined;
   if (status === 429) {
-    return new HttpError(429, "rate_limited", "Gerade wurden zu viele KI-Varianten angefordert. Bitte versuche es in einer Minute erneut.");
+    return new HttpError(429, "rate_limited", "Gerade wurden zu viele Varianten angefordert. Bitte versuche es in einer Minute erneut.");
   }
   if (status === 402 || (status === 403 && metadata?.limit_source)) {
-    return new HttpError(503, "provider_budget_exhausted", "Die KI-Funktion ist vorübergehend nicht verfügbar.");
+    return new HttpError(503, "provider_budget_exhausted", "Varianten können gerade nicht generiert werden.");
   }
   if (status === 401 || status === 403) {
-    return new HttpError(503, "openrouter_auth_failed", "Die KI-Funktion ist vorübergehend nicht verfügbar.");
+    return new HttpError(503, "openrouter_auth_failed", "Varianten können gerade nicht generiert werden.");
   }
   if (status === 400) {
     return new HttpError(502, "provider_request_rejected", "OpenRouter hat die Kartenanfrage abgelehnt.");
@@ -303,7 +303,7 @@ export function createCardVariantHandler({
     try {
       const token = parseBearerToken(req);
       await authenticateRequest(token);
-      if (!env.OPENROUTER_API_KEY) throw new HttpError(503, "missing_openrouter_api_key", "Die KI-Route ist noch nicht konfiguriert.");
+      if (!env.OPENROUTER_API_KEY) throw new HttpError(503, "missing_openrouter_api_key", "Die Variantengenerierung ist noch nicht eingerichtet.");
       const input = parseAiCardVariantRequest(await readJsonBody(req));
       if (!input.success) throw new HttpError(400, "invalid_request", "Die Basic-Karte ist leer, zu lang oder ungültig.");
 
@@ -319,7 +319,7 @@ export function createCardVariantHandler({
       json(res, status, {
         error: {
           code,
-          message: known ? error.message : "Die KI-Variante konnte nicht erstellt werden.",
+          message: known ? error.message : "Die Variante konnte nicht generiert werden.",
         },
       }, status === 401 ? { "WWW-Authenticate": "Bearer" } : {});
     }

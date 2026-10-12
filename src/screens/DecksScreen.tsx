@@ -11,7 +11,7 @@ import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
-import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, cardsWithoutVariants, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { catalogEntryFromCard, type CardCatalogEntry, type NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
@@ -133,7 +133,7 @@ function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteCo
   if (plan.newCards.length) parts.push(`${plan.newCards.length === 1 ? "1 neue Karte" : `${plan.newCards.length} neue Karten`} (${labels(plan.newCards, plan.note.content)})`);
   if (plan.removedCards.length) parts.push(`${plan.removedCards.length === 1 ? "1 Karte entfällt" : `${plan.removedCards.length} Karten entfallen`} (${labels(plan.removedCards, graph.note.content)})`);
   const outdated = outdatedVariantCount(graph, plan);
-  if (outdated) parts.push(outdated === 1 ? "1 KI-Umformulierung wird veraltet" : `${outdated} KI-Umformulierungen werden veraltet`);
+  if (outdated) parts.push(outdated === 1 ? "1 Variante wird veraltet" : `${outdated} Varianten werden veraltet`);
   return parts.length ? `Beim Speichern: ${parts.join(" · ")}.` : null;
 }
 
@@ -399,7 +399,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       setSaveStatus("");
       setSuccessToast(outdated === 0
         ? "Karte wurde erfolgreich gespeichert."
-        : `Karte wurde erfolgreich gespeichert. ${outdated === 1 ? "1 KI-Umformulierung ist veraltet und wird nicht mehr abgefragt." : `${outdated} KI-Umformulierungen sind veraltet und werden nicht mehr abgefragt.`}`);
+        : `Karte wurde erfolgreich gespeichert. ${outdated === 1 ? "1 Variante ist veraltet und wird nicht mehr abgefragt." : `${outdated} Varianten sind veraltet und werden nicht mehr abgefragt.`}`);
       return true;
     } catch {
       setSaveError(true);
@@ -460,14 +460,14 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     setSuccessToast("");
     setIsGeneratingVariant(true);
     setVariantStatusWarning(false);
-    setVariantStatus("KI-Variante wird erzeugt …");
+    setVariantStatus("Variante wird generiert …");
     try {
       await onGenerateVariant(card.id);
       setVariantStatus("");
-      setSuccessToast(hasOutdatedVariants ? "Veraltete KI-Umformulierung wurde ersetzt." : "KI-Variante wurde erfolgreich erstellt.");
+      setSuccessToast(hasOutdatedVariants ? "Veraltete Variante wurde ersetzt." : "Variante wurde generiert.");
     } catch (error) {
       setVariantStatusWarning(true);
-      setVariantStatus(error instanceof Error ? error.message : "Die KI-Variante konnte nicht erstellt werden.");
+      setVariantStatus(error instanceof Error ? error.message : "Die Variante konnte nicht generiert werden.");
     } finally {
       setIsGeneratingVariant(false);
     }
@@ -759,12 +759,12 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             disabled={!eligibility?.eligible || isGeneratingVariant}
             onClick={() => void generateVariant()}
           >
-            {hasOutdatedVariants ? "KI-Variante neu erzeugen" : variants.length ? "Weitere KI-Variante erzeugen" : "KI-Variante erzeugen"}
+            {hasOutdatedVariants ? "Variante neu generieren" : variants.length ? "Weitere Variante generieren" : "Variante generieren"}
           </ActionButton>
           <p className="min-w-0 flex-1 basis-56 core-caption text-core-muted">
             {eligibility?.eligible
               ? "Sendet nur Frage und Antwort an GPT-6 Luna; der Anbieter speichert nichts."
-              : eligibility?.reasons[0] ?? "KI-Varianten sind für diese Karte nicht verfügbar."}
+              : eligibility?.reasons[0] ?? "Varianten sind für diese Karte nicht verfügbar."}
           </p>
         </div>
         {variantStatus ? <p className={`mt-2 core-body ${variantStatusWarning ? "text-core-warning" : "text-core-muted"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
@@ -772,7 +772,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       <ActionDialog
         open={Boolean(pendingVariantDeletion)}
         title="Variante löschen?"
-        description="Die Umformulierung wird auf allen Geräten entfernt. Grundkarte und Lernstand bleiben unverändert."
+        description="Die Variante wird auf allen Geräten entfernt. Grundkarte und Lernstand bleiben unverändert."
         confirmLabel="Variante löschen"
         cancelLabel="Behalten"
         destructive
@@ -818,12 +818,13 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   );
 }
 
+const VARIANT_FILTER_SORT: CardTableSort = { field: "variants", direction: "asc" };
+
 interface CardTableRowViewProps {
   deckId: string;
   card: CardCatalogEntry;
   frontPreview: string;
   nextStudyLabel: string;
-  hasActiveVariants: boolean;
   selected: boolean;
   marked: boolean;
   syncConflict: boolean;
@@ -831,7 +832,7 @@ interface CardTableRowViewProps {
 }
 
 /** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
-const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, hasActiveVariants, selected, marked, syncConflict, onSelect }: CardTableRowViewProps) {
+const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, syncConflict, onSelect }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
   return (
     <tr
@@ -862,9 +863,9 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
       </td>
       <td className="min-w-0 px-1 py-1 text-right align-middle">
         <span className="inline-flex items-center justify-end gap-1 align-middle">
-          {hasActiveVariants
-            ? <Check size={18} className="shrink-0 text-core-muted" role="img" aria-label="Varianten vorhanden" />
-            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Varianten" />}
+          {card.activeVariantCount > 0
+            ? <span className="min-w-[1.125rem] text-center core-body font-semibold text-core-secondary" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
+            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
           <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
@@ -896,6 +897,8 @@ export function DecksScreen({
   onUndoDeleteNote,
   onRescheduleCards,
   onGenerateVariant,
+  onGenerateDeckVariants,
+  variantGenerationRunning = false,
   onUpdateVariant,
   onMoveDeck,
   onOpenLearn,
@@ -928,7 +931,11 @@ export function DecksScreen({
     return () => window.clearTimeout(timer);
   }, [deferredQuery, query]);
   const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
-  const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
+  const [chosenSort, setChosenSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
+  const [withoutVariants, setWithoutVariants] = React.useState(false);
+  // Neither the local catalog nor the cloud search filter by variants; sorting cards without one first and
+  // cutting at the first card with a variant gives the same rows on both paths.
+  const cardSort = React.useMemo<CardTableSort>(() => withoutVariants ? VARIANT_FILTER_SORT : chosenSort, [chosenSort, withoutVariants]);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
@@ -957,8 +964,12 @@ export function DecksScreen({
       const candidate = cardPages?.[group.id];
       const page = candidate && candidate.query === deferredQuery && sameSort(candidate.sort, cardSort) ? candidate : undefined;
       const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
-      const items = (page?.items ?? []).slice(0, pageSize);
-      const totalCardCount = Math.max(items.length, Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : deckSummaries?.get(group.id)?.inventory.totalCards ?? 0)));
+      const pageItems = (page?.items ?? []).slice(0, pageSize);
+      const knownTotal = Math.floor(page?.totalCount ?? (normalizedQuery || withoutVariants ? 0 : deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
+      const { items, totalCount } = withoutVariants
+        ? cardsWithoutVariants(pageItems, Math.floor(page?.page ?? 0), pageSize, knownTotal)
+        : { items: pageItems, totalCount: knownTotal };
+      const totalCardCount = Math.max(items.length, totalCount);
       const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
       const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
       const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(group.path).includes(normalizedQuery);
@@ -984,7 +995,7 @@ export function DecksScreen({
       groups,
       cardSort,
     };
-  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
+  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages, withoutVariants]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
@@ -1164,7 +1175,8 @@ export function DecksScreen({
 
   function changeSort(field: CardTableSortField) {
     setCardPageByDeckId({});
-    setCardSort((current) => current.field === field
+    setWithoutVariants(false);
+    setChosenSort((current) => current.field === field
       ? { field, direction: current.direction === "asc" ? "desc" : "asc" }
       : { field, direction: "asc" });
   }
@@ -1373,6 +1385,19 @@ export function DecksScreen({
                 />
               </CoreTooltip> : null}
             </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <CoreSegmentedControl
+                ariaLabel="Karten nach Variante filtern"
+                value={withoutVariants ? "without" : "all"}
+                options={[{ value: "all", label: "Alle Karten" }, { value: "without", label: "Ohne Variante" }]}
+                onValueChange={(value) => { setWithoutVariants(value === "without"); setCardPageByDeckId({}); }}
+              />
+              {withoutVariants && contentDeck && onGenerateDeckVariants ? (
+                <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateDeckVariants(contentDeck)}>
+                  Für diese Karten Varianten generieren
+                </ActionButton>
+              ) : null}
+            </div>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-control border border-core-border bg-core-subtle p-3">
@@ -1448,14 +1473,13 @@ export function DecksScreen({
                       </td>
                     </tr>
                   ) : null}
-                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel, hasActiveVariants }) => (
+                  {expanded && group.cardRows.length ? <>{group.cardRows.map(({ entry: card, frontPreview, nextStudyLabel }) => (
                     <CardTableRowView
                       key={card.id}
                       deckId={group.id}
                       card={card}
                       frontPreview={frontPreview}
                       nextStudyLabel={nextStudyLabel}
-                      hasActiveVariants={hasActiveVariants}
                       selected={selectedCardId === card.id}
                       marked={selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
                       syncConflict={Boolean(syncConflictCardIds?.has(card.id))}

@@ -375,12 +375,12 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
   });
 
   await expect(page.getByTestId("card-variant-tools")).toBeVisible();
-  const generateButton = page.getByRole("button", { name: "KI-Variante erzeugen" });
+  const generateButton = page.getByRole("button", { name: "Variante generieren" });
   await generateButton.click();
   await expect(generateButton).toBeDisabled();
-  await expect(page.getByText("KI-Variante wird erzeugt …", { exact: true })).toBeVisible();
+  await expect(page.getByText("Variante wird generiert …", { exact: true })).toBeVisible();
   releaseProvider();
-  await expect(page.getByRole("status").filter({ hasText: "KI-Variante wurde erfolgreich erstellt." }).last()).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Variante wurde generiert." }).last()).toBeVisible();
 
   await expect.poll(async () => {
     const state = await readActiveAccountState(page);

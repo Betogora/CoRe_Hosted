@@ -1314,7 +1314,7 @@ export function App() {
     const saved = await workspaceRepository.updateCard(cardId, (card) => mode === "refresh"
       ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
       : replaceOutdatedVariants(card, input));
-    if (!saved) throw new AiCardVariantContractError("save_failed", "Die KI-Variante konnte nicht gespeichert werden.");
+    if (!saved) throw new AiCardVariantContractError("save_failed", "Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     return generated;
   }
@@ -1625,6 +1625,8 @@ export function App() {
           onUndoDeleteNote={undoDeleteDeckNote}
           onRescheduleCards={rescheduleDeckCards}
           onGenerateVariant={generateDeckCardVariant}
+          onGenerateDeckVariants={workspaceHydrationService ? (deck) => variantBatch.start(deck) : undefined}
+          variantGenerationRunning={variantBatch.running}
           onUpdateVariant={updateDeckCardVariant}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
@@ -1952,7 +1954,7 @@ export function App() {
         title={`CoRe für „${coreEnableDeck?.name ?? ""}“ einschalten`}
         description={(
           <div className="grid gap-3">
-            <p>CoRe fragt Karten ab einer Lernstufe auch umformuliert ab, damit du das Wissen statt des Wortlauts lernst. Die Umformulierungen erzeugt eine KI.</p>
+            <p>CoRe fragt Karten ab einer Lernstufe auch umformuliert ab, damit du das Wissen statt des Wortlauts lernst. Die Varianten werden automatisch generiert.</p>
             <ul className="grid list-disc gap-1 pl-5 core-body text-core-muted">
               <li>Varianten erscheinen beim Lernen erst, wenn eine Karte die Lernstufe des Stapels erreicht.</li>
               <li>Nur der bereinigte Text von Frage und Antwort geht an GPT-6 Luna; der Anbieter speichert ihn nicht.</li>

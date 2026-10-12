@@ -54,7 +54,7 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   const settings = createDefaultDeckSettings(deckSettings);
   const reasons: string[] = [];
   if (settings.coreMode === "off") reasons.push("Content Repetition ist für diesen Stapel ausgeschaltet.");
-  if (note.content.interaction.kind !== "reveal") reasons.push("KI-Umformulierungen sind nur für Karten mit Frage und Antwort verfügbar.");
+  if (note.content.interaction.kind !== "reveal") reasons.push("Varianten gibt es nur für Karten mit Frage und Antwort.");
   else if (!cardVariantSource(note, card)) reasons.push("Frage oder Antwort fehlt.");
   if (getActiveVariants(card).length >= settings.maxActiveVariantsPerCard) {
     reasons.push(`Die Karte hat bereits ${settings.maxActiveVariantsPerCard === 1 ? "eine aktive Variante" : `${settings.maxActiveVariantsPerCard} aktive Varianten`}; mehr erlaubt der Stapel nicht.`);

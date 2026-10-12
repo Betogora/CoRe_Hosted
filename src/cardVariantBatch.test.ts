@@ -86,10 +86,10 @@ test("batch keeps going after a single failed card but stops at errors every car
   const budget = await runCardVariantBatch({
     source: deck([1, 2, 3].map(basic)).source,
     deckSettings: coreOn,
-    generate: async () => { calls += 1; throw new AiCardVariantContractError("provider_budget_exhausted", "Die KI-Funktion ist vorübergehend nicht verfügbar."); },
+    generate: async () => { calls += 1; throw new AiCardVariantContractError("provider_budget_exhausted", "Varianten können gerade nicht generiert werden."); },
   });
   assert.equal(calls, 1);
-  assert.deepEqual(budget.stopped, { reason: "error", message: "Die KI-Funktion ist vorübergehend nicht verfügbar." });
+  assert.deepEqual(budget.stopped, { reason: "error", message: "Varianten können gerade nicht generiert werden." });
   assert.equal(budget.hasMore, true);
 });
 
@@ -132,7 +132,7 @@ test("summary sends clean results to a toast and keeps failures and stops in the
   assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 0 }), { kind: "toast", message: "Keine Karte ohne Variante gefunden." });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 1, stopped: { reason: "cancelled" } }), { kind: "toast", message: "Abgebrochen. 1 Variante generiert." });
   assert.deepEqual(summarizeCardVariantBatch({ ...base, failed: 1 }), { kind: "bar", message: "3 Varianten generiert, 1 fehlgeschlagen" });
-  assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 2, stopped: { reason: "error", message: "Die KI-Funktion ist vorübergehend nicht verfügbar." } }), { kind: "bar", message: "Gestoppt nach 2 Varianten: Die KI-Funktion ist vorübergehend nicht verfügbar." });
+  assert.deepEqual(summarizeCardVariantBatch({ ...base, created: 2, stopped: { reason: "error", message: "Varianten können gerade nicht generiert werden." } }), { kind: "bar", message: "Gestoppt nach 2 Varianten: Varianten können gerade nicht generiert werden." });
 });
 
 test("refresh replaces only variants from an older prompt version and ignores the deck maximum", async () => {
