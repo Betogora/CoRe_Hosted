@@ -22,3 +22,7 @@ der begleiteten Beta. Ausführbare Gates und Releaseabläufe stehen in
       prüfen und in `history.md` dokumentieren.
 - [ ] Für mindestens ein Kernsignal realen Alarmempfang ohne Nutzerinhalte
       nachweisen.
+
+- [ ] Den authentifizierten adaptiven Prüfungsplanungs-E2E mit zwei
+      überschneidenden Prüfungen, Terminänderung und erhaltenen Reviews gegen
+      lokales Supabase ausführen; Browserfixture ersetzt diesen Nachweis nicht.

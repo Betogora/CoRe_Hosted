@@ -138,7 +138,7 @@ async function expectDeckOptionUsesFullWidth(option: Locator) {
   })).toBe(true);
 }
 
-test("dashboard shows the full shared tree, donut and direct drag-and-drop", async ({ page }) => {
+test("dashboard shows the full shared tree without donut and direct drag-and-drop", async ({ page }) => {
   await resetToFreshLocalState(page);
 
   const rootRow = page.getByTestId(`dashboard-deck-row-${DECK_IDS.root}`);
@@ -149,7 +149,7 @@ test("dashboard shows the full shared tree, donut and direct drag-and-drop", asy
   await expect(metric(rootRow, "new")).toContainText("Neu");
   await expect(metric(rootRow, "in-progress")).toContainText("Offen");
   await expect(metric(rootRow, "due")).toContainText("Fällig");
-  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
+  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toHaveCount(0);
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   const rootActivation = rootRow.getByRole("button", { name: "Inhalte von Welt-Hauptstädte öffnen" });
@@ -342,11 +342,9 @@ test("active deck header and rows fit every target width and toggle reliably on 
       ));
       const rowStatusColumns = [
         ...firstRow.querySelectorAll<HTMLElement>("[data-deck-count]"),
-        firstRow.querySelector<HTMLElement>(".core-donut-responsive")!,
       ];
       const headerStatusColumns = [
         ...tableHeader.querySelectorAll<HTMLElement>(".core-deck-summary-count"),
-        tableHeader.querySelector<HTMLElement>(".core-deck-summary-header-donut")!,
       ];
       const centers = (columns: HTMLElement[]) => columns.map((column) => {
         const rect = column.getBoundingClientRect();
@@ -381,7 +379,6 @@ test("active deck header and rows fit every target width and toggle reliably on 
         nameWidth: name.getBoundingClientRect().width,
         iconWidth: icon.getBoundingClientRect().width,
         metricWidth: rowStatusColumns[0].getBoundingClientRect().width,
-        donutWidth: rowStatusColumns.at(-1)!.getBoundingClientRect().width,
         collapseControlSize: [collapseControlRect.width, collapseControlRect.height],
         collapseSurfaceSize: [collapseSurfaceWidth, Number.parseFloat(collapseControlSurface.height)],
         collapseSurfaceIconGap: rootParentIconRect.left - collapseSurfaceLeft - collapseSurfaceWidth,
@@ -413,14 +410,11 @@ test("active deck header and rows fit every target width and toggle reliably on 
     expect(layout.headerRowAlignment).toBeLessThanOrEqual(1);
     if (layout.summaryWidth <= 512) {
       expect(layout.metricWidth).toBeCloseTo(24, 0);
-      expect(layout.donutWidth).toBeCloseTo(24, 0);
       expect(layout.nameWidth).toBeGreaterThan(0);
     } else if (layout.summaryWidth < 768) {
       expect(layout.metricWidth).toBeCloseTo(44, 0);
-      expect(layout.donutWidth).toBeCloseTo(32, 0);
     } else {
       expect(layout.metricWidth).toBeCloseTo(80, 0);
-      expect(layout.donutWidth).toBeCloseTo(40, 0);
     }
     if (width >= 700) expect(layout.nameWidth).toBeGreaterThanOrEqual(layout.iconWidth);
   }
@@ -445,7 +439,7 @@ test("learning rows activate directly while expand and settings remain independe
   await expect(metric(rootRow, "new").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "in-progress").locator("dt")).toHaveClass(/sr-only/);
   await expect(metric(rootRow, "due").locator("dt")).toHaveClass(/sr-only/);
-  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toBeVisible();
+  await expect(rootRow.getByLabel(/Gesamtfortschritt/)).toHaveCount(0);
   await expect(europeRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   await expect(europeRow.getByRole("button", { name: "Welt-Hauptstädte / Europa lernen" })).toBeVisible();
   await expect(europeRow.getByRole("button", { name: /^Lernen$/ })).toHaveCount(0);

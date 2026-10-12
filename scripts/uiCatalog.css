@@ -20,6 +20,8 @@ body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-index: 79; }
 body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index: 80; }
 .catalog-product-preview { position: fixed; inset: 0; z-index: 70; overflow-y: auto; overflow-x: hidden; background: var(--core-canvas); }
+body:has(.catalog-product-preview) > [data-radix-popper-content-wrapper] { z-index: 100 !important; }
+body:has(.catalog-product-preview) > [data-testid="action-dialog-backdrop"] { z-index: 90; }
 .catalog-product-bar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 10px; background: var(--core-canvas); }
 .catalog-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .catalog-two, .catalog-three { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
@@ -62,4 +64,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
   .catalog-two, .catalog-type-row { grid-template-columns: 1fr; }
   .catalog-type-row small { grid-column: 1; }
   .catalog-card-types { padding: 24px 16px 60px; }
+}
+.catalog-product-preview [data-deck-content-navigation="true"],
+.catalog-product-preview .core-deck-folder-expansion {
+  scroll-margin-top: calc(var(--core-control-height) + 2 * var(--core-space-xl)) !important;
 }

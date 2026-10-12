@@ -6,7 +6,7 @@ import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
-import { CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
@@ -15,6 +15,11 @@ import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+
+const ExamPlanningOverview = React.lazy(() => import("./ExamPlanningOverview.tsx").then((module) => ({ default: module.ExamPlanningOverview })));
+function ExamPlanningCard(props: Pick<DashboardScreenProps, "state" | "now" | "onLoadExamDecks" | "onSaveExamPlan" | "onDeleteExamPlan" | "onStartExamPlan">) {
+  return <React.Suspense fallback={<p role="status" className="core-body text-core-muted">Prüfungsplanung wird geladen.</p>}><ExamPlanningOverview {...props} /></React.Suspense>;
+}
 
 function formatHeatmapDate(key: string) {
   const [year, month, date] = key.split("-");
@@ -234,7 +239,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded }: DashboardScreenProps) {
+export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onLoadExamDecks, onSaveExamPlan, onDeleteExamPlan, onStartExamPlan }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
     () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries, studyHeatmap: loadedHeatmap }),
@@ -274,6 +279,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
             ))}
           </ul>
         </SoftPanel>
+        <ExamPlanningCard state={state} now={now} onLoadExamDecks={onLoadExamDecks} onSaveExamPlan={onSaveExamPlan} onDeleteExamPlan={onDeleteExamPlan} onStartExamPlan={onStartExamPlan} />
       </div>
     );
   }
@@ -290,6 +296,8 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
       />
 
       <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />
+
+      <ExamPlanningCard state={state} now={now} onLoadExamDecks={onLoadExamDecks} onSaveExamPlan={onSaveExamPlan} onDeleteExamPlan={onDeleteExamPlan} onStartExamPlan={onStartExamPlan} />
 
       <DeckTree
         rows={library.rows}

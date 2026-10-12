@@ -1,6 +1,6 @@
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
-import { BookOpen, ChevronRight, Home, Info, Layers, Plus, Save, Settings, Trash2, Type } from "lucide-react";
+import { BookOpen, ChevronRight, Home, Info, LayoutGrid, Layers, List, Plus, Save, Settings, Trash2, Type } from "lucide-react";
 import { createBasicLearningItem, createReviewState, createCoreDeck, createCoreNoteTypeDefinition, createManualCoreDeck } from "../src/coreModel.ts";
 import type { CardType, CoreMode, NewReviewOrder } from "../src/coreTypes.ts";
 import { createDeckLibraryModel } from "../src/libraryModel.ts";
@@ -23,6 +23,7 @@ import { DeckAppearanceIcon } from "../src/ui/deckAppearance.tsx";
 import { DeckOptionsMenu } from "../src/ui/DeckOptionsMenu.tsx";
 import { DeckSummaryHeader, DeckSummaryRow } from "../src/ui/DeckSummaryRow.tsx";
 import { DeckTree } from "../src/ui/DeckTree.tsx";
+import { DeckExplorer } from "../src/ui/DeckExplorer.tsx";
 import { DailyReviewProgress } from "../src/ui/DailyReviewProgress.tsx";
 import { StudyHeatmap } from "../src/ui/StudyHeatmap.tsx";
 import { PomodoroProgress, PomodoroTimerControl } from "../src/ui/pomodoroTimerUi.tsx";
@@ -47,11 +48,19 @@ import { projectStatistics, type StatisticsSelection } from "../src/statisticsMo
 import { createMenuModel } from "../src/menuModel.ts";
 import { createCoreRepository } from "../src/coreRepository.ts";
 import { getGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
-import { createViewRoute } from "../src/appNavigation.ts";
+import { createViewRoute, type DeckContentTab } from "../src/appNavigation.ts";
 import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
+import { ExamPlanningPanel } from "../src/screens/ExamPlanningPanel.tsx";
+import { ExamPlanningOverview } from "../src/screens/ExamPlanningOverview.tsx";
+import { removeExamLearningPlan, withExamLearningPlan } from "../src/examPlanSettings.ts";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
+import { generatedSummaryHtml, prepareSummaryMaterial, type SummaryGenerationInput, type SummaryGenerationResult } from "../src/aiLearningSummary.ts";
+import { AI_LEARNING_SUMMARY_PROMPT_VERSION, type AiLearningSummarySuccess } from "../src/aiLearningSummaryContract.ts";
+import { DeckSummariesPanel } from "../src/screens/DeckSummariesPanel.tsx";
+import { DeckMindMapsPanel } from "../src/screens/DeckMindMapsPanel.tsx";
+import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary } from "../src/learningSummaries.ts";
 import { SettingsScreen } from "../src/screens/SettingsScreen.tsx";
 import { GlobalCardSettingsScreen } from "../src/screens/GlobalCardSettingsScreen.tsx";
 import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
@@ -68,7 +77,17 @@ child.id = "catalog-europe";
 child.cards = child.cards.map((card) => ({ ...card, deckId: child.id }));
 child.parentDeckId = deck.id;
 child.hierarchyPath = [deck.name, child.name];
-const sampleDecks = [deck, child, ...["Biologie", "Medizin", "Sprachen", "Geschichte"].map((name, index) => ({ ...deck, id: `catalog-${index}`, parentDeckId: null, name, hierarchyPath: [name], cards: [] }))];
+const grandchild = createManualCoreDeck({ deckName: "Portugal", card: { cardType: "basic", front: "Hauptstadt", back: "Lissabon" } });
+grandchild.id = "catalog-portugal";
+grandchild.parentDeckId = child.id;
+grandchild.hierarchyPath = [deck.name, child.name, grandchild.name];
+grandchild.cards = grandchild.cards.map((card) => ({ ...card, deckId: grandchild.id }));
+const sibling = createManualCoreDeck({ deckName: "Afrika", card: { cardType: "basic", front: "Hauptstadt von Ägypten", back: "Kairo" } });
+sibling.id = "catalog-africa";
+sibling.parentDeckId = deck.id;
+sibling.hierarchyPath = [deck.name, sibling.name];
+sibling.cards = sibling.cards.map((card) => ({ ...card, deckId: sibling.id }));
+const sampleDecks = [deck, child, grandchild, sibling, ...["Biologie", "Medizin", "Sprachen", "Geschichte"].map((name, index) => ({ ...deck, id: `catalog-${index}`, parentDeckId: null, name, hierarchyPath: [name], cards: [] }))];
 
 export function Demo({ title, children, wide = false }: { title: string; children: React.ReactNode; wide?: boolean }) {
   return <article className={`catalog-demo${wide ? " catalog-demo-wide" : ""}`}><h3>{title}</h3><div className="catalog-demo-content">{children}</div></article>;
@@ -166,15 +185,19 @@ function DecksDemo({ section }: { section: string }) {
   const [decks, setDecks] = useState(sampleDecks);
   const [collapsed, setCollapsed] = useState<string[]>([]);
   const [treeMode, setTreeMode] = useState<"dashboard" | "learn">("dashboard");
+  const [explorerDeckId, setExplorerDeckId] = useState<string | null>(null);
   const toast = useSuccessToast();
   const rows = createDeckLibraryModel(decks, { now: `${today}T12:00:00Z`, timeZone: "Europe/Berlin" }).rows;
   const row = rows.find((entry) => entry.id === deck.id)!;
   function mode(id: string, coreMode: CoreMode) { setDecks((current) => current.map((entry) => entry.id === id ? { ...entry, deckSettings: { ...entry.deckSettings, coreMode } } : entry)); }
   function move(id: string, parentDeckId: string | null) { setDecks((current) => current.map((entry) => entry.id === id ? { ...entry, parentDeckId } : entry)); return null; }
   return <>
-    {section === "stapel" && <Demo title="DeckSummaryHeader und DeckSummaryRow · verfügbare Breite" wide><DeckSummaryHeader /><DeckSummaryRow row={row} density="responsive" leadingControl={<ChevronRight size={18} />} actions={<IconButton label="Stapeloptionen" icon={Settings} variant="ghost" />} learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: "sr-only" }} studyAction={<IconButton label="Jetzt lernen" icon={BookOpen} variant="ghost" />} /></Demo>}
+    {section === "stapel" && <Demo title="DeckSummaryHeader und DeckSummaryRow · Kennzahlen ohne Fortschrittsring" wide><DeckSummaryHeader /><DeckSummaryRow row={row} density="responsive" leadingControl={<ChevronRight size={18} />} actions={<IconButton label="Stapeloptionen" icon={Settings} variant="ghost" />} learningStatus={{ summary: row.summary, metricLabels: "sr-only" }} studyAction={<IconButton label="Jetzt lernen" icon={BookOpen} variant="ghost" />} /></Demo>}
     {section === "stapel" && <Demo title="DeckOptionsMenu"><DeckOptionsMenu row={row} decks={decks} onSetCoreMode={mode} onMoveDeck={move} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} /></Demo>}
-    {section === "stapel" && <Demo title="DeckTree · gemeinsamer Baumrenderer" wide><CoreSelect ariaLabel="Baumkontext" value={treeMode} onValueChange={(value) => setTreeMode(value as typeof treeMode)} options={[{ value: "dashboard", label: "Dashboard" }, { value: "learn", label: "Lernen" }]} /><DeckTree rows={rows} mode={treeMode} onActivate={(entry) => toast(`Inhalt: ${entry.name}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => expanded ? current.filter((value) => value !== id) : [...current, id])} /></Demo>}
+    {section === "stapel" && <Demo title="DeckExplorer · Navigation und bestehende Liste" wide><CoreSelect ariaLabel="Baumkontext" value={treeMode} onValueChange={(value) => setTreeMode(value as typeof treeMode)} options={[{ value: "dashboard", label: "Dashboard" }, { value: "learn", label: "Lernen" }]} /><DeckExplorer rows={rows} mode="learn" selectedDeckId={explorerDeckId} onSelectDeck={setExplorerDeckId} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => { const ids = new Set(typeof id === "string" ? [id] : id); return expanded ? current.filter((value) => !ids.has(value)) : [...new Set([...current, ...ids])]; })}><DeckTree rows={rows} mode={treeMode}  onActivate={(entry) => toast(`Inhalt: ${entry.name}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => {
+      const ids = new Set(typeof id === "string" ? [id] : id);
+      return expanded ? current.filter((value) => !ids.has(value)) : [...new Set([...current, ...ids])];
+    })} /></DeckExplorer></Demo>}
     {section === "charts" && <Demo title="StudyHeatmap · Woche, Monat, Jahr und Prognose" wide><StudyHeatmap heatmap={createStudyHeatmapModelFromCounts({ todayKey: today, countsByDay: new Map([["2026-09-27", 3], ["2026-09-28", 8], ["2026-09-29", 12], ["2026-09-30", 5], ["2026-10-01", 7], [today, 11]]), forecastCountsByDay: new Map([["2026-10-03", 10], ["2026-10-05", 20], ["2026-11-02", 35]]) })} formatDayLabel={(day) => `${day.key}: ${day.count} gelernt, ${day.forecastCount} voraussichtlich fällig`} /></Demo>}
   </>;
 }
@@ -265,8 +288,62 @@ function LearningDemo({ section }: { section: string }) {
   </>;
 }
 
+async function generateSummaryDemo(input: SummaryGenerationInput, signal: AbortSignal, mode = "success"): Promise<SummaryGenerationResult> {
+  await new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, mode === "slow" ? 15_000 : 300);
+    const abort = () => { window.clearTimeout(timer); reject(new Error("Erstellung abgebrochen.")); };
+    if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
+  });
+  if (mode === "error") throw new Error("Der KI-Dienst ist momentan nicht erreichbar. Deine Auswahl bleibt erhalten.");
+  const material = prepareSummaryMaterial([deck], input.deckId, input.title, input.settings, input.source);
+  const result: AiLearningSummarySuccess = {
+    summary: { sections: material.request.units.slice(0, 3).map((unit) => ({
+      heading: unit.label, paragraphs: input.settings.format === "bullets" ? [] : [unit.text],
+      points: input.settings.format === "bullets" ? [unit.text] : [], references: [unit.id],
+    })), warnings: ["Diese Katalogfassung ist eine simulierte KI-Antwort und dient ausschließlich der UI-Prüfung."] },
+    model: "catalog/demo", privacyMode: "zdr", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null,
+  };
+  return { html: generatedSummaryHtml(result, material), generation: { model: result.model, privacyMode: result.privacyMode, promptVersion: result.promptVersion, generatedAt: new Date().toISOString(), materialUnits: material.request.units.length } };
+}
+
+function SummaryContentDemo() {
+  const [simulation, setSimulation] = useState("success");
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function show() {
+    setBusy(true); setError("");
+    try {
+      if (!(await loadLearningSummaries("catalog-summaries", deck.id)).length) {
+        for (const [title, text] of [
+          ["Europa im Überblick", "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><p>Diese Zusammenfassung ist ein lokales Beispiel für die Listenvorschau.</p>"],
+          ["Vor der nächsten Wiederholung", "<p>Rufe die Hauptstadt zu jedem Land zunächst selbst ab. Vergleiche deine Antwort anschließend mit der Karte.</p>"],
+        ]) {
+          await saveLearningSummary("catalog-summaries", { ...createLearningSummary(deck.id, title, createSummarySettings()), html: text });
+        }
+      }
+      setOpen(true);
+    } catch { setError("Die lokale Zusammenfassungs-Demo konnte nicht geladen werden."); }
+    finally { setBusy(false); }
+  }
+  return <Demo title="Zusammenfassungen · Liste, direktes Formular und Editor" wide><p className="catalog-pattern-source">Echte lokale Produktansicht mit zwei ausdrücklich geladenen Beispielen. KI-Antworten werden ausdrücklich simuliert. Schreiben und Speichern bleiben auf dem Demo-Konto dieses Browsers.</p><ActionButton variant="secondary" loading={busy} onClick={() => void show()}>Zusammenfassungen öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><label className="core-field-group mb-4"><span className="core-field-label">KI-Demoantwort</span><CoreSelect ariaLabel="KI-Demoantwort" value={simulation} options={[{ value: "success", label: "Erfolgreich" }, { value: "error", label: "Fehler" }, { value: "slow", label: "Langsam mit Abbruch" }]} onValueChange={setSimulation}/></label><DeckSummariesPanel deck={deck} userId="catalog-summaries" onGenerateSummary={(input, signal) => generateSummaryDemo(input, signal, simulation)} onDraftStateChange={() => undefined}/></div>}</Demo>;
+}
+
+function MindMapContentDemo() {
+  const [open, setOpen] = useState(false), [error, setError] = useState("");
+  async function show() {
+    try {
+      if (!(await loadLearningSummaries("catalog-mindmaps", deck.id)).length) {
+        await saveLearningSummary("catalog-mindmaps", { ...createLearningSummary(deck.id, "Europa und ihre Hauptstädte", createSummarySettings()), html: "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><h3>Merksatz</h3><p>Vergleiche Länder und Hauptstädte miteinander.</p>" });
+      }
+      setOpen(true);
+    } catch { setError("Die lokale Mindmap-Demo konnte nicht geladen werden."); }
+  }
+  return <Demo title="Mindmaps · unendliche Fläche, Textstellen und freie Notizen" wide><p className="catalog-pattern-source">Echte Produktansicht. Die Beispielzusammenfassung und deine Mindmaps bleiben auf einem eigenen lokalen Demo-Konto. Die Umwandlung verwendet keine KI.</p><ActionButton variant="secondary" onClick={() => void show()}>Mindmaps öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><DeckMindMapsPanel deck={deck} userId="catalog-mindmaps" onDraftStateChange={() => undefined}/></div>}</Demo>;
+}
+
 function ProductViewsDemo({ kind }: { kind: string }) {
-  const [view, setView] = useState("");
+  const [view, setView] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("screen") === kind ? kind : "");
   const [offset, setOffset] = useState(0);
   const [message, setMessage] = useState("");
   const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
@@ -285,19 +362,25 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     }) }), child];
   }, []);
   const toast = useSuccessToast();
-  const workspace = React.useMemo(() => ({ ...createCoreRepository().getState(), decks: sampleDecks }), []);
+  const [workspace, setWorkspace] = React.useState(() => ({ ...createCoreRepository().getState(), decks: sampleDecks }));
+  const savePreviewPlan: React.ComponentProps<typeof ExamPlanningPanel>["onSavePlan"] = async (plan, capacity) => { setWorkspace((current) => ({ ...current, profile: withExamLearningPlan(current.profile, plan, capacity) })); setMessage("Prüfungsplan in der Vorschau gespeichert."); };
   const navigate = React.useCallback<React.ComponentProps<typeof DashboardScreen>["onNavigate"]>((id, fields) => createViewRoute(id ?? "uebersicht", fields), []);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [contentDeckId, setContentDeckId] = useState(deck.id);
+  const [contentTab, setContentTab] = useState<DeckContentTab>("children");
+  const [focusedDeckId, setFocusedDeckId] = useState<string | null>(null);
   const noop = React.useCallback(() => undefined, []);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
     ["dashboard", "DashboardScreen · Tagesübersicht", "Tagesübersicht"],
-    ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
+    ["exam-plan", "ExamPlanningPanel · Wochenatelier mit Tagesbearbeitung", "Prüfungsplanung"],
+    ["exam-overview", "ExamPlanningOverview · Mehrere Prüfungen", "Prüfungen"],
+    ["learn", "LearnScreen · gruppierte Liste mit Explorer", "Lernen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
     ["manual", "ManualCreationPanel · vollständiges Formular", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
     ["decks", "DecksScreen · Tabelle und Karteneditor", "Kartenverwaltung"],
-    ["deck-content", "DecksScreen · Stapelinhalte einschließlich Unterstapel", "Stapelinhalte"],
+    ["deck-content", "DecksScreen · Unterstapel als Liste mit Explorer", "Stapelinhalte"],
     ["settings", "SettingsScreen · Konto und Synchronisierung", "Allgemeine Einstellungen"],
     ["global", "GlobalCardSettingsScreen · globale Lernwerte", "Globale Lernwerte"],
     ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
@@ -308,12 +391,14 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "auth" && <AuthGateScreen message={message} onSignIn={() => setMessage("Demo-Anmeldung geprüft.")} onSignUp={() => setMessage("Demo-Registrierung geprüft.")} onResetPassword={() => setMessage("Demo-Reset angefordert.")} />}
     {view === "conflict" && <SyncConflictPanel onListConflicts={listConflicts} onResolveConflict={resolveConflict} />}
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
+    {view === "exam-overview" && <ExamPlanningOverview state={workspace} now={selection.now} onLoadExamDecks={async () => sampleDecks} onSaveExamPlan={savePreviewPlan} onDeleteExamPlan={async (id) => setWorkspace((current) => ({ ...current, profile: removeExamLearningPlan(current.profile, id) }))} onStartExamPlan={async () => setView("study")} />}
+    {view === "exam-plan" && <ExamPlanningPanel decks={sampleDecks} now={selection.now} preferences={getGlobalSchedulerPreferences(workspace.profile)} timeZone="Europe/Berlin" initialPlan={null} onLoadDecks={async () => sampleDecks} onSavePlan={savePreviewPlan} onStartPlan={async () => setView("study")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
-    {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
-    {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
+    {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} onLoadExamDecks={async () => sampleDecks} onSaveExamPlan={savePreviewPlan} onDeleteExamPlan={async (id) => setWorkspace((current) => ({ ...current, profile: removeExamLearningPlan(current.profile, id) }))} onStartExamPlan={async () => setView("study")} />}
+    {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={focusedDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDeckId} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={(id) => { setContentDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
-    {["decks", "deck-content"].includes(view) && <DecksScreen contentDeckId={view === "deck-content" ? deck.id : null} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} onSaveCard={noop} onSetCardStudyState={async () => null} onDuplicateCard={async () => null} onDeleteCard={async () => null} onUndoDeleteCard={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
+    {["decks", "deck-content"].includes(view) && <DecksScreen summaryAccountId="catalog-summaries" onGenerateSummary={generateSummaryDemo} contentDeckId={view === "deck-content" ? contentDeckId : null} contentTab={contentTab} onOpenDeckContent={(id, tab = "children") => { setContentDeckId(id); setContentTab(tab); setSelectedCardId(null); setView("deck-content"); }} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} onSaveCard={noop} onSetCardStudyState={async () => null} onDuplicateCard={async () => null} onDeleteCard={async () => null} onUndoDeleteCard={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} selectedDeckId={view === "deck-content" ? contentDeckId : selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={(id) => { setFocusedDeckId(id ?? null); setView("learn"); }} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
     {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
     {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
@@ -323,7 +408,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
 }
 
 export const DEMO_GROUPS = [
-  { id: "screens", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], render: () => <>{["dashboard", "learn", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
+  { id: "screens", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "ExamPlanningPanel", "ExamPlanningOverview", "LearnScreen", "CreationScreen", "DecksScreen", "DeckSummariesPanel", "DeckMindMapsPanel", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], render: () => <><SummaryContentDemo /><MindMapContentDemo />{["dashboard", "exam-plan", "exam-overview", "learn", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
   { id: "colors", title: "Farbauswahl", description: "Farbkreis, Schnellfarben und Farb-Popover.", components: ["ColorWheelPicker", "ColorToolButton", "ColorPopover"], render: () => <ContentDemo section="colors" /> },
   { id: "grundlagen", title: "Flächen und Leerzustände", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "headings", title: "Überschriften", description: "Seitentitel und Titel mit Bereichssteuerung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
@@ -336,7 +421,7 @@ export const DEMO_GROUPS = [
   { id: "progress", title: "Fortschritt und Ladezustände", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
   { id: "dialogs", title: "Dialoge und Speicherleisten", description: "Bestätigungen, Kartenvorschau, Sitzungsdialog, Speicherentscheidung und Konfliktvergleich.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay", "SyncConflictPanel"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /><ProductViewsDemo kind="conflict" /></> },
   { id: "navigation", title: "Navigation", description: "Responsive Hauptnavigation und Sprunglinks.", components: ["AppNavigation", "InPageNavigation"], render: () => <NavigationDemo section="navigation" /> },
-  { id: "stapel", title: "Tabellen, Bäume und Menüs", description: "Gemeinsame Tabellenzeile mit oder ohne Lernstatus, Stapelbaum und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], render: () => <DecksDemo section="stapel" /> },
+  { id: "stapel", title: "Tabellen, Bäume und Menüs", description: "Gemeinsame Tabellenzeile mit oder ohne Lernstatus, Stapelbaum und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree", "DeckExplorer"], render: () => <DecksDemo section="stapel" /> },
   { id: "charts", title: "Kennzahlen und Diagramme", description: "Kennzahlen, Ringdiagramme, Heatmap und die produktiven Statistikdiagramme.", components: ["StatTile", "SegmentedDonut", "StudyHeatmap", "StatisticsScreenContent"], render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /><ProductViewsDemo kind="statistics" /></> },
   { id: "symbols", title: "Icons und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "inhalt", title: "Karteninhalte", description: "Sanitisiertes HTML, Vorder-/Rückseite und kontrollierte Lernkartenkomposition. Alle Kartentypen stehen in der eigenen Referenz.", components: ["CardHtml", "CardPresentationSurface", "StudyCardContent"], render: () => <ContentDemo section="inhalt" /> },

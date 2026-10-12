@@ -169,6 +169,27 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
+export function createDeckExplorerModel(rows: DeckLibraryRow[], selectedDeckId: string | null) {
+  const selectedIndex = rows.findIndex((row) => row.id === selectedDeckId);
+  const selectedRow = rows[selectedIndex] ?? null;
+  const ancestors: DeckLibraryRow[] = [];
+  if (selectedRow) {
+    let depth = selectedRow.depth;
+    for (let index = selectedIndex; index >= 0; index -= 1) {
+      const row = rows[index];
+      if (row.depth <= depth) {
+        ancestors.unshift(row);
+        depth = row.depth - 1;
+      }
+    }
+  }
+  return {
+    selectedRow,
+    ancestors,
+    children: selectedDeckId && !selectedRow ? [] : rows.filter((row) => selectedRow ? row.parentDeckId === selectedRow.id && row.depth === selectedRow.depth + 1 : row.depth === 0),
+  };
+}
+
 export function createCardTableRow(card: LearningItem, options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> = {}) {
   const nextStudyTimestamp = cardNextStudyTimestamp(card, options);
   const hasActiveVariants = cardHasActiveVariants(card);

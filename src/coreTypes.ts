@@ -164,6 +164,74 @@ export interface GlobalSchedulerPreferences {
   easyDays: EasyDays;
   learningProfiles: LearningProfileTemplate[];
   defaultLearningSettings: GlobalLearningDefaults;
+  examPlanning: ExamPlanningSettings;
+}
+
+export interface ExamLearningPlan {
+  version: 2;
+  id: string;
+  userId: string;
+  name: string;
+  status: "active" | "paused" | "completed";
+  priority: "low" | "normal" | "high";
+  rootDeckId: string;
+  chapterDeckIds: string[];
+  examDate: string;
+  coverage: number;
+  desiredRetention: number;
+  cards: boolean;
+  variants: boolean;
+  bufferDays: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudyTimeCapacity {
+  weekdayMinutes: number;
+  weekendMinutes: number;
+  weekdays: boolean[];
+  reserveFraction: number;
+  minimumMinutes: number;
+  dateOverrides: Array<{ date: string; minutes: number }>;
+}
+export interface ExamPlanningSettings {
+  version: 2;
+  exams: ExamLearningPlan[];
+  capacity: StudyTimeCapacity;
+  preparationCapacity: StudyTimeCapacity | null;
+}
+export type ExamStudyMethod = "new" | "review" | "relearning" | "variant";
+export interface StudyPlanBlock {
+  id: string;
+  date: string;
+  examIds: string[];
+  deckIds: string[];
+  method: ExamStudyMethod;
+  plannedMinutes: number;
+  actualMinutes: number;
+  expectedItems: number;
+  priority: number;
+  status: "planned" | "in-progress" | "completed";
+  learningItemIds: string[];
+}
+export interface ExamQuizCapability {
+  available: boolean;
+  kind: "multiple-choice" | "past-papers" | "simulation";
+}
+export interface ExamQuizObservation {
+  quizId: string;
+  examId: string;
+  learningItemIds: string[];
+  conceptIds: string[];
+  questionCount: number;
+  estimatedMinutes: number;
+  actualMinutes: number;
+  correct: number;
+  incorrect: number;
+  weakConceptIds: string[];
+  source: string;
+  sourceReferences: string[];
+  completedAt: string;
 }
 
 export interface VariantBlacklist {

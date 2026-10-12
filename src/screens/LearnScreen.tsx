@@ -3,6 +3,8 @@ import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { EmptyState } from "../ui/coreUi.tsx";
+import { collectDeckTreeIds } from "../coreWorkspace.ts";
+import { DeckExplorer } from "../ui/DeckExplorer.tsx";
 import { DeckTree } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
@@ -25,6 +27,11 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
   const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
   const eligibleParentDeckIds = React.useMemo(() => library.rows.map((row) => row.id), [library.rows]);
   const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
+  const listRows = React.useMemo(() => {
+    if (!focusedDeckId) return library.rows;
+    const ids = collectDeckTreeIds(decks, focusedDeckId);
+    return library.rows.filter((row) => ids.has(row.id)).map((row) => ({ ...row, depth: row.depth - (focusedRow?.depth ?? 0) }));
+  }, [decks, focusedDeckId, focusedRow?.depth, library.rows]);
 
   React.useEffect(() => {
     if (!initialParentDeckId) return;
@@ -74,7 +81,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
   const deckCreateForm = (
     <form
       onSubmit={createDeckFromDraft}
-      className="grid min-w-0 gap-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_auto]"
+      className="core-deck-create-form grid min-w-0 gap-3"
       data-testid="learn-deck-create-form"
     >
       <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
@@ -107,7 +114,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         <FolderPlus size={17} aria-hidden="true" />
         Anlegen
       </button>
-      {deckStatus ? <p id="learn-deck-create-status" className={`core-body font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
+      {deckStatus ? <p id="learn-deck-create-status" className={`core-body font-semibold col-span-full ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
     </form>
   );
 
@@ -117,18 +124,14 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         if (area === "cards") onOpenDecks(focusedDeckId);
       }} />
 
-      <DeckTree
-        rows={focusedDeckMissing ? [] : library.rows}
-        mode="learn"
-        contentBeforeRows={deckCreateForm}
-        collapsedDeckIds={collapsedDeckIds}
-        onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
-        onActivate={(row) => onOpenDeckContent(row.id)}
-        onStudy={(row) => onStartDeck(row.deck, false)}
-        onOpenSettings={onOpenDeckSettings}
-        onSetDeckCoreMode={onSetDeckCoreMode}
-        onMoveDeck={onMoveDeck}
-      />
+      <DeckExplorer rows={library.rows} mode="learn" selectedDeckId={focusedDeckId} onSelectDeck={onFocusDeck}
+        collapsedDeckIds={collapsedDeckIds} onDeckExpansionChange={(id, expanded) => onSetDeckExpanded("learn", id, expanded)}
+        onStudy={(row) => onStartDeck(row.deck, false)} onOpenSettings={onOpenDeckSettings}
+        onSetDeckCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck}>
+        <DeckTree rows={focusedDeckMissing ? [] : listRows} mode="learn" contentBeforeRows={deckCreateForm}
+          collapsedDeckIds={collapsedDeckIds} onDeckExpansionChange={(id, expanded) => onSetDeckExpanded("learn", id, expanded)}
+          onActivate={(row) => onOpenDeckContent(row.id)} onStudy={(row) => onStartDeck(row.deck, false)}
+          onOpenSettings={onOpenDeckSettings} onSetDeckCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
 
       {focusedDeckMissing ? (
         <EmptyState
@@ -158,6 +161,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           }
         />
       ) : null}
+      </DeckExplorer>
     </div>
   );
 }

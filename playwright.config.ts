@@ -69,6 +69,12 @@ export default defineConfig({
   ],
   projects: [
     {
+      name: "mindmaps-chromium",
+      testMatch: /mindmaps\.spec\.ts/,
+      timeout: 90_000,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "auth-setup",
       testMatch: /auth\.setup\.ts/,
       use: {
@@ -93,7 +99,7 @@ export default defineConfig({
     },
     {
       name: "authenticated-chromium",
-      testMatch: [/apkg-quality-report\.spec\.ts/, /batch-resilience\.spec\.ts/, /card-lifecycle\.spec\.ts/, /core-stabilization\.spec\.ts/, /navigation-context\.spec\.ts/, /product-surfaces\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
+      testMatch: [/exam-planning\.spec\.ts/, /apkg-quality-report\.spec\.ts/, /batch-resilience\.spec\.ts/, /card-lifecycle\.spec\.ts/, /core-stabilization\.spec\.ts/, /navigation-context\.spec\.ts/, /product-surfaces\.spec\.ts/, /world-capitals-hierarchy\.spec\.ts/, /zz-media-import\.spec\.ts/],
       dependencies: ["auth-setup"],
       use: {
         ...devices["Desktop Chrome"],

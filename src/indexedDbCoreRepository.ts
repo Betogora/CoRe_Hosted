@@ -1444,6 +1444,22 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     async loadCard(cardId: string) {
       return loadCardBody(cardId);
     },
+    async loadExamPlanningDecks(deckIds: string[]): Promise<Deck[]> {
+      await writeChain;
+      const ids = new Set(deckIds);
+      const summaries = shell!.decks.filter((deck) => ids.has(deck.id));
+      const decks = await Promise.all(summaries.map((summary) => loadDeck(database, summary)));
+      return decks.map((deck) => ({ ...deck, cards: deck.cards.map((card) => ({ ...card, syncConflict: syncConflictCardIds.has(card.id) })) }));
+    },
+    async loadExamPlanningDayEvents(now: string, dayStartHour: number, timeZone: string): Promise<ReviewEvent[]> {
+      await writeChain;
+      const range = getLearningDayRange(now, { dayStartHour, timeZone });
+      if (!range) return [];
+      const transaction = database.transaction(STORE.reviewEvents, "readonly");
+      return requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("answeredAt").getAll(IDBKeyRange.bound(
+        [new Date(range.start).toISOString(), ""], [new Date(range.end).toISOString(), ""], false, true,
+      )));
+    },
     updateCard(deckId: string, cardId: string, updater: (card: LearningItem) => LearningItem) {
       return writeCard(deckId, cardId, (card) => card ? updater(card) : null);
     },

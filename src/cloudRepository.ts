@@ -545,7 +545,7 @@ export async function verifyAccountImportGraph(client: any, scope: ImportVerific
   };
 }
 
-export interface AccountBootstrapV2Page {
+export interface AccountBootstrapPage {
   profile: ReturnType<typeof createCloudProfile>;
   decks: Array<{ deck: ReturnType<typeof deckFromRow>; summary: DeckStudySummary }>;
   nextCursor: string;
@@ -556,31 +556,31 @@ export interface AccountBootstrapV2Page {
   studyOverview?: AccountStudyOverview;
 }
 
-export async function loadAccountCloudBootstrapV2(
+export async function loadAccountCloudBootstrap(
   client: any,
   user: { id: string; email?: string | null },
   { cursor = "", limit = 200, maxBytes = 200 * 1024 }: { cursor?: string; limit?: number; maxBytes?: number } = {},
-): Promise<AccountBootstrapV2Page> {
+): Promise<AccountBootstrapPage> {
   const userId = requireNonEmptyString(user?.id, "Nutzer-ID fehlt.");
-  const { data, error } = await client.rpc("get_account_bootstrap_v2", {
+  const { data, error } = await client.rpc("get_account_bootstrap", {
     p_cursor: cursor,
     p_limit: Math.min(500, Math.max(1, Math.floor(limit))),
     p_max_bytes: Math.min(200 * 1024, Math.max(64 * 1024, Math.floor(maxBytes))),
   });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Account-Bootstrap-v2-Antwort ist ungültig.");
+  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Account-Bootstrap-Antwort ist ungültig.");
   const candidate = data as Record<string, unknown>;
   if (!Array.isArray(candidate.decks) || typeof candidate.nextCursor !== "string" || typeof candidate.hasMore !== "boolean" || typeof candidate.confirmedEmpty !== "boolean") {
-    throw new Error("Account-Bootstrap-v2-Antwort ist unvollständig.");
+    throw new Error("Account-Bootstrap-Antwort ist unvollständig.");
   }
   const conflictCount = Number(candidate.conflictCount ?? 0);
   const serverCatalogCursor = Number(candidate.serverCatalogCursor ?? 0);
   if (!Number.isSafeInteger(conflictCount) || conflictCount < 0 || !Number.isSafeInteger(serverCatalogCursor) || serverCatalogCursor < 0) {
-    throw new Error("Account-Bootstrap-v2 enthält ungültige Zähler.");
+    throw new Error("Account-Bootstrap enthält ungültige Zähler.");
   }
   const profileRows = candidate.profile == null ? [] : validateProfileRows([candidate.profile]);
   const decks = candidate.decks.map((value) => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Account-Bootstrap-v2 enthält einen ungültigen Stapel.");
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Account-Bootstrap enthält einen ungültigen Stapel.");
     const entry = value as Record<string, unknown>;
     const [deck] = validateAccountRows("decks", [entry.deck]);
     return { deck: deckFromRow(deck), summary: validateDeckStudySummary(entry.summary) };

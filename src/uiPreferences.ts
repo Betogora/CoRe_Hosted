@@ -34,7 +34,7 @@ export function normalizeUiPreferences(value: unknown): UiPreferences {
 export function setDeckExpanded(
   value: unknown,
   surface: DeckExpansionSurface,
-  deckId: string,
+  deckId: string | readonly string[],
   expanded: boolean,
 ): UiPreferences {
   const preferences = normalizeUiPreferences(value);
@@ -45,7 +45,9 @@ export function setDeckExpanded(
       : "deckManagerExpandedDeckIds";
   const ids = new Set(preferences[key]);
   const shouldStoreId = surface === "deck-manager" ? expanded : !expanded;
-  if (shouldStoreId) ids.add(deckId);
-  else ids.delete(deckId);
+  for (const id of typeof deckId === "string" ? [deckId] : deckId) {
+    if (shouldStoreId) ids.add(id);
+    else ids.delete(id);
+  }
   return { ...preferences, [key]: [...ids] };
 }

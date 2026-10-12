@@ -11,6 +11,7 @@ import type {
 } from "./coreTypes.ts";
 import { normalizeDayStartHour } from "./learningDay.ts";
 import { normalizeEasyDays } from "./easyDays.ts";
+import { readExamPlanningSettings } from "./examPlanSettings.ts";
 
 export interface LearningSettingsInput {
   newCardsPerDay?: unknown;
@@ -42,6 +43,7 @@ export interface GlobalSchedulerPreferencesInput {
 }
 
 interface ProfileWithSchedulerPreferences {
+  userId?: string;
   schedulerPreferences?: unknown;
 }
 
@@ -381,6 +383,7 @@ export function getGlobalSchedulerPreferences(profile: ProfileWithSchedulerPrefe
     easyDays: normalizeEasyDays(preferences.easyDays),
     learningProfiles,
     defaultLearningSettings: normalizeGlobalLearningDefaults(preferences.defaultLearningSettings, learningProfiles),
+    examPlanning: readExamPlanningSettings({ userId: profile.userId ?? "", schedulerPreferences: preferences }),
   };
 }
 
@@ -400,6 +403,7 @@ export function withGlobalSchedulerPreferences<T extends ProfileWithSchedulerPre
       learnAheadMinutes: normalizeLearnAheadMinutes(Object.hasOwn(patch, "learnAheadMinutes") ? patch.learnAheadMinutes : current.learnAheadMinutes),
       easyDays: normalizeEasyDays(Object.hasOwn(patch, "easyDays") ? patch.easyDays : current.easyDays),
       learningProfiles,
+      examPlanning: current.examPlanning,
       defaultLearningSettings: normalizeGlobalLearningDefaults(
         Object.hasOwn(patch, "defaultLearningSettings") ? patch.defaultLearningSettings : current.defaultLearningSettings,
         learningProfiles,

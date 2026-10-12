@@ -496,6 +496,19 @@ export function createWorkspaceHydrationService({
     enforceQuota,
     refreshStatistics,
     hydrateDeckStructure,
+    async prepareContentDecks(deckIds: string[]) {
+      const validIds = new Set(repository.getShellState().decks.map((deck) => deck.id));
+      for (const id of [...new Set(deckIds)]) {
+        if (!validIds.has(id)) throw new Error("Ein gewähltes Kapitel ist nicht mehr verfügbar.");
+        const cache = await repository.getDeckBodyResidencySummary(id);
+        const summary = repository.getShellState().decks.find((deck) => deck.id === id)!;
+        if (cache.cached + cache.downloaded < cache.total || cache.total !== summary.cardCount) {
+          if (!isOnline()) throw new Error("Für diesen Bereich fehlen Karten auf deinem Gerät. Lade die Stapel zuerst online oder vollständig offline herunter.");
+          await hydrateDeckStructure(id);
+        }
+      }
+      return repository.loadExamPlanningDecks(deckIds);
+    },
   };
 }
 

@@ -72,7 +72,7 @@ test("liefert den lokalen Workspace, bevor der Cloud-Bootstrap beendet ist", asy
     auth: {},
     from() { return {}; },
     rpc(name: string) {
-      assert.equal(name, "get_account_bootstrap_v2");
+      assert.equal(name, "get_account_bootstrap");
       return cloudBootstrap;
     },
   } as unknown as SupabaseBrowserClient;

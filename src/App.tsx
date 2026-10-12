@@ -1,7 +1,7 @@
 import React from "react";
 import type { User } from "@supabase/supabase-js";
 import type { AuthPhase } from "./accountSession.ts";
-import type { CardEditorValue, CoreMode, Deck, ImportCommitGraph, ImportVerificationScope, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, ExamLearningPlan, StudyTimeCapacity, ImportCommitGraph, ImportVerificationScope, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NewReviewOrder, SyncStatus } from "./coreTypes.ts";
 import { ArrowRight, Database, Layers } from "lucide-react";
 import { authPhaseForSession, authPhases, createSyncConflictStatus, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavedStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { markCloudBootstrapReady, markCloudSyncReady, markWorkspaceLocalReady } from "./appPerformance.ts";
@@ -48,6 +48,7 @@ import { createBrowserSyncDevice } from "./syncDevice.ts";
 import type { createSupabaseBrowserClient } from "./supabaseClient.ts";
 import { useAppNavigation } from "./useAppNavigation.ts";
 import { setDeckExpanded, type DeckExpansionSurface } from "./uiPreferences.ts";
+import { removeExamLearningPlan, withExamLearningPlan } from "./examPlanSettings.ts";
 import { requestPersistentWorkspaceStorage, type WorkspaceStorageStatus } from "./workspaceStorage.ts";
 import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
@@ -248,6 +249,7 @@ export function App() {
     focusedDeckId,
     selectedCardId,
     deckContent,
+    deckContentTab,
     deckCreationParentId,
     creationMethod,
     creationDeckId,
@@ -669,9 +671,34 @@ export function App() {
     deckId: string,
     variantSession: boolean,
     cursorByDeck: Record<string, StudyWindowCursor> = {},
+    examPlanId?: string,
+    examBlockId?: string,
   ) => {
     const shellState = latestStateRef.current;
     if (!workspaceRepository || !shellState) return null;
+    if (examPlanId) {
+      const preferences = getGlobalSchedulerPreferences(shellState.profile);
+      const plan = preferences.examPlanning.exams.find((exam) => exam.id === examPlanId && exam.status === "active");
+      if (!plan || variantSession) throw new Error("Dieser Prüfungsplan ist nicht mehr verfügbar. Öffne die aktuelle Planung im Dashboard.");
+      const { resolveExamSessionPlan } = await import("./examPlanning.ts");
+      const sessionPlan = resolveExamSessionPlan(shellState.decks, plan, deckId);
+      if (!workspaceHydrationService) throw new Error("Die Kartenablage ist noch nicht bereit.");
+      const ids = [...new Set(preferences.examPlanning.exams.filter((exam) => exam.status === "active").flatMap((exam) => exam.chapterDeckIds))].filter((id) => shellState.decks.some((deck) => deck.id === id));
+      const loaded = await workspaceHydrationService.prepareContentDecks(ids);
+      const dayEvents = await workspaceRepository.loadExamPlanningDayEvents(getLearningNow(), preferences.dayStartHour, learningTimeZone);
+      const byId = new Map(loaded.map((deck) => [deck.id, deck]));
+      const allDecks = shellState.decks.map((deck) => byId.get(deck.id) ?? { ...deck, cards: [], reviewEvents: dayEvents.filter((event) => event.deckId === deck.id) });
+      const { createExamPortfolioForecast, createExamStudyDecks, getExamBlockResumeIds } = await import("./examPlanning.ts");
+      const forecastNow = getLearningNow();
+      const forecast = await createExamPortfolioForecast(allDecks, preferences.examPlanning.exams, { now: forecastNow, preferences, timeZone: learningTimeZone });
+      if (!forecast.days[0]) throw new Error("Der Prüfungszeitraum ist beendet.");
+      const resumeIds = examBlockId ? getExamBlockResumeIds(allDecks, plan, examBlockId, { now: forecastNow, preferences, timeZone: learningTimeZone }) : [];
+      if (examBlockId && !resumeIds.length && !forecast.days[0].blocks.some((block) => block.id === examBlockId && block.examIds.includes(plan.id))) throw new Error("Dieser Lernblock wurde inzwischen erledigt oder neu geplant. Öffne den aktuellen Plan.");
+      const decks = createExamStudyDecks(allDecks, sessionPlan, forecast.days[0], preferences.examPlanning.exams, examBlockId, resumeIds);
+      const queue = createDailyReviewQueue(decks, { deckId, now: forecastNow, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, timeZone: learningTimeZone });
+      const definitionIds = [...new Set(decks.flatMap((deck) => deck.cards.map((card) => card.noteTypeDefinitionId)))];
+      return { decks, definitions: await workspaceRepository.loadNoteTypeDefinitions(definitionIds), queue, cursorByDeck: {}, hasMoreCards: false, bufferSize: 50 };
+    }
     const scopeIds = new Set<string>([deckId]);
     let changed = true;
     while (changed) {
@@ -746,7 +773,7 @@ export function App() {
       }
       nextCursorByDeck = session.cursorByDeck;
     }
-  }, [globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, workspaceHydrationService, workspaceRepository]);
+  }, [getLearningNow, globalSchedulerPreferences.dayStartHour, globalSchedulerPreferences.learnAheadMinutes, learningNow, learningTimeZone, workspaceHydrationService, workspaceRepository]);
 
   React.useEffect(() => {
     if (!workspaceRepository || !state || !studyRequest) {
@@ -757,10 +784,10 @@ export function App() {
       preparedStudyKeyRef.current = "";
       return;
     }
-    const preparationKey = `${studyRequest.deckId}:${studyRequest.variantSession ? "variants" : "standard"}`;
+    const preparationKey = `${studyRequest.deckId}:${studyRequest.variantSession ? "variants" : "standard"}${studyRequest.examPlanId ? `:${studyRequest.examPlanId}:${studyRequest.examBlockId ?? "all"}` : ""}`;
     if (preparedStudyKeyRef.current === preparationKey && studyDecks) return;
     let active = true;
-    void loadStudyPreparation(studyRequest.deckId, studyRequest.variantSession).then((preparation) => {
+    void loadStudyPreparation(studyRequest.deckId, studyRequest.variantSession, {}, studyRequest.examPlanId, studyRequest.examBlockId).then((preparation) => {
       if (!active || !preparation) return;
       studyQueueCursorRef.current = preparation.cursorByDeck;
       setStudyHasMoreCards(preparation.hasMoreCards);
@@ -1258,7 +1285,11 @@ export function App() {
 
   function recordReview(result: ReviewAnswerResult) {
     if (!workspaceRepository) return;
-    workspaceRepository.recordReview(result);
+    const exams = latestStateRef.current ? getGlobalSchedulerPreferences(latestStateRef.current.profile).examPlanning.exams : [];
+    const examIds = exams.filter((exam) => exam.status === "active" && exam.chapterDeckIds.includes(result.deck.id)
+      && exam.examDate > (getLearningDayKey(result.event.answeredAt, { timeZone: learningTimeZone }) ?? "")).map((exam) => exam.id);
+    workspaceRepository.recordReview(examIds.length ? { ...result, event: { ...result.event, flags: { ...result.event.flags, examIds,
+      ...(studyRequest?.examPlanId ? { examPlanId: studyRequest.examPlanId, examBlockId: studyRequest.examBlockId ?? null } : {}) } } } : result);
     syncEngine?.requestSync();
   }
 
@@ -1285,7 +1316,7 @@ export function App() {
     const metadataById = new Map(savedDecks.map(({ cards: _cards, reviewEvents: _reviewEvents, ...metadata }) => [metadata.id, metadata]));
     setStudyDecks((current) => current?.map((deck) => {
       const metadata = metadataById.get(deck.id);
-      return metadata ? { ...deck, ...metadata } : deck;
+      return metadata ? { ...deck, ...metadata, ...(studyRequest?.examPlanId ? { parentDeckId: deck.parentDeckId } : {}) } : deck;
     }) ?? current);
   }
 
@@ -1390,7 +1421,11 @@ export function App() {
       deckSettings: nextDeckSettings,
     };
     setStudyDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
-    runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, nextDeckSettings), { preserveCardPages: true });
+    const persistedSettings = studyRequest?.examPlanId ? {
+      ...markLearningSettingsCustom({ ...latestStateRef.current?.decks.find((candidate) => candidate.id === deckId)?.deckSettings, newReviewOrder }),
+      learningProfileSource: null,
+    } : nextDeckSettings;
+    runRepositoryMutation((repository) => repository.updateDeckSettings(deckId, persistedSettings), { preserveCardPages: true });
     return updated;
   }
 
@@ -1554,6 +1589,8 @@ export function App() {
     return createStudyRoute(settingsReturnContext.reviewReturnContext.deckId, {
       variantSession: settingsReturnContext.reviewReturnContext.variantSession,
       variantId: settingsReturnContext.reviewReturnContext.variantId,
+      examPlanId: settingsReturnContext.reviewReturnContext.examPlanId,
+      examBlockId: settingsReturnContext.reviewReturnContext.examBlockId,
       returnContext: settingsReturnContext.reviewReturnContext.returnContext,
     });
   }
@@ -1596,7 +1633,7 @@ export function App() {
     return saved;
   }
 
-  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
+  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) {
     const currentState = latestStateRef.current;
     if (!workspaceRepository || !currentState) return null;
     const profile = currentState.profile;
@@ -1613,6 +1650,7 @@ export function App() {
           focusedDeckId: focusedDeckId ?? deck.id,
           selectedCardId,
           deckContent,
+          deckContentTab,
         })
       : activeView === "stapel-einstellungen"
         ? settingsReturnContext?.view === "review"
@@ -1656,6 +1694,58 @@ export function App() {
 
   function startDeck(deck: { id: string; }, variantSession = false) {
     void prepareDeckStart(deck, variantSession);
+  }
+
+  async function loadExamDecks(deckIds: string[]): Promise<Deck[]> {
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !workspaceHydrationService || !currentState) throw new Error("Die Kartenablage ist noch nicht bereit.");
+    const userId = currentState.profile.userId;
+    const loaded = await workspaceHydrationService.prepareContentDecks(deckIds);
+    const preferences = getGlobalSchedulerPreferences(currentState.profile);
+    const dayEvents = await workspaceRepository.loadExamPlanningDayEvents(getLearningNow(), preferences.dayStartHour, learningTimeZone);
+    const current = latestStateRef.current;
+    if (!current || current.profile.userId !== userId) throw new Error("Das Konto wurde gewechselt. Öffne die Planung erneut.");
+    const byId = new Map(loaded.map((deck) => [deck.id, deck]));
+    return current.decks.map((deck) => byId.get(deck.id) ?? { ...deck, cards: [], reviewEvents: dayEvents.filter((event) => event.deckId === deck.id) });
+  }
+
+  async function saveExamPlan(plan: ExamLearningPlan, preparationCapacity?: StudyTimeCapacity | null) {
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !currentState) throw new Error("Der Prüfungsplan konnte nicht gespeichert werden.");
+    const scope = new Set(currentState.decks.filter((deck) => !deck.deletedAt).map((deck) => deck.id));
+    if (!currentState.decks.some((deck) => deck.id === plan.rootDeckId) || plan.chapterDeckIds.some((id) => !scope.has(id))) {
+      throw new Error("Die Stapelauswahl hat sich geändert. Wähle die Kapitel erneut.");
+    }
+    const savedProfile = runRepositoryMutation((repository) => repository.saveProfile(withExamLearningPlan(currentState.profile, plan, preparationCapacity)), { preserveCardPages: true });
+    if (!savedProfile) throw new Error("Der Prüfungsplan konnte nicht gespeichert werden.");
+    await workspaceRepository.flush();
+  }
+
+  async function deleteExamPlan(id: string) {
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !currentState) throw new Error("Der Prüfungsplan konnte nicht gelöscht werden.");
+    runRepositoryMutation((repository) => repository.saveProfile(removeExamLearningPlan(currentState.profile, id)), { preserveCardPages: true });
+    await workspaceRepository.flush();
+  }
+
+  async function startExamPlan(plan: ExamLearningPlan, blockId?: string) {
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !currentState) throw new Error("Die Kartenablage ist noch nicht bereit.");
+    const userId = currentState.profile.userId;
+    const { resolveExamSessionPlan } = await import("./examPlanning.ts");
+    const sessionPlan = resolveExamSessionPlan(currentState.decks, plan);
+    const preparation = await loadStudyPreparation(sessionPlan.rootDeckId, false, {}, plan.id, blockId);
+    if (latestStateRef.current?.profile.userId !== userId) throw new Error("Das Konto wurde gewechselt. Öffne die Planung erneut.");
+    if (!preparation) throw new Error("Die Lerneinheit konnte nicht vorbereitet werden.");
+    const { queue } = preparation;
+    if (queue.total === 0) throw new Error("Für diese Einheit ist gerade keine Karte fällig. Versuche es später erneut.");
+    preparedStudyKeyRef.current = `${sessionPlan.rootDeckId}:standard:${plan.id}:${blockId ?? "all"}`;
+    studyQueueCursorRef.current = {};
+    setStudyHasMoreCards(false);
+    setStudyBufferSize(50);
+    setStudyDefinitions(preparation.definitions);
+    setStudyDecks(preparation.decks);
+    navigateToRoute(createStudyRoute(sessionPlan.rootDeckId, { variantSession: false, examPlanId: plan.id, examBlockId: blockId, returnContext: createReviewReturnContext(createViewRoute("uebersicht"), sessionPlan.rootDeckId) }));
   }
 
   function startAdditionalCards(deckId: string, requestedCount: number): { ok: boolean; message?: string } {
@@ -1794,8 +1884,24 @@ export function App() {
         <DecksScreen
           key={deckContent ? `content-${focusedDeckId}` : "library"}
           decks={state.decks}
+          summaryAccountId={state.profile.userId}
+          onGenerateSummary={async (input, signal) => {
+            const accountId = latestStateRef.current?.profile.userId;
+            if (!accountId || !workspaceHydrationService || !supabase) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");
+            const { generateLearningSummary } = await import("./aiLearningSummary.ts");
+            const result = await generateLearningSummary(input, async (ids) => {
+              const loaded = await workspaceHydrationService.prepareContentDecks(ids);
+              if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+              return loaded;
+            }, latestStateRef.current!.decks, supabase, signal);
+            if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+            return result;
+          }}
           onStartDeck={startDeck}
           contentDeckId={deckContent ? focusedDeckId : null}
+          contentTab={deckContentTab}
+          deckSummaries={deckSummaries}
+          onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
           noteTypeDefinitions={visibleDefinitions}
@@ -1819,20 +1925,24 @@ export function App() {
             focusedDeckId,
             selectedCardId: cardId,
             deckContent: true,
+            deckContentTab: "cards",
           }) : openDecks}
           onCloseSelectedCard={cardEditorReturnContext ? () => navigateToRoute(createStudyRoute(
             cardEditorReturnContext.deckId,
             {
               variantSession: cardEditorReturnContext.variantSession,
               variantId: cardEditorReturnContext.variantId,
+              examPlanId: cardEditorReturnContext.examPlanId,
+              examBlockId: cardEditorReturnContext.examBlockId,
               returnContext: cardEditorReturnContext.returnContext,
             },
           ), { replace: true }) : undefined}
           onMoveDeck={moveDeck}
-          onOpenLearn={openLearn}
+          onOpenLearn={deckContent ? (deckId) => navigateToViewNow("lernen", { focusedDeckId: deckId }) : openLearn}
           onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onDraftStateChange={handleCardDraftStateChange}
           expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
+          collapsedDeckIds={state.profile.uiPreferences.learnCollapsedDeckIds}
           onSetDeckExpanded={saveDeckExpansion}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
             view: "decks",
@@ -1970,7 +2080,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} />;
+    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={setDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onLoadExamDecks={loadExamDecks} onSaveExamPlan={saveExamPlan} onDeleteExamPlan={deleteExamPlan} onStartExamPlan={startExamPlan} />;
   }
 
   if (authPhase === "checking-session") {
@@ -2016,7 +2126,7 @@ export function App() {
   }
 
   const studyDeck = studyRequest ? studyDecks?.find((deck) => deck.id === studyRequest.deckId) ?? null : null;
-  const studySessionProjection = studyRequest && deckSummaries.has(studyRequest.deckId)
+  const studySessionProjection = studyRequest && !studyRequest.examPlanId && deckSummaries.has(studyRequest.deckId)
     ? createDeckLibraryModel(state.decks, {
         now: learningNow,
         dayStartHour: globalSchedulerPreferences.dayStartHour,
@@ -2061,6 +2171,8 @@ export function App() {
               deckId: studyRequest.deckId,
               variantSession: studyRequest.variantSession,
               variantId: studyRequest.variantId,
+              examPlanId: studyRequest.examPlanId,
+              examBlockId: studyRequest.examBlockId,
               returnContext: studyRequest.returnContext,
             },
           })}
@@ -2072,6 +2184,8 @@ export function App() {
                 deckId: studyRequest.deckId,
                 variantSession: studyRequest.variantSession,
                 variantId: studyRequest.variantId,
+                examPlanId: studyRequest.examPlanId,
+                examBlockId: studyRequest.examBlockId,
                 returnContext: studyRequest.returnContext,
               },
             },
@@ -2128,7 +2242,7 @@ export function App() {
         open={Boolean(pendingNavigation)}
         title={pendingCardNavigation ? "Änderungen übernehmen?" : "Ungespeicherten Entwurf verlassen?"}
         description={pendingCardNavigation
-          ? "Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du die Kartenverwaltung verlässt."
+          ? "Du hast ungespeicherte Änderungen in diesem Entwurf. Speichere oder verwirf sie, bevor du den Bereich verlässt."
           : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
         confirmLabel={pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
         cancelLabel="Weiter bearbeiten"

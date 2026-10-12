@@ -86,6 +86,7 @@ export function ActionDialog({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) return;
         event.preventDefault();
         cancelDialog();
         return;

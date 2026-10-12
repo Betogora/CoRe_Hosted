@@ -10,6 +10,8 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps & Decks
   const props: DecksScreenProps & DecksScreenCardPageProps = {
     decks,
     onStartDeck: () => undefined,
+    contentTab: "cards",
+    onOpenDeckContent: () => undefined,
     now: "2026-08-06T10:00:00.000Z",
     mediaStore: null,
     selectedDeckId: null,
@@ -45,9 +47,13 @@ test("deck content shows only its own cards without deck headings and uses the e
   const other = createManualCoreDeck({ deckName: "Chemie", card: { cardType: "basic", front: "Was ist H2O?", back: "Wasser." } });
   const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id });
   assert.match(markup, /aria-label="Stapelinhalte"/);
-  for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
+  assert.match(markup, /data-testid="deck-content-heading"/);
+  assert.match(markup, /<h2[^>]*>Biologie<\/h2>/);
+  assert.match(markup, /Nur dieser Stapel/);
+  assert.match(markup, /aria-label="Zur Stapelübersicht"/);
+  for (const label of ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /Was ist ATP\?/);
-  assert.doesNotMatch(markup, /Chemie|Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
+  assert.doesNotMatch(markup, /Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
   assert.match(markup, /aria-label="Biologie lernen"/);
   assert.match(markup, /core-deck-content-study/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
@@ -55,6 +61,35 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.match(editor, /data-testid="card-detail-aside"/);
   assert.match(editor, /Karte bearbeiten/);
   assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten und Lernwerte/);
+});
+
+test("content starts with direct substacks and keeps a complete clickable ancestor path", () => {
+  const root = createCoreDeck({ id: "root", name: "3. Studienjahr", source: "manual", cards: [] });
+  const branch = createCoreDeck({ id: "branch", name: "Z – Block", parentDeckId: root.id, source: "manual", cards: [] });
+  const child = createManualCoreDeck({ deckName: "Infektiologie", card: { cardType: "basic", front: "Kartenfrage", back: "Antwort" } });
+  child.parentDeckId = branch.id;
+  const leaf = createCoreDeck({ id: "leaf", name: "Grundlagen", parentDeckId: child.id, source: "manual", cards: [] });
+  const decks = [root, branch, child, leaf];
+  const markup = renderScreen(decks, { contentDeckId: branch.id, contentTab: undefined });
+  assert.match(markup, /data-testid="deck-content-substacks"/);
+  assert.match(markup, new RegExp(`data-testid="content-substack-${child.id}"`));
+  assert.doesNotMatch(markup, /data-testid="content-substack-(root|branch|leaf)"|Kartenfrage|data-donut-/);
+  assert.match(markup, /aria-label="Stapelpfad"/);
+  const path = markup.slice(markup.indexOf('data-testid="deck-content-path"'), markup.indexOf('</nav>'));
+  assert.match(path, />Alle Stapel<\/button>/);
+  assert.match(path, />3\. Studienjahr<\/button>/);
+  assert.match(path, /aria-current="page">Z – Block/);
+  assert.match(markup, /aria-label="Eine Ebene zurück"/);
+  assert.match(markup, /aria-label="Karten von Infektiologie öffnen"/);
+  assert.match(markup, /aria-label="Infektiologie lernen"/);
+  assert.match(markup, /Stapeloptionen für Infektiologie/);
+  assert.match(markup, /aria-pressed="true" aria-label="Unterstapel"/);
+  const catalog = renderScreen([root, branch, { ...child, cards: [], cardCount: 60 }, leaf], { contentDeckId: branch.id, contentTab: undefined });
+  assert.match(catalog, /aria-label="Infektiologie lernen"/);
+  assert.doesNotMatch(catalog, /disabled=""[^>]*aria-label="Infektiologie lernen"/);
+  const empty = renderScreen(decks, { contentDeckId: leaf.id, contentTab: undefined });
+  assert.match(empty, /Keine weiteren Unterstapel/);
+  for (const label of ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"]) assert.match(empty, new RegExp(`aria-label="${label}"`));
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
@@ -227,7 +262,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, new RegExp('data-testid="deck-options-' + originalDeck.id + '"[^>]*class="[^"]*pointer-events-auto'));
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /data-deck-summary-row-content="responsive"/);
-  assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 1);
+  assert.equal((markup.match(new RegExp(`data-testid="deck-options-${originalDeck.id}"`, "g")) ?? []).length, 2);
   assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto|sticky left-0 w-\[calc\(100dvw/);
   assert.match(markup, /<col class="w-20 sm:w-\[5\.75rem\]"\/><col class="w-20"\/>/);
   assert.match(markup, /aria-label="Sortierfeld aufsteigend sortieren"/);
@@ -243,7 +278,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.doesNotMatch(markup, /Karten nach CoRe-Modus filtern|Alle Modi/);
   assert.doesNotMatch(markup, />Neue Karte<\/span><\/button>/);
   assert.doesNotMatch(markup, /<span[^>]*aria-live="polite"[^>]*>\d+ Karten?<\/span>/);
-  assert.doesNotMatch(markup, /data-deck-drag-source/);
+  assert.match(markup, /data-deck-drag-source/);
 
   for (const [deckId, depth] of [
     [originalDeck.id, 0],
@@ -425,4 +460,20 @@ test("variant icons and marked stars use the same slots in collection and deck c
     assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
     assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
   }
+});
+
+test("der Zusammenfassungstab öffnet das lokale Feature statt des bisherigen Platzhalters", () => {
+  const deck = createCoreDeck({ id: "summary-deck", ownerId: "summary-account", name: "Zusammenfassen", source: "manual", cards: [] });
+  const markup = renderScreen([deck], { contentDeckId: deck.id, selectedDeckId: deck.id, contentTab: "summary", summaryAccountId: "summary-account" });
+  assert.match(markup, /data-testid="deck-summaries-panel"/);
+  assert.match(markup, /Zusammenfassungen werden geladen/);
+  assert.match(markup, /KI-Fassungen bleiben bearbeitbar/);
+  assert.doesNotMatch(markup, /Demnächst verfügbar|data-testid="card-library-panel"/);
+});
+
+test("der Mindmap-Tab öffnet den lokalen Editor ohne KI-Callback", () => {
+  const deck = createCoreDeck({ id: "mindmap-deck", ownerId: "mindmap-account", name: "Mindmaps", source: "manual", cards: [] });
+  const markup = renderScreen([deck], { contentDeckId: deck.id, selectedDeckId: deck.id, contentTab: "mind-map", summaryAccountId: "mindmap-account" });
+  assert.match(markup, /Mindmaps werden geladen/);
+  assert.doesNotMatch(markup, /Demnächst verfügbar|data-testid="card-library-panel"/);
 });

@@ -9,17 +9,20 @@ const extraRoutableViewIds = ["stapel-einstellungen", "karten-einstellungen"] as
 const reviewReturnViews = ["today", "learn", "decks"] as const;
 const settingsReturnViews = [...reviewReturnViews, "review"] as const;
 const settingsTargets = ["new-cards-per-day"] as const;
+const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 export type ReviewReturnView = typeof reviewReturnViews[number];
 export type SettingsReturnView = typeof settingsReturnViews[number];
 export type SettingsTarget = typeof settingsTargets[number];
+export type DeckContentTab = typeof deckContentTabs[number];
 
 export interface ReviewReturnContext {
   view: ReviewReturnView;
   deckId?: string;
   cardId?: string;
   deckContent?: boolean;
+  deckContentTab?: DeckContentTab;
 }
 
 export type ReviewResumeContext = Omit<StudyRoute, "mode">;
@@ -35,6 +38,7 @@ export interface ViewRoute {
   focusedDeckId?: string;
   selectedCardId?: string;
   deckContent?: boolean;
+  deckContentTab?: DeckContentTab;
   deckCreationParentId?: string;
   creationMethod?: "manual" | "import";
   creationDeckId?: string;
@@ -51,6 +55,8 @@ export interface StudyRoute {
   deckId: string;
   variantSession: boolean;
   variantId?: string;
+  examPlanId?: string;
+  examBlockId?: string;
   returnContext: ReviewReturnContext;
 }
 
@@ -65,12 +71,15 @@ interface ReviewReturnContextInput {
   deckId?: unknown;
   cardId?: unknown;
   deckContent?: unknown;
+  deckContentTab?: unknown;
 }
 
 interface ReviewResumeContextInput {
   deckId?: unknown;
   variantSession?: unknown;
   variantId?: unknown;
+  examPlanId?: unknown;
+  examBlockId?: unknown;
   returnContext?: ReviewReturnContextInput;
 }
 
@@ -80,6 +89,7 @@ interface ViewRouteInput {
   focusedDeckId?: unknown;
   selectedCardId?: unknown;
   deckContent?: unknown;
+  deckContentTab?: unknown;
   deckCreationParentId?: unknown;
   creationMethod?: unknown;
   creationDeckId?: unknown;
@@ -100,6 +110,8 @@ type StudyRouteInput = {
   deckId?: unknown;
   variantSession?: unknown;
   variantId?: unknown;
+  examPlanId?: unknown;
+  examBlockId?: unknown;
   returnContext?: ReviewReturnContextInput;
   returnRoute?: ViewRouteInput;
 };
@@ -107,6 +119,10 @@ type AppRouteInput = ViewRouteInput | StudyRouteInput | null | undefined;
 
 function cleanIdentifier(value: unknown): string {
   return String(value ?? "").trim();
+}
+
+function normalizeDeckContentTab(value: unknown): DeckContentTab | undefined {
+  return deckContentTabs.includes(value as DeckContentTab) ? value as DeckContentTab : undefined;
 }
 
 function cleanCompletedCount(value: unknown): number | null {
@@ -129,6 +145,7 @@ function normalizeViewRoute(
   const viewId = normalizeViewId(route.viewId);
   const focusedDeckId = cleanIdentifier(route.focusedDeckId);
   const selectedCardId = cleanIdentifier(route.selectedCardId);
+  const deckContentTab = normalizeDeckContentTab(route.deckContentTab);
   const deckCreationParentId = cleanIdentifier(route.deckCreationParentId);
   const creationMethod = ["manual", "import"].includes(String(route.creationMethod))
     ? route.creationMethod as "manual" | "import"
@@ -162,6 +179,7 @@ function normalizeViewRoute(
     ...(["lernen", "kartenstapel", "stapel-einstellungen"].includes(viewId) && focusedDeckId ? { focusedDeckId } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId ? { selectedCardId } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true ? { deckContent: true } : {}),
+    ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true && deckContentTab ? { deckContentTab: selectedCardId ? "cards" : deckContentTab } : {}),
     ...(viewId === "lernen" && deckCreationParentId ? { deckCreationParentId } : {}),
     ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
     ...(viewId === "neue-karten" && creationDeckId ? { creationDeckId } : {}),
@@ -187,6 +205,7 @@ function legacyViewRouteToReturnContext(route: ViewRouteInput | undefined, fallb
       ...(focusedDeckId ? { deckId: focusedDeckId } : {}),
       ...(focusedDeckId && selectedCardId ? { cardId: selectedCardId } : {}),
       ...(focusedDeckId && route?.deckContent === true ? { deckContent: true } : {}),
+      ...(focusedDeckId && route?.deckContent === true && normalizeDeckContentTab(route.deckContentTab) ? { deckContentTab: normalizeDeckContentTab(route.deckContentTab) } : {}),
     };
   }
   return {
@@ -209,6 +228,7 @@ function normalizeReviewReturnContext(
     ...(view !== "today" && deckId ? { deckId } : {}),
     ...(view === "decks" && deckId && cardId ? { cardId } : {}),
     ...(view === "decks" && deckId && context?.deckContent === true ? { deckContent: true } : {}),
+    ...(view === "decks" && deckId && context?.deckContent === true && normalizeDeckContentTab(context.deckContentTab) ? { deckContentTab: normalizeDeckContentTab(context.deckContentTab) } : {}),
   };
 }
 
@@ -222,10 +242,14 @@ function normalizeReviewResumeContext(
     || !reviewReturnViews.includes(String(context.returnContext?.view) as ReviewReturnView)
   ) return null;
   const variantId = cleanIdentifier(context?.variantId);
+  const examPlanId = cleanIdentifier(context?.examPlanId);
+  const examBlockId = examPlanId ? cleanIdentifier(context?.examBlockId) : undefined;
   return {
     deckId,
     variantSession: context?.variantSession === true || Boolean(variantId),
     ...(variantId ? { variantId } : {}),
+    ...(examPlanId ? { examPlanId } : {}),
+    ...(examBlockId ? { examBlockId } : {}),
     returnContext: normalizeReviewReturnContext(context?.returnContext, deckId),
   };
 }
@@ -244,6 +268,7 @@ export function reviewReturnContextToViewRoute(
       focusedDeckId: context.deckId,
       selectedCardId: context.cardId,
       deckContent: context.deckContent,
+      deckContentTab: context.deckContentTab,
     }, options);
   }
   return createViewRoute("lernen", { focusedDeckId: context.deckId }, options);
@@ -268,11 +293,15 @@ export function normalizeAppRoute(route: unknown = {}, options: RouteOptions = {
       : undefined;
     const returnContext = normalizeReviewReturnContext(studyRoute.returnContext ?? legacyReturnContext, deckId);
     const variantId = cleanIdentifier(studyRoute.variantId);
+    const examPlanId = cleanIdentifier(studyRoute.examPlanId);
+    const examBlockId = examPlanId ? cleanIdentifier(studyRoute.examBlockId) : undefined;
     return {
       mode: "study",
       deckId,
       variantSession: studyRoute.variantSession === true || Boolean(variantId),
       ...(variantId ? { variantId } : {}),
+      ...(examPlanId ? { examPlanId } : {}),
+    ...(examBlockId ? { examBlockId } : {}),
       returnContext,
     };
   }
@@ -313,11 +342,14 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
       deckId,
       variantSession: variant === "1" || Boolean(variant),
       variantId: variant && variant !== "1" ? variant : undefined,
+      examPlanId: url.searchParams.get("examPlan") ?? undefined,
+      examBlockId: url.searchParams.get("examBlock") ?? undefined,
       returnContext: {
         view: url.searchParams.get("returnView") ?? undefined,
         deckId: url.searchParams.get("returnDeck") ?? undefined,
         cardId: url.searchParams.get("returnCard") ?? undefined,
         deckContent: url.searchParams.get("returnContent") === "1",
+        deckContentTab: url.searchParams.get("returnTab") ?? undefined,
       },
     }, options);
   }
@@ -327,6 +359,8 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     deckId: reviewReturnRoute.deckId,
     variantSession: reviewReturnRoute.variantSession,
     variantId: reviewReturnRoute.variantId,
+    examPlanId: reviewReturnRoute.examPlanId,
+    examBlockId: reviewReturnRoute.examBlockId,
     returnContext: reviewReturnRoute.returnContext,
   } : undefined;
   return normalizeAppRoute({
@@ -335,6 +369,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     focusedDeckId: url.searchParams.get("deck") ?? undefined,
     selectedCardId: url.searchParams.get("card") ?? undefined,
     deckContent: url.searchParams.get("content") === "1",
+    deckContentTab: url.searchParams.get("tab") ?? undefined,
     deckCreationParentId: url.searchParams.get("parent") ?? undefined,
     creationMethod: url.searchParams.get("method") ?? undefined,
     creationDeckId: url.searchParams.get("deck") ?? undefined,
@@ -357,10 +392,13 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     const params = new URLSearchParams();
     if (normalized.variantId) params.set("variant", normalized.variantId);
     else if (normalized.variantSession) params.set("variant", "1");
+    if (normalized.examPlanId) params.set("examPlan", normalized.examPlanId);
+    if (normalized.examBlockId) params.set("examBlock", normalized.examBlockId);
     params.set("returnView", normalized.returnContext.view);
     if (normalized.returnContext.deckId) params.set("returnDeck", normalized.returnContext.deckId);
     if (normalized.returnContext.cardId) params.set("returnCard", normalized.returnContext.cardId);
     if (normalized.returnContext.deckContent) params.set("returnContent", "1");
+    if (normalized.returnContext.deckContentTab) params.set("returnTab", normalized.returnContext.deckContentTab);
     return `/decks/${encodeURIComponent(normalized.deckId)}/review?${params.toString()}`;
   }
   const path = normalized.viewId === defaultViewId ? "/" : `/${encodeURIComponent(normalized.viewId)}`;
@@ -370,6 +408,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
   if (normalized.deckContent) params.set("content", "1");
+  if (normalized.deckContentTab) params.set("tab", normalized.deckContentTab);
   if (normalized.viewId === "lernen" && normalized.deckCreationParentId) params.set("parent", normalized.deckCreationParentId);
   if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
   if (normalized.viewId === "neue-karten" && normalized.creationDeckId) params.set("deck", normalized.creationDeckId);

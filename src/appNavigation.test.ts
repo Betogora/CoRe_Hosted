@@ -22,6 +22,24 @@ test("deck content retains its scope and editor selection through URL and histor
   assert.deepEqual(parseAppRouteFromUrl("/lernen?deck=deck-1&content=1"), createViewRoute("lernen", { focusedDeckId: "deck-1" }));
 });
 
+test("content tabs roundtrip with the selected deck and review return context", () => {
+  for (const tab of ["children", "summary", "quiz", "mind-map", "cards", "source"] as const) {
+    const route = createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true, deckContentTab: tab });
+    assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
+    assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
+    const review = createStudyRoute("child", { returnContext: createReviewReturnContext(route) });
+    assert.equal(review.mode, "study");
+    if (review.mode !== "study") throw new Error("Missing review route");
+    assert.deepEqual(reviewReturnContextToViewRoute(review.returnContext), route);
+    assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(review)), review);
+  }
+  assert.equal(parseAppRouteFromUrl("/kartenstapel?deck=child&content=1&tab=unknown").mode, "view");
+  assert.deepEqual(parseAppRouteFromUrl("/kartenstapel?deck=child&content=1&tab=unknown"), createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true }));
+  assert.deepEqual(parseAppRouteFromUrl("/lernen?deck=child&tab=cards"), createViewRoute("lernen", { focusedDeckId: "child" }));
+  const editor = createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true, deckContentTab: "summary", selectedCardId: "card" });
+  assert.equal(editor.deckContentTab, "cards");
+});
+
 test("parses the default route from the root path", () => {
   assert.deepEqual(parseAppRouteFromUrl("/"), { mode: "view", viewId: "uebersicht" });
   assert.equal(appRouteToUrl({ mode: "view", viewId: "uebersicht" }), "/");
@@ -304,4 +322,16 @@ test("stores and reads app routes from browser history state without losing exte
   assert.equal(state.external, "kept");
   assert.deepEqual(readAppRouteFromHistoryState(state), route);
   assert.equal(areAppRoutesEqual(state.coreAppRoute, route), true);
+});
+
+test("Prüfungsplan-Sessions erhalten ihren Scope über URL, Reload und Karteneditor-Rückweg", () => {
+  const route = createStudyRoute("deck-1", { examPlanId: "exam-1", examBlockId: "2026-10-08:new:exam-1:deck-1", returnContext: { view: "today" } });
+  const url = appRouteToUrl(route);
+  assert.match(url, /examPlan=exam-1/);
+  assert.deepEqual(parseAppRouteFromUrl(url), route);
+  if (route.mode !== "study") throw new Error("Study-Route fehlt.");
+  const editor = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", cardEditorReturnContext: { ...route } });
+  const parsed = parseAppRouteFromUrl(appRouteToUrl(editor));
+  assert.equal(parsed.mode === "view" ? parsed.cardEditorReturnContext?.examPlanId : null, "exam-1");
+  assert.equal(parsed.mode === "view" ? parsed.cardEditorReturnContext?.examBlockId : null, route.examBlockId);
 });

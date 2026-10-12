@@ -1,5 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "git": {
+    "deploymentEnabled": {
+      "fitzbert": false
+    }
+  },
   "buildCommand": "npm run gate:push",
   "outputDirectory": "dist",
   "rewrites": [

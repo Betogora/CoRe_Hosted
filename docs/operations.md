@@ -150,7 +150,7 @@ Erlaubte Supabase-Redirects:
 
 Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_ENABLE_GOOGLE_AUTH` und `VITE_ENABLE_MAGIC_LINK`. Service-Role-Secrets und `OPENROUTER_API_KEY` bleiben außerhalb des Browsers. Nachweise enthalten keine Werte, Tokens, Passwörter, `.env`-Dateien oder Auth-Screenshots.
 
-### OpenRouter-Schlüssel für Basic-Varianten
+### OpenRouter-Schlüssel für Varianten und Zusammenfassungen
 
 - Im OpenRouter-Account wird ein modellagnostischer Schlüssel namens `CoRe` mit Free-only-/Null-Kosten-Schutz angelegt. Ein globaler ZDR-Zwang bleibt aus, weil die Route ihren ausdrücklich sichtbaren kostenlosen Non-ZDR-Fallback selbst steuert.
 - In Vercel wird `OPENROUTER_API_KEY` für Production und Preview als sensitive Variable gesetzt. Vercel unterstützt Sensitive nicht für Development; dort wird derselbe Name separat als normal verschlüsselte, für berechtigte Projektmitglieder aber grundsätzlich einsehbare Variable hinterlegt oder lokal über eine ignorierte `.env.local` bereitgestellt. Der Wert wird nur direkt durch die berechtigte Person eingetragen, weder in Chat, Logs noch Nachweise kopiert.
@@ -158,7 +158,19 @@ Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPAB
 - Nach Anlage oder Rotation ist ein neues Deployment erforderlich. Geprüft werden nur Variablenname, Umgebungszuordnung und ein authentifizierter Funktionsaufruf mit einer freigegebenen Basic-Testkarte.
 - Bei Providerfehlern zuerst OpenRouter-Verfügbarkeit, Free-Limit und Modellauswahl prüfen. Karteninhalte, Bearer und Providerantworten dürfen nicht in Diagnoseausgaben übernommen werden.
 
+### Zusammenfassungsroute prüfen
+
+- `/api/ai/summary` verwendet denselben serverseitigen `OPENROUTER_API_KEY` und dieselbe Supabase-Anmeldung wie Kartenvarianten. Lokal lädt `npm run dev` nur die benötigten KI-/Auth-Variablen in den Serverprozess; der private Schlüssel bleibt ohne `VITE_`-Präfix in einer ignorierten `.env.local` beziehungsweise der Prozessumgebung.
+- Ein Live-Smoke verwendet einen eigenen freigegebenen kleinen Kartenstapel und optional eine Textquelle: kurze/detaillierte Fassung erstellen, Belege öffnen, bearbeiten, speichern und erneut öffnen. Varianten weiterhin separat prüfen. Kein Live-Smoke mit privaten Realwelt-Decks ohne ausdrücklichen Auftrag.
+- Die Function besitzt maximal 240 Sekunden Laufzeit; je Completion gelten 60 Sekunden und höchstens ein Verfügbarkeitsfallback. Ein fehlender Schlüssel, fehlendes kostenloses Modell mit ausreichendem Kontext, Rate Limit oder ungültiger Tool-Aufruf bleibt sichtbar. Bereits gespeicherte Fassungen bleiben erhalten.
+- UI-/Fehlermatrix kann im Katalog mit ausdrücklich simulierten Erfolgs-, Fehler- und Abbruchantworten geprüft werden. Dieser Nachweis ersetzt keinen authentifizierten Live-Provider-Smoke. Niemals Schlüssel, Bearer, Rohmaterial oder rohe Anbieterantworten in Prüfberichte kopieren.
+
 ## 3. Preview- und Production-Freigabe
+
+Der historische Sicherungsbranch `fitzbert` ist für automatische Git-Deployments
+in `vercel.json` ausdrücklich deaktiviert. Sein Push veröffentlicht ausschließlich
+den Repository-Arbeitsstand; er ersetzt keine Preview- oder Produktionsfreigabe.
+Eine spätere Veröffentlichung verlangt eine eigene Prüfung und Freigabe.
 
 ### Freigabeumfang
 

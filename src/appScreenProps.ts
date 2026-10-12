@@ -1,9 +1,9 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
-import type { CardEditorValue, CoreMode, Deck, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, SyncStatus } from "./coreTypes.ts";
+import type { CardEditorValue, CoreMode, Deck, ExamLearningPlan, GlobalSchedulerPreferences, ImportCommitGraph, LearningItem, LearningItemStudyStatePatch, LearningProfileTemplate, NoteTypeDefinitionV1, Profile, StudyTimeCapacity, SyncStatus } from "./coreTypes.ts";
 import type { createManualCoreDeck } from "./coreModel.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
@@ -71,6 +71,10 @@ export interface DashboardScreenProps {
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   studyHeatmap?: StudyHeatmapModel;
   now: string;
+  onLoadExamDecks: (deckIds: string[]) => Promise<Deck[]>;
+  onSaveExamPlan: (plan: ExamLearningPlan, preparationCapacity?: StudyTimeCapacity | null) => Promise<void>;
+  onDeleteExamPlan: (id: string) => Promise<void>;
+  onStartExamPlan: (plan: ExamLearningPlan, blockId?: string) => Promise<void>;
   onNavigate: NavigateToView;
   onStartDeck: (deck: Deck, variantSession?: boolean) => void;
   onStartAdditionalCards: (deckId: string, additionalCount: number) => { ok: boolean; message?: string };
@@ -78,7 +82,7 @@ export interface DashboardScreenProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
 }
 
 export interface DeckSettingsScreenProps {
@@ -106,8 +110,13 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  summaryAccountId?: string;
+  onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
   onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
+  contentTab?: DeckContentTab;
+  deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
+  onOpenDeckContent: (deckId: string, tab?: DeckContentTab) => unknown;
   noteTypeDefinitions?: NoteTypeDefinitionV1[];
   now: string;
   dayStartHour?: number;
@@ -133,7 +142,8 @@ export interface DecksScreenProps {
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   expandedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  collapsedDeckIds?: string[];
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
   cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
   onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
 }
@@ -182,7 +192,7 @@ export interface LearnScreenProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
 }
 
 export interface SettingsScreenProps {

@@ -1,11 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createBasicLearningItem, createCoreDeck } from "./coreModel.ts";
-import { createCloudStateRows, deckToCloudRow, recordAtomicReview, reviewEventToCloudRow } from "./cloudRepository.ts";
+import { createCloudStateRows, deckToCloudRow, loadAccountCloudBootstrap, recordAtomicReview, reviewEventToCloudRow } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import { validateAccountRows, validateOfflineManifestRows } from "./cloudRepositoryValidation.ts";
 
 const now = "2026-08-21T10:00:00.000Z";
+
+test("Account-Boot verwendet den aktuellen Cloud-RPC und übernimmt eine bestätigte leere Baseline", async () => {
+  let requestedName = "";
+  let requestedParameters: unknown;
+  const client = {
+    async rpc(name: string, parameters: unknown) {
+      requestedName = name;
+      requestedParameters = parameters;
+      return { data: { profile: null, decks: [], nextCursor: "", hasMore: false, confirmedEmpty: true, conflictCount: 0, serverCatalogCursor: 12 }, error: null };
+    },
+  };
+  const bootstrap = await loadAccountCloudBootstrap(client, { id: "bootstrap-user" });
+  assert.equal(requestedName, "get_account_bootstrap");
+  assert.deepEqual(requestedParameters, { p_cursor: "", p_limit: 200, p_max_bytes: 200 * 1024 });
+  assert.equal(bootstrap.confirmedEmpty, true);
+  assert.equal(bootstrap.serverCatalogCursor, 12);
+  assert.deepEqual(bootstrap.decks, []);
+});
 
 function fixture() {
   const card = createBasicLearningItem("deck", "Frage", "Antwort", { id: "card", updatedAt: now, createdAt: now });
