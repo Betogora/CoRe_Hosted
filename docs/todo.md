@@ -48,6 +48,24 @@ geglättet.
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
 
+## Übernahme aus `fitzbert` (Folgevorhaben)
+
+Die Stapel-UI ist mit ADR-041 übernommen. Vorlage für die folgenden Teile ist
+der Branch `fitzbert`; Datenhaltung und Backend folgen dem Note/Card-Stand von
+main.
+
+- [ ] **Zusammenfassungen:** Datenformat und Tab aus `fitzbert` übernehmen, die
+      Materialaufbereitung über Notes statt alter Kartenfelder bauen. Ablage
+      online und sparsam (Entscheidung 2026-10-12): eigene Tabelle mit RLS,
+      Migration, Verify-SQL und Sync statt der lokalen Browser-Datenbank aus
+      `fitzbert`. KI-Route nach dem Muster der Variantenroute (fest
+      `openai/gpt-6-luna`, ZDR, `getClaims`, Kostenlog) mit Ergänzung zu ADR-011.
+- [ ] **Prüfungsplanung:** Prognose und Lernblöcke auf Card portieren;
+      `withGlobalSchedulerPreferences` muss die Pläne erhalten. Datenbasis über
+      eine schlanke Server-Abfrage mit dem Lernstand aller Karten der gewählten
+      Stapel ohne Kartenkörper (Tendenz, vor Umsetzung bestätigen), als Ergänzung
+      zu ADR-034.
+
 ## Betrieb
 
 - [ ] **Hosted-Smoke nach den Migrationen vom 2026-10-10:** `npm run test:beta:hosted`
@@ -69,10 +87,15 @@ geglättet.
   Stapel zu bearbeiten. Verteilt die Last über die Tage und
   verbraucht nichts für ungelernte Karten. Löst die Stapelaktion des
   Proof of Concept automatisch aus. Braucht eine Ergänzung zu ADR-011.
-- KI-Wissenswerkzeug (Zusammenfassung, Mindmap): eigenes Werkzeug neben den
-  Varianten, das viele Karten zu einem neuen Dokument verdichtet; teilt nur das
-  Fundament (Klartextprojektion, Modellwahl, Limits, Logzeile). Ablageort des
-  Dokuments ist offen.
+- Mindmaps aus `fitzbert`: frei verschiebbare und zoombare Fläche mit Stichwort-
+  und Textknoten, Verbindungen, Stift, Radierer und Rückgängig; ohne KI aus einer
+  Zusammenfassung ableitbar. In `fitzbert` nur lokal im Browser gespeichert;
+  beim Übernehmen online ablegen wie Zusammenfassungen. Bis dahin bleibt der Tab
+  `Mind Map` Platzhalter.
+- KI-Routen in `npm run dev`: `fitzbert` bedient `/api/ai/*` lokal per
+  Vite-Plugin statt über `vercel dev`. Vor dem ersten Release oder wenn weitere
+  Entwickler lokal mit KI arbeiten, entscheiden und dann `operations.md`
+  anpassen.
 - Bild einer eigenen Bildverdeckung im Karteneditor austauschen.
 - Flaggen als Feature: je Karte eine von sieben Farben wie in Anki (importiert
   und synchronisiert bereits als `anki_flag`, bisher unsichtbar). Umfang:

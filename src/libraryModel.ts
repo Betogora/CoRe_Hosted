@@ -37,12 +37,6 @@ export interface DeckLibrarySummary {
   introducedTodayCount: number;
   dateKey: string;
 }
-export interface DeckStatusDistribution {
-  newCards: number;
-  inProgressCards: number;
-  dueCards: number;
-  learnedCards: number;
-}
 export interface DailyLearningSession {
   deckId: string;
   progress: DailyReviewProgressSummary;
@@ -76,15 +70,6 @@ function normalizeQuery(value: unknown): string {
 
 function deckPath(deck: Deck): string {
   return (deck.hierarchyPath ?? [deck.name]).join(" / ");
-}
-
-function createDeckStatusDistribution(summary: ReturnType<typeof summarizeDeckReview>): DeckStatusDistribution {
-  return {
-    newCards: summary.newCards,
-    inProgressCards: summary.inProgressCards,
-    dueCards: summary.dueCards,
-    learnedCards: Math.max(0, summary.totalCards - summary.newCards - summary.inProgressCards - summary.dueCards),
-  };
 }
 
 function createDeckRow(
@@ -124,8 +109,7 @@ function createDeckRow(
     coreMode: deck.deckSettings?.coreMode ?? "on",
     summary: directSummary,
     directSummary,
-    statusDistribution: createDeckStatusDistribution(directInventory),
-    directStatusDistribution: createDeckStatusDistribution(directInventory),
+    directInventory,
     dailyLearningSession: {
       deckId: deck.id,
       progress: directDaily,
@@ -284,15 +268,9 @@ function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: nu
       childrenCount: childAggregates.length,
       summary: options.deckSummaries?.get(entry.deck.id),
     });
-    const directInventory: DeckInventorySummary = {
-      ...row.directSummary,
-      newCards: row.directStatusDistribution.newCards,
-      inProgressCards: row.directStatusDistribution.inProgressCards,
-      dueCards: row.directStatusDistribution.dueCards,
-    };
     aggregates.set(entry.deck.id, {
       row,
-      inventory: combineInventory([directInventory, ...childAggregates.map((child) => child.inventory)]),
+      inventory: combineInventory([row.directInventory, ...childAggregates.map((child) => child.inventory)]),
       aggregateDaily: combineDailyProgress([
         row.dailyLearningSession.progress,
         ...childAggregates.map((child) => child.aggregateDaily),
@@ -317,7 +295,6 @@ function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: nu
       inProgressCards: daily.inProgressCount,
       dueCards: daily.dueCount,
     };
-    aggregate.row.statusDistribution = createDeckStatusDistribution(aggregate.inventory);
     if (rootQueue) {
       aggregate.row.dailyLearningSession = {
         deckId: entry.deck.id,

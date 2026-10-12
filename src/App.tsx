@@ -260,6 +260,7 @@ export function App() {
     focusedDeckId,
     selectedCardId,
     deckContent,
+    deckContentTab,
     deckCreationParentId,
     creationMethod,
     creationDeckId,
@@ -1411,7 +1412,7 @@ export function App() {
     return saved;
   }
 
-  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
+  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) {
     const currentState = latestStateRef.current;
     if (!workspaceRepository || !currentState) return null;
     const profile = currentState.profile;
@@ -1428,6 +1429,7 @@ export function App() {
           focusedDeckId: focusedDeckId ?? deck.id,
           selectedCardId,
           deckContent,
+          deckContentTab,
         })
       : activeView === "stapel-einstellungen"
         ? settingsReturnContext?.view === "review"
@@ -1607,6 +1609,8 @@ export function App() {
           decks={state.decks}
           onStartDeck={startDeck}
           contentDeckId={deckContent ? focusedDeckId : null}
+          contentTab={deckContentTab}
+          onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
           deckSummaries={deckSummaries}
@@ -1633,6 +1637,7 @@ export function App() {
             focusedDeckId,
             selectedCardId: cardId,
             deckContent: true,
+            deckContentTab: "cards",
           }) : openDecks}
           onCloseSelectedCard={cardEditorReturnContext ? () => navigateToRoute(createStudyRoute(
             cardEditorReturnContext.deckId,

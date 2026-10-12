@@ -291,13 +291,6 @@ test("deck counters and overall status distribution exclude blocked cards while 
     },
     { newCards: 0, inProgressCards: 1, dueCards: 1, totalCards: 6 },
   );
-  assert.deepEqual(row.statusDistribution, {
-    newCards: 1,
-    inProgressCards: 2,
-    dueCards: 2,
-    learnedCards: 1,
-  });
-  assert.deepEqual(row.directStatusDistribution, row.statusDistribution);
   assert.deepEqual(new Set(table.groups[0].cardRows.map((cardRow) => cardRow.id)), new Set([
     "active_due",
     "active_due_at_now",
@@ -310,36 +303,6 @@ test("deck counters and overall status distribution exclude blocked cards while 
   ]));
   assert.equal(table.groups[0].cardRows.find((cardRow) => cardRow.id === "suspended_due")?.nextStudyLabel, "01.07.2026");
   assert.equal(table.groups[0].cardRows.find((cardRow) => cardRow.id === "suspended_due")?.entry.reviewable, false);
-});
-
-test("overall status distribution aggregates descendants while preserving direct deck values", () => {
-  const parent = createCoreDeck({
-    id: "distribution_parent",
-    name: "Eltern",
-    source: "manual",
-    cards: [libraryCard("parent_new", { study: { state: "new", reps: 0 } })],
-  });
-  const child = createCoreDeck({
-    id: "distribution_child",
-    parentDeckId: parent.id,
-    name: "Kind",
-    source: "manual",
-    cards: [libraryCard("child_learned", { study: { state: "review", dueAt: "2026-07-02T08:00:00.000Z", reps: 3 } })],
-  });
-  const parentRow = createDeckLibraryModel([parent, child], { now: "2026-07-01T08:00:00.000Z" }).rows[0];
-
-  assert.deepEqual(parentRow.directStatusDistribution, {
-    newCards: 1,
-    inProgressCards: 0,
-    dueCards: 0,
-    learnedCards: 0,
-  });
-  assert.deepEqual(parentRow.statusDistribution, {
-    newCards: 1,
-    inProgressCards: 0,
-    dueCards: 0,
-    learnedCards: 1,
-  });
 });
 
 test("library model sorts every deck level alphabetically like Anki", () => {
@@ -691,7 +654,7 @@ test("library metrics, card dates and heatmap share the configured learning day"
   const heatmap = createStudyHeatmapModel([deck], options);
   const table = createCardTableModel([deck], options);
 
-  assert.equal(library.rows[0].statusDistribution.dueCards, 1);
+  assert.equal(library.rows[0].directInventory.dueCards, 1);
   assert.equal(heatmap.todayKey, "2026-07-10");
   assert.equal(heatmap.countsByDay.get("2026-07-10"), 1);
   assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");

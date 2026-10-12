@@ -169,7 +169,7 @@ export function DeckAppearanceIcon({ deck, appearance, className = "size-10", ic
       style={{
         color: normalizedAppearance.iconColor,
         borderColor: normalizedAppearance.iconColor,
-        backgroundColor: `${normalizedAppearance.iconColor}1f`,
+        backgroundColor: `var(--core-deck-icon-background, ${normalizedAppearance.iconColor}1f)`,
         ...(props.style ?? {}),
       }}
     >

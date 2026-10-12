@@ -5,6 +5,24 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Stapel-UI aus `fitzbert` übernommen (ADR-041)
+
+- Aus dem Arbeitsstand `fitzbert` (Basis vor dem Note/Card-Cutover) übernommen:
+  gruppierte Stapelliste, Ordneransicht mit Zweig-Panel, Umschalter
+  `Liste`/`Kacheln`, Inhaltskopf mit Pfad, sechs Inhaltstabs mit Start auf
+  `Unterstapel` und Tab in der URL. Der Fortschrittsring entfällt überall.
+  Nicht übernommen: Explorer-Spalte, Anzahl-Badges und Untertitel, fitzbert-
+  Backend und KI-Routen (main gilt). Vorab auf main: drei echte Fixes aus
+  `fitzbert` (Entities im Editor, Escape in Portal-Overlays, UTF-8 in der
+  Variantenroute).
+- Nachweise: `npm run typecheck`, `npm test` (704/704), `npm run build` mit
+  Chunk-Budget; Sichtprüfung im UI-Katalog für Heute, Lernen (Liste, Kacheln,
+  geöffnetes Zweig-Panel) und Stapelinhalte bei 320–1440 px in Light und Dark,
+  ohne horizontalen Überlauf, verglichen mit gerenderten fitzbert-Komponenten.
+- Nicht geprüft: `npm run test:e2e:local` (angepasste Specs
+  `navigation-context` und `world-capitals-hierarchy`; lokales Supabase lief
+  nicht), echte App nach Login, Bildschirmtastatur und 200 % Zoom.
+
 ## 2026-10-12 — Production-Smoke der KI-Varianten
 
 - Production (`core-hosted.vercel.app`, E2E-Testaccount): Einschalt-Dialog mit

@@ -1,12 +1,32 @@
 import React from "react";
-import { ChevronRight, FolderPlus, Layers } from "lucide-react";
+import { ChevronRight, FolderPlus, LayoutGrid, Layers, List } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { EmptyState } from "../ui/coreUi.tsx";
-import { DeckTree } from "../ui/DeckTree.tsx";
+import { DeckTree, type DeckTreeView } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
+
+const DECK_VIEW_STORAGE_KEY = "core.learn.deckView.v1";
+
+function readStoredDeckView(): DeckTreeView {
+  if (typeof window === "undefined") return "list";
+  try {
+    return window.localStorage.getItem(DECK_VIEW_STORAGE_KEY) === "tiles" ? "tiles" : "list";
+  } catch {
+    return "list";
+  }
+}
+
+function writeStoredDeckView(view: DeckTreeView) {
+  try {
+    window.localStorage.setItem(DECK_VIEW_STORAGE_KEY, view);
+  } catch {
+    // Die Ansicht bleibt ohne browserlokale Speicherung umschaltbar.
+  }
+}
 
 function createDefaultDeckDraft(parentDeckId = "") {
   return {
@@ -18,6 +38,7 @@ function createDefaultDeckDraft(parentDeckId = "") {
 export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckContent, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
+  const [deckView, setDeckView] = React.useState(readStoredDeckView);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
@@ -74,7 +95,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
   const deckCreateForm = (
     <form
       onSubmit={createDeckFromDraft}
-      className="grid min-w-0 gap-3 sm:grid-cols-[minmax(11rem,1fr)_minmax(11rem,1fr)_auto]"
+      className="core-deck-create-form grid min-w-0 gap-3"
       data-testid="learn-deck-create-form"
     >
       <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
@@ -107,7 +128,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
         <FolderPlus size={17} aria-hidden="true" />
         Anlegen
       </button>
-      {deckStatus ? <p id="learn-deck-create-status" className={`core-body font-semibold sm:col-span-3 ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
+      {deckStatus ? <p id="learn-deck-create-status" className={`col-span-full core-body font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
     </form>
   );
 
@@ -120,7 +141,22 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
       <DeckTree
         rows={focusedDeckMissing ? [] : library.rows}
         mode="learn"
-        contentBeforeRows={deckCreateForm}
+        view={deckView}
+        headerAction={library.rows.length > 0 ? (
+          <ActionButton
+            variant="secondary"
+            icon={deckView === "list" ? LayoutGrid : List}
+            aria-label={deckView === "list" ? "Als Kacheln anzeigen" : "Als Liste anzeigen"}
+            onClick={() => {
+              const next = deckView === "list" ? "tiles" : "list";
+              setDeckView(next);
+              writeStoredDeckView(next);
+            }}
+          >
+            {deckView === "list" ? "Kacheln" : "Liste"}
+          </ActionButton>
+        ) : null}
+        contentAfterRows={deckCreateForm}
         collapsedDeckIds={collapsedDeckIds}
         onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
         onActivate={(row) => onOpenDeckContent(row.id)}

@@ -1232,6 +1232,9 @@ video {
 .col-span-2 {
   grid-column: span 2 / span 2;
 }
+.col-span-full {
+  grid-column: 1 / -1;
+}
 .col-start-1 {
   grid-column-start: 1;
 }
@@ -1336,6 +1339,9 @@ video {
 }
 .table {
   display: table;
+}
+.\!grid {
+  display: grid !important;
 }
 .grid {
   display: grid;
@@ -1636,9 +1642,6 @@ video {
 .w-72 {
   width: 18rem;
 }
-.w-8 {
-  width: 2rem;
-}
 .w-\[5\.5rem\] {
   width: 5.5rem;
 }
@@ -1764,6 +1767,9 @@ video {
 }
 .shrink-0 {
   flex-shrink: 0;
+}
+.basis-44 {
+  flex-basis: 11rem;
 }
 .basis-48 {
   flex-basis: 12rem;
@@ -3153,6 +3159,7 @@ button[aria-label] {
   container: core-deck-tree / inline-size;
 }
 
+
 .core-learning-header-container {
   container: core-learning-header / inline-size;
 }
@@ -3291,15 +3298,6 @@ button[aria-label] {
     width: 4.5rem;
   }
 
-  .core-deck-summary-responsive .core-donut-responsive {
-    width: 1.5rem;
-    height: 1.5rem;
-  }
-
-  .core-deck-summary-responsive .core-deck-summary-header-donut {
-    width: 1.5rem;
-  }
-
   .core-deck-summary-metric-label-full {
     display: none;
   }
@@ -3387,15 +3385,348 @@ button[aria-label] {
     font-variant-numeric: normal;
   }
 
-  .core-deck-summary-responsive .core-donut-responsive {
-    width: 2.5rem;
-    height: 2.5rem;
+}
+
+/* Stapelsammlung nach fitzbert (ADR-041): gruppierte Liste, Ordner und Stapelinhalte. */
+@container core-deck-tree (min-width: 38rem) {
+  .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+}
+
+.core-deck-substack-list .core-deck-summary-responsive { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-leading { grid-column: 1; grid-row: 1; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 1; grid-row: 2; min-width: 0; max-width: 12rem; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions { grid-column: 1; grid-row: 3; justify-content: flex-end; }
+.core-deck-substack-list .core-deck-summary-actions > span { flex-wrap: wrap; }
+.core-deck-substack-list .core-deck-summary-count-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-metrics { grid-template-columns: repeat(3, minmax(3rem, 1fr)); width: auto; }
+
+.core-deck-content-tabs {
+  height: calc(var(--core-control-height) + 2 * var(--core-space-xs));
+}
+
+.core-deck-content-tab-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: var(--core-space-xs);
+}
+
+.core-deck-content-tab-scroll .core-deck-content-tabs {
+  width: -moz-max-content;
+  width: max-content;
+  min-width: 29rem;
+  max-width: none;
+}
+
+.core-deck-content-tabs .core-segmented-control-option {
+  flex: 0 0 var(--core-control-height);
+  min-height: var(--core-control-height);
+}
+
+.core-deck-content-tabs .core-segmented-control-option[aria-pressed="true"] {
+  flex: 1 1 auto;
+  min-width: 9rem;
+  padding-inline: var(--core-space-md);
+}
+
+.core-deck-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: var(--core-space-xl);
+  padding: 0.5rem;
+  isolation: isolate;
+}
+.core-deck-subfolder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--core-space-md);
+}
+.core-deck-folder-expansion { grid-column: 1 / -1; }
+.core-deck-folder-card[data-selected="true"] {
+  background: var(--core-surface-muted);
+  border-color: var(--core-action-secondary);
+  box-shadow: var(--core-shadow-selection);
+}
+.core-deck-substack-list { display: grid; gap: var(--core-space-sm); container: core-deck-substack-list / inline-size; }
+.core-deck-substack-list .core-deck-summary-name { font-size: var(--core-type-body); line-height: var(--core-leading-body); }
+@container core-deck-substack-list (min-width: 42rem) {
+  .core-deck-substack-list .core-deck-summary-responsive {
+    grid-template-columns: minmax(0, 1fr) 10rem auto;
+    padding: var(--core-space-md);
+    -moz-column-gap: var(--core-space-xl);
+         column-gap: var(--core-space-xl);
+  }
+  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 2; grid-row: 1; width: 10rem; }
+  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions {
+    grid-column: 3;
+    grid-row: 1;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+  }
+  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions > span { width: auto; flex-wrap: nowrap; gap: var(--core-space-xs); }
+}
+.core-deck-folder-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--core-space-sm);
+  color: var(--core-text-muted);
+  font-size: var(--core-type-body);
+  line-height: var(--core-leading-body);
+}
+.core-deck-folder-breadcrumb button {
+  min-height: var(--core-control-height);
+  min-width: var(--core-control-height);
+  text-align: start;
+  overflow-wrap: anywhere;
+  color: var(--core-action-secondary);
+}
+.core-deck-folder-breadcrumb button:hover { text-decoration: underline; }
+.core-deck-folder-breadcrumb > svg { flex-shrink: 0; }
+.core-deck-folder-breadcrumb [aria-current] { overflow-wrap: anywhere; }
+
+.core-deck-folder-card {
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  box-shadow: var(--core-shadow-soft);
+}
+.core-deck-subfolder-card {
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+}
+.core-deck-folder-card::before,
+.core-deck-folder-card::after {
+  content: "";
+  position: absolute;
+  inset: 0.5rem -0.25rem -0.25rem;
+  z-index: -1;
+  pointer-events: none;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface-muted);
+}
+.core-deck-folder-card::after { inset: 1rem -0.5rem -0.5rem; z-index: -2; }
+.core-deck-folder-card > [data-deck-row-activation] { border-radius: var(--core-radius-panel); }
+.core-deck-subfolder-card > [data-deck-row-activation] { border-radius: var(--core-radius-control); }
+
+.core-deck-folder-summary {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--core-space-md);
+  padding: var(--core-space-xl) var(--core-space-xl) 0;
+}
+.core-deck-folder-summary .core-deck-summary-leading {
+  min-height: 4.5rem;
+  flex-wrap: wrap;
+  gap: var(--core-space-sm);
+}
+.core-deck-folder-summary .core-deck-summary-leading > [data-deck-icon] { order: -1; border-radius: var(--core-radius-control); }
+.core-deck-folder-summary .core-deck-summary-leading > button { margin-inline-start: auto; }
+.core-deck-folder-summary .core-deck-summary-leading > span[aria-hidden="true"] { display: none; }
+.core-deck-folder-summary .core-deck-summary-leading > span:last-child { flex-basis: 100%; }
+.core-deck-folder-summary .core-deck-summary-counts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: auto;
+  justify-self: stretch;
+  gap: var(--core-space-sm);
+}
+.core-deck-folder-summary .core-deck-summary-count { text-align: start; }
+.core-deck-folder-summary .core-deck-summary-actions {
+  margin: var(--core-space-xs) calc(-1 * var(--core-space-xl)) 0;
+  padding: var(--core-space-md);
+  border-top: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  background: var(--core-surface);
+}
+.core-deck-folder-summary .core-deck-summary-actions > span {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--core-space-sm);
+}
+.core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action {
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+  background: var(--core-surface);
+}
+.core-deck-subfolder-summary { gap: var(--core-space-sm); padding: var(--core-space-md) var(--core-space-md) 0; }
+.core-deck-subfolder-summary .core-deck-summary-leading { min-height: var(--core-control-height); flex-wrap: nowrap; }
+.core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
+.core-deck-subfolder-summary .core-deck-summary-leading > [data-deck-icon] { flex-shrink: 0; }
+.core-deck-subfolder-summary .core-deck-summary-leading > button { order: 1; }
+.core-deck-subfolder-summary .core-deck-summary-actions {
+  margin-inline: calc(-1 * var(--core-space-md));
+  border-radius: var(--core-radius-control);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.core-deck-tree-header.core-deck-tree-view-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.core-deck-tree-container[data-deck-view="list"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  --core-deck-depth-indent: 18px;
+}
+
+.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-layout { gap: var(--core-space-md); }
+.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
+
+.core-deck-tree-groups {
+  display: grid;
+  gap: var(--core-space-md);
+  margin-top: var(--core-space-sm);
+}
+
+.core-deck-tree-group {
+  min-width: 0;
+  padding: 6px 12px 9px;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface);
+  box-shadow: var(--core-shadow-soft);
+}
+
+.core-deck-tree-group > .core-deck-summary-row {
+  border-radius: var(--core-radius-control);
+  background: transparent;
+  --core-deck-icon-background: transparent;
+}
+
+.core-deck-tree-group > .core-deck-summary-row > [data-deck-row-activation] {
+  border-radius: inherit;
+}
+
+.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] {
+  margin-block: 0 3px;
+  background: color-mix(in srgb, var(--core-deck-group-accent) 9%, var(--core-surface));
+  --core-deck-icon-background: var(--core-surface);
+}
+
+.core-deck-tree-group [data-deck-summary-row-content] {
+  min-height: 3.6875rem;
+  padding-block: var(--core-space-xs);
+}
+
+.core-deck-tree-group [data-deck-depth="0"] [data-deck-summary-row-content] {
+  min-height: 4.125rem;
+}
+
+.core-deck-tree-group [data-deck-icon] {
+  border: 0;
+  border-radius: var(--core-radius-control);
+  background: transparent;
+  width: 1.5rem;
+  height: 2rem;
+}
+
+.core-deck-tree-group [data-deck-depth="0"] [data-deck-icon] {
+  width: 2rem;
+  background: var(--core-surface);
+}
+
+.core-deck-tree-group .core-deck-summary-name {
+  width: 100%;
+}
+
+.core-deck-tree-create {
+  padding: var(--core-space-md);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface);
+}
+
+@container core-deck-summary (max-width: 28rem) {
+  .core-deck-tree-group [data-deck-study-row="true"] { grid-template-columns: minmax(0, 1fr) auto; }
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-leading { grid-column: 1 / -1; min-height: var(--core-control-height); }
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-counts {
+    justify-self: start;
+    margin-inline-start: var(--core-space-sm);
   }
 
-  .core-deck-summary-responsive .core-deck-summary-header-donut {
-    width: 2.5rem;
+  .core-deck-tree-group .core-deck-summary-responsive .core-deck-summary-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 8.25rem;
   }
 
+  .core-deck-tree-group .core-deck-summary-count > dt {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+    font-size: var(--core-type-caption);
+    line-height: var(--core-leading-caption);
+    color: var(--core-text-muted);
+    font-weight: var(--core-weight-body);
+    order: 1;
+  }
+
+  .core-deck-tree-group .core-deck-summary-count {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-space-xs);
+  }
+}
+
+@container core-deck-tree (max-width: 28rem) {
+  .core-deck-tree-rows > .core-deck-summary-container {
+    display: none;
+  }
+}
+
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
+  -moz-column-gap: 0;
+       column-gap: 0;
+  padding-inline: 0;
+}
+.core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-sm); }
+.core-deck-tree-group .core-deck-summary-name,
+.core-deck-tree-group .core-deck-summary-count-value {
+  font-size: var(--core-type-body);
+  line-height: var(--core-leading-body);
+  font-variant-numeric: tabular-nums;
+}
+.core-deck-tree-group [data-deck-depth="0"] .core-deck-summary-name,
+.core-deck-tree-group [data-deck-depth="0"] .core-deck-summary-name-measure { font-weight: var(--core-weight-heading); }
+.core-deck-tree-group .core-deck-summary-count { text-align: center; }
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics {
+  grid-template-columns: repeat(3, 3.25rem);
+  width: 9.75rem;
+}
+.core-deck-tree-container[data-deck-view="list"] .core-deck-summary-actions {
+  margin: 0;
+  gap: var(--core-space-sm);
+}
+.core-deck-tree-group .core-deck-summary-icon > svg { width: 1rem; height: 1rem; }
+.core-deck-tree-group .core-deck-icon-action > svg { width: 1.125rem; height: 1.125rem; }
+.core-deck-tree-container[data-deck-view="list"] .core-table-header-row {
+  border: 0;
+  padding-inline: 12px;
+}
+
+@container core-deck-tree (max-width: 32rem) {
+  .core-deck-tree-group { padding: 6px; --core-deck-depth-indent: 10px; }
+  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
+  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
+  .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics { grid-template-columns: repeat(3, 2.75rem); width: 8.25rem; }
+}
+
+@container core-deck-summary (max-width: 28rem) {
+  .core-deck-tree-group [data-deck-summary-row-content] { padding: var(--core-space-sm) var(--core-space-xs); row-gap: var(--core-space-xs); }
+  .core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-xs); }
+  .core-deck-tree-group .core-deck-summary-counts { margin-inline-start: var(--core-space-xs); }
+  .core-deck-tree-group .core-deck-summary-count { gap: 0; }
 }
 
 summary {
@@ -4373,10 +4704,6 @@ summary {
     grid-column: span 1 / span 1;
   }
 
-  .sm\:col-span-3 {
-    grid-column: span 3 / span 3;
-  }
-
   .sm\:col-start-2 {
     grid-column-start: 2;
   }
@@ -4491,10 +4818,6 @@ summary {
 
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(12rem\2c 16rem\)\] {
     grid-template-columns: minmax(0,1fr) minmax(12rem,16rem);
-  }
-
-  .sm\:grid-cols-\[minmax\(11rem\2c 1fr\)_minmax\(11rem\2c 1fr\)_auto\] {
-    grid-template-columns: minmax(11rem,1fr) minmax(11rem,1fr) auto;
   }
 
   .sm\:flex-row {
@@ -5281,18 +5604,22 @@ html { scroll-behavior: smooth; }
 <ul>
 <li><code>Heute</code>, <code>Lernen</code> und <code>Kartenverwaltung</code> teilen Stapeldaten, Chevron, Icon und Drei-Punkte-Aktion. Die Hierarchie ist unbegrenzt. Jeder Elternstapel behält seinen Chevron; Einklappen verbirgt den gesamten Unterbaum.</li>
 <li>Zeilen zeigen lokale Namen. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (<code>Stapel 10</code> vor <code>Stapel 9</code>); Elternstapel bleiben mit ihrem Unterbaum zusammen.</li>
-<li><code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und den Gesamtfortschrittsdonut unter einer nicht sortierbaren Kopfzeile. Auf schmalen Panels entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen oder Donut, auch nicht assistiv.</li>
-<li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Der Donut zeigt den gesamten aktiven Bestand ohne Limits als <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und <code>Gelernt</code>. Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
+<li><code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> unter einer nicht sortierbaren Kopfzeile; einen Fortschrittsring gibt es nicht. Auf schmalen Flächen entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen, auch nicht assistiv.</li>
+<li>Jeder Hauptstapel bildet mit seinen Unterstapeln eine eigene umrandete Gruppe. Nur die Zeile des Hauptstapels ist leicht in seiner Stapelfarbe getönt; Unterstapelzeilen bleiben neutral. Badges und Untertitel mit Karten- oder Unterstapelanzahl erscheinen nicht.</li>
+<li><code>Lernen</code> bietet einen Umschalter zwischen <code>Liste</code> und <code>Kacheln</code>; die Wahl gilt browserlokal. In der Liste klappt <code>Alle aufklappen</code>/<code>Alle einklappen</code> sämtliche Elternstapel gemeinsam. Die Kachelansicht zeigt jeden Hauptstapel als Kachel mit beschrifteten Tageszahlen und einer Aktionsleiste aus <code>Inhalte</code>, Lernaktion und Stapeloptionen. Ein Klick auf eine Kachel öffnet unter ihrer Kachelreihe ein Panel mit Stapelpfad, Name, <code>Eine Ebene zurück</code>, Schließen, den direkten Unterstapeln als kleineren Kacheln (ohne Unterstapel <code>Keine Unterstapel.</code>) sowie <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; Unterstapel-Kacheln führen eine Ebene tiefer.</li>
+<li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
 <li>Die Stapelfläche öffnet <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Eine eigene Lernaktion startet den Reviewpfad samt Unterstapeln und Limits; ihr zugänglicher Name enthält den Stapelpfad, ihr Tooltip den lokalen Namen. Auf-/Zuklappen, Lernen und Stapeloptionen lösen die Flächenaktion nicht aus; die Fläche ist per Enter und Leertaste bedienbar.</li>
 <li>Lernaktion und Stapeloptionen haben 44-px-Klickflächen.</li>
-<li>Dashboard und Lernen verwenden dasselbe Panel <code>Aktive Stapel</code>; nur das Dashboard zeigt <code>Alle ansehen</code>. Lernen zeigt darunter dauerhaft das Schnellformular <code>Stapelname</code>, <code>Ebene</code>, <code>Anlegen</code>, auch ohne Stapel und nach dem Anlegen.</li>
+<li>Dashboard und Lernen verwenden dieselbe Sammlung <code>Aktive Stapel</code>; nur das Dashboard zeigt <code>Alle ansehen</code>. Lernen zeigt unter den Stapeln dauerhaft das Schnellformular <code>Stapelname</code>, <code>Ebene</code>, <code>Anlegen</code>, auch ohne Stapel und nach dem Anlegen.</li>
 <li>Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne Präferenz starten die Sektionen der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte öffnet und speichert die betroffene Sektion. Eine leere, als <code>Nicht festgelegt</code> dargestellte Profilzeitzone blockiert das Speichern nicht.</li>
 </ul>
 <h4 id="specs--stapelinhalte" class="catalog-label" tabindex="-1">Stapelinhalte</h4>
 <ul>
-<li>Die Inhaltsansicht zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet sie die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Kopf. <code>Aktive Stapel</code> und der Bereichsumschalter entfallen.</li>
+<li>Der Kopf der Inhaltsansicht zeigt den klickbaren Stapelpfad <code>Alle Stapel › … › Stapel</code>, Stapel-Icon und Namen sowie <code>Eine Ebene zurück</code> beziehungsweise auf Hauptebene <code>Zur Stapelübersicht</code>. <code>Aktive Stapel</code> und der Bereichsumschalter entfallen.</li>
+<li>Die Tabs lauten <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code>, <code>Quelle</code>; initial ist <code>Unterstapel</code> aktiv. Der Tab steht in der URL (<code>tab=</code>) und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor erzwingt <code>Karten</code>. Auf schmalen Flächen scrollt die Leiste lokal. <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code> und <code>Quelle</code> zeigen bis zu ihrer Umsetzung ihren Namen und <code>Demnächst verfügbar</code>.</li>
+<li><code>Unterstapel</code> listet die direkten Unterstapel mit beschrifteten Kennzahlen, <code>Inhalte</code>, Lernaktion und Stapeloptionen; ein Klick öffnet die Stapelinhalte des Unterstapels. Darunter stehen <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; ohne Unterstapel erscheinen <code>Keine weiteren Unterstapel</code> und <code>Karten öffnen</code>.</li>
+<li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet der Tab die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Kopf.</li>
 <li>Sie nutzt dieselben Kartenzeilen, denselben Editor und dieselben Mutationen wie die Gesamtverwaltung; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
-<li>Eine segmentierte Navigation bietet <code>Karteikarten</code>, <code>Notizen</code>, <code>Mind Map</code>, <code>Quiz</code>, <code>Quelle</code>. Initial ist <code>Karteikarten</code> aktiv; die übrigen Bereiche zeigen ihren Namen und <code>Demnächst verfügbar</code>.</li>
 <li>Die Aktion <code>&lt;Stapelname&gt; lernen</code> startet die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>
 </ul>
 <h4 id="specs--kartenverwaltung" class="catalog-label" tabindex="-1">Kartenverwaltung</h4>
@@ -5384,7 +5711,7 @@ html { scroll-behavior: smooth; }
 <li>Die Lerneinstellungen der Sitzung erscheinen als Dialog mit den Abschnitten <code>Karte</code> und <code>Sitzung</code>. Escape und Außenklick schließen; der Fokus bleibt im Dialog und kehrt danach zurück.</li>
 <li><code>Karte bearbeiten</code> öffnet den Einzelkarten-Editor. <code>Stapel bearbeiten</code> öffnet die Einstellungen des Sitzungsstapels und kehrt auch nach Reload in dieselbe Sitzung zurück. Anki-Flaggen werden appweit weder angeboten noch dargestellt.</li>
 <li><code>Markieren</code> ist ein Umschalter mit <code>aria-pressed</code> und verändert die Queue nicht.</li>
-<li><code>Aussetzen</code> ist ein Segment <code>Nicht aussetzen</code> / <code>Aussetzen</code>. Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen, Fortschritt und Donut. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, das Overlay schließt, die nächste Karte erhält den Fokus und der Toast lautet <code>Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.</code> Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.</li>
+<li><code>Aussetzen</code> ist ein Segment <code>Nicht aussetzen</code> / <code>Aussetzen</code>. Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen und Fortschritt. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, das Overlay schließt, die nächste Karte erhält den Fokus und der Toast lautet <code>Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.</code> Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.</li>
 <li><code>Kartenreihenfolge</code> bietet <code>Fällige Karten zuerst</code>, <code>Neue und fällige mischen</code> und <code>Neue Karten zuerst</code>. Die Wahl wird im gestarteten Wurzelstapel gespeichert und sortiert nur noch unbeantwortete Initialkarten neu.</li>
 <li><code>Pomodoro-Timer</code> klappt im Abschnitt <code>Sitzung</code> auf und bietet <code>15</code>, <code>25</code> (Standard) und <code>45</code> Minuten im segmentierten Control sowie eigene positive Ganzzahlen. Erst <code>Start</code> startet. Ein Start schließt den Dialog; beim nächsten Öffnen ist der Timer eingeklappt. Kartenverwaltung, Reset, Mischen und <code>Nur normale Karten</code> gehören nicht zu diesen Einstellungen.</li>
 </ul>
@@ -5572,7 +5899,7 @@ html { scroll-behavior: smooth; }
 <li>Fehler, laufende Vorgänge und Ergebnisse mit Details oder Folgeaktionen bleiben im fachlichen Kontext sichtbar.</li>
 </ul></div></article><article id="specs--stapeldarstellung" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Stapeldarstellung</h3></div><div class="catalog-preview specs-prose"><ul>
 <li>Stapelkarten in Dashboard und Lernen zeigen nur die disjunkten, budgetbegrenzten Kennzahlen <code>Neu</code>, <code>Offen</code> (Learning und Relearning heute, auch noch nicht vorziehbar) und <code>Fällig</code>; eine Gesamtzahl erscheint nicht.</li>
-<li>Tageslernfläche, Tagesfortschritt, Stapelkennzahlen und Donut verwenden für <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und <code>Gelernt</code> die Farbrollen der Bewertungen <code>Nochmal</code> (Lilac), <code>Schwer</code> (Orange), <code>Gut</code> (Gelb) und <code>Leicht</code> (Slate). Bei leerem Bestand zeigt der Donut einen neutralen Ring; seine zugängliche Beschriftung nennt Gesamtzahl und alle vier Werte.</li>
+<li>Tageslernfläche, Tagesfortschritt und Stapelkennzahlen verwenden für <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und <code>Gelernt</code> die Farbrollen der Bewertungen <code>Nochmal</code> (Lilac), <code>Schwer</code> (Orange), <code>Gut</code> (Gelb) und <code>Leicht</code> (Slate). Stapelzeilen und Kacheln zeigen keinen Fortschrittsring; der frei werdende Platz gehört dem Stapelnamen.</li>
 <li>Stapel-Icons zeigen Symbol und gewählte Farbe. Die Stapeleinstellungen zeigen im Titel Icon und gespeicherten Namen; der Bereich <code>Stapel</code> enthält Namensfeld, Icon- und Farbauswahl, alle im gemeinsamen Seitenentwurf.</li>
 </ul></div></article><article id="specs--typografie" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Typografie</h3></div><div class="catalog-preview specs-prose"><ul>
 <li>Die gesamte Oberfläche einschließlich Kartenfläche nutzt die lokal eingebettete Schrift Manrope; Schriftstufen zeigt der UI-Katalog. Semantische HTML-Ebene und visuelle Stufe dürfen abweichen.</li>
@@ -5677,7 +6004,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">6.654</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">30.803</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">157</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 310 Zeilen, Lernen &amp; Karten: 2.795 Zeilen, Erstellen &amp; Import: 1.564 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 789 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.482672257544927 1.8082352445853331 L 23.895582919834553 7.0742724106264205 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="310"></path><path d="M 25.482672257544927 1.8082352445853331 A 19 19 0 0 1 23.953831876832776 38.58405804687827 L 22.809301596696972 33.20446229646614 A 13.5 13.5 0 0 0 23.895582919834553 7.0742724106264205 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2795"></path><path d="M 23.953831876832776 38.58405804687827 A 19 19 0 0 1 1.868843690531115 25.679891801927802 L 7.117336306430003 24.035712596106595 A 13.5 13.5 0 0 0 22.809301596696972 33.20446229646614 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1564"></path><path d="M 1.868843690531115 25.679891801927802 A 19 19 0 0 1 1.4959555275161343 15.687189065083041 L 6.852389453761463 16.935634335716898 A 13.5 13.5 0 0 0 7.117336306430003 24.035712596106595 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.4959555275161343 15.687189065083041 A 19 19 0 0 1 7.118109077406414 6.033723249970986 L 10.847077502367716 10.076592835505702 A 13.5 13.5 0 0 0 6.852389453761463 16.935634335716898 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 7.118109077406414 6.033723249970986 A 19 19 0 0 1 20.000000000000014 1 L 20.00000000000001 6.5 A 13.5 13.5 0 0 0 10.847077502367716 10.076592835505702 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="789"></path></svg></span><span class="core-caption">6.654 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>310</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.795</td><td>42 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.564</td><td>23,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>9,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>789</td><td>11,9 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 36 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">6.731</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">31.298</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">158</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 310 Zeilen, Lernen &amp; Karten: 2.872 Zeilen, Erstellen &amp; Import: 1.564 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 789 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.42172375848372 1.7899777186656571 L 23.852277407343696 7.0612999579992834 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="310"></path><path d="M 25.42172375848372 1.7899777186656571 A 19 19 0 0 1 23.238650658871325 38.72194279207669 L 22.301146520776996 33.30243303647554 A 13.5 13.5 0 0 0 23.852277407343696 7.0612999579992834 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2872"></path><path d="M 23.238650658871325 38.72194279207669 A 19 19 0 0 1 1.751231712535695 25.289844609290245 L 7.033769901012205 23.758573801337807 A 13.5 13.5 0 0 0 22.301146520776996 33.30243303647554 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1564"></path><path d="M 1.751231712535695 25.289844609290245 A 19 19 0 0 1 1.564333527203864 15.403675196004908 L 6.9009738219606405 16.734190270845595 A 13.5 13.5 0 0 0 7.033769901012205 23.758573801337807 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.564333527203864 15.403675196004908 A 19 19 0 0 1 7.237608079686275 5.92444130869716 L 10.931984688198142 9.998945140390088 A 13.5 13.5 0 0 0 6.9009738219606405 16.734190270845595 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 7.237608079686275 5.92444130869716 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.931984688198142 9.998945140390088 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="789"></path></svg></span><span class="core-caption">6.731 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>310</td><td>4,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.872</td><td>42,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.564</td><td>23,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>789</td><td>11,7 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 36 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);

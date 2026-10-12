@@ -108,7 +108,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-012 — Kompakte Stapelzeile mit kontextgebundenem Drag-and-drop
 
-**Status:** teilweise abgelöst durch ADR-014, ADR-016, ADR-017, ADR-023 und ADR-030
+**Status:** teilweise abgelöst durch ADR-014, ADR-016, ADR-017, ADR-023, ADR-030 und ADR-041
 **Kontext:** Die verschachtelten Stapelkarten in Dashboard und Lernen beanspruchten deutlich mehr Raum als die kompakten Stapelköpfe der Kartenverwaltung. Zugleich ist direktes Drag-and-drop in der inhaltsorientierten Kartentabelle leichter mit Aufklappen, Auswahl und Bearbeitung zu verwechseln.
 **Entscheidung:** Dashboard, Lernen und Kartenverwaltung verwenden denselben kompakten Zeileninhalt aus Chevron, Icon, Name und Pfad, Kennzahlen, Donut und Drei-Punkte-Aktion. Dashboard und Lernen projizieren die Hierarchie flach, behalten Teilbaum-Kennzahlen und erlauben direkten Desktop-Drag; ihre Drei-Punkte-Aktion öffnet direkt die Stapel-Einstellungen. Die Kartenverwaltung behält direkte Kennzahlen, ihr vollständiges Optionsmenü und ausschließlich den bestätigten Verschiebeablauf. Alle Drei-Punkte-Aktionen besitzen einen pfadspezifischen Tooltip.
 **Konsequenzen:** Darstellung und Reihenfolge besitzen eine kanonische UI-Implementierung, während Aktivierung, Kennzahlquelle und Aktionen vom jeweiligen Aufgabenbereich geliefert werden. ADR-008 ist hinsichtlich der verschachtelten Kartenform und des direkten Drag-and-drops in der Kartenverwaltung abgelöst. Workspace-Mutation, Vier-Ebenen-Regel und persistiertes Deck-Schema bleiben unverändert.
@@ -196,7 +196,7 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 
 ## ADR-023 — Kontextgebundener Lernstatus und Hauptbaumgrenzen
 
-**Status:** teilweise abgelöst durch ADR-026
+**Status:** teilweise abgelöst durch ADR-026 und ADR-041
 **Kontext:** Der gemeinsame Stapelinhalt führte Lernkennzahlen und Donut auch in der inhaltsorientierten Kartenverwaltung, obwohl dort Stapelidentität und Kartenbearbeitung im Vordergrund stehen. Dünne Grenzen zwischen allen Hierarchiezeilen zerschnitten zusammengehörige Bäume; der Hover von Dashboard und Lernen färbte dagegen nur eine Rahmenkante ein.
 **Entscheidung:** `DeckSummaryRow` bleibt der einzige Zeilenrenderer und erhält einen optionalen, unteilbaren Lernstatusblock. Nur Dashboard und Lernen liefern Tageskennzahlen und Gesamtbestandsdonut; die Kartenverwaltung rendert in Stapelköpfen ausschließlich Identität und Aktion. Alle drei Ansichten verwenden dieselbe neutrale vollflächige Hover-Füllung. Eine 2-px-Linie trennt ausschließlich aufeinanderfolgende Hauptstapel-Bäume, innerhalb eines Baums existiert keine Stapel-Trennlinie. Kartenzeilen behalten ihre dünnen Grenzen. Feste und responsive Dichten sind direkte Varianten von `DeckSummaryRow`; der funktionslose Kompakt-Wrapper entfällt.
 **Konsequenzen:** Kennzahl- und Bestandsmodelle bleiben unverändert und werden in der Kartenverwaltung lediglich nicht projiziert. Individuelle Kartenwerte wie `Neu` im Datumsfeld bleiben sichtbar. Tabellen- und Baumsemantik, Auf-/Zuklappen, Drag-and-drop, Auswahl, Stapeloptionen und Persistenz ändern sich nicht. ADR-008, ADR-012 und ADR-014 sind hinsichtlich sichtbarer Kartenverwaltungs-Kennzahlen sowie der Zeilen- und Hoverform abgelöst.
@@ -337,3 +337,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Links, Buttons, `summary` und tabbare Elemente zeigen bei `:focus-visible` einen einheitlichen 2-px-Rahmen in der Fokusfarbe. Maus-, Touch- und programmatischer Fokus nach einem Klick bleiben rahmenlos; Überschriften mit `tabindex="-1"` zeigen nie einen Rahmen. Eingabefelder behalten ihre eigene Fokusfläche, Tailwind-Ringe und `focus-within`-Rahmen bleiben ausgeschaltet.
 **Konsequenzen:** Eine einzige globale Regel in `src/styles.css` trägt den Fokus; Komponenten setzen keine eigenen Fokusrahmen. Mausnutzer sehen keinen Unterschied zum bisherigen Stand. Die Entscheidung ersetzt die vollständige Unterdrückung vom 2026-08-06 und wurde vom Nutzer am 2026-10-12 bestätigt.
 **Datum:** 2026-10-10
+
+## ADR-041 — Stapelsammlung in Gruppen und Kacheln, Stapelinhalte mit Unterstapeln
+
+**Status:** angenommen
+**Kontext:** Der Arbeitsstand `fitzbert` entwarf eine neue Stapeldarstellung und eine gegliederte Inhaltsansicht. Main trug dagegen das Note/Card-Modell, Soft Minimal und das Backend. Die Stapelliste war eine einzige Tabelle mit Fortschrittsring je Zeile; die Inhaltsansicht kannte weder Stapelnamen noch Pfad und begann mit den Karten.
+**Entscheidung:** Aus `fitzbert` gelten die Gruppen je Hauptstapel mit leicht getöntem Hauptstapelkopf, der browserlokale Umschalter `Liste`/`Kacheln` mit Unterstapel-Panel in der Kachelansicht, `Alle aufklappen`/`Alle einklappen`, die Schnellanlage unter der Liste, der Kopf der Inhaltsansicht mit klickbarem Pfad sowie die sechs Tabs mit Start auf `Unterstapel` und Tab in der URL. Der Fortschrittsring entfällt in allen Stapeldarstellungen. Nicht übernommen werden die Explorer-Seitenspalte, Badges und Untertitel mit Anzahlen, die Tönung von Unterstapelzeilen sowie fitzberts Bedienhöhen und Formen; Soft Minimal (ADR-037) bleibt maßgeblich.
+**Konsequenzen:** `DeckTree` besitzt die Projektionen `list` und `tiles`; `DeckSummaryRow` projiziert Zeile und Kachel ohne Ring, und das Bibliotheksmodell berechnet keine Statusverteilung mehr. Noch nicht umgesetzte Tabs bleiben sichtbare Platzhalter. Zusammenfassungen, Mindmaps und Prüfungsplanung aus `fitzbert` folgen als eigene Vorhaben auf dem Note/Card-Modell; ihre Ablage und eine Zusammenfassungsroute brauchen eigene Entscheidungen.
+**Datum:** 2026-10-12

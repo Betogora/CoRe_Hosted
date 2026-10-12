@@ -182,7 +182,7 @@ export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-acti
   );
 }
 
-export interface SegmentedDonutSegment {
+interface SegmentedDonutSegment {
   key: string;
   value: number;
   color: string;

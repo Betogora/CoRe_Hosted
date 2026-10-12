@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -11,7 +11,7 @@ import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
-import { CARD_TABLE_PAGE_SIZE, cardsWithoutVariants, createCardTableModel, createCardTableRow, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, cardsWithoutVariants, createCardTableModel, createCardTableRow, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { catalogEntryFromCard, type CardCatalogEntry, type NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
@@ -22,6 +22,7 @@ import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
+import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
@@ -29,6 +30,7 @@ import type { ManualImageAttachment } from "../creationWorkflow.ts";
 import type { AccountMediaStore } from "../mediaStore.ts";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
 
@@ -42,10 +44,11 @@ interface PendingDetailAction {
 }
 
 const deckContentTabs = [
-  { value: "cards", label: "Karteikarten", icon: PanelsTopLeft },
-  { value: "notes", label: "Notizen", icon: NotebookPen },
-  { value: "mind-map", label: "Mind Map", icon: Network },
+  { value: "children", label: "Unterstapel", icon: Layers },
+  { value: "summary", label: "Zusammenfassungen", icon: NotebookPen },
   { value: "quiz", label: "Quiz", icon: CircleHelp },
+  { value: "mind-map", label: "Mind Map", icon: Network },
+  { value: "cards", label: "Karten", icon: PanelsTopLeft },
   { value: "source", label: "Quelle", icon: FileText },
 ] as const;
 
@@ -880,6 +883,8 @@ export function DecksScreen({
   deckSummaries,
   onStartDeck,
   contentDeckId = null,
+  contentTab: requestedContentTab = "children",
+  onOpenDeckContent,
   now,
   dayStartHour,
   learnAheadMinutes,
@@ -911,7 +916,20 @@ export function DecksScreen({
   onRequestCardPage,
   syncConflictCardIds,
 }: DecksScreenProps) {
-  const [contentTab, setContentTab] = React.useState<typeof deckContentTabs[number]["value"]>("cards");
+  const contentTab = selectedCardId ? "cards" : requestedContentTab;
+  const contentLibrary = React.useMemo(() => contentDeckId ? createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }) : null,
+    [contentDeckId, dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
+  const contentRowById = React.useMemo(() => new Map(contentLibrary?.rows.map((row) => [row.id, row])), [contentLibrary]);
+  const contentRow = contentDeckId ? contentRowById.get(contentDeckId) : undefined;
+  const contentTrail = React.useMemo(() => {
+    const trail = [];
+    for (let row = contentRow; row; row = contentRowById.get(row.parentDeckId ?? "")) trail.unshift(row);
+    return trail;
+  }, [contentRow, contentRowById]);
+  const contentTabsRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    contentTabsRef.current?.querySelector('[aria-pressed="true"]')?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [contentTab]);
   const libraryDecks = React.useMemo(() => {
     if (!contentDeckId) return decks;
     const treeIds = collectDeckTreeIds(decks, contentDeckId);
@@ -1041,6 +1059,7 @@ export function DecksScreen({
 
   React.useEffect(() => {
     if (!onRequestCardPage) return;
+    if (contentDeckId && contentTab !== "cards") return;
     const requestedGroups = tableModel.allGroups.filter((group) => (
       Boolean(contentDeckId) || searchExpandsGroups || expandedDeckIdSet.has(group.id) || selectedDeckId === group.id
     ));
@@ -1063,7 +1082,7 @@ export function DecksScreen({
         selectedCardId: selectedCardForDeck,
       });
     }
-  }, [cardPageByDeckId, cardPages, cardSort, contentDeckId, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
+  }, [cardPageByDeckId, cardPages, cardSort, contentDeckId, contentTab, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
 
   React.useEffect(() => {
     if (contentDeckId) return;
@@ -1106,6 +1125,7 @@ export function DecksScreen({
       }
       if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
       if (target.closest('[data-app-navigation="true"]')) return;
+      if (target.closest('[data-deck-content-navigation="true"]')) return;
       if (target.closest('[data-card-row="true"]')) return;
       event.preventDefault();
       event.stopPropagation();
@@ -1344,15 +1364,39 @@ export function DecksScreen({
   return (
     <div className="relative grid min-w-0 gap-6">
       {contentDeckId ? (
-        <>
-          <h2 className="sr-only" data-screen-heading tabIndex={-1}>Stapelinhalte</h2>
-          <CoreSlidingTabs ariaLabel="Stapelinhalte" options={deckContentTabs} value={contentTab} onValueChange={setContentTab} />
-        </>
+        <div className="grid min-w-0 gap-6" data-deck-content-navigation="true">
+          <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad" data-testid="deck-content-path">
+            <button type="button" onClick={() => onOpenLearn(null)}>Alle Stapel</button>
+            {contentTrail.map((row) => <React.Fragment key={row.id}>
+              <ChevronRight size={16} aria-hidden="true" />
+              {row.id === contentDeckId ? <span aria-current="page">{row.name}</span> : <button type="button" onClick={() => requestDetailAction(() => onOpenDeckContent(row.id))}>{row.name}</button>}
+            </React.Fragment>)}
+          </nav>
+          <div className="flex min-w-0 items-center justify-between gap-3" data-testid="deck-content-heading">
+            <div className="flex min-w-0 items-center gap-3">
+              {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={24} /> : null}
+              <h2 className="min-w-0 break-words core-heading-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
+            </div>
+            <CoreTooltip label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"}>
+              <IconButton label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"} icon={ArrowLeft}
+                onClick={() => contentRow?.parentDeckId ? requestDetailAction(() => onOpenDeckContent(contentRow.parentDeckId!)) : onOpenLearn(null)} />
+            </CoreTooltip>
+          </div>
+          <div className="core-deck-content-tab-scroll" ref={contentTabsRef}>
+            <CoreSlidingTabs className="core-deck-content-tabs" ariaLabel="Stapelinhalte" options={deckContentTabs} value={contentTab}
+              onValueChange={(tab) => requestDetailAction(() => onOpenDeckContent(contentDeckId, tab))} />
+          </div>
+        </div>
       ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
         if (area === "overview") onOpenLearn(selectedDeckId);
       }} />}
 
-      {contentDeckId && contentTab !== "cards" ? (
+      {contentDeckId && contentTab === "children" ? (
+        contentRow && contentLibrary ? <DeckSubstacksPanel rows={contentLibrary.rows} current={contentRow} decks={decks} hasStudyCards={hasStudyCards}
+          onOpenSubstack={(deckId) => onOpenDeckContent(deckId)} onOpenCards={(deckId) => onOpenDeckContent(deckId, "cards")}
+          onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
+          : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
+      ) : contentDeckId && contentTab !== "cards" ? (
         <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">
           <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
             <span className="grid size-14 place-items-center rounded-panel bg-core-subtle text-core-muted"><ContentIcon size={28} strokeWidth={2} aria-hidden="true" /></span>
@@ -1362,7 +1406,7 @@ export function DecksScreen({
             </div>
           </div>
         </SoftPanel>
-      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karteikarten" : undefined} data-testid="card-library-panel">
+      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
           {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3> : null}
           <div className="grid gap-3">

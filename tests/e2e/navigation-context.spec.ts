@@ -183,37 +183,40 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
   const row = page.getByTestId(`learn-deck-row-${DECK_IDS.childB}`);
   await row.getByRole("button", { name: "Inhalte von Bereich B / Gemeinsam öffnen", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1`);
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
-  await expect(page.getByTestId(`deck-card-${CARD_IDS.a}`)).toHaveCount(0);
-  await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Stapelpfad" })).toContainText("Gemeinsam");
+  await expect(page.getByTestId("deck-content-substacks")).toBeVisible();
+  await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
   const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true });
   for (const width of [320, 390, 430, 640, 768, 1280, 1920]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const label of ["Notizen", "Mind Map", "Quiz", "Quelle", "Karteikarten"]) {
+    for (const label of ["Zusammenfassungen", "Quiz", "Mind Map", "Quelle", "Unterstapel", "Karten"]) {
       const tab = tabs.getByRole("button", { name: label, exact: true });
       await tab.click();
       await expect(tab).toHaveAttribute("aria-pressed", "true");
-      if (label === "Karteikarten") {
+      if (label === "Karten") {
         await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
+        await expect(page.getByTestId(`deck-card-${CARD_IDS.a}`)).toHaveCount(0);
+        await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toHaveCount(0);
+      } else if (label === "Unterstapel") {
+        await expect(page.getByTestId("deck-content-substacks")).toBeVisible();
       } else {
         await expect(page.getByRole("region", { name: label, exact: true })).toContainText("Demnächst verfügbar");
         await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
       }
     }
-    if (width >= 768) expect(await tabs.evaluate(element => element.getBoundingClientRect().width)).toBeLessThanOrEqual(384);
-    else expect(await tabs.evaluate(element => element.getBoundingClientRect().width === element.parentElement!.getBoundingClientRect().width)).toBe(true);
+    await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1&tab=cards`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
   await page.getByRole("textbox", { name: "Karten durchsuchen", exact: true }).fill("Antwort B1");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toHaveCount(0);
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
-  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1`);
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&content=1&tab=cards`);
   await page.reload();
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Geändert im Stapel");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
-  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1`);
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}&content=1&tab=cards`);
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Geändert im Stapel");
   await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Geändert in Gesamtverwaltung");
@@ -227,7 +230,7 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
 });
 
 test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den Inhaltskontext beim Bearbeiten", async ({ page }) => {
-  await page.goto(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1`);
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1&tab=cards`);
   await waitForApp(page);
   await expect(page.getByTestId(`deck-header-${DECK_IDS.rootB}`)).toBeVisible();
   await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toBeVisible();
@@ -243,13 +246,13 @@ test("[Vertrag: Stapelinhalte] Elternstapel zeigt Unterkarten und erhält den In
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toBeVisible();
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b2}`)).toHaveCount(0);
   await page.getByTestId(`deck-card-${CARD_IDS.b1}`).click();
-  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&card=${CARD_IDS.b1}&content=1`);
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&card=${CARD_IDS.b1}&content=1&tab=cards`);
   await page.reload();
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Unterkarte im Hauptstapel geändert");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page.getByText("Karte wurde erfolgreich gespeichert.", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Detailansicht schließen", exact: true }).click();
-  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1`);
+  await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.rootB}&content=1&tab=cards`);
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toContainText("Unterkarte im Hauptstapel geändert");
   await page.goto(`/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}`);
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toContainText("Unterkarte im Hauptstapel geändert");

@@ -9,11 +9,11 @@ const parent = createCoreDeck({ id: "parent", name: "Herkunft", hierarchyPath: [
 const child = createCoreDeck({ id: "child", parentDeckId: parent.id, name: "Ein sehr langer Unterstapelname", hierarchyPath: ["Herkunft", "Ein sehr langer Unterstapelname"], source: "manual", cards: [] });
 const row = createDeckLibraryModel([parent, child]).rows[1];
 
-test("deck summary row keeps responsive identity, accessible metrics and compact progress", () => {
+test("deck summary row keeps responsive identity and accessible metrics without a progress ring", () => {
   const markup = renderToStaticMarkup(
     <DeckSummaryRow
       row={row}
-      learningStatus={{ summary: row.summary, statusDistribution: row.statusDistribution }}
+      learningStatus={{ summary: row.summary }}
       leadingControl={<button type="button" aria-label="Unterstapel einklappen" />}
       actions={<button type="button" aria-label="Stapeloptionen" />}
       density="compact"
@@ -30,9 +30,8 @@ test("deck summary row keeps responsive identity, accessible metrics and compact
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
   assert.match(markup, /size-8/);
-  assert.match(markup, /padding-inline-start:8px/);
-  assert.match(markup, /aria-label="Keine aktiven Karten für Herkunft \/ Ein sehr langer Unterstapelname\."/);
-  assert.match(markup, /data-donut-empty="true"/);
+  assert.match(markup, /padding-inline-start:calc\(1 \* var\(--core-deck-depth-indent, 8px\)\)/);
+  assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt|Keine aktiven Karten/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
 });
 
@@ -56,7 +55,7 @@ test("deck summary row caps visual indentation at level six", () => {
   );
 
   assert.equal(deepRow.depth, 11);
-  assert.match(markup, /padding-inline-start:40px/);
+  assert.match(markup, /padding-inline-start:calc\(5 \* var\(--core-deck-depth-indent, 8px\)\)/);
   assert.doesNotMatch(markup, /deck-hierarchy-overflow|lucide-git-branch/);
 });
 
@@ -73,4 +72,22 @@ test("deck summary row omits the complete learning status block for management r
   assert.match(markup, /grid-cols-\[minmax\(0,1fr\)_auto\]/);
   assert.doesNotMatch(markup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
+});
+
+test("deck summary row projects a tile with visible metric labels and no indentation", () => {
+  const markup = renderToStaticMarkup(
+    <DeckSummaryRow
+      row={row}
+      learningStatus={{ summary: row.summary, metricLabels: "sr-only" }}
+      leadingControl={<span aria-hidden="true" />}
+      actions={<button type="button" aria-label="Stapeloptionen" />}
+      density="responsive"
+      presentation="folder"
+    />,
+  );
+
+  assert.match(markup, /core-deck-folder-summary/);
+  assert.doesNotMatch(markup, /core-deck-summary-responsive|padding-inline-start:calc/);
+  assert.match(markup, /core-heading-3/);
+  for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="core-caption text-core-muted">${label}</dt>`));
 });

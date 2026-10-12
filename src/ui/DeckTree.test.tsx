@@ -26,7 +26,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
   assert.match(markup, /lucide-play/);
-  assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf('lucide-play'));
+  assert.doesNotMatch(markup, /data-donut-|core-donut|Gesamtfortschritt/);
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
   assert.equal((markup.match(/data-deck-count="new"/g) ?? []).length, 2);
@@ -43,12 +43,10 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /data-deck-count="due"><dt class="sr-only">Fällig<\/dt>/);
   assert.doesNotMatch(markup, /core-deck-summary-count-label/);
   assert.doesNotMatch(markup, /hidden md:block/);
-  assert.match(markup, /core-donut-responsive/);
   assert.doesNotMatch(markup, /md:not-sr-only|md:size-10|md:text-base/);
   assert.match(markup, /var\(--core-learning-status-new\)/);
   assert.match(markup, /var\(--core-learning-status-in-progress\)/);
   assert.match(markup, /var\(--core-learning-status-due\)/);
-  assert.equal((markup.match(/data-donut-empty="true"/g) ?? []).length, 2);
   assert.match(markup, /data-deck-drag-source="true"/);
   assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-summary-row/);
   assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-summary-row/);
@@ -69,17 +67,17 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.doesNotMatch(markup, /data-core-tooltip="Stapeloptionen für Bereich \/ Grundlagen"/);
 });
 
-test("deck tree places optional panel content before rows and omits an empty row frame", () => {
+test("deck tree places caller content below the collection and omits an empty row frame", () => {
   const content = <form data-testid="panel-content"><input aria-label="Stapelname" /></form>;
   const populated = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" contentAfterRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
   const empty = renderToStaticMarkup(
-    <DeckTree rows={[]} mode="learn" contentBeforeRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={[]} mode="learn" contentAfterRows={content} collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.ok(populated.indexOf("Aktive Stapel") < populated.indexOf('data-testid="panel-content"'));
-  assert.ok(populated.indexOf('data-testid="panel-content"') < populated.indexOf('data-testid="deck-summary-header"'));
+  assert.ok(populated.indexOf('data-testid="deck-summary-header"') < populated.indexOf('data-testid="panel-content"'));
+  assert.ok(populated.indexOf('data-testid="learn-deck-row-child"') < populated.indexOf('data-testid="panel-content"'));
   assert.match(empty, /data-testid="panel-content"/);
   assert.doesNotMatch(empty, /core-deck-tree-rows|data-testid="deck-summary-header"/);
 });
@@ -123,16 +121,46 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   );
 
   for (const markup of [dashboard, learning]) {
-    assert.match(markup, /data-donut-empty="true"/);
     assert.match(markup, /Stapeloptionen für Bereich/);
-    assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf("Stapeloptionen für Bereich"));
-    assert.ok(markup.indexOf('data-deck-count="due"') < markup.indexOf('data-donut-empty="true"'));
-    assert.ok(markup.indexOf('data-donut-empty="true"') < markup.indexOf('aria-label="Bereich lernen"'));
+    assert.ok(markup.indexOf('data-deck-count="due"') < markup.indexOf('aria-label="Bereich lernen"'));
     assert.ok(markup.indexOf('aria-label="Bereich lernen"') < markup.indexOf("Stapeloptionen für Bereich"));
     assert.match(markup, /data-deck-drag-source="true"/);
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
+  assert.match(learning, />Alle einklappen</);
+  assert.doesNotMatch(dashboard, /Alle einklappen|Alle aufklappen/);
+});
+
+test("deck tree groups every main deck with its subdecks in one tinted group", () => {
+  const groupedDecks = [
+    ...decks,
+    createCoreDeck({ id: "second-root", name: "Zweiter Bereich", hierarchyPath: ["Zweiter Bereich"], source: "manual", cards: [] }),
+  ];
+  const markup = renderToStaticMarkup(
+    <DeckTree rows={createDeckLibraryModel(groupedDecks).rows} mode="learn" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.equal((markup.match(/class="core-deck-tree-group"/g) ?? []).length, 2);
+  assert.match(markup, /aria-label="Stapelgruppe Bereich"[^>]*data-deck-group="root"[^>]*style="--core-deck-group-accent:#[0-9A-Fa-f]{6}"/);
+  assert.match(markup, />Alle aufklappen</);
+  assert.doesNotMatch(markup, /Hauptstapel<|Unterstapel<\/span>/);
+});
+
+test("deck tree tiles show main decks as tiles with content, study and options actions", () => {
+  const markup = renderToStaticMarkup(
+    <DeckTree rows={rows} mode="learn" view="tiles" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.match(markup, /data-deck-view="tiles"/);
+  assert.match(markup, /data-testid="learn-deck-tiles"/);
+  assert.match(markup, /class="core-deck-summary-row relative min-w-0 select-none core-deck-folder-card"/);
+  assert.match(markup, /aria-label="Unterstapel von Bereich öffnen"/);
+  assert.match(markup, /aria-label="Inhalte von Bereich öffnen"[^>]*>.*Inhalte</);
+  assert.match(markup, /aria-label="Bereich lernen"/);
+  assert.match(markup, /Stapeloptionen für Bereich/);
+  assert.match(markup, /<dt class="core-caption text-core-muted">Neu<\/dt>/);
+  assert.doesNotMatch(markup, /learn-deck-row-child|deck-summary-header|Alle einklappen|learn-deck-folder-panel/);
 });
 
 test("deck tree projects a persisted collapsed parent", () => {

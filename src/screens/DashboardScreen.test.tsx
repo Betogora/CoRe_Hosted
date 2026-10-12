@@ -92,8 +92,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /Stapeloptionen für Biologie/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
   assert.match(markup, /lucide-ellipsis/);
-  assert.match(markup, /data-donut-segment="new"/);
-  assert.match(markup, /Gesamtfortschritt für Biologie:/);
+  assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
   assert.doesNotMatch(markup, /aktive Tage/i);
   assert.match(markup, /0 Tage Streak/);
   assert.match(markup, /aria-label="Heatmap-Zeitraum"/);

@@ -71,6 +71,8 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onUpdateVariant: async () => undefined,
     onMoveDeck: () => null,
     onOpenLearn: () => undefined,
+    onOpenDeckContent: () => undefined,
+    contentTab: "cards",
     onOpenCardSettings: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
@@ -89,7 +91,7 @@ test("deck content shows only its own cards without deck headings and uses the e
   const cardPages = { [deck.id]: cardPage(deck.id, [atp]), [other.id]: cardPage(other.id, [water]) };
   const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, cardPages });
   assert.match(markup, /aria-label="Stapelinhalte"/);
-  for (const label of ["Karteikarten", "Notizen", "Mind Map", "Quiz", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
+  for (const label of ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /aria-label="Karten nach Variante filtern"/);
   assert.match(markup, />Ohne Variante</);
   assert.doesNotMatch(markup, /Für diese Karten Varianten generieren/, "the generation action appears only while the filter is on");
@@ -107,6 +109,30 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.match(editor, /data-testid="card-detail-aside"/);
   assert.match(editor, /Karte bearbeiten/);
   assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten/);
+});
+
+test("deck content opens on its subdecks with path, heading and branch actions", () => {
+  const root = deckOf("root", "Hauptstapel", []);
+  const child = deckOf("child", "Kapitel", [basicGraph("child", "Frage", "Antwort")], { parentDeckId: root.id, hierarchyPath: ["Hauptstapel", "Kapitel"] });
+  const grandchild = deckOf("grandchild", "Abschnitt", [], { parentDeckId: child.id, hierarchyPath: ["Hauptstapel", "Kapitel", "Abschnitt"] });
+  const markup = renderScreen([root, child, grandchild], { contentDeckId: child.id, contentTab: undefined });
+
+  assert.match(markup, /<nav[^>]*aria-label="Stapelpfad"[\s\S]*>Alle Stapel<[\s\S]*>Hauptstapel<[\s\S]*aria-current="page">Kapitel</);
+  assert.match(markup, /<h2[^>]*data-screen-heading[^>]*>Kapitel<\/h2>/);
+  assert.match(markup, /aria-label="Eine Ebene zurück"/);
+  assert.match(markup, /aria-pressed="true"[^>]*aria-label="Unterstapel"|aria-label="Unterstapel"[^>]*aria-pressed="true"/);
+  assert.match(markup, /data-testid="deck-content-substacks"/);
+  assert.match(markup, /data-testid="content-substack-grandchild"/);
+  assert.match(markup, />Alle Karten dieses Zweigs</);
+  assert.match(markup, />Diesen Zweig lernen</);
+  assert.doesNotMatch(markup, /data-testid="card-library-panel"|Einschließlich|direkte Unterstapel|data-donut-/);
+
+  const leaf = renderScreen([root, child, grandchild], { contentDeckId: grandchild.id, contentTab: "children" });
+  assert.match(leaf, />Keine weiteren Unterstapel</);
+  assert.match(leaf, />Karten öffnen</);
+  const top = renderScreen([root, child], { contentDeckId: root.id, contentTab: "summary" });
+  assert.match(top, /aria-label="Zur Stapelübersicht"/);
+  assert.match(top, /Demnächst verfügbar/);
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
