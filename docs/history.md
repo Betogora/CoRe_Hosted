@@ -19,7 +19,13 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
   3e346bd nennt `avoid` sie nach den vorhandenen Varianten; erneuter Lauf in
   Production: „2 Varianten neu generiert“, beide inhaltlich korrekt.
 - Nicht live geprüft: Marke `Kartenvariante` im Lernen (Varianten erscheinen erst
-  ab der Lernstufe des Stapels); Smoke-Stapel danach gelöscht.
+  ab der Lernstufe des Stapels); Smoke-Stapel danach gelöscht. Lokal belegt sie
+  `npm run test:e2e:local` (Variantenfeedback-Vertrag grün; offene Fehlschläge
+  anderer Bereiche in der TODO).
+- Die visuelle Matrix der Kartenbausteine scheiterte an einer unbehandelten
+  `RenderingCancelledException`: `PdfDocumentViewer` kehrte nach dem Abräumen
+  zurück, ohne den abgebrochenen Render-Task abzuwarten; seither gibt er ihn an
+  den vorhandenen Fehlerpfad weiter, Matrix grün.
 
 ## 2026-10-12 — Kartenvarianten gekennzeichnet und filterbar
 

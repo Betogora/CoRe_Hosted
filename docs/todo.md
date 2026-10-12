@@ -1,9 +1,28 @@
 # CoRe TODO
 
-Stand: 2026-10-10
+Stand: 2026-10-12
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
+
+## Release-Gate (`npm run test:e2e:local`)
+
+Lauf vom 2026-10-12 (6e47284): 107 bestanden, 3 fehlgeschlagen.
+
+- [ ] **Cloze-Erstellung:** Nach `Originalkarte speichern` einer Lückentext-Karte
+      fragt `Fertig` „Ungespeicherten Entwurf verwerfen?“, obwohl das Formular
+      leer ist (`card-lifecycle.spec.ts`, Cloze-Lebenszyklus). Verdacht: 0bba802
+      (Editorfokus in `RichTextEditor.tsx`). Ursache im Produktcode beheben.
+- [ ] **Speicherfehler-Alert:** Seit f5c4e12 meldet `SettingsSaveBar` Fehler als
+      `alert`; ein leerer Stapelname erzeugt dadurch zwei Alerts
+      (`world-capitals-hierarchy.spec.ts`, Stapel-Darstellungsformular). Klären, ob
+      eine Validierungsablehnung als „Speichern fehlgeschlagen“ gelten soll, dann
+      Verhalten oder Test angleichen.
+- [ ] **Boot-Fetch im Test:** Ein einmaliger Supabase-`Failed to fetch` beim Start
+      ließ `core-stabilization.spec.ts` (Lerneinstellungen bei 768 px) scheitern;
+      ein anderer Test filtert diesen Fehler bereits. Behandlung in der App prüfen,
+      dann gemeinsam filtern. Der Kaltstart von Vite ließ einmalig `auth.setup.ts`
+      scheitern (Lernen-Bereich nach 8 s noch nicht geladen).
 
 ## Offene Abnahmen der Kartenmodell-Roadmap
 
@@ -24,10 +43,10 @@ geglättet.
       „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
       zum Filter „Ohne Variante“; Stoppgründe in der Leiste kurz halten (z. B.
       „Keine Verbindung“).
-- [ ] **Nachweise:** `npm run test:e2e:local` mit der Marke `Kartenvariante`
-      nach dem Aufdecken und die visuelle Pflichtmatrix für Fortschrittsleiste,
-      Einschalt-Dialog, Variantenbereich der Stapeleinstellungen und Filter
-      `Ohne Variante`.
+- [ ] **Visuelle Pflichtmatrix:** Fortschrittsleiste, Einschalt-Dialog,
+      Variantenbereich der Stapeleinstellungen und Filter `Ohne Variante`; dazu
+      ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
+      gemockt).
 
 ## Betrieb
 

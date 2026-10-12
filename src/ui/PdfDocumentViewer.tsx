@@ -71,7 +71,8 @@ function PdfPage({ entry, pdfjs, scale }: { entry: PdfPageEntry & { page: any };
         transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0],
       });
       const textContent = await entry.page.getTextContent();
-      if (disposed) return;
+      // The cleanup cancels the render task; awaiting it hands the cancellation to the catch below.
+      if (disposed) return renderTask!.promise;
       textLayer = new pdfjs.TextLayer({ textContentSource: textContent, container: textLayerElement, viewport });
       await Promise.all([renderTask!.promise, textLayer!.render()]);
     }
