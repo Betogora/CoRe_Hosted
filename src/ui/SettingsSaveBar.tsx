@@ -7,16 +7,18 @@ interface SettingsSaveBarProps {
   open: boolean;
   savingScope?: SettingsSaveScope | "global" | null;
   navigationBlocked?: boolean;
+  /** The last save attempt failed; the bar says so where the user clicked. */
+  failed?: boolean;
   mode?: "global" | "learning-global" | "deck" | "deck-tree";
   onSave: (scope?: SettingsSaveScope) => void;
   onDiscard: () => void;
 }
 
-export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = false, mode = "global", onSave, onDiscard }: SettingsSaveBarProps) {
+export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = false, failed = false, mode = "global", onSave, onDiscard }: SettingsSaveBarProps) {
   if (!open) return null;
 
   const saving = savingScope !== null;
-  const status = navigationBlocked ? "Zum Verlassen zuerst speichern." : "Änderungen speichern?";
+  const status = failed ? "Speichern fehlgeschlagen – bitte erneut versuchen." : navigationBlocked ? "Zum Verlassen zuerst speichern." : "Änderungen speichern?";
 
   return (
     <aside
@@ -29,7 +31,7 @@ export function SettingsSaveBar({ open, savingScope = null, navigationBlocked = 
         <span className="core-settings-save-badge grid size-9 shrink-0 place-items-center rounded-control" aria-hidden="true">
           <Save size={17} />
         </span>
-        <p className="core-body font-semibold text-core-text" role="status" aria-live="polite">
+        <p className="core-body font-semibold text-core-text" role={failed ? "alert" : "status"} aria-live="polite">
           {status}
         </p>
       </div>

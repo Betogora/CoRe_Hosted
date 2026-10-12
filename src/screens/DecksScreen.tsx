@@ -376,7 +376,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       return true;
     } catch {
       setSaveError(true);
-      setSaveStatus("Karte ist lokal gespeichert, aber die Cloud-Synchronisierung ist fehlgeschlagen. Bitte später erneut versuchen.");
+      setSaveStatus("Die Karte konnte nicht gespeichert werden. Deine Eingaben bleiben im Editor – bitte erneut versuchen.");
       return false;
     } finally {
       setIsSaving(false);

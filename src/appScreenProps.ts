@@ -186,6 +186,8 @@ export interface LearnScreenProps {
 export interface SettingsScreenProps {
   profile: Profile;
   syncStatus: SyncStatus;
+  /** Time of the last successful sync in this session; stays visible while changes are pending. */
+  lastSyncedAt?: string | null;
   storageStatus?: WorkspaceStorageStatus | null;
   onSaveSettings: (draft: GeneralSettingsDraft) => Profile | null | Promise<Profile | null>;
   onDraftStateChange: (guard: SettingsDraftGuard | null) => void;

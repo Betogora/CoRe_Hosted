@@ -5,6 +5,18 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Spec ohne Layoutdetails, ehrlichere Speicher- und Syncmeldungen
+
+- `specs.md` beschreibt Verhalten statt Bildschirmposition (rund 1.000 Wörter
+  weniger); Layout zeigt der UI-Katalog.
+- Karteneditor meldet einen Speicherfehler als „nicht gespeichert“ statt
+  fälschlich „lokal gespeichert“.
+- Die Speicherleiste meldet fehlgeschlagenes Speichern selbst; der Entwurf
+  bleibt.
+- Import-Warnungen sind zugeklappt zusammengefasst und aufklappbar.
+- `Daten & Synchronisierung` zeigt den letzten Erfolg auch bei ausstehenden oder
+  Offline-Änderungen.
+
 ## 2026-10-10 — Audit-Lücken: Easy Days, Import, Quellen, Editor, Fokus, Hilfe
 
 - Easy Days rechnet mit der lokalen Kontoprognose statt nur mit den

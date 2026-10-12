@@ -105,7 +105,7 @@ test("der Notiztyp-Bericht nennt Lernstände, fehlende Medien und Warnungen", as
   const media = renderPanel(previewSession(await fixturePreview("matrix/media-latest.apkg")));
   assert.match(media, /1 Medium fehlt im Paket\./);
   assert.match(media, /1 referenziertes Medium fehlt im Paket\. Betroffene Karten können ohne Bild oder Ton erscheinen\./);
-  assert.match(media, /1 Warnung<\/h4>/);
+  assert.match(media, /<details><summary id="apkg-warnings-heading"[^>]*>[\s\S]*?1 Warnung/, "Warnungen sind zugeklappt zusammengefasst");
   assert.match(media, /<li>1 referenziertes Medium fehlt im Paket\.<\/li>/);
 });
 

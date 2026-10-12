@@ -204,6 +204,7 @@ export function App() {
   const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
   const cardPageRequestRef = React.useRef(new Map<string, { key: string; controller: AbortController }>());
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
+  const [lastSyncedAt, setLastSyncedAt] = React.useState<string | null>(null);
   const [storageStatus, setStorageStatus] = React.useState<WorkspaceStorageStatus | null>(null);
   const [mediaStore, setMediaStore] = React.useState<AccountMediaStore | null>(null);
   const [offlineDecks, setOfflineDecks] = React.useState<Record<string, OfflineDeckRecord>>({});
@@ -216,6 +217,7 @@ export function App() {
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
   const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
   const [savingSettingsDraft, setSavingSettingsDraft] = React.useState<SettingsSaveScope | "global" | null>(null);
+  const [settingsSaveFailed, setSettingsSaveFailed] = React.useState(false);
   const [emptyStudyStart, setEmptyStudyStart] = React.useState<EmptyStudyStart | null>(null);
   const [studyPreparationFailure, setStudyPreparationFailure] = React.useState<StudyPreparationFailure | null>(null);
   const [savingPendingNavigation, setSavingPendingNavigation] = React.useState(false);
@@ -328,6 +330,14 @@ export function App() {
     (version: number) => apkgImportSessionRef.current.version === version,
     [],
   );
+
+  // The last success stays visible while later changes are pending or offline; it belongs to one account.
+  React.useEffect(() => {
+    if (syncStatus.status === "saved") setLastSyncedAt(syncStatus.savedAt);
+  }, [syncStatus]);
+  React.useEffect(() => {
+    setLastSyncedAt(null);
+  }, [cloudUser?.id]);
 
   React.useEffect(() => {
     const accountId = cloudUser?.id ?? null;
@@ -487,7 +497,10 @@ export function App() {
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
     setSettingsDraftOpen(Boolean(guard));
-    if (!guard) setSettingsNavigationBlocked(false);
+    if (!guard) {
+      setSettingsNavigationBlocked(false);
+      setSettingsSaveFailed(false);
+    }
   }, []);
 
   const requestSettingsContextAction = React.useCallback((action: () => void) => {
@@ -502,8 +515,12 @@ export function App() {
     const guard = settingsDraftGuardRef.current;
     if (!guard) return;
     setSavingSettingsDraft(scope ?? "global");
+    setSettingsSaveFailed(false);
     try {
-      if (!await guard.save(scope)) return;
+      if (!await guard.save(scope).catch(() => false)) {
+        setSettingsSaveFailed(true);
+        return;
+      }
       settingsDraftGuardRef.current = null;
       setSettingsDraftOpen(false);
       setSettingsNavigationBlocked(false);
@@ -517,6 +534,7 @@ export function App() {
     if (!guard || savingSettingsDraft !== null) return;
     guard.discard();
     settingsDraftGuardRef.current = null;
+    setSettingsSaveFailed(false);
     setSettingsDraftOpen(false);
     setSettingsNavigationBlocked(false);
   }
@@ -1708,6 +1726,7 @@ export function App() {
         <SettingsScreen
           profile={state.profile}
           syncStatus={syncStatus}
+          lastSyncedAt={lastSyncedAt}
           storageStatus={storageStatus}
           onSaveSettings={saveGeneralSettings}
           onDraftStateChange={handleSettingsDraftStateChange}
@@ -1869,6 +1888,7 @@ export function App() {
         open={settingsDraftOpen}
         savingScope={savingSettingsDraft}
         navigationBlocked={settingsNavigationBlocked}
+        failed={settingsSaveFailed}
         mode={activeView === "stapel-einstellungen"
           ? (focusedDeckId && state.decks.some((deck) => deck.parentDeckId === focusedDeckId) ? "deck-tree" : "deck")
           : activeView === "karten-einstellungen" ? "learning-global" : "global"}

@@ -33,7 +33,7 @@ const syncIntervalOptions = [
   { value: "30", label: "Alle 30 Minuten" },
 ];
 
-export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
+export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, storageStatus = null, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
   const persistedDraft = createGeneralSettingsDraft(profile);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GeneralSettingsDraft>(persistedDraft);
@@ -152,8 +152,8 @@ export function SettingsScreen({ profile, syncStatus, storageStatus = null, onSa
             <div>
               <h3 className="core-heading-3 font-semibold text-core-text">Synchronisierung</h3>
               <p className="mt-2 core-body text-core-muted">{formatSyncStatusText(syncStatus)}</p>
-              {syncStatus.status === "saved" ? <p className="mt-1 core-caption text-core-muted">Zuletzt erfolgreich: {new Date(syncStatus.savedAt).toLocaleString("de-DE")}</p> : null}
-              {syncStatus.status === "pending" && syncStatus.pendingCount ? <p className="mt-1 core-caption text-core-muted">Ausstehende Änderungen: {syncStatus.pendingCount}</p> : null}
+              {lastSyncedAt ? <p className="mt-1 core-caption text-core-muted">Zuletzt erfolgreich: {new Date(lastSyncedAt).toLocaleString("de-DE")}</p> : null}
+              {(syncStatus.status === "pending" || syncStatus.status === "offline") && syncStatus.pendingCount ? <p className="mt-1 core-caption text-core-muted">Ausstehende Änderungen: {syncStatus.pendingCount}</p> : null}
             </div>
             <ActionButton type="button" variant="primary" icon={RefreshCw} onClick={() => void syncNow()} loading={syncStatus.status === "saving"} disabled={accountBusy}>Jetzt synchronisieren</ActionButton>
           </div>

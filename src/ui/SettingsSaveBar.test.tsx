@@ -66,3 +66,8 @@ test("settings save bar uses a subtle accent without a colored glow", () => {
   assert.match(saveBarRule, /background: var\(--core-settings-save-surface\)/);
   assert.doesNotMatch(saveBarRule, /box-shadow|linear-gradient/);
 });
+
+test("a failed save is announced in the bar itself", () => {
+  const html = renderToStaticMarkup(<SettingsSaveBar open failed onSave={() => undefined} onDiscard={() => undefined} />);
+  assert.match(html, /role="alert"[^>]*>Speichern fehlgeschlagen – bitte erneut versuchen\.</);
+});

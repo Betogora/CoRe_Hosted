@@ -43,6 +43,8 @@ test("latest APKG preview shows the complete quality report without mutating acc
   await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "Basic" })).toContainText("1 Medium fehlt im Paket.");
   await expect(page.getByText("1 referenziertes Medium fehlt im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.", { exact: true })).toBeVisible();
   const warnings = page.getByRole("region", { name: "1 Warnung", exact: true });
+  await expect(warnings.getByRole("listitem")).toHaveCount(0);
+  await warnings.getByText("1 Warnung", { exact: true }).click();
   await expect(warnings.getByRole("listitem")).toHaveText(["1 referenziertes Medium fehlt im Paket."]);
   await expect(page.getByText(/SHA-1|Importidentität/i)).toHaveCount(0);
   const examples = page.getByRole("region", { name: "Kartenbeispiele" });

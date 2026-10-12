@@ -7,13 +7,14 @@ import { createCoreRepository } from "../coreRepository.ts";
 import { SettingsScreen } from "./SettingsScreen.tsx";
 import { createConflictImpactPreview } from "./SyncConflictPanel.tsx";
 
-function renderSettings() {
+function renderSettings(sync: Pick<React.ComponentProps<typeof SettingsScreen>, "syncStatus" | "lastSyncedAt"> = { syncStatus: { status: "idle" } }) {
   const state = createCoreRepository().getState();
   const profile = { ...state.profile, email: "login@example.test", displayName: "Ada", timezone: "Europe/Berlin" };
   return renderToStaticMarkup(
     <SettingsScreen
       profile={profile}
-      syncStatus={{ status: "idle" }}
+      syncStatus={sync.syncStatus}
+      lastSyncedAt={sync.lastSyncedAt}
       onSaveSettings={() => profile}
       onDraftStateChange={() => undefined}
       onSyncNow={async () => undefined}
@@ -82,4 +83,10 @@ test("conflict previews count only the selected direction", () => {
   assert.deepEqual(local.counts.card_variants, { add: 0, update: 0, delete: 1 });
   assert.deepEqual(cloud.counts.decks, { add: 0, update: 0, delete: 1 });
   assert.deepEqual(cloud.conflictIds, ["deck-add", "card-update", "variant-delete"]);
+});
+
+test("the last successful sync stays visible while changes are pending", () => {
+  const html = renderSettings({ syncStatus: { status: "pending", message: "", pendingCount: 3 }, lastSyncedAt: "2026-10-12T08:30:00.000Z" });
+  assert.match(html, /Zuletzt erfolgreich: /);
+  assert.match(html, /Ausstehende Änderungen: 3/);
 });

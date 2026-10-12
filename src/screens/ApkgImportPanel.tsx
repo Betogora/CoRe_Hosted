@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, CheckCircle2, Database, FileArchive, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, ChevronDown, Database, FileArchive, Loader2 } from "lucide-react";
 import type { ApkgCreationPreview, CreationWorkflow } from "../creationWorkflow.ts";
 import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgProgressPhase } from "../apkgImportSession.ts";
 import type { Card, Deck, Note } from "../coreTypes.ts";
@@ -546,13 +546,16 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
                   ) : null}
                   {previewWarnings.length > 0 ? (
                     <section className="rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text" aria-labelledby="apkg-warnings-heading">
-                      <h4 id="apkg-warnings-heading" className="flex items-center gap-2 font-semibold">
-                        <AlertCircle className="shrink-0" size={16} aria-hidden="true" />
-                        {previewWarnings.length} {previewWarnings.length === 1 ? "Warnung" : "Warnungen"}
-                      </h4>
-                      <ul className="mt-3 list-disc space-y-1 pl-6">
-                        {previewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
-                      </ul>
+                      <details>
+                        <summary id="apkg-warnings-heading" className="flex min-h-control cursor-pointer items-center gap-2 font-semibold">
+                          <AlertCircle className="shrink-0" size={16} aria-hidden="true" />
+                          {previewWarnings.length} {previewWarnings.length === 1 ? "Warnung" : "Warnungen"}
+                          <ChevronDown className="ml-auto shrink-0" size={16} aria-hidden="true" />
+                        </summary>
+                        <ul className="mt-2 list-disc space-y-1 pl-6">
+                          {previewWarnings.map((warning) => <li key={warning}>{warning}</li>)}
+                        </ul>
+                      </details>
                     </section>
                   ) : null}
                 </div>
