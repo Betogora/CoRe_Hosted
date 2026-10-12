@@ -11,6 +11,7 @@ import {
   validateAccountStatistics,
   validateAccountStudyOverview,
   validateCardCatalogRows,
+  validateCardStudyStateRows,
   validateDeckStudySummary,
   validateDeckStudySummaryRows,
   validateDueForecast,
@@ -19,6 +20,7 @@ import {
   validateProfileRows,
   variantFromRow,
   type AccountTable,
+  type CardStudySnapshot,
 } from "./cloudRepositoryValidation.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
 import type {
@@ -649,6 +651,26 @@ export async function searchAccountCardCatalog(
   const groups = data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>).groups : null;
   if (!groups || typeof groups !== "object" || Array.isArray(groups)) throw new Error("Kartensuche lieferte eine ungültige Antwort.");
   return new Map(Object.entries(groups).map(([deckId, page]) => [deckId, parseCatalogPage(page)]));
+}
+
+const CARD_STUDY_STATE_PAGE_SIZE = 2000;
+
+/** Study state of every card in the given decks without card bodies (ADR-034), paged by card id. */
+export async function listAccountCardStudyStates(client: any, deckIds: string[], signal?: AbortSignal): Promise<CardStudySnapshot[]> {
+  const ids = [...new Set(deckIds.filter(Boolean))];
+  if (ids.length > 5000) throw new Error("Höchstens 5000 Stapel können gleichzeitig geladen werden.");
+  const snapshots: CardStudySnapshot[] = [];
+  let afterCardId: string | null = null;
+  while (ids.length > 0) {
+    const call = client.rpc("list_account_card_study_states", { p_deck_ids: ids, p_after_card_id: afterCardId, p_limit: CARD_STUDY_STATE_PAGE_SIZE });
+    const { data, error } = await (signal ? call.abortSignal(signal) : call);
+    if (error) throw error;
+    const page = validateCardStudyStateRows(data);
+    snapshots.push(...page);
+    if (page.length < CARD_STUDY_STATE_PAGE_SIZE) break;
+    afterCardId = page[page.length - 1].cardId;
+  }
+  return snapshots;
 }
 
 /** Card bodies with their contents and variants; note ids additionally load all sibling cards. */

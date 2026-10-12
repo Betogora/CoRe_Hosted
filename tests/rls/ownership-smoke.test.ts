@@ -376,6 +376,12 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});
+      const studyRequest = { p_deck_ids: [fixtureA.decks.id, fixtureB.decks.id], p_after_card_id: null, p_limit: 50 };
+      const studyA = assertNoError(await clientA.rpc("list_account_card_study_states", studyRequest), "Lernstände für Nutzer A");
+      assert.ok(studyA.some((entry: any) => entry.card_id === fixtureA.cards.id), "Nutzer A sieht den Lernstand seiner Karte");
+      assert.ok(studyA.every((entry: any) => entry.deck_id === fixtureA.decks.id), "Nutzer A sieht keine fremden Lernstände");
+      assert.equal(studyA.find((entry: any) => entry.card_id === fixtureA.cards.id)?.active_variant_count, 3);
+      assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_study_states", { ...studyRequest, p_deck_ids: [fixtureA.decks.id] }), "fremde Lernstände für Nutzer B"), []);
 
       const hydratedA = assertNoError(await clientA.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id, fixtureB.cards.id], p_note_ids: [fixtureB.notes.id] }), "Kartenkörper für Nutzer A");
       assert.deepEqual(hydratedA.cards.map((entry: any) => entry.id), [fixtureA.cards.id]);

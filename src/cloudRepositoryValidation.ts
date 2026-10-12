@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, parseNoteContent } from "./coreModel.ts";
-import type { Card, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
 import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type {
   AccountStatisticsSnapshot,
@@ -36,6 +36,21 @@ interface StoredNoteSource {
 
 const jsonObjectSchema = v.pipe(v.unknown(), v.check((value) => value !== null && typeof value === "object" && !Array.isArray(value)), v.record(v.string(), v.unknown()));
 const nonNegativeIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(0));
+/** Typed study columns of `cards`, shared by full card rows and body-less study-state rows. */
+const cardStudyColumnsSchema = {
+  status: v.picklist(["active", "suspended"]),
+  state: v.picklist(["new", "learning", "review", "relearning"]),
+  due_at: v.string(),
+  stability: v.pipe(v.number(), v.minValue(0)),
+  difficulty: v.pipe(v.number(), v.minValue(0)),
+  reps: nonNegativeIntegerSchema,
+  lapses: nonNegativeIntegerSchema,
+  interval_days: v.pipe(v.number(), v.minValue(0)),
+  learning_step_index: nonNegativeIntegerSchema,
+  last_reviewed_at: v.nullable(v.string()),
+  last_rating: v.nullable(v.picklist(["again", "hard", "good", "easy"])),
+  study_revision: nonNegativeIntegerSchema,
+};
 const positiveIntegerSchema = v.pipe(v.number(), v.safeInteger(), v.minValue(1));
 const sha1Schema = v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/));
 const syncRowSchema = {
@@ -90,21 +105,10 @@ const accountRowSchemas = {
     deck_id: v.string(),
     prompt_key: v.string(),
     anki_card_id: v.nullable(v.string()),
-    status: v.picklist(["active", "suspended"]),
+    ...cardStudyColumnsSchema,
     anki_flag: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(7)),
-    state: v.picklist(["new", "learning", "review", "relearning"]),
-    due_at: v.string(),
-    stability: v.pipe(v.number(), v.minValue(0)),
-    difficulty: v.pipe(v.number(), v.minValue(0)),
-    reps: nonNegativeIntegerSchema,
-    lapses: nonNegativeIntegerSchema,
-    interval_days: v.pipe(v.number(), v.minValue(0)),
-    learning_step_index: nonNegativeIntegerSchema,
-    last_reviewed_at: v.nullable(v.string()),
-    last_rating: v.nullable(v.picklist(["again", "hard", "good", "easy"])),
     study_extra: jsonObjectSchema,
     source_scheduler: v.optional(v.unknown()),
-    study_revision: nonNegativeIntegerSchema,
   }),
   card_variants: v.looseObject({
     ...syncRowSchema,
@@ -164,6 +168,25 @@ const cardCatalogRowSchema = v.looseObject({
   deleted_at: v.nullable(v.string()),
   updated_at: v.string(),
 });
+const cardStudyStateRowSchema = v.object({
+  card_id: v.string(),
+  deck_id: v.string(),
+  note_id: v.string(),
+  ...cardStudyColumnsSchema,
+  active_variant_count: nonNegativeIntegerSchema,
+});
+
+/** Study state of one card without its body; planning reads it for whole decks (ADR-034). */
+export interface CardStudySnapshot {
+  cardId: string;
+  deckId: string;
+  noteId: string;
+  status: Card["status"];
+  study: Omit<CardStudyState, "extra">;
+  studyRevision: number;
+  activeVariantCount: number;
+}
+
 const deckStudySummarySchema = v.looseObject({
   deckId: v.string(),
   totalCount: nonNegativeIntegerSchema,
@@ -409,6 +432,29 @@ export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
     syncChangeId: row.sync_change_id,
     deletedAt: row.deleted_at,
     updatedAt: row.updated_at,
+  }));
+}
+
+export function validateCardStudyStateRows(input: unknown): CardStudySnapshot[] {
+  return parseRows(cardStudyStateRowSchema, input, "Cloud-Lernstände hatten ein ungültiges Format.").map((row) => ({
+    cardId: row.card_id,
+    deckId: row.deck_id,
+    noteId: row.note_id,
+    status: row.status,
+    study: {
+      state: row.state,
+      dueAt: row.due_at,
+      stability: row.stability,
+      difficulty: row.difficulty,
+      reps: row.reps,
+      lapses: row.lapses,
+      intervalDays: row.interval_days,
+      learningStepIndex: row.learning_step_index,
+      lastReviewedAt: row.last_reviewed_at,
+      lastRating: row.last_rating,
+    },
+    studyRevision: row.study_revision,
+    activeVariantCount: row.active_variant_count,
   }));
 }
 

@@ -5,6 +5,19 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-12 — Lernstände ganzer Stapel ohne Kartenkörper
+
+- Migration `20261012195419_list_account_card_study_states.sql`: RPC
+  `list_account_card_study_states(text[], text, integer)` (SECURITY INVOKER,
+  leerer `search_path`, nur `authenticated`) liefert je Karte Lernstand, Status,
+  `study_revision` und aktive Variantenzahl, seitenweise nach Karten-ID. Client
+  `listAccountCardStudyStates` blättert in Seiten zu 2.000. Grundlage der
+  Prüfungsplanung aus `fitzbert` (ADR-034, Ergänzung).
+- Nachweise: lokale Migration per `supabase db reset`, `npm run db:types:generate`
+  und `db:types:check`, `npm run test:rls:local` 17/17 (Eigentümertrennung der
+  neuen RPC), Unit-Test für Seiten, Deduplizierung und Validierung.
+- Pre-Release-Projekt: Migration noch nicht angewandt.
+
 ## 2026-10-12 — Leerer Cloze-Entwurf nach dem Speichern nicht mehr ungespeichert
 
 - Ursache des fehlschlagenden Cloze-Lebenszyklus (`card-lifecycle.spec.ts`): Nach

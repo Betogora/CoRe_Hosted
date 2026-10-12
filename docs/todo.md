@@ -42,10 +42,9 @@ main.
       `fitzbert`. KI-Route nach dem Muster der Variantenroute (fest
       `openai/gpt-6-luna`, ZDR, `getClaims`, Kostenlog) mit Ergänzung zu ADR-011.
 - [ ] **Prüfungsplanung:** Prognose und Lernblöcke auf Card portieren;
-      `withGlobalSchedulerPreferences` muss die Pläne erhalten. Datenbasis über
-      eine schlanke Server-Abfrage mit dem Lernstand aller Karten der gewählten
-      Stapel ohne Kartenkörper (Tendenz, vor Umsetzung bestätigen), als Ergänzung
-      zu ADR-034.
+      `withGlobalSchedulerPreferences` muss die Pläne erhalten. Datenbasis ist
+      `listAccountCardStudyStates` (ADR-034, Ergänzung 2026-10-12); die
+      Prognose liest Lernstände darüber statt Kartenkörper zu laden.
 
 ## Betrieb
 

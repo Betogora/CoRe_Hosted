@@ -914,6 +914,31 @@ export type Database = {
         }
         Returns: Json
       }
+      list_account_card_study_states: {
+        Args: {
+          p_after_card_id?: string
+          p_deck_ids: string[]
+          p_limit?: number
+        }
+        Returns: {
+          active_variant_count: number
+          card_id: string
+          deck_id: string
+          difficulty: number
+          due_at: string
+          interval_days: number
+          lapses: number
+          last_rating: string
+          last_reviewed_at: string
+          learning_step_index: number
+          note_id: string
+          reps: number
+          stability: number
+          state: string
+          status: string
+          study_revision: number
+        }[]
+      }
       list_releasable_media: { Args: { p_limit?: number }; Returns: Json }
       list_retranslation_candidates: {
         Args: { p_current_versions: Json; p_cursor?: string; p_limit?: number }

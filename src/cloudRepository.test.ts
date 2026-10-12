@@ -6,6 +6,7 @@ import {
   createCloudStateRows,
   deckToCloudRow,
   hydrateAccountCards,
+  listAccountCardStudyStates,
   loadReimportTargets,
   recordAtomicReview,
   reviewEventToCloudRow,
@@ -167,6 +168,41 @@ test("Kartenkörper kommen mit Inhalten und Varianten; Inhalt-IDs laden alle Ges
   assert.deepEqual(result.cards.map((entry) => [entry.id, entry.deckId, entry.variants.length]), [[card.id, deck.id, 1], ["card-sibling", "deck-other", 0]]);
   assert.deepEqual(result.notes.map((entry) => entry.id), [note.id]);
   await assert.rejects(() => hydrateAccountCards(client, Array.from({ length: 51 }, (_, index) => `card-${index}`)), /Höchstens 50/);
+});
+
+test("Lernstände ganzer Stapel kommen ohne Kartenkörper und seitenweise nach Karten-ID", async () => {
+  const row = (index: number) => ({
+    card_id: `card-${String(index).padStart(5, "0")}`, deck_id: "deck-a", note_id: `note-${index}`, status: "active", state: "review",
+    due_at: "2026-10-20T08:00:00+00:00", stability: 12.5, difficulty: 4.2, reps: 3, lapses: 1, interval_days: 9, learning_step_index: 0,
+    last_reviewed_at: "2026-10-11T08:00:00+00:00", last_rating: "good", study_revision: 4, active_variant_count: 2,
+  });
+  const requests: Array<Record<string, unknown>> = [];
+  const client = {
+    async rpc(name: string, input: Record<string, unknown>) {
+      assert.equal(name, "list_account_card_study_states");
+      requests.push(input);
+      const start = input.p_after_card_id ? 2000 : 0;
+      return { data: Array.from({ length: start ? 3 : 2000 }, (_, index) => row(start + index)), error: null };
+    },
+  };
+
+  const snapshots = await listAccountCardStudyStates(client, ["deck-a", "deck-a", ""]);
+
+  assert.equal(snapshots.length, 2003);
+  assert.deepEqual(requests, [
+    { p_deck_ids: ["deck-a"], p_after_card_id: null, p_limit: 2000 },
+    { p_deck_ids: ["deck-a"], p_after_card_id: "card-01999", p_limit: 2000 },
+  ]);
+  assert.deepEqual(snapshots[0], {
+    cardId: "card-00000", deckId: "deck-a", noteId: "note-0", status: "active",
+    study: { state: "review", dueAt: "2026-10-20T08:00:00+00:00", stability: 12.5, difficulty: 4.2, reps: 3, lapses: 1, intervalDays: 9, learningStepIndex: 0, lastReviewedAt: "2026-10-11T08:00:00+00:00", lastRating: "good" },
+    studyRevision: 4,
+    activeVariantCount: 2,
+  });
+  assert.deepEqual(await listAccountCardStudyStates(client, []), []);
+  assert.equal(requests.length, 2, "ohne Stapel entsteht keine Anfrage");
+  const invalid = { async rpc() { return { data: [{ ...row(0), stability: -1 }], error: null }; } };
+  await assert.rejects(() => listAccountCardStudyStates(invalid, ["deck-a"]), /Lernstände/);
 });
 
 test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", async () => {
