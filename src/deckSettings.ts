@@ -2,7 +2,7 @@ import type { LearningSettings } from "./coreTypes.ts";
 import { normalizeLearningSettings, type LearningSettingsInput } from "./learningProfiles.ts";
 
 export type { LearningSettings } from "./coreTypes.ts";
-export type { GlobalSchedulerPreferencesInput, LearningSettingsInput } from "./learningProfiles.ts";
+export type { LearningSettingsInput } from "./learningProfiles.ts";
 export {
   applyLearningPreset,
   applyLearningProfileTemplateToDeckSettings,
@@ -10,12 +10,9 @@ export {
   createLearningProfileTemplate,
   deleteLearningProfileTemplate,
   getGlobalSchedulerPreferences,
-  getLearningProfileTemplate,
-  LEARNING_SETTING_PRESETS,
   markLearningSettingsCustom,
   normalizeLearnAheadMinutes,
   normalizeLearningProfileSource,
-  normalizeLearningProfileTemplates,
   normalizeLearningSettings,
   renameLearningProfileTemplate,
   resolveGlobalLearningDefaults,

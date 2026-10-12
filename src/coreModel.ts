@@ -1,18 +1,12 @@
 // Public core-model seam. Callers outside this directory must import from here.
 export {
-  CARD_VARIANT_TYPES,
-  CORE_DECK_SOURCES,
   DECK_ICON_KEYS,
   REVIEW_RATINGS,
-  VARIANT_STATUSES,
-  VARIANT_TRANSFORMS,
   createDefaultDeckSettings,
   getMaturityBand,
   makeId,
   normalizeDeckAppearance,
-  normalizeTags,
   stableContentHash,
-  unique,
 } from "./coreModel/coreValues.ts";
 export {
   cardStudyFromReviewState,
@@ -41,7 +35,6 @@ export {
   setNoteMarked,
 } from "./coreModel/notes.ts";
 export {
-  noteContentMediaRefs,
   notePromptLabel,
   parseNoteContent,
 } from "./coreModel/noteContent.ts";
@@ -49,10 +42,13 @@ export {
   addNoteField,
   applyNoteEditorValue,
   canRemoveNoteField,
+  isMovableNoteField,
+  moveNoteField,
   noteBlocks,
   noteEditorValue,
   removeNoteField,
   renameNoteField,
+  setNoteFieldRole,
   setNoteReverse,
   setNoteTypeIn,
   validateNoteEditorValue,
@@ -65,7 +61,6 @@ export {
 export type { ManualContentKind, ManualNoteErrors, ManualNoteInput } from "./coreModel/creation.ts";
 export {
   addOcclusionMask,
-  clampOcclusionShape,
   createOcclusionNoteContent,
   groupOcclusionMasks,
   moveOcclusionMasks,
@@ -76,5 +71,5 @@ export {
   updateOcclusionMaskShape,
   validateOcclusionInput,
 } from "./coreModel/occlusion.ts";
-export type { DrawnOcclusionShape, OcclusionMode, OcclusionNoteInput } from "./coreModel/occlusion.ts";
+export type { DrawnOcclusionShape, OcclusionMode } from "./coreModel/occlusion.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";

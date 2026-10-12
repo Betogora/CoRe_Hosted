@@ -5,6 +5,25 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-10 — Audit-Lücken: Easy Days, Import, Quellen, Editor, Fokus, Hilfe
+
+- Easy Days rechnet mit der lokalen Kontoprognose statt nur mit den
+  Sitzungskarten; in der Sitzung neu geplante Karten wechseln sofort ihren Tag.
+- APKG-Analyse lässt sich abbrechen; der nie erreichte Zustand
+  `failed_retryable` ist entfernt.
+- Quellanhang prüft das Format vor dem Lesen (auch beim Ablegen) und lässt sich
+  schließen; ein anderes Bild in der Bildverdeckung verwirft Masken nach
+  Rückfrage.
+- Lernen pausiert offline mit eigener Meldung und setzt bei Netzrückkehr selbst
+  fort. Statistik zählt Karten und nennt `Leicht`.
+- Karteneditor: hinzugefügte Felder lassen sich in der Rolle ändern und
+  umsortieren.
+- Tastaturfokus ist wieder sichtbar, Mausfokus bleibt rahmenlos (ADR-040).
+  Hilfe erklärt die Grundidee in einem siebten Schritt.
+- knip prüft im Typecheck ungenutzte Exporte, Dateien und Abhängigkeiten; 33
+  Reste und die ungenutzte Abhängigkeit `yauzl` sind entfernt. Statistikziel
+  175 KiB.
+
 ## 2026-10-10 — KI-Variantenroute gehärtet
 
 - OpenRouter erhält die drei beliebtesten passenden Free-Modelle als

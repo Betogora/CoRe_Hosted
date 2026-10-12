@@ -399,7 +399,11 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
-  await expect.poll(() => hasVisibleOutline(learnNavigation)).toBe(false);
+  // Reaching the control by keyboard shows the focus frame (ADR-040); headings and card content stay frameless.
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(learnNavigation).toBeFocused();
+  await expect.poll(() => hasVisibleOutline(learnNavigation)).toBe(true);
   await page.keyboard.press("Enter");
   const learnHeading = page.getByRole("heading", { name: "Lernen", exact: true });
   await expect(learnHeading).toBeFocused();

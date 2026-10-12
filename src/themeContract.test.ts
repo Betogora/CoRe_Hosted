@@ -165,11 +165,12 @@ test("productive TSX does not reintroduce the replaced palette or named status u
   assert.doesNotMatch(source, /(?:bg|text|border|from|via|to|ring)-(?:red|green|amber|yellow|orange|teal|emerald|sky|blue|indigo|violet|purple|pink|rose)-\d+/);
 });
 
-test("interactive controls keep DOM focus without visible focus frames", () => {
+test("pointer focus stays frameless while keyboard focus shows one outline", () => {
   const source = ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui")]
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
   assert.match(styles, /:focus\s*\{[\s\S]*?outline:\s*none\s*!important;[\s\S]*?--tw-ring-shadow:\s*0 0 #0000\s*!important;/);
+  assert.match(styles, /\[tabindex\]:not\(\[tabindex="-1"\]\)\):focus-visible\s*\{\s*outline:\s*2px solid var\(--core-focus-ring\)\s*!important;/);
   assert.doesNotMatch(styles, /core-deck-summary-row:has\([^)]*:focus-visible/);
   assert.doesNotMatch(source, /focus-within:(?:border|outline|ring|shadow)/);
   assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);

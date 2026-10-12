@@ -20,7 +20,7 @@ import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 const SELECT_VALUE_PREFIX = "core-select:";
 const DECK_SEARCH_THRESHOLD = 5;
 
-export interface CoreSelectOption {
+interface CoreSelectOption {
   value: string;
   label: string;
   icon?: LucideIcon;
@@ -38,7 +38,7 @@ export interface CoreSelectProps {
   leadingIcon?: LucideIcon;
 }
 
-export interface DeckSelectSpecialOption {
+interface DeckSelectSpecialOption {
   value: string;
   label: string;
   icon: LucideIcon;

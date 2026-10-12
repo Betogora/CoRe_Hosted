@@ -30,3 +30,8 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
   verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine Ergänzung zu
   ADR-011.
 - Bild einer eigenen Bildverdeckung im Karteneditor austauschen.
+- Flaggen als Feature: je Karte eine von sieben Farben wie in Anki (importiert
+  und synchronisiert bereits als `anki_flag`, bisher unsichtbar). Umfang:
+  Flaggenwahl in Lernen und Editor (Strg+1–7), Farbpunkt in der Kartentabelle,
+  Filter in der Suche, optional eigene Namen je Farbe; der Konfliktvergleich
+  zeigt die Flagge dann zu Recht.

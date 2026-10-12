@@ -35,7 +35,7 @@ Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](.
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
 - Labels: `core-control-label`, `core-status-label`, `core-emphasis`.
-- DOM-Fokus und Tastaturführung bleiben global erhalten, sichtbare Fokusrahmen und Fokus-Rings werden jedoch appweit unterdrückt. Disabled, Placeholder und fachliche Auswahl werden weiterhin aus Theme-Tokens abgeleitet.
+- DOM-Fokus und Tastaturführung bleiben global erhalten. Eine globale Regel zeigt bei Tastaturfokus (`:focus-visible`) einen einheitlichen Rahmen; Maus- und programmatischer Fokus, Tailwind-Ringe und `focus-within`-Rahmen bleiben unsichtbar (ADR-040). Komponenten setzen keine eigenen Fokusrahmen. Disabled, Placeholder und fachliche Auswahl werden weiterhin aus Theme-Tokens abgeleitet.
 
 ## Actions
 

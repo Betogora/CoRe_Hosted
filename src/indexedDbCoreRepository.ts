@@ -77,7 +77,7 @@ import {
 } from "./indexedDbStudyCounts.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
 
-export type { WorkspaceDeckSummary, WorkspaceShell } from "./indexedDbStore.ts";
+export type { WorkspaceDeckSummary } from "./indexedDbStore.ts";
 
 interface IndexedDbRepositoryOptions {
   userId: string;
@@ -989,6 +989,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const transaction = database.transaction(STORE.syncMetadata, "readwrite");
       transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: overview });
       await transactionDone(transaction);
+    },
+    /** Account-wide due counts per future learning day, or null while no overview for this learning day exists. */
+    async loadDueForecast({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; timeZone?: string } = {}) {
+      await writeChain;
+      const todayKey = getStudyHeatmapDayKey(now, timeZone, dayStartHour);
+      const matches = studyOverview?.contextKey === `${timeZone ?? "local"}:${dayStartHour}` && studyOverview.dayKey === todayKey;
+      return matches ? new Map(Object.entries(studyOverview!.forecastByDay)) : null;
     },
     /** The 365-day forecast arrives after the bootstrap and only completes the matching overview. */
     async applyDueForecast(forecast: { contextKey: string; forecastByDay: Record<string, number> }) {

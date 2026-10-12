@@ -11,7 +11,7 @@ import { ActionButton, IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
 
-export interface AppNavigationItem {
+interface AppNavigationItem {
   id: MenuViewId;
   label: string;
   iconKey: string;

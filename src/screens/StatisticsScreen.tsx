@@ -343,7 +343,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
 }
 
 function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
-  if (status.activeVariants === 0) return <NoChartData>Die ausgewählten Stapel enthalten keine aktiven, planbaren Varianten.</NoChartData>;
+  if (status.activeVariants === 0) return <NoChartData>Die ausgewählten Stapel enthalten keine aktiven, planbaren Karten.</NoChartData>;
   return (
     <div className="grid items-center gap-4 lg:grid-cols-[minmax(220px,0.8fr)_1fr]">
       <div className="h-64" aria-label="Diagramm zum aktuellen Kartenstatus">
@@ -352,7 +352,7 @@ function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
             <Pie data={status.rows} dataKey="count" nameKey="label" innerRadius="53%" outerRadius="82%" paddingAngle={2} isAnimationActive={false}>
               {status.rows.map((row, index) => <Cell key={row.key} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
             </Pie>
-            <Tooltip content={<StatisticsTooltip valueFormatter={(value) => `${formatNumber(value)} Varianten`} />} />
+            <Tooltip content={<StatisticsTooltip valueFormatter={(value) => `${formatNumber(value)} Karten`} />} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -404,7 +404,7 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
       <Bar dataKey="again" name="Nochmal" fill="var(--core-danger)" isAnimationActive={false} />
       <Bar dataKey="hard" name="Schwer" fill="var(--core-warning)" isAnimationActive={false} />
       <Bar dataKey="good" name="Gut" fill="var(--core-success)" isAnimationActive={false} />
-      <Bar dataKey="easy" name="Einfach" fill="var(--core-action-primary)" isAnimationActive={false} />
+      <Bar dataKey="easy" name="Leicht" fill="var(--core-action-primary)" isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
 }
@@ -510,16 +510,16 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         <ChartPanel title="Zeitplanung" className="xl:col-span-2"><PlanningChart planning={statistics.planning} /></ChartPanel>
         <ChartPanel title="Status" snapshot><StatusChart status={statistics.status} /></ChartPanel>
         <ChartPanel title="Wiederholungsintervalle" snapshot>
-          <DistributionChart points={statistics.intervals.points} countLabel="Varianten" />
+          <DistributionChart points={statistics.intervals.points} countLabel="Karten" />
           <div className="mt-4 grid grid-cols-3 gap-3 text-center core-caption text-core-muted"><span>Mittelwert<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.averageDays, 1)} Tage</strong></span><span>Median<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.medianDays)} Tage</strong></span><span>95. Perzentil<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.percentile95Days)} Tage</strong></span></div>
         </ChartPanel>
       </section>
 
       <section id={STATISTICS_SECTION_IDS.memory} className="grid min-w-0 gap-4 xl:grid-cols-3" aria-labelledby="statistics-memory-model-title">
         <StatisticsSectionHeading id="statistics-memory-model-title">FSRS-Gedächtnismodell</StatisticsSectionHeading>
-        <ChartPanel title="FSRS-Schwierigkeit" snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Varianten" /></ChartPanel>
-        <ChartPanel title="FSRS-Stabilität" snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Varianten" /></ChartPanel>
-        <ChartPanel title="Abrufwahrscheinlichkeit" snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Varianten" /></ChartPanel>
+        <ChartPanel title="FSRS-Schwierigkeit" snapshot><DistributionChart points={statistics.fsrs.difficulty} countLabel="Karten" /></ChartPanel>
+        <ChartPanel title="FSRS-Stabilität" snapshot><DistributionChart points={statistics.fsrs.stability} countLabel="Karten" /></ChartPanel>
+        <ChartPanel title="Abrufwahrscheinlichkeit" snapshot><DistributionChart points={statistics.fsrs.retrievability} countLabel="Karten" /></ChartPanel>
       </section>
 
       <section id={STATISTICS_SECTION_IDS.responses} className="grid min-w-0 gap-4 xl:grid-cols-2" aria-labelledby="statistics-response-behavior-title">
@@ -536,7 +536,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
             <tbody>{statistics.deckRows.map((row) => (
               <tr key={row.id}>
                 <th scope="row">
-                  <button type="button" className="min-h-control w-full text-left font-semibold [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelmenü öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
+                  <button type="button" className="min-h-control w-full text-left font-semibold [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelinhalte öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
                 </th>
                 <td><StatTile size="compact" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
                 <td><StatTile size="compact" label="Erfolg" value={formatPercent(row.successPercent)} /></td>

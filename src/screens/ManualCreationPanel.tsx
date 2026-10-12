@@ -11,7 +11,7 @@ import { createNote, type AddableFieldRole, type ManualNoteErrors, type Occlusio
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
-import type { TransientSourceDocument } from "../documentModel.ts";
+import { isReadableSourceDocument, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -138,6 +138,7 @@ export function ManualCreationPanel({
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
   const [previewOpen, setPreviewOpen] = React.useState(false);
   const [finishConfirmOpen, setFinishConfirmOpen] = React.useState(false);
+  const [imageChangeConfirmOpen, setImageChangeConfirmOpen] = React.useState(false);
   const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [batchState, dispatchBatch] = React.useReducer(reduceManualBatchSession, selectedDeckId, createManualBatchSession);
   const cleanDraftRef = React.useRef(batchState.currentDraft);
@@ -225,12 +226,25 @@ export function ManualCreationPanel({
   }, [draftDirty, isSaving]);
 
   async function handleDocument(file: File) {
+    if (!isReadableSourceDocument(file)) {
+      setStatusType("alert");
+      setStatus(`„${file.name}“ kann nicht gelesen werden. Möglich sind ${READABLE_SOURCE_DOCUMENT_LABEL}.`);
+      return;
+    }
     const nextDocument = await workflow.readSourceDocument(file as unknown as Parameters<ManualCreationWorkflow["readSourceDocument"]>[0]);
     setDocument(nextDocument);
     setDocumentObjectUrl(isPdfDocument(nextDocument) ? URL.createObjectURL(file) : "");
     setDocumentText(String(nextDocument.text ?? ""));
     setStatusType(nextDocument.textExtractionStatus === "error" || nextDocument.textExtractionStatus === "unsupported" ? "alert" : "status");
     setStatus(documentStatusMessage(nextDocument));
+  }
+
+  function closeDocument() {
+    setDocumentMode(false);
+    setDocument(null);
+    setDocumentObjectUrl("");
+    setDocumentText("");
+    setStatus("");
   }
 
   function applySelection(selectedText: string) {
@@ -322,6 +336,11 @@ export function ManualCreationPanel({
     } catch (error) {
       setFieldErrors((current) => ({ ...current, occlusion: error instanceof Error ? error.message : "Das Bild konnte nicht vorbereitet werden." }));
     }
+  }
+
+  /** Masks are positioned on the chosen image, so a new image starts without them. */
+  function clearOcclusionImage() {
+    setOcclusion((current) => current && { ...current, image: null, masks: [] });
   }
 
   function addAdditionalField(role: AddableFieldRole) {
@@ -639,7 +658,7 @@ export function ManualCreationPanel({
                   onMasksChange={(masks) => { setOcclusion((current) => current && { ...current, masks }); setFieldErrors((current) => ({ ...current, occlusion: undefined })); }}
                   onModeChange={(mode) => setOcclusion((current) => current && { ...current, mode })}
                 />
-                <ActionButton type="button" variant="secondary" icon={ImagePlus} className="w-fit" disabled={isSaving} onClick={() => setOcclusion((current) => current && { ...current, image: null })}>Anderes Bild wählen</ActionButton>
+                <ActionButton type="button" variant="secondary" icon={ImagePlus} className="w-fit" disabled={isSaving} onClick={() => occlusion.masks.length > 0 ? setImageChangeConfirmOpen(true) : clearOcclusionImage()}>Anderes Bild wählen</ActionButton>
               </>
             ) : (
               <FileDropField kind="image" selected={false} busy={isPreparingImage} disabled={isSaving} onFile={chooseOcclusionImage} />
@@ -807,6 +826,16 @@ export function ManualCreationPanel({
         onCancel={() => setFinishConfirmOpen(false)}
         onConfirm={() => { setFinishConfirmOpen(false); finish(); }}
       />
+      <ActionDialog
+        open={imageChangeConfirmOpen}
+        title="Vorhandene Masken verwerfen?"
+        description="Die Masken gehören zum aktuellen Bild und passen nicht auf ein anderes. Mit einem neuen Bild beginnst du ohne Masken."
+        confirmLabel="Masken verwerfen"
+        cancelLabel="Bild behalten"
+        destructive
+        onCancel={() => setImageChangeConfirmOpen(false)}
+        onConfirm={() => { setImageChangeConfirmOpen(false); clearOcclusionImage(); }}
+      />
       {status ? <p className={`core-body ${statusType === "alert" ? "core-status-error" : statusType === "warning" ? "core-status-warning" : "core-status-info"}`} role={statusType === "alert" ? "alert" : "status"} aria-live="polite">{status}</p> : null}
       <CardPreviewDialog
         open={previewOpen}
@@ -827,7 +856,9 @@ export function ManualCreationPanel({
           <h2 className="core-heading-2 font-semibold text-core-text">Karte selbst erstellen</h2>
         </div>
         <div className="flex flex-wrap gap-2">
-          {!documentMode ? <ActionButton type="button" variant="secondary" icon={FileText} onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton> : null}
+          {documentMode
+            ? <ActionButton type="button" variant="secondary" icon={X} disabled={isSaving} onClick={closeDocument}>Quelle schließen</ActionButton>
+            : <ActionButton type="button" variant="secondary" icon={FileText} onClick={() => setDocumentMode(true)}>PDF/Text anfügen</ActionButton>}
           <ActionButton ref={previewButtonRef} type="button" variant="secondary" icon={Eye} disabled={isSaving} onClick={() => setPreviewOpen(true)}>Vorschau</ActionButton>
         </div>
       </div>

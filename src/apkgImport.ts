@@ -4,7 +4,7 @@ import type { ApkgTranslationReport, ImportDeck, ImportReviewEvent, NoteSource, 
 import { parseApkgWorkerResponse } from "./apkgImportWorkerProtocol.ts";
 
 export { ANKI_PACKAGE_MAX_BYTES } from "./apkgImportInternal.ts";
-export type { ApkgTranslationReport, ImportDeck, ImportReviewEvent, NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
+export type { ApkgTranslationReport, NoteTypeSource } from "./apkgNoteTranslation.ts";
 
 /** A media file of the package; its bytes were read from the archive and checked against the SHA-1. */
 export interface ImportMediaFile {

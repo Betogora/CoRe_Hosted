@@ -56,7 +56,7 @@ function nextId(masks: OcclusionMask[]): string {
 const clamp = (value: number) => Math.min(1, Math.max(0, value));
 
 /** Keeps a drawn shape inside the image; rectangles, ellipses and labels keep at least a minimal size. */
-export function clampOcclusionShape(shape: DrawnOcclusionShape): DrawnOcclusionShape {
+function clampOcclusionShape(shape: DrawnOcclusionShape): DrawnOcclusionShape {
   if (shape.kind === "polygon") return { kind: "polygon", points: shape.points.map(([x, y]) => [clamp(x), clamp(y)]) };
   if (shape.kind === "text") return { ...shape, left: clamp(shape.left), top: clamp(shape.top) };
   const width = Math.min(1, Math.max(0.01, shape.width));

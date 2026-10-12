@@ -14,7 +14,7 @@ type ReviewId = "first" | "variant";
 type RatingId = "again" | "hard" | "good" | "easy";
 type ParameterId = "r" | "s" | "d";
 type HelpMethodId = "active-recall" | "spaced-repetition";
-type ExplorerSelectionId = "ratings" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
+type ExplorerSelectionId = "overview" | "ratings" | `review-${ReviewId}` | `rating-${RatingId}` | `parameter-${ParameterId}`;
 
 interface MemoryReview {
   id: ReviewId;
@@ -138,43 +138,50 @@ const ACTIVE_RECALL_VARIANTS = [
 
 const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
   {
+    id: "spaced-idea",
+    eyebrow: "01 · Grundidee",
+    title: "Wiederholt wird, kurz bevor du vergisst",
+    text: "Ohne Wiederholung sinkt die Abrufwahrscheinlichkeit mit der Zeit. FSRS plant jede Karte so, dass du sie wiederholst, kurz bevor sie unter deine Zielerinnerung fällt. So wiederholst du nur, was du sonst vergessen würdest.",
+    selection: "overview",
+  },
+  {
     id: "spaced-first-review",
-    eyebrow: "01 · Erste Wiederholung",
+    eyebrow: "02 · Erste Wiederholung",
     title: "Die erste Wiederholung aktualisiert den Gedächtniszustand",
     text: "Die Originalkarte erreicht im Beispiel 90 Prozent Abrufwahrscheinlichkeit. Nach deiner Antwort schätzt FSRS Stabilität S und Schwierigkeit D neu.",
     selection: "review-first",
   },
   {
     id: "spaced-ratings",
-    eyebrow: "02 · Bewertung",
+    eyebrow: "03 · Bewertung",
     title: "Deine Antwort bestimmt das nächste Intervall",
     text: "„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet zu zunehmend längeren Intervallen. Je sicherer der Abruf, desto später wird die Karte erneut fällig.",
     selection: "ratings",
   },
   {
     id: "spaced-variant",
-    eyebrow: "03 · Ausreichende Stabilität",
+    eyebrow: "04 · Ausreichende Stabilität",
     title: "Erst dann kommt eine Variante als neuer Punkt hinzu",
     text: "Sobald die Wissenseinheit ausreichend stabil ist, kann CoRe denselben Inhalt mit einer neuen Frageform prüfen. Der Variantenpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
     selection: "review-variant",
   },
   {
     id: "spaced-d",
-    eyebrow: "04 · D",
+    eyebrow: "05 · D",
     title: "D beschreibt die dauerhafte Schwierigkeit",
     text: "Schwierige Inhalte bauen Stabilität langsamer auf. Die Rauten markieren D an den Wiederholungspunkten; D ist keine zweite Prozentkurve.",
     selection: "parameter-d",
   },
   {
     id: "spaced-r",
-    eyebrow: "05 · R",
+    eyebrow: "06 · R",
     title: "R ist deine aktuelle Abrufwahrscheinlichkeit",
     text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt die Zielerinnerung von 90 Prozent.",
     selection: "parameter-r",
   },
   {
     id: "spaced-s",
-    eyebrow: "06 · S",
+    eyebrow: "07 · S",
     title: "S beschreibt, wie lange die Erinnerung hält",
     text: "Stabilität ist die Zeit, in der R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
     selection: "parameter-s",

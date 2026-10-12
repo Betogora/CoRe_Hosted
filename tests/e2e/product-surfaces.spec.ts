@@ -691,7 +691,7 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
-  await expect(page.getByText(/bestimmen gemeinsam, ob eine Karte „bereit für Varianten“ ist/i)).toBeVisible();
+  await expect(page.getByText(/Varianten erscheinen nur in der Wiederholungsphase und erst ab der Lernstufe des Stapels/)).toBeVisible();
   const spacedDiagramColumnBox = await page.getByTestId("spaced-repetition-diagram-column").boundingBox();
   const spacedStepsColumnBox = await page.getByTestId("spaced-repetition-steps-column").boundingBox();
   expect(spacedDiagramColumnBox).not.toBeNull();

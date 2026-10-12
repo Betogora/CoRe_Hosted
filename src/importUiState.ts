@@ -7,7 +7,6 @@ export type ImportUiState =
   | { status: "syncing_media" }
   | { status: "succeeded" }
   | { status: "partial" }
-  | { status: "failed_retryable" }
   | { status: "failed_terminal" }
   | { status: "cancelled" };
 
@@ -29,6 +28,7 @@ export function projectImportUiState({
   isBusy = false,
 }: ImportUiProjectionInput): ImportUiState {
   if (jobStatus === "error") return { status: "failed_terminal" };
+  if (jobStatus === "cancelled") return { status: "cancelled" };
   if (jobStatus === "syncing_cloud" || cloudStatus === "syncing" || cloudStatus === "local-pending") return { status: "syncing_cloud" };
   if (jobStatus === "syncing_media" && hasMediaTask && (!mediaStatus || mediaStatus === "local-pending" || mediaStatus === "paused")) return { status: "syncing_media" };
   if (mediaStatus && ["partial", "local-pending", "blocked", "cancelled"].includes(mediaStatus)) return { status: "partial" };

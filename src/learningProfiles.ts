@@ -159,8 +159,6 @@ const presetDefinitions = {
   },
 } satisfies Record<Exclude<SchedulerPreset, "custom">, PresetDefinition>;
 
-export const LEARNING_SETTING_PRESETS = Object.values(presetDefinitions).map(({ id, label, description }) => ({ id, label, description }));
-
 export const BUILT_IN_LEARNING_PROFILE_TEMPLATES: readonly LearningProfileTemplate[] = Object.values(presetDefinitions).map((preset) => ({
   id: `builtin:${preset.id}`,
   name: preset.label,
@@ -287,7 +285,7 @@ function customTemplate(input: Record<string, unknown>, profiles: readonly Learn
   };
 }
 
-export function normalizeLearningProfileTemplates(value: unknown): LearningProfileTemplate[] {
+function normalizeLearningProfileTemplates(value: unknown): LearningProfileTemplate[] {
   if (!Array.isArray(value)) return [];
   const profiles: LearningProfileTemplate[] = [];
   const ids = new Set<string>();

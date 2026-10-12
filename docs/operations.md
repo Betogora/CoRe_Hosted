@@ -22,7 +22,8 @@ steht das kanonische manuelle Qualitätsgate bereit:
 npm run gate:push
 ```
 
-Das Gate kombiniert Typecheck und generierte Dokumente, alle Unit-/Contract-/Integrations-
+Das Gate kombiniert Typecheck, die Prüfung auf Ungenutztes (`npm run check:unused`, knip: keine Exporte,
+Dateien oder Abhängigkeiten ohne Nutzer in App, Skripten oder Tests) und generierte Dokumente, alle Unit-/Contract-/Integrations-
 Tests mit kompakter Ausgabe sowie den Production-Build einschließlich harter Bundlebudgets. Commits
 und Pushes führen es nicht automatisch aus, weil ein gemischter Worktree auch
 Änderungen außerhalb des zu pushenden Commits enthalten kann. GitHub Actions
@@ -132,7 +133,7 @@ vollständige 100k-Browserjourney noch Feldmessungen. Ein rotes Laufzeitgate
 bleibt rot; ein technisch erfolgreich erzeugtes Artefakt ist noch kein
 Freigabenachweis.
 
-Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Importgraphen und 200 KiB je normalem Lazy-Feature. Zielwerte sind 250 beziehungsweise 150 KiB. Bis echte Feld-p75/p95 vorliegen, wird das Laufzeitartefakt mit Chromium bei ungefähr 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung erzeugt. Ein fehlendes Messartefakt ist kein bestandener Performance-Nachweis.
+Der Production-Build erzwingt weiterhin maximal 300 KiB gzip im initialen Importgraphen und 200 KiB je normalem Lazy-Feature. Zielwerte sind 250 beziehungsweise 150 KiB; für die Statistik gilt 175 KiB, weil die bereits minimal eingebundene Diagrammbibliothek rund 80 % ihres Graphen ausmacht und 20 KiB auf der Referenzleitung etwa 0,1 s beim ersten Öffnen kosten. Bis echte Feld-p75/p95 vorliegen, wird das Laufzeitartefakt mit Chromium bei ungefähr 1,6 Mbit/s, 150 ms RTT und vierfacher CPU-Verlangsamung erzeugt. Ein fehlendes Messartefakt ist kein bestandener Performance-Nachweis.
 
 Der lokale Production-Build vom 16. August 2026 maß 217,3 KiB gzip für den Initialgraphen und 163,1 KiB für den größten Lazy-Graphen. Damit ist das Initialziel eingehalten; der größte Lazy-Graph liegt zwischen Ziel und hartem Maximum.
 

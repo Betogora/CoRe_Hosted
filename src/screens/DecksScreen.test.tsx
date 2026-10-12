@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { DecksScreenProps } from "../appScreenProps.ts";
-import { addCardVariant, createBasicNote, createCoreDeck, createManualNoteContent, createNote, setCardSuspended, setNoteMarked, type ManualNoteInput } from "../coreModel.ts";
+import { addCardVariant, addNoteField, createBasicNote, createCoreDeck, createManualNoteContent, createNote, setCardSuspended, setNoteMarked, type ManualNoteInput } from "../coreModel.ts";
 import type { Deck } from "../coreTypes.ts";
 import type { DeckLibrarySummary } from "../libraryModel.ts";
 import { summarizeDeckReview } from "../scheduler.ts";
@@ -576,4 +576,21 @@ test("the editor offers direction and building blocks where the content structur
   const importedGraph = basicGraph("deck-editor", "Was ist ATP?", "Energieträger");
   const imported = renderEditorFor({ ...importedGraph, note: { ...importedGraph.note, importedContentRevision: importedGraph.note.contentRevision } });
   assert.doesNotMatch(imported, /data-testid="note-direction"|data-testid="note-blocks"| entfernen"/);
+});
+
+test("der Karteneditor bietet für hinzugefügte Felder Rolle und Reihenfolge wie die Erstellung", () => {
+  const atp = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const withHint = addNoteField(atp.note.content, "hint").content;
+  const graph = { ...atp, note: { ...atp.note, content: addNoteField(withHint, "extra").content } };
+  const deck = deckOf("deck-bio", "Biologie", [graph]);
+  const editor = renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: graph.cards[0].id,
+    cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
+  });
+  assert.match(editor, /aria-label="Rolle von Hinweis"/);
+  assert.match(editor, /aria-label="Rolle von Zusatz"/);
+  assert.match(editor, /aria-label="Hinweis nach unten"/);
+  assert.match(editor, /aria-label="Zusatz nach oben"/);
+  assert.doesNotMatch(editor, /aria-label="Hinweis nach oben"|aria-label="Zusatz nach unten"/, "Pfeile nur, wo ein Nachbar existiert");
 });

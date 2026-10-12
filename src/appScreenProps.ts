@@ -238,6 +238,8 @@ export interface StudyModeProps {
   dayStartHour?: number;
   learnAheadMinutes?: number;
   easyDays?: GlobalSchedulerPreferences["easyDays"];
+  /** Account-wide due counts per future day at session start; without them Easy Days only sees the session cards. */
+  dueForecast?: ReadonlyMap<string, number> | null;
   timeZone?: string;
   simulationOffsetMinutes: number;
   pomodoroTimer: PomodoroTimer | null;

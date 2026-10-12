@@ -154,6 +154,42 @@ export function removeNoteField(content: NoteContent, fieldId: string): NoteCont
   return { ...content, fields: content.fields.filter((field) => field.id !== fieldId), interaction };
 }
 
+/** Fields beyond the fixed front and back whose role and position the editor may change. */
+export function isMovableNoteField(field: NoteField): boolean {
+  return field.id !== "front" && field.id !== "back" && (["prompt", "hint", "extra", "source"] as NoteFieldRole[]).includes(field.role);
+}
+
+/** Changes an added field's role; a question field joins or leaves the forward question and the reverse answer. */
+export function setNoteFieldRole(content: NoteContent, fieldId: string, role: AddableFieldRole): NoteContent {
+  const field = content.fields.find((candidate) => candidate.id === fieldId);
+  if (!field || field.role === role) return content;
+  if (!isMovableNoteField(field) || !noteBlocks(content).fieldRoles.includes(role)) throw new Error("Dieses Feld kann diese Rolle nicht übernehmen.");
+  if (field.role === "prompt" && !canRemoveNoteField(content, fieldId)) throw new Error("Dieses Feld trägt eine Abfrage und behält seine Rolle.");
+  const fields = content.fields.map((candidate) => candidate.id === fieldId ? { ...candidate, role } : candidate);
+  const plain = plainRevealPrompts(content);
+  if (!plain || (field.role !== "prompt" && role !== "prompt")) return { ...content, fields };
+  const questionFieldIds = role === "prompt"
+    ? fields.filter((candidate) => candidate.id === fieldId || plain.forward.questionFieldIds.includes(candidate.id)).map((candidate) => candidate.id)
+    : plain.forward.questionFieldIds.filter((id) => id !== fieldId);
+  const forward = { ...plain.forward, questionFieldIds };
+  return { ...content, fields, interaction: { kind: "reveal", prompts: plain.reverse ? [forward, { ...plain.reverse, answerFieldIds: questionFieldIds }] : [forward] } };
+}
+
+/** Swaps an added field with its added neighbour; question and answer lists follow the new field order. */
+export function moveNoteField(content: NoteContent, fieldId: string, direction: -1 | 1): NoteContent {
+  const movable = content.fields.filter(isMovableNoteField);
+  const index = movable.findIndex((field) => field.id === fieldId);
+  const neighbour = movable[index + direction];
+  if (index < 0 || !neighbour) return content;
+  const fields = content.fields.map((field) => field.id === fieldId ? neighbour : field.id === neighbour.id ? movable[index] : field);
+  const position = new Map(fields.map((field, fieldIndex) => [field.id, fieldIndex]));
+  const ordered = (ids: string[]) => [...ids].sort((left, right) => (position.get(left) ?? 0) - (position.get(right) ?? 0));
+  const interaction = content.interaction.kind === "reveal"
+    ? { kind: "reveal" as const, prompts: content.interaction.prompts.map((prompt) => ({ ...prompt, questionFieldIds: ordered(prompt.questionFieldIds), answerFieldIds: ordered(prompt.answerFieldIds) })) }
+    : content.interaction;
+  return { ...content, fields, interaction };
+}
+
 export function renameNoteField(content: NoteContent, fieldId: string, name: string): NoteContent {
   return { ...content, fields: content.fields.map((field) => field.id === fieldId ? { ...field, name } : field) };
 }

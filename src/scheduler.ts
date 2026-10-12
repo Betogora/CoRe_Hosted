@@ -75,8 +75,8 @@ type ReviewButtonOption = Pick<RatingOutcome,
 
 export const SCHEDULER_VERSION = "fsrs_6_v1";
 const FSRS_SCHEDULER_VERSION = SCHEDULER_VERSION;
-export const MINUTE_MS = 60 * 1000;
-export const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const RATING_LABELS: Record<ReviewRating, string> = {
   again: "Again",

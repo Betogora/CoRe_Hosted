@@ -1,7 +1,7 @@
 import React from "react";
 import { Anchor, Ban, CheckCircle2, CircleAlert, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
-import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts } from "../easyDays.ts";
+import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { variantPresentation } from "../coreVariantService.ts";
 import { resolveReviewShortcut } from "../reviewShortcuts.ts";
@@ -32,20 +32,34 @@ import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewRating } from "../coreTypes.ts";
 
-function createEasyDaysContext(decks: Deck[], easyDays: typeof DEFAULT_EASY_DAYS, now: string | number | Date, dayStartHour: number, timeZone?: string) {
+function createEasyDaysContext(
+  decks: Deck[],
+  easyDays: typeof DEFAULT_EASY_DAYS,
+  now: string | number | Date,
+  dayStartHour: number,
+  timeZone: string | undefined,
+  account: { forecast: ReadonlyMap<string, number> | null; firstLoadedCards: Map<string, Card> },
+) {
+  const cards = decks.flatMap((candidate) => candidate.cards ?? []);
+  for (const card of cards) if (!account.firstLoadedCards.has(card.id)) account.firstLoadedCards.set(card.id, card);
+  const options = { dayStartHour, timeZone };
   return {
     easyDays,
-    dueCountsByDay: createEasyDaysDueCounts(decks.flatMap((candidate) => candidate.cards ?? []), now, { dayStartHour, timeZone }),
+    dueCountsByDay: account.forecast
+      ? shiftEasyDaysDueCounts(account.forecast, account.firstLoadedCards.values(), cards, now, options)
+      : createEasyDaysDueCounts(cards, now, options),
     dayStartHour,
     timeZone,
   };
 }
 
-export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
   sessionIndexRef.current ??= createDailyReviewSessionIndex(decks);
+  const easyDaysAccountRef = React.useRef({ forecast: dueForecast, firstLoadedCards: new Map<string, Card>() });
+  if (easyDaysAccountRef.current.forecast !== dueForecast) easyDaysAccountRef.current = { forecast: dueForecast, firstLoadedCards: new Map() };
   const queuePlanRef = React.useRef<{
     key: string;
     easyDaysContext: ReturnType<typeof createEasyDaysContext>;
@@ -60,6 +74,8 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   const [activeBufferSize, setActiveBufferSize] = React.useState(Math.max(1, bufferSize));
   const [loadingMoreCards, setLoadingMoreCards] = React.useState(false);
   const [loadMoreError, setLoadMoreError] = React.useState("");
+  /** Loading stopped because the device is offline; it resumes by itself when the connection returns. */
+  const [pausedOffline, setPausedOffline] = React.useState(false);
   const answerContentRef = React.useRef<HTMLDivElement>(null);
   const questionContentRef = React.useRef<HTMLDivElement>(null);
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
@@ -85,7 +101,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     || queuePlanRef.current.key !== queuePlanKey
   ) {
     const planNow = getNow();
-    const easyDaysContext = createEasyDaysContext(sessionDecks, easyDays, planNow, dayStartHour, timeZone);
+    const easyDaysContext = createEasyDaysContext(sessionDecks, easyDays, planNow, dayStartHour, timeZone, easyDaysAccountRef.current);
     queuePlanRef.current = {
       key: queuePlanKey,
       easyDaysContext,
@@ -137,6 +153,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     setActiveBufferSize(Math.max(1, bufferSize));
     setLoadingMoreCards(false);
     setLoadMoreError("");
+    setPausedOffline(false);
     setShowAnswer(false);
     setShowAnchor(false);
     setShowSettings(false);
@@ -189,11 +206,24 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
         return merged;
       });
     }).catch(() => {
+      setPausedOffline(typeof navigator !== "undefined" && navigator.onLine === false);
       setLoadMoreError("Weitere Karten konnten nicht geladen werden. Deine bisherige Sitzung bleibt erhalten.");
     }).finally(() => {
       setLoadingMoreCards(false);
     });
   }, [effectiveReviewSession.remainingInitialKeys.length, loadMoreError, loadingMoreCards, moreCardsAvailable, onLoadMoreCards, preloadThreshold]);
+
+  React.useEffect(() => {
+    if (!pausedOffline) return undefined;
+    const resume = () => {
+      setPausedOffline(false);
+      setLoadMoreError("");
+    };
+    window.addEventListener("online", resume);
+    // The connection may have returned before this listener existed.
+    if (navigator.onLine) resume();
+    return () => window.removeEventListener("online", resume);
+  }, [pausedOffline]);
 
   React.useEffect(() => {
     if (previousLearningDayKeyRef.current === effectiveLearningDayKey) return;
@@ -308,7 +338,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     const updatedRootDeck = onSetDeckReviewOrder(rootDeck.id, newReviewOrder);
     if (!updatedRootDeck) return;
     const nextDecks = replaceSessionDeck(updatedRootDeck);
-    const nextEasyDaysContext = createEasyDaysContext(nextDecks, easyDays, getNow(), dayStartHour, timeZone);
+    const nextEasyDaysContext = createEasyDaysContext(nextDecks, easyDays, getNow(), dayStartHour, timeZone, easyDaysAccountRef.current);
     const nextQueue = createDailyReviewQueue(nextDecks, {
       deckId: updatedRootDeck.id,
       now: getNow(),
@@ -492,6 +522,13 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
                   )}
                 </div>
               </>
+            ) : loadMoreError && pausedOffline ? (
+              <div className="text-center" role="status">
+                <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Lernen pausiert – du bist offline</h1>
+                <p className="mt-3 text-core-muted">Die nächsten fälligen Karten liegen nicht auf diesem Gerät. Deine Bewertungen sind gespeichert; sobald die Verbindung zurück ist, geht es automatisch weiter.</p>
+                <p className="mt-2 text-core-muted">Stapel, die du ohne Verbindung lernen willst, machst du vorher mit „Offline verfügbar machen“ verfügbar.</p>
+              </div>
             ) : loadMoreError ? (
               <div className="text-center">
                 <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />

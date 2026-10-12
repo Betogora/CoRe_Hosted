@@ -329,3 +329,11 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Entscheidung:** Der CoRe-Modus ist je Stapel `An` oder `Aus`. Varianten werden ausschließlich manuell erzeugt; Erzeugen ist bei `Aus` und bei erreichter Höchstzahl aktiver Varianten gesperrt. Im Review wechselt eine Karte nur bei `An`, in der Reviewphase, ohne aktuelle `Nochmal`-Bewertung und ab der Lernstufen-Schwelle des Stapels reihum zwischen sich selbst und ihren ältesten aktiven Varianten bis zur Höchstzahl. Rückfall-, Bevorzugungs- und Ausschlussfelder ohne Wirkung entfallen.
 **Konsequenzen:** Unbekannte gespeicherte Moduswerte normalisieren auf `An`, ohne eigenen Umwandlungspfad. Eine automatische Erzeugung bei Reife bleibt eine spätere Produktentscheidung mit eigener Kosten- und Datenschutzbewertung. Die Variantenwahl ist eine reine Funktion von Stapeleinstellungen und Lernstand und braucht keine Reviewhistorie.
 **Datum:** 2026-10-10
+
+## ADR-040 — Sichtbarer Fokus nur bei Tastaturbedienung
+
+**Status:** angenommen
+**Kontext:** Seit dem 2026-08-06 unterdrückte CoRe jeden sichtbaren Fokusrahmen, damit nach Mausklicks und programmatischer Fokusführung keine Rahmen aufblitzen. Damit sahen Tastaturnutzer nicht, wo sie sich befinden; das verletzt WCAG 2.4.7 (Fokus sichtbar) und widersprach dem Vertrag einheitlicher Focus-Zustände.
+**Entscheidung:** Links, Buttons, `summary` und tabbare Elemente zeigen bei `:focus-visible` einen einheitlichen 2-px-Rahmen in der Fokusfarbe. Maus-, Touch- und programmatischer Fokus nach einem Klick bleiben rahmenlos; Überschriften mit `tabindex="-1"` zeigen nie einen Rahmen. Eingabefelder behalten ihre eigene Fokusfläche, Tailwind-Ringe und `focus-within`-Rahmen bleiben ausgeschaltet.
+**Konsequenzen:** Eine einzige globale Regel in `src/styles.css` trägt den Fokus; Komponenten setzen keine eigenen Fokusrahmen. Mausnutzer sehen keinen Unterschied zum bisherigen Stand.
+**Datum:** 2026-10-10

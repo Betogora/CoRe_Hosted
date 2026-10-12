@@ -64,7 +64,7 @@ test("statistics screen exposes one global filter and the complete CoRe analysis
   assert.match(markup, /FSRS-Schwierigkeit/);
   assert.match(markup, /Wahre Erinnerungsquote/);
   assert.match(markup, /Stapelvergleich/);
-  assert.match(markup, /aria-label="Stapelmenü öffnen: Biologie"/);
+  assert.match(markup, /aria-label="Stapelinhalte öffnen: Biologie"/);
   assert.match(markup, /scope="row"/);
   assert.doesNotMatch(markup, /Schwierige Karten/);
   assert.match(markup, /0 Tage Streak/);

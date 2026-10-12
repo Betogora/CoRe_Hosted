@@ -25,16 +25,23 @@ function extensionOf(fileName: any = "") {
   return match?.[0] ?? "";
 }
 
+const TEXT_MIME_TYPES = ["text/plain", "text/markdown", "text/csv", "text/tab-separated-values"];
+
 function isTextReadableFile(file: any) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
-  return type.startsWith("text/") || TEXT_EXTENSIONS.includes(extension);
+  return TEXT_MIME_TYPES.includes(type) || TEXT_EXTENSIONS.includes(extension);
 }
 
 function isPdfFile(file: any) {
   const type = file?.type ?? "";
   const extension = extensionOf(file?.name);
   return type === "application/pdf" || PDF_EXTENSIONS.includes(extension);
+}
+
+/** Whether a chosen or dropped file is one of the readable source formats; other files are rejected before reading. */
+export function isReadableSourceDocument(file: Pick<File, "name" | "type">): boolean {
+  return isTextReadableFile(file) || isPdfFile(file);
 }
 
 function createBaseMetadata(file: any, overrides: any = {}) {

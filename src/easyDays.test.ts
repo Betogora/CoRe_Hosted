@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { cardStudyFromReviewState, createBasicNote, createReviewState } from "./coreModel.ts";
 import type { Card } from "./coreTypes.ts";
-import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, normalizeEasyDays, selectEasyDayInterval } from "./easyDays.ts";
+import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, normalizeEasyDays, selectEasyDayInterval, shiftEasyDaysDueCounts } from "./easyDays.ts";
 
 const NOW = "2026-08-10T10:00:00.000Z";
 
@@ -74,4 +74,16 @@ test("account load counts active scheduled items once and excludes new or blocke
   const deleted = { ...review, id: "deleted", deletedAt: NOW };
   const counts = createEasyDaysDueCounts([review, review, learning, newCard, suspended, deleted], NOW, { timeZone: "Europe/Berlin", dayStartHour: 3 });
   assert.equal(counts.get("2026-08-15"), 2);
+});
+
+test("session counts start from the account forecast and move rescheduled session cards", () => {
+  const options = { timeZone: "Europe/Berlin", dayStartHour: 3 };
+  const loaded = scheduledCard("review", { state: "review", reps: 4, dueAt: "2026-08-15T10:00:00.000Z" });
+  const dueToday = scheduledCard("today", { state: "review", reps: 4, dueAt: "2026-08-10T08:00:00.000Z" });
+  const rescheduled = { ...loaded, study: { ...loaded.study, dueAt: "2026-08-20T10:00:00.000Z" } };
+  const answered = { ...dueToday, study: { ...dueToday.study, dueAt: "2026-08-20T10:00:00.000Z" } };
+  const forecast = new Map([["2026-08-15", 40], ["2026-08-20", 7]]);
+  const counts = shiftEasyDaysDueCounts(forecast, [loaded, dueToday], [rescheduled, answered], NOW, options);
+  assert.equal(counts.get("2026-08-15"), 39, "die geladene Karte verlässt ihren Kontotag");
+  assert.equal(counts.get("2026-08-20"), 9, "beide neu geplanten Karten zählen auf ihrem neuen Tag");
 });

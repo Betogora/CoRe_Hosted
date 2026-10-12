@@ -5,8 +5,10 @@ import {
   addNoteField,
   applyNoteEditorValue,
   canRemoveNoteField,
+  moveNoteField,
   noteBlocks,
   removeNoteField,
+  setNoteFieldRole,
   setNoteReverse,
   setNoteTypeIn,
   cardStudyFromReviewState,
@@ -231,4 +233,25 @@ test("Bausteine: Rückrichtung, Eintippen und Felder ändern den Inhalt so, dass
   assert.deepEqual(noteBlocks(cloze.note.content), { reverse: null, typeIn: null, fieldRoles: ["prompt", "hint", "extra", "source"] });
   assert.equal(canRemoveNoteField(cloze.note.content, "front"), false);
   assert.equal(setNoteReverse(cloze.note.content, true), cloze.note.content);
+});
+
+test("Bausteine im Editor: Rollenwechsel führt Zusatzfragen mit, Umsortieren folgt in Frage und Antwort", () => {
+  const basic = createBasicNote("deck", "Was ist ATP?", "Energieträger");
+  const reversed = setNoteReverse(basic.note.content, true);
+  const { content: withHint, fieldId: hintId } = addNoteField(reversed, "hint");
+  const { content: withBoth, fieldId: extraId } = addNoteField(withHint, "extra");
+
+  const asQuestion = setNoteFieldRole(withBoth, extraId, "prompt");
+  assert.ok(asQuestion.interaction.kind === "reveal");
+  assert.deepEqual(asQuestion.interaction.prompts.map((prompt) => [prompt.key, prompt.questionFieldIds, prompt.answerFieldIds]), [
+    ["forward", ["front", extraId], ["back"]],
+    ["reverse", ["back"], ["front", extraId]],
+  ]);
+  assert.equal(planNoteContentChange(basic, asQuestion).removedCards.length, 0, "der Rollenwechsel erhält die Karten");
+  assert.deepEqual(setNoteFieldRole(asQuestion, extraId, "hint").interaction, reversed.interaction);
+
+  const moved = moveNoteField(asQuestion, extraId, -1);
+  assert.deepEqual(moved.fields.map((field) => field.id), ["front", "back", extraId, hintId]);
+  assert.equal(moveNoteField(moved, extraId, -1), moved, "Vorder- und Rückseite bleiben fest vorne");
+  assert.throws(() => setNoteFieldRole(withBoth, "front", "hint"));
 });

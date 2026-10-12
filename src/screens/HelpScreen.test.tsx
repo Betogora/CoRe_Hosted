@@ -62,13 +62,13 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.match(markup, /x\. Wiederholung · Variante/);
   assert.match(markup, /„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet/);
   assert.match(markup, /Erst dann kommt eine Variante als neuer Punkt hinzu/);
-  assert.match(markup, /01 · Erste Wiederholung[\s\S]*02 · Bewertung[\s\S]*03 · Ausreichende Stabilität[\s\S]*04 · D[\s\S]*05 · R[\s\S]*06 · S/);
+  assert.match(markup, /01 · Grundidee[\s\S]*02 · Erste Wiederholung[\s\S]*03 · Bewertung[\s\S]*04 · Ausreichende Stabilität[\s\S]*05 · D[\s\S]*06 · R[\s\S]*07 · S/);
   assert.doesNotMatch(markup, /Nochmal · S sehr kurz|Schwer · S kurz|Gut · S länger|Leicht · S am längsten/);
   assert.match(markup, /keine garantierte Produktionsschwelle/);
   assert.match(markup, /href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/);
   assert.equal((markup.match(/data-testid="active-recall-step-/g) ?? []).length, 3);
-  assert.equal((markup.match(/data-testid="spaced-repetition-step-/g) ?? []).length, 6);
-  assert.equal((markup.match(/data-story-step=/g) ?? []).length, 9);
+  assert.equal((markup.match(/data-testid="spaced-repetition-step-/g) ?? []).length, 7);
+  assert.equal((markup.match(/data-story-step=/g) ?? []).length, 10);
   assert.equal((markup.match(/data-testid="memory-parameter-/g) ?? []).length, 3);
   assert.match(markup, /<button(?=[^>]*data-testid="memory-parameter-r")(?=[^>]*aria-pressed="false")[^>]*>R · Abrufwahrscheinlichkeit<\/button>/);
   assert.equal((markup.match(/data-testid="memory-review-point-/g) ?? []).length, 2);

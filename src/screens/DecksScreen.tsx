@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, Chev
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { addNoteField, canRemoveNoteField, noteBlocks, noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, removeNoteField, renameNoteField, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
+import { addNoteField, canRemoveNoteField, isMovableNoteField, moveNoteField, noteBlocks, noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, removeNoteField, renameNoteField, setNoteFieldRole, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
 import { classifyCardEligibility, describeVariantReadiness } from "../coreVariantService.ts";
 import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
@@ -27,6 +27,7 @@ import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockContro
 import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
 import type { ManualImageAttachment } from "../creationWorkflow.ts";
 import type { AccountMediaStore } from "../mediaStore.ts";
+import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
@@ -203,6 +204,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
   );
   const draftNote = React.useMemo(() => ({ ...note, content: structure }), [note, structure]);
   const blocks = noteBlocks(structure);
+  const movableFieldIds = structure.fields.filter(isMovableNoteField).map((field) => field.id);
   // Imported contents keep their Anki field schema; only own contents change structure.
   const structureEditable = note.importedContentRevision === null;
   const draftDirty = serializedForm !== savedForm;
@@ -610,11 +612,26 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         {structure.fields.map((field) => (
           <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
             {structureEditable && canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
-              <div className="flex min-w-0 items-end gap-2">
-                <label className="grid min-w-0 flex-1 gap-1">
+              <div className="flex min-w-0 flex-wrap items-end gap-2">
+                <label className="grid min-w-0 flex-1 basis-48 gap-1">
                   <span className="core-caption font-semibold text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
                   <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={field.name} onChange={(event) => changeStructure(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
                 </label>
+                {isMovableNoteField(field) ? (
+                  <>
+                    <label className="grid gap-1">
+                      <span className="core-caption font-semibold text-core-muted">Rolle</span>
+                      <CoreSelect
+                        ariaLabel={`Rolle von ${field.name}`}
+                        value={field.role}
+                        options={blocks.fieldRoles.map((role) => ({ value: role, label: NOTE_FIELD_ROLE_LABELS[role] }))}
+                        onValueChange={(role) => changeStructure(setNoteFieldRole(structure, field.id, role as AddableFieldRole))}
+                      />
+                    </label>
+                    {movableFieldIds[0] !== field.id ? <IconButton icon={ArrowUp} label={`${field.name} nach oben`} onClick={() => changeStructure(moveNoteField(structure, field.id, -1))} /> : null}
+                    {movableFieldIds.at(-1) !== field.id ? <IconButton icon={ArrowDown} label={`${field.name} nach unten`} onClick={() => changeStructure(moveNoteField(structure, field.id, 1))} /> : null}
+                  </>
+                ) : null}
                 <IconButton label={`${field.name} entfernen`} icon={X} onClick={() => removeField(field.id)} />
               </div>
             ) : (

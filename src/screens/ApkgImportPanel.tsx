@@ -89,7 +89,6 @@ function importStatusLabel(status: ImportUiState["status"]): string {
     syncing_media: "Medien werden synchronisiert",
     succeeded: "Erfolgreich",
     partial: "Teilweise fertig",
-    failed_retryable: "Fehlgeschlagen, erneut versuchbar",
     failed_terminal: "Fehlgeschlagen",
     cancelled: "Abgebrochen",
   }[status];
@@ -244,13 +243,20 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
     }
     setJob({ fileName: file.name, fileSize: file.size, status: "parsing", warnings: [], errors: [] });
     setIsParsing(true);
+    const analysisAbort = new AbortController();
+    updateSession((current) => ({ ...current, analysisAbort }));
 
     try {
       const result = await workflow.parseApkgFile(file, {
         onStep: (step) => reportProgress("analyzing", ANALYSIS_PROGRESS_BY_STEP[step] ?? 0),
+        signal: analysisAbort.signal,
       });
-      if (!isSessionCurrent(sessionVersion)) {
+      if (!isSessionCurrent(sessionVersion) || analysisAbort.signal.aborted) {
         result.preview?.commitGraph.dispose();
+        if (analysisAbort.signal.aborted) {
+          setPhaseProgress(null);
+          setJob({ fileName: file.name, fileSize: file.size, status: "cancelled", warnings: [], errors: [] });
+        }
         return;
       }
       reportProgress("analyzing", 100);
@@ -267,6 +273,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
       setPreview(null);
     } finally {
       setIsParsing(false);
+      updateSession((current) => current.analysisAbort === analysisAbort ? { ...current, analysisAbort: null } : current);
     }
   }
 
@@ -377,7 +384,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
   const activeProgressPercent = activeProgressPhase && phaseProgress?.phase === activeProgressPhase ? phaseProgress.percent : 0;
   const fileInteractionLocked = activeProgressPhase !== null;
   const progressRunning = fileInteractionLocked && !progressPaused;
-  const previewVisible = Boolean(preview) && !["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
+  const previewVisible = Boolean(preview) && !["failed_terminal", "cancelled"].includes(uiState.status);
 
   React.useEffect(() => {
     if (!activeProgressPhase || progressPaused || prefersReducedMotion) return undefined;
@@ -436,13 +443,16 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
             </div>
           </div>
         ) : null}
+        {uiState.status === "analyzing" && session.analysisAbort ? (
+          <ActionButton type="button" variant="secondary" className="mt-3" onClick={() => session.analysisAbort?.abort()}>Analyse abbrechen</ActionButton>
+        ) : null}
 
         <ol className="mt-6 grid gap-2 md:grid-cols-6" aria-label="Importstatus">
           {importSteps.map((step) => {
             const stepIndex = importSteps.findIndex((item) => item.id === step.id);
             const isActive = stepIndex === currentStepIndex;
             const isDone = stepIndex < currentStepIndex || uiState.status === "succeeded";
-            const isFailure = ["failed_retryable", "failed_terminal", "cancelled"].includes(uiState.status);
+            const isFailure = uiState.status === "failed_terminal" || uiState.status === "cancelled";
             const label = step.id === "complete" && currentStepIndex === 5 ? importStatusLabel(uiState.status) : step.label;
             return (
               <li key={step.id} className={`flex items-center gap-2 rounded-control border px-3 py-2 ${isActive ? isFailure ? "border-core-danger bg-core-danger-soft" : uiState.status === "partial" ? "border-core-warning bg-core-warning-soft" : "border-core-success bg-core-success-soft" : "border-core-border"}`}>
@@ -484,7 +494,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
           </div>
         ) : null}
 
-        {uiState.status === "failed_retryable" || uiState.status === "failed_terminal" ? (
+        {uiState.status === "failed_terminal" ? (
           <div className="core-status-error mt-6 core-body" role="alert">
             {(job?.errors.length ? job.errors : ["Die APKG-Datei konnte nicht verarbeitet werden."]).map((error, index) => (
               <p key={`${error}-${index}`}>{error}</p>
@@ -493,7 +503,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
         ) : null}
         {uiState.status === "cancelled" ? (
           <div className="core-status-info mt-6 core-body" role="status">
-            <p>Import abgebrochen. Es wurden aus diesem Vorgang keine weiteren Karten übernommen.</p>
+            <p>Analyse abgebrochen. Es wurden keine Karten übernommen; wähle die Datei erneut, um neu zu beginnen.</p>
           </div>
         ) : null}
       </SoftPanel>

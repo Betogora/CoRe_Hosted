@@ -151,3 +151,24 @@ test("ein Analysefehler wird als Alarm ohne Vorschau angezeigt", () => {
   assert.match(markup, /role="alert"[^>]*><p>Die Anki-Datei ist größer als 2 GiB\. Bitte wähle eine kleinere Datei aus\.<\/p>/);
   assert.doesNotMatch(markup, /Importvorschau|Import übernehmen/);
 });
+
+test("eine laufende Analyse lässt sich abbrechen und endet ohne übernommene Karten", () => {
+  const file = { name: "gross.apkg", size: 900_000_000 } as File;
+  const analyzing = renderPanel({
+    ...createEmptyApkgImportSession(),
+    selectedFile: file,
+    job: { fileName: file.name, fileSize: file.size, status: "parsing", warnings: [], errors: [] },
+    isParsing: true,
+    analysisAbort: new AbortController(),
+    phaseProgress: { phase: "analyzing", percent: 25 },
+  });
+  assert.match(analyzing, />Analyse abbrechen</);
+
+  const cancelled = renderPanel({
+    ...createEmptyApkgImportSession(),
+    selectedFile: file,
+    job: { fileName: file.name, fileSize: file.size, status: "cancelled", warnings: [], errors: [] },
+  });
+  assert.match(cancelled, /Analyse abgebrochen\. Es wurden keine Karten übernommen/);
+  assert.doesNotMatch(cancelled, />Analyse abbrechen</);
+});

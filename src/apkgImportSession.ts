@@ -21,6 +21,8 @@ export interface ApkgImportSession {
   preview: ApkgCreationPreview | null;
   mediaStatus: MediaSyncResult | null;
   isParsing: boolean;
+  /** Stops the running package analysis; null outside the analysis. */
+  analysisAbort: AbortController | null;
   mediaTask: MediaSyncTask | null;
   cloudTask: ImportCloudSyncTask | null;
   cloudProgress: ApkgCloudProgress | null;
@@ -39,6 +41,7 @@ export function createEmptyApkgImportSession(version = 0): ApkgImportSession {
     preview: null,
     mediaStatus: null,
     isParsing: false,
+    analysisAbort: null,
     mediaTask: null,
     cloudTask: null,
     cloudProgress: null,
@@ -59,5 +62,6 @@ export function resolveApkgCreationMethod<T extends string>(requestedMethod: T, 
 }
 
 export function disposeApkgImportPreview(session: ApkgImportSession): void {
+  session.analysisAbort?.abort();
   session.preview?.commitGraph.dispose();
 }

@@ -24,6 +24,8 @@ export interface StudyPreparation {
   cursorByDeck: Record<string, StudyWindowCursor>;
   hasMoreCards: boolean;
   bufferSize: number;
+  /** Account-wide due counts per future day at session start, for Easy Days; null without a current overview. */
+  dueForecast: ReadonlyMap<string, number> | null;
 }
 
 /** The studied deck with all its subdecks. */
@@ -67,6 +69,7 @@ async function prepareStudyWindow(
   const ids = scopeDeckIds(shellState.decks, deckId);
   const answeredSiblings = shellState.decks.some((deck) => ids.includes(deck.id) && buriesSiblings(deck.deckSettings));
   let nextCursorByDeck = cursorByDeck;
+  const dueForecast = Object.keys(cursorByDeck).length === 0 ? await workspaceRepository.loadDueForecast({ now, dayStartHour, timeZone }) : null;
   while (true) {
     const session = workspaceHydrationService
       ? await workspaceHydrationService.prepareStudyWindow(ids, { now, dayStartHour, timeZone, cursorByDeck: nextCursorByDeck, answeredSiblings })
@@ -93,6 +96,7 @@ async function prepareStudyWindow(
         cursorByDeck: session.cursorByDeck,
         hasMoreCards: session.hasMore && cursorAdvanced,
         bufferSize: "bufferSize" in session ? Math.max(1, Number(session.bufferSize) || 50) : 50,
+        dueForecast,
       };
     }
     nextCursorByDeck = session.cursorByDeck;
@@ -106,6 +110,7 @@ export function useStudySession(context: StudySessionContext) {
   const [answeredToday, setAnsweredToday] = React.useState<AnsweredTodayCard[]>([]);
   const [hasMoreCards, setHasMoreCards] = React.useState(false);
   const [bufferSize, setBufferSize] = React.useState(50);
+  const [dueForecast, setDueForecast] = React.useState<ReadonlyMap<string, number> | null>(null);
   const cursorRef = React.useRef<Record<string, StudyWindowCursor>>({});
   /** Key of the session whose window is loaded, so a re-render does not prepare it again. */
   const preparedKeyRef = React.useRef("");
@@ -128,6 +133,7 @@ export function useStudySession(context: StudySessionContext) {
     cursorRef.current = preparation.cursorByDeck;
     setHasMoreCards(preparation.hasMoreCards);
     setBufferSize(preparation.bufferSize);
+    setDueForecast(preparation.dueForecast);
     setDecks(preparation.decks);
     setNotes(preparation.notes);
     setAnsweredToday(preparation.answeredToday);
@@ -137,6 +143,7 @@ export function useStudySession(context: StudySessionContext) {
     setDecks(null);
     setHasMoreCards(false);
     setBufferSize(50);
+    setDueForecast(null);
     cursorRef.current = {};
     preparedKeyRef.current = "";
   }, []);
@@ -162,5 +169,5 @@ export function useStudySession(context: StudySessionContext) {
     return { decks: preparation.decks, notes: preparation.notes, hasMoreCards: preparation.hasMoreCards, bufferSize: preparation.bufferSize };
   }, [bufferSize, prepare]);
 
-  return { decks, setDecks, notes, setNotes, answeredToday, hasMoreCards, bufferSize, preparedKeyRef, preparingKeyRef, prepare, adopt, reset, loadMore };
+  return { decks, setDecks, notes, setNotes, answeredToday, hasMoreCards, bufferSize, dueForecast, preparedKeyRef, preparingKeyRef, prepare, adopt, reset, loadMore };
 }

@@ -1,5 +1,5 @@
 import { normalizeLearningProfileSource, normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
-import type { CardVariantType, CoreMode, DeckAppearance, DeckSettings, DeckSource, MaturityBand, ReviewRating, TransformType, VariantQualityStatus } from "../coreTypes.ts";
+import type { CoreMode, DeckAppearance, DeckSettings, DeckSource, MaturityBand, ReviewRating, VariantQualityStatus } from "../coreTypes.ts";
 
 interface DeckSettingsInput extends LearningSettingsInput {
   appearance?: Partial<DeckAppearance>;
@@ -46,10 +46,8 @@ const DEFAULT_DECK_APPEARANCE = {
   iconKey: "book-open",
   iconColor: "#6f7e9e",
 };
-export const VARIANT_TRANSFORMS = ["rephrase"] as const satisfies readonly TransformType[];
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
-export const CARD_VARIANT_TYPES = ["basic"] as const satisfies readonly CardVariantType[];
 const MATURITY_BANDS = [
   { id: "new", min: 0, max: 20, label: "Neu" },
   { id: "learning", min: 21, max: 50, label: "Aufbau" },
@@ -79,7 +77,7 @@ export function stableContentHash(value: unknown, prefix = "hash"): string {
   return `${prefix}_${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
-export function unique<T>(values: readonly T[]): T[] {
+function unique<T>(values: readonly T[]): T[] {
   return [...new Set(values.filter((value): value is T => Boolean(value)))];
 }
 

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "src/coreTypes.typecheck.ts",
+    "src/**/*.test.{ts,tsx}",
+    "api/**/*.ts",
+    "scripts/**/*.{ts,tsx,mjs}",
+    "tests/**/*.{ts,tsx}",
+    "*.config.{ts,mjs}"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "api/**/*.ts",
+    "scripts/**/*.{ts,tsx,mjs}",
+    "tests/**/*.{ts,tsx}"
+  ],
+  "ignore": [
+    "src/database.types.ts",
+    "src/coreTypes.ts"
+  ],
+  "ignoreDependencies": [
+    "supabase"
+  ],
+  "playwright": false
+}

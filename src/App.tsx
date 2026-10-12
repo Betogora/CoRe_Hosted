@@ -83,6 +83,9 @@ interface StudyPreparationFailure {
 }
 
 function studyPreparationFailureMessage(error: unknown) {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return "Du bist offline, und die fälligen Karten dieses Stapels liegen nicht auf diesem Gerät. Versuche es mit Verbindung erneut oder mache den Stapel vorher mit „Offline verfügbar machen“ verfügbar.";
+  }
   return error instanceof Error && error.message.trim()
     ? error.message
     : "Die benötigten Karten konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut.";
@@ -1788,6 +1791,7 @@ export function App() {
           dayStartHour={globalSchedulerPreferences.dayStartHour}
           learnAheadMinutes={globalSchedulerPreferences.learnAheadMinutes}
           easyDays={globalSchedulerPreferences.easyDays}
+          dueForecast={study.dueForecast}
           timeZone={learningTimeZone}
           simulationOffsetMinutes={simulationOffsetMinutes}
           pomodoroTimer={pomodoroTimer}

@@ -4,7 +4,7 @@ import type { HsvColor } from "./colorMath.ts";
 import { clampNumber, colorHexPattern, hexToHsv, hsvToHex, normalizeColor } from "./colorMath.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
-export { clampNumber, colorHexPattern, hexToHsv, hsvToHex, normalizeColor };
+export { normalizeColor };
 
 export const defaultTextColors = ["#181d25", "#262e3a", "#667492"];
 export const defaultHighlightColors = ["#dde3ec", "#d6a3d2", "#e4bf63"];

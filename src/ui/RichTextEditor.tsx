@@ -36,7 +36,7 @@ const clozePattern = /\{\{c(\d+)::((?:(?!::|\}\})[\s\S])*)(?:::((?:(?!\}\})[\s\S
 const inlineMediaReferenceAttribute = "data-core-media-ref";
 const stableImageReferencePattern = /^[a-f0-9]{40}$/;
 
-export interface PreparedRichTextImage {
+interface PreparedRichTextImage {
   reference: string;
   previewUrl: string;
   alt: string;

@@ -80,6 +80,27 @@ export function createEasyDaysDueCounts(
   return counts;
 }
 
+/**
+ * Account-wide due counts during a session: the forecast loaded at session start, with every session card moved from
+ * the day it had when first loaded to its current day. Cards rescheduled in the session thus spread instead of piling up.
+ */
+export function shiftEasyDaysDueCounts(
+  forecast: ReadonlyMap<string, number>,
+  firstLoadedCards: Iterable<Pick<Card, "id" | "status" | "deletedAt" | "study">>,
+  currentCards: Iterable<Pick<Card, "id" | "status" | "deletedAt" | "study">>,
+  now: string | number | Date,
+  options: LearningDayOptions = {},
+): Map<string, number> {
+  const counts = new Map(forecast);
+  for (const [key, count] of createEasyDaysDueCounts(firstLoadedCards, now, options)) {
+    const next = (counts.get(key) ?? 0) - count;
+    if (next > 0) counts.set(key, next);
+    else counts.delete(key);
+  }
+  for (const [key, count] of createEasyDaysDueCounts(currentCards, now, options)) counts.set(key, (counts.get(key) ?? 0) + count);
+  return counts;
+}
+
 export function selectEasyDayInterval({
   rawIntervalDays,
   elapsedDays,

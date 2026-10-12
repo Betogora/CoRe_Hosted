@@ -4,7 +4,7 @@ import test from "node:test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { isLocalSupabaseUrl } from "../../scripts/localE2EEnvironment.ts";
 import { markConflict } from "../../src/cloudRepository.ts";
-import type { PostgrestResponseFailure, PostgrestResponseSuccess } from "@supabase/postgrest-js";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { Upload } from "tus-js-client";
 
 const TABLES = [
@@ -55,12 +55,12 @@ async function ensureSignedIn(client: SupabaseClient<any,"public","public",any,a
   return result.data.user;
 }
 
-function assertNoError(result: PostgrestResponseFailure|PostgrestResponseSuccess<any>, context: string) {
+function assertNoError(result: PostgrestSingleResponse<any>, context: string) {
   assert.equal(result.error, null, `${context}: ${result.error?.code ?? "Fehler"} ${result.error?.message ?? ""}`);
   return result.data;
 }
 
-function assertPostgresError(result: PostgrestResponseFailure|PostgrestResponseSuccess<any[]>|PostgrestResponseSuccess<null>, expectedCode: string, context: string) {
+function assertPostgresError(result: PostgrestSingleResponse<any[]> | PostgrestSingleResponse<null>, expectedCode: string, context: string) {
   assert.ok(result.error, `${context}: Anfrage wurde unerwartet erlaubt.`);
   assert.equal(result.error.code, expectedCode, `${context}: ${result.error.message}`);
 }
