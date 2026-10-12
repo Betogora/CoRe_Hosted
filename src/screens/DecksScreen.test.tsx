@@ -103,7 +103,7 @@ test("deck content shows only its own cards without deck headings and uses the e
   });
   assert.match(editor, /data-testid="card-detail-aside"/);
   assert.match(editor, /Karte bearbeiten/);
-  assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten und Lernwerte/);
+  assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten/);
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
@@ -392,7 +392,7 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
   assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
   assert.doesNotMatch(markup, /<details|<summary/);
   assert.match(markup, /KI-Variante erzeugen/);
-  assert.match(markup, /Sendet ausschließlich den bereinigten Text von Frage und Antwort über OpenRouter an GPT-6 Luna/);
+  assert.match(markup, /Sendet nur Frage und Antwort an GPT-6 Luna/);
   assert.match(markup, /Detailansicht schließen/);
   assert.doesNotMatch(markup, /Karten entfernen\?|Karte löschen\?|Synchronisierung klären/);
 });
@@ -484,7 +484,6 @@ test("outdated AI rephrasings are labelled and offer a targeted regeneration", (
   const stale = { ...graph, cards: [outdated] };
   const markup = renderEditorFor(stale);
   assert.match(markup, />veraltet</);
-  assert.match(markup, /diese Umformulierung wird nicht mehr abgefragt/);
   assert.match(markup, />KI-Variante neu erzeugen</);
 });
 
@@ -494,6 +493,8 @@ test("reported or switched-off variants can be reactivated; every variant can be
   const reported = { ...card, variants: card.variants.map((variant) => ({ ...variant, isActive: false, qualityStatus: "flagged" as const, feedback: [{ id: "f", type: "unklar_formuliert" as const, note: "", createdAt: NOW }] })) };
   const markup = renderEditorFor({ ...graph, cards: [reported] });
   assert.match(markup, />gemeldet: unklar formuliert</);
+  assert.match(markup, /data-testid="variant-active-count"[^>]*>0 von \d+ aktiv</);
+  assert.match(markup, /data-testid="variant-readiness"[^>]*>Lernstufe 0 von \d+ XP · /);
   assert.match(markup, /aria-label="Variante 1 reaktivieren"/);
   assert.match(markup, /aria-label="Variante 1 löschen"/);
 

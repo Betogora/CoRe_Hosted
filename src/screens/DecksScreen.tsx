@@ -137,10 +137,27 @@ function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteCo
   return parts.length ? `Beim Speichern: ${parts.join(" · ")}.` : null;
 }
 
-/** Visible state of a variant that is not outdated; a report names its reason. */
-function variantStateLabel(variant: CardVariant): string {
-  if (variant.qualityStatus === "flagged") return variant.feedback.at(-1)?.type === "unklar_formuliert" ? "gemeldet: unklar formuliert" : "gemeldet: inhaltlich falsch";
-  return variant.isActive && variant.qualityStatus === "active" ? "aktiv" : "abgeschaltet";
+const VARIANT_STATE_TONE = {
+  active: "bg-core-success-soft",
+  off: "bg-core-subtle",
+  reported: "bg-core-danger-soft",
+  outdated: "bg-core-warning-soft",
+} as const;
+
+/** One clearly toned state per variant; a report names its reason, only switched-off or reported ones can return. */
+function variantState(variant: CardVariant): { label: string; tone: keyof typeof VARIANT_STATE_TONE; reactivatable: boolean } {
+  if (variant.meta.outdated === true) return { label: "veraltet", tone: "outdated", reactivatable: false };
+  if (variant.qualityStatus === "flagged") {
+    return { label: variant.feedback.at(-1)?.type === "unklar_formuliert" ? "gemeldet: unklar formuliert" : "gemeldet: inhaltlich falsch", tone: "reported", reactivatable: true };
+  }
+  return variant.isActive && variant.qualityStatus === "active"
+    ? { label: "aktiv", tone: "active", reactivatable: false }
+    : { label: "abgeschaltet", tone: "off", reactivatable: true };
+}
+
+function variantReadinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boolean): string {
+  if (coreMode === "off") return "CoRe-Modus aus";
+  return ready ? "Varianten werden abgefragt" : "Varianten noch nicht im Review";
 }
 
 function outdatedVariantCount(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
@@ -699,78 +716,58 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
         {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
       </div>
-      <section className="mt-6 min-w-0" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
-        <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten und Lernwerte</h3>
-        <div className="mt-4 grid min-w-0 gap-4 md:grid-cols-2">
-        <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold text-core-muted">Lernstufe</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{variantReadiness!.maturityXp} von {variantReadiness!.thresholdXp} XP</p>
-          <p className="mt-1 break-words core-body text-core-muted">{variantReadiness!.reason}</p>
+      <section className="mt-6 min-w-0 rounded-control border border-core-border bg-core-surface p-4" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten</h3>
+          <p className="core-caption font-semibold text-core-muted" data-testid="variant-active-count">{variantReadiness!.activeCount} von {variantReadiness!.maxActive} aktiv</p>
         </div>
-        <div className="min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-          <p className="core-caption font-semibold text-core-muted">Aktive Varianten</p>
-          <p className="mt-2 break-words core-body-large font-semibold text-core-text">{variantReadiness!.activeCount} von {variantReadiness!.maxActive}</p>
-          <p className="mt-1 break-words core-body text-core-muted">Höchstzahl laut Stapeleinstellungen.</p>
+        <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Lernstufe {variantReadiness!.maturityXp} von {variantReadiness!.thresholdXp} XP · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
+        {variants.length > 0 ? (
+          <ul className="mt-3 grid divide-y divide-core-border border-y border-core-border">
+            {variants.map((variant: CardVariant, index) => {
+              const state = variantState(variant);
+              return (
+                <li key={variant.id} className="flex min-w-0 items-start gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <span className={`inline-flex rounded-inset px-2 py-0.5 core-caption font-semibold text-core-text ${VARIANT_STATE_TONE[state.tone]}`}>{state.label}</span>
+                    <p className="mt-1.5 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
+                    <p className="break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
+                    {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-caption text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
+                    {state.reactivatable && reactivationBlocked ? <p className="mt-1 core-caption text-core-muted">Reaktivieren erst unter der Höchstzahl aktiver Varianten.</p> : null}
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    {state.reactivatable ? (
+                      <CoreTooltip label="Reaktivieren">
+                        <IconButton icon={RotateCcw} label={`Variante ${index + 1} reaktivieren`} disabled={updatingVariantId !== null || reactivationBlocked} onClick={() => void updateVariant(variant, "reactivate")} />
+                      </CoreTooltip>
+                    ) : null}
+                    <CoreTooltip label="Löschen">
+                      <IconButton icon={Trash2} label={`Variante ${index + 1} löschen`} disabled={updatingVariantId !== null} onClick={() => setPendingVariantDeletion(variant)} />
+                    </CoreTooltip>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <ActionButton
+            type="button"
+            variant="secondary"
+            icon={Sparkles}
+            loading={isGeneratingVariant}
+            disabled={!eligibility?.eligible || isGeneratingVariant}
+            onClick={() => void generateVariant()}
+          >
+            {hasOutdatedVariants ? "KI-Variante neu erzeugen" : "KI-Variante erzeugen"}
+          </ActionButton>
+          <p className="min-w-0 flex-1 basis-56 core-caption text-core-muted">
+            {eligibility?.eligible
+              ? "Sendet nur Frage und Antwort an GPT-6 Luna; der Anbieter speichert nichts."
+              : eligibility?.reasons[0] ?? "KI-Varianten sind für diese Karte nicht verfügbar."}
+          </p>
         </div>
-        </div>
-        <div className="mt-6 min-w-0 rounded-control border border-core-border bg-core-surface p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="core-caption font-semibold text-core-muted">Varianten dieser Grundkarte</p>
-            <p className="mt-1 break-words core-body text-core-muted">Varianten sind Umformulierungen derselben Wissenseinheit; der Hauptfortschritt bleibt auf der Grundkarte.</p>
-          </div>
-          <span className="rounded-control bg-core-subtle px-3 py-1 core-caption font-semibold text-core-action">{variants.length} Formen</span>
-        </div>
-        <div className="mt-4 grid gap-3">
-          {variants.map((variant: CardVariant, index) => {
-            const outdated = variant.meta.outdated === true;
-            const inactive = variant.isActive === false || variant.qualityStatus !== "active";
-            return (
-              <article key={variant.id} className="min-w-0 rounded-control border border-core-border bg-core-subtle p-3">
-                <div className="mb-2 flex flex-wrap items-center gap-2 core-caption font-semibold text-core-muted">
-                  <span className="rounded-inset bg-core-surface px-2 py-1">KI-Umformulierung</span>
-                  {outdated
-                    ? <span className="rounded-inset bg-core-warning-soft px-2 py-1 text-core-text">veraltet</span>
-                    : <span>{variantStateLabel(variant)}</span>}
-                </div>
-                <p className="break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
-                <p className="mt-1 break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
-                {variant.meta.outdated === true ? <p className="mt-2 core-caption text-core-muted">Frage oder Antwort wurden geändert; diese Umformulierung wird nicht mehr abgefragt.</p> : null}
-                <p className="mt-2 core-caption text-core-muted">Abgefragt {variant.performance?.attempts ?? 0} · Richtig {variant.performance?.correctCount ?? 0} · Falsch {variant.performance?.wrongCount ?? 0}</p>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {inactive && !outdated ? (
-                    <ActionButton type="button" variant="secondary" icon={RotateCcw} aria-label={`Variante ${index + 1} reaktivieren`} loading={updatingVariantId === variant.id} disabled={updatingVariantId !== null || reactivationBlocked} onClick={() => void updateVariant(variant, "reactivate")}>Reaktivieren</ActionButton>
-                  ) : null}
-                  <ActionButton type="button" variant="secondary" icon={Trash2} aria-label={`Variante ${index + 1} löschen`} disabled={updatingVariantId !== null} onClick={() => setPendingVariantDeletion(variant)}>Löschen</ActionButton>
-                </div>
-                {inactive && !outdated && reactivationBlocked ? <p className="mt-2 core-caption text-core-muted">Die Karte hat bereits die im Stapel erlaubte Zahl aktiver Varianten.</p> : null}
-              </article>
-            );
-          })}
-        </div>
-        <div className="mt-4 grid gap-3 border-t border-core-border pt-4">
-          <p className="core-body font-semibold text-core-text">Nahe KI-Umformulierung hinzufügen</p>
-          <p className="core-body text-core-muted">Prüfe dieselbe Wissenseinheit. Keine neuen Fakten, keine neuen Konzepte.</p>
-          <div className="flex flex-wrap items-center gap-3 rounded-control border border-core-border bg-core-subtle p-3">
-            <ActionButton
-              type="button"
-              variant="secondary"
-              icon={Sparkles}
-              loading={isGeneratingVariant}
-              disabled={!eligibility?.eligible || isGeneratingVariant}
-              onClick={() => void generateVariant()}
-            >
-              {hasOutdatedVariants ? "KI-Variante neu erzeugen" : "KI-Variante erzeugen"}
-            </ActionButton>
-            <p className="min-w-0 flex-1 core-caption text-core-muted">
-              {eligibility?.eligible
-                ? "Sendet ausschließlich den bereinigten Text von Frage und Antwort über OpenRouter an GPT-6 Luna; der Anbieter speichert ihn nicht und trainiert nicht damit."
-                : eligibility?.reasons[0] ?? "KI-Varianten sind für diese Karte nicht verfügbar."}
-            </p>
-          </div>
-          {variantStatus ? <p className={`core-body ${variantStatusWarning ? "text-core-warning" : "text-core-muted"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
-        </div>
-        </div>
+        {variantStatus ? <p className={`mt-2 core-body ${variantStatusWarning ? "text-core-warning" : "text-core-muted"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
       </section>
       <ActionDialog
         open={Boolean(pendingVariantDeletion)}
