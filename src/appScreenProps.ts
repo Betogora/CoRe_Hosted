@@ -128,6 +128,8 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  summaryAccountId?: string;
+  onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;

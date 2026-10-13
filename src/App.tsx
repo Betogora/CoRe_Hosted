@@ -1692,6 +1692,19 @@ export function App() {
           contentDeckId={deckContent ? focusedDeckId : null}
           contentTab={deckContentTab}
           onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
+          summaryAccountId={state.profile.userId}
+          onGenerateSummary={async (input, signal) => {
+            const accountId = latestStateRef.current?.profile.userId;
+            if (!accountId || !workspaceHydrationService || !supabase) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");
+            const { generateLearningSummary } = await import("./aiLearningSummary.ts");
+            const result = await generateLearningSummary(input, async (ids) => {
+              const loaded = await workspaceHydrationService.prepareContentDecks(ids);
+              if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+              return loaded;
+            }, latestStateRef.current!.decks, supabase, signal);
+            if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+            return result;
+          }}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
           deckSummaries={deckSummaries}

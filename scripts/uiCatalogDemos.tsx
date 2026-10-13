@@ -66,6 +66,12 @@ import { DeckSettingsScreen } from "../src/screens/DeckSettingsScreen.tsx";
 import { StudyMode } from "../src/screens/StudyMode.tsx";
 import { NoteCardContent } from "../src/ui/NoteCardContent.tsx";
 
+import { generatedSummaryHtml, prepareSummaryMaterial, type SummaryGenerationInput, type SummaryGenerationResult } from "../src/aiLearningSummary.ts";
+import { AI_LEARNING_SUMMARY_PROMPT_VERSION, type AiLearningSummarySuccess } from "../src/aiLearningSummaryContract.ts";
+import { DeckSummariesPanel } from "../src/screens/DeckSummariesPanel.tsx";
+import { DeckMindMapsPanel } from "../src/screens/DeckMindMapsPanel.tsx";
+import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary } from "../src/learningSummaries.ts";
+
 const today = "2026-10-02";
 const imageReference = "a".repeat(40);
 const sampleMedia = { [imageReference]: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="160" viewBox="0 0 400 160"><rect width="400" height="160" rx="12" fill="#dde3ed"/><path d="M40 130V60l60-35 60 35v70M230 130V45h90v85M210 130h130" fill="none" stroke="#667492" stroke-width="6"/><text x="40" y="150" font-size="14">Lissabon · Beispielbild</text></svg>')}` };
@@ -265,7 +271,7 @@ function ContentDemo({ section }: { section: string }) {
     {section === "inhalt" && <Demo title="CardPresentationSurface · Vorderseite, Rückseite und Ladezustand"><SurfaceDemo /></Demo>}
     {section === "inhalt" && <Demo title="NoteCardContent · Aufdecken und Auswahl" wide><StudyDemo /></Demo>}
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} card={fixture.card} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
-    {section === "editor" && <Demo title="RichTextEditor · Toolbar und zusätzliche Werkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /><details><summary>Aktueller HTML-Inhalt</summary><pre>{text}</pre></details></Demo>}
+    {section === "editor" && <Demo title="RichTextEditor · Toolbar und zusätzliche Werkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Inhalt mit allen Werkzeugen" isActive showAllTools /><details><summary>Aktueller HTML-Inhalt</summary><pre>{text}</pre></details></Demo>}
     {section === "colors" && <Demo title="ColorWheelPicker"><ColorWheelPicker value={color} onValueCommit={setColor} /><code>{color}</code><ColorWheelPicker value={color} disabled onValueCommit={setColor} /></Demo>}
     {section === "colors" && <Demo title="ColorToolButton und ColorPopover"><ColorToolButton label="Textfarbe" icon={Type} color={slots[slot]} isOpen={colorOpen} menuId="catalog-color-popover" onToggle={() => setColorOpen((value) => !value)} buttonRef={buttonRef} />{colorOpen && <ColorPopover id="catalog-color-popover" label="Textfarbe" icon={Type} colors={slots} paletteColors={["#181d25", "#667492", "#047857"]} selectedSlot={slot} onSelectSlot={setSlot} onApply={(value) => { setColor(value); setColorOpen(false); }} onChangeSlot={(index, value) => setSlots((current) => current.map((entry, position) => position === index ? value : entry))} />}</Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer · echte lokale PDF-Vorschau" wide><PdfDemo /></Demo>}
@@ -324,6 +330,60 @@ function LearningDemo({ section }: { section: string }) {
     {section === "forms" && <Demo title="LearningSettingsPanel · Profile, Tagesrunde und Scheduler" wide><LearningSettingsPanel draft={draft} profiles={profiles} defaultProfileName="Standard" onProfilesChange={setProfiles} onDraftChange={setDraft} onApplyProfile={(next) => { setDraft(next); return true; }} /></Demo>}
     {section === "buttons" && <Demo title="Reviewratings · alle vier Bewertungen"><div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{ratingButtons.map((rating, index) => <button type="button" key={rating.key} className={`min-h-14 rounded-control border px-3 py-1.5 text-center shadow-soft transition hover:-translate-y-0.5 ${rating.className}`}><span className="block core-body font-semibold">{rating.label}</span><small className="block core-caption">{["1 min", "5 min", "1 Tag", "4 Tage"][index]}</small></button>)}</div></Demo>}
   </>;
+}
+
+async function generateSummaryDemo(input: SummaryGenerationInput, signal: AbortSignal, mode = "success"): Promise<SummaryGenerationResult> {
+  await new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => { signal.removeEventListener("abort", abort); resolve(); }, mode === "slow" ? 15_000 : 300);
+    const abort = () => { window.clearTimeout(timer); reject(new Error("Erstellung abgebrochen.")); };
+    if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
+  });
+  if (mode === "error") throw new Error("Der KI-Dienst ist momentan nicht erreichbar. Deine Auswahl bleibt erhalten.");
+  const material = prepareSummaryMaterial([deck], sampleNotes, input.deckId, input.title, input.settings, input.source);
+  const result: AiLearningSummarySuccess = {
+    summary: { sections: material.request.units.slice(0, 3).map((unit) => ({
+      heading: unit.label, paragraphs: input.settings.format === "bullets" ? [] : [unit.text],
+      points: input.settings.format === "bullets" ? [unit.text] : [], references: [unit.id],
+    })), warnings: ["Diese Katalogfassung ist eine simulierte KI-Antwort und dient ausschließlich der UI-Prüfung."] },
+    model: "catalog/demo", privacyMode: "zdr", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null,
+  };
+  return { html: generatedSummaryHtml(result, material), generation: { model: result.model, privacyMode: result.privacyMode, promptVersion: result.promptVersion, generatedAt: new Date().toISOString(), materialUnits: material.request.units.length } };
+}
+
+function SummaryContentDemo() {
+  const [simulation, setSimulation] = useState("success");
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  async function show() {
+    setBusy(true); setError("");
+    try {
+      if (!(await loadLearningSummaries("catalog-summaries", deck.id)).length) {
+        for (const [title, text] of [
+          ["Europa im Überblick", "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><p>Diese Zusammenfassung ist ein lokales Beispiel für die Listenvorschau.</p>"],
+          ["Vor der nächsten Wiederholung", "<p>Rufe die Hauptstadt zu jedem Land zunächst selbst ab. Vergleiche deine Antwort anschließend mit der Karte.</p>"],
+        ]) {
+          await saveLearningSummary("catalog-summaries", { ...createLearningSummary(deck.id, title, createSummarySettings()), html: text });
+        }
+      }
+      setOpen(true);
+    } catch { setError("Die lokale Zusammenfassungs-Demo konnte nicht geladen werden."); }
+    finally { setBusy(false); }
+  }
+  return <Demo title="Zusammenfassungen · Liste, direktes Formular und Editor" wide><p className="catalog-pattern-source">Echte lokale Produktansicht mit zwei ausdrücklich geladenen Beispielen. KI-Antworten werden ausdrücklich simuliert. Schreiben und Speichern bleiben auf dem Demo-Konto dieses Browsers.</p><ActionButton variant="secondary" loading={busy} onClick={() => void show()}>Zusammenfassungen öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><label className="core-field-group mb-4"><span className="core-field-label">KI-Demoantwort</span><CoreSelect ariaLabel="KI-Demoantwort" value={simulation} options={[{ value: "success", label: "Erfolgreich" }, { value: "error", label: "Fehler" }, { value: "slow", label: "Langsam mit Abbruch" }]} onValueChange={setSimulation}/></label><DeckSummariesPanel deck={deck} userId="catalog-summaries" onGenerateSummary={(input, signal) => generateSummaryDemo(input, signal, simulation)} onDraftStateChange={() => undefined}/></div>}</Demo>;
+}
+
+function MindMapContentDemo() {
+  const [open, setOpen] = useState(false), [error, setError] = useState("");
+  async function show() {
+    try {
+      if (!(await loadLearningSummaries("catalog-mindmaps", deck.id)).length) {
+        await saveLearningSummary("catalog-mindmaps", { ...createLearningSummary(deck.id, "Europa und ihre Hauptstädte", createSummarySettings()), html: "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><h3>Merksatz</h3><p>Vergleiche Länder und Hauptstädte miteinander.</p>" });
+      }
+      setOpen(true);
+    } catch { setError("Die lokale Mindmap-Demo konnte nicht geladen werden."); }
+  }
+  return <Demo title="Infinity Map · kombinierte Werkzeugzeile, Karten und Äste" wide><p className="catalog-pattern-source">Die echte Produktansicht öffnet direkt eine gemeinsame Infinity Map je Stapel. Zusammenfassungen ergänzen weitere Graphen auf derselben Fläche. Karten bearbeiten ihren Text direkt mit der gemeinsamen Toolbar oben. Plusaktionen ergänzen Geschwister und Kinder mit Astfarben; die Mehrfachauswahl funktioniert auch durch Antippen. Runde Zusammenfassungsklammern mit neutralen Karten und dynamische Umrandungen ergänzen die Fläche; neue Zonen werden nicht angeboten. Die alte Werkzeugzeile bleibt mit direkten Stichwort-/Textfeldaktionen erhalten; Verknüpfen ist ein eigener Menüpunkt, Linienfarben sind wählbar und Astfarben werden nach außen kräftiger; Gestalten bietet Zeichnen, Radieren und freies Schreiben ohne Kartenrahmen. Karten sind ohne eigenen Modus verschiebbar; lose Karten werden beim Verknüpfen normale Äste. Stichworttitel sind zentriert, Textkarten besitzen einen dunkleren Titelstreifen. Aus Zusammenfassung steht direkt rechts; alle Textwerkzeuge stehen ohne Zusatzmenü in der oberen Leiste. Änderungen speichern automatisch lokal, ohne Namens-/Speicherzeile. Vorgabefarben und freie Farbauswahl stehen bereit. Die Beispieldaten bleiben auf einem eigenen lokalen Demo-Konto.</p><ActionButton variant="secondary" onClick={() => void show()}>Mindmaps öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><DeckMindMapsPanel deck={deck} userId="catalog-mindmaps" onDraftStateChange={() => undefined}/></div>}</Demo>;
 }
 
 function ProductViewsDemo({ kind }: { kind: string }) {
@@ -401,7 +461,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
-    {["decks", "deck-content"].includes(view) && <DecksScreen contentDeckId={view === "deck-content" ? deck.id : null} contentTab={contentTab} onOpenDeckContent={(_deckId, tab) => setContentTab(tab ?? "children")} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} cardPages={cardPages} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={async () => null} onDuplicateNote={async () => null} onDeleteNote={async () => null} onUndoDeleteNote={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
+    {["decks", "deck-content"].includes(view) && <DecksScreen summaryAccountId="catalog-summaries" onGenerateSummary={generateSummaryDemo} contentDeckId={view === "deck-content" ? deck.id : null} contentTab={contentTab} onOpenDeckContent={(_deckId, tab) => setContentTab(tab ?? "children")} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={noop} onSetDeckCoreMode={noop} cardPages={cardPages} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={async () => null} onDuplicateNote={async () => null} onDeleteNote={async () => null} onUndoDeleteNote={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
     {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
     {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
@@ -463,7 +523,7 @@ export const DEMO_GROUPS = [
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken als Rechteck, Ellipse, Polygon oder Text zeichnen, zu Karten gruppieren und den Verdeckungsmodus wählen; per Maus, Touch und Tastatur.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
-  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}</> },
+  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}<SummaryContentDemo /><MindMapContentDemo /></> },
   { id: "symbols", section: "icons", title: "Iconflächen und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
   { id: "laufzeit", section: "states", title: "Laufzeit- und Rückmeldungszustände", description: "Laden, leer, Hinweis, Erfolg, Warnung und Fehler.", components: [], wide: true, render: () => <StatesDemo section="runtime" /> },
