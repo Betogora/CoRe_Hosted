@@ -132,7 +132,9 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(leaf, />Karten öffnen</);
   const top = renderScreen([root, child], { contentDeckId: root.id, contentTab: "summary" });
   assert.match(top, /aria-label="Zur Stapelübersicht"/);
-  assert.match(top, /Demnächst verfügbar/);
+  assert.match(top, /data-testid="deck-summaries-panel"/);
+  const mindMap = renderScreen([root, child], { contentDeckId: root.id, contentTab: "mind-map" });
+  assert.match(mindMap, /Mindmap wird geladen/);
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {

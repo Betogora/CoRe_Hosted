@@ -30,6 +30,8 @@ import type { ManualImageAttachment } from "../creationWorkflow.ts";
 import type { AccountMediaStore } from "../mediaStore.ts";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
+import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
@@ -880,6 +882,8 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
 
 export function DecksScreen({
   decks,
+  summaryAccountId,
+  onGenerateSummary,
   deckSummaries,
   onStartDeck,
   contentDeckId = null,
@@ -1366,7 +1370,7 @@ export function DecksScreen({
       {contentDeckId ? (
         <div className="grid min-w-0 gap-6" data-deck-content-navigation="true">
           <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad" data-testid="deck-content-path">
-            <button type="button" onClick={() => onOpenLearn(null)}>Alle Stapel</button>
+            <button type="button" onClick={() => requestDetailAction(() => onOpenLearn(null))}>Alle Stapel</button>
             {contentTrail.map((row) => <React.Fragment key={row.id}>
               <ChevronRight size={16} aria-hidden="true" />
               {row.id === contentDeckId ? <span aria-current="page">{row.name}</span> : <button type="button" onClick={() => requestDetailAction(() => onOpenDeckContent(row.id))}>{row.name}</button>}
@@ -1379,7 +1383,7 @@ export function DecksScreen({
             </div>
             <CoreTooltip label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"}>
               <IconButton label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"} icon={ArrowLeft}
-                onClick={() => contentRow?.parentDeckId ? requestDetailAction(() => onOpenDeckContent(contentRow.parentDeckId!)) : onOpenLearn(null)} />
+                onClick={() => contentRow?.parentDeckId ? requestDetailAction(() => onOpenDeckContent(contentRow.parentDeckId!)) : requestDetailAction(() => onOpenLearn(null))} />
             </CoreTooltip>
           </div>
           <div className="core-deck-content-tab-scroll" ref={contentTabsRef}>
@@ -1396,6 +1400,14 @@ export function DecksScreen({
           onOpenSubstack={(deckId) => onOpenDeckContent(deckId)} onOpenCards={(deckId) => onOpenDeckContent(deckId, "cards")}
           onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
           : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
+      ) : contentDeckId && contentTab === "summary" ? (
+        contentDeck ? <DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+          userId={summaryAccountId ?? contentDeck.ownerId} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+          : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
+      ) : contentDeckId && contentTab === "mind-map" ? (
+        contentDeck ? <DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
+          userId={summaryAccountId ?? contentDeck.ownerId} onDraftStateChange={handleEditorDraftStateChange} />
+          : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
         <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">
           <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
@@ -1570,7 +1582,7 @@ export function DecksScreen({
       <ActionDialog
         open={Boolean(pendingDetailAction)}
         title="Änderungen übernehmen?"
-        description="Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du den Editor verlässt."
+        description="Du hast ungespeicherte Änderungen in diesem Entwurf. Speichere oder verwirf sie, bevor du den Editor verlässt."
         confirmLabel="Speichern"
         cancelLabel="Weiter bearbeiten"
         discardLabel="Verwerfen"

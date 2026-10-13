@@ -449,3 +449,29 @@ test("viele fehlende Kartenkörper laden in bis zu vier gleichzeitigen 50er-Anfr
   assert.equal(maxInFlight, 4);
   assert.deepEqual(bodies.map((body) => body?.card.id), ids, "die Reihenfolge der Anfrage bleibt erhalten");
 });
+
+test("summary material loads beyond the first catalog page and deduplicates note owners", async () => {
+  const userId = randomUUID();
+  const graphs = Array.from({ length: 55 }, (_, index) => graph("deck-summary", String(index), String(index).padStart(3, "0"), CREATED_AT, { reverseDeckId: "deck-summary" }));
+  const cards = graphs.flatMap(entry => entry.cards);
+  const deck = createCoreDeck({ id: "deck-summary", ownerId: userId, name: "Zusammenfassung", source: "manual", cards });
+  const state = workspace(userId, [deck], graphs.map(entry => entry.note));
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: state, indexedDb: new IDBFactory() });
+  const cloudRows = createCloudStateRows(state, userId);
+  await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
+  const service = createWorkspaceHydrationService({ repository, mediaStore: null, client: {
+    async rpc(name: string, payload: any) {
+      assert.equal(name, "hydrate_account_cards");
+      return { data: hydrateFrom(cloudRows, payload), error: null };
+    },
+  } });
+  try {
+    const loaded = await service.prepareContentDecks([deck.id, deck.id]);
+    assert.equal(loaded.decks.length, 1);
+    assert.equal(loaded.decks[0].cards.length, 110);
+    assert.equal(loaded.notes.length, 55);
+    assert.deepEqual(new Set(loaded.decks[0].cards.map(card => card.id)), new Set(cards.map(card => card.id)));
+    assert.ok(loaded.notes.every(note => note.content.fields.length > 0));
+    await assert.rejects(service.prepareContentDecks(["missing"]), /nicht mehr verfügbar/);
+  } finally { repository.close(); }
+});

@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, Palette, PenLine, Sigma, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
@@ -152,6 +153,8 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: 
 }
 
 interface RichTextEditorProps {
+  toolbarHost?: HTMLElement | null;
+  showAllTools?: boolean;
   value?: string;
   onChange?: (value: string) => void;
   onFocus?: (event: React.FocusEvent<HTMLDivElement>) => void;
@@ -166,7 +169,7 @@ interface RichTextEditorProps {
   imageActions?: RichTextImageActions;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -328,8 +331,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const editor = editorRef.current;
     if (!editor || typeof window === "undefined") return;
 
+    const range = selectionRef.current?.cloneRange();
     editor.focus();
-    const range = selectionRef.current;
     if (!range) return;
 
     const selection = window.getSelection();
@@ -624,8 +627,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     isActive ? "border-core-action bg-core-surface shadow-selection" : "border-core-border bg-core-surface"
   }`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
-  return (
-    <div className="min-w-0" aria-busy={isPreparingImages || undefined}>
+  const toolbar = (
       <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-control border bg-core-subtle p-1 ${isActive ? "border-core-action" : "border-core-border"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
@@ -658,12 +660,12 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         ) : null}
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
         <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
-        <CoreTooltip label="Weitere Textwerkzeuge">
+        {!showAllTools && <CoreTooltip label="Weitere Textwerkzeuge">
           <button type="button" className="grid size-control shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
             <MoreHorizontal size={17} aria-hidden="true" />
           </button>
-        </CoreTooltip>
-        <div id={moreToolsId} hidden={!moreToolsOpen} className="core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2">
+        </CoreTooltip>}
+        <div id={moreToolsId} hidden={!showAllTools && !moreToolsOpen} style={showAllTools ? { display: "contents" } : undefined} className={showAllTools ? "core-rich-text-extra-tools" : "core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2"}>
           <ToolbarButton label="Unterstrichen" icon={Underline} onRun={() => runCommand("underline")} />
           <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
           <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />
@@ -728,6 +730,10 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           {clozeActions ? <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} /> : null}
         </div>
       </div>
+  );
+  return (
+    <div className="min-w-0" aria-busy={isPreparingImages || undefined}>
+      {toolbarHost ? createPortal(toolbar, toolbarHost) : toolbar}
       <div
         ref={editorRef}
         className={fieldClass}

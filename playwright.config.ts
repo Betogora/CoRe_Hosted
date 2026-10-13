@@ -69,6 +69,11 @@ export default defineConfig({
   ],
   projects: [
     {
+      name: "learning-content-chromium",
+      testMatch: [/learning-summaries\.spec\.ts/, /mindmaps\.spec\.ts/],
+      use: { ...devices["Desktop Chrome"] },
+    },
+    {
       name: "note-presentation-chromium",
       testMatch: /note-presentation\.spec\.ts/,
       outputDir: "test-results/note-presentation-browser",

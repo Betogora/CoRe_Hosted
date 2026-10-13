@@ -7,6 +7,15 @@ import {
   selectionOverlapsRichTextCloze,
 } from "./RichTextEditor.tsx";
 
+test("renders all tools in one toolbar when explicitly requested", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Inhalt" showAllTools />);
+  assert.doesNotMatch(markup, /aria-label="Weitere Textwerkzeuge"/);
+  assert.match(markup, /aria-label="Unterstrichen"/);
+  assert.match(markup, /aria-label="Nummerierte Liste"/);
+  assert.match(markup, /display:contents/);
+  assert.doesNotMatch(markup, /hidden=""/);
+});
+
 test("finds the one cloze surrounding a selection or caret", () => {
   const text = "A {{c2::Berlin::Stadt}} B";
   const expectedSpan = { start: 2, end: 23, contentStart: 8, contentEnd: 14 };
