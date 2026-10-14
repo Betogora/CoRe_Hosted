@@ -138,10 +138,48 @@ function tree() {
   let map = createLearningMindMap("deck", "Baum");
   const root = addMindMapRelativeNode(map, null, "root"); map = root.map;
   const a = addMindMapRelativeNode(map, root.node.id, "child"); map = a.map;
-  const b = addMindMapRelativeNode(map, a.node.id, "sibling"); map = b.map;
+  const b = addMindMapRelativeNode(map, a.node.id, "sibling");
+  // Existing maps may have several main branches on the same side.
+  b.node = { ...b.node, side: a.node.side, x: a.node.x, y: a.node.y + mindMapNodeRect(a.node).height + 32 };
+  map = { ...b.map, nodes: b.map.nodes.map((node) => node.id === b.node.id ? b.node : node) };
   const c = addMindMapRelativeNode(map, a.node.id, "child"); map = c.map;
   return { map, root: root.node, a: a.node, b: b.node, c: c.node };
 }
+
+test("Neue Hauptäste verteilen Kinder- und Geschwisteraktionen auf alle vier Bereiche", () => {
+  for (const relation of ["child", "sibling"] as const) {
+    const root = addMindMapRelativeNode(createLearningMindMap("deck", "Verteilung"), null, "root", "text", { x: 800, y: 500 });
+    let map = root.map, anchor = root.node.id;
+    for (let i = 0; i < 12; i++) {
+      const before = map.nodes;
+      const added = addMindMapRelativeNode(map, i === 0 || relation === "child" ? root.node.id : anchor, i === 0 ? "child" : relation, i % 3 ? "keyword" : "text");
+      assert.deepEqual(added.map.nodes.slice(0, before.length), before);
+      map = added.map; anchor = added.node.id;
+      assert.equal(added.node.parentId, root.node.id);
+      const r = mindMapNodeRect(added.node);
+      for (const existing of before) {
+        const b = mindMapNodeRect(existing);
+        assert.ok(r.x + r.width + 16 <= b.x || b.x + b.width + 16 <= r.x || r.y + r.height + 16 <= b.y || b.y + b.height + 16 <= r.y);
+      }
+      const branches = map.nodes.filter((node) => node.parentId === root.node.id);
+      const right = branches.filter((node) => node.x > root.node.x), left = branches.filter((node) => node.x < root.node.x);
+      assert.ok(Math.abs(right.length - left.length) <= 1);
+      for (const side of [right, left]) assert.ok(Math.abs(side.filter((node) => node.y < root.node.y).length - side.filter((node) => node.y > root.node.y).length) <= 1);
+    }
+  }
+});
+
+test("Manuell verschobene Äste bestimmen die neue Unterknoten- und Geschwisterrichtung", () => {
+  const { map, root, a, c } = tree();
+  const moved = editMindMapNode(map, a.id, { x: root.x - 300, y: root.y + 200 });
+  const child = addMindMapRelativeNode(moved, a.id, "child");
+  assert.equal(child.node.side, "left"); assert.ok(child.node.x < root.x - 300);
+  const detail = editMindMapNode(moved, c.id, { x: root.x - 600, y: root.y + 400 });
+  const sibling = addMindMapRelativeNode(detail, c.id, "sibling");
+  assert.equal(sibling.node.side, "left"); assert.ok(sibling.node.y > root.y + 400);
+  const above = editMindMapNode(detail, c.id, { y: root.y - 400 });
+  assert.ok(addMindMapRelativeNode(above, c.id, "sibling").node.y < root.y - 400);
+});
 
 test("Hierarchie, Plus-Aktionen und Astfarben lassen manuelle Positionen unverändert", () => {
   const { map, root, a, b, c } = tree();
