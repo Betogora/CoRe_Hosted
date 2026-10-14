@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-15 — Live-Smoke der strukturierten Zusammenfassung (`f0f2903`)
+
+- `/api/ai/summary` lief lokal gegen OpenRouter mit dem Development-Schlüssel aus Vercel; nur die Supabase-Anmeldung war ersetzt. Material: fiktive Biologie-Karten, keine Nutzerdaten. Der Schlüssel lag nur kurzzeitig außerhalb des Repositories und wurde danach gelöscht.
+- 10 Notes in Stapel und Unterstapel (Basic, Lückentext, Auswahlkarte), Länge mittel: `200`, `zdr`, 2 Abschnitte, 1 Unterabschnitt, 1 Hinweis, alle 10 Einheiten belegt; 2.220 Tokens, 0,00052 USD, 7,6 s. Die Stapelhierarchie wurde als Gliederung übernommen, Auswahl-Distraktoren nicht als Fakten; die daraus erzeugte Mindmap hat 17 Karten.
+- 1.350 Notes (423 KB Anfrage), Länge lang: `200`, `zdr`, 129.411 Tokens, 0,0166 USD, 9,5 s. 2.000 Notes (über 400.000 Zeichen) wurden vor dem Aufruf mit der Grenzmeldung abgewiesen.
+
 ## 2026-10-14 — Live-Smoke der KI-Routen nach gemeinsamen Helfern (`39158ab`)
 
 - Beide Route-Handler aus `39158ab` liefen lokal gegen OpenRouter mit dem Development-Schlüssel aus Vercel; nur die Supabase-Anmeldung war ersetzt. Material: fiktive Biologie-Basic-Karten, keine Nutzerdaten. Der Schlüssel lag nur kurzzeitig außerhalb des Repositories und wurde danach gelöscht.
