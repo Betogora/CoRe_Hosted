@@ -224,19 +224,26 @@ export function mindMapZoneRect(map: LearningMindMap, zone: MindMapZone): MindMa
   return { ...rect, width: Math.max(180, rect.width), height: zone.collapsed ? 52 : Math.max(100, rect.height) };
 }
 
+let colorCache: { map: LearningMindMap; byId: Map<string, MindMapNode>; siblingIndex: Map<string, number>; summaryNodeIds: Set<string> } | null = null;
+function colorContext(map: LearningMindMap) {
+  if (colorCache?.map !== map) {
+    const siblingIndex = new Map<string, number>(), counts = new Map<string, number>();
+    for (const item of map.nodes) if (item.parentId) { const index = counts.get(item.parentId) ?? 0; siblingIndex.set(item.id, index); counts.set(item.parentId, index + 1); }
+    colorCache = { map, byId: new Map(map.nodes.map((item) => [item.id, item])), siblingIndex, summaryNodeIds: new Set(map.summaries.map((item) => item.nodeId)) };
+  }
+  return colorCache;
+}
+
 export function mindMapNodeColor(map: LearningMindMap, node: MindMapNode): { color: MindMapColor; depth: number; strength: number } {
-  if (map.summaries.some((item) => item.nodeId === node.id)) return { color: "default", depth: 0, strength: 0 };
-  const byId = new Map(map.nodes.map((item) => [item.id, item]));
+  const { byId, siblingIndex, summaryNodeIds } = colorContext(map);
+  if (summaryNodeIds.has(node.id)) return { color: "default", depth: 0, strength: 0 };
   let current = node, depth = 0, chosen: MindMapColor | undefined = node.color;
   while (current.parentId) {
     depth++;
     const parent = byId.get(current.parentId);
     if (!parent) break;
     if (!chosen && current.color) chosen = current.color;
-    if (!chosen && !parent.parentId) {
-      const branches = map.nodes.filter((item) => item.parentId === parent.id);
-      chosen = mindMapColors[1 + branches.findIndex((item) => item.id === current.id) % (mindMapColors.length - 1)].value;
-    }
+    if (!chosen && !parent.parentId) chosen = mindMapColors[1 + (siblingIndex.get(current.id) ?? -1) % (mindMapColors.length - 1)].value;
     current = parent;
   }
   return { color: chosen ?? "default", depth, strength: Math.min(72, 18 + Math.max(0, depth - 1) * 14) };

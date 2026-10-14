@@ -226,9 +226,10 @@ test("Zusammenfassungsquellen und Entwurfsschutz bleiben im neuen Editor erhalte
 test("Speicherfehler erhalten den bearbeiteten Entwurf und erlauben einen neuen Versuch", async ({ page }) => {
   const panel = await openMindMaps(page); await root(panel, "Mein sicherer Entwurf");
   await save(panel);
-  await page.evaluate(() => { const put = IDBObjectStore.prototype.put; IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) { IDBObjectStore.prototype.put = put; throw new DOMException("Lokaler Speicher voll", "QuotaExceededError"); }; });
+  await page.evaluate(() => { const put = IDBObjectStore.prototype.put; Object.assign(window, { restoreMindMapPut: () => { IDBObjectStore.prototype.put = put; } }); IDBObjectStore.prototype.put = function (...args: Parameters<IDBObjectStore["put"]>) { if (this.name === "maps") throw new DOMException("Lokaler Speicher voll", "QuotaExceededError"); return put.apply(this, args); }; });
   await node(panel, "Mein sicherer Entwurf").dblclick(); await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("Neue ungespeicherte Notiz"); await finish(panel);
   await expect(panel).toContainText("Lokaler Speicher voll"); await expect(node(panel, "Mein sicherer Entwurf")).toBeVisible();
+  await page.evaluate(() => (window as unknown as { restoreMindMapPut: () => void }).restoreMindMapPut());
   await panel.getByRole("button", { name: "Erneut speichern", exact: true }).click();
   await save(panel); await reload(page, panel); await expect(node(panel, "Mein sicherer Entwurf")).toBeVisible();
 });
