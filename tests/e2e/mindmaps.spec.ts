@@ -28,7 +28,7 @@ async function children(panel: Locator) {
 async function selectPair(panel: Locator) { await fit(panel); await node(panel, "Ast A").click(); await node(panel, "Ast B").click({ modifiers: ["Shift"] }); }
 async function save(panel: Locator) { await expect(panel.getByRole("status").filter({ hasText: /^Gespeichert$/ })).toBeAttached(); }
 async function reload(page: Page, panel: Locator) { await page.reload(); await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click(); await expect(panel.getByTestId("mindmap-canvas")).toBeVisible(); await fit(panel); }
-const image = { name: "energie.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN6cAAAAASUVORK5CYII=", "base64") };
+const image = { name: "energie.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR4AWKybvr2H4SZGKAAAAAA//8uQ0nRAAAABklEQVQDAEZOBWk7AOH8AAAAAElFTkSuQmCC", "base64") };
 
 test("Hauptäste verteilen sich und Plusaktionen folgen verschobenen Karten", async ({ page }) => {
   const panel = await openMindMaps(page); await children(panel);
