@@ -30,6 +30,36 @@ async function save(panel: Locator) { await expect(panel.getByRole("status").fil
 async function reload(page: Page, panel: Locator) { await page.reload(); await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click(); await expect(panel.getByTestId("mindmap-canvas")).toBeVisible(); await fit(panel); }
 const image = { name: "energie.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN6cAAAAASUVORK5CYII=", "base64") };
 
+test("Hauptäste verteilen sich und Plusaktionen folgen verschobenen Karten", async ({ page }) => {
+  const panel = await openMindMaps(page); await children(panel);
+  await node(panel, "Ast B").getByRole("button", { name: "Stichwort auf gleicher Ebene hinzufügen", exact: true }).click(); await topic(panel, "Ast C");
+  await node(panel, "Ast C").getByRole("button", { name: "Stichwort auf gleicher Ebene hinzufügen", exact: true }).click(); await topic(panel, "Ast D"); await fit(panel);
+  const positions = await panel.getByTestId("mindmap-node").evaluateAll((elements) => elements.map((el) => ({ label: el.querySelector(".core-mindmap-node-label")!.textContent, x: parseFloat((el as HTMLElement).style.left), y: parseFloat((el as HTMLElement).style.top) })));
+  const main = positions.find((n) => n.label === "Main")!;
+  expect(new Set(positions.filter((n) => n.label !== "Main").map((n) => `${n.x > main.x}:${n.y > main.y}`)).size).toBe(4);
+  const card = node(panel, "Ast B"); await card.click();
+  await expect(card.locator(".at-child")).toHaveClass(/to-left/); await expect(card.locator(".at-sibling")).toHaveClass(/to-bottom/);
+  const before = await card.boundingBox(), center = await node(panel, "Main").boundingBox();
+  await page.mouse.move(before!.x + before!.width / 2, before!.y + before!.height / 2); await page.mouse.down();
+  await page.mouse.move(center!.x + center!.width + 120, center!.y - 70, { steps: 8 }); await page.mouse.up();
+  await expect(card.locator(".at-child")).toHaveClass(/to-right/); await expect(card.locator(".at-sibling")).toHaveClass(/to-top/);
+  await save(panel); await reload(page, panel); await card.click();
+  await expect(card.locator(".at-child")).toHaveClass(/to-right/); await expect(card.locator(".at-sibling")).toHaveClass(/to-top/);
+});
+
+test("Nur bereits ausgewählte Karten lassen sich ziehen oder per Pfeiltaste bewegen", async ({ page }) => {
+  const panel = await openMindMaps(page); await children(panel);
+  const card = node(panel, "Ast A"); await node(panel, "Main").click();
+  const position = () => card.evaluate((el) => ({ x: (el as HTMLElement).style.left, y: (el as HTMLElement).style.top }));
+  const before = await position();
+  await card.focus(); await card.press("ArrowRight"); expect(await position()).toEqual(before);
+  async function drag() { const r = await card.boundingBox(); await page.mouse.move(r!.x + r!.width / 2, r!.y + r!.height / 2); await page.mouse.down(); await page.mouse.move(r!.x + r!.width / 2 + 35, r!.y + r!.height / 2 + 20, { steps: 6 }); await page.mouse.up(); }
+  await drag(); expect(await position()).toEqual(before);
+  await card.click(); await expect(card).toHaveAttribute("aria-pressed", "true"); await drag(); expect(await position()).not.toEqual(before);
+  const moved = await position(); await card.press("ArrowRight"); expect(await position()).not.toEqual(moved);
+  await save(panel); const saved = await position(); await reload(page, panel); expect(await position()).toEqual(saved);
+});
+
 test("Werkzeugzeile ohne Namen, Speichern und Bewegungsmodus; alle Textoptionen direkt sichtbar", async ({ page }) => {
   const panel = await openMindMaps(page), top = panel.locator(".core-mindmap-primary-tools");
   await expect(panel.getByRole("textbox", { name: "Mindmap-Titel", exact: true })).toHaveCount(0);
@@ -136,7 +166,7 @@ test("Plus-Aktionen erstellen Geschwister und Kinder mit Astfarben und bleiben e
   const beforeGrowth = await b.evaluate((el) => (el as HTMLElement).style.top);
   await a.dblclick(); await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click();
   await panel.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles(image); await expect(a.locator("img")).toHaveCount(1); await finish(panel);
-  await expect.poll(() => b.evaluate((el) => (el as HTMLElement).style.top)).not.toBe(beforeGrowth);
+  expect(await b.evaluate((el) => (el as HTMLElement).style.top)).toBe(beforeGrowth);
   await save(panel); await reload(page, panel);
   await expect(panel.getByTestId("mindmap-node")).toHaveCount(4);
   await expect(panel.locator(".core-mindmap-hierarchy path")).toHaveCount(3);
@@ -183,7 +213,7 @@ test("Umrandung passt sich beim Verschieben an und lässt sich unabhängig lösc
   const panel = await openMindMaps(page); await children(panel); await selectPair(panel); await mode(panel, "Hinzufügen"); await panel.getByRole("button", { name: "Umrandung", exact: true }).click();
   await panel.getByRole("textbox", { name: "Umrandung beschriften" }).fill("Mein Bereich"); await save(panel); await reload(page, panel);
   const boundary = panel.getByTestId("mindmap-boundary"), before = await boundary.evaluate((el) => (el as HTMLElement).style.height);
-  await node(panel, "Ast B").press("ArrowDown");
+  await node(panel, "Ast B").click(); await node(panel, "Ast B").press("ArrowDown");
   expect(await boundary.evaluate((el) => (el as HTMLElement).style.height)).not.toBe(before);
   await boundary.click({ position: { x: 8, y: 8 } }); await panel.getByRole("button", { name: "Umrandung entfernen", exact: true }).click();
   await expect(panel.getByTestId("mindmap-node")).toHaveCount(3);

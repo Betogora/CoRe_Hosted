@@ -2165,8 +2165,8 @@ summary {
 .core-mindmap-edges path { stroke-dasharray: 7 5; }
 .core-mindmap-ink polyline, .core-mindmap-ink-preview { fill: none; stroke: var(--mindmap-ink, var(--core-text)); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .core-mindmap-ink .core-mindmap-eraser-hit { stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: cell; }
-.core-mindmap-node { position: absolute; z-index: 5; display: flex; flex-direction: column; justify-content: flex-start; gap: var(--core-space-xs); padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); background: var(--mindmap-surface, var(--core-surface-raised)); color: var(--core-text); text-align: left; cursor: grab; touch-action: none; user-select: none; }
-.core-mindmap-node.is-selected { border-color: var(--mindmap-ink, var(--core-border-interactive)); box-shadow: var(--core-shadow-selection); }
+.core-mindmap-node { position: absolute; z-index: 5; display: flex; flex-direction: column; justify-content: flex-start; gap: var(--core-space-xs); padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); background: var(--mindmap-surface, var(--core-surface-raised)); color: var(--core-text); text-align: left; cursor: pointer; touch-action: none; user-select: none; }
+.core-mindmap-node.is-selected { cursor: grab; border-color: var(--mindmap-ink, var(--core-border-interactive)); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
@@ -2200,7 +2200,9 @@ summary {
 .core-mindmap-inline-source { font-size: var(--core-type-caption); font-weight: 400; overflow-y: auto; max-height: 120px; }
 .core-mindmap-inline-source summary, .core-mindmap-inline-source button { min-height: 44px; }
 .core-mindmap-node-add { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; background: var(--mindmap-surface, var(--core-surface)); color: var(--core-text); border: 2px solid var(--mindmap-ink, var(--core-info)); cursor: pointer; }
-.core-mindmap-node-add.at-sibling { top: -48px; left: calc(50% - 22px); }
+.core-mindmap-node-add.at-sibling { left: calc(50% - 22px); }
+.core-mindmap-node-add.at-sibling.to-top { top: -52px; }
+.core-mindmap-node-add.at-sibling.to-bottom { bottom: -52px; }
 .core-mindmap-node-add.at-child { top: calc(50% - 22px); }
 .core-mindmap-node-add.to-right { right: -52px; }
 .core-mindmap-node-add.to-left { left: -52px; }

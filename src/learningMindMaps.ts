@@ -249,18 +249,39 @@ export function mindMapNodeColor(map: LearningMindMap, node: MindMapNode): { col
   return { color: chosen ?? "default", depth, strength: Math.min(72, 18 + Math.max(0, depth - 1) * 14) };
 }
 
+export function mindMapNodeDirection(node: MindMapNode, parent?: MindMapNode) {
+  return {
+    side: parent ? (node.x >= parent.x ? "right" : "left") : node.side ?? "right",
+    vertical: parent && node.y + mindMapNodeRect(node).height / 2 < parent.y + mindMapNodeRect(parent).height / 2 ? "above" : "below",
+  } as const;
+}
+
 export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | null, relation: "root" | "sibling" | "child", kind: MindMapNode["kind"] = "keyword", position: MindMapPoint = { x: 0, y: 0 }): { map: LearningMindMap; node: MindMapNode } {
   const anchor = map.nodes.find((node) => node.id === anchorId);
   if (relation !== "root" && (anchor?.kind === "freeText" || kind === "freeText")) throw new Error("Freier Flächentext hat keine Unterknoten oder Geschwisterkarten.");
   const parent = relation === "child" ? anchor : relation === "sibling" && anchor?.parentId ? map.nodes.find((node) => node.id === anchor.parentId) : undefined;
-  const siblings = map.nodes.filter((node) => node.parentId === parent?.id);
-  const side = parent ? (relation === "sibling" ? anchor?.side : undefined) ?? parent.side ?? (parent.parentId ? (parent.x >= map.nodes.find((node) => node.id === parent.parentId)!.x ? "right" : "left") : siblings.length % 2 ? "left" : "right") : "right";
-  const sameSide = siblings.filter((node) => (node.side ?? "right") === side);
-  const node: MindMapNode = { ...createMindMapNode(kind, parent ? { x: parent.x + (side === "right" ? 300 : -300), y: sameSide.length ? Math.max(...sameSide.map((item) => item.y + mindMapNodeRect(item).height)) + 32 : parent.y } : relation === "sibling" && anchor ? { x: anchor.x, y: anchor.y + mindMapNodeRect(anchor).height + 32 } : position),
+  const siblings = map.nodes.filter((node) => node.parentId === parent?.id && node.kind !== "freeText");
+  const mainBranch = parent && !parent.parentId && !map.summaries.some((item) => item.nodeId === parent.id);
+  const parentDirection = parent ? mindMapNodeDirection(parent, map.nodes.find((node) => node.id === parent.parentId)) : undefined;
+  const anchorDirection = anchor ? mindMapNodeDirection(anchor, parent) : undefined;
+  const rightCount = parent ? siblings.filter((node) => mindMapNodeDirection(node, parent).side === "right").length : 0;
+  const side = mainBranch ? (rightCount <= siblings.length - rightCount ? "right" : "left") : relation === "sibling" ? anchorDirection?.side ?? "right" : parentDirection?.side ?? "right";
+  const sameSide = siblings.filter((node) => mindMapNodeDirection(node, parent).side === side);
+  const aboveCount = sameSide.filter((node) => mindMapNodeDirection(node, parent).vertical === "above").length;
+  const vertical = mainBranch ? (aboveCount < sameSide.length - aboveCount || aboveCount === sameSide.length - aboveCount && side === "right" ? "above" : "below") : relation === "sibling" ? anchorDirection?.vertical ?? "below" : parentDirection?.vertical ?? "below";
+  const node: MindMapNode = { ...createMindMapNode(kind, position),
     ...((parent || relation === "sibling") ? { autoPosition: true } : {}),
     ...(parent ? { parentId: parent.id, side, ...(parent.zoneId ? { zoneId: parent.zoneId } : {}) } : {}),
   };
-  for (let attempt = 0; attempt < 2000 && map.nodes.some((item) => { const r = mindMapNodeRect(item), n = mindMapNodeRect(node); return n.x < r.x + r.width + 16 && n.x + n.width + 16 > r.x && n.y < r.y + r.height + 16 && n.y + n.height + 16 > r.y; }); attempt++) node.y += mindMapNodeRect(node).height + 32;
+  if (parent) {
+    node.x = parent.x + (side === "right" ? 300 : -300);
+    const outward = sameSide.filter((item) => mindMapNodeDirection(item, parent).vertical === vertical);
+    node.y = mainBranch || outward.length
+      ? vertical === "above" ? Math.min(parent.y - 32, ...outward.map((item) => item.y - 32)) - mindMapNodeRect(node).height
+        : Math.max(parent.y + mindMapNodeRect(parent).height + 32, ...outward.map((item) => item.y + mindMapNodeRect(item).height + 32))
+      : parent.y;
+  } else if (relation === "sibling" && anchor) { node.x = anchor.x; node.y = anchor.y + mindMapNodeRect(anchor).height + 32; }
+  for (let attempt = 0; attempt < 2000 && map.nodes.some((item) => { const r = mindMapNodeRect(item), n = mindMapNodeRect(node); return n.x < r.x + r.width + 16 && n.x + n.width + 16 > r.x && n.y < r.y + r.height + 16 && n.y + n.height + 16 > r.y; }); attempt++) node.y += (vertical === "above" ? -1 : 1) * (mindMapNodeRect(node).height + 32);
   let next = { ...map, nodes: [...map.nodes, node] };
   if (node.zoneId) next = containMindMapZone(next, node.zoneId);
   return { map: next, node };
