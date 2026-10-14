@@ -17,7 +17,7 @@ const child = createCoreDeck({ id: "child", name: "Chemie", parentDeckId: "root"
 const source: TransientSourceDocument = { id: "local-source", fileName: "Skript.pdf", mimeType: "application/pdf", text: "ATP ist ein Energieträger.", textExtractionStatus: "success", metadata: { pages: [{ pageNumber: 1, text: "ATP ist ein Energieträger.", textItemCount: 4 }, { pageNumber: 2, text: "Kein Textlayer gefunden.", textItemCount: 0 }] } };
 const defaults = createSummarySettings();
 const prepared = prepareSummaryMaterial([root], notes, root.id, "Überblick", defaults);
-const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"] }], warnings: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
+const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"], subsections: [] }], warnings: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
 
 test("Auswahl bestimmt den Stapelbaum; gleiche Inhalte und Lernmetadaten werden nicht mehrfach gesendet", () => {
   assert.deepEqual(summaryScopeDeckIds([root, child], "root", "deck"), ["root"]);
@@ -35,7 +35,7 @@ test("Lückentexte, Auswahlantworten und lesbare Quellenseiten erhalten ihre fac
   const input = prepareSummaryMaterial([{ ...root, cards: [...cloze.cards, ...choice.cards] }], [cloze.note, choice.note], "root", "Titel", { ...defaults, material: "cards-and-source" }, source);
   assert.match(JSON.stringify(input.request), /Energieträger/);
   assert.doesNotMatch(JSON.stringify(input.request), /\{\{c1/);
-  assert.match(JSON.stringify(input.request), /Richtige Antworten: Berlin/);
+  assert.match(JSON.stringify(input.request), /Richtig: Berlin/); assert.match(JSON.stringify(input.request), /Falsch: Bonn/);
   assert.equal(input.request.units.filter((unit) => unit.kind === "source").length, 1);
   assert.match(input.notices.join(), /Textlayer/);
   assert.equal(prepareSummaryMaterial([root], notes, "root", "Titel", { ...defaults, material: "source" }, source).request.units.length, 1);
@@ -45,7 +45,7 @@ test("Ungültige Einstellungen, fehlende Quellen und zu große Inhalte werden vo
   assert.throws(() => parseAiLearningSummaryRequest({ ...prepared.request, settings: { ...defaults, length: "unlimited" } }), /ungültig/);
   assert.throws(() => parseAiLearningSummaryRequest({ ...prepared.request, extra: "untrusted" }), /ungültig/);
   assert.throws(() => prepareSummaryMaterial([root], notes, "root", "Titel", { ...defaults, material: "source" }), /lesbarem Text/);
-  assert.throws(() => parseAiLearningSummaryRequest({ ...prepared.request, units: [{ ...prepared.request.units[0], text: "x".repeat(60_000) }] }), /umfangreich/);
+  assert.throws(() => parseAiLearningSummaryRequest({ ...prepared.request, units: [{ ...prepared.request.units[0], text: "x".repeat(400_001) }] }), /umfangreich/);
   assert.throws(() => parseAiLearningSummaryRequest({ ...prepared.request, units: [prepared.request.units[0], prepared.request.units[0]] }), /doppelte/);
 });
 
@@ -108,7 +108,7 @@ test("Vollständiger Durchlauf: Auswahl → Hydrierung → Browserrequest → Se
     const payload = JSON.parse(String(init?.body));
     const material = JSON.parse(payload.messages[1].content).material;
     assert.equal(material.length, 2); assert.match(material[1].text, /Wasser/);
-    return new Response(JSON.stringify({ choices: [{ message: { tool_calls: [{ function: { name: "create_learning_summary", arguments: JSON.stringify({ sections: [{ heading: "Biologie und Chemie", paragraphs: ["ATP ist ein Energieträger. H₂O ist Wasser."], points: [], references: ["m1", "m2"] }], warnings: [] }) } }] } }] }));
+    return new Response(JSON.stringify({ choices: [{ message: { tool_calls: [{ function: { name: "create_learning_summary", arguments: JSON.stringify({ sections: [{ heading: "Biologie und Chemie", paragraphs: ["ATP ist ein Energieträger. H₂O ist Wasser."], points: [], references: ["m1", "m2"], subsections: [] }], warnings: [] }) } }] } }] }));
   } });
   context.mock.method(globalThis, "fetch", async (url: unknown, init: RequestInit) => {
     assert.equal(url, "/api/ai/summary");
@@ -120,4 +120,25 @@ test("Vollständiger Durchlauf: Auswahl → Hydrierung → Browserrequest → Se
   assert.match(result.html, /H₂O ist Wasser/); assert.doesNotMatch(result.html, /href=/);
   assert.equal(result.generation.materialUnits, 2);
   assert.equal(result.generation.evidence?.[0].references.length, 2);
+});
+
+test("Material trägt die Stapelhierarchie und kompakte Frage-Antwort-Einheiten ohne Feldnamen", () => {
+  const material = prepareSummaryMaterial([root, child], notes, "root", "Überblick", defaults);
+  assert.deepEqual(material.request.decks, [{ id: "d1", name: "Biologie" }, { id: "d2", name: "Chemie", parent: "d1" }]);
+  assert.deepEqual(material.request.units.map((unit) => [unit.deck, unit.text]), [["d1", "F: Was ist ATP?\nA: Ein Energieträger."], ["d2", "F: Was ist H₂O?\nA: Wasser."]]);
+  assert.equal(material.references[0].label, "Biologie · Was ist ATP?");
+});
+
+test("Ein zu großer Bereich bricht schon beim Laden ab, bevor die KI angefragt wird", async () => {
+  let budgetChecked = false;
+  await assert.rejects(generateLearningSummary({ deckId: "root", title: "Titel", settings: defaults, source: null }, async (_ids, { budget }) => {
+    budgetChecked = true; budget(3_001); return { decks: [root, child], notes };
+  }, [root, child], null), /umfangreich/);
+  assert.ok(budgetChecked);
+});
+
+test("Stichworte und Unterabschnitte werden zu fetten Präfixen und h3-Überschriften", () => {
+  const html = generatedSummaryHtml({ ...generated, summary: { sections: [{ heading: "Energie", paragraphs: [], points: [{ keyword: "ATP", text: "Energieträger der Zelle." }], references: ["m1"], subsections: [{ heading: "Speicher", paragraphs: ["Bindungen speichern Energie."], points: [], references: ["m1"] }] }], warnings: [] } }, prepared);
+  assert.match(html, /<h2>Energie<\/h2><ul><li><strong>ATP<\/strong>: Energieträger der Zelle.<\/li><\/ul>/);
+  assert.match(html, /<h3>Speicher<\/h3><p>Bindungen speichern Energie.<\/p>/);
 });

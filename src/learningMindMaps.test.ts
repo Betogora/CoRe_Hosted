@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, createMindMapZone, duplicateMindMapZone, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, mindMapZoneRect, moveMindMapElement, placeMindMapNode, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, resizeMindMapZone, setMindMapZoneLayer, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, createMindMapZone, duplicateMindMapZone, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, mindMapZoneRect, moveMindMapElement, placeMindMapNode, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, resizeMindMapZone, setMindMapZoneLayer, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
 
 test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt und unabhängig erhalten", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>ATP</h2><p>ATP und ADP sind Energieträger.</p><h3>Aufbau</h3><ul><li>Drei Phosphatgruppen.</li></ul><h2>ADP</h2><p>Zwei Phosphatgruppen.</p>" };
@@ -411,4 +411,27 @@ test("Freier Flächentext nutzt Bearbeitung, Bewegung, Löschung und lokale Pers
   assert.equal(loaded.nodes[0].x, 130); assert.equal(loaded.nodes[0].y, 180);
   assert.match(loaded.nodes[0].html!, /<b>/);
   assert.equal(removeMindMapElement(loaded, "node", loaded.nodes[0].id).nodes.length, 0);
+});
+
+test("Fette Stichworte werden Kartentitel, Belegzeilen werden nicht zu Karten", () => {
+  const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>Zellatmung</h2><ul><li><strong>ATP</strong>: Universeller Energieträger der Zelle.</li></ul><p><small>Grundlage: Biologie · Was ist ATP?</small></p>" };
+  const map = mindMapFromSummary(summary);
+  assert.deepEqual(map.nodes.map((node) => node.label), ["Energie", "Zellatmung", "ATP"]);
+  assert.equal(map.nodes[2].sourceText, "ATP: Universeller Energieträger der Zelle.");
+});
+
+test("Neu erzeugen erkennt Bearbeitungen und ersetzt nur den erzeugten Baum an seiner Stelle", () => {
+  const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>Zellatmung</h2><p>ATP liefert Energie.</p>" };
+  const manual = addMindMapRelativeNode(createLearningMindMap("deck", "Infinity Map"), null, "root", "keyword", { x: -900, y: 0 }).map;
+  const generated = addMindMapFromSummary(manual, summary);
+  const tree = mindMapSummaryTree(generated, summary.id)!;
+  assert.deepEqual([tree.cards, tree.edited], [3, false]);
+  const root = generated.nodes.find((node) => node.label === "Energie")!;
+  const edited = addMindMapRelativeNode(editMindMapNode(generated, root.id, { x: root.x + 40 }), root.id, "child").map;
+  assert.deepEqual([mindMapSummaryTree(edited, summary.id)!.cards, mindMapSummaryTree(edited, summary.id)!.edited], [4, true]);
+  const replaced = replaceMindMapFromSummary(edited, tree.sourceId, { ...summary, html: "<h2>Gärung</h2>" });
+  assert.deepEqual(replaced.nodes.map((node) => node.label).sort(), ["Energie", "Gärung", "Neues Stichwort"]);
+  assert.equal(Object.keys(replaced.sources ?? {}).length, 1);
+  assert.equal(replaced.nodes.find((node) => node.label === "Energie")!.x, root.x + 40);
+  assert.equal(mindMapSummaryTree(replaced, summary.id)!.edited, false);
 });

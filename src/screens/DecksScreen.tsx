@@ -1406,7 +1406,7 @@ export function DecksScreen({
           : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "mind-map" ? (
         contentDeck ? <DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} onDraftStateChange={handleEditorDraftStateChange} />
+          userId={summaryAccountId ?? contentDeck.ownerId} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
           : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
         <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">

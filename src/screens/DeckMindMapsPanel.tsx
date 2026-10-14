@@ -1,9 +1,10 @@
 import React from "react";
-import { Check, ChevronDown, ChevronUp, Copy, Eraser, FileText, ImagePlus, Image as ImageIcon, Link2, Maximize, Minus, MousePointer2, Network, Palette, Pencil, Plus, Redo2, Scan, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Copy, Eraser, FileText, ImagePlus, Sparkles, Image as ImageIcon, Link2, Maximize, Minus, MousePointer2, Network, Palette, Pencil, Plus, Redo2, Scan, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
+import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { loadLearningSummaries, type LearningSummary } from "../learningSummaries.ts";
-import { addMindMapRelativeNode, appendMindMap, connectMindMapElements, createMindMapBoundary, createMindMapSummary, duplicateMindMapZone, editMindMapNode, loadInfinityMindMap, mindMapBounds, mindMapBoundaryRect, mindMapColors, mindMapFromSummary, mindMapNodeColor, mindMapNodeDirection, mindMapNodeRect, mindMapNodeSource, mindMapSummaryRect, mindMapZoneRect, moveMindMapElement, placeMindMapNode, readMindMapImages, removeMindMapElement, resizeMindMapSummary, resizeMindMapZone, saveLearningMindMap, setMindMapZoneLayer, type LearningMindMap, type MindMapColor, type MindMapElementKind, type MindMapNode, type MindMapPoint, type MindMapRect } from "../learningMindMaps.ts";
+import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary, summaryChoices, type LearningSummary, type SummarySettings } from "../learningSummaries.ts";
+import { addMindMapFromSummary, addMindMapRelativeNode, connectMindMapElements, createMindMapBoundary, createMindMapSummary, duplicateMindMapZone, editMindMapNode, loadInfinityMindMap, mindMapBounds, mindMapBoundaryRect, mindMapColors, mindMapNodeColor, mindMapNodeDirection, mindMapNodeRect, mindMapNodeSource, mindMapSummaryRect, mindMapSummaryTree, mindMapZoneRect, moveMindMapElement, placeMindMapNode, readMindMapImages, removeMindMapElement, replaceMindMapFromSummary, resizeMindMapSummary, resizeMindMapZone, saveLearningMindMap, setMindMapZoneLayer, type LearningMindMap, type MindMapColor, type MindMapElementKind, type MindMapNode, type MindMapPoint, type MindMapRect } from "../learningMindMaps.ts";
 import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, SoftPanel } from "../ui/coreUi.tsx";
@@ -12,7 +13,7 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 
-interface DeckMindMapsPanelProps { deck: Deck; userId: string; onDraftStateChange: (guard: CardDraftGuard | null) => void; }
+interface DeckMindMapsPanelProps { deck: Deck; userId: string; onGenerateSummary?: (input: SummaryGenerationInput, signal: AbortSignal) => Promise<SummaryGenerationResult>; onDraftStateChange: (guard: CardDraftGuard | null) => void; }
 type Mode = "idle" | "connect" | "edit" | "design" | "add";
 type Selection = { kind: MindMapElementKind; ids: string[] };
 type Viewport = MindMapPoint & { zoom: number };
@@ -43,7 +44,9 @@ function ColorControl({ label, value = "default", onChange }: { label: string; v
     <div className="core-mindmap-custom-color relative" style={{ "--mindmap-color-x": `${offset}px` } as React.CSSProperties} ref={ref} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); trigger.current?.focus(); } }}><button ref={trigger} type="button" className="core-mindmap-swatch rounded-control" aria-label={`${label} frei wählen`} aria-haspopup="dialog" aria-expanded={open} onClick={() => { setCustom(normalizeColor(value, custom)); setOpen(!open); }}><Palette size={18} aria-hidden="true"/></button>{open && <ColorPopover id={id} label={`${label} frei wählen`} icon={Palette} colors={[custom]} paletteColors={highlightPaletteColors} selectedSlot={0} onSelectSlot={() => undefined} onChangeSlot={(_slot, color) => setCustom(color)} onApply={(color) => onChange(color)}/>}</div>
   </div></fieldset>;
 }
-export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMindMapsPanelProps) {
+export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStateChange }: DeckMindMapsPanelProps) {
+  const [generationScope, setGenerationScope] = React.useState<SummarySettings["scope"]>("tree"), [generating, setGenerating] = React.useState(false);
+  const generationRef = React.useRef<AbortController | null>(null), [replaceRequest, setReplaceRequest] = React.useState<{ summary: LearningSummary; cards: number } | null>(null);
   const [summaries, setSummaries] = React.useState<LearningSummary[]>([]), [summaryId, setSummaryId] = React.useState("");
   const [loading, setLoading] = React.useState(true), [loadError, setLoadError] = React.useState(""), [retry, setRetry] = React.useState(0);
   const [draft, setDraft] = React.useState<LearningMindMap | null>(null), [saved, setSaved] = React.useState<LearningMindMap | null>(null);
@@ -73,7 +76,7 @@ export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMind
       if (!active) return;
       if (surface.status === "fulfilled") { draftRef.current = surface.value; setDraft(surface.value); setSaved(surface.value); setSelection({ kind: "node", ids: [] }); setMultipleSelection(false); setHistory({ past: [], future: [] }); }
       else setLoadError(surface.reason instanceof Error ? surface.reason.message : "Die Mindmap konnte nicht geladen werden.");
-      if (sources.status === "fulfilled") { setSummaries(sources.value); setSummaryId(sources.value[0]?.id ?? ""); }
+      if (sources.status === "fulfilled") { setSummaries(sources.value); setSummaryId(sources.value[0]?.id ?? ""); if (!sources.value.length && onGenerateSummary && surface.status === "fulfilled" && !surface.value.nodes.length) setCreateFromSummary(true); }
       else setError("Die Zusammenfassungen konnten nicht geladen werden. Du kannst die Infinity Map weiter bearbeiten.");
       setLoading(false);
     }); return () => { active = false; };
@@ -101,6 +104,7 @@ export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMind
   React.useEffect(() => { if (!dirty || readingImages || saveFailed) return; const timer = window.setTimeout(() => { if (!gestureRef.current) void persist(); }, 600); return () => window.clearTimeout(timer); }, [draft, dirty, readingImages, saveFailed, persist]);
   React.useEffect(() => { onDraftStateChange(dirty || readingImages ? { focus: () => canvasRef.current?.focus(), save: persist } : null); }, [dirty, readingImages, persist, onDraftStateChange]);
   React.useEffect(() => () => onDraftStateChange(null), [onDraftStateChange]);
+  React.useEffect(() => () => generationRef.current?.abort(), []);
   React.useEffect(() => { if (!dirty && !readingImages) return; const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; }; window.addEventListener("beforeunload", handler); return () => window.removeEventListener("beforeunload", handler); }, [dirty, readingImages]);
   function update(next: LearningMindMap, remember = true) { const before = draftRef.current; if (before && remember) setHistory((h) => ({ past: [...h.past.slice(-49), before], future: [] })); const changed = { ...next, updatedAt: new Date().toISOString() }; draftRef.current = changed; setDraft(changed); setSaveFailed(false); setError(""); setNotice(""); }
   function run(action: () => void) { try { action(); } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Änderung konnte nicht übernommen werden."); } }
@@ -108,6 +112,25 @@ export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMind
   function editZone(patch: Partial<NonNullable<typeof zone>>) { if (draftRef.current) update({ ...draftRef.current, zones: draftRef.current.zones.map((n) => n.id === primary ? { ...n, ...patch } : n) }); }
   function editBoundary(patch: Partial<NonNullable<typeof boundary>>) { if (draftRef.current) update({ ...draftRef.current, boundaries: draftRef.current.boundaries.map((n) => n.id === primary ? { ...n, ...patch } : n) }); }
   function travel(direction: "past" | "future") { const items = history[direction], next = items.at(-1), current = draftRef.current; if (!next || !current) return; const other = direction === "past" ? "future" : "past"; setHistory({ ...history, [direction]: items.slice(0, -1), [other]: [...history[other], current] }); update(next, false); setEditing(null); setLinkFrom(null); }
+  function buildFromSummary(summary: LearningSummary, mode: "auto" | "replace" | "beside" = "auto") {
+    const current = draftRef.current; if (!current) return;
+    const tree = mindMapSummaryTree(current, summary.id);
+    if (tree && tree.edited && mode === "auto") { setReplaceRequest({ summary, cards: tree.cards }); return; }
+    run(() => { const next = tree && mode !== "beside" ? replaceMindMapFromSummary(current, tree.sourceId, summary) : addMindMapFromSummary(current, summary); update(next); setCreateFromSummary(false); setEditing(null); requestAnimationFrame(() => fit(next)); });
+  }
+  async function generateSummaryAndMap() {
+    if (!onGenerateSummary || generationRef.current) return;
+    const controller = new AbortController(); generationRef.current = controller; setGenerating(true); setError(""); setNotice("");
+    try {
+      const title = deck.name.trim().slice(0, 120) || "Zusammenfassung", settings = { ...createSummarySettings(), scope: generationScope };
+      const result = await onGenerateSummary({ deckId: deck.id, title, settings, source: null }, controller.signal);
+      if (controller.signal.aborted) return;
+      const stored = await saveLearningSummary(userId, { ...createLearningSummary(deck.id, title, settings), ...result });
+      if (controller.signal.aborted) return;
+      setSummaries((items) => [stored, ...items]); setSummaryId(stored.id); buildFromSummary(stored);
+    } catch (cause: unknown) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht erstellt werden."); }
+    finally { if (generationRef.current === controller) { generationRef.current = null; setGenerating(false); } }
+  }
   function fit(map = draftRef.current) {
     const canvas = canvasRef.current; if (!canvas || !map) return;
     const hidden = new Set(map.zones.filter((z) => z.collapsed).map((z) => z.id));
@@ -234,6 +257,7 @@ export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMind
   const visibleNodes = draft.nodes.filter((n) => !n.zoneId || !collapsed.has(n.zoneId)).sort(byZoneLayer), visibleIds = new Set(visibleNodes.map((n) => n.id));
   const nodeById = new Map(draft.nodes.map((n) => [n.id, n])), zoneById = new Map(draft.zones.map((z) => [z.id, z]));
   const endpoint = (id: string): { id: string; rect: MindMapRect } | undefined => { const n = nodeById.get(id), z = zoneById.get(n?.zoneId && collapsed.has(n.zoneId) ? n.zoneId : id); return z ? { id: z.id, rect: mindMapZoneRect(draft, z) } : n ? { id: n.id, rect: mindMapNodeRect(n, n.id === editing || n.id === expanded) } : undefined; };
+  const selectedSummary = summaries.find((s) => s.id === summaryId), selectedTree = createFromSummary && selectedSummary ? mindMapSummaryTree(draft, selectedSummary.id) : null;
   const visibleStrokes = draft.strokes.filter((s) => !s.zoneId || !collapsed.has(s.zoneId)).sort(byZoneLayer);
   return <section className="core-mindmap-panel min-w-0" data-testid="deck-mindmaps-panel" aria-label="Mindmaps" aria-busy={busy || readingImages}>
     {error && <div className="grid gap-2"><StatusMessage tone="error" announce="assertive">{error}</StatusMessage>{saveFailed && <ActionButton variant="secondary" onClick={() => { setError(""); void persist(); }}>Erneut speichern</ActionButton>}</div>}
@@ -246,7 +270,7 @@ export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMind
       {mode === "edit" && primary && <SoftPanel className="core-mindmap-tools" aria-label="Elementeigenschaften">{propertyControls()}{node && <IconButton icon={Check} label="Bearbeitung abschließen" onClick={() => { setEditing(null); setExpanded(null); setMode("idle"); }}/>}</SoftPanel>}
       <div ref={setToolbarHost} className="core-mindmap-text-toolbar"/>
       {connecting && <p className="core-caption text-core-muted" role="status">{linkFrom ? "Jetzt das zweite Element wählen." : "Zwei Elemente wählen, um sie zu verbinden oder zu trennen."}</p>}
-      {createFromSummary && <SoftPanel className="grid gap-3 p-4" aria-label="Mindmap aus Zusammenfassung"><CoreSelect ariaLabel="Zusammenfassung für Mindmap" value={summaryId} options={summaries.map((s) => ({ value: s.id, label: s.title }))} onValueChange={setSummaryId}/><div className="flex flex-wrap gap-2"><ActionButton variant="primary" disabled={!summaryId} onClick={() => run(() => { const source = summaries.find((s) => s.id === summaryId); if (source) { const next = appendMindMap(draft, mindMapFromSummary(source)); update(next); setCreateFromSummary(false); setEditing(null); requestAnimationFrame(() => fit(next)); } })}>Mindmap hinzufügen</ActionButton><ActionButton variant="secondary" onClick={() => setCreateFromSummary(false)}>Abbrechen</ActionButton></div>{!summaries.length && <p className="core-body">Speichere zuerst eine Zusammenfassung.</p>}</SoftPanel>}
+      {createFromSummary && <SoftPanel className="grid gap-3 p-4" aria-label="Mindmap aus Zusammenfassung">{summaries.length ? <>{summaries.length > 1 ? <CoreSelect ariaLabel="Zusammenfassung für Mindmap" value={summaryId} options={summaries.map((s) => ({ value: s.id, label: s.title }))} onValueChange={setSummaryId}/> : <p className="core-body">Aus „{summaries[0].title}“</p>}<div className="flex flex-wrap gap-2"><ActionButton variant="primary" disabled={!selectedSummary} onClick={() => { if (selectedSummary) buildFromSummary(selectedSummary); }}>{selectedTree ? "Neu erzeugen" : "Mindmap erzeugen"}</ActionButton><ActionButton variant="secondary" onClick={() => setCreateFromSummary(false)}>Abbrechen</ActionButton></div></> : onGenerateSummary ? <><CoreSegmentedControl className="w-full min-w-0" ariaLabel="Grundlage der Zusammenfassung" value={generationScope} options={summaryChoices.scope.map((choice) => ({ value: choice.value, label: choice.value === "tree" ? "Mit Unterstapeln" : choice.label }))} onValueChange={setGenerationScope}/><div className="flex min-w-0 flex-wrap gap-2"><ActionButton className="min-w-0 max-w-full whitespace-normal" variant="primary" icon={Sparkles} loading={generating} onClick={() => void generateSummaryAndMap()}>Zusammenfassung und Mindmap erzeugen</ActionButton>{generating ? <ActionButton variant="secondary" onClick={() => generationRef.current?.abort()}>Erstellung abbrechen</ActionButton> : <ActionButton variant="secondary" onClick={() => setCreateFromSummary(false)}>Abbrechen</ActionButton>}</div>{generating && <StatusMessage tone="info" announce="polite">Material wird geladen und die KI-Zusammenfassung erstellt …</StatusMessage>}</> : <p className="core-body">Speichere zuerst eine Zusammenfassung.</p>}</SoftPanel>}
       <div className="core-mindmap-canvas rounded-panel border border-core-border" ref={canvasRef} data-testid="mindmap-canvas" data-tool={mode === "design" ? designTool : mode} tabIndex={0} aria-label="Unendliche Mindmap-Fläche" onPointerDown={(e) => startGesture(e)} onPointerMove={moveGesture} onPointerUp={(e) => finishGesture(e)} onPointerCancel={(e) => finishGesture(e, true)} onDoubleClick={(e) => { if (e.target === e.currentTarget && mode === "idle") addNode("root", "keyword", worldPoint({ x: e.clientX, y: e.clientY })); }} onKeyDown={(e) => { if (e.target !== e.currentTarget) return; if (e.key === "Escape") { e.stopPropagation(); setEditing(null); setExpanded(null); setSelection({ kind: "node", ids: [] }); setMode("idle"); setConnecting(false); } const d = { ArrowLeft: [60, 0], ArrowRight: [-60, 0], ArrowUp: [0, 60], ArrowDown: [0, -60] }[e.key]; if (d) { e.preventDefault(); setViewport((v) => ({ ...v, x: v.x + d[0], y: v.y + d[1] })); } }} style={{ backgroundPosition: `${viewport.x}px ${viewport.y}px`, backgroundSize: `${Math.max(16, 24 * viewport.zoom)}px ${Math.max(16, 24 * viewport.zoom)}px` }}>
         <div className="core-mindmap-stage" style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})` }}>
           {[...draft.zones].sort((a, b) => a.layer - b.layer).map((item) => { const r = mindMapZoneRect(draft, item), selected = selection.kind === "zone" && primary === item.id; return <div key={item.id} className={`core-mindmap-zone${selected ? " is-selected" : ""}`} data-testid="mindmap-zone" data-zone-id={item.id} onDoubleClick={() => { select("zone", item.id); setMode("edit"); }} style={{ left: r.x, top: r.y, width: r.width, height: r.height, borderColor: inkColor(item.color), borderWidth: item.strokeWidth ?? 2, background: `color-mix(in srgb, ${inkColor(item.fillColor)} ${(item.opacity ?? 0.06) * 100}%, transparent)` }} onPointerDown={(e) => startGesture(e, { kind: "zone", id: item.id })} onClick={() => select("zone", item.id)} onContextMenu={(e) => { e.preventDefault(); select("zone", item.id); setMode("edit"); }}>
@@ -271,6 +295,7 @@ export function DeckMindMapsPanel({ deck, userId, onDraftStateChange }: DeckMind
       </div>
       {notice && <p className="sr-only" role="status">{notice}</p>}
     </div>
+    <ActionDialog open={Boolean(replaceRequest)} title="Mindmap neu erzeugen?" description={`Die aus „${replaceRequest?.summary.title ?? ""}“ erzeugten Karten wurden bearbeitet. Überschreiben ersetzt ${replaceRequest?.cards ?? 0} Karten samt deinen Änderungen daran.`} confirmLabel="Überschreiben" discardLabel="Daneben neu anlegen" cancelLabel="Abbrechen" onCancel={() => setReplaceRequest(null)} onDiscard={() => { const request = replaceRequest; setReplaceRequest(null); if (request) buildFromSummary(request.summary, "beside"); }} onConfirm={() => { const request = replaceRequest; setReplaceRequest(null); if (request) buildFromSummary(request.summary, "replace"); }}/>
     <ActionDialog open={Boolean(deleteZone)} title="Zone mit Inhalt löschen?" description="Die Zone und alle darin enthaltenen Karten und Zeichnungen werden entfernt. Du kannst dies rückgängig machen." confirmLabel="Zone mit Inhalt löschen" cancelLabel="Abbrechen" destructive onCancel={() => setDeleteZone(null)} onConfirm={() => { if (deleteZone) { update(removeMindMapElement(draftRef.current!, "zone", deleteZone, true)); setSelection({ kind: "node", ids: [] }); setEditing(null); } setDeleteZone(null); }}/>
   </section>;
 }

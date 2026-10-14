@@ -35,12 +35,9 @@ Die Stapel-UI ist mit ADR-041 übernommen. Vorlage für die folgenden Teile ist
 der Branch `fitzbert`; Datenhaltung und Backend folgen dem Note/Card-Stand von
 main.
 
-- [ ] **Zusammenfassungen:** Datenformat und Tab aus `fitzbert` übernehmen, die
-      Materialaufbereitung über Notes statt alter Kartenfelder bauen. Ablage
-      online und sparsam (Entscheidung 2026-10-12): eigene Tabelle mit RLS,
-      Migration, Verify-SQL und Sync statt der lokalen Browser-Datenbank aus
-      `fitzbert`. KI-Route nach dem Muster der Variantenroute (fest
-      `openai/gpt-6-luna`, ZDR, `getClaims`, Kostenlog) mit Ergänzung zu ADR-011.
+- [ ] **Zusammenfassungen und Mindmaps online ablegen:** Beide liegen heute nur
+      in der lokalen Browser-Datenbank. Ablage online und sparsam (Entscheidung
+      2026-10-12): eigene Tabellen mit RLS, Migration, Verify-SQL und Sync.
 
 ## Betrieb
 
@@ -63,11 +60,6 @@ main.
   Stapel zu bearbeiten. Verteilt die Last über die Tage und
   verbraucht nichts für ungelernte Karten. Löst die Stapelaktion des
   Proof of Concept automatisch aus. Braucht eine Ergänzung zu ADR-011.
-- Mindmaps aus `fitzbert`: frei verschiebbare und zoombare Fläche mit Stichwort-
-  und Textknoten, Verbindungen, Stift, Radierer und Rückgängig; ohne KI aus einer
-  Zusammenfassung ableitbar. In `fitzbert` nur lokal im Browser gespeichert;
-  beim Übernehmen online ablegen wie Zusammenfassungen. Bis dahin bleibt der Tab
-  `Mind Map` Platzhalter.
 - KI-Routen in `npm run dev`: `fitzbert` bedient `/api/ai/*` lokal per
   Vite-Plugin statt über `vercel dev`. Vor dem ersten Release oder wenn weitere
   Entwickler lokal mit KI arbeiten, entscheiden und dann `operations.md`

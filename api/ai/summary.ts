@@ -22,25 +22,30 @@ const TEXTS: ProviderTexts = {
 
 export function buildSummaryToolPayload(input: AiLearningSummaryRequest) {
   const strings = (max: number) => ({ type: "array", items: { type: "string", minLength: 1, maxLength: max } });
+  const block = {
+    heading: { type: "string", minLength: 1, maxLength: 160 },
+    paragraphs: { ...strings(6_000), maxItems: 12 },
+    points: { type: "array", maxItems: 30, items: { type: "object", additionalProperties: false, required: ["keyword", "text"], properties: {
+      keyword: { type: "string", minLength: 1, maxLength: 80 }, text: { type: "string", minLength: 1, maxLength: 2_000 },
+    } } },
+    references: { type: "array", minItems: 1, items: { type: "string", pattern: "^m[1-9][0-9]{0,3}$" } },
+  };
+  const required = ["heading", "paragraphs", "points", "references"];
   return {
     model: OPENROUTER_MODEL,
     messages: [
       { role: "system", content: buildLearningSummaryPrompt(input) },
-      { role: "user", content: JSON.stringify({ title: input.title, focus: input.settings.focus, material: input.units }) },
+      { role: "user", content: JSON.stringify({ title: input.title, focus: input.settings.focus, decks: input.decks, material: input.units }) },
     ],
     tools: [{ type: "function", function: {
       name: "create_learning_summary",
-      description: "Erstellt eine materialtreue deutsche Lernzusammenfassung gemäß der gewählten Einstellungen.",
+      description: "Erstellt eine materialtreue, gegliederte deutsche Lernzusammenfassung gemäß der gewählten Einstellungen.",
       parameters: {
         type: "object", additionalProperties: false, required: ["sections", "warnings"],
         properties: {
           sections: { type: "array", minItems: 1, maxItems: 24, items: {
-            type: "object", additionalProperties: false, required: ["heading", "paragraphs", "points", "references"],
-            properties: {
-              heading: { type: "string", minLength: 1, maxLength: 160 },
-              paragraphs: { ...strings(6_000), maxItems: 12 }, points: { ...strings(2_000), maxItems: 30 },
-              references: { type: "array", maxItems: input.units.length, items: { type: "string", enum: input.units.map((unit) => unit.id) } },
-            },
+            type: "object", additionalProperties: false, required: [...required, "subsections"],
+            properties: { ...block, subsections: { type: "array", maxItems: 8, items: { type: "object", additionalProperties: false, required, properties: block } } },
           } },
           warnings: { ...strings(600), maxItems: 8 },
         },

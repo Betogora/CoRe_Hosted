@@ -473,5 +473,8 @@ test("summary material loads beyond the first catalog page and deduplicates note
     assert.deepEqual(new Set(loaded.decks[0].cards.map(card => card.id)), new Set(cards.map(card => card.id)));
     assert.ok(loaded.notes.every(note => note.content.fields.length > 0));
     await assert.rejects(service.prepareContentDecks(["missing"]), /nicht mehr verfügbar/);
+    const counts: number[] = [];
+    await assert.rejects(service.prepareContentDecks([deck.id], { budget: (count) => { counts.push(count); if (count > 20) throw new Error("zu umfangreich"); } }), /zu umfangreich/);
+    assert.deepEqual(counts, [25]);
   } finally { repository.close(); }
 });

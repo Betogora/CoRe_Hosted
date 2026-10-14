@@ -1697,8 +1697,8 @@ export function App() {
             const accountId = latestStateRef.current?.profile.userId;
             if (!accountId || !workspaceHydrationService || !supabase) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");
             const { generateLearningSummary } = await import("./aiLearningSummary.ts");
-            const result = await generateLearningSummary(input, async (ids) => {
-              const loaded = await workspaceHydrationService.prepareContentDecks(ids);
+            const result = await generateLearningSummary(input, async (ids, options) => {
+              const loaded = await workspaceHydrationService.prepareContentDecks(ids, options);
               if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
               return loaded;
             }, latestStateRef.current!.decks, supabase, signal);

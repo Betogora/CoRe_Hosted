@@ -341,9 +341,9 @@ async function generateSummaryDemo(input: SummaryGenerationInput, signal: AbortS
   if (mode === "error") throw new Error("Der KI-Dienst ist momentan nicht erreichbar. Deine Auswahl bleibt erhalten.");
   const material = prepareSummaryMaterial([deck], sampleNotes, input.deckId, input.title, input.settings, input.source);
   const result: AiLearningSummarySuccess = {
-    summary: { sections: material.request.units.slice(0, 3).map((unit) => ({
-      heading: unit.label, paragraphs: input.settings.format === "bullets" ? [] : [unit.text],
-      points: input.settings.format === "bullets" ? [unit.text] : [], references: [unit.id],
+    summary: { sections: material.request.units.slice(0, 3).map((unit, index) => ({
+      heading: material.references[index].label.split(" · ").at(-1)!.slice(0, 160), paragraphs: input.settings.format === "bullets" ? [] : [unit.text],
+      points: input.settings.format === "bullets" ? [{ keyword: "Kernaussage", text: unit.text }] : [], references: [unit.id], subsections: [],
     })), warnings: ["Diese Katalogfassung ist eine simulierte KI-Antwort und dient ausschließlich der UI-Prüfung."] },
     model: "catalog/demo", privacyMode: "zdr", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null,
   };

@@ -14,7 +14,7 @@ const boundarySchema = v.strictObject({ id, nodeIds: members, label: v.pipe(v.st
 const zoneSchema = v.strictObject({ id, title: v.pipe(v.string(), v.maxLength(120)), x: coordinate, y: coordinate,
   width: v.pipe(coordinate, v.minValue(180)), height: v.pipe(coordinate, v.minValue(100)),
   collapsed: v.boolean(), autoSize: v.boolean(), layer: v.pipe(v.number(), v.integer(), v.minValue(0)), ...appearance });
-const sourceSchema = v.strictObject({ summaryId: id, title: v.string(), text: v.pipe(v.string(), v.maxLength(100_000)), updatedAt: v.string() });
+const sourceSchema = v.strictObject({ summaryId: id, title: v.string(), text: v.pipe(v.string(), v.maxLength(100_000)), updatedAt: v.string(), signature: v.optional(v.string()) });
 const imageSchema = v.strictObject({
   id, name: v.pipe(v.string(), v.minLength(1), v.maxLength(240)),
   dataUrl: v.pipe(v.string(), v.maxLength(2_800_000), v.regex(/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/)),
@@ -146,11 +146,14 @@ export async function readMindMapImages(files: File[]): Promise<NonNullable<Mind
 }
 
 /** Place another graph beside existing content; nodes reference one snapshot per source. */
-export function appendMindMap(map: LearningMindMap, addition: LearningMindMap): LearningMindMap {
+/** `at` places the incoming graph with its top-left corner there instead of right of all content. */
+export function appendMindMap(map: LearningMindMap, addition: LearningMindMap, at?: MindMapPoint): LearningMindMap {
   if (map.deckId !== addition.deckId) throw new Error("Die Mindmap gehört zu einem anderen Stapel.");
   const occupied = [...map.nodes.map((node) => node.x + 220), ...map.strokes.flatMap((stroke) => stroke.points.map((p) => p.x)), ...map.zones.map((zone) => { const rect = mindMapZoneRect(map, zone); return rect.x + rect.width; }), ...map.boundaries.map((item) => { const rect = mindMapBoundaryRect(map, item); return rect.x + rect.width; })];
   const incoming = [...addition.nodes.map((node) => node.x), ...addition.strokes.flatMap((stroke) => stroke.points.map((p) => p.x)), ...addition.zones.map((zone) => mindMapZoneRect(addition, zone).x), ...addition.boundaries.map((item) => mindMapBoundaryRect(addition, item).x)];
-  const offset = occupied.length && incoming.length ? occupied.reduce((a, b) => Math.max(a, b)) + 180 - incoming.reduce((a, b) => Math.min(a, b)) : 0;
+  const offset = at && addition.nodes.length ? at.x - Math.min(...addition.nodes.map((node) => node.x))
+    : occupied.length && incoming.length ? occupied.reduce((a, b) => Math.max(a, b)) + 180 - incoming.reduce((a, b) => Math.min(a, b)) : 0;
+  const lift = at && addition.nodes.length ? at.y - Math.min(...addition.nodes.map((node) => node.y)) : 0;
   const ids = new Map(addition.nodes.map((node) => [node.id, `node_${crypto.randomUUID()}`]));
   const zoneIds = new Map(addition.zones.map((zone) => [zone.id, `zone_${crypto.randomUUID()}`]));
   const endpoint = (key: string) => ids.get(key) ?? zoneIds.get(key)!;
@@ -159,12 +162,12 @@ export function appendMindMap(map: LearningMindMap, addition: LearningMindMap): 
   const sources = { ...map.sources, ...Object.fromEntries(Object.entries(addition.sources ?? {}).map(([key, value]) => [sourceIds.get(key)!, value])), ...(legacySourceId ? { [legacySourceId]: addition.source! } : {}) };
   return readLearningMindMap({ ...map,
     ...(Object.keys(sources).length ? { sources } : {}),
-    nodes: [...map.nodes, ...addition.nodes.map((node) => ({ ...node, id: ids.get(node.id)!, x: node.x + offset, ...(node.parentId ? { parentId: ids.get(node.parentId)! } : {}), ...(node.zoneId ? { zoneId: zoneIds.get(node.zoneId)! } : {}), ...(node.sourceId || legacySourceId ? { sourceId: node.sourceId ? sourceIds.get(node.sourceId)! : legacySourceId } : {}) }))],
+    nodes: [...map.nodes, ...addition.nodes.map((node) => ({ ...node, id: ids.get(node.id)!, x: node.x + offset, y: node.y + lift, ...(node.parentId ? { parentId: ids.get(node.parentId)! } : {}), ...(node.zoneId ? { zoneId: zoneIds.get(node.zoneId)! } : {}), ...(node.sourceId || legacySourceId ? { sourceId: node.sourceId ? sourceIds.get(node.sourceId)! : legacySourceId } : {}) }))],
     edges: [...map.edges, ...addition.edges.map((edge) => ({ from: endpoint(edge.from), to: endpoint(edge.to) }))],
-    zones: [...map.zones, ...addition.zones.map((zone) => ({ ...zone, id: zoneIds.get(zone.id)!, x: zone.x + offset, layer: zone.layer + 1 + Math.max(-1, ...map.zones.map((item) => item.layer)) }))],
+    zones: [...map.zones, ...addition.zones.map((zone) => ({ ...zone, id: zoneIds.get(zone.id)!, x: zone.x + offset, y: zone.y + lift, layer: zone.layer + 1 + Math.max(-1, ...map.zones.map((item) => item.layer)) }))],
     boundaries: [...map.boundaries, ...addition.boundaries.map((item) => ({ ...item, id: `boundary_${crypto.randomUUID()}`, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
     summaries: [...map.summaries, ...addition.summaries.map((item) => ({ ...item, id: `summary_${crypto.randomUUID()}`, nodeId: ids.get(item.nodeId)!, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
-    strokes: [...map.strokes, ...addition.strokes.map((stroke) => ({ ...stroke, id: `stroke_${crypto.randomUUID()}`, ...(stroke.zoneId ? { zoneId: zoneIds.get(stroke.zoneId)! } : {}), points: stroke.points.map((p) => ({ x: p.x + offset, y: p.y })) }))],
+    strokes: [...map.strokes, ...addition.strokes.map((stroke) => ({ ...stroke, id: `stroke_${crypto.randomUUID()}`, ...(stroke.zoneId ? { zoneId: zoneIds.get(stroke.zoneId)! } : {}), points: stroke.points.map((p) => ({ x: p.x + offset, y: p.y + lift })) }))],
   });
 }
 
@@ -436,11 +439,12 @@ export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
   map.nodes.push(root);
   const headings: Array<{ level: number; node: MindMapNode }> = [{ level: 0, node: root }];
   let row = 0;
-  const content: Array<{ tag: string; text: string }> = [];
+  const content: Array<{ tag: string; text: string; keyword?: string }> = [];
   let tag = "p", passage = "";
   const flush = () => {
-    const value = summaryPlainText(passage);
-    if (value) content.push({ tag, text: value });
+    const lead = /^\s*<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>\s*:/i.exec(passage), keyword = lead ? summaryPlainText(lead[2]).slice(0, 120) : "";
+    const value = keyword ? `${keyword}: ${summaryPlainText(passage.slice(lead![0].length))}` : summaryPlainText(passage);
+    if (value && !/^\s*<small\b/i.test(passage)) content.push({ tag, text: value, ...(keyword ? { keyword } : {}) });
     passage = "";
   };
   for (const token of summary.html.split(/(<[^>]*>)/g)) {
@@ -456,7 +460,7 @@ export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
     const level = /^h[1-6]$/.test(block.tag) ? Number(block.tag[1]) : null;
     if (level !== null) while (headings.length > 1 && headings[headings.length - 1].level >= level) headings.pop();
     const parent = headings[headings.length - 1].node;
-    const label = block.text.length > 70 ? `${block.text.slice(0, 67).trimEnd()}…` : block.text;
+    const label = block.keyword ?? (block.text.length > 70 ? `${block.text.slice(0, 67).trimEnd()}…` : block.text);
     const node = { ...createMindMapNode("keyword", { x: headings.length * 300, y: row++ * 152 }), label, sourceText: block.text, parentId: parent.id, autoPosition: true };
     map.nodes.push(node);
     if (level !== null) headings.push({ level, node });
@@ -464,6 +468,57 @@ export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
   }
   root.y = Math.max(0, (row - 1) * 76);
   return readLearningMindMap(map);
+}
+
+function generatedTreeIds(map: LearningMindMap, sourceId: string): Set<string> {
+  const ids = new Set(map.nodes.filter((node) => node.sourceId === sourceId).map((node) => node.id));
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const node of map.nodes) if (node.parentId && ids.has(node.parentId) && !ids.has(node.id)) { ids.add(node.id); grew = true; }
+  }
+  return ids;
+}
+
+/** Fingerprint of a generated tree including manual children, positions and attached links; any edit changes it. */
+function generatedTreeSignature(map: LearningMindMap, sourceId: string): string {
+  const ids = generatedTreeIds(map, sourceId);
+  const value = JSON.stringify([
+    map.nodes.filter((node) => ids.has(node.id)).map((node) => [node.id, node.kind, node.label, node.text, node.html, node.x, node.y, node.parentId, node.color, node.side, node.images?.map((image) => image.id)]),
+    map.edges.filter((edge) => ids.has(edge.from) || ids.has(edge.to)),
+    [...map.boundaries, ...map.summaries].filter((item) => item.nodeIds.some((key) => ids.has(key))).map((item) => [item.id, item.nodeIds]),
+  ]);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index++) hash = Math.imul(hash ^ value.charCodeAt(index), 0x01000193);
+  return (hash >>> 0).toString(36);
+}
+
+/** The latest tree generated from this summary, its size and whether it changed since generation. */
+export function mindMapSummaryTree(map: LearningMindMap, summaryId: string): { sourceId: string; cards: number; edited: boolean } | null {
+  const sourceId = Object.entries(map.sources ?? {}).filter(([key, source]) => source.summaryId === summaryId && map.nodes.some((node) => node.sourceId === key)).at(-1)?.[0];
+  if (!sourceId) return null;
+  return { sourceId, cards: generatedTreeIds(map, sourceId).size, edited: map.sources![sourceId].signature !== generatedTreeSignature(map, sourceId) };
+}
+
+/** Adds the summary as a new tree, beside existing content or with its root at `rootAt`, and remembers its signature. */
+export function addMindMapFromSummary(map: LearningMindMap, summary: LearningSummary, rootAt?: MindMapPoint): LearningMindMap {
+  const known = new Set(Object.keys(map.sources ?? {})), addition = mindMapFromSummary(summary), root = addition.nodes[0];
+  const at = rootAt && { x: rootAt.x - root.x + Math.min(...addition.nodes.map((node) => node.x)), y: rootAt.y - root.y + Math.min(...addition.nodes.map((node) => node.y)) };
+  const next = appendMindMap(map, addition, at);
+  const sourceId = Object.keys(next.sources ?? {}).find((key) => !known.has(key))!;
+  return { ...next, sources: { ...next.sources, [sourceId]: { ...next.sources![sourceId], signature: generatedTreeSignature(next, sourceId) } } };
+}
+
+/** Replaces one generated tree, including manual children and links attached to it, at the same place. */
+export function replaceMindMapFromSummary(map: LearningMindMap, sourceId: string, summary: LearningSummary): LearningMindMap {
+  const ids = generatedTreeIds(map, sourceId), root = map.nodes.find((node) => node.sourceId === sourceId && !(node.parentId && ids.has(node.parentId)));
+  const { [sourceId]: _replaced, ...sources } = map.sources ?? {};
+  const remaining: LearningMindMap = { ...map, sources,
+    nodes: map.nodes.filter((node) => !ids.has(node.id)),
+    edges: map.edges.filter((edge) => !ids.has(edge.from) && !ids.has(edge.to)),
+    boundaries: map.boundaries.map((item) => ({ ...item, nodeIds: item.nodeIds.filter((key) => !ids.has(key)) })).filter((item) => item.nodeIds.length),
+    summaries: map.summaries.filter((item) => !ids.has(item.nodeId) && !item.nodeIds.some((key) => ids.has(key))),
+  };
+  return addMindMapFromSummary(remaining, summary, root && { x: root.x, y: root.y });
 }
 
 async function openDatabase(userId: string): Promise<IDBDatabase> {

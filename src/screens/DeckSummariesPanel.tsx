@@ -37,6 +37,8 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
   const generationRef = React.useRef<AbortController | null>(null);
   const [error, setError] = React.useState("");
   const [pending, setPending] = React.useState<(() => void) | null>(null);
+  const [quickScope, setQuickScope] = React.useState<SummarySettings["scope"]>("tree");
+  const [confirmRegenerate, setConfirmRegenerate] = React.useState(false);
   const titleRef = React.useRef<HTMLInputElement>(null);
   const panelRef = React.useRef<HTMLElement>(null);
   const fieldId = React.useId();
@@ -90,17 +92,16 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
     finally { operationRef.current = false; setBusy(false); setProgress(""); }
   }
 
-  async function generate() {
+  /** Generates into `base` (a new or an existing Fassung) and stores the result; failures keep the current view. */
+  async function runGeneration(base: LearningSummary, generationSource: TransientSourceDocument | null) {
     if (operationRef.current || !onGenerateSummary) return;
-    const title = newTitle.trim();
-    if (!title) { setError("Bitte gib einen Titel für die Zusammenfassung ein."); titleRef.current?.focus(); return; }
     operationRef.current = true;
     const controller = new AbortController(); generationRef.current = controller;
     setBusy(true); setError(""); setProgress("Material wird geladen und die KI-Zusammenfassung erstellt …");
     try {
-      const result = await onGenerateSummary({ deckId: deck.id, title, settings: { ...settings }, source }, controller.signal);
+      const result = await onGenerateSummary({ deckId: deck.id, title: base.title, settings: { ...base.settings }, source: generationSource }, controller.signal);
       if (controller.signal.aborted) return;
-      const next = { ...createLearningSummary(deck.id, title, settings), ...result };
+      const next = { ...base, ...result, updatedAt: new Date().toISOString() };
       setDraft(next); setSaved(null); setView("editor"); setProgress("Zusammenfassung wird lokal gespeichert …");
       const stored = await saveLearningSummary(userId, next);
       if (controller.signal.aborted) return;
@@ -111,6 +112,21 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
     } finally {
       if (generationRef.current === controller) { generationRef.current = null; operationRef.current = false; setBusy(false); setProgress(""); }
     }
+  }
+
+  function generate() {
+    const title = newTitle.trim();
+    if (!title) { setError("Bitte gib einen Titel für die Zusammenfassung ein."); titleRef.current?.focus(); return; }
+    void runGeneration(createLearningSummary(deck.id, title, settings), source);
+  }
+  function quickGenerate() {
+    void runGeneration(createLearningSummary(deck.id, deck.name.trim().slice(0, 120) || "Zusammenfassung", { ...createSummarySettings(), scope: quickScope }), null);
+  }
+  function regenerate() {
+    if (!draft) return;
+    const title = draft.title.trim();
+    if (!title) { setError("Bitte gib einen Titel für die Zusammenfassung ein."); titleRef.current?.focus(); return; }
+    void runGeneration({ ...draft, title }, null);
   }
 
   React.useEffect(() => {
@@ -145,7 +161,10 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
       <p className="core-caption text-core-muted">Auf diesem Gerät gespeichert · KI-Fassungen bleiben bearbeitbar</p>
       {loading ? <StatusMessage tone="info" announce="polite">Zusammenfassungen werden geladen …</StatusMessage>
         : loadError ? <><StatusMessage tone="error" announce="assertive">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((value) => value + 1)}>Erneut laden</ActionButton></>
-        : !summaries.length ? <EmptyState icon={FileText} title="Hier entsteht dein Überblick" body="Erstelle aus deinem Material mehrere Fassungen für unterschiedliche Lernziele oder schreibe eine eigene Zusammenfassung." action={<ActionButton variant="primary" icon={Plus} onClick={startCreate}>Erste Zusammenfassung</ActionButton>} />
+        : !summaries.length ? <>
+          <EmptyState icon={FileText} title="Hier entsteht dein Überblick" body="Erstelle aus deinem Material mehrere Fassungen für unterschiedliche Lernziele oder schreibe eine eigene Zusammenfassung." action={onGenerateSummary ? <div className="grid w-full min-w-0 justify-items-center gap-3"><CoreSegmentedControl className="w-full min-w-0 max-w-md" ariaLabel="Grundlage der Zusammenfassung" options={summaryChoices.scope.map((choice) => ({ value: choice.value, label: choice.value === "tree" ? "Mit Unterstapeln" : choice.label }))} value={quickScope} onValueChange={setQuickScope}/><div className="flex min-w-0 flex-wrap justify-center gap-2"><ActionButton className="min-w-0 max-w-full whitespace-normal" variant="primary" icon={Sparkles} loading={busy} onClick={quickGenerate}>Zusammenfassung erzeugen</ActionButton><ActionButton variant="secondary" icon={Plus} disabled={busy} onClick={startCreate}>Eigene Einstellungen</ActionButton></div></div> : <ActionButton variant="primary" icon={Plus} onClick={startCreate}>Erste Zusammenfassung</ActionButton>} />
+          {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
+        </>
           : <>
             <label className="core-field-group"><span className="core-field-label">Zusammenfassungen durchsuchen</span><span className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" size={17} aria-hidden="true"/><input className="core-field w-full !pl-10" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Titel oder Inhalt" aria-label="Zusammenfassungen durchsuchen" /></span></label>
             <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <button key={summary.id} type="button" className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => open(summary)} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
@@ -159,7 +178,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
       {view === "create" ? <>
         <div><h3 className="core-heading-2">Wie möchtest du deine Zusammenfassung?</h3><p className="mt-2 core-body text-core-muted">Wähle die Gestaltung für deine neue Fassung. Bestehende Zusammenfassungen bleiben erhalten.</p></div>
         <SoftPanel className="core-summary-form grid gap-6 p-6">
-          <form className="grid min-w-0 gap-6" inert={busy} onSubmit={(event) => { event.preventDefault(); if (onGenerateSummary) void generate(); else void persist(); }}>
+          <form className="grid min-w-0 gap-6" inert={busy} onSubmit={(event) => { event.preventDefault(); if (onGenerateSummary) generate(); else void persist(); }}>
             <label className="core-field-group"><span className="core-field-label">Titel</span><input ref={titleRef} className="core-field" maxLength={120} value={newTitle} onChange={(event) => setNewTitle(event.target.value)} placeholder="z. B. Zusammenhänge verstehen" aria-invalid={Boolean(error) && !newTitle.trim() || undefined} /></label>
             <div className="core-field-group"><label className="core-field-label" htmlFor={`${fieldId}-scope`}>Umfang</label><CoreSelect id={`${fieldId}-scope`} ariaLabel="Umfang" value={settings.scope} options={summaryChoices.scope} onValueChange={(value) => changeSetting("scope", value as SummarySettings["scope"])} /></div>
             <fieldset className="grid min-w-0 gap-2"><legend className="mb-2 core-field-label">Material</legend><div className="flex flex-wrap gap-2">{([{ value: "cards", label: "Nur Karten" }, { value: "cards-and-source", label: "Karten und Quelle" }, { value: "source", label: "Nur Quelle" }] as const).map((option) => <button key={option.value} type="button" className="core-action-secondary" aria-pressed={settings.material === option.value} disabled={option.value !== "cards" && !source} onClick={() => changeSetting("material", option.value)}>{option.label}</button>)}</div><p className="core-field-hint break-words">{source ? `Lesbare Quelle: ${source.fileName}. Sie wird nur für diese Erstellung verwendet.` : "Keine lesbare Quelle angefügt. Füge eine Datei an, um die Quellenoptionen zu verwenden."}</p>
@@ -179,10 +198,8 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
             <div className="core-summary-actions flex flex-wrap justify-end gap-3"><ActionButton type="button" variant="secondary" disabled={busy} onClick={() => request(backToList)}>Abbrechen</ActionButton><ActionButton variant={onGenerateSummary ? "secondary" : "primary"} type="button" disabled={busy} icon={Plus} onClick={() => void persist()}>Fassung anlegen</ActionButton>{onGenerateSummary && <ActionButton variant="primary" type="submit" loading={busy} icon={Sparkles}>Mit KI erstellen</ActionButton>}</div>
           </form>
         </SoftPanel>
-        {progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}
-        {generationRef.current && <ActionButton variant="secondary" onClick={() => { generationRef.current?.abort(); setProgress("Erstellung wird abgebrochen …"); }}>KI-Erstellung abbrechen</ActionButton>}
       </> : draft ? <>
-        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : "Lokal gespeichert"}</p></div><ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div>
+        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : "Lokal gespeichert"}</p></div><div className="flex flex-wrap gap-3">{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}<ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div></div>
         {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
         <SoftPanel className="core-summary-document grid gap-4 p-4 sm:p-6" inert={busy}>
           <div className="flex flex-wrap gap-4"><div className="core-field-group"><label htmlFor={`${fieldId}-font`} className="core-field-label">Schrift</label><CoreSelect id={`${fieldId}-font`} ariaLabel="Schrift" value={draft.font} options={[{ value: "sans", label: "Standard" }, { value: "serif", label: "Serif" }]} onValueChange={(value) => setDraft({ ...draft, font: value as LearningSummary["font"] })}/></div><div className="core-field-group"><label htmlFor={`${fieldId}-size`} className="core-field-label">Schriftgröße</label><CoreSelect id={`${fieldId}-size`} ariaLabel="Schriftgröße" value={String(draft.fontSize)} options={[{ value: "14", label: "14" }, { value: "16", label: "16" }, { value: "22", label: "22" }]} onValueChange={(value) => setDraft({ ...draft, fontSize: Number(value) as LearningSummary["fontSize"] })}/></div></div>
@@ -195,6 +212,9 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
         </SoftPanel>
       </> : null}
     </>}
+    {progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}
+    {generationRef.current && <div><ActionButton variant="secondary" onClick={() => { generationRef.current?.abort(); setProgress("Erstellung wird abgebrochen …"); }}>KI-Erstellung abbrechen</ActionButton></div>}
+    <ActionDialog open={confirmRegenerate} title="Fassung neu erzeugen?" description="Die KI erstellt diese Fassung mit ihren gespeicherten Einstellungen neu. Der bisherige Text wird ersetzt." confirmLabel="Neu erzeugen" cancelLabel="Abbrechen" onCancel={() => setConfirmRegenerate(false)} onConfirm={() => { setConfirmRegenerate(false); regenerate(); }}/>
     <ActionDialog open={Boolean(pending)} title="Änderungen übernehmen?" description="Du hast ungespeicherte Änderungen an dieser Zusammenfassung. Speichere oder verwirf sie, bevor du den Bereich verlässt." confirmLabel="Speichern" cancelLabel="Weiter bearbeiten" discardLabel="Verwerfen" confirmLoading={busy} onCancel={() => setPending(null)} onDiscard={() => { const run = pending; setPending(null); run?.(); }} onConfirm={() => { void persist().then((success) => { if (success) { const run = pending; setPending(null); run?.(); } }); }} restoreFocus={(reason) => { if (reason === "cancel") titleRef.current?.focus(); }}/>
   </section>;
 }

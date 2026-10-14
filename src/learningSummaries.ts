@@ -7,13 +7,13 @@ const identifier = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const generationSchema = v.strictObject({
   model: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
   privacyMode: v.picklist(["zdr", "non_zdr"]),
-  promptVersion: v.literal("learning-summary-v1"),
+  promptVersion: v.picklist(["learning-summary-v1", "learning-summary-v2"]),
   generatedAt: v.pipe(v.string(), v.isoTimestamp()),
   materialUnits: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(500)),
   evidence: v.optional(v.pipe(v.array(v.strictObject({
     heading: v.pipe(v.string(), v.minLength(1), v.maxLength(160)),
     references: v.pipe(v.array(v.strictObject({ label: v.pipe(v.string(), v.minLength(1)), href: v.nullable(v.string()) })), v.minLength(1), v.maxLength(500)),
-  })), v.maxLength(24))),
+  })), v.maxLength(240))),
 });
 export type SummaryGeneration = v.InferOutput<typeof generationSchema>;
 const summarySchema = v.strictObject({

@@ -6,8 +6,8 @@ import { createSummaryHandler, buildSummaryToolPayload, extractGeneratedSummary 
 import { HttpError, OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL, readJsonBody } from "../server/aiRoute.ts";
 import { MAX_SUMMARY_REQUEST_BYTES, parseAiLearningSummaryRequest } from "./aiLearningSummaryContract.ts";
 
-const input = parseAiLearningSummaryRequest({ title: "ATP", settings: createSummarySettings(), units: [{ id: "m1", kind: "card", label: "ATP", text: "ATP ist ein Energieträger." }] });
-const summary = { sections: [{ heading: "ATP", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"] }], warnings: [] };
+const input = parseAiLearningSummaryRequest({ title: "ATP", settings: createSummarySettings(), decks: [{ id: "d1", name: "Biologie" }], units: [{ id: "m1", kind: "card", deck: "d1", text: "F: Was ist ATP?\nA: Ein Energieträger." }] });
+const summary = { sections: [{ heading: "ATP", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"], subsections: [] }], warnings: [] };
 const completion = (value: unknown = summary, name = "create_learning_summary", finish_reason = "tool_calls") => ({ model: OPENROUTER_MODEL, choices: [{ finish_reason, message: { tool_calls: [{ function: { name, arguments: JSON.stringify(value) } }] } }], usage: { prompt_tokens: 900, completion_tokens: 300, total_tokens: 1200, cost: 0.0004 } });
 const silent = () => undefined;
 const response = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
@@ -19,7 +19,7 @@ test("Zusammenfassungs-Tool nutzt das feste Modell mit ZDR und bindet Auswahl, b
   assert.equal(payload.model, OPENROUTER_MODEL); assert.deepEqual(payload.reasoning, { effort: "low" });
   assert.equal(payload.tools[0].function.name, "create_learning_summary");
   assert.equal(payload.tool_choice.function.name, "create_learning_summary");
-  assert.equal(payload.max_tokens, 4096);
+  assert.equal(payload.max_tokens, 8192); assert.deepEqual(JSON.parse(payload.messages[1].content).decks, [{ id: "d1", name: "Biologie" }]);
   assert.equal(payload.provider.zdr, true); assert.equal(payload.provider.data_collection, "deny");
   assert.equal(JSON.parse(payload.messages[1].content).material[0].id, "m1");
   const { result, costUsd } = extractGeneratedSummary(completion(), input);
@@ -41,7 +41,7 @@ test("Route prüft Anmeldung vor Providerzugriff, protokolliert Kosten ohne Inha
   } });
   const result = res(); await handler(req(), result);
   assert.equal(result.statusCode, 200); assert.equal(result.headers.get("cache-control"), "private, no-store");
-  assert.equal(result.headers.get("x-core-prompt-version"), "learning-summary-v1"); assert.doesNotMatch(result.body, /server-only-secret|session-test/);
+  assert.equal(result.headers.get("x-core-prompt-version"), "learning-summary-v2"); assert.doesNotMatch(result.body, /server-only-secret|session-test/);
   assert.deepEqual(calls, [OPENROUTER_CHAT_ENDPOINT]);
   assert.equal(logs.length, 1); const { latencyMs, ...entry } = logs[0] as Record<string, unknown>;
   assert.equal(typeof latencyMs, "number"); assert.deepEqual(entry, { event: "ai_learning_summary", outcome: "ok", status: 200, model: OPENROUTER_MODEL, totalTokens: 1200, costUsd: 0.0004 });

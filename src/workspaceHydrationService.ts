@@ -513,7 +513,8 @@ export function createWorkspaceHydrationService({
     return loadReimportTargets(client, ankiGuids);
   };
 
-  const prepareContentDecks = async (deckIds: string[]): Promise<{ decks: Deck[]; notes: Note[] }> => {
+  /** Loads every card of the given decks page by page; `budget` sees the running note count and may throw to stop early. */
+  const prepareContentDecks = async (deckIds: string[], { signal, budget }: { signal?: AbortSignal; budget?: (noteCount: number) => void } = {}): Promise<{ decks: Deck[]; notes: Note[] }> => {
     const shell = repository.getShellState();
     const decks: Deck[] = [];
     const notes = new Map<string, Note>();
@@ -530,6 +531,8 @@ export function createWorkspaceHydrationService({
           cards.push(body.card);
           notes.set(body.note.id, body.note);
         }
+        signal?.throwIfAborted();
+        budget?.(notes.size);
         if (!result.hasMore) break;
       }
       decks.push({ ...deck, cards });

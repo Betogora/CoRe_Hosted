@@ -4,7 +4,7 @@ import { appRouteToUrl } from "./appNavigation.ts";
 import { postAiRoute } from "./aiRouteRequest.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
-import type { Deck, Note } from "./coreTypes.ts";
+import type { Deck, Note, NoteFieldRole } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
 import type { SummaryGeneration } from "./learningSummaries.ts";
@@ -12,9 +12,9 @@ import { notePlainText } from "./notePresentation.ts";
 import { escapeCardHtmlText } from "./richText.ts";
 import type { SummarySettings } from "./learningSummarySettings.ts";
 import {
-  AI_LEARNING_SUMMARY_DEADLINE_MS, AI_LEARNING_SUMMARY_ENDPOINT, AiLearningSummaryError, MAX_SUMMARY_REQUEST_BYTES,
+  AI_LEARNING_SUMMARY_DEADLINE_MS, AI_LEARNING_SUMMARY_ENDPOINT, AiLearningSummaryError, MATERIAL_TOO_LARGE_MESSAGE, MAX_SUMMARY_REQUEST_BYTES, MAX_SUMMARY_UNITS,
   parseAiLearningSummaryRequest, parseAiLearningSummarySuccess,
-  type AiLearningSummaryRequest, type AiLearningSummarySuccess, type SummaryMaterialUnit,
+  type AiLearningSummaryRequest, type AiLearningSummarySuccess, type GeneratedSummarySection, type SummaryMaterialUnit,
 } from "./aiLearningSummaryContract.ts";
 
 interface SummaryMaterialReference { id: string; label: string; href: string | null; }
@@ -37,9 +37,12 @@ export async function readSummarySourceFile(file: File): Promise<TransientSource
   return document;
 }
 
-export async function generateLearningSummary(input: SummaryGenerationInput, loadDecks: (ids: string[]) => Promise<{ decks: Deck[]; notes: Note[] }>, decks: Deck[], supabase: SupabaseClient<Database> | null, signal?: AbortSignal): Promise<SummaryGenerationResult> {
+export type SummaryDeckLoader = (ids: string[], options: { signal?: AbortSignal; budget: (noteCount: number) => void }) => Promise<{ decks: Deck[]; notes: Note[] }>;
+
+export async function generateLearningSummary(input: SummaryGenerationInput, loadDecks: SummaryDeckLoader, decks: Deck[], supabase: SupabaseClient<Database> | null, signal?: AbortSignal): Promise<SummaryGenerationResult> {
   const ids = summaryScopeDeckIds(decks, input.deckId, input.settings.scope);
-  const loaded = input.settings.material === "source" ? { decks, notes: [] } : await loadDecks(ids);
+  const budget = (noteCount: number) => { if (noteCount > MAX_SUMMARY_UNITS) throw new AiLearningSummaryError("material_too_large", MATERIAL_TOO_LARGE_MESSAGE); };
+  const loaded = input.settings.material === "source" ? { decks, notes: [] } : await loadDecks(ids, { signal, budget });
   signal?.throwIfAborted();
   if (input.settings.material !== "source" && ids.some((id) => !loaded.decks.some((deck) => deck.id === id))) throw new AiLearningSummaryError("incomplete_material", "Der gewählte Bereich konnte nicht vollständig geladen werden.");
   const byId = new Map(loaded.decks.map((deck) => [deck.id, deck]));
@@ -47,11 +50,12 @@ export async function generateLearningSummary(input: SummaryGenerationInput, loa
   const material = prepareSummaryMaterial(all, loaded.notes, input.deckId, input.title, input.settings, input.source);
   const result = await requestAiLearningSummary(material.request, supabase, globalThis.fetch, signal);
   signal?.throwIfAborted();
+  const references = new Map(material.references.map((ref) => [ref.id, ref]));
   return { html: generatedSummaryHtml(result, material), generation: {
     model: result.model, privacyMode: result.privacyMode, promptVersion: result.promptVersion,
     generatedAt: new Date().toISOString(), materialUnits: material.request.units.length,
-    evidence: result.summary.sections.map((section) => ({ heading: section.heading, references: section.references.map((id) => {
-      const reference = material.references.find((ref) => ref.id === id)!;
+    evidence: result.summary.sections.flatMap((section) => [section, ...section.subsections]).map((block) => ({ heading: block.heading, references: block.references.map((id) => {
+      const reference = references.get(id)!;
       return { label: reference.label, href: reference.href };
     }) })),
   } };
@@ -68,38 +72,41 @@ function cardText(value: string): string {
   return notePlainText(value).replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
 }
 
+const FIELD_ROLE_LABELS: Record<Exclude<NoteFieldRole, "source">, string> = { prompt: "F", answer: "A", hint: "Hinweis", extra: "Zusatz", note: "Notiz" };
+
 export function prepareSummaryMaterial(decks: Deck[], notes: Note[], deckId: string, title: string, settings: SummarySettings, source: TransientSourceDocument | null = null): PreparedSummaryMaterial {
   const ids = new Set(summaryScopeDeckIds(decks, deckId, settings.scope));
+  const scoped = decks.filter((deck) => ids.has(deck.id));
+  const deckKeys = new Map(scoped.map((deck, index) => [deck.id, `d${index + 1}`]));
   const units: SummaryMaterialUnit[] = [];
   const references: SummaryMaterialReference[] = [];
   const notices: string[] = [];
-  const add = (kind: SummaryMaterialUnit["kind"], label: string, text: string, href: string | null) => {
+  const add = (kind: SummaryMaterialUnit["kind"], label: string, text: string, href: string | null, deck?: string) => {
     const id = `m${units.length + 1}`;
-    units.push({ id, kind, label: label.slice(0, 200), text }); references.push({ id, label, href });
+    units.push({ id, kind, ...(deck ? { deck } : {}), text }); references.push({ id, label, href });
   };
   if (settings.material !== "source") {
     const seen = new Set<string>();
     const notesById = new Map(notes.map((note) => [note.id, note]));
     let excludedImages = 0;
-    for (const deck of decks.filter((candidate) => ids.has(candidate.id))) {
+    for (const deck of scoped) {
       for (const card of deck.cards.filter((candidate) => !candidate.deletedAt)) {
         const note = notesById.get(card.noteId);
         if (!note || note.deletedAt) throw new AiLearningSummaryError("incomplete_material", "Ein Karteninhalt ist noch nicht vollständig geladen. Versuche es erneut, sobald die Inhalte verfügbar sind.");
         if (seen.has(note.id)) continue;
         seen.add(note.id);
         if (note.content.interaction.kind === "image-occlusion") { excludedImages += 1; continue; }
-        const fields = note.content.fields.filter((field) => field.role !== "source");
-        const fieldTexts = fields.map((field) => ({ name: field.name, text: cardText(field.html) })).filter((field) => field.text);
+        const fieldTexts = note.content.fields.flatMap((field) => field.role === "source" ? [] : [{ role: field.role, text: cardText(field.html) }]).filter((field) => field.text);
         const interaction = note.content.interaction;
         const text = [
-          ...fieldTexts.map((field) => field.name + ": " + field.text),
+          ...fieldTexts.map((field) => `${FIELD_ROLE_LABELS[field.role]}: ${field.text}`),
           ...(interaction.kind === "choice" ? [
-            "Antwortoptionen: " + interaction.options.map((option) => cardText(option.html)).join("; "),
-            "Richtige Antworten: " + interaction.options.filter((option) => option.correct).map((option) => cardText(option.html)).join("; "),
+            "Richtig: " + interaction.options.filter((option) => option.correct).map((option) => cardText(option.html)).join("; "),
+            "Falsch: " + interaction.options.filter((option) => !option.correct).map((option) => cardText(option.html)).join("; "),
           ] : []),
         ].join("\n").trim();
         if (!text) continue;
-        add("card", deck.name + " · " + (fieldTexts[0]?.text || "Karte"), text, appRouteToUrl({ mode: "view", viewId: "kartenstapel", focusedDeckId: deck.id, selectedCardId: card.id }));
+        add("card", deck.name + " · " + (fieldTexts[0]?.text || "Karte"), text, appRouteToUrl({ mode: "view", viewId: "kartenstapel", focusedDeckId: deck.id, selectedCardId: card.id }), deckKeys.get(deck.id));
       }
     }
     if (excludedImages) notices.push(`${excludedImages} ${excludedImages === 1 ? "Bildverdeckung wurde" : "Bildverdeckungen wurden"} nicht ausgewertet. Die Zusammenfassung berücksichtigt ausschließlich lesbaren Text.`);
@@ -114,8 +121,12 @@ export function prepareSummaryMaterial(decks: Deck[], notes: Note[], deckId: str
     } else add("source", source.fileName, source.text.trim(), null);
   }
   if (!units.length) throw new AiLearningSummaryError("empty_material", "Die Auswahl enthält keinen lesbaren Text für eine Zusammenfassung.");
-  const request = parseAiLearningSummaryRequest({ title, settings, units });
-  if (new TextEncoder().encode(JSON.stringify(request)).byteLength > MAX_SUMMARY_REQUEST_BYTES) throw new AiLearningSummaryError("material_too_large", "Das Material ist zu umfangreich. Wähle einen kleineren Bereich.");
+  const deckEntries = units.some((unit) => unit.deck) ? scoped.map((deck) => {
+    const parent = deck.parentDeckId ? deckKeys.get(deck.parentDeckId) : undefined;
+    return { id: deckKeys.get(deck.id)!, name: deck.name, ...(parent ? { parent } : {}) };
+  }) : [];
+  const request = parseAiLearningSummaryRequest({ title, settings, decks: deckEntries, units });
+  if (new TextEncoder().encode(JSON.stringify(request)).byteLength > MAX_SUMMARY_REQUEST_BYTES) throw new AiLearningSummaryError("material_too_large", MATERIAL_TOO_LARGE_MESSAGE);
   return { request, references, notices };
 }
 
@@ -136,16 +147,21 @@ export async function requestAiLearningSummary(input: AiLearningSummaryRequest, 
 export function generatedSummaryHtml(result: AiLearningSummarySuccess, material: PreparedSummaryMaterial): string {
   parseAiLearningSummarySuccess(result, material.request);
   const references = new Map(material.references.map((ref) => [ref.id, ref]));
-  const format = material.request.settings.format;
-  const body = result.summary.sections.map((section) => {
-    const paragraphs = [...section.paragraphs, ...(format === "prose" ? section.points : [])];
-    const points = format === "bullets" ? [...section.paragraphs, ...section.points] : format === "prose" ? [] : section.points;
-    const refs = material.request.settings.showReferences ? section.references.map((id) => {
+  const { format, showReferences } = material.request.settings;
+  const point = (item: { keyword: string; text: string }) => `<strong>${escapeCardHtmlText(item.keyword)}</strong>: ${escapeCardHtmlText(item.text)}`;
+  const paragraph = (text: string) => `<p>${escapeCardHtmlText(text)}</p>`;
+  const list = (items: string[]) => items.length ? `<ul>${items.map((item) => `<li>${item}</li>`).join("")}</ul>` : "";
+  const block = (item: Omit<GeneratedSummarySection, "subsections">, level: 2 | 3) => {
+    const refs = showReferences ? item.references.map((id) => {
       const ref = references.get(id)!;
       return ref.href ? `<a href="${escapeCardHtmlText(ref.href)}">${escapeCardHtmlText(ref.label)}</a>` : escapeCardHtmlText(ref.label);
     }) : [];
-    return `${format === "prose" ? "" : `<h2>${escapeCardHtmlText(section.heading)}</h2>`}${format === "bullets" ? "" : paragraphs.map((text) => `<p>${escapeCardHtmlText(text)}</p>`).join("")}${points.length ? `<ul>${points.map((text) => `<li>${escapeCardHtmlText(text)}</li>`).join("")}</ul>` : ""}${refs.length ? `<p><small>Grundlage: ${refs.join(" · ")}</small></p>` : ""}`;
-  }).join("");
+    const content = format === "prose" ? [...item.paragraphs.map(paragraph), ...item.points.map((entry) => `<p>${point(entry)}</p>`)].join("")
+      : format === "bullets" ? list([...item.paragraphs.map(escapeCardHtmlText), ...item.points.map(point)])
+      : item.paragraphs.map(paragraph).join("") + list(item.points.map(point));
+    return `${format === "prose" ? "" : `<h${level}>${escapeCardHtmlText(item.heading)}</h${level}>`}${content}${refs.length ? `<p><small>Grundlage: ${refs.join(" · ")}</small></p>` : ""}`;
+  };
+  const body = result.summary.sections.map((section) => block(section, 2) + section.subsections.map((subsection) => block(subsection, 3)).join("")).join("");
   const warnings = [...material.notices, ...result.summary.warnings];
-  return `${body}${warnings.length ? `<h2>Hinweise zum Material</h2>${warnings.map((text) => `<p>${escapeCardHtmlText(text)}</p>`).join("")}` : ""}`;
+  return `${body}${warnings.length ? `<h2>Hinweise zum Material</h2>${warnings.map(paragraph).join("")}` : ""}`;
 }
