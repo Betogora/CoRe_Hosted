@@ -3,6 +3,7 @@ import { summarySettingsSchema } from "./learningSummarySettings.js";
 
 export const AI_LEARNING_SUMMARY_ENDPOINT = "/api/ai/summary";
 export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v1";
+export const AI_LEARNING_SUMMARY_DEADLINE_MS = 120_000;
 const MAX_SUMMARY_MATERIAL_CHARS = 60_000;
 export const MAX_SUMMARY_REQUEST_BYTES = 256 * 1_024;
 const MAX_SUMMARY_UNITS = 500;

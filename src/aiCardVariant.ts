@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { postAiRoute } from "./aiRouteRequest.ts";
 import {
   AI_CARD_VARIANT_DEADLINE_MS,
   AI_CARD_VARIANT_ENDPOINT,
@@ -7,7 +8,6 @@ import {
   aiCardVariantSourceKey,
   createAiCardVariantRequest,
   normalizeAiCardText,
-  parseAiCardVariantError,
   parseAiCardVariantSuccess,
   type AiCardVariantSuccess,
 } from "./aiCardVariantContract.ts";
@@ -22,42 +22,17 @@ export async function requestAiCardVariant(
   { avoid = [], fetchImpl = globalThis.fetch }: { avoid?: string[]; fetchImpl?: typeof fetch } = {},
 ): Promise<AiCardVariantSuccess> {
   const request = createAiCardVariantRequest(source, avoid);
-  if (!supabase) throw new AiCardVariantContractError("auth_unavailable", "Die Anmeldung ist noch nicht bereit.");
-
-  const { data, error } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
-  if (error || !accessToken) {
-    throw new AiCardVariantContractError("unauthorized", "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.");
-  }
-
-  let response: Response;
-  let body: unknown;
-  try {
-    response = await fetchImpl(AI_CARD_VARIANT_ENDPOINT, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(request),
-      // The route ends itself after its deadline; the margin covers authentication and network.
-      signal: AbortSignal.timeout(AI_CARD_VARIANT_DEADLINE_MS + 5_000),
-    });
-    body = await response.json().catch(() => null);
-  } catch (error) {
-    if (error instanceof Error && error.name === "TimeoutError") {
-      throw new AiCardVariantContractError("timeout", "Die Generierung hat zu lange gedauert. Bitte versuche es erneut.");
-    }
-    throw new AiCardVariantContractError("network_error", "Die Variante konnte nicht angefordert werden. Prüfe deine Verbindung.");
-  }
-  if (!response.ok) {
-    const parsedError = parseAiCardVariantError(body);
-    throw new AiCardVariantContractError(
-      parsedError.success ? parsedError.output.error.code : "request_failed",
-      parsedError.success ? parsedError.output.error.message : "Die Variante konnte nicht generiert werden.",
-    );
-  }
-
+  const body = await postAiRoute(AI_CARD_VARIANT_ENDPOINT, request, supabase, {
+    fetchImpl,
+    // The route ends itself after its deadline; the margin covers authentication and network.
+    timeoutMs: AI_CARD_VARIANT_DEADLINE_MS + 5_000,
+    fail: (code, message) => new AiCardVariantContractError(code, message),
+    messages: {
+      timeout: "Die Generierung hat zu lange gedauert. Bitte versuche es erneut.",
+      network: "Die Variante konnte nicht angefordert werden. Prüfe deine Verbindung.",
+      failed: "Die Variante konnte nicht generiert werden.",
+    },
+  });
   const parsed = parseAiCardVariantSuccess(body);
   if (!parsed.success) throw new AiCardVariantContractError("invalid_response", "Die generierte Antwort hatte ein ungültiges Format.");
   return parsed.output;

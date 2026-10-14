@@ -175,7 +175,7 @@ Browser-sichtbar erlaubt sind ausschließlich öffentliche Werte wie `VITE_SUPAB
 - Das Key-Limit ist die Kostenbremse: Die Route nutzt fest das bezahlte Modell `openai/gpt-6-luna` mit Reasoning `low` (gemessen etwa 0,00006 USD je Variante, 1 USD reicht für rund 16.000 Varianten). Ist es erreicht, meldet die Route `provider_budget_exhausted`; das Limit wird dann bewusst im OpenRouter-Account angehoben.
 - Nach Anlage oder Rotation ist ein neues Deployment erforderlich. Geprüft werden nur Variablenname, Umgebungszuordnung und ein authentifizierter Funktionsaufruf mit einer freigegebenen Basic-Testkarte.
 - Verbrauch und Restbudget des Schlüssels zeigt `GET https://openrouter.ai/api/v1/key` (`usage`, `limit_remaining`). Andere Projekte desselben Accounts teilen das Guthaben, nicht das Key-Limit.
-- Jeder Erzeugungsversuch schreibt genau eine JSON-Logzeile `ai_card_variant` mit Ergebnis-Code, HTTP-Status, Latenz, Modell, Tokenzahl und Kosten in USD in die Vercel-Logs. `rate_limited` ist ein Anfragelimit, `provider_budget_exhausted` das erreichte Key-Limit, `no_provider_endpoint` ein fehlender ZDR-Endpunkt für das Modell.
+- Jeder Erzeugungsversuch schreibt genau eine JSON-Logzeile `ai_card_variant` (Varianten) beziehungsweise `ai_learning_summary` (Zusammenfassungen) mit Ergebnis-Code, HTTP-Status, Latenz, Modell, Tokenzahl und Kosten in USD in die Vercel-Logs. `rate_limited` ist ein Anfragelimit, `provider_budget_exhausted` das erreichte Key-Limit, `no_provider_endpoint` ein fehlender ZDR-Endpunkt für das Modell.
 - Bei Providerfehlern zuerst diese Logzeilen, OpenRouter-Verfügbarkeit und Key-Limit prüfen. Karteninhalte, Bearer und Providerantworten dürfen nicht in Diagnoseausgaben übernommen werden.
 
 ## 3. Preview- und Production-Freigabe

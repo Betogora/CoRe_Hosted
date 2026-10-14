@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import { summaryPlainText, type LearningSummary } from "./learningSummaries.ts";
 import { sanitizeCardHtml } from "./htmlSafety.ts";
+import { downscaleImageToFullHd } from "./imageDownscale.ts";
 
 const id = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const coordinate = v.pipe(v.number(), v.finite());
@@ -131,11 +132,12 @@ export async function readMindMapImages(files: File[]): Promise<NonNullable<Mind
   return Promise.all(files.map(async (file) => {
     if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) throw new Error("Bitte wähle ein PNG-, JPEG-, WebP- oder GIF-Bild.");
     if (file.size > 2_000_000) throw new Error("Ein Bild darf höchstens 2 MB groß sein.");
+    const scaled = await downscaleImageToFullHd(file);
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Das Bild konnte nicht gelesen werden."));
       reader.onerror = () => reject(new Error("Das Bild konnte nicht gelesen werden."));
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(scaled);
     });
     const image = v.safeParse(imageSchema, { id: `image_${crypto.randomUUID()}`, name: file.name.slice(0, 240), dataUrl });
     if (!image.success) throw new Error("Das Bild konnte nicht gelesen werden. Bitte wähle eine andere Bilddatei.");

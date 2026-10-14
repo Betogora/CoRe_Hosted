@@ -5,7 +5,7 @@ import { createSummarySettings, readLearningSummary, createLearningSummary } fro
 import { buildLearningSummaryPrompt, parseAiLearningSummaryRequest, parseAiLearningSummarySuccess, AI_LEARNING_SUMMARY_PROMPT_VERSION, type AiLearningSummarySuccess } from "./aiLearningSummaryContract.ts";
 import { generateLearningSummary, generatedSummaryHtml, prepareSummaryMaterial, readSummarySourceFile, requestAiLearningSummary, summaryScopeDeckIds } from "./aiLearningSummary.ts";
 import { createSummaryHandler } from "../api/ai/summary.ts";
-import { OPENROUTER_CHAT_ENDPOINT } from "../server/aiTextTool.ts";
+import { OPENROUTER_CHAT_ENDPOINT } from "../server/aiRoute.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
 
 const graph = createBasicNote("root", "Was ist ATP?", "Ein Energieträger.", { reverse: true });
@@ -17,7 +17,7 @@ const child = createCoreDeck({ id: "child", name: "Chemie", parentDeckId: "root"
 const source: TransientSourceDocument = { id: "local-source", fileName: "Skript.pdf", mimeType: "application/pdf", text: "ATP ist ein Energieträger.", textExtractionStatus: "success", metadata: { pages: [{ pageNumber: 1, text: "ATP ist ein Energieträger.", textItemCount: 4 }, { pageNumber: 2, text: "Kein Textlayer gefunden.", textItemCount: 0 }] } };
 const defaults = createSummarySettings();
 const prepared = prepareSummaryMaterial([root], notes, root.id, "Überblick", defaults);
-const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"] }], warnings: [] }, model: "provider/test:free", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
+const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"] }], warnings: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
 
 test("Auswahl bestimmt den Stapelbaum; gleiche Inhalte und Lernmetadaten werden nicht mehrfach gesendet", () => {
   assert.deepEqual(summaryScopeDeckIds([root, child], "root", "deck"), ["root"]);
@@ -74,7 +74,7 @@ test("Browserrequest verlangt Anmeldung, sendet Auswahl und validiert Antwort un
   });
   assert.equal(result.model, generated.model);
   await assert.rejects(requestAiLearningSummary(prepared.request, null), /Anmeldung/);
-  await assert.rejects(requestAiLearningSummary(prepared.request, supabase, async () => new Response("<html>Fehler</html>")), /gelesen/);
+  await assert.rejects(requestAiLearningSummary(prepared.request, supabase, async () => new Response("<html>Fehler</html>")), /gültige Zusammenfassung/);
   await assert.rejects(requestAiLearningSummary(prepared.request, supabase, async () => new Response(JSON.stringify({ error: { code: "rate_limited", message: "Später erneut versuchen." } }), { status: 429 })), /Später/);
   const controller = new AbortController(); controller.abort();
   await assert.rejects(requestAiLearningSummary(prepared.request, supabase, async () => { throw new Error("Abort"); }, controller.signal), /abgebrochen/);
@@ -103,8 +103,8 @@ test("Ausgeblendete Belege bleiben intern validiert und erscheinen nicht im Edit
 
 test("Vollständiger Durchlauf: Auswahl → Hydrierung → Browserrequest → Servertool → Editorinhalt", async (context) => {
   const supabase = { auth: { getSession: async () => ({ data: { session: { access_token: "test-session" } }, error: null }) } } as unknown as NonNullable<Parameters<typeof requestAiLearningSummary>[1]>;
-  const handler = createSummaryHandler({ env: { OPENROUTER_API_KEY: "test-provider-key" }, authenticate: async (token) => { assert.equal(token, "test-session"); return "user"; }, fetchImpl: async (url, init) => {
-    if (String(url) !== OPENROUTER_CHAT_ENDPOINT) return new Response(JSON.stringify({ data: [{ id: "provider/full-flow:free", context_length: 128_000, pricing: { prompt: "0", completion: "0" }, architecture: { input_modalities: ["text"], output_modalities: ["text"] }, supported_parameters: ["tools", "tool_choice", "max_tokens", "reasoning"] }] }));
+  const handler = createSummaryHandler({ env: { OPENROUTER_API_KEY: "test-provider-key" }, log: () => undefined, authenticate: async (token) => { assert.equal(token, "test-session"); return "user"; }, fetchImpl: async (url, init) => {
+    assert.equal(url, OPENROUTER_CHAT_ENDPOINT);
     const payload = JSON.parse(String(init?.body));
     const material = JSON.parse(payload.messages[1].content).material;
     assert.equal(material.length, 2); assert.match(material[1].text, /Wasser/);

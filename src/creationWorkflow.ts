@@ -1,6 +1,7 @@
 import { createManualNoteContent, createOcclusionNoteContent, parseNoteContent, validateManualNoteInput, validateOcclusionInput, type ManualContentKind, type ManualNoteErrors, type ManualNoteInput, type OcclusionMode } from "./coreModel.ts";
 import { createDocumentFromFile } from "./documentModel.ts";
 import { appendPlainTextToCardHtml } from "./richText.ts";
+import { downscaleImageToFullHd } from "./imageDownscale.ts";
 import { createAccountMediaStore, type MediaSyncProgress, type MediaSyncStatus, type MediaSyncTask } from "./mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "./coreTypes.ts";
 import { ANKI_PACKAGE_MAX_BYTES, type ApkgImportPreview, type ImportCommitGraph, type ImportMediaFile } from "./apkgImport.ts";
@@ -114,45 +115,6 @@ function createReadyCloudTask(): ImportCloudSyncTask {
 
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 const IMAGE_SOURCE_PATTERN = /<img\b[^>]*\bsrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi;
-const DOWNSCALABLE_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const FULL_HD_LANDSCAPE = { width: 1_920, height: 1_080 } as const;
-
-function fullHdImageSize(width: number, height: number) {
-  const bounds = width >= height ? FULL_HD_LANDSCAPE : { width: FULL_HD_LANDSCAPE.height, height: FULL_HD_LANDSCAPE.width };
-  const scale = Math.min(1, bounds.width / width, bounds.height / height);
-  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
-}
-
-async function downscaleManualImage(file: Blob): Promise<Blob> {
-  if (!DOWNSCALABLE_IMAGE_TYPES.has(file.type) || typeof globalThis.createImageBitmap !== "function" || typeof document === "undefined") return file;
-  let bitmap: ImageBitmap;
-  try {
-    bitmap = await globalThis.createImageBitmap(file, { imageOrientation: "from-image" });
-  } catch {
-    throw new Error("Das Bild konnte nicht gelesen werden.");
-  }
-  const size = fullHdImageSize(bitmap.width, bitmap.height);
-  if (size.width === bitmap.width && size.height === bitmap.height) {
-    bitmap.close();
-    return file;
-  }
-  const canvas = document.createElement("canvas");
-  canvas.width = size.width;
-  canvas.height = size.height;
-  try {
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("Das Bild konnte nicht verkleinert werden.");
-    context.imageSmoothingEnabled = true;
-    context.imageSmoothingQuality = "high";
-    context.drawImage(bitmap, 0, 0, size.width, size.height);
-  } finally {
-    bitmap.close();
-  }
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Das Bild konnte nicht verkleinert werden.")), file.type, 0.9);
-  });
-}
-
 function normalizeManualImageAttachment(value: unknown): ManualImageAttachment | null {
   if (!value || typeof value !== "object") return null;
   const input = value as Partial<ManualImageAttachment>;
@@ -251,7 +213,7 @@ export function createCreationWorkflow({
       if (!globalThis.crypto?.subtle) {
         throw new Error("Das Bild kann in diesem Browser nicht sicher verarbeitet werden.");
       }
-      const image = await downscaleManualImage(file);
+      const image = await downscaleImageToFullHd(file);
       const digest = await globalThis.crypto.subtle.digest("SHA-1", await image.arrayBuffer());
       const sha1 = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
       return {

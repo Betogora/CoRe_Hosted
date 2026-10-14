@@ -1,15 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {
-  buildOpenRouterPayload,
-  classifyProviderError,
-  createCardVariantHandler,
-  extractGeneratedVariant,
-  OPENROUTER_CHAT_ENDPOINT,
-  OPENROUTER_MODEL,
-} from "../api/ai/card-variant.ts";
+import { buildOpenRouterPayload, createCardVariantHandler, extractGeneratedVariant } from "../api/ai/card-variant.ts";
+import { classifyProviderError, OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
 
 const input = { source: { front: "Was ist ATP?", back: "Ein Energieträger." } };
+const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", tool: "Werkzeug", fields: "Felder" };
 
 function completion(modelId = OPENROUTER_MODEL) {
   return {
@@ -62,12 +57,12 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
 });
 
 test("provider errors map to stable codes without exposing configuration", () => {
-  assert.equal(classifyProviderError(429, { error: { code: 429, message: "Rate limit exceeded" } }).code, "rate_limited");
-  assert.equal(classifyProviderError(402, null).code, "provider_budget_exhausted");
-  assert.equal(classifyProviderError(403, { error: { code: 403, message: "Key limit exceeded", metadata: { limit_source: "openrouter_key_limit" } } }).code, "provider_budget_exhausted");
-  assert.equal(classifyProviderError(403, { error: { code: 403, message: "Forbidden" } }).code, "openrouter_auth_failed");
-  assert.equal(classifyProviderError(401, null).message.includes("OPENROUTER_API_KEY"), false);
-  assert.equal(classifyProviderError(200, { error: { code: 502, message: "Provider returned error" } }).code, "provider_error");
+  assert.equal(classifyProviderError(429, { error: { code: 429, message: "Rate limit exceeded" } }, texts).code, "rate_limited");
+  assert.equal(classifyProviderError(402, null, texts).code, "provider_budget_exhausted");
+  assert.equal(classifyProviderError(403, { error: { code: 403, message: "Key limit exceeded", metadata: { limit_source: "openrouter_key_limit" } } }, texts).code, "provider_budget_exhausted");
+  assert.equal(classifyProviderError(403, { error: { code: 403, message: "Forbidden" } }, texts).code, "openrouter_auth_failed");
+  assert.equal(classifyProviderError(401, null, texts).message.includes("OPENROUTER_API_KEY"), false);
+  assert.equal(classifyProviderError(200, { error: { code: 502, message: "Provider returned error" } }, texts).code, "provider_error");
 });
 
 test("provider extraction requires exactly one changed create_card_variant call", () => {

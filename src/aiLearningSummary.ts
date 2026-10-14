@@ -1,15 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import * as v from "valibot";
 import { appRouteToUrl } from "./appNavigation.ts";
+import { postAiRoute } from "./aiRouteRequest.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 import type { Deck, Note } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
-import { summaryPlainText, type SummaryGeneration } from "./learningSummaries.ts";
+import type { SummaryGeneration } from "./learningSummaries.ts";
+import { notePlainText } from "./notePresentation.ts";
+import { escapeCardHtmlText } from "./richText.ts";
 import type { SummarySettings } from "./learningSummarySettings.ts";
 import {
-  AI_LEARNING_SUMMARY_ENDPOINT, AiLearningSummaryError, MAX_SUMMARY_REQUEST_BYTES,
+  AI_LEARNING_SUMMARY_DEADLINE_MS, AI_LEARNING_SUMMARY_ENDPOINT, AiLearningSummaryError, MAX_SUMMARY_REQUEST_BYTES,
   parseAiLearningSummaryRequest, parseAiLearningSummarySuccess,
   type AiLearningSummaryRequest, type AiLearningSummarySuccess, type SummaryMaterialUnit,
 } from "./aiLearningSummaryContract.ts";
@@ -62,7 +65,7 @@ export function summaryScopeDeckIds(decks: Deck[], deckId: string, scope: Summar
 }
 
 function cardText(value: string): string {
-  return summaryPlainText(value).replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
+  return notePlainText(value).replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, "$1");
 }
 
 export function prepareSummaryMaterial(decks: Deck[], notes: Note[], deckId: string, title: string, settings: SummarySettings, source: TransientSourceDocument | null = null): PreparedSummaryMaterial {
@@ -118,34 +121,16 @@ export function prepareSummaryMaterial(decks: Deck[], notes: Note[], deckId: str
 
 export async function requestAiLearningSummary(input: AiLearningSummaryRequest, supabase: SupabaseClient<Database> | null, fetchImpl: typeof fetch = globalThis.fetch, signal?: AbortSignal): Promise<AiLearningSummarySuccess> {
   const request = parseAiLearningSummaryRequest(input);
-  if (!supabase) throw new AiLearningSummaryError("auth_unavailable", "Die Anmeldung ist noch nicht bereit.");
-  const { data, error } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (error || !token) throw new AiLearningSummaryError("unauthorized", "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an.");
-  let response: Response;
-  const timeout = AbortSignal.timeout(240_000);
-  try {
-    response = await fetchImpl(AI_LEARNING_SUMMARY_ENDPOINT, {
-      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(request), signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-    });
-  } catch {
-    if (signal?.aborted) throw new AiLearningSummaryError("cancelled", "Die Erstellung wurde abgebrochen.");
-    if (timeout.aborted) throw new AiLearningSummaryError("provider_timeout", "Die KI hat nicht rechtzeitig geantwortet. Versuche eine kürzere Fassung.");
-    throw new AiLearningSummaryError("network_error", "Die Zusammenfassung konnte nicht angefordert werden. Prüfe deine Verbindung.");
-  }
-  let body: unknown;
-  try { body = await response.json(); }
-  catch { throw new AiLearningSummaryError("invalid_response", "Die KI-Antwort konnte nicht gelesen werden."); }
-  if (!response.ok) {
-    const parsed = v.safeParse(v.looseObject({ error: v.looseObject({ code: v.string(), message: v.string() }) }), body);
-    throw new AiLearningSummaryError(parsed.success ? parsed.output.error.code : "request_failed", parsed.success ? parsed.output.error.message : "Die KI-Zusammenfassung konnte nicht erstellt werden.");
-  }
+  const body = await postAiRoute(AI_LEARNING_SUMMARY_ENDPOINT, request, supabase, {
+    fetchImpl, signal, timeoutMs: AI_LEARNING_SUMMARY_DEADLINE_MS + 5_000,
+    fail: (code, message) => new AiLearningSummaryError(code, message),
+    messages: {
+      timeout: "Die KI hat nicht rechtzeitig geantwortet. Versuche eine kürzere Fassung.",
+      network: "Die Zusammenfassung konnte nicht angefordert werden. Prüfe deine Verbindung.",
+      failed: "Die KI-Zusammenfassung konnte nicht erstellt werden.",
+    },
+  });
   return parseAiLearningSummarySuccess(body, request);
-}
-
-function escapeText(text: string): string {
-  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#39;");
 }
 
 export function generatedSummaryHtml(result: AiLearningSummarySuccess, material: PreparedSummaryMaterial): string {
@@ -157,10 +142,10 @@ export function generatedSummaryHtml(result: AiLearningSummarySuccess, material:
     const points = format === "bullets" ? [...section.paragraphs, ...section.points] : format === "prose" ? [] : section.points;
     const refs = material.request.settings.showReferences ? section.references.map((id) => {
       const ref = references.get(id)!;
-      return ref.href ? `<a href="${escapeText(ref.href)}">${escapeText(ref.label)}</a>` : escapeText(ref.label);
+      return ref.href ? `<a href="${escapeCardHtmlText(ref.href)}">${escapeCardHtmlText(ref.label)}</a>` : escapeCardHtmlText(ref.label);
     }) : [];
-    return `${format === "prose" ? "" : `<h2>${escapeText(section.heading)}</h2>`}${format === "bullets" ? "" : paragraphs.map((text) => `<p>${escapeText(text)}</p>`).join("")}${points.length ? `<ul>${points.map((text) => `<li>${escapeText(text)}</li>`).join("")}</ul>` : ""}${refs.length ? `<p><small>Grundlage: ${refs.join(" · ")}</small></p>` : ""}`;
+    return `${format === "prose" ? "" : `<h2>${escapeCardHtmlText(section.heading)}</h2>`}${format === "bullets" ? "" : paragraphs.map((text) => `<p>${escapeCardHtmlText(text)}</p>`).join("")}${points.length ? `<ul>${points.map((text) => `<li>${escapeCardHtmlText(text)}</li>`).join("")}</ul>` : ""}${refs.length ? `<p><small>Grundlage: ${refs.join(" · ")}</small></p>` : ""}`;
   }).join("");
   const warnings = [...material.notices, ...result.summary.warnings];
-  return `${body}${warnings.length ? `<h2>Hinweise zum Material</h2>${warnings.map((text) => `<p>${escapeText(text)}</p>`).join("")}` : ""}`;
+  return `${body}${warnings.length ? `<h2>Hinweise zum Material</h2>${warnings.map((text) => `<p>${escapeCardHtmlText(text)}</p>`).join("")}` : ""}`;
 }

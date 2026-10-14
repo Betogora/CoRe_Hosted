@@ -30,9 +30,6 @@ const successSchema = v.strictObject({
   privacyMode: v.literal("zdr"),
   usage: usageSchema,
 });
-const errorSchema = v.strictObject({
-  error: v.strictObject({ code: v.string(), message: v.string() }),
-});
 
 export type AiCardVariantRequest = v.InferOutput<typeof requestSchema>;
 export type AiCardVariantSuccess = v.InferOutput<typeof successSchema>;
@@ -84,10 +81,6 @@ export function parseAiCardVariantRequest(value: unknown) {
 
 export function parseAiCardVariantSuccess(value: unknown) {
   return v.safeParse(successSchema, value);
-}
-
-export function parseAiCardVariantError(value: unknown) {
-  return v.safeParse(errorSchema, value);
 }
 
 export function aiCardVariantSourceKey(source: AiCardVariantRequest["source"]): string {
