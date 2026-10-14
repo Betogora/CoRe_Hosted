@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-14 — Live-Smoke der KI-Routen nach gemeinsamen Helfern (`39158ab`)
+
+- Beide Route-Handler aus `39158ab` liefen lokal gegen OpenRouter mit dem Development-Schlüssel aus Vercel; nur die Supabase-Anmeldung war ersetzt. Material: fiktive Biologie-Basic-Karten, keine Nutzerdaten. Der Schlüssel lag nur kurzzeitig außerhalb des Repositories und wurde danach gelöscht.
+- `/api/ai/card-variant`: `200`, `openai/gpt-6-luna`, 465 Tokens, 0,0000621 USD, 1,7 s.
+- `/api/ai/summary`, 12 Notes, Länge mittel (2,8 KB Anfrage): `200`, `zdr`, 3 Abschnitte mit Belegen auf alle 12 Einheiten, 1.807 Tokens, 0,00036 USD, 3,7 s.
+- `/api/ai/summary`, 60 Notes in zwei Stapeln, Länge lang (14,2 KB Anfrage): `200`, `zdr`, 5 Abschnitte, 2 Hinweise, 6.083 Tokens, 0,0010 USD, 6,0 s.
+- Damit akzeptiert Luna den erzwungenen Zusammenfassungs-Tool-Call mit ZDR und `data_collection: "deny"`. Hochgerechnet kostet eine Zusammenfassung an der heutigen 60.000-Zeichen-Grenze etwa 0,004 USD. Kurzes Material bleibt deutlich unter dem Wortbudget, ohne aufzufüllen. Ein Production-Smoke mit angemeldetem Konto steht aus.
+
 ## 2026-10-13 — Mindmap-Integration auf aktuellem main verifiziert
 
 - Die vollständige lokale Mindmap wurde auf `origin/main` (`2716c9c`) zusammengeführt. Die dort bereits aktualisierte Stapelnavigation, Variantenverwaltung, Prüfungsplanung und Datenladewege bleiben erhalten. Die Zusammenfassungsablage und ihr Editor liefern die Quellen für `Aus Zusammenfassung`; bestehende Konto- und Entwurfsgrenzen bleiben wirksam.
