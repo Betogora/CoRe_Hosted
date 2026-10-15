@@ -62,7 +62,22 @@ function withoutZones(value: unknown): unknown {
   return { ...map, nodes: strip(map.nodes), strokes: strip(map.strokes), edges };
 }
 
+export const MIND_MAP_LIMITS = { nodes: 2_000, edges: 10_000, strokes: 2_000, summaries: 500, boundaries: 500 } as const;
+const LIMIT_LABELS: Record<keyof typeof MIND_MAP_LIMITS, string> = { nodes: "Karten und freie Texte", edges: "Querverbindungen", strokes: "Linien", summaries: "Zusammenfassungsklammern", boundaries: "Umrandungen" };
+
+/** Names the first exceeded size limit with the current count, or null when the map fits. */
+export function mindMapLimitError(value: unknown): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  for (const key of Object.keys(MIND_MAP_LIMITS) as Array<keyof typeof MIND_MAP_LIMITS>) {
+    const items = (value as Record<string, unknown>)[key], count = Array.isArray(items) ? items.length : 0;
+    if (count > MIND_MAP_LIMITS[key]) return `Eine Mindmap umfasst höchstens ${MIND_MAP_LIMITS[key].toLocaleString("de-DE")} ${LIMIT_LABELS[key]} (jetzt ${count.toLocaleString("de-DE")}).`;
+  }
+  return null;
+}
+
 export function readLearningMindMap(value: unknown): LearningMindMap {
+  const limit = mindMapLimitError(value);
+  if (limit) throw new Error(limit);
   const parsed = v.safeParse(mapSchema, withoutZones(value));
   if (!parsed.success || !parsed.output.title.trim() || Date.parse(parsed.output.updatedAt) < Date.parse(parsed.output.createdAt)) {
     throw new Error("Die gespeicherte Mindmap ist ungültig.");
@@ -350,6 +365,53 @@ export function removeMindMapElement(map: LearningMindMap, kind: MindMapElementK
 
 const CARD_TITLE_CHARS = 60;
 type SummaryTreeItem = { label: string; sourceText?: string; paragraphs: string[]; children: SummaryTreeItem[] };
+
+/** Keyboard navigation: ←/→ move towards the parent or the nearest child on that side, ↑/↓ step through the siblings by position. */
+export function mindMapNeighbor(map: LearningMindMap, nodeId: string, key: "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown"): string | undefined {
+  const node = map.nodes.find((item) => item.id === nodeId);
+  if (!node) return undefined;
+  if (key === "ArrowUp" || key === "ArrowDown") {
+    const siblings = map.nodes.filter((item) => item.parentId === node.parentId).sort((a, b) => a.y - b.y || a.x - b.x);
+    return siblings[siblings.indexOf(node) + (key === "ArrowUp" ? -1 : 1)]?.id;
+  }
+  const right = key === "ArrowRight", parent = node.parentId ? map.nodes.find((item) => item.id === node.parentId) : undefined;
+  if (parent && (node.x >= parent.x) !== right) return parent.id;
+  const children = map.nodes.filter((item) => item.parentId === node.id && (item.x >= node.x) === right);
+  return children.sort((a, b) => Math.abs(a.y - node.y) - Math.abs(b.y - node.y))[0]?.id;
+}
+
+export interface MindMapClipboard { nodes: MindMapNode[]; edges: LearningMindMap["edges"]; boundaries: MindMapBoundary[]; summaries: MindMapSummary[] }
+
+/** Copies the cards with their subtrees plus links, frames and brackets that lie completely inside. */
+export function copyMindMapNodes(map: LearningMindMap, nodeIds: string[]): MindMapClipboard {
+  const ids = new Set(descendantIds(map, nodeIds));
+  return {
+    nodes: map.nodes.filter((node) => ids.has(node.id)),
+    edges: map.edges.filter((edge) => ids.has(edge.from) && ids.has(edge.to)),
+    boundaries: map.boundaries.filter((item) => item.nodeIds.every((key) => ids.has(key))),
+    summaries: map.summaries.filter((item) => ids.has(item.nodeId) && item.nodeIds.every((key) => ids.has(key))),
+  };
+}
+
+/** Inserts a copy with fresh ids, offset by `offset`; copied top cards keep their parent if it still exists. Returns the top cards. */
+export function pasteMindMapNodes(map: LearningMindMap, clipboard: MindMapClipboard, offset: MindMapPoint = { x: 40, y: 40 }): { map: LearningMindMap; ids: string[] } {
+  const ids = new Map(clipboard.nodes.map((node) => [node.id, `node_${crypto.randomUUID()}`]));
+  const existing = new Set(map.nodes.map((node) => node.id));
+  const nodes = clipboard.nodes.map((node) => {
+    const { sourceId, sourceText, parentId, ...rest } = node;
+    const parent = parentId ? ids.get(parentId) ?? (existing.has(parentId) ? parentId : undefined) : undefined;
+    const sourceKnown = sourceId ? Boolean(map.sources?.[sourceId]) : Boolean(map.source);
+    return { ...rest, id: ids.get(node.id)!, x: node.x + offset.x, y: node.y + offset.y, autoPosition: false,
+      ...(parent ? { parentId: parent } : {}), ...(sourceKnown && sourceId ? { sourceId } : {}), ...(sourceKnown && sourceText !== undefined ? { sourceText } : {}),
+      ...(node.images ? { images: node.images.map((image) => ({ ...image, id: `image_${crypto.randomUUID()}` })) } : {}) };
+  });
+  const next = readLearningMindMap({ ...map, nodes: [...map.nodes, ...nodes],
+    edges: [...map.edges, ...clipboard.edges.map((edge) => ({ from: ids.get(edge.from)!, to: ids.get(edge.to)! }))],
+    boundaries: [...map.boundaries, ...clipboard.boundaries.map((item) => ({ ...item, id: `boundary_${crypto.randomUUID()}`, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
+    summaries: [...map.summaries, ...clipboard.summaries.map((item) => ({ ...item, id: `summary_${crypto.randomUUID()}`, nodeId: ids.get(item.nodeId)!, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
+  });
+  return { map: next, ids: clipboard.nodes.filter((node) => !node.parentId || !ids.has(node.parentId)).map((node) => ids.get(node.id)!) };
+}
 
 /**
  * No provider call. Headings become branches, bold lead words and short blocks become cards, longer paragraphs

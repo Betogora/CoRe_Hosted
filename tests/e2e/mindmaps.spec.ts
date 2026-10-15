@@ -47,16 +47,16 @@ test("Hauptäste verteilen sich und Plusaktionen folgen verschobenen Karten", as
   await expect(card.locator(".at-child")).toHaveClass(/to-right/); await expect(card.locator(".at-sibling")).toHaveClass(/to-top/);
 });
 
-test("Nur bereits ausgewählte Karten lassen sich ziehen oder per Pfeiltaste bewegen", async ({ page }) => {
+test("Nur ausgewählte Karten lassen sich ziehen oder mit Alt+Pfeil verschieben", async ({ page }) => {
   const panel = await openMindMaps(page); await children(panel);
   const card = node(panel, "Ast A"); await node(panel, "Main").click();
   const position = () => card.evaluate((el) => ({ x: (el as HTMLElement).style.left, y: (el as HTMLElement).style.top }));
   const before = await position();
-  await card.focus(); await card.press("ArrowRight"); expect(await position()).toEqual(before);
+  await card.focus(); await card.press("Alt+ArrowRight"); expect(await position()).toEqual(before);
   async function drag() { const r = await card.boundingBox(); await page.mouse.move(r!.x + r!.width / 2, r!.y + r!.height / 2); await page.mouse.down(); await page.mouse.move(r!.x + r!.width / 2 + 35, r!.y + r!.height / 2 + 20, { steps: 6 }); await page.mouse.up(); }
   await drag(); expect(await position()).toEqual(before);
   await card.click(); await expect(card).toHaveAttribute("aria-pressed", "true"); await drag(); expect(await position()).not.toEqual(before);
-  const moved = await position(); await card.press("ArrowRight"); expect(await position()).not.toEqual(moved);
+  const moved = await position(); await card.press("Alt+ArrowRight"); expect(await position()).not.toEqual(moved);
   await save(panel); const saved = await position(); await reload(page, panel); expect(await position()).toEqual(saved);
 });
 
@@ -89,7 +89,7 @@ test("Schreiben bearbeitet ausgewählte Karten oder freies Flächentext-HTML mit
   const canvas = panel.getByTestId("mindmap-canvas"); await canvas.evaluate((el) => el.scrollIntoView({ block: "center", behavior: "instant" })); await canvas.click({ position: { x: 80, y: 150 } });
   const editor = panel.getByRole("textbox", { name: "Text auf der Fläche bearbeiten" }); await editor.fill("Freie Worte"); await editor.press("Control+A"); await panel.getByRole("button", { name: "Fett", exact: true }).click(); await finish(panel);
   const text = panel.getByTestId("mindmap-free-text"); await expect(text.locator("b,strong")).toHaveText("Freie Worte"); await expect(text.locator(".core-mindmap-node-label")).toHaveCount(0); await expect(text.getByRole("button", { name: "Unterknoten hinzufügen" })).toHaveCount(0);
-  await text.press("ArrowRight"); const position = await text.evaluate((el) => (el as HTMLElement).style.left); await save(panel); await reload(page, panel); expect(await text.evaluate((el) => (el as HTMLElement).style.left)).toBe(position);
+  await text.press("Alt+ArrowRight"); const position = await text.evaluate((el) => (el as HTMLElement).style.left); await save(panel); await reload(page, panel); expect(await text.evaluate((el) => (el as HTMLElement).style.left)).toBe(position);
   await text.dblclick(); await panel.getByRole("button", { name: "Text entfernen", exact: true }).click(); await expect(text).toHaveCount(0); await panel.getByRole("button", { name: "Rückgängig", exact: true }).click(); await expect(text).toHaveCount(1);
 });
 
@@ -204,7 +204,7 @@ test("Umrandung passt sich beim Verschieben an und lässt sich unabhängig lösc
   const panel = await openMindMaps(page); await children(panel); await selectPair(panel); await mode(panel, "Hinzufügen"); await panel.getByRole("button", { name: "Umrandung", exact: true }).click();
   await panel.getByRole("textbox", { name: "Umrandung beschriften" }).fill("Mein Bereich"); await save(panel); await reload(page, panel);
   const boundary = panel.getByTestId("mindmap-boundary"), before = await boundary.evaluate((el) => (el as HTMLElement).style.height);
-  await node(panel, "Ast B").click(); await node(panel, "Ast B").press("ArrowDown");
+  await node(panel, "Ast B").click(); await node(panel, "Ast B").press("Alt+ArrowDown");
   expect(await boundary.evaluate((el) => (el as HTMLElement).style.height)).not.toBe(before);
   await boundary.click({ position: { x: 8, y: 8 } }); await panel.getByRole("button", { name: "Umrandung entfernen", exact: true }).click();
   await expect(panel.getByTestId("mindmap-node")).toHaveCount(3);
@@ -332,4 +332,43 @@ test.describe("Standardtitel per Touch", () => {
     expect(await title.evaluate((el) => [(el as HTMLInputElement).selectionStart, (el as HTMLInputElement).selectionEnd])).toEqual([0, 10]);
     await title.press("T"); await expect(title).toHaveValue("T");
   });
+});
+
+test("Tastenkürzel: Navigation, Escape im Textfeld, Duplizieren, Entfernen, Rückgängig, Unterknoten und Übersicht", async ({ page }) => {
+  const panel = await openMindMaps(page); await children(panel);
+  const cards = panel.getByTestId("mindmap-node"), focusedLabel = () => page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "");
+  await node(panel, "Main").click(); await page.keyboard.press("ArrowRight");
+  expect(await focusedLabel()).toMatch(/„Ast [AB]“/);
+  await page.keyboard.press("Enter"); const title = panel.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }); await expect(title).toBeFocused();
+  await page.keyboard.press("Escape"); await expect(title).toHaveCount(0); expect(await focusedLabel()).toMatch(/„Ast [AB]“/);
+  await expect(cards).toHaveCount(3);
+  await page.keyboard.press("Control+d"); await expect(cards).toHaveCount(4);
+  await page.keyboard.press("Delete"); await expect(cards).toHaveCount(3);
+  await page.keyboard.press("Control+z"); await expect(cards).toHaveCount(4);
+  await node(panel, "Main").click(); await page.keyboard.press("Control+Enter"); await expect(panel.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true })).toBeFocused();
+  await expect(cards).toHaveCount(5); await page.keyboard.press("Escape");
+  await page.keyboard.press("?"); const dialog = page.getByRole("dialog", { name: "Tastenkürzel", exact: true });
+  await expect(dialog).toContainText("Alt + Pfeiltaste"); await dialog.getByRole("button", { name: "Schließen", exact: true }).click();
+  await panel.getByRole("button", { name: "Rückgängig", exact: true }).hover(); await expect(page.getByText(/^Rückgängig · (Strg|⌘)\+Z$/)).toBeVisible();
+});
+
+test("Verknüpfen per Tastatur: Enter wählt Quelle und Ziel", async ({ page }) => {
+  const panel = await openMindMaps(page); await children(panel);
+  await mode(panel, "Verknüpfen");
+  await node(panel, "Ast A").focus(); await page.keyboard.press("Enter");
+  await node(panel, "Ast B").focus(); await page.keyboard.press("Enter");
+  await expect(panel.locator(".core-mindmap-edges path")).toHaveCount(1);
+});
+
+test("Mehrfachauswahl: Farbe und Kastenart gelten für alle gewählten Karten, Bilder bleiben einzeln", async ({ page }) => {
+  const panel = await openMindMaps(page); await children(panel); await fit(panel);
+  await node(panel, "Ast A").click(); await node(panel, "Ast B").click({ modifiers: ["Shift"] });
+  await mode(panel, "Karte bearbeiten");
+  await expect(panel.getByLabel("Bild hinzufügen", { exact: true })).toBeDisabled();
+  await panel.getByRole("button", { name: "Kastenfarbe Gelb", exact: true }).click();
+  await expect(node(panel, "Ast A")).toHaveAttribute("data-color", "yellow"); await expect(node(panel, "Ast B")).toHaveAttribute("data-color", "yellow");
+  await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click();
+  await expect(panel.getByRole("button", { name: /^Textkarte „Ast [AB]“ auswählen$/ })).toHaveCount(2);
+  await panel.getByRole("button", { name: "Rückgängig", exact: true }).click();
+  await expect(panel.getByRole("button", { name: /^Stichwort „Ast [AB]“ auswählen$/ })).toHaveCount(2);
 });

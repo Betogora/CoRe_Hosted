@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
 
 test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt und unabhängig erhalten", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>ATP</h2><p>ATP und ADP sind Energieträger.</p><h3>Aufbau</h3><ul><li>Drei Phosphatgruppen.</li></ul><h2>ADP</h2><p>Zwei Phosphatgruppen.</p>" };
@@ -392,4 +392,37 @@ test("Absätze werden Abschnittstext, Hinweise keine Äste; Hauptäste verteilt 
   assert.equal(byLabel.get("Energiestoffwechsel")!.sourceText, undefined);
   assert.ok(Math.sign(byLabel.get("Zellatmung")!.x) !== Math.sign(byLabel.get("Gärung")!.x));
   assert.deepEqual(map.edges, [{ from: byLabel.get("Glykolyse")!.id, to: byLabel.get("Hefe")!.id }]);
+});
+
+test("Pfeiltasten-Navigation folgt der Astrichtung zu Eltern und Kindern und den Geschwistern nach Lage", () => {
+  const { map, root, a, b, c } = tree();
+  assert.equal(mindMapNeighbor(map, a.id, "ArrowLeft"), root.id);
+  assert.equal(mindMapNeighbor(map, a.id, "ArrowRight"), c.id);
+  assert.equal(mindMapNeighbor(map, a.id, "ArrowDown"), b.id);
+  assert.equal(mindMapNeighbor(map, b.id, "ArrowUp"), a.id);
+  assert.equal(mindMapNeighbor(map, c.id, "ArrowLeft"), a.id);
+  assert.ok([a.id, b.id].includes(mindMapNeighbor(map, root.id, "ArrowRight")!));
+  assert.equal(mindMapNeighbor(map, c.id, "ArrowRight"), undefined);
+});
+
+test("Kopieren und Einfügen dupliziert Unterbäume samt Umrandung versetzt und lässt das Original unverändert", () => {
+  const { map, root, a, c } = tree();
+  const framed = createMindMapBoundary(map, [a.id, c.id]).map;
+  const pasted = pasteMindMapNodes(framed, copyMindMapNodes(framed, [a.id]));
+  assert.equal(pasted.map.nodes.length, framed.nodes.length + 2);
+  assert.equal(pasted.ids.length, 1);
+  const copy = pasted.map.nodes.find((node) => node.id === pasted.ids[0])!, copyChild = pasted.map.nodes.find((node) => node.parentId === copy.id)!;
+  assert.deepEqual([copy.parentId, copy.x, copy.y, copy.label], [root.id, a.x + 40, a.y + 40, a.label]);
+  assert.equal(copyChild.label, c.label);
+  assert.equal(pasted.map.boundaries.length, 2);
+  assert.deepEqual(pasted.map.boundaries[1].nodeIds.sort(), [copy.id, copyChild.id].sort());
+  assert.deepEqual(pasted.map.nodes.slice(0, framed.nodes.length), framed.nodes);
+});
+
+test("Größengrenzen werden mit Grenze und aktuellem Wert gemeldet, beim Lesen wie beim Einfügen", () => {
+  assert.equal(mindMapLimitError({ nodes: [], edges: [] }), null);
+  assert.equal(mindMapLimitError({ nodes: new Array(2_001).fill(null) }), "Eine Mindmap umfasst höchstens 2.000 Karten und freie Texte (jetzt 2.001).");
+  assert.match(mindMapLimitError({ boundaries: new Array(501).fill(null) })!, /500 Umrandungen \(jetzt 501\)/);
+  const { map, a } = tree();
+  assert.throws(() => readLearningMindMap({ ...map, edges: new Array(10_001).fill({ from: a.id, to: a.id }) }), /10.000 Querverbindungen/);
 });

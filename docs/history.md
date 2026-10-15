@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-15 — Mindmap: Tastatur und Bearbeiten (W4b)
+
+- Zentraler Tastatur-Handler auf der Fläche: Pfeiltasten wechseln zwischen Karten, Alt+Pfeil verschiebt, Escape beendet die Bearbeitung auch aus Textfeldern, dazu Enter/F2, Strg/⌘+Enter, ⇧+Enter, Entf, Strg/⌘+C/V/D/Z/Y/A, +/−/0, ⇧+1 und `?` für eine Kürzelübersicht. Verknüpfen per Enter/Leertaste. Tooltips der Buttons nennen ihr Kürzel, `aria-keyshortcuts` für Screenreader.
+- Neuer Button `Duplizieren`; Kastenfarbe und Kastenart wirken auf alle gewählten Karten, `Karte bearbeiten` behält dabei die Mehrfachauswahl; Bilder bleiben eine Einzelkarten-Aktion. Tippen in einer Karte ist ein Rückgängig-Schritt, Historie 100. Größengrenzen werden mit Grenze und aktuellem Wert gemeldet.
+- Entscheidungen B1 bis B4 vom 2026-10-15 (B3 als Tooltips plus `?`). Neue Unit-Tests für Navigation, Kopieren/Einfügen und Grenzen; neue E2E-Tests für Kürzel, Verknüpfen per Tastatur und Mehrfachauswahl.
+
 ## 2026-10-15 — Mindmap ohne Zonen, Spec auf Verhaltensverträge gekürzt (W4a)
 
 - Zonen samt Schema, Operationen, Darstellung, Eigenschaften, Lösch-Dialog und CSS entfernt; `placeMindMapNode` entfiel, weil es nur Zonen zuordnete. Gespeicherte Maps mit Zonen öffnen weiterhin: `withoutZones` verwirft beim Lesen Zonen, Zonenzuordnungen und Verbindungen zu Zonen; beim nächsten Speichern ist die Map sauber. Mindmaps liegen nur lokal im Browser; eine serverseitige Datenbereinigung war deshalb weder möglich noch nötig.
