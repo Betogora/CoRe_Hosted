@@ -344,7 +344,7 @@ async function generateSummaryDemo(input: SummaryGenerationInput, signal: AbortS
     summary: { sections: material.request.units.slice(0, 3).map((unit, index) => ({
       heading: material.references[index].label.split(" · ").at(-1)!.slice(0, 160), paragraphs: input.settings.format === "bullets" ? [] : [unit.text],
       points: input.settings.format === "bullets" ? [{ keyword: "Kernaussage", text: unit.text }] : [], references: [unit.id], subsections: [],
-    })), warnings: ["Diese Katalogfassung ist eine simulierte KI-Antwort und dient ausschließlich der UI-Prüfung."] },
+    })), warnings: ["Diese Katalogfassung ist eine simulierte KI-Antwort und dient ausschließlich der UI-Prüfung."], relations: [] },
     model: "catalog/demo", privacyMode: "zdr", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null,
   };
   return { html: generatedSummaryHtml(result, material), generation: { model: result.model, privacyMode: result.privacyMode, promptVersion: result.promptVersion, generatedAt: new Date().toISOString(), materialUnits: material.request.units.length } };

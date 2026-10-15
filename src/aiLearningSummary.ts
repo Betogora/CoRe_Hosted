@@ -7,7 +7,7 @@ import { collectDeckTreeIds } from "./coreWorkspace.ts";
 import type { Deck, Note, NoteFieldRole } from "./coreTypes.ts";
 import type { Database } from "./database.types.ts";
 import type { TransientSourceDocument } from "./documentModel.ts";
-import type { SummaryGeneration } from "./learningSummaries.ts";
+import { SUMMARY_NOTES_HEADING, type SummaryGeneration } from "./learningSummaries.ts";
 import { notePlainText } from "./notePresentation.ts";
 import { escapeCardHtmlText } from "./richText.ts";
 import type { SummarySettings } from "./learningSummarySettings.ts";
@@ -54,6 +54,7 @@ export async function generateLearningSummary(input: SummaryGenerationInput, loa
   return { html: generatedSummaryHtml(result, material), generation: {
     model: result.model, privacyMode: result.privacyMode, promptVersion: result.promptVersion,
     generatedAt: new Date().toISOString(), materialUnits: material.request.units.length,
+    ...(result.summary.relations.length ? { relations: result.summary.relations } : {}),
     evidence: result.summary.sections.flatMap((section) => [section, ...section.subsections]).map((block) => ({ heading: block.heading, references: block.references.map((id) => {
       const reference = references.get(id)!;
       return { label: reference.label, href: reference.href };
@@ -163,5 +164,5 @@ export function generatedSummaryHtml(result: AiLearningSummarySuccess, material:
   };
   const body = result.summary.sections.map((section) => block(section, 2) + section.subsections.map((subsection) => block(subsection, 3)).join("")).join("");
   const warnings = [...material.notices, ...result.summary.warnings];
-  return `${body}${warnings.length ? `<h2>Hinweise zum Material</h2>${warnings.map(paragraph).join("")}` : ""}`;
+  return `${body}${warnings.length ? `<h2>${SUMMARY_NOTES_HEADING}</h2>${warnings.map(paragraph).join("")}` : ""}`;
 }

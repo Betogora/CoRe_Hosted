@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { summaryPlainText, type LearningSummary } from "./learningSummaries.ts";
+import { SUMMARY_NOTES_HEADING, summaryPlainText, type LearningSummary } from "./learningSummaries.ts";
 import { sanitizeCardHtml } from "./htmlSafety.ts";
 import { downscaleImageToFullHd } from "./imageDownscale.ts";
 
@@ -261,7 +261,8 @@ export function mindMapNodeDirection(node: MindMapNode, parent?: MindMapNode) {
   } as const;
 }
 
-export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | null, relation: "root" | "sibling" | "child", kind: MindMapNode["kind"] = "keyword", position: MindMapPoint = { x: 0, y: 0 }): { map: LearningMindMap; node: MindMapNode } {
+/** `content` (label, texts) is applied before placement so the card height is already final. */
+export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | null, relation: "root" | "sibling" | "child", kind: MindMapNode["kind"] = "keyword", position: MindMapPoint = { x: 0, y: 0 }, content: Pick<Partial<MindMapNode>, "label" | "sourceText"> = {}): { map: LearningMindMap; node: MindMapNode } {
   const anchor = map.nodes.find((node) => node.id === anchorId);
   if (relation !== "root" && (anchor?.kind === "freeText" || kind === "freeText")) throw new Error("Freier Flächentext hat keine Unterknoten oder Geschwisterkarten.");
   const parent = relation === "child" ? anchor : relation === "sibling" && anchor?.parentId ? map.nodes.find((node) => node.id === anchor.parentId) : undefined;
@@ -274,7 +275,7 @@ export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | 
   const sameSide = siblings.filter((node) => mindMapNodeDirection(node, parent).side === side);
   const aboveCount = sameSide.filter((node) => mindMapNodeDirection(node, parent).vertical === "above").length;
   const vertical = mainBranch ? (aboveCount < sameSide.length - aboveCount || aboveCount === sameSide.length - aboveCount && side === "right" ? "above" : "below") : relation === "sibling" ? anchorDirection?.vertical ?? "below" : parentDirection?.vertical ?? "below";
-  const node: MindMapNode = { ...createMindMapNode(kind, position),
+  const node: MindMapNode = { ...createMindMapNode(kind, position), ...content,
     ...((parent || relation === "sibling") ? { autoPosition: true } : {}),
     ...(parent ? { parentId: parent.id, side, ...(parent.zoneId ? { zoneId: parent.zoneId } : {}) } : {}),
   };
@@ -429,22 +430,23 @@ export function duplicateMindMapZone(map: LearningMindMap, id: string): { map: L
   return { map: readLearningMindMap(next), id: nextId };
 }
 
-/** Keep source passages verbatim; only the labels are shortened. No provider call. */
+const CARD_TITLE_CHARS = 60;
+type SummaryTreeItem = { label: string; sourceText?: string; paragraphs: string[]; children: SummaryTreeItem[] };
+
+/**
+ * No provider call. Headings become branches, bold lead words and short blocks become cards, longer paragraphs
+ * stay verbatim as text of their section; the notes section and evidence lines create no cards.
+ * Cards are placed like manually added ones; relations of the generation become cross links.
+ */
 export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
   const text = summaryPlainText(summary.html);
   if (!text) throw new Error("Diese Zusammenfassung enthält noch keinen Text.");
-  const map = createLearningMindMap(summary.deckId, summary.title);
-  map.source = { summaryId: summary.id, title: summary.title, text, updatedAt: summary.updatedAt };
-  const root = { ...createMindMapNode("keyword", { x: 0, y: 0 }), label: summary.title, sourceText: text };
-  map.nodes.push(root);
-  const headings: Array<{ level: number; node: MindMapNode }> = [{ level: 0, node: root }];
-  let row = 0;
-  const content: Array<{ tag: string; text: string; keyword?: string }> = [];
+  const content: Array<{ tag: string; text: string; body: string; keyword?: string }> = [];
   let tag = "p", passage = "";
   const flush = () => {
     const lead = /^\s*<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>\s*:/i.exec(passage), keyword = lead ? summaryPlainText(lead[2]).slice(0, 120) : "";
-    const value = keyword ? `${keyword}: ${summaryPlainText(passage.slice(lead![0].length))}` : summaryPlainText(passage);
-    if (value && !/^\s*<small\b/i.test(passage)) content.push({ tag, text: value, ...(keyword ? { keyword } : {}) });
+    const body = keyword ? summaryPlainText(passage.slice(lead![0].length)) : summaryPlainText(passage);
+    if ((keyword || body) && !/^\s*<small\b/i.test(passage)) content.push({ tag, text: keyword ? `${keyword}: ${body}` : body, body, ...(keyword ? { keyword } : {}) });
     passage = "";
   };
   for (const token of summary.html.split(/(<[^>]*>)/g)) {
@@ -454,19 +456,45 @@ export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
     else passage += token;
   }
   flush();
+
+  const title = (value: string) => value.length > 70 ? `${value.slice(0, 67).trimEnd()}…` : value;
+  const root: SummaryTreeItem = { label: summary.title, paragraphs: [], children: [] };
+  const stack: Array<{ level: number; item: SummaryTreeItem }> = [{ level: 0, item: root }];
+  let skipBelow: number | null = null;
   for (const block of content) {
-    if (!block.text.trim()) continue;
-    if (map.nodes.length >= 2000) throw new Error("Die Zusammenfassung ist für diesen ersten Mindmap-Versuch zu umfangreich. Verwende eine kürzere Fassung.");
     const level = /^h[1-6]$/.test(block.tag) ? Number(block.tag[1]) : null;
-    if (level !== null) while (headings.length > 1 && headings[headings.length - 1].level >= level) headings.pop();
-    const parent = headings[headings.length - 1].node;
-    const label = block.keyword ?? (block.text.length > 70 ? `${block.text.slice(0, 67).trimEnd()}…` : block.text);
-    const node = { ...createMindMapNode("keyword", { x: headings.length * 300, y: row++ * 152 }), label, sourceText: block.text, parentId: parent.id, autoPosition: true };
-    map.nodes.push(node);
-    if (level !== null) headings.push({ level, node });
-    else for (const heading of headings.slice(1)) heading.node.sourceText += `\n\n${block.text}`;
+    if (skipBelow !== null) { if (level === null || level > skipBelow) continue; skipBelow = null; }
+    if (level !== null) {
+      while (stack.length > 1 && stack[stack.length - 1].level >= level) stack.pop();
+      if (block.text === SUMMARY_NOTES_HEADING) { skipBelow = level; continue; }
+      const item = { label: title(block.text), paragraphs: [], children: [] };
+      stack[stack.length - 1].item.children.push(item); stack.push({ level, item });
+    } else if (block.keyword || block.text.length <= CARD_TITLE_CHARS || stack.length === 1) {
+      stack[stack.length - 1].item.children.push({ label: block.keyword ?? title(block.text), sourceText: block.body || undefined, paragraphs: [], children: [] });
+    } else stack[stack.length - 1].item.paragraphs.push(block.text);
   }
-  root.y = Math.max(0, (row - 1) * 76);
+
+  let map: LearningMindMap = { ...createLearningMindMap(summary.deckId, summary.title), source: { summaryId: summary.id, title: summary.title, text, updatedAt: summary.updatedAt } };
+  const ids = new Map<SummaryTreeItem, string>();
+  const place = (item: SummaryTreeItem, parentId: string | null) => {
+    if (map.nodes.length >= 2000) throw new Error("Die Zusammenfassung ist für diesen ersten Mindmap-Versuch zu umfangreich. Verwende eine kürzere Fassung.");
+    const sourceText = item.sourceText ?? (item.paragraphs.join("\n\n") || undefined);
+    const added = addMindMapRelativeNode(map, parentId, parentId ? "child" : "root", "keyword", { x: 0, y: 0 }, { label: item.label, ...(sourceText ? { sourceText } : {}) });
+    map = added.map; ids.set(item, added.node.id);
+  };
+  // Breadth first, so the main branches spread around the root before their cards are stacked outward.
+  place(root, null);
+  for (let level = [root]; level.length; level = level.flatMap((item) => item.children)) {
+    for (const item of level) for (const child of item.children) place(child, ids.get(item)!);
+  }
+  const byLabel = new Map(map.nodes.slice(1).map((node) => [node.label.toLocaleLowerCase("de"), node]));
+  const edges = new Set<string>();
+  for (const relation of summary.generation?.relations ?? []) {
+    const from = byLabel.get(relation.from.trim().toLocaleLowerCase("de")), to = byLabel.get(relation.to.trim().toLocaleLowerCase("de"));
+    const key = from && to ? [from.id, to.id].sort().join("\u0000") : "";
+    if (!from || !to || from.id === to.id || from.parentId === to.id || to.parentId === from.id || edges.has(key)) continue;
+    edges.add(key); map = { ...map, edges: [...map.edges, { from: from.id, to: to.id }] };
+  }
   return readLearningMindMap(map);
 }
 

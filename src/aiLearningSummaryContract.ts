@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { summarySettingsSchema } from "./learningSummarySettings.js";
 
 export const AI_LEARNING_SUMMARY_ENDPOINT = "/api/ai/summary";
-export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v2";
+export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v3";
 export const AI_LEARNING_SUMMARY_DEADLINE_MS = 120_000;
 const MAX_SUMMARY_MATERIAL_CHARS = 400_000;
 export const MAX_SUMMARY_REQUEST_BYTES = 1_536 * 1_024;
@@ -35,6 +35,7 @@ const sectionSchema = v.strictObject({ ...blockFields, subsections: v.pipe(v.arr
 const generatedSchema = v.strictObject({
   sections: v.pipe(v.array(sectionSchema), v.minLength(1), v.maxLength(24)),
   warnings: v.pipe(v.array(text(600)), v.maxLength(8)),
+  relations: v.optional(v.pipe(v.array(v.strictObject({ from: text(160), to: text(160) })), v.maxLength(12)), []),
 });
 const tokenCount = v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0)));
 const successSchema = v.strictObject({
@@ -115,6 +116,8 @@ export function buildLearningSummaryPrompt(input: AiLearningSummaryRequest): str
     `Sprachstil: ${settings.register === "simple" ? "einfache Sprache; Fachbegriffe nur erklären, wenn das Material dies trägt" : "fachnahe, präzise Sprache"}.`,
     settings.includeExamples ? "Nimm geeignete Beispiele auf, aber ausschließlich Beispiele aus dem Material." : "Lasse Beispiele weg; fasse die fachlichen Aussagen zusammen.",
     "Gliederung: sections sind die Hauptthemen, subsections deren Teilthemen. heading ist ein kurzer Thementitel mit höchstens acht Wörtern. Jeder Punkt in points hat ein keyword mit höchstens sechs Wörtern, das den Begriff benennt, und einen text mit der zugehörigen Aussage. Aus Überschriften und keywords entsteht später eine Mindmap.",
+    "Jedes keyword kommt in der ganzen Zusammenfassung höchstens einmal vor. Lege subsections nur an, wenn sie neue Punkte enthalten; wiederhole keine Aussagen eines anderen Abschnitts. Außer bei Fließtext hat ein Abschnitt höchstens zwei paragraphs; einzelne Begriffe, Kriterien und Merksätze gehören in points.",
+    "relations nennt bis zu zwölf fachliche Querbezüge zwischen zwei keywords oder headings aus verschiedenen Abschnitten, die das Material belegt, etwa gleicher Prozess, Ursache und Wirkung oder Gegensatz. Schreibe from und to exakt wie das keyword beziehungsweise heading. Ohne belegte Querbezüge bleibt relations leer.",
     "Jeder Abschnitt und Unterabschnitt benötigt references mit mindestens einer passenden Material-ID. Verwende nur IDs aus dem Material.",
     settings.showReferences ? "Die App zeigt die Materialbelege an. Schreibe selbst keine Belegmarker oder URLs in den Text." : "Die App blendet Materialbelege aus; die interne Zuordnung in references bleibt trotzdem erhalten. Keine Belegmarker im Text.",
     "Gib nur Klartext in den Feldern aus, weder HTML noch Markdown. Rufe genau einmal create_learning_summary mit sections und warnings auf und gib sonst nichts aus.",

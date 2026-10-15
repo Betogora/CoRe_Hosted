@@ -12,8 +12,8 @@ test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt un
   assert.ok(byLabel.get("Aufbau")!.parentId === byLabel.get("ATP")!.id);
   assert.ok(byLabel.get("ADP")!.parentId === map.nodes[0].id);
   assert.equal(byLabel.get("ATP und ADP sind Energieträger.")!.sourceText, "ATP und ADP sind Energieträger.");
-  assert.match(byLabel.get("ATP")!.sourceText!, /Drei Phosphatgruppen/);
-  assert.doesNotMatch(byLabel.get("ATP")!.sourceText!, /Zwei Phosphatgruppen/);
+  assert.equal(byLabel.get("ATP")!.sourceText, undefined);
+  assert.equal(byLabel.get("Drei Phosphatgruppen.")!.parentId, byLabel.get("Aufbau")!.id);
   summary.html = "<p>Geänderte Fassung</p>";
   assert.match(map.source!.text, /ATP und ADP/);
   assert.equal(map.source!.summaryId, summary.id);
@@ -31,8 +31,8 @@ test("Absätze ohne Überschriften und langer Text verlieren keine Textstellen",
 
 test("manuell bearbeitete Mischformen erhalten freie Texte, div-Absätze und verschachtelte Listen", () => {
   const map = mindMapFromSummary({ ...createLearningSummary("deck", "Manuell", createSummarySettings()), html: "Einleitung.<h2>Thema</h2><div>Erster Absatz.</div>Freier Nachsatz.<ul><li>Punkt eins.<ul><li>Unterpunkt.</li></ul></li><li>Punkt zwei.</li></ul>Ende." });
-  assert.deepEqual(map.nodes.slice(1).map((node) => node.sourceText?.split("\n\n")[0]), ["Einleitung.", "Thema", "Erster Absatz.", "Freier Nachsatz.", "Punkt eins.", "Unterpunkt.", "Punkt zwei.", "Ende."]);
-  assert.match(map.nodes.find((node) => node.label === "Thema")!.sourceText!, /Erster Absatz/);
+  assert.deepEqual(map.nodes.slice(1).map((node) => node.sourceText), ["Einleitung.", undefined, "Erster Absatz.", "Freier Nachsatz.", "Punkt eins.", "Unterpunkt.", "Punkt zwei.", "Ende."]);
+  assert.ok(map.nodes.slice(3).every((node) => node.parentId === map.nodes.find((item) => item.label === "Thema")!.id));
 });
 
 test("freie Graphen erlauben neue Querverbindungen und lösen sie unabhängig von ihrer Richtung", () => {
@@ -417,7 +417,7 @@ test("Fette Stichworte werden Kartentitel, Belegzeilen werden nicht zu Karten", 
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>Zellatmung</h2><ul><li><strong>ATP</strong>: Universeller Energieträger der Zelle.</li></ul><p><small>Grundlage: Biologie · Was ist ATP?</small></p>" };
   const map = mindMapFromSummary(summary);
   assert.deepEqual(map.nodes.map((node) => node.label), ["Energie", "Zellatmung", "ATP"]);
-  assert.equal(map.nodes[2].sourceText, "ATP: Universeller Energieträger der Zelle.");
+  assert.equal(map.nodes[2].sourceText, "Universeller Energieträger der Zelle.");
 });
 
 test("Neu erzeugen erkennt Bearbeitungen und ersetzt nur den erzeugten Baum an seiner Stelle", () => {
@@ -434,4 +434,17 @@ test("Neu erzeugen erkennt Bearbeitungen und ersetzt nur den erzeugten Baum an s
   assert.equal(Object.keys(replaced.sources ?? {}).length, 1);
   assert.equal(replaced.nodes.find((node) => node.label === "Energie")!.x, root.x + 40);
   assert.equal(mindMapSummaryTree(replaced, summary.id)!.edited, false);
+});
+
+test("Absätze werden Abschnittstext, Hinweise keine Äste; Hauptäste verteilt und belegte Querbezüge verbunden", () => {
+  const long = "Die Zellatmung gewinnt aus Glucose Energie und liefert vollständig etwa 30 bis 32 ATP je Glucose.";
+  const base = createLearningSummary("deck", "Energiestoffwechsel", createSummarySettings());
+  const summary = { ...base, html: `<h2>Zellatmung</h2><p>${long}</p><ul><li><strong>Glykolyse</strong>: Im Cytoplasma, 2 ATP.</li></ul><h2>Gärung</h2><ul><li><strong>Hefe</strong>: Ethanol und CO2.</li></ul><h2>Hinweise zum Material</h2><p>Die Reaktionsfolge fehlt.</p>`,
+    generation: { model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: "learning-summary-v3" as const, generatedAt: base.createdAt, materialUnits: 3, relations: [{ from: "Glykolyse", to: "hefe" }, { from: "Unbekannt", to: "Hefe" }] } };
+  const map = mindMapFromSummary(summary), byLabel = new Map(map.nodes.map((node) => [node.label, node]));
+  assert.deepEqual(map.nodes.map((node) => node.label), ["Energiestoffwechsel", "Zellatmung", "Gärung", "Glykolyse", "Hefe"]);
+  assert.equal(byLabel.get("Zellatmung")!.sourceText, long);
+  assert.equal(byLabel.get("Energiestoffwechsel")!.sourceText, undefined);
+  assert.ok(Math.sign(byLabel.get("Zellatmung")!.x) !== Math.sign(byLabel.get("Gärung")!.x));
+  assert.deepEqual(map.edges, [{ from: byLabel.get("Glykolyse")!.id, to: byLabel.get("Hefe")!.id }]);
 });

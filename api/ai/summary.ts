@@ -41,13 +41,14 @@ export function buildSummaryToolPayload(input: AiLearningSummaryRequest) {
       name: "create_learning_summary",
       description: "Erstellt eine materialtreue, gegliederte deutsche Lernzusammenfassung gemäß der gewählten Einstellungen.",
       parameters: {
-        type: "object", additionalProperties: false, required: ["sections", "warnings"],
+        type: "object", additionalProperties: false, required: ["sections", "warnings", "relations"],
         properties: {
           sections: { type: "array", minItems: 1, maxItems: 24, items: {
             type: "object", additionalProperties: false, required: [...required, "subsections"],
             properties: { ...block, subsections: { type: "array", maxItems: 8, items: { type: "object", additionalProperties: false, required, properties: block } } },
           } },
           warnings: { ...strings(600), maxItems: 8 },
+          relations: { type: "array", maxItems: 12, items: { type: "object", additionalProperties: false, required: ["from", "to"], properties: { from: { type: "string", minLength: 1, maxLength: 160 }, to: { type: "string", minLength: 1, maxLength: 160 } } } },
         },
       },
     } }],

@@ -7,9 +7,10 @@ const identifier = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const generationSchema = v.strictObject({
   model: v.pipe(v.string(), v.minLength(1), v.maxLength(200)),
   privacyMode: v.picklist(["zdr", "non_zdr"]),
-  promptVersion: v.picklist(["learning-summary-v1", "learning-summary-v2"]),
+  promptVersion: v.picklist(["learning-summary-v1", "learning-summary-v2", "learning-summary-v3"]),
   generatedAt: v.pipe(v.string(), v.isoTimestamp()),
   materialUnits: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(500)),
+  relations: v.optional(v.pipe(v.array(v.strictObject({ from: v.pipe(v.string(), v.minLength(1), v.maxLength(160)), to: v.pipe(v.string(), v.minLength(1), v.maxLength(160)) })), v.maxLength(12))),
   evidence: v.optional(v.pipe(v.array(v.strictObject({
     heading: v.pipe(v.string(), v.minLength(1), v.maxLength(160)),
     references: v.pipe(v.array(v.strictObject({ label: v.pipe(v.string(), v.minLength(1)), href: v.nullable(v.string()) })), v.minLength(1), v.maxLength(500)),
@@ -26,6 +27,8 @@ const summarySchema = v.strictObject({
   createdAt: v.pipe(v.string(), v.isoTimestamp()), updatedAt: v.pipe(v.string(), v.isoTimestamp()),
 });
 export type LearningSummary = v.InferOutput<typeof summarySchema>;
+/** Heading of the generated notes section; the mind map translator skips it. */
+export const SUMMARY_NOTES_HEADING = "Hinweise zum Material";
 
 export function readLearningSummary(value: unknown): LearningSummary {
   const parsed = v.safeParse(summarySchema, value);

@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-15 — Übersetzung Zusammenfassung → Mindmap (W3b)
+
+- Soll-Ist am Live-Smoke-Beispiel (10 Karten): vorher 17 Mindmap-Karten, davon 4 Absätze mit gekürztem Satztitel, ein Meta-Ast `Hinweise zum Material`, keine Querverbindungen, einseitige Spalte von etwa 1.100 × 2.400 px. Mit dem neuen Übersetzer ergibt dieselbe Ausgabe 12 Karten ohne gekürzte Titel und ohne Meta-Ast, Hauptäste links und rechts, etwa 1.400 × 1.450 px.
+- Prompt `learning-summary-v3` mit optionalen `relations`, eindeutigen Stichworten und Unterabschnitten nur mit neuen Punkten. Live-Smoke mit Luna (10 Karten): `200`, 2.301 Tokens, 0,0005 USD, 4,6 s; 14 Karten, der Unterabschnitt enthält neue Punkte, beide gelieferten Querbezüge wurden Querverbindungen. Eine Relation lag innerhalb desselben Abschnitts, obwohl der Prompt verschiedene Abschnitte verlangt.
+- Übersetzung von 745 Karten (24 Abschnitte à 30 Punkte) in 54 ms.
+
 ## 2026-10-15 — Live-Smoke der strukturierten Zusammenfassung (`f0f2903`)
 
 - `/api/ai/summary` lief lokal gegen OpenRouter mit dem Development-Schlüssel aus Vercel; nur die Supabase-Anmeldung war ersetzt. Material: fiktive Biologie-Karten, keine Nutzerdaten. Der Schlüssel lag nur kurzzeitig außerhalb des Repositories und wurde danach gelöscht.

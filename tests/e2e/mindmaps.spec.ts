@@ -248,7 +248,7 @@ test("Zusammenfassungsquellen und Entwurfsschutz bleiben im neuen Editor erhalte
   await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click();
   await mode(panel, "Hinzufügen"); await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click(); await panel.getByRole("button", { name: "Mindmap erzeugen", exact: true }).click(); await fit(panel);
   await expect(panel.locator(".core-mindmap-hierarchy path")).toHaveCount(6);
-  await node(panel, "Portugal").dblclick(); await node(panel, "Portugal").locator("summary").click();
+  const lisbon = node(panel, "Lissabon ist die Hauptstadt von Portugal."); await lisbon.dblclick(); await lisbon.locator("summary").click();
   await expect(panel.getByTestId("mindmap-source-passage")).toContainText("Lissabon"); await expect(panel.getByTestId("mindmap-source-passage")).not.toContainText("Madrid");
 });
 

@@ -7,40 +7,13 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 
 ## P0: Zusammenfassungen und Mindmaps (W4–W8)
 
-Reihenfolge = Priorität. W0–W3 sind erledigt (gemeinsame KI-Routen, Luna mit
-ZDR, strukturierte Zusammenfassung, Mindmap daraus erzeugen und ersetzen).
+Reihenfolge = Priorität. W0–W3b sind erledigt (gemeinsame KI-Routen, Luna mit
+ZDR, strukturierte Zusammenfassung, Mindmap daraus erzeugen, ersetzen und
+sauber übersetzen).
 Entscheidungen vom 2026-10-15: Zonen ohne Umwandlung entfernen (E1), Verknüpfen
 per Enter/Leertaste (E2), Kopieren/Einfügen jetzt (E3), eigener Bildspeicher
 (E4), `Neu erzeugen` ersetzt die Fassung (E5).
 
-- [ ] **W3b Übersetzung Zusammenfassung → Mindmap verbessern** (Soll-Ist aus dem
-      Live-Smoke vom 2026-10-15: 10 Karten → 17 Mindmap-Karten)
-      - Ist: 4 von 17 Karten sind Absätze mit abgeschnittenem Satz als Titel;
-        `Hinweise zum Material` wird ein Fachast; ein Unterabschnitt wiederholt
-        nur Gesagtes; keine Querverbindungen; alle Karten einseitig in einer
-        Spalte (etwa 1.100 × 2.400 px), Hauptäste nicht verteilt; die
-        Wurzelquelle enthält die ganze Zusammenfassung, Abschnittsquellen
-        duplizieren ihre Absätze.
-      - Soll: Wurzel = Thema, Hauptäste = Abschnitte, Unteräste =
-        Unterabschnitte, Blätter = Begriffe; jeder Titel ist ein Begriff, nie
-        ein gekürzter Satz; Erklärtext steckt in der Karte; keine Meta-Äste;
-        fachliche Querbezüge als Querverbindungen; ausgewogenes, kompaktes
-        Layout; Belege bleiben erreichbar.
-      - Übersetzer: Absätze werden Quelltext der Abschnittskarte statt eigener
-        Karten; Stichpunkte bleiben Karten mit Stichwort-Titel; Hinweise und
-        Belegzeilen erzeugen keine Äste; Wurzel und Abschnitte speichern nur
-        ihren eigenen Text.
-      - Layout über dieselbe Platzierung wie manuell angelegte Karten:
-        Hauptäste abwechselnd rechts und links, Kinder gestapelt, kollisionsarm.
-      - Werkzeugvertrag `create_learning_summary` (Prompt v3): optionale
-        `relations` (höchstens 12 Paare Stichwort → Stichwort), gespeichert in
-        den Generierungsmetadaten; der Übersetzer legt daraus Querverbindungen
-        an, wenn beide Stichworte in der Map vorkommen. Prompt: Unterabschnitte
-        nur mit neuen Punkten, Stichworte je Fassung eindeutig, höchstens zwei
-        Absätze je Abschnitt.
-      - Nachweis: Unit-Tests am Smoke-Beispiel (keine gekürzten Satztitel,
-        keine Meta-Äste, Seitenverteilung, Querverbindungen) und erneuter
-        Live-Smoke mit Luna.
 - [ ] **W4 Mindmap-Bedienung, Barrierefreiheit und Spec**
       - Zonen entfernen: Code, UI, Tests und Spec-Teil; gespeicherte
         Zonenfelder beim Lesen ignorieren, Karten bleiben an ihrer Stelle, kein

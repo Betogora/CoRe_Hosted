@@ -17,7 +17,7 @@ const child = createCoreDeck({ id: "child", name: "Chemie", parentDeckId: "root"
 const source: TransientSourceDocument = { id: "local-source", fileName: "Skript.pdf", mimeType: "application/pdf", text: "ATP ist ein Energieträger.", textExtractionStatus: "success", metadata: { pages: [{ pageNumber: 1, text: "ATP ist ein Energieträger.", textItemCount: 4 }, { pageNumber: 2, text: "Kein Textlayer gefunden.", textItemCount: 0 }] } };
 const defaults = createSummarySettings();
 const prepared = prepareSummaryMaterial([root], notes, root.id, "Überblick", defaults);
-const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"], subsections: [] }], warnings: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
+const generated: AiLearningSummarySuccess = { summary: { sections: [{ heading: "Energie", paragraphs: ["ATP ist ein Energieträger."], points: [], references: ["m1"], subsections: [] }], warnings: [], relations: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr" as const, promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
 
 test("Auswahl bestimmt den Stapelbaum; gleiche Inhalte und Lernmetadaten werden nicht mehrfach gesendet", () => {
   assert.deepEqual(summaryScopeDeckIds([root, child], "root", "deck"), ["root"]);
@@ -138,7 +138,7 @@ test("Ein zu großer Bereich bricht schon beim Laden ab, bevor die KI angefragt 
 });
 
 test("Stichworte und Unterabschnitte werden zu fetten Präfixen und h3-Überschriften", () => {
-  const html = generatedSummaryHtml({ ...generated, summary: { sections: [{ heading: "Energie", paragraphs: [], points: [{ keyword: "ATP", text: "Energieträger der Zelle." }], references: ["m1"], subsections: [{ heading: "Speicher", paragraphs: ["Bindungen speichern Energie."], points: [], references: ["m1"] }] }], warnings: [] } }, prepared);
+  const html = generatedSummaryHtml({ ...generated, summary: { sections: [{ heading: "Energie", paragraphs: [], points: [{ keyword: "ATP", text: "Energieträger der Zelle." }], references: ["m1"], subsections: [{ heading: "Speicher", paragraphs: ["Bindungen speichern Energie."], points: [], references: ["m1"] }] }], warnings: [], relations: [] } }, prepared);
   assert.match(html, /<h2>Energie<\/h2><ul><li><strong>ATP<\/strong>: Energieträger der Zelle.<\/li><\/ul>/);
   assert.match(html, /<h3>Speicher<\/h3><p>Bindungen speichern Energie.<\/p>/);
 });

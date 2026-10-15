@@ -41,7 +41,7 @@ test("Route prüft Anmeldung vor Providerzugriff, protokolliert Kosten ohne Inha
   } });
   const result = res(); await handler(req(), result);
   assert.equal(result.statusCode, 200); assert.equal(result.headers.get("cache-control"), "private, no-store");
-  assert.equal(result.headers.get("x-core-prompt-version"), "learning-summary-v2"); assert.doesNotMatch(result.body, /server-only-secret|session-test/);
+  assert.equal(result.headers.get("x-core-prompt-version"), "learning-summary-v3"); assert.doesNotMatch(result.body, /server-only-secret|session-test/);
   assert.deepEqual(calls, [OPENROUTER_CHAT_ENDPOINT]);
   assert.equal(logs.length, 1); const { latencyMs, ...entry } = logs[0] as Record<string, unknown>;
   assert.equal(typeof latencyMs, "number"); assert.deepEqual(entry, { event: "ai_learning_summary", outcome: "ok", status: 200, model: OPENROUTER_MODEL, totalTokens: 1200, costUsd: 0.0004 });
