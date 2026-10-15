@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
 
 test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt und unabhängig erhalten", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>ATP</h2><p>ATP und ADP sind Energieträger.</p><h3>Aufbau</h3><ul><li>Drei Phosphatgruppen.</li></ul><h2>ADP</h2><p>Zwei Phosphatgruppen.</p>" };
@@ -426,3 +426,16 @@ test("Größengrenzen werden mit Grenze und aktuellem Wert gemeldet, beim Lesen 
   const { map, a } = tree();
   assert.throws(() => readLearningMindMap({ ...map, edges: new Array(10_001).fill({ from: a.id, to: a.id }) }), /10.000 Querverbindungen/);
 });
+
+test("Klammerbereich lässt sich per Tastatur um je eine Geschwisterkarte vergrößern und verkleinern", () => {
+  const { map, root } = tree();
+  const third = addMindMapRelativeNode(map, root.id, "child").map;
+  const siblings = third.nodes.filter((node) => node.parentId === root.id).sort((a, b) => a.y - b.y);
+  const bracket = createMindMapSummary(third, [siblings[0].id, siblings[1].id]);
+  const grown = stepMindMapSummary(bracket.map, bracket.id, 1);
+  assert.equal(grown.summaries[0].nodeIds.length, bracket.map.summaries[0].nodeIds.length + 1);
+  assert.deepEqual(stepMindMapSummary(grown, bracket.id, -1).summaries[0].nodeIds, bracket.map.summaries[0].nodeIds);
+  const single = stepMindMapSummary(stepMindMapSummary(bracket.map, bracket.id, -1), bracket.id, -1);
+  assert.equal(single.summaries[0].nodeIds.length, 1);
+});
+

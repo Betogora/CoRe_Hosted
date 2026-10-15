@@ -1,10 +1,10 @@
 import React from "react";
-import { Check, Copy, Eraser, FileText, ImagePlus, Sparkles, Image as ImageIcon, Link2, Maximize, Minus, MousePointer2, Network, Palette, Pencil, Plus, Redo2, Scan, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
+import { Check, Copy, Eraser, FileText, Maximize2, Minimize2, ImagePlus, Sparkles, Image as ImageIcon, Link2, Maximize, Minus, MousePointer2, Network, Palette, Pencil, Plus, Redo2, Scan, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary, summaryChoices, type LearningSummary, type SummarySettings } from "../learningSummaries.ts";
-import { MIND_MAP_LIMITS, addMindMapFromSummary, addMindMapRelativeNode, connectMindMapElements, copyMindMapNodes, createMindMapBoundary, createMindMapSummary, editMindMapNode, loadInfinityMindMap, mindMapBounds, mindMapBoundaryRect, mindMapColors, mindMapLimitError, mindMapNeighbor, mindMapNodeColor, mindMapNodeDirection, mindMapNodeRect, mindMapNodeSource, mindMapSummaryRect, mindMapSummaryTree, moveMindMapElement, pasteMindMapNodes, readMindMapImages, removeMindMapElement, replaceMindMapFromSummary, resizeMindMapSummary, saveLearningMindMap, type LearningMindMap, type MindMapClipboard, type MindMapColor, type MindMapElementKind, type MindMapNode, type MindMapPoint, type MindMapRect } from "../learningMindMaps.ts";
+import { MIND_MAP_LIMITS, addMindMapFromSummary, addMindMapRelativeNode, connectMindMapElements, copyMindMapNodes, createMindMapBoundary, createMindMapSummary, editMindMapNode, loadInfinityMindMap, mindMapBounds, mindMapBoundaryRect, mindMapColors, mindMapLimitError, mindMapNeighbor, mindMapNodeColor, mindMapNodeDirection, mindMapNodeRect, mindMapNodeSource, mindMapSummaryRect, mindMapSummaryTree, moveMindMapElement, pasteMindMapNodes, readMindMapImages, stepMindMapSummary, removeMindMapElement, replaceMindMapFromSummary, resizeMindMapSummary, saveLearningMindMap, type LearningMindMap, type MindMapClipboard, type MindMapColor, type MindMapElementKind, type MindMapNode, type MindMapPoint, type MindMapRect } from "../learningMindMaps.ts";
 import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, SoftPanel } from "../ui/coreUi.tsx";
@@ -73,6 +73,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   const [createFromSummary, setCreateFromSummary] = React.useState(false), [sourceOpen, setSourceOpen] = React.useState(false);
   const [toolbarHost, setToolbarHost] = React.useState<HTMLDivElement | null>(null);
   const [canvasSize, setCanvasSize] = React.useState({ width: 0, height: 0 });
+  const [fullscreen, setFullscreen] = React.useState(false), tapRef = React.useRef<{ id: string; time: number; x: number; y: number } | null>(null), pinchRef = React.useRef<{ start: number; mid: MindMapPoint; viewport: Viewport } | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false), clipboardRef = React.useRef<MindMapClipboard | null>(null), textSessionRef = React.useRef<string | null>(null);
   const toolsRef = React.useRef<HTMLDivElement>(null), canvasRef = React.useRef<HTMLDivElement>(null), gestureRef = React.useRef<Gesture | null>(null), suppressClick = React.useRef(false);
   const dirty = draft !== null && draft !== saved;
@@ -126,11 +127,29 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   function editText(id: string, patch: Partial<MindMapNode>) { const first = textSessionRef.current !== id; textSessionRef.current = id; update(editMindMapNode(draftRef.current!, id, patch), first); }
   function duplicateSelected() { const current = draftRef.current; if (!current || selection.kind !== "node" || !selection.ids.length) return; paste(copyMindMapNodes(current, selection.ids)); }
   function paste(clipboard: MindMapClipboard) { run(() => { const r = pasteMindMapNodes(draftRef.current!, clipboard); update(r.map); setSelection({ kind: "node", ids: r.ids }); setEditing(null); setExpanded(null); }); }
+  /** Touch has no reliable dblclick or contextmenu (iOS), so double tap and long press are recognised here. */
+  function handleTap(e: React.PointerEvent, id: string) {
+    if (e.pointerType === "mouse") return;
+    const last = tapRef.current;
+    if (last && last.id === id && e.timeStamp - last.time < 300 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 10) {
+      tapRef.current = null;
+      if (editing !== id) beginEdit(id, draftRef.current?.nodes.find((n) => n.id === id)?.kind !== "keyword");
+    } else tapRef.current = { id, time: e.timeStamp, x: e.clientX, y: e.clientY };
+  }
+  function startLongPress(e: React.PointerEvent, id: string) {
+    if (e.pointerType === "mouse") return;
+    const start = { x: e.clientX, y: e.clientY };
+    let moved = false;
+    const move = (event: PointerEvent) => { if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 10) moved = true; };
+    const end = () => { window.clearTimeout(timer); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); window.removeEventListener("pointercancel", end); };
+    const timer = window.setTimeout(() => { end(); if (moved || pinchRef.current) return; select("node", id); setMode("add"); suppressClick.current = true; }, 500);
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", end); window.addEventListener("pointercancel", end);
+  }
   function focusNode(id: string) {
     const n = draftRef.current?.nodes.find((item) => item.id === id), canvas = canvasRef.current; if (!n || !canvas) return;
     const v = viewportRef.current, r = mindMapNodeRect(n), left = r.x * v.zoom + v.x, top = r.y * v.zoom + v.y;
     if (left < 0 || top < 0 || left + r.width * v.zoom > canvas.clientWidth || top + r.height * v.zoom > canvas.clientHeight) setViewport({ ...v, x: canvas.clientWidth / 2 - (r.x + r.width / 2) * v.zoom, y: canvas.clientHeight / 2 - (r.y + r.height / 2) * v.zoom });
-    requestAnimationFrame(() => canvas.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"]`)?.focus({ preventScroll: true }));
+    requestAnimationFrame(() => canvas.querySelector<HTMLElement>(`[data-node-id="${CSS.escape(id)}"] > .core-mindmap-node-select`)?.focus({ preventScroll: true }));
   }
   function editBoundary(patch: Partial<NonNullable<typeof boundary>>) { if (draftRef.current) update({ ...draftRef.current, boundaries: draftRef.current.boundaries.map((n) => n.id === primary ? { ...n, ...patch } : n) }); }
   function travel(direction: "past" | "future") { const items = history[direction], next = items.at(-1), current = draftRef.current; if (!next || !current) return; const other = direction === "past" ? "future" : "past"; setHistory({ ...history, [direction]: items.slice(0, -1), [other]: [...history[other], current] }); update(next, false); setEditing(null); setLinkFrom(null); }
@@ -190,6 +209,30 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   }, [editing, editPart]);
   function zoomAt(factor: number, anchor?: MindMapPoint) { const canvas = canvasRef.current; if (!canvas) return; setViewport((v) => { const zoom = Math.min(3, Math.max(0.001, v.zoom * factor)), x = anchor?.x ?? canvas.clientWidth / 2, y = anchor?.y ?? canvas.clientHeight / 2; return { zoom, x: x - (x - v.x) * zoom / v.zoom, y: y - (y - v.y) * zoom / v.zoom }; }); }
   React.useEffect(() => { const canvas = canvasRef.current; if (!canvas || !draft) return; const wheel = (e: WheelEvent) => { if (!e.ctrlKey && !e.metaKey && (e.target as HTMLElement).closest(".rich-text-field,.core-mindmap-note-text,.core-mindmap-inline-source")) return; e.preventDefault(); const r = canvas.getBoundingClientRect(); if (e.ctrlKey || e.metaKey) zoomAt(Math.exp(-e.deltaY * 0.005), { x: e.clientX - r.left, y: e.clientY - r.top }); else setViewport((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY })); }; canvas.addEventListener("wheel", wheel, { passive: false }); return () => canvas.removeEventListener("wheel", wheel); }, [loading, draft?.id]);
+  React.useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas || !draft) return;
+    const touches = new Map<number, MindMapPoint>();
+    const metrics = () => { const [a, b] = [...touches.values()], r = canvas.getBoundingClientRect(); return { distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), mid: { x: (a.x + b.x) / 2 - r.left, y: (a.y + b.y) / 2 - r.top } }; };
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== "touch") return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touches.size !== 2) return;
+      const g = gestureRef.current;
+      if (g) { gestureRef.current = null; if (g.moved && (g.target || g.resize)) update(g.before, false); setInk([]); }
+      const { distance, mid } = metrics(); pinchRef.current = { start: distance, mid, viewport: viewportRef.current }; suppressClick.current = true;
+    };
+    const move = (e: PointerEvent) => {
+      if (!touches.has(e.pointerId)) return;
+      touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const p = pinchRef.current; if (!p || touches.size < 2) return;
+      const { distance, mid } = metrics(), zoom = Math.min(3, Math.max(0.05, p.viewport.zoom * distance / p.start));
+      const world = { x: (p.mid.x - p.viewport.x) / p.viewport.zoom, y: (p.mid.y - p.viewport.y) / p.viewport.zoom };
+      setViewport({ zoom, x: mid.x - world.x * zoom, y: mid.y - world.y * zoom });
+    };
+    const up = (e: PointerEvent) => { touches.delete(e.pointerId); if (touches.size < 2) pinchRef.current = null; };
+    canvas.addEventListener("pointerdown", down, true); canvas.addEventListener("pointermove", move, true); canvas.addEventListener("pointerup", up, true); canvas.addEventListener("pointercancel", up, true);
+    return () => { canvas.removeEventListener("pointerdown", down, true); canvas.removeEventListener("pointermove", move, true); canvas.removeEventListener("pointerup", up, true); canvas.removeEventListener("pointercancel", up, true); };
+  }, [loading, draft?.id]);
   function worldPoint(client: MindMapPoint) { const r = canvasRef.current!.getBoundingClientRect(), v = viewportRef.current; return { x: (client.x - r.left - v.x) / v.zoom, y: (client.y - r.top - v.y) / v.zoom }; }
   function centerPoint() { const c = canvasRef.current!, v = viewportRef.current; return { x: (c.clientWidth / 2 - v.x) / v.zoom - 110, y: (c.clientHeight / 2 - v.y) / v.zoom - 44 }; }
   function beginEdit(id: string, text = false) { editStartedRef.current = performance.now(); setMultipleSelection(false); setEditPart(text || draftRef.current?.nodes.find((n) => n.id === id)?.kind === "freeText" ? "text" : "title"); setSelection({ kind: "node", ids: [id] }); setMode("edit"); setEditing(id); setExpanded(id); setConnecting(false); setSourceOpen(false); }
@@ -202,7 +245,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
     if (editing !== id) setEditing(null); if (expanded !== id) setExpanded(null); setSourceOpen(false);
   }
   function startGesture(event: React.PointerEvent, target?: Gesture["target"], resize?: Gesture["resize"]) {
-    if (event.button !== 0 || gestureRef.current || !draftRef.current || event.shiftKey || event.ctrlKey || event.metaKey) return;
+    if (event.button !== 0 || gestureRef.current || pinchRef.current || !draftRef.current || event.shiftKey || event.ctrlKey || event.metaKey) return;
     event.stopPropagation(); suppressClick.current = false;
     if (target?.kind === "node" && (selection.kind !== "node" || !selection.ids.includes(target.id))) return;
     if (!target && editing && performance.now() - editStartedRef.current < 500) { event.preventDefault(); return; }
@@ -224,6 +267,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   }
   function finishGesture(event: React.PointerEvent, cancelled = false) {
     const g = gestureRef.current; if (!g || g.pointer !== event.pointerId) return; gestureRef.current = null; suppressClick.current = g.moved;
+    if (!cancelled && !g.moved && g.target?.kind === "node") handleTap(event, g.target.id);
     if (cancelled) { update(g.before, false); setViewport(g.viewport); setInk([]); return; }
     if (g.points) {
       if (g.points.length === 1) g.points.push({ x: g.points[0].x + 0.01, y: g.points[0].y });
@@ -256,6 +300,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
       e.stopPropagation();
       if (editing) { const id = editing; setEditing(null); setExpanded(null); focusNode(id); }
       else if (selection.ids.length || expanded) { setSelection({ kind: "node", ids: [] }); setExpanded(null); }
+      else if (fullscreen) setFullscreen(false);
       else { setMode("idle"); setConnecting(false); setLinkFrom(null); }
       return;
     }
@@ -274,6 +319,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
     else if (key.startsWith("Arrow")) {
       handled();
       const [dx, dy] = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[key as "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown"];
+      if (e.altKey && e.shiftKey && selection.kind === "summary" && primary && dy) { update(stepMindMapSummary(current, primary, dy > 0 ? 1 : -1)); return; }
       if (e.altKey && selection.ids.length) { const step = e.shiftKey ? 100 : 20; update(selection.ids.reduce((map, id) => moveMindMapElement(map, selection.kind, id, { x: dx * step, y: dy * step }), current)); return; }
       const from = focused ?? (selection.kind === "node" ? primary : undefined);
       if (from) { const id = mindMapNeighbor(current, from, key as "ArrowLeft" | "ArrowRight" | "ArrowUp" | "ArrowDown"); if (id) { setSelection({ kind: "node", ids: [id] }); focusNode(id); } }
@@ -311,7 +357,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   const nodeById = new Map(draft.nodes.map((n) => [n.id, n]));
   const endpoint = (id: string): { id: string; rect: MindMapRect } | undefined => { const n = nodeById.get(id); return n ? { id: n.id, rect: mindMapNodeRect(n, n.id === editing || n.id === expanded) } : undefined; };
   const selectedSummary = summaries.find((s) => s.id === summaryId), selectedTree = createFromSummary && selectedSummary ? mindMapSummaryTree(draft, selectedSummary.id) : null;
-  return <section className="core-mindmap-panel min-w-0" data-testid="deck-mindmaps-panel" aria-label="Mindmaps" aria-busy={busy || readingImages}>
+  return <section className={`core-mindmap-panel min-w-0${fullscreen ? " is-fullscreen" : ""}`} data-testid="deck-mindmaps-panel" aria-label="Mindmaps" aria-busy={busy || readingImages}>
     {error && <div className="grid gap-2"><StatusMessage tone="error" announce="assertive">{error}</StatusMessage>{saveFailed && <ActionButton variant="secondary" onClick={() => { setError(""); void persist(); }}>Erneut speichern</ActionButton>}</div>}
     {readingImages && <StatusMessage tone="info" announce="polite">Bilder werden geladen …</StatusMessage>}
     <div className="grid min-w-0 gap-3" inert={readingImages}>
@@ -331,7 +377,8 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
             {ink.length > 0 && <polyline className="core-mindmap-ink-preview" style={{ stroke: inkColor(penColor), strokeWidth: penWidth }} points={ink.map((p) => `${p.x},${p.y}`).join(" ")}/>}
           </svg>
           {draft.summaries.map((item) => { const r = mindMapSummaryRect(draft, item), target = endpoint(item.nodeId); if (!target) return null; const x = item.side === "right" ? r.x + r.width + 16 : r.x - 16, sign = item.side === "right" ? -1 : 1, cy = r.y + r.height / 2, selected = selection.kind === "summary" && primary === item.id; return <div key={item.id} className={`core-mindmap-summary${selected ? " is-selected" : ""}`} data-testid="mindmap-summary"><svg className="core-mindmap-lines"><path className="core-mindmap-summary-line" d={`M ${x} ${r.y} C ${x - sign * 24} ${r.y}, ${x - sign * 24} ${r.y + r.height}, ${x} ${r.y + r.height} M ${x - sign * 18} ${cy} L ${item.side === "right" ? target.rect.x : target.rect.x + target.rect.width} ${target.rect.y + target.rect.height / 2}`} onPointerDown={(e) => { e.stopPropagation(); select("summary", item.id); setMode("edit"); }}/></svg><button type="button" className="core-mindmap-summary-select rounded-control" style={{ left: x - sign * 18 - 20, top: cy - 20 }} aria-label="Zusammenfassung auswählen" onPointerDown={(e) => e.stopPropagation()} onClick={() => { select("summary", item.id); setMode("edit"); }}><Network size={16}/></button>{selected && (["start", "end"] as const).map((end) => <button key={end} type="button" className="core-mindmap-summary-handle rounded-round" aria-label={`Zusammenfassung ${end === "start" ? "oben" : "unten"} erweitern`} style={{ left: x - 12, top: (end === "start" ? r.y : r.y + r.height) - 12 }} onPointerDown={(e) => startGesture(e, { kind: "summary", id: item.id }, { kind: "summary", id: item.id, end })}/> )}</div>; })}
-          {draft.nodes.map((item) => { const selected = selection.kind === "node" && selection.ids.includes(item.id), isEditing = item.id === editing, isExpanded = isEditing || expanded === item.id, r = mindMapNodeRect(item, isExpanded), source = mindMapNodeSource(draft, item), direction = mindMapNodeDirection(item, item.parentId ? nodeById.get(item.parentId) : undefined); return <div key={item.id} role="button" tabIndex={0} className={`core-mindmap-node rounded-control shadow-soft${item.kind === "freeText" ? " is-free-text" : item.kind === "text" ? " is-text" : " is-keyword"}${selected ? " is-selected" : ""}${isExpanded ? " is-expanded" : ""}${isEditing ? " is-editing" : ""}${linkFrom === item.id ? " is-link-source" : ""}`} style={{ ...nodeStyle(draft, item), left: item.x, top: item.y, width: r.width, height: r.height }} data-testid={item.kind === "freeText" ? "mindmap-free-text" : "mindmap-node"} data-node-id={item.id} data-color={mindMapNodeColor(draft, item).color} aria-label={`${item.kind === "freeText" ? "Freier Text" : item.kind === "keyword" ? "Stichwort" : "Textkarte"} „${item.label}“ auswählen`} aria-pressed={selected} onPointerDown={(e) => startGesture(e, { kind: "node", id: item.id })} onClick={(e) => select("node", item.id, e.shiftKey || e.ctrlKey || e.metaKey)} onDoubleClick={(e) => { e.stopPropagation(); if (!isEditing) beginEdit(item.id, item.kind !== "keyword" && !(e.target as HTMLElement).closest(".core-mindmap-node-label")); }} onContextMenu={(e) => { e.preventDefault(); select("node", item.id); setMode("add"); }}>
+          {draft.nodes.map((item) => { const selected = selection.kind === "node" && selection.ids.includes(item.id), isEditing = item.id === editing, isExpanded = isEditing || expanded === item.id, r = mindMapNodeRect(item, isExpanded), source = mindMapNodeSource(draft, item), direction = mindMapNodeDirection(item, item.parentId ? nodeById.get(item.parentId) : undefined), kindName = item.kind === "freeText" ? "Freier Text" : item.kind === "keyword" ? "Stichwort" : "Textkarte"; return <div key={item.id} role="group" className={`core-mindmap-node rounded-control shadow-soft${item.kind === "freeText" ? " is-free-text" : item.kind === "text" ? " is-text" : " is-keyword"}${selected ? " is-selected" : ""}${isExpanded ? " is-expanded" : ""}${isEditing ? " is-editing" : ""}${linkFrom === item.id ? " is-link-source" : ""}`} style={{ ...nodeStyle(draft, item), left: item.x, top: item.y, width: r.width, height: r.height }} data-testid={item.kind === "freeText" ? "mindmap-free-text" : "mindmap-node"} data-node-id={item.id} data-color={mindMapNodeColor(draft, item).color} aria-label={`${kindName} „${item.label}“`} onPointerDown={(e) => { startLongPress(e, item.id); startGesture(e, { kind: "node", id: item.id }); }} onPointerUp={(e) => handleTap(e, item.id)} onClick={(e) => { select("node", item.id, e.shiftKey || e.ctrlKey || e.metaKey); if (!(e.target as HTMLElement).closest("input,textarea,[contenteditable='true'],a,button:not(.core-mindmap-node-select)")) e.currentTarget.querySelector<HTMLElement>(":scope > .core-mindmap-node-select")?.focus({ preventScroll: true }); }} onDoubleClick={(e) => { e.stopPropagation(); if (!isEditing) beginEdit(item.id, item.kind !== "keyword" && !(e.target as HTMLElement).closest(".core-mindmap-node-label")); }} onContextMenu={(e) => { e.preventDefault(); select("node", item.id); setMode("add"); }}>
+            <button type="button" className="core-mindmap-node-select" aria-label={`${kindName} „${item.label}“ auswählen`} aria-pressed={selected}/>
             {isEditing ? <div className="core-mindmap-inline-editor" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>{item.kind !== "freeText" && <input className="core-mindmap-inline-title" aria-label="Kartentitel bearbeiten" maxLength={120} value={item.label} onPointerDown={(e) => { if (hasDefaultTitle(item)) { e.preventDefault(); e.currentTarget.focus(); e.currentTarget.select(); } }} onClick={(e) => { if (hasDefaultTitle(item)) { e.preventDefault(); e.currentTarget.select(); } }} onChange={(e) => editText(item.id, { label: e.target.value })}/>}<RichTextEditor value={item.html ?? textToCardHtml(item.text)} ariaLabel={item.kind === "freeText" ? "Text auf der Fläche bearbeiten" : "Kartentext bearbeiten"} isActive showAllTools toolbarHost={toolbarHost} minHeightClass="min-h-32" onChange={(html) => editText(item.id, { html })}/></div> : <>{item.kind !== "freeText" && <span className="core-mindmap-node-label core-body" onPointerDown={(e) => { if (hasDefaultTitle(item) && !connecting && !multipleSelection && !e.shiftKey && !e.ctrlKey && !e.metaKey) e.stopPropagation(); }} onClick={(e) => { if (hasDefaultTitle(item) && !connecting && !multipleSelection && !e.shiftKey && !e.ctrlKey && !e.metaKey) { e.stopPropagation(); beginEdit(item.id); } }}>{item.label || "Ohne Titel"}</span>}{item.kind === "keyword" && <span className="core-mindmap-node-icons text-core-muted">{Boolean(item.text.trim() || item.sourceText?.trim()) && <button type="button" aria-label="Text anzeigen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); select("node", item.id); setExpanded(expanded === item.id ? null : item.id); }}><FileText size={16}/></button>}{Boolean(item.images?.length) && <button type="button" aria-label="Bilder anzeigen" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); select("node", item.id); setExpanded(expanded === item.id ? null : item.id); }}><ImageIcon size={16}/></button>}</span>}{(item.kind !== "keyword" || isExpanded) && <div className="core-mindmap-note-text core-body" dangerouslySetInnerHTML={{ __html: item.html ?? textToCardHtml(item.text) }}/>}</>}
             {(item.kind === "text" || isExpanded) && Boolean(item.images?.length) && <div className="core-mindmap-node-images">{item.images!.map((image) => <div key={image.id} className="relative"><img src={image.dataUrl} alt={image.name} draggable={false}/>{isEditing && <button type="button" className="core-mindmap-image-remove rounded-round" aria-label={`Bild „${image.name}“ entfernen`} onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); update(editMindMapNode(draftRef.current!, item.id, { images: item.images!.filter((n) => n.id !== image.id) })); }}><X size={14}/></button>}</div>)}</div>}
             {isExpanded && source && item.sourceText !== undefined && <details className="core-mindmap-inline-source" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}><summary>Text aus der Zusammenfassung</summary><p data-testid="mindmap-source-passage">{item.sourceText}</p><button type="button" onClick={() => setSourceOpen(!sourceOpen)}>Quelle: {source.title}</button>{sourceOpen && <div><p>Gespeicherte Fassung vom {new Date(source.updatedAt).toLocaleDateString("de-DE")}</p>{source.text}</div>}</details>}
@@ -339,7 +386,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
           </div>; })}
         </div>
         {!draft.nodes.length && !draft.strokes.length && <div className="core-mindmap-empty" onPointerDown={(e) => e.stopPropagation()}><Network size={32}/><p className="core-body-large">Deine Infinity Map</p><ActionButton variant="secondary" icon={Plus} onClick={() => addNode("root")}>Erstes Thema</ActionButton></div>}
-        <div className="core-mindmap-zoom rounded-control border border-core-border bg-core-surface shadow-soft" onPointerDown={(e) => e.stopPropagation()}><CoreTooltip label="Verkleinern · −"><IconButton icon={Minus} label="Verkleinern" aria-keyshortcuts="-" onClick={() => zoomAt(1 / 1.2)}/></CoreTooltip><span className="core-caption tabular-nums">{Math.round(viewport.zoom * 100)} %</span><CoreTooltip label="Vergrößern · +"><IconButton icon={Plus} label="Vergrößern" aria-keyshortcuts="+" onClick={() => zoomAt(1.2)}/></CoreTooltip><CoreTooltip label="Alles anzeigen · ⇧+1"><IconButton icon={Maximize} label="Alles anzeigen" aria-keyshortcuts="Shift+1" onClick={() => { setEditing(null); setExpanded(null); fit(); }}/></CoreTooltip></div>
+        <div className="core-mindmap-zoom rounded-control border border-core-border bg-core-surface shadow-soft" onPointerDown={(e) => e.stopPropagation()}><CoreTooltip label="Verkleinern · −"><IconButton icon={Minus} label="Verkleinern" aria-keyshortcuts="-" onClick={() => zoomAt(1 / 1.2)}/></CoreTooltip><span className="core-caption tabular-nums">{Math.round(viewport.zoom * 100)} %</span><CoreTooltip label="Vergrößern · +"><IconButton icon={Plus} label="Vergrößern" aria-keyshortcuts="+" onClick={() => zoomAt(1.2)}/></CoreTooltip><CoreTooltip label="Alles anzeigen · ⇧+1"><IconButton icon={Maximize} label="Alles anzeigen" aria-keyshortcuts="Shift+1" onClick={() => { setEditing(null); setExpanded(null); fit(); }}/></CoreTooltip><IconButton className="core-mindmap-fullscreen-toggle" icon={fullscreen ? Minimize2 : Maximize2} label={fullscreen ? "Vollbild beenden" : "Vollbild"} aria-pressed={fullscreen} onClick={() => setFullscreen(!fullscreen)}/></div>
       </div>
       {notice && <p className="sr-only" role="status">{notice}</p>}
     </div>

@@ -344,6 +344,16 @@ export function resizeMindMapSummary(map: LearningMindMap, id: string, end: "sta
   return { ...map, summaries: map.summaries.map((item) => item.id === id ? { ...item, nodeIds } : item) };
 }
 
+/** Keyboard alternative to the bracket handles: grows (1) or shrinks (−1) the range by one sibling at its lower end. */
+export function stepMindMapSummary(map: LearningMindMap, id: string, step: 1 | -1): LearningMindMap {
+  const summary = map.summaries.find((item) => item.id === id), first = summary && map.nodes.find((node) => node.id === summary.nodeIds[0]);
+  if (!summary || !first) return map;
+  const siblings = map.nodes.filter((node) => node.kind !== "freeText" && node.id !== summary.nodeId && node.parentId === first.parentId).sort((a, b) => a.y - b.y || a.x - b.x);
+  const start = siblings.findIndex((node) => node.id === summary.nodeIds[0]), end = siblings.findIndex((node) => node.id === summary.nodeIds.at(-1));
+  const last = Math.min(siblings.length - 1, Math.max(start, end + step));
+  return { ...map, summaries: map.summaries.map((item) => item.id === id ? { ...item, nodeIds: siblings.slice(start, last + 1).map((node) => node.id) } : item) };
+}
+
 export function createMindMapBoundary(map: LearningMindMap, nodeIds: string[]): { map: LearningMindMap; id: string } {
   const ids = [...new Set(nodeIds)].filter((key) => map.nodes.some((node) => node.id === key));
   if (!ids.length) throw new Error("Wähle zuerst die Knoten für die Umrandung.");

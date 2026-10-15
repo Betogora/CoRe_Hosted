@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-16 — Mindmap: Barrierefreiheit und Touch (W4c)
+
+- Karten sind benannte Gruppen mit einem flächigen Auswahl-Button hinter dem Inhalt; Plus-, Anzeige- und Bildaktionen und der Editor sind keine verschachtelten Bedienelemente mehr.
+- Eigene Erkennung für Doppeltippen (bearbeiten) und Langdrücken (wählen und `Hinzufügen`, entschieden als C2), Zwei-Finger-Zoom um den Mittelpunkt; ein zweiter Finger setzt ein laufendes Ziehen zurück. Klammer-Auswahl bei Touch dauerhaft sichtbar.
+- Handy-Fläche höchstens 60 % der Bildschirmhöhe, `Vollbild` mit Werkzeugen, Escape beendet es (C1). Klammerbereich per Alt+⇧+↑/↓.
+- Nachweis: Unit-Test für den Klammerbereich, E2E mit simulierten Touch-Ereignissen für Doppeltippen, Langdrücken, Zwei-Finger-Zoom und Vollbild. Screenreader und echte Geräte bleiben offene Gerätenachweise.
+
 ## 2026-10-15 — Mindmap: Tastatur und Bearbeiten (W4b)
 
 - Zentraler Tastatur-Handler auf der Fläche: Pfeiltasten wechseln zwischen Karten, Alt+Pfeil verschiebt, Escape beendet die Bearbeitung auch aus Textfeldern, dazu Enter/F2, Strg/⌘+Enter, ⇧+Enter, Entf, Strg/⌘+C/V/D/Z/Y/A, +/−/0, ⇧+1 und `?` für eine Kürzelübersicht. Verknüpfen per Enter/Leertaste. Tooltips der Buttons nennen ihr Kürzel, `aria-keyshortcuts` für Screenreader.

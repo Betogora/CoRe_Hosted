@@ -7,29 +7,13 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 
 ## P0: Zusammenfassungen und Mindmaps (W4–W8)
 
-Reihenfolge = Priorität. W0–W4b sind erledigt (gemeinsame KI-Routen, Luna mit
+Reihenfolge = Priorität. W0–W4c sind erledigt (gemeinsame KI-Routen, Luna mit
 ZDR, strukturierte Zusammenfassung, Mindmap daraus erzeugen, ersetzen und
 sauber übersetzen).
 Entscheidungen vom 2026-10-15: Zonen ohne Umwandlung entfernen (E1), Verknüpfen
 per Enter/Leertaste (E2), Kopieren/Einfügen jetzt (E3), eigener Bildspeicher
 (E4), `Neu erzeugen` ersetzt die Fassung (E5).
 
-- [ ] **W4c Mindmap: Barrierefreiheit und Touch** (Entscheidungen vom 2026-10-15: C1 und C2 wie empfohlen)
-      - Karte als `role="group"` mit flächigem Auswahl-Button gleichen Namens;
-        Plus-, Anzeige- und Bildaktionen als Geschwister; Editor außerhalb des
-        Buttons; ebenso Umrandung und Klammer.
-      - Touch: eigenes Doppeltippen (bis 300 ms, bis 10 px) und Langdrücken
-        (500 ms), auch unter iOS; Bedienziele bei groben Zeigern mindestens
-        44 px.
-      - Pinch-Zoom um den Mittelpunkt und Zwei-Finger-Verschieben; ein zweiter
-        Finger setzt ein laufendes Kartenziehen zurück.
-      - Tastatur-Alternative für Umrandung und Klammer (Alt+Pfeil verschieben,
-        Alt+⇧+↑/↓ Klammerbereich).
-      - Handy: Fläche niedriger mit scrollbarem Bereich darunter und
-        `Vollbild`-Button (C1); Langdrücken wirkt wie Rechtsklick (C2).
-      - Nachweis: E2E mit Touch für Doppeltippen, Langdrücken und Pinch;
-        visuelle Pflichtmatrix; Screenreader und echtes Smartphone als offene
-        Gerätenachweise.
 - [ ] **W5 Mindmap-Bilder auslagern**
       - Eigener Store `images` in der Mindmap-Datenbank (Version 2): Blob statt
         Base64, Schlüssel SHA-1, Karten speichern nur Bild-IDs, Anzeige über
@@ -76,7 +60,9 @@ per Enter/Leertaste (E2), Kopieren/Einfügen jetzt (E3), eigener Bildspeicher
 ## Offene Abnahmen der Kartenmodell-Roadmap
 
 - [ ] **Gerätenachweise (Phase 3):** Bildschirmtastatur, Touch, Screenreader,
-      Sprachausgabe und 200-%-Browserzoom auf echten Smartphones.
+      Sprachausgabe und 200-%-Browserzoom auf echten Smartphones; dazu die
+      Mindmap-Gesten aus W4c (Doppeltippen, Langdrücken, Zwei-Finger-Zoom,
+      Vollbild) auf iOS und Android.
 - [ ] **Korpus (Phase 5):** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel: mindestens
       95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
