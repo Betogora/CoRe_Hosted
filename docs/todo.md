@@ -7,41 +7,56 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 
 ## P0: Zusammenfassungen und Mindmaps (W4–W8)
 
-Reihenfolge = Priorität. W0–W3b sind erledigt (gemeinsame KI-Routen, Luna mit
+Reihenfolge = Priorität. W0–W4a sind erledigt (gemeinsame KI-Routen, Luna mit
 ZDR, strukturierte Zusammenfassung, Mindmap daraus erzeugen, ersetzen und
 sauber übersetzen).
 Entscheidungen vom 2026-10-15: Zonen ohne Umwandlung entfernen (E1), Verknüpfen
 per Enter/Leertaste (E2), Kopieren/Einfügen jetzt (E3), eigener Bildspeicher
 (E4), `Neu erzeugen` ersetzt die Fassung (E5).
 
-- [ ] **W4 Mindmap-Bedienung, Barrierefreiheit und Spec**
-      - Zonen entfernen: Code, UI, Tests und Spec-Teil; gespeicherte
-        Zonenfelder beim Lesen ignorieren, Karten bleiben an ihrer Stelle, kein
-        Umwandlungscode.
-      - Mehrfachauswahl: Farbe, Kastenart und Bilder wirken auf alle gewählten
-        Karten in einem Rückgängig-Schritt.
-      - Tastenkürzel außerhalb der Textbearbeitung: Escape beendet die
-        Bearbeitung, Strg/⌘+Z und Strg+Y/⌘+⇧+Z, Entf/Rücktaste,
-        Strg+Enter (Unterknoten) und ⇧+Enter (Geschwister), Pfeiltasten wechseln
-        zwischen Karten, Alt+Pfeil verschiebt (⇧ große Schritte), +/−/0 und ⇧+1
-        zoomen, Strg+A, Strg+C/V/D, `?` öffnet eine Kürzelübersicht.
+- [ ] **W4b Mindmap: Tastatur und Bearbeiten** (offene Entscheidungen B1–B4)
+      - Ein Tastatur-Handler auf der Fläche, aktiv außerhalb von Textfeldern:
+        Escape beendet die Bearbeitung auch aus Titel- und Textfeld, sonst
+        Auswahl aufheben, sonst Modus verlassen; Strg/⌘+Z und Strg+Y/⌘+⇧+Z;
+        Entf/Rücktaste; Strg+Enter (Unterknoten) und ⇧+Enter (Geschwister);
+        Pfeiltasten wechseln zwischen Karten, Alt+Pfeil verschiebt (⇧ große
+        Schritte), ohne Auswahl verschieben Pfeile die Fläche; +/−/0 und ⇧+1
+        zoomen; Strg+A; Strg+C/V/D; `?` öffnet eine Kürzelübersicht.
       - Verknüpfen per Tastatur: im Modus `Verknüpfen` wählt Enter/Leertaste
-        Quelle und Ziel; eine Live-Region sagt den Schritt an.
-      - Barrierefreiheit: Karte als `role="group"` mit flächigem
-        Auswahl-Button; Plus-, Anzeige- und Bildaktionen als Geschwister; Editor
-        nur im Bearbeitungsmodus außerhalb des Buttons. Touch: eigenes
-        Doppeltippen und Langdrücken (500 ms), Bedienziele mindestens 44 px.
+        Quelle und Ziel; die Statuszeile sagt den Schritt an.
+      - Mehrfachauswahl: Farbe und Kastenart wirken auf alle gewählten Karten in
+        einem Rückgängig-Schritt.
       - Rückgängig: eine Bearbeitungssitzung ist ein Schritt, Historie 100.
       - Grenzen: zentrale Prüfung beim Ändern mit konkreter Meldung (welches
-        Limit, aktueller Wert); `Aus Zusammenfassung` prüft die Summe.
-      - Pinch-Zoom und Zwei-Finger-Verschieben; mobil Vollbildfläche oder
-        scrollbarer Rand statt `touch-action: none` über 75 % der Höhe.
+        Limit, aktueller Wert); Hinzufügen an der Grenze gesperrt;
+        `Aus Zusammenfassung` prüft die Summe.
+      - Entscheidungen: B1 Pfeiltasten wechseln die Auswahl, Alt+Pfeil
+        verschiebt (Empfehlung) oder bleiben beim Verschieben; B2 Kopieren mit
+        Unterbaum und internen Querverbindungen, Einfügen 40 px versetzt, nur
+        appintern (Empfehlung); B3 Kürzelübersicht zusätzlich als Button neben
+        den Zoom-Buttons (Empfehlung); B4 Bilder bleiben eine
+        Einzelkarten-Aktion (Empfehlung).
+      - Nachweis: Unit-Tests für Nachbarsuche, Kopieren/Einfügen, Grenzprüfung
+        und Mehrfach-Eigenschaften; E2E für Kürzel, Mehrfachauswahl und
+        Verknüpfen per Tastatur.
+- [ ] **W4c Mindmap: Barrierefreiheit und Touch** (offene Entscheidungen C1–C2)
+      - Karte als `role="group"` mit flächigem Auswahl-Button gleichen Namens;
+        Plus-, Anzeige- und Bildaktionen als Geschwister; Editor außerhalb des
+        Buttons; ebenso Umrandung und Klammer.
+      - Touch: eigenes Doppeltippen (bis 300 ms, bis 10 px) und Langdrücken
+        (500 ms), auch unter iOS; Bedienziele bei groben Zeigern mindestens
+        44 px.
+      - Pinch-Zoom um den Mittelpunkt und Zwei-Finger-Verschieben; ein zweiter
+        Finger setzt ein laufendes Kartenziehen zurück.
       - Tastatur-Alternative für Umrandung und Klammer (Alt+Pfeil verschieben,
         Alt+⇧+↑/↓ Klammerbereich).
-      - Spec 6.10 Mindmap auf Verhaltensverträge kürzen (u. a. Farbe zentraler
-        Themen, Klammer mit mindestens zwei Knoten, Layoutdetails).
-      - Nachweis: Unit-Tests je Modelloperation, E2E für Kürzel, Touch und
-        Mehrfachauswahl, visuelle Pflichtmatrix.
+      - Entscheidungen: C1 Handy-Fläche niedriger mit scrollbarem Bereich und
+        `Vollbild`-Button (Empfehlung) oder nur seitlicher Scrollrand; C2
+        Langdrücken wirkt wie Rechtsklick (Empfehlung) oder öffnet ein kleines
+        Kontextmenü.
+      - Nachweis: E2E mit Touch für Doppeltippen, Langdrücken und Pinch;
+        visuelle Pflichtmatrix; Screenreader und echtes Smartphone als offene
+        Gerätenachweise.
 - [ ] **W5 Mindmap-Bilder auslagern**
       - Eigener Store `images` in der Mindmap-Datenbank (Version 2): Blob statt
         Base64, Schlüssel SHA-1, Karten speichern nur Bild-IDs, Anzeige über

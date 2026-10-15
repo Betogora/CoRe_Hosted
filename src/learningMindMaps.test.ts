@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, createMindMapZone, duplicateMindMapZone, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, mindMapZoneRect, moveMindMapElement, placeMindMapNode, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, resizeMindMapZone, setMindMapZoneLayer, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
 
 test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt und unabhängig erhalten", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>ATP</h2><p>ATP und ADP sind Energieträger.</p><h3>Aufbau</h3><ul><li>Drei Phosphatgruppen.</li></ul><h2>ADP</h2><p>Zwei Phosphatgruppen.</p>" };
@@ -239,90 +239,35 @@ test("Umrandung folgt ihrem Inhalt und Entfernen löscht keine Knoten", () => {
   assert.equal(removed.nodes.length, map.nodes.length); assert.equal(removed.boundaries.length, 0);
 });
 
-test("Zonen bewegen zugeordnete Knoten und Linien gemeinsam; einzelne Knoten bleiben beweglich", () => {
-  const { map, a, b, c } = tree(), result = createMindMapZone(map, [a.id, c.id], { x: 0, y: 0 });
-  result.map.strokes = [{ id: "ink-zone", zoneId: result.id, points: [{ x: a.x, y: a.y }], color: "#112233", width: 4 }];
-  const moved = moveMindMapElement(result.map, "zone", result.id, { x: 50, y: -40 });
-  assert.equal(moved.nodes.find((n) => n.id === a.id)!.x, a.x + 50);
-  assert.equal(moved.nodes.find((n) => n.id === c.id)!.y, c.y - 40);
-  assert.deepEqual(moved.nodes.find((n) => n.id === b.id), b);
-  assert.equal(moved.strokes[0].points[0].x, a.x + 50);
-  const single = moveMindMapElement(moved, "node", a.id, { x: 20, y: 10 });
-  assert.equal(single.nodes.find((n) => n.id === c.id)!.x, c.x + 50);
-  const detached = placeMindMapNode(moveMindMapElement(single, "node", a.id, { x: 2000, y: 0 }), a.id);
-  assert.equal(detached.nodes.find((n) => n.id === a.id)!.zoneId, undefined);
-  const resized = resizeMindMapZone(moved, result.id, "se", { x: 200, y: 150 });
-  assert.ok(resized.zones[0].width > moved.zones[0].width);
-  assert.deepEqual(resized.nodes, moved.nodes);
-  const auto = { ...moved, zones: moved.zones.map((z) => ({ ...z, autoSize: true })) };
-  assert.ok(mindMapZoneRect(auto, auto.zones[0]).width >= 220);
-  const frozen = resizeMindMapZone(auto, result.id, "se", { x: 0, y: 0 });
-  assert.deepEqual(mindMapZoneRect(frozen, frozen.zones[0]), mindMapZoneRect(auto, auto.zones[0]));
-  assert.deepEqual(frozen.nodes, auto.nodes);
-});
-
-test("Zonen lassen sich mit vollständigen internen und externen Referenzen duplizieren", () => {
-  const { map, root, a, c } = tree(), result = createMindMapZone(map, [a.id, c.id], { x: 0, y: 0 });
-  const graph = toggleMindMapEdge(result.map, result.id, root.id), boundary = createMindMapBoundary(graph, [a.id, c.id]);
-  boundary.map.strokes = [{ id: "ink", zoneId: result.id, points: [{ x: a.x, y: a.y }] }];
-  const duplicate = duplicateMindMapZone(boundary.map, result.id);
-  assert.equal(duplicate.map.zones.length, 2); assert.equal(duplicate.map.boundaries.length, 2);
-  const copies = duplicate.map.nodes.filter((n) => n.zoneId === duplicate.id);
-  assert.equal(copies.length, 2);
-  assert.equal(copies[0].color, mindMapNodeColor(boundary.map, a).color);
-  assert.equal(copies[1].color, mindMapNodeColor(boundary.map, c).color);
-  assert.equal(copies.find((n) => n.label === a.label && n.parentId === root.id)?.parentId, root.id);
-  assert.ok(copies.some((n) => copies.some((parent) => parent.id === n.parentId)));
-  assert.ok(duplicate.map.edges.some((edge) => edge.from === duplicate.id && edge.to === root.id));
-  assert.equal(duplicate.map.strokes.length, 2); assert.doesNotThrow(() => readLearningMindMap(duplicate.map));
-  const back = setMindMapZoneLayer(duplicate.map, duplicate.id, "back"); assert.equal(back.zones[0].id, duplicate.id);
-  const front = setMindMapZoneLayer(back, duplicate.id, "front"); assert.equal(front.zones.at(-1)!.id, duplicate.id);
-  const retained = removeMindMapElement(front, "zone", result.id);
-  assert.equal(retained.nodes.length, duplicate.map.nodes.length);
-  assert.ok(retained.nodes.filter((n) => [a.id, c.id].includes(n.id)).every((n) => !n.zoneId));
-  const deleted = removeMindMapElement(front, "zone", result.id, true);
-  assert.ok(!deleted.nodes.some((n) => [a.id, c.id].includes(n.id)));
-  assert.doesNotThrow(() => readLearningMindMap(deleted));
-  const fresh = createMindMapZone(retained, [], { x: 0, y: 0 });
-  assert.ok(fresh.map.zones.at(-1)!.layer > Math.max(...retained.zones.map((zone) => zone.layer)));
-  const point = createMindMapNode("keyword", { x: 10, y: 90 });
-  const overlapping = { ...fresh.map, nodes: [...fresh.map.nodes, point], zones: fresh.map.zones.map((zone) => ({ ...zone, x: 0, y: 0, width: 520, height: 360, collapsed: false, autoSize: false })) };
-  assert.equal(placeMindMapNode(overlapping, point.id).nodes.at(-1)!.zoneId, fresh.id);
-  const tied = { ...overlapping, zones: overlapping.zones.map((zone) => ({ ...zone, layer: 0 })) };
-  assert.equal(placeMindMapNode(tied, point.id).nodes.at(-1)!.zoneId, fresh.id);
-});
-
-test("Hierarchie, Zusammenfassungen, Umrandungen, Zonen und Erscheinungsbild überstehen Speicherung und Zusammenführung", async () => {
+test("Hierarchie, Zusammenfassungen, Umrandungen und Erscheinungsbild überstehen Speicherung und Zusammenführung", async () => {
   const { map, a, b } = tree(), summary = createMindMapSummary(map, [a.id, b.id]);
   const boundary = createMindMapBoundary(summary.map, [a.id, b.id]);
-  const zone = createMindMapZone(boundary.map, [a.id, b.id, summary.map.summaries[0].nodeId], { x: 0, y: 0 });
-  zone.map.boundaries[0] = { ...zone.map.boundaries[0], shape: "ellipse", label: "Mein Ast", fillColor: "#ff0011", opacity: 0.3, strokeWidth: 8 };
-  zone.map.zones[0] = { ...zone.map.zones[0], title: "Arbeitsbereich", collapsed: true, autoSize: true, layer: 2 };
-  const user = `elements-${crypto.randomUUID()}`, saved = await saveLearningMindMap(user, zone.map);
+  boundary.map.boundaries[0] = { ...boundary.map.boundaries[0], shape: "ellipse", label: "Mein Ast", fillColor: "#ff0011", opacity: 0.3, strokeWidth: 8 };
+  const user = `elements-${crypto.randomUUID()}`, saved = await saveLearningMindMap(user, boundary.map);
   assert.deepEqual(await loadLearningMindMaps(user, "deck"), [saved]);
   const merged = appendMindMap(createLearningMindMap("deck", "Infinity"), saved);
   assert.equal(merged.summaries.length, 1); assert.equal(merged.boundaries[0].shape, "ellipse");
-  assert.ok(merged.nodes.some((n) => n.zoneId === merged.zones[0].id));
-  assert.equal(merged.zones[0].collapsed, true); assert.doesNotThrow(() => readLearningMindMap(merged));
-  for (const corrupt of [{ ...saved, zones: [{ ...saved.zones[0], width: -1 }] }, { ...saved, summaries: [{ ...saved.summaries[0], nodeIds: ["missing"] }] }, { ...saved, nodes: saved.nodes.map((n) => ({ ...n, zoneId: "missing" })) }]) assert.throws(() => readLearningMindMap(corrupt));
+  assert.doesNotThrow(() => readLearningMindMap(merged));
+  for (const corrupt of [{ ...saved, boundaries: [{ ...saved.boundaries[0], strokeWidth: 5 }] }, { ...saved, summaries: [{ ...saved.summaries[0], nodeIds: ["missing"] }] }]) assert.throws(() => readLearningMindMap(corrupt));
 });
 
-
-test("leere Zonen werden bei der Zusammenführung berücksichtigt und Linien begrenzen Größenänderungen", () => {
-  const first = createMindMapZone(createLearningMindMap("deck", "Erste"), [], { x: 0, y: 0 });
-  const second = createMindMapZone(createLearningMindMap("deck", "Zweite"), [], { x: 0, y: 0 });
-  const merged = appendMindMap(first.map, second.map);
-  assert.ok(merged.zones[1].x >= merged.zones[0].x + merged.zones[0].width + 180);
-  first.map.strokes = [{ id: "ink-border", zoneId: first.id, points: [{ x: 400, y: 200 }] }];
-  const shrunk = resizeMindMapZone(first.map, first.id, "se", { x: -1000, y: -1000 });
-  assert.ok(shrunk.zones[0].x + shrunk.zones[0].width >= 464);
-  assert.ok(shrunk.zones[0].y + shrunk.zones[0].height >= 264);
-  assert.deepEqual(shrunk.strokes, first.map.strokes);
-  const treeData = tree(), boundary = createMindMapBoundary(treeData.map, [treeData.a.id, treeData.b.id]);
-  boundary.map.boundaries[0].shape = "ellipse";
-  const withFrame = appendMindMap(boundary.map, boundary.map), oldFrame = mindMapBoundaryRect(withFrame, withFrame.boundaries[0]), newFrame = mindMapBoundaryRect(withFrame, withFrame.boundaries[1]);
-  assert.ok(newFrame.x >= oldFrame.x + oldFrame.width + 180);
+test("Maps aus der Zeit mit Zonen öffnen sich; Zonen und ihre Verbindungen entfallen, Karten und Linien bleiben", async () => {
+  const { map, a, b } = tree();
+  const legacy = { ...map, zones: [{ id: "zone_old", title: "Bereich", x: 0, y: 0, width: 400, height: 300, collapsed: true, autoSize: false, layer: 0 }],
+    nodes: map.nodes.map((node) => node.id === a.id ? { ...node, zoneId: "zone_old" } : node),
+    edges: [{ from: a.id, to: "zone_old" }, { from: a.id, to: b.id }],
+    strokes: [{ id: "ink", zoneId: "zone_old", points: [{ x: 1, y: 2 }] }] };
+  const opened = readLearningMindMap(legacy);
+  assert.equal("zones" in opened, false);
+  assert.deepEqual(opened.nodes.map((node) => node.id), map.nodes.map((node) => node.id));
+  assert.ok(opened.nodes.every((node) => !("zoneId" in node)));
+  assert.deepEqual(opened.edges, [{ from: a.id, to: b.id }]);
+  assert.deepEqual(opened.strokes, [{ id: "ink", points: [{ x: 1, y: 2 }] }]);
+  const user = `legacy-${crypto.randomUUID()}`;
+  await saveLearningMindMap(user, legacy);
+  assert.equal("zones" in (await loadLearningMindMaps(user, map.deckId))[0], false);
 });
+
 
 
 test("größere Karten rücken automatisch platzierte Karten nach; manuell gesetzte Positionen bleiben erhalten", async () => {

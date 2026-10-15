@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-15 — Mindmap ohne Zonen, Spec auf Verhaltensverträge gekürzt (W4a)
+
+- Zonen samt Schema, Operationen, Darstellung, Eigenschaften, Lösch-Dialog und CSS entfernt; `placeMindMapNode` entfiel, weil es nur Zonen zuordnete. Gespeicherte Maps mit Zonen öffnen weiterhin: `withoutZones` verwirft beim Lesen Zonen, Zonenzuordnungen und Verbindungen zu Zonen; beim nächsten Speichern ist die Map sauber. Mindmaps liegen nur lokal im Browser; eine serverseitige Datenbereinigung war deshalb weder möglich noch nötig.
+- Spec 6.10 Mindmap auf Verhaltensverträge gekürzt (ohne Zonen, Layoutdetails und Iterationsgeschichte); E2E-Prüfungen, die nur das Fehlen alter Elemente festhielten, entfernt und Tests nach Verhalten benannt.
+- Diff: 14 Dateien, +130/−383 Zeilen. `npm run gate:push` grün, Mindmap-Unit-Tests 49/49.
+
 ## 2026-10-15 — Übersetzung Zusammenfassung → Mindmap (W3b)
 
 - Soll-Ist am Live-Smoke-Beispiel (10 Karten): vorher 17 Mindmap-Karten, davon 4 Absätze mit gekürztem Satztitel, ein Meta-Ast `Hinweise zum Material`, keine Querverbindungen, einseitige Spalte von etwa 1.100 × 2.400 px. Mit dem neuen Übersetzer ergibt dieselbe Ausgabe 12 Karten ohne gekürzte Titel und ohne Meta-Ast, Hauptäste links und rechts, etwa 1.400 × 1.450 px.

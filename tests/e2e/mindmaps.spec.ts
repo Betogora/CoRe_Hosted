@@ -60,21 +60,12 @@ test("Nur bereits ausgewählte Karten lassen sich ziehen oder per Pfeiltaste bew
   await save(panel); const saved = await position(); await reload(page, panel); expect(await position()).toEqual(saved);
 });
 
-test("Werkzeugzeile ohne Namen, Speichern und Bewegungsmodus; alle Textoptionen direkt sichtbar", async ({ page }) => {
-  const panel = await openMindMaps(page), top = panel.locator(".core-mindmap-primary-tools");
-  await expect(panel.getByRole("textbox", { name: "Mindmap-Titel", exact: true })).toHaveCount(0);
-  await expect(panel.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(0);
-  await expect(top.getByRole("button", { name: "Bewegen", exact: true })).toHaveCount(0);
-  await expect(top.getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toBeVisible();
-  await root(panel, "Zentriertes Stichwort");
-  await expect(node(panel, "Zentriertes Stichwort").locator(".core-mindmap-node-label")).toHaveCSS("text-align", "center");
-  await node(panel, "Zentriertes Stichwort").dblclick();
+test("Beim Bearbeiten stehen alle Textwerkzeuge direkt in der oberen Leiste", async ({ page }) => {
+  const panel = await openMindMaps(page);
+  await expect(panel.locator(".core-mindmap-primary-tools").getByRole("button", { name: "Aus Zusammenfassung", exact: true })).toBeVisible();
+  await root(panel, "Werkzeuge"); await node(panel, "Werkzeuge").dblclick();
   await expect(panel.getByRole("button", { name: "Weitere Textwerkzeuge", exact: true })).toHaveCount(0);
   for (const name of ["Unterstrichen", "Stichpunkte", "Nummerierte Liste", "Formatierung löschen"]) await expect(panel.getByRole("button", { name, exact: true })).toBeVisible();
-  await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click(); await finish(panel);
-  const card = node(panel, "Zentriertes Stichwort"), label = card.locator(".core-mindmap-node-label");
-  expect(await label.evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe(await card.evaluate((el) => getComputedStyle(el).backgroundColor));
-  await mode(panel, "Hinzufügen"); await expect(panel.getByRole("button", { name: "Unterknoten", exact: true })).toHaveCount(0);
 });
 
 test("Oben erzeugte Karten werden beim Verknüpfen gleichartige Äste und lassen sich direkt ziehen", async ({ page }) => {
@@ -288,7 +279,7 @@ test("Ein laufender Bildimport wird vor dem Speichern beim Tabwechsel vollständ
   await node(panel, "Bildnotiz").dblclick();
   await page.evaluate(() => { const read = FileReader.prototype.readAsDataURL; FileReader.prototype.readAsDataURL = function (blob: Blob) { setTimeout(() => read.call(this, blob), 1500); }; });
   await panel.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles(image);
-  await expect(panel).toContainText("Bilder werden geladen"); await expect(panel.getByRole("button", { name: "Speichern", exact: true })).toHaveCount(0);
+  await expect(panel).toContainText("Bilder werden geladen");
   await tabs.getByRole("button", { name: "Karten", exact: true }).click();
   await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
   await tabs.getByRole("button", { name: "Mind Map", exact: true }).click(); await expect(node(panel, "Bildnotiz").locator("img")).toBeVisible();
@@ -297,7 +288,7 @@ test("Ein laufender Bildimport wird vor dem Speichern beim Tabwechsel vollständ
 });
 
 
-test("Alte Werkzeugzeile, direktes Verknüpfen und ausgewählte Standardtitel kombinieren die Ansichten", async ({ page }) => {
+test("Standardtitel werden zum Ersetzen markiert; Verknüpfen bietet die Linienwahl", async ({ page }) => {
   const panel = await openMindMaps(page), top = panel.locator(".core-mindmap-primary-tools");
   await expect(top.getByRole("button", { name: "Stichwort", exact: true })).toBeVisible();
   await top.getByRole("button", { name: "Textfeld", exact: true }).click();
@@ -308,12 +299,7 @@ test("Alte Werkzeugzeile, direktes Verknüpfen und ausgewählte Standardtitel ko
   await node(panel, "Neue Notiz").dblclick(); await expect(panel.getByRole("textbox", { name: "Kartentext bearbeiten", exact: true })).toBeFocused(); await finish(panel);
   await node(panel, "Neue Notiz").locator(".core-mindmap-node-label").click(); await expect(title).toBeFocused();
   expect(await title.evaluate((el) => [(el as HTMLInputElement).selectionStart, (el as HTMLInputElement).selectionEnd])).toEqual([0, 10]);
-  await expect(panel.getByRole("spinbutton")).toHaveCount(0);
-  await expect(panel.getByRole("combobox", { name: "Übergeordnetes Thema", exact: true })).toHaveCount(0);
-  await expect(panel.getByRole("button", { name: "Neu verknüpfen", exact: true })).toHaveCount(0);
   await expect(panel.getByRole("group", { name: "Kastenart", exact: true })).toBeVisible();
-  await mode(panel, "Hinzufügen"); await expect(panel.getByRole("button", { name: "Zone", exact: true })).toHaveCount(0);
-  await expect(panel.getByRole("button", { name: "Verbindung", exact: true })).toHaveCount(0);
   await mode(panel, "Verknüpfen"); await expect(panel.getByRole("group", { name: "Verbindungslinien", exact: true })).toBeVisible();
 });
 

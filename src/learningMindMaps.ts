@@ -11,9 +11,6 @@ const appearance = { color: v.optional(color), fillColor: v.optional(color), opa
 const members = v.pipe(v.array(id), v.minLength(1), v.maxLength(2000));
 const bracketSchema = v.strictObject({ id, nodeIds: members, nodeId: id, side: v.picklist(["left", "right"]) });
 const boundarySchema = v.strictObject({ id, nodeIds: members, label: v.pipe(v.string(), v.maxLength(120)), shape: v.picklist(["rectangle", "rounded", "ellipse"]), ...appearance });
-const zoneSchema = v.strictObject({ id, title: v.pipe(v.string(), v.maxLength(120)), x: coordinate, y: coordinate,
-  width: v.pipe(coordinate, v.minValue(180)), height: v.pipe(coordinate, v.minValue(100)),
-  collapsed: v.boolean(), autoSize: v.boolean(), layer: v.pipe(v.number(), v.integer(), v.minValue(0)), ...appearance });
 const sourceSchema = v.strictObject({ summaryId: id, title: v.string(), text: v.pipe(v.string(), v.maxLength(100_000)), updatedAt: v.string(), signature: v.optional(v.string()) });
 const imageSchema = v.strictObject({
   id, name: v.pipe(v.string(), v.minLength(1), v.maxLength(240)),
@@ -24,17 +21,16 @@ const nodeSchema = v.strictObject({
   text: v.pipe(v.string(), v.maxLength(100_000)), x: coordinate, y: coordinate,
   sourceText: v.optional(v.pipe(v.string(), v.maxLength(100_000))),
   sourceId: v.optional(id), color: v.optional(color),
-  parentId: v.optional(id), zoneId: v.optional(id), autoPosition: v.optional(v.boolean()), side: v.optional(v.picklist(["left", "right"])), html: v.optional(v.pipe(v.string(), v.maxLength(100_000))),
+  parentId: v.optional(id), autoPosition: v.optional(v.boolean()), side: v.optional(v.picklist(["left", "right"])), html: v.optional(v.pipe(v.string(), v.maxLength(100_000))),
   images: v.optional(v.pipe(v.array(imageSchema), v.maxLength(4))),
 });
 const mapSchema = v.strictObject({
   version: v.literal(1), id, deckId: id, title: v.pipe(v.string(), v.minLength(1), v.maxLength(120)),
   nodes: v.pipe(v.array(nodeSchema), v.maxLength(2000)),
   edges: v.pipe(v.array(v.strictObject({ from: id, to: id })), v.maxLength(10_000)),
-  strokes: v.pipe(v.array(v.strictObject({ id, points: v.pipe(v.array(point), v.minLength(1), v.maxLength(20_000)), color: v.optional(color), width: v.optional(v.picklist([2, 4, 8])), zoneId: v.optional(id) })), v.maxLength(2000)),
+  strokes: v.pipe(v.array(v.strictObject({ id, points: v.pipe(v.array(point), v.minLength(1), v.maxLength(20_000)), color: v.optional(color), width: v.optional(v.picklist([2, 4, 8])) })), v.maxLength(2000)),
   summaries: v.optional(v.pipe(v.array(bracketSchema), v.maxLength(500)), []),
   boundaries: v.optional(v.pipe(v.array(boundarySchema), v.maxLength(500)), []),
-  zones: v.optional(v.pipe(v.array(zoneSchema), v.maxLength(500)), []),
   connectionColor: v.optional(v.picklist(["gray", "node"]), "node"),
   source: v.optional(sourceSchema), sources: v.optional(v.record(id, sourceSchema)), infinity: v.optional(v.literal(true)),
   createdAt: v.pipe(v.string(), v.isoTimestamp()), updatedAt: v.pipe(v.string(), v.isoTimestamp()),
@@ -45,25 +41,37 @@ export type MindMapPoint = v.InferOutput<typeof point>;
 export type MindMapColor = v.InferOutput<typeof color>;
 export type MindMapSummary = v.InferOutput<typeof bracketSchema>;
 export type MindMapBoundary = v.InferOutput<typeof boundarySchema>;
-export type MindMapZone = v.InferOutput<typeof zoneSchema>;
-export type MindMapElementKind = "node" | "summary" | "boundary" | "zone";
+export type MindMapElementKind = "node" | "summary" | "boundary";
 export type MindMapRect = MindMapPoint & { width: number; height: number };
 export const mindMapColors: ReadonlyArray<{ value: MindMapColor; label: string }> = [
   { value: "default", label: "Standard" }, { value: "blue", label: "Blau" },
   { value: "purple", label: "Violett" }, { value: "yellow", label: "Gelb" }, { value: "red", label: "Koralle" },
 ];
 
+/** Maps saved while zones existed still open: zones, zone assignments and links to zones are dropped on read. */
+function withoutZones(value: unknown): unknown {
+  if (typeof value !== "object" || value === null || !("zones" in value)) return value;
+  const { zones, ...map } = value as Record<string, unknown>;
+  const zoneIds = new Set(Array.isArray(zones) ? zones.map((zone) => (zone as { id?: unknown } | null)?.id) : []);
+  const strip = (items: unknown) => Array.isArray(items) ? items.map((item) => {
+    if (typeof item !== "object" || item === null) return item;
+    const { zoneId, ...rest } = item as Record<string, unknown>;
+    return zoneId === undefined ? item : rest;
+  }) : items;
+  const edges = Array.isArray(map.edges) ? map.edges.filter((edge) => !zoneIds.has((edge as { from?: unknown } | null)?.from) && !zoneIds.has((edge as { to?: unknown } | null)?.to)) : map.edges;
+  return { ...map, nodes: strip(map.nodes), strokes: strip(map.strokes), edges };
+}
+
 export function readLearningMindMap(value: unknown): LearningMindMap {
-  const parsed = v.safeParse(mapSchema, value);
+  const parsed = v.safeParse(mapSchema, withoutZones(value));
   if (!parsed.success || !parsed.output.title.trim() || Date.parse(parsed.output.updatedAt) < Date.parse(parsed.output.createdAt)) {
     throw new Error("Die gespeicherte Mindmap ist ungültig.");
   }
-  const map = parsed.output, nodes = new Set(map.nodes.map((node) => node.id)), zones = new Set(map.zones.map((zone) => zone.id));
+  const map = parsed.output, nodes = new Set(map.nodes.map((node) => node.id));
   const edges = new Set(map.edges.map((edge) => [edge.from, edge.to].sort().join("\u0000")));
-  const allIds = [...map.nodes, ...map.zones, ...map.summaries, ...map.boundaries, ...map.strokes].map((item) => item.id);
+  const allIds = [...map.nodes, ...map.summaries, ...map.boundaries, ...map.strokes].map((item) => item.id);
   const validMembers = (ids: string[]) => new Set(ids).size === ids.length && ids.every((key) => nodes.has(key));
-  const endpoints = new Set([...nodes, ...zones]);
-  if (new Set(allIds).size !== allIds.length || edges.size !== map.edges.length || map.nodes.some((node) => (node.sourceId !== undefined || node.sourceText !== undefined) && !mindMapNodeSource(map, node) || new Set(node.images?.map((image) => image.id)).size !== (node.images?.length ?? 0) || node.parentId && !nodes.has(node.parentId) || node.zoneId && !zones.has(node.zoneId)) || map.edges.some((edge) => edge.from === edge.to || !endpoints.has(edge.from) || !endpoints.has(edge.to)) || map.strokes.some((stroke) => stroke.zoneId && !zones.has(stroke.zoneId)) || map.boundaries.some((item) => !validMembers(item.nodeIds)) || map.summaries.some((item) => !nodes.has(item.nodeId) || item.nodeIds.includes(item.nodeId) || !validMembers(item.nodeIds) || new Set(item.nodeIds.map((key) => map.nodes.find((node) => node.id === key)!.parentId)).size !== 1)) {
+  if (new Set(allIds).size !== allIds.length || edges.size !== map.edges.length || map.nodes.some((node) => (node.sourceId !== undefined || node.sourceText !== undefined) && !mindMapNodeSource(map, node) || new Set(node.images?.map((image) => image.id)).size !== (node.images?.length ?? 0) || node.parentId && !nodes.has(node.parentId)) || map.edges.some((edge) => edge.from === edge.to || !nodes.has(edge.from) || !nodes.has(edge.to)) || map.boundaries.some((item) => !validMembers(item.nodeIds)) || map.summaries.some((item) => !nodes.has(item.nodeId) || item.nodeIds.includes(item.nodeId) || !validMembers(item.nodeIds) || new Set(item.nodeIds.map((key) => map.nodes.find((node) => node.id === key)!.parentId)).size !== 1)) {
     throw new Error("Die Mindmap enthält ungültige Verbindungen oder doppelte Elemente.");
   }
   const byId = new Map(map.nodes.map((node) => [node.id, node]));
@@ -86,7 +94,7 @@ export function createMindMapNode(kind: MindMapNode["kind"], position: MindMapPo
 }
 
 export function toggleMindMapEdge(map: LearningMindMap, from: string, to: string): LearningMindMap {
-  if (from === to || ![...map.nodes, ...map.zones].some((node) => node.id === from) || ![...map.nodes, ...map.zones].some((node) => node.id === to)) return map;
+  if (from === to || !map.nodes.some((node) => node.id === from) || !map.nodes.some((node) => node.id === to)) return map;
   const matches = (edge: LearningMindMap["edges"][number]) => edge.from === from && edge.to === to || edge.from === to && edge.to === from;
   return { ...map, edges: map.edges.some(matches) ? map.edges.filter((edge) => !matches(edge)) : [...map.edges, { from, to }] };
 }
@@ -108,7 +116,7 @@ export function connectMindMapElements(map: LearningMindMap, from: string, to: s
   const delta = { x: placement.x - child.x, y: placement.y - child.y };
   const attached = reparentMindMapNode(map, child.id, parent.id);
   return readLearningMindMap({ ...attached, nodes: attached.nodes.map((node) => descendants.has(node.id)
-    ? { ...node, x: node.x + delta.x, y: node.y + delta.y, side: placement.side, ...(node.id === child.id ? { autoPosition: true, color: undefined, zoneId: parent.zoneId } : {}) }
+    ? { ...node, x: node.x + delta.x, y: node.y + delta.y, side: placement.side, ...(node.id === child.id ? { autoPosition: true, color: undefined } : {}) }
     : node), edges: attached.edges.filter((edge) => !(edge.from === from && edge.to === to || edge.from === to && edge.to === from)) });
 }
 
@@ -149,25 +157,22 @@ export async function readMindMapImages(files: File[]): Promise<NonNullable<Mind
 /** `at` places the incoming graph with its top-left corner there instead of right of all content. */
 export function appendMindMap(map: LearningMindMap, addition: LearningMindMap, at?: MindMapPoint): LearningMindMap {
   if (map.deckId !== addition.deckId) throw new Error("Die Mindmap gehört zu einem anderen Stapel.");
-  const occupied = [...map.nodes.map((node) => node.x + 220), ...map.strokes.flatMap((stroke) => stroke.points.map((p) => p.x)), ...map.zones.map((zone) => { const rect = mindMapZoneRect(map, zone); return rect.x + rect.width; }), ...map.boundaries.map((item) => { const rect = mindMapBoundaryRect(map, item); return rect.x + rect.width; })];
-  const incoming = [...addition.nodes.map((node) => node.x), ...addition.strokes.flatMap((stroke) => stroke.points.map((p) => p.x)), ...addition.zones.map((zone) => mindMapZoneRect(addition, zone).x), ...addition.boundaries.map((item) => mindMapBoundaryRect(addition, item).x)];
+  const occupied = [...map.nodes.map((node) => node.x + 220), ...map.strokes.flatMap((stroke) => stroke.points.map((p) => p.x)), ...map.boundaries.map((item) => { const rect = mindMapBoundaryRect(map, item); return rect.x + rect.width; })];
+  const incoming = [...addition.nodes.map((node) => node.x), ...addition.strokes.flatMap((stroke) => stroke.points.map((p) => p.x)), ...addition.boundaries.map((item) => mindMapBoundaryRect(addition, item).x)];
   const offset = at && addition.nodes.length ? at.x - Math.min(...addition.nodes.map((node) => node.x))
     : occupied.length && incoming.length ? occupied.reduce((a, b) => Math.max(a, b)) + 180 - incoming.reduce((a, b) => Math.min(a, b)) : 0;
   const lift = at && addition.nodes.length ? at.y - Math.min(...addition.nodes.map((node) => node.y)) : 0;
   const ids = new Map(addition.nodes.map((node) => [node.id, `node_${crypto.randomUUID()}`]));
-  const zoneIds = new Map(addition.zones.map((zone) => [zone.id, `zone_${crypto.randomUUID()}`]));
-  const endpoint = (key: string) => ids.get(key) ?? zoneIds.get(key)!;
   const sourceIds = new Map(Object.keys(addition.sources ?? {}).map((key) => [key, `source_${crypto.randomUUID()}`]));
   const legacySourceId = addition.source ? `source_${crypto.randomUUID()}` : undefined;
   const sources = { ...map.sources, ...Object.fromEntries(Object.entries(addition.sources ?? {}).map(([key, value]) => [sourceIds.get(key)!, value])), ...(legacySourceId ? { [legacySourceId]: addition.source! } : {}) };
   return readLearningMindMap({ ...map,
     ...(Object.keys(sources).length ? { sources } : {}),
-    nodes: [...map.nodes, ...addition.nodes.map((node) => ({ ...node, id: ids.get(node.id)!, x: node.x + offset, y: node.y + lift, ...(node.parentId ? { parentId: ids.get(node.parentId)! } : {}), ...(node.zoneId ? { zoneId: zoneIds.get(node.zoneId)! } : {}), ...(node.sourceId || legacySourceId ? { sourceId: node.sourceId ? sourceIds.get(node.sourceId)! : legacySourceId } : {}) }))],
-    edges: [...map.edges, ...addition.edges.map((edge) => ({ from: endpoint(edge.from), to: endpoint(edge.to) }))],
-    zones: [...map.zones, ...addition.zones.map((zone) => ({ ...zone, id: zoneIds.get(zone.id)!, x: zone.x + offset, y: zone.y + lift, layer: zone.layer + 1 + Math.max(-1, ...map.zones.map((item) => item.layer)) }))],
+    nodes: [...map.nodes, ...addition.nodes.map((node) => ({ ...node, id: ids.get(node.id)!, x: node.x + offset, y: node.y + lift, ...(node.parentId ? { parentId: ids.get(node.parentId)! } : {}), ...(node.sourceId || legacySourceId ? { sourceId: node.sourceId ? sourceIds.get(node.sourceId)! : legacySourceId } : {}) }))],
+    edges: [...map.edges, ...addition.edges.map((edge) => ({ from: ids.get(edge.from)!, to: ids.get(edge.to)! }))],
     boundaries: [...map.boundaries, ...addition.boundaries.map((item) => ({ ...item, id: `boundary_${crypto.randomUUID()}`, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
     summaries: [...map.summaries, ...addition.summaries.map((item) => ({ ...item, id: `summary_${crypto.randomUUID()}`, nodeId: ids.get(item.nodeId)!, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
-    strokes: [...map.strokes, ...addition.strokes.map((stroke) => ({ ...stroke, id: `stroke_${crypto.randomUUID()}`, ...(stroke.zoneId ? { zoneId: zoneIds.get(stroke.zoneId)! } : {}), points: stroke.points.map((p) => ({ x: p.x + offset, y: p.y + lift })) }))],
+    strokes: [...map.strokes, ...addition.strokes.map((stroke) => ({ ...stroke, id: `stroke_${crypto.randomUUID()}`, points: stroke.points.map((p) => ({ x: p.x + offset, y: p.y + lift })) }))],
   });
 }
 
@@ -193,7 +198,6 @@ export function editMindMapNode(map: LearningMindMap, nodeId: string, patch: Par
     if (placed !== node) next = { ...next, nodes: next.nodes.map((item) => item.id === placed.id ? placed : item) };
     fixed.push(placed);
   }
-  for (const zoneId of new Set(next.nodes.map((node) => node.zoneId))) if (zoneId) next = containMindMapZone(next, zoneId);
   return next;
 }
 
@@ -218,15 +222,6 @@ export function mindMapBoundaryRect(map: LearningMindMap, boundary: MindMapBound
   const rect = mindMapMembersRect(map, boundary.nodeIds);
   if (boundary.shape !== "ellipse") return rect;
   return { x: rect.x - rect.width * 0.25, y: rect.y - rect.height * 0.25, width: rect.width * 1.5, height: rect.height * 1.5 };
-}
-
-export function mindMapZoneRect(map: LearningMindMap, zone: MindMapZone): MindMapRect {
-  const nodes = map.nodes.filter((node) => node.zoneId === zone.id);
-  const points = map.strokes.filter((stroke) => stroke.zoneId === zone.id).flatMap((stroke) => stroke.points);
-  const rect = zone.autoSize && (nodes.length || points.length)
-    ? mindMapBounds([...nodes.map((node) => mindMapNodeRect(node)), ...points.map((p) => ({ ...p, width: 0, height: 0 }))], 64)
-    : { x: zone.x, y: zone.y, width: zone.width, height: zone.height };
-  return { ...rect, width: Math.max(180, rect.width), height: zone.collapsed ? 52 : Math.max(100, rect.height) };
 }
 
 let colorCache: { map: LearningMindMap; byId: Map<string, MindMapNode>; siblingIndex: Map<string, number>; summaryNodeIds: Set<string> } | null = null;
@@ -277,7 +272,7 @@ export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | 
   const vertical = mainBranch ? (aboveCount < sameSide.length - aboveCount || aboveCount === sameSide.length - aboveCount && side === "right" ? "above" : "below") : relation === "sibling" ? anchorDirection?.vertical ?? "below" : parentDirection?.vertical ?? "below";
   const node: MindMapNode = { ...createMindMapNode(kind, position), ...content,
     ...((parent || relation === "sibling") ? { autoPosition: true } : {}),
-    ...(parent ? { parentId: parent.id, side, ...(parent.zoneId ? { zoneId: parent.zoneId } : {}) } : {}),
+    ...(parent ? { parentId: parent.id, side } : {}),
   };
   if (parent) {
     node.x = parent.x + (side === "right" ? 300 : -300);
@@ -288,9 +283,7 @@ export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | 
       : parent.y;
   } else if (relation === "sibling" && anchor) { node.x = anchor.x; node.y = anchor.y + mindMapNodeRect(anchor).height + 32; }
   for (let attempt = 0; attempt < 2000 && map.nodes.some((item) => { const r = mindMapNodeRect(item), n = mindMapNodeRect(node); return n.x < r.x + r.width + 16 && n.x + n.width + 16 > r.x && n.y < r.y + r.height + 16 && n.y + n.height + 16 > r.y; }); attempt++) node.y += (vertical === "above" ? -1 : 1) * (mindMapNodeRect(node).height + 32);
-  let next = { ...map, nodes: [...map.nodes, node] };
-  if (node.zoneId) next = containMindMapZone(next, node.zoneId);
-  return { map: next, node };
+  return { map: { ...map, nodes: [...map.nodes, node] }, node };
 }
 
 export function reparentMindMapNode(map: LearningMindMap, nodeId: string, parentId: string | undefined): LearningMindMap {
@@ -318,12 +311,9 @@ export function createMindMapSummary(map: LearningMindMap, nodeIds: string[]): {
   const sorted = map.nodes.filter((node) => node.kind !== "freeText" && node.parentId === nodes[0].parentId).sort((a, b) => a.y - b.y || a.x - b.x);
   const indices = nodes.map((node) => sorted.findIndex((item) => item.id === node.id)), ids = sorted.slice(Math.min(...indices), Math.max(...indices) + 1).map((node) => node.id);
   const rect = mindMapSummaryRect(map, { nodeIds: ids }), side = nodes[0].side ?? "right";
-  const node = { ...createMindMapNode("text", { x: side === "right" ? rect.x + rect.width + 80 : rect.x - 300, y: rect.y + rect.height / 2 - 80 }), label: "Zusammenfassung", color: "default",
-    ...(nodes.every((item) => item.zoneId === nodes[0].zoneId) && nodes[0].zoneId ? { zoneId: nodes[0].zoneId } : {}) };
+  const node = { ...createMindMapNode("text", { x: side === "right" ? rect.x + rect.width + 80 : rect.x - 300, y: rect.y + rect.height / 2 - 80 }), label: "Zusammenfassung", color: "default" };
   const summary = { id: `summary_${crypto.randomUUID()}`, nodeIds: ids, nodeId: node.id, side };
-  let next = { ...map, nodes: [...map.nodes, node], summaries: [...map.summaries, summary] };
-  if (node.zoneId) next = containMindMapZone(next, node.zoneId);
-  return { map: next, id: summary.id };
+  return { map: { ...map, nodes: [...map.nodes, node], summaries: [...map.summaries, summary] }, id: summary.id };
 }
 
 export function resizeMindMapSummary(map: LearningMindMap, id: string, end: "start" | "end", y: number): LearningMindMap {
@@ -346,88 +336,16 @@ export function createMindMapBoundary(map: LearningMindMap, nodeIds: string[]): 
   return { map: { ...map, boundaries: [...map.boundaries, boundary] }, id: boundary.id };
 }
 
-export function createMindMapZone(map: LearningMindMap, nodeIds: string[], position: MindMapPoint): { map: LearningMindMap; id: string } {
-  const included = new Set(descendantIds(map, nodeIds));
-  const nodes = map.nodes.filter((node) => included.has(node.id));
-  const rect = nodes.length ? mindMapBounds(nodes.map((node) => mindMapNodeRect(node)), 64) : { ...position, width: 520, height: 360 };
-  const zone: MindMapZone = { id: `zone_${crypto.randomUUID()}`, title: "Neue Zone", ...rect, collapsed: false, autoSize: false, layer: 1 + Math.max(-1, ...map.zones.map((item) => item.layer)), color: "blue", fillColor: "blue", opacity: 0.06, strokeWidth: 2 };
-  return { map: { ...map, zones: [...map.zones, zone], nodes: map.nodes.map((node) => included.has(node.id) ? { ...node, zoneId: zone.id } : node) }, id: zone.id };
-}
-
-function containMindMapZone(map: LearningMindMap, id: string): LearningMindMap {
-  const zone = map.zones.find((item) => item.id === id);
-  if (!zone || zone.autoSize) return map;
-  const members = map.nodes.filter((node) => node.zoneId === id);
-  const points = map.strokes.filter((stroke) => stroke.zoneId === id).flatMap((stroke) => stroke.points);
-  const content = [...members.map((node) => mindMapNodeRect(node)), ...points.map((p) => ({ ...p, width: 0, height: 0 }))];
-  const rect = mindMapBounds([mindMapZoneRect(map, { ...zone, collapsed: false }), ...(content.length ? [mindMapBounds(content, 64)] : [])], 0);
-  return { ...map, zones: map.zones.map((item) => item.id === id ? { ...item, ...rect } : item) };
-}
-
 export function moveMindMapElement(map: LearningMindMap, kind: MindMapElementKind, id: string, delta: MindMapPoint): LearningMindMap {
-  const ids = new Set(kind === "node" ? [id] : kind === "boundary" ? map.boundaries.find((item) => item.id === id)?.nodeIds : kind === "summary" ? [map.summaries.find((item) => item.id === id)?.nodeId] : map.nodes.filter((node) => node.zoneId === id).map((node) => node.id));
-  return { ...map, nodes: map.nodes.map((node) => ids.has(node.id) ? { ...node, x: node.x + delta.x, y: node.y + delta.y, ...(kind !== "zone" ? { autoPosition: false } : {}) } : node),
-    zones: map.zones.map((zone) => kind === "zone" && zone.id === id ? { ...zone, x: zone.x + delta.x, y: zone.y + delta.y } : zone),
-    strokes: map.strokes.map((stroke) => kind === "zone" && stroke.zoneId === id ? { ...stroke, points: stroke.points.map((p) => ({ x: p.x + delta.x, y: p.y + delta.y })) } : stroke),
-  };
+  const ids = new Set(kind === "node" ? [id] : kind === "boundary" ? map.boundaries.find((item) => item.id === id)?.nodeIds : [map.summaries.find((item) => item.id === id)?.nodeId]);
+  return { ...map, nodes: map.nodes.map((node) => ids.has(node.id) ? { ...node, x: node.x + delta.x, y: node.y + delta.y, autoPosition: false } : node) };
 }
 
-export function placeMindMapNode(map: LearningMindMap, nodeId: string): LearningMindMap {
-  const node = map.nodes.find((item) => item.id === nodeId);
-  if (!node) return map;
-  const center = { x: node.x + 110, y: node.y + mindMapNodeRect(node).height / 2 };
-  const zone = [...map.zones].sort((a, b) => a.layer - b.layer).reverse().find((item) => { const r = mindMapZoneRect(map, item); return !item.collapsed && center.x >= r.x && center.x <= r.x + r.width && center.y >= r.y && center.y <= r.y + r.height; });
-  const next = editMindMapNode(map, nodeId, { zoneId: zone?.id });
-  return zone ? containMindMapZone(next, zone.id) : next;
-}
-
-export function resizeMindMapZone(map: LearningMindMap, id: string, corner: "nw" | "ne" | "sw" | "se", delta: MindMapPoint): LearningMindMap {
-  const zone = map.zones.find((item) => item.id === id);
-  if (!zone) return map;
-  const rect = mindMapZoneRect(map, { ...zone, collapsed: false });
-  const members = map.nodes.filter((node) => node.zoneId === id);
-  const points = map.strokes.filter((stroke) => stroke.zoneId === id).flatMap((stroke) => stroke.points);
-  const content = [...members.map((node) => mindMapNodeRect(node)), ...points.map((p) => ({ ...p, width: 0, height: 0 }))];
-  const bounds = content.length ? mindMapBounds(content, 64) : null;
-  let left = rect.x, top = rect.y, right = rect.x + rect.width, bottom = rect.y + rect.height;
-  if (corner.includes("w")) left = Math.min(right - 180, bounds?.x ?? Infinity, left + delta.x);
-  else right = Math.max(left + 180, bounds ? bounds.x + bounds.width : -Infinity, right + delta.x);
-  if (corner.includes("n")) top = Math.min(bottom - 100, bounds?.y ?? Infinity, top + delta.y);
-  else bottom = Math.max(top + 100, bounds ? bounds.y + bounds.height : -Infinity, bottom + delta.y);
-  return { ...map, zones: map.zones.map((item) => item.id === id ? { ...item, x: left, y: top, width: right - left, height: bottom - top, autoSize: false } : item) };
-}
-
-export function setMindMapZoneLayer(map: LearningMindMap, id: string, direction: "front" | "back"): LearningMindMap {
-  const ordered = [...map.zones].sort((a, b) => a.layer - b.layer).filter((zone) => zone.id !== id), zone = map.zones.find((item) => item.id === id);
-  if (!zone) return map;
-  if (direction === "front") ordered.push(zone); else ordered.unshift(zone);
-  return { ...map, zones: ordered.map((item, layer) => ({ ...item, layer })) };
-}
-
-export function removeMindMapElement(map: LearningMindMap, kind: MindMapElementKind, id: string, withContent = false): LearningMindMap {
+export function removeMindMapElement(map: LearningMindMap, kind: MindMapElementKind, id: string): LearningMindMap {
   if (kind === "node") return removeMindMapNode(map, id);
   if (kind === "boundary") return { ...map, boundaries: map.boundaries.filter((item) => item.id !== id) };
-  if (kind === "summary") { const summary = map.summaries.find((item) => item.id === id); return summary ? removeMindMapNode(map, summary.nodeId) : map; }
-  const next = withContent ? map.nodes.filter((node) => node.zoneId === id).reduce((current, node) => removeMindMapNode(current, node.id), map) : map;
-  return { ...next, zones: next.zones.filter((zone) => zone.id !== id), nodes: next.nodes.map((node) => node.zoneId === id ? { ...node, zoneId: undefined } : node),
-    edges: next.edges.filter((edge) => edge.from !== id && edge.to !== id), strokes: withContent ? next.strokes.filter((stroke) => stroke.zoneId !== id) : next.strokes.map((stroke) => stroke.zoneId === id ? { ...stroke, zoneId: undefined } : stroke),
-  };
-}
-
-export function duplicateMindMapZone(map: LearningMindMap, id: string): { map: LearningMindMap; id: string } {
-  const zone = map.zones.find((item) => item.id === id);
-  if (!zone) throw new Error("Die Zone ist nicht verfügbar.");
-  const offset = mindMapZoneRect(map, { ...zone, collapsed: false }).width + 80;
-  const nodes = map.nodes.filter((node) => node.zoneId === id), ids = new Map(nodes.map((node) => [node.id, `node_${crypto.randomUUID()}`])), nextId = `zone_${crypto.randomUUID()}`;
-  const sources = new Set(nodes.map((node) => node.id));
-  const next: LearningMindMap = { ...map, zones: [...map.zones, { ...zone, id: nextId, title: `${zone.title.slice(0, 110)} (Kopie)`, x: zone.x + offset, layer: 1 + Math.max(-1, ...map.zones.map((item) => item.layer)) }],
-    nodes: [...map.nodes, ...nodes.map((node) => ({ ...node, id: ids.get(node.id)!, zoneId: nextId, color: mindMapNodeColor(map, node).color, x: node.x + offset, parentId: node.parentId ? ids.get(node.parentId) ?? node.parentId : undefined, images: node.images?.map((image) => ({ ...image, id: `image_${crypto.randomUUID()}` })) }))],
-    edges: [...map.edges, ...map.edges.filter((edge) => (sources.has(edge.from) || edge.from === id || sources.has(edge.to) || edge.to === id)).map((edge) => ({ from: edge.from === id ? nextId : ids.get(edge.from) ?? edge.from, to: edge.to === id ? nextId : ids.get(edge.to) ?? edge.to }))],
-    strokes: [...map.strokes, ...map.strokes.filter((stroke) => stroke.zoneId === id).map((stroke) => ({ ...stroke, id: `stroke_${crypto.randomUUID()}`, zoneId: nextId, points: stroke.points.map((p) => ({ x: p.x + offset, y: p.y })) }))],
-    boundaries: [...map.boundaries, ...map.boundaries.filter((item) => item.nodeIds.every((key) => sources.has(key))).map((item) => ({ ...item, id: `boundary_${crypto.randomUUID()}`, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
-    summaries: [...map.summaries, ...map.summaries.filter((item) => sources.has(item.nodeId) && item.nodeIds.every((key) => sources.has(key))).map((item) => ({ ...item, id: `summary_${crypto.randomUUID()}`, nodeId: ids.get(item.nodeId)!, nodeIds: item.nodeIds.map((key) => ids.get(key)!) }))],
-  };
-  return { map: readLearningMindMap(next), id: nextId };
+  const summary = map.summaries.find((item) => item.id === id);
+  return summary ? removeMindMapNode(map, summary.nodeId) : map;
 }
 
 const CARD_TITLE_CHARS = 60;
