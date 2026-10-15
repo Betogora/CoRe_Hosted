@@ -199,6 +199,9 @@ test("[Vertrag: Stapelinhalte] Flächeneinstieg, Vorschautabs und gemeinsamer Ed
         await expect(page.getByTestId(`deck-header-${DECK_IDS.childB}`)).toHaveCount(0);
       } else if (label === "Unterstapel") {
         await expect(page.getByTestId("deck-content-substacks")).toBeVisible();
+      } else if (label === "Zusammenfassungen" || label === "Mind Map") {
+        await expect(page.getByTestId(label === "Mind Map" ? "deck-mindmaps-panel" : "deck-summaries-panel")).toBeVisible();
+        await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
       } else {
         await expect(page.getByRole("region", { name: label, exact: true })).toContainText("Demnächst verfügbar");
         await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
