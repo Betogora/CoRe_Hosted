@@ -74,8 +74,8 @@ function seedDecks(): Deck[] {
   ];
 }
 
-async function seedAccount(decks: Deck[] = seedDecks()) {
-  const environment = loadE2EEnvironment();
+async function seedAccount(decks: Deck[] = seedDecks(), account?: { email: string; password: string }) {
+  const environment = { ...loadE2EEnvironment(), ...account };
   const client = createClient(environment.supabaseUrl, environment.publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
   });
@@ -725,4 +725,88 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
   await page.goto("/decks/missing-deck/review?returnView=decks&returnDeck=missing-deck&returnCard=missing-card");
   await waitForApp(page);
   await expect(page.getByText("Stapel nicht gefunden oder nicht verfügbar.", { exact: true })).toBeVisible();
+});
+
+const CONTENT_URL = `/kartenstapel?deck=${DECK_IDS.childB}&content=1&tab=`;
+const SUMMARY_RESULT = { summary: { sections: [{ heading: "Bereich B", paragraphs: ["Karte B1 führt zu Antwort B1."], points: [], references: ["m1"], subsections: [] }], warnings: [], relations: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "learning-summary-v3", usage: null };
+
+test("[Vertrag: Lerninhalte] Tabs öffnen per URL; Entwürfe sind bei Tab-, Bereichswechsel und Reload geschützt, Verwerfen lässt Fassungen unverändert", async ({ page }) => {
+  const summaries = page.getByTestId("deck-summaries-panel"), guard = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true });
+  const tab = (name: string) => page.getByRole("group", { name: "Stapelinhalte", exact: true }).getByRole("button", { name, exact: true });
+  const editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
+  await page.goto(`${CONTENT_URL}summary`);
+  await summaries.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+  await summaries.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(summaries).toContainText("Bitte gib einen Titel");
+  await summaries.getByRole("textbox", { name: "Titel", exact: true }).fill("Geschützter Entwurf");
+  await tab("Mind Map").click();
+  await guard.getByRole("button", { name: "Weiter bearbeiten", exact: true }).click();
+  await expect(summaries.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Geschützter Entwurf");
+  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
+  await guard.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(page).toHaveURL(/\/lernen/);
+  await page.goto(`${CONTENT_URL}summary`);
+  await summaries.getByRole("button", { name: "Zusammenfassung „Geschützter Entwurf“ öffnen", exact: true }).click();
+  await editor.fill("Ungespeichert");
+  expect(await page.evaluate(() => !window.dispatchEvent(new Event("beforeunload", { cancelable: true })))).toBe(true);
+  await tab("Mind Map").click(); await guard.getByRole("button", { name: "Verwerfen", exact: true }).click();
+  await expect(page).toHaveURL(`${CONTENT_URL}mind-map`);
+  await page.reload(); await expect(page.getByTestId("mindmap-canvas")).toBeVisible();
+  await tab("Zusammenfassungen").click(); await summaries.getByRole("button", { name: "Zusammenfassung „Geschützter Entwurf“ öffnen", exact: true }).click();
+  await expect(editor).not.toContainText("Ungespeichert");
+});
+
+test("[Vertrag: Lerninhalte] KI-Fassung aus geladenem Material, Bearbeiten, Neu erzeugen nach Rückfrage und Abbruch", async ({ page }) => {
+  const requests: Array<{ units: unknown[] }> = [];
+  let hold = false;
+  await page.route("**/api/ai/summary", async (route) => {
+    requests.push(route.request().postDataJSON());
+    if (hold) return;
+    await route.fulfill({ json: SUMMARY_RESULT });
+  });
+  const summaries = page.getByTestId("deck-summaries-panel"), editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
+  await page.goto(`${CONTENT_URL}summary`);
+  await summaries.getByRole("button", { name: "Zusammenfassung erzeugen", exact: true }).click();
+  await expect(editor).toContainText("Karte B1 führt zu Antwort B1.");
+  expect(requests[0].units).toHaveLength(2);
+  await editor.fill("Eigene Fassung.");
+  await summaries.getByRole("button", { name: "Speichern", exact: true }).click();
+  await summaries.getByRole("button", { name: "Neu erzeugen", exact: true }).click();
+  hold = true;
+  await page.getByRole("dialog", { name: "Fassung neu erzeugen?", exact: true }).getByRole("button", { name: "Neu erzeugen", exact: true }).click();
+  await summaries.getByRole("button", { name: "KI-Erstellung abbrechen", exact: true }).click();
+  await expect(summaries.getByRole("button", { name: "Neu erzeugen", exact: true })).toBeEnabled();
+  await expect(editor).toHaveText("Eigene Fassung.");
+  expect(requests).toHaveLength(2);
+});
+
+test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemeldeten Konto", async ({ page }) => {
+  const other = { email: process.env.CORE_RLS_USER_B_EMAIL ?? "", password: process.env.CORE_RLS_USER_B_PASSWORD ?? "" };
+  test.skip(!other.email || !other.password, "Nur gegen lokales Supabase mit zweitem Testkonto.");
+  await seedAccount(seedDecks(), other);
+  const summaries = page.getByTestId("deck-summaries-panel"), mindMaps = page.getByTestId("deck-mindmaps-panel");
+  const switchAccount = async (account: { email: string; password: string }) => {
+    await page.goto("/"); await page.getByRole("button", { name: "Einstellungen öffnen" }).first().click();
+    await page.getByRole("button", { name: "Abmelden" }).click();
+    await page.getByLabel("E-Mail").fill(account.email); await page.getByLabel("Passwort", { exact: true }).fill(account.password);
+    await page.locator("form").getByRole("button", { name: "Anmelden", exact: true }).click(); await waitForApp(page);
+  };
+  await page.goto(`${CONTENT_URL}summary`);
+  await summaries.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+  await summaries.getByRole("textbox", { name: "Titel", exact: true }).fill("Nur für Konto A");
+  await summaries.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(summaries).toContainText("Lokal gespeichert");
+  await page.goto(`${CONTENT_URL}mind-map`);
+  await mindMaps.getByRole("button", { name: "Erstes Thema", exact: true }).click();
+  await mindMaps.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Thema A");
+  await mindMaps.getByRole("button", { name: "Bearbeitung abschließen", exact: true }).click();
+  await expect(mindMaps.getByRole("status").filter({ hasText: /^Gespeichert$/ })).toBeAttached();
+  await switchAccount(other);
+  await page.goto(`${CONTENT_URL}summary`);
+  await expect(summaries).toContainText("Hier entsteht dein Überblick");
+  await page.goto(`${CONTENT_URL}mind-map`);
+  await expect(mindMaps.getByRole("button", { name: "Erstes Thema", exact: true })).toBeVisible();
+  await switchAccount(loadE2EEnvironment());
+  await page.goto(`${CONTENT_URL}summary`);
+  await expect(summaries.getByRole("button", { name: "Zusammenfassung „Nur für Konto A“ öffnen", exact: true })).toBeVisible();
+  await page.goto(`${CONTENT_URL}mind-map`);
+  await expect(mindMaps.getByRole("group", { name: "Stichwort „Thema A“", exact: true })).toBeVisible();
 });

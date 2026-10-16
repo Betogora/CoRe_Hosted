@@ -5,31 +5,22 @@ Stand: 2026-10-16
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-## P0: Zusammenfassungen und Mindmaps (W7–W8)
+## P0: Zusammenfassungen und Mindmaps (W8)
 
-Reihenfolge = Priorität. W0–W6 sind erledigt, Details und Nachweise in
+W0–W7 sind erledigt, Details und Nachweise in
 [`history.md`](history.md): gemeinsame KI-Routen und Luna mit ZDR (W0–W1),
 strukturierte Zusammenfassung und Mindmap daraus erzeugen, ersetzen und sauber
 übersetzen (W2–W3b), Mindmap ohne Zonen, Tastatur, Touch und Barrierefreiheit
 (W4a–W4c), Bilder im eigenen Speicher (W5), Löschen, Duplizieren und `Fläche
-leeren` (W6).
+leeren` (W6), App-Tests für Lerninhalte und testbares Autospeichern (W7).
 Entscheidungen: E1–E5 vom 2026-10-15 (Zonen ohne Umwandlung entfernen,
 Verknüpfen per Enter/Leertaste, Kopieren/Einfügen, eigener Bildspeicher,
 `Neu erzeugen` ersetzt die Fassung); G1–G3 vom 2026-10-16 (alte Base64-Bilder
 verwerfen, eigener Bild-Store, höchstens zehn Bilder je Map); F1–F3 vom
 2026-10-16 (Löschen endgültig nach Rückfrage, `Fläche leeren` entfernt alles
-nach Rückfrage, Aktionen nur in der geöffneten Fassung).
+nach Rückfrage, Aktionen nur in der geöffneten Fassung); H1–H2 vom 2026-10-16
+(App-Tests lokal mit Docker und im Nightly, Kontobindung mit zweitem Testkonto).
 
-- [ ] **W7 Testsuite**
-      - E2E gegen die echte App mit gemockter `/api/ai/summary`: Tabs per URL,
-        Entwurfsschutz bei Tab-, Bereichswechsel und Reload, Kontobindung,
-        Erzeugen → Bearbeiten → Dialog beim Neu-Erzeugen, Abbruch beim Laden.
-      - Kaltstart: globales Warm-up der Katalogseite, 90-s-Timeout auch für
-        `learning-summaries.spec.ts`.
-      - Prüfungen auf fehlende Elemente mit der Spec-Kürzung bereinigen,
-        Testnamen nach Verhalten statt Iterationsgeschichte.
-      - Autospeichern der Mindmap als testbarer Helfer mit Unit-Test für
-        „Änderung während laufender Speicherung“.
 - [ ] **W8 Zusammenfassungen und Mindmaps online ablegen** (Entscheidung
       2026-10-12). Heute nur lokal je Browser: Inkognito, anderes Gerät oder
       gelöschte Browserdaten zeigen leere Tabs.

@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-16 — Testsuite für Lerninhalte (W7)
+
+- Neue App-Verträge `[Vertrag: Lerninhalte]` in `navigation-context.spec.ts` gegen lokales Supabase: Tabs per URL, Entwurfsschutz bei Tab-, Bereichswechsel und Reload samt Verwerfen, KI-Fassung aus dem geladenen Stapelmaterial mit nachgebildeter `/api/ai/summary`, `Neu erzeugen` mit Rückfrage und Abbruch, Kontobindung mit dem lokalen zweiten Testkonto (H1, H2).
+- Autospeichern der Mindmap als `createLatestSaver` mit Unit-Test für Änderungen während laufender Speicherung, abgewarteten Bildimport und sichtbare Fehler; das Panel nutzt den Helfer.
+- Kaltstart: 90-s-Timeout auch für `learning-summaries.spec.ts`. Ein globales Warm-up entfällt, weil die Katalogseite ihr Bundle inline mitbringt und Vite nichts nachkompiliert.
+- Aufgeräumt ohne Vertragsverlust (Pflegevertrag in `test-portfolio.md`): Katalogtests für Entwurfsschutz, Verwerfen und Abbruch gehen in den App-Verträgen auf; Plus-Aktionen, Astverteilung und Linienfarben-Speicherung bleiben über Unit-Tests und die Verknüpfen-/Astfarben-E2E abgedeckt; doppelte Sichtbarkeitsprüfungen entfallen. Testnamen beschreiben Verhalten. Quellcode und Tests zusammen ohne Netto-Zeilenzuwachs (+158/−158).
+- Nachweis vom 2026-10-17: `npm run test:e2e:local` für `navigation-context.spec.ts` gegen lokales Supabase 14/14 grün (darunter die drei Lerninhalte-Verträge), RLS-Suite 17/17; Katalogsuites für Mindmaps 24/24 und Zusammenfassungen grün; `npm run gate:push` grün. Lokal waren die Supabase-Ports wegen einer Windows-Portreservierung (54300–54499) für den Lauf vorübergehend auf 553xx umgestellt; `supabase/config.toml` ist unverändert.
+
 ## 2026-10-16 — Zusammenfassungen und Mindmap verwalten (W6)
 
 - Geöffnete Zusammenfassungen bieten `Duplizieren` (eigenständige Kopie „Kopie von …“, ungespeicherte Änderungen laufen vorher durch den Entwurfsschutz) und `Löschen` mit Rückfrage; erzeugte Mindmap-Karten bleiben.

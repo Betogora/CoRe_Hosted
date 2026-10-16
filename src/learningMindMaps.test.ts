@@ -71,6 +71,7 @@ test("ungültige Payloads und Verbindungen werden vor dem Speichern abgelehnt", 
   assert.throws(() => readLearningMindMap({ ...map, edges: [{ from: "missing", to: "other" }] }));
   assert.throws(() => readLearningMindMap({ ...map, nodes: [node], edges: [{ from: node.id, to: node.id }] }));
   assert.throws(() => readLearningMindMap({ ...map, nodes: [node], unexpected: true }));
+  assert.equal(map.connectionColor, "node"); assert.throws(() => readLearningMindMap({ ...map, connectionColor: "unknown" }), /ungültig/);
 });
 
 test("ein Stapel erhält auch bei parallelem Öffnen genau eine Infinity Map", async () => {
@@ -329,14 +330,6 @@ test("Astfarben beginnen sanft, werden kräftiger und Zusammenfassungsknoten ble
   const colored = editMindMapNode(result.map, id, { color: "red" });
   assert.deepEqual(mindMapNodeColor(colored, colored.nodes.find((n) => n.id === id)!), { color: "default", depth: 0, strength: 0 });
   assert.equal(createMindMapNode("text", { x: 0, y: 0 }).label, "Neue Notiz");
-});
-
-test("Linienfarben werden validiert und accountgebunden gespeichert", async () => {
-  const map = createLearningMindMap("connection-colors", "Farben");
-  assert.equal(map.connectionColor, "node");
-  assert.throws(() => readLearningMindMap({ ...map, connectionColor: "unknown" }), /ungültig/);
-  await saveLearningMindMap("connection-colors", { ...map, connectionColor: "gray" });
-  assert.equal((await loadLearningMindMaps("connection-colors", map.deckId))[0].connectionColor, "gray");
 });
 
 test("Lose Karten werden normale Äste; Verknüpfungen bestehender Äste bleiben separat", () => {

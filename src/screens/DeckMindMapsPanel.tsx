@@ -5,6 +5,7 @@ import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary, summaryChoices, type LearningSummary, type SummarySettings } from "../learningSummaries.ts";
 import { MIND_MAP_LIMITS, addMindMapFromSummary, addMindMapRelativeNode, clearMindMap, connectMindMapElements, copyMindMapNodes, createMindMapBoundary, createMindMapSummary, editMindMapNode, loadInfinityMindMap, loadMindMapImages, mindMapBounds, mindMapBoundaryRect, mindMapColors, mindMapImageIds, mindMapLimitError, mindMapNeighbor, mindMapNodeColor, mindMapNodeDirection, mindMapNodeRect, mindMapNodeSource, mindMapSummaryRect, mindMapSummaryTree, moveMindMapElement, pasteMindMapNodes, stepMindMapSummary, storeMindMapImages, removeMindMapElement, replaceMindMapFromSummary, resizeMindMapSummary, saveLearningMindMap, type LearningMindMap, type MindMapClipboard, type MindMapColor, type MindMapElementKind, type MindMapNode, type MindMapPoint, type MindMapRect } from "../learningMindMaps.ts";
+import { createLatestSaver } from "../latestSaver.ts";
 import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, SoftPanel } from "../ui/coreUi.tsx";
@@ -69,7 +70,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   const [busy, setBusy] = React.useState(false), [error, setError] = React.useState(""), [notice, setNotice] = React.useState("");
   const pendingImagesRef = React.useRef<Promise<boolean> | null>(null), [readingImages, setReadingImages] = React.useState(false);
   const imageUrlsRef = React.useRef(new Map<string, string>()), loadingImageIds = React.useRef(new Set<string>()), [, setImageUrlVersion] = React.useState(0);
-  const savingRef = React.useRef<Promise<boolean> | null>(null), savedRef = React.useRef(saved), [saveFailed, setSaveFailed] = React.useState(false);
+  const savedRef = React.useRef(saved), [saveFailed, setSaveFailed] = React.useState(false);
   savedRef.current = saved;
   const [createFromSummary, setCreateFromSummary] = React.useState(false), [sourceOpen, setSourceOpen] = React.useState(false);
   const [toolbarHost, setToolbarHost] = React.useState<HTMLDivElement | null>(null);
@@ -92,26 +93,14 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
       setLoading(false);
     }); return () => { active = false; };
   }, [userId, deck.id, retry]);
+  const saveLatest = React.useMemo(() => createLatestSaver({ latest: () => draftRef.current, stored: () => savedRef.current, pending: () => pendingImagesRef.current,
+    save: async (map: LearningMindMap) => { await saveLearningMindMap(userId, map); savedRef.current = map; setSaved(map); } }), [userId]);
   const persist = React.useCallback(async () => {
-    if (savingRef.current) return savingRef.current;
-    const task = (async () => {
-      await Promise.resolve();
-      setBusy(true); setSaveFailed(false);
-      try {
-        while (true) {
-          const preparation = pendingImagesRef.current; if (preparation && !(await preparation)) return false;
-          const current = draftRef.current; if (!current) return false;
-          if (current === savedRef.current) return true;
-          await saveLearningMindMap(userId, current);
-          savedRef.current = current; setSaved(current);
-          if (draftRef.current === current && !pendingImagesRef.current) { setNotice("Gespeichert"); return true; }
-        }
-      } catch (cause: unknown) { setSaveFailed(true); setError(cause instanceof Error ? cause.message : "Die Mindmap konnte nicht gespeichert werden. Dein Entwurf bleibt geöffnet."); return false; }
-      finally { savingRef.current = null; setBusy(false); }
-    })();
-    savingRef.current = task;
-    return task;
-  }, [userId]);
+    setBusy(true); setSaveFailed(false);
+    try { const result = await saveLatest(); if (result === "saved") setNotice("Gespeichert"); return result !== "stopped"; }
+    catch (cause: unknown) { setSaveFailed(true); setError(cause instanceof Error ? cause.message : "Die Mindmap konnte nicht gespeichert werden. Dein Entwurf bleibt geöffnet."); return false; }
+    finally { setBusy(false); }
+  }, [saveLatest]);
   React.useEffect(() => { if (!dirty || readingImages || saveFailed) return; const timer = window.setTimeout(() => { if (!gestureRef.current) void persist(); }, 600); return () => window.clearTimeout(timer); }, [draft, dirty, readingImages, saveFailed, persist]);
   React.useEffect(() => {
     const missing = draft ? [...mindMapImageIds(draft)].filter((key) => !imageUrlsRef.current.has(key) && !loadingImageIds.current.has(key)) : [];
