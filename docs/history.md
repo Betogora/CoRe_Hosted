@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-16 — Zusammenfassungen und Mindmap verwalten (W6)
+
+- Geöffnete Zusammenfassungen bieten `Duplizieren` (eigenständige Kopie „Kopie von …“, ungespeicherte Änderungen laufen vorher durch den Entwurfsschutz) und `Löschen` mit Rückfrage; erzeugte Mindmap-Karten bleiben.
+- Mindmap: `Fläche leeren` mit Rückfrage entfernt Karten, Verbindungen, Klammern, Umrandungen, Zeichnungen, Bilder und Quellenbezüge; Titel und Linienfarbe bleiben, Rückgängig stellt alles in einem Schritt wieder her.
+- Entscheidungen F1–F3 vom 2026-10-16: Löschen endgültig nach Rückfrage, `Fläche leeren` entfernt alles nach Rückfrage, Aktionen nur in der geöffneten Fassung.
+- Nachweis: Unit-Tests für Kopie, kontogebundenes Löschen und `clearMindMap`; E2E für Duplizieren mit Speichern-Dialog, Löschen mit Abbrechen und Reload, `Fläche leeren` mit Rückgängig und Reload; Sichtprüfung bei 1440, 768 und 375 px.
+
 ## 2026-10-16 — Mindmap-Bilder ausgelagert (W5)
 
 - Bilder liegen als Blob im Store `images` der Mindmap-Datenbank (Version 2) unter ihrem SHA-1; Karten speichern nur Verweise, Kopien teilen ihre Bilder. Anzeige über Objekt-URLs, unbenutzte Bilder werden nach einem Tag beim Öffnen freigegeben.

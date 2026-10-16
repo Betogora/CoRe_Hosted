@@ -44,6 +44,30 @@ test("Zusammenfassungen: Wünsche, mehrere Fassungen, Bearbeitung und Reload", a
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
+test("Duplizieren speichert vorher offene Änderungen und öffnet die Kopie; Löschen fragt nach und bleibt nach Reload", async ({ page }) => {
+  const panel = await openSummaries(page);
+  await panel.getByRole("button", { name: "Zusammenfassung „Vor der nächsten Wiederholung“ öffnen", exact: true }).click();
+  const editor = panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
+  await editor.click(); await editor.press("End"); await editor.pressSequentially(" Ergänzt.");
+  await panel.getByRole("button", { name: "Duplizieren", exact: true }).click();
+  await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(panel.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true })).toHaveValue("Kopie von Vor der nächsten Wiederholung");
+  await expect(editor).toContainText("Ergänzt.");
+  await panel.getByRole("button", { name: "Löschen", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Zusammenfassung löschen?", exact: true });
+  await expect(dialog).toContainText("„Kopie von Vor der nächsten Wiederholung“ wird endgültig gelöscht.");
+  await dialog.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await panel.getByRole("button", { name: "Löschen", exact: true }).click();
+  await dialog.getByRole("button", { name: "Löschen", exact: true }).click();
+  await expect(panel.getByTestId("summary-list")).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Zusammenfassung „Kopie von Vor der nächsten Wiederholung“ öffnen", exact: true })).toHaveCount(0);
+  await page.reload(); await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
+  await expect(panel.getByRole("button", { name: "Zusammenfassung „Vor der nächsten Wiederholung“ öffnen", exact: true })).toBeVisible();
+  await expect(panel.getByRole("button", { name: "Zusammenfassung „Kopie von Vor der nächsten Wiederholung“ öffnen", exact: true })).toHaveCount(0);
+  await panel.getByRole("button", { name: "Zusammenfassung „Vor der nächsten Wiederholung“ öffnen", exact: true }).click();
+  await expect(editor).toContainText("Ergänzt.");
+});
+
 test("Stapelinhalte schützen Zusammenfassungsentwürfe beim Tabwechsel", async ({ page }) => {
   await page.goto("./docs/ui-elements.html#screens");
   await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();

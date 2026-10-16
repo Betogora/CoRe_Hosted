@@ -186,6 +186,19 @@ test("Bilder in Stichwortdetails und Textkarten sowie freie Kastenfarben überst
   await expect(node(panel, "Energie").locator("img")).toBeVisible();
 });
 
+test("Fläche leeren fragt nach, entfernt alles und lässt sich rückgängig machen", async ({ page }) => {
+  const panel = await openMindMaps(page); await children(panel);
+  await panel.getByRole("button", { name: "Fläche leeren", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Fläche leeren?", exact: true });
+  await dialog.getByRole("button", { name: "Abbrechen", exact: true }).click(); await expect(node(panel, "Ast A")).toBeVisible();
+  await panel.getByRole("button", { name: "Fläche leeren", exact: true }).click(); await dialog.getByRole("button", { name: "Fläche leeren", exact: true }).click();
+  await expect(panel.getByTestId("mindmap-node")).toHaveCount(0); await expect(panel.getByRole("button", { name: "Fläche leeren", exact: true })).toBeDisabled();
+  await save(panel); await reload(page, panel); await expect(panel.getByTestId("mindmap-node")).toHaveCount(0);
+  await root(panel, "Neu"); await panel.getByRole("button", { name: "Fläche leeren", exact: true }).click(); await dialog.getByRole("button", { name: "Fläche leeren", exact: true }).click();
+  await panel.getByRole("button", { name: "Rückgängig", exact: true }).click(); await expect(node(panel, "Neu")).toBeVisible();
+  await save(panel); await reload(page, panel); await expect(node(panel, "Neu")).toBeVisible();
+});
+
 test("Zusammenfassungsklammer ist anpassbar, bearbeitbar und entfernt keine ursprünglichen Karten", async ({ page }) => {
   const panel = await openMindMaps(page); await children(panel);
   await node(panel, "Ast B").click(); await node(panel, "Ast B").getByRole("button", { name: "Stichwort auf gleicher Ebene hinzufügen", exact: true }).click(); await topic(panel, "Ast C");

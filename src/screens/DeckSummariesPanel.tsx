@@ -1,15 +1,16 @@
 import React from "react";
-import { ArrowLeft, ChevronRight, FileText, Plus, Save, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronRight, Copy, FileText, Plus, Save, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SummarySettings } from "../learningSummaries.ts";
-import { ActionButton } from "../ui/actionUi.tsx";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SummarySettings } from "../learningSummaries.ts";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 interface DeckSummariesPanelProps {
   deck: Deck;
@@ -30,6 +31,8 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
   const [advanced, setAdvanced] = React.useState(false);
   const [draft, setDraft] = React.useState<LearningSummary | null>(null);
   const [saved, setSaved] = React.useState<LearningSummary | null>(null);
+  /** Also set right after a save, so an action queued behind the save dialog sees the stored version. */
+  const savedRef = React.useRef(saved); savedRef.current = saved;
   const [busy, setBusy] = React.useState(false);
   const [source, setSource] = React.useState<TransientSourceDocument | null>(null);
   const [progress, setProgress] = React.useState("");
@@ -38,7 +41,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
   const [error, setError] = React.useState("");
   const [pending, setPending] = React.useState<(() => void) | null>(null);
   const [quickScope, setQuickScope] = React.useState<SummarySettings["scope"]>("tree");
-  const [confirmRegenerate, setConfirmRegenerate] = React.useState(false);
+  const [confirmRegenerate, setConfirmRegenerate] = React.useState(false), [confirmDelete, setConfirmDelete] = React.useState(false);
   const titleRef = React.useRef<HTMLInputElement>(null);
   const panelRef = React.useRef<HTMLElement>(null);
   const fieldId = React.useId();
@@ -73,7 +76,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
       if (!next) return false;
       const stored = await saveLearningSummary(userId, next);
       setSummaries((items) => [stored, ...items.filter((item) => item.id !== stored.id)]);
-      setDraft(stored); setSaved(stored); setView("editor");
+      setDraft(stored); setSaved(stored); savedRef.current = stored; setView("editor");
       toast("Zusammenfassung lokal gespeichert.");
       return true;
     } catch (cause: unknown) {
@@ -149,6 +152,26 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
   function startCreate() { setSettings(createSummarySettings()); setNewTitle(""); setSource(null); setAdvanced(false); setError(""); setView("create"); }
   function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); }
   function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); setError(""); setView("editor"); }
+  async function duplicate() {
+    const original = savedRef.current;
+    if (!original || operationRef.current) return;
+    operationRef.current = true; setBusy(true); setError("");
+    try {
+      const stored = await saveLearningSummary(userId, duplicateLearningSummary(original));
+      setSummaries((items) => [stored, ...items]); open(stored); toast("Kopie lokal gespeichert.");
+    } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Kopie konnte nicht gespeichert werden."); }
+    finally { operationRef.current = false; setBusy(false); }
+  }
+  async function remove() {
+    const id = saved?.id;
+    if (!id || operationRef.current) return;
+    operationRef.current = true; setBusy(true); setError("");
+    try {
+      await deleteLearningSummary(userId, id);
+      setSummaries((items) => items.filter((item) => item.id !== id)); backToList(); toast("Zusammenfassung gelöscht.");
+    } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht gelöscht werden."); }
+    finally { operationRef.current = false; setBusy(false); }
+  }
   function changeSetting<K extends keyof SummarySettings>(key: K, value: SummarySettings[K]) { setSettings((current) => ({ ...current, [key]: value })); }
   const filtered = summaries.filter((item) => `${item.title} ${summaryPlainText(item.html)}`.toLocaleLowerCase("de").includes(query.trim().toLocaleLowerCase("de")));
 
@@ -199,7 +222,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
           </form>
         </SoftPanel>
       </> : draft ? <>
-        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : "Lokal gespeichert"}</p></div><div className="flex flex-wrap gap-3">{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}<ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div></div>
+        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : "Lokal gespeichert"}</p></div><div className="flex flex-wrap gap-3">{saved ? <><CoreTooltip label="Duplizieren"><IconButton icon={Copy} label="Duplizieren" disabled={busy} onClick={() => request(() => void duplicate())}/></CoreTooltip><CoreTooltip label="Löschen"><IconButton icon={Trash2} label="Löschen" variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}/></CoreTooltip></> : null}{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}<ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div></div>
         {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
         <SoftPanel className="core-summary-document grid gap-4 p-4 sm:p-6" inert={busy}>
           <div className="flex flex-wrap gap-4"><div className="core-field-group"><label htmlFor={`${fieldId}-font`} className="core-field-label">Schrift</label><CoreSelect id={`${fieldId}-font`} ariaLabel="Schrift" value={draft.font} options={[{ value: "sans", label: "Standard" }, { value: "serif", label: "Serif" }]} onValueChange={(value) => setDraft({ ...draft, font: value as LearningSummary["font"] })}/></div><div className="core-field-group"><label htmlFor={`${fieldId}-size`} className="core-field-label">Schriftgröße</label><CoreSelect id={`${fieldId}-size`} ariaLabel="Schriftgröße" value={String(draft.fontSize)} options={[{ value: "14", label: "14" }, { value: "16", label: "16" }, { value: "22", label: "22" }]} onValueChange={(value) => setDraft({ ...draft, fontSize: Number(value) as LearningSummary["fontSize"] })}/></div></div>
@@ -215,6 +238,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
     {progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}
     {generationRef.current && <div><ActionButton variant="secondary" onClick={() => { generationRef.current?.abort(); setProgress("Erstellung wird abgebrochen …"); }}>KI-Erstellung abbrechen</ActionButton></div>}
     <ActionDialog open={confirmRegenerate} title="Fassung neu erzeugen?" description="Die KI erstellt diese Fassung mit ihren gespeicherten Einstellungen neu. Der bisherige Text wird ersetzt." confirmLabel="Neu erzeugen" cancelLabel="Abbrechen" onCancel={() => setConfirmRegenerate(false)} onConfirm={() => { setConfirmRegenerate(false); regenerate(); }}/>
+    <ActionDialog open={confirmDelete} destructive title="Zusammenfassung löschen?" description={`„${saved?.title ?? ""}“ wird endgültig gelöscht.${dirty ? " Ungespeicherte Änderungen gehen ebenfalls verloren." : ""} Daraus erzeugte Mindmap-Karten bleiben erhalten.`} confirmLabel="Löschen" cancelLabel="Abbrechen" onCancel={() => setConfirmDelete(false)} onConfirm={() => { setConfirmDelete(false); void remove(); }}/>
     <ActionDialog open={Boolean(pending)} title="Änderungen übernehmen?" description="Du hast ungespeicherte Änderungen an dieser Zusammenfassung. Speichere oder verwirf sie, bevor du den Bereich verlässt." confirmLabel="Speichern" cancelLabel="Weiter bearbeiten" discardLabel="Verwerfen" confirmLoading={busy} onCancel={() => setPending(null)} onDiscard={() => { const run = pending; setPending(null); run?.(); }} onConfirm={() => { void persist().then((success) => { if (success) { const run = pending; setPending(null); run?.(); } }); }} restoreFocus={(reason) => { if (reason === "cancel") titleRef.current?.focus(); }}/>
   </section>;
 }

@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, storeMindMapImages, loadMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { clearMindMap, stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, storeMindMapImages, loadMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
 
 const IMAGE_ID = "0123456789abcdef0123456789abcdef01234567";
 
@@ -472,3 +472,16 @@ test("Klammerbereich lässt sich per Tastatur um je eine Geschwisterkarte vergr�
   assert.equal(single.summaries[0].nodeIds.length, 1);
 });
 
+
+test("Fläche leeren entfernt alle Elemente und Quellen, behält Titel und Linienfarbe", () => {
+  const summary = { ...createLearningSummary("deck", "ATP", createSummarySettings()), html: "<h2>Aufbau</h2><p>Drei Phosphate.</p>" };
+  let map = addMindMapFromSummary({ ...createLearningMindMap("deck", "Map"), connectionColor: "gray" }, summary);
+  const [first, second] = map.nodes;
+  map = createMindMapBoundary(map, [first.id, second.id]).map;
+  map = { ...map, strokes: [{ id: "ink", points: [{ x: 0, y: 0 }] }] };
+  const cleared = clearMindMap(map);
+  assert.deepEqual([cleared.nodes, cleared.edges, cleared.strokes, cleared.summaries, cleared.boundaries], [[], [], [], [], []]);
+  assert.equal("sources" in cleared, false);
+  assert.deepEqual([cleared.id, cleared.title, cleared.connectionColor], [map.id, "Map", "gray"]);
+  assert.deepEqual(readLearningMindMap(cleared), cleared);
+});

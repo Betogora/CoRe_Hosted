@@ -433,6 +433,12 @@ export function copyMindMapNodes(map: LearningMindMap, nodeIds: string[]): MindM
   };
 }
 
+/** An empty surface with the same title and settings; generated-source snapshots go with their cards. */
+export function clearMindMap(map: LearningMindMap): LearningMindMap {
+  const { source: _source, sources: _sources, ...rest } = map;
+  return { ...rest, nodes: [], edges: [], strokes: [], summaries: [], boundaries: [] };
+}
+
 /** Inserts a copy with fresh ids, offset by `offset`; copied top cards keep their parent if it still exists. Returns the top cards. */
 export function pasteMindMapNodes(map: LearningMindMap, clipboard: MindMapClipboard, offset: MindMapPoint = { x: 40, y: 40 }): { map: LearningMindMap; ids: string[] } {
   const ids = new Map(clipboard.nodes.map((node) => [node.id, `node_${crypto.randomUUID()}`]));

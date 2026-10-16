@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createLearningSummary, createSummarySettings, getSummaryReadingMinutes, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryPlainText } from "./learningSummaries.ts";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, getSummaryReadingMinutes, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryPlainText } from "./learningSummaries.ts";
 
 test("Zusammenfassungen bleiben nach erneutem Öffnen je Konto und Stapel getrennt", async () => {
   const account = `summary-test-${crypto.randomUUID()}`;
@@ -17,6 +17,19 @@ test("Zusammenfassungen bleiben nach erneutem Öffnen je Konto und Stapel getren
   assert.deepEqual(reread.find((item) => item.id === one.id), changed);
   assert.equal(reread.length, 2);
   assert.equal(reread.find((item) => item.id === two.id)?.settings.detail, "detailed");
+});
+
+test("Duplizieren legt eine eigenständige Kopie an; Löschen entfernt nur diese Fassung im eigenen Konto", async () => {
+  const account = `summary-test-${crypto.randomUUID()}`;
+  const original = await saveLearningSummary(account, { ...createLearningSummary("deck", "x".repeat(120), createSummarySettings()), html: "<p>Text</p>", font: "serif" });
+  const copy = await saveLearningSummary(account, duplicateLearningSummary(original, "2030-01-01T00:00:00.000Z"));
+  assert.notEqual(copy.id, original.id);
+  assert.equal(copy.title, `Kopie von ${"x".repeat(110)}`);
+  assert.deepEqual({ ...copy, id: original.id, title: original.title, createdAt: original.createdAt, updatedAt: original.updatedAt }, original);
+  await deleteLearningSummary(`${account}-other`, original.id);
+  assert.equal((await loadLearningSummaries(account, "deck")).length, 2);
+  await deleteLearningSummary(account, original.id);
+  assert.deepEqual(await loadLearningSummaries(account, "deck"), [copy]);
 });
 
 test("unbekannte Zusammenfassungspayloads werden validiert und HTML wird sanitisiert", () => {

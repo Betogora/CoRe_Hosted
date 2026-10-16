@@ -42,6 +42,11 @@ export function createLearningSummary(deckId: string, title: string, settings: S
   return readLearningSummary({ version: 1, id: `summary_${crypto.randomUUID()}`, deckId, title: title.trim(), html: "", settings, font: "sans", fontSize: 16, createdAt: now, updatedAt: now });
 }
 
+/** A saved copy with its own id; content, settings and generation details stay, the title becomes „Kopie von …“. */
+export function duplicateLearningSummary(summary: LearningSummary, now = new Date().toISOString()): LearningSummary {
+  return readLearningSummary({ ...summary, id: `summary_${crypto.randomUUID()}`, title: `Kopie von ${summary.title}`.slice(0, 120), createdAt: now, updatedAt: now });
+}
+
 export function summaryPlainText(html: string): string {
   return stripHtml(html.replace(/<(?:br|hr)\b[^>]*>/gi, "\n").replace(/<\/(?:p|div|h[1-6]|li|blockquote|pre|tr)>/gi, "\n")).replace(/[\t ]*\n[\t ]*/g, "\n").trim();
 }
@@ -98,5 +103,17 @@ export async function saveLearningSummary(userId: string, value: unknown): Promi
       transaction.onabort = transaction.onerror = () => reject(new Error("Die Zusammenfassung konnte nicht lokal gespeichert werden. Dein Entwurf bleibt geöffnet."));
     });
     return summary;
+  } finally { db.close(); }
+}
+
+export async function deleteLearningSummary(userId: string, id: string): Promise<void> {
+  const db = await openSummaryDatabase(userId);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction("summaries", "readwrite");
+      transaction.objectStore("summaries").delete(id);
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = transaction.onerror = () => reject(new Error("Die Zusammenfassung konnte nicht gelöscht werden."));
+    });
   } finally { db.close(); }
 }
