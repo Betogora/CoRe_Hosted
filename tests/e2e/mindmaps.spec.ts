@@ -180,7 +180,7 @@ test("Bilder in Stichwortdetails und Textkarten sowie freie Kastenfarben überst
   await finish(panel); await expect(node(panel, "Energie").locator("img")).toBeVisible();
   await save(panel); await reload(page, panel);
   await expect(node(panel, "Energie")).toHaveAttribute("data-color", "#123abc");
-  await expect(node(panel, "Energie").locator("img")).toBeVisible();
+  await expect(node(panel, "Energie").locator("img")).toHaveAttribute("src", /^blob:/);
   await node(panel, "Energie").dblclick(); await panel.getByRole("button", { name: "Bild „energie.png“ entfernen", exact: true }).click();
   await expect(node(panel, "Energie").locator("img")).toHaveCount(0); await panel.getByRole("button", { name: "Rückgängig", exact: true }).click();
   await expect(node(panel, "Energie").locator("img")).toBeVisible();
@@ -279,7 +279,7 @@ test("Ein laufender Bildimport wird vor dem Speichern beim Tabwechsel vollständ
   const panel = page.getByTestId("deck-mindmaps-panel"); await root(panel, "Bildnotiz"); await node(panel, "Bildnotiz").dblclick();
   await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click(); await finish(panel); await save(panel);
   await node(panel, "Bildnotiz").dblclick();
-  await page.evaluate(() => { const read = FileReader.prototype.readAsDataURL; FileReader.prototype.readAsDataURL = function (blob: Blob) { setTimeout(() => read.call(this, blob), 1500); }; });
+  await page.evaluate(() => { const digest = crypto.subtle.digest.bind(crypto.subtle); crypto.subtle.digest = (...args: Parameters<SubtleCrypto["digest"]>) => new Promise((resolve) => setTimeout(() => resolve(digest(...args)), 1500)); });
   await panel.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles(image);
   await expect(panel).toContainText("Bilder werden geladen");
   await tabs.getByRole("button", { name: "Karten", exact: true }).click();

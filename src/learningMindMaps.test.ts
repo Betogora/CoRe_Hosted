@@ -2,7 +2,9 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, readMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, storeMindMapImages, loadMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+
+const IMAGE_ID = "0123456789abcdef0123456789abcdef01234567";
 
 test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt und unabhängig erhalten", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>ATP</h2><p>ATP und ADP sind Energieträger.</p><h3>Aufbau</h3><ul><li>Drei Phosphatgruppen.</li></ul><h2>ADP</h2><p>Zwei Phosphatgruppen.</p>" };
@@ -85,7 +87,7 @@ test("alte Mindmaps werden nebeneinander zusammengeführt; Quellen, Texte und Li
   const account = `migration-${crypto.randomUUID()}`;
   const summary = { ...createLearningSummary("deck", "ATP", createSummarySettings()), html: "<h2>Aufbau</h2><p>Drei Phosphate.</p>" };
   const first = mindMapFromSummary(summary), second = createLearningMindMap("deck", "Notizen");
-  second.nodes = [{ ...createMindMapNode("text", { x: -900, y: -500 }), text: "Mein Text", color: "purple", images: [{ id: "img", name: "Bild.png", dataUrl: "data:image/png;base64,YQ==" }] }];
+  second.nodes = [{ ...createMindMapNode("text", { x: -900, y: -500 }), text: "Mein Text", color: "purple", images: [{ id: IMAGE_ID, name: "Bild.png" }] }];
   second.strokes = [{ id: "stroke", color: "red", width: 8, points: [{ x: -950, y: -600 }, { x: -800, y: -500 }] }];
   await saveLearningMindMap(account, first); await saveLearningMindMap(account, second);
   const map = await loadInfinityMindMap(account, "deck");
@@ -121,16 +123,47 @@ test("zu große Migrationen brechen atomar ab und erhalten alle alten Mindmaps",
   assert.equal((await loadLearningMindMaps(account, "deck")).length, 2);
 });
 
-test("Bild-, Kasten- und Stiftoptionen werden validiert; alte Linien bleiben lesbar", async () => {
+test("Bild-, Kasten- und Stiftoptionen werden validiert; alte Linien bleiben lesbar, alte Base64-Bilder fallen weg", async () => {
   const map = createLearningMindMap("deck", "Map"), node = createMindMapNode("keyword", { x: 0, y: 0 });
-  const image = { id: "image", name: "Bild.png", dataUrl: "data:image/png;base64,YQ==" };
+  const image = { id: IMAGE_ID, name: "Bild.png" };
   assert.doesNotThrow(() => readLearningMindMap({ ...map, nodes: [{ ...node, color: "yellow", images: [image] }], strokes: [{ id: "ink", color: "blue", width: 2, points: [{ x: 0, y: 0 }] }] }));
-  for (const dataUrl of ["javascript:alert(1)", "https://example.com/image.png", "data:image/svg+xml;base64,YQ=="]) assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...node, images: [{ ...image, dataUrl }] }] }));
+  for (const id of ["image", "javascript:alert(1)", IMAGE_ID.toUpperCase()]) assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...node, images: [{ ...image, id }] }] }));
   assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...node, color: "unknown" }] }));
   assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...node, images: [image, image] }] }));
   assert.throws(() => readLearningMindMap({ ...map, strokes: [{ id: "ink", width: 99, points: [{ x: 0, y: 0 }] }] }));
-  await assert.rejects(readMindMapImages([new File(["svg"], "image.svg", { type: "image/svg+xml" })]), /PNG/);
-  await assert.rejects(readMindMapImages([new File([new Uint8Array(2_000_001)], "big.png", { type: "image/png" })]), /2 MB/);
+  const legacy = readLearningMindMap({ ...map, nodes: [{ ...node, images: [{ id: "image", name: "Alt.png", dataUrl: "data:image/png;base64,YQ==" }, image] }, { ...createMindMapNode("text", { x: 0, y: 300 }), images: [{ id: "old", name: "Alt.png", dataUrl: "data:image/png;base64,YQ==" }] }] });
+  assert.deepEqual(legacy.nodes.map((item) => item.images), [[image], undefined]);
+  await assert.rejects(storeMindMapImages("images", [new File(["svg"], "image.svg", { type: "image/svg+xml" })]), /PNG/);
+  await assert.rejects(storeMindMapImages("images", [new File([new Uint8Array(20_000_001)], "huge.png", { type: "image/png" })]), /20 MB/);
+  await assert.rejects(storeMindMapImages("images", [new File([new Uint8Array(2_000_001)], "big.gif", { type: "image/gif" })]), /2 MB/);
+});
+
+test("Bilder liegen einmal je Inhalt im Bildspeicher; Kopien teilen sie und eine Map fasst höchstens zehn", async () => {
+  const account = `images-${crypto.randomUUID()}`, bytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+  const [first] = await storeMindMapImages(account, [new File([bytes], "a.png", { type: "image/png" })]);
+  const [again] = await storeMindMapImages(account, [new File([bytes], "b.png", { type: "image/png" })]);
+  assert.equal(first.id, Buffer.from(await crypto.subtle.digest("SHA-1", bytes)).toString("hex"));
+  assert.equal(again.id, first.id);
+  assert.deepEqual(new Uint8Array(await (await loadMindMapImages(account, [first.id, IMAGE_ID])).get(first.id)!.arrayBuffer()), bytes);
+  assert.equal((await loadMindMapImages(account, [IMAGE_ID])).size, 0);
+  const { map, a } = tree(), withImage = editMindMapNode(map, a.id, { images: [first] });
+  const pasted = pasteMindMapNodes(withImage, copyMindMapNodes(withImage, [a.id]));
+  assert.deepEqual(pasted.map.nodes.find((node) => node.id === pasted.ids[0])!.images, [first]);
+  const ids = Array.from({ length: 11 }, (_, index) => index.toString(16).padStart(40, "0"));
+  const full = { ...map, nodes: map.nodes.map((node, index) => index < 3 ? { ...node, images: ids.slice(index * 4, index * 4 + 4).map((id) => ({ id, name: "Bild.png" })) } : node) };
+  assert.equal(mindMapLimitError(full), "Eine Mindmap umfasst höchstens 10 Bilder (jetzt 11).");
+  assert.equal(mindMapLimitError({ ...full, nodes: full.nodes.map((node) => ({ ...node, images: node.images?.filter((item) => item.id !== ids[10]) })) }), null);
+});
+
+test("nicht mehr verwendete Bilder werden nach einem Tag beim Öffnen freigegeben", async () => {
+  const account = `release-${crypto.randomUUID()}`;
+  const [used, unused] = await storeMindMapImages(account, [new File([new Uint8Array([1])], "a.png", { type: "image/png" }), new File([new Uint8Array([2])], "b.png", { type: "image/png" })]);
+  const surface = await loadInfinityMindMap(account, "deck"), node = createMindMapNode("text", { x: 0, y: 0 });
+  await saveLearningMindMap(account, { ...surface, nodes: [{ ...node, images: [used] }] });
+  await loadInfinityMindMap(account, "deck");
+  assert.equal((await loadMindMapImages(account, [used.id, unused.id])).size, 2);
+  await loadInfinityMindMap(account, "deck", Date.now() + 25 * 60 * 60 * 1000);
+  assert.deepEqual([...(await loadMindMapImages(account, [used.id, unused.id])).keys()], [used.id]);
 });
 
 
@@ -272,12 +305,12 @@ test("Maps aus der Zeit mit Zonen öffnen sich; Zonen und ihre Verbindungen entf
 
 test("größere Karten rücken automatisch platzierte Karten nach; manuell gesetzte Positionen bleiben erhalten", async () => {
   const { map, a, b } = tree();
-  const grown = editMindMapNode(map, a.id, { kind: "text", images: [{ id: "image-growth", name: "Bild.png", dataUrl: "data:image/png;base64,YQ==" }] });
+  const grown = editMindMapNode(map, a.id, { kind: "text", images: [{ id: IMAGE_ID, name: "Bild.png" }] });
   const moved = grown.nodes.find((node) => node.id === b.id)!;
   assert.ok(moved.y >= a.y + mindMapNodeRect(grown.nodes.find((node) => node.id === a.id)!).height + 32);
   assert.equal(grown.nodes.find((node) => node.id === a.id)!.y, a.y);
   const manual = moveMindMapElement(map, "node", b.id, { x: 0, y: 20 });
-  const preserved = editMindMapNode(manual, a.id, { kind: "text", images: [{ id: "image-growth", name: "Bild.png", dataUrl: "data:image/png;base64,YQ==" }] });
+  const preserved = editMindMapNode(manual, a.id, { kind: "text", images: [{ id: IMAGE_ID, name: "Bild.png" }] });
   assert.deepEqual(preserved.nodes.find((node) => node.id === b.id), manual.nodes.find((node) => node.id === b.id));
   const coordinate = editMindMapNode(map, b.id, { y: 1000 });
   assert.equal(coordinate.nodes.find((node) => node.id === b.id)!.autoPosition, false);

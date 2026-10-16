@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-16 — Mindmap-Bilder ausgelagert (W5)
+
+- Bilder liegen als Blob im Store `images` der Mindmap-Datenbank (Version 2) unter ihrem SHA-1; Karten speichern nur Verweise, Kopien teilen ihre Bilder. Anzeige über Objekt-URLs, unbenutzte Bilder werden nach einem Tag beim Öffnen freigegeben.
+- Einlesen bis 20 MB, Verkleinerung auf höchstens 1600 px als WebP (Qualität 0,85), gespeichert höchstens 2 MB je Bild; höchstens vier Bilder je Karte und zehn je Map (G3, enger als die geplanten 100).
+- Entscheidungen G1 und G2 vom 2026-10-16: alte Data-URL-Bilder werden beim Lesen verworfen statt migriert, eigener Store statt des Kartenmedienspeichers.
+- Messung mit 10 Bildern à 700 KB und 200 Karten im Browser: Speichern 132 → 2,4 ms, Prüfen der Map 119 → 0,8 ms, Speicherstand 9,4 MB → 28 KB. Ein 4000 × 3000-JPEG (370 KB) wird in 0,3 s zu 1600 × 1200 WebP (33 KB).
+- Nachweis: Unit-Tests für Bildspeicher, Inhaltsgleichheit, Grenzen, Verwerfen alter Bilder und Freigabe; Mindmap-E2E (26) grün, darunter Bilder nach Reload und Bildimport beim Tabwechsel.
+
 ## 2026-10-16 — Mindmap: Barrierefreiheit und Touch (W4c)
 
 - Karten sind benannte Gruppen mit einem flächigen Auswahl-Button hinter dem Inhalt; Plus-, Anzeige- und Bildaktionen und der Editor sind keine verschachtelten Bedienelemente mehr.

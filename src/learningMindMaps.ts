@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { SUMMARY_NOTES_HEADING, summaryPlainText, type LearningSummary } from "./learningSummaries.ts";
 import { sanitizeCardHtml } from "./htmlSafety.ts";
-import { downscaleImageToFullHd } from "./imageDownscale.ts";
+import { compressImage } from "./imageDownscale.ts";
 
 const id = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const coordinate = v.pipe(v.number(), v.finite());
@@ -12,10 +12,8 @@ const members = v.pipe(v.array(id), v.minLength(1), v.maxLength(2000));
 const bracketSchema = v.strictObject({ id, nodeIds: members, nodeId: id, side: v.picklist(["left", "right"]) });
 const boundarySchema = v.strictObject({ id, nodeIds: members, label: v.pipe(v.string(), v.maxLength(120)), shape: v.picklist(["rectangle", "rounded", "ellipse"]), ...appearance });
 const sourceSchema = v.strictObject({ summaryId: id, title: v.string(), text: v.pipe(v.string(), v.maxLength(100_000)), updatedAt: v.string(), signature: v.optional(v.string()) });
-const imageSchema = v.strictObject({
-  id, name: v.pipe(v.string(), v.minLength(1), v.maxLength(240)),
-  dataUrl: v.pipe(v.string(), v.maxLength(2_800_000), v.regex(/^data:image\/(?:png|jpeg|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/)),
-});
+/** Cards reference images by the SHA-1 of their stored bytes; the bytes live in the `images` store. */
+const imageSchema = v.strictObject({ id: v.pipe(v.string(), v.regex(/^[a-f0-9]{40}$/)), name: v.pipe(v.string(), v.minLength(1), v.maxLength(240)) });
 const nodeSchema = v.strictObject({
   id, kind: v.picklist(["keyword", "text", "freeText"]), label: v.pipe(v.string(), v.maxLength(120)),
   text: v.pipe(v.string(), v.maxLength(100_000)), x: coordinate, y: coordinate,
@@ -37,6 +35,7 @@ const mapSchema = v.strictObject({
 });
 export type LearningMindMap = v.InferOutput<typeof mapSchema>;
 export type MindMapNode = v.InferOutput<typeof nodeSchema>;
+export type MindMapImage = v.InferOutput<typeof imageSchema>;
 export type MindMapPoint = v.InferOutput<typeof point>;
 export type MindMapColor = v.InferOutput<typeof color>;
 export type MindMapSummary = v.InferOutput<typeof bracketSchema>;
@@ -48,37 +47,50 @@ export const mindMapColors: ReadonlyArray<{ value: MindMapColor; label: string }
   { value: "purple", label: "Violett" }, { value: "yellow", label: "Gelb" }, { value: "red", label: "Koralle" },
 ];
 
-/** Maps saved while zones existed still open: zones, zone assignments and links to zones are dropped on read. */
-function withoutZones(value: unknown): unknown {
-  if (typeof value !== "object" || value === null || !("zones" in value)) return value;
+const inlineImage = (image: unknown) => typeof image === "object" && image !== null && "dataUrl" in image;
+
+/** Older maps still open: zones, zone assignments, links to zones and inline Base64 images are dropped on read. */
+function withoutLegacyParts(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
   const { zones, ...map } = value as Record<string, unknown>;
+  const legacyImages = Array.isArray(map.nodes) && map.nodes.some((node) => Array.isArray((node as { images?: unknown } | null)?.images) && (node as { images: unknown[] }).images.some(inlineImage));
+  if (zones === undefined && !legacyImages) return value;
   const zoneIds = new Set(Array.isArray(zones) ? zones.map((zone) => (zone as { id?: unknown } | null)?.id) : []);
   const strip = (items: unknown) => Array.isArray(items) ? items.map((item) => {
     if (typeof item !== "object" || item === null) return item;
-    const { zoneId, ...rest } = item as Record<string, unknown>;
-    return zoneId === undefined ? item : rest;
+    const { zoneId, ...rest } = item as Record<string, unknown>, images = Array.isArray(rest.images) && rest.images.some(inlineImage) ? rest.images.filter((image) => !inlineImage(image)) : undefined;
+    if (zoneId === undefined && !images) return item;
+    if (images?.length) rest.images = images; else if (images) delete rest.images;
+    return rest;
   }) : items;
   const edges = Array.isArray(map.edges) ? map.edges.filter((edge) => !zoneIds.has((edge as { from?: unknown } | null)?.from) && !zoneIds.has((edge as { to?: unknown } | null)?.to)) : map.edges;
   return { ...map, nodes: strip(map.nodes), strokes: strip(map.strokes), edges };
 }
 
-export const MIND_MAP_LIMITS = { nodes: 2_000, edges: 10_000, strokes: 2_000, summaries: 500, boundaries: 500 } as const;
-const LIMIT_LABELS: Record<keyof typeof MIND_MAP_LIMITS, string> = { nodes: "Karten und freie Texte", edges: "Querverbindungen", strokes: "Linien", summaries: "Zusammenfassungsklammern", boundaries: "Umrandungen" };
+export const MIND_MAP_LIMITS = { nodes: 2_000, edges: 10_000, strokes: 2_000, summaries: 500, boundaries: 500, images: 10 } as const;
+const LIMIT_LABELS: Record<keyof typeof MIND_MAP_LIMITS, string> = { nodes: "Karten und freie Texte", edges: "Querverbindungen", strokes: "Linien", summaries: "Zusammenfassungsklammern", boundaries: "Umrandungen", images: "Bilder" };
+
+/** Distinct images of a map; a copied card shares its images with the original. */
+export function mindMapImageIds(map: Pick<LearningMindMap, "nodes">): Set<string> {
+  return new Set(map.nodes.flatMap((node) => node.images?.map((image) => image.id) ?? []));
+}
 
 /** Names the first exceeded size limit with the current count, or null when the map fits. */
 export function mindMapLimitError(value: unknown): string | null {
   if (typeof value !== "object" || value === null) return null;
+  const nodes = (value as { nodes?: unknown }).nodes;
+  const imageIds = [...new Set(Array.isArray(nodes) ? nodes.flatMap((node) => Array.isArray((node as { images?: unknown } | null)?.images) ? (node as { images: Array<{ id?: unknown } | null> }).images.map((image) => image?.id) : []) : [])];
   for (const key of Object.keys(MIND_MAP_LIMITS) as Array<keyof typeof MIND_MAP_LIMITS>) {
-    const items = (value as Record<string, unknown>)[key], count = Array.isArray(items) ? items.length : 0;
+    const items = key === "images" ? imageIds : (value as Record<string, unknown>)[key], count = Array.isArray(items) ? items.length : 0;
     if (count > MIND_MAP_LIMITS[key]) return `Eine Mindmap umfasst höchstens ${MIND_MAP_LIMITS[key].toLocaleString("de-DE")} ${LIMIT_LABELS[key]} (jetzt ${count.toLocaleString("de-DE")}).`;
   }
   return null;
 }
 
 export function readLearningMindMap(value: unknown): LearningMindMap {
-  const limit = mindMapLimitError(value);
+  const current = withoutLegacyParts(value), limit = mindMapLimitError(current);
   if (limit) throw new Error(limit);
-  const parsed = v.safeParse(mapSchema, withoutZones(value));
+  const parsed = v.safeParse(mapSchema, current);
   if (!parsed.success || !parsed.output.title.trim() || Date.parse(parsed.output.updatedAt) < Date.parse(parsed.output.createdAt)) {
     throw new Error("Die gespeicherte Mindmap ist ungültig.");
   }
@@ -150,22 +162,40 @@ export function mindMapNodeSource(map: LearningMindMap, node: MindMapNode) {
   return map.sources && Object.hasOwn(map.sources, node.sourceId) ? map.sources[node.sourceId] : undefined;
 }
 
-export async function readMindMapImages(files: File[]): Promise<NonNullable<MindMapNode["images"]>> {
+/** Shrinks, hashes and stores picked images before a card references them; unreferenced ones are released later. */
+export async function storeMindMapImages(userId: string, files: File[]): Promise<MindMapImage[]> {
   if (files.length > 4) throw new Error("Pro Kasten sind bis zu vier Bilder möglich.");
-  return Promise.all(files.map(async (file) => {
+  const images = await Promise.all(files.map(async (file) => {
     if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) throw new Error("Bitte wähle ein PNG-, JPEG-, WebP- oder GIF-Bild.");
-    if (file.size > 2_000_000) throw new Error("Ein Bild darf höchstens 2 MB groß sein.");
-    const scaled = await downscaleImageToFullHd(file);
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Das Bild konnte nicht gelesen werden."));
-      reader.onerror = () => reject(new Error("Das Bild konnte nicht gelesen werden."));
-      reader.readAsDataURL(scaled);
-    });
-    const image = v.safeParse(imageSchema, { id: `image_${crypto.randomUUID()}`, name: file.name.slice(0, 240), dataUrl });
-    if (!image.success) throw new Error("Das Bild konnte nicht gelesen werden. Bitte wähle eine andere Bilddatei.");
-    return image.output;
+    if (file.size > 20_000_000) throw new Error("Ein Bild darf höchstens 20 MB groß sein.");
+    const blob = await compressImage(file, 1_600);
+    if (blob.size > 2_000_000) throw new Error("Ein Bild darf auch verkleinert höchstens 2 MB groß sein.");
+    const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", await blob.arrayBuffer()));
+    return { id: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""), name: file.name.slice(0, 240) || "Bild", blob };
   }));
+  const db = await openDatabase(userId);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction("images", "readwrite"), store = transaction.objectStore("images"), createdAt = Date.now();
+      for (const image of images) store.put({ id: image.id, blob: image.blob, createdAt });
+      transaction.oncomplete = () => resolve();
+      transaction.onabort = transaction.onerror = () => reject(new Error("Das Bild konnte nicht gespeichert werden."));
+    });
+  } finally { db.close(); }
+  return images.map((image) => ({ id: image.id, name: image.name }));
+}
+
+/** Stored image bytes by id; ids without stored bytes are missing from the result. */
+export async function loadMindMapImages(userId: string, ids: string[]): Promise<Map<string, Blob>> {
+  const db = await openDatabase(userId);
+  try {
+    return await new Promise((resolve, reject) => {
+      const transaction = db.transaction("images", "readonly"), store = transaction.objectStore("images"), result = new Map<string, Blob>();
+      for (const key of ids) { const request = store.get(key); request.onsuccess = () => { if (request.result?.blob instanceof Blob) result.set(key, request.result.blob); }; }
+      transaction.oncomplete = () => resolve(result);
+      transaction.onabort = transaction.onerror = () => reject(new Error("Die Bilder konnten nicht geladen werden."));
+    });
+  } finally { db.close(); }
 }
 
 /** Place another graph beside existing content; nodes reference one snapshot per source. */
@@ -412,8 +442,7 @@ export function pasteMindMapNodes(map: LearningMindMap, clipboard: MindMapClipbo
     const parent = parentId ? ids.get(parentId) ?? (existing.has(parentId) ? parentId : undefined) : undefined;
     const sourceKnown = sourceId ? Boolean(map.sources?.[sourceId]) : Boolean(map.source);
     return { ...rest, id: ids.get(node.id)!, x: node.x + offset.x, y: node.y + offset.y, autoPosition: false,
-      ...(parent ? { parentId: parent } : {}), ...(sourceKnown && sourceId ? { sourceId } : {}), ...(sourceKnown && sourceText !== undefined ? { sourceText } : {}),
-      ...(node.images ? { images: node.images.map((image) => ({ ...image, id: `image_${crypto.randomUUID()}` })) } : {}) };
+      ...(parent ? { parentId: parent } : {}), ...(sourceKnown && sourceId ? { sourceId } : {}), ...(sourceKnown && sourceText !== undefined ? { sourceText } : {}) };
   });
   const next = readLearningMindMap({ ...map, nodes: [...map.nodes, ...nodes],
     edges: [...map.edges, ...clipboard.edges.map((edge) => ({ from: ids.get(edge.from)!, to: ids.get(edge.to)! }))],
@@ -543,8 +572,11 @@ async function openDatabase(userId: string): Promise<IDBDatabase> {
   if (!v.safeParse(id, userId).success) throw new Error("Zum Speichern ist ein aktives Konto erforderlich.");
   if (typeof indexedDB === "undefined") throw new Error("Der lokale Mindmap-Speicher ist nicht verfügbar.");
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(`core.learningMindMaps.v1.${encodeURIComponent(userId)}`, 1);
-    request.onupgradeneeded = () => { request.result.createObjectStore("maps", { keyPath: "id" }).createIndex("deckId", "deckId"); };
+    const request = indexedDB.open(`core.learningMindMaps.v1.${encodeURIComponent(userId)}`, 2);
+    request.onupgradeneeded = (event) => {
+      if (event.oldVersion < 1) request.result.createObjectStore("maps", { keyPath: "id" }).createIndex("deckId", "deckId");
+      if (event.oldVersion < 2) request.result.createObjectStore("images", { keyPath: "id" });
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(new Error("Der Mindmap-Speicher konnte nicht geöffnet werden."));
     request.onblocked = () => reject(new Error("Der Mindmap-Speicher ist blockiert. Schließe andere CoRe-Tabs und versuche es erneut."));
@@ -564,10 +596,31 @@ export async function loadLearningMindMaps(userId: string, deckId: string): Prom
   } finally { db.close(); }
 }
 
-/** Read/create the single surface; migrating older separate maps is atomic and account-scoped. */
-export async function loadInfinityMindMap(userId: string, deckId: string): Promise<LearningMindMap> {
+/** Unreferenced images survive a day, so undo in an open map and unsaved drafts in other tabs keep them. */
+const IMAGE_GRACE_MS = 24 * 60 * 60 * 1000;
+
+function releaseUnusedMindMapImages(db: IDBDatabase, now: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(["maps", "images"], "readwrite"), maps = transaction.objectStore("maps").getAll();
+    maps.onsuccess = () => {
+      const used = mindMapImageIds({ nodes: (maps.result as LearningMindMap[]).flatMap((map) => map.nodes) });
+      const cursor = transaction.objectStore("images").openCursor();
+      cursor.onsuccess = () => {
+        const row = cursor.result; if (!row) return;
+        if (!used.has(row.value.id) && now - row.value.createdAt >= IMAGE_GRACE_MS) row.delete();
+        row.continue();
+      };
+    };
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = transaction.onerror = () => reject(transaction.error);
+  });
+}
+
+/** Read/create the single surface; migrating older separate maps is atomic and account-scoped. Releasing unused images is best effort. */
+export async function loadInfinityMindMap(userId: string, deckId: string, now = Date.now()): Promise<LearningMindMap> {
   const db = await openDatabase(userId);
   try {
+    await releaseUnusedMindMapImages(db, now).catch(() => undefined);
     return await new Promise<LearningMindMap>((resolve, reject) => {
       const transaction = db.transaction("maps", "readwrite"), store = transaction.objectStore("maps");
       const request = store.index("deckId").getAll(deckId);

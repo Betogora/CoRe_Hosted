@@ -7,23 +7,13 @@ Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 
 ## P0: Zusammenfassungen und Mindmaps (W4–W8)
 
-Reihenfolge = Priorität. W0–W4c sind erledigt (gemeinsame KI-Routen, Luna mit
+Reihenfolge = Priorität. W0–W5 sind erledigt (gemeinsame KI-Routen, Luna mit
 ZDR, strukturierte Zusammenfassung, Mindmap daraus erzeugen, ersetzen und
 sauber übersetzen).
 Entscheidungen vom 2026-10-15: Zonen ohne Umwandlung entfernen (E1), Verknüpfen
 per Enter/Leertaste (E2), Kopieren/Einfügen jetzt (E3), eigener Bildspeicher
 (E4), `Neu erzeugen` ersetzt die Fassung (E5).
 
-- [ ] **W5 Mindmap-Bilder auslagern**
-      - Eigener Store `images` in der Mindmap-Datenbank (Version 2): Blob statt
-        Base64, Schlüssel SHA-1, Karten speichern nur Bild-IDs, Anzeige über
-        Objekt-URLs mit Freigabe.
-      - Beim Einlesen auf höchstens 1600 px verkleinern (JPEG/WebP, Qualität
-        0,85); höchstens 4 Bilder je Karte, etwa 100 Bilder beziehungsweise
-        50 MB je Map mit klarer Meldung.
-      - Vorhandene Data-URLs beim ersten Öffnen in einer Transaktion migrieren.
-      - Nachweis: Unit-Tests für Store, Migration und Grenzen; Messung der
-        Speicherdauer einer Map mit Bildern vorher/nachher.
 - [ ] **W6 Zusammenfassungen und Map verwalten**
       - Zusammenfassung löschen (Bestätigung) und duplizieren (`Kopie von …`).
       - Mindmap: `Fläche leeren` mit Bestätigung, rückgängig machbar.
