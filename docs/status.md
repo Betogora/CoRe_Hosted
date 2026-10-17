@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-13
+**Stand:** 2026-10-17
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -11,6 +11,7 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 
 ## Implementiert
 
+- Lokal erweitert: zentrale Prüfungserstellung in vier Schritten, rekursive Stapelauswahl, individuelle Wochenzeiten, Themenstarttage und Thementausch, prüfungsspezifische Zeitblöcke sowie Themenaufgaben und Prognosestatus auf Heute. Unterstapel bilden die Themen; semantische Gruppierung innerhalb eines Stapels bleibt offen. Keine Veröffentlichung aus dieser Änderung; authentifizierter Cloud-/Review-Smoke und echte Smartphone-Tastatur sind noch offen.
 - Prüfungsplaner als Hauptbereich `Prüfungen` (ADR-042): mehrere Prüfungen mit
   gemeinsamer Lernzeit, Wochenatelier, Machbarkeitsprüfung, heutige Einheit und
   Blöcke als Lernsitzung mit Prüfungsretention; `Heute` führt bei aktiver Prüfung

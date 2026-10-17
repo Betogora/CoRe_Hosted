@@ -2,7 +2,7 @@ import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
 import { Ban, BookOpen, ChevronRight, Copy, Eye, Home, Info, Layers, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
 import { addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
-import type { CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask } from "../src/coreTypes.ts";
+import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask } from "../src/coreTypes.ts";
 import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
 import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePresentationTheme } from "../src/notePresentation.ts";
 import { catalogEntryFromCard } from "../src/workspaceReplica.ts";
@@ -422,12 +422,13 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     setCardPages((current) => ({ ...current, [request.deckId]: { deckId: request.deckId, items, page: 0, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null } }));
   }, []);
   const noop = React.useCallback(() => undefined, []);
+  const [demoPlanning, setDemoPlanning] = React.useState<ExamPlanningSettings | null>(null);
   // One planned exam over the first sample deck; study states come from the sample cards.
   const examWorkspace = React.useMemo(() => {
     const today = selection.now.slice(0, 10);
     const exam = { ...createExamPlan(today, [deck.id]), id: "exam-demo", name: "Anatomie" };
-    return { ...workspace, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: upsertExamPlan(normalizeExamPlanningSettings(undefined), exam) }) };
-  }, [deck.id, selection.now, workspace]);
+    return { ...workspace, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: demoPlanning ?? upsertExamPlan(normalizeExamPlanningSettings(undefined), exam) }) };
+  }, [deck.id, demoPlanning, selection.now, workspace]);
   const loadExamPlanningData = React.useCallback(async (deckIds: string[]) => ({
     cards: sampleDecks.flatMap((candidate) => candidate.cards).filter((card) => deckIds.includes(card.deckId)).map((card) => {
       const { extra, ...study } = card.study;
@@ -440,7 +441,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   views.push(
     ["dashboard", "DashboardScreen · Tagesübersicht", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
-    ["exams", "ExamPlanningScreen · Heute, Woche und Prüfungen", "Prüfungen"],
+    ["exams", "ExamPlanningScreen · Einrichtung, Themenkalender und Lernblöcke", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
@@ -458,8 +459,8 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
-    {view === "dashboard" && <DashboardScreen state={workspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
-    {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async () => toast("In der Vorschau wird nicht gespeichert.")} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
+    {view === "dashboard" && <DashboardScreen onLoadExamPlanningData={loadExamPlanningData} onStartExamUnit={async () => toast("Themenaufgabe ausgewählt; Vorschau ohne Sitzung.")} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); toast("Plan für diese lokale Vorschau übernommen."); }} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={null} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={noop} onOpenCardCreation={noop} onOpenDecks={noop} onOpenDeckContent={noop} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={[]} onSetDeckExpanded={noop} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
