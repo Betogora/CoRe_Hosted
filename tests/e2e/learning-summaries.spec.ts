@@ -10,9 +10,45 @@ async function openSummaries(page: Page) {
   return panel;
 }
 
+test("Zwei Erstellungskacheln ersetzen den Kopfbutton; eigene Fassungen starten direkt im Editor", async ({ page }) => {
+  const panel = await openSummaries(page);
+  await expect(panel.getByRole("button", { name: "Neue Zusammenfassung", exact: true })).toHaveCount(0);
+  await expect(panel.getByRole("region", { name: "KI-Zusammenfassung", exact: true })).toBeVisible();
+  await expect(panel.getByRole("region", { name: "Eigene Zusammenfassung", exact: true })).toBeVisible();
+  await panel.getByRole("button", { name: "Selbst schreiben", exact: true }).click();
+  const editor = panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
+  await expect(editor).toBeEmpty();
+  await expect(panel.getByRole("button", { name: "Mit KI erstellen", exact: true })).toHaveCount(0);
+  await panel.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true }).fill("Meine eigene Fassung");
+  await editor.fill("Mein selbst geschriebener Überblick.");
+  await panel.getByRole("button", { name: "Alle Zusammenfassungen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(panel.getByTestId("summary-list").getByRole("button")).toHaveCount(3);
+  await page.reload();
+  await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
+  await panel.getByRole("button", { name: "Zusammenfassung „Meine eigene Fassung“ öffnen", exact: true }).click();
+  await expect(editor).toHaveText("Mein selbst geschriebener Überblick.");
+});
+
+test("Auch ohne Fassungen bleiben beide Kacheln erreichbar und die KI-Schnellerstellung funktioniert", async ({ page }) => {
+  const panel = await openSummaries(page);
+  for (const title of ["Europa im Überblick", "Vor der nächsten Wiederholung"]) {
+    await panel.getByRole("button", { name: `Zusammenfassung „${title}“ öffnen`, exact: true }).click();
+    await panel.getByRole("button", { name: "Löschen", exact: true }).click();
+    await page.getByRole("dialog", { name: "Zusammenfassung löschen?", exact: true }).getByRole("button", { name: "Löschen", exact: true }).click();
+  }
+  await expect(panel.getByTestId("summary-list")).toHaveCount(0);
+  await expect(panel.getByRole("button", { name: "Selbst schreiben", exact: true })).toBeVisible();
+  await panel.getByRole("group", { name: "Grundlage der Zusammenfassung", exact: true }).getByRole("button", { name: "Nur dieser Stapel", exact: true }).click();
+  await panel.getByRole("button", { name: "Zusammenfassung erzeugen", exact: true }).click();
+  await expect(panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true })).not.toBeEmpty();
+  await expect(panel).toContainText("Mit KI erstellt");
+  await expect(panel).toContainText("Grundlage: Dieser Stapel");
+});
+
 test("Eine neue Fassung übernimmt die Wünsche; Text und Darstellung bleiben nach Reload", async ({ page }) => {
   const panel = await openSummaries(page);
-  await panel.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+  await panel.getByRole("button", { name: "Eigene Einstellungen", exact: true }).click();
   await panel.getByRole("textbox", { name: "Titel", exact: true }).fill("Meine kurze und detaillierte Fassung");
   await panel.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name: "Kurz", exact: true }).click();
   await panel.getByRole("combobox", { name: "Detailgrad", exact: true }).click();
@@ -66,7 +102,7 @@ test("Duplizieren speichert vorher offene Änderungen und öffnet die Kopie; Lö
 
 test("KI-Zusammenfassung übernimmt Quellenwahl und bleibt nach Bearbeiten und Reload erhalten", async ({ page }) => {
   const panel = await openSummaries(page);
-  await panel.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+  await panel.getByRole("button", { name: "Eigene Einstellungen", exact: true }).click();
   await panel.getByRole("textbox", { name: "Titel", exact: true }).fill("KI aus einer Textquelle");
   await panel.getByLabel("Quelle anfügen (optional)").setInputFiles({ name: "skript.txt", mimeType: "text/plain", buffer: Buffer.from("ATP ist ein Energieträger. ADP besitzt zwei Phosphatgruppen.") });
   await expect(panel.getByRole("button", { name: "Nur Quelle", exact: true })).toBeEnabled();
@@ -89,7 +125,7 @@ test("KI-Fehler erhalten Formular und bestehende Fassungen", async ({ page }) =>
   const panel = await openSummaries(page);
   await page.getByRole("combobox", { name: "KI-Demoantwort", exact: true }).click();
   await page.getByRole("option", { name: "Fehler", exact: true }).click();
-  await panel.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+  await panel.getByRole("button", { name: "Eigene Einstellungen", exact: true }).click();
   const title = panel.getByRole("textbox", { name: "Titel", exact: true });
   await title.fill("Erhaltene Auswahl");
   await panel.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
@@ -102,7 +138,7 @@ test("KI-Fehler erhalten Formular und bestehende Fassungen", async ({ page }) =>
 
 test("Bei Speicherfehlern bleiben KI-Ergebnis und eigene Änderungen als bearbeitbarer Entwurf erhalten", async ({ page }) => {
   const panel = await openSummaries(page);
-  await panel.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+  await panel.getByRole("button", { name: "Eigene Einstellungen", exact: true }).click();
   await panel.getByRole("textbox", { name: "Titel", exact: true }).fill("KI mit Speicherfehler");
   await page.evaluate(() => {
     const original = IDBDatabase.prototype.transaction;

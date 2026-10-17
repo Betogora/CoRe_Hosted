@@ -7,7 +7,7 @@ import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
 import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
@@ -152,6 +152,10 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     else run();
   }
   function startCreate() { setSettings(createSummarySettings()); setNewTitle(""); setSource(null); setAdvanced(false); setError(""); setView("create"); }
+  function startManual() {
+    setDraft(createLearningSummary(deck.id, "Eigene Zusammenfassung", createSummarySettings()));
+    setSaved(null); savedRef.current = null; setError(""); setNotice(""); setView("editor");
+  }
   function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); }
   function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); savedRef.current = summary; setError(""); setNotice(""); setView("editor"); }
   /** Opens what a save stored; after a conflict the draft continues in its „Konfliktfassung“ and the list shows the cloud state of the original. */
@@ -187,23 +191,31 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     {view === "list" ? <>
       <div className="core-summary-heading flex flex-wrap items-center justify-between gap-4">
         <div className="min-w-0 max-w-full"><h3 className="core-heading-2 break-words">Zusammenfassungen</h3><p className="mt-1 break-words core-body text-core-muted">{summaries.length} {summaries.length === 1 ? "Fassung" : "Fassungen"} · {deck.name}</p></div>
-        <ActionButton variant="primary" icon={Plus} disabled={loading || Boolean(loadError)} onClick={startCreate}>Neue Zusammenfassung</ActionButton>
       </div>
       <p className="core-caption text-core-muted">In deinem Konto gespeichert · KI-Fassungen bleiben bearbeitbar</p>
       {loading ? <StatusMessage tone="info" announce="polite">Zusammenfassungen werden geladen …</StatusMessage>
         : loadError ? <><StatusMessage tone="error" announce="assertive">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((value) => value + 1)}>Erneut laden</ActionButton></>
-        : !summaries.length ? <>
-          <EmptyState icon={FileText} title="Hier entsteht dein Überblick" body="Erstelle aus deinem Material mehrere Fassungen für unterschiedliche Lernziele oder schreibe eine eigene Zusammenfassung." action={onGenerateSummary ? <div className="grid w-full min-w-0 justify-items-center gap-3"><CoreSegmentedControl className="w-full min-w-0 max-w-md" ariaLabel="Grundlage der Zusammenfassung" options={summaryChoices.scope.map((choice) => ({ value: choice.value, label: choice.value === "tree" ? "Mit Unterstapeln" : choice.label }))} value={quickScope} onValueChange={setQuickScope}/><div className="flex min-w-0 flex-wrap justify-center gap-2"><ActionButton className="min-w-0 max-w-full whitespace-normal" variant="primary" icon={Sparkles} loading={busy} onClick={quickGenerate}>Zusammenfassung erzeugen</ActionButton><ActionButton variant="secondary" icon={Plus} disabled={busy} onClick={startCreate}>Eigene Einstellungen</ActionButton></div></div> : <ActionButton variant="primary" icon={Plus} onClick={startCreate}>Erste Zusammenfassung</ActionButton>} />
+        : <>
+          <div className="core-summary-creation-grid grid min-w-0 gap-4" aria-label="Zusammenfassung erstellen">
+            <SoftPanel className="flex min-w-0 flex-col gap-6 border border-core-border p-6" aria-label="KI-Zusammenfassung">
+              <div className="flex min-w-0 items-start gap-4"><OrbIcon icon={Sparkles}/><div className="min-w-0"><h4 className="core-heading-3 break-words">KI-Zusammenfassung</h4><p className="mt-1 core-body text-core-muted">Lass die KI dein Material zusammenfassen und passe das Ergebnis anschließend an.</p></div></div>
+              <div className="mt-auto grid min-w-0 gap-3"><CoreSegmentedControl className="w-full min-w-0" ariaLabel="Grundlage der Zusammenfassung" options={summaryChoices.scope.map((choice) => ({ value: choice.value, label: choice.value === "tree" ? "Mit Unterstapeln" : choice.label }))} value={quickScope} onValueChange={setQuickScope} disabled={busy || !onGenerateSummary}/><div className="flex min-w-0 flex-wrap gap-2"><ActionButton className="min-w-0 max-w-full whitespace-normal" variant="primary" icon={Sparkles} loading={busy} disabled={!onGenerateSummary} onClick={quickGenerate}>Zusammenfassung erzeugen</ActionButton><ActionButton variant="secondary" icon={SlidersHorizontal} disabled={busy || !onGenerateSummary} onClick={startCreate}>Eigene Einstellungen</ActionButton></div>{!onGenerateSummary && <p className="core-field-hint">Die KI-Erstellung ist derzeit nicht verfügbar.</p>}</div>
+            </SoftPanel>
+            <SoftPanel className="flex min-w-0 flex-col gap-6 border border-core-border p-6" aria-label="Eigene Zusammenfassung">
+              <div className="flex min-w-0 items-start gap-4"><OrbIcon icon={FileText}/><div className="min-w-0"><h4 className="core-heading-3 break-words">Eigene Zusammenfassung</h4><p className="mt-1 core-body text-core-muted">Schreibe deine Zusammenfassung selbst und gestalte sie mit den Textwerkzeugen.</p></div></div>
+              <div className="mt-auto"><ActionButton variant="secondary" icon={Plus} disabled={busy} onClick={startManual}>Selbst schreiben</ActionButton></div>
+            </SoftPanel>
+          </div>
           {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
-        </>
-          : <>
+          {summaries.length > 0 ? <>
             <label className="core-field-group"><span className="core-field-label">Zusammenfassungen durchsuchen</span><span className="relative"><Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" size={17} aria-hidden="true"/><input className="core-field w-full !pl-10" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Titel oder Inhalt" aria-label="Zusammenfassungen durchsuchen" /></span></label>
-            <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <button key={summary.id} type="button" className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => open(summary)} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
+            <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <button key={summary.id} type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => open(summary)} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
               <div className="core-summary-preview-copy min-w-0"><p className="core-caption font-semibold text-core-muted">{summaryChoices.goal.find((option) => option.value === summary.settings.goal)!.label}</p><h4 className="mt-2 break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html) || "Noch kein Text. Öffne diese Fassung, um deine Zusammenfassung zu schreiben."}</div></div>
               <span className="core-summary-preview-action inline-flex min-h-control items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
             </button>)}</div>
             {!filtered.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}
-          </>}
+          </> : null}
+        </>}
     </> : <>
       <div><ActionButton variant="secondary" icon={ArrowLeft} disabled={busy} onClick={() => request(backToList)}>Alle Zusammenfassungen</ActionButton></div>
       {view === "create" ? <>
