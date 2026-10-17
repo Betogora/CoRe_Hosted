@@ -13,7 +13,10 @@ async function planExam(page: Page, name: string) {
   await page.getByTestId("exam-planning-screen").getByRole("button", { name: "Prüfung planen" }).first().click();
   const inspector = page.getByTestId("exam-plan-inspector");
   await inspector.getByRole("textbox", { name: "Name" }).fill(name);
+  await inspector.getByRole("button", { name: "Weiter zum Lernstoff" }).click();
   await inspector.getByRole("checkbox", { name: /^Europa/ }).check();
+  await inspector.getByRole("button", { name: "Weiter zu Ziel und Zeit" }).click();
+  await inspector.getByRole("button", { name: "Lernplan ansehen" }).click();
   const feasibility = page.getByTestId("exam-feasibility");
   await expect(feasibility.getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
   const acceptRisk = feasibility.getByRole("checkbox", { name: "Trotz Gefährdung aktivieren" });
@@ -31,7 +34,7 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
   const today = page.getByTestId("exam-today");
   await expect(today.getByRole("button", { name: "Heutige Einheit lernen" })).toBeEnabled({ timeout: 20_000 });
   await expect(today.locator("[data-exam-block]").first()).toBeVisible();
-  await expect(page.getByTestId("exam-week").locator("li")).toHaveCount(7);
+  await expect(page.getByTestId("exam-calendar")).toBeVisible();
 
   const stored = await readActiveAccountState(page);
   const exams = stored.profile.schedulerPreferences.examPlanning.exams;

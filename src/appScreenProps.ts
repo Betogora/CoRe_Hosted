@@ -82,7 +82,8 @@ export interface DashboardScreenProps {
   onOpenDeckSettings: (deckId: string) => unknown;
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
   /** Starts today's exam unit (ADR-042); the action leads the page while an exam is active. */
-  onStartExamUnit?: () => Promise<void>;
+  onStartExamUnit?: (blockId: string | null) => Promise<void>;
+  onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
 }
 
 /** Study states and observed history the exam forecast runs on. */

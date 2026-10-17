@@ -19,7 +19,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `coreWorkspace.ts`, `coreRepository.ts` | Arbeitsbereichszustand, Stapelbefehle und Platzierungs-/Zyklusprüfung |
 | `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
 | `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
-| `examPlanning.ts`, `examPlanSettings.ts` | Prüfungsprognose (Tagessimulation, gemeinsames Budget, Blöcke, Machbarkeit), Sitzungsstapel und validierte Planablage im Profil (ADR-042) |
+| `examPlanning.ts`, `examPlanSettings.ts` | Prüfungsprognose (Tagessimulation, Themenblöcke, Themenstarttage, gemeinsames Budget und prüfungsspezifische Zeitreservierungen, Machbarkeit), Sitzungsstapel und validierte Planablage im Profil (ADR-042) |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
 | `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |
 | `cardVariantBatch.ts`, `useCardVariantBatch.ts` | Stapelgenerierung: Auswahl der ersten Karten ohne aktive Variante über Katalogseiten und gebündelte Hydrierung, Eignungsprüfung, sequentielle Erzeugung mit Abbruch und Stopp bei kartenübergreifenden Fehlern; der Hook hält den einen app-weiten Lauf und dessen Rückmeldung |
@@ -285,3 +285,5 @@ Die Screens `DeckSummariesPanel` und `DeckMindMapsPanel` orchestrieren Entwürfe
 ## Architekturänderungen
 
 Änderungen erhalten diese Grenzen und Invarianten. Dauerhafte Trade-offs gehören in [Entscheidungen](decisions.md), offene Umbauten nur in [TODO](todo.md). Implementierungs- und Layoutdetails werden in ihren besitzenden Quellen gepflegt und hier nicht dupliziert.
+
+Die Prüfungsplanung bleibt in den Schedulerpräferenzen des Profils (Version 1). Optional ergänzen `weeklyMinutes` sieben Tageswerte, `timeBlocks` maximal 500 Zeitreservierungen (Datum, Minuten seit Mitternacht, Prüfungs-ID) und `topicDates` maximal 200 Themenstarttage je Prüfung. `examPlanSettings.ts` validiert Zeitfolge, Überlappungen, Referenzen und Eindeutigkeit. Frühere Profile bleiben ohne diese Felder gültig. `getExamTopicTasks` vereinigt Methodenblöcke eines Themas; `getExamSessionCardIds` löst deren `topic:`-ID für denselben prognostizierten Tag auf. `ExamCalendar` besitzt nur lokale Interaktion und gibt geprüfte Entwürfe zurück; Persistenz bleibt beim App-Aufrufer.

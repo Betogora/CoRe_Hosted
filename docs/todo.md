@@ -99,3 +99,7 @@ geglättet.
   zusätzlich einen 6-stelligen Code zum Eintippen, weil der Link auf Mobilgeräten
   oft im falschen Browser landet. Google erst nach Entscheidung über den
   OAuth-Prüfprozess und den Datenschutztext; sonst Code und Flag entfernen.
+
+## Prüfungsplanung: verbleibende Themenanbindung
+
+- [ ] Semantische Themenzuordnung innerhalb ungegliederter Stapel entwerfen. Aktuell bilden Unterstapel die Themen; eine spätere Zuordnung braucht explizite, prüfbare Themengrenzen und darf Lernstände nicht ändern.

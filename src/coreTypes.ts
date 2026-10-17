@@ -137,6 +137,8 @@ export interface ExamPlan {
   desiredRetention: number;
   variants: boolean;
   bufferDays: number;
+  /** Earliest introduction of a topic; repetitions continue to follow the scheduler. */
+  topicDates?: Array<{ deckId: string; date: string }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -149,6 +151,8 @@ export interface StudyTimeCapacity {
   reserveFraction: number;
   minimumMinutes: number;
   dateOverrides: Array<{ date: string; minutes: number }>;
+  weeklyMinutes?: number[];
+  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string }>;
 }
 
 export interface ExamPlanningSettings {

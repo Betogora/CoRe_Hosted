@@ -1589,3 +1589,11 @@ Die Überschreitung beim Start eines neuen Geräts war bereits am 3. Oktober 202
 ## Format für neue Einträge
 
 Neue Einträge nennen Datum, abgeschlossenes Paket beziehungsweise Release, Ergebnis, relevante IDs und verbleibende Risiken. Sie enthalten keine Secrets, Passwörter, Tokens, Environment-Werte, personenbezogenen Daten oder Rohinhalte.
+
+## 2026-10-17 — Prüfungsplanung: Einrichtung, Themen und Kalender (lokal)
+
+- Vier zentrale Einrichtungsschritte mit Kalender erst in der Vorschau; Oberstapel wählen ihren gesamten Zweig. Zielorientierte Lernzielauswahl und individuelle Wochenminuten, weitere Schedulerangaben im Disclosure.
+- Themenplanung auf Unterstapelebene, gewünschte Einführungstage mit Tausch, konkrete Uhrzeitreservierungen je Prüfung und gemeinsame Budgetvalidierung; Themenaufgaben auf Heute lösen über denselben Tagesplan die eindeutigen Karten auf.
+- 31 fokussierte Tests grün; vollständige Unit-/Contract-/Integration-Suite grün. TypeScript, Typregeln, Knip (mit KNIP_DISABLE_RAW_TRANSFER=1 wegen Windows-ArrayBuffer-Grenze), Docs-Prüfung, Produktionsbuild und Chunkbudgets geprüft.
+- Browserjourney über Anlegen, Zweigauswahl, Wochenzeit, Aktivieren, Themen tauschen, Zeitblöcke, Überlappungsfehler, Speichern/Neuladen und Themenstart mit echten Komponenten und erfundenen Daten. Sechs Pflichtviewports von 320 bis 1440 Pixeln in Hell/Dunkel, Datumsauswahl, Kalender und Dashboard visuell geprüft; 200%-Projektion und Katalog-Smoke zusätzlich. Belege im Sitzungsscratchpad und im ausgegebenen Prüfbericht.
+- Ungeprüft: echte Smartphone-Tastatur, echtes Touchgerät und authentifizierter Cloud-/Review-End-to-End-Lauf. Vorschau speichert ausschließlich lokale Beispieldaten. Keine Datenbankänderung, kein Commit, Push oder Deployment.

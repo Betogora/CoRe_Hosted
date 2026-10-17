@@ -20,8 +20,10 @@ const capacitySchema = v.pipe(v.strictObject({
   reserveFraction: v.pipe(v.number(), v.minValue(0), v.maxValue(0.4)),
   minimumMinutes: minutes,
   dateOverrides: v.pipe(v.array(v.strictObject({ date: daySchema, minutes })), v.maxLength(EXAM_PLANNING_LIMITS.dateOverrides)),
+  weeklyMinutes: v.optional(v.pipe(v.array(minutes), v.length(7))),
+  timeBlocks: v.optional(v.pipe(v.array(v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: identifier })), v.maxLength(500))),
 }), v.check((capacity) => new Set(capacity.dateOverrides.map((day) => day.date)).size === capacity.dateOverrides.length));
-const planSchema = v.strictObject({
+const planSchema = v.pipe(v.strictObject({
   id: identifier,
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(120)),
   status: v.picklist(["active", "paused", "completed"]),
@@ -31,14 +33,22 @@ const planSchema = v.strictObject({
   desiredRetention: v.pipe(v.number(), v.minValue(0.8), v.maxValue(0.97)),
   variants: v.boolean(),
   bufferDays: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(30)),
+  topicDates: v.optional(v.pipe(v.array(v.strictObject({ deckId: identifier, date: daySchema })), v.maxLength(200))),
   createdAt: v.pipe(v.string(), v.isoTimestamp()),
   updatedAt: v.pipe(v.string(), v.isoTimestamp()),
-});
+}), v.check((plan) => !plan.topicDates || (new Set(plan.topicDates.map((topic) => topic.deckId)).size === plan.topicDates.length && plan.topicDates.every((topic) => plan.deckIds.includes(topic.deckId) && topic.date < plan.examDate))));
 const settingsSchema = v.pipe(v.strictObject({
   version: v.literal(1),
   exams: v.pipe(v.array(planSchema), v.maxLength(EXAM_PLANNING_LIMITS.exams)),
   capacity: capacitySchema,
-}), v.check((settings) => new Set(settings.exams.map((exam) => exam.id)).size === settings.exams.length));
+}), v.check((settings) => new Set(settings.exams.map((exam) => exam.id)).size === settings.exams.length), v.check(validTimeBlocks));
+
+function validTimeBlocks(settings: ExamPlanningSettings) {
+  const blocks = settings.capacity.timeBlocks ?? [];
+  return new Set(blocks.map((block) => block.id)).size === blocks.length && blocks.every((block, index) =>
+    block.start < block.end && settings.exams.some((exam) => exam.id === block.examId && block.date < exam.examDate)
+    && !blocks.slice(0, index).some((other) => other.date === block.date && other.start < block.end && block.start < other.end));
+}
 
 export function createStudyTimeCapacity(): StudyTimeCapacity {
   return { weekdayMinutes: 45, weekendMinutes: 60, weekdays: [true, true, true, true, true, false, false], reserveFraction: 0.12, minimumMinutes: 0, dateOverrides: [] };
@@ -58,7 +68,9 @@ export function normalizeExamPlanningSettings(value: unknown): ExamPlanningSetti
     if (exam && !exams.some((entry) => entry.id === exam.id) && exams.length < EXAM_PLANNING_LIMITS.exams) exams.push(exam);
   }
   const capacity = v.safeParse(capacitySchema, input.capacity);
-  return { version: 1, exams, capacity: capacity.success ? capacity.output : createStudyTimeCapacity() };
+  const settings: ExamPlanningSettings = { version: 1, exams, capacity: capacity.success ? capacity.output : createStudyTimeCapacity() };
+  if (!validTimeBlocks(settings)) settings.capacity = { ...settings.capacity, timeBlocks: [] };
+  return settings;
 }
 
 /** Validates a complete planner state before it is written to the profile. */
@@ -75,7 +87,7 @@ export function upsertExamPlan(settings: ExamPlanningSettings, plan: ExamPlan): 
 }
 
 export function removeExamPlan(settings: ExamPlanningSettings, id: string): ExamPlanningSettings {
-  return { ...settings, exams: settings.exams.filter((exam) => exam.id !== id) };
+  return { ...settings, exams: settings.exams.filter((exam) => exam.id !== id), capacity: { ...settings.capacity, ...(settings.capacity.timeBlocks ? { timeBlocks: settings.capacity.timeBlocks.filter((block) => block.examId !== id) } : {}) } };
 }
 
 export function createExamPlan(today: string, deckIds: string[] = []): ExamPlan {

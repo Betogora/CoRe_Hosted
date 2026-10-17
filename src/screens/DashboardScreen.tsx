@@ -1,10 +1,11 @@
 import React from "react";
+import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { Activity, CalendarCheck, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
+import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
-import type { Deck, ExamPlan } from "../coreTypes.ts";
+import type { Deck } from "../coreTypes.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
@@ -235,39 +236,7 @@ function DailyLearningOverview({
   );
 }
 
-/** While an exam is active, today's unit from the exam planner leads the page (ADR-042). */
-function ExamUnitOverview({ exam, daysLeft, onStart }: { exam: ExamPlan; daysLeft: number; onStart: () => Promise<void> }) {
-  const [busy, setBusy] = React.useState(false);
-  const [error, setError] = React.useState("");
-
-  async function start() {
-    setBusy(true);
-    setError("");
-    try {
-      await onStart();
-    } catch (failure) {
-      setError(failure instanceof Error ? failure.message : "Die Einheit konnte nicht gestartet werden.");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <SoftPanel className="grid min-w-0 gap-4 p-6" data-testid="dashboard-exam-unit">
-      <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
-        <OrbIcon icon={CalendarCheck} />
-        <div className="min-w-0 flex-1 basis-40">
-          <h2 className="break-words core-heading-3 font-semibold text-core-text">{exam.name}</h2>
-          <p className="core-body text-core-muted">{daysLeft === 1 ? "Morgen" : `In ${daysLeft} Tagen`}</p>
-        </div>
-        <ActionButton variant="primary" icon={Play} loading={busy} disabled={busy} onClick={() => void start()}>Heutige Einheit lernen</ActionButton>
-      </div>
-      {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
-    </SoftPanel>
-  );
-}
-
-export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit }: DashboardScreenProps) {
+export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
     () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries }),
@@ -343,8 +312,8 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
     <div className="grid min-w-0 gap-6">
       <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
 
-      {nextExam && onStartExamUnit ? (
-        <ExamUnitOverview exam={nextExam} daysLeft={Math.round((Date.parse(`${nextExam.examDate}T12:00:00Z`) - Date.parse(`${civilToday}T12:00:00Z`)) / 86_400_000)} onStart={onStartExamUnit} />
+      {nextExam && onStartExamUnit && onLoadExamPlanningData ? (
+        <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onOpen={() => onNavigate("pruefungen")} />
       ) : null}
 
       <DailyLearningOverview

@@ -1,7 +1,8 @@
 import React from "react";
+import { formatExamDate, formatExamMinutes, formatExamPercent } from "./examPlanningUi.ts";
 import { CalendarCheck, ChevronDown, Pause, Pencil, Play, Plus, RefreshCcw, Trash2 } from "lucide-react";
 import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
-import type { ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
+import type { ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "../coreTypes.ts";
 import { removeExamPlan, upsertExamPlan } from "../examPlanSettings.ts";
 import { examDayDistance, getExamCurrentProgress, type ExamForecastSummary, type ExamPlanDay, type StudyPlanBlock } from "../examPlanning.ts";
 import { getLearningDayKey } from "../learningDay.ts";
@@ -10,22 +11,12 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
+import { ExamCalendar } from "./ExamCalendar.tsx";
+import { ExamPace } from "./ExamPace.tsx";
 import { useExamForecast } from "./useExamForecast.ts";
 
 export const EXAM_METHOD_LABELS = { new: "Neue Karten", review: "Wiederholungen", relearning: "Lernschritte", variant: "Varianten" } as const;
-const LONG_DATE = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
-const SHORT_DATE = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 const STATUS_LABELS: Record<ExamPlan["status"], string> = { active: "Aktiv", paused: "Pausiert", completed: "Abgeschlossen" };
-
-export function formatExamDate(key: string, format: "long" | "short" = "long") {
-  return (format === "long" ? LONG_DATE : SHORT_DATE).format(new Date(`${key}T12:00:00Z`));
-}
-export function formatExamMinutes(minutes: number) {
-  return minutes >= 90 ? `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(minutes / 60)} Std.` : `${Math.ceil(minutes)} Min.`;
-}
-export function formatExamPercent(value: number | null) {
-  return value === null ? "–" : `${Math.round(value * 100)} %`;
-}
 
 function TodayPanel({ day, deckName, busy, onStart }: { day: ExamPlanDay; deckName: (id: string) => string; busy: boolean; onStart: (blockId: string | null) => void }) {
   const planned = day.newMinutes + day.reviewMinutes;
@@ -60,25 +51,6 @@ function BlockRow({ block, deckName, disabled, onStart }: { block: StudyPlanBloc
   );
 }
 
-function WeekPanel({ days }: { days: ExamPlanDay[] }) {
-  return (
-    <SoftPanel className="grid min-w-0 gap-3 p-4 sm:p-6" data-testid="exam-week">
-      <h3 className="core-heading-3 font-semibold text-core-text">Nächste 7 Tage</h3>
-      <ul className="grid gap-1">
-        {days.slice(0, 7).map((day) => (
-          <li key={day.key} className="grid min-w-0 grid-cols-[6.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-control px-3 py-2 odd:bg-core-subtle">
-            <span className="core-body font-semibold text-core-text">{formatExamDate(day.key, "short")}</span>
-            <span className="min-w-0 truncate core-caption text-core-muted">
-              {day.budgetMinutes === 0 ? "frei" : `${day.newCardIds.length} neu · ${day.reviewCount} Wdh.${day.buffer ? " · Puffer" : ""}`}
-            </span>
-            <span className="core-caption font-semibold text-core-text">{day.budgetMinutes ? `${Math.ceil(day.newMinutes + day.reviewMinutes)} / ${day.budgetMinutes} Min.` : ""}</span>
-          </li>
-        ))}
-      </ul>
-    </SoftPanel>
-  );
-}
-
 interface ExamCardProps {
   exam: ExamPlan;
   summary: ExamForecastSummary | null;
@@ -107,7 +79,7 @@ function ExamCard({ exam, summary, progress, civilToday, busy, onEdit, onStatus,
           {summary ? <StatTile size="compact" label="Aufwand" value={formatExamMinutes(summary.requiredMinutes)} /> : null}
         </div>
       ) : null}
-      {summary ? <StatusMessage tone={summary.feasible ? "success" : "warning"}>{summary.feasible ? "Ziel erreichbar" : summary.issues[0] ?? "Ziel gefährdet"}</StatusMessage> : null}
+      {summary ? <ExamPace summary={summary} /> : null}
       {exam.status === "active" && past ? <StatusMessage tone="warning">Schließe die Prüfung ab oder ändere das Datum.</StatusMessage> : null}
       {summary?.decks.length ? (
         <details className="group min-w-0">
@@ -139,7 +111,8 @@ function ExamCard({ exam, summary, progress, civilToday, busy, onEdit, onStatus,
 /** Global exam planner (ADR-042): one shared time budget for all exams of the user. */
 export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onStartUnit }: ExamPlanningScreenProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
-  const { exams, capacity } = preferences.examPlanning;
+  const [calendarDraft, setCalendarDraft] = React.useState<ExamPlanningSettings | null>(null);
+  const { exams, capacity } = calendarDraft ?? preferences.examPlanning;
   const timeZone = state.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const todayKey = getLearningDayKey(now, { timeZone, dayStartHour: preferences.dayStartHour }) ?? civilToday;
@@ -148,7 +121,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
   const [saving, setSaving] = React.useState(false);
   const [starting, setStarting] = React.useState(false);
   const [actionError, setActionError] = React.useState("");
-  const { forecast, cards, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData });
+  const { forecast, current, cards, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData });
   const deckName = (id: string) => state.decks.find((deck) => deck.id === id)?.name ?? "Gelöschter Stapel";
   const today = forecast?.days[0]?.key === todayKey ? forecast.days[0] : null;
   const sortedExams = exams.slice().sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || a.examDate.localeCompare(b.examDate));
@@ -206,7 +179,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
       <PageHeader
         eyebrow="Planung"
         title="Prüfungen"
-        action={<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length} onClick={() => setEditing("new")}>Prüfung planen</ActionButton>}
+        action={<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft)} onClick={() => setEditing("new")}>Prüfung planen</ActionButton>}
       />
       {actionError ? <StatusMessage tone="error" announce="assertive">{actionError}</StatusMessage> : null}
       {error ? (
@@ -223,8 +196,9 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
       ) : (
         <>
           {busy && !forecast ? <p role="status" className="core-body text-core-muted">Plan wird berechnet …</p> : null}
-          {today ? <TodayPanel day={today} deckName={deckName} busy={starting} onStart={(blockId) => void start(blockId)} /> : null}
-          {forecast?.days.length ? <WeekPanel days={forecast.days} /> : null}
+          {today ? <TodayPanel day={today} deckName={deckName} busy={starting || !current || Boolean(calendarDraft)} onStart={(blockId) => void start(blockId)} /> : null}
+          <ExamCalendar exams={exams} capacity={capacity} forecast={current ? forecast : null} decks={state.decks} today={civilToday} busy={busy || saving} onChange={(nextExams, nextCapacity) => setCalendarDraft({ version: 1, exams: nextExams, capacity: nextCapacity })} />
+          {calendarDraft ? <SoftPanel className="grid gap-3 p-4"><p className="core-body text-core-text">Kalenderänderungen sind eine Vorschau. Prüfe die neue Zeitplanung und speichere sie.</p><div className="flex flex-wrap gap-3"><ActionButton variant="primary" loading={saving} disabled={!current || busy || saving} onClick={async () => { if (await save(calendarDraft)) setCalendarDraft(null); }}>Kalenderänderungen speichern</ActionButton><ActionButton variant="secondary" disabled={saving} onClick={() => setCalendarDraft(null)}>Verwerfen</ActionButton></div></SoftPanel> : null}
           <section className="grid min-w-0 gap-4" aria-labelledby="exam-list-title">
             <div className="flex min-w-0 items-center justify-between gap-3">
               <h3 id="exam-list-title" className="core-heading-3 font-semibold text-core-text">Deine Prüfungen</h3>
@@ -237,10 +211,10 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
                   <ExamCard
                     key={exam.id}
                     exam={exam}
-                    summary={summary}
+                    summary={current ? summary : null}
                     progress={summary || !cards.length ? null : getExamCurrentProgress(cards, exam, now, timeZone)}
                     civilToday={civilToday}
-                    busy={saving}
+                    busy={saving || Boolean(calendarDraft)}
                     onEdit={() => setEditing(exam)}
                     onStatus={(status) => void save(upsertExamPlan(preferences.examPlanning, { ...exam, status, updatedAt: new Date().toISOString() }))}
                     onDelete={() => setDeleting(exam)}

@@ -35,3 +35,22 @@ test("Ausnahmetage sind eindeutig und Namen nicht leer", () => {
   assert.throws(() => validateExamPlanningSettings({ ...settings, capacity }), /ungültig/);
   assert.throws(() => upsertExamPlan(settings, { ...exam("a"), name: "   " }), /ungültig/);
 });
+
+
+test("neue Zeit- und Themenangaben überstehen die Profilnormalisierung", () => {
+  const settings = { ...normalizeExamPlanningSettings(undefined), exams: [{ ...exam("a"), topicDates: [{ deckId: "deck-a", date: "2026-10-12" }] }], capacity: { ...createStudyTimeCapacity(), weeklyMinutes: [180, 240, 60, 0, 90, 0, 0], timeBlocks: [{ id: "block-a", date: "2026-10-12", start: 480, end: 660, examId: "a" }] } };
+  assert.deepEqual(validateExamPlanningSettings(settings), settings);
+  assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning, settings);
+  assert.deepEqual(removeExamPlan(settings, "a").capacity.timeBlocks, []);
+});
+
+test("überlappende, rückwärts laufende und fremde Zeitblöcke werden abgelehnt", () => {
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
+  const block = { id: "1", date: "2026-10-12", start: 480, end: 660, examId: "a" };
+  for (const extra of [{ ...block, id: "2", start: 650 }, { ...block, id: "2", start: 700, end: 600 }, { ...block, id: "2", date: "2026-10-13", examId: "missing" }]) {
+    assert.throws(() => validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, extra] } }), /ungültig/);
+  }
+  const valid = validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, { ...block, id: "2", start: 660, end: 720 }] } });
+  assert.equal(valid.capacity.timeBlocks?.length, 2);
+  assert.throws(() => upsertExamPlan(settings, { ...exam("a"), topicDates: [{ deckId: "missing", date: "2026-10-12" }] }), /ungültig/);
+});
