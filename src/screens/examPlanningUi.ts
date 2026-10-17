@@ -10,3 +10,4 @@ export function formatExamMinutes(minutes: number) {
 export function formatExamPercent(value: number | null) {
   return value === null ? "–" : `${Math.round(value * 100)} %`;
 }
+
