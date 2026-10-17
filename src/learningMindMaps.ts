@@ -1,5 +1,7 @@
 import * as v from "valibot";
-import { SUMMARY_NOTES_HEADING, summaryPlainText, type LearningSummary } from "./learningSummaries.ts";
+import { SUMMARY_NOTES_HEADING, summaryPlainText, type LearningContentAccount, type LearningSummary } from "./learningSummaries.ts";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { downloadMindMapImage, listLearningDocuments, removeMindMapImages, uploadMindMapImage, writeLearningDocument } from "./cloudLearningDocuments.ts";
 import { sanitizeCardHtml } from "./htmlSafety.ts";
 import { compressImage } from "./imageDownscale.ts";
 
@@ -47,26 +49,6 @@ export const mindMapColors: ReadonlyArray<{ value: MindMapColor; label: string }
   { value: "purple", label: "Violett" }, { value: "yellow", label: "Gelb" }, { value: "red", label: "Koralle" },
 ];
 
-const inlineImage = (image: unknown) => typeof image === "object" && image !== null && "dataUrl" in image;
-
-/** Older maps still open: zones, zone assignments, links to zones and inline Base64 images are dropped on read. */
-function withoutLegacyParts(value: unknown): unknown {
-  if (typeof value !== "object" || value === null) return value;
-  const { zones, ...map } = value as Record<string, unknown>;
-  const legacyImages = Array.isArray(map.nodes) && map.nodes.some((node) => Array.isArray((node as { images?: unknown } | null)?.images) && (node as { images: unknown[] }).images.some(inlineImage));
-  if (zones === undefined && !legacyImages) return value;
-  const zoneIds = new Set(Array.isArray(zones) ? zones.map((zone) => (zone as { id?: unknown } | null)?.id) : []);
-  const strip = (items: unknown) => Array.isArray(items) ? items.map((item) => {
-    if (typeof item !== "object" || item === null) return item;
-    const { zoneId, ...rest } = item as Record<string, unknown>, images = Array.isArray(rest.images) && rest.images.some(inlineImage) ? rest.images.filter((image) => !inlineImage(image)) : undefined;
-    if (zoneId === undefined && !images) return item;
-    if (images?.length) rest.images = images; else if (images) delete rest.images;
-    return rest;
-  }) : items;
-  const edges = Array.isArray(map.edges) ? map.edges.filter((edge) => !zoneIds.has((edge as { from?: unknown } | null)?.from) && !zoneIds.has((edge as { to?: unknown } | null)?.to)) : map.edges;
-  return { ...map, nodes: strip(map.nodes), strokes: strip(map.strokes), edges };
-}
-
 export const MIND_MAP_LIMITS = { nodes: 2_000, edges: 10_000, strokes: 2_000, summaries: 500, boundaries: 500, images: 10 } as const;
 const LIMIT_LABELS: Record<keyof typeof MIND_MAP_LIMITS, string> = { nodes: "Karten und freie Texte", edges: "Querverbindungen", strokes: "Linien", summaries: "Zusammenfassungsklammern", boundaries: "Umrandungen", images: "Bilder" };
 
@@ -88,9 +70,9 @@ export function mindMapLimitError(value: unknown): string | null {
 }
 
 export function readLearningMindMap(value: unknown): LearningMindMap {
-  const current = withoutLegacyParts(value), limit = mindMapLimitError(current);
+  const limit = mindMapLimitError(value);
   if (limit) throw new Error(limit);
-  const parsed = v.safeParse(mapSchema, current);
+  const parsed = v.safeParse(mapSchema, value);
   if (!parsed.success || !parsed.output.title.trim() || Date.parse(parsed.output.updatedAt) < Date.parse(parsed.output.createdAt)) {
     throw new Error("Die gespeicherte Mindmap ist ungültig.");
   }
@@ -162,8 +144,8 @@ export function mindMapNodeSource(map: LearningMindMap, node: MindMapNode) {
   return map.sources && Object.hasOwn(map.sources, node.sourceId) ? map.sources[node.sourceId] : undefined;
 }
 
-/** Shrinks, hashes and stores picked images before a card references them; unreferenced ones are released later. */
-export async function storeMindMapImages(userId: string, files: File[]): Promise<MindMapImage[]> {
+/** Shrinks, hashes and stores picked images before a card references them, and uploads them when online; unreferenced ones are released later. */
+export async function storeMindMapImages(account: LearningContentAccount, files: File[]): Promise<MindMapImage[]> {
   if (files.length > 4) throw new Error("Pro Kasten sind bis zu vier Bilder möglich.");
   const images = await Promise.all(files.map(async (file) => {
     if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) throw new Error("Bitte wähle ein PNG-, JPEG-, WebP- oder GIF-Bild.");
@@ -173,29 +155,23 @@ export async function storeMindMapImages(userId: string, files: File[]): Promise
     const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", await blob.arrayBuffer()));
     return { id: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""), name: file.name.slice(0, 240) || "Bild", blob };
   }));
-  const db = await openDatabase(userId);
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction("images", "readwrite"), store = transaction.objectStore("images"), createdAt = Date.now();
-      for (const image of images) store.put({ id: image.id, blob: image.blob, createdAt });
-      transaction.oncomplete = () => resolve();
-      transaction.onabort = transaction.onerror = () => reject(new Error("Das Bild konnte nicht gespeichert werden."));
-    });
-  } finally { db.close(); }
+  const createdAt = Date.now(), stored = images.map((image) => ({ id: image.id, blob: image.blob, createdAt, uploaded: false }));
+  await writeMindMapStores(account.userId, { images: stored }, "Das Bild konnte nicht gespeichert werden.");
+  if (account.cloud) await uploadImages({ ...account, cloud: account.cloud }, stored).catch(() => undefined);
   return images.map((image) => ({ id: image.id, name: image.name }));
 }
 
-/** Stored image bytes by id; ids without stored bytes are missing from the result. */
-export async function loadMindMapImages(userId: string, ids: string[]): Promise<Map<string, Blob>> {
-  const db = await openDatabase(userId);
-  try {
-    return await new Promise((resolve, reject) => {
-      const transaction = db.transaction("images", "readonly"), store = transaction.objectStore("images"), result = new Map<string, Blob>();
-      for (const key of ids) { const request = store.get(key); request.onsuccess = () => { if (request.result?.blob instanceof Blob) result.set(key, request.result.blob); }; }
-      transaction.oncomplete = () => resolve(result);
-      transaction.onabort = transaction.onerror = () => reject(new Error("Die Bilder konnten nicht geladen werden."));
-    });
-  } finally { db.close(); }
+/** Image bytes by id from this browser, otherwise from the cloud; ids without bytes are missing from the result. */
+export async function loadMindMapImages(account: LearningContentAccount, ids: string[]): Promise<Map<string, Blob>> {
+  const { userId, cloud } = account, result = new Map((await readImages(userId, ids)).map((image) => [image.id, image.blob]));
+  const missing = ids.filter((key) => !result.has(key));
+  if (cloud && missing.length) {
+    const downloaded = (await Promise.all(missing.map(async (key) => ({ id: key, blob: await downloadMindMapImage(cloud, userId, key) }))))
+      .flatMap((image) => image.blob ? [{ id: image.id, blob: image.blob, createdAt: Date.now(), uploaded: true }] : []);
+    await writeMindMapStores(userId, { images: downloaded }, "Die Bilder konnten nicht gespeichert werden.");
+    for (const image of downloaded) result.set(image.id, image.blob);
+  }
+  return result;
 }
 
 /** Place another graph beside existing content; nodes reference one snapshot per source. */
@@ -574,92 +550,110 @@ export function replaceMindMapFromSummary(map: LearningMindMap, sourceId: string
   return addMindMapFromSummary(remaining, summary, root && { x: root.x, y: root.y });
 }
 
-async function openDatabase(userId: string): Promise<IDBDatabase> {
+/** Local copy of a deck's map: `revision` is the cloud revision it builds on, `pending` marks a change not yet in the cloud. */
+interface StoredMindMap { deckId: string; map: LearningMindMap; revision: number | null; pending: boolean }
+/** Local image bytes; `uploaded` once the cloud holds them. */
+interface StoredImage { id: string; blob: Blob; createdAt: number; uploaded: boolean }
+type MindMapStores = { maps: IDBObjectStore; images: IDBObjectStore };
+const TABLE = "learning_mind_maps";
+
+async function withMindMapStores<T>(userId: string, mode: IDBTransactionMode, run: (stores: MindMapStores) => IDBRequest | (() => T) | void, failure: string): Promise<T> {
   if (!v.safeParse(id, userId).success) throw new Error("Zum Speichern ist ein aktives Konto erforderlich.");
   if (typeof indexedDB === "undefined") throw new Error("Der lokale Mindmap-Speicher ist nicht verfügbar.");
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(`core.learningMindMaps.v1.${encodeURIComponent(userId)}`, 2);
-    request.onupgradeneeded = (event) => {
-      if (event.oldVersion < 1) request.result.createObjectStore("maps", { keyPath: "id" }).createIndex("deckId", "deckId");
-      if (event.oldVersion < 2) request.result.createObjectStore("images", { keyPath: "id" });
+  const db = await new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(`core.learningMindMaps.v2.${encodeURIComponent(userId)}`, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore("maps", { keyPath: "deckId" });
+      request.result.createObjectStore("images", { keyPath: "id" });
+      indexedDB.deleteDatabase(`core.learningMindMaps.v1.${encodeURIComponent(userId)}`); // Nur lokal gespeicherte Altstände entfallen (ADR-043, I2).
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(new Error("Der Mindmap-Speicher konnte nicht geöffnet werden."));
     request.onblocked = () => reject(new Error("Der Mindmap-Speicher ist blockiert. Schließe andere CoRe-Tabs und versuche es erneut."));
   });
-}
-
-export async function loadLearningMindMaps(userId: string, deckId: string): Promise<LearningMindMap[]> {
-  const db = await openDatabase(userId);
   try {
-    const rows = await new Promise<unknown>((resolve, reject) => {
-      const transaction = db.transaction("maps", "readonly"), request = transaction.objectStore("maps").index("deckId").getAll(deckId);
-      transaction.oncomplete = () => resolve(request.result);
-      transaction.onabort = transaction.onerror = () => reject(new Error("Die Mindmaps konnten nicht geladen werden."));
+    return await new Promise<T>((resolve, reject) => {
+      const transaction = db.transaction(["maps", "images"], mode);
+      const outcome = run({ maps: transaction.objectStore("maps"), images: transaction.objectStore("images") });
+      transaction.oncomplete = () => resolve(typeof outcome === "function" ? outcome() : outcome?.result as T);
+      transaction.onabort = transaction.onerror = () => reject(new Error(failure));
     });
-    if (!Array.isArray(rows)) throw new Error("Der Mindmap-Speicher ist ungültig.");
-    return rows.map(readLearningMindMap).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   } finally { db.close(); }
 }
+const readMap = (userId: string, deckId: string) => withMindMapStores<StoredMindMap | undefined>(userId, "readonly", ({ maps }) => maps.get(deckId), "Die Infinity Map konnte nicht geladen werden.");
+function readImages(userId: string, ids: string[]) {
+  return withMindMapStores<StoredImage[]>(userId, "readonly", ({ images }) => {
+    const found: StoredImage[] = [];
+    for (const key of ids) { const request = images.get(key); request.onsuccess = () => { if (request.result?.blob instanceof Blob) found.push(request.result); }; }
+    return () => found;
+  }, "Die Bilder konnten nicht geladen werden.");
+}
+function writeMindMapStores(userId: string, { maps = [], images = [], removedMaps = [], removedImages = [] }: { maps?: StoredMindMap[]; images?: StoredImage[]; removedMaps?: string[]; removedImages?: string[] }, failure: string) {
+  return withMindMapStores<void>(userId, "readwrite", (stores) => {
+    for (const record of maps) stores.maps.put(record);
+    for (const image of images) stores.images.put(image);
+    for (const deckId of removedMaps) stores.maps.delete(deckId);
+    for (const key of removedImages) stores.images.delete(key);
+  }, failure);
+}
 
-/** Unreferenced images survive a day, so undo in an open map and unsaved drafts in other tabs keep them. */
+async function uploadImages(account: LearningContentAccount & { cloud: SupabaseClient }, images: StoredImage[]) {
+  const pending = images.filter((image) => !image.uploaded);
+  for (const image of pending) await uploadMindMapImage(account.cloud, account.userId, image.id, image.blob);
+  if (pending.length) await writeMindMapStores(account.userId, { images: pending.map((image) => ({ ...image, uploaded: true })) }, "Die Bilder konnten nicht gespeichert werden.");
+}
+
+/** Uploads the map after its images. A save from another device in between is replaced: the latest save wins (ADR-043, I3). */
+async function pushMindMap(account: LearningContentAccount & { cloud: SupabaseClient }, record: StoredMindMap): Promise<{ overwritten: boolean }> {
+  const { userId, cloud } = account;
+  await uploadImages(account, await readImages(userId, [...mindMapImageIds(record.map)]));
+  const write = (baseRevision: number | null) => writeLearningDocument(cloud, TABLE, { userId, id: record.deckId, deckId: record.deckId, document: record.map, baseRevision });
+  const first = await write(record.revision), result = "conflict" in first ? await write(first.conflict?.revision ?? null) : first;
+  if ("conflict" in result) throw new Error("Die Mindmap wurde gleichzeitig auf einem anderen Gerät gespeichert.");
+  await writeMindMapStores(userId, { maps: [{ ...record, revision: result.revision, pending: false }] }, "Die Mindmap konnte nicht gespeichert werden. Dein Entwurf bleibt geöffnet.");
+  return { overwritten: "conflict" in first };
+}
+
+/** Unreferenced images survive a day, so undo in an open map and unsaved drafts in other tabs keep them; online ones go once no cloud map uses them. */
 const IMAGE_GRACE_MS = 24 * 60 * 60 * 1000;
 
-function releaseUnusedMindMapImages(db: IDBDatabase, now: number): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(["maps", "images"], "readwrite"), maps = transaction.objectStore("maps").getAll();
-    maps.onsuccess = () => {
-      const used = mindMapImageIds({ nodes: (maps.result as LearningMindMap[]).flatMap((map) => map.nodes) });
-      const cursor = transaction.objectStore("images").openCursor();
-      cursor.onsuccess = () => {
-        const row = cursor.result; if (!row) return;
-        if (!used.has(row.value.id) && now - row.value.createdAt >= IMAGE_GRACE_MS) row.delete();
-        row.continue();
-      };
-    };
-    transaction.oncomplete = () => resolve();
-    transaction.onabort = transaction.onerror = () => reject(transaction.error);
-  });
+async function releaseUnusedMindMapImages(account: LearningContentAccount, now: number) {
+  const { userId, cloud } = account;
+  const { maps, images } = await withMindMapStores<{ maps: StoredMindMap[]; images: StoredImage[] }>(userId, "readonly", (stores) => {
+    const mapRequest = stores.maps.getAll(), imageRequest = stores.images.getAll();
+    return () => ({ maps: mapRequest.result, images: imageRequest.result });
+  }, "Die Bilder konnten nicht geladen werden.");
+  const used = mindMapImageIds({ nodes: maps.flatMap((record) => record.map.nodes) });
+  const unused = images.filter((image) => !used.has(image.id) && now - image.createdAt >= IMAGE_GRACE_MS);
+  if (!unused.length) return;
+  await writeMindMapStores(userId, { removedImages: unused.map((image) => image.id) }, "Die Bilder konnten nicht freigegeben werden.");
+  const uploaded = unused.filter((image) => image.uploaded).map((image) => image.id);
+  if (!cloud || !uploaded.length) return;
+  const online = mindMapImageIds({ nodes: (await listLearningDocuments(cloud, TABLE)).flatMap((row) => row.deleted ? [] : readLearningMindMap(row.document).nodes) });
+  await removeMindMapImages(cloud, userId, uploaded.filter((key) => !online.has(key)));
 }
 
-/** Read/create the single surface; migrating older separate maps is atomic and account-scoped. Releasing unused images is best effort. */
-export async function loadInfinityMindMap(userId: string, deckId: string, now = Date.now()): Promise<LearningMindMap> {
-  const db = await openDatabase(userId);
-  try {
-    await releaseUnusedMindMapImages(db, now).catch(() => undefined);
-    return await new Promise<LearningMindMap>((resolve, reject) => {
-      const transaction = db.transaction("maps", "readwrite"), store = transaction.objectStore("maps");
-      const request = store.index("deckId").getAll(deckId);
-      let result: LearningMindMap;
-      let failure: unknown;
-      request.onsuccess = () => {
-        try {
-          const maps = request.result.map((row: unknown) => readLearningMindMap(row)).sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-          const existing = maps.find((map) => map.infinity);
-          result = existing ?? { ...createLearningMindMap(deckId, "Infinity Map"), infinity: true };
-          for (const map of maps) if (map.id !== result.id) result = appendMindMap(result, map);
-          if (!existing || maps.length > 1) {
-            result = { ...result, updatedAt: new Date().toISOString() };
-            store.put(result);
-            for (const map of maps) if (map.id !== result.id) store.delete(map.id);
-          }
-        } catch (cause: unknown) { failure = cause; transaction.abort(); }
-      };
-      transaction.oncomplete = () => resolve(result);
-      transaction.onabort = transaction.onerror = () => reject(failure ?? new Error("Die Infinity Map konnte nicht geladen werden. Deine gespeicherten Mindmaps bleiben erhalten."));
-    });
-  } finally { db.close(); }
+/** The deck's single surface: the cloud state unless this browser holds an unsent change, which is uploaded here. Offline the last local copy is shown. */
+export async function loadInfinityMindMap(account: LearningContentAccount, deckId: string, now = Date.now()): Promise<{ map: LearningMindMap; unsynced: boolean; overwritten: boolean }> {
+  const { userId, cloud } = account;
+  await releaseUnusedMindMapImages(account, now).catch(() => undefined);
+  let record = await readMap(userId, deckId);
+  const remote = cloud ? await listLearningDocuments(cloud, TABLE, deckId).catch(() => null) : null;
+  if (remote && !record?.pending) {
+    const row = remote.find((item) => !item.deleted);
+    record = row && { deckId, map: readLearningMindMap(row.document), revision: row.revision, pending: false };
+    await writeMindMapStores(userId, record ? { maps: [record] } : { removedMaps: [deckId] }, "Die Infinity Map konnte nicht geladen werden.");
+  }
+  const pushed = cloud && remote && record?.pending ? await pushMindMap({ ...account, cloud }, record).catch(() => null) : null;
+  if (record && pushed) record = { ...record, pending: false };
+  return { map: record ? readLearningMindMap(record.map) : { ...createLearningMindMap(deckId, "Infinity Map"), infinity: true }, unsynced: Boolean(record?.pending), overwritten: Boolean(pushed?.overwritten) };
 }
 
-export async function saveLearningMindMap(userId: string, value: unknown): Promise<LearningMindMap> {
-  const map = readLearningMindMap(value), db = await openDatabase(userId);
-  try {
-    await new Promise<void>((resolve, reject) => {
-      const transaction = db.transaction("maps", "readwrite");
-      transaction.objectStore("maps").put(map);
-      transaction.oncomplete = () => resolve();
-      transaction.onabort = transaction.onerror = () => reject(new Error("Die Mindmap konnte nicht gespeichert werden. Dein Entwurf bleibt geöffnet."));
-    });
-    return map;
-  } finally { db.close(); }
+/** Saves locally first and then to the cloud; offline the map stays marked as not yet synchronised. `overwritten` reports a replaced save from another device. */
+export async function saveLearningMindMap(account: LearningContentAccount, value: unknown): Promise<{ map: LearningMindMap; unsynced: boolean; overwritten: boolean }> {
+  const map = readLearningMindMap(value), { userId, cloud } = account, existing = await readMap(userId, map.deckId);
+  const record: StoredMindMap = { deckId: map.deckId, map, revision: existing?.revision ?? null, pending: Boolean(cloud) };
+  await writeMindMapStores(userId, { maps: [record] }, "Die Mindmap konnte nicht gespeichert werden. Dein Entwurf bleibt geöffnet.");
+  if (!cloud) return { map, unsynced: false, overwritten: false };
+  return pushMindMap({ ...account, cloud }, record).then(({ overwritten }) => ({ map, unsynced: false, overwritten }), () => ({ map, unsynced: true, overwritten: false }));
 }

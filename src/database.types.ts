@@ -370,6 +370,44 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_mind_maps: {
+        Row: {
+          deck_id: string
+          deleted_at: string | null
+          document: Json
+          id: string
+          revision: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          deck_id: string
+          deleted_at?: string | null
+          document: Json
+          id: string
+          revision?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          deck_id?: string
+          deleted_at?: string | null
+          document?: Json
+          id?: string
+          revision?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_mind_maps_user_id_deck_id_fkey"
+            columns: ["user_id", "deck_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       learning_summaries: {
         Row: {
           deck_id: string

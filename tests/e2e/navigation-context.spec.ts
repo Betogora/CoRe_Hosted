@@ -812,7 +812,7 @@ test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemel
   } finally { await context.close(); }
 });
 
-test("[Vertrag: Lerninhalte] Zusammenfassungen liegen online: ein zweites Gerät sieht neue Fassungen und Löschungen", async ({ page, browser }) => {
+test("[Vertrag: Lerninhalte] Zusammenfassungen und Mindmaps liegen online: ein zweites Gerät sieht Fassungen, Löschungen und die Map samt Bild", async ({ page, browser }) => {
   const second = await browser.newContext({ storageState: e2eAuthStatePath }), other = await second.newPage();
   try {
     const open = async (target: Page) => { await target.goto(`${CONTENT_URL}summary`); return target.getByTestId("deck-summaries-panel"); };
@@ -827,5 +827,12 @@ test("[Vertrag: Lerninhalte] Zusammenfassungen liegen online: ein zweites Gerät
     await expect(remote.getByRole("button", entry)).toHaveCount(0);
     await open(page);
     await expect(first).toContainText("Hier entsteht dein Überblick"); await expect(first.getByRole("button", entry)).toHaveCount(0);
+    await page.goto(`${CONTENT_URL}mind-map`); const map = page.getByTestId("deck-mindmaps-panel");
+    await map.getByRole("button", { name: "Erstes Thema", exact: true }).click(); await map.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Geteilt");
+    await map.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click();
+    await map.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles({ name: "teilen.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVR4AWKybvr2H4SZGKAAAAAA//8uQ0nRAAAABklEQVQDAEZOBWk7AOH8AAAAAElFTkSuQmCC", "base64") });
+    await map.getByRole("button", { name: "Bearbeitung abschließen", exact: true }).click(); await expect(map.getByRole("status").filter({ hasText: /^Gespeichert$/ })).toBeAttached();
+    await other.goto(`${CONTENT_URL}mind-map`);
+    await expect(other.getByTestId("deck-mindmaps-panel").getByRole("group", { name: "Textkarte „Geteilt“", exact: true }).locator("img")).toHaveAttribute("src", /^blob:/);
   } finally { await second.close(); }
 });

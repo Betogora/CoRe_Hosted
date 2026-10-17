@@ -20,6 +20,7 @@ const TABLES = [
   "sync_devices",
   "sync_conflicts",
   "learning_summaries",
+  "learning_mind_maps",
 ];
 
 /** Row key of a table; media files are identified per account by their SHA-1. */
@@ -178,6 +179,12 @@ function createFixture(userId: any, prefix: string, marker: string) {
       deck_id: deckId,
       document: { version: 1, marker },
     },
+    learning_mind_maps: {
+      id: deckId,
+      user_id: userId,
+      deck_id: deckId,
+      document: { version: 1, marker },
+    },
   };
 }
 
@@ -197,6 +204,7 @@ const UPDATE_CASES = {
   sync_devices: { column: "label", value: "Aktualisierter Browser" },
   sync_conflicts: { column: "resolution", value: { verified: true } },
   learning_summaries: { column: "document", value: { version: 1, verified: true } },
+  learning_mind_maps: { column: "document", value: { version: 1, verified: true } },
 };
 
 async function insertFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: Record<string, any>) {
@@ -219,6 +227,7 @@ async function cleanupFixture(client: SupabaseClient<any,"public","public",any,a
 function forgedRow(row: any, table: string, ownerId: any, prefix: string) {
   if (table === "profiles") return { ...row, id: ownerId, email: `forged-${prefix}@rls.local` };
   if (table === "media_files") return { ...row, user_id: ownerId, sha1: "f".repeat(40), storage_path: `${ownerId}/${"f".repeat(40)}` };
+  if (table === "learning_mind_maps") return { ...row, id: `${prefix}_forged_${table}`, deck_id: `${prefix}_forged_${table}`, user_id: ownerId };
   return {
     ...row,
     id: `${prefix}_forged_${table}`,
@@ -446,6 +455,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant`, card_id: fixtureB.cards.id }],
         ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, card_id: fixtureB.cards.id }],
         ["learning_summaries", { ...fixtureA.learning_summaries, id: `${prefix}_foreign_fk_summary`, deck_id: fixtureB.decks.id }],
+        ["learning_mind_maps", { ...fixtureA.learning_mind_maps, id: fixtureB.decks.id, deck_id: fixtureB.decks.id }],
       ];
 
       for (const [table, row] of cases) {
@@ -463,6 +473,18 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const inserted = assertNoError(await clientA.from("learning_summaries").insert({ ...fixtureA.learning_summaries, id: `${prefix}_stamped_summary`, revision: 50 }).select("revision").single(), "Lerndokument mit eigener Revision anlegen");
       assert.equal(inserted.revision, 1);
       await clientA.from("learning_summaries").delete().eq("id", `${prefix}_stamped_summary`);
+    });
+
+    await t.test("Mindmap-Bilder liegen privat je Konto", async () => {
+      assert.ok(userA); assert.ok(userB);
+      const bucket = "learning-mind-map-images", path = `${userA.id}/${"d".repeat(40)}`, image = new Blob([new Uint8Array([1, 2, 3])], { type: "image/png" });
+      try {
+        assertNoError(await clientA.storage.from(bucket).upload(path, image, { contentType: "image/png" }) as any, "eigenes Mindmap-Bild hochladen");
+        assert.ok((await clientA.storage.from(bucket).download(path)).data);
+        assert.ok((await clientB.storage.from(bucket).download(path)).error, "Nutzer B darf fremde Mindmap-Bilder nicht laden");
+        assert.ok((await anonClient.storage.from(bucket).download(path)).error, "anon darf Mindmap-Bilder nicht laden");
+        assert.ok((await clientB.storage.from(bucket).upload(path, image, { contentType: "image/png", upsert: true })).error, "Nutzer B darf nicht in fremde Ordner schreiben");
+      } finally { await clientA.storage.from(bucket).remove([path]); }
     });
 
     await t.test("[Vertrag: private Medien-Ownership] Standarduploads bleiben accountgebunden und eine Datei darf von mehreren Inhalten genutzt werden", async () => {

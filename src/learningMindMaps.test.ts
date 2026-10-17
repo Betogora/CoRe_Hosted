@@ -1,10 +1,14 @@
 import "fake-indexeddb/auto";
+import { fakeLearningCloud, freshDevice as resetDevice } from "../tests/support/fakeLearningCloud.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createLearningSummary, createSummarySettings } from "./learningSummaries.ts";
-import { clearMindMap, stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, loadLearningMindMaps, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, storeMindMapImages, loadMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
+import { clearMindMap, stepMindMapSummary, copyMindMapNodes, mindMapLimitError, mindMapNeighbor, pasteMindMapNodes, addMindMapFromSummary, mindMapSummaryTree, replaceMindMapFromSummary, connectMindMapElements, addMindMapRelativeNode, createMindMapBoundary, createMindMapSummary, editMindMapNode, mindMapMembersRect, mindMapBoundaryRect, mindMapNodeColor, mindMapNodeRect, mindMapSummaryRect, moveMindMapElement, removeMindMapElement, reparentMindMapNode, resizeMindMapSummary, appendMindMap, createLearningMindMap, createMindMapNode, loadInfinityMindMap, mindMapFromSummary, mindMapNodeSource, readLearningMindMap, storeMindMapImages, loadMindMapImages, removeMindMapNode, saveLearningMindMap, toggleMindMapEdge } from "./learningMindMaps.ts";
 
 const IMAGE_ID = "0123456789abcdef0123456789abcdef01234567";
+const local = (userId = `mindmap-test-${crypto.randomUUID()}`) => ({ userId, cloud: null });
+const freshDevice = (userId: string) => resetDevice(`core.learningMindMaps.v2.${encodeURIComponent(userId)}`);
+const png = (...bytes: number[]) => new File([new Uint8Array(bytes)], "bild.png", { type: "image/png" });
 
 test("Zusammenfassung wird hierarchisch verknüpft; Textstellen bleiben exakt und unabhängig erhalten", () => {
   const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>ATP</h2><p>ATP und ADP sind Energieträger.</p><h3>Aufbau</h3><ul><li>Drei Phosphatgruppen.</li></ul><h2>ADP</h2><p>Zwei Phosphatgruppen.</p>" };
@@ -49,17 +53,19 @@ test("freie Graphen erlauben neue Querverbindungen und lösen sie unabhängig vo
   assert.equal(map.nodes.length, 2);
 });
 
-test("Mindmaps, Notizen, Positionen und Zeichnungen bleiben pro Konto und Stapel erhalten", async () => {
-  const account = `mindmap-test-${crypto.randomUUID()}`, map = createLearningMindMap("deck", "Meine Map");
+test("Je Stapel genau eine Map: Notizen, Positionen und Zeichnungen bleiben pro Konto und Stapel erhalten", async () => {
+  const account = local(), map = createLearningMindMap("deck", "Meine Map");
   map.nodes.push({ ...createMindMapNode("text", { x: -2000, y: 4000 }), text: "Eigene freie Notiz" });
   map.strokes.push({ id: "ink", points: [{ x: -20, y: 5 }, { x: 20, y: -5 }] });
-  const saved = await saveLearningMindMap(account, map);
-  assert.deepEqual(await loadLearningMindMaps(account, "deck"), [saved]);
-  assert.deepEqual(await loadLearningMindMaps(account, "other-deck"), []);
-  assert.deepEqual(await loadLearningMindMaps(`${account}-other`, "deck"), []);
+  const { map: saved } = await saveLearningMindMap(account, map);
+  assert.deepEqual(await loadInfinityMindMap(account, "deck"), { map: saved, unsynced: false, overwritten: false });
+  for (const [owner, deck] of [[account, "other-deck"], [local(`${account.userId}-other`), "deck"]] as const) {
+    const fresh = (await loadInfinityMindMap(owner, deck)).map;
+    assert.deepEqual([fresh.infinity, fresh.nodes.length, fresh.deckId], [true, 0, deck]);
+  }
   await assert.rejects(saveLearningMindMap(account, { ...map, title: " " }));
-  assert.deepEqual(await loadLearningMindMaps(account, "deck"), [saved]);
-  await assert.rejects(saveLearningMindMap("", map), /Konto/);
+  assert.deepEqual((await loadInfinityMindMap(account, "deck")).map, saved);
+  await assert.rejects(saveLearningMindMap(local(""), map), /Konto/);
 });
 
 test("ungültige Payloads und Verbindungen werden vor dem Speichern abgelehnt", () => {
@@ -74,36 +80,6 @@ test("ungültige Payloads und Verbindungen werden vor dem Speichern abgelehnt", 
   assert.equal(map.connectionColor, "node"); assert.throws(() => readLearningMindMap({ ...map, connectionColor: "unknown" }), /ungültig/);
 });
 
-test("ein Stapel erhält auch bei parallelem Öffnen genau eine Infinity Map", async () => {
-  const account = `infinity-${crypto.randomUUID()}`;
-  const maps = await Promise.all([loadInfinityMindMap(account, "deck"), loadInfinityMindMap(account, "deck")]);
-  assert.equal(maps[0].id, maps[1].id);
-  assert.equal(maps[0].infinity, true);
-  assert.equal((await loadLearningMindMaps(account, "deck")).length, 1);
-  assert.notEqual((await loadInfinityMindMap(account, "other")).id, maps[0].id);
-  assert.notEqual((await loadInfinityMindMap(`${account}-other`, "deck")).id, maps[0].id);
-});
-
-test("alte Mindmaps werden nebeneinander zusammengeführt; Quellen, Texte und Linien bleiben erhalten", async () => {
-  const account = `migration-${crypto.randomUUID()}`;
-  const summary = { ...createLearningSummary("deck", "ATP", createSummarySettings()), html: "<h2>Aufbau</h2><p>Drei Phosphate.</p>" };
-  const first = mindMapFromSummary(summary), second = createLearningMindMap("deck", "Notizen");
-  second.nodes = [{ ...createMindMapNode("text", { x: -900, y: -500 }), text: "Mein Text", color: "purple", images: [{ id: IMAGE_ID, name: "Bild.png" }] }];
-  second.strokes = [{ id: "stroke", color: "red", width: 8, points: [{ x: -950, y: -600 }, { x: -800, y: -500 }] }];
-  await saveLearningMindMap(account, first); await saveLearningMindMap(account, second);
-  const map = await loadInfinityMindMap(account, "deck");
-  assert.equal(map.nodes.length, first.nodes.length + second.nodes.length);
-  assert.equal(map.edges.length, first.edges.length);
-  assert.equal(map.nodes.find((node) => node.text === "Mein Text")!.images![0].name, "Bild.png");
-  assert.equal(mindMapNodeSource(map, map.nodes.find((node) => node.label === "Drei Phosphate.")!)!.summaryId, summary.id);
-  const note = map.nodes.find((node) => node.text === "Mein Text")!, sourceNodes = map.nodes.filter((node) => node.sourceId);
-  assert.ok(note.x > Math.max(...sourceNodes.map((node) => node.x + 220)) || note.x + 220 < Math.min(...sourceNodes.map((node) => node.x)));
-  assert.equal(map.strokes[0].width, 8);
-  assert.equal(map.strokes[0].points[1].x - map.strokes[0].points[0].x, 150);
-  assert.deepEqual(await loadLearningMindMaps(account, "deck"), [map]);
-  assert.deepEqual(await loadInfinityMindMap(account, "deck"), map);
-});
-
 test("mehrere Zusammenfassungen behalten ihre eigenen Quellen und können wiederholt ergänzt werden", () => {
   const make = (title: string) => mindMapFromSummary({ ...createLearningSummary("deck", title, createSummarySettings()), html: `<p>${title} Quelle.</p>` });
   const first = make("ATP"), second = make("ADP"), map = appendMindMap(appendMindMap(createLearningMindMap("deck", "Infinity Map"), first), second);
@@ -115,16 +91,7 @@ test("mehrere Zusammenfassungen behalten ihre eigenen Quellen und können wieder
   assert.throws(() => appendMindMap(map, { ...second, deckId: "other" }), /anderen Stapel/);
 });
 
-test("zu große Migrationen brechen atomar ab und erhalten alle alten Mindmaps", async () => {
-  const account = `migration-limit-${crypto.randomUUID()}`, first = createLearningMindMap("deck", "Erste"), second = createLearningMindMap("deck", "Zweite");
-  first.nodes = Array.from({ length: 2000 }, (_, i) => createMindMapNode("keyword", { x: i, y: 0 }));
-  second.nodes = [createMindMapNode("keyword", { x: 0, y: 0 })];
-  await saveLearningMindMap(account, first); await saveLearningMindMap(account, second);
-  await assert.rejects(loadInfinityMindMap(account, "deck"));
-  assert.equal((await loadLearningMindMaps(account, "deck")).length, 2);
-});
-
-test("Bild-, Kasten- und Stiftoptionen werden validiert; alte Linien bleiben lesbar, alte Base64-Bilder fallen weg", async () => {
+test("Bild-, Kasten- und Stiftoptionen werden validiert; Linien ohne Farbe und Stärke bleiben lesbar", async () => {
   const map = createLearningMindMap("deck", "Map"), node = createMindMapNode("keyword", { x: 0, y: 0 });
   const image = { id: IMAGE_ID, name: "Bild.png" };
   assert.doesNotThrow(() => readLearningMindMap({ ...map, nodes: [{ ...node, color: "yellow", images: [image] }], strokes: [{ id: "ink", color: "blue", width: 2, points: [{ x: 0, y: 0 }] }] }));
@@ -132,15 +99,13 @@ test("Bild-, Kasten- und Stiftoptionen werden validiert; alte Linien bleiben les
   assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...node, color: "unknown" }] }));
   assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...node, images: [image, image] }] }));
   assert.throws(() => readLearningMindMap({ ...map, strokes: [{ id: "ink", width: 99, points: [{ x: 0, y: 0 }] }] }));
-  const legacy = readLearningMindMap({ ...map, nodes: [{ ...node, images: [{ id: "image", name: "Alt.png", dataUrl: "data:image/png;base64,YQ==" }, image] }, { ...createMindMapNode("text", { x: 0, y: 300 }), images: [{ id: "old", name: "Alt.png", dataUrl: "data:image/png;base64,YQ==" }] }] });
-  assert.deepEqual(legacy.nodes.map((item) => item.images), [[image], undefined]);
-  await assert.rejects(storeMindMapImages("images", [new File(["svg"], "image.svg", { type: "image/svg+xml" })]), /PNG/);
-  await assert.rejects(storeMindMapImages("images", [new File([new Uint8Array(20_000_001)], "huge.png", { type: "image/png" })]), /20 MB/);
-  await assert.rejects(storeMindMapImages("images", [new File([new Uint8Array(2_000_001)], "big.gif", { type: "image/gif" })]), /2 MB/);
+  await assert.rejects(storeMindMapImages(local("images"), [new File(["svg"], "image.svg", { type: "image/svg+xml" })]), /PNG/);
+  await assert.rejects(storeMindMapImages(local("images"), [new File([new Uint8Array(20_000_001)], "huge.png", { type: "image/png" })]), /20 MB/);
+  await assert.rejects(storeMindMapImages(local("images"), [new File([new Uint8Array(2_000_001)], "big.gif", { type: "image/gif" })]), /2 MB/);
 });
 
 test("Bilder liegen einmal je Inhalt im Bildspeicher; Kopien teilen sie und eine Map fasst höchstens zehn", async () => {
-  const account = `images-${crypto.randomUUID()}`, bytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
+  const account = local(), bytes = new Uint8Array([137, 80, 78, 71, 1, 2, 3]);
   const [first] = await storeMindMapImages(account, [new File([bytes], "a.png", { type: "image/png" })]);
   const [again] = await storeMindMapImages(account, [new File([bytes], "b.png", { type: "image/png" })]);
   assert.equal(first.id, Buffer.from(await crypto.subtle.digest("SHA-1", bytes)).toString("hex"));
@@ -157,9 +122,9 @@ test("Bilder liegen einmal je Inhalt im Bildspeicher; Kopien teilen sie und eine
 });
 
 test("nicht mehr verwendete Bilder werden nach einem Tag beim Öffnen freigegeben", async () => {
-  const account = `release-${crypto.randomUUID()}`;
+  const account = local();
   const [used, unused] = await storeMindMapImages(account, [new File([new Uint8Array([1])], "a.png", { type: "image/png" }), new File([new Uint8Array([2])], "b.png", { type: "image/png" })]);
-  const surface = await loadInfinityMindMap(account, "deck"), node = createMindMapNode("text", { x: 0, y: 0 });
+  const { map: surface } = await loadInfinityMindMap(account, "deck"), node = createMindMapNode("text", { x: 0, y: 0 });
   await saveLearningMindMap(account, { ...surface, nodes: [{ ...node, images: [used] }] });
   await loadInfinityMindMap(account, "deck");
   assert.equal((await loadMindMapImages(account, [used.id, unused.id])).size, 2);
@@ -277,32 +242,13 @@ test("Hierarchie, Zusammenfassungen, Umrandungen und Erscheinungsbild überstehe
   const { map, a, b } = tree(), summary = createMindMapSummary(map, [a.id, b.id]);
   const boundary = createMindMapBoundary(summary.map, [a.id, b.id]);
   boundary.map.boundaries[0] = { ...boundary.map.boundaries[0], shape: "ellipse", label: "Mein Ast", fillColor: "#ff0011", opacity: 0.3, strokeWidth: 8 };
-  const user = `elements-${crypto.randomUUID()}`, saved = await saveLearningMindMap(user, boundary.map);
-  assert.deepEqual(await loadLearningMindMaps(user, "deck"), [saved]);
+  const user = local(), { map: saved } = await saveLearningMindMap(user, boundary.map);
+  assert.deepEqual((await loadInfinityMindMap(user, "deck")).map, saved);
   const merged = appendMindMap(createLearningMindMap("deck", "Infinity"), saved);
   assert.equal(merged.summaries.length, 1); assert.equal(merged.boundaries[0].shape, "ellipse");
   assert.doesNotThrow(() => readLearningMindMap(merged));
   for (const corrupt of [{ ...saved, boundaries: [{ ...saved.boundaries[0], strokeWidth: 5 }] }, { ...saved, summaries: [{ ...saved.summaries[0], nodeIds: ["missing"] }] }]) assert.throws(() => readLearningMindMap(corrupt));
 });
-
-test("Maps aus der Zeit mit Zonen öffnen sich; Zonen und ihre Verbindungen entfallen, Karten und Linien bleiben", async () => {
-  const { map, a, b } = tree();
-  const legacy = { ...map, zones: [{ id: "zone_old", title: "Bereich", x: 0, y: 0, width: 400, height: 300, collapsed: true, autoSize: false, layer: 0 }],
-    nodes: map.nodes.map((node) => node.id === a.id ? { ...node, zoneId: "zone_old" } : node),
-    edges: [{ from: a.id, to: "zone_old" }, { from: a.id, to: b.id }],
-    strokes: [{ id: "ink", zoneId: "zone_old", points: [{ x: 1, y: 2 }] }] };
-  const opened = readLearningMindMap(legacy);
-  assert.equal("zones" in opened, false);
-  assert.deepEqual(opened.nodes.map((node) => node.id), map.nodes.map((node) => node.id));
-  assert.ok(opened.nodes.every((node) => !("zoneId" in node)));
-  assert.deepEqual(opened.edges, [{ from: a.id, to: b.id }]);
-  assert.deepEqual(opened.strokes, [{ id: "ink", points: [{ x: 1, y: 2 }] }]);
-  const user = `legacy-${crypto.randomUUID()}`;
-  await saveLearningMindMap(user, legacy);
-  assert.equal("zones" in (await loadLearningMindMaps(user, map.deckId))[0], false);
-});
-
-
 
 test("größere Karten rücken automatisch platzierte Karten nach; manuell gesetzte Positionen bleiben erhalten", async () => {
   const { map, a, b } = tree();
@@ -315,8 +261,8 @@ test("größere Karten rücken automatisch platzierte Karten nach; manuell geset
   assert.deepEqual(preserved.nodes.find((node) => node.id === b.id), manual.nodes.find((node) => node.id === b.id));
   const coordinate = editMindMapNode(map, b.id, { y: 1000 });
   assert.equal(coordinate.nodes.find((node) => node.id === b.id)!.autoPosition, false);
-  const account = `layout-${crypto.randomUUID()}`, saved = await saveLearningMindMap(account, grown);
-  assert.deepEqual((await loadLearningMindMaps(account, "deck"))[0].nodes, saved.nodes);
+  const account = local(), { map: saved } = await saveLearningMindMap(account, grown);
+  assert.deepEqual((await loadInfinityMindMap(account, "deck")).map.nodes, saved.nodes);
   const legacy = { ...map, nodes: map.nodes.map(({ autoPosition: _auto, ...node }) => node) };
   assert.deepEqual(editMindMapNode(legacy, a.id, { kind: "text" }).nodes.find((node) => node.id === b.id), legacy.nodes.find((node) => node.id === b.id));
 });
@@ -376,8 +322,9 @@ test("Freier Flächentext nutzt Bearbeitung, Bewegung, Löschung und lokale Pers
   assert.throws(() => readLearningMindMap({ ...map, nodes: [{ ...map.nodes[0], parentId: map.nodes[0].id }] }), /Flächentext gehört nicht/);
   assert.equal(map.nodes[0].text, "Direkt auf der Fläche");
   map = moveMindMapElement(map, "node", created.node.id, { x: 30, y: -20 });
-  await saveLearningMindMap("free-text-user", map);
-  const loaded = await loadInfinityMindMap("free-text-user", "free-text-deck");
+  const account = local();
+  await saveLearningMindMap(account, map);
+  const { map: loaded } = await loadInfinityMindMap(account, "free-text-deck");
   assert.equal(loaded.nodes[0].kind, "freeText");
   assert.equal(loaded.nodes[0].x, 130); assert.equal(loaded.nodes[0].y, 180);
   assert.match(loaded.nodes[0].html!, /<b>/);
@@ -500,4 +447,41 @@ test("Fläche leeren entfernt alle Elemente und Quellen, behält Titel und Linie
   assert.equal("sources" in cleared, false);
   assert.deepEqual([cleared.id, cleared.title, cleared.connectionColor], [map.id, "Map", "gray"]);
   assert.deepEqual(readLearningMindMap(cleared), cleared);
+});
+
+test("Online gespeicherte Maps und ihre Bilder erscheinen auf einem neuen Gerät; offline Gespeichertes folgt beim nächsten Öffnen", async () => {
+  const cloud = fakeLearningCloud(), account = cloud.account(`mindmap-cloud-${crypto.randomUUID()}`), maps = cloud.table("learning_mind_maps");
+  const [image] = await storeMindMapImages(account, [png(1, 2, 3)]), { map } = await loadInfinityMindMap(account, "deck");
+  const withImage = { ...map, nodes: [{ ...createMindMapNode("text", { x: 0, y: 0 }), images: [image] }] };
+  assert.deepEqual(await saveLearningMindMap(account, withImage), { map: withImage, unsynced: false, overwritten: false });
+  assert.deepEqual([maps.get("deck")?.revision, cloud.objects.has(`${account.userId}/${image.id}`)], [1, true]);
+  await freshDevice(account.userId);
+  assert.deepEqual((await loadInfinityMindMap(account, "deck")).map, withImage);
+  assert.deepEqual(new Uint8Array(await (await loadMindMapImages(account, [image.id])).get(image.id)!.arrayBuffer()), new Uint8Array([1, 2, 3]));
+  cloud.state.offline = true;
+  const [offlineImage] = await storeMindMapImages(account, [png(4, 5)]), changed = { ...withImage, nodes: [...withImage.nodes, { ...createMindMapNode("keyword", { x: 300, y: 0 }), images: [offlineImage] }] };
+  assert.equal((await saveLearningMindMap(account, changed)).unsynced, true);
+  assert.equal((await loadInfinityMindMap(account, "deck")).unsynced, true);
+  cloud.state.offline = false;
+  assert.deepEqual(await loadInfinityMindMap(account, "deck"), { map: changed, unsynced: false, overwritten: false });
+  assert.deepEqual([maps.get("deck")?.revision, maps.get("deck")?.document.nodes.length, cloud.objects.has(`${account.userId}/${offlineImage.id}`)], [2, 2, true]);
+});
+
+test("Der zuletzt gespeicherte Stand gewinnt und meldet das Ersetzen; Bilder anderer Stapel bleiben online erhalten", async () => {
+  const cloud = fakeLearningCloud(), account = cloud.account(`mindmap-conflict-${crypto.randomUUID()}`), maps = cloud.table("learning_mind_maps");
+  const { map } = await loadInfinityMindMap(account, "deck");
+  await saveLearningMindMap(account, map);
+  Object.assign(maps.get("deck")!, { document: { ...map, title: "Anderes Gerät" }, revision: 2 });
+  const mine = { ...map, title: "Dieses Gerät" };
+  assert.deepEqual(await saveLearningMindMap(account, mine), { map: mine, unsynced: false, overwritten: true });
+  assert.deepEqual([maps.get("deck")?.document.title, maps.get("deck")?.revision], ["Dieses Gerät", 3]);
+  cloud.state.offline = true; await saveLearningMindMap(account, { ...mine, title: "Offline" }); cloud.state.offline = false;
+  Object.assign(maps.get("deck")!, { document: { ...map, title: "Wieder anderes Gerät" }, revision: 4 });
+  assert.deepEqual(await loadInfinityMindMap(account, "deck"), { map: { ...mine, title: "Offline" }, unsynced: false, overwritten: true });
+  const [shared, unused] = await storeMindMapImages(account, [png(7), png(8)]), other = (await loadInfinityMindMap(account, "other-deck")).map;
+  await saveLearningMindMap(account, { ...other, nodes: [{ ...createMindMapNode("text", { x: 0, y: 0 }), images: [shared] }] });
+  await freshDevice(account.userId);
+  await storeMindMapImages(account, [png(7), png(8)]);
+  await loadInfinityMindMap(account, "deck", Date.now() + 25 * 60 * 60 * 1000);
+  assert.deepEqual([cloud.objects.has(`${account.userId}/${shared.id}`), cloud.objects.has(`${account.userId}/${unused.id}`)], [true, false]);
 });

@@ -1,36 +1,13 @@
 import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { fakeLearningCloud, freshDevice as resetDevice } from "../tests/support/fakeLearningCloud.ts";
 import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, getSummaryReadingMinutes, loadLearningSummaries, readLearningSummary, saveLearningSummary, summaryPlainText } from "./learningSummaries.ts";
 
 const local = (userId = `summary-test-${crypto.randomUUID()}`) => ({ userId, cloud: null });
 
-/** In-memory `learning_summaries` with the database's revision stamping; `offline` makes every request fail like a lost connection. */
-function fakeCloud() {
-  const rows = new Map<string, Record<string, any>>(), state = { offline: false };
-  const client = { from: () => {
-    let op = "select", payload: Record<string, unknown> = {};
-    const filters: Array<[string, unknown]> = [];
-    const run = () => {
-      if (state.offline) return { data: null, error: new Error("offline") };
-      if (op === "insert") { const row: Record<string, any> = { ...structuredClone(payload), revision: 1, deleted_at: null }; rows.set(String(row.id), row); return { data: [structuredClone(row)], error: null }; }
-      const hits = [...rows.values()].filter((row) => filters.every(([column, value]) => row[column] === value));
-      if (op === "update") for (const row of hits) Object.assign(row, structuredClone(payload), { revision: row.revision + 1 });
-      return { data: structuredClone(hits), error: null };
-    };
-    const builder: any = {
-      select: () => builder, eq: (column: string, value: unknown) => { filters.push([column, value]); return builder; },
-      insert: (row: Record<string, unknown>) => { op = "insert"; payload = row; return builder; },
-      update: (values: Record<string, unknown>) => { op = "update"; payload = values; return builder; },
-      then: (resolve: (value: unknown) => unknown) => Promise.resolve(run()).then(resolve),
-    };
-    return builder;
-  } };
-  return { rows, state, account: (userId: string) => ({ userId, cloud: client as unknown as SupabaseClient }) };
-}
-/** A new browser of the same account: its local copy starts empty. */
-const freshDevice = (userId: string) => new Promise((resolve) => { indexedDB.deleteDatabase(`core.learningSummaries.v2.${encodeURIComponent(userId)}`).onsuccess = resolve; });
+const freshDevice = (userId: string) => resetDevice(`core.learningSummaries.v2.${encodeURIComponent(userId)}`);
+const fakeCloud = () => { const cloud = fakeLearningCloud(); return { ...cloud, rows: cloud.table("learning_summaries") }; };
 
 test("Zusammenfassungen bleiben nach erneutem Öffnen je Konto und Stapel getrennt", async () => {
   const account = local();

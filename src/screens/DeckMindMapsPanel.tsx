@@ -27,6 +27,7 @@ const SHORTCUTS: Array<[string, Array<[string, string]>]> = [
   ["Bearbeiten", [["Enter oder F2", "Karte bearbeiten"], [`${MOD} + Enter`, "Unterknoten anlegen"], ["⇧ + Enter", "Geschwister anlegen"], ["Entf", "Auswahl entfernen"], [`${MOD} + C / ${MOD} + V`, "Kopieren und einfügen"], [`${MOD} + D`, "Duplizieren"], [`${MOD} + Z / ${MOD} + Y`, "Rückgängig und wiederholen"], ["Enter oder Leertaste", "Im Modus Verknüpfen Quelle und Ziel wählen"]]],
   ["Ansicht", [["+ / −", "Vergrößern und verkleinern"], ["0", "100 %"], ["⇧ + 1", "Alles anzeigen"], ["?", "Diese Übersicht"]]],
 ];
+const UNSYNCED = "Noch nicht synchronisiert", OVERWRITTEN = "Gespeichert. Dein Stand hat eine Änderung von einem anderen Gerät ersetzt.";
 function hasDefaultTitle(node: MindMapNode) { return node.label === "Neue Notiz" || node.label === "Neues Stichwort"; }
 const colorTokens: Record<string, string> = { default: "var(--core-text)", blue: "var(--core-info)", purple: "var(--core-success)", yellow: "var(--core-warning)", red: "var(--core-danger)" };
 function inkColor(color: MindMapColor = "default") { return colorTokens[color] ?? color; }
@@ -71,7 +72,8 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
   const [busy, setBusy] = React.useState(false), [error, setError] = React.useState(""), [notice, setNotice] = React.useState("");
   const pendingImagesRef = React.useRef<Promise<boolean> | null>(null), [readingImages, setReadingImages] = React.useState(false);
   const imageUrlsRef = React.useRef(new Map<string, string>()), loadingImageIds = React.useRef(new Set<string>()), [, setImageUrlVersion] = React.useState(0);
-  const savedRef = React.useRef(saved), [saveFailed, setSaveFailed] = React.useState(false);
+  const savedRef = React.useRef(saved), [saveFailed, setSaveFailed] = React.useState(false), lastSaveRef = React.useRef<{ unsynced: boolean; overwritten: boolean } | null>(null);
+  const account = React.useMemo(() => ({ userId, cloud }), [userId, cloud]);
   savedRef.current = saved;
   const [createFromSummary, setCreateFromSummary] = React.useState(false), [sourceOpen, setSourceOpen] = React.useState(false);
   const [toolbarHost, setToolbarHost] = React.useState<HTMLDivElement | null>(null);
@@ -85,20 +87,24 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
   const boundary = selection.kind === "boundary" ? draft?.boundaries.find((n) => n.id === primary) : undefined, bracket = selection.kind === "summary" ? draft?.summaries.find((n) => n.id === primary) : undefined;
   React.useEffect(() => {
     let active = true; setLoading(true); setLoadError("");
-    void Promise.allSettled([loadInfinityMindMap(userId, deck.id), loadLearningSummaries({ userId, cloud }, deck.id).then((loaded) => loaded.summaries)]).then(([surface, sources]) => {
+    void Promise.allSettled([loadInfinityMindMap(account, deck.id), loadLearningSummaries(account, deck.id).then((loaded) => loaded.summaries)]).then(([loaded, sources]) => {
       if (!active) return;
-      if (surface.status === "fulfilled") { draftRef.current = surface.value; setDraft(surface.value); setSaved(surface.value); setSelection({ kind: "node", ids: [] }); setMultipleSelection(false); setHistory({ past: [], future: [] }); }
-      else setLoadError(surface.reason instanceof Error ? surface.reason.message : "Die Mindmap konnte nicht geladen werden.");
-      if (sources.status === "fulfilled") { setSummaries(sources.value); setSummaryId(sources.value[0]?.id ?? ""); if (!sources.value.length && onGenerateSummary && surface.status === "fulfilled" && !surface.value.nodes.length) setCreateFromSummary(true); }
+      if (loaded.status === "fulfilled") { const map = loaded.value.map; draftRef.current = map; setDraft(map); setSaved(map); setSelection({ kind: "node", ids: [] }); setMultipleSelection(false); setHistory({ past: [], future: [] }); setNotice(loaded.value.unsynced ? UNSYNCED : loaded.value.overwritten ? OVERWRITTEN : ""); }
+      else setLoadError(loaded.reason instanceof Error ? loaded.reason.message : "Die Mindmap konnte nicht geladen werden.");
+      if (sources.status === "fulfilled") { setSummaries(sources.value); setSummaryId(sources.value[0]?.id ?? ""); if (!sources.value.length && onGenerateSummary && loaded.status === "fulfilled" && !loaded.value.map.nodes.length) setCreateFromSummary(true); }
       else setError("Die Zusammenfassungen konnten nicht geladen werden. Du kannst die Infinity Map weiter bearbeiten.");
       setLoading(false);
     }); return () => { active = false; };
-  }, [userId, cloud, deck.id, retry]);
+  }, [account, deck.id, retry]);
   const saveLatest = React.useMemo(() => createLatestSaver({ latest: () => draftRef.current, stored: () => savedRef.current, pending: () => pendingImagesRef.current,
-    save: async (map: LearningMindMap) => { await saveLearningMindMap(userId, map); savedRef.current = map; setSaved(map); } }), [userId]);
+    save: async (map: LearningMindMap) => { lastSaveRef.current = await saveLearningMindMap(account, map); savedRef.current = map; setSaved(map); } }), [account]);
   const persist = React.useCallback(async () => {
     setBusy(true); setSaveFailed(false);
-    try { const result = await saveLatest(); if (result === "saved") setNotice("Gespeichert"); return result !== "stopped"; }
+    try {
+      const result = await saveLatest(), last = lastSaveRef.current;
+      if (result === "saved") setNotice(last?.unsynced ? UNSYNCED : last?.overwritten ? OVERWRITTEN : "Gespeichert");
+      return result !== "stopped";
+    }
     catch (cause: unknown) { setSaveFailed(true); setError(cause instanceof Error ? cause.message : "Die Mindmap konnte nicht gespeichert werden. Dein Entwurf bleibt geöffnet."); return false; }
     finally { setBusy(false); }
   }, [saveLatest]);
@@ -107,9 +113,9 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
     const missing = draft ? [...mindMapImageIds(draft)].filter((key) => !imageUrlsRef.current.has(key) && !loadingImageIds.current.has(key)) : [];
     if (!missing.length) return;
     for (const key of missing) loadingImageIds.current.add(key);
-    void loadMindMapImages(userId, missing).then((blobs) => { for (const [key, blob] of blobs) imageUrlsRef.current.set(key, URL.createObjectURL(blob)); setImageUrlVersion((n) => n + 1); }, () => undefined)
+    void loadMindMapImages(account, missing).then((blobs) => { for (const [key, blob] of blobs) imageUrlsRef.current.set(key, URL.createObjectURL(blob)); setImageUrlVersion((n) => n + 1); }, () => undefined)
       .finally(() => { for (const key of missing) loadingImageIds.current.delete(key); });
-  }, [draft, userId]);
+  }, [draft, account]);
   React.useEffect(() => () => { for (const url of imageUrlsRef.current.values()) URL.revokeObjectURL(url); imageUrlsRef.current.clear(); }, [userId]);
   React.useEffect(() => { onDraftStateChange(dirty || readingImages ? { focus: () => canvasRef.current?.focus(), save: persist } : null); }, [dirty, readingImages, persist, onDraftStateChange]);
   React.useEffect(() => () => onDraftStateChange(null), [onDraftStateChange]);
@@ -166,7 +172,7 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
       const title = deck.name.trim().slice(0, 120) || "Zusammenfassung", settings = { ...createSummarySettings(), scope: generationScope };
       const result = await onGenerateSummary({ deckId: deck.id, title, settings, source: null }, controller.signal);
       if (controller.signal.aborted) return;
-      const { saved: stored } = await saveLearningSummary({ userId, cloud }, { ...createLearningSummary(deck.id, title, settings), ...result });
+      const { saved: stored } = await saveLearningSummary(account, { ...createLearningSummary(deck.id, title, settings), ...result });
       if (controller.signal.aborted) return;
       setSummaries((items) => [stored, ...items]); setSummaryId(stored.id); buildFromSummary(stored);
     } catch (cause: unknown) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht erstellt werden."); }
@@ -281,7 +287,7 @@ export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummar
     setReadingImages(true); setNotice(""); setError("");
     const task = (async () => {
       try {
-        const stored = await storeMindMapImages(userId, files), current = draftRef.current, n = current?.nodes.find((n) => n.id === id);
+        const stored = await storeMindMapImages(account, files), current = draftRef.current, n = current?.nodes.find((n) => n.id === id);
         if (!current || !n) return false;
         const images = stored.filter((image, index) => !n.images?.some((known) => known.id === image.id) && stored.findIndex((other) => other.id === image.id) === index);
         if ((n.images?.length ?? 0) + images.length > 4) throw new Error("Pro Kasten sind bis zu vier Bilder möglich.");
