@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-17 — Zusammenfassungen online (W8a)
+
+- Migration `20261017125735_learning_summaries.sql`: Tabelle `learning_summaries` mit Owner-RLS, Fremdschlüssel auf den eigenen Stapel, Löschmarke `deleted_at` und Trigger, der Revision und Zeitstempel vergibt und Konto, ID und Stapel festhält. Verify-SQL, generierte Typen und RLS-Smoke erweitert.
+- `cloudLearningDocuments.ts` schreibt revisionsgeprüft, `learningSummaries.ts` nutzt IndexedDB (`core.learningSummaries.v2`) als Zwischenspeicher und Warteschlange; die v1-Datenbank mit nur lokalen Fassungen wird verworfen (I2). Konflikte ergeben eine `Konfliktfassung von …` (I3), Löschen gilt überall. Panel zeigt `Gespeichert` beziehungsweise `Noch nicht synchronisiert`.
+- Entscheidungen I1–I5 vom 2026-10-17 als ADR-043.
+- Der Kontobindungs-Test aus W7 meldete Konto A ab und machte damit die gemeinsame Test-Sitzung für spätere Tests ungültig; er läuft jetzt in einem eigenen Browser mit Konto B.
+- Nachweis: Unit-Tests mit nachgebildeter Cloud für neues Gerät, Offline-Warteschlange, Löschung und Konflikt; `npm run test:e2e:local` für `navigation-context.spec.ts` 15/15 (darunter zwei Geräte desselben Kontos) samt RLS-Suite und Typdrift, lokal mit vorübergehend verschobenen Supabase-Ports.
+- Hosted: Migration am 2026-10-17 vor dem Push per `supabase db push --linked` auf das Projekt `hirbiuiydczmnjqtoyqx` angewendet; `verify_schema_v1.sql` remote ohne Fehler, Remote-Migrationen danach aktuell.
+
 ## 2026-10-16 — Testsuite für Lerninhalte (W7)
 
 - Neue App-Verträge `[Vertrag: Lerninhalte]` in `navigation-context.spec.ts` gegen lokales Supabase: Tabs per URL, Entwurfsschutz bei Tab-, Bereichswechsel und Reload samt Verwerfen, KI-Fassung aus dem geladenen Stapelmaterial mit nachgebildeter `/api/ai/summary`, `Neu erzeugen` mit Rückfrage und Abbruch, Kontobindung mit dem lokalen zweiten Testkonto (H1, H2).

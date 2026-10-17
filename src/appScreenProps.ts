@@ -129,6 +129,8 @@ export interface DeckSettingsScreenProps {
 export interface DecksScreenProps {
   decks: Deck[];
   summaryAccountId?: string;
+  /** Online storage for summaries and mind maps of the signed-in account. */
+  learningContentCloud?: import("@supabase/supabase-js").SupabaseClient | null;
   onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   onStartDeck: (deck: Deck) => void;

@@ -1,46 +1,38 @@
 # CoRe TODO
 
-Stand: 2026-10-16
+Stand: 2026-10-17
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-## P0: Zusammenfassungen und Mindmaps (W8)
+## P0: Zusammenfassungen und Mindmaps (W8b)
 
-W0–W7 sind erledigt, Details und Nachweise in
+W0–W8a sind erledigt, Details und Nachweise in
 [`history.md`](history.md): gemeinsame KI-Routen und Luna mit ZDR (W0–W1),
 strukturierte Zusammenfassung und Mindmap daraus erzeugen, ersetzen und sauber
 übersetzen (W2–W3b), Mindmap ohne Zonen, Tastatur, Touch und Barrierefreiheit
 (W4a–W4c), Bilder im eigenen Speicher (W5), Löschen, Duplizieren und `Fläche
-leeren` (W6), App-Tests für Lerninhalte und testbares Autospeichern (W7).
+leeren` (W6), App-Tests für Lerninhalte und testbares Autospeichern (W7), Zusammenfassungen online (W8a).
 Entscheidungen: E1–E5 vom 2026-10-15 (Zonen ohne Umwandlung entfernen,
 Verknüpfen per Enter/Leertaste, Kopieren/Einfügen, eigener Bildspeicher,
 `Neu erzeugen` ersetzt die Fassung); G1–G3 vom 2026-10-16 (alte Base64-Bilder
 verwerfen, eigener Bild-Store, höchstens zehn Bilder je Map); F1–F3 vom
 2026-10-16 (Löschen endgültig nach Rückfrage, `Fläche leeren` entfernt alles
 nach Rückfrage, Aktionen nur in der geöffneten Fassung); H1–H2 vom 2026-10-16
-(App-Tests lokal mit Docker und im Nightly, Kontobindung mit zweitem Testkonto).
+(App-Tests lokal mit Docker und im Nightly, Kontobindung mit zweitem Testkonto);
+I1–I5 vom 2026-10-17 in ADR-043.
 
-- [ ] **W8 Zusammenfassungen und Mindmaps online ablegen** (Entscheidung
-      2026-10-12). Heute nur lokal je Browser: Inkognito, anderes Gerät oder
-      gelöschte Browserdaten zeigen leere Tabs.
-      - Tabellen `learning_summaries` und `learning_mind_maps` (eine Zeile je
-        Stapel): `id`, `owner_id`, `deck_id`, `document jsonb`, `revision`,
-        `updated_at`, `deleted_at`; RLS je Besitzer wie bei Stapeln; Migration
-        und Verify-SQL.
-      - Dokument als versioniertes JSONB, Validierung in der App; spätere
-        Formatänderungen brauchen keine Datenbankmigration.
-      - Sync je Dokument: IndexedDB bleibt Cache und Offline-Warteschlange;
-        Speichern mit Revisionsprüfung, Öffnen holt den neuesten Stand; bei
-        Konflikt gewinnt die zuletzt gespeicherte Fassung mit sichtbarem Hinweis.
-      - Cutover je Dokumentart per eigenem Schalter, unabhängig vom
-        Stapel-Cutover; beim ersten Online-Öffnen lokale Dokumente einmalig
-        hochladen.
-      - Gelöschte Zusammenfassungen werden als `deleted_at` synchronisiert,
-        damit sie auf anderen Geräten nicht wieder auftauchen.
-      - Reihenfolge: Zusammenfassungen können vorgezogen werden; Mindmap-Bilder
-        aus dem Store `images` gehen nach Supabase Storage (Pfad = SHA-1),
-        nicht ins JSONB.
+- [ ] **W8b Mindmaps online ablegen** (ADR-043)
+      - Tabelle `learning_mind_maps` (eine Zeile je Stapel) nach dem Muster von
+        `learning_summaries`: Owner-RLS, Fremdschlüssel auf den Stapel,
+        Revision per Trigger, Verify-SQL und RLS-Smoke.
+      - Mindmap-Speichern über `cloudLearningDocuments.ts`; IndexedDB bleibt
+        Zwischenspeicher und Warteschlange. Konflikt: der zuletzt gespeicherte
+        Stand gewinnt mit sichtbarem Hinweis.
+      - Bilder aus dem Store `images` in einen eigenen privaten Bucket unter
+        `<userId>/<sha1>`, beim Öffnen nachladen; Freigabe nicht mehr
+        verwendeter Bilder auch online.
+      - Bisher nur lokal gespeicherte Mindmaps entfallen (I2).
       - Nachweis: `npm run test:rls:local`, `npm run db:types:check`,
         E2E mit zwei Browserkontexten desselben Kontos.
 

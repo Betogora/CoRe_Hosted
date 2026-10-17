@@ -1693,6 +1693,7 @@ export function App() {
           contentTab={deckContentTab}
           onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
           summaryAccountId={state.profile.userId}
+          learningContentCloud={supabase ?? null}
           onGenerateSummary={async (input, signal) => {
             const accountId = latestStateRef.current?.profile.userId;
             if (!accountId || !workspaceHydrationService || !supabase) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");

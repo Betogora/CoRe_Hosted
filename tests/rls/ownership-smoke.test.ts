@@ -19,6 +19,7 @@ const TABLES = [
   "media_files",
   "sync_devices",
   "sync_conflicts",
+  "learning_summaries",
 ];
 
 /** Row key of a table; media files are identified per account by their SHA-1. */
@@ -171,6 +172,12 @@ function createFixture(userId: any, prefix: string, marker: string) {
       local_value: { marker },
       remote_value: { marker },
     },
+    learning_summaries: {
+      id: `${prefix}_summary_${marker}`,
+      user_id: userId,
+      deck_id: deckId,
+      document: { version: 1, marker },
+    },
   };
 }
 
@@ -189,6 +196,7 @@ const UPDATE_CASES = {
   media_files: { column: "original_name", value: "aktualisiert.png" },
   sync_devices: { column: "label", value: "Aktualisierter Browser" },
   sync_conflicts: { column: "resolution", value: { verified: true } },
+  learning_summaries: { column: "document", value: { version: 1, verified: true } },
 };
 
 async function insertFixture(client: SupabaseClient<any,"public","public",any,any>, fixture: Record<string, any>) {
@@ -437,12 +445,24 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         ["note_sources", { ...fixtureA.note_sources, id: fixtureB.notes.id }],
         ["card_variants", { ...fixtureA.card_variants, id: `${prefix}_foreign_fk_variant`, card_id: fixtureB.cards.id }],
         ["review_events", { ...fixtureA.review_events, id: `${prefix}_foreign_fk_review`, card_id: fixtureB.cards.id }],
+        ["learning_summaries", { ...fixtureA.learning_summaries, id: `${prefix}_foreign_fk_summary`, deck_id: fixtureB.decks.id }],
       ];
 
       for (const [table, row] of cases) {
         const result = await clientA.from(table).insert(row);
         assertPostgresError(result, "23503", `${table}: fremde Deck-/Card-Referenz`);
       }
+    });
+
+    await t.test("Lerndokumente: die Datenbank vergibt Revisionen und hält Konto, ID und Stapel fest", async () => {
+      const id = fixtureA.learning_summaries.id, read = async () => assertNoError(await clientA.from("learning_summaries").select("revision").eq("id", id).single(), "Lerndokument lesen");
+      const before = await read();
+      assertNoError(await clientA.from("learning_summaries").update({ document: { version: 1 }, revision: 99 }).eq("id", id), "Lerndokument ändern");
+      assert.equal((await read()).revision, before.revision + 1);
+      assertPostgresError(await clientA.from("learning_summaries").update({ deck_id: `${prefix}_other_deck` }).eq("id", id), "23514", "learning_summaries: Stapel umhängen");
+      const inserted = assertNoError(await clientA.from("learning_summaries").insert({ ...fixtureA.learning_summaries, id: `${prefix}_stamped_summary`, revision: 50 }).select("revision").single(), "Lerndokument mit eigener Revision anlegen");
+      assert.equal(inserted.revision, 1);
+      await clientA.from("learning_summaries").delete().eq("id", `${prefix}_stamped_summary`);
     });
 
     await t.test("[Vertrag: private Medien-Ownership] Standarduploads bleiben accountgebunden und eine Datei darf von mehreren Inhalten genutzt werden", async () => {

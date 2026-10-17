@@ -409,6 +409,21 @@ export function validateMediaFileRows(input: unknown): MediaFileReference[] {
   }));
 }
 
+const learningDocumentRowSchema = v.looseObject({
+  id: v.pipe(v.string(), v.minLength(1)),
+  deck_id: v.pipe(v.string(), v.minLength(1)),
+  document: jsonObjectSchema,
+  revision: v.pipe(v.number(), v.safeInteger(), v.minValue(1)),
+  deleted_at: v.nullable(v.string()),
+});
+export interface LearningDocumentRow { id: string; deckId: string; document: Record<string, unknown>; revision: number; deleted: boolean }
+
+/** Rows of `learning_summaries`; the document itself is validated by its owning module. */
+export function validateLearningDocumentRows(input: unknown): LearningDocumentRow[] {
+  return parseRows(learningDocumentRowSchema, input, "Cloud-Lerndokumente hatten ein ungültiges Format.")
+    .map((row) => ({ id: row.id, deckId: row.deck_id, document: row.document, revision: row.revision, deleted: row.deleted_at !== null }));
+}
+
 export function validateIdRows(input: unknown, table: string) {
   return parseRows(v.looseObject({ id: v.string() }), input, `Cloud-Daten für ${table} hatten ein ungültiges Format.`);
 }

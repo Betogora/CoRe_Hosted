@@ -883,6 +883,7 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
 export function DecksScreen({
   decks,
   summaryAccountId,
+  learningContentCloud = null,
   onGenerateSummary,
   deckSummaries,
   onStartDeck,
@@ -1402,11 +1403,11 @@ export function DecksScreen({
           : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "summary" ? (
         contentDeck ? <DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
           : <EmptyState icon={FileText} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "mind-map" ? (
         contentDeck ? <DeckMindMapsPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
-          userId={summaryAccountId ?? contentDeck.ownerId} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
+          userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
           : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
         <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">

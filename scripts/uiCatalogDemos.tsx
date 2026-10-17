@@ -358,12 +358,13 @@ function SummaryContentDemo() {
   async function show() {
     setBusy(true); setError("");
     try {
-      if (!(await loadLearningSummaries("catalog-summaries", deck.id)).length) {
+      const account = { userId: "catalog-summaries", cloud: null };
+      if (!(await loadLearningSummaries(account, deck.id)).summaries.length) {
         for (const [title, text] of [
           ["Europa im Überblick", "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><p>Diese Zusammenfassung ist ein lokales Beispiel für die Listenvorschau.</p>"],
           ["Vor der nächsten Wiederholung", "<p>Rufe die Hauptstadt zu jedem Land zunächst selbst ab. Vergleiche deine Antwort anschließend mit der Karte.</p>"],
         ]) {
-          await saveLearningSummary("catalog-summaries", { ...createLearningSummary(deck.id, title, createSummarySettings()), html: text });
+          await saveLearningSummary(account, { ...createLearningSummary(deck.id, title, createSummarySettings()), html: text });
         }
       }
       setOpen(true);
@@ -377,8 +378,9 @@ function MindMapContentDemo() {
   const [open, setOpen] = useState(false), [error, setError] = useState("");
   async function show() {
     try {
-      if (!(await loadLearningSummaries("catalog-mindmaps", deck.id)).length) {
-        await saveLearningSummary("catalog-mindmaps", { ...createLearningSummary(deck.id, "Europa und ihre Hauptstädte", createSummarySettings()), html: "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><h3>Merksatz</h3><p>Vergleiche Länder und Hauptstädte miteinander.</p>" });
+      const account = { userId: "catalog-mindmaps", cloud: null };
+      if (!(await loadLearningSummaries(account, deck.id)).summaries.length) {
+        await saveLearningSummary(account, { ...createLearningSummary(deck.id, "Europa und ihre Hauptstädte", createSummarySettings()), html: "<h2>Portugal</h2><p>Lissabon ist die Hauptstadt von Portugal.</p><h2>Spanien</h2><p>Madrid ist die Hauptstadt von Spanien.</p><h3>Merksatz</h3><p>Vergleiche Länder und Hauptstädte miteinander.</p>" });
       }
       setOpen(true);
     } catch { setError("Die lokale Mindmap-Demo konnte nicht geladen werden."); }

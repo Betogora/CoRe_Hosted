@@ -1,4 +1,5 @@
 import React from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Check, Copy, Eraser, FileText, Maximize2, Minimize2, ImagePlus, Sparkles, Image as ImageIcon, Link2, Maximize, Minus, MousePointer2, Network, Palette, Pencil, Plus, Redo2, Scan, StickyNote, Trash2, Type, Undo2, X } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
@@ -15,7 +16,7 @@ import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
-interface DeckMindMapsPanelProps { deck: Deck; userId: string; onGenerateSummary?: (input: SummaryGenerationInput, signal: AbortSignal) => Promise<SummaryGenerationResult>; onDraftStateChange: (guard: CardDraftGuard | null) => void; }
+interface DeckMindMapsPanelProps { deck: Deck; userId: string; cloud?: SupabaseClient | null; onGenerateSummary?: (input: SummaryGenerationInput, signal: AbortSignal) => Promise<SummaryGenerationResult>; onDraftStateChange: (guard: CardDraftGuard | null) => void; }
 type Mode = "idle" | "connect" | "edit" | "design" | "add";
 type Selection = { kind: MindMapElementKind; ids: string[] };
 type Viewport = MindMapPoint & { zoom: number };
@@ -52,7 +53,7 @@ function ColorControl({ label, value = "default", onChange }: { label: string; v
     <div className="core-mindmap-custom-color relative" style={{ "--mindmap-color-x": `${offset}px` } as React.CSSProperties} ref={ref} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); trigger.current?.focus(); } }}><button ref={trigger} type="button" className="core-mindmap-swatch rounded-control" aria-label={`${label} frei wählen`} aria-haspopup="dialog" aria-expanded={open} onClick={() => { setCustom(normalizeColor(value, custom)); setOpen(!open); }}><Palette size={18} aria-hidden="true"/></button>{open && <ColorPopover id={id} label={`${label} frei wählen`} icon={Palette} colors={[custom]} paletteColors={highlightPaletteColors} selectedSlot={0} onSelectSlot={() => undefined} onChangeSlot={(_slot, color) => setCustom(color)} onApply={(color) => onChange(color)}/>}</div>
   </div></fieldset>;
 }
-export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStateChange }: DeckMindMapsPanelProps) {
+export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckMindMapsPanelProps) {
   const [generationScope, setGenerationScope] = React.useState<SummarySettings["scope"]>("tree"), [generating, setGenerating] = React.useState(false);
   const generationRef = React.useRef<AbortController | null>(null), [replaceRequest, setReplaceRequest] = React.useState<{ summary: LearningSummary; cards: number } | null>(null);
   const [summaries, setSummaries] = React.useState<LearningSummary[]>([]), [summaryId, setSummaryId] = React.useState("");
@@ -84,7 +85,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
   const boundary = selection.kind === "boundary" ? draft?.boundaries.find((n) => n.id === primary) : undefined, bracket = selection.kind === "summary" ? draft?.summaries.find((n) => n.id === primary) : undefined;
   React.useEffect(() => {
     let active = true; setLoading(true); setLoadError("");
-    void Promise.allSettled([loadInfinityMindMap(userId, deck.id), loadLearningSummaries(userId, deck.id)]).then(([surface, sources]) => {
+    void Promise.allSettled([loadInfinityMindMap(userId, deck.id), loadLearningSummaries({ userId, cloud }, deck.id).then((loaded) => loaded.summaries)]).then(([surface, sources]) => {
       if (!active) return;
       if (surface.status === "fulfilled") { draftRef.current = surface.value; setDraft(surface.value); setSaved(surface.value); setSelection({ kind: "node", ids: [] }); setMultipleSelection(false); setHistory({ past: [], future: [] }); }
       else setLoadError(surface.reason instanceof Error ? surface.reason.message : "Die Mindmap konnte nicht geladen werden.");
@@ -92,7 +93,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
       else setError("Die Zusammenfassungen konnten nicht geladen werden. Du kannst die Infinity Map weiter bearbeiten.");
       setLoading(false);
     }); return () => { active = false; };
-  }, [userId, deck.id, retry]);
+  }, [userId, cloud, deck.id, retry]);
   const saveLatest = React.useMemo(() => createLatestSaver({ latest: () => draftRef.current, stored: () => savedRef.current, pending: () => pendingImagesRef.current,
     save: async (map: LearningMindMap) => { await saveLearningMindMap(userId, map); savedRef.current = map; setSaved(map); } }), [userId]);
   const persist = React.useCallback(async () => {
@@ -165,7 +166,7 @@ export function DeckMindMapsPanel({ deck, userId, onGenerateSummary, onDraftStat
       const title = deck.name.trim().slice(0, 120) || "Zusammenfassung", settings = { ...createSummarySettings(), scope: generationScope };
       const result = await onGenerateSummary({ deckId: deck.id, title, settings, source: null }, controller.signal);
       if (controller.signal.aborted) return;
-      const stored = await saveLearningSummary(userId, { ...createLearningSummary(deck.id, title, settings), ...result });
+      const { saved: stored } = await saveLearningSummary({ userId, cloud }, { ...createLearningSummary(deck.id, title, settings), ...result });
       if (controller.signal.aborted) return;
       setSummaries((items) => [stored, ...items]); setSummaryId(stored.id); buildFromSummary(stored);
     } catch (cause: unknown) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht erstellt werden."); }

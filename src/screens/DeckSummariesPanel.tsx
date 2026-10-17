@@ -1,10 +1,11 @@
 import React from "react";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { ArrowLeft, ChevronRight, Copy, FileText, Plus, Save, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SummarySettings } from "../learningSummaries.ts";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -15,11 +16,15 @@ import { CoreTooltip } from "../ui/tooltipUi.tsx";
 interface DeckSummariesPanelProps {
   deck: Deck;
   userId: string;
+  /** Online storage of the signed-in account; without it summaries stay in this browser. */
+  cloud?: SupabaseClient | null;
   onGenerateSummary?: (input: SummaryGenerationInput, signal: AbortSignal) => Promise<SummaryGenerationResult>;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftStateChange }: DeckSummariesPanelProps) {
+export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckSummariesPanelProps) {
+  const account = React.useMemo(() => ({ userId, cloud }), [userId, cloud]);
+  const [unsynced, setUnsynced] = React.useState<ReadonlySet<string>>(new Set()), [notice, setNotice] = React.useState("");
   const [summaries, setSummaries] = React.useState<LearningSummary[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState("");
@@ -54,11 +59,11 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
   React.useEffect(() => {
     let active = true;
     setLoading(true); setLoadError("");
-    void loadLearningSummaries(userId, deck.id).then((items) => {
-      if (active) { setSummaries(items); setLoading(false); }
+    void loadLearningSummaries(account, deck.id).then((loaded) => {
+      if (active) { setSummaries(loaded.summaries); setUnsynced(loaded.unsynced); setLoading(false); }
     }).catch((cause: unknown) => { if (active) { setLoadError(cause instanceof Error ? cause.message : "Die Zusammenfassungen konnten nicht geladen werden."); setLoading(false); } });
     return () => { active = false; };
-  }, [userId, deck.id, retry]);
+  }, [account, deck.id, retry]);
 
   React.useEffect(() => {
     if (view !== "list") titleRef.current?.focus();
@@ -74,16 +79,14 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
       const next = view === "create" ? createLearningSummary(deck.id, title, settings)
         : draft ? { ...draft, title, updatedAt: new Date().toISOString() } : null;
       if (!next) return false;
-      const stored = await saveLearningSummary(userId, next);
-      setSummaries((items) => [stored, ...items.filter((item) => item.id !== stored.id)]);
-      setDraft(stored); setSaved(stored); savedRef.current = stored; setView("editor");
-      toast("Zusammenfassung lokal gespeichert.");
+      applySaved(await saveLearningSummary(account, next));
+      toast("Zusammenfassung gespeichert.");
       return true;
     } catch (cause: unknown) {
       setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht gespeichert werden.");
       return false;
     } finally { operationRef.current = false; setBusy(false); }
-  }, [busy, view, newTitle, draft, deck.id, settings, userId, toast]);
+  }, [busy, view, newTitle, draft, deck.id, settings, account, toast]);
 
   async function attachSource(file: File | undefined) {
     if (!file || operationRef.current) return;
@@ -105,11 +108,10 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
       const result = await onGenerateSummary({ deckId: deck.id, title: base.title, settings: { ...base.settings }, source: generationSource }, controller.signal);
       if (controller.signal.aborted) return;
       const next = { ...base, ...result, updatedAt: new Date().toISOString() };
-      setDraft(next); setSaved(null); setView("editor"); setProgress("Zusammenfassung wird lokal gespeichert …");
-      const stored = await saveLearningSummary(userId, next);
+      setDraft(next); setSaved(null); setView("editor"); setProgress("Zusammenfassung wird gespeichert …");
+      const stored = await saveLearningSummary(account, next);
       if (controller.signal.aborted) return;
-      setSummaries((items) => [stored, ...items.filter((item) => item.id !== stored.id)]);
-      setDraft(stored); setSaved(stored); toast("KI-Zusammenfassung lokal gespeichert.");
+      applySaved(stored); toast("KI-Zusammenfassung gespeichert.");
     } catch (cause: unknown) {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Die KI-Zusammenfassung konnte nicht erstellt werden.");
     } finally {
@@ -151,14 +153,20 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
   }
   function startCreate() { setSettings(createSummarySettings()); setNewTitle(""); setSource(null); setAdvanced(false); setError(""); setView("create"); }
   function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); }
-  function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); setError(""); setView("editor"); }
+  function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); savedRef.current = summary; setError(""); setNotice(""); setView("editor"); }
+  /** Opens what a save stored; after a conflict the draft continues in its „Konfliktfassung“ and the list shows the cloud state of the original. */
+  function applySaved({ saved: stored, unsynced: pending, replaced }: SavedLearningSummary) {
+    setSummaries((items) => [stored, ...(replaced?.summary ? [replaced.summary] : []), ...items.filter((item) => item.id !== stored.id && item.id !== replaced?.id)]);
+    setUnsynced((ids) => new Set([...ids].filter((id) => id !== stored.id && id !== replaced?.id).concat(pending ? [stored.id] : [])));
+    open(stored);
+    if (replaced) setNotice(`Diese Fassung wurde auf einem anderen Gerät geändert. Deine Änderungen stehen in „${stored.title}“.`);
+  }
   async function duplicate() {
     const original = savedRef.current;
     if (!original || operationRef.current) return;
     operationRef.current = true; setBusy(true); setError("");
     try {
-      const stored = await saveLearningSummary(userId, duplicateLearningSummary(original));
-      setSummaries((items) => [stored, ...items]); open(stored); toast("Kopie lokal gespeichert.");
+      applySaved(await saveLearningSummary(account, duplicateLearningSummary(original))); toast("Kopie gespeichert.");
     } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Kopie konnte nicht gespeichert werden."); }
     finally { operationRef.current = false; setBusy(false); }
   }
@@ -167,7 +175,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
     if (!id || operationRef.current) return;
     operationRef.current = true; setBusy(true); setError("");
     try {
-      await deleteLearningSummary(userId, id);
+      await deleteLearningSummary(account, id);
       setSummaries((items) => items.filter((item) => item.id !== id)); backToList(); toast("Zusammenfassung gelöscht.");
     } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht gelöscht werden."); }
     finally { operationRef.current = false; setBusy(false); }
@@ -181,7 +189,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
         <div className="min-w-0 max-w-full"><h3 className="core-heading-2 break-words">Zusammenfassungen</h3><p className="mt-1 break-words core-body text-core-muted">{summaries.length} {summaries.length === 1 ? "Fassung" : "Fassungen"} · {deck.name}</p></div>
         <ActionButton variant="primary" icon={Plus} disabled={loading || Boolean(loadError)} onClick={startCreate}>Neue Zusammenfassung</ActionButton>
       </div>
-      <p className="core-caption text-core-muted">Auf diesem Gerät gespeichert · KI-Fassungen bleiben bearbeitbar</p>
+      <p className="core-caption text-core-muted">In deinem Konto gespeichert · KI-Fassungen bleiben bearbeitbar</p>
       {loading ? <StatusMessage tone="info" announce="polite">Zusammenfassungen werden geladen …</StatusMessage>
         : loadError ? <><StatusMessage tone="error" announce="assertive">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((value) => value + 1)}>Erneut laden</ActionButton></>
         : !summaries.length ? <>
@@ -222,8 +230,9 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
           </form>
         </SoftPanel>
       </> : draft ? <>
-        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : "Lokal gespeichert"}</p></div><div className="flex flex-wrap gap-3">{saved ? <><CoreTooltip label="Duplizieren"><IconButton icon={Copy} label="Duplizieren" disabled={busy} onClick={() => request(() => void duplicate())}/></CoreTooltip><CoreTooltip label="Löschen"><IconButton icon={Trash2} label="Löschen" variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}/></CoreTooltip></> : null}{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}<ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div></div>
+        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : unsynced.has(draft.id) ? "Noch nicht synchronisiert" : "Gespeichert"}</p></div><div className="flex flex-wrap gap-3">{saved ? <><CoreTooltip label="Duplizieren"><IconButton icon={Copy} label="Duplizieren" disabled={busy} onClick={() => request(() => void duplicate())}/></CoreTooltip><CoreTooltip label="Löschen"><IconButton icon={Trash2} label="Löschen" variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}/></CoreTooltip></> : null}{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}<ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div></div>
         {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
+        {notice ? <StatusMessage tone="info" announce="polite">{notice}</StatusMessage> : null}
         <SoftPanel className="core-summary-document grid gap-4 p-4 sm:p-6" inert={busy}>
           <div className="flex flex-wrap gap-4"><div className="core-field-group"><label htmlFor={`${fieldId}-font`} className="core-field-label">Schrift</label><CoreSelect id={`${fieldId}-font`} ariaLabel="Schrift" value={draft.font} options={[{ value: "sans", label: "Standard" }, { value: "serif", label: "Serif" }]} onValueChange={(value) => setDraft({ ...draft, font: value as LearningSummary["font"] })}/></div><div className="core-field-group"><label htmlFor={`${fieldId}-size`} className="core-field-label">Schriftgröße</label><CoreSelect id={`${fieldId}-size`} ariaLabel="Schriftgröße" value={String(draft.fontSize)} options={[{ value: "14", label: "14" }, { value: "16", label: "16" }, { value: "22", label: "22" }]} onValueChange={(value) => setDraft({ ...draft, fontSize: Number(value) as LearningSummary["fontSize"] })}/></div></div>
           <div className="core-summary-editor" style={{ "--summary-font": draft.font === "serif" ? "Georgia, serif" : "inherit", "--summary-size": `${draft.fontSize}px` } as React.CSSProperties}>
@@ -231,7 +240,7 @@ export function DeckSummariesPanel({ deck, userId, onGenerateSummary, onDraftSta
           </div>
           {draft.generation && <p className="core-caption text-core-muted">Mit KI erstellt · {draft.generation.materialUnits} {draft.generation.materialUnits === 1 ? "Materialeinheit" : "Materialeinheiten"} · {draft.generation.privacyMode === "zdr" ? "Ohne Datenspeicherung beim Anbieter" : "Anbieter ohne ZDR-Zusage"}. Prüfe die Aussagen anhand deiner Grundlage.</p>}
           <p id={`${fieldId}-edit-hint`} className="core-field-hint">Schreibe deinen Text hier. Unter „Weitere Textwerkzeuge“ findest du Textfarbe, Marker, Listen und weitere Formatierungen.</p>
-          <p className="core-caption text-core-muted">Grundlage: {draft.settings.scope === "tree" ? "Stapel und Unterstapel" : "Dieser Stapel"} · {{ cards: "Nur Karten", "cards-and-source": "Karten und Quelle", source: "Nur Quelle" }[draft.settings.material]} · Auf diesem Gerät gespeichert</p>
+          <p className="core-caption text-core-muted">Grundlage: {draft.settings.scope === "tree" ? "Stapel und Unterstapel" : "Dieser Stapel"} · {{ cards: "Nur Karten", "cards-and-source": "Karten und Quelle", source: "Nur Quelle" }[draft.settings.material]}</p>
         </SoftPanel>
       </> : null}
     </>}

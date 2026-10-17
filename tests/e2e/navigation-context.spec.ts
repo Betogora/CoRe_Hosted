@@ -4,7 +4,7 @@ import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDe
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck, Note } from "../../src/coreTypes.ts";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
-import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { e2eAuthStatePath, loadE2EEnvironment } from "./support/e2eEnvironment.ts";
 import { seedAccountState } from "../support/seedAccountState.ts";
 
 const DECK_IDS = {
@@ -766,7 +766,7 @@ test("[Vertrag: Lerninhalte] KI-Fassung aus geladenem Material, Bearbeiten, Neu 
   const summaries = page.getByTestId("deck-summaries-panel"), editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await page.goto(`${CONTENT_URL}summary`);
   await summaries.getByRole("button", { name: "Zusammenfassung erzeugen", exact: true }).click();
-  await expect(editor).toContainText("Karte B1 führt zu Antwort B1.");
+  await expect(editor).toContainText("Karte B1 führt zu Antwort B1."); await expect(summaries).toContainText("· Gespeichert");
   expect(requests[0].units).toHaveLength(2);
   await editor.fill("Eigene Fassung.");
   await summaries.getByRole("button", { name: "Speichern", exact: true }).click();
@@ -779,34 +779,51 @@ test("[Vertrag: Lerninhalte] KI-Fassung aus geladenem Material, Bearbeiten, Neu 
   expect(requests).toHaveLength(2);
 });
 
-test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemeldeten Konto", async ({ page }) => {
+test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemeldeten Konto", async ({ browser }) => {
   const other = { email: process.env.CORE_RLS_USER_B_EMAIL ?? "", password: process.env.CORE_RLS_USER_B_PASSWORD ?? "" };
   test.skip(!other.email || !other.password, "Nur gegen lokales Supabase mit zweitem Testkonto.");
   await seedAccount(seedDecks(), other);
-  const summaries = page.getByTestId("deck-summaries-panel"), mindMaps = page.getByTestId("deck-mindmaps-panel");
-  const switchAccount = async (account: { email: string; password: string }) => {
+  // Eigener Browser: Abmelden beendet hier nur die Sitzung von Konto B, die gemeinsame Sitzung von Konto A bleibt gültig.
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [] } }), page = await context.newPage();
+  try {
+    const summaries = page.getByTestId("deck-summaries-panel"), mindMaps = page.getByTestId("deck-mindmaps-panel");
+    const signIn = async (account: { email: string; password: string }) => {
+      await page.getByLabel("E-Mail").fill(account.email); await page.getByLabel("Passwort", { exact: true }).fill(account.password);
+      await page.locator("form").getByRole("button", { name: "Anmelden", exact: true }).click(); await waitForApp(page);
+    };
+    await page.goto("/"); await signIn(other);
+    await page.goto(`${CONTENT_URL}summary`);
+    await summaries.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+    await summaries.getByRole("textbox", { name: "Titel", exact: true }).fill("Nur für Konto B");
+    await summaries.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(summaries).toContainText("· Gespeichert");
+    await page.goto(`${CONTENT_URL}mind-map`);
+    await mindMaps.getByRole("button", { name: "Erstes Thema", exact: true }).click();
+    await mindMaps.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Thema B");
+    await mindMaps.getByRole("button", { name: "Bearbeitung abschließen", exact: true }).click();
+    await expect(mindMaps.getByRole("status").filter({ hasText: /^Gespeichert$/ })).toBeAttached();
     await page.goto("/"); await page.getByRole("button", { name: "Einstellungen öffnen" }).first().click();
-    await page.getByRole("button", { name: "Abmelden" }).click();
-    await page.getByLabel("E-Mail").fill(account.email); await page.getByLabel("Passwort", { exact: true }).fill(account.password);
-    await page.locator("form").getByRole("button", { name: "Anmelden", exact: true }).click(); await waitForApp(page);
-  };
-  await page.goto(`${CONTENT_URL}summary`);
-  await summaries.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
-  await summaries.getByRole("textbox", { name: "Titel", exact: true }).fill("Nur für Konto A");
-  await summaries.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(summaries).toContainText("Lokal gespeichert");
-  await page.goto(`${CONTENT_URL}mind-map`);
-  await mindMaps.getByRole("button", { name: "Erstes Thema", exact: true }).click();
-  await mindMaps.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Thema A");
-  await mindMaps.getByRole("button", { name: "Bearbeitung abschließen", exact: true }).click();
-  await expect(mindMaps.getByRole("status").filter({ hasText: /^Gespeichert$/ })).toBeAttached();
-  await switchAccount(other);
-  await page.goto(`${CONTENT_URL}summary`);
-  await expect(summaries).toContainText("Hier entsteht dein Überblick");
-  await page.goto(`${CONTENT_URL}mind-map`);
-  await expect(mindMaps.getByRole("button", { name: "Erstes Thema", exact: true })).toBeVisible();
-  await switchAccount(loadE2EEnvironment());
-  await page.goto(`${CONTENT_URL}summary`);
-  await expect(summaries.getByRole("button", { name: "Zusammenfassung „Nur für Konto A“ öffnen", exact: true })).toBeVisible();
-  await page.goto(`${CONTENT_URL}mind-map`);
-  await expect(mindMaps.getByRole("group", { name: "Stichwort „Thema A“", exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Abmelden" }).click(); await signIn(loadE2EEnvironment());
+    await page.goto(`${CONTENT_URL}summary`);
+    await expect(summaries).toContainText("Hier entsteht dein Überblick");
+    await page.goto(`${CONTENT_URL}mind-map`);
+    await expect(mindMaps.getByRole("button", { name: "Erstes Thema", exact: true })).toBeVisible();
+  } finally { await context.close(); }
+});
+
+test("[Vertrag: Lerninhalte] Zusammenfassungen liegen online: ein zweites Gerät sieht neue Fassungen und Löschungen", async ({ page, browser }) => {
+  const second = await browser.newContext({ storageState: e2eAuthStatePath }), other = await second.newPage();
+  try {
+    const open = async (target: Page) => { await target.goto(`${CONTENT_URL}summary`); return target.getByTestId("deck-summaries-panel"); };
+    const first = await open(page);
+    await first.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
+    await first.getByRole("textbox", { name: "Titel", exact: true }).fill("Auf allen Geräten");
+    await first.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(first).toContainText("· Gespeichert");
+    const remote = await open(other), entry = { name: "Zusammenfassung „Auf allen Geräten“ öffnen", exact: true };
+    await remote.getByRole("button", entry).click();
+    await remote.getByRole("button", { name: "Löschen", exact: true }).click();
+    await other.getByRole("dialog", { name: "Zusammenfassung löschen?", exact: true }).getByRole("button", { name: "Löschen", exact: true }).click();
+    await expect(remote.getByRole("button", entry)).toHaveCount(0);
+    await open(page);
+    await expect(first).toContainText("Hier entsteht dein Überblick"); await expect(first.getByRole("button", entry)).toHaveCount(0);
+  } finally { await second.close(); }
 });
