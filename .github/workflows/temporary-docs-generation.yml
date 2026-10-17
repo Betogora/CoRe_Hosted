@@ -1,6 +1,8 @@
 name: Temporary Docs Generation
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - codex/pruefungsmodus-themenkalender
 permissions:
   contents: read
 jobs:
