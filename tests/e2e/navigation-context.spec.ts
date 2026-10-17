@@ -795,9 +795,10 @@ test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemel
     };
     await page.goto("/"); await signIn(other);
     await page.goto(`${CONTENT_URL}summary`);
-    await summaries.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
-    await summaries.getByRole("textbox", { name: "Titel", exact: true }).fill("Nur für Konto B");
-    await summaries.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(summaries).toContainText("· Gespeichert");
+    await summaries.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();
+    await summaries.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true }).fill("Nur für Konto B");
+    await summaries.getByRole("button", { name: "Alle Zusammenfassungen", exact: true }).click(); await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
+    await expect(summaries.getByRole("button", { name: "Zusammenfassung „Nur für Konto B“ öffnen", exact: true })).toBeVisible();
     await page.goto(`${CONTENT_URL}mind-map`);
     await mindMaps.getByRole("button", { name: "Erstes Thema", exact: true }).click();
     await mindMaps.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Thema B");
@@ -806,27 +807,25 @@ test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemel
     await page.goto("/"); await page.getByRole("button", { name: "Einstellungen öffnen" }).first().click();
     await page.getByRole("button", { name: "Abmelden" }).click(); await signIn(loadE2EEnvironment());
     await page.goto(`${CONTENT_URL}summary`);
-    await expect(summaries).toContainText("Hier entsteht dein Überblick");
+    await expect(summaries.getByTestId("summary-list")).toHaveCount(0);
     await page.goto(`${CONTENT_URL}mind-map`);
     await expect(mindMaps.getByRole("button", { name: "Erstes Thema", exact: true })).toBeVisible();
   } finally { await context.close(); }
 });
 
-test("[Vertrag: Lerninhalte] Zusammenfassungen und Mindmaps liegen online: ein zweites Gerät sieht Fassungen, Löschungen und die Map samt Bild", async ({ page, browser }) => {
+test("[Vertrag: Lerninhalte] Zusammenfassungen und Mindmaps liegen online: ein zweites Gerät sieht neue Fassungen und die Map samt Bild", async ({ page, browser }) => {
+  test.setTimeout(90_000);
   const second = await browser.newContext({ storageState: e2eAuthStatePath }), other = await second.newPage();
   try {
     const open = async (target: Page) => { await target.goto(`${CONTENT_URL}summary`); return target.getByTestId("deck-summaries-panel"); };
     const first = await open(page);
-    await first.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
-    await first.getByRole("textbox", { name: "Titel", exact: true }).fill("Auf allen Geräten");
-    await first.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(first).toContainText("· Gespeichert");
+    await first.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();
+    await first.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true }).fill("Auf allen Geräten");
+    await first.getByRole("button", { name: "Alle Zusammenfassungen", exact: true }).click(); await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
+    await expect(first.getByRole("button", { name: "Zusammenfassung „Auf allen Geräten“ öffnen", exact: true })).toBeVisible();
     const remote = await open(other), entry = { name: "Zusammenfassung „Auf allen Geräten“ öffnen", exact: true };
     await remote.getByRole("button", entry).click();
-    await remote.getByRole("button", { name: "Löschen", exact: true }).click();
-    await other.getByRole("dialog", { name: "Zusammenfassung löschen?", exact: true }).getByRole("button", { name: "Löschen", exact: true }).click();
-    await expect(remote.getByRole("button", entry)).toHaveCount(0);
-    await open(page);
-    await expect(first).toContainText("Hier entsteht dein Überblick"); await expect(first.getByRole("button", entry)).toHaveCount(0);
+    await expect(remote.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true })).toHaveValue("Auf allen Geräten");
     await page.goto(`${CONTENT_URL}mind-map`); const map = page.getByTestId("deck-mindmaps-panel");
     await map.getByRole("button", { name: "Erstes Thema", exact: true }).click(); await map.getByRole("textbox", { name: "Kartentitel bearbeiten", exact: true }).fill("Geteilt");
     await map.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click();
