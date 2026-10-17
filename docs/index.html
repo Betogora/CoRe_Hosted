@@ -4431,6 +4431,10 @@ summary {
 }
 
 .core-summary-panel { container: core-summary / inline-size; }
+.core-summary-creation-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container core-summary (max-width: 52rem) {
+  .core-summary-creation-grid { grid-template-columns: minmax(0, 1fr); }
+}
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); align-items: center; }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
 .core-summary-excerpt { max-height: 6rem; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent); }
