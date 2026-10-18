@@ -443,7 +443,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   }), [selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
-    ["dashboard", "DashboardScreen · Tagescheckliste und vorgeplante Themenquizze", "Tagesübersicht"],
+    ["dashboard", "DashboardScreen · Tagesübersicht → Prüfungen → Heatmap → Stapel", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · Gesamtmonat, Tagesdetails und Wochenplanung ohne KI-Button", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],

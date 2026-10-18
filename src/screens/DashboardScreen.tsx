@@ -312,16 +312,16 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
     <div className="grid min-w-0 gap-6">
       <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
 
-      {nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
-        <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
-      ) : null}
-
       <DailyLearningOverview
         plan={dailyLearningPlan}
         decks={state.decks}
         onStartDeck={onStartDeck}
         onStartAdditionalCards={onStartAdditionalCards}
       />
+
+      {nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
+        <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
+      ) : null}
 
       <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />
 
