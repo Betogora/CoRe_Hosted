@@ -765,7 +765,8 @@ test("[Vertrag: Lerninhalte] KI-Fassung aus geladenem Material, Bearbeiten, Neu 
   });
   const summaries = page.getByTestId("deck-summaries-panel"), editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await page.goto(`${CONTENT_URL}summary`);
-  await summaries.getByRole("button", { name: "Zusammenfassung erzeugen", exact: true }).click();
+  await summaries.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true }).getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
   await expect(editor).toContainText("Karte B1 führt zu Antwort B1."); await expect(summaries).toContainText("· Gespeichert");
   expect(requests[0].units).toHaveLength(2);
   await editor.fill("Eigene Fassung.");

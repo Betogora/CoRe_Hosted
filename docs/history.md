@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+
+## 2026-10-18 — Zusammenfassungsbereich in aktuellen Main-Stand übernommen
+
+- Die in `summary-cleanup` geprüfte Anordnung wurde gezielt in den aktuellen Hauptcheckout auf Basis `dcbadbf` übernommen: Suche, vorhandene Fassungen, anschließend zwei vollständige Aktionsflächen. Die KI-Aktion öffnet Stapelauswahl und aufklappbare Einstellungen direkt darunter; eigenes Schreiben beginnt im leeren Editor. Wiederholte Überschriften und erklärende Captions entfallen.
+- Die neueren Main-Funktionen bleiben erhalten: kontogebundene Cloud-Speicherung mit Offline- und Konfliktbehandlung, Duplizieren, bestätigtes Löschen und Neuerzeugen unter Erhalt von Zeichnungen und Seitenformat. Die unabhängigen lokalen Änderungen am Prüfungsbereich wurden vor und nach der Übernahme per Dateihash verglichen und blieben unverändert. Gemeinsame Katalog-/Spec-Dateien wurden nur an den Zusammenfassungsabschnitten ergänzt; HTML wurde aus den aktuellen Quellen erzeugt.
+- Nachweise und Sicherung des Ausgangsstands: `C:/Users/noemi/.codex/visualizations/2026/10/18/01a15030-e2f0-79d1-be94-f2e44db3cb51/main-integration/`. Prüfgrenzen bleiben echte Smartphone-Tastatur, Touchhardware, angemeldeter Live-KI-Durchlauf und nativer 200-%-Browserzoom. Kein Commit oder Push.
+
 ## 2026-10-18 — Kompakte Zusammenfassungsleiste, Seitenformate und Zeichnungen
 
 - Den vorbereiteten Dokumenteditor gezielt auf Main `1f04627` übernommen. Hochformat, Querformat und Infinity, ganze Seiten, automatische Textumbrüche, Stift/Marker/Radierer und eine bildschirmfüllende Arbeitsfläche ergänzen die kompakte Symbolleiste. Cloud-Speicherung, Duplizieren, Löschen und Neuerzeugen des aktuellen Main bleiben erhalten; Neuerzeugen ersetzt den Seitentext und erhält Zeichnungen. Optionale Seiten- und Formatfelder werden im vorhandenen JSON-Dokument validiert, ohne Datenbankänderung.
