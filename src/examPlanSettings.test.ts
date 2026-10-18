@@ -54,3 +54,16 @@ test("überlappende, rückwärts laufende und fremde Zeitblöcke werden abgelehn
   assert.equal(valid.capacity.timeBlocks?.length, 2);
   assert.throws(() => upsertExamPlan(settings, { ...exam("a"), topicDates: [{ deckId: "missing", date: "2026-10-12" }] }), /ungültig/);
 });
+
+
+test("Lernzeit bleibt ohne Fachzuordnung speicherbar und kollisionsgeprüft", () => {
+  const block = { id: "free", date: "2026-10-12", start: 780, end: 900, examId: null };
+  const settings = { ...normalizeExamPlanningSettings(undefined), capacity: { ...createStudyTimeCapacity(), timeBlocks: [block] } };
+  assert.deepEqual(validateExamPlanningSettings(settings), settings);
+  assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning.capacity.timeBlocks, [block]);
+  assert.throws(() => validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, { ...block, id: "overlap", start: 870 }] } }), /ungültig/);
+  const withExam = upsertExamPlan(settings, exam("a"));
+  const assigned = validateExamPlanningSettings({ ...withExam, capacity: { ...withExam.capacity, timeBlocks: [{ ...block, examId: "a" }] } });
+  assert.equal(assigned.capacity.timeBlocks?.[0].examId, "a");
+  assert.deepEqual(removeExamPlan(withExam, "a").capacity.timeBlocks, [block]);
+});

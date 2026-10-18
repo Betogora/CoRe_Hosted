@@ -4,7 +4,7 @@ import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
 import type { ExamHistory } from "./examPlanning.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
@@ -84,6 +84,7 @@ export interface DashboardScreenProps {
   /** Starts today's exam unit (ADR-042); the action leads the page while an exam is active. */
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
+  onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
 }
 
 /** Study states and observed history the exam forecast runs on. */

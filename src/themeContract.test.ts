@@ -195,3 +195,10 @@ test("the UI catalog lists every canonical shared export", () => {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });
+
+
+test("alle zwanzig Prüfungsfarben sind eindeutig und tragen kontrastreiche Beschriftungen", () => {
+  const colors = Array.from({ length: 20 }, (_, index) => tokenColor(`exam-color-${index + 1}`, lightTokens));
+  assert.equal(new Set(colors).size, 20);
+  for (const color of colors) assert.ok(contrastRatio(color, tokenColor("exam-on-color", lightTokens)) >= 4.5);
+});

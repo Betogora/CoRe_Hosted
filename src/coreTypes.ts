@@ -152,13 +152,26 @@ export interface StudyTimeCapacity {
   minimumMinutes: number;
   dateOverrides: Array<{ date: string; minutes: number }>;
   weeklyMinutes?: number[];
-  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string }>;
+  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null }>;
+}
+
+/** A single learning day's checklist; target cards survive forecast recalculation. */
+export interface ExamDailyTask {
+  id: string;
+  date: string;
+  examId: string;
+  kind: "study" | "quiz";
+  deckIds: string[];
+  cardIds: string[];
+  capturedAt: string;
+  completed: "manual" | "automatic" | null;
 }
 
 export interface ExamPlanningSettings {
   version: 1;
   exams: ExamPlan[];
   capacity: StudyTimeCapacity;
+  dailyTasks?: ExamDailyTask[];
 }
 
 export interface DeckSettings {

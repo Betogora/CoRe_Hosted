@@ -1110,6 +1110,14 @@ video {
 .inset-0 {
   inset: 0px;
 }
+.inset-x-0 {
+  left: 0px;
+  right: 0px;
+}
+.inset-x-1 {
+  left: 0.25rem;
+  right: 0.25rem;
+}
 .inset-x-\[8\%\] {
   left: 8%;
   right: 8%;
@@ -1497,6 +1505,9 @@ video {
 .max-h-40 {
   max-height: 10rem;
 }
+.max-h-44 {
+  max-height: 11rem;
+}
 .max-h-80 {
   max-height: 20rem;
 }
@@ -1741,6 +1752,9 @@ video {
 .max-w-3xl {
   max-width: 48rem;
 }
+.max-w-48 {
+  max-width: 12rem;
+}
 .max-w-5xl {
   max-width: 64rem;
 }
@@ -1803,6 +1817,9 @@ video {
 }
 .basis-\[calc\(50\%-0\.5rem\)\] {
   flex-basis: calc(50% - 0.5rem);
+}
+.basis-full {
+  flex-basis: 100%;
 }
 .table-fixed {
   table-layout: fixed;
@@ -1914,6 +1931,9 @@ video {
 .list-none {
   list-style-type: none;
 }
+.auto-rows-max {
+  grid-auto-rows: max-content;
+}
 .grid-cols-1 {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -1934,6 +1954,9 @@ video {
 }
 .grid-cols-\[1\.25rem_1fr\] {
   grid-template-columns: 1.25rem 1fr;
+}
+.grid-cols-\[3\.5rem_repeat\(7\2c minmax\(0\2c 1fr\)\)\] {
+  grid-template-columns: 3.5rem repeat(7,minmax(0,1fr));
 }
 .grid-cols-\[9rem_minmax\(0\2c 1fr\)\] {
   grid-template-columns: 9rem minmax(0,1fr);
@@ -2054,6 +2077,9 @@ video {
 }
 .gap-8 {
   gap: 2rem;
+}
+.gap-px {
+  gap: 1px;
 }
 .gap-x-2 {
   -moz-column-gap: 0.5rem;
@@ -2314,6 +2340,9 @@ video {
 .p-0 {
   padding: 0px;
 }
+.p-0\.5 {
+  padding: 0.125rem;
+}
 .p-1 {
   padding: 0.25rem;
 }
@@ -2425,9 +2454,6 @@ video {
 }
 .pb-\[max\(1rem\2c env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
-}
-.pl-2 {
-  padding-left: 0.5rem;
 }
 .pl-3 {
   padding-left: 0.75rem;
@@ -2593,6 +2619,9 @@ video {
 .underline {
   text-decoration-line: underline;
 }
+.line-through {
+  text-decoration-line: line-through;
+}
 .no-underline {
   text-decoration-line: none;
 }
@@ -2610,6 +2639,9 @@ video {
 }
 .opacity-35 {
   opacity: 0.35;
+}
+.opacity-50 {
+  opacity: 0.5;
 }
 .opacity-60 {
   opacity: 0.6;
@@ -2940,6 +2972,28 @@ video {
   --core-font-sans: "Manrope Variable", Manrope, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Primitive CoRe palette. Product UI consumes the semantic roles below. */
+  /* Stable, distinct exam identities in both themes; white labels retain AA contrast. */
+  --core-exam-color-1: #1d4ed8;
+  --core-exam-color-2: #be185d;
+  --core-exam-color-3: #047857;
+  --core-exam-color-4: #c2410c;
+  --core-exam-color-5: #7e22ce;
+  --core-exam-color-6: #0e7490;
+  --core-exam-color-7: #a16207;
+  --core-exam-color-8: #b91c1c;
+  --core-exam-color-9: #4338ca;
+  --core-exam-color-10: #0f766e;
+  --core-exam-color-11: #a21caf;
+  --core-exam-color-12: #4d7c0f;
+  --core-exam-color-13: #0369a1;
+  --core-exam-color-14: #be123c;
+  --core-exam-color-15: #6d28d9;
+  --core-exam-color-16: #854d0e;
+  --core-exam-color-17: #15803d;
+  --core-exam-color-18: #475569;
+  --core-exam-color-19: #9d174d;
+  --core-exam-color-20: #155e75;
+  --core-exam-on-color: #ffffff;
   --core-palette-slate: #6f7e9e;
   --core-palette-mist: #a9b5c7;
   --core-palette-cloud: #dde3ec;
@@ -4650,6 +4704,15 @@ summary {
 .core-mindmap-summary-select { opacity: 0; }
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
+
+.exam-month-days { height: clamp(390px, 52svh, 500px); }
+.exam-month-days > button { min-width: 0; }
+.exam-month-entry { height: 20px; font-size: var(--core-type-caption); line-height: 16px; }
+.exam-month-more { font-size: 10px; line-height: 16px; }
+@media (max-width: 639px) {
+  .exam-month-subject-name { display: none; }
+  .exam-month-entry { gap: 2px; padding-inline: 2px; }
+}
 .placeholder\:text-core-muted::-moz-placeholder {
   color: var(--core-text-muted);
 }
@@ -6100,10 +6163,10 @@ html { scroll-behavior: smooth; }
 <li>Die Lernzeit gilt gemeinsam: jeder Wochentag hat eigene Minuten, 0 bedeutet frei; bestehende Pläne ohne Einzelwerte verwenden weiterhin ihre bisherigen Wochen-/Wochenendwerte. Tagesausnahmen übersteuern den Rhythmus. Feste, nicht überlappende Zeitblöcke mit Beginn, Ende und Prüfung ersetzen an einem Datum die allgemeine Tageszeit und reservieren ihre Minuten für die zugeordnete Prüfung. Prüfungstage bleiben frei. Die Reserve und bereits heute gelernte Zeit werden berücksichtigt.</li>
 <li>Die Prognose plant zuerst fällige Wiederholungen und Lernschritte. Neue Karten folgen den Themen des Stapelbaums; das nächste Thema startet nur, wenn es voraussichtlich noch vollständig in die verbleibende Zeit passt. Große Themen laufen über mehrere verfügbare Tage. Höhere Priorität und nähere Prüfung gehen vor; gemeinsame Karten mehrerer Prüfungen werden einmal gelernt und anteilig gezählt.</li>
 <li>Thematische Unterstapel sind die aktuelle Themengrenze. Es gibt keine automatische semantische Zuordnung innerhalb eines ungegliederten Stapels. Die Einzelprüfung zeigt Kartenmenge und Starttag je offenem Thema. Ein gewünschter Starttag verschiebt nur neuen Stoff; ein Tausch setzt die Starttage beider Themen gegenseitig. Fällige Wiederholungen behalten ihre Termine, bei Zeitmangel kann die Einführung später stattfinden. Automatische Planung lässt sich wiederherstellen.</li>
-<li>Die Vorschau zeigt Machbarkeit mit Zeitbedarf, verfügbarer Zeit, Lerntagen, Karten und Engpässen. Gefährdete neue Pläne lassen sich nur ausdrücklich aktivieren. Der Wochenkalender zeigt je Prüfung eine Farbe samt Namen, Themen, Tagesaufwand und konkrete Zeitreservierungen. Er bleibt nach dem Anlegen für Anpassungen erreichbar. Änderungen am bestehenden Kalender werden mit neu berechneter Vorschau ausdrücklich gespeichert oder verworfen.</li>
-<li>Die Übersicht zeigt heutige Einheiten, Prüfungsfortschritt, Prognose und Kalender. Die Anzeige „Gut im Zeitplan“, „Im Zeitplan“ oder „Mehr Lernzeit nötig“ folgt der aktuellen Machbarkeit; der Balken zeigt den bearbeiteten Stoff. Prüfungen lassen sich bearbeiten, pausieren, fortsetzen, abschließen und löschen. Löschen entfernt ihre Zeitreservierungen, Karten und Lernstände bleiben erhalten.</li>
-<li>Heute enthält ein Prüfungswidget mit Kacheln für alle aktiven Prüfungen und genau einer heutigen Aufgabe je Thema: eindeutige Karten, Zeit und Startaktion. Eine Themenaufgabe startet die Vereinigung ihrer neuen Karten und Wiederholungen, die Gesamtaktion die heutige Einheit. Prüfungssitzungen verwenden die Zielsicherheit ohne normale Tageslimits und ändern keine gespeicherten Stapeleinstellungen.</li>
-<li>Ohne Verbindung meldet der Planer den Verbindungsbedarf. Zeiten bleiben Schätzungen, besonders bei wenig Lernhistorie. Quiz, Altfragen und Prüfungssimulation sind noch nicht angebunden.</li>
+<li>Die Vorschau zeigt Machbarkeit mit Zeitbedarf, verfügbarer Zeit, Lerntagen, Karten und Engpässen. Gefährdete neue Pläne lassen sich nur ausdrücklich aktivieren. Die Prüfungsübersicht beginnt auch ohne angelegte Prüfungen mit einem Monatskalender (Montag–Sonntag, Monatsnavigation und Heute). Klausuren tragen eine deutlich hervorgehobene farbige Terminfläche mit Flagge, Klausur-Label und Namen; die Lernaufgaben bleiben visuell nachgeordnet. Der gesamte Monat bleibt ohne internes Scrollen sichtbar, auch mit sechs Wochenzeilen. Pro künftigem Tag erscheinen bis zu zwei kompakte farbige Einträge (bei sechs Wochenzeilen ein Eintrag) mit Fachname, neuen Karten und gegebenenfalls Q für Quiz empfohlen; auf schmalen Ansichten identifiziert die Fachfarbe die Lernaufgabe. Weitere Einträge werden mit +Anzahl angekündigt. Ein Tagesklick zeigt sämtliche Klausuren und Lernaufgaben mit ausgeschriebenen Fachnamen, Kartenmengen und Quiz-Empfehlungen. Die Monatsübersicht zeigt keine Minuten, Uhrzeiten oder Wiederholungszähler. Monat und Woche sind umschaltbar. Die Wochenansicht zeigt Montag–Sonntag mit To-dos oberhalb eines scrollbaren 00–24-Uhr-Rasters. Lernzeit wird durch Ziehen in 15-Minuten-Schritten markiert und zunächst ohne Fachzuordnung geblockt; anschließendes Ziehen eines Fachs aus den To-dos in den Block ordnet es zu. Alternativ kann ein Fach ausgewählt und ein Block angetippt oder die Zuordnung über eine Auswahl gesetzt werden. Pfeiltasten, Umschalt und Enter erlauben Zeitauswahl mit der Tastatur; Datum und Von-/Bis-Felder sind zusätzlich erreichbar. Unzugeordnete Blöcke bleiben speicherbar und bilden gemeinsame Lernzeit; zugeordnete Blöcke reservieren Zeit für ihr Fach. Überlappungen werden abgelehnt, unzugeordnete wie zugeordnete Blöcke lassen sich löschen und Kalenderentwürfe verwerfen. Alle Prüfungen erhalten eine der 20 klaren Prüfungsfarben, die Legende, To-dos, Klausurtermine, Prüfungsübersichten und zugeordnete Zeitblöcke konsistent verwenden. Gemeinsame Karten können unter mehreren Fächern erscheinen, werden innerhalb eines Facheintrags nur einmal gezählt. Fehlende Prognosen zeigen einen Strich. Unter dem Kalender stehen Prüfung hinzufügen und die bestehenden Prüfungen. Auch die Prüfungskacheln und der Heute-Bereich zeigen Kartenmengen statt geschätzter Dauer. Ein ausgewählter Tag öffnet Zeitreservierungen, Themen und Thementausch; vergangene Tage und Tage außerhalb des Planungshorizonts erlauben keine Zeitänderungen. Die Monatsansicht passt sich auch schmalen Flächen ohne internes Scrollen an. Die Wochenansicht scrollt lokal horizontal; ihre Stundenleiste bleibt dabei sichtbar. Änderungen am bestehenden Kalender werden mit neu berechneter Vorschau ausdrücklich gespeichert oder verworfen.</li>
+<li>Die Übersicht zeigt heutige Einheiten, Prüfungsfortschritt, Prognose und Kalender. Die Prüfungskacheln haben über ihre gesamte Fläche einen dezenten Hintergrund in ihrer Prüfungsfarbe. Der zusätzliche Zeitplanstatus mit „Gut im Zeitplan“, „Im Zeitplan“ oder „Mehr Lernzeit nötig“ samt zugehörigem Prognosebereich entfällt in diesen Kacheln. Prüfungen lassen sich bearbeiten, pausieren, fortsetzen, abschließen und löschen. Löschen entfernt ihre Zeitreservierungen, Karten und Lernstände bleiben erhalten.</li>
+<li>Heute enthält ein Prüfungswidget mit dezent in der jeweiligen Prüfungsfarbe getönten Kacheln für alle aktiven Prüfungen. Der zusätzliche Zeitplanstatus entfällt auch hier. Pro Thema gibt es eine abhakbare Lernaufgabe mit eindeutiger Kartenmenge und Startaktion, ohne Dauerschätzung. Die Zielkarten der Checkliste bleiben für den aktuellen Lerntag im Profil gespeichert und verschwinden nach einer Neuberechnung nicht. Manuelle Häkchen sind widerrufbar und ändern keinen Kartenlernstand. Automatisch wird eine Lernaufgabe abgehakt, wenn alle Zielkarten seit ihrem Einplanen bewertet wurden, im Wiederholungszustand sind und erst nach diesem Lerntag wieder fällig werden. Fehlende Karten, offene Lernschritte und heutige Fälligkeiten gelten nicht als erledigt; Rückgängigmachen im Lernstand öffnet ein automatisches Häkchen wieder. Der nächste Lerntag beginnt eine neue Checkliste. Eine Themenaufgabe startet die Vereinigung ihrer neuen Karten und Wiederholungen, die Gesamtaktion die heutige Einheit. Prüfungssitzungen verwenden die Zielsicherheit ohne normale Tageslimits und ändern keine gespeicherten Stapeleinstellungen.</li>
+<li>Ohne Verbindung meldet der Planer den Verbindungsbedarf. Zeiten bleiben Schätzungen, besonders bei wenig Lernhistorie. Themenquizze werden ab dem Anlegen einer Prüfung alle drei Kalendertage und am letzten verfügbaren Lerntag empfohlen; freie Tage und Prüfungstage verschieben die Empfehlung auf den vorherigen verfügbaren Tag, vergangene Empfehlungen entfallen. Die Themenbündel enthalten bis zu drei verwandte Geschwisterstapel und wechseln zwischen den vorhandenen Gruppen. Auf Heute erscheinen sie als abhakbare Quiz-To-dos mit Themen und direkt zugehörigem deaktiviertem „KI generieren“-Button samt „Quiz-Erstellung folgt“. Im Kalender stehen ausschließlich Quizempfehlungen ohne Erstellungsbutton; die vorbereitete KI-Aktion bleibt auf Heute beschränkt. Die Quiz-Erstellung ist ausdrücklich nur vorgeplant; es gibt noch keine Generierung oder Quizsitzung. Pausierte und abgeschlossene Prüfungen erhalten keine Empfehlung. Quiz-Start, Altfragen und Prüfungssimulation sind noch nicht angebunden.</li>
 </ul></div></article><article id="specs--610-zusammenfassungen-und-mindmaps" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>6.10 Zusammenfassungen und Mindmaps</h3></div><div class="catalog-preview specs-prose"><h4 id="specs--zusammenfassungen-in-den-stapelinhalten" class="catalog-label" tabindex="-1">Zusammenfassungen in den Stapelinhalten</h4>
 <ul>
 <li>Der Tab <code>Zusammenfassungen</code> zeigt mehrere benannte Fassungen des ausgewählten Stapels als Liste. Jede Zeile nennt Lernziel, Zielumfang, Detailgrad und die aus dem tatsächlichen Text berechnete Lesezeit. Ein Textausschnitt blendet nach unten aus; <code>Vollständig öffnen</code> öffnet den ganzen Text direkt im Editor.</li>
@@ -6270,7 +6333,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.070</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">34.409</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">180</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 319 Zeilen, Lernen &amp; Karten: 2.871 Zeilen, Erstellen &amp; Import: 1.564 Zeilen, Prüfungen: 331 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 789 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.314612288325993 1.758429447419438 L 23.77617188907373 7.038884081061179 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="319"></path><path d="M 25.314612288325993 1.758429447419438 A 19 19 0 0 1 25.734654581052396 38.11391003720662 L 24.07462299180039 32.87040976327839 A 13.5 13.5 0 0 0 23.77617188907373 7.038884081061179 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2871"></path><path d="M 25.734654581052396 38.11391003720662 A 19 19 0 0 1 3.2129984284735826 28.8992459364583 L 8.072393620231228 26.32314842853616 A 13.5 13.5 0 0 0 24.07462299180039 32.87040976327839 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1564"></path><path d="M 3.2129984284735826 28.8992459364583 A 19 19 0 0 1 1.3538428389876032 23.649770284117356 L 6.7514146487543485 22.593257833451805 A 13.5 13.5 0 0 0 8.072393620231228 26.32314842853616 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="331"></path><path d="M 1.3538428389876032 23.649770284117356 A 19 19 0 0 1 1.8937507294600806 14.241203480494153 L 7.135033413037426 15.908223525614266 A 13.5 13.5 0 0 0 6.7514146487543485 22.593257833451805 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.8937507294600806 14.241203480494153 A 19 19 0 0 1 7.742538653920807 5.482609003358267 L 11.290751148838467 9.685011660280875 A 13.5 13.5 0 0 0 7.135033413037426 15.908223525614266 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 7.742538653920807 5.482609003358267 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.290751148838467 9.685011660280875 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="789"></path></svg></span><span class="core-caption">7.070 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>319</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.871</td><td>40,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.564</td><td>22,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>331</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>8,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>789</td><td>11,2 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 38 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.068</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">34.832</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">183</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 319 Zeilen, Lernen &amp; Karten: 2.871 Zeilen, Erstellen &amp; Import: 1.564 Zeilen, Prüfungen: 329 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 789 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.316075616532835 1.7588558462111514 L 23.77721162227333 7.039187048623713 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="319"></path><path d="M 25.316075616532835 1.7588558462111514 A 19 19 0 0 1 25.72012169403008 38.11850456868575 L 24.064296993126636 32.87367429880304 A 13.5 13.5 0 0 0 23.77721162227333 7.039187048623713 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2871"></path><path d="M 25.72012169403008 38.11850456868575 A 19 19 0 0 1 3.202371292948399 28.87917055923784 L 8.064842760779127 26.308884344721623 A 13.5 13.5 0 0 0 24.064296993126636 32.87367429880304 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1564"></path><path d="M 3.202371292948399 28.87917055923784 A 19 19 0 0 1 1.3556670427813557 23.65907755867112 L 6.752710793555172 22.599870896950534 A 13.5 13.5 0 0 0 8.064842760779127 26.308884344721623 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="329"></path><path d="M 1.3556670427813557 23.65907755867112 A 19 19 0 0 1 1.891694007090873 14.247674029823115 L 7.1335720576698325 15.912821021190108 A 13.5 13.5 0 0 0 6.752710793555172 22.599870896950534 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.891694007090873 14.247674029823115 A 19 19 0 0 1 7.7396584508824375 5.4850413331976196 L 11.28870468878489 9.686739894640414 A 13.5 13.5 0 0 0 7.1335720576698325 15.912821021190108 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 7.7396584508824375 5.4850413331976196 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.28870468878489 9.686739894640414 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="789"></path></svg></span><span class="core-caption">7.068 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>319</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.871</td><td>40,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.564</td><td>22,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>329</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>8,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>789</td><td>11,2 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 38 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);

@@ -10,7 +10,7 @@ function mainMenu(page: Page) {
 async function planExam(page: Page, name: string) {
   await mainMenu(page).getByRole("button", { name: "Prüfungen" }).click();
   await expect(page.getByRole("heading", { name: "Prüfungen", exact: true })).toBeVisible();
-  await page.getByTestId("exam-planning-screen").getByRole("button", { name: "Prüfung planen" }).first().click();
+  await page.getByTestId("exam-planning-screen").getByRole("button", { name: "Prüfung hinzufügen" }).first().click();
   const inspector = page.getByTestId("exam-plan-inspector");
   await inspector.getByRole("textbox", { name: "Name" }).fill(name);
   await inspector.getByRole("button", { name: "Weiter zum Lernstoff" }).click();
@@ -35,6 +35,9 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
   await expect(today.getByRole("button", { name: "Heutige Einheit lernen" })).toBeEnabled({ timeout: 20_000 });
   await expect(today.locator("[data-exam-block]").first()).toBeVisible();
   await expect(page.getByTestId("exam-calendar")).toBeVisible();
+  await expect(page.getByTestId("exam-month-calendar")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nächster Monat", exact: true })).toBeVisible();
+  expect(await page.getByTestId("exam-calendar").evaluate((calendar) => Boolean(calendar.compareDocumentPosition(document.querySelector("#exam-list-title")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
 
   const stored = await readActiveAccountState(page);
   const exams = stored.profile.schedulerPreferences.examPlanning.exams;

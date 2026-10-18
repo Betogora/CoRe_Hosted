@@ -273,12 +273,13 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     const reserve = budget * capacity.reserveFraction;
     let remaining = Math.max(0, Math.min((budget - reserve - spent) * 60, (end - at) / 1000));
     const reservations = (capacity.timeBlocks ?? []).filter((block) => block.date === key);
-    const reserved = new Map<string, number>();
+    const reserved = new Map<string | null, number>();
     for (const block of reservations) reserved.set(block.examId, (reserved.get(block.examId) ?? 0) + (block.end - block.start) * 60 * (1 - capacity.reserveFraction));
-    const permitted = (entry: Entry) => reservations.length ? currentOwners(entry, key).reduce((sum, exam) => sum + (reserved.get(exam.id) ?? 0), 0) : remaining;
+    const permitted = (entry: Entry) => reservations.length ? currentOwners(entry, key).reduce((sum, exam) => sum + (reserved.get(exam.id) ?? 0), reserved.get(null) ?? 0) : remaining;
     const consume = (entry: Entry, seconds: number) => {
       let rest = seconds;
       for (const exam of currentOwners(entry, key)) { const take = Math.min(rest, reserved.get(exam.id) ?? 0); reserved.set(exam.id, (reserved.get(exam.id) ?? 0) - take); rest -= take; }
+      if (rest > 0 && reservations.length) reserved.set(null, Math.max(0, (reserved.get(null) ?? 0) - rest));
     };
     const availableMinutes = remaining / 60;
     const blocks = new Map<string, StudyPlanBlock>();
@@ -347,7 +348,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       buffer: active.some((exam) => bufferByExam.get(exam.id)!.has(key)), blocks: dayBlocks });
     for (const exam of active.filter((exam) => key < exam.examDate)) {
       const summary = summaries.get(exam.id)!;
-      const share = reservations.length ? reservations.filter((block) => block.examId === exam.id).reduce((sum, block) => sum + block.end - block.start, 0) / Math.max(1, budget) : 1;
+      const share = reservations.length ? reservations.filter((block) => block.examId === exam.id || block.examId === null).reduce((sum, block) => sum + block.end - block.start, 0) / Math.max(1, budget) : 1;
       const ownAvailable = availableMinutes * share;
       if (ownAvailable > 0) summary.usableDays++;
       summary.availableMinutes += ownAvailable;

@@ -40,3 +40,9 @@ Each exported screen in this folder is a UI module with a small props interface.
 
 - `DeckSummariesPanel.tsx`: lokale Fassungen, KI-Formular und Rich-Text-Editor mit Entwurfsschutz.
 - `DeckMindMapsPanel.tsx`: freie Fläche, Stichworte, Verbindungen, Zeichnungen und lokale Zusammenfassungs-Momentaufnahmen.
+
+- `ExamMonthCalendar.tsx`: Kompaktes Monatsraster ohne internes Scrollen mit hervorgehobenen Klausurterminen, bis zu zwei Facheinträgen pro Tag und Überlaufhinweis; alle neuen Karten und Quiz-Empfehlungen sind über die Tagesdetails erreichbar in `ExamCalendar.tsx`.
+
+- `ExamWeekCalendar.tsx`: Stundenraster mit To-dos über der Zeitachse, Pointer-/Tastaturmarkierung und speicherbaren unzugeordneten Lernzeitblöcken; Fachzuordnung durch Ziehen, Auswählen/Antippen oder Auswahlfeld.
+
+`ExamDashboardWidget` zeigt getönte Prüfungskacheln ohne Zeitplanstatus und eine im Profil gespeicherte Tagescheckliste. `examDailyTasks.ts` hält die Zielkarten fest und leitet automatische Erledigung aus den tatsächlichen Lernständen ab. Quiz-To-dos bündeln Themen; „KI generieren“ bleibt bis zum Quizbereich deaktiviert.
