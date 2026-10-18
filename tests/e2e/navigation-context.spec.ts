@@ -735,12 +735,11 @@ test("[Vertrag: Lerninhalte] Tabs öffnen per URL; Entwürfe sind bei Tab-, Bere
   const tab = (name: string) => page.getByRole("group", { name: "Stapelinhalte", exact: true }).getByRole("button", { name, exact: true });
   const editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await page.goto(`${CONTENT_URL}summary`);
-  await summaries.getByRole("button", { name: "Neue Zusammenfassung", exact: true }).click();
-  await summaries.getByRole("button", { name: "Fassung anlegen", exact: true }).click(); await expect(summaries).toContainText("Bitte gib einen Titel");
-  await summaries.getByRole("textbox", { name: "Titel", exact: true }).fill("Geschützter Entwurf");
+  await summaries.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();
+  await summaries.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true }).fill("Geschützter Entwurf");
   await tab("Mind Map").click();
   await guard.getByRole("button", { name: "Weiter bearbeiten", exact: true }).click();
-  await expect(summaries.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Geschützter Entwurf");
+  await expect(summaries.getByRole("textbox", { name: "Titel der Zusammenfassung", exact: true })).toHaveValue("Geschützter Entwurf");
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await guard.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(page).toHaveURL(/\/lernen/);
@@ -755,29 +754,31 @@ test("[Vertrag: Lerninhalte] Tabs öffnen per URL; Entwürfe sind bei Tab-, Bere
   await expect(editor).not.toContainText("Ungespeichert");
 });
 
-test("[Vertrag: Lerninhalte] KI-Fassung aus geladenem Material, Bearbeiten, Neu erzeugen nach Rückfrage und Abbruch", async ({ page }) => {
+test("[Vertrag: Lerninhalte] KI-Ergebnis bleibt Entwurf und wird beim Verlassen gespeichert; neue Erstellung ist abbrechbar", async ({ page }) => {
   const requests: Array<{ units: unknown[] }> = [];
   let hold = false;
   await page.route("**/api/ai/summary", async (route) => {
     requests.push(route.request().postDataJSON());
-    if (hold) return;
-    await route.fulfill({ json: SUMMARY_RESULT });
+    if (!hold) await route.fulfill({ json: SUMMARY_RESULT });
   });
   const summaries = page.getByTestId("deck-summaries-panel"), editor = summaries.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true });
   await page.goto(`${CONTENT_URL}summary`);
   await summaries.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
-  await page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true }).getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
-  await expect(editor).toContainText("Karte B1 führt zu Antwort B1."); await expect(summaries).toContainText("· Gespeichert");
+  const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
+  await popup.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  await expect(editor).toContainText("Karte B1 führt zu Antwort B1.");
+  await expect(summaries).toContainText("Ungespeicherte Änderungen");
   expect(requests[0].units).toHaveLength(2);
   await editor.fill("Eigene Fassung.");
-  await summaries.getByRole("button", { name: "Speichern", exact: true }).click();
-  await summaries.getByRole("button", { name: "Neu erzeugen", exact: true }).click();
+  await summaries.getByRole("button", { name: "Alle Zusammenfassungen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(summaries.getByTestId("summary-list")).toContainText("Eigene Fassung.");
   hold = true;
-  await page.getByRole("dialog", { name: "Fassung neu erzeugen?", exact: true }).getByRole("button", { name: "Neu erzeugen", exact: true }).click();
-  await summaries.getByRole("button", { name: "KI-Erstellung abbrechen", exact: true }).click();
-  await expect(summaries.getByRole("button", { name: "Neu erzeugen", exact: true })).toBeEnabled();
-  await expect(editor).toHaveText("Eigene Fassung.");
-  expect(requests).toHaveLength(2);
+  await summaries.getByRole("button", { name: "Zusammenfassung mit KI erstellen", exact: true }).click();
+  await popup.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  await popup.getByRole("button", { name: "KI-Erstellung abbrechen", exact: true }).click();
+  await expect(popup.getByRole("button", { name: "Mit KI erstellen", exact: true })).toBeEnabled();
 });
 
 test("[Vertrag: Lerninhalte] Zusammenfassungen und Mind Map gehören zum angemeldeten Konto", async ({ browser }) => {

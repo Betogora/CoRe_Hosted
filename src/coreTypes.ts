@@ -130,6 +130,9 @@ export interface GlobalSchedulerPreferences {
 export interface ExamPlan {
   id: string;
   name: string;
+  /** Optional zero-based index into the shared examination palette. */
+  colorIndex?: number;
+  color?: string;
   status: "active" | "paused" | "completed";
   priority: "low" | "normal" | "high";
   deckIds: string[];

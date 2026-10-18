@@ -31,7 +31,7 @@ export interface ExamPlanDay {
   newMinutes: number; reviewMinutes: number; newCardIds: string[]; reviewCardIds: string[];
   reviewCount: number; backlogCount: number; buffer: boolean; blocks: StudyPlanBlock[];
 }
-export interface ExamReadiness { coverage: number; security: number | null; achievement: number }
+export interface ExamReadiness { coverage: number; consolidated: number; security: number | null; achievement: number }
 export interface ExamForecastSummary {
   examId: string; usableDays: number; totalCards: number;
   remainingNewCount: number; unscheduledNewCount: number; overdueReviewCount: number;
@@ -161,8 +161,9 @@ function compareNew(a: Entry, b: Entry) {
 function readiness(entries: ReadonlyArray<{ state: ReviewState }>, plan: ExamPlan, at: string): ExamReadiness {
   const known = entries.filter((entry) => !isNew(entry.state));
   const coverage = entries.length ? known.length / entries.length : 0;
+  const consolidated = entries.length ? known.filter(({ state }) => state.state === "review" && state.lastRating !== "again" && ["mature", "variant_ready", "mastered"].includes(state.maturityBand)).length / entries.length : 0;
   const security = known.length ? known.reduce((sum, entry) => sum + calculateRetrievability(entry.state, at), 0) / known.length : null;
-  return { coverage, security, achievement: coverage * Math.min(1, (security ?? 0) / plan.desiredRetention) };
+  return { coverage, consolidated, security, achievement: coverage * Math.min(1, (security ?? 0) / plan.desiredRetention) };
 }
 
 function snapshotState(card: CardStudySnapshot): ReviewState {

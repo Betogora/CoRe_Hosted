@@ -60,11 +60,53 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
 
   await page.reload();
   await mainMenu(page).getByRole("button", { name: "Prüfungen" }).click();
+  await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
   await card.getByRole("button", { name: "Pausieren" }).click();
+  await page.getByRole("dialog", { name: "Prüfung pausieren?" }).getByRole("button", { name: "Pausieren", exact: true }).click();
   await expect(card).toHaveAttribute("data-status", "paused");
   await expect(page.getByTestId("exam-today")).toHaveCount(0);
   await mainMenu(page).getByRole("button", { name: "Heute" }).click();
   await expect(page.getByTestId("dashboard-exam-unit")).toHaveCount(0);
+});
+
+test("Prüfungskarte bearbeitet inline, schützt Entwürfe und stellt gelöschte Pläne wieder her", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await planExam(page, "Geografie");
+  const card = page.locator('[data-testid^="exam-card-"]').first();
+  await expect(card.getByRole("button", { name: "Bearbeiten", exact: true })).toHaveCount(0);
+  await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
+  await expect(card.getByRole("progressbar")).toHaveCount(1);
+  await expect(card.getByRole("progressbar", { name: "Geografie: Lernfortschritt", exact: true })).toHaveAttribute("aria-valuetext", /gesehen, davon .* gefestigt/);
+  await expect(card.getByRole("list", { name: "Legende zum Lernfortschritt" }).locator("li")).toContainText(["Gesehen", "Gefestigt"]);
+  await expect(card.getByText(/Geschätzte Abrufsicherheit|keine Aussage über sichere Beherrschung/)).toHaveCount(0);
+  await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  const editor = card.getByTestId("exam-plan-editor");
+  await expect(editor).toHaveAttribute("data-embedded", "true");
+  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
+  await editor.getByRole("button", { name: "Prüfungsfarbe auswählen", exact: true }).click();
+  const wheel = page.getByRole("slider", { name: "Farbkreis: Pfeiltasten ändern Farbe und Intensität" });
+  await wheel.focus();
+  await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Escape");
+  await editor.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Änderungen verwerfen?" }).getByRole("button", { name: "Weiter bearbeiten" }).click();
+  await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
+  await expect(editor.getByTestId("exam-feasibility").getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
+  const acceptRisk = editor.getByRole("checkbox", { name: "Trotz Gefährdung aktivieren" });
+  if (await acceptRisk.isVisible()) await acceptRisk.check();
+  await editor.getByRole("button", { name: "Speichern", exact: true }).click();
+  await expect(card.getByRole("button", { name: "Europa: Details schließen" })).toBeVisible();
+  const beforeDelete = (await readActiveAccountState(page)).profile.schedulerPreferences.examPlanning;
+  expect(beforeDelete.exams[0].color).toMatch(/^#[0-9a-f]{6}$/);
+  await card.getByRole("button", { name: "Löschen", exact: true }).click();
+  await page.getByRole("dialog", { name: "Prüfung löschen?" }).getByRole("button", { name: "Löschen", exact: true }).click();
+  await expect(card).toHaveCount(0);
+  await page.getByRole("button", { name: "Rückgängig", exact: true }).click();
+  await expect(card).toHaveCount(1);
+  const restored = (await readActiveAccountState(page)).profile.schedulerPreferences.examPlanning;
+  expect(restored.exams).toEqual(beforeDelete.exams);
+  expect(restored.capacity).toEqual(beforeDelete.capacity);
+  expect(restored.dailyTasks ?? []).toEqual(beforeDelete.dailyTasks ?? []);
 });
 
 test("Prüfungen bleiben auf dem Handy über die untere Navigation erreichbar", async ({ page }) => {

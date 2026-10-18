@@ -177,3 +177,4 @@ Diese Module nicht zu generischen Primitives verbreitern; ihre Fachverantwortung
 4. Andernfalls lokal und semantisch mit den zentralen Theme-/Typografie-Tokens implementieren; keine parallele Palette oder Button-Grundlogik anlegen.
 
 Die semantischen `--core-exam-color-1` bis `--core-exam-color-20` und `--core-exam-on-color` kennzeichnen Prüfungen in Legende, Lernaufgaben, Klausurterminen, Prüfungsübersicht und Wochenzeitblöcken. Sie sind von den Aktions- und Statusfarben getrennt und tragen in beiden Themes kontrastreiche Beschriftungen.
+Prüfungen können mit demselben `ColorWheelPicker` wie die Icon-Farbe einen freien Farbwert speichern. Auf vollen Prüfungsfarbflächen wählt `examTextColor` dann eine lesbare schwarze oder weiße Beschriftung.

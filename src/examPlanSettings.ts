@@ -26,6 +26,8 @@ const capacitySchema = v.pipe(v.strictObject({
 const planSchema = v.pipe(v.strictObject({
   id: identifier,
   name: v.pipe(v.string(), v.trim(), v.minLength(1), v.maxLength(120)),
+  colorIndex: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(19))),
+  color: v.optional(v.pipe(v.string(), v.regex(/^#[0-9a-f]{6}$/i), v.transform((color) => color.toLowerCase()))),
   status: v.picklist(["active", "paused", "completed"]),
   priority: v.picklist(["low", "normal", "high"]),
   deckIds: v.pipe(v.array(identifier), v.minLength(1), v.maxLength(EXAM_PLANNING_LIMITS.decksPerExam)),

@@ -13,6 +13,17 @@ test("Prüfungspläne bleiben beim Ändern anderer Lernwerte im Profil erhalten"
   assert.equal(getGlobalSchedulerPreferences(changed).dayStartHour, 5);
 });
 
+test("gewählte Prüfungsfarben bleiben im Profil und alte Pläne ohne Farbe gültig", () => {
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...exam("a"), colorIndex: 19 });
+  assert.equal(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning.exams[0].colorIndex, 19);
+  assert.equal(upsertExamPlan(settings, { ...exam("a"), colorIndex: 0 }).exams[0].colorIndex, 0);
+  assert.equal(normalizeExamPlanningSettings({ exams: [exam("old")] }).exams[0].colorIndex, undefined);
+  for (const colorIndex of [-1, 20, 1.5, "blue"]) assert.throws(() => validateExamPlanningSettings({ ...settings, exams: [{ ...exam("a"), colorIndex }] }), /ungültig/);
+  const custom = upsertExamPlan(settings, { ...exam("a"), color: "#FAE321" });
+  assert.equal(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: custom })).examPlanning.exams[0].color, "#fae321");
+  for (const color of ["red", "#fff", "#00000000", "var(--core-action)"]) assert.throws(() => validateExamPlanningSettings({ ...settings, exams: [{ ...exam("a"), color }] }), /ungültig/);
+});
+
 test("ungültige Prüfungen fallen einzeln weg, gültige bleiben", () => {
   const stored = { version: 1, capacity: { ...createStudyTimeCapacity(), weekdays: [true] }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
   const settings = normalizeExamPlanningSettings(stored);
