@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, Play, Sparkles } from "lucide-react";
 import type { DashboardScreenProps, ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamDailyTask } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
@@ -33,6 +33,8 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   const [saving, setSaving] = React.useState(false);
   const [startError, setStartError] = React.useState("");
   const [saveError, setSaveError] = React.useState("");
+  const [expandedExams, setExpandedExams] = React.useState<string[]>([]);
+  const taskListId = React.useId();
   const attempted = React.useRef("");
   const day = current ? forecast?.days.find((entry) => entry.key === today) : null;
   const tasks = current && forecast ? reconcileExamDailyTasks(settings, state.decks, forecast, cards, now, timeZone, preferences.dayStartHour) : (settings.dailyTasks ?? []).filter((task) => task.date === today);
@@ -64,12 +66,14 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     {error || startError ? <StatusMessage tone="error">{startError || error}</StatusMessage> : null}
     {saveError ? <StatusMessage tone="error">{saveError} <button type="button" className="underline" disabled={saving} onClick={() => void persist(tasks)}>Erneut speichern</button></StatusMessage> : null}
     <div className="grid min-w-0 gap-4 lg:grid-cols-2">{exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday).sort((a, b) => a.examDate.localeCompare(b.examDate)).map((exam) => {
-      const own = tasks.filter((task) => task.examId === exam.id);
+      const own = tasks.filter((task) => task.examId === exam.id).sort((a, b) => Number(a.completed !== null) - Number(b.completed !== null));
+      const expanded = expandedExams.includes(exam.id);
+      const listId = `${taskListId}-${exam.id}`;
       const color = examColor(exams.indexOf(exam));
       const openCount = own.filter((task) => !task.completed).length;
       return <section key={exam.id} className="grid min-w-0 content-start gap-3 rounded-panel border border-core-border p-4" aria-label={exam.name} style={{ background: `color-mix(in srgb, ${color} 10%, var(--core-surface))` }}>
         <div><h3 className="break-words core-heading-3 font-semibold text-core-text">{exam.name}</h3><p className="core-caption text-core-muted">In {examDayDistance(civilToday, exam.examDate)} Tagen · {current ? `${openCount} offene ${openCount === 1 ? "Aufgabe" : "Aufgaben"}` : "Aufgaben werden berechnet …"}</p></div>
-        <ul className="grid gap-2">{own.map((task) => {
+        <ul id={listId} className="grid gap-2">{(expanded ? own : own.slice(0, 3)).map((task) => {
           const title = task.deckIds.map(deckName).join(" · ");
           const checked = task.completed !== null;
           return <li key={task.id} data-exam-todo={task.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-control bg-core-surface p-2">
@@ -82,6 +86,9 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
             {task.kind === "quiz" ? <div className="grid w-full min-w-0 gap-1 sm:w-auto"><ActionButton className="w-full sm:w-auto" variant="secondary" icon={Sparkles} disabled>KI generieren</ActionButton><span className="core-caption text-core-muted">Quiz-Erstellung folgt</span></div> : <IconButton label={`${title} lernen`} icon={Play} variant="ghost" disabled={starting || !current || saving || Boolean(saveError) || taskKey !== storedKey || checked} onClick={() => void start(task.id)}/>}
           </li>;
         })}</ul>
+        {own.length > 3 ? <ActionButton variant="secondary" icon={expanded ? ChevronUp : ChevronDown} aria-expanded={expanded} aria-controls={listId} onClick={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])}>
+          {expanded ? "Weniger anzeigen" : `Alle ${own.length} Aufgaben anzeigen`}
+        </ActionButton> : null}
         {current && !own.length ? <p className="core-body text-core-muted">Heute keine offenen Aufgaben für diese Prüfung.</p> : null}
       </section>;
     })}</div>

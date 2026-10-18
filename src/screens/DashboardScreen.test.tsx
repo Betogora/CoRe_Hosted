@@ -7,6 +7,9 @@ import { createViewRoute } from "../appNavigation.ts";
 import { createExamPlan } from "../examPlanSettings.ts";
 import { withGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
+import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
+import { estimateExamHistory } from "../examPlanning.ts";
+import type { ExamDailyTask } from "../coreTypes.ts";
 
 function basicCard(deckId: string, { id, front = "Frage", back = "Antwort", review = {} }: { id?: string; front?: string; back?: string; review?: Record<string, unknown> } = {}) {
   const card = createBasicNote(deckId, front, back).cards[0];
@@ -23,6 +26,25 @@ const dashboardCallbacks = {
   onOpenDeckSettings: () => undefined,
   onSetDeckExpanded: () => undefined,
 };
+
+test("exam checklist shows at most three tasks per exam, prioritizes open tasks and only offers expansion when needed", () => {
+  const base = createCoreRepository().getState();
+  const date = "2026-10-18";
+  const exam = { ...createExamPlan(date, Array.from({ length: 7 }, (_, index) => `topic-${index}`)), id: "exam", name: "Patho", examDate: "2026-11-20" };
+  const tasks: ExamDailyTask[] = Array.from({ length: 7 }, (_, index) => ({ id: `topic:exam:topic-${index}`, date, examId: exam.id, kind: "study", deckIds: [`topic-${index}`], cardIds: [`card-${index}`], capturedAt: `${date}T08:00:00Z`, completed: index < 4 ? "manual" : null }));
+  const render = (dailyTasks: ExamDailyTask[]) => renderToStaticMarkup(<ExamDashboardWidget state={{ ...base, profile: withGlobalSchedulerPreferences(base.profile, { examPlanning: { exams: [exam], dailyTasks } }) }} now={`${date}T12:00:00Z`} onLoad={async () => ({ cards: [], history: estimateExamHistory(null, date) })} onStart={async () => undefined} onSaveTasks={async () => undefined} onOpen={() => undefined} />);
+  const markup = render(tasks);
+  assert.equal((markup.match(/data-exam-todo=/g) ?? []).length, 3);
+  for (const index of [4, 5, 6]) assert.match(markup, new RegExp(`data-exam-todo="topic:exam:topic-${index}"`));
+  assert.doesNotMatch(markup, /data-exam-todo="topic:exam:topic-0"/);
+  assert.match(markup, /aria-expanded="false"/);
+  assert.match(markup, /Alle 7 Aufgaben anzeigen/);
+  for (const count of [0, 1, 3]) {
+    const short = render(tasks.slice(0, count));
+    assert.equal((short.match(/data-exam-todo=/g) ?? []).length, count);
+    assert.doesNotMatch(short, /aria-expanded|Aufgaben anzeigen/);
+  }
+});
 
 test("empty dashboard offers only explicit first-learning paths without seeded statistics", () => {
   const state = createCoreRepository().getState();

@@ -427,20 +427,26 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   }, []);
   const noop = React.useCallback(() => undefined, []);
   const completedDemoExamCards = React.useRef(new Set<string>());
+  const examDemoDecks = React.useMemo(() => [deck, child, ...["Herz und Kreislauf", "Atmung", "Niere und Elektrolyte"].map((name, index) => {
+    const id = `catalog-exam-topic-${index}`;
+    return createCoreDeck({ id, name, parentDeckId: deck.id, cards: createBasicNote(id, `${name}: Was ist wichtig?`, "Lokale Beispielantwort.", { createdAt: selection.now }).cards });
+  })], [selection.now]);
   const [demoPlanning, setDemoPlanning] = React.useState<ExamPlanningSettings | null>(null);
   const examWorkspace = React.useMemo(() => {
     const today = selection.now.slice(0, 10);
-    const exam = { ...createExamPlan(today, [deck.id]), id: "exam-demo", name: "Anatomie", examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
-    return { ...workspace, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: demoPlanning ?? upsertExamPlan(upsertExamPlan(normalizeExamPlanningSettings(undefined), exam), { ...exam, id: "exam-demo-second", name: "Physiologie", examDate: "2026-10-27" }) }) };
-  }, [deck.id, demoPlanning, selection.now, workspace]);
+    const exam = { ...createExamPlan(today, examDemoDecks.map((candidate) => candidate.id)), id: "exam-demo", name: "Anatomie", examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
+    const initialPlanning = upsertExamPlan(upsertExamPlan(normalizeExamPlanningSettings(undefined), exam), { ...exam, id: "exam-demo-second", name: "Physiologie", examDate: "2026-10-27" });
+    initialPlanning.dailyTasks = examDemoDecks.slice(0, 4).map((candidate, index) => ({ id: `topic:${exam.id}:${candidate.id}`, date: today, examId: exam.id, kind: "study", deckIds: [candidate.id], cardIds: candidate.cards.map((card) => card.id), capturedAt: selection.now, completed: index === 0 ? "manual" : null }));
+    return { ...workspace, decks: examDemoDecks, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: demoPlanning ?? initialPlanning }) };
+  }, [demoPlanning, examDemoDecks, selection.now, workspace]);
   const loadExamPlanningData = React.useCallback(async (deckIds: string[]) => ({
-    cards: sampleDecks.flatMap((candidate) => candidate.cards).filter((card) => deckIds.includes(card.deckId)).map((card) => {
+    cards: examDemoDecks.flatMap((candidate) => candidate.cards).filter((card) => deckIds.includes(card.deckId)).map((card) => {
       const { extra, ...study } = card.study;
       // Sample cards carry their real creation time; new ones are due on the catalog's simulated day.
       return { cardId: card.id, deckId: card.deckId, noteId: card.noteId, status: card.status, study: completedDemoExamCards.current.has(card.id) ? { ...study, state: "review" as const, dueAt: "2026-11-01T08:00:00.000Z", lastReviewedAt: selection.now, reps: study.reps + 1 } : { ...study, dueAt: study.state === "new" ? selection.now : study.dueAt }, studyRevision: completedDemoExamCards.current.has(card.id) ? 1 : 0, activeVariantCount: card.variants.length, createdAt: card.createdAt, maturityXp: extra.maturityXp ?? 0 };
     }),
     history: estimateExamHistory(null, selection.now.slice(0, 10)),
-  }), [selection.now]);
+  }), [examDemoDecks, selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
     ["dashboard", "DashboardScreen · Tagesübersicht → Prüfungen → Heatmap → Stapel", "Tagesübersicht"],
@@ -463,7 +469,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
-    {view === "dashboard" && <DashboardScreen onLoadExamPlanningData={loadExamPlanningData} onSaveExamTasks={async (dailyTasks) => setDemoPlanning({ ...getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks })} onStartExamUnit={async () => { sampleDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "dashboard" && <DashboardScreen onLoadExamPlanningData={loadExamPlanningData} onSaveExamTasks={async (dailyTasks) => setDemoPlanning({ ...getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks })} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); toast("Plan für diese lokale Vorschau übernommen."); }} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(_surface, id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
