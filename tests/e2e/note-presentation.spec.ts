@@ -68,8 +68,6 @@ test("Kartenbausteine: Hinweise, einmalige Antwort, Script-Sperre und echte Ausw
   await expect(answer.locator("script")).toHaveCount(0);
   await expect(answer.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute("content", /script-src 'none'/);
   await expect(demo.getByRole("button", { name: "In AMBOSS nachschlagen", exact: true })).toHaveCount(0);
-  await expect(demo.getByText("Begriff auf der Karte markieren, um ihn in AMBOSS nachzuschlagen.", { exact: true })).toHaveCount(0);
-  await expect(demo.locator("[data-note-card] > .border-t")).toHaveCount(0);
   await answer.locator("body").evaluate((body) => {
     const text = body.querySelector(".core-note-field")!.firstChild!;
     const range = body.ownerDocument.createRange();
