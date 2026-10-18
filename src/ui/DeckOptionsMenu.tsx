@@ -21,7 +21,7 @@ export interface DeckOptionsMenuProps {
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
 }
 
-const menuActionClass = "flex min-h-11 w-full items-center gap-2 rounded-inset px-3 text-left core-body font-semibold text-core-secondary hover:bg-core-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]";
+const menuActionClass = "flex min-h-control w-full items-center gap-2 rounded-inset px-3 text-left core-body font-semibold text-core-secondary hover:bg-core-subtle focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]";
 
 export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks, onSetCoreMode, onOpenSettings, onMoveDeck }: DeckOptionsMenuProps) {
   const [moveDialogOpen, setMoveDialogOpen] = React.useState(false);

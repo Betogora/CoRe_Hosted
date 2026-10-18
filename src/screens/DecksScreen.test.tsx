@@ -99,7 +99,7 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.match(markup, />Ohne Variante</);
   assert.doesNotMatch(markup, /Für diese Karten Varianten generieren/, "the generation action appears only while the filter is on");
   assert.match(markup, /Was ist ATP\?/);
-  assert.doesNotMatch(markup, /Was ist H2O|Aktive Stapel|deck-toggle-|deck-header-/);
+  assert.doesNotMatch(markup, /Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
   assert.match(markup, /data-testid="deck-content-study"[^>]*>[\s\S]*?Karten lernen/);
   const actions = markup.slice(markup.indexOf('data-testid="deck-content-actions"'));
   assert.ok(actions.indexOf('aria-label="Stapelinhalte"') < actions.indexOf('data-testid="deck-content-study"'));
@@ -131,7 +131,7 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(markup, /data-testid="content-substack-grandchild"/);
   assert.match(markup, />Alle Karten dieses Zweigs</);
   assert.match(markup, />Diesen Zweig lernen</);
-  assert.doesNotMatch(markup, /data-testid="card-library-panel"/);
+  assert.doesNotMatch(markup, /data-testid="card-library-panel"|Einschließlich|direkte Unterstapel|data-donut-/);
 
   const leaf = renderScreen([root, child, grandchild], { contentDeckId: grandchild.id, contentTab: "children" });
   assert.match(leaf, />Keine weiteren Unterstapel</);

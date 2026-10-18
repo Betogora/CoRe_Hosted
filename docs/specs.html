@@ -1541,9 +1541,6 @@ video {
 .min-h-10 {
   min-height: 2.5rem;
 }
-.min-h-11 {
-  min-height: 2.75rem;
-}
 .min-h-12 {
   min-height: 3rem;
 }
@@ -2574,9 +2571,6 @@ video {
 .tracking-normal {
   letter-spacing: 0em;
 }
-.tracking-wide {
-  letter-spacing: 0.025em;
-}
 .\!text-core-action {
   color: var(--core-action-primary) !important;
 }
@@ -2805,47 +2799,6 @@ video {
 .\[sound\:\2026\] {
   sound: …;
 }
-
-.core-deck-explorer { display: grid; grid-template-columns: 17rem minmax(0, 1fr); align-items: start; gap: 24px; min-width: 0; }
-.core-deck-explorer-navigation { position: sticky; top: 24px; min-width: 0; max-height: calc(100dvh - 10rem); overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
-.core-deck-explorer-content { display: grid; gap: 16px; min-width: 0; }
-.core-deck-explorer-disclosure { display: none; }
-.core-deck-explorer-breadcrumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; color: var(--core-text-muted); }
-.core-deck-explorer-breadcrumbs button { min-height: var(--core-control-height); padding: 0 8px; font: inherit; font-size: var(--core-type-caption); overflow-wrap: anywhere; text-align: left; }
-.core-deck-explorer-breadcrumbs button[aria-current] { color: var(--core-text); font-weight: var(--core-weight-emphasis); }
-.core-deck-explorer-breadcrumbs svg { flex-shrink: 0; }
-.core-deck-tree-navigation { padding: 16px !important; }
-.core-deck-tree-navigation .core-deck-tree-header { display: flex; justify-content: space-between; }
-.core-deck-tree-navigation .core-deck-tree-rows { border: 0; }
-.core-deck-tree-navigation .core-deck-summary-row { background: transparent; border-radius: var(--core-radius-inset); }
-.core-deck-tree-navigation .core-deck-summary-row[data-selected="true"] { background: var(--core-surface-muted); }
-.core-deck-tree-navigation .core-deck-summary-icon { width: 24px; height: 24px; }
-.core-deck-tree-navigation .core-deck-summary-leading { gap: 4px; }
-.core-deck-tree-navigation .core-deck-summary-responsive { grid-template-columns: minmax(0, 1fr) auto !important; }
-.core-deck-tree-navigation .core-deck-summary-actions { grid-column: 2 !important; grid-row: 1 !important; }
-.core-deck-tree-navigation .core-deck-summary-leading { grid-column: 1 !important; grid-row: 1 !important; }
-@container (min-width: 38rem) { .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } }
-@media (max-width: 1023px) {
-  .core-deck-explorer { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .core-deck-explorer-navigation { position: static; max-height: none; overflow: visible; scrollbar-gutter: auto; }
-  .core-deck-explorer-disclosure { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--core-control-height); padding: 12px 16px; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); font-size: var(--core-type-body); font-weight: var(--core-weight-emphasis); }
-  .core-deck-explorer-disclosure svg:last-child { margin-left: auto; }
-  .core-deck-explorer-tree[data-open="false"] { display: none; }
-  .core-deck-explorer-tree[data-open="true"] { margin-top: 8px; max-height: 24rem; overflow-y: auto; }
-}
-
-.core-deck-tree-navigation .core-deck-tree-group { border: 0; background: transparent; }
-.core-deck-tree-navigation .core-deck-tree-groups { gap: 0; }
-.core-deck-tree-navigation .core-deck-tree-group { box-shadow: none; padding: 0; border-radius: var(--core-radius-control); }
-.core-deck-tree-navigation[data-deck-view="list"] .core-deck-tree-group .core-deck-summary-responsive { min-height: 44px; padding-block: 4px; }
-.core-deck-tree-navigation .core-deck-tree-group > .core-deck-summary-row { background: transparent; }
-.core-deck-substack-list .core-deck-summary-responsive { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-leading { grid-column: 1; grid-row: 1; }
-.core-deck-substack-list .core-deck-summary-leading > span:last-child { flex-direction: column; align-items: stretch; }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 1; grid-row: 2; min-width: 0; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 10rem; max-width: 100%; -moz-column-gap: var(--core-space-sm); column-gap: var(--core-space-sm); }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions { grid-column: 1; grid-row: 3; justify-content: flex-end; }
-.core-deck-substack-list .core-deck-summary-actions > span { flex-wrap: wrap; }
-.core-deck-substack-list .core-deck-summary-count-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
 
 @font-face {
   font-family: "Manrope Variable";
@@ -3300,171 +3253,6 @@ button[aria-label] {
   container: core-deck-tree / inline-size;
 }
 
-.core-deck-content-tabs {
-  height: calc(var(--core-control-height) + 2 * var(--core-space-xs));
-}
-.core-deck-content-tabs .core-segmented-control-option { min-height: var(--core-control-height); }
-
-.core-deck-content-tab-scroll {
-  min-width: 0;
-  max-width: 100%;
-  overflow-x: auto;
-  padding-bottom: var(--core-space-xs);
-}
-
-.core-deck-content-tab-scroll .core-deck-content-tabs {
-  width: -moz-max-content;
-  width: max-content;
-  min-width: 29rem;
-  max-width: none;
-}
-
-.core-deck-content-tabs .core-segmented-control-option {
-  flex: 0 0 var(--core-control-height);
-}
-
-.core-deck-content-tabs .core-segmented-control-option[aria-pressed="true"] {
-  flex: 1 1 auto;
-  min-width: 9rem;
-  padding-inline: var(--core-space-md);
-}
-
-.core-deck-folder-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
-  gap: var(--core-space-xl);
-  padding: 0.5rem;
-  isolation: isolate;
-}
-.core-deck-subfolder-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
-  gap: var(--core-space-md);
-}
-.core-deck-folder-expansion { grid-column: 1 / -1; }
-.core-deck-folder-card[data-selected="true"] {
-  background: var(--core-surface-muted);
-  border-color: var(--core-action-secondary);
-  box-shadow: var(--core-shadow-selection);
-}
-.core-deck-substack-list { display: grid; gap: var(--core-space-sm); container: core-deck-substack-list / inline-size; }
-.core-deck-substack-list .core-deck-summary-name { font-size: var(--core-type-body); line-height: var(--core-leading-body); }
-@container core-deck-substack-list (min-width: 42rem) {
-  .core-deck-substack-list .core-deck-summary-responsive {
-    grid-template-columns: minmax(0, 1fr) 10rem auto;
-    padding: var(--core-space-md);
-    -moz-column-gap: var(--core-space-xl);
-         column-gap: var(--core-space-xl);
-  }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-leading { grid-column: 1; grid-row: 1; }
-  .core-deck-substack-list .core-deck-folder-description { grid-column: 1; grid-row: 2; margin-inline-start: calc(2rem + var(--core-space-sm)); }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 2; grid-row: 1 / 3; }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions {
-    grid-column: 3;
-    grid-row: 1 / 3;
-    padding: 0;
-    margin: 0;
-    border: 0;
-    background: transparent;
-  }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions > span { width: auto; grid-template-columns: auto auto auto; }
-}
-.core-deck-folder-breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--core-space-sm);
-  color: var(--core-text-muted);
-  font-size: var(--core-type-body);
-  line-height: var(--core-leading-body);
-}
-.core-deck-folder-breadcrumb button {
-  min-height: var(--core-control-height);
-  min-width: var(--core-control-height);
-  text-align: start;
-  overflow-wrap: anywhere;
-  color: var(--core-action-secondary);
-}
-.core-deck-folder-breadcrumb button:hover { text-decoration: underline; }
-.core-deck-folder-breadcrumb > svg { flex-shrink: 0; }
-.core-deck-folder-breadcrumb [aria-current] { overflow-wrap: anywhere; }
-
-.core-deck-folder-card {
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  box-shadow: var(--core-shadow-soft);
-}
-.core-deck-subfolder-card {
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-control);
-}
-.core-deck-folder-card::before,
-.core-deck-folder-card::after {
-  content: "";
-  position: absolute;
-  inset: 0.5rem -0.25rem -0.25rem;
-  z-index: -1;
-  pointer-events: none;
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  background: var(--core-surface-muted);
-}
-.core-deck-folder-card::after { inset: 1rem -0.5rem -0.5rem; z-index: -2; }
-.core-deck-folder-card > [data-deck-row-activation] { border-radius: var(--core-radius-panel); }
-.core-deck-subfolder-card > [data-deck-row-activation] { border-radius: var(--core-radius-control); }
-
-.core-deck-folder-summary {
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--core-space-md);
-  padding: var(--core-space-xl) var(--core-space-xl) 0;
-}
-.core-deck-folder-summary .core-deck-summary-leading {
-  min-height: 4.5rem;
-  flex-wrap: wrap;
-  gap: var(--core-space-sm);
-}
-.core-deck-folder-summary .core-deck-summary-leading > [data-deck-icon] { order: -1; border-radius: var(--core-radius-control); }
-.core-deck-folder-summary .core-deck-summary-leading > button { margin-inline-start: auto; }
-.core-deck-folder-summary .core-deck-summary-leading > span[aria-hidden="true"] { display: none; }
-.core-deck-folder-summary .core-deck-summary-leading > span:last-child { flex-basis: 100%; }
-.core-deck-folder-summary .core-deck-summary-counts {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: auto;
-  justify-self: stretch;
-  gap: var(--core-space-sm);
-}
-.core-deck-folder-summary .core-deck-summary-count { text-align: start; }
-.core-deck-folder-summary .core-deck-summary-actions {
-  margin: var(--core-space-xs) calc(-1 * var(--core-space-xl)) 0;
-  padding: var(--core-space-md);
-  border-top: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
-  background: var(--core-surface);
-}
-.core-deck-folder-summary .core-deck-summary-actions > span {
-  display: grid;
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--core-space-sm);
-}
-.core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action {
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-control);
-  background: var(--core-surface);
-}
-.core-deck-subfolder-summary { gap: var(--core-space-sm); padding: var(--core-space-md) var(--core-space-md) 0; }
-.core-deck-subfolder-summary .core-deck-summary-leading { min-height: var(--core-control-height); flex-wrap: nowrap; }
-.core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
-.core-deck-subfolder-summary .core-deck-summary-leading > [data-deck-icon] { flex-shrink: 0; }
-.core-deck-subfolder-summary .core-deck-summary-leading > button { order: 1; }
-.core-deck-subfolder-summary .core-deck-summary-actions {
-  margin-inline: calc(-1 * var(--core-space-md));
-  border-radius: var(--core-radius-control);
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
-}
 
 .core-learning-header-container {
   container: core-learning-header / inline-size;
@@ -3518,10 +3306,6 @@ button[aria-label] {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.core-deck-tree-header.core-deck-tree-view-header {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
 .core-deck-summary-container {
   container: core-deck-summary / inline-size;
 }
@@ -3554,89 +3338,6 @@ button[aria-label] {
   -moz-column-gap: 0.125rem;
        column-gap: 0.125rem;
   padding-inline: 0.25rem;
-}
-
-.core-deck-tree-container[data-deck-view="list"] {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  --core-deck-depth-indent: 18px;
-}
-
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-layout { gap: var(--core-space-md); }
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-heading { display: flex; align-items: center; gap: var(--core-space-sm); }
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
-.core-deck-tree-root-count { flex-shrink: 0; padding: var(--core-space-xs) var(--core-space-sm); border-radius: var(--core-radius-marker); background: var(--core-surface-muted); }
-
-.core-deck-tree-groups {
-  display: grid;
-  gap: var(--core-space-md);
-  margin-top: var(--core-space-sm);
-}
-
-.core-deck-tree-group {
-  min-width: 0;
-  padding: 6px 12px 9px;
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  background: var(--core-surface);
-  box-shadow: var(--core-shadow-soft);
-}
-
-.core-deck-tree-group > .core-deck-summary-row {
-  border-radius: var(--core-radius-control);
-  background: transparent;
-  --core-deck-icon-background: transparent;
-}
-
-.core-deck-tree-group > .core-deck-summary-row > [data-deck-row-activation] {
-  border-radius: inherit;
-}
-
-.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] {
-  margin-block: 0 3px;
-  background: color-mix(in srgb, var(--core-deck-group-accent) 9%, var(--core-surface));
-  --core-deck-icon-background: var(--core-surface);
-}
-
-.core-deck-tree-group [data-deck-summary-row-content] {
-  min-height: 3.6875rem;
-  padding-block: var(--core-space-xs);
-}
-
-.core-deck-tree-group [data-deck-depth="0"] [data-deck-summary-row-content] {
-  min-height: 4.125rem;
-}
-
-.core-deck-tree-group [data-deck-icon] {
-  border: 0;
-  border-radius: var(--core-radius-control);
-  background: transparent;
-  width: 1.5rem;
-  height: 2rem;
-}
-
-.core-deck-tree-group [data-deck-depth="0"] [data-deck-icon] {
-  width: 2rem;
-  background: var(--core-surface);
-}
-
-.core-deck-tree-group .core-deck-summary-name {
-  width: 100%;
-}
-
-.core-deck-group-description {
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  font-weight: var(--core-weight-body);
-}
-
-.core-deck-tree-create {
-  padding: var(--core-space-md);
-  border: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  background: var(--core-surface);
 }
 
 .core-deck-summary-responsive.core-table-header-row {
@@ -3672,48 +3373,6 @@ button[aria-label] {
 
   [data-deck-study-row="true"] .core-deck-summary-counts {
     justify-self: end;
-  }
-}
-
-@container core-deck-summary (max-width: 28rem) {
-  .core-deck-tree-group [data-deck-study-row="true"] { grid-template-columns: minmax(0, 1fr) auto; }
-  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-leading { grid-column: 1 / -1; min-height: var(--core-control-height); }
-  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-counts {
-    justify-self: start;
-    margin-inline-start: var(--core-space-sm);
-  }
-
-  .core-deck-tree-group .core-deck-summary-responsive .core-deck-summary-metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    width: 8.25rem;
-  }
-
-  .core-deck-tree-group .core-deck-summary-count > dt {
-    position: static;
-    width: auto;
-    height: auto;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    clip-path: none;
-    white-space: normal;
-    font-size: var(--core-type-caption);
-    line-height: var(--core-leading-caption);
-    color: var(--core-text-muted);
-    font-weight: var(--core-weight-body);
-    order: 1;
-  }
-
-  .core-deck-tree-group .core-deck-summary-count {
-    display: flex;
-    flex-direction: column;
-    gap: var(--core-space-xs);
-  }
-}
-
-@container core-deck-tree (max-width: 28rem) {
-  .core-deck-tree-rows > .core-deck-summary-container {
-    display: none;
   }
 }
 
@@ -3822,6 +3481,304 @@ button[aria-label] {
 
 }
 
+/* Stapelsammlung nach fitzbert (ADR-041): gruppierte Liste, Ordner und Stapelinhalte. */
+@container core-deck-tree (min-width: 38rem) {
+  .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
+}
+
+.core-deck-substack-list .core-deck-summary-responsive { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-leading { grid-column: 1; grid-row: 1; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 1; grid-row: 2; min-width: 0; max-width: 12rem; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions { grid-column: 1; grid-row: 3; justify-content: flex-end; }
+.core-deck-substack-list .core-deck-summary-actions > span { flex-wrap: wrap; }
+.core-deck-substack-list .core-deck-summary-count-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
+.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-metrics { grid-template-columns: repeat(3, minmax(3rem, 1fr)); width: auto; }
+
+.core-deck-content-tabs {
+  height: calc(var(--core-control-height) + 2 * var(--core-space-xs));
+}
+
+.core-deck-content-tab-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: var(--core-space-xs);
+}
+
+.core-deck-content-tab-scroll .core-deck-content-tabs {
+  width: -moz-max-content;
+  width: max-content;
+  min-width: 29rem;
+  max-width: none;
+}
+
+.core-deck-content-tabs .core-segmented-control-option {
+  flex: 0 0 var(--core-control-height);
+  min-height: var(--core-control-height);
+}
+
+.core-deck-content-tabs .core-segmented-control-option[aria-pressed="true"] {
+  flex: 1 1 auto;
+  min-width: 9rem;
+  padding-inline: var(--core-space-md);
+}
+
+.core-deck-folder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+  gap: var(--core-space-xl);
+  padding: 0.5rem;
+  isolation: isolate;
+}
+.core-deck-subfolder-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--core-space-md);
+}
+.core-deck-folder-expansion { grid-column: 1 / -1; }
+.core-deck-folder-card[data-selected="true"] {
+  background: var(--core-surface-muted);
+  border-color: var(--core-action-secondary);
+  box-shadow: var(--core-shadow-selection);
+}
+.core-deck-substack-list { display: grid; gap: var(--core-space-sm); container: core-deck-substack-list / inline-size; }
+.core-deck-substack-list .core-deck-summary-name { font-size: var(--core-type-body); line-height: var(--core-leading-body); }
+@container core-deck-substack-list (min-width: 42rem) {
+  .core-deck-substack-list .core-deck-summary-responsive {
+    grid-template-columns: minmax(0, 1fr) 10rem auto;
+    padding: var(--core-space-md);
+    -moz-column-gap: var(--core-space-xl);
+         column-gap: var(--core-space-xl);
+  }
+  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 2; grid-row: 1; width: 10rem; }
+  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions {
+    grid-column: 3;
+    grid-row: 1;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+  }
+  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions > span { width: auto; flex-wrap: nowrap; gap: var(--core-space-xs); }
+}
+.core-deck-folder-breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--core-space-sm);
+  color: var(--core-text-muted);
+  font-size: var(--core-type-body);
+  line-height: var(--core-leading-body);
+}
+.core-deck-folder-breadcrumb button {
+  min-height: var(--core-control-height);
+  min-width: var(--core-control-height);
+  text-align: start;
+  overflow-wrap: anywhere;
+  color: var(--core-action-secondary);
+}
+.core-deck-folder-breadcrumb button:hover { text-decoration: underline; }
+.core-deck-folder-breadcrumb > svg { flex-shrink: 0; }
+.core-deck-folder-breadcrumb [aria-current] { overflow-wrap: anywhere; }
+
+.core-deck-folder-card {
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  box-shadow: var(--core-shadow-soft);
+}
+.core-deck-subfolder-card {
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+}
+.core-deck-folder-card::before,
+.core-deck-folder-card::after {
+  content: "";
+  position: absolute;
+  inset: 0.5rem -0.25rem -0.25rem;
+  z-index: -1;
+  pointer-events: none;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface-muted);
+}
+.core-deck-folder-card::after { inset: 1rem -0.5rem -0.5rem; z-index: -2; }
+.core-deck-folder-card > [data-deck-row-activation] { border-radius: var(--core-radius-panel); }
+.core-deck-subfolder-card > [data-deck-row-activation] { border-radius: var(--core-radius-control); }
+
+.core-deck-folder-summary {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--core-space-md);
+  padding: var(--core-space-xl) var(--core-space-xl) 0;
+}
+.core-deck-folder-summary .core-deck-summary-leading {
+  min-height: 4.5rem;
+  flex-wrap: wrap;
+  gap: var(--core-space-sm);
+}
+.core-deck-folder-summary .core-deck-summary-leading > [data-deck-icon] { order: -1; border-radius: var(--core-radius-control); }
+.core-deck-folder-summary .core-deck-summary-leading > button { margin-inline-start: auto; }
+.core-deck-folder-summary .core-deck-summary-leading > span[aria-hidden="true"] { display: none; }
+.core-deck-folder-summary .core-deck-summary-leading > span:last-child { flex-basis: 100%; }
+.core-deck-folder-summary .core-deck-summary-counts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: auto;
+  justify-self: stretch;
+  gap: var(--core-space-sm);
+}
+.core-deck-folder-summary .core-deck-summary-count { text-align: start; }
+.core-deck-folder-summary .core-deck-summary-actions {
+  margin: var(--core-space-xs) calc(-1 * var(--core-space-xl)) 0;
+  padding: var(--core-space-md);
+  border-top: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+  background: var(--core-surface);
+}
+.core-deck-folder-summary .core-deck-summary-actions > span {
+  display: grid;
+  width: 100%;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--core-space-sm);
+}
+.core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action {
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+  background: var(--core-surface);
+}
+.core-deck-subfolder-summary { gap: var(--core-space-sm); padding: var(--core-space-md) var(--core-space-md) 0; }
+.core-deck-subfolder-summary .core-deck-summary-leading { min-height: var(--core-control-height); flex-wrap: nowrap; }
+.core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
+.core-deck-subfolder-summary .core-deck-summary-leading > [data-deck-icon] { flex-shrink: 0; }
+.core-deck-subfolder-summary .core-deck-summary-leading > button { order: 1; }
+.core-deck-subfolder-summary .core-deck-summary-actions {
+  margin-inline: calc(-1 * var(--core-space-md));
+  border-radius: var(--core-radius-control);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+
+.core-deck-tree-header.core-deck-tree-view-header {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.core-deck-tree-container[data-deck-view="list"] {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  --core-deck-depth-indent: 18px;
+}
+
+.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-layout { gap: var(--core-space-md); }
+.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
+
+.core-deck-tree-groups {
+  display: grid;
+  gap: var(--core-space-md);
+  margin-top: var(--core-space-sm);
+}
+
+.core-deck-tree-group {
+  min-width: 0;
+  padding: 6px 12px 9px;
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface);
+  box-shadow: var(--core-shadow-soft);
+}
+
+.core-deck-tree-group > .core-deck-summary-row {
+  border-radius: var(--core-radius-control);
+  background: transparent;
+  --core-deck-icon-background: transparent;
+}
+
+.core-deck-tree-group > .core-deck-summary-row > [data-deck-row-activation] {
+  border-radius: inherit;
+}
+
+.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] {
+  margin-block: 0 3px;
+  background: color-mix(in srgb, var(--core-deck-group-accent) 9%, var(--core-surface));
+  --core-deck-icon-background: var(--core-surface);
+}
+
+.core-deck-tree-group [data-deck-summary-row-content] {
+  min-height: 3.6875rem;
+  padding-block: var(--core-space-xs);
+}
+
+.core-deck-tree-group [data-deck-depth="0"] [data-deck-summary-row-content] {
+  min-height: 4.125rem;
+}
+
+.core-deck-tree-group [data-deck-icon] {
+  border: 0;
+  border-radius: var(--core-radius-control);
+  background: transparent;
+  width: 1.5rem;
+  height: 2rem;
+}
+
+.core-deck-tree-group [data-deck-depth="0"] [data-deck-icon] {
+  width: 2rem;
+  background: var(--core-surface);
+}
+
+.core-deck-tree-group .core-deck-summary-name {
+  width: 100%;
+}
+
+.core-deck-tree-create {
+  padding: var(--core-space-md);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: var(--core-surface);
+}
+
+@container core-deck-summary (max-width: 28rem) {
+  .core-deck-tree-group [data-deck-study-row="true"] { grid-template-columns: minmax(0, 1fr) auto; }
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-leading { grid-column: 1 / -1; min-height: var(--core-control-height); }
+  .core-deck-tree-group [data-deck-study-row="true"] .core-deck-summary-counts {
+    justify-self: start;
+    margin-inline-start: var(--core-space-sm);
+  }
+
+  .core-deck-tree-group .core-deck-summary-responsive .core-deck-summary-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 8.25rem;
+  }
+
+  .core-deck-tree-group .core-deck-summary-count > dt {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+    font-size: var(--core-type-caption);
+    line-height: var(--core-leading-caption);
+    color: var(--core-text-muted);
+    font-weight: var(--core-weight-body);
+    order: 1;
+  }
+
+  .core-deck-tree-group .core-deck-summary-count {
+    display: flex;
+    flex-direction: column;
+    gap: var(--core-space-xs);
+  }
+}
+
+@container core-deck-tree (max-width: 28rem) {
+  .core-deck-tree-rows > .core-deck-summary-container {
+    display: none;
+  }
+}
+
 .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
   -moz-column-gap: 0;
        column-gap: 0;
@@ -3847,19 +3804,15 @@ button[aria-label] {
 }
 .core-deck-tree-group .core-deck-summary-icon > svg { width: 1rem; height: 1rem; }
 .core-deck-tree-group .core-deck-icon-action > svg { width: 1.125rem; height: 1.125rem; }
-.core-deck-tree-group .core-deck-icon-action > svg.lucide-ellipsis { width: 1.125rem; height: 1.125rem; transform: none; }
-.core-deck-tree-group .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) > svg.lucide-ellipsis { transform: scale(1.08); }
 .core-deck-tree-container[data-deck-view="list"] .core-table-header-row {
   border: 0;
   padding-inline: 12px;
 }
 
 @container core-deck-tree (max-width: 32rem) {
-  .core-deck-tree-group { padding: 6px; }
-  .core-deck-tree-container[data-deck-view="list"] .core-deck-tree-heading { flex-wrap: wrap; gap: var(--core-space-xs); }
-  .core-deck-tree-container[data-deck-view="list"] .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
-  .core-deck-tree-container[data-deck-view="list"] .core-deck-tree-header-action { grid-column: 1; grid-row: 2; gap: var(--core-space-xs); }
-  .core-deck-tree-group { --core-deck-depth-indent: 10px; }
+  .core-deck-tree-group { padding: 6px; --core-deck-depth-indent: 10px; }
+  .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
+  .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
   .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics { grid-template-columns: repeat(3, 2.75rem); width: 8.25rem; }
 }
 
@@ -4503,66 +4456,6 @@ summary {
 
 .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) > svg.lucide-ellipsis {
   transform: scale(1.08);
-}
-
-/* Planning owns its dialog dimensions without changing other dialogs. */
-.core-summary-panel { container: core-summary / inline-size; }
-.core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); align-items: center; }
-.core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
-.core-summary-excerpt { max-height: 6rem; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; -webkit-mask-image: linear-gradient(#000 45%, transparent); mask-image: linear-gradient(#000 45%, transparent); }
-.core-summary-preview-action { flex-shrink: 0; }
-.core-summary-checkbox { display: flex; align-items: center; gap: var(--core-space-sm); min-height: var(--core-control-height); }
-.core-summary-checkbox input { width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: var(--core-action-primary); }
-.core-summary-editor .rich-text-field { font-family: var(--summary-font); font-size: var(--summary-size); overflow-wrap: anywhere; }
-.core-summary-editor .rich-text-field :is(h1, h2, h3, h4) { font-weight: var(--core-weight-heading); margin-block: var(--core-space-lg) var(--core-space-sm); }
-.core-summary-editor .rich-text-field h1 { font-size: var(--core-type-heading-1); }
-.core-summary-editor .rich-text-field h2 { font-size: var(--core-type-heading-2); }
-.core-summary-editor .rich-text-field h3 { font-size: var(--core-type-heading-3); }
-.core-summary-editor .rich-text-field p { margin-block-end: var(--core-space-lg); }
-.core-summary-form { max-width: 52rem; }
-
-/* Infinite mindmap: the transformed world is clipped only by its viewport. */
-.core-mindmap-panel { container: core-mindmap / inline-size; }
-.core-mindmap-workspace { display: grid; gap: var(--core-space-lg); min-width: 0; }
-.core-mindmap-canvas { position: relative; min-width: 0; height: 600px; max-height: 72dvh; min-height: 360px; overflow: hidden; touch-action: none; background-color: var(--core-surface); background-image: radial-gradient(circle, var(--core-border) 1px, transparent 1px); cursor: grab; }
-.core-mindmap-canvas[data-tool="pen"] { cursor: crosshair; }
-.core-mindmap-canvas[data-tool="erase"] { cursor: cell; }
-.core-mindmap-stage { position: absolute; inset: 0 auto auto 0; width: 0; height: 0; transform-origin: 0 0; }
-.core-mindmap-lines { position: absolute; inset: 0 auto auto 0; width: 1px; height: 1px; overflow: visible; pointer-events: none; }
-.core-mindmap-edges path { fill: none; stroke: var(--core-info); stroke-width: 2; }
-.core-mindmap-ink polyline, .core-mindmap-ink-preview { fill: none; stroke: var(--core-text); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-.core-mindmap-ink .core-mindmap-eraser-hit { stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: cell; }
-.core-mindmap-node { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: var(--core-space-xs); width: 220px; padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); background: var(--core-surface-raised); color: var(--core-text); text-align: left; cursor: grab; touch-action: none; -webkit-user-select: none; -moz-user-select: none; user-select: none; }
-.core-mindmap-node.is-selected { border-color: var(--core-border-interactive); box-shadow: var(--core-shadow-selection); }
-.core-mindmap-node.is-link-source { background: var(--core-info-surface); border-color: var(--core-info); }
-.core-mindmap-node-label { overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.core-mindmap-node.is-text { justify-content: flex-start; background: var(--core-surface-muted); }
-.core-mindmap-note-text { white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-.core-mindmap-details { min-width: 0; }
-.core-mindmap-source { padding: var(--core-space-md); border-radius: var(--core-radius-inset); background: var(--core-surface-muted); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 280px; overflow-y: auto; }
-.core-mindmap-zoom { position: absolute; right: var(--core-space-sm); bottom: var(--core-space-sm); display: flex; align-items: center; gap: var(--core-space-xs); }
-.core-mindmap-zoom > span { min-width: 44px; text-align: center; }
-.core-mindmap-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--core-space-md); padding: var(--core-space-xl); text-align: center; color: var(--core-text-muted); pointer-events: none; }
-.core-mindmap-list-item:hover { border-color: var(--core-border-interactive); }
-@container core-mindmap (min-width: 64rem) {
-  .core-mindmap-workspace.has-selection { grid-template-columns: minmax(0, 1fr) 320px; }
-  .core-mindmap-details { max-height: 600px; overflow-y: auto; }
-}
-@container core-mindmap (max-width: 30rem) {
-  .core-mindmap-heading > label { flex-basis: calc(100% - 60px); }
-  .core-mindmap-heading > .core-action-primary { width: 100%; }
-  .core-mindmap-canvas { height: 480px; }
-}
-.core-summary-document { max-width: 64rem; }
-.core-summary-editor [role="toolbar"] { position: relative; }
-.core-summary-editor .core-rich-text-extra-tools > .relative { position: static; }
-.core-summary-editor .core-rich-text-extra-tools [role="dialog"] { left: auto; right: 0; max-width: min(14rem, calc(100vw - 4rem)); max-height: min(32rem, calc(100dvh - 8rem)); overflow-y: auto; }
-@container core-summary (max-width: 36rem) {
-  .core-summary-editor-heading { flex-direction: column; align-items: stretch; }
-  .core-summary-preview { grid-template-columns: minmax(0, 1fr); gap: var(--core-space-md); padding: var(--core-space-lg); }
-  .core-summary-preview-action { justify-content: space-between; }
-  .core-summary-actions { flex-direction: column-reverse; }
-  .core-summary-actions > button { width: 100%; }
 }
 
 .core-summary-panel { container: core-summary / inline-size; }
@@ -5892,23 +5785,25 @@ html { scroll-behavior: smooth; }
 </ul>
 <h4 id="specs--stapelbäume" class="catalog-label" tabindex="-1">Stapelbäume</h4>
 <ul>
-<li><code>Heute</code>, <code>Lernen</code> und <code>Kartenverwaltung</code> teilen Stapeldaten, Tiefenfarbe, Chevron, Icon und Drei-Punkte-Aktion. Die Hierarchie ist unbegrenzt; Einrückung (8 px je Ebene, höchstens 40 px), Tiefenfarbe und <code>data-deck-depth</code> bleiben ab Ebene 6 konstant. Jeder Elternstapel behält seinen Chevron; Einklappen verbirgt den gesamten Unterbaum.</li>
-<li>Zeilen zeigen lokale Namen; nur zu lange Namen werden zweizeilig. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (<code>Stapel 10</code> vor <code>Stapel 9</code>); Elternstapel bleiben mit ihrem Unterbaum zusammen.</li>
-<li><code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und den Gesamtfortschrittsdonut unter der bisherigen nicht sortierbaren Kopfzeile. Die Listen verwenden weiterhin den gemeinsamen Renderer; der Explorer-Baum und die Kartenverwaltung zeigen keine Lernkennzahlen.</li>
-<li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Der Donut zeigt den gesamten aktiven Bestand ohne Limits als <code>Neu</code>, <code>Offen</code>, <code>Fällig</code> und <code>Gelernt</code>. Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
-<li>Die Stapelfläche in Dashboard und Lernen öffnet <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Der eigene Play-Button startet den Reviewpfad samt Unterstapeln und Limits. Auf-/Zuklappen, Lernen und Optionen lösen die Flächenaktion nicht aus.</li>
-<li>Donut, Play-Button und Stapeloptionen haben gleiche schmale Abstände und 44-px-Klickflächen; die Drei-Punkte-Grafik misst 32 px. Icons füllen sich bei Hover, Betätigung und offenem Menü ohne zusätzliche Hoverfläche. Pointer-Hover füllt Zeilen neutral grau; Stapelköpfe haben keine Trennlinie, Kartenzeilen behalten ihre dünnen Grenzen.</li>
-<li>Nur die Ordneransicht von Lernen kombiniert einen Explorer-Baum mit ruhigen Ordnerflächen. Listenansicht, Kartenverwaltung und Stapelinhalte zeigen keinen Explorer. Ab 1024 px steht der Baum links und bleibt beim Scrollen sichtbar; darunter öffnet <code>Stapel wechseln</code> denselben Baum in einem lokal scrollbaren Bereich. <code>Alle Stapel</code> und ein vollständiger, umbrechender Breadcrumb-Pfad führen auf vorherige Ebenen zurück. Der Baum verwendet die gespeicherten Auf-/Zuklappzustände von Lernen; Direktlinks öffnen die Ahnen des gewählten Stapels.</li>
-<li>Lernen bietet rechts den Umschalter <code>Liste</code> / <code>Ordner</code>. Die Liste gruppiert Hauptstapel in ruhigen Flächen und erlaubt gemeinsames Auf-/Zuklappen. Die Ordneransicht zeigt Hauptstapel als Kacheln, öffnet direkte Unterstapel mit vollständigem Pfad und bietet Inhalte, Lernstart und Optionen. Der Umschalter bleibt beim Navigieren im Lernboard erhalten. Lernen zeigt in der Listenansicht die bestehende hierarchische Liste. Ein in der Ordneransicht gewählter Stapel grenzt die Liste beim Ansichtswechsel auf seinen Unterbaum ein. Ein Zeilenklick öffnet die Inhalte. Kennzahlen, Donut, Play, Optionen, Verschieben und Schnellformular bleiben erhalten.</li>
-<li>Das Dashboard behält das Panel <code>Aktive Stapel</code> mit <code>Alle ansehen</code>. Lernen zeigt in der rechten Ordnerfläche dauerhaft das Schnellformular <code>Stapelname</code>, <code>Ebene</code>, <code>Anlegen</code>, auch ohne Stapel und nach dem Anlegen. Ein Ebenenwechsel wählt den geöffneten Stapel als Elternziel vor; der eingegebene Name bleibt erhalten.</li>
+<li><code>Heute</code>, <code>Lernen</code> und <code>Kartenverwaltung</code> teilen Stapeldaten, Chevron, Icon und Drei-Punkte-Aktion. Die Hierarchie ist unbegrenzt. Jeder Elternstapel behält seinen Chevron; Einklappen verbirgt den gesamten Unterbaum.</li>
+<li>Zeilen zeigen lokale Namen. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (<code>Stapel 10</code> vor <code>Stapel 9</code>); Elternstapel bleiben mit ihrem Unterbaum zusammen.</li>
+<li><code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> unter einer nicht sortierbaren Kopfzeile; einen Fortschrittsring gibt es nicht. Auf schmalen Flächen entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen, auch nicht assistiv.</li>
+<li>Jeder Hauptstapel bildet mit seinen Unterstapeln eine eigene umrandete Gruppe. Nur die Zeile des Hauptstapels ist leicht in seiner Stapelfarbe getönt; Unterstapelzeilen bleiben neutral. Badges und Untertitel mit Karten- oder Unterstapelanzahl erscheinen nicht.</li>
+<li><code>Lernen</code> bietet einen Umschalter zwischen <code>Liste</code> und <code>Kacheln</code>; die Wahl gilt browserlokal. In der Liste klappt <code>Alle aufklappen</code>/<code>Alle einklappen</code> sämtliche Elternstapel gemeinsam. Die Kachelansicht zeigt jeden Hauptstapel als Kachel mit beschrifteten Tageszahlen und einer Aktionsleiste aus <code>Inhalte</code>, Lernaktion und Stapeloptionen. Ein Klick auf eine Kachel öffnet unter ihrer Kachelreihe ein Panel mit Stapelpfad, Name, <code>Eine Ebene zurück</code>, Schließen, den direkten Unterstapeln als kleineren Kacheln (ohne Unterstapel <code>Keine Unterstapel.</code>) sowie <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; Unterstapel-Kacheln führen eine Ebene tiefer.</li>
+<li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
+<li>Die Stapelfläche öffnet <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Eine eigene Lernaktion startet den Reviewpfad samt Unterstapeln und Limits; ihr zugänglicher Name enthält den Stapelpfad, ihr Tooltip den lokalen Namen. Auf-/Zuklappen, Lernen und Stapeloptionen lösen die Flächenaktion nicht aus; die Fläche ist per Enter und Leertaste bedienbar.</li>
+<li>Lernaktion und Stapeloptionen haben 44-px-Klickflächen.</li>
+<li>Dashboard und Lernen verwenden dieselbe Sammlung <code>Aktive Stapel</code>; nur das Dashboard zeigt <code>Alle ansehen</code>. Lernen zeigt unter den Stapeln dauerhaft das Schnellformular <code>Stapelname</code>, <code>Ebene</code>, <code>Anlegen</code>, auch ohne Stapel und nach dem Anlegen.</li>
 <li>Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne Präferenz starten die Sektionen der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte öffnet und speichert die betroffene Sektion. Eine leere, als <code>Nicht festgelegt</code> dargestellte Profilzeitzone blockiert das Speichern nicht.</li>
 </ul>
 <h4 id="specs--stapelinhalte" class="catalog-label" tabindex="-1">Stapelinhalte</h4>
 <ul>
-<li>Die gleitende Inhaltsleiste zeigt <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code>, <code>Quelle</code>. Initial ist <code>Unterstapel</code> aktiv; Kartenlinks öffnen <code>Karten</code>. Der aktive Reiter steht in der URL und übersteht Reload sowie Browser-Zurück/-Vorwärts. Wechsel zwischen Inhaltsreitern schützen ungespeicherte Entwürfe. Auf schmalen Flächen bleibt die Leiste lokal horizontal scrollbar.</li>
-<li>Die Inhaltsansicht zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet sie die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Tabellenkopf für Stapel. Darüber stehen Stapelname, Breadcrumbs und Inhaltsnavigation; die Inhaltsansicht enthält keinen Explorer. Der gemeinsame Lernen-Seitenkopf samt Bereichsumschalter bleibt sichtbar; <code>Aktive Stapel</code> entfällt im Inhaltspanel.</li>
-<li>Sie nutzt dieselben Kartenzeilen, denselben Editor und dieselben Mutationen wie die Gesamtverwaltung; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Die Kartenliste schließt Elternstapel und andere Zweige aus; über Breadcrumbs und die Stapelübersicht bleiben andere Zweige erreichbar. Ein Wechsel über Breadcrumbs schützt ungespeicherte Kartenentwürfe mit demselben Speichern-/Verwerfen-Dialog.</li>
-<li>Direkt rechts neben der Inhaltsnavigation steht die primäre Aktion <code>Karten lernen</code>; auf schmalen Ansichten füllt sie unter den Reitern die Breite. Sie bleibt in allen Inhaltsbereichen sichtbar und startet die Sitzung samt Unterstapeln. Nur bei leerem Stapelbaum ist sie deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>
+<li>Der Kopf der Inhaltsansicht zeigt den klickbaren Stapelpfad <code>Alle Stapel › … › Stapel</code>, Stapel-Icon und Namen sowie <code>Eine Ebene zurück</code> beziehungsweise auf Hauptebene <code>Zur Stapelübersicht</code>. <code>Aktive Stapel</code> und der Bereichsumschalter entfallen.</li>
+<li>Die Tabs lauten <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code>, <code>Quelle</code>; initial ist <code>Unterstapel</code> aktiv. Der Tab steht in der URL (<code>tab=</code>) und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor erzwingt <code>Karten</code>. Wechsel zwischen Inhaltsreitern und über Breadcrumbs schützen ungespeicherte Entwürfe mit demselben Speichern-/Verwerfen-Dialog. Auf schmalen Flächen scrollt die Leiste lokal. <code>Quiz</code> und <code>Quelle</code> bleiben bis zu ihrer Umsetzung Platzhalter; Zusammenfassungen und Mindmaps behalten ihre aktuellen Funktionen.</li>
+<li><code>Unterstapel</code> listet die direkten Unterstapel mit beschrifteten Kennzahlen, <code>Inhalte</code>, Lernaktion und Stapeloptionen; ein Klick öffnet die Stapelinhalte des Unterstapels. Darunter stehen <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; ohne Unterstapel erscheinen <code>Keine weiteren Unterstapel</code> und <code>Karten öffnen</code>.</li>
+<li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet der Tab die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Kopf.</li>
+<li>Sie nutzt dieselben Kartenzeilen, denselben Editor und dieselben Mutationen wie die Gesamtverwaltung; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
+<li>Direkt neben den Inhaltsreitern steht die primäre Aktion <code>Karten lernen</code>; auf schmalen Flächen steht sie darunter. Sie bleibt in allen Inhaltsbereichen erreichbar und startet die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>
 </ul>
 <h4 id="specs--kartenverwaltung" class="catalog-label" tabindex="-1">Kartenverwaltung</h4>
 <ul>
@@ -6334,7 +6229,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.068</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">34.832</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">183</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 319 Zeilen, Lernen &amp; Karten: 2.871 Zeilen, Erstellen &amp; Import: 1.564 Zeilen, Prüfungen: 329 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 789 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.316075616532835 1.7588558462111514 L 23.77721162227333 7.039187048623713 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="319"></path><path d="M 25.316075616532835 1.7588558462111514 A 19 19 0 0 1 25.72012169403008 38.11850456868575 L 24.064296993126636 32.87367429880304 A 13.5 13.5 0 0 0 23.77721162227333 7.039187048623713 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2871"></path><path d="M 25.72012169403008 38.11850456868575 A 19 19 0 0 1 3.202371292948399 28.87917055923784 L 8.064842760779127 26.308884344721623 A 13.5 13.5 0 0 0 24.064296993126636 32.87367429880304 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1564"></path><path d="M 3.202371292948399 28.87917055923784 A 19 19 0 0 1 1.3556670427813557 23.65907755867112 L 6.752710793555172 22.599870896950534 A 13.5 13.5 0 0 0 8.064842760779127 26.308884344721623 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="329"></path><path d="M 1.3556670427813557 23.65907755867112 A 19 19 0 0 1 1.891694007090873 14.247674029823115 L 7.1335720576698325 15.912821021190108 A 13.5 13.5 0 0 0 6.752710793555172 22.599870896950534 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.891694007090873 14.247674029823115 A 19 19 0 0 1 7.7396584508824375 5.4850413331976196 L 11.28870468878489 9.686739894640414 A 13.5 13.5 0 0 0 7.1335720576698325 15.912821021190108 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 7.7396584508824375 5.4850413331976196 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.28870468878489 9.686739894640414 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="789"></path></svg></span><span class="core-caption">7.068 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>319</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.871</td><td>40,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.564</td><td>22,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>329</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>8,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>789</td><td>11,2 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 38 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.069</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">34.648</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">182</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 319 Zeilen, Lernen &amp; Karten: 2.872 Zeilen, Erstellen &amp; Import: 1.564 Zeilen, Prüfungen: 329 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 632 Zeilen, Hilfe: 789 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.315343853201945 1.75864260198194 L 23.7766916851698 7.039035532987167 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="319"></path><path d="M 25.315343853201945 1.75864260198194 A 19 19 0 0 1 25.71128501837929 38.121291991434724 L 24.058018302532652 32.87565483601941 A 13.5 13.5 0 0 0 23.7766916851698 7.039035532987167 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2872"></path><path d="M 25.71128501837929 38.121291991434724 A 19 19 0 0 1 3.199788191072461 28.874282121680135 L 8.063007398919906 26.30541098119378 A 13.5 13.5 0 0 0 24.058018302532652 32.87565483601941 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1564"></path><path d="M 3.199788191072461 28.874282121680135 A 19 19 0 0 1 1.3547542311090908 23.65442337690306 L 6.7520622168406685 22.596563978325857 A 13.5 13.5 0 0 0 8.063007398919906 26.30541098119378 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="329"></path><path d="M 1.3547542311090908 23.65442337690306 A 19 19 0 0 1 1.8927222247227675 14.244438205617879 L 7.1343026333556505 15.910521882939019 A 13.5 13.5 0 0 0 6.7520622168406685 22.596563978325857 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 1.8927222247227675 14.244438205617879 A 19 19 0 0 1 7.741098695796472 5.483824924802089 L 11.289728020697494 9.685875604464643 A 13.5 13.5 0 0 0 7.1343026333556505 15.910521882939019 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="632"></path><path d="M 7.741098695796472 5.483824924802089 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.289728020697494 9.685875604464643 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="789"></path></svg></span><span class="core-caption">7.069 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>319</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.872</td><td>40,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.564</td><td>22,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>329</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>632</td><td>8,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>789</td><td>11,2 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 38 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);

@@ -33,6 +33,7 @@ test("deck summary row keeps responsive identity and accessible metrics without 
   assert.match(markup, /padding-inline-start:calc\(1 \* var\(--core-deck-depth-indent, 8px\)\)/);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt|Keine aktiven Karten/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
+  assert.doesNotMatch(markup, /rounded-round|uppercase tracking-wide/);
 });
 
 test("deck summary row caps visual indentation at level six", () => {

@@ -2,27 +2,27 @@ import React from "react";
 import { ArrowLeft, ChevronDown, ChevronRight, PanelsTopLeft, Play, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
-import type { CoreMode } from "../coreTypes.ts";
+import type { CoreMode, Deck } from "../coreTypes.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
-import { SoftPanel } from "./coreUi.tsx";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
 import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
 import { ActionButton, IconButton } from "./actionUi.tsx";
+import { SoftPanel } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { getDeckAppearance } from "./deckAppearance.tsx";
 import { useStableCallback } from "./useStableCallback.ts";
-import { formatLearningCardCount } from "./learningStatusUi.ts";
+
+export type DeckTreeView = "list" | "tiles";
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
-  mode: "dashboard" | "learn" | "explorer";
+  mode: "dashboard" | "learn";
+  /** `list` groups every main deck in its own card; `tiles` shows main decks as tiles with an inline branch panel. */
+  view?: DeckTreeView;
   headerAction?: React.ReactNode;
-  contentBeforeRows?: React.ReactNode;
-  viewMode?: "list" | "folders";
-  presentation?: "summary" | "navigation";
-  selectedDeckId?: string | null;
-  focusedDeckId?: string | null;
+  /** Caller-owned area below the collection, e.g. the quick-create form in Lernen. */
+  contentAfterRows?: React.ReactNode;
   onActivate: (row: DeckLibraryRow) => void;
   onStudy: (row: DeckLibraryRow) => void;
   onOpenSettings: (deckId: string) => void;
@@ -137,100 +137,87 @@ function getVisibleRows(rows: DeckLibraryRow[], collapsedDeckIds: Set<string>) {
 interface DeckTreeRowProps {
   row: DeckLibraryRow;
   mode: DeckTreeProps["mode"];
-  navigation: boolean;
-  folder: boolean;
-  subfolder: boolean;
+  presentation: "row" | "folder" | "subfolder";
+  decks: Deck[];
   isCollapsed: boolean;
-  isDragged: boolean;
   isSelected: boolean;
+  isDragged: boolean;
   dropState: "valid" | "invalid" | undefined;
-  decks: DeckLibraryRow["deck"][];
-  onToggle: (row: DeckLibraryRow, folder: boolean, subfolder: boolean, isCollapsed: boolean) => void;
-  onActivate: DeckTreeProps["onActivate"];
-  onOpenContent: DeckTreeProps["onActivate"];
+  onToggle: (deckId: string) => void;
+  onActivate: (row: DeckLibraryRow) => void;
+  onOpenContent: (row: DeckLibraryRow) => void;
   onPointerDown: (event: React.PointerEvent<HTMLButtonElement>, row: DeckLibraryRow) => void;
   onKeyDown: () => void;
-  onStudy: DeckTreeProps["onStudy"];
+  onStudy: (row: DeckLibraryRow) => void;
   onOpenSettings: DeckTreeProps["onOpenSettings"];
-  onSetDeckCoreMode: DeckTreeProps["onSetDeckCoreMode"];
+  onSetCoreMode: DeckTreeProps["onSetDeckCoreMode"];
   onMoveDeck: DeckTreeProps["onMoveDeck"];
 }
 
-const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, navigation, folder, subfolder, isCollapsed, isDragged, isSelected, dropState, decks, onToggle, onActivate, onOpenContent, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck }: DeckTreeRowProps) {
-    const activationLabel = folder ? row.hasChildren ? `Unterstapel von ${row.path} öffnen` : `Stapel ${row.path} öffnen` : `Inhalte von ${row.path} öffnen`;
-    const collapseControl = row.hasChildren ? (
+/** One deck row; memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
+const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onOpenContent, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
+  const tile = presentation !== "row";
+  const activationLabel = tile ? row.hasChildren ? `Unterstapel von ${row.path} öffnen` : `Stapel ${row.path} öffnen` : `Inhalte von ${row.path} öffnen`;
+  const collapseControl = row.hasChildren ? (
+    <button
+      type="button"
+      onClick={() => onToggle(row.id)}
+      className="pointer-events-auto relative -me-2 grid size-control shrink-0 place-items-center rounded-inset text-core-action before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
+      aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
+      aria-expanded={!isCollapsed}
+    >
+      {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+    </button>
+  ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
+  const studyAction = (
+    <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
+      <IconButton label={`${row.path} lernen`} icon={Play} variant={tile ? "secondary" : "ghost"} className={`${tile ? "" : "core-deck-icon-action "}pointer-events-auto`} onClick={() => onStudy(row)} />
+    </CoreTooltip>
+  );
+  const optionsMenu = <DeckOptionsMenu row={row} decks={decks} onSetCoreMode={onSetCoreMode} onOpenSettings={onOpenSettings} onMoveDeck={onMoveDeck} />;
+
+  return (
+    <div
+      data-testid={`${mode}-deck-row-${row.id}`}
+      data-deck-row="true"
+      data-deck-id={row.id}
+      data-deck-depth={getVisibleDeckDepth(row.depth)}
+      data-drop-state={dropState}
+      data-drag-state={isDragged ? "active" : undefined}
+      data-selected={isSelected ? "true" : undefined}
+      className={`core-deck-summary-row relative min-w-0 select-none${tile ? presentation === "subfolder" ? " core-deck-subfolder-card" : " core-deck-folder-card" : ""}`}
+    >
       <button
         type="button"
-        onClick={() => onToggle(row, folder, subfolder, isCollapsed)}
-        className="pointer-events-auto relative -me-2 grid size-11 shrink-0 place-items-center rounded-inset text-core-action before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
-        aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
-        aria-expanded={!isCollapsed}
+        onClick={() => onActivate(row)}
+        onPointerDown={(event) => onPointerDown(event, row)}
+        onKeyDown={onKeyDown}
+        aria-label={activationLabel}
+        data-deck-drag-source="true"
+        data-deck-row-activation="true"
+        className={`absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)] ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
       >
-        {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+        <span className="sr-only">{activationLabel}</span>
       </button>
-    ) : <span className="size-11 shrink-0" aria-hidden="true" />;
-    const optionsMenu = (
-      <DeckOptionsMenu
+
+      <DeckSummaryRow
         row={row}
-        decks={decks}
-        onSetCoreMode={onSetDeckCoreMode}
-        onOpenSettings={onOpenSettings}
-        onMoveDeck={onMoveDeck}
+        learningStatus={{ summary: row.summary, metricLabels: "sr-only" }}
+        studyAction={tile ? undefined : studyAction}
+        leadingControl={collapseControl}
+        actions={tile ? <>
+          <ActionButton variant="secondary" icon={PanelsTopLeft} className="pointer-events-auto" aria-label={`Inhalte von ${row.path} öffnen`} onClick={() => onOpenContent(row)}>Inhalte</ActionButton>
+          {studyAction}
+          {optionsMenu}
+        </> : optionsMenu}
+        density="responsive"
+        presentation={presentation}
       />
-    );
-    const studyAction = (
-      <CoreTooltip label={`${row.name} lernen`} deckAppearance={getDeckAppearance(row.deck)}>
-        <IconButton label={`${row.path} lernen`} icon={Play} variant={folder ? "secondary" : "ghost"}
-          className={`${folder ? "" : "core-deck-icon-action "}pointer-events-auto`} onClick={() => onStudy(row)} />
-      </CoreTooltip>
-    );
-
-    return (
-      <div
-        key={row.id}
-        data-testid={`${mode}-deck-row-${row.id}`}
-        data-deck-row="true"
-        data-deck-id={row.id}
-        data-deck-depth={getVisibleDeckDepth(row.depth)}
-        data-selected={isSelected ? "true" : undefined}
-        data-drop-state={dropState}
-        data-drag-state={isDragged ? "active" : undefined}
-        className={`core-deck-summary-row relative min-w-0 select-none${folder ? subfolder ? " core-deck-subfolder-card" : " core-deck-folder-card" : ""}`}
-      >
-        <button
-          type="button"
-          onClick={() => onActivate(row)}
-          onPointerDown={(event) => onPointerDown(event, row)}
-          onKeyDown={onKeyDown}
-          aria-label={activationLabel}
-          aria-current={navigation && isSelected ? "location" : undefined}
-          data-deck-drag-source="true"
-          data-deck-row-activation="true"
-          className={`absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)] ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
-        >
-          <span className="sr-only">{activationLabel}</span>
-        </button>
-
-        <DeckSummaryRow
-          row={row}
-          learningStatus={navigation ? undefined : { summary: row.summary, statusDistribution: row.statusDistribution, metricLabels: folder ? "responsive" : "sr-only" }}
-          studyAction={navigation || folder ? undefined : studyAction}
-          leadingControl={collapseControl}
-          actions={folder ? <>
-            <ActionButton variant="secondary" icon={PanelsTopLeft} className="pointer-events-auto" aria-label={`Inhalte von ${row.path} öffnen`} onClick={() => onOpenContent(row)}>Inhalte</ActionButton>
-            {studyAction}
-            {optionsMenu}
-          </> : optionsMenu}
-          density="responsive"
-          presentation={folder ? subfolder ? "subfolder" : "folder" : "row"}
-          description={!navigation && (folder || row.depth === 0) ? `${formatLearningCardCount(row.summary.totalCards)}${row.descendantCount ? ` · ${row.descendantCount} Unterstapel` : ""}` : undefined}
-        />
-      </div>
-    );
+    </div>
+  );
 });
 
-export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode = "list", focusedDeckId = null, presentation = "summary", selectedDeckId = null, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
-  const navigation = presentation === "navigation";
+export function DeckTree({ rows, mode, view = "list", headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -249,18 +236,22 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
     }
     return groups;
   }, [visibleRows]);
-  const [folderDeckId, setFolderDeckId] = React.useState<string | null>(focusedDeckId);
-  const folderSectionRef = React.useRef<HTMLElement | null>(null);
+  const parentDeckIds = React.useMemo(() => rows.filter((row) => row.hasChildren).map((row) => row.id), [rows]);
+  const anyCollapsed = parentDeckIds.some((deckId) => collapsedDeckIdSet.has(deckId));
+
+  // Tile view: the opened folder and the column count that decides where its branch panel is inserted.
+  const [folderDeckId, setFolderDeckId] = React.useState<string | null>(null);
   const folderGridRef = React.useRef<HTMLDivElement | null>(null);
+  const folderPanelRef = React.useRef<HTMLElement | null>(null);
   const [folderColumns, setFolderColumns] = React.useState(1);
-  const folderRow = rows.find((row) => row.id === folderDeckId) ?? null;
-  const folderRows = React.useMemo(() => rows.filter((row) => row.parentDeckId === folderRow?.id), [folderRow, rows]);
+  const rowById = React.useMemo(() => new Map(rows.map((row) => [row.id, row])), [rows]);
+  const folderRow = folderDeckId ? rowById.get(folderDeckId) ?? null : null;
+  const folderRows = React.useMemo(() => folderRow ? rows.filter((row) => row.parentDeckId === folderRow.id) : [], [folderRow, rows]);
   const folderTrail = React.useMemo(() => {
-    const byId = new Map(rows.map((row) => [row.id, row]));
     const trail: DeckLibraryRow[] = [];
-    for (let current = folderRow; current; current = byId.get(current.parentDeckId ?? "") ?? null) trail.push(current);
-    return trail.reverse();
-  }, [folderRow, rows]);
+    for (let current = folderRow; current; current = rowById.get(current.parentDeckId ?? "") ?? null) trail.unshift(current);
+    return trail;
+  }, [folderRow, rowById]);
   const rootRows = React.useMemo(() => rows.filter((row) => row.depth === 0), [rows]);
   const selectedRootId = folderTrail[0]?.id;
   const selectedRootIndex = rootRows.findIndex((row) => row.id === selectedRootId);
@@ -268,31 +259,19 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
 
   React.useEffect(() => {
     const grid = folderGridRef.current;
-    if (!grid) return;
-    const measureColumns = () => setFolderColumns(window.getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length);
+    if (view !== "tiles" || !grid || typeof ResizeObserver === "undefined") return undefined;
+    const measureColumns = () => setFolderColumns(Math.max(1, window.getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length));
     measureColumns();
     const observer = new ResizeObserver(measureColumns);
     observer.observe(grid);
     return () => observer.disconnect();
-  }, [viewMode, rootRows.length]);
+  }, [view, rootRows.length]);
 
   React.useEffect(() => {
-    if (focusedDeckId) setFolderDeckId(focusedDeckId);
-  }, [focusedDeckId]);
-
-  React.useEffect(() => {
-    if (viewMode !== "folders" || !folderDeckId) return undefined;
-    const frame = window.requestAnimationFrame(() => {
-      const section = folderSectionRef.current;
-      if (!section) return;
-      const headerHeight = document.querySelector('[data-navigation-layout="mobile-header"]')?.getBoundingClientRect().height ?? 0;
-      section.style.scrollMarginTop = `${headerHeight}px`;
-      section.scrollIntoView({ block: "nearest" });
-      const scrollMargin = Number.parseFloat(window.getComputedStyle(section).scrollMarginTop);
-      if (section.getBoundingClientRect().top < scrollMargin) section.scrollIntoView({ block: "start" });
-    });
+    if (view !== "tiles" || !folderDeckId) return undefined;
+    const frame = window.requestAnimationFrame(() => folderPanelRef.current?.scrollIntoView({ block: "nearest" }));
     return () => window.cancelAnimationFrame(frame);
-  }, [folderDeckId, viewMode]);
+  }, [folderDeckId, view]);
 
   React.useEffect(() => {
     setCollapsedDeckIdSet((current) => (
@@ -308,7 +287,23 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
   }, []);
 
   function toggleCollapsed(deckId: string) {
+    if (view === "tiles") {
+      const row = rowById.get(deckId);
+      if (row?.depth === 0 && selectedRootId === deckId) closeFolder();
+      else setFolderDeckId(deckId);
+      return;
+    }
     setDeckExpanded(deckId, collapsedDeckIdSet.has(deckId));
+  }
+
+  function setAllExpanded(expanded: boolean) {
+    setCollapsedDeckIdSet(expanded ? new Set() : new Set(parentDeckIds));
+    onDeckExpansionChange(parentDeckIds, expanded);
+  }
+
+  function closeFolder() {
+    folderGridRef.current?.querySelector<HTMLButtonElement>('[data-selected="true"] [data-deck-row-activation="true"]')?.focus();
+    setFolderDeckId(null);
   }
 
   function setDeckExpanded(deckId: string, expanded: boolean) {
@@ -392,7 +387,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
         : "Stapel auf die Hauptebene verschoben.");
       const targetDeckId = intent.targetDeckId;
       if (targetDeckId && collapsedDeckIdSet.has(targetDeckId)) setDeckExpanded(targetDeckId, true);
-      if (targetDeckId && viewMode === "folders") setFolderDeckId(targetDeckId);
+      if (targetDeckId && view === "tiles") setFolderDeckId(targetDeckId);
     }
     clearDragState();
   }
@@ -471,41 +466,19 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
       suppressedClickDeckIdRef.current = null;
       return;
     }
-    if (viewMode === "folders") openFolder(row);
+    if (view === "tiles") setFolderDeckId(row.id);
     else onActivate(row);
   }
 
-  function openFolder(row: DeckLibraryRow) {
-    setFolderDeckId(row.id);
-    if (row.hasChildren) setDeckExpanded(row.id, true);
-  }
-
-  function closeFolder() {
-    folderGridRef.current?.querySelector<HTMLButtonElement>('[data-selected="true"] [data-deck-row-activation="true"]')?.focus();
-    setFolderDeckId(null);
-  }
-
-  const rowToggle = useStableCallback((row: DeckLibraryRow, folder: boolean, subfolder: boolean, collapsed: boolean) => {
-    if (folder) { if (!subfolder && !collapsed) closeFolder(); else openFolder(row); }
-    else toggleCollapsed(row.id);
-  });
-  const rowActivate = useStableCallback(activate);
-  const rowOpenContent = useStableCallback(onActivate);
-  const rowPointerDown = useStableCallback(startPointer);
-  const rowKeyDown = useStableCallback(() => { suppressedClickDeckIdRef.current = null; });
-  const rowStudy = useStableCallback(onStudy);
-  const rowOpenSettings = useStableCallback(onOpenSettings);
-  const rowSetMode = useStableCallback(onSetDeckCoreMode);
-  const rowMove = useStableCallback(onMoveDeck);
-
-  function renderRow(row: DeckLibraryRow, folder = false, subfolder = false): React.ReactNode {
-    return <DeckTreeRow key={row.id} row={row} mode={mode} navigation={navigation} folder={folder} subfolder={subfolder} decks={decks}
-      isCollapsed={folder ? (subfolder ? folderDeckId !== row.id : selectedRootId !== row.id) : collapsedDeckIdSet.has(row.id)}
-      isSelected={navigation ? row.id === selectedDeckId : folder && !subfolder && row.id === selectedRootId}
-      isDragged={draggedDeckId === row.id} dropState={dropIntent?.targetDeckId === row.id ? (dropIntent.error ? "invalid" : "valid") : undefined}
-      onToggle={rowToggle} onActivate={rowActivate} onOpenContent={rowOpenContent} onPointerDown={rowPointerDown} onKeyDown={rowKeyDown}
-      onStudy={rowStudy} onOpenSettings={rowOpenSettings} onSetDeckCoreMode={rowSetMode} onMoveDeck={rowMove} />;
-  }
+  const stableToggle = useStableCallback(toggleCollapsed);
+  const stableActivate = useStableCallback(activate);
+  const stableOpenContent = useStableCallback(onActivate);
+  const stablePointerDown = useStableCallback(startPointer);
+  const stableKeyDown = useStableCallback(() => { suppressedClickDeckIdRef.current = null; });
+  const stableStudy = useStableCallback(onStudy);
+  const stableOpenSettings = useStableCallback(onOpenSettings);
+  const stableSetCoreMode = useStableCallback(onSetDeckCoreMode);
+  const stableMoveDeck = useStableCallback(onMoveDeck);
 
   const topDropActive = draggedDeckId && dropIntent?.targetDeckId === null;
   const focusHoles = [
@@ -545,66 +518,97 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
     document.body,
   ) : null;
 
+  function renderRow(row: DeckLibraryRow, presentation: DeckTreeRowProps["presentation"] = "row") {
+    const tile = presentation !== "row";
+    return (
+      <DeckTreeRow
+        key={row.id}
+        row={row}
+        mode={mode}
+        presentation={presentation}
+        decks={decks}
+        isCollapsed={tile ? presentation !== "folder" || selectedRootId !== row.id : collapsedDeckIdSet.has(row.id)}
+        isSelected={presentation === "folder" && selectedRootId === row.id}
+        isDragged={draggedDeckId === row.id}
+        dropState={dropIntent?.targetDeckId === row.id ? (dropIntent.error ? "invalid" : "valid") : undefined}
+        onToggle={stableToggle}
+        onActivate={stableActivate}
+        onOpenContent={stableOpenContent}
+        onPointerDown={stablePointerDown}
+        onKeyDown={stableKeyDown}
+        onStudy={stableStudy}
+        onOpenSettings={stableOpenSettings}
+        onSetCoreMode={stableSetCoreMode}
+        onMoveDeck={stableMoveDeck}
+      />
+    );
+  }
+
+  const folderPanel = folderRow ? (
+    <section ref={folderPanelRef} className="core-deck-folder-expansion core-surface-raised rounded-panel grid min-w-0 gap-6 border border-core-border p-4 sm:p-6" aria-label={`Unterstapel von ${folderRow.path}`} data-testid={`${mode}-deck-folder-panel`}>
+      <nav aria-label="Stapelpfad" className="core-deck-folder-breadcrumb">
+        <button type="button" onClick={closeFolder}>Alle Stapel</button>
+        {folderTrail.map((entry) => <React.Fragment key={entry.id}>
+          <ChevronRight size={16} aria-hidden="true" />
+          {entry.id === folderRow.id ? <span aria-current="page">{entry.name}</span> : <button type="button" onClick={() => setFolderDeckId(entry.id)}>{entry.name}</button>}
+        </React.Fragment>)}
+      </nav>
+      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+        <h4 className="min-w-0 flex-1 basis-44 break-words core-heading-3 font-semibold text-core-text">{folderRow.name}</h4>
+        <div className="flex shrink-0 gap-2">
+          <IconButton label="Eine Ebene zurück" icon={ArrowLeft} onClick={() => folderRow.parentDeckId ? setFolderDeckId(folderRow.parentDeckId) : closeFolder()} />
+          <IconButton label="Unterstapelübersicht schließen" icon={X} onClick={closeFolder} />
+        </div>
+      </div>
+      {folderRows.length ? <div className="core-deck-subfolder-grid">{folderRows.map((child) => renderRow(child, "subfolder"))}</div> : <p className="core-body text-core-muted">Keine Unterstapel.</p>}
+      <div className="flex flex-wrap gap-2">
+        <ActionButton variant="secondary" icon={PanelsTopLeft} aria-label={`Alle Inhalte von ${folderRow.path} öffnen`} onClick={() => onActivate(folderRow)}>Alle Karten dieses Zweigs</ActionButton>
+        <ActionButton variant="secondary" icon={Play} aria-label={`${folderRow.path} als Zweig lernen`} onClick={() => onStudy(folderRow)}>Diesen Zweig lernen</ActionButton>
+      </div>
+    </section>
+  ) : null;
+  const showExpandAll = mode === "learn" && view === "list" && parentDeckIds.length > 0;
+
   return (
     <>
       <SoftPanel
-        className={`core-deck-tree-container overflow-visible p-4 sm:p-6 ${navigation ? "core-deck-tree-navigation" : ""}`}
+        className="core-deck-tree-container overflow-visible p-4 sm:p-6"
         data-testid={`${mode}-deck-list`}
-        data-deck-view={viewMode}
+        data-deck-view={view}
         onPointerMove={movePointer}
         onPointerUp={endPointer}
         onPointerCancel={cancelPointer}
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid gap-6">
-          <div className={`core-deck-tree-header grid min-h-11 items-center gap-3${mode === "learn" && headerAction ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          <div className={`core-deck-tree-header grid min-h-control items-center gap-3${mode === "learn" && headerAction ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
-              <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">{navigation ? "Sammlung" : "Aktive Stapel"}</h3>
-              {!navigation && viewMode === "list" && rootRows.length > 0 ? <span className="core-deck-tree-root-count core-caption text-core-muted">{rootRows.length} Hauptstapel</span> : null}
+              <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
             </div>
-            {headerAction || (viewMode === "list" && mode === "learn" && rows.some((row) => row.hasChildren)) ? <div className="core-deck-tree-header-action flex flex-wrap justify-end gap-2 justify-self-end">
-              {viewMode === "list" && mode === "learn" && rows.some((row) => row.hasChildren) ?
-            <ActionButton variant="secondary" icon={ChevronDown} onClick={() => {
-              const parentIds = rows.filter((row) => row.hasChildren).map((row) => row.id);
-              const expanded = parentIds.some((id) => collapsedDeckIdSet.has(id));
-              setCollapsedDeckIdSet(expanded ? new Set() : new Set(parentIds));
-              onDeckExpansionChange(parentIds, expanded);
-            }}>{rows.some((row) => row.hasChildren && collapsedDeckIdSet.has(row.id)) ? "Alle aufklappen" : "Alle einklappen"}</ActionButton> : null}
-              {headerAction}
-            </div> : null}
+            {headerAction || showExpandAll ? (
+              <div className="core-deck-tree-header-action flex flex-wrap justify-end gap-2 justify-self-end">
+                {showExpandAll ? (
+                  <ActionButton variant="secondary" icon={ChevronDown} onClick={() => setAllExpanded(anyCollapsed)}>
+                    {anyCollapsed ? "Alle aufklappen" : "Alle einklappen"}
+                  </ActionButton>
+                ) : null}
+                {headerAction}
+              </div>
+            ) : null}
           </div>
-          {rows.length === 0 ? contentBeforeRows : null}
-          {viewMode === "folders" && rows.length > 0 ? (
-            <div className="core-deck-folder-grid" ref={folderGridRef} data-testid={`${mode}-deck-folders`}>
-              {rootRows.map((row, index) => <React.Fragment key={row.id}>
-                {renderRow(row, true)}
-                {folderRow && index === panelAfterIndex ? <section ref={folderSectionRef} className="core-deck-folder-expansion core-surface-raised rounded-panel grid min-w-0 gap-6 border border-core-border p-4 sm:p-6" aria-label={`Unterstapel von ${folderRow.path}`} data-testid="deck-folder-contents">
-                  <nav aria-label="Stapelpfad" className="core-deck-folder-breadcrumb" data-testid="deck-folder-navigation">
-                    <button type="button" onClick={closeFolder}>Alle Stapel</button>
-                    {folderTrail.map((entry) => <React.Fragment key={entry.id}>
-                      <ChevronRight size={16} aria-hidden="true" />
-                      {entry.id === folderRow.id ? <span aria-current="page">{entry.name}</span> : <button type="button" onClick={() => setFolderDeckId(entry.id)}>{entry.name}</button>}
-                    </React.Fragment>)}
-                  </nav>
-                  <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1 basis-44"><h4 className="break-words core-heading-3 font-semibold text-core-text">{folderRow.name}</h4>
-                      <p className="mt-1 core-caption text-core-muted">{formatLearningCardCount(folderRow.summary.totalCards)}{folderRow.descendantCount ? ` · ${folderRow.descendantCount} Unterstapel` : ""}</p></div>
-                    <div className="flex shrink-0 gap-2">
-                      <IconButton label="Eine Ebene zurück" icon={ArrowLeft} onClick={() => folderRow.parentDeckId ? setFolderDeckId(folderRow.parentDeckId) : closeFolder()} />
-                      <IconButton label="Unterstapelübersicht schließen" icon={X} onClick={closeFolder} />
-                    </div>
-                  </div>
-                  {folderRows.length ? <div className="core-deck-subfolder-grid">{folderRows.map((child) => renderRow(child, true, true))}</div> : <p className="core-body text-core-muted">Keine Unterstapel.</p>}
-                  <div className="flex flex-wrap gap-2">
-                    <ActionButton variant="secondary" icon={PanelsTopLeft} aria-label={`Alle Inhalte von ${folderRow.path} öffnen`} onClick={() => onActivate(folderRow)}>Alle Karten dieses Zweigs</ActionButton>
-                    <ActionButton variant="secondary" icon={Play} aria-label={`${folderRow.path} als Zweig lernen`} onClick={() => onStudy(folderRow)}>Diesen Zweig lernen</ActionButton>
-                  </div>
-                </section> : null}
-              </React.Fragment>)}
+          {rows.length === 0 ? contentAfterRows : null}
+          {view === "tiles" && rows.length > 0 ? (
+            <div className="core-deck-folder-grid" ref={folderGridRef} data-testid={`${mode}-deck-tiles`}>
+              {rootRows.map((row, index) => (
+                <React.Fragment key={row.id}>
+                  {renderRow(row, "folder")}
+                  {folderPanel && index === panelAfterIndex ? folderPanel : null}
+                </React.Fragment>
+              ))}
             </div>
           ) : visibleRows.length > 0 ? (
             <div className="core-deck-tree-rows min-w-0 max-w-full">
-              {navigation ? null : <DeckSummaryHeader />}
+              <DeckSummaryHeader />
               <div className="core-deck-tree-groups">
                 {rowGroups.map((group) => (
                   <section
@@ -620,7 +624,7 @@ export function DeckTree({ rows, mode, headerAction, contentBeforeRows, viewMode
               </div>
             </div>
           ) : null}
-          {rows.length > 0 && contentBeforeRows ? <div className={viewMode === "list" ? "core-deck-tree-create" : undefined}>{contentBeforeRows}</div> : null}
+          {rows.length > 0 && contentAfterRows ? <div className={view === "list" ? "core-deck-tree-create" : undefined}>{contentAfterRows}</div> : null}
         </div>
       </SoftPanel>
       {portalContent}
