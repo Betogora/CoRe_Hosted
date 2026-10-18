@@ -1,18 +1,17 @@
 import React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ArrowLeft, ChevronRight, Copy, PenLine, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, PenLine, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { createLearningSummary, createSummarySettings, deleteLearningSummary, duplicateLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
-import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
 import { SummaryDocumentEditor } from "./SummaryDocumentEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
-import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
 interface DeckSummariesPanelProps {
   deck: Deck;
@@ -37,8 +36,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
   const [advanced, setAdvanced] = React.useState(false);
   const [draft, setDraft] = React.useState<LearningSummary | null>(null);
   const [saved, setSaved] = React.useState<LearningSummary | null>(null);
-  /** Also set right after a save, so an action queued behind the save dialog sees the stored version. */
-  const savedRef = React.useRef(saved); savedRef.current = saved;
   const [busy, setBusy] = React.useState(false);
   const [source, setSource] = React.useState<TransientSourceDocument | null>(null);
   const [progress, setProgress] = React.useState("");
@@ -46,7 +43,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
   const generationRef = React.useRef<AbortController | null>(null);
   const [error, setError] = React.useState("");
   const [pending, setPending] = React.useState<(() => void) | null>(null);
-  const [confirmRegenerate, setConfirmRegenerate] = React.useState(false), [confirmDelete, setConfirmDelete] = React.useState(false);
   const titleRef = React.useRef<HTMLInputElement>(null);
   const aiTriggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLElement>(null);
@@ -100,7 +96,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     finally { operationRef.current = false; setBusy(false); setProgress(""); }
   }
 
-  /** Generates into `base` (a new or an existing Fassung) and stores the result; failures keep the current view. */
+  /** Generates an unsaved draft; failures keep the current view. */
   async function runGeneration(base: LearningSummary, generationSource: TransientSourceDocument | null) {
     if (operationRef.current || !onGenerateSummary) return;
     operationRef.current = true;
@@ -110,10 +106,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
       const result = await onGenerateSummary({ deckId: deck.id, title: base.title, settings: { ...base.settings }, source: generationSource }, controller.signal);
       if (controller.signal.aborted) return;
       const next = { ...base, ...result, pages: base.pages?.map((page, index) => ({ ...page, html: index === 0 ? result.html : "" })), updatedAt: new Date().toISOString() };
-      setDraft(next); setSaved(null); setView("editor"); setProgress("Zusammenfassung wird gespeichert …");
-      const stored = await saveLearningSummary(account, next);
-      if (controller.signal.aborted) return;
-      applySaved(stored); toast("KI-Zusammenfassung gespeichert.");
+      setDraft(next); setSaved(null); setView("editor"); toast("KI-Zusammenfassung erstellt.");
     } catch (cause: unknown) {
       if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Die KI-Zusammenfassung konnte nicht erstellt werden.");
     } finally {
@@ -125,12 +118,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     const title = newTitle.trim();
     if (!title) { setError("Bitte gib einen Titel für die Zusammenfassung ein."); titleRef.current?.focus(); return; }
     void runGeneration(createLearningSummary(deck.id, title, settings), source);
-  }
-  function regenerate() {
-    if (!draft) return;
-    const title = draft.title.trim();
-    if (!title) { setError("Bitte gib einen Titel für die Zusammenfassung ein."); titleRef.current?.focus(); return; }
-    void runGeneration({ ...draft, title }, null);
   }
 
   React.useEffect(() => {
@@ -150,38 +137,19 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     if (dirty) setPending(() => run);
     else run();
   }
-  function startCreate() { setSettings(createSummarySettings()); setNewTitle(deck.name.trim().slice(0, 120) || "Zusammenfassung"); setSource(null); setAdvanced(false); setError(""); setView("create"); }
+  function startCreate() { setSettings(createSummarySettings()); setNewTitle(deck.name.trim().slice(0, 120) || "Zusammenfassung"); setSource(null); setAdvanced(false); setError(""); setNotice(""); setView("create"); }
   function startManual() {
     setDraft(createLearningSummary(deck.id, deck.name.trim().slice(0, 120) || "Zusammenfassung", createSummarySettings()));
-    setSaved(null); savedRef.current = null; setError(""); setNotice(""); setView("editor");
+    setSaved(null); setError(""); setNotice(""); setView("editor");
   }
   function backToList() { setView("list"); setError(""); setDraft(null); setSaved(null); }
-  function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); savedRef.current = summary; setError(""); setNotice(""); setView("editor"); }
+  function open(summary: LearningSummary) { setDraft(summary); setSaved(summary); setError(""); setNotice(""); setView("editor"); }
   /** Opens what a save stored; after a conflict the draft continues in its „Konfliktfassung“ and the list shows the cloud state of the original. */
   function applySaved({ saved: stored, unsynced: pending, replaced }: SavedLearningSummary) {
     setSummaries((items) => [stored, ...(replaced?.summary ? [replaced.summary] : []), ...items.filter((item) => item.id !== stored.id && item.id !== replaced?.id)]);
     setUnsynced((ids) => new Set([...ids].filter((id) => id !== stored.id && id !== replaced?.id).concat(pending ? [stored.id] : [])));
     open(stored);
     if (replaced) setNotice(`Diese Fassung wurde auf einem anderen Gerät geändert. Deine Änderungen stehen in „${stored.title}“.`);
-  }
-  async function duplicate() {
-    const original = savedRef.current;
-    if (!original || operationRef.current) return;
-    operationRef.current = true; setBusy(true); setError("");
-    try {
-      applySaved(await saveLearningSummary(account, duplicateLearningSummary(original))); toast("Kopie gespeichert.");
-    } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Kopie konnte nicht gespeichert werden."); }
-    finally { operationRef.current = false; setBusy(false); }
-  }
-  async function remove() {
-    const id = saved?.id;
-    if (!id || operationRef.current) return;
-    operationRef.current = true; setBusy(true); setError("");
-    try {
-      await deleteLearningSummary(account, id);
-      setSummaries((items) => items.filter((item) => item.id !== id)); backToList(); toast("Zusammenfassung gelöscht.");
-    } catch (cause: unknown) { setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht gelöscht werden."); }
-    finally { operationRef.current = false; setBusy(false); }
   }
   function changeSetting<K extends keyof SummarySettings>(key: K, value: SummarySettings[K]) { setSettings((current) => ({ ...current, [key]: value })); }
   const filtered = summaries.filter((item) => `${item.title} ${summaryPlainText(item.html)}`.toLocaleLowerCase("de").includes(query.trim().toLocaleLowerCase("de")));
@@ -232,10 +200,10 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     </> : draft ? <>
       <div><ActionButton variant="secondary" icon={ArrowLeft} disabled={busy} onClick={() => request(backToList)}>Alle Zusammenfassungen</ActionButton></div>
 
-        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : unsynced.has(draft.id) ? "Noch nicht synchronisiert" : "Gespeichert"}</p></div><div className="flex flex-wrap gap-3">{saved ? <><CoreTooltip label="Duplizieren"><IconButton icon={Copy} label="Duplizieren" disabled={busy} onClick={() => request(() => void duplicate())}/></CoreTooltip><CoreTooltip label="Löschen"><IconButton icon={Trash2} label="Löschen" variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}/></CoreTooltip></> : null}{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}</div></div>
+        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : unsynced.has(draft.id) ? "Noch nicht synchronisiert" : "Gespeichert"}</p></div></div>
         {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
         {notice ? <StatusMessage tone="info" announce="polite">{notice}</StatusMessage> : null}
-        <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} onSave={() => void persist()} busy={busy} error={error}/>
+        <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} busy={busy}/>
         <div className="grid gap-3">
           {draft.generation && <p className="core-caption text-core-muted">Mit KI erstellt · {draft.generation.materialUnits} {draft.generation.materialUnits === 1 ? "Materialeinheit" : "Materialeinheiten"} · {draft.generation.privacyMode === "zdr" ? "Ohne Datenspeicherung beim Anbieter" : "Anbieter ohne ZDR-Zusage"}. Prüfe die Aussagen anhand deiner Grundlage.</p>}
           <p className="core-caption text-core-muted">Grundlage: {draft.settings.scope === "tree" ? "Stapel und Unterstapel" : "Dieser Stapel"} · {{ cards: "Nur Karten", "cards-and-source": "Karten und Quelle", source: "Nur Quelle" }[draft.settings.material]}</p>
@@ -243,8 +211,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     </> : null}
     {view !== "create" && progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}
     {view !== "create" && generationRef.current && <div><ActionButton variant="secondary" onClick={() => { generationRef.current?.abort(); setProgress("Erstellung wird abgebrochen …"); }}>KI-Erstellung abbrechen</ActionButton></div>}
-    <ActionDialog open={confirmRegenerate} title="Fassung neu erzeugen?" description="Die KI erstellt diese Fassung mit ihren gespeicherten Einstellungen neu. Der bisherige Text wird ersetzt." confirmLabel="Neu erzeugen" cancelLabel="Abbrechen" onCancel={() => setConfirmRegenerate(false)} onConfirm={() => { setConfirmRegenerate(false); regenerate(); }}/>
-    <ActionDialog open={confirmDelete} destructive title="Zusammenfassung löschen?" description={`„${saved?.title ?? ""}“ wird endgültig gelöscht.${dirty ? " Ungespeicherte Änderungen gehen ebenfalls verloren." : ""} Daraus erzeugte Mindmap-Karten bleiben erhalten.`} confirmLabel="Löschen" cancelLabel="Abbrechen" onCancel={() => setConfirmDelete(false)} onConfirm={() => { setConfirmDelete(false); void remove(); }}/>
-    <ActionDialog open={Boolean(pending)} title="Änderungen übernehmen?" description="Du hast ungespeicherte Änderungen an dieser Zusammenfassung. Speichere oder verwirf sie, bevor du den Bereich verlässt." confirmLabel="Speichern" cancelLabel="Weiter bearbeiten" discardLabel="Verwerfen" confirmLoading={busy} onCancel={() => setPending(null)} onDiscard={() => { const run = pending; setPending(null); run?.(); }} onConfirm={() => { void persist().then((success) => { if (success) { const run = pending; setPending(null); run?.(); } }); }} restoreFocus={(reason) => { if (reason === "cancel") titleRef.current?.focus(); }}/>
+    <ActionDialog open={Boolean(pending)} title="Änderungen übernehmen?" description={error || "Du hast ungespeicherte Änderungen an dieser Zusammenfassung. Speichere oder verwirf sie, bevor du den Bereich verlässt."} confirmLabel="Speichern" cancelLabel="Weiter bearbeiten" discardLabel="Verwerfen" confirmLoading={busy} onCancel={() => setPending(null)} onDiscard={() => { const run = pending; setPending(null); run?.(); }} onConfirm={() => { void persist().then((success) => { if (success) { const run = pending; setPending(null); run?.(); } }); }} restoreFocus={(reason) => { if (reason === "cancel") titleRef.current?.focus(); }}/>
   </section>;
 }

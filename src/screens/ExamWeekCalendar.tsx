@@ -8,7 +8,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { formatExamClock, formatExamDate } from "./examPlanningUi.ts";
+import { examTextColor, formatExamClock, formatExamDate } from "./examPlanningUi.ts";
 
 type TimeBlock = NonNullable<StudyTimeCapacity["timeBlocks"]>[number];
 type Selection = { date: string; first: number; last: number };
@@ -113,7 +113,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, today, date
             const tasks = shown.map((exam) => ({ exam, count: getExamCalendarWork(day, new Set([exam.id])).newCards, quiz: quizzes.get(key)?.includes(exam.id) })).filter((task) => task.count > 0 || task.quiz);
             return <div key={key} className="grid min-w-0 content-start gap-2 border-l border-core-border p-2">
               <button type="button" data-week-header={key} className={`min-h-control rounded-inset px-1 text-left core-body font-semibold ${key === today ? "bg-core-info-soft text-core-text" : "text-core-secondary"}`} onClick={() => { onSelect(key, false); setManualDate(key); }}>{formatExamDate(key, "short")}{key === today ? " · Heute" : ""}</button>
-              {shown.filter((exam) => exam.examDate === key).map((exam) => <span key={exam.id} className="break-words rounded-inset p-2 core-caption font-semibold" style={{ background: color(exam), color: "var(--core-exam-on-color)" }}>Klausur · {exam.name}</span>)}
+              {shown.filter((exam) => exam.examDate === key).map((exam) => <span key={exam.id} className="break-words rounded-inset p-2 core-caption font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>Klausur · {exam.name}</span>)}
               <div className="grid max-h-44 auto-rows-max content-start gap-2 overflow-y-auto" aria-label={`To-dos am ${formatExamDate(key)}`}>
                 {tasks.map(({ exam, count, quiz }) => <button key={exam.id} type="button" data-week-task={exam.id} aria-label={`${exam.name}: ${count} neue Karten${quiz ? ", Quiz empfohlen" : ""}. Fach auswählen oder in einen Zeitblock ziehen`} aria-pressed={subject === exam.id} disabled={busy || exam.status !== "active"} className="flex min-h-control min-w-0 touch-none select-none items-start gap-1 rounded-inset border-strong p-2 text-left" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} ${subject === exam.id ? 30 : 16}%, var(--core-surface))` }}
                   onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } setSubject(subject === exam.id ? "" : exam.id); }}
@@ -143,7 +143,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, today, date
             {(capacity.timeBlocks ?? []).filter((block) => block.date === key).map((block) => {
               const exam = exams.find((entry) => entry.id === block.examId);
               const muted = Boolean(exam && !shown.some((entry) => entry.id === exam.id));
-              return <button key={block.id} type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(block.start)} bis ${formatExamClock(block.end)}. ${blockName(block)}. ${subject ? "Ausgewähltes Fach zuordnen" : "Zeitblock auswählen"}`} aria-pressed={selectedId === block.id} className={`absolute inset-x-1 z-10 grid min-w-0 content-start gap-1 overflow-hidden rounded-inset border-strong p-1 text-left ${selectedId === block.id ? "shadow-selection" : ""} ${muted ? "opacity-50" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={{ top: block.start / 1440 * 100 + "%", height: (block.end - block.start) / 1440 * 100 + "%", ...(exam ? { background: color(exam), borderColor: color(exam), color: "var(--core-exam-on-color)" } : {}) }} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
+              return <button key={block.id} type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(block.start)} bis ${formatExamClock(block.end)}. ${blockName(block)}. ${subject ? "Ausgewähltes Fach zuordnen" : "Zeitblock auswählen"}`} aria-pressed={selectedId === block.id} className={`absolute inset-x-1 z-10 grid min-w-0 content-start gap-1 overflow-hidden rounded-inset border-strong p-1 text-left ${selectedId === block.id ? "shadow-selection" : ""} ${muted ? "opacity-50" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={{ top: block.start / 1440 * 100 + "%", height: (block.end - block.start) / 1440 * 100 + "%", ...(exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : {}) }} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
                 <strong className="min-w-0 break-words core-caption">{formatExamClock(block.start)}–{formatExamClock(block.end)}</strong><span className="min-w-0 break-words core-caption">{blockName(block)}</span>
               </button>;
             })}
@@ -151,7 +151,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, today, date
         </div>
       </div>
     </div>
-    {dragging ? <span className="pointer-events-none fixed z-50 max-w-48 rounded-control px-3 py-2 core-body font-semibold shadow-raised" style={{ left: dragging.x + 12, top: dragging.y + 12, background: color(exams.find((exam) => exam.id === dragging.examId)!), color: "var(--core-exam-on-color)" }}>{exams.find((exam) => exam.id === dragging.examId)?.name}</span> : null}
+    {dragging ? <span className="pointer-events-none fixed z-50 max-w-48 rounded-control px-3 py-2 core-body font-semibold shadow-raised" style={{ left: dragging.x + 12, top: dragging.y + 12, background: color(exams.find((exam) => exam.id === dragging.examId)!), color: examTextColor(exams.find((exam) => exam.id === dragging.examId)!) }}>{exams.find((exam) => exam.id === dragging.examId)?.name}</span> : null}
     <p className="core-caption text-core-muted">Für die Tastatur: Stundenraster fokussieren, mit Pfeiltasten die Uhrzeit wählen, mit Umschalt die Auswahl verlängern und mit Enter blocken. Auf schmalen Ansichten scrollt der Kalender seitlich.</p>
     <div className="grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="core-field-group"><span className="core-field-label">Zeitblock auswählen</span><CoreSelect ariaLabel="Zeitblock auswählen" value={selected?.id ?? ""} options={[{ value: "", label: "Zeitblock im Kalender wählen" }, ...weekBlocks.map((block) => ({ value: block.id, label: `${formatExamDate(block.date, "short")} · ${formatExamClock(block.start)}–${formatExamClock(block.end)} · ${blockName(block)}` }))]} onValueChange={setSelectedId} /></label>

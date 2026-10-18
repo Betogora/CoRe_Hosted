@@ -9,7 +9,8 @@ import { getLearningDayKey } from "../learningDay.ts";
 import { createDeckLibraryModel, type DeckLibrarySummary } from "../libraryModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
+import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
+import { ActionDialog, PageHeader, StatTile } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
@@ -23,6 +24,7 @@ const FIELD = "min-h-control w-full min-w-0 rounded-control border border-core-b
 const LABEL = "grid min-w-0 gap-2 core-body font-semibold text-core-muted";
 
 interface ExamPlanEditorProps {
+  embedded?: boolean; onDirtyChange?: (dirty: boolean) => void;
   decks: Deck[]; deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>; exams: ExamPlan[]; capacity: StudyTimeCapacity;
   initialPlan: ExamPlan | null; preferences: GlobalSchedulerPreferences; timeZone: string; now: string;
   onLoadPlanningData: ExamPlanningScreenProps["onLoadPlanningData"];
@@ -30,20 +32,38 @@ interface ExamPlanEditorProps {
 }
 
 /** Guided setup: the calendar follows the exam, scope, goal and weekly time. */
-export function ExamPlanEditor({ decks, deckSummaries, exams, capacity: savedCapacity, initialPlan, preferences, timeZone, now, onLoadPlanningData, onSave, onCancel, saving, saveError }: ExamPlanEditorProps) {
+export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSummaries, exams, capacity: savedCapacity, initialPlan, preferences, timeZone, now, onLoadPlanningData, onSave, onCancel, saving, saveError }: ExamPlanEditorProps) {
   const today = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
-  const [plan, setPlan] = React.useState<ExamPlan>(() => initialPlan ?? createExamPlan(today));
+  const [originalPlan] = React.useState(() => {
+    const original = initialPlan ?? createExamPlan(today);
+    const index = initialPlan ? Math.max(0, exams.findIndex((exam) => exam.id === original.id)) : exams.length;
+    const token = `--core-exam-color-${(original.colorIndex ?? index) + 1}`;
+    const fallback = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+    return { ...original, color: original.color ?? (fallback || "#6f7e9e") };
+  });
+  const [plan, setPlan] = React.useState<ExamPlan>(originalPlan);
   const [capacity, setCapacity] = React.useState(savedCapacity);
   const [step, setStep] = React.useState(0);
   const [acceptedRisk, setAcceptedRisk] = React.useState(false);
   const [selectionError, setSelectionError] = React.useState("");
+  const [discarding, setDiscarding] = React.useState(false);
+  const [showErrors, setShowErrors] = React.useState(false);
+  const dirty = JSON.stringify(plan) !== JSON.stringify(originalPlan) || JSON.stringify(capacity) !== JSON.stringify(savedCapacity);
+  React.useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+  React.useEffect(() => {
+    if (!dirty) return undefined;
+    const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => window.removeEventListener("beforeunload", beforeUnload);
+  }, [dirty]);
+  function cancel() { if (dirty) setDiscarding(true); else onCancel(); }
   const heading = React.useRef<HTMLHeadingElement>(null);
   const rows = React.useMemo(() => createDeckLibraryModel(decks, { now, timeZone, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, deckSummaries }).rows, [deckSummaries, decks, now, preferences.dayStartHour, preferences.learnAheadMinutes, timeZone]);
   const selected = new Set(plan.deckIds);
   const validBasics = Boolean(plan.name.trim() && plan.examDate > today && plan.examDate <= shiftExamDay(today, 365));
   const valid = validBasics && plan.deckIds.length > 0;
   const candidate = { ...plan, status: "active" as const, name: plan.name.trim() || "Neue Prüfung" };
-  const plannedExams = step === 3 && valid ? exams.some((exam) => exam.id === plan.id) ? exams.map((exam) => exam.id === plan.id ? candidate : exam) : [...exams, candidate] : [];
+  const plannedExams = (embedded || step === 3) && valid ? exams.some((exam) => exam.id === plan.id) ? exams.map((exam) => exam.id === plan.id ? candidate : exam) : [...exams, candidate] : [];
   const { forecast, current, busy, error } = useExamForecast({ decks, exams: plannedExams, capacity, preferences, timeZone, now, onLoadPlanningData, delayMs: 250 });
   const summary = current ? forecast?.exams.find((exam) => exam.examId === plan.id) ?? null : null;
   const canSave = valid && !saving && current && summary !== null && summary.totalCards > 0 && (summary.feasible || acceptedRisk);
@@ -57,28 +77,45 @@ export function ExamPlanEditor({ decks, deckSummaries, exams, capacity: savedCap
     if (next.length > EXAM_PLANNING_LIMITS.decksPerExam) { setSelectionError("Bitte wähle höchstens 200 Stapel aus."); return; }
     setSelectionError(""); patch({ deckIds: next, ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => next.includes(topic.deckId)) } : {}) });
   }
-  return <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6" data-testid="exam-plan-editor">
-    <PageHeader eyebrow="Prüfungen" title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} action={<ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={onCancel}>Zurück</ActionButton>} />
+  return <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6" data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
+    {!embedded ? <>
+    <PageHeader eyebrow="Prüfungen" title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} action={<ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={cancel}>Zurück</ActionButton>} />
     <ol className="grid grid-cols-4 gap-2" aria-label="Schritte der Prüfungsplanung">{STEPS.map((name, index) => <li key={name}><button type="button" disabled={saving || index > step} aria-current={step === index ? "step" : undefined} onClick={() => go(index)} className={`grid min-h-control w-full gap-1 rounded-control border px-2 py-3 text-left ${step === index ? "border-core-action bg-core-surface" : "border-transparent bg-core-subtle"}`}><span className="core-caption text-core-muted">{index + 1}</span><span className="break-words core-caption font-semibold text-core-text">{name}</span></button></li>)}</ol>
-    <SoftPanel className="grid min-w-0 gap-6 p-4 sm:p-6" data-testid="exam-plan-inspector">
-      <div><p className="core-caption text-core-muted">Schritt {step + 1} von 4</p><h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 font-semibold text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Dein Ziel und deine Zeit", "So sieht dein Lernplan aus"][step]}</h2></div>
-      {step === 0 ? <div className="grid max-w-2xl gap-5">
-        <p className="core-body text-core-muted">Gib deiner Prüfung einen Namen und lege den Termin fest. Danach wählen wir den Lernstoff und verteilen ihn auf deine verfügbaren Tage.</p>
-        <label className={LABEL}>Name<input autoComplete="off" placeholder="Zum Beispiel Anatomie" className={FIELD} maxLength={120} value={plan.name} onChange={(event) => patch({ name: event.target.value })} /></label>
+    </> : null}
+    <fieldset disabled={saving} className={embedded ? "grid min-w-0 gap-5" : "core-surface-raised grid min-w-0 gap-6 rounded-panel p-4 sm:p-6"} data-testid="exam-plan-inspector">
+      {!embedded ? <div><p className="core-caption text-core-muted">Schritt {step + 1} von 4</p><h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 font-semibold text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Dein Ziel und deine Zeit", "So sieht dein Lernplan aus"][step]}</h2></div> : <h5 className="core-body font-semibold text-core-text">Prüfung bearbeiten</h5>}
+      {embedded || step === 0 ? <div className="grid max-w-2xl gap-5">
+        {!embedded ? <p className="core-body text-core-muted">Gib deiner Prüfung einen Namen und lege den Termin fest. Danach wählen wir den Lernstoff und verteilen ihn auf deine verfügbaren Tage.</p> : null}
+        <label className={LABEL}>Name<input autoComplete="off" aria-invalid={showErrors && !plan.name.trim()} placeholder="Zum Beispiel Anatomie" className={FIELD} maxLength={120} value={plan.name} onChange={(event) => patch({ name: event.target.value })} /></label>
+        <label className={LABEL}>Farbe<ColorWheelPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
+        {showErrors && !plan.name.trim() ? <p role="alert" className="core-field-error">Bitte gib der Prüfung einen Namen.</p> : null}
         <div className={LABEL}><span>Prüfungsdatum</span><CoreDatePicker value={plan.examDate} min={shiftExamDay(today, 1)} max={shiftExamDay(today, 365)} today={today} ariaLabel="Prüfungsdatum auswählen" onValueChange={(examDate) => { patch({ examDate, ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => topic.date < examDate) } : {}) }); if (capacity.timeBlocks) patchCapacity({ timeBlocks: capacity.timeBlocks.filter((block) => block.examId !== plan.id || block.date < examDate) }); }} className="w-full" /></div>
+        {showErrors && (plan.examDate <= today || plan.examDate > shiftExamDay(today, 365)) ? <p role="alert" className="core-field-error">Wähle einen zukünftigen Termin innerhalb der nächsten 365 Tage.</p> : null}
         <p className="core-caption text-core-muted">Datum und Lernzeiten kannst du später anpassen. Bei einem früheren Termin werden spätere Themenwünsche und Zeitblöcke dieser Prüfung entfernt.</p>
       </div> : null}
-      {step === 1 ? <>
+      {embedded || step === 1 ? <details open={embedded ? (showErrors && !plan.deckIds.length) || undefined : true}>
+        <summary className={embedded ? "flex min-h-control cursor-pointer items-center gap-2 core-body font-semibold text-core-text" : "hidden"}>Stapel · {plan.deckIds.length} ausgewählt</summary><div className="grid min-w-0 gap-3">
         <p className="core-body text-core-muted">Ein Oberstapel wählt alle Unterstapel mit aus. Einzelne Unterstapel kannst du anschließend abwählen.</p>
         <fieldset className="grid min-w-0 gap-3"><legend className="core-body font-semibold text-core-muted">Stapel · {plan.deckIds.length} ausgewählt · {selectedCards} Karten</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
           const branch = row.childrenCount ? [...collectDeckTreeIds(decks, row.id)] : [row.id];
           const all = branch.every((id) => selected.has(id)), partial = !all && branch.some((id) => selected.has(id));
           return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-control px-3 py-2 hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={all} onChange={(event) => toggleDecks(branch, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption text-core-muted">{row.directInventory.totalCards}</span></label>;
         })}</div></fieldset>
+        {showErrors && !plan.deckIds.length ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
         <div className="rounded-control bg-core-subtle p-4"><p className="core-body font-semibold text-core-text">Zusammenhängend nach Themen lernen</p><p className="mt-1 core-body text-core-muted">Deine Unterstapel bilden die Themen. Kleine Themen bleiben möglichst an einem Tag; große Themen werden fortlaufend aufgeteilt. Ohne thematische Unterstapel behandeln wir den Stapel als ein Thema.</p></div>
-      </> : null}
-      {step === 2 ? <>
+      </div></details> : null}
+      {embedded ? <details><summary className="min-h-control cursor-pointer py-2 core-body font-semibold text-core-text">Ziel, Zeit und weitere Einstellungen</summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
+      {!embedded && step === 2 ? renderPlanningOptions() : null}
+      {valid && (embedded || step === 3) ? renderFeasibility() : null}
+      {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
+      {embedded ? <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end"><ActionButton variant="secondary" disabled={saving} onClick={cancel}>Abbrechen</ActionButton><ActionButton variant="primary" icon={Save} loading={saving} disabled={valid && !canSave} onClick={() => { if (!valid) setShowErrors(true); else void onSave({ ...plan, name: plan.name.trim(), updatedAt: new Date().toISOString() }, capacity); }}>Speichern</ActionButton></div> : renderStepActions()}
+    </fieldset>
+    {!embedded && step === 3 ? <ExamCalendar exams={plannedExams} capacity={capacity} forecast={current ? forecast : null} decks={decks} today={today} initialExamId={plan.id} busy={busy} onChange={(nextExams, nextCapacity) => { const changed = nextExams.find((exam) => exam.id === plan.id); if (changed) patch(changed); setCapacity(nextCapacity); setAcceptedRisk(false); }} /> : null}
+    <ActionDialog open={discarding} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setDiscarding(false)} onConfirm={onCancel} />
+  </div>;
+
+  function renderPlanningOptions() { return <>
         <fieldset className="grid gap-3"><legend className="core-body font-semibold text-core-muted">Wie sicher möchtest du den Stoff können?</legend><div className="mt-3 grid gap-3 sm:grid-cols-2">{EXAM_RETENTION_LEVELS.map((level, index) => <button key={level} type="button" aria-pressed={plan.desiredRetention === level} onClick={() => patch({ desiredRetention: level })} className={`min-h-control rounded-control border p-4 text-left ${plan.desiredRetention === level ? "border-core-action bg-core-subtle" : "border-core-border"}`}><strong className="block core-body text-core-text">{GOALS[index][0]}</strong><span className="core-caption text-core-muted">{GOALS[index][1]}</span></button>)}</div></fieldset>
         <fieldset className="grid gap-3"><legend className="core-body font-semibold text-core-muted">Wie viel Lernzeit hast du normalerweise?</legend><p className="mt-2 core-body text-core-muted">Diese Zeit teilen sich alle Prüfungen. 0 bedeutet frei. Einzelne Tage und genaue Uhrzeiten kannst du anschließend im Kalender ändern.</p><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{WEEKDAYS.map((name, index) => <label key={name} className={LABEL}>{name} · Min.<input className={FIELD} type="number" inputMode="numeric" min={0} max={1440} step={15} value={capacity.weekdays[index] ? weekly[index] : 0} onChange={(event) => { const minutes = Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))); patchCapacity({ weeklyMinutes: weekly.map((value, i) => i === index ? minutes : value), weekdays: capacity.weekdays.map((value, i) => i === index ? minutes > 0 : value) }); }} /></label>)}</div></fieldset>
         <details><summary className="min-h-control cursor-pointer py-3 core-body font-semibold text-core-text">Weitere Einstellungen</summary><div className="mt-3 grid gap-4 sm:grid-cols-2">
@@ -88,14 +125,10 @@ export function ExamPlanEditor({ decks, deckSummaries, exams, capacity: savedCap
           <label className={LABEL}>Mindestzeit an Lerntagen · Min.<input type="number" className={FIELD} min={0} max={1440} value={capacity.minimumMinutes} onChange={(event) => patchCapacity({ minimumMinutes: Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))) })} /></label>
           <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.variants} onChange={(event) => patch({ variants: event.target.checked })} />Varianten einbeziehen</label><p className="core-caption text-core-muted">Abrufziel: {formatExamPercent(plan.desiredRetention)} · keine Bestehenswahrscheinlichkeit. Quiz, Altfragen und Prüfungssimulation sind noch nicht angebunden.</p>
         </div></details>
-      </> : null}
-      {step === 3 ? <div className="grid gap-4" data-testid="exam-feasibility" aria-busy={busy}>
+      </>; }
+  function renderFeasibility() { return <div className="grid gap-4" data-testid="exam-feasibility" aria-busy={busy}>
         {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}{!summary && !error ? <p role="status" className="core-body text-core-muted">Dein Plan wird berechnet …</p> : null}
         {summary ? <><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatTile size="compact" label="Karten" value={String(summary.totalCards)} /><StatTile size="compact" label="Lerntage" value={String(summary.usableDays)} /><StatTile size="compact" label="Benötigte Zeit" value={formatExamMinutes(summary.requiredMinutes)} /><StatTile size="compact" label="Verfügbare Zeit" value={formatExamMinutes(summary.availableMinutes)} /></div><StatusMessage tone={summary.feasible ? "success" : "warning"}>{summary.feasible ? "Dein Ziel passt in die verfügbare Zeit." : summary.issues[0] ?? "Dein Ziel braucht mehr Zeit."}</StatusMessage>{summary.issues.length > 1 ? <ul className="grid gap-1 core-body text-core-muted">{summary.issues.slice(1).map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}{!summary.feasible ? <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={acceptedRisk} onChange={(event) => setAcceptedRisk(event.target.checked)} />Trotz Gefährdung aktivieren</label> : null}<p className="core-caption text-core-muted">{forecast?.uncertainty === "high" ? "Wenig Lernhistorie · Zeiten geschätzt. " : ""}Die Prognose passt sich an deinen Lernstand an.</p></> : null}
-      </div> : null}
-      {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
-      <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={() => go(step - 1)}>Vorheriger Schritt</ActionButton> : <span />}{step < 3 ? <ActionButton variant="primary" icon={ArrowRight} disabled={(step === 0 && !validBasics) || (step === 1 && !plan.deckIds.length)} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zu Ziel und Zeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!canSave} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>
-    </SoftPanel>
-    {step === 3 ? <ExamCalendar exams={plannedExams} capacity={capacity} forecast={current ? forecast : null} decks={decks} today={today} initialExamId={plan.id} busy={busy} onChange={(nextExams, nextCapacity) => { const changed = nextExams.find((exam) => exam.id === plan.id); if (changed) patch(changed); setCapacity(nextCapacity); setAcceptedRisk(false); }} /> : null}
-  </div>;
+      </div>; }
+  function renderStepActions() { return <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={() => go(step - 1)}>Vorheriger Schritt</ActionButton> : <span />}{step < 3 ? <ActionButton variant="primary" icon={ArrowRight} disabled={(step === 0 && !validBasics) || (step === 1 && !plan.deckIds.length)} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zu Ziel und Zeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!canSave} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>; }
 }

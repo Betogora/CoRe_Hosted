@@ -1,8 +1,15 @@
+import { colorContrast } from "../ui/colorMath.ts";
+
 const LONG_DATE = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
 const SHORT_DATE = new Intl.DateTimeFormat("de-DE", { weekday: "short", day: "numeric", month: "numeric", timeZone: "UTC" });
 
-export function examColor(index: number) {
-  return `var(--core-exam-color-${index + 1})`;
+export function examColor(index: number, exam?: { colorIndex?: number; color?: string }) {
+  return exam?.color ?? `var(--core-exam-color-${(exam?.colorIndex ?? index) + 1})`;
+}
+
+export function examTextColor(exam: { color?: string }) {
+  if (!exam.color) return "var(--core-exam-on-color)";
+  return colorContrast(exam.color, "#000000") >= 4.5 ? "#000000" : "#ffffff";
 }
 
 export function formatExamDate(key: string, format: "long" | "short" = "long") {

@@ -119,6 +119,35 @@ test("pausierte und abgeschlossene Prüfungen buchen keine Arbeit, behalten aber
   assert.equal(progress.coverage, 0.2);
 });
 
+test("Gesehen und gefestigt unterscheiden aktuelle Reife, Lernschritte und Rückfälle", async () => {
+  const input = [
+    card(0),
+    card(1, { study: { ...reviewed, state: "learning" }, maturityXp: 121 }),
+    card(2, { study: reviewed, maturityXp: 80 }),
+    card(3, { study: reviewed, maturityXp: 81 }),
+    card(4, { study: reviewed, maturityXp: 181, activeVariantCount: 3 }),
+    card(5, { study: { ...reviewed, lastRating: "again" }, maturityXp: 200 }),
+    card(6, { study: { ...reviewed, state: "relearning" }, maturityXp: 200 }),
+    card(7, { status: "suspended", study: reviewed, maturityXp: 200 }),
+    card(8, { deckId: "other", study: reviewed, maturityXp: 200 }),
+  ];
+  const exam = plan();
+  const progress = getExamCurrentProgress(input, exam, now, timeZone);
+  assert.equal(progress.totalCards, 7);
+  assert.equal(progress.coverage, 6 / 7);
+  assert.equal(progress.consolidated, 2 / 7);
+  const forecast = await createExamPortfolioForecast(decks, input, [exam], options);
+  assert.equal(forecast.exams[0].current.consolidated, progress.consolidated, "Die Übersicht verwendet den belegten Lernstand vor der Simulation");
+  assert.equal(getExamCurrentProgress([], exam, now, timeZone).consolidated, 0);
+});
+
+test("erfolgreiche Variantenantworten zählen über die gemeinsame Kartenreife", () => {
+  const before = { ...reviewed, maturityXp: 65 };
+  const next = scheduleWithFsrs(before, "good", { now, timeZone, dayStartHour: 0, deckSettings: decks[0].deckSettings, isVariant: true });
+  assert.equal(next.maturityXp, 81);
+  assert.equal(getExamCurrentProgress([card(0, { study: next, maturityXp: next.maturityXp, activeVariantCount: 2 })], plan(), now, timeZone).consolidated, 1);
+});
+
 test("Varianten zählen als eigene Methode und lassen sich je Prüfung abschalten", async () => {
   const variantDeck = createCoreDeck({ id: "root", name: "Prüfung", deckSettings: { coreMode: "on" } });
   const input = [card(0, { study: reviewed, activeVariantCount: 1, maturityXp: 500 })];

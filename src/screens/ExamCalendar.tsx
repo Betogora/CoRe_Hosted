@@ -8,7 +8,7 @@ import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { SoftPanel, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
-import { examColor, formatExamClock as clock, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
+import { examColor, examTextColor, formatExamClock as clock, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
 import { createExamQuizRecommendations, getExamCalendarWork } from "../examCalendarModel.ts";
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
@@ -80,15 +80,15 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <CoreSegmentedControl ariaLabel="Kalenderansicht" value={view} options={[{ value: "month", label: "Monat" }, { value: "week", label: "Woche" }]} onValueChange={setView} />
-      <div className="flex flex-wrap gap-2 core-caption">{shown.map((exam) => <span key={exam.id} className="rounded-inset px-3 py-2 font-semibold" style={{ background: examColor(exams.indexOf(exam)), color: "var(--core-exam-on-color)" }}>{exam.name}</span>)}</div>
+      <div className="flex flex-wrap gap-2 core-caption">{shown.map((exam) => <span key={exam.id} className="rounded-inset px-3 py-2 font-semibold" style={{ background: examColor(exams.indexOf(exam), exam), color: examTextColor(exam) }}>{exam.name}</span>)}</div>
     </div>
-    {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam))} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam))} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
+    {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
     {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
     {detailsOpen ? <>
     <SoftPanel className="grid min-w-0 gap-5 p-4 sm:p-6" data-testid="exam-day-editor">
       <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 font-semibold text-core-text">{formatExamDate(date)}</h4><p className="core-body text-core-muted">{formatExamMinutes(selectedWork.minutes)} Lernstoff · {formatExamMinutes(getExamDayCapacity(date, capacity))} Zeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
       {shown.filter((exam) => exam.examDate === date).map((exam) => <StatusMessage key={exam.id} tone="info">Klausur: {exam.name}. Prüfungstage bleiben frei.</StatusMessage>)}
-      {selectedSubjects.length ? <ul className="grid gap-2" aria-label="Lernaufgaben an diesem Tag">{selectedSubjects.map(({ exam, newCards, quiz }) => <li key={exam.id} className="min-w-0 break-words rounded-inset border-l-strong p-3 core-body text-core-text" style={{ borderColor: examColor(exams.indexOf(exam)), background: `color-mix(in srgb, ${examColor(exams.indexOf(exam))} 10%, var(--core-surface))` }}><strong>{exam.name}</strong> · {hasSelectedForecast ? `${newCards} neue Karten` : "Karten: –"}{quiz ? " · Quiz empfohlen" : ""}</li>)}</ul> : null}
+      {selectedSubjects.length ? <ul className="grid gap-2" aria-label="Lernaufgaben an diesem Tag">{selectedSubjects.map(({ exam, newCards, quiz }) => <li key={exam.id} className="min-w-0 break-words rounded-inset border-l-strong p-3 core-body text-core-text" style={{ borderColor: examColor(exams.indexOf(exam), exam), background: `color-mix(in srgb, ${examColor(exams.indexOf(exam), exam)} 10%, var(--core-surface))` }}><strong>{exam.name}</strong> · {hasSelectedForecast ? `${newCards} neue Karten` : "Karten: –"}{quiz ? " · Quiz empfohlen" : ""}</li>)}</ul> : null}
       <ul className="grid gap-2" aria-label="Themen an diesem Tag">{[...new Set(selectedWork.blocks.map((block) => block.deckId))].map((id) => <li key={id} className="core-body text-core-text">{deckName(id)} · {formatExamMinutes(selectedWork.blocks.filter((block) => block.deckId === id).reduce((sum, block) => sum + block.plannedMinutes, 0))}</li>)}</ul>
       <fieldset disabled={busy || date < today || date >= horizon} className="min-w-0">
       <div className="grid min-w-0 gap-5 md:grid-cols-2">

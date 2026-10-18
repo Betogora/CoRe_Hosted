@@ -9,6 +9,16 @@ import { withGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 import { createExamPlan, createStudyTimeCapacity } from "../examPlanSettings.ts";
 import { estimateExamHistory, type ExamPortfolioForecast, type StudyPlanBlock } from "../examPlanning.ts";
+import { examColor, examTextColor } from "./examPlanningUi.ts";
+import { colorContrast } from "../ui/colorMath.ts";
+
+test("freie Prüfungsfarben behalten ihren Farbwert mit lesbarer Schrift", () => {
+  for (const color of ["#ffffff", "#ffff00", "#00ff00", "#ff0000", "#0000ff", "#000000", "#6f7e9e"]) {
+    assert.equal(examColor(0, { color, colorIndex: 4 }), color);
+    assert.ok(colorContrast(color, examTextColor({ color })) >= 4.5);
+  }
+  assert.equal(examColor(0, { colorIndex: 4 }), "var(--core-exam-color-5)");
+});
 
 test("the empty exam screen starts with a month calendar and creation below", () => {
   const markup = renderToStaticMarkup(<ExamPlanningScreen state={createCoreRepository().getState()} now="2026-10-18T08:00:00Z" onLoadPlanningData={async () => { throw new Error("Not used in static rendering"); }} onSavePlanning={async () => undefined} onStartUnit={async () => undefined} />);
@@ -16,6 +26,17 @@ test("the empty exam screen starts with a month calendar and creation below", ()
   assert.match(markup, /Oktober 2026/);
   assert.match(markup, /Noch keine Prüfung geplant/);
   assert.doesNotMatch(markup, /data-testid="exam-day-editor"/);
+});
+
+test("Prüfungskarten beginnen als neutrale, beschriftete Disclosure ohne sofortige Aktionen", () => {
+  const state = createCoreRepository().getState();
+  const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-11-19" };
+  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 1, exams: [exam], capacity: createStudyTimeCapacity() } });
+  const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onStartUnit={async () => undefined} />);
+  assert.match(html, /aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*aria-label="Patho: Details öffnen"/);
+  assert.match(html, /19\. November 2026[^]*?Noch 32 Tage/);
+  assert.doesNotMatch(html, /data-testid="exam-card-details"/);
+  assert.doesNotMatch(html, />Bearbeiten<|>Pausieren<|>Abschließen</);
 });
 
 test("calendar combines each subject with its new cards and quiz instead of duration or repetitions", () => {
@@ -73,14 +94,14 @@ test("Wochenansicht zeigt To-dos über 24 Stunden und erhält neutrale Lernzeitb
 
 test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und nur vorbereitete Quizaktionen", () => {
   const state = createCoreRepository().getState();
-  const date = "2026-10-20", exam = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27" };
+  const date = "2026-10-20", exam = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27", colorIndex: 4 };
   state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 1, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [
     { id: "topic:anatomy:deck", examId: exam.id, date, kind: "study", deckIds: ["deck"], cardIds: ["card"], capturedAt: date + "T08:00:00.000Z", completed: "automatic" },
     { id: "quiz:anatomy:" + date, examId: exam.id, date, kind: "quiz", deckIds: ["deck"], cardIds: [], capturedAt: date + "T08:00:00.000Z", completed: null },
   ] } });
   const html = renderToStaticMarkup(<ExamDashboardWidget state={state} now={date + "T12:00:00.000Z"} onLoad={async () => { throw new Error("Not called in SSR"); }} onSaveTasks={async () => undefined} onStart={async () => undefined} onOpen={() => undefined} />);
   assert.doesNotMatch(html, /Gut im Zeitplan|Im Zeitplan|exam-pace|Std\.|Min\./);
-  assert.match(html, /background:color-mix\(in srgb, var\(--core-exam-color-1\) 10%/);
+  assert.match(html, /background:color-mix\(in srgb, var\(--core-exam-color-5\) 10%/);
   assert.match(html, /type="checkbox"[^>]*checked=""/);
   assert.match(html, /Automatisch erledigt/);
   assert.match(html, /Themenquiz/);

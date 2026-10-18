@@ -69,7 +69,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
       const own = tasks.filter((task) => task.examId === exam.id).sort((a, b) => Number(a.completed !== null) - Number(b.completed !== null));
       const expanded = expandedExams.includes(exam.id);
       const listId = `${taskListId}-${exam.id}`;
-      const color = examColor(exams.indexOf(exam));
+      const color = examColor(exams.indexOf(exam), exam);
       const openCount = own.filter((task) => !task.completed).length;
       return <section key={exam.id} className="grid min-w-0 content-start gap-3 rounded-panel border border-core-border p-4" aria-label={exam.name} style={{ background: `color-mix(in srgb, ${color} 10%, var(--core-surface))` }}>
         <div><h3 className="break-words core-heading-3 font-semibold text-core-text">{exam.name}</h3><p className="core-caption text-core-muted">In {examDayDistance(civilToday, exam.examDate)} Tagen · {current ? `${openCount} offene ${openCount === 1 ? "Aufgabe" : "Aufgaben"}` : "Aufgaben werden berechnet …"}</p></div>

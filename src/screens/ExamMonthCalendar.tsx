@@ -5,7 +5,7 @@ import type { ExamPortfolioForecast } from "../examPlanning.ts";
 import { createExamMonthDays, createExamQuizRecommendations, getExamCalendarWork, shiftExamMonth } from "../examCalendarModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
-import { formatExamDate } from "./examPlanningUi.ts";
+import { examTextColor, formatExamDate } from "./examPlanningUi.ts";
 
 export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, date, color, onSelect }: {
   exams: ExamPlan[]; shown: ExamPlan[]; capacity: StudyTimeCapacity; forecast: ExamPortfolioForecast | null;
@@ -48,7 +48,7 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
             aria-label={`${formatExamDate(key)}${key === today ? ", heute" : ""}. ${appointments.map((exam) => `Klausur: ${exam.name}. `).join("")}${countLabel}${quizzes.length ? `. Quiz empfohlen: ${quizzes.map((exam) => exam.name).join(", ")}` : ""}. Tagesdetails öffnen`}
             onClick={() => onSelect(key)} className={`grid min-h-0 min-w-0 content-start gap-0.5 overflow-hidden p-0.5 text-left transition hover:bg-core-subtle ${date === key ? "bg-core-info-soft shadow-inset" : outside ? "bg-core-subtle" : "bg-core-surface"}`}>
             <span className="flex h-5 min-w-0 items-center justify-between"><span className={`grid size-5 shrink-0 place-items-center rounded-round core-caption font-semibold ${key === today ? "bg-core-action text-core-on-accent" : outside ? "text-core-muted" : "text-core-text"}`}>{Number(key.slice(8))}</span>{remaining ? <span className="exam-month-more text-core-muted" title={`${remaining} weitere Einträge in den Tagesdetails`}>+{remaining}</span> : null}</span>
-            {appointments.slice(0, visibleEntries).map((exam) => <span key={exam.id} data-exam-appointment={exam.id} title={`Klausur: ${exam.name}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset px-1 font-bold" style={{ background: color(exam), color: "var(--core-exam-on-color)" }}><Flag size={11} className="shrink-0" aria-hidden="true" /><span className="truncate"><span className="sr-only">Klausur: </span>{exam.name}</span></span>)}
+            {appointments.slice(0, visibleEntries).map((exam) => <span key={exam.id} data-exam-appointment={exam.id} title={`Klausur: ${exam.name}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset px-1 font-bold" style={{ background: color(exam), color: examTextColor(exam) }}><Flag size={11} className="shrink-0" aria-hidden="true" /><span className="truncate"><span className="sr-only">Klausur: </span>{exam.name}</span></span>)}
             {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz }) => <span key={exam.id} data-exam-subject={exam.id} title={`${exam.name}: ${hasForecast ? `${newCards} neue Karten` : "Karten: –"}${quiz ? " · Quiz empfohlen" : ""}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset border-l-strong px-1 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>
               <strong className="exam-month-subject-name min-w-0 flex-1 truncate font-medium">{exam.name}</strong>
               <span className="shrink-0">{hasForecast ? <>{newCards}<span className="sr-only"> neue Karten</span></> : "–"}</span>
