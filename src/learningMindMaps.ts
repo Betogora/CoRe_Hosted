@@ -302,7 +302,7 @@ export function mindMapNodeDirection(node: MindMapNode, parent?: MindMapNode) {
 }
 
 /** `content` (label, texts) is applied before placement so the card height is already final. */
-export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | null, relation: "root" | "sibling" | "child", kind: MindMapNode["kind"] = "keyword", position: MindMapPoint = { x: 0, y: 0 }, content: Pick<Partial<MindMapNode>, "label" | "sourceText"> = {}): { map: LearningMindMap; node: MindMapNode } {
+export function addMindMapRelativeNode(map: LearningMindMap, anchorId: string | null, relation: "root" | "sibling" | "child", kind: MindMapNode["kind"] = "keyword", position: MindMapPoint = { x: 0, y: 0 }, content: Pick<Partial<MindMapNode>, "label" | "text" | "sourceText"> = {}): { map: LearningMindMap; node: MindMapNode } {
   const anchor = map.nodes.find((node) => node.id === anchorId);
   if (relation !== "root" && (anchor?.kind === "freeText" || kind === "freeText")) throw new Error("Freier Flächentext hat keine Unterknoten oder Geschwisterkarten.");
   const parent = relation === "child" ? anchor : relation === "sibling" && anchor?.parentId ? map.nodes.find((node) => node.id === anchor.parentId) : undefined;
@@ -504,7 +504,7 @@ export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
   const place = (item: SummaryTreeItem, parentId: string | null) => {
     if (map.nodes.length >= 2000) throw new Error("Die Zusammenfassung ist für diesen ersten Mindmap-Versuch zu umfangreich. Verwende eine kürzere Fassung.");
     const sourceText = item.sourceText ?? (item.paragraphs.join("\n\n") || undefined);
-    const added = addMindMapRelativeNode(map, parentId, parentId ? "child" : "root", "keyword", { x: 0, y: 0 }, { label: item.label, ...(sourceText ? { sourceText } : {}) });
+    const added = addMindMapRelativeNode(map, parentId, parentId ? "child" : "root", item.children.length ? "keyword" : "text", { x: 0, y: 0 }, { label: item.label, text: sourceText ?? "", ...(sourceText ? { sourceText } : {}) });
     map = added.map; ids.set(item, added.node.id);
   };
   // Breadth first, so the main branches spread around the root before their cards are stacked outward.
