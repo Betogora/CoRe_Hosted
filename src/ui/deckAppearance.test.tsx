@@ -12,7 +12,7 @@ test("deck appearance uses the selected color for icon, border and translucent r
   assert.match(markup, /rounded-control border size-control/);
   assert.match(markup, /color:#047857/);
   assert.match(markup, /border-color:#047857/);
-  assert.match(markup, /background-color:#0478571f/);
+  assert.match(markup, /background-color:var\(--core-deck-icon-background, #0478571f\)/);
 });
 
 test("deck icon picker exposes the curated 5 by 5 selection without narrowing persisted icon support", () => {

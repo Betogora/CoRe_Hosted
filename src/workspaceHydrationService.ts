@@ -1,4 +1,4 @@
-import type { Card, Note } from "./coreTypes.ts";
+import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
@@ -460,6 +460,30 @@ export function createWorkspaceHydrationService({
     return loadReimportTargets(client, ankiGuids);
   };
 
+  const prepareContentDecks = async (deckIds: string[]): Promise<{ decks: Deck[]; notes: Note[] }> => {
+    const shell = repository.getShellState();
+    const decks: Deck[] = [];
+    const notes = new Map<string, Note>();
+    for (const deckId of [...new Set(deckIds)]) {
+      const deck = shell.decks.find((candidate) => candidate.id === deckId && !candidate.deletedAt);
+      if (!deck) throw new Error("Ein gewählter Stapel ist nicht mehr verfügbar.");
+      const cards: Card[] = [];
+      for (let page = 0; ; page += 1) {
+        const result = await queryCardPage({ deckId, page, pageSize: 50 });
+        if (result.limitedToLocalCatalog) throw new Error("Der gewählte Stapel ist noch nicht vollständig verfügbar.");
+        const bodies = await hydrateCards(result.items.map((entry) => entry.id));
+        for (const body of bodies) {
+          if (!body) throw new Error("Ein Karteninhalt konnte nicht geladen werden.");
+          cards.push(body.card);
+          notes.set(body.note.id, body.note);
+        }
+        if (!result.hasMore) break;
+      }
+      decks.push({ ...deck, cards });
+    }
+    return { decks, notes: [...notes.values()] };
+  };
+
   return {
     queryCardPage,
     openCard,
@@ -471,6 +495,7 @@ export function createWorkspaceHydrationService({
     refreshStatistics,
     refreshDueForecast,
     prepareReimport,
+    prepareContentDecks,
   };
 }
 

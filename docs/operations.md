@@ -300,7 +300,7 @@ npm run test:e2e:local
 
 Dieser Ablauf darf ausschließlich gegen das verifizierte CoRe-Produktionsprojekt ausgeführt werden. Das aktuell anderweitig verbundene Projekt `smarter-nutrition` ist kein zulässiges Ziel.
 
-1. Zuerst die neue Anwendung deployen und prüfen, dass ausgemusterte `/api/ai/*`-Routen außer `/api/ai/card-variant` sowie `/api/imports/apkg` `404` liefern und keine Labs-/Server-APKG-Schreibvorgänge mehr entstehen.
+1. Zuerst die neue Anwendung deployen und prüfen, dass ausgemusterte `/api/ai/*`-Routen außer `/api/ai/card-variant` und `/api/ai/summary` sowie `/api/imports/apkg` `404` liefern und keine Labs-/Server-APKG-Schreibvorgänge mehr entstehen.
 2. Aktive Trigger- und APKG-Jobs ausschließen. Die CoRe-Projekt-Ref aus der verifizierten Vercel-Production-Konfiguration ermitteln und gegen die Supabase-URL prüfen.
 3. Vor der Migration ausschließlich IDs und Storage-Pfade der zu löschenden Daten in ein unversioniertes Manifest unter `test-results/` schreiben. Das Manifest enthält keine Nutzdaten oder Objektbytes und ist kein Backup.
 4. Löschzahlen und Projekt-Ref im Vier-Augen-Prinzip bestätigen, dann `20260801103920_retire_labs_and_server_apkg.sql` anwenden.

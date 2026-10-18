@@ -10,6 +10,9 @@ const reviewReturnViews = ["today", "learn", "decks"] as const;
 const settingsReturnViews = [...reviewReturnViews, "review"] as const;
 const settingsTargets = ["new-cards-per-day"] as const;
 
+const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
+export type DeckContentTab = typeof deckContentTabs[number];
+
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 export type ReviewReturnView = typeof reviewReturnViews[number];
 export type SettingsReturnView = typeof settingsReturnViews[number];
@@ -20,6 +23,7 @@ export interface ReviewReturnContext {
   deckId?: string;
   cardId?: string;
   deckContent?: boolean;
+  deckContentTab?: DeckContentTab;
 }
 
 export type ReviewResumeContext = Omit<StudyRoute, "mode">;
@@ -35,6 +39,7 @@ export interface ViewRoute {
   focusedDeckId?: string;
   selectedCardId?: string;
   deckContent?: boolean;
+  deckContentTab?: DeckContentTab;
   deckCreationParentId?: string;
   creationMethod?: "manual" | "import";
   creationDeckId?: string;
@@ -63,6 +68,7 @@ interface ReviewReturnContextInput {
   deckId?: unknown;
   cardId?: unknown;
   deckContent?: unknown;
+  deckContentTab?: unknown;
 }
 
 interface ReviewResumeContextInput {
@@ -76,6 +82,7 @@ interface ViewRouteInput {
   focusedDeckId?: unknown;
   selectedCardId?: unknown;
   deckContent?: unknown;
+  deckContentTab?: unknown;
   deckCreationParentId?: unknown;
   creationMethod?: unknown;
   creationDeckId?: unknown;
@@ -103,6 +110,10 @@ function cleanIdentifier(value: unknown): string {
   return String(value ?? "").trim();
 }
 
+function normalizeDeckContentTab(value: unknown): DeckContentTab | undefined {
+  return deckContentTabs.includes(value as DeckContentTab) ? value as DeckContentTab : undefined;
+}
+
 function cleanCompletedCount(value: unknown): number | null {
   const count = Number(value);
   return Number.isSafeInteger(count) && count >= 0 ? count : null;
@@ -123,6 +134,7 @@ function normalizeViewRoute(
   const viewId = normalizeViewId(route.viewId);
   const focusedDeckId = cleanIdentifier(route.focusedDeckId);
   const selectedCardId = cleanIdentifier(route.selectedCardId);
+  const deckContentTab = normalizeDeckContentTab(route.deckContentTab);
   const deckCreationParentId = cleanIdentifier(route.deckCreationParentId);
   const creationMethod = ["manual", "import"].includes(String(route.creationMethod))
     ? route.creationMethod as "manual" | "import"
@@ -156,6 +168,7 @@ function normalizeViewRoute(
     ...(["lernen", "kartenstapel", "stapel-einstellungen"].includes(viewId) && focusedDeckId ? { focusedDeckId } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId ? { selectedCardId } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true ? { deckContent: true } : {}),
+    ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true && deckContentTab ? { deckContentTab: selectedCardId ? "cards" : deckContentTab } : {}),
     ...(viewId === "lernen" && deckCreationParentId ? { deckCreationParentId } : {}),
     ...(viewId === "neue-karten" && creationMethod ? { creationMethod } : {}),
     ...(viewId === "neue-karten" && creationDeckId ? { creationDeckId } : {}),
@@ -181,6 +194,7 @@ function legacyViewRouteToReturnContext(route: ViewRouteInput | undefined, fallb
       ...(focusedDeckId ? { deckId: focusedDeckId } : {}),
       ...(focusedDeckId && selectedCardId ? { cardId: selectedCardId } : {}),
       ...(focusedDeckId && route?.deckContent === true ? { deckContent: true } : {}),
+      ...(focusedDeckId && route?.deckContent === true && normalizeDeckContentTab(route.deckContentTab) ? { deckContentTab: normalizeDeckContentTab(route.deckContentTab) } : {}),
     };
   }
   return {
@@ -203,6 +217,7 @@ function normalizeReviewReturnContext(
     ...(view !== "today" && deckId ? { deckId } : {}),
     ...(view === "decks" && deckId && cardId ? { cardId } : {}),
     ...(view === "decks" && deckId && context?.deckContent === true ? { deckContent: true } : {}),
+    ...(view === "decks" && deckId && context?.deckContent === true && normalizeDeckContentTab(context.deckContentTab) ? { deckContentTab: normalizeDeckContentTab(context.deckContentTab) } : {}),
   };
 }
 
@@ -234,6 +249,7 @@ export function reviewReturnContextToViewRoute(
       focusedDeckId: context.deckId,
       selectedCardId: context.cardId,
       deckContent: context.deckContent,
+      deckContentTab: context.deckContentTab,
     }, options);
   }
   return createViewRoute("lernen", { focusedDeckId: context.deckId }, options);
@@ -302,6 +318,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
         deckId: url.searchParams.get("returnDeck") ?? undefined,
         cardId: url.searchParams.get("returnCard") ?? undefined,
         deckContent: url.searchParams.get("returnContent") === "1",
+        deckContentTab: url.searchParams.get("returnTab") ?? undefined,
       },
     }, options);
   }
@@ -317,6 +334,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     focusedDeckId: url.searchParams.get("deck") ?? undefined,
     selectedCardId: url.searchParams.get("card") ?? undefined,
     deckContent: url.searchParams.get("content") === "1",
+    deckContentTab: url.searchParams.get("tab") ?? undefined,
     deckCreationParentId: url.searchParams.get("parent") ?? undefined,
     creationMethod: url.searchParams.get("method") ?? undefined,
     creationDeckId: url.searchParams.get("deck") ?? undefined,
@@ -341,6 +359,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     if (normalized.returnContext.deckId) params.set("returnDeck", normalized.returnContext.deckId);
     if (normalized.returnContext.cardId) params.set("returnCard", normalized.returnContext.cardId);
     if (normalized.returnContext.deckContent) params.set("returnContent", "1");
+    if (normalized.returnContext.deckContentTab) params.set("returnTab", normalized.returnContext.deckContentTab);
     return `/decks/${encodeURIComponent(normalized.deckId)}/review?${params.toString()}`;
   }
   const path = normalized.viewId === defaultViewId ? "/" : `/${encodeURIComponent(normalized.viewId)}`;
@@ -350,6 +369,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
   if (normalized.deckContent) params.set("content", "1");
+  if (normalized.deckContentTab) params.set("tab", normalized.deckContentTab);
   if (normalized.viewId === "lernen" && normalized.deckCreationParentId) params.set("parent", normalized.deckCreationParentId);
   if (normalized.viewId === "neue-karten" && normalized.creationMethod) params.set("method", normalized.creationMethod);
   if (normalized.viewId === "neue-karten" && normalized.creationDeckId) params.set("deck", normalized.creationDeckId);

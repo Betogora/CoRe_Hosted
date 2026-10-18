@@ -59,10 +59,17 @@ test("Kartenbausteine: Hinweise, einmalige Antwort, Script-Sperre und echte Ausw
   await expect(answer.locator("body")).toContainText("Insulin");
   await expect(answer.locator("body")).not.toContainText("Welches Hormon");
   await expect(answer.locator("hr")).toHaveCount(1);
+  await expect(answer.locator("hr")).toHaveCSS("height", "2px");
+  const separatorWidth = await answer.locator("hr").evaluate((element) => {
+    const bodyStyle = getComputedStyle(element.ownerDocument.body);
+    return { actual: element.getBoundingClientRect().width, expected: element.ownerDocument.body.clientWidth - parseFloat(bodyStyle.paddingLeft) - parseFloat(bodyStyle.paddingRight) };
+  });
+  expect(Math.abs(separatorWidth.actual - separatorWidth.expected)).toBeLessThan(1);
   await expect(answer.locator("script")).toHaveCount(0);
   await expect(answer.locator('meta[http-equiv="Content-Security-Policy"]')).toHaveAttribute("content", /script-src 'none'/);
   await expect(demo.getByRole("button", { name: "In AMBOSS nachschlagen", exact: true })).toHaveCount(0);
-  await expect(demo.getByText("Begriff auf der Karte markieren, um ihn in AMBOSS nachzuschlagen.", { exact: true })).toBeVisible();
+  await expect(demo.getByText("Begriff auf der Karte markieren, um ihn in AMBOSS nachzuschlagen.", { exact: true })).toHaveCount(0);
+  await expect(demo.locator("[data-note-card] > .border-t")).toHaveCount(0);
   await answer.locator("body").evaluate((body) => {
     const text = body.querySelector(".core-note-field")!.firstChild!;
     const range = body.ownerDocument.createRange();

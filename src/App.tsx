@@ -251,6 +251,7 @@ export function App() {
     focusedDeckId,
     selectedCardId,
     deckContent,
+    deckContentTab,
     deckCreationParentId,
     creationMethod,
     creationDeckId,
@@ -1354,7 +1355,7 @@ export function App() {
     return saved;
   }
 
-  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string, expanded: boolean) {
+  function saveDeckExpansion(surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) {
     const currentState = latestStateRef.current;
     if (!workspaceRepository || !currentState) return null;
     const profile = currentState.profile;
@@ -1548,6 +1549,20 @@ export function App() {
           decks={state.decks}
           onStartDeck={startDeck}
           contentDeckId={deckContent ? focusedDeckId : null}
+          contentTab={deckContentTab}
+          summaryAccountId={state.profile.userId}
+          onGenerateSummary={async (input, signal) => {
+            const accountId = latestStateRef.current?.profile.userId;
+            if (!accountId || !workspaceHydrationService || !supabase) throw new Error("Die Anmeldung und Kartenablage sind noch nicht bereit.");
+            const { generateLearningSummary } = await import("./aiLearningSummary.ts");
+            const result = await generateLearningSummary(input, async (ids) => {
+              const loaded = await workspaceHydrationService.prepareContentDecks(ids);
+              if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+              return loaded;
+            }, latestStateRef.current!.decks, supabase, signal);
+            if (latestStateRef.current?.profile.userId !== accountId) throw new Error("Das Konto wurde gewechselt. Öffne die Zusammenfassungen erneut.");
+            return result;
+          }}
           cardPages={workspaceRepository ? cardPages : undefined}
           onRequestCardPage={workspaceRepository ? requestCardPage : undefined}
           deckSummaries={deckSummaries}
@@ -1580,6 +1595,8 @@ export function App() {
           ), { replace: true }) : undefined}
           onMoveDeck={moveDeck}
           onOpenLearn={openLearn}
+          onOpenDeckContent={(deckId, tab = "children") => navigateToViewNow("kartenstapel", { focusedDeckId: deckId, deckContent: true, deckContentTab: tab })}
+          collapsedDeckIds={state.profile.uiPreferences.learnCollapsedDeckIds}
           onOpenCardSettings={() => navigateToView("karten-einstellungen")}
           onDraftStateChange={handleCardDraftStateChange}
           expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}

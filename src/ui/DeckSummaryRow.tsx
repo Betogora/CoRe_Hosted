@@ -1,7 +1,7 @@
+import { SegmentedDonut, type SegmentedDonutSegment } from "./coreUi.tsx";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow, DeckStatusDistribution } from "../libraryModel.ts";
-import { SegmentedDonut, type SegmentedDonutSegment } from "./coreUi.tsx";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
 import { formatLearningCardCount, LEARNING_STATUS_UI } from "./learningStatusUi.ts";
 
@@ -71,6 +71,8 @@ export interface DeckSummaryRowProps {
   studyAction?: ReactNode;
   density?: "default" | "compact" | "responsive";
   className?: string;
+  presentation?: "row" | "folder" | "subfolder";
+  description?: string;
 }
 
 export function DeckSummaryHeader() {
@@ -86,7 +88,6 @@ export function DeckSummaryHeader() {
           ))}
         </div>
         <span className="core-deck-summary-actions flex items-center justify-end gap-0.5">
-          <span className="core-deck-summary-header-donut h-0 w-8 shrink-0" />
           <span className="h-0 w-[5.5rem] shrink-0" />
         </span>
       </div>
@@ -94,12 +95,14 @@ export function DeckSummaryHeader() {
   );
 }
 
-export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, studyAction, density = "default", className = "" }: DeckSummaryRowProps) {
+export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, studyAction, density = "default", className = "", presentation = "row", description }: DeckSummaryRowProps) {
+  const folder = presentation !== "row";
+  const subfolder = presentation === "subfolder";
   const compact = density === "compact";
   const responsive = density === "responsive";
   const compactAtBase = compact || responsive;
   const metricLabels = learningStatus?.metricLabels ?? "responsive";
-  const statusSegments: SegmentedDonutSegment[] | null = learningStatus ? DECK_STATUS_DEFINITIONS.map((status) => ({
+  const statusSegments: SegmentedDonutSegment[] | null = learningStatus && !folder ? DECK_STATUS_DEFINITIONS.map((status) => ({
     key: status.key,
     value: learningStatus.statusDistribution[status.valueKey],
     color: status.color,
@@ -125,32 +128,35 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
   return (
     <div className={responsive ? "core-deck-summary-container min-w-0" : "min-w-0"}>
       <div
-        className={`pointer-events-none relative z-[1] grid min-h-control min-w-0 items-center ${gridClass} ${className}`}
+        className={`pointer-events-none relative z-[1] grid min-h-11 min-w-0 items-center ${folder ? `core-deck-folder-summary${subfolder ? " core-deck-subfolder-summary" : ""}` : gridClass} ${className}`}
         data-deck-study-row={studyAction ? "true" : undefined}
         data-deck-summary-row-content={density === "default" ? "true" : density}
       >
-        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: getVisibleDeckDepth(row.depth) * DECK_DEPTH_INDENT_PX }}>
+        <div className={`core-deck-summary-leading flex min-w-0 items-center ${compactAtBase ? "gap-1.5" : "gap-2"}`} style={{ paddingInlineStart: folder ? 0 : getVisibleDeckDepth(row.depth) * DECK_DEPTH_INDENT_PX }}>
           {leadingControl}
           <DeckAppearanceIcon
             data-deck-icon="true"
             deck={row.deck}
-            className={`${compactAtBase ? "size-8" : "size-9"} ${responsive ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""} rounded-control bg-core-subtle`}
-            iconSize={compact ? 15 : 18}
+            className={`${folder ? `${subfolder ? "size-8" : "size-11"} rounded-control` : `${compactAtBase ? "size-8" : "size-9"} ${responsive ? "core-deck-summary-icon [&>svg]:size-[15px]" : ""} rounded-round`} bg-core-subtle`}
+            iconSize={folder ? subfolder ? 18 : 24 : compact ? 15 : 18}
           />
-          <span className="flex min-w-0 flex-1 items-center gap-1">
+          <span className={`flex min-w-0 flex-1 ${description && !folder ? "flex-col items-start gap-0.5" : "items-center gap-1"}`}>
             <AdaptiveDeckName
               name={row.name}
-              className={`font-semibold text-core-text ${compactAtBase ? "core-body" : "core-body-large"}`}
+              className={`font-semibold text-core-text ${folder ? subfolder ? "core-body-large" : "core-heading-3" : compactAtBase ? "core-body" : "core-body-large"}`}
             />
+            {description && !folder ? <span className="core-deck-group-description core-caption text-core-muted">{description}</span> : null}
           </span>
         </div>
+
+        {description && folder ? <p className="core-deck-folder-description core-caption text-core-muted">{description}</p> : null}
 
         {learningStatus ? (
           <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
             {DECK_COUNT_DEFINITIONS.map((count) => (
               <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
-                <dt className={compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold text-core-muted ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
-                <dd className={`core-deck-summary-count-value ${compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{learningStatus.summary[count.valueKey]}</dd>
+                <dt className={folder ? "core-caption text-core-muted" : compact || metricLabels === "sr-only" ? "sr-only" : `core-caption font-semibold uppercase tracking-wide text-core-muted ${responsive ? "core-deck-summary-count-label sr-only" : ""}`}>{count.label}</dt>
+                <dd className={`core-deck-summary-count-value ${folder ? "core-heading-3 tabular-nums" : compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{learningStatus.summary[count.valueKey]}</dd>
               </div>
             ))}
           </dl>

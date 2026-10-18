@@ -2,7 +2,7 @@ import React from "react";
 import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, Palette, PenLine, Sigma, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
-import { normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
+import { normalizeRichTextEditorHtml, normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import {
   ColorPopover,
@@ -350,7 +350,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     isFocusedRef.current = true;
     saveSelection();
     const sanitizedHtml = canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions));
-    lastEmittedNormalizedHtmlRef.current = normalizeRichTextForEditor(sanitizedHtml);
+    lastEmittedNormalizedHtmlRef.current = normalizeRichTextEditorHtml(sanitizedHtml);
     onChange?.(lastEmittedNormalizedHtmlRef.current);
   }
 
@@ -524,7 +524,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const selectionOffsets = captureTextSelection();
     saveSelection();
     isFocusedRef.current = false;
-    const normalizedHtml = normalizeRichTextForEditor(canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions)));
+    const normalizedHtml = normalizeRichTextEditorHtml(canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions)));
     const hydratedHtml = hydrateRichTextMedia(normalizedHtml, imageActions?.mediaUrls ?? {});
     lastEmittedNormalizedHtmlRef.current = normalizedHtml;
     if (editor.innerHTML !== hydratedHtml) {

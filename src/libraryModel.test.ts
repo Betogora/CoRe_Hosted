@@ -6,12 +6,30 @@ import {
   type CardTableSort,
   createCardTableModel,
   createDeckLibraryModel,
+  createDeckExplorerModel,
   createStudyHeatmapModel,
   createStudyHeatmapWindow,
 } from "./libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "./studyHeatmapModel.ts";
 
 const notesById = new Map<string, Note>();
+
+test("explorer shows direct children and the full ancestor path without mixing sibling branches", () => {
+  const decks = [
+    createCoreDeck({ id: "root", name: "Medizin", cards: [], source: "manual" }),
+    createCoreDeck({ id: "child", name: "Anatomie", parentDeckId: "root", cards: [], source: "manual" }),
+    createCoreDeck({ id: "grandchild", name: "Organe", parentDeckId: "child", cards: [], source: "manual" }),
+    createCoreDeck({ id: "other", name: "Sprachen", cards: [], source: "manual" }),
+    createCoreDeck({ id: "other-child", name: "Anatomie", parentDeckId: "other", cards: [], source: "manual" }),
+  ];
+  const { rows } = createDeckLibraryModel(decks);
+  assert.deepEqual(createDeckExplorerModel(rows, null).children.map((row) => row.id), ["root", "other"]);
+  assert.deepEqual(createDeckExplorerModel(rows, "root").children.map((row) => row.id), ["child"]);
+  assert.deepEqual(createDeckExplorerModel(rows, "child").children.map((row) => row.id), ["grandchild"]);
+  assert.deepEqual(createDeckExplorerModel(rows, "grandchild").ancestors.map((row) => row.id), ["root", "child", "grandchild"]);
+  assert.deepEqual(createDeckExplorerModel(rows, "other-child").ancestors.map((row) => row.id), ["other", "other-child"]);
+  assert.deepEqual(createDeckExplorerModel(rows, "missing").children, []);
+});
 
 /** A basic card with its note registered in `notesById`; `study` is the flat scheduler input. */
 function libraryCard(id: string, {

@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-10
+**Stand:** 2026-10-11
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -73,8 +73,11 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 - Zentral lazy geladene Produktscreens mit Promise-Cache und sicherem React-Fehlerfallback ohne sichtbare Buildmetadaten; Supabase-, Cloud-, Medien- und Statistikcode liegen ebenfalls außerhalb des initialen Importgraphen. Nach einer ruhigen Sekunde werden ausschließlich bei 4G oder fehlender Network-Information Lernen und Karten seriell automatisch vorgeladen; 3G erlaubt nur Hover, Fokus oder Touchstart. Save-Data, 2G, Hintergrundtabs und Nutzerinteraktion unterbrechen Spekulation. Manrope ist lokal eingebettet; externe Skripte werden nicht geladen. Der Production-Build vom 10. Oktober umfasst laut Budgetprüfung 208,6 KiB gzip im Initialgraphen (ohne den vorgeladenen Supabase-Client) und 170,8 KiB gzip im größten Lazy-Graphen (Statistik).
 - Installierbare PWA-App-Shell mit Runtime-Cache für bereits geladene statische Ressourcen, persistenter Speicheranfrage und sichtbarer Browserquote. Same-Origin-APIs, Supabase-Daten und pauschale Medienbestände werden nicht gecached.
 - Produktweites semantisches CoRe-Theme mit Light und Dark Mode, lokal persistiertem Theme-Button, Stil „Soft Minimal“ (hellgraue Arbeitsfläche, weiße Karten mit dünnem Rahmen und leichtem Schatten, weiche Radien, Icon-Flächen als weiche Quadrate, Auswahl-Schienen mit weißem Indikator, Manrope-Typografie in App, Kartenfläche und Doku), schwebender 15-rem-Desktop-Sidebar und schwebendem Mobilkopf sowie dokumentierten wiederverwendbaren Action-, Feedback-, Struktur- und Formularbausteinen.
-- Außer der authentifizierten Variantenroute `/api/ai/card-variant` werden keine eigenen CoRe-Serverendpunkte ausgeliefert.
+- Eigene CoRe-Serverendpunkte sind die authentifizierten Textrouten `/api/ai/card-variant` und `/api/ai/summary`. Providerzugriff bleibt serverseitig.
 - Das produktive CoRe-Schema entspricht dem Core-Zielzustand: pensionierte Labs-/Jobtabellen und -spalten sowie `core-imports` fehlen; das verifizierte Rückbaumanifest enthielt keine zu löschenden Labs-Pfade in `core-media`.
+
+- Das Lernboard bietet die aktualisierte gruppierte Liste und die umschaltbare Ordneransicht mit Explorer ausschließlich in der Ordneransicht. Listenansicht, Kartenverwaltung und Stapelinhalte zeigen keinen Explorer. Stapelinhalte haben die URL-gesteuerten Reiter Unterstapel, Zusammenfassungen, Quiz, Mind Map, Karten und Quelle. Die Lernaktion bleibt in allen Reitern erreichbar.
+- Zusammenfassungen unterstützen mehrere manuelle oder KI-generierte Fassungen, Quellenwahl, Rich-Text-Bearbeitung und Entwurfsschutz. Mindmaps bieten freie Flächen, Verbindungen, Zeichnungen und eine lokale Umwandlung gespeicherter Zusammenfassungen. Beide speichern account- und stapelgebunden auf diesem Browsergerät; Cloud-Sync und Export fehlen. Quiz und Quelle bleiben die vorhandenen vorbereiteten Inhaltsreiter.
 
 ## Reifestatus
 

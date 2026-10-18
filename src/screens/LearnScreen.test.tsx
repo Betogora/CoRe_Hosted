@@ -51,10 +51,10 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, />Aktive Stapel<\/h3>/);
   assert.match(markup, /data-testid="learn-deck-create-form"/);
   assert.ok(markup.indexOf("Aktive Stapel") < markup.indexOf('data-testid="learn-deck-create-form"'));
-  assert.ok(markup.indexOf('data-testid="learn-deck-create-form"') < markup.indexOf('data-testid="deck-summary-header"'));
+  assert.doesNotMatch(markup, /data-testid="deck-explorer"|Stapel wechseln/);
   assert.doesNotMatch(markup, /Karten verwalten|Neue Karten|Stapel anlegen|learn-deck-create-toggle|core-overlay/);
-  assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
-  assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
+  assert.match(markup, /data-testid="deck-summary-header"/);
+  assert.match(markup, />Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.match(markup, /core-action-ghost/);
   assert.doesNotMatch(markup, /Lernen öffnen/);
   assert.doesNotMatch(markup, /Icon auswählen|Iconfarbe|CoRe aktiv/);
@@ -170,8 +170,9 @@ test("learning keeps duplicate subdeck names distinguishable and handles unavail
     />,
   );
 
-  assert.match(hierarchyMarkup, /aria-label="Bereich A \/ Gemeinsam lernen"/);
-  assert.match(hierarchyMarkup, /aria-label="Bereich B \/ Gemeinsam lernen"/);
+  assert.doesNotMatch(hierarchyMarkup, />\d+ Unterstapel</);
+  assert.match(hierarchyMarkup, /aria-label="Inhalte von Bereich A \/ Gemeinsam öffnen"/);
+  assert.match(hierarchyMarkup, /aria-label="Inhalte von Bereich B \/ Gemeinsam öffnen"/);
   assert.match(fallbackMarkup, /Stapel nicht gefunden oder nicht verfügbar\./);
   assert.match(fallbackMarkup, /Zu Lernen/);
   assert.match(fallbackMarkup, /Zur Kartenverwaltung/);

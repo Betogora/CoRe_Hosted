@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, ReviewResumeContext, SettingsReturnContext, SettingsTarget, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, DeckContentTab, ReviewResumeContext, SettingsReturnContext, SettingsTarget, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -19,6 +19,7 @@ export interface AppNavigationProjection {
   focusedDeckId: string | null;
   selectedCardId: string | null;
   deckContent: boolean;
+  deckContentTab: DeckContentTab;
   deckCreationParentId: string;
   creationMethod: CreationMethod;
   creationDeckId: string;
@@ -58,6 +59,8 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
         ? createViewRoute("kartenstapel", {
             focusedDeckId: route.returnContext.deckId,
             selectedCardId: route.returnContext.cardId,
+            deckContent: route.returnContext.deckContent,
+            deckContentTab: route.returnContext.deckContentTab,
           })
         : createViewRoute("lernen", { focusedDeckId: route.returnContext.deckId })
     : route;
@@ -67,6 +70,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     focusedDeckId: focusedDeckViewIds.has(viewRoute.viewId) ? (viewRoute.focusedDeckId ?? null) : null,
     selectedCardId: viewRoute.viewId === "kartenstapel" ? (viewRoute.selectedCardId ?? null) : null,
     deckContent: viewRoute.deckContent === true,
+    deckContentTab: viewRoute.deckContentTab ?? "children",
     deckCreationParentId: viewRoute.viewId === "lernen" ? (viewRoute.deckCreationParentId ?? "") : "",
     creationMethod: viewRoute.viewId === "neue-karten" ? asCreationMethod(viewRoute.creationMethod) : "",
     creationDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.creationDeckId ?? "") : "",

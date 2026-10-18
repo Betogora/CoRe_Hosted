@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { AppRoute, AppViewId, SettingsTarget, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
@@ -75,7 +75,7 @@ export interface DashboardScreenProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
 }
 
 export interface DeckSettingsScreenProps {
@@ -103,6 +103,9 @@ export interface DeckSettingsScreenProps {
 
 export interface DecksScreenProps {
   decks: Deck[];
+  summaryAccountId?: string;
+  onGenerateSummary?: (input: import("./aiLearningSummary.ts").SummaryGenerationInput, signal: AbortSignal) => Promise<import("./aiLearningSummary.ts").SummaryGenerationResult>;
+  contentTab?: DeckContentTab;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   onStartDeck: (deck: Deck) => void;
   contentDeckId?: string | null;
@@ -125,12 +128,14 @@ export interface DecksScreenProps {
   onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
   onCloseSelectedCard?: () => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
+  onOpenDeckContent: (deckId: string, tab?: DeckContentTab) => unknown;
+  collapsedDeckIds: string[];
   onOpenCardSettings: () => unknown;
   onMoveDeck: (deckId: string, parentDeckId?: string | null) => DeckMutationResult | null;
   onOpenDeckSettings: (deckId: string) => unknown;
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   expandedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
   cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
   onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
   syncConflictCardIds?: ReadonlySet<string>;
@@ -180,7 +185,7 @@ export interface LearnScreenProps {
   onSetDeckCoreMode: (deckId: string, coreMode: CoreMode) => unknown;
   onMoveDeck: (deckId: string, parentDeckId: string | null) => DeckMutationResult | null;
   collapsedDeckIds: string[];
-  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string, expanded: boolean) => unknown;
+  onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
 }
 
 export interface SettingsScreenProps {

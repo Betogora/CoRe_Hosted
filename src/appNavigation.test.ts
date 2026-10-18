@@ -296,3 +296,18 @@ test("stores and reads app routes from browser history state without losing exte
   assert.deepEqual(readAppRouteFromHistoryState(state), route);
   assert.equal(areAppRoutesEqual(state.coreAppRoute, route), true);
 });
+
+test("content tabs survive reload and study return while unsupported tabs are ignored", () => {
+  for (const deckContentTab of ["children", "summary", "mind-map", "cards", "quiz", "source"] as const) {
+    const route = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab });
+    assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
+    const review = parseAppRouteFromUrl(appRouteToUrl(createStudyRoute("deck_a", { returnContext: createReviewReturnContext(route) })));
+    assert.ok(review.mode === "study");
+    assert.deepEqual(reviewReturnContextToViewRoute(review.returnContext), route);
+  }
+  const invalid = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&content=1&tab=invalid");
+  assert.ok(invalid.mode === "view");
+  assert.equal(invalid.deckContentTab, undefined);
+  const selected = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab: "summary", selectedCardId: "card_a" });
+  assert.equal(selected.deckContentTab, "cards");
+});

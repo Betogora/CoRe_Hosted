@@ -18,7 +18,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `coreTypes.ts`, `coreModel.ts` | kanonische `Note`/`Card`-Typen; einzige Grenze für Inhaltserzeugung, Änderungs-, Lösch- und Wiederherstellungsplanung, Editorwerte und manuelle Formen |
 | `coreWorkspace.ts`, `coreRepository.ts` | Arbeitsbereichszustand, Stapelbefehle und Platzierungs-/Zyklusprüfung |
 | `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
-| `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
+| `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion, direkte Explorer-Kinder mit vollständigem Ahnenpfad und rein visuelle Tiefenkappung |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
 | `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |
 | `coreVariantService.ts` | Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Lernstufen-Bereitschaft, Variantenquelle, Variantenwahl im Review und Variantendarstellung |
@@ -181,7 +181,7 @@ Die Migrationsbaseline in `supabase/migrations/` und `supabase/verify_schema_v1.
 
 ## API-Vertrag
 
-`POST /api/ai/card-variant` ist der einzige CoRe-Serverendpunkt. Er verlangt Same Origin und Supabase-Bearer, akzeptiert `{ source: { front, back } }`, begrenzt den Body auf 8 KiB und jedes Feld auf 1.200 Zeichen und antwortet mit `Cache-Control: no-store`. OpenRouter-Zugang bleibt ausschließlich in `process.env`. Die Function wählt kostenlose text-/toolfähige Modelle, bevorzugt ZDR und erlaubt den dokumentierten kostenlosen Non-ZDR-Fallback; genau ein erzwungener Tool Call erzeugt eine Umformulierung. Vertragsdetails stehen bei `aiCardVariantContract.ts`, der operative Umgang in [Betrieb](operations.md). Andere Produktdatenzugriffe laufen über die gekapselten Supabase-Module. Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs.
+`POST /api/ai/card-variant` ist der CoRe-Serverendpunkt für Kartenvarianten; `/api/ai/summary` ergänzt die unten beschriebene Zusammenfassungserstellung. Er verlangt Same Origin und Supabase-Bearer, akzeptiert `{ source: { front, back } }`, begrenzt den Body auf 8 KiB und jedes Feld auf 1.200 Zeichen und antwortet mit `Cache-Control: no-store`. OpenRouter-Zugang bleibt ausschließlich in `process.env`. Die Function wählt kostenlose text-/toolfähige Modelle, bevorzugt ZDR und erlaubt den dokumentierten kostenlosen Non-ZDR-Fallback; genau ein erzwungener Tool Call erzeugt eine Umformulierung. Vertragsdetails stehen bei `aiCardVariantContract.ts`, der operative Umgang in [Betrieb](operations.md). Andere Produktdatenzugriffe laufen über die gekapselten Supabase-Module. Secrets gehören weder in `VITE_*`, Browsercode, `localStorage`, Exporte noch Logs.
 
 ## Importregeln
 
@@ -267,6 +267,14 @@ unverändert.
 Nur geänderte Inhalte werden geschrieben, mit `importedContentRevision` =
 `contentRevision`; Inhalte mit ausstehender lokaler Änderung werden
 übersprungen. Die App meldet die Zahl aktualisierter Inhalte.
+
+## Zusammenfassungen und Mindmaps
+
+`learningSummaries.ts` und `learningMindMaps.ts` validieren und speichern benannte Fassungen accountgebunden in eigenen lokalen IndexedDB-Datenbanken. Die Screens `DeckSummariesPanel` und `DeckMindMapsPanel` orchestrieren Auswahl und Entwürfe; sie verwenden den vorhandenen Rich-Text-Editor und den gemeinsamen Entwurfsschutz. Cloud-Sync ist für diese Dokumente noch nicht implementiert.
+
+`aiLearningSummary.ts` verarbeitet ausschließlich vollständig geladene Notes und deren Karten aus dem gewählten Stapelbaum. `workspaceHydrationService.prepareContentDecks` lädt alle Katalogseiten und die zugehörigen `{ decks, notes }`; fehlende oder unvollständige Inhalte werden sichtbar abgewiesen. Mehrere Karten derselben Note liefern genau eine Materialeinheit. Anfrage und Werkzeugantwort werden in `aiLearningSummaryContract.ts` validiert. `/api/ai/summary` verwendet serverseitige Credentials und die privaten Auth-/Modellhelfer in `server/aiTextTool.ts`; die lokale Vite-Middleware stellt die Route auch mit `npm run dev` bereit.
+
+Der `deckContentTab` in `appNavigation.ts` gehört zur Inhaltsroute und ihrem Review-Rückkehrkontext. `DeckExplorer` übernimmt ausschließlich in der Ordneransicht von Lernen die Stapelnavigation; Listenansicht, Kartenverwaltung und Stapelinhalte binden ihn nicht ein; `DeckTree` rendert Liste oder Ordnerkacheln. Der Listenfortschrittsring bleibt erhalten, Ordnerkacheln zeigen Kennzahlen ohne Ring.
 
 ## Architekturänderungen
 
