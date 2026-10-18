@@ -86,6 +86,7 @@ Akzeptanz:
 
 #### Tageslernfläche
 
+- Auf Heute folgen die Bereiche in dieser Reihenfolge: Tageslernfläche, Prüfungen (bei aktiver Prüfung), Heatmap, Stapel.
 - Ein befülltes Dashboard zeigt genau eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung.
 - Vier beschriftete Segmente `Gelernt`, `Neu`, `Offen` und `Fällig` zeigen den Tagesstand. `X / Y Karten` zählt eindeutige heute relevante Karten. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.
 - Zustände: `Dein Lernen heute`, deaktiviertes `Später weiterlernen` bei noch nicht verfügbaren heutigen Lernschritten oder der Abschluss `Tagesziel erreicht` (auch bei `0 / 0 Karten`).

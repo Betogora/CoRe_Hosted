@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import { createCoreRepository } from "../coreRepository.ts";
 import { createViewRoute } from "../appNavigation.ts";
+import { createExamPlan } from "../examPlanSettings.ts";
+import { withGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
 
 function basicCard(deckId: string, { id, front = "Frage", back = "Antwort", review = {} }: { id?: string; front?: string; back?: string; review?: Record<string, unknown> } = {}) {
@@ -104,6 +106,27 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /ring-\[3px\] ring-core-action/);
   assert.doesNotMatch(markup, /ring-inset/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
+});
+
+test("dashboard orders daily learning, exams, heatmap and decks", () => {
+  const baseState = createCoreRepository().getState();
+  const exam = { ...createExamPlan("2026-08-06", ["biologie"]), name: "Biologie" };
+  const state = {
+    ...baseState,
+    decks: [createCoreDeck({ id: "biologie", name: "Biologie", source: "manual", cards: [basicCard("biologie")] })],
+    profile: withGlobalSchedulerPreferences(baseState.profile, { examPlanning: { exams: [exam] } }),
+  };
+  const markup = renderToStaticMarkup(
+    <DashboardScreen
+      state={state}
+      now="2026-08-06T10:00:00.000Z"
+      {...dashboardCallbacks}
+      onStartExamUnit={async () => undefined}
+      onLoadExamPlanningData={async () => { throw new Error("Not used in static rendering"); }}
+      onSaveExamTasks={async () => undefined}
+    />,
+  );
+  assert.match(markup, /data-testid="daily-learning-overview"[\s\S]*data-testid="dashboard-exam-unit"[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="dashboard-deck-list-header"/);
 });
 
 test("dashboard projects future due cards through the supplied learning time", () => {
