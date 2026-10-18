@@ -15,6 +15,8 @@ npm run dev
 Die lokale URL ist `http://127.0.0.1:5190/`.
 Der normale SPA-Weg bleibt `npm run dev`. Für einen lokalen Test der Vercel Function einschließlich serverseitiger Umgebungsvariablen wird stattdessen `vercel dev --listen 5190` verwendet.
 
+Bei „Ein Programmteil konnte nicht geladen werden“ zunächst die Verbindung prüfen, offene Änderungen speichern und die Seite neu laden. Ein länger geöffneter Tab kann nach einer Bereitstellung noch entfernte Chunknamen anfordern. Zur Diagnose den betroffenen `/assets/…js`-Pfad prüfen: vorhandene Module müssen JavaScript liefern, fehlende Module einen Fehlerstatus statt der HTML-Startseite. Der Service Worker speichert HTML-Antworten nicht als JavaScript; ein Löschen von IndexedDB oder Kontodaten ist für diese Wiederherstellung nicht erforderlich.
+
 Fokussierte Prüfungen laufen zuerst. Für einen zusammenhängenden Arbeitsstand
 steht das kanonische manuelle Qualitätsgate bereit:
 

@@ -1,3 +1,4 @@
+import { registerAppModuleLoadErrors } from "../src/pwa.ts";
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import React, { useRef, useState } from "react";
 import { Ban, BookOpen, ChevronRight, Copy, Eye, Home, Info, Layers, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
@@ -339,6 +340,12 @@ async function generateSummaryDemo(input: SummaryGenerationInput, signal: AbortS
     if (signal.aborted) abort(); else signal.addEventListener("abort", abort, { once: true });
   });
   if (mode === "error") throw new Error("Der KI-Dienst ist momentan nicht erreichbar. Deine Auswahl bleibt erhalten.");
+  if (mode === "module-error") {
+    const events = new EventTarget(), error = new TypeError("Failed to fetch dynamically imported module");
+    registerAppModuleLoadErrors(events);
+    events.dispatchEvent(Object.assign(new Event("vite:preloadError"), { payload: error }));
+    throw error;
+  }
   const material = prepareSummaryMaterial([deck], sampleNotes, input.deckId, input.title, input.settings, input.source);
   const result: AiLearningSummarySuccess = {
     summary: { sections: material.request.units.slice(0, 3).map((unit, index) => ({
@@ -371,7 +378,7 @@ function SummaryContentDemo() {
     } catch { setError("Die lokale Zusammenfassungs-Demo konnte nicht geladen werden."); }
     finally { setBusy(false); }
   }
-  return <Demo title="Zusammenfassungen · Suche, Fassungen und Erstellung" wide><p className="catalog-pattern-source">Echte lokale Produktansicht mit zwei ausdrücklich geladenen Beispielen. Zuerst steht die Suche, danach folgen vorhandene Fassungen und die vollständigen Aktionsflächen für KI-Erstellung und eigenes Schreiben. Ab 48 rem Panelbreite stehen beide Aktionen nebeneinander, darunter untereinander. Das KI-Popover öffnet direkt darunter mit Stapelauswahl und aufklappbaren Einstellungen. Der Editor bietet eine durchgehende, nach unten wachsende Schreibfläche und passende Werkzeuge je Text-, Stift-, Marker- oder Radiermodus. Schrift und Formatierung stehen im Textmodus; Stift und Marker haben eigene Farben und Stärken. Die Arbeitsfläche lässt sich vergrößern. Die eigene Fassung öffnet direkt den leeren Editor; der doppelte Kopfbutton entfällt. Beim Verlassen fragt der Editor nach Speichern, Verwerfen oder Weiter bearbeiten. Ein eigener Speicherbutton und die Aktionen Duplizieren, Löschen und Neu erzeugen entfallen. KI-Antworten werden ausdrücklich simuliert. Schreiben und Speichern bleiben auf dem Demo-Konto dieses Browsers.</p><ActionButton variant="secondary" loading={busy} onClick={() => void show()}>Zusammenfassungen öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><label className="core-field-group mb-4"><span className="core-field-label">KI-Demoantwort</span><CoreSelect ariaLabel="KI-Demoantwort" value={simulation} options={[{ value: "success", label: "Erfolgreich" }, { value: "error", label: "Fehler" }, { value: "slow", label: "Langsam mit Abbruch" }]} onValueChange={setSimulation}/></label><DeckSummariesPanel deck={deck} userId="catalog-summaries" onGenerateSummary={(input, signal) => generateSummaryDemo(input, signal, simulation)} onDraftStateChange={() => undefined}/></div>}</Demo>;
+  return <Demo title="Zusammenfassungen · Suche, Fassungen und Erstellung" wide><p className="catalog-pattern-source">Echte lokale Produktansicht mit zwei ausdrücklich geladenen Beispielen. Zuerst steht die Suche, danach folgen vorhandene Fassungen und die vollständigen Aktionsflächen für KI-Erstellung und eigenes Schreiben. Ab 48 rem Panelbreite stehen beide Aktionen nebeneinander, darunter untereinander. Das KI-Popover öffnet direkt darunter mit Stapelauswahl und aufklappbaren Einstellungen. Der Editor bietet eine durchgehende, nach unten wachsende Schreibfläche und passende Werkzeuge je Text-, Stift-, Marker- oder Radiermodus. Schrift und Formatierung stehen im Textmodus; Stift und Marker haben eigene Farben und Stärken. Die Arbeitsfläche lässt sich vergrößern. Die eigene Fassung öffnet direkt den leeren Editor; der doppelte Kopfbutton entfällt. Beim Verlassen fragt der Editor nach Speichern, Verwerfen oder Weiter bearbeiten. Ein eigener Speicherbutton und die Aktionen Duplizieren, Löschen und Neu erzeugen entfallen. KI-Antworten werden ausdrücklich simuliert. Schreiben und Speichern bleiben auf dem Demo-Konto dieses Browsers.</p><ActionButton variant="secondary" loading={busy} onClick={() => void show()}>Zusammenfassungen öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><label className="core-field-group mb-4"><span className="core-field-label">KI-Demoantwort</span><CoreSelect ariaLabel="KI-Demoantwort" value={simulation} options={[{ value: "success", label: "Erfolgreich" }, { value: "error", label: "Fehler" }, { value: "module-error", label: "Ladefehler nach Update" }, { value: "slow", label: "Langsam mit Abbruch" }]} onValueChange={setSimulation}/></label><DeckSummariesPanel deck={deck} userId="catalog-summaries" onGenerateSummary={(input, signal) => generateSummaryDemo(input, signal, simulation)} onDraftStateChange={() => undefined}/></div>}</Demo>;
 }
 
 function MindMapContentDemo() {

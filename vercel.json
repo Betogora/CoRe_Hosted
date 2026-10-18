@@ -2,9 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run gate:push",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/((?!api(?:/|$)|assets(?:/|$)).*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    }
+  ],
   "rewrites": [
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api(?:/|$)|assets(?:/|$)|sw\\.js$|manifest\\.webmanifest$|favicon\\.svg$).*)",
       "destination": "/index.html"
     }
   ]

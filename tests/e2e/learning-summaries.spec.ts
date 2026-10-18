@@ -79,6 +79,21 @@ test("KI-Fehler erhalten Formular und vorhandene Fassungen", async ({ page }) =>
   await expect(panel.getByTestId("summary-list").getByRole("button")).toHaveCount(2);
 });
 
+test("Modulladefehler nach einem Update erhalten Titel und Einstellungen ohne Reload", async ({ page }) => {
+  const panel = await openSummaries(page);
+  await page.getByRole("combobox", { name: "KI-Demoantwort", exact: true }).click();
+  await page.getByRole("option", { name: "Ladefehler nach Update", exact: true }).click();
+  await openAiSettings(page, panel);
+  await page.getByRole("textbox", { name: "Titel", exact: true }).fill("Mein Entwurf bleibt erhalten");
+  await page.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name: "Kurz", exact: true }).click();
+  await page.getByRole("button", { name: "Mit KI erstellen", exact: true }).click();
+  const popup = page.getByRole("dialog", { name: "Zusammenfassung mit KI erstellen", exact: true });
+  await expect(popup).toContainText("Ein Programmteil konnte nicht geladen werden.");
+  await expect(popup.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Mein Entwurf bleibt erhalten");
+  await expect(popup.getByRole("group", { name: "Länge", exact: true }).getByRole("button", { name: "Kurz", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(popup.getByRole("button", { name: "Mit KI erstellen", exact: true })).toBeEnabled();
+});
+
 test("Speicherfehler bleiben im Verlassen-Dialog sichtbar und der Entwurf geht nicht verloren", async ({ page }) => {
   const panel = await openSummaries(page);
   await panel.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();
