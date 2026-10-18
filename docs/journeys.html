@@ -4456,6 +4456,9 @@ summary {
 }
 
 .core-summary-panel { container: core-summary / inline-size; }
+@container core-summary (min-width: 48rem) {
+  .core-summary-create-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .core-summary-create-actions[data-open="true"] { padding-bottom: min(36rem, 75dvh); }
 .core-summary-create-action { scroll-margin-top: calc(2 * var(--core-control-height) + var(--core-space-xl)); display: flex; align-items: center; gap: var(--core-space-md); width: 100%; min-height: 72px; padding: var(--core-space-lg); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface-raised); color: var(--core-text); text-align: left; font-size: var(--core-type-body); font-weight: var(--core-weight-emphasis); }
 .core-summary-create-action > svg { flex-shrink: 0; color: var(--core-text-muted); }
