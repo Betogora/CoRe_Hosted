@@ -49,6 +49,7 @@ function summaryWithTotal(deck: Deck, totalCards: number): DeckLibrarySummary {
 function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
   const props: DecksScreenProps = {
     decks,
+    contentTab: "cards",
     onStartDeck: () => undefined,
     now: NOW,
     mediaStore: null,
@@ -72,7 +73,7 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onMoveDeck: () => null,
     onOpenLearn: () => undefined,
     onOpenDeckContent: () => undefined,
-    contentTab: "cards",
+
     onOpenCardSettings: () => undefined,
     onOpenDeckSettings: () => undefined,
     onDraftStateChange: () => undefined,
@@ -90,15 +91,20 @@ test("deck content shows only its own cards without deck headings and uses the e
   const other = deckOf("deck-chem", "Chemie", [water]);
   const cardPages = { [deck.id]: cardPage(deck.id, [atp]), [other.id]: cardPage(other.id, [water]) };
   const markup = renderScreen([deck, other], { contentDeckId: deck.id, selectedDeckId: deck.id, cardPages });
+  assert.doesNotMatch(markup, /data-testid="deck-explorer"|Stapel wechseln/);
+  assert.doesNotMatch(renderScreen([deck, other], { cardPages }), /data-testid="deck-explorer"|Stapel wechseln/);
   assert.match(markup, /aria-label="Stapelinhalte"/);
   for (const label of ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /aria-label="Karten nach Variante filtern"/);
   assert.match(markup, />Ohne Variante</);
   assert.doesNotMatch(markup, /Für diese Karten Varianten generieren/, "the generation action appears only while the filter is on");
   assert.match(markup, /Was ist ATP\?/);
-  assert.doesNotMatch(markup, /Chemie|Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
-  assert.match(markup, /aria-label="Biologie lernen"/);
-  assert.match(markup, /core-deck-content-study/);
+  assert.doesNotMatch(markup, /Was ist H2O|Aktive Stapel|deck-toggle-|deck-header-/);
+  assert.match(markup, /data-testid="deck-content-study"[^>]*>[\s\S]*?Karten lernen/);
+  const actions = markup.slice(markup.indexOf('data-testid="deck-content-actions"'));
+  assert.ok(actions.indexOf('aria-label="Stapelinhalte"') < actions.indexOf('data-testid="deck-content-study"'));
+  assert.doesNotMatch(markup.slice(markup.indexOf('data-testid="deck-content-heading"'), markup.indexOf('data-testid="deck-content-actions"')), /data-testid="deck-content-study"/);
+  assert.doesNotMatch(markup, /core-deck-content-study/);
   assert.match(markup, /aria-label="Karten durchsuchen"/);
   const editor = renderScreen([deck, other], {
     contentDeckId: deck.id,
@@ -125,7 +131,7 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(markup, /data-testid="content-substack-grandchild"/);
   assert.match(markup, />Alle Karten dieses Zweigs</);
   assert.match(markup, />Diesen Zweig lernen</);
-  assert.doesNotMatch(markup, /data-testid="card-library-panel"|Einschließlich|direkte Unterstapel|data-donut-/);
+  assert.doesNotMatch(markup, /data-testid="card-library-panel"/);
 
   const leaf = renderScreen([root, child, grandchild], { contentDeckId: grandchild.id, contentTab: "children" });
   assert.match(leaf, />Keine weiteren Unterstapel</);
@@ -140,14 +146,14 @@ test("deck content opens on its subdecks with path, heading and branch actions",
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
   const deck = deckOf("empty", "Leer", []);
   const empty = renderScreen([deck], { contentDeckId: deck.id });
-  assert.match(empty, /disabled=""[^>]*aria-label="Leer lernen"/);
+  assert.match(empty, /<button(?=[^>]*disabled="")(?=[^>]*data-testid="deck-content-study")/);
   const catalog = renderScreen([deck], { contentDeckId: deck.id, cardPages: {}, deckSummaries: new Map([[deck.id, summaryWithTotal(deck, 60)]]) });
-  assert.doesNotMatch(catalog, /disabled=""[^>]*aria-label="Leer lernen"/);
-  assert.match(catalog, /aria-label="Leer lernen"/);
+  assert.doesNotMatch(catalog, /<button(?=[^>]*disabled="")(?=[^>]*data-testid="deck-content-study")/);
+  assert.match(catalog, /data-testid="deck-content-study"/);
   const child = deckOf("child", "Unterstapel", [basicGraph("child", "Frage", "Antwort")], { parentDeckId: deck.id });
   const subtree = renderScreen([deck, child], { contentDeckId: deck.id });
-  assert.doesNotMatch(subtree, /disabled=""[^>]*aria-label="Leer lernen"/);
-  assert.doesNotMatch(renderScreen([deck]), /core-deck-content-study/);
+  assert.doesNotMatch(subtree, /<button(?=[^>]*disabled="")(?=[^>]*data-testid="deck-content-study")/);
+  assert.doesNotMatch(renderScreen([deck]), /data-testid="deck-content-study"/);
 });
 
 test("deck content includes its complete subtree without its parent or other branches", () => {

@@ -37,6 +37,12 @@ export interface DeckLibrarySummary {
   introducedTodayCount: number;
   dateKey: string;
 }
+export interface DeckStatusDistribution {
+  newCards: number;
+  inProgressCards: number;
+  dueCards: number;
+  learnedCards: number;
+}
 export interface DailyLearningSession {
   deckId: string;
   progress: DailyReviewProgressSummary;
@@ -70,6 +76,11 @@ function normalizeQuery(value: unknown): string {
 
 function deckPath(deck: Deck): string {
   return (deck.hierarchyPath ?? [deck.name]).join(" / ");
+}
+
+function createDeckStatusDistribution(inventory: DeckInventorySummary): DeckStatusDistribution {
+  return { newCards: inventory.newCards, inProgressCards: inventory.inProgressCards, dueCards: inventory.dueCards,
+    learnedCards: Math.max(0, inventory.totalCards - inventory.newCards - inventory.inProgressCards - inventory.dueCards) };
 }
 
 function createDeckRow(
@@ -110,6 +121,7 @@ function createDeckRow(
     summary: directSummary,
     directSummary,
     directInventory,
+    statusDistribution: createDeckStatusDistribution(directInventory),
     dailyLearningSession: {
       deckId: deck.id,
       progress: directDaily,
@@ -133,6 +145,27 @@ export function cardsWithoutVariants(items: CardCatalogEntry[], page: number, pa
   return {
     items: withoutVariants,
     totalCount: withoutVariants.length < items.length ? page * pageSize + withoutVariants.length : Math.max(withoutVariants.length, totalCount),
+  };
+}
+
+export function createDeckExplorerModel(rows: DeckLibraryRow[], selectedDeckId: string | null) {
+  const selectedIndex = rows.findIndex((row) => row.id === selectedDeckId);
+  const selectedRow = rows[selectedIndex] ?? null;
+  const ancestors: DeckLibraryRow[] = [];
+  if (selectedRow) {
+    let depth = selectedRow.depth;
+    for (let index = selectedIndex; index >= 0; index -= 1) {
+      const row = rows[index];
+      if (row.depth <= depth) {
+        ancestors.unshift(row);
+        depth = row.depth - 1;
+      }
+    }
+  }
+  return {
+    selectedRow,
+    ancestors,
+    children: selectedDeckId && !selectedRow ? [] : rows.filter((row) => selectedRow ? row.parentDeckId === selectedRow.id && row.depth === selectedRow.depth + 1 : row.depth === 0),
   };
 }
 
@@ -289,6 +322,7 @@ function flattenDeckTree(decks: Deck[], options: { now: DateInput; cardLimit: nu
       : null;
     const daily = rootQueue?.dailyProgress ?? aggregate.aggregateDaily;
     aggregate.row.descendantCount = aggregate.descendantCount;
+    aggregate.row.statusDistribution = createDeckStatusDistribution(aggregate.inventory);
     aggregate.row.summary = {
       ...aggregate.inventory,
       newCards: daily.newCount,

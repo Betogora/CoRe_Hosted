@@ -18,7 +18,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `coreTypes.ts`, `coreModel.ts` | kanonische `Note`/`Card`-Typen; einzige Grenze für Inhaltserzeugung, Änderungs-, Lösch- und Wiederherstellungsplanung, Editorwerte und manuelle Formen |
 | `coreWorkspace.ts`, `coreRepository.ts` | Arbeitsbereichszustand, Stapelbefehle und Platzierungs-/Zyklusprüfung |
 | `deckSettings.ts`, `settingsDraft.ts` | normalisierte Lernwerte, Presets und Snapshot-Gleichheit von Entwürfen |
-| `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
+| `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion, direkte Explorer-Kinder mit vollständigem Ahnenpfad und rein visuelle Tiefenkappung |
 | `examPlanning.ts`, `examPlanSettings.ts` | Prüfungsprognose (Tagessimulation, Themenblöcke, Themenstarttage, gemeinsames Budget und prüfungsspezifische Zeitreservierungen, Machbarkeit), Sitzungsstapel und validierte Planablage im Profil (ADR-042) |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
 | `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |

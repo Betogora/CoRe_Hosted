@@ -5,6 +5,21 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-18 — Lokalen Arbeitsstand mit aktuellem main integriert
+
+- Auf Nutzerwunsch den gesamten lokalen Arbeitsstand auf Basis von `3fafb1a` gesichert und mit `origin/main` (`eb8346c`, 46 neuere Commits) in einem separaten Worktree zusammengeführt. Neuere KI-Verträge, Cloud-Zusammenfassungen, Mindmap-Funktionen und Prüfungsplanung bleiben erhalten. Lokale Ordner-/Exploreransicht, Stapelkennzahlen, Kartentrennung und ruhiger Sitzungskopf sind integriert. `Karten lernen` steht in allen Inhaltsreitern direkt neben der Navigation, auf schmalen Flächen darunter, und startet den aktuellen Stapel samt Unterstapeln.
+- Audit: doppelte Merge-Einfügungen entfernt, den inzwischen ersetzten lokalen KI-Helfer nicht parallel zum aktuellen Serververtrag übernommen, memoisierte Stapelzeilen und stabile Callbacks sowie die browserlokale Ansichtswahl erhalten. Ein Dashboard-Test prüft das Ringverbot gezielt in der Tagesübersicht; die Stapelzeilen besitzen wieder ihre lokale Gesamtbestandsanzeige.
+- Verifiziert: `npm run gate:push` mit Typecheck, Knip, zwölf Dokumentationstests, synchronen HTML-Ausgaben, sämtlichen Unit-/Contract-/Integrationstests (116 Dateien), Produktionsbuild und Chunk-Budget. Initialgraph 233,7 KiB gzip, größter Lazy-Graph 170,2 KiB gzip.
+- Browsernachweis: 169 Viewport-/Theme-Aufnahmen der tatsächlichen Produktkomponenten im Katalog für Stapelinhalte, alle Inhaltsreiter, Lernstart, Lernsitzung, Liste, Ordner/Explorer, Dashboard und Kartenverwaltung; kein horizontaler Überlauf oder JavaScript-Fehler. Pflichtgrößen 320×720, 360×800, 390×844, 430×932, 1280×720 und 1440×900 in Light/Dark, zusätzliche Übergänge 639/640, 1023/1024 und 1279/1280 sowie 200 % CSS-Zoom. Kontaktbögen wurden visuell geprüft. Nachweise und ausführbare Proben liegen außerhalb des Repositories unter `C:/Users/noemi/Documents/Codex/2026-10-17/dor/work/integrated-visual/`.
+- Offen: `npm run performance:measure:local` wurde ausgeführt, konnte ohne laufendes Docker Desktop aber nicht starten. Authentifizierte vollständige Cloud-/Offline-Journey, echte Smartphone-Tastatur, Screenreader und echter Browserzoom wurden in diesem Integrationslauf nicht erneut abgenommen; die bestehenden Freigabegates bleiben bestehen.
+
+## 2026-10-12 — Explorer auf die Ordneransicht begrenzt
+
+- Auf Nutzerwunsch bindet ausschließlich die Ordneransicht von Lernen den Explorer ein. Listenansicht, Kartenverwaltung und sämtliche Stapelinhaltsreiter zeigen weder Navigationsbaum noch `Stapel wechseln`. Der Inhalts-Breadcrumb, Zurück-Navigation, Reiter, Lernaktion und Entwurfsschutz bleiben erhalten.
+- Verifiziert: 56 fokussierte Tests für Lernscreen, Stapelinhalte, Stapelbaum und Bibliotheksmodell; Typecheck mit Dokumentationsprüfung; Produktionsbuild mit Chunk-Budget; elf Browserjourneys einschließlich Wechsel Ordner → Liste → Ordner → Stapelinhalte → Kartenverwaltung. Unter Speicherdruck beziehungsweise nach Rechner-Ruhezustand abgebrochene Prüfungen wurden einzeln erfolgreich wiederholt.
+- Sichtprüfung der Produktkomponenten: Liste, Ordner mit geschlossenem/geöffnetem Explorer, Kartenverwaltung, Unterstapel, Zusammenfassungs-Leerzustand/Formular/Editor, Mindmap-Leerzustand/Details sowie Karten und Karteneditor. Viewports 320×720, 360×800, 390×844, 430×932, 1023×900, 1024×900, 1279×900, 1280×720, 1280×900 und 1440×900 jeweils Light/Dark; zusätzlich 200 % CSS-Zoom. Nachweise: `C:/Users/noemi/AppData/Local/Temp/core-explorer-folder-only-20261011/` mit 243 Screenshots, Kontaktbögen und Testlogs. Echte Smartphone-Tastatur, Screenreader und echter Browserzoom bleiben ungeprüft, ebenso die zuvor offenen Live-KI-/Cloud-Gates. Kein Commit oder Push.
+
+
 ## 2026-10-18 — Trennlinie und Sitzungskopf der Lernkarten
 
 - Frage und Antwort trennt eine durchgehende 2-px-Linie in der semantischen Rahmenfarbe. Die zusätzliche Linie unter dem Karteninhalt und der permanente AMBOSS-Markierungshinweis entfallen. Die AMBOSS-Aktion bleibt bei Textauswahl erreichbar. Der Stapelname steht ohne separate Kartenposition oder Wiederholungsnummer; Tagesfortschritt und Abschlusszahlen bleiben erhalten. Der nur für diese Kopfzählung verwendete Zustand entfällt.
