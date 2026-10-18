@@ -46,8 +46,9 @@ test("calendar combines each subject with its new cards and quiz instead of dura
   const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, plannedMinutes: 12, priority: 1, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
   const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, spentMinutes: 0, newMinutes: 24, reviewMinutes: 12, newCardIds: [], reviewCardIds: [], reviewCount: 8, backlogCount: 0, buffer: false, blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [], uncertainty: "high", timing: estimateExamHistory(null, today).timing };
   const html = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[first, second]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
-  assert.match(html, /data-exam-subject="anatomy"[^]*?Anatomie[^]*?24 neue Karten[^]*?Quiz empfohlen/);
-  assert.match(html, /data-exam-subject="physiology"[^]*?Physiologie[^]*?9 neue Karten/);
+  assert.match(html, /data-exam-subject="anatomy"[^]*?>24 neue Karten<[^]*?>Quiz</);
+  assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
+  assert.match(html, /border-color:var\(--core-info\);background:color-mix/);
   assert.match(html, /Anatomie: 24 neue Karten\. Physiologie: 9 neue Karten/);
   assert.doesNotMatch(html, /Min\.|Std\.|Wiederholungen|08:00/);
 });

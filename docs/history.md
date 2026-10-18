@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-18 — Ausgeschriebene Lernaufgaben im Monatskalender
+
+- Die Monatsansicht zeigt neue Karten und Quizempfehlungen ausgeschrieben in Fachfarbe. Die Fachlegende bleibt erhalten; wiederholte Fachnamen und die zusätzliche Zeichenerklärung entfallen. Höhere Tagesfelder mit Umbruch erhalten die Einträge auf schmalen Flächen und in Monaten mit sechs Wochenzeilen. Die mobile Beschriftung nutzt den verfügbaren Platz ohne zusätzlichen Innenabstand.
+- Abschlussaudit mit `audit-last-change`: eine fragile HTML-Entfernung samt reinen Abwesenheitsprüfungen im Kalendertest entfernt; Kartenmengen, Quiz-Zuordnung, Fachfarben, zugängliche Namen und Klausurpriorität bleiben geprüft. Keine weiteren belegbaren Vereinfachungen oder Performance-Änderungen erforderlich.
+- Verifiziert mit den Lockfile-Abhängigkeiten im isolierten Worktree: 26 fokussierte Kalender-, Screen- und Theme-Tests sowie das vollständige `npm run gate:push` mit Typecheck, Knip, Dokumentationsprüfung, Unit-/Contract-/Integrationstests aus 120 Dateien, Produktionsbuild und Bundle-Budgets. Die generierten HTML-Seiten wurden aus den Katalog-/Markdown-Quellen erzeugt.
+- Visuell geprüft am Stand 0.2.0: 64 Kalenderzustände in 320×720, 360×800, 390×844, 430×932, 639×900, 640×900, 1280×720 und 1440×900 jeweils Light/Dark; fünf und sechs Wochen, große Kartenmengen, mehrere Fächer, fehlende Prognose und leerer Kalender. Zusätzlich Prüfungsübersicht und Anlegevorschau in allen sechs Pflichtgrößen und beiden Themes. Kein horizontaler Seitenüberlauf oder abgeschnittener Lernauftrag.
+- Alle 18 Browserjourneys bestanden: Übersicht und Anlegevorschau, Tagesdetails einschließlich weiterer Fächer, Fachfilter, Vor-/Zurück/Heute, Monat/Woche, Katalog und verkleinerter effektiver Viewport für 200 % Zoom. Nachweise, ausführbare lokale Prüfdaten, Screenshots und Kontaktbögen: `C:/Users/noemi/.codex/visualizations/2026/10/18/01a15002-9d6a-7803-9800-24a15c55f661/calendar-push-review/`. Port 5196 wurde verwendet, weil 5190 bereits belegt war.
+- Performance-Messung auf ausdrücklichen Nutzerwunsch ausgelassen. Echte Smartphone-Tastatur, Touchhardware, nativer Browserzoom und authentifizierte Cloud-End-to-End-Journey bleiben in diesem Kalenderlauf ungeprüft. Zeitgleich entstandene Änderungen an App-Start und Offline-Verhalten sind nicht Teil dieses Kalenderstands.
+
 
 ## 2026-10-18 — Zusammenfassungsbereich in aktuellen Main-Stand übernommen
 

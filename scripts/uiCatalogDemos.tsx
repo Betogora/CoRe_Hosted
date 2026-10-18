@@ -451,7 +451,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   views.push(
     ["dashboard", "DashboardScreen · Tagesübersicht → Prüfungen → Heatmap → Stapel", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
-    ["exams", "ExamPlanningScreen · Kalender und aufklappbare Prüfungskarten · gemeinsamer Fortschrittsbalken mit Legende und freiem Farbkreis", "Prüfungen"],
+    ["exams", "ExamPlanningScreen · Höhere Kalenderfelder mit neuen Karten und Quiz in Fachfarbe · aufklappbare Prüfungskarten", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
