@@ -39,6 +39,7 @@ Each exported screen in this folder is a UI module with a small props interface.
 - Besondere Produktansichten und lokale UI-Muster in `docs/ui-elements.html` werden über `scripts/uiCatalogDemos.tsx` beziehungsweise `scripts/uiCatalogPatterns.html` gepflegt. Nach Designänderungen `npm run docs:build` und `npm run check:docs` ausführen; erzeugte HTML-Dateien nicht direkt bearbeiten.
 
 - `DeckSummariesPanel.tsx`: lokale Fassungen, KI-Formular und Rich-Text-Editor mit Entwurfsschutz.
+- `SummaryDocumentEditor.tsx`: kompakte Werkzeuge, Hoch-/Querformat, Infinity mit Verschieben/Zoom, Textumbruch und Zeichnungen; Blattmaße und Zeichnungsplatzierung liegen in `summaryDocumentLayout.ts`.
 - `DeckMindMapsPanel.tsx`: freie Fläche, Stichworte, Verbindungen, Zeichnungen und lokale Zusammenfassungs-Momentaufnahmen.
 
 - `ExamMonthCalendar.tsx`: Kompaktes Monatsraster ohne internes Scrollen mit hervorgehobenen Klausurterminen, bis zu zwei Facheinträgen pro Tag und Überlaufhinweis; alle neuen Karten und Quiz-Empfehlungen sind über die Tagesdetails erreichbar in `ExamCalendar.tsx`.

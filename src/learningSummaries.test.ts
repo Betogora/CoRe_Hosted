@@ -127,3 +127,56 @@ test("Lesezeit stammt aus dem tatsächlichen Inhalt statt der gewählten Ziellä
   assert.equal(getSummaryReadingMinutes("<p>Ein kurzer Text.</p>"), 1);
   assert.equal(getSummaryReadingMinutes(`<p>${"Wort ".repeat(201)}</p>`), 2);
 });
+
+test("Seiten und Zeichnungen bleiben gespeichert; Textprojektion und alte Fassungen bleiben lesbar", async () => {
+  const account = local();
+  const original = createLearningSummary("deck", "Mein Skript", createSummarySettings());
+  assert.equal(readLearningSummary(original).pages, undefined);
+  const pages = [{ id: "page-a", html: "<p>Erste Seite</p>", strokes: [{ id: "stroke-a", tool: "pen", color: "#657494", width: 3, points: [[10, 20], [300, 400]] }] },
+    { id: "page-b", html: "<p>Zweite Seite<script>evil()</script></p>", strokes: [] }];
+  const { saved: stored } = await saveLearningSummary(account, { ...original, html: "Veraltete Projektion", pages });
+  assert.equal(stored.pages?.length, 2);
+  assert.deepEqual(stored.pages?.[0].strokes, pages[0].strokes);
+  assert.equal(stored.html, stored.pages?.map((page) => page.html).join("\n"));
+  assert.match(stored.html, /Erste Seite/);
+  assert.doesNotMatch(stored.html, /script|Veraltete/);
+  assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, [stored]);
+  for (const invalid of [
+    { ...pages[0], strokes: [{ ...pages[0].strokes[0], points: [[NaN, 10]] }] },
+    { ...pages[0], strokes: [{ ...pages[0].strokes[0], color: "url(javascript:evil)" }] },
+    { ...pages[0], strokes: [{ ...pages[0].strokes[0], width: -1 }] },
+  ]) assert.throws(() => readLearningSummary({ ...original, pages: [invalid] }));
+  assert.throws(() => readLearningSummary({ ...original, pages: [pages[0], pages[0]] }));
+});
+
+test("Seitenformate und Infinity-Koordinaten bleiben erhalten und werden validiert", async () => {
+  const account = local();
+  const original = createLearningSummary("deck", "Freie Fläche", createSummarySettings());
+  const pages = [{ id: "page", html: "<p>Notiz</p>", strokes: [{ id: "stroke", tool: "pen", space: "infinity", color: "#657494", width: 3, points: [[-1500, 2300], [2500, -300]] }] }];
+  assert.equal(readLearningSummary(original).pageFormat, undefined);
+  for (const pageFormat of ["portrait", "landscape", "infinity"] as const) {
+    const { saved: stored } = await saveLearningSummary(account, { ...original, pageFormat, pages });
+    assert.equal(stored.pageFormat, pageFormat);
+    assert.deepEqual(stored.pages, pages);
+    assert.deepEqual((await loadLearningSummaries(account, "deck")).summaries, [stored]);
+  }
+  assert.throws(() => readLearningSummary({ ...original, pageFormat: "other" }));
+  for (const point of [[Infinity, 0], [0, -1_000_001]]) {
+    assert.throws(() => readLearningSummary({ ...original, pages: [{ ...pages[0], strokes: [{ ...pages[0].strokes[0], points: [point] }] }] }));
+  }
+});
+
+test("Seiten und Striche überstehen Cloud-Roundtrip, Kopie und Konfliktfassung", async () => {
+  const cloud = fakeCloud(), account = cloud.account(`summary-pages-cloud-${crypto.randomUUID()}`);
+  const pages = [{ id: "page", html: "<p>Meine Notiz</p>", strokes: [{ id: "stroke", tool: "pen", space: "infinity", color: "#657494", width: 3, points: [[-50, 2000]] }] }];
+  const { saved: original } = await saveLearningSummary(account, { ...createLearningSummary("deck", "Seiten", createSummarySettings()), pages, pageFormat: "landscape" });
+  await freshDevice(account.userId);
+  const reopened = (await loadLearningSummaries(account, "deck")).summaries[0];
+  assert.deepEqual(reopened, original);
+  const { saved: copy } = await saveLearningSummary(account, duplicateLearningSummary(reopened));
+  assert.deepEqual([copy.pageFormat, copy.pages], ["landscape", pages]);
+  Object.assign(cloud.rows.get(original.id)!, { document: { ...original, pageFormat: "portrait" }, revision: 2 });
+  const conflict = await saveLearningSummary(account, { ...original, pageFormat: "infinity" });
+  assert.notEqual(conflict.saved.id, original.id);
+  assert.deepEqual([conflict.saved.pageFormat, conflict.saved.pages, conflict.replaced?.summary?.pageFormat], ["infinity", pages, "portrait"]);
+});

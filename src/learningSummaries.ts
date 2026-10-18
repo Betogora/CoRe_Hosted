@@ -19,10 +19,30 @@ const generationSchema = v.strictObject({
   })), v.maxLength(240))),
 });
 export type SummaryGeneration = v.InferOutput<typeof generationSchema>;
+const pageFormatSchema = v.picklist(["portrait", "landscape", "infinity"]);
+export type SummaryPageFormat = v.InferOutput<typeof pageFormatSchema>;
+const coordinate = v.pipe(v.number(), v.finite(), v.minValue(-1_000_000), v.maxValue(1_000_000));
+const summaryStrokeSchema = v.strictObject({
+  id: identifier,
+  tool: v.picklist(["pen", "marker"]),
+  space: v.optional(pageFormatSchema),
+  color: v.pipe(v.string(), v.regex(/^#[0-9a-f]{6}$/i)),
+  width: v.pipe(v.number(), v.finite(), v.minValue(1), v.maxValue(24)),
+  points: v.pipe(v.array(v.tuple([coordinate, coordinate])), v.minLength(1), v.maxLength(10_000)),
+});
+const summaryPageSchema = v.strictObject({
+  id: identifier,
+  html: v.pipe(v.string(), v.maxLength(100_000)),
+  strokes: v.pipe(v.array(summaryStrokeSchema), v.maxLength(2000)),
+});
+export type SummaryStroke = v.InferOutput<typeof summaryStrokeSchema>;
+export type SummaryPage = v.InferOutput<typeof summaryPageSchema>;
 const summarySchema = v.strictObject({
   version: v.literal(1), id: identifier, deckId: identifier,
   title: v.pipe(v.string(), v.minLength(1), v.maxLength(120)),
   html: v.pipe(v.string(), v.maxLength(100_000)),
+  pages: v.optional(v.pipe(v.array(summaryPageSchema), v.minLength(1), v.maxLength(100))),
+  pageFormat: v.optional(pageFormatSchema),
   settings: summarySettingsSchema,
   generation: v.optional(generationSchema),
   font: v.picklist(["sans", "serif"]), fontSize: v.picklist([14, 16, 22]),
@@ -37,7 +57,13 @@ export function readLearningSummary(value: unknown): LearningSummary {
   if (!parsed.success || !parsed.output.title.trim() || Date.parse(parsed.output.updatedAt) < Date.parse(parsed.output.createdAt)) {
     throw new Error("Die gespeicherte Zusammenfassung ist ungültig und kann nicht geöffnet werden.");
   }
-  return { ...parsed.output, title: parsed.output.title.trim(), html: sanitizeCardHtml(parsed.output.html) };
+  const pages = parsed.output.pages?.map((page) => ({ ...page, html: sanitizeCardHtml(page.html) }));
+  if (pages && new Set(pages.map((page) => page.id)).size !== pages.length) {
+    throw new Error("Die gespeicherten Seiten sind ungültig.");
+  }
+  const html = pages ? pages.map((page) => page.html).join("\n") : sanitizeCardHtml(parsed.output.html);
+  if (html.length > 100_000) throw new Error("Die Zusammenfassung ist zu lang. Kürze den Text vor dem Speichern.");
+  return { ...parsed.output, title: parsed.output.title.trim(), html, ...(pages ? { pages } : {}) };
 }
 
 export function createLearningSummary(deckId: string, title: string, settings: SummarySettings, now = new Date().toISOString()): LearningSummary {

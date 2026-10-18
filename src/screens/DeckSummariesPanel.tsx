@@ -1,6 +1,6 @@
 import React from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ArrowLeft, ChevronRight, Copy, FileText, Plus, Save, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronRight, Copy, FileText, Plus, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
@@ -9,7 +9,7 @@ import { createLearningSummary, createSummarySettings, deleteLearningSummary, du
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
-import { RichTextEditor } from "../ui/RichTextEditor.tsx";
+import { SummaryDocumentEditor } from "./SummaryDocumentEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 
@@ -107,7 +107,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     try {
       const result = await onGenerateSummary({ deckId: deck.id, title: base.title, settings: { ...base.settings }, source: generationSource }, controller.signal);
       if (controller.signal.aborted) return;
-      const next = { ...base, ...result, updatedAt: new Date().toISOString() };
+      const next = { ...base, ...result, pages: base.pages?.map((page, index) => ({ ...page, html: index === 0 ? result.html : "" })), updatedAt: new Date().toISOString() };
       setDraft(next); setSaved(null); setView("editor"); setProgress("Zusammenfassung wird gespeichert …");
       const stored = await saveLearningSummary(account, next);
       if (controller.signal.aborted) return;
@@ -242,18 +242,14 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
           </form>
         </SoftPanel>
       </> : draft ? <>
-        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : unsynced.has(draft.id) ? "Noch nicht synchronisiert" : "Gespeichert"}</p></div><div className="flex flex-wrap gap-3">{saved ? <><CoreTooltip label="Duplizieren"><IconButton icon={Copy} label="Duplizieren" disabled={busy} onClick={() => request(() => void duplicate())}/></CoreTooltip><CoreTooltip label="Löschen"><IconButton icon={Trash2} label="Löschen" variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}/></CoreTooltip></> : null}{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}<ActionButton variant="primary" icon={Save} loading={busy} onClick={() => void persist()}>Speichern</ActionButton></div></div>
+        <div className="core-summary-heading core-summary-editor-heading flex flex-wrap items-end justify-between gap-4"><div className="grid min-w-0 flex-1 gap-2"><label className="core-field-label" htmlFor={`${fieldId}-title`}>Titel der Zusammenfassung</label><input id={`${fieldId}-title`} disabled={busy} ref={titleRef} className="core-field core-heading-2" value={draft.title} maxLength={120} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-invalid={Boolean(error) && !draft.title.trim() || undefined} /><p className="core-caption text-core-muted">{summaryDescription(draft)} · {dirty ? "Ungespeicherte Änderungen" : unsynced.has(draft.id) ? "Noch nicht synchronisiert" : "Gespeichert"}</p></div><div className="flex flex-wrap gap-3">{saved ? <><CoreTooltip label="Duplizieren"><IconButton icon={Copy} label="Duplizieren" disabled={busy} onClick={() => request(() => void duplicate())}/></CoreTooltip><CoreTooltip label="Löschen"><IconButton icon={Trash2} label="Löschen" variant="destructive" disabled={busy} onClick={() => setConfirmDelete(true)}/></CoreTooltip></> : null}{onGenerateSummary && saved && draft.settings.material === "cards" ? <ActionButton variant="secondary" icon={Sparkles} disabled={busy} onClick={() => { if (draft.html.trim()) setConfirmRegenerate(true); else regenerate(); }}>Neu erzeugen</ActionButton> : null}</div></div>
         {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
         {notice ? <StatusMessage tone="info" announce="polite">{notice}</StatusMessage> : null}
-        <SoftPanel className="core-summary-document grid gap-4 p-4 sm:p-6" inert={busy}>
-          <div className="flex flex-wrap gap-4"><div className="core-field-group"><label htmlFor={`${fieldId}-font`} className="core-field-label">Schrift</label><CoreSelect id={`${fieldId}-font`} ariaLabel="Schrift" value={draft.font} options={[{ value: "sans", label: "Standard" }, { value: "serif", label: "Serif" }]} onValueChange={(value) => setDraft({ ...draft, font: value as LearningSummary["font"] })}/></div><div className="core-field-group"><label htmlFor={`${fieldId}-size`} className="core-field-label">Schriftgröße</label><CoreSelect id={`${fieldId}-size`} ariaLabel="Schriftgröße" value={String(draft.fontSize)} options={[{ value: "14", label: "14" }, { value: "16", label: "16" }, { value: "22", label: "22" }]} onValueChange={(value) => setDraft({ ...draft, fontSize: Number(value) as LearningSummary["fontSize"] })}/></div></div>
-          <div className="core-summary-editor" style={{ "--summary-font": draft.font === "serif" ? "Georgia, serif" : "inherit", "--summary-size": `${draft.fontSize}px` } as React.CSSProperties}>
-            <RichTextEditor ariaLabel="Zusammenfassung bearbeiten" ariaDescribedBy={`${fieldId}-edit-hint`} value={draft.html} onChange={(html) => setDraft((current) => current ? { ...current, html } : null)} isActive minHeightClass="min-h-64"/>
-          </div>
+        <SummaryDocumentEditor key={draft.id} value={draft} onChange={setDraft} onSave={() => void persist()} busy={busy} error={error}/>
+        <div className="grid gap-3">
           {draft.generation && <p className="core-caption text-core-muted">Mit KI erstellt · {draft.generation.materialUnits} {draft.generation.materialUnits === 1 ? "Materialeinheit" : "Materialeinheiten"} · {draft.generation.privacyMode === "zdr" ? "Ohne Datenspeicherung beim Anbieter" : "Anbieter ohne ZDR-Zusage"}. Prüfe die Aussagen anhand deiner Grundlage.</p>}
-          <p id={`${fieldId}-edit-hint`} className="core-field-hint">Schreibe deinen Text hier. Unter „Weitere Textwerkzeuge“ findest du Textfarbe, Marker, Listen und weitere Formatierungen.</p>
           <p className="core-caption text-core-muted">Grundlage: {draft.settings.scope === "tree" ? "Stapel und Unterstapel" : "Dieser Stapel"} · {{ cards: "Nur Karten", "cards-and-source": "Karten und Quelle", source: "Nur Quelle" }[draft.settings.material]}</p>
-        </SoftPanel>
+        </div>
       </> : null}
     </>}
     {progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}
