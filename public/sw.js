@@ -17,6 +17,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
 
+  const isScript = request.destination === "script" || /\.(?:m?js)$/.test(url.pathname);
+  const canCache = (response) => response.ok && (!isScript || /^(?:text|application)\/(?:javascript|ecmascript)(?:\s*;|$)/i.test(response.headers.get("Content-Type") || ""));
+
   if (request.mode === "navigate") {
     event.respondWith(fetch(request)
       .then((response) => {
@@ -30,8 +33,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  event.respondWith(caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-    if (response.ok) {
+  event.respondWith(caches.match(request).then((cached) => cached && canCache(cached) ? cached : fetch(request).then((response) => {
+    if (canCache(response)) {
       const copy = response.clone();
       void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
     }

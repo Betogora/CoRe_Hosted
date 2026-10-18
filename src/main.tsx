@@ -4,7 +4,7 @@ import { App } from "./App.tsx";
 import { AppErrorBoundary } from "./AppErrorBoundary.tsx";
 import { markAppStarted, markServiceWorkerContext } from "./appPerformance.ts";
 import { initializeCoreTheme } from "./coreTheme.ts";
-import { registerCoreServiceWorker } from "./pwa.ts";
+import { registerAppModuleLoadErrors, registerCoreServiceWorker } from "./pwa.ts";
 import { SuccessToastProvider } from "./ui/feedbackUi.tsx";
 import { CoreTooltipProvider } from "./ui/tooltipUi.tsx";
 import "./styles.css";
@@ -16,6 +16,7 @@ markServiceWorkerContext(typeof navigator === "undefined" || !("serviceWorker" i
     ? "controlled"
     : "uncontrolled");
 initializeCoreTheme();
+if (import.meta.env.PROD) registerAppModuleLoadErrors();
 
 function ApplicationRoot() {
   if (import.meta.env.MODE === "e2e" && new URLSearchParams(window.location.search).get("core_e2e_render_error") === "1") {
