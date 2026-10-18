@@ -1,9 +1,18 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-14
+**Stand:** 2026-10-18
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-18 — Trennlinie und Sitzungskopf der Lernkarten
+
+- Frage und Antwort trennt eine durchgehende 2-px-Linie in der semantischen Rahmenfarbe. Die zusätzliche Linie unter dem Karteninhalt und der permanente AMBOSS-Markierungshinweis entfallen. Die AMBOSS-Aktion bleibt bei Textauswahl erreichbar. Der Stapelname steht ohne separate Kartenposition oder Wiederholungsnummer; Tagesfortschritt und Abschlusszahlen bleiben erhalten. Der nur für diese Kopfzählung verwendete Zustand entfällt.
+- Die Katalog-Beispielkarten verwenden den festen Demo-Lerntag als Erstellungsdatum, damit die Lernsitzung unabhängig vom aktuellen Datum Karten zeigt. Die HTML-Seiten werden aus ihren Quellen regeneriert.
+- Sichtprüfung am lokalen Arbeitsstand 0.2.0: 320×720, 360×800, 390×844, 430×932, 1280×720 und 1440×900 jeweils Light/Dark vor und nach Aufdecken. StudyMode als echte Produktkomponente mit lokalen Daten: 24 Screenshots. Die 13 APKG-Referenznotizen der visuellen Pflichtmatrix wurden über den Import übersetzt und im tatsächlichen NoteCardContent in Review/Vorschau bei 390×844 und 1440×900 betrachtet; die Eintippkarte zusätzlich in den übrigen Pflichtgrößen: 240 Screenshots. Weitere Nachweise umfassen Inhaltsansicht, Kartenvorschau, AMBOSS-Textauswahl und 200 % CSS-Zoom.
+- Screenshot-Nachweise und lokale Prüfskripte: `C:/Users/noemi/.codex/visualizations/2026/10/17/01a14b96-7893-7972-9faa-8e39e6d5e353/` mit `study/`, `apkg/` und `contacts/`; ergänzende Katalog- und Zoom-Aufnahmen in `test-results/note-presentation/`. Ein generischer Katalog-Matrixlauf wurde unter Speicherdruck durch die gezielte Referenzmatrix ersetzt; ein während Rechner-Ruhezustand abgelaufener Sitzungslauf wurde wiederholt. Echte Smartphone-Tastatur, Screenreader und echter Browserzoom bleiben ungeprüft. Die APKG-Referenz `matrix-cloze-math` zeigt eine unabhängige Formeldiagnose.
+- Vor dem Commit wurde der aus `Betogora/BengtsToolBox` installierte Skill `audit-last-change` angewendet: Prüfungen ausschließlich auf entfernte Texte wurden vereinfacht; weitere belegbare Optimierungen waren nicht erforderlich.
+- Auf dem aktuellen `origin/main` erneut bestanden: `npm run gate:push` einschließlich Typprüfung, Knip, Dokumentation, sämtlichen Unit-/Contract-/Integrationstests aus 116 Dateien, Produktionsbuild und Bundle-Budgets; zusätzlich neun Browserprüfungen mit der vollständigen gezielten Referenzmatrix. Frische Nachweise liegen im genannten Scratchpad unter `push-results/`, `push-note-presentation/`, `study/` und `apkg/`. Die zusätzliche Prüfung `npm run performance:measure:local` konnte wegen des nicht verfügbaren Docker Desktop nicht starten; sie ist damit nicht bestanden.
 
 ## 2026-10-17 — Zusammenfassungen online (W8a)
 

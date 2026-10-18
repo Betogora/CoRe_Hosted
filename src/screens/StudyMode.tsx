@@ -118,14 +118,12 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   }
   const { queue, easyDaysContext } = queuePlanRef.current;
   const [sessionDailyProgress, setSessionDailyProgress] = React.useState(() => sessionPlan?.progress ?? queue.dailyProgress);
-  const [plannedSessionTotal, setPlannedSessionTotal] = React.useState(() => Math.max(0, sessionPlan?.initialCardCount ?? queue.total));
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
   const current = React.useMemo(
     () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, sessionIndex: sessionIndexRef.current! }),
     [dayStartHour, easyDaysContext, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone],
   );
   const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
-  const sessionTotal = Math.max(plannedSessionTotal, effectiveReviewSession.initialKeys.length);
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
   const answeredCount = completedInitialCount + repeatCount;
@@ -148,7 +146,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     sessionIndexRef.current = createDailyReviewSessionIndex(decks);
     setReviewSession(null);
     setSessionDailyProgress(sessionPlan?.progress ?? queue.dailyProgress);
-    setPlannedSessionTotal(Math.max(0, sessionPlan?.initialCardCount ?? queue.total));
     setMoreCardsAvailable(hasMoreCards);
     setActiveBufferSize(Math.max(1, bufferSize));
     setLoadingMoreCards(false);
@@ -171,7 +168,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     const buried = new Set(queue.buriedKeys);
     const newlyBuried = (reviewSession?.remainingInitialKeys ?? []).filter((key) => buried.has(key));
     if (newlyBuried.length > 0) {
-      setPlannedSessionTotal((total) => Math.max(0, total - newlyBuried.length));
       setSessionDailyProgress((progress) => newlyBuried.reduce((next, key) => {
         const study = sessionIndexRef.current?.entriesByKey.get(key)?.card.study;
         return study ? moveDailyReviewProgress(next, classifyDailyReviewProgress(study, false, getNow(), { dayStartHour, timeZone }), null) : next;
@@ -229,7 +225,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     if (previousLearningDayKeyRef.current === effectiveLearningDayKey) return;
     previousLearningDayKeyRef.current = effectiveLearningDayKey;
     setSessionDailyProgress(sessionPlan?.progress ?? queue.dailyProgress);
-    setPlannedSessionTotal(Math.max(0, sessionPlan?.initialCardCount ?? queue.total));
     setReviewSession(createDailyReviewSessionState([
       current ? { deckId: current.deckId, cardId: current.cardId } : null,
       ...queue.items,
@@ -323,7 +318,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
       classifyDailyReviewProgress(current.card.study, Boolean(current.sessionInfo?.isRepeat), getNow(), { dayStartHour, timeZone }),
       null,
     ));
-    setPlannedSessionTotal((total) => Math.max(0, total - 1));
     setShowSettings(false);
     setReviewSession((session) => removeDailyReviewSessionItem(session ?? effectiveReviewSession, currentKey));
     setShowAnswer(false);
@@ -405,15 +399,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
             </button>
             <div className="text-center">
               <p className="core-body font-semibold text-core-muted">{rootDeck?.name ?? deck?.name}</p>
-              <p className="mt-1 core-body text-core-muted">
-                {current?.sessionInfo?.isRepeat
-                  ? `Wiederholung ${repeatCount + 1}`
-                  : current
-                    ? `${Math.min(completedInitialCount + 1, sessionTotal)} / ${sessionTotal}`
-                    : sessionTotal
-                      ? `${completedInitialCount} / ${sessionTotal}`
-                      : "0 / 0"}
-              </p>
             </div>
             <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
               <SlidersHorizontal size={20} aria-hidden="true" />

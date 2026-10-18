@@ -245,7 +245,7 @@ Akzeptanz:
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 
-Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar; die Antwort wiederholt die Frage nicht. Vier Bewertungen aktualisieren den Lernzustand.
+Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine 2-px-Linie über die gesamte Inhaltsbreite; die Antwort wiederholt die Frage nicht. Unter dem Karteninhalt erscheint keine zusätzliche Trennlinie. Der Kopf zeigt den Stapelnamen ohne separate Kartenposition oder Wiederholungsnummer; der Tagesfortschritt bleibt erhalten. Vier Bewertungen aktualisieren den Lernzustand.
 
 Akzeptanz:
 
@@ -261,7 +261,7 @@ Akzeptanz:
 #### Werkzeuge auf der Karte
 
 - Inhalte mit Vorlese-Angabe (aus Anki-`tts`) bieten `<Feld> vorlesen`. Vorgelesen wird über die Sprachausgabe des Systems in der hinterlegten Sprache; ohne Sprachausgabe ist die Aktion deaktiviert, ein Fehler wird gemeldet.
-- Markierter Text auf einer Review-Karte bietet `In AMBOSS nachschlagen`. Erst dieser ausdrückliche Klick öffnet die AMBOSS-Suche in einem neuen Tab; dabei geht ausschließlich der markierte Text als Suchbegriff an AMBOSS, ohne Referrer und ohne weitere Karten- oder Kontodaten. Ohne Markierung steht dort nur der Hinweis `Begriff auf der Karte markieren, um ihn in AMBOSS nachzuschlagen.`
+- Markierter Text auf einer Review-Karte bietet `In AMBOSS nachschlagen`. Erst dieser ausdrückliche Klick öffnet die AMBOSS-Suche in einem neuen Tab; dabei geht ausschließlich der markierte Text als Suchbegriff an AMBOSS, ohne Referrer und ohne weitere Karten- oder Kontodaten. Ohne Markierung erscheint kein AMBOSS-Hinweis; die Werkzeugzeile wird nur bei verfügbaren Aktionen angezeigt und hat keine Trennlinie.
 
 #### Sitzungs-Overlay
 

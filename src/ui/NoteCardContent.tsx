@@ -156,13 +156,12 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
     {answerResult && !oneFrame ? <CardPresentationSurface {...frameProps} presentation={answerResult} title="Antwort" /> : null}
     {diagnostics.length ? <StatusMessage tone="warning">{diagnostics.map((item, index) => <p key={index}>{item.message}</p>)}</StatusMessage> : null}
 
-    {speech.length || surface === "review" ? <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-core-border pt-4">
+    {speech.length || (surface === "review" && selectedText) ? <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
       {speech.map((item) => <ActionButton key={item.fieldId} variant="secondary" icon={Volume2} disabled={typeof window === "undefined" || !("speechSynthesis" in window)} onClick={() => speak(item)}>{item.label} vorlesen</ActionButton>)}
       {surface === "review" && selectedText ? <>
         <ActionButton variant="secondary" icon={ExternalLink} aria-describedby={`amboss-${card.id}`} onClick={() => window.open(`https://next.amboss.com/de/search?q=${encodeURIComponent(selectedText)}`, "_blank", "noopener,noreferrer")}>In AMBOSS nachschlagen</ActionButton>
         <span id={`amboss-${card.id}`} className="min-w-0 max-w-full truncate core-caption text-core-muted">„{selectedText}“</span>
       </> : null}
-      {surface === "review" && !selectedText ? <p className="flex min-h-control items-center gap-2 core-caption text-core-muted"><ExternalLink className="shrink-0" size={16} aria-hidden="true" />Begriff auf der Karte markieren, um ihn in AMBOSS nachzuschlagen.</p> : null}
     </div> : null}
     {speechError ? <StatusMessage tone="error" announce="assertive">{speechError}</StatusMessage> : null}
   </div>;
