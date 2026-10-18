@@ -1381,9 +1381,6 @@ export function DecksScreen({
 
   return (
     <div className="relative grid min-w-0 gap-6">
-      <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
-        if (area === "overview") onOpenLearn(contentDeckId ?? selectedDeckId);
-      }} />
       {contentDeckId ? (
         <div className="grid min-w-0 gap-6" data-deck-content-navigation="true" ref={contentNavigationRef}>
           <nav className="core-deck-folder-breadcrumb" aria-label="Stapelpfad" data-testid="deck-content-path">
@@ -1396,10 +1393,7 @@ export function DecksScreen({
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-3" data-testid="deck-content-heading">
             <div className="flex min-w-0 items-center gap-3">
               {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={24} /> : null}
-              <div className="min-w-0">
-                <h2 className="break-words core-heading-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
-                <p className="mt-1 core-caption text-core-muted">{libraryDecks.length > 1 ? `Einschließlich ${libraryDecks.length - 1} Unterstapel${libraryDecks.length === 2 ? "" : "n"}` : "Nur dieser Stapel"}</p>
-              </div>
+              <h2 className="min-w-0 break-words core-heading-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
             </div>
             <CoreTooltip label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"}>
               <IconButton label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"} icon={ArrowLeft}
@@ -1415,7 +1409,9 @@ export function DecksScreen({
               onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
           </div>
         </div>
-      ) : null}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
+        if (area === "overview") onOpenLearn(selectedDeckId);
+      }} />}
 
       {contentDeckId && contentTab === "children" ? (
         contentRow && contentLibrary ? <DeckSubstacksPanel rows={contentLibrary.rows} current={contentRow} decks={decks} hasStudyCards={hasStudyCards}

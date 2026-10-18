@@ -86,7 +86,6 @@ export function ActionDialog({
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        if (event.target instanceof Node && !dialogRef.current?.contains(event.target)) return;
         if (event.target instanceof Element && event.target.closest("[data-radix-popper-content-wrapper]")) return;
         event.preventDefault();
         cancelDialog();
@@ -183,7 +182,7 @@ export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-acti
   );
 }
 
-export interface SegmentedDonutSegment {
+interface SegmentedDonutSegment {
   key: string;
   value: number;
   color: string;

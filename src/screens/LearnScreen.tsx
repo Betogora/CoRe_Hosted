@@ -1,20 +1,31 @@
 import React from "react";
-import { ChevronRight, FolderPlus, Layers, List, Folder } from "lucide-react";
+import { ChevronRight, FolderPlus, LayoutGrid, Layers, List } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
-import { createDeckExplorerModel, createDeckLibraryModel } from "../libraryModel.ts";
-import { collectDeckTreeIds } from "../coreWorkspace.ts";
-import { CoreSegmentedControl, EmptyState } from "../ui/coreUi.tsx";
-import { DeckExplorer } from "../ui/DeckExplorer.tsx";
-import { DeckTree } from "../ui/DeckTree.tsx";
+import { createDeckLibraryModel } from "../libraryModel.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
+import { EmptyState } from "../ui/coreUi.tsx";
+import { DeckTree, type DeckTreeView } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 
 const DECK_VIEW_STORAGE_KEY = "core.learn.deckView.v1";
 
-function readStoredViewMode(): "list" | "folders" {
-  try { return typeof window !== "undefined" && window.localStorage.getItem(DECK_VIEW_STORAGE_KEY) === "tiles" ? "folders" : "list"; }
-  catch { return "list"; }
+function readStoredDeckView(): DeckTreeView {
+  if (typeof window === "undefined") return "list";
+  try {
+    return window.localStorage.getItem(DECK_VIEW_STORAGE_KEY) === "tiles" ? "tiles" : "list";
+  } catch {
+    return "list";
+  }
+}
+
+function writeStoredDeckView(view: DeckTreeView) {
+  try {
+    window.localStorage.setItem(DECK_VIEW_STORAGE_KEY, view);
+  } catch {
+    // Die Ansicht bleibt ohne browserlokale Speicherung umschaltbar.
+  }
 }
 
 function createDefaultDeckDraft(parentDeckId = "") {
@@ -27,23 +38,14 @@ function createDefaultDeckDraft(parentDeckId = "") {
 export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAheadMinutes, timeZone, onStartDeck, onCreateDeck, focusedDeckId = null, initialParentDeckId = "", onDeckCreationHandled, onFocusDeck, onOpenCardCreation, onOpenDecks, onOpenDeckContent, onOpenCardSettings, onOpenDeckSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onSetDeckExpanded }: LearnScreenProps) {
   const library = React.useMemo(() => createDeckLibraryModel(decks, { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries }), [dayStartHour, deckSummaries, decks, learnAheadMinutes, now, timeZone]);
   const [deckDraft, setDeckDraft] = React.useState(() => createDefaultDeckDraft(initialParentDeckId));
+  const [deckView, setDeckView] = React.useState(readStoredDeckView);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
-  const [viewMode, setViewMode] = React.useState(readStoredViewMode);
   const setSuccessToast = useSuccessToast();
   const deckNameRef = React.useRef<HTMLInputElement | null>(null);
-  const { selectedRow: focusedRow } = createDeckExplorerModel(library.rows, focusedDeckId);
-  const visibleRows = React.useMemo(() => {
-    if (!focusedDeckId) return library.rows;
-    const ids = collectDeckTreeIds(decks, focusedDeckId);
-    return library.rows.filter((row) => ids.has(row.id)).map((row) => ({ ...row, depth: row.depth - (focusedRow?.depth ?? 0) }));
-  }, [decks, focusedDeckId, focusedRow?.depth, library.rows]);
+  const focusedRow = library.rows.find((row) => row.id === focusedDeckId) ?? null;
   const eligibleParentDeckIds = React.useMemo(() => library.rows.map((row) => row.id), [library.rows]);
   const focusedDeckMissing = Boolean(focusedDeckId && !focusedRow);
-
-  React.useEffect(() => {
-    setDeckDraft((current) => ({ ...current, parentDeckId: focusedRow?.id ?? "" }));
-  }, [focusedRow?.id]);
 
   React.useEffect(() => {
     if (!initialParentDeckId) return;
@@ -130,14 +132,39 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
     </form>
   );
 
-  const content = (
-    <>
-        <DeckTree rows={focusedDeckMissing ? [] : visibleRows} mode="learn" contentBeforeRows={deckCreateForm}
-          viewMode={viewMode} focusedDeckId={focusedDeckId}
-          headerAction={<CoreSegmentedControl ariaLabel="Stapelansicht" options={[{ value: "list", label: "Liste", icon: List }, { value: "folders", label: "Ordner", icon: Folder }]} value={viewMode} onValueChange={(next) => { setViewMode(next); try { window.localStorage.setItem(DECK_VIEW_STORAGE_KEY, next === "folders" ? "tiles" : "list"); } catch { /* Storage can be unavailable. */ } }} />}
-          collapsedDeckIds={collapsedDeckIds} onDeckExpansionChange={(id, expanded) => onSetDeckExpanded("learn", id, expanded)}
-          onActivate={(row) => onOpenDeckContent(row.id)} onStudy={(row) => onStartDeck(row.deck)}
-          onOpenSettings={onOpenDeckSettings} onSetDeckCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
+  return (
+    <div className="grid min-w-0 gap-6">
+      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
+        if (area === "cards") onOpenDecks(focusedDeckId);
+      }} />
+
+      <DeckTree
+        rows={focusedDeckMissing ? [] : library.rows}
+        mode="learn"
+        view={deckView}
+        headerAction={library.rows.length > 0 ? (
+          <ActionButton
+            variant="secondary"
+            icon={deckView === "list" ? LayoutGrid : List}
+            aria-label={deckView === "list" ? "Als Kacheln anzeigen" : "Als Liste anzeigen"}
+            onClick={() => {
+              const next = deckView === "list" ? "tiles" : "list";
+              setDeckView(next);
+              writeStoredDeckView(next);
+            }}
+          >
+            {deckView === "list" ? "Kacheln" : "Liste"}
+          </ActionButton>
+        ) : null}
+        contentAfterRows={deckCreateForm}
+        collapsedDeckIds={collapsedDeckIds}
+        onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
+        onActivate={(row) => onOpenDeckContent(row.id)}
+        onStudy={(row) => onStartDeck(row.deck)}
+        onOpenSettings={onOpenDeckSettings}
+        onSetDeckCoreMode={onSetDeckCoreMode}
+        onMoveDeck={onMoveDeck}
+      />
 
       {focusedDeckMissing ? (
         <EmptyState
@@ -167,28 +194,6 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           }
         />
       ) : null}
-    </>
-  );
-
-  return (
-    <div className="grid min-w-0 gap-6">
-      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
-        if (area === "cards") onOpenDecks(focusedDeckId);
-      }} />
-      {viewMode === "folders" ? (
-        <DeckExplorer
-          rows={library.rows}
-          mode="learn"
-          selectedDeckId={focusedDeckId}
-          onSelectDeck={onFocusDeck}
-          collapsedDeckIds={collapsedDeckIds}
-          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("learn", deckId, expanded)}
-          onStudy={(row) => onStartDeck(row.deck)}
-          onOpenSettings={onOpenDeckSettings}
-          onSetDeckCoreMode={onSetDeckCoreMode}
-          onMoveDeck={onMoveDeck}
-        >{content}</DeckExplorer>
-      ) : content}
     </div>
   );
 }
