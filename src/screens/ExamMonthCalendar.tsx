@@ -30,7 +30,7 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
       <div className="grid grid-cols-7 gap-px border-b border-core-border">
         {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((name) => <div key={name} className="bg-core-surface py-1 text-center core-caption font-semibold text-core-muted">{name}</div>)}
       </div>
-      <div className="exam-month-days grid grid-cols-7 gap-px" style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(0, 1fr))` }}>
+      <div className="exam-month-days grid grid-cols-7 gap-px" style={{ gridTemplateRows: `repeat(${days.length / 7}, minmax(var(--exam-month-day-height), 1fr))` }}>
         {days.map((key) => {
           const day = dayByKey.get(key);
           const appointments = shown.filter((exam) => exam.examDate === key);
@@ -49,15 +49,13 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
             onClick={() => onSelect(key)} className={`grid min-h-0 min-w-0 content-start gap-0.5 overflow-hidden p-0.5 text-left transition hover:bg-core-subtle ${date === key ? "bg-core-info-soft shadow-inset" : outside ? "bg-core-subtle" : "bg-core-surface"}`}>
             <span className="flex h-5 min-w-0 items-center justify-between"><span className={`grid size-5 shrink-0 place-items-center rounded-round core-caption font-semibold ${key === today ? "bg-core-action text-core-on-accent" : outside ? "text-core-muted" : "text-core-text"}`}>{Number(key.slice(8))}</span>{remaining ? <span className="exam-month-more text-core-muted" title={`${remaining} weitere Einträge in den Tagesdetails`}>+{remaining}</span> : null}</span>
             {appointments.slice(0, visibleEntries).map((exam) => <span key={exam.id} data-exam-appointment={exam.id} title={`Klausur: ${exam.name}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset px-1 font-bold" style={{ background: color(exam), color: examTextColor(exam) }}><Flag size={11} className="shrink-0" aria-hidden="true" /><span className="truncate"><span className="sr-only">Klausur: </span>{exam.name}</span></span>)}
-            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz }) => <span key={exam.id} data-exam-subject={exam.id} title={`${exam.name}: ${hasForecast ? `${newCards} neue Karten` : "Karten: –"}${quiz ? " · Quiz empfohlen" : ""}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset border-l-strong px-1 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>
-              <strong className="exam-month-subject-name min-w-0 flex-1 truncate font-medium">{exam.name}</strong>
-              <span className="shrink-0">{hasForecast ? <>{newCards}<span className="sr-only"> neue Karten</span></> : "–"}</span>
-              {quiz ? <span className="shrink-0 font-bold" aria-label="Quiz empfohlen">Q</span> : null}
+            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz }) => <span key={exam.id} data-exam-subject={exam.id} title={`${exam.name}: ${hasForecast ? `${newCards} neue Karten` : "Karten: –"}${quiz ? " · Quiz empfohlen" : ""}`} className="exam-month-entry grid min-w-0 rounded-inset border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>
+              <span>{hasForecast ? `${newCards} neue Karten` : "Karten: –"}</span>
+              {quiz ? <span className="font-semibold" aria-label="Quiz empfohlen">Quiz</span> : null}
             </span>)}
           </button>;
         })}
       </div>
     </div>
-    <p className="core-caption text-core-muted">Zahl = neue Karten · Q = Quiz empfohlen · Flagge = Klausur. Tippe auf einen Tag für alle Aufgaben und Details.</p>
   </SoftPanel>;
 }
