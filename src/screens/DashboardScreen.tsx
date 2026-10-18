@@ -236,7 +236,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData }: DashboardScreenProps) {
+export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
     () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries }),
@@ -312,8 +312,8 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
     <div className="grid min-w-0 gap-6">
       <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
 
-      {nextExam && onStartExamUnit && onLoadExamPlanningData ? (
-        <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onOpen={() => onNavigate("pruefungen")} />
+      {nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
+        <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
       ) : null}
 
       <DailyLearningOverview

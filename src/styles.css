@@ -168,6 +168,28 @@
   --core-font-sans: "Manrope Variable", Manrope, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Primitive CoRe palette. Product UI consumes the semantic roles below. */
+  /* Stable, distinct exam identities in both themes; white labels retain AA contrast. */
+  --core-exam-color-1: #1d4ed8;
+  --core-exam-color-2: #be185d;
+  --core-exam-color-3: #047857;
+  --core-exam-color-4: #c2410c;
+  --core-exam-color-5: #7e22ce;
+  --core-exam-color-6: #0e7490;
+  --core-exam-color-7: #a16207;
+  --core-exam-color-8: #b91c1c;
+  --core-exam-color-9: #4338ca;
+  --core-exam-color-10: #0f766e;
+  --core-exam-color-11: #a21caf;
+  --core-exam-color-12: #4d7c0f;
+  --core-exam-color-13: #0369a1;
+  --core-exam-color-14: #be123c;
+  --core-exam-color-15: #6d28d9;
+  --core-exam-color-16: #854d0e;
+  --core-exam-color-17: #15803d;
+  --core-exam-color-18: #475569;
+  --core-exam-color-19: #9d174d;
+  --core-exam-color-20: #155e75;
+  --core-exam-on-color: #ffffff;
   --core-palette-slate: #6f7e9e;
   --core-palette-mist: #a9b5c7;
   --core-palette-cloud: #dde3ec;
@@ -2355,3 +2377,12 @@ summary {
 .core-mindmap-summary-select { opacity: 0; }
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
+
+.exam-month-days { height: clamp(390px, 52svh, 500px); }
+.exam-month-days > button { min-width: 0; }
+.exam-month-entry { height: 20px; font-size: var(--core-type-caption); line-height: 16px; }
+.exam-month-more { font-size: 10px; line-height: 16px; }
+@media (max-width: 639px) {
+  .exam-month-subject-name { display: none; }
+  .exam-month-entry { gap: 2px; padding-inline: 2px; }
+}

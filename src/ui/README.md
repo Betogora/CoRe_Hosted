@@ -176,3 +176,5 @@ Diese Module nicht zu generischen Primitives verbreitern; ihre Fachverantwortung
 2. Passt dessen Semantik und Accessibility-Verhalten vollständig? Dann direkt importieren.
 3. Benötigen mindestens drei aktuelle Stellen dieselbe neue Struktur oder wird wichtiges zugängliches Verhalten zentralisiert? Dann eine kleine gemeinsame Seam erwägen.
 4. Andernfalls lokal und semantisch mit den zentralen Theme-/Typografie-Tokens implementieren; keine parallele Palette oder Button-Grundlogik anlegen.
+
+Die semantischen `--core-exam-color-1` bis `--core-exam-color-20` und `--core-exam-on-color` kennzeichnen Prüfungen in Legende, Lernaufgaben, Klausurterminen, Prüfungsübersicht und Wochenzeitblöcken. Sie sind von den Aktions- und Statusfarben getrennt und tragen in beiden Themes kontrastreiche Beschriftungen.

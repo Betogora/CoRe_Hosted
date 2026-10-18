@@ -1110,6 +1110,14 @@ video {
 .inset-0 {
   inset: 0px;
 }
+.inset-x-0 {
+  left: 0px;
+  right: 0px;
+}
+.inset-x-1 {
+  left: 0.25rem;
+  right: 0.25rem;
+}
 .inset-x-\[8\%\] {
   left: 8%;
   right: 8%;
@@ -1497,6 +1505,9 @@ video {
 .max-h-40 {
   max-height: 10rem;
 }
+.max-h-44 {
+  max-height: 11rem;
+}
 .max-h-80 {
   max-height: 20rem;
 }
@@ -1741,6 +1752,9 @@ video {
 .max-w-3xl {
   max-width: 48rem;
 }
+.max-w-48 {
+  max-width: 12rem;
+}
 .max-w-5xl {
   max-width: 64rem;
 }
@@ -1803,6 +1817,9 @@ video {
 }
 .basis-\[calc\(50\%-0\.5rem\)\] {
   flex-basis: calc(50% - 0.5rem);
+}
+.basis-full {
+  flex-basis: 100%;
 }
 .table-fixed {
   table-layout: fixed;
@@ -1914,6 +1931,9 @@ video {
 .list-none {
   list-style-type: none;
 }
+.auto-rows-max {
+  grid-auto-rows: max-content;
+}
 .grid-cols-1 {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
@@ -1934,6 +1954,9 @@ video {
 }
 .grid-cols-\[1\.25rem_1fr\] {
   grid-template-columns: 1.25rem 1fr;
+}
+.grid-cols-\[3\.5rem_repeat\(7\2c minmax\(0\2c 1fr\)\)\] {
+  grid-template-columns: 3.5rem repeat(7,minmax(0,1fr));
 }
 .grid-cols-\[9rem_minmax\(0\2c 1fr\)\] {
   grid-template-columns: 9rem minmax(0,1fr);
@@ -2054,6 +2077,9 @@ video {
 }
 .gap-8 {
   gap: 2rem;
+}
+.gap-px {
+  gap: 1px;
 }
 .gap-x-2 {
   -moz-column-gap: 0.5rem;
@@ -2314,6 +2340,9 @@ video {
 .p-0 {
   padding: 0px;
 }
+.p-0\.5 {
+  padding: 0.125rem;
+}
 .p-1 {
   padding: 0.25rem;
 }
@@ -2425,9 +2454,6 @@ video {
 }
 .pb-\[max\(1rem\2c env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
-}
-.pl-2 {
-  padding-left: 0.5rem;
 }
 .pl-3 {
   padding-left: 0.75rem;
@@ -2593,6 +2619,9 @@ video {
 .underline {
   text-decoration-line: underline;
 }
+.line-through {
+  text-decoration-line: line-through;
+}
 .no-underline {
   text-decoration-line: none;
 }
@@ -2610,6 +2639,9 @@ video {
 }
 .opacity-35 {
   opacity: 0.35;
+}
+.opacity-50 {
+  opacity: 0.5;
 }
 .opacity-60 {
   opacity: 0.6;
@@ -2940,6 +2972,28 @@ video {
   --core-font-sans: "Manrope Variable", Manrope, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Primitive CoRe palette. Product UI consumes the semantic roles below. */
+  /* Stable, distinct exam identities in both themes; white labels retain AA contrast. */
+  --core-exam-color-1: #1d4ed8;
+  --core-exam-color-2: #be185d;
+  --core-exam-color-3: #047857;
+  --core-exam-color-4: #c2410c;
+  --core-exam-color-5: #7e22ce;
+  --core-exam-color-6: #0e7490;
+  --core-exam-color-7: #a16207;
+  --core-exam-color-8: #b91c1c;
+  --core-exam-color-9: #4338ca;
+  --core-exam-color-10: #0f766e;
+  --core-exam-color-11: #a21caf;
+  --core-exam-color-12: #4d7c0f;
+  --core-exam-color-13: #0369a1;
+  --core-exam-color-14: #be123c;
+  --core-exam-color-15: #6d28d9;
+  --core-exam-color-16: #854d0e;
+  --core-exam-color-17: #15803d;
+  --core-exam-color-18: #475569;
+  --core-exam-color-19: #9d174d;
+  --core-exam-color-20: #155e75;
+  --core-exam-on-color: #ffffff;
   --core-palette-slate: #6f7e9e;
   --core-palette-mist: #a9b5c7;
   --core-palette-cloud: #dde3ec;
@@ -4650,6 +4704,15 @@ summary {
 .core-mindmap-summary-select { opacity: 0; }
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
+
+.exam-month-days { height: clamp(390px, 52svh, 500px); }
+.exam-month-days > button { min-width: 0; }
+.exam-month-entry { height: 20px; font-size: var(--core-type-caption); line-height: 16px; }
+.exam-month-more { font-size: 10px; line-height: 16px; }
+@media (max-width: 639px) {
+  .exam-month-subject-name { display: none; }
+  .exam-month-entry { gap: 2px; padding-inline: 2px; }
+}
 .placeholder\:text-core-muted::-moz-placeholder {
   color: var(--core-text-muted);
 }

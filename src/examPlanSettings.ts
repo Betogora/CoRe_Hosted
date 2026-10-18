@@ -21,7 +21,7 @@ const capacitySchema = v.pipe(v.strictObject({
   minimumMinutes: minutes,
   dateOverrides: v.pipe(v.array(v.strictObject({ date: daySchema, minutes })), v.maxLength(EXAM_PLANNING_LIMITS.dateOverrides)),
   weeklyMinutes: v.optional(v.pipe(v.array(minutes), v.length(7))),
-  timeBlocks: v.optional(v.pipe(v.array(v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: identifier })), v.maxLength(500))),
+  timeBlocks: v.optional(v.pipe(v.array(v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: v.nullable(identifier) })), v.maxLength(500))),
 }), v.check((capacity) => new Set(capacity.dateOverrides.map((day) => day.date)).size === capacity.dateOverrides.length));
 const planSchema = v.pipe(v.strictObject({
   id: identifier,
@@ -37,16 +37,31 @@ const planSchema = v.pipe(v.strictObject({
   createdAt: v.pipe(v.string(), v.isoTimestamp()),
   updatedAt: v.pipe(v.string(), v.isoTimestamp()),
 }), v.check((plan) => !plan.topicDates || (new Set(plan.topicDates.map((topic) => topic.deckId)).size === plan.topicDates.length && plan.topicDates.every((topic) => plan.deckIds.includes(topic.deckId) && topic.date < plan.examDate))));
+const dailyTaskSchema = v.strictObject({
+  id: v.pipe(v.string(), v.minLength(1), v.maxLength(800)), date: daySchema, examId: identifier,
+  kind: v.picklist(["study", "quiz"]),
+  deckIds: v.pipe(v.array(identifier), v.minLength(1), v.maxLength(EXAM_PLANNING_LIMITS.decksPerExam)),
+  cardIds: v.pipe(v.array(identifier), v.maxLength(5000)),
+  capturedAt: v.pipe(v.string(), v.isoTimestamp()), completed: v.nullable(v.picklist(["manual", "automatic"])),
+});
+const dailyTasksSchema = v.pipe(v.array(dailyTaskSchema), v.maxLength(4000),
+  v.check((tasks) => new Set(tasks.map((task) => task.id)).size === tasks.length && tasks.reduce((sum, task) => sum + task.cardIds.length, 0) <= 100000
+    && new Set(tasks.map((task) => task.date)).size <= 1
+    && tasks.every((task) => new Set(task.cardIds).size === task.cardIds.length && new Set(task.deckIds).size === task.deckIds.length && (task.kind === "quiz" ? !task.cardIds.length && task.completed !== "automatic" : task.cardIds.length > 0 && task.deckIds.length === 1))));
+function validDailyTasks(settings: ExamPlanningSettings) {
+  return (settings.dailyTasks ?? []).every((task) => task.id === (task.kind === "study" ? `topic:${encodeURIComponent(task.examId)}:${encodeURIComponent(task.deckIds[0])}` : `quiz:${task.examId}:${task.date}`) && settings.exams.some((exam) => exam.id === task.examId && task.date < exam.examDate && task.deckIds.every((id) => exam.deckIds.includes(id))));
+}
 const settingsSchema = v.pipe(v.strictObject({
   version: v.literal(1),
   exams: v.pipe(v.array(planSchema), v.maxLength(EXAM_PLANNING_LIMITS.exams)),
   capacity: capacitySchema,
-}), v.check((settings) => new Set(settings.exams.map((exam) => exam.id)).size === settings.exams.length), v.check(validTimeBlocks));
+  dailyTasks: v.optional(dailyTasksSchema),
+}), v.check((settings) => new Set(settings.exams.map((exam) => exam.id)).size === settings.exams.length), v.check(validTimeBlocks), v.check(validDailyTasks));
 
 function validTimeBlocks(settings: ExamPlanningSettings) {
   const blocks = settings.capacity.timeBlocks ?? [];
   return new Set(blocks.map((block) => block.id)).size === blocks.length && blocks.every((block, index) =>
-    block.start < block.end && settings.exams.some((exam) => exam.id === block.examId && block.date < exam.examDate)
+    block.start < block.end && (block.examId === null || settings.exams.some((exam) => exam.id === block.examId && block.date < exam.examDate))
     && !blocks.slice(0, index).some((other) => other.date === block.date && other.start < block.end && block.start < other.end));
 }
 
@@ -69,6 +84,8 @@ export function normalizeExamPlanningSettings(value: unknown): ExamPlanningSetti
   }
   const capacity = v.safeParse(capacitySchema, input.capacity);
   const settings: ExamPlanningSettings = { version: 1, exams, capacity: capacity.success ? capacity.output : createStudyTimeCapacity() };
+  const dailyTasks = v.safeParse(dailyTasksSchema, input.dailyTasks);
+  if (dailyTasks.success) settings.dailyTasks = dailyTasks.output.filter((task) => validDailyTasks({ ...settings, dailyTasks: [task] }));
   if (!validTimeBlocks(settings)) settings.capacity = { ...settings.capacity, timeBlocks: [] };
   return settings;
 }
@@ -83,11 +100,13 @@ export function validateExamPlanningSettings(value: unknown): ExamPlanningSettin
 export function upsertExamPlan(settings: ExamPlanningSettings, plan: ExamPlan): ExamPlanningSettings {
   const exists = settings.exams.some((exam) => exam.id === plan.id);
   if (!exists && settings.exams.length >= EXAM_PLANNING_LIMITS.exams) throw new Error(`Höchstens ${EXAM_PLANNING_LIMITS.exams} Prüfungen sind möglich.`);
-  return validateExamPlanningSettings({ ...settings, exams: exists ? settings.exams.map((exam) => exam.id === plan.id ? plan : exam) : [...settings.exams, plan] });
+  const next = { ...settings, exams: exists ? settings.exams.map((exam) => exam.id === plan.id ? plan : exam) : [...settings.exams, plan] };
+  if (next.dailyTasks) next.dailyTasks = next.dailyTasks.filter((task) => validDailyTasks({ ...next, dailyTasks: [task] }));
+  return validateExamPlanningSettings(next);
 }
 
 export function removeExamPlan(settings: ExamPlanningSettings, id: string): ExamPlanningSettings {
-  return { ...settings, exams: settings.exams.filter((exam) => exam.id !== id), capacity: { ...settings.capacity, ...(settings.capacity.timeBlocks ? { timeBlocks: settings.capacity.timeBlocks.filter((block) => block.examId !== id) } : {}) } };
+  return { ...settings, ...(settings.dailyTasks ? { dailyTasks: settings.dailyTasks.filter((task) => task.examId !== id) } : {}), exams: settings.exams.filter((exam) => exam.id !== id), capacity: { ...settings.capacity, ...(settings.capacity.timeBlocks ? { timeBlocks: settings.capacity.timeBlocks.filter((block) => block.examId !== id) } : {}) } };
 }
 
 export function createExamPlan(today: string, deckIds: string[] = []): ExamPlan {

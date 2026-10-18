@@ -228,3 +228,17 @@ test("nach einem vollen Themenbudget bleibt die reservierte Zeit anderer Prüfun
   assert.deepEqual(getExamSessionCardIds(forecast.days[0], tasks[0].id), tasks[0].cardIds);
   assert.deepEqual(getExamSessionCardIds(forecast.days[0], "topic:missing:missing"), []);
 });
+
+
+test("unzugeordnete Lernzeit ist gemeinsam verfügbar, die Fachzuordnung reserviert sie", async () => {
+  const a = plan({ id: "a", deckIds: ["chapter-a"] }), b = plan({ id: "b", deckIds: ["chapter-b"] });
+  const input = [...cards(5, { deckId: "chapter-a" }), ...cards(5, { deckId: "chapter-b" }).map((value) => ({ ...value, cardId: value.cardId + "b" }))];
+  const block = { id: "free", date: "2026-10-08", start: 780, end: 810, examId: null };
+  const shared = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: { ...capacity, timeBlocks: [block] }, todayOnly: true });
+  assert.ok(shared.days[0].blocks.some((entry) => entry.examIds.includes("a")));
+  assert.ok(shared.days[0].blocks.some((entry) => entry.examIds.includes("b")));
+  assert.ok(shared.days[0].newMinutes + shared.days[0].reviewMinutes <= 30);
+  const assigned = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: { ...capacity, timeBlocks: [{ ...block, examId: "a" }] }, todayOnly: true });
+  assert.ok(assigned.days[0].blocks.length > 0);
+  assert.ok(assigned.days[0].blocks.every((entry) => entry.examIds.includes("a")));
+});
