@@ -59,6 +59,8 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
         ? createViewRoute("kartenstapel", {
             focusedDeckId: route.returnContext.deckId,
             selectedCardId: route.returnContext.cardId,
+            deckContent: route.returnContext.deckContent,
+            deckContentTab: route.returnContext.deckContentTab,
           })
         : createViewRoute("lernen", { focusedDeckId: route.returnContext.deckId })
     : route;

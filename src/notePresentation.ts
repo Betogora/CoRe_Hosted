@@ -217,7 +217,7 @@ const LINK_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="14" height
 const NOTE_CARD_CSS = `
   body{background:var(--core-surface);color:var(--core-text)}
   body:has(>.core-card-answer-separator:first-child){padding-top:0}
-  .core-card-answer-separator{background:var(--core-border)}
+  .core-card-answer-separator{height:2px;margin:1.25rem 0;max-width:none;background:var(--core-border-interactive)}
   .core-card-answer-separator:first-child{margin-top:.25rem}
   .core-note-instruction{margin:0 0 .5rem;color:var(--core-text-muted);font-size:.875rem;font-weight:600}
   .core-note-field+.core-note-field{margin-top:.75rem}
