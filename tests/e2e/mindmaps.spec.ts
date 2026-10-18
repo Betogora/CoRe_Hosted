@@ -202,8 +202,7 @@ test("Zusammenfassungsquellen und Entwurfsschutz bleiben im neuen Editor erhalte
   await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click();
   await mode(panel, "Hinzufügen"); await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click(); await panel.getByRole("button", { name: "Mindmap erzeugen", exact: true }).click(); await fit(panel);
   await expect(panel.locator(".core-mindmap-hierarchy path")).toHaveCount(6);
-  const lisbon = node(panel, "Lissabon ist die Hauptstadt von Portugal."); await lisbon.dblclick(); await lisbon.locator("summary").click();
-  await expect(panel.getByTestId("mindmap-source-passage")).toContainText("Lissabon"); await expect(panel.getByTestId("mindmap-source-passage")).not.toContainText("Madrid");
+  await expect(node(panel, "Lissabon ist die Hauptstadt von Portugal.").locator(".core-mindmap-note-text")).toHaveText("Lissabon ist die Hauptstadt von Portugal.");
 });
 
 
@@ -376,3 +375,26 @@ test.describe("Touch-Gesten", () => {
   });
 });
 
+
+test("Erzeugte Mindmaps zeigen Blatttexte direkt und speichern Änderungen im normalen Textfeld", async ({ page }) => {
+  const panel = await openMindMaps(page);
+  await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click();
+  await panel.getByRole("button", { name: "Mindmap erzeugen", exact: true }).click(); await fit(panel);
+  const lisbon = node(panel, "Lissabon ist die Hauptstadt von Portugal.");
+  await expect(lisbon).toHaveClass(/is-text/);
+  await expect(lisbon.locator(".core-mindmap-note-text")).toHaveText("Lissabon ist die Hauptstadt von Portugal.");
+  await expect(panel.locator(".core-mindmap-inline-source summary")).toHaveCount(0);
+  const portugal = node(panel, "Portugal");
+  await expect(portugal).toHaveClass(/is-keyword/);
+  await expect(portugal.locator(".core-mindmap-note-text")).toHaveCount(0);
+  await portugal.getByRole("button", { name: "Text anzeigen", exact: true }).click();
+  await expect(portugal.locator(".core-mindmap-note-text")).toContainText("Iberischen Halbinsel");
+  await fit(panel);
+  await lisbon.dblclick();
+  await expect(panel.getByRole("textbox", { name: "Kartentext bearbeiten", exact: true })).toHaveText("Lissabon ist die Hauptstadt von Portugal.");
+  await panel.getByRole("textbox", { name: "Kartentext bearbeiten", exact: true }).fill("Mein eigener Merksatz.");
+  await lisbon.getByRole("button", { name: /^Quelle:/ }).click();
+  await expect(lisbon.locator(".core-mindmap-inline-source")).toContainText("Lissabon ist die Hauptstadt von Portugal.");
+  await finish(panel); await save(panel); await reload(page, panel);
+  await expect(lisbon.locator(".core-mindmap-note-text")).toHaveText("Mein eigener Merksatz.");
+});

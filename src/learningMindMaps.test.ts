@@ -389,6 +389,29 @@ test("Fette Stichworte werden Kartentitel, Belegzeilen werden nicht zu Karten", 
   const map = mindMapFromSummary(summary);
   assert.deepEqual(map.nodes.map((node) => node.label), ["Energie", "Zellatmung", "ATP"]);
   assert.equal(map.nodes[2].sourceText, "Universeller Energieträger der Zelle.");
+  assert.equal(map.nodes[2].text, "Universeller Energieträger der Zelle.");
+});
+
+test("Jeder Ast endet mit einer Textkarte; übergeordnete Karten behalten ihren Abschnittstext eingeklappt", () => {
+  const passage = "Eine ausführliche Erklärung zur Energiegewinnung, die als Text zur Abschnittskarte gehört und vollständig erhalten bleibt.";
+  const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: `<h2>Zellatmung</h2><p>${passage}</p><h3>Glykolyse</h3><ul><li><strong>ATP</strong>: Energie und Transport.</li></ul><h2>Gärung</h2><p>${passage}</p><h2>Offene Frage</h2>` };
+  const map = mindMapFromSummary(summary);
+  for (const node of map.nodes) {
+    assert.equal(node.kind, map.nodes.some((child) => child.parentId === node.id) ? "keyword" : "text", node.label);
+    assert.equal(node.text, node.sourceText ?? "", node.label);
+  }
+  const section = map.nodes.find((node) => node.label === "Zellatmung")!;
+  assert.equal(section.text, passage);
+  const leaf = map.nodes.find((node) => node.label === "ATP")!;
+  assert.equal(leaf.text, "Energie und Transport.");
+  const edited = editMindMapNode(map, leaf.id, { html: "<p>Eigener Text.</p>" });
+  assert.equal(edited.nodes.find((node) => node.id === leaf.id)!.text, "Eigener Text.");
+  assert.equal(edited.nodes.find((node) => node.id === leaf.id)!.sourceText, "Energie und Transport.");
+  for (const a of map.nodes) for (const b of map.nodes) {
+    if (a.id === b.id) continue;
+    const r = mindMapNodeRect(a), s = mindMapNodeRect(b);
+    assert.ok(r.x + r.width <= s.x || s.x + s.width <= r.x || r.y + r.height <= s.y || s.y + s.height <= r.y);
+  }
 });
 
 test("Neu erzeugen erkennt Bearbeitungen und ersetzt nur den erzeugten Baum an seiner Stelle", () => {
