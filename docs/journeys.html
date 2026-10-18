@@ -5765,7 +5765,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--53-karten-bearbeiten-und-eine-sitzung-starten">Produktvertrag 5.3</a> · <a href="ui-elements.html#stapel">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
 <article id="journey-4" class="docs-document docs-journey"><h2 id="journey-4--54-karte-bewerten-neu-laden-und-fortfahren" class="core-heading-2" tabindex="-1">5.4 Karte bewerten, neu laden und fortfahren <a class="docs-anchor" href="#journey-4--54-karte-bewerten-neu-laden-und-fortfahren" aria-label="Link zu 5.4 Karte bewerten, neu laden und fortfahren">#</a></h2>
-<p>Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar; die Antwort wiederholt die Frage nicht. Vier Bewertungen aktualisieren den Lernzustand.</p>
+<p>Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine 2-px-Linie über die gesamte Inhaltsbreite; die Antwort wiederholt die Frage nicht. Unter dem Karteninhalt erscheint keine zusätzliche Trennlinie. Der Kopf zeigt den Stapelnamen ohne separate Kartenposition oder Wiederholungsnummer; der Tagesfortschritt bleibt erhalten. Vier Bewertungen aktualisieren den Lernzustand.</p>
 <h3 id="journey-4--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
 N0[&quot;Frage sehen&quot;] --&gt; N1
 N1[&quot;Antwort aufdecken&quot;] --&gt; N2
@@ -5784,7 +5784,7 @@ N4[&quot;Nächste Karte, Lernschritt oder Abschluss&quot;]</pre><ol><li>Frage se
 <h4 id="journey-4-rules--werkzeuge-auf-der-karte" class="core-control-label" tabindex="-1">Werkzeuge auf der Karte <a class="docs-anchor" href="#journey-4-rules--werkzeuge-auf-der-karte" aria-label="Link zu Werkzeuge auf der Karte">#</a></h4>
 <ul>
 <li>Inhalte mit Vorlese-Angabe (aus Anki-<code>tts</code>) bieten <code>&lt;Feld&gt; vorlesen</code>. Vorgelesen wird über die Sprachausgabe des Systems in der hinterlegten Sprache; ohne Sprachausgabe ist die Aktion deaktiviert, ein Fehler wird gemeldet.</li>
-<li>Markierter Text auf einer Review-Karte bietet <code>In AMBOSS nachschlagen</code>. Erst dieser ausdrückliche Klick öffnet die AMBOSS-Suche in einem neuen Tab; dabei geht ausschließlich der markierte Text als Suchbegriff an AMBOSS, ohne Referrer und ohne weitere Karten- oder Kontodaten. Ohne Markierung steht dort nur der Hinweis <code>Begriff auf der Karte markieren, um ihn in AMBOSS nachzuschlagen.</code></li>
+<li>Markierter Text auf einer Review-Karte bietet <code>In AMBOSS nachschlagen</code>. Erst dieser ausdrückliche Klick öffnet die AMBOSS-Suche in einem neuen Tab; dabei geht ausschließlich der markierte Text als Suchbegriff an AMBOSS, ohne Referrer und ohne weitere Karten- oder Kontodaten. Ohne Markierung erscheint kein AMBOSS-Hinweis; die Werkzeugzeile wird nur bei verfügbaren Aktionen angezeigt und hat keine Trennlinie.</li>
 </ul>
 <h4 id="journey-4-rules--sitzungs-overlay" class="core-control-label" tabindex="-1">Sitzungs-Overlay <a class="docs-anchor" href="#journey-4-rules--sitzungs-overlay" aria-label="Link zu Sitzungs-Overlay">#</a></h4>
 <ul>

@@ -76,9 +76,9 @@ const today = "2026-10-02";
 const imageReference = "a".repeat(40);
 const sampleMedia = { [imageReference]: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="160" viewBox="0 0 400 160"><rect width="400" height="160" rx="12" fill="#dde3ed"/><path d="M40 130V60l60-35 60 35v70M230 130V45h90v85M210 130h130" fill="none" stroke="#667492" stroke-width="6"/><text x="40" y="150" font-size="14">Lissabon · Beispielbild</text></svg>')}` };
 const sampleGraphs = [
-  createBasicNote("catalog-world", "Was ist die Hauptstadt von Portugal?", "Lissabon"),
-  createBasicNote("catalog-world", "Was ist die Hauptstadt von Spanien?", "Madrid"),
-  createBasicNote("catalog-europe", "Land", "Portugal"),
+  createBasicNote("catalog-world", "Was ist die Hauptstadt von Portugal?", "Lissabon", { createdAt: `${today}T08:00:00Z` }),
+  createBasicNote("catalog-world", "Was ist die Hauptstadt von Spanien?", "Madrid", { createdAt: `${today}T08:00:00Z` }),
+  createBasicNote("catalog-europe", "Land", "Portugal", { createdAt: `${today}T08:00:00Z` }),
 ];
 const sampleNotes = sampleGraphs.map(({ note }) => note);
 const sampleNotesById = new Map(sampleNotes.map((note) => [note.id, note]));

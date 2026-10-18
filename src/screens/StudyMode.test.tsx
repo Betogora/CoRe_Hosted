@@ -274,7 +274,6 @@ test("StudyMode uses the complete catalog projection before every card body is b
     />,
   );
 
-  assert.match(markup, />1 \/ 7</);
   assert.match(markup, />0 \/ 7 Karten</);
   assert.match(markup, /aria-valuemax="7"/);
   assert.match(markup, /aria-valuetext="Gelernt: 0 Karten, Neu: 1 Karte, Offen: 5 Karten, Fällig: 1 Karte"/);
