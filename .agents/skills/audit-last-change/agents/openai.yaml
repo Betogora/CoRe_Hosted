@@ -1,0 +1,7 @@
+interface:
+  display_name: "Audit Last Change"
+  short_description: "Fertigen Diff vor Commit oder Push auf Vereinfachungen prüfen"
+  default_prompt: "Nutze $audit-last-change, um den fertigen Diff vor Commit oder Push auf sichere Vereinfachungen und belegbare Performance-Verbesserungen zu prüfen."
+
+policy:
+  allow_implicit_invocation: true
