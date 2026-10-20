@@ -39,18 +39,25 @@ test("Prüfungskarten beginnen als neutrale, beschriftete Disclosure ohne sofort
   assert.doesNotMatch(html, />Bearbeiten<|>Pausieren<|>Abschließen</);
 });
 
-test("calendar combines each subject with its new cards and quiz instead of duration or repetitions", () => {
+test("calendar separates cards and quiz in subject color without duration or repetitions", () => {
   const today = "2026-10-20";
   const first = { ...createExamPlan(today, ["deck"]), id: "anatomy", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-27" };
   const second = { ...first, id: "physiology", name: "Physiologie", examDate: "2026-10-30" };
   const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, plannedMinutes: 12, priority: 1, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
   const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, spentMinutes: 0, newMinutes: 24, reviewMinutes: 12, newCardIds: [], reviewCardIds: [], reviewCount: 8, backlogCount: 0, buffer: false, blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [], uncertainty: "high", timing: estimateExamHistory(null, today).timing };
   const html = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[first, second]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
-  assert.match(html, /data-exam-subject="anatomy"[^]*?>24 neue Karten<[^]*?>Quiz</);
+  assert.match(html, /data-exam-subject="anatomy" data-exam-task="study"[^>]*>24 neue Karten<\/span><span data-exam-subject="anatomy" data-exam-task="quiz"[^>]*>Quiz<\/span>/);
   assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
   assert.match(html, /border-color:var\(--core-info\);background:color-mix/);
   assert.match(html, /Anatomie: 24 neue Karten\. Physiologie: 9 neue Karten/);
   assert.doesNotMatch(html, /Min\.|Std\.|Wiederholungen|08:00/);
+  const week = renderToStaticMarkup(<ExamWeekCalendar exams={[first, second]} shown={[first, second]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} busy={false} color={() => "var(--core-info)"} onSelect={() => undefined} onChange={() => true} />);
+  assert.match(week, /data-week-task="anatomy" data-task-kind="study" aria-label="Anatomie: 24 neue Karten\. Aufgabe auswählen/);
+  assert.match(week, /data-week-task="anatomy" data-task-kind="quiz" aria-label="Anatomie: Quiz empfohlen\. Aufgabe auswählen/);
+  assert.ok(html.indexOf('aria-label="Fächer im Kalender"') > html.indexOf('data-testid="exam-month-calendar"'));
+  assert.ok(html.indexOf('aria-label="Fächer im Kalender"') < html.indexOf('>Heute<'));
+  assert.ok(week.indexOf('aria-label="Fächer im Kalender"') > week.indexOf('data-testid="exam-week-calendar"'));
+  assert.ok(week.indexOf('aria-label="Fächer im Kalender"') < week.indexOf('>Heute<'));
 });
 
 test("exam dates stay visible without a forecast and distinguish same-day exams", () => {
@@ -62,6 +69,22 @@ test("exam dates stay visible without a forecast and distinguish same-day exams"
   assert.match(markup, /Klausur: Anatomie. Klausur: Physiologie/);
   assert.match(markup, /Lernmenge noch nicht berechnet/);
   assert.match(markup, /aria-current="date"/);
+});
+
+test("six-week months retain both task brackets and quiz-only days omit zero cards", () => {
+  const today = "2026-08-03";
+  const exam = { ...createExamPlan(today, ["deck"]), id: "exam", name: "Anatomie", createdAt: "2026-07-31T08:00:00.000Z", examDate: "2026-08-28" };
+  const day = { key: today, budgetMinutes: 60, spentMinutes: 0, newMinutes: 5, reviewMinutes: 0, newCardIds: ["card"], reviewCardIds: [], reviewCount: 0, backlogCount: 0, buffer: false, blocks: [{ id: "new", date: today, examIds: [exam.id], deckId: "deck", method: "new" as const, expectedItems: 1, plannedMinutes: 5, priority: 1, cardIds: ["card"] }] };
+  const forecast: ExamPortfolioForecast = { days: [day], exams: [], uncertainty: "high", timing: estimateExamHistory(null, today).timing };
+  const render = () => renderToStaticMarkup(<ExamMonthCalendar exams={[exam]} shown={[exam]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
+  const cell = (html: string) => html.split(`data-date="${today}"`)[1].split("</button>")[0];
+  assert.match(render(), /repeat\(6,/);
+  assert.match(cell(render()), /data-exam-task="study"/);
+  assert.match(cell(render()), /data-exam-task="quiz"/);
+  day.blocks = [];
+  day.newCardIds = [];
+  assert.doesNotMatch(cell(render()), /data-exam-task="study"|>0 neue Karten</);
+  assert.match(cell(render()), /data-exam-task="quiz"/);
 });
 
 test("compact month prioritizes exams and announces tasks beyond the visible entries", () => {

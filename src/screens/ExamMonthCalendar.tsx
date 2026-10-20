@@ -20,10 +20,13 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
   return <SoftPanel className="grid min-w-0 gap-3 p-2 sm:p-4" data-testid="exam-month-calendar">
     <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
       <h4 className="core-heading-3 font-semibold text-core-text" aria-live="polite">{new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${month}-01T12:00:00Z`))}</h4>
-      <div className="flex gap-2">
+      <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+        <div aria-label="Fächer im Kalender" className="flex min-w-0 flex-wrap gap-2 core-caption">{shown.map((exam) => <span key={exam.id} className="min-w-0 break-words rounded-inset px-3 py-2 font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>{exam.name}</span>)}</div>
+        <div className="flex shrink-0 gap-2">
         <ActionButton variant="secondary" onClick={() => { setMonth(today.slice(0, 7)); onSelect(today, false); }}>Heute</ActionButton>
         <IconButton label="Vorheriger Monat" icon={ChevronLeft} onClick={() => setMonth(shiftExamMonth(month, -1))} />
         <IconButton label="Nächster Monat" icon={ChevronRight} onClick={() => setMonth(shiftExamMonth(month, 1))} />
+        </div>
       </div>
     </div>
     <div className="min-w-0 overflow-hidden rounded-control border border-core-border bg-core-border" role="region" aria-label="Monatskalender">
@@ -49,10 +52,10 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
             onClick={() => onSelect(key)} className={`grid min-h-0 min-w-0 content-start gap-0.5 overflow-hidden p-0.5 text-left transition hover:bg-core-subtle ${date === key ? "bg-core-info-soft shadow-inset" : outside ? "bg-core-subtle" : "bg-core-surface"}`}>
             <span className="flex h-5 min-w-0 items-center justify-between"><span className={`grid size-5 shrink-0 place-items-center rounded-round core-caption font-semibold ${key === today ? "bg-core-action text-core-on-accent" : outside ? "text-core-muted" : "text-core-text"}`}>{Number(key.slice(8))}</span>{remaining ? <span className="exam-month-more text-core-muted" title={`${remaining} weitere Einträge in den Tagesdetails`}>+{remaining}</span> : null}</span>
             {appointments.slice(0, visibleEntries).map((exam) => <span key={exam.id} data-exam-appointment={exam.id} title={`Klausur: ${exam.name}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset px-1 font-bold" style={{ background: color(exam), color: examTextColor(exam) }}><Flag size={11} className="shrink-0" aria-hidden="true" /><span className="truncate"><span className="sr-only">Klausur: </span>{exam.name}</span></span>)}
-            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz }) => <span key={exam.id} data-exam-subject={exam.id} title={`${exam.name}: ${hasForecast ? `${newCards} neue Karten` : "Karten: –"}${quiz ? " · Quiz empfohlen" : ""}`} className="exam-month-entry grid min-w-0 rounded-inset border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>
-              <span>{hasForecast ? `${newCards} neue Karten` : "Karten: –"}</span>
-              {quiz ? <span className="font-semibold" aria-label="Quiz empfohlen">Quiz</span> : null}
-            </span>)}
+            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz }) => <React.Fragment key={exam.id}>
+              {newCards > 0 || !hasForecast ? <span data-exam-subject={exam.id} data-exam-task="study" title={`${exam.name}: ${hasForecast ? `${newCards} neue Karten` : "Karten: –"}`} className="exam-month-entry min-w-0 rounded-inset border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>{hasForecast ? `${newCards} neue Karten` : "Karten: –"}</span> : null}
+              {quiz ? <span data-exam-subject={exam.id} data-exam-task="quiz" title={`${exam.name}: Quiz empfohlen`} className="exam-month-entry min-w-0 rounded-inset border-l-strong px-1 py-0.5 font-semibold text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>Quiz</span> : null}
+            </React.Fragment>)}
           </button>;
         })}
       </div>

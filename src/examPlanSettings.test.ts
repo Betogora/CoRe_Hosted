@@ -78,3 +78,14 @@ test("Lernzeit bleibt ohne Fachzuordnung speicherbar und kollisionsgeprüft", ()
   assert.equal(assigned.capacity.timeBlocks?.[0].examId, "a");
   assert.deepEqual(removeExamPlan(withExam, "a").capacity.timeBlocks, [block]);
 });
+
+test("Karten und Quiz behalten ihre getrennte Zeitblock-Zuordnung im Profil", () => {
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
+  const block = { id: "cards", date: "2026-10-12", start: 480, end: 540, examId: "a", kind: "study" as const };
+  const quiz = { ...block, id: "quiz", start: 540, end: 570, kind: "quiz" as const };
+  const next = validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, quiz] } });
+  assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: next })).examPlanning.capacity.timeBlocks, [block, quiz]);
+  for (const invalid of [{ ...quiz, examId: null }, { ...quiz, kind: "unknown" }, { ...quiz, start: 530 }]) {
+    assert.throws(() => validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, invalid] } }), /ungültig/);
+  }
+});

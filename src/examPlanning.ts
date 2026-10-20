@@ -275,7 +275,11 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     let remaining = Math.max(0, Math.min((budget - reserve - spent) * 60, (end - at) / 1000));
     const reservations = (capacity.timeBlocks ?? []).filter((block) => block.date === key);
     const reserved = new Map<string | null, number>();
-    for (const block of reservations) reserved.set(block.examId, (reserved.get(block.examId) ?? 0) + (block.end - block.start) * 60 * (1 - capacity.reserveFraction));
+    for (const block of reservations) {
+      const seconds = (block.end - block.start) * 60 * (1 - capacity.reserveFraction);
+      if (block.kind === "quiz") remaining = Math.max(0, remaining - seconds);
+      else reserved.set(block.examId, (reserved.get(block.examId) ?? 0) + seconds);
+    }
     const permitted = (entry: Entry) => reservations.length ? currentOwners(entry, key).reduce((sum, exam) => sum + (reserved.get(exam.id) ?? 0), reserved.get(null) ?? 0) : remaining;
     const consume = (entry: Entry, seconds: number) => {
       let rest = seconds;

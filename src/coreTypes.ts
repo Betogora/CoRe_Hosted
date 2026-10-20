@@ -155,7 +155,7 @@ export interface StudyTimeCapacity {
   minimumMinutes: number;
   dateOverrides: Array<{ date: string; minutes: number }>;
   weeklyMinutes?: number[];
-  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null }>;
+  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null; kind?: "study" | "quiz" }>;
 }
 
 /** A single learning day's checklist; target cards survive forecast recalculation. */
