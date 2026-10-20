@@ -21,7 +21,7 @@ const capacitySchema = v.pipe(v.strictObject({
   minimumMinutes: minutes,
   dateOverrides: v.pipe(v.array(v.strictObject({ date: daySchema, minutes })), v.maxLength(EXAM_PLANNING_LIMITS.dateOverrides)),
   weeklyMinutes: v.optional(v.pipe(v.array(minutes), v.length(7))),
-  timeBlocks: v.optional(v.pipe(v.array(v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: v.nullable(identifier) })), v.maxLength(500))),
+  timeBlocks: v.optional(v.pipe(v.array(v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: v.nullable(identifier), kind: v.optional(v.picklist(["study", "quiz"])) })), v.maxLength(500))),
 }), v.check((capacity) => new Set(capacity.dateOverrides.map((day) => day.date)).size === capacity.dateOverrides.length));
 const planSchema = v.pipe(v.strictObject({
   id: identifier,
@@ -63,7 +63,7 @@ const settingsSchema = v.pipe(v.strictObject({
 function validTimeBlocks(settings: ExamPlanningSettings) {
   const blocks = settings.capacity.timeBlocks ?? [];
   return new Set(blocks.map((block) => block.id)).size === blocks.length && blocks.every((block, index) =>
-    block.start < block.end && (block.examId === null || settings.exams.some((exam) => exam.id === block.examId && block.date < exam.examDate))
+    block.start < block.end && (block.kind !== "quiz" || block.examId !== null) && (block.examId === null || settings.exams.some((exam) => exam.id === block.examId && block.date < exam.examDate))
     && !blocks.slice(0, index).some((other) => other.date === block.date && other.start < block.end && block.start < other.end));
 }
 

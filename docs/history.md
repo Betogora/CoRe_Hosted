@@ -1,9 +1,20 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-18
+**Stand:** 2026-10-20
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-20 — Fächer im Kalenderkopf und getrennte Karten-/Quizplanung
+
+- Die Fachlegende steht in Monat und Woche innerhalb der Kalenderfläche links neben Heute. Karten und Quiz besitzen getrennte farbige Einträge, auch in den Tagesdetails und in Monaten mit sechs Wochenzeilen.
+- Wochen-To-dos übertragen Fach und Aufgabenart unabhängig in eigene Zeitblöcke. Die optionale Aufgabenart übersteht die Profilnormalisierung; bestehende Blöcke bleiben gültig. Quizzeit wird nicht zugleich für Karten verplant.
+- Abschlussaudit mit `audit-last-change`: einen zusätzlich eingeführten Datumsfilter in den Wochen-To-dos entfernt, damit vorhandene Prognoseaufgaben wie bisher sichtbar bleiben. Keine belegbare Performance-Änderung nötig. Die Tests sichern getrennte Aufgaben, Profilpersistenz, Sechs-Wochen-Monate und das Kartenbudget bei reservierter Quizzeit gegen den Produktcode ab.
+- Verifiziert am lokalen Stand 0.2.0: fokussierte Kalender-, Planungs-, Profil- und Theme-Tests, vollständige Unit-/Contract-/Integrationstests aus 121 Dateien, Typecheck, Knip, Dokumentationsprüfung sowie Produktionsbuild mit Bundle-Budgets. Die lokale Katalogdemo prüft die getrennte Auswahl und Zuordnung von Karten und Quiz auf 09–10 Uhr beziehungsweise 10–10:30 Uhr.
+- Die Katalogseiten wurden für den Push nach einem isolierten `npm ci` mit den festgeschriebenen Lockfile-Versionen neu erzeugt; die Paketinstallation des gemeinsam genutzten Haupt-Checkouts bleibt erhalten.
+- DOM-Geometrieprüfung für Monat und Woche in Light/Dark bei 320×720, 360×800, 390×844, 430×932, 1280×720 und 1440×900: kein horizontaler Seitenüberlauf, Fachlegende innerhalb der Kalenderfläche, Heute in 44 beziehungsweise 40 px Bedienhöhe. Die laufende App und die echte Katalogkomponente wurden geöffnet. Nachweis: `C:/Users/noemi/.codex/visualizations/2026/10/20/01a15952-4f36-70f1-a64e-4b40f8b60539/calendar-review/verification.json`.
+- Visuelle Abnahme bleibt offen: Die Browser-Screenshot-API meldet „Unable to capture screenshot“; daher liegen keine Screenshot-Nachweise vor. Pointer-Ziehen, 200-%-Zoom, Smartphone-Tastatur und Touchhardware wurden nicht abgenommen. DOM-Messungen ersetzen diese Sichtprüfung nicht.
+- Vor dem angeforderten Push wurde `npm run performance:measure:local` gestartet; der Lauf endet vor der Messung, weil Docker Desktop nicht installiert ist. Es liegt kein neuer Performance-Nachweis vor.
 
 ## 2026-10-18 — Modulladefehler nach Bereitstellungen und falsche Cacheantworten
 

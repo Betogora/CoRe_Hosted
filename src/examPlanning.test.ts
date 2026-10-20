@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import { createCoreDeck } from "./coreModel.ts";
-import type { ExamPlan } from "./coreTypes.ts";
+import type { ExamPlan, StudyTimeCapacity } from "./coreTypes.ts";
 import { createExamPlan, createStudyTimeCapacity } from "./examPlanSettings.ts";
 import {
   EXAM_MODEL,
@@ -270,4 +270,17 @@ test("unzugeordnete Lernzeit ist gemeinsam verfügbar, die Fachzuordnung reservi
   const assigned = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: { ...capacity, timeBlocks: [{ ...block, examId: "a" }] }, todayOnly: true });
   assert.ok(assigned.days[0].blocks.length > 0);
   assert.ok(assigned.days[0].blocks.every((entry) => entry.examIds.includes("a")));
+});
+
+test("Quizblöcke reservieren eigene Zeit und vergrößern das Kartenbudget nicht", async () => {
+  const exam = plan({ id: "a", bufferDays: 0 });
+  const study = { id: "cards", date: "2026-10-08", start: 480, end: 495, examId: "a" };
+  const quiz = { ...study, id: "quiz", start: 495, end: 555, kind: "quiz" as const };
+  const run = (timeBlocks: NonNullable<StudyTimeCapacity["timeBlocks"]>) => createExamPortfolioForecast(decks, cards(100), [exam], { ...options, capacity: { ...capacity, timeBlocks }, todayOnly: true });
+  const baseline = await run([study]);
+  const separate = await run([study, quiz]);
+  assert.deepEqual(separate.days[0].newCardIds, baseline.days[0].newCardIds);
+  assert.equal(separate.days[0].newMinutes, baseline.days[0].newMinutes);
+  const quizOnly = await run([quiz]);
+  assert.equal(quizOnly.days[0].blocks.length, 0);
 });
