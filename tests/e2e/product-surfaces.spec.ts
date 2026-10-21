@@ -23,15 +23,15 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
 });
 
-test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async ({ page }) => {
+test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async ({ page }) => {
   await resetToFreshLocalState(page);
 
-  const sidebar = page.locator('[data-navigation-layout="sidebar"]');
+  const topBar = page.locator('[data-navigation-layout="top-bar"]');
   const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
   const bottomNavigation = page.locator('[data-navigation-layout="bottom-bar"]');
 
   await page.setViewportSize({ width: 1279, height: 900 });
-  await expect(sidebar).toBeHidden();
+  await expect(topBar).toBeHidden();
   await expect(mobileHeader).toBeVisible();
   await expect(bottomNavigation).toBeVisible();
   const mobileUtilities = mobileHeader.locator('[data-navigation-utilities="true"]');
@@ -57,10 +57,10 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(page.getByText("Darstellung", { exact: true })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1280, height: 900 });
-  await expect(sidebar).toBeVisible();
+  await expect(topBar).toBeVisible();
   await expect(mobileHeader).toBeHidden();
   await expect(bottomNavigation).toBeHidden();
-  const desktopUtilities = sidebar.locator('[data-navigation-utilities="true"]');
+  const desktopUtilities = topBar.locator('[data-navigation-utilities="true"]');
   const desktopSyncButton = desktopUtilities.locator('[data-navigation-utility="sync"]');
   const desktopSettingsButton = desktopUtilities.locator('[data-navigation-utility="settings"]');
   const desktopHelpButton = desktopUtilities.locator('[data-navigation-utility="help"]');
@@ -73,47 +73,18 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
   await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-left", "24px");
   await expect(page.locator('[aria-label="Seiteninhalt"]')).toHaveCSS("padding-right", "24px");
-  const desktopSyncBox = await desktopSyncButton.boundingBox();
-  const desktopSettingsBox = await desktopSettingsButton.boundingBox();
-  const desktopHelpBox = await desktopHelpButton.boundingBox();
-  const desktopThemeBox = await desktopThemeButton.boundingBox();
-  expect(desktopSyncBox).not.toBeNull();
-  expect(desktopSettingsBox).not.toBeNull();
-  expect(desktopHelpBox).not.toBeNull();
-  expect(desktopThemeBox).not.toBeNull();
-  const utilityRow = [desktopSyncBox!, desktopHelpBox!, desktopSettingsBox!, desktopThemeBox!];
-  for (const box of utilityRow) expect(box.y).toBeCloseTo(desktopSyncBox!.y, 0);
-  const utilityGaps = utilityRow.slice(1).map((box, index) => box.x - (utilityRow[index].x + utilityRow[index].width));
-  for (const gap of utilityGaps) {
-    expect(gap).toBeGreaterThanOrEqual(0);
-    expect(gap).toBeCloseTo(utilityGaps[0], 0);
-  }
-  const desktopLayout = await sidebar.evaluate((element) => {
-    const frame = element.parentElement;
-    const sidebarRect = element.getBoundingClientRect();
-    const frameRect = frame?.getBoundingClientRect();
-    const frameStyle = frame ? getComputedStyle(frame) : null;
-    const menuLabels = Array.from(element.querySelectorAll<HTMLElement>('nav button > span'));
-    const targets = Array.from(element.querySelectorAll<HTMLElement>('nav button, [data-navigation-utility]'));
-    const utilities = element.querySelector<HTMLElement>('[data-navigation-utilities="true"]');
+  const desktopLayout = await topBar.evaluate((element) => {
+    const panel = element.firstElementChild as HTMLElement;
+    const panelRect = panel.getBoundingClientRect();
+    const navigationRect = element.querySelector<HTMLElement>("nav")!.getBoundingClientRect();
+    const menuLabels = Array.from(element.querySelectorAll<HTMLElement>("nav button > span"));
+    const targets = Array.from(element.querySelectorAll<HTMLElement>("nav button, [data-navigation-utility]"));
+    const utilities = Array.from(element.querySelectorAll<HTMLElement>("[data-navigation-utility]")).map((target) => target.getBoundingClientRect());
     return {
-      frame: frameRect && frameStyle ? {
-        x: frameRect.x,
-        y: frameRect.y,
-        width: frameRect.width,
-        height: frameRect.height,
-        borderWidth: frameStyle.borderWidth,
-        borderRadius: frameStyle.borderRadius,
-      } : null,
-      sidebar: {
-        x: sidebarRect.x,
-        y: sidebarRect.y,
-        width: sidebarRect.width,
-        height: sidebarRect.height,
-        overflowX: getComputedStyle(element).overflowX,
-        fits: element.scrollWidth <= element.clientWidth,
-      },
-      utilitiesFit: Boolean(utilities && utilities.scrollWidth <= utilities.clientWidth),
+      panel: { x: panelRect.x, y: panelRect.y, width: panelRect.width, height: panelRect.height },
+      navigationCenterOffset: Math.abs(navigationRect.x + navigationRect.width / 2 - (panelRect.x + panelRect.width / 2)),
+      utilitiesRightOfNavigation: utilities.every((rect) => rect.x >= navigationRect.right),
+      utilitiesInOneRow: utilities.every((rect) => Math.abs(rect.y - utilities[0].y) < 1),
       labelsFit: menuLabels.every((label) => label.scrollWidth <= label.clientWidth),
       targetsAreLargeEnough: targets.every((target) => {
         const rect = target.getBoundingClientRect();
@@ -121,9 +92,10 @@ test("app chrome switches exactly at the 1280 pixel sidebar breakpoint", async (
       }),
     };
   });
-  expect(desktopLayout.frame).toEqual({ x: 0, y: 0, width: 1280, height: 900, borderWidth: "0px", borderRadius: "0px" });
-  expect(desktopLayout.sidebar).toEqual({ x: 0, y: 0, width: 240, height: 900, overflowX: "hidden", fits: true });
-  expect(desktopLayout.utilitiesFit).toBe(true);
+  expect(desktopLayout.panel).toEqual({ x: 8, y: 8, width: 1264, height: 64 });
+  expect(desktopLayout.navigationCenterOffset).toBeLessThan(1);
+  expect(desktopLayout.utilitiesRightOfNavigation).toBe(true);
+  expect(desktopLayout.utilitiesInOneRow).toBe(true);
   expect(desktopLayout.labelsFit).toBe(true);
   expect(desktopLayout.targetsAreLargeEnough).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
@@ -133,20 +105,20 @@ test("dark mode can be toggled from both responsive navigation layouts and persi
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 900 });
 
-  const sidebar = page.locator('[data-navigation-layout="sidebar"]');
-  const desktopThemeButton = sidebar.getByRole("button", { name: "Dark Mode einschalten" });
+  const topBar = page.locator('[data-navigation-layout="top-bar"]');
+  const desktopThemeButton = topBar.getByRole("button", { name: "Dark Mode einschalten" });
   await expect(desktopThemeButton).toBeVisible();
   await expect(desktopThemeButton).toHaveClass(/core-action-ghost/);
   await expect(desktopThemeButton.locator("svg")).toHaveClass(/lucide-sun/);
   await desktopThemeButton.click();
 
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  await expect(sidebar.getByRole("button", { name: "Light Mode einschalten" }).locator("svg")).toHaveClass(/lucide-moon/);
+  await expect(topBar.getByRole("button", { name: "Light Mode einschalten" }).locator("svg")).toHaveClass(/lucide-moon/);
   expect(await page.evaluate((key) => localStorage.getItem(key), CORE_THEME_STORAGE_KEY)).toBe("dark");
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-core-theme", "dark");
-  await expect(sidebar.getByRole("button", { name: "Light Mode einschalten" })).toBeVisible();
+  await expect(topBar.getByRole("button", { name: "Light Mode einschalten" })).toBeVisible();
 
   await page.setViewportSize({ width: 390, height: 844 });
   const mobileHeader = page.locator('[data-navigation-layout="mobile-header"]');
@@ -459,14 +431,14 @@ test("Pomodoro timer starts globally, persists and stays synchronized between ta
 
   await minutes.fill("25");
   await control.getByRole("button", { name: "Start", exact: true }).click();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("25 min.");
-  await expect(secondPage.locator('[data-pomodoro-progress="sidebar"]')).toContainText("25 min.");
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
+  await expect(secondPage.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
 
   await page.reload();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("25 min.");
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator('[data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
+  await expect(page.locator('[data-navigation-layout="mobile-header"] [data-pomodoro-progress="header"]')).toContainText("Noch 25 Min.");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
   await secondPage.close();
 });
@@ -493,14 +465,14 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
     }));
   }, timerKey);
 
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toBeVisible();
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toBeVisible();
   await expect(page.getByText("Timer abgelaufen.", { exact: true })).toBeVisible();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toHaveCount(0);
+  await expect(page.locator('[data-pomodoro-progress]')).toHaveCount(0);
   await expect.poll(() => page.evaluate((key) => localStorage.getItem(key), timerKey)).toBeNull();
   await secondPage.close();
 });
 
-test("long desktop views use one content scrollbar without moving sidebar utilities", async ({ page }) => {
+test("long desktop views use one content scrollbar without moving the top bar", async ({ page }) => {
   await resetToFreshLocalState(page);
   await page.setViewportSize({ width: 1280, height: 720 });
   for (const view of [
@@ -513,7 +485,7 @@ test("long desktop views use one content scrollbar without moving sidebar utilit
     await expect.poll(() => contentRegion.evaluate((screen) => screen.scrollHeight > screen.clientHeight)).toBe(true);
 
     const layout = await contentRegion.evaluate((screen) => {
-      const aside = screen.previousElementSibling as HTMLElement | null;
+      const topBar = document.querySelector<HTMLElement>('[data-navigation-layout="top-bar"]');
       const shell = screen.closest("main");
       return {
         pageScrolls: document.documentElement.scrollHeight > window.innerHeight + 1,
@@ -522,7 +494,9 @@ test("long desktop views use one content scrollbar without moving sidebar utilit
         contentPosition: getComputedStyle(screen).position,
         shellHeight: shell?.getBoundingClientRect().height ?? Number.POSITIVE_INFINITY,
         shellOverflow: shell ? getComputedStyle(shell).overflowY : "visible",
-        asideBottom: aside?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+        topBarTop: topBar?.getBoundingClientRect().top ?? Number.POSITIVE_INFINITY,
+        topBarBottom: topBar?.getBoundingClientRect().bottom ?? Number.POSITIVE_INFINITY,
+        contentTop: screen.getBoundingClientRect().top,
       };
     });
 
@@ -532,7 +506,8 @@ test("long desktop views use one content scrollbar without moving sidebar utilit
     expect(layout.contentPosition).toBe("relative");
     expect(layout.shellHeight).toBe(720);
     expect(layout.shellOverflow).toBe("hidden");
-    expect(layout.asideBottom).toBeLessThanOrEqual(720);
+    expect(layout.topBarTop).toBe(0);
+    expect(layout.topBarBottom).toBeLessThanOrEqual(layout.contentTop);
   }
 });
 

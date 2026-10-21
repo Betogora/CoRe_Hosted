@@ -535,7 +535,7 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor un
 ### App-Shell und Navigation
 
 - Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Prüfungen`, `Erstellen` und `Statistik`. Ein kompakter Kopf bietet `CoRe` (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
-- Die Sidebar bietet dieselben Ziele und Utility-Aktionen. `Hilfe öffnen` hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
+- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Hilfe öffnen` hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
 - Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.
 
 ### Bedienelemente
@@ -582,7 +582,7 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-033), in Review, Vorschau, Editor un
 ### Viewports und Sprache
 
 - Primärer Zielviewport ist 1440 × 900 px, Desktop-Mindestziel 1280 × 720 px.
-- Unter 1280 px gilt der kompakte App-Modus mit Kopf und Bottom Bar, darüber die Sidebar. Fachliche Komponenten wählen ihre Dichte anhand der verfügbaren Containerbreite und behalten ihre dokumentierten Scrollbereiche.
+- Unter 1280 px gilt der kompakte App-Modus mit Kopf und Bottom Bar, darüber die Top-Bar. Fachliche Komponenten wählen ihre Dichte anhand der verfügbaren Containerbreite und behalten ihre dokumentierten Scrollbereiche.
 - Nutzertexte sind korrektes Deutsch mit Unicode-Schreibweise; technische Bezeichnungen gelangen nicht ungefiltert in die UI.
 
 ### Zuverlässigkeit

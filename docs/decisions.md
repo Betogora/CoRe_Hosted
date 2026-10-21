@@ -314,6 +314,10 @@ Offene Umsetzungsschritte stehen in [`todo.md`](todo.md), nicht in ADRs.
 **Konsequenzen:** Tokens in `src/styles.css` und die gemeinsamen Klassen tragen den Stil; Screens verwenden die gemeinsamen Button-Klassen statt eigener Klassenketten. Die Touchziel-Anforderung bleibt für Touchgeräte unverändert. Die visuellen Verträge in `specs.md`, `src/ui/README.md` und die Theme-Tests beschreiben den neuen Stil.
 **Datum:** 2026-10-09
 
+### Ergänzung zu ADR-037 — Desktop-Top-Bar statt Seitenleiste (2026-10-21)
+
+Auf Desktop ersetzt eine schwebende Top-Bar nach dem Vorbild von Airbnb die 15-rem-Seitenleiste: Marke links, die fünf Hauptziele mit Icon und Wort mittig, Pomodoro-Fortschritt und Utility-Aktionen rechts. Der Inhalt erhält dadurch die volle Breite. Die Hauptebenen-Zone des Stapel-Drags (ADR-014) projiziert sich auf die Top-Bar statt auf die Seitenleiste; der kompakte Modus unter 1280 px bleibt unverändert.
+
 ## ADR-038 — Serverbestätigung der Sitzung parallel zum Start
 
 **Status:** angenommen

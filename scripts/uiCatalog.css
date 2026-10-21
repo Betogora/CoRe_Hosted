@@ -110,13 +110,12 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 .catalog-inventory a { color: var(--core-action-primary); }
 .catalog-inventory details summary, .catalog-demo details summary { cursor: pointer; min-height: var(--core-control-height); display: list-item; padding: 10px 0; font-size: 12px; }
 .catalog details ul { padding-left: 18px; list-style: disc; }
-.catalog-shell-preview { position: fixed; inset: 0; z-index: 70; display: grid; grid-template-columns: 15rem minmax(0, 1fr); background: var(--core-canvas); overflow: auto; }
+.catalog-shell-preview { position: fixed; inset: 0; z-index: 70; background: var(--core-canvas); overflow: auto; }
 .catalog-shell-content { padding: 100px 24px; min-width: 0; }
 .catalog-shell-content h2 { margin-bottom: 24px; }
 .catalog-patterns { display: grid; gap: 20px; }
 .catalog-pattern-source { color: var(--core-text-muted); font-size: 13px; line-height: 1.7; }
 
-@media (max-width: 1279px) { .catalog-shell-preview { display: block; } }
 @media (max-width: 1050px) {
   .catalog-shell { grid-template-columns: 1fr; }
   .catalog-nav { position: static; display: flex; max-height: none; overflow-x: auto; gap: .25rem; }

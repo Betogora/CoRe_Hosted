@@ -552,7 +552,7 @@ test("Pomodoro timer started in the learning settings remains global after leavi
   await page.getByRole("dialog", { name: "Lerneinstellungen" }).getByRole("button", { name: "Lerneinstellungen schließen" }).click();
 
   await page.getByRole("button", { name: "Lernmodus verlassen" }).click();
-  await expect(page.locator('[data-pomodoro-progress="sidebar"]')).toContainText("10 min.");
+  await expect(page.locator('[data-navigation-layout="top-bar"] [data-pomodoro-progress="header"]')).toContainText("Noch 10 Min.");
 });
 
 test("Lerneinstellungen speichern Markierung, Aussetzung und Kartenreihenfolge sofort", async ({ page }: any) => {

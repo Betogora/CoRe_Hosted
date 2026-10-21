@@ -177,7 +177,7 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
 });
 
-test("deck drag focus uses square row holes with desktop sidebar and mobile bottom bar targets", async ({ page }) => {
+test("deck drag focus uses square row holes with desktop top bar and mobile bottom bar targets", async ({ page }) => {
   await page.setViewportSize({ width: 1536, height: 1000 });
   await resetToFreshLocalState(page);
 
@@ -189,16 +189,16 @@ test("deck drag focus uses square row holes with desktop sidebar and mobile bott
   await expect(sourceHole).toHaveCount(1);
   expect(await sourceHole.getAttribute("rx")).toBeNull();
   await expect(page.getByTestId("dashboard-deck-list-header")).not.toContainText("Auf die Hauptebene verschieben");
-  const sidebar = page.locator('[data-navigation-layout="sidebar"]');
-  const sidebarTarget = page.getByTestId("dashboard-top-drop-zone");
-  await expect(sidebarTarget).toHaveAttribute("data-deck-top-drop-placement", "sidebar");
-  const [sidebarBox, sidebarTargetBox] = await Promise.all([sidebar.boundingBox(), sidebarTarget.boundingBox()]);
-  expect(sidebarBox).not.toBeNull();
-  expect(sidebarTargetBox).not.toBeNull();
-  expect(sidebarTargetBox!.x).toBeCloseTo(sidebarBox!.x + 16, 0);
-  expect(sidebarTargetBox!.y).toBeCloseTo(sidebarBox!.y + 16, 0);
-  expect(sidebarTargetBox!.width).toBeCloseTo(sidebarBox!.width - 32, 0);
-  expect(sidebarTargetBox!.height).toBeCloseTo(sidebarBox!.height - 32, 0);
+  const topBarPanel = page.locator('[data-navigation-layout="top-bar"] > div');
+  const topBarTarget = page.getByTestId("dashboard-top-drop-zone");
+  await expect(topBarTarget).toHaveAttribute("data-deck-top-drop-placement", "top-bar");
+  const [topBarBox, topBarTargetBox] = await Promise.all([topBarPanel.boundingBox(), topBarTarget.boundingBox()]);
+  expect(topBarBox).not.toBeNull();
+  expect(topBarTargetBox).not.toBeNull();
+  expect(topBarTargetBox!.x).toBeCloseTo(topBarBox!.x + 8, 0);
+  expect(topBarTargetBox!.y).toBeCloseTo(topBarBox!.y + 8, 0);
+  expect(topBarTargetBox!.width).toBeCloseTo(topBarBox!.width - 16, 0);
+  expect(topBarTargetBox!.height).toBeCloseTo(topBarBox!.height - 16, 0);
   await cancelDeckDrag(page);
 
   await page.setViewportSize({ width: 390, height: 844 });

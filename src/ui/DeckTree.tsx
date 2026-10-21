@@ -62,7 +62,7 @@ interface DragFocusLayout {
   topLevelTarget: { placement: TopLevelPlacement; rect: ViewportRect } | null;
 }
 
-type TopLevelPlacement = "sidebar" | "bottom-bar";
+type TopLevelPlacement = "top-bar" | "bottom-bar";
 
 const POINTER_DRAG_THRESHOLD = 6;
 
@@ -332,10 +332,10 @@ export function DeckTree({ rows, mode, view = "list", headerAction, contentAfter
 
     const sourceRect = viewportRect(drag.captureElement.closest("[data-deck-row='true']"));
     const targetRect = viewportRect(drag.targetElement);
-    const sidebarRect = viewportRect(document.querySelector("[data-navigation-layout='sidebar']"), 16);
-    const bottomBarRect = sidebarRect ? null : viewportRect(document.querySelector("[data-navigation-layout='bottom-bar']"));
-    const topLevelTarget = sidebarRect
-      ? { placement: "sidebar" as const, rect: sidebarRect }
+    const topBarRect = viewportRect(document.querySelector("[data-navigation-layout='top-bar'] > div"), 8);
+    const bottomBarRect = topBarRect ? null : viewportRect(document.querySelector("[data-navigation-layout='bottom-bar']"));
+    const topLevelTarget = topBarRect
+      ? { placement: "top-bar" as const, rect: topBarRect }
       : bottomBarRect
         ? { placement: "bottom-bar" as const, rect: bottomBarRect }
         : null;
