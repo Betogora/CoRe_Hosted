@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, Save } from "lucide-react";
 import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { Deck, ExamPlan, GlobalSchedulerPreferences, StudyTimeCapacity } from "../coreTypes.ts";
 import { EXAM_PLANNING_LIMITS, EXAM_RETENTION_LEVELS, createExamPlan } from "../examPlanSettings.ts";
@@ -14,6 +14,7 @@ import { ActionDialog, PageHeader, StatTile } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
+import { ExamTopicOrder } from "./ExamTopicOrder.tsx";
 import { formatExamDate, formatExamMinutes, formatExamPercent } from "./examPlanningUi.ts";
 import { useExamForecast } from "./useExamForecast.ts";
 
@@ -106,7 +107,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
         <label className={LABEL}>Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?<input type="number" className={FIELD} min={0} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(0, Math.round(Number(event.target.value) || 0))) })} /></label>
         <p className="core-caption text-core-muted">Letzte neue Karten spätestens am {formatExamDate(getExamLastNewDate(plan))}. Ist dieser Tag frei, endet neuer Stoff früher.</p>
-        <ol className="grid gap-2" aria-label="Themenreihenfolge">{topicOrder.filter((id) => (rows.find((row) => row.id === id)?.directInventory.totalCards ?? 0) > 0).map((id) => <li key={id} className="grid min-w-0 grid-cols-2 items-center gap-2 rounded-control bg-core-subtle p-2 sm:flex"><span className="col-span-2 min-w-0 flex-1 break-words core-body text-core-text">{decks.find((deck) => deck.id === id)?.name}</span>{[-1, 1].map((direction) => <ActionButton key={direction} variant="secondary" icon={direction < 0 ? ArrowUp : ArrowDown} aria-label={`${decks.find((deck) => deck.id === id)?.name} ${direction < 0 ? "nach oben" : "nach unten"}`} disabled={topicOrder.indexOf(id) + direction < 0 || topicOrder.indexOf(id) + direction >= topicOrder.length} onClick={() => { const next = [...topicOrder], index = next.indexOf(id); [next[index], next[index + direction]] = [next[index + direction], next[index]]; patch({ topicOrder: next }); }}>{direction < 0 ? "Hoch" : "Runter"}</ActionButton>)}</li>)}</ol>
+        <ExamTopicOrder topics={topicOrder.map((id) => ({ id, name: decks.find((deck) => deck.id === id)!.name }))} disabled={saving} onChange={(topicOrder) => patch({ topicOrder })} />
         <div className="rounded-control bg-core-subtle p-4"><p className="core-body font-semibold text-core-text">Zusammenhängend nach Themen lernen</p><p className="mt-1 core-body text-core-muted">Deine Unterstapel bilden die Themen. Kleine Themen bleiben möglichst an einem Tag; große Themen werden fortlaufend aufgeteilt. Ohne thematische Unterstapel behandeln wir den Stapel als ein Thema.</p></div>
       </div></details> : null}
       {embedded ? <details><summary className="min-h-control cursor-pointer py-2 core-body font-semibold text-core-text">Lernzeit und weitere Einstellungen</summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}

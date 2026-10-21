@@ -108,7 +108,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index
 .catalog-inventory td:first-child { min-width: 120px; }
 .catalog-inventory td:nth-child(2) { min-width: 150px; }
 .catalog-inventory a { color: var(--core-action-primary); }
-.catalog-inventory details summary, .catalog-demo details summary { cursor: pointer; min-height: var(--core-control-height); display: list-item; padding: 10px 0; font-size: 12px; }
+.catalog-inventory details summary, .catalog-demo details summary:not([data-exam-topic-order-toggle]) { cursor: pointer; min-height: var(--core-control-height); display: list-item; padding: 10px 0; font-size: 12px; }
 .catalog details ul { padding-left: 18px; list-style: disc; }
 .catalog-shell-preview { position: fixed; inset: 0; z-index: 70; display: grid; grid-template-columns: 15rem minmax(0, 1fr); background: var(--core-canvas); overflow: auto; }
 .catalog-shell-content { padding: 100px 24px; min-width: 0; }

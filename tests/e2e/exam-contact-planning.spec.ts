@@ -24,7 +24,16 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await editor.getByRole("checkbox").first().check();
     await expect(editor.getByRole("spinbutton", { name: "Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?", exact: true })).toHaveValue("4");
     await product.screenshot({ path: info.outputPath("03-lernstoff.png") });
-    await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).scrollIntoViewIfNeeded();
+    await editor.getByText("Themenreihenfolge ändern", { exact: true }).click();
+    const topicList = editor.getByRole("list", { name: "Themenreihenfolge", exact: true });
+    await topicList.scrollIntoViewIfNeeded();
+    let changedOrder: Array<string | undefined> | null = null;
+    if (width === 1440 && theme === "light") {
+      const before = await topicList.locator(":scope > li").evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.topicId));
+      await topicList.locator(":scope > li").first().getByRole("button", { name: /nach unten$/ }).click();
+      changedOrder = await topicList.locator(":scope > li").evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.topicId));
+      expect(changedOrder[0]).toBe(before[1]);
+    }
     await product.screenshot({ path: info.outputPath("03b-themenfolge.png") });
     await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
     await editor.getByRole("spinbutton", { name: "Durchschnittliche Stunden pro Lerntag", exact: true }).fill("0.25");
@@ -41,6 +50,13 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await product.screenshot({ path: info.outputPath("06-gespeichert.png") });
     const overflow = await product.evaluate((element) => element.scrollWidth > element.clientWidth + 1);
     expect(overflow).toBe(false);
+    if (changedOrder) {
+      await product.getByRole("button", { name: "Klausur mit sehr langem Namen: Herz und Lunge: Details öffnen", exact: true }).click();
+      await product.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+      await editor.locator("summary").filter({ hasText: /^Stapel · \d+ ausgewählt$/ }).click();
+      await editor.getByText("Themenreihenfolge ändern", { exact: true }).click();
+      await expect.poll(() => editor.getByRole("list", { name: "Themenreihenfolge", exact: true }).locator(":scope > li").evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.topicId))).toEqual(changedOrder);
+    }
   });
 }
 });

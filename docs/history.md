@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-21 — Themenreihenfolge im Klausurplaner einklappbar und verschiebbar
+
+- Die Themenliste ist standardmäßig geschlossen. Ein Ziehgriff unterstützt Maus und Touch; Hoch/Runter sowie Pfeiltasten bleiben verfügbar. Lange Listen scrollen beim Ziehen automatisch. Loslassen innerhalb der Liste übernimmt die Reihenfolge; Escape, Abbruch und Loslassen außerhalb verwerfen die Geste. Der bestehende Speicherweg für die Themenfolge bleibt erhalten.
+- Verifiziert: 21 fokussierte Screen-/Theme-Tests, 20 Browserfälle und eine vollständige Einrichtungsjourney mit Speichern und erneutem Öffnen der Reihenfolge sowie Typecheck, Dokumentationsprüfung und Produktionsbuild. Die tatsächlichen Komponenten wurden in Light/Dark bei 320×720, 360×800, 390×844, 430×932, 1280×720 und 1440×900 sowie 639/640×900 und dem 200-%-Layoutäquivalent 720×450 geprüft. Screenshot-Sichtprüfung, Maus, Tastatur, simulierter Touch einschließlich Abbruch und automatisches Scrollen bestanden. Katalogquellen und Produktvertrag sind aktualisiert; HTML wurde aus den Quellen erzeugt.
+- Abschlussaudit mit `audit-last-change`: den ungenutzten Rückgabewert der Gesten-Abbruchfunktion entfernt. Keine weitere belegbare Vereinfachung oder Performance-Verbesserung gefunden. Die Browserfälle sichern das tatsächliche Sortieren, Abbrechen, Scrollen und Speichern gegen die Produktkomponenten ab.
+- Vor Commit und Push erneut bestanden: `npm run gate:push` mit Typecheck, Knip, Dokumentationsprüfung, sämtlichen Unit-/Contract-/Integrationstests aus 121 Dateien, Produktionsbuild und Bundle-Budgets (79 Chunks, Initialgraph 234,6 KiB gzip) sowie alle 20 Sortier-Browserfälle nach dem Audit.
+- Nachweise: `C:/Users/noemi/.codex/visualizations/2026/10/20/01a159b1-bf3d-7413-8f0b-02852d4f8ee1/` (`topic-order-visual-qa/`, `topic-order-integration/` und die drei Themen-Kontaktbögen). Echte Touchhardware und nativer Browserzoom bleiben ungeprüft. Die vor dem angeforderten Push erneut ausgeführte Prüfung `npm run performance:measure:local` konnte mangels laufendem Docker Desktop keine Messung starten; dieses zusätzliche Gate bleibt offen.
+
 ## 2026-10-21 — Klausurplaner für eigenen Branch vorbereitet
 
 - Der geprüfte Klausurplanerstand liegt auf `codex/klausurplaner-fsrs-kontakte` in einem separaten Arbeitsverzeichnis. Der Hauptcheckout meldet wegen eines leeren Statusordners eines bereits abgeschlossenen Rebase weiterhin einen laufenden Rebase und bleibt unverändert.
