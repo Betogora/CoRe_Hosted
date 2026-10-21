@@ -51,11 +51,12 @@ import { projectStatistics, type StatisticsSelection } from "../src/statisticsMo
 import { createMenuModel } from "../src/menuModel.ts";
 import { createCoreRepository } from "../src/coreRepository.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
+import { withExamDailyTasks } from "../src/examDailyTasks.ts";
 import { createExamPlan, normalizeExamPlanningSettings, upsertExamPlan } from "../src/examPlanSettings.ts";
-import { estimateExamHistory } from "../src/examPlanning.ts";
 import { createViewRoute, type DeckContentTab } from "../src/appNavigation.ts";
 import { DashboardScreen } from "../src/screens/DashboardScreen.tsx";
 import { ExamPlanningScreen } from "../src/screens/ExamPlanningScreen.tsx";
+import { ExamTopicOrder } from "../src/screens/ExamTopicOrder.tsx";
 import { LearnScreen } from "../src/screens/LearnScreen.tsx";
 import { CreationScreen } from "../src/screens/CreationScreen.tsx";
 import { DecksScreen } from "../src/screens/DecksScreen.tsx";
@@ -395,6 +396,11 @@ function MindMapContentDemo() {
   return <Demo title="Infinity Map · kombinierte Werkzeugzeile, Karten und Äste" wide><p className="catalog-pattern-source">Die echte Produktansicht öffnet direkt eine gemeinsame Infinity Map je Stapel; Zusammenfassungen ergänzen weitere Graphen auf derselben Fläche. Erzeugte Mindmaps zeigen am Ende jedes Astes Textkarten mit direkt sichtbarem Text; übergeordnete Ebenen bleiben Stichwortkarten mit eingeklapptem Text. Zusammenfassungstexte stehen im normalen bearbeitbaren Textfeld, ohne zusätzlichen Aufklappbereich. Karten bearbeiten ihren Text direkt mit der gemeinsamen Toolbar oben. Plusaktionen ergänzen Geschwister und Kinder mit Astfarben, Hauptäste verteilen sich um das Zentrum, die Mehrfachauswahl funktioniert auch durch Antippen. Zusammenfassungsklammern und Umrandungen gruppieren Karten; Verknüpfen verbindet sie, Linienfarben sind wählbar. Gestalten bietet Zeichnen, Radieren und freies Schreiben; `Fläche leeren` fragt nach und lässt sich rückgängig machen. Ausgewählte Karten lassen sich ziehen; lose Karten werden beim Verknüpfen normale Äste. Änderungen speichern automatisch lokal, ohne Namens-/Speicherzeile. Vorgabefarben und freie Farbauswahl stehen bereit. Die Beispieldaten bleiben auf einem eigenen lokalen Demo-Konto.</p><ActionButton variant="secondary" onClick={() => void show()}>Mindmaps öffnen</ActionButton>{error && <StatusMessage tone="error">{error}</StatusMessage>}{open && <div className="mt-6"><DeckMindMapsPanel deck={deck} userId="catalog-mindmaps" onDraftStateChange={() => undefined}/></div>}</Demo>;
 }
 
+function ExamTopicOrderDemo() {
+  const [topics, setTopics] = useState(() => Array.from({ length: 20 }, (_, i) => ({ id: `catalog-topic-${i + 1}`, name: `${String(i + 1).padStart(2, "0")} · Vorlesung${i === 1 ? " mit einem sehr langen Namen: Herz, Kreislauf und Medikamente" : ""}` })));
+  return <Demo title="Prüfungen · Themenreihenfolge" wide><ExamTopicOrder topics={topics} onChange={(ids) => setTopics((current) => ids.map((id) => current.find((topic) => topic.id === id)!))} /></Demo>;
+}
+
 function ProductViewsDemo({ kind }: { kind: string }) {
   const [focusedDemoDeckId, setFocusedDemoDeckId] = useState<string | null>(null);
   const [demoStudyDeck, setDemoStudyDeck] = useState(deck);
@@ -441,9 +447,9 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [demoPlanning, setDemoPlanning] = React.useState<ExamPlanningSettings | null>(null);
   const examWorkspace = React.useMemo(() => {
     const today = selection.now.slice(0, 10);
-    const exam = { ...createExamPlan(today, examDemoDecks.map((candidate) => candidate.id)), id: "exam-demo", name: "Anatomie", examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
+    const exam = { ...createExamPlan(today, examDemoDecks.map((candidate) => candidate.id)), id: "exam-demo", name: "Anatomie", readSummaryBeforeTopics: true, examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
     const initialPlanning = upsertExamPlan(upsertExamPlan(normalizeExamPlanningSettings(undefined), exam), { ...exam, id: "exam-demo-second", name: "Physiologie", examDate: "2026-10-27" });
-    initialPlanning.capacity.timeBlocks = [{ id: "catalog-study-block", date: today, start: 540, end: 600, examId: exam.id, kind: "study" }, { id: "catalog-quiz-block", date: today, start: 600, end: 630, examId: exam.id, kind: "quiz" }];
+    initialPlanning.capacity.timeBlocks = [{ id: "catalog-study-block", date: today, start: 540, end: 600, examId: exam.id, kind: "study" }, { id: "catalog-quiz-block", date: today, start: 660, end: 690, examId: exam.id, kind: "quiz" }, { id: "catalog-open-block", date: today, start: 780, end: 795, examId: null }];
     initialPlanning.dailyTasks = examDemoDecks.slice(0, 4).map((candidate, index) => ({ id: `topic:${exam.id}:${candidate.id}`, date: today, examId: exam.id, kind: "study", deckIds: [candidate.id], cardIds: candidate.cards.map((card) => card.id), capturedAt: selection.now, completed: index === 0 ? "manual" : null }));
     return { ...workspace, decks: examDemoDecks, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: demoPlanning ?? initialPlanning }) };
   }, [demoPlanning, examDemoDecks, selection.now, workspace]);
@@ -453,13 +459,13 @@ function ProductViewsDemo({ kind }: { kind: string }) {
       // Sample cards carry their real creation time; new ones are due on the catalog's simulated day.
       return { cardId: card.id, deckId: card.deckId, noteId: card.noteId, status: card.status, study: completedDemoExamCards.current.has(card.id) ? { ...study, state: "review" as const, dueAt: "2026-11-01T08:00:00.000Z", lastReviewedAt: selection.now, reps: study.reps + 1 } : { ...study, dueAt: study.state === "new" ? selection.now : study.dueAt }, studyRevision: completedDemoExamCards.current.has(card.id) ? 1 : 0, activeVariantCount: card.variants.length, createdAt: card.createdAt, maturityXp: extra.maturityXp ?? 0 };
     }),
-    history: estimateExamHistory(null, selection.now.slice(0, 10)),
+    history: { ratings: {} },
   }), [examDemoDecks, selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
     ["dashboard", "DashboardScreen · Tagesübersicht → Prüfungen → Heatmap → Stapel", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
-    ["exams", "ExamPlanningScreen · Fächer neben Heute · getrennte Karten- und Quizklammern mit eigener Zeitzuordnung · aufklappbare Prüfungskarten", "Prüfungen"],
+    ["exams", "ExamPlanningScreen · Fächer neben Heute · kompakte Woche · Lernzeit mit Löschkreuz und Ziehlasche · aufklappbare Prüfungskarten", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],
@@ -477,8 +483,8 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
-    {view === "dashboard" && <DashboardScreen onLoadExamPlanningData={loadExamPlanningData} onSaveExamTasks={async (dailyTasks) => setDemoPlanning({ ...getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks })} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
-    {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); toast("Plan für diese lokale Vorschau übernommen."); }} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
+    {view === "dashboard" && <DashboardScreen onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={async () => false} onSaveExamTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadSummaryAvailability={async () => false} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); const previous = getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning; if (JSON.stringify([previous.exams, previous.capacity]) !== JSON.stringify([next.exams, next.capacity])) toast("Plan für diese lokale Vorschau übernommen."); }} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(_surface, id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
     {["creation", "manual", "import"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : ""} onMethodChange={(method) => setView(method || "creation")} />}
@@ -544,7 +550,7 @@ export const DEMO_GROUPS = [
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken als Rechteck, Ellipse, Polygon oder Text zeichnen, zu Karten gruppieren und den Verdeckungsmodus wählen; per Maus, Touch und Tastatur.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
-  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}<SummaryContentDemo /><MindMapContentDemo /></> },
+  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}<ExamTopicOrderDemo /><SummaryContentDemo /><MindMapContentDemo /></> },
   { id: "symbols", section: "icons", title: "Iconflächen und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
   { id: "laufzeit", section: "states", title: "Laufzeit- und Rückmeldungszustände", description: "Laden, leer, Hinweis, Erfolg, Warnung und Fehler.", components: [], wide: true, render: () => <StatesDemo section="runtime" /> },

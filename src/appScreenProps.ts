@@ -85,6 +85,7 @@ export interface DashboardScreenProps {
   onStartExamUnit?: (blockId: string | null) => Promise<void>;
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
   onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
+  onLoadExamSummaryAvailability?: (deckId: string) => Promise<boolean>;
 }
 
 /** Study states and observed history the exam forecast runs on. */
@@ -100,6 +101,7 @@ export interface ExamPlanningScreenProps {
   onLoadPlanningData: (deckIds: string[], signal: AbortSignal) => Promise<ExamPlanningData>;
   onSavePlanning: (settings: ExamPlanningSettings) => Promise<void>;
   onStartUnit: (blockId: string | null) => Promise<void>;
+  onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
 }
 
 export interface DeckSettingsScreenProps {

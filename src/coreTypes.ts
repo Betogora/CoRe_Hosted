@@ -126,7 +126,7 @@ export interface GlobalSchedulerPreferences {
   examPlanning: ExamPlanningSettings;
 }
 
-/** One exam of the user's global planner (ADR-042); decks are chosen per exam, the time budget is shared. */
+/** One exam, with its own relative study-time weights (ADR-042). */
 export interface ExamPlan {
   id: string;
   name: string;
@@ -140,6 +140,10 @@ export interface ExamPlan {
   desiredRetention: number;
   variants: boolean;
   bufferDays: number;
+  studyTime?: { dailyMinutes: number; weekdays: boolean[]; weeklyMinutes?: number[]; dateOverrides: Array<{ date: string; minutes: number }> };
+  topicOrder?: string[];
+  readSummaryBeforeTopics?: boolean;
+  completedSummaryDeckIds?: string[];
   /** Earliest introduction of a topic; repetitions continue to follow the scheduler. */
   topicDates?: Array<{ deckId: string; date: string }>;
   createdAt: string;
@@ -163,18 +167,20 @@ export interface ExamDailyTask {
   id: string;
   date: string;
   examId: string;
-  kind: "study" | "quiz";
+  kind: "study" | "quiz" | "summary";
   deckIds: string[];
   cardIds: string[];
   capturedAt: string;
   completed: "manual" | "automatic" | null;
+  planningKey?: string;
 }
 
 export interface ExamPlanningSettings {
-  version: 1;
+  version: 1 | 2;
   exams: ExamPlan[];
   capacity: StudyTimeCapacity;
   dailyTasks?: ExamDailyTask[];
+  migratedFromSharedTime?: boolean;
 }
 
 export interface DeckSettings {

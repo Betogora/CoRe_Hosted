@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, ChevronUp, Play, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, BookOpen, Play, Sparkles } from "lucide-react";
 import type { DashboardScreenProps, ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamDailyTask } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
@@ -17,11 +17,12 @@ interface ExamDashboardWidgetProps {
   onLoad: ExamPlanningScreenProps["onLoadPlanningData"];
   onStart: (blockId: string | null) => Promise<void>;
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
-  onOpen: () => void;
+  onOpen?: () => void;
+  onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
 }
 
 /** A persisted daily checklist; checking a task never changes the scheduler or answers cards. */
-export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen }: ExamDashboardWidgetProps) {
+export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability }: ExamDashboardWidgetProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const settings = preferences.examPlanning;
   const { exams, capacity } = settings;
@@ -29,6 +30,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const today = getLearningDayKey(now, { timeZone, dayStartHour: preferences.dayStartHour }) ?? civilToday;
   const { forecast, cards, current, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, now, timeZone, onLoadPlanningData: onLoad });
+  const [summaryAvailability, setSummaryAvailability] = React.useState<Record<string, boolean | null>>({});
   const [starting, setStarting] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [startError, setStartError] = React.useState("");
@@ -38,6 +40,13 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   const attempted = React.useRef("");
   const day = current ? forecast?.days.find((entry) => entry.key === today) : null;
   const tasks = current && forecast ? reconcileExamDailyTasks(settings, state.decks, forecast, cards, now, timeZone, preferences.dayStartHour) : (settings.dailyTasks ?? []).filter((task) => task.date === today);
+  const summaryScope = [...new Set(tasks.filter((task) => task.kind === "summary").flatMap((task) => task.deckIds))].sort().join("\n");
+  React.useEffect(() => {
+    if (!onLoadSummaryAvailability || !summaryScope) return;
+    let active = true;
+    void Promise.all(summaryScope.split("\n").map(async (id) => [id, await onLoadSummaryAvailability(id).catch(() => null)] as const)).then((entries) => { if (active) setSummaryAvailability(Object.fromEntries(entries)); });
+    return () => { active = false; };
+  }, [summaryScope, onLoadSummaryAvailability]);
   const storedKey = JSON.stringify(settings.dailyTasks ?? []);
   const taskKey = JSON.stringify(tasks);
   const deckName = (id: string) => state.decks.find((deck) => deck.id === id)?.name ?? "Stapel";
@@ -61,12 +70,12 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     finally { setStarting(false); }
   }
   return <SoftPanel className="grid min-w-0 gap-4 p-4 sm:p-6" data-testid="dashboard-exam-unit">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Prüfungen · Heute</h2><ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton></div>
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Prüfungen · Heute</h2>{onOpen ? <ActionButton variant="secondary" onClick={onOpen}>Lernkalender öffnen</ActionButton> : null}</div>
     {busy ? <p role="status" className="core-body text-core-muted">Deine Aufgaben werden berechnet …</p> : null}
     {error || startError ? <StatusMessage tone="error">{startError || error}</StatusMessage> : null}
     {saveError ? <StatusMessage tone="error">{saveError} <button type="button" className="underline" disabled={saving} onClick={() => void persist(tasks)}>Erneut speichern</button></StatusMessage> : null}
     <div className="grid min-w-0 gap-4 lg:grid-cols-2">{exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday).sort((a, b) => a.examDate.localeCompare(b.examDate)).map((exam) => {
-      const own = tasks.filter((task) => task.examId === exam.id).sort((a, b) => Number(a.completed !== null) - Number(b.completed !== null));
+      const own = tasks.filter((task) => task.examId === exam.id).sort((a, b) => Number(a.completed !== null) - Number(b.completed !== null) || Number(a.kind !== "summary") - Number(b.kind !== "summary"));
       const expanded = expandedExams.includes(exam.id);
       const listId = `${taskListId}-${exam.id}`;
       const color = examColor(exams.indexOf(exam), exam);
@@ -76,14 +85,16 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
         <ul id={listId} className="grid gap-2">{(expanded ? own : own.slice(0, 3)).map((task) => {
           const title = task.deckIds.map(deckName).join(" · ");
           const checked = task.completed !== null;
-          return <li key={task.id} data-exam-todo={task.id} className="flex min-w-0 flex-wrap items-center gap-2 rounded-control bg-core-surface p-2">
+          return <li key={task.id} data-exam-todo={task.id} data-exam-block={task.kind} className="flex min-w-0 flex-wrap items-center gap-2 rounded-control bg-core-surface p-2">
             <label className={`flex min-h-control min-w-0 flex-1 cursor-pointer items-center gap-3 px-1 ${task.kind === "quiz" ? "basis-full sm:basis-0" : ""}`}>
-              <input type="checkbox" checked={checked} disabled={!current || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "quiz" ? "Themenquiz: " : ""}${title} als erledigt markieren`} onChange={(event) => void persist(setExamDailyTaskChecked(tasks, task.id, event.target.checked))} className="size-5 shrink-0" style={{ accentColor: color }}/>
-              <span className="min-w-0"><strong className={`block break-words core-body text-core-text ${checked ? "line-through" : ""}`}>{task.kind === "quiz" ? "Themenquiz" : title}</strong>
-                <span className="block break-words core-caption text-core-muted">{task.kind === "quiz" ? title : `${task.cardIds.length} Karten`}{task.completed === "automatic" ? " · Automatisch erledigt" : checked ? " · Erledigt" : task.kind === "quiz" ? " · Empfohlen" : ""}</span>
+              <input type="checkbox" checked={checked} disabled={!current || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "quiz" ? "Themenquiz: " : task.kind === "summary" ? "Zusammenfassung lesen: " : ""}${title} als erledigt markieren`} onChange={(event) => void persist(setExamDailyTaskChecked(tasks, task.id, event.target.checked))} className="size-5 shrink-0" style={{ accentColor: color }}/>
+              <span className="min-w-0"><strong className={`block break-words core-body text-core-text ${checked ? "line-through" : ""}`}>{task.kind === "quiz" ? "Themenquiz" : task.kind === "summary" ? "Zusammenfassung lesen" : title}</strong>
+                <span className="block break-words core-caption text-core-muted">{task.kind !== "study" ? title : `${task.cardIds.length} Karten`}{task.completed === "automatic" ? " · Automatisch erledigt" : checked ? " · Erledigt" : task.kind === "quiz" ? " · Empfohlen" : ""}</span>
+                {task.kind === "summary" && summaryAvailability[task.deckIds[0]] === false ? <span className="block core-caption text-core-muted">Noch keine Zusammenfassung vorhanden</span> : null}
+                {task.kind === "summary" && summaryAvailability[task.deckIds[0]] === null ? <span className="block core-caption text-core-muted">Zusammenfassung konnte nicht geprüft werden</span> : null}
               </span>
             </label>
-            {task.kind === "quiz" ? <div className="grid w-full min-w-0 gap-1 sm:w-auto"><ActionButton className="w-full sm:w-auto" variant="secondary" icon={Sparkles} disabled>KI generieren</ActionButton><span className="core-caption text-core-muted">Quiz-Erstellung folgt</span></div> : <IconButton label={`${title} lernen`} icon={Play} variant="ghost" disabled={starting || !current || saving || Boolean(saveError) || taskKey !== storedKey || checked} onClick={() => void start(task.id)}/>}
+            {task.kind === "quiz" ? <div className="grid w-full min-w-0 gap-1 sm:w-auto"><ActionButton className="w-full sm:w-auto" variant="secondary" icon={Sparkles} disabled>KI generieren</ActionButton><span className="core-caption text-core-muted">Quiz-Erstellung folgt</span></div> : <IconButton label={task.kind === "summary" ? `${title}: Zusammenfassungen öffnen` : `${title} lernen`} icon={task.kind === "summary" ? BookOpen : Play} variant="ghost" disabled={starting || !current || saving || Boolean(saveError) || taskKey !== storedKey || checked} onClick={() => void start(task.id)}/>}
           </li>;
         })}</ul>
         {own.length > 3 ? <ActionButton variant="secondary" icon={expanded ? ChevronUp : ChevronDown} aria-expanded={expanded} aria-controls={listId} onClick={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])}>

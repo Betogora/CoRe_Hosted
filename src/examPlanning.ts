@@ -1,439 +1,268 @@
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import { createCoreDeck } from "./coreModel/decks.ts";
-import { createReviewState } from "./coreModel/reviewState.ts";
-import type { Card, Deck, DeckSettings, ExamPlan, GlobalSchedulerPreferences, ReviewRating, ReviewState, StudyTimeCapacity } from "./coreTypes.ts";
+import { createCoreDeck, createReviewState, stableContentHash } from "./coreModel.ts";
+import type { Card, Deck, DeckSettings, ExamDailyTask, ExamPlan, GlobalSchedulerPreferences, ReviewRating, ReviewState, StudyTimeCapacity } from "./coreTypes.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import { EXAM_SESSION_DECK_ID } from "./examPlanSettings.ts";
 import { getLearningDayKey, getLearningDayStartForKey } from "./learningDay.ts";
 import { markLearningSettingsCustom } from "./learningProfiles.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
 import { calculateRetrievability, scheduleWithFsrs } from "./scheduler.ts";
-import type { AccountStatisticsSnapshot } from "./workspaceReplica.ts";
-
-export const EXAM_MODEL = {
-  minimumTimeSamples: 10,
-  defaultSeconds: { new: 60, review: 20, relearning: 30, variant: 30 },
-  maxProjectedAnswers: 500, maxNewPerDay: 500, maxReviewsPerDay: 2000,
-  ratingPeriod: 20, ratingSequenceStep: 7, initialRatingSlot: 19,
-} as const;
+import { balanceExamContacts, type ContactColumn } from "./examContactPlanning.ts";
 
 type ExamStudyMethod = "new" | "review" | "relearning" | "variant";
-type ExamTiming = Record<ExamStudyMethod, { seconds: number; samples: number }>;
-/** Observed behaviour from the statistics rollups: answer times, share of "again" and minutes already studied today. */
-export interface ExamHistory { timing: ExamTiming; againShare: number; ratingSamples: number; spentTodayMinutes: number }
-/** Planned work of one method in one deck on one day; a block counts for every exam that shares the deck. */
+export interface ExamHistory { ratings: Partial<Record<ReviewRating, number>> }
 export interface StudyPlanBlock {
   id: string; date: string; examIds: string[]; deckId: string; method: ExamStudyMethod;
-  plannedMinutes: number; expectedItems: number; priority: number; cardIds: string[];
+  expectedItems: number; priority: number; cardIds: string[];
 }
 export interface ExamPlanDay {
-  key: string; budgetMinutes: number; spentMinutes: number;
-  newMinutes: number; reviewMinutes: number; newCardIds: string[]; reviewCardIds: string[];
-  reviewCount: number; backlogCount: number; buffer: boolean; blocks: StudyPlanBlock[];
+  key: string; budgetMinutes: number; newCardIds: string[]; reviewCardIds: string[];
+  reviewCount: number; buffer: boolean; blocks: StudyPlanBlock[];
+  summaries: Array<{ examId: string; deckId: string }>;
 }
-export interface ExamReadiness { coverage: number; consolidated: number; security: number | null; achievement: number }
+export interface ExamReadiness { coverage: number; consolidated: number }
 export interface ExamForecastSummary {
-  examId: string; usableDays: number; totalCards: number;
-  remainingNewCount: number; unscheduledNewCount: number; overdueReviewCount: number;
-  requiredMinutes: number; availableMinutes: number; allocatedMinutes: number;
-  current: ExamReadiness; predicted: ExamReadiness; feasible: boolean; issues: string[];
-  decks: Array<{ deckId: string; name: string; total: number; known: number; security: number | null }>;
+  examId: string; usableDays: number; totalCards: number; remainingNewCount: number;
+  unscheduledNewCount: number; availableMinutes: number; current: ExamReadiness; issues: string[];
+  decks: Array<{ deckId: string; name: string; total: number; known: number }>;
+  /** Internal diagnostics after topic rounding; never shown as future task counts. */
+  projectedContacts?: number[];
+  expectedRecall?: number;
 }
-export interface ExamPortfolioForecast {
-  days: ExamPlanDay[]; exams: ExamForecastSummary[]; uncertainty: "high" | "medium"; timing: ExamTiming;
-}
+export interface ExamPortfolioForecast { days: ExamPlanDay[]; exams: ExamForecastSummary[] }
 export interface ExamForecastOptions {
   now: string; preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "easyDays">; timeZone: string;
-  capacity: StudyTimeCapacity; history: ExamHistory; signal?: AbortSignal;
-  /** Plan only today: a session start needs no later days and no workload estimate. */
-  todayOnly?: boolean;
+  capacity: StudyTimeCapacity; history: ExamHistory; signal?: AbortSignal; dailyTasks?: readonly ExamDailyTask[];
 }
-interface Entry {
-  card: CardStudySnapshot; deck: Deck; owners: ExamPlan[]; state: ReviewState; due: number; answers: number;
-  chapter: number; createdAt: string;
-}
-
-
-class ReviewHeap {
-  private values: Entry[] = [];
-  private compare: (a: Entry, b: Entry) => number;
-  constructor(compare: (a: Entry, b: Entry) => number) { this.compare = compare; }
-  peek() { return this.values[0]; }
-  push(value: Entry) {
-    let index = this.values.push(value) - 1;
-    while (index > 0) { const parent = (index - 1) >> 1; if (this.compare(this.values[parent], value) <= 0) break; this.values[index] = this.values[parent]; index = parent; }
-    this.values[index] = value;
-  }
-  pop() {
-    const first = this.values[0], last = this.values.pop();
-    if (!last || !this.values.length) return first;
-    let index = 0;
-    while (index * 2 + 1 < this.values.length) {
-      let child = index * 2 + 1;
-      if (child + 1 < this.values.length && this.compare(this.values[child + 1], this.values[child]) < 0) child++;
-      if (this.compare(this.values[child], last) >= 0) break;
-      this.values[index] = this.values[child]; index = child;
-    }
-    this.values[index] = last; return first;
-  }
-  countBefore(end: number) { return this.values.reduce((sum, item) => sum + Number(item.due < end), 0); }
-}
-
 export function shiftExamDay(key: string, days: number) { const date = new Date(`${key}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); }
 export function examDayDistance(from: string, to: string) { return Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000); }
-
-/** Deck tree order (ADR-016), the chapter order in which new cards are introduced. */
-function examDeckOrder(decks: readonly Deck[]): Map<string, number> {
-  const children = buildSortedDeckChildren(decks.filter((deck) => !deck.deletedAt));
-  const order = new Map<string, number>();
-  const visit = (parentId: string | null) => { for (const deck of children.get(parentId) ?? []) { order.set(deck.id, order.size); visit(deck.id); } };
+export function getExamLastNewDate(exam: ExamPlan) { return shiftExamDay(exam.examDate, -Math.max(1, exam.bufferDays)); }
+export function getExamTopicOrder(decks: readonly Deck[], exam: ExamPlan): string[] {
+  const children = buildSortedDeckChildren(decks.filter((deck) => !deck.deletedAt)), order: string[] = [];
+  const visit = (parent: string | null) => { for (const deck of children.get(parent) ?? []) { if (exam.deckIds.includes(deck.id)) order.push(deck.id); visit(deck.id); } };
   visit(null);
-  return order;
+  return [...(exam.topicOrder ?? []).filter((id) => order.includes(id)), ...order.filter((id) => !exam.topicOrder?.includes(id))];
 }
-
 function isNew(state: Pick<ReviewState, "state" | "reps">) { return state.state === "new" && state.reps === 0; }
-
-/** Deck settings while studying for exams: limits lifted, desired retention of the strictest exam (ADR-042). */
-function getExamStudySettings(settings: DeckSettings, desiredRetention: number, variants: boolean): DeckSettings {
-  return {
-    ...settings,
-    ...markLearningSettingsCustom({
-      ...settings,
-      newCardsPerDay: EXAM_MODEL.maxNewPerDay, maximumReviewsPerDay: EXAM_MODEL.maxReviewsPerDay, newReviewOrder: "reviews-first",
-      schedulerProfile: { ...settings.schedulerProfile, presetId: "custom", desiredRetention },
-    }),
-    coreMode: variants ? settings.coreMode : "off",
-    learningProfileSource: null,
-    newCardsTodayOverride: null,
-  };
+function snapshotState(card: CardStudySnapshot) { return createReviewState({ ...card.study, maturityXp: card.maturityXp }); }
+function readiness(cards: readonly CardStudySnapshot[]): ExamReadiness {
+  return { coverage: cards.length ? cards.filter((card) => !isNew(card.study)).length / cards.length : 0,
+    consolidated: cards.length ? cards.filter((card) => card.study.state === "review" && card.study.lastRating !== "again" && card.maturityXp >= 81).length / cards.length : 0 };
 }
-
-function itemMethod(state: ReviewState, card: CardStudySnapshot, settings: DeckSettings): ExamStudyMethod {
-  if (isNew(state)) return "new";
-  if (settings.coreMode === "on" && card.activeVariantCount > 0 && (state.maturityXp ?? 0) >= settings.variantThresholdXp) return "variant";
-  return state.state === "learning" || state.state === "relearning" ? "relearning" : "review";
+export function getExamCurrentProgress(cards: readonly CardStudySnapshot[], plan: ExamPlan) {
+  const own = cards.filter((card) => card.status === "active" && plan.deckIds.includes(card.deckId));
+  return { ...readiness(own), totalCards: own.length };
 }
-
-/**
- * Answer times and rating mix from the server's daily rollups. The rollup keeps durations per category but only the total
- * number of timed answers, so each day's timed share is applied to its categories.
- */
-export function estimateExamHistory(statistics: AccountStatisticsSnapshot | null, todayKey: string): ExamHistory {
-  const sums = { learning: [0, 0], relearning: [0, 0], review: [0, 0] };
-  let total = 0, successful = 0;
-  for (const day of Object.values(statistics?.reviewsByDay ?? {})) {
-    total += day.total; successful += day.successful;
-    const timedShare = day.total ? Math.min(1, day.timedCount / day.total) : 0;
-    sums.learning[0] += day.durationLearningMs; sums.learning[1] += day.learning * timedShare;
-    sums.relearning[0] += day.durationRelearningMs; sums.relearning[1] += day.relearning * timedShare;
-    sums.review[0] += day.durationYoungMs + day.durationMatureMs; sums.review[1] += (day.young + day.mature) * timedShare;
-  }
-  const estimate = (method: ExamStudyMethod, [duration, count]: number[]) => count >= EXAM_MODEL.minimumTimeSamples
-    ? { seconds: Math.max(5, Math.min(120, Math.round(duration / count / 1000))), samples: Math.round(count) }
-    : { seconds: EXAM_MODEL.defaultSeconds[method], samples: Math.round(count) };
-  const review = estimate("review", sums.review);
-  return {
-    timing: { new: estimate("new", sums.learning), relearning: estimate("relearning", sums.relearning), review, variant: review.samples >= EXAM_MODEL.minimumTimeSamples ? review : { seconds: EXAM_MODEL.defaultSeconds.variant, samples: review.samples } },
-    againShare: total ? Math.max(0, Math.min(1, 1 - successful / total)) : 0,
-    ratingSamples: total,
-    spentTodayMinutes: (statistics?.reviewsByDay[todayKey]?.durationMs ?? 0) / 60_000,
-  };
-}
-
 export function getExamDayCapacity(key: string, capacity: StudyTimeCapacity) {
-  const blocks = capacity.timeBlocks?.filter((block) => block.date === key);
-  if (blocks?.length) return blocks.reduce((sum, block) => sum + block.end - block.start, 0);
   const override = capacity.dateOverrides.find((day) => day.date === key);
   if (override) return override.minutes;
   const weekday = (new Date(`${key}T12:00:00Z`).getUTCDay() + 6) % 7;
-  return capacity.weekdays[weekday] ? Math.max(capacity.minimumMinutes, capacity.weeklyMinutes?.[weekday] ?? (weekday < 5 ? capacity.weekdayMinutes : capacity.weekendMinutes)) : 0;
+  return capacity.weekdays[weekday] ? capacity.weeklyMinutes?.[weekday] ?? (weekday < 5 ? capacity.weekdayMinutes : capacity.weekendMinutes) : 0;
+}
+function baseMinutes(key: string, exam: ExamPlan, capacity: StudyTimeCapacity) {
+  const weekday = (new Date(`${key}T12:00:00Z`).getUTCDay() + 6) % 7, time = exam.studyTime;
+  return time?.dateOverrides.find((day) => day.date === key)?.minutes ?? capacity.dateOverrides.find((day) => day.date === key)?.minutes
+    ?? (time ? time.weekdays[weekday] ? time.weeklyMinutes?.[weekday] ?? time.dailyMinutes : 0 : getExamDayCapacity(key, capacity));
+}
+/** Concrete blocks replace only the corresponding exam/date, never the rest of the horizon. */
+export function getExamStudyMinutes(key: string, exam: ExamPlan, exams: readonly ExamPlan[], capacity: StudyTimeCapacity): number {
+  if (key >= exam.examDate || exams.some((entry) => entry.status === "active" && entry.examDate === key)) return 0;
+  const blocks = (capacity.timeBlocks ?? []).filter((block) => block.date === key);
+  const own = blocks.filter((block) => block.examId === exam.id && block.kind !== "quiz");
+  const shared = blocks.filter((block) => block.examId === null).reduce((sum, block) => sum + block.end - block.start, 0), baseline = baseMinutes(key, exam, capacity);
+  const total = exams.filter((entry) => entry.status === "active" && key < entry.examDate).reduce((sum, entry) => sum + baseMinutes(key, entry, capacity), 0);
+  const share = total > 0 ? shared * baseline / total : 0;
+  if (own.length || share > 0) return own.reduce((sum, block) => sum + block.end - block.start, 0) + share;
+  const quiz = blocks.filter((block) => block.examId === exam.id && block.kind === "quiz").reduce((sum, block) => sum + block.end - block.start, 0);
+  return Math.max(0, baseline - quiz);
+}
+export function getExamPlanningKey(exam: ExamPlan, capacity: StudyTimeCapacity) {
+  return stableContentHash([exam.deckIds, exam.examDate, exam.bufferDays, exam.studyTime, exam.topicOrder, exam.topicDates, exam.desiredRetention, exam.variants, exam.readSummaryBeforeTopics, capacity.dateOverrides, capacity.timeBlocks], "exam-plan");
+}
+function getExamStudySettings(settings: DeckSettings, desiredRetention: number, variants: boolean): DeckSettings {
+  return { ...settings, ...markLearningSettingsCustom({ ...settings, newCardsPerDay: 500, maximumReviewsPerDay: 2000, newReviewOrder: "reviews-first", newCardSortOrder: "oldest-first", buryNewSiblings: false,
+    schedulerProfile: { ...settings.schedulerProfile, presetId: "custom", desiredRetention } }), coreMode: variants ? settings.coreMode : "off", learningProfileSource: null, newCardsTodayOverride: null };
+}
+function methodFor(card: CardStudySnapshot, settings: DeckSettings): ExamStudyMethod {
+  if (isNew(card.study)) return "new";
+  if (settings.coreMode === "on" && card.activeVariantCount > 0 && card.maturityXp >= settings.variantThresholdXp) return "variant";
+  return card.study.state === "learning" || card.study.state === "relearning" ? "relearning" : "review";
 }
 
-function priority(plan: ExamPlan) { return plan.priority === "high" ? 2 : plan.priority === "normal" ? 1 : 0; }
-function deadline(entry: Entry) { return entry.owners.map((exam) => exam.examDate).sort()[0]; }
-/** Order of new cards: exam priority, nearest exam, chapter order, then the creation order the study session also uses. */
-function compareNew(a: Entry, b: Entry) {
-  return Math.max(...b.owners.map(priority)) - Math.max(...a.owners.map(priority))
-    || deadline(a).localeCompare(deadline(b)) || a.chapter - b.chapter
-    || a.createdAt.localeCompare(b.createdAt) || a.card.cardId.localeCompare(b.card.cardId);
-}
-
-function readiness(entries: ReadonlyArray<{ state: ReviewState }>, plan: ExamPlan, at: string): ExamReadiness {
-  const known = entries.filter((entry) => !isNew(entry.state));
-  const coverage = entries.length ? known.length / entries.length : 0;
-  const consolidated = entries.length ? known.filter(({ state }) => state.state === "review" && state.lastRating !== "again" && ["mature", "variant_ready", "mastered"].includes(state.maturityBand)).length / entries.length : 0;
-  const security = known.length ? known.reduce((sum, entry) => sum + calculateRetrievability(entry.state, at), 0) / known.length : null;
-  return { coverage, consolidated, security, achievement: coverage * Math.min(1, (security ?? 0) / plan.desiredRetention) };
-}
-
-function snapshotState(card: CardStudySnapshot): ReviewState {
-  return createReviewState({ ...card.study, maturityXp: card.maturityXp });
-}
-
-/** Readiness from the current study states only, for paused, completed or past exams. */
-export function getExamCurrentProgress(cards: readonly CardStudySnapshot[], plan: ExamPlan, now: string, timeZone: string) {
-  const selected = new Set(plan.deckIds);
-  const entries = cards.filter((card) => card.status === "active" && selected.has(card.deckId)).map((card) => ({ state: snapshotState(card) }));
-  const future = plan.examDate > getLearningDayKey(now, { timeZone })!;
-  const at = future ? getLearningDayStartForKey(plan.examDate, { timeZone })!.toISOString() : now;
-  return { ...readiness(entries, plan, at), totalCards: entries.length, atExam: future };
-}
-
-/**
- * Deterministic day-by-day simulation of all active exams with the real scheduler (ADR-042). It changes no study state:
- * reviews due first, new cards fill the rest of the shared budget, buffer days take no new cards.
- */
+/** Whole-horizon contact planning, including for today's start. Study states remain hypothetical. */
 export async function createExamPortfolioForecast(decks: readonly Deck[], cards: readonly CardStudySnapshot[], exams: readonly ExamPlan[], options: ExamForecastOptions): Promise<ExamPortfolioForecast> {
-  const { now, preferences, timeZone, signal, capacity, history, todayOnly = false } = options, context = { dayStartHour: preferences.dayStartHour, timeZone };
-  const pause = createMainThreadBudget();
-  const today = getLearningDayKey(now, context)!, civilToday = getLearningDayKey(now, { timeZone })!;
-  // The civil start of an exam day is a search over local time; each workload estimate needs it, so it is computed once per date.
-  const examStartByDate = new Map<string, number>();
-  const examStart = (date: string) => {
-    let start = examStartByDate.get(date);
-    if (start === undefined) { start = getLearningDayStartForKey(date, { timeZone })!.getTime(); examStartByDate.set(date, start); }
-    return start;
-  };
+  const { now, preferences, timeZone, signal, capacity, history } = options, context = { dayStartHour: preferences.dayStartHour, timeZone };
+  const pause = createMainThreadBudget(), today = getLearningDayKey(now, context)!, civilToday = getLearningDayKey(now, { timeZone })!;
   const active = exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday && examDayDistance(civilToday, exam.examDate) <= 365);
-  const { timing } = history;
-  const hasRatings = history.ratingSamples >= EXAM_MODEL.minimumTimeSamples;
-  const failureSlots = hasRatings ? Math.round(history.againShare * EXAM_MODEL.ratingPeriod) : 0;
-  const ratingAt = (answer: number): ReviewRating => (answer * EXAM_MODEL.ratingSequenceStep + EXAM_MODEL.initialRatingSlot) % EXAM_MODEL.ratingPeriod < failureSlots ? "again" : "good";
-  const deckById = new Map(decks.filter((deck) => !deck.deletedAt).map((deck) => [deck.id, deck]));
-  const chapters = examDeckOrder(decks);
-  const cardsByDeck = new Map<string, CardStudySnapshot[]>();
-  for (const card of cards) if (card.status === "active") cardsByDeck.set(card.deckId, [...(cardsByDeck.get(card.deckId) ?? []), card]);
-  const entriesById = new Map<string, Entry>();
-  const summaries = new Map<string, ExamForecastSummary>();
-  const allByExam = new Map<string, Entry[]>();
+  const last = active.map((exam) => exam.examDate).sort().at(-1);
+  if (!last) return { days: [], exams: [] };
+  const keys = Array.from({ length: examDayDistance(today, last) }, (_, i) => shiftExamDay(today, i));
+  const days: ExamPlanDay[] = keys.map((key) => ({ key, budgetMinutes: active.reduce((sum, exam) => sum + getExamStudyMinutes(key, exam, active, capacity), 0), newCardIds: [], reviewCardIds: [], reviewCount: 0, buffer: active.some((exam) => key > getExamLastNewDate(exam) && key < exam.examDate), blocks: [], summaries: [] }));
+  const recorded = new Map(days.map((day) => [day, {
+    blocks: new Map<string, StudyPlanBlock>(), newCards: new Set<string>(), reviews: new Set<string>(),
+  }]));
+  const deckById = new Map(decks.filter((deck) => !deck.deletedAt).map((deck) => [deck.id, deck])), cardsByDeck = new Map<string, CardStudySnapshot[]>();
+  for (const card of cards) if (card.status === "active" && deckById.has(card.deckId)) { const own = cardsByDeck.get(card.deckId) ?? []; own.push(card); cardsByDeck.set(card.deckId, own); }
+  for (const own of cardsByDeck.values()) own.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.cardId.localeCompare(b.cardId));
+  const ratingTotal = Object.values(history.ratings).reduce((sum, value) => sum + (value ?? 0), 0);
+  const ratingAt = (answer: number): ReviewRating => {
+    if (ratingTotal < 10) return "good";
+    const slot = ((answer * 7 + 19) % 101) / 101 * ratingTotal; let threshold = 0;
+    for (const rating of ["again", "hard", "good", "easy"] as const) { threshold += history.ratings[rating] ?? 0; if (slot < threshold) return rating; }
+    return "good";
+  };
   let operations = 0;
+  const summaries: ExamForecastSummary[] = [];
   for (const exam of active) {
     signal?.throwIfAborted(); await pause();
-    const selected = exam.deckIds.flatMap((id) => deckById.get(id) ?? []);
-    const all: Entry[] = [];
-    for (const deck of selected) {
-      for (const card of cardsByDeck.get(deck.id) ?? []) {
-        if (++operations % 1024 === 0) { signal?.throwIfAborted(); await pause(); }
-        let entry = entriesById.get(card.cardId);
-        if (!entry) {
-          const state = snapshotState(card);
-          entry = { card, deck, owners: [], state, due: Date.parse(state.dueAt), answers: 0, chapter: chapters.get(deck.id) ?? Number.MAX_SAFE_INTEGER, createdAt: card.createdAt };
-          entriesById.set(card.cardId, entry);
-        }
-        entry.owners.push(exam);
-        all.push(entry);
-      }
-    }
-    allByExam.set(exam.id, all);
-    const examTime = new Date(examStart(exam.examDate)).toISOString();
-    const missing = exam.deckIds.length > selected.length;
-    summaries.set(exam.id, {
-      examId: exam.id, usableDays: 0, totalCards: all.length,
-      remainingNewCount: all.filter((entry) => isNew(entry.state)).length, unscheduledNewCount: 0, overdueReviewCount: 0,
-      requiredMinutes: 0, availableMinutes: 0, allocatedMinutes: 0,
-      current: readiness(all, exam, examTime), predicted: readiness(all, exam, examTime), feasible: false,
-      issues: [...(missing ? ["Ausgewählte Stapel wurden gelöscht."] : []), ...(!all.length ? ["Keine lernbaren Karten ausgewählt."] : [])],
-      decks: selected.map((deck) => {
-        const own = all.filter((entry) => entry.deck.id === deck.id), state = readiness(own, exam, examTime);
-        return { deckId: deck.id, name: deck.name, total: own.length, known: own.filter((entry) => !isNew(entry.state)).length, security: state.security };
-      }),
+    const length = examDayDistance(today, exam.examDate), ownDays = days.slice(0, length), ownKeys = keys.slice(0, length);
+    const minutes = ownKeys.map((key) => getExamStudyMinutes(key, exam, active, capacity));
+    const order = getExamTopicOrder(decks, exam), own = order.flatMap((id) => cardsByDeck.get(id) ?? []), allFresh = own.filter((card) => isNew(card.study));
+    const cutoff = getExamLastNewDate(exam), introductionEnd = getLearningDayStartForKey(shiftExamDay(cutoff, 1), { timeZone })!.getTime();
+    const frozen = options.dailyTasks?.filter((task) => civilToday <= cutoff && task.date === today && task.examId === exam.id && task.kind === "study" && (!task.planningKey || task.planningKey === getExamPlanningKey(exam, capacity))) ?? [];
+    const frozenIds = new Set(frozen.flatMap((task) => task.cardIds)), fixedFresh = allFresh.filter((card) => frozenIds.has(card.cardId)), fresh = allFresh.filter((card) => !frozenIds.has(card.cardId));
+    let eligible = ownKeys.flatMap((key, i) => key <= cutoff && minutes[i] > 0 ? [i] : []);
+    const settingsByDeck = new Map(order.map((id) => [id, getExamSessionDeckSettings(deckById.get(id)!, active, today)]));
+    const dayStarts = ownKeys.map((key) => getLearningDayStartForKey(key, context)!.getTime());
+    const examStart = getLearningDayStartForKey(exam.examDate, { timeZone })!.getTime();
+    const ends = ownKeys.map((key) => Math.min(getLearningDayStartForKey(shiftExamDay(key, 1), context)!.getTime(), examStart));
+    const windows = ownKeys.map((key, i) => {
+      if (minutes[i] <= 0) return [];
+      const clock = (minute: number) => minute === 1440 ? getLearningDayStartForKey(shiftExamDay(key, 1), { timeZone })!.getTime() : getLearningDayStartForKey(key, { timeZone, dayStartHour: Math.floor(minute / 60) })!.getTime() + minute % 60 * 60000;
+      const blocks = (capacity.timeBlocks ?? []).filter((block) => block.date === key && block.kind !== "quiz" && (block.examId === exam.id || (block.examId === null && baseMinutes(key, exam, capacity) > 0)));
+      return blocks.length ? blocks.map((block) => [Math.max(dayStarts[i], clock(block.start)), Math.min(ends[i], clock(block.end))]).sort((a, b) => a[0] - b[0]) : [[Math.min(ends[i] - 1, dayStarts[i] + 8 * 3600000), ends[i]]];
     });
-  }
-  const entries = [...entriesById.values()];
-  const lastExam = active.map((exam) => exam.examDate).sort().at(-1);
-  if (!lastExam) return { days: [], exams: [], uncertainty: "high", timing };
-  const keys = Array.from({ length: examDayDistance(today, lastExam) }, (_, i) => shiftExamDay(today, i));
-  const examDates = new Set(exams.filter((exam) => exam.status === "active").map((exam) => exam.examDate));
-  const bufferByExam = new Map(active.map((exam) => [exam.id, new Set(exam.bufferDays ? keys.filter((key) => key < exam.examDate && !examDates.has(key) && getExamDayCapacity(key, capacity) > 0).slice(-exam.bufferDays) : [])]));
-  const currentOwners = (entry: Entry, key: string) => entry.owners.filter((exam) => key < exam.examDate);
-  const settingFor = (entry: Entry, key: string) => {
-    const owners = currentOwners(entry, key);
-    return getExamStudySettings(entry.deck.deckSettings, Math.max(...owners.map((exam) => exam.desiredRetention)), owners.some((exam) => exam.variants));
-  };
-  const heap = new ReviewHeap((a, b) => a.due - b.due || Number(b.state.lastRating === "again") - Number(a.state.lastRating === "again")
-    || calculateRetrievability(a.state, now) - calculateRetrievability(b.state, now) || b.state.difficulty - a.state.difficulty || compareNew(a, b));
-  const dueCountsByDay = new Map<string, number>();
-  const trackDue = (due: number, amount: number) => { const key = getLearningDayKey(due, context); if (key) dueCountsByDay.set(key, Math.max(0, (dueCountsByDay.get(key) ?? 0) + amount)); };
-  const enqueue = (entry: Entry) => { heap.push(entry); trackDue(entry.due, 1); };
-  const fresh = entries.filter((entry) => isNew(entry.state)).sort(compareNew);
-  for (const entry of entries) if (!isNew(entry.state)) enqueue(entry);
-  const days: ExamPlanDay[] = [];
-  const nextState = (entry: Pick<Entry, "state" | "answers" | "card">, at: number, settings: DeckSettings) => scheduleWithFsrs(entry.state, ratingAt(entry.answers++), {
-    now: new Date(at).toISOString(), ...context, deckSettings: settings,
-    isVariant: itemMethod(entry.state, entry.card, settings) === "variant",
-    easyDaysContext: { ...context, easyDays: preferences.easyDays, dueCountsByDay },
-  });
-  for (const key of todayOnly ? keys.slice(0, 1) : keys) {
-    signal?.throwIfAborted();
-    const boundary = getLearningDayStartForKey(key, context)!.getTime(), nextBoundary = getLearningDayStartForKey(shiftExamDay(key, 1), context)!.getTime();
-    const civilExamStart = examDates.has(shiftExamDay(key, 1)) ? examStart(shiftExamDay(key, 1)) : nextBoundary;
-    const end = Math.min(nextBoundary, civilExamStart);
-    const at = key === today ? Math.max(Date.parse(now), boundary) : boundary + 8 * 3_600_000 < end ? boundary + 8 * 3_600_000 : boundary;
-    const budget = examDates.has(key) || at >= end ? 0 : getExamDayCapacity(key, capacity);
-    const spent = key === today ? history.spentTodayMinutes : 0;
-    const reserve = budget * capacity.reserveFraction;
-    let remaining = Math.max(0, Math.min((budget - reserve - spent) * 60, (end - at) / 1000));
-    const reservations = (capacity.timeBlocks ?? []).filter((block) => block.date === key);
-    const reserved = new Map<string | null, number>();
-    for (const block of reservations) {
-      const seconds = (block.end - block.start) * 60 * (1 - capacity.reserveFraction);
-      if (block.kind === "quiz") remaining = Math.max(0, remaining - seconds);
-      else reserved.set(block.examId, (reserved.get(block.examId) ?? 0) + seconds);
-    }
-    const permitted = (entry: Entry) => reservations.length ? currentOwners(entry, key).reduce((sum, exam) => sum + (reserved.get(exam.id) ?? 0), reserved.get(null) ?? 0) : remaining;
-    const consume = (entry: Entry, seconds: number) => {
-      let rest = seconds;
-      for (const exam of currentOwners(entry, key)) { const take = Math.min(rest, reserved.get(exam.id) ?? 0); reserved.set(exam.id, (reserved.get(exam.id) ?? 0) - take); rest -= take; }
-      if (rest > 0 && reservations.length) reserved.set(null, Math.max(0, (reserved.get(null) ?? 0) - rest));
+    eligible = eligible.filter((i) => windows[i].some(([begin, end]) => Math.max(begin, i === 0 ? Date.parse(now) : begin) < Math.min(end, introductionEnd)));
+    if (frozen.length && eligible.some((i) => i > 0)) eligible = eligible.filter((i) => i > 0);
+    const nextContact = (due: number, start: number) => {
+      for (let i = start; i < length; i++) for (const [begin, end] of windows[i]) { const at = Math.max(due, begin, i === 0 ? Date.parse(now) : begin); if (at < end) return { day: i, at }; }
+      return null;
     };
-    const availableMinutes = remaining / 60;
-    const blocks = new Map<string, StudyPlanBlock>();
-    const newIds: string[] = [], reviewIds = new Set<string>();
-    const deferredTopics = new Set<string>();
-    let newSeconds = 0, repeatedSeconds = 0, reviewCount = 0;
-    const record = (entry: Entry, method: ExamStudyMethod, seconds: number) => {
-      consume(entry, seconds);
-      const owners = currentOwners(entry, key).map((exam) => exam.id).sort(), group = `${method}:${owners.join(",")}:${entry.deck.id}`;
-      let block = blocks.get(group);
-      if (!block) { block = { id: `${key}:${group}`, date: key, examIds: owners, deckId: entry.deck.id, method, plannedMinutes: 0, expectedItems: 0, priority: method === "new" ? 3 : method === "relearning" ? 0 : 1, cardIds: [] }; blocks.set(group, block); }
-      block.plannedMinutes += seconds / 60; block.expectedItems++; if (!block.cardIds.includes(entry.card.cardId)) block.cardIds.push(entry.card.cardId);
-      if (method === "new") { newSeconds += seconds; newIds.push(entry.card.cardId); } else { repeatedSeconds += seconds; reviewCount++; reviewIds.add(entry.card.cardId); }
-      // Shared work is attributed fractionally, never booked twice as capacity.
-      for (const id of owners) summaries.get(id)!.allocatedMinutes += seconds / 60 / owners.length;
+    const dueCountsByDay = new Map<string, number>();
+    for (const card of own.filter((entry) => !isNew(entry.study))) {
+      const key = getLearningDayKey(card.study.dueAt, context);
+      if (key) dueCountsByDay.set(key, (dueCountsByDay.get(key) ?? 0) + 1);
+    }
+    const simulate = async (initial: ReviewState, settings: DeckSettings, start: number): Promise<ContactColumn> => {
+      const contacts = new Float64Array(length); let state = initial, after = start, due = Math.max(Date.parse(initial.dueAt), dayStarts[start]), answer = 0;
+      while (true) {
+        if (++operations % 128 === 0) { signal?.throwIfAborted(); await pause(); }
+        const next = nextContact(due, after); if (!next) break;
+        contacts[next.day]++; state = scheduleWithFsrs(state, ratingAt(answer++), { now: new Date(next.at).toISOString(), ...context, deckSettings: settings, easyDaysContext: { ...context, easyDays: preferences.easyDays, dueCountsByDay } });
+        after = next.day; due = Math.max(next.at + 1000, Date.parse(state.dueAt));
+      }
+      return { contacts, recall: calculateRetrievability(state, new Date(examStart).toISOString()) };
     };
-    while (remaining >= 5) {
-      if (++operations % 256 === 0) { signal?.throwIfAborted(); await pause(); }
-      const held: Entry[] = [];
-      let review = heap.peek();
-      while (review && review.due < end && (!currentOwners(review, key).length || permitted(review) < timing[itemMethod(review.state, review.card, settingFor(review, key))].seconds)) {
-        const deferred = heap.pop()!;
-        if (currentOwners(deferred, key).length) held.push(deferred); else trackDue(deferred.due, -1);
-        review = heap.peek();
-      }
-      if (review && review.due < end) heap.pop();
-      for (const entry of held) heap.push(entry);
-      if (review && review.due < end) {
-        if (reviewCount >= EXAM_MODEL.maxReviewsPerDay) { heap.push(review); break; }
-        const entry = review; trackDue(entry.due, -1);
-        if (!currentOwners(entry, key).length || entry.answers >= EXAM_MODEL.maxProjectedAnswers) continue;
-        const settings = settingFor(entry, key), method = itemMethod(entry.state, entry.card, settings), seconds = timing[method].seconds;
-        if (seconds > remaining) { enqueue(entry); break; }
-        const state = nextState(entry, Math.max(at, entry.due), settings);
-        record(entry, method, seconds); remaining -= seconds; entry.state = state; entry.due = Date.parse(state.dueAt); enqueue(entry); continue;
-      }
-      if (newIds.length >= EXAM_MODEL.maxNewPerDay) break;
-      const index = fresh.findIndex((entry) => {
-        const owners = currentOwners(entry, key);
-        return !deferredTopics.has(entry.deck.id) && entry.due < end && owners.length > 0 && permitted(entry) >= timing.new.seconds && owners.every((exam) => !bufferByExam.get(exam.id)!.has(key))
-          && owners.some((exam) => (exam.topicDates?.find((topic) => topic.deckId === entry.deck.id)?.date ?? key) <= key);
-      });
-      if (index < 0) break;
-      const entry = fresh[index], settings = settingFor(entry, key);
-      // A new card includes its first learning steps of the day; their state stays hypothetical.
-      const simulation = { ...entry };
-      let time = Math.max(at, entry.due);
-      simulation.state = nextState(simulation, time, settings);
-      const steps: ExamStudyMethod[] = [];
-      while (simulation.state.state !== "review" && Date.parse(simulation.state.dueAt) < end && steps.length < 12) {
-        steps.push(itemMethod(simulation.state, simulation.card, settings));
-        time = Math.max(time + 1000, Date.parse(simulation.state.dueAt)); simulation.state = nextState(simulation, time, settings);
-      }
-      const cost = timing.new.seconds + steps.reduce((sum, method) => sum + timing[method].seconds, 0);
-      // Finish a topic before opening another. The first card's actual learning steps estimate its remaining topic.
-      if (newIds.length && !newIds.some((id) => entriesById.get(id)?.deck.id === entry.deck.id)
-        && fresh.filter((candidate) => candidate.deck.id === entry.deck.id).length * cost > Math.min(remaining, permitted(entry))) { deferredTopics.add(entry.deck.id); continue; }
-      if (cost > Math.min(remaining, permitted(entry))) { deferredTopics.add(entry.deck.id); continue; }
-      record(entry, "new", timing.new.seconds);
-      for (const method of steps) record(entry, method, timing[method].seconds);
-      remaining -= cost; Object.assign(entry, { state: simulation.state, due: Date.parse(simulation.state.dueAt), answers: simulation.answers }); enqueue(entry); fresh.splice(index, 1);
+    const baseline = new Float64Array(length), knownGroups = new Map<string, { card: CardStudySnapshot; count: number }>();
+    for (const card of own.filter((entry) => !isNew(entry.study))) {
+      const signature = JSON.stringify([card.study, settingsByDeck.get(card.deckId)]), group = knownGroups.get(signature);
+      if (group) group.count++; else knownGroups.set(signature, { card, count: 1 });
+      if (Date.parse(card.study.dueAt) < ends[0]) record(ownDays[0], card, methodFor(card, settingsByDeck.get(card.deckId)!));
     }
-    const dayBlocks = [...blocks.values()].sort((a, b) => a.priority - b.priority || a.id.localeCompare(b.id));
-    days.push({ key, budgetMinutes: budget, spentMinutes: spent, newMinutes: newSeconds / 60, reviewMinutes: repeatedSeconds / 60,
-      newCardIds: newIds, reviewCardIds: [...reviewIds], reviewCount, backlogCount: heap.countBefore(end),
-      buffer: active.some((exam) => bufferByExam.get(exam.id)!.has(key)), blocks: dayBlocks });
-    for (const exam of active.filter((exam) => key < exam.examDate)) {
-      const summary = summaries.get(exam.id)!;
-      const share = reservations.length ? reservations.filter((block) => block.examId === exam.id || block.examId === null).reduce((sum, block) => sum + block.end - block.start, 0) / Math.max(1, budget) : 1;
-      const ownAvailable = availableMinutes * share;
-      if (ownAvailable > 0) summary.usableDays++;
-      summary.availableMinutes += ownAvailable;
-      if (shiftExamDay(key, 1) === exam.examDate) {
-        const examBegins = examStart(exam.examDate), all = allByExam.get(exam.id)!;
-        summary.unscheduledNewCount = all.filter((entry) => isNew(entry.state)).length;
-        summary.overdueReviewCount = all.filter((entry) => !isNew(entry.state) && entry.due < examBegins).length;
-        summary.predicted = readiness(all, exam, new Date(examBegins).toISOString());
-        summary.feasible = !summary.issues.length && summary.unscheduledNewCount === 0 && summary.overdueReviewCount === 0 && summary.predicted.security !== null && summary.predicted.security >= exam.desiredRetention;
+    let recallTotal = 0;
+    for (const { card, count } of knownGroups.values()) { const projection = await simulate(snapshotState(card), settingsByDeck.get(card.deckId)!, 0); projection.contacts.forEach((value, i) => { baseline[i] += value * count; }); recallTotal += projection.recall * count; }
+    const fixedGroups = new Map<string, { settings: DeckSettings; count: number }>();
+    for (const card of fixedFresh) {
+      record(ownDays[0], card, "new");
+      const settings = settingsByDeck.get(card.deckId)!, signature = JSON.stringify(settings.schedulerProfile), group = fixedGroups.get(signature);
+      if (group) group.count++; else fixedGroups.set(signature, { settings, count: 1 });
+    }
+    for (const { settings, count } of fixedGroups.values()) {
+      const projection = await simulate(createReviewState({ state: "new", reps: 0, dueAt: now }), settings, 0);
+      projection.contacts.forEach((value, i) => { baseline[i] += value * count; });
+      recallTotal += projection.recall * count;
+    }
+    const columnCache = new Map<string, ContactColumn>(), columns: ContactColumn[] = [], groups = new Map<string, { settings: DeckSettings; count: number }>();
+    for (const card of fresh) { const settings = settingsByDeck.get(card.deckId)!, key = JSON.stringify(settings.schedulerProfile), group = groups.get(key); if (group) group.count++; else groups.set(key, { settings, count: 1 }); }
+    for (const start of eligible) {
+      const mixed: ContactColumn = { contacts: new Float64Array(length), recall: 0 };
+      for (const [key, group] of groups) {
+        const cacheKey = `${start}:${key}`; let column = columnCache.get(cacheKey);
+        if (!column) { column = await simulate(createReviewState({ state: "new", reps: 0, dueAt: new Date(dayStarts[start]).toISOString() }), group.settings, start); columnCache.set(cacheKey, column); }
+        const share = group.count / fresh.length; column.contacts.forEach((value, i) => { mixed.contacts[i] += value * share; }); mixed.recall += column.recall * share;
+      }
+      columns.push(mixed);
+    }
+    const counts = await balanceExamContacts(columns, baseline, minutes, eligible, fresh.length, signal);
+    const minimumDates = new Map(exam.topicDates?.map((entry) => [entry.deckId, entry.date])); let cursor = 0;
+    for (let slot = 0; slot < eligible.length; slot++) {
+      const day = ownDays[eligible[slot]], remaining = fresh.length - cursor; if (!remaining) break;
+      let count = slot === eligible.length - 1 ? remaining : Math.min(remaining, counts[slot]);
+      if (count > 0 && slot < eligible.length - 1) {
+        const target = cursor + count, boundaries: number[] = [], halves: number[] = [];
+        for (let i = cursor; i < fresh.length;) { let end = i + 1; while (end < fresh.length && fresh[end].deckId === fresh[i].deckId) end++; boundaries.push(end); halves.push(i + Math.ceil((end - i) / 2)); i = end; }
+        const near = (values: number[]) => values.filter((end) => Math.abs(end - target) <= count * .25 && Math.abs(end - target) <= (fresh.length - target) * .25).sort((a, b) => Math.abs(a - target) - Math.abs(b - target) || a - b)[0];
+        const boundary = near(boundaries) ?? near(halves); if (boundary !== undefined) count = boundary - cursor;
+      }
+      let taken = 0;
+      while (taken < count && cursor < fresh.length) { const card = fresh[cursor]; if ((minimumDates.get(card.deckId) ?? day.key) > day.key) break; record(day, card, "new"); cursor++; taken++; }
+      if (slot + 1 < counts.length) {
+        const planned = counts.slice(slot + 1).reduce((sum, value) => sum + value, 0), rest = fresh.length - cursor;
+        if (planned !== rest) {
+          const weight = eligible.slice(slot + 1).reduce((sum, i) => sum + minutes[i], 0); let allocated = 0;
+          for (let next = slot + 1; next < counts.length; next++) { counts[next] = next === counts.length - 1 ? rest - allocated : Math.floor(rest * (planned ? counts[next] / planned : minutes[eligible[next]] / weight)); allocated += counts[next]; }
+        }
       }
     }
-    await pause();
-  }
-  // Unconstrained workload: the same scheduler and rating mix without capacity limits; shared answers count once.
-  for (let index = 0; index < (todayOnly ? 0 : entries.length); index++) {
-    if (index % 128 === 0) { signal?.throwIfAborted(); await pause(); }
-    const entry = entries[index], card = entry.card, state = snapshotState(card);
-    const estimate = { ...entry, state, due: Date.parse(state.dueAt), answers: 0 };
-    const end = examStart(entry.owners.map((exam) => exam.examDate).sort().at(-1)!);
-    while (estimate.due < end && estimate.answers < EXAM_MODEL.maxProjectedAnswers) {
-      const at = Math.max(Date.parse(now), estimate.due), key = getLearningDayKey(at, context)!;
-      const owners = currentOwners(estimate, key); if (!owners.length) break;
-      const settings = settingFor(estimate, key), method = itemMethod(estimate.state, card, settings);
-      for (const owner of owners) summaries.get(owner.id)!.requiredMinutes += timing[method].seconds / 60 / owners.length;
-      const next = nextState(estimate, at, settings); estimate.state = next; estimate.due = Math.max(at + 1000, Date.parse(next.dueAt));
+    for (const id of order) {
+      const first = ownDays.find((day) => day.blocks.some((block) => block.deckId === id && block.method === "new" && block.examIds.includes(exam.id)));
+      if (first && exam.readSummaryBeforeTopics && !own.some((card) => card.deckId === id && !isNew(card.study))) first.summaries.push({ examId: exam.id, deckId: id });
+    }
+    // Re-evaluate the concrete topic assignment, including all rounding and differing learning profiles.
+    const projectedContacts = Float64Array.from(baseline);
+    for (let start = 0; start < ownDays.length; start++) for (const block of ownDays[start].blocks.filter((entry) => entry.method === "new" && entry.examIds.includes(exam.id))) {
+      const count = block.cardIds.filter((id) => !frozenIds.has(id)).length;
+      if (!count) continue;
+      const settings = settingsByDeck.get(block.deckId)!, cacheKey = `${start}:${JSON.stringify(settings.schedulerProfile)}`;
+      const column = columnCache.get(cacheKey) ?? await simulate(createReviewState({ state: "new", reps: 0, dueAt: new Date(dayStarts[start]).toISOString() }), settings, start);
+      column.contacts.forEach((value, i) => { projectedContacts[i] += value * count; }); recallTotal += column.recall * count;
+    }
+    summaries.push({ examId: exam.id, usableDays: eligible.length + (fixedFresh.length && !eligible.includes(0) ? 1 : 0), totalCards: own.length, remainingNewCount: allFresh.length, unscheduledNewCount: fresh.length - cursor, availableMinutes: minutes.reduce((sum, value) => sum + value, 0), current: readiness(own), issues: [
+      ...(exam.deckIds.some((id) => !deckById.has(id)) ? ["Ausgewählte Stapel wurden gelöscht."] : []), ...(!own.length ? ["Keine lernbaren Karten ausgewählt."] : []),
+      ...(fresh.length && !eligible.length ? [cutoff < civilToday ? `${fresh.length} neue Karten sind nach dem Einführungsstichtag noch offen.` : "Wähle mindestens einen Lerntag vor dem Einführungsstichtag."] : []),
+      ...(cursor < fresh.length && eligible.length ? [`${fresh.length - cursor} neue Karten sind wegen ihrer gewünschten Themenstarttage noch offen.`] : []),
+    ], projectedContacts: Array.from(projectedContacts), expectedRecall: own.length ? recallTotal / own.length : 0, decks: order.map((id) => { const selected = cardsByDeck.get(id) ?? []; return { deckId: id, name: deckById.get(id)!.name, total: selected.length, known: selected.filter((card) => !isNew(card.study)).length }; }) });
+    function record(day: ExamPlanDay, card: CardStudySnapshot, method: ExamStudyMethod) {
+      const index = recorded.get(day)!, key = JSON.stringify([card.deckId, method, card.cardId]);
+      let block = index.blocks.get(key);
+      if (block) { if (!block.examIds.includes(exam.id)) block.examIds.push(exam.id); return; }
+      block = day.blocks.find((entry) => entry.deckId === card.deckId && entry.method === method && entry.examIds.length === 1 && entry.examIds[0] === exam.id);
+      if (!block) { block = { id: `${day.key}:${exam.id}:${method}:${card.deckId}`, date: day.key, examIds: [exam.id], deckId: card.deckId, method, expectedItems: 0, priority: method === "new" ? 3 : 0, cardIds: [] }; day.blocks.push(block); }
+      block.cardIds.push(card.cardId); block.expectedItems++;
+      index.blocks.set(key, block);
+      if (method === "new") { if (!index.newCards.has(card.cardId)) { index.newCards.add(card.cardId); day.newCardIds.push(card.cardId); } }
+      else if (!index.reviews.has(card.cardId)) { index.reviews.add(card.cardId); day.reviewCardIds.push(card.cardId); day.reviewCount++; }
     }
   }
-  for (const summary of summaries.values()) {
-    const exam = active.find((candidate) => candidate.id === summary.examId)!;
-    summary.requiredMinutes = Math.max(summary.requiredMinutes, summary.allocatedMinutes);
-    if (summary.unscheduledNewCount) summary.issues.push(`${summary.unscheduledNewCount} neue Karten passen nicht ins Zeitbudget.`);
-    if (summary.overdueReviewCount) summary.issues.push(`${summary.overdueReviewCount} Wiederholungen bleiben vor der Prüfung offen.`);
-    if (summary.predicted.security !== null && summary.predicted.security < exam.desiredRetention) summary.issues.push("Die Abrufsicherheit am Prüfungstag liegt unter dem Ziel.");
-    if (!summary.usableDays && (summary.requiredMinutes > 0 || !summary.feasible)) summary.issues.push("Vor dieser Prüfung ist keine Lernzeit frei.");
-  }
-  return { days, exams: [...summaries.values()],
-    uncertainty: Object.values(timing).some((estimate) => estimate.samples < EXAM_MODEL.minimumTimeSamples) ? "high" : "medium", timing };
+  return { days, exams: summaries };
 }
-
-/** Cards of today's unit or of one block; the session studies exactly these. */
 export function getExamSessionCardIds(day: ExamPlanDay, blockId: string | null = null): string[] {
-  if (blockId?.startsWith("topic:")) {
-    return [...new Set(day.blocks.flatMap((block) => block.examIds.some((examId) => blockId === examTopicId(examId, block.deckId)) ? block.cardIds : []))];
-  }
+  if (blockId?.startsWith("topic:")) return [...new Set(day.blocks.flatMap((block) => block.examIds.some((id) => blockId === examTopicId(id, block.deckId)) ? block.cardIds : []))];
   return [...new Set(day.blocks.filter((block) => !blockId || block.id === blockId).flatMap((block) => block.cardIds))];
 }
-
 function examTopicId(examId: string, deckId: string) { return `topic:${encodeURIComponent(examId)}:${encodeURIComponent(deckId)}`; }
-
-/** One task per topic: learning steps and repetitions share the same set of cards. */
 export function getExamTopicTasks(day: ExamPlanDay, examId: string): StudyPlanBlock[] {
   const tasks = new Map<string, StudyPlanBlock>();
   for (const block of day.blocks.filter((entry) => entry.examIds.includes(examId))) {
     const task = tasks.get(block.deckId);
-    if (task) { task.plannedMinutes += block.plannedMinutes; task.expectedItems += block.expectedItems; task.cardIds = [...new Set([...task.cardIds, ...block.cardIds])]; if (block.method === "new") task.method = "new"; }
+    if (task) { task.expectedItems += block.expectedItems; task.cardIds = [...new Set([...task.cardIds, ...block.cardIds])]; if (block.method === "new") task.method = "new"; }
     else tasks.set(block.deckId, { ...block, id: examTopicId(examId, block.deckId), cardIds: [...block.cardIds] });
   }
   return [...tasks.values()];
 }
-
-/** Ids of the decks the active exams study, for loading their study states. */
 export function getActiveExamDeckIds(decks: readonly Deck[], exams: readonly ExamPlan[], civilToday: string): string[] {
   const available = new Set(decks.filter((deck) => !deck.deletedAt).map((deck) => deck.id));
   return [...new Set(exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday).flatMap((exam) => exam.deckIds))].filter((id) => available.has(id));
 }
-
-/** Session decks for exactly the planned cards, each with the exam settings of its deck (ADR-042). */
 export function createExamSessionDecks(decks: readonly Deck[], cards: readonly Card[], exams: readonly ExamPlan[], todayKey: string): Deck[] {
   const root = createCoreDeck({ id: EXAM_SESSION_DECK_ID, name: "Heutige Einheit", createdAt: todayKey, updatedAt: todayKey });
   const session: Deck[] = [{ ...root, deckSettings: getExamStudySettings(root.deckSettings, root.deckSettings.schedulerProfile.desiredRetention, false) }];
-  for (const deck of decks) {
-    const own = cards.filter((card) => card.deckId === deck.id);
-    if (own.length) session.push({ ...deck, parentDeckId: EXAM_SESSION_DECK_ID, cards: own, reviewEvents: [], deckSettings: getExamSessionDeckSettings(deck, exams, todayKey) });
-  }
+  const selected = new Set(cards.map((card) => card.deckId));
+  const order = [...new Set(exams.filter((exam) => exam.status === "active" && exam.examDate > todayKey).slice().sort((a, b) => a.examDate.localeCompare(b.examDate)).flatMap((exam) => getExamTopicOrder(decks, exam)))].filter((id) => selected.has(id));
+  for (const id of order) { const deck = decks.find((entry) => entry.id === id); if (deck) session.push({ ...deck, parentDeckId: EXAM_SESSION_DECK_ID, cards: cards.filter((card) => card.deckId === id), reviewEvents: [], deckSettings: getExamSessionDeckSettings(deck, exams, todayKey) }); }
   return session;
 }
-
-/** Retention and variant switch for a deck while studying: the strictest active exam that still lies ahead. */
 export function getExamSessionDeckSettings(deck: Deck, exams: readonly ExamPlan[], todayKey: string): DeckSettings {
   const owners = exams.filter((exam) => exam.status === "active" && exam.examDate > todayKey && exam.deckIds.includes(deck.id));
-  if (!owners.length) return deck.deckSettings;
-  return getExamStudySettings(deck.deckSettings, Math.max(...owners.map((exam) => exam.desiredRetention)), owners.some((exam) => exam.variants));
+  return owners.length ? getExamStudySettings(deck.deckSettings, Math.max(...owners.map((exam) => exam.desiredRetention)), owners.some((exam) => exam.variants)) : deck.deckSettings;
 }

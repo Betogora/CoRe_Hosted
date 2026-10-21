@@ -5,6 +5,24 @@ import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from ".
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
 
+test("V1 teilt gemeinsame Zeit einmalig und erhält den bisherigen letzten Einführungstag", () => {
+  const legacy = { ...exam("a"), studyTime: undefined, bufferDays: 2, examDate: "2026-10-20" };
+  const capacity = { ...createStudyTimeCapacity(), weekdayMinutes: 120, weekendMinutes: 120, weekdays: Array(7).fill(true) };
+  const migrated = normalizeExamPlanningSettings({ version: 1, exams: [legacy, { ...legacy, id: "b" }], capacity });
+  assert.equal(migrated.version, 2); assert.equal(migrated.migratedFromSharedTime, true);
+  assert.equal(migrated.exams[0].studyTime?.dailyMinutes, 60);
+  assert.equal(migrated.exams[0].bufferDays, 3);
+  assert.deepEqual(normalizeExamPlanningSettings(migrated), migrated, "kein erneutes Teilen bei Profilnormalisierung");
+});
+
+test("Themenfolge, Tagesausnahmen und erledigte Leseaufgaben bleiben validiert", () => {
+  const original = exam("a"), settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...original, topicOrder: ["deck-a"], readSummaryBeforeTopics: true, completedSummaryDeckIds: ["deck-a"] });
+  assert.deepEqual(normalizeExamPlanningSettings(settings), settings);
+  assert.throws(() => upsertExamPlan(settings, { ...original, topicOrder: ["deck-a", "deck-a"] }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...original, completedSummaryDeckIds: ["missing"] }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...original, studyTime: { ...original.studyTime!, dateOverrides: [{ date: "2026-10-12", minutes: 20 }, { date: "2026-10-12", minutes: 40 }] } }), /ungültig/);
+});
+
 test("Prüfungspläne bleiben beim Ändern anderer Lernwerte im Profil erhalten", () => {
   const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
   const profile = withGlobalSchedulerPreferences({}, { examPlanning: settings });
@@ -29,7 +47,7 @@ test("ungültige Prüfungen fallen einzeln weg, gültige bleiben", () => {
   const settings = normalizeExamPlanningSettings(stored);
   assert.deepEqual(settings.exams.map((entry) => entry.id), ["a", "d"]);
   assert.deepEqual(settings.capacity, createStudyTimeCapacity(), "eine ungültige Lernzeit fällt auf die Standardwerte zurück");
-  assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 1, exams: [], capacity: createStudyTimeCapacity() });
+  assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 2, exams: [], capacity: createStudyTimeCapacity() });
 });
 
 test("Obergrenzen halten das Profil klein: 20 Prüfungen mit je 200 Stapeln", () => {
