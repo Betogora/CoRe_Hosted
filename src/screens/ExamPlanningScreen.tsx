@@ -4,7 +4,7 @@ import { CalendarCheck, ChevronDown, Pause, Pencil, Play, Plus, RefreshCcw, Rota
 import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "../coreTypes.ts";
 import { removeExamPlan, upsertExamPlan } from "../examPlanSettings.ts";
-import { examDayDistance, getExamCurrentProgress, type ExamForecastSummary, type ExamPlanDay, type StudyPlanBlock } from "../examPlanning.ts";
+import { examDayDistance, getExamCurrentProgress, type ExamForecastSummary } from "../examPlanning.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
@@ -12,42 +12,12 @@ import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.ts
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
+import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
+import { withExamDailyTasks } from "../examDailyTasks.ts";
 import { useExamForecast } from "./useExamForecast.ts";
 
 export const EXAM_METHOD_LABELS = { new: "Neue Karten", review: "Wiederholungen", relearning: "Lernschritte", variant: "Varianten" } as const;
 const STATUS_LABELS: Record<ExamPlan["status"], string> = { active: "Aktiv", paused: "Pausiert", completed: "Abgeschlossen" };
-
-function TodayPanel({ day, deckName, busy, onStart }: { day: ExamPlanDay; deckName: (id: string) => string; busy: boolean; onStart: (blockId: string | null) => void }) {
-  return (
-    <SoftPanel className="grid min-w-0 gap-4 p-4 sm:p-6" data-testid="exam-today">
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h3 className="core-heading-3 font-semibold text-core-text">Heute</h3>
-          <p className="core-body text-core-muted" data-testid="exam-today-workload">{day.newCardIds.length} neue Karten · {day.reviewCount} Wiederholungen</p>
-        </div>
-        <ActionButton variant="primary" icon={Play} loading={busy} disabled={busy || day.blocks.length === 0} onClick={() => onStart(null)}>Heutige Einheit lernen</ActionButton>
-      </div>
-      {day.blocks.length ? (
-        <ul className="grid gap-2" aria-label="Lernblöcke heute">
-          {day.blocks.map((block) => <BlockRow key={block.id} block={block} deckName={deckName} disabled={busy} onStart={() => onStart(block.id)} />)}
-        </ul>
-      ) : <p className="core-body text-core-muted">{day.budgetMinutes ? "Für heute ist nichts mehr offen." : "Heute ist frei."}</p>}
-      {day.backlogCount ? <StatusMessage tone="warning">{day.backlogCount} fällige Karten passen heute nicht ins Budget.</StatusMessage> : null}
-    </SoftPanel>
-  );
-}
-
-function BlockRow({ block, deckName, disabled, onStart }: { block: StudyPlanBlock; deckName: (id: string) => string; disabled?: boolean; onStart?: () => void }) {
-  return (
-    <li className="flex min-w-0 items-center gap-3 rounded-control bg-core-subtle px-3 py-2" data-exam-block={block.method}>
-      <div className="min-w-0 flex-1">
-        <p className="core-body font-semibold text-core-text">{EXAM_METHOD_LABELS[block.method]}</p>
-        <p className="break-words core-caption text-core-muted">{deckName(block.deckId)} · {block.expectedItems} {block.expectedItems === 1 ? "Abfrage" : "Abfragen"}</p>
-      </div>
-      {onStart ? <IconButton label={`${EXAM_METHOD_LABELS[block.method]} in ${deckName(block.deckId)} lernen`} icon={Play} variant="ghost" disabled={disabled} onClick={onStart} /> : null}
-    </li>
-  );
-}
 
 interface ExamCardProps {
   exam: ExamPlan;
@@ -109,6 +79,7 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
             </div>
           </> : <p className="core-body text-core-muted">Der Lernstand ist noch nicht verfügbar.</p>}
           {exam.status === "active" && past ? <StatusMessage tone="warning">Schließe die Prüfung ab oder ändere das Datum.</StatusMessage> : null}
+          {summary?.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}
           {summary?.decks.length ? <details className="group min-w-0"><summary className="flex min-h-control cursor-pointer list-none items-center gap-2 core-body font-semibold text-core-text"><ChevronDown size={16} aria-hidden="true" className="transition-transform group-open:rotate-180" />Stapel · {summary.decks.length}</summary><ul className="mt-2 grid gap-2">{summary.decks.map((deck) => <li key={deck.deckId} className="flex min-w-0 justify-between gap-3 core-body"><span className="min-w-0 break-words text-core-text">{deck.name}</span><span className="shrink-0 text-core-muted">{deck.known} / {deck.total}</span></li>)}</ul></details> : null}
           <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap [&_svg]:shrink-0">
             <ActionButton variant="secondary" icon={Pencil} disabled={busy} onClick={onEdit}>Bearbeiten</ActionButton>
@@ -122,8 +93,8 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
   );
 }
 
-/** Global exam planner (ADR-042): one shared time budget for all exams of the user. */
-export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onStartUnit }: ExamPlanningScreenProps) {
+/** Global exam planner (ADR-042), with relative study time for each exam. */
+export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onStartUnit, onLoadSummaryAvailability }: ExamPlanningScreenProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const [calendarDraft, setCalendarDraft] = React.useState<ExamPlanningSettings | null>(null);
   const { exams, capacity } = calendarDraft ?? preferences.examPlanning;
@@ -137,10 +108,8 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
   const [deletedPlan, setDeletedPlan] = React.useState<{ exam: ExamPlan; index: number; blocks: NonNullable<StudyTimeCapacity["timeBlocks"]>; tasks: NonNullable<ExamPlanningSettings["dailyTasks"]> } | null>(null);
   const [deleting, setDeleting] = React.useState<ExamPlan | null>(null);
   const [saving, setSaving] = React.useState(false);
-  const [starting, setStarting] = React.useState(false);
   const [actionError, setActionError] = React.useState("");
   const { forecast, current, cards, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData });
-  const deckName = (id: string) => state.decks.find((deck) => deck.id === id)?.name ?? "Gelöschter Stapel";
   const today = forecast?.days[0]?.key === todayKey ? forecast.days[0] : null;
   const sortedExams = exams.slice().sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || a.examDate.localeCompare(b.examDate));
 
@@ -155,18 +124,6 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
       return false;
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function start(blockId: string | null) {
-    setStarting(true);
-    setActionError("");
-    try {
-      await onStartUnit(blockId);
-    } catch (failure) {
-      setActionError(failure instanceof Error ? failure.message : "Die Einheit konnte nicht gestartet werden.");
-    } finally {
-      setStarting(false);
     }
   }
 
@@ -213,6 +170,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
         <h3 id="exam-list-title" className="core-heading-3 font-semibold text-core-text">Deine Prüfungen</h3>
         <div className="flex flex-wrap gap-2">{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton></div>
       </div>
+      {preferences.examPlanning.migratedFromSharedTime ? <StatusMessage tone="info">Die frühere gemeinsame Lernzeit wurde auf die aktiven Klausuren verteilt. Bitte prüfe die Lernzeit je Klausur unter Bearbeiten.</StatusMessage> : null}
       {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {
         try {
         const restored = upsertExamPlan(preferences.examPlanning, deletedPlan.exam);
@@ -245,7 +203,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
                     exam={exam}
                     color={examColor(exams.indexOf(exam), exam)}
                     summary={current ? summary : null}
-                    progress={summary || !cards.length ? null : getExamCurrentProgress(cards, exam, now, timeZone)}
+                    progress={summary || !cards.length ? null : getExamCurrentProgress(cards, exam)}
                     civilToday={civilToday}
                     busy={saving || Boolean(calendarDraft)}
                     editor={editing?.id === exam.id ? editor(exam, true) : null}
@@ -258,7 +216,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
               })}
             </div>
           </section>
-          {today ? <TodayPanel day={today} deckName={deckName} busy={starting || !current || Boolean(calendarDraft)} onStart={(blockId) => void start(blockId)} /> : null}
+          {today && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onSaveTasks={(tasks) => onSavePlanning(withExamDailyTasks(preferences.examPlanning, tasks))} /></div> : null}
         </>
       )}
       <ActionDialog open={Boolean(pendingEditor)} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setPendingEditor(null)} onConfirm={() => { setEditing(pendingEditor?.next ?? null); setEditorDirty(false); setPendingEditor(null); }} />

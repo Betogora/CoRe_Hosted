@@ -70,7 +70,7 @@ export default defineConfig({
   projects: [
     {
       name: "learning-content-chromium",
-      testMatch: [/learning-summaries\.spec\.ts/, /mindmaps\.spec\.ts/, /deck-ui-restoration\.spec\.ts/],
+      testMatch: [/learning-summaries\.spec\.ts/, /mindmaps\.spec\.ts/, /deck-ui-restoration\.spec\.ts/, /exam-contact-planning\.spec\.ts/],
       use: { ...devices["Desktop Chrome"] },
     },
     {

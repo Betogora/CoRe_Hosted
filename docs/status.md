@@ -11,12 +11,8 @@ CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel u
 
 ## Implementiert
 
-- Lokal erweitert: zentrale Prüfungserstellung in vier Schritten, rekursive Stapelauswahl, individuelle Wochenzeiten, Themenstarttage und Thementausch, prüfungsspezifische Zeitblöcke sowie Themenaufgaben und Prognosestatus auf Heute. Unterstapel bilden die Themen; semantische Gruppierung innerhalb eines Stapels bleibt offen. Keine Veröffentlichung aus dieser Änderung; authentifizierter Cloud-/Review-Smoke und echte Smartphone-Tastatur sind noch offen.
-- Prüfungsplaner als Hauptbereich `Prüfungen` (ADR-042): mehrere Prüfungen mit
-  gemeinsamer Lernzeit, Wochenatelier, Machbarkeitsprüfung, heutige Einheit und
-  Blöcke als Lernsitzung mit Prüfungsretention; `Heute` führt bei aktiver Prüfung
-  mit `Heutige Einheit lernen`. Lernstände kommen über
-  `list_account_card_study_states`, Zeiten aus den Statistik-Rollups.
+- Lokal erweitert: Prüfungsplanung mit eigener relativer Lernzeit je Klausur, kalendarischem Einführungsstichtag und sortierbaren Themen. Die begrenzte deterministische FSRS-6-Kontaktsuche verteilt alle noch ungesehenen Karten ohne Bearbeitungszeit pro Karte, feste Abnahmekurve oder Machbarkeitssperre. Konkrete Blöcke ersetzen nur das betroffene Fach/Datum. Optionale Zusammenfassungsaufgaben bleiben dauerhaft abhakbar; Heute und Prüfungen teilen Checkliste und Sitzungsziele. Profilformat V2 übernimmt gemeinsame V1-Vorgaben. Noch keine Veröffentlichung aus dieser Änderung; echte Smartphone-Tastatur und Geräteabnahme bleiben offen.
+- Prüfungsplaner als Hauptbereich `Prüfungen` (ADR-042): Monats-/Wochenkalender, Quizempfehlungen und heutige Einheit als reguläre Lernsitzung mit Prüfungsretention. Lernstände kommen über `list_account_card_study_states`; Antwortzeitstatistiken werden für die Planung nicht mehr geladen. Die Sitzung erhält Themenreihenfolge und Zielkarten auch oberhalb normaler Tageslimits.
 - Kartenmodell `Note`/`Card` (ADR-032 bis ADR-036) in App, Import, Persistenz
   und Sync: Ein Inhalt speichert Felder mit Rollen, Interaktion, Tags, Medien und
   Markierung einmal; jede Abfrage ist eine eigenständige Karte mit eigenem

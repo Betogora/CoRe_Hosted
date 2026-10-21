@@ -484,20 +484,12 @@ export function createWorkspaceHydrationService({
     return snapshot;
   };
 
-  /** Study states and answer statistics of the exam decks (ADR-042); the forecast needs current server values. */
-  const loadExamPlanningData = async (
-    deckIds: string[],
-    statistics: { from: string; to: string; timeZone: string; dayStartHour: number },
-    signal?: AbortSignal,
-  ) => {
+  /** Exam planning reads study states only, never response times. */
+  const loadExamPlanningData = async (deckIds: string[], signal?: AbortSignal) => {
     if (!isOnline()) throw new Error("Die Prüfungsplanung braucht eine Verbindung.");
-    if (!deckIds.length) return { cards: [], statistics: null };
-    const { listAccountCardStudyStates, loadAccountStatistics } = await import("./cloudRepository.ts");
-    const [cards, snapshot] = await Promise.all([
-      listAccountCardStudyStates(client, deckIds, signal),
-      loadAccountStatistics(client, { deckIds, ...statistics }),
-    ]);
-    return { cards, statistics: snapshot };
+    if (!deckIds.length) return { cards: [] };
+    const { listAccountCardStudyStates } = await import("./cloudRepository.ts");
+    return { cards: await listAccountCardStudyStates(client, deckIds, signal) };
   };
 
   const refreshDueForecast = async () => {
