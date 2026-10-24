@@ -23,5 +23,7 @@ test("auth gate exposes named fields, a busy state and a non-duplicated alert re
   assert.match(markup, /role="alert"/);
   assert.doesNotMatch(markup, /aria-live="assertive"/);
   assert.match(markup, /<main class="core-centered-viewport grid min-h-dvh/);
+  assert.match(markup, /<div class="mb-8 text-center"><img src="\/core-socrates\.svg" alt="" class="mx-auto mb-5[^"]*"[^>]*><h1[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/h1>/);
+  assert.match(markup, /<div class="mt-4 flex flex-wrap justify-center gap-2">/);
   assert.doesNotMatch(markup, /core-auth-(?:shell|frame)|rounded-\[22px\]|backdrop-blur-xl/);
 });

@@ -9,6 +9,7 @@ import type { SyncStatus } from "../coreTypes.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
+import { CoreWordmark } from "./CoreWordmark.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
 
 interface AppNavigationItem {
@@ -54,9 +55,10 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
       type="button"
       data-navigation-brand="true"
       onClick={() => onNavigate("uebersicht")}
-      className="rounded-inset text-left outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
+      className="flex items-center gap-3.5 rounded-inset text-left outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
     >
-      Co<span className="text-core-action">Re</span>
+      <img src="/core-socrates.svg" alt="" className="h-10 w-auto shrink-0 xl:h-12" draggable={false} />
+      <CoreWordmark />
     </button>
   );
 }
@@ -165,7 +167,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
   return (
     <header className="hidden min-w-0 px-2 pt-2 xl:block" data-navigation-layout="top-bar">
       <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-5 shadow-floating">
-        <h1 className="core-heading-3 font-bold leading-none text-core-text">
+        <h1 className="core-heading-3 leading-none">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
 
@@ -208,7 +210,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex h-14 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
-        <h1 className="core-mobile-brand shrink-0 core-heading-3 font-bold leading-none text-core-text">
+        <h1 className="core-mobile-brand shrink-0 core-heading-3 leading-none">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
