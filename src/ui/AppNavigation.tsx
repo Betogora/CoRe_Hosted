@@ -7,8 +7,9 @@ import type { MenuViewId } from "../menuModel.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import type { SyncStatus } from "../coreTypes.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
-import { ActionButton, IconButton } from "./actionUi.tsx";
+import { IconButton } from "./actionUi.tsx";
 import { useSlidingSelection } from "./coreUi.tsx";
+import { CoreWordmark } from "./CoreWordmark.tsx";
 import { PomodoroProgress } from "./pomodoroTimerUi.tsx";
 
 interface AppNavigationItem {
@@ -54,17 +55,17 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
       type="button"
       data-navigation-brand="true"
       onClick={() => onNavigate("uebersicht")}
-      className="rounded-inset text-left outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
+      className="flex items-center gap-3.5 rounded-inset text-left outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
     >
-      Co<span className="text-core-action">Re</span>
+      <img src="/core-socrates.svg" alt="" className="h-10 w-auto shrink-0 xl:h-12" draggable={false} />
+      <CoreWordmark />
     </button>
   );
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, syncStatus, onSyncNow, layout }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "onSyncNow"> & { layout: "sidebar" | "header" }) {
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, syncStatus, onSyncNow }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "onSyncNow">) {
   const settingsActive = activeView === "einstellungen";
   const helpActive = activeView === "hilfe";
-  const sidebarLayout = layout === "sidebar";
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
   const SyncIcon = syncStatus.status === "offline" ? CloudOff : syncStatus.status === "conflict" ? AlertTriangle : syncStatus.status === "saved" ? Cloud : RefreshCw;
@@ -143,38 +144,34 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
   );
 
   return (
-    <div
-      className={sidebarLayout ? "flex w-full items-center justify-between gap-1 border-t border-core-border pt-3" : "flex shrink-0 items-center gap-1.5"}
-      data-navigation-utilities="true"
-      data-navigation-utility-layout={layout}
-    >
+    <div className="flex shrink-0 items-center gap-1.5" data-navigation-utilities="true">
       {syncButton}
-      {sidebarLayout ? (
-        <>
-          {helpButton}
-          {settingsButton}
-          {themeButton}
-        </>
-      ) : (
-        <>
-          {themeButton}
-          {helpButton}
-          {settingsButton}
-        </>
-      )}
+      {themeButton}
+      {helpButton}
+      {settingsButton}
     </div>
   );
 }
 
-function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
+function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onResetSimulation }: Pick<AppNavigationProps, "simulationDateLabel" | "simulationOffsetMinutes" | "onResetSimulation">) {
   return (
-    <aside className="hidden p-2 pr-0 xl:block xl:overflow-x-hidden xl:overflow-y-auto" data-navigation-layout="sidebar">
-      <div className="flex h-full flex-col rounded-panel border border-core-border bg-core-surface px-3 pb-3 pt-5 shadow-floating">
-        <h1 className="px-2.5 core-heading-2 font-bold leading-none text-core-text">
+    <div className="mt-2 flex min-h-control items-center gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
+      <CalendarClock className="shrink-0" size={17} aria-hidden="true" />
+      <span className="min-w-0 flex-1 truncate core-caption font-semibold">Simulation · {simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</span>
+      <button type="button" data-reset-simulation="true" className="min-h-control shrink-0 px-2 core-body font-semibold text-core-action" onClick={onResetSimulation}>Heute</button>
+    </div>
+  );
+}
+
+function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
+  return (
+    <header className="hidden min-w-0 px-2 pt-2 xl:block" data-navigation-layout="top-bar">
+      <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-5 shadow-floating">
+        <h1 className="core-heading-3 leading-none">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
 
-        <nav aria-label="Hauptmenü" data-app-navigation="true" className="mt-6 grid grid-cols-1 gap-1">
+        <nav aria-label="Hauptmenü" data-app-navigation="true" className="flex items-center gap-1">
           {navigationItems.map((view) => {
             const NavIcon = getIcon(view.iconKey);
             const isActive = view.id === activeView;
@@ -187,38 +184,25 @@ function DesktopNavigation({ navigationItems, activeView, simulationOffsetMinute
                 onPointerEnter={() => onPreloadView?.(view.id)}
                 onFocus={() => onPreloadView?.(view.id)}
                 onTouchStart={() => onPreloadView?.(view.id)}
-                className={`core-body flex min-h-10 w-full items-center gap-2.5 rounded-control px-2.5 text-left !font-semibold transition-colors ${
+                className={`core-body flex min-h-control items-center gap-2 whitespace-nowrap rounded-control px-3 !font-semibold transition-colors ${
                   isActive ? "bg-[var(--core-action-soft)] text-core-action" : "text-core-secondary hover:bg-core-subtle hover:text-core-action"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
                 <NavIcon className="shrink-0" size={16} aria-hidden="true" />
-                <span className="min-w-0 truncate">{view.label}</span>
+                <span>{view.label}</span>
               </button>
             );
           })}
         </nav>
 
-        <div className="mt-auto">
-          {simulationOffsetMinutes > 0 ? (
-            <div className="mb-3 rounded-control border border-core-warning bg-core-warning-soft p-3 text-core-text" role="status">
-              <p className="flex items-center gap-2 core-body font-semibold">
-                <CalendarClock size={17} aria-hidden="true" />
-                Simulation aktiv
-              </p>
-              <p className="mt-1 core-caption">{simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</p>
-              <ActionButton type="button" variant="secondary" className="mt-3 w-full justify-center" data-reset-simulation="true" onClick={onResetSimulation}>
-                Heute
-              </ActionButton>
-            </div>
-          ) : null}
-          <PomodoroProgress timer={pomodoroTimer} variant="sidebar" />
-          <div className={`pt-6 ${simulationOffsetMinutes > 0 || pomodoroTimer ? "mt-3" : ""}`}>
-            <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="sidebar" />
-          </div>
+        <div className="flex min-w-0 items-center justify-end gap-3">
+          <PomodoroProgress timer={pomodoroTimer} variant="header" />
+          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} />
         </div>
       </div>
-    </aside>
+      {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
+    </header>
   );
 }
 
@@ -226,19 +210,13 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex h-14 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
-        <h1 className="core-mobile-brand shrink-0 core-heading-3 font-bold leading-none text-core-text">
+        <h1 className="core-mobile-brand shrink-0 core-heading-3 leading-none">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} layout="header" />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} />
       </div>
-      {simulationOffsetMinutes > 0 ? (
-        <div className="mt-2 flex min-h-control items-center gap-3 rounded-control border border-core-warning bg-core-warning-soft px-3 text-core-text" role="status">
-          <CalendarClock className="shrink-0" size={17} aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate core-caption font-semibold">Simulation · {simulationDateLabel} · +{formatSimulationDuration(simulationOffsetMinutes)}</span>
-          <button type="button" data-reset-simulation="true" className="min-h-control shrink-0 px-2 core-body font-semibold text-core-action" onClick={onResetSimulation}>Heute</button>
-        </div>
-      ) : null}
+      {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
     </header>
   );
 }
@@ -293,7 +271,7 @@ export function AppNavigation(props: AppNavigationProps) {
 
   return (
     <>
-      <DesktopNavigation {...responsiveProps} />
+      <DesktopTopBar {...responsiveProps} />
       <MobileHeader {...responsiveProps} />
       {typeof document === "undefined" ? mobileBottomNavigation : createPortal(mobileBottomNavigation, document.body)}
     </>

@@ -40,15 +40,19 @@ test("app navigation exposes five primary entries and marks learning active for 
   const markup = renderNavigation("kartenstapel");
   const expectedTabOrder = ["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"];
 
-  assert.match(markup, /data-navigation-layout="sidebar"/);
+  assert.match(markup, /data-navigation-layout="top-bar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
-  assert.match(markup, /hidden p-2 pr-0 xl:block/);
-  assert.match(markup, /rounded-panel border border-core-border bg-core-surface px-3 pb-3 pt-5 shadow-floating/);
-  assert.match(markup, /xl:overflow-x-hidden/);
+  assert.match(markup, /hidden min-w-0 px-2 pt-2 xl:block/);
+  assert.match(markup, /grid h-16 grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-5 shadow-floating/);
   assert.match(markup, /xl:hidden/);
   assert.doesNotMatch(markup, /md:block|md:hidden/);
   for (const label of expectedTabOrder) assert.match(markup, new RegExp(`>${label}<`));
+  const topBarNavigation = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  for (let index = 1; index < expectedTabOrder.length; index += 1) {
+    assert.ok(topBarNavigation.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < topBarNavigation.indexOf(`>${expectedTabOrder[index]}</span>`));
+  }
+  for (const label of expectedTabOrder) assert.match(topBarNavigation, new RegExp(`</svg><span>${label}</span>`));
   const bottomBarMarkup = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
     assert.ok(bottomBarMarkup.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < bottomBarMarkup.indexOf(`>${expectedTabOrder[index]}</span>`));
@@ -70,6 +74,7 @@ test("CoRe brand links both navigation layouts to today", () => {
   const markup = renderNavigation("neue-karten");
 
   assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-brand="true"[^>]*><img src="\/core-socrates\.svg" alt="" class="h-10 w-auto shrink-0 xl:h-12"[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/button>/g) ?? []).length, 2);
 });
 
 test("bottom navigation keeps every icon above its visible label and exactly one current page", () => {
@@ -103,7 +108,7 @@ test("help and general settings have separate utility states while card settings
 
 test("responsive navigation shares compact settings, theme and help actions without a profile preview", () => {
   const markup = renderNavigation();
-  const sidebarMarkup = markup.match(/<aside[^>]*data-navigation-layout="sidebar"[\s\S]*?<\/aside>/)?.[0] ?? "";
+  const topBarMarkup = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/header>/)?.[0] ?? "";
   const mobileHeaderMarkup = markup.match(/<header[^>]*data-navigation-layout="mobile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
 
   assert.equal((markup.match(/data-navigation-utilities="true"/g) ?? []).length, 2);
@@ -112,13 +117,14 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
-  assert.match(sidebarMarkup, /class="flex w-full items-center justify-between gap-1 border-t border-core-border pt-3" data-navigation-utilities="true" data-navigation-utility-layout="sidebar"/);
-  assert.doesNotMatch(sidebarMarkup, /Content Repetition/);
-  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="sync"') < sidebarMarkup.indexOf('data-navigation-utility="help"'));
-  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="help"') < sidebarMarkup.indexOf('data-navigation-utility="settings"'));
-  assert.ok(sidebarMarkup.indexOf('data-navigation-utility="settings"') < sidebarMarkup.indexOf('data-navigation-utility="theme"'));
-  assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="theme"') < mobileHeaderMarkup.indexOf('data-navigation-utility="help"'));
-  assert.ok(mobileHeaderMarkup.indexOf('data-navigation-utility="help"') < mobileHeaderMarkup.indexOf('data-navigation-utility="settings"'));
+  assert.doesNotMatch(topBarMarkup, /Content Repetition/);
+  for (const layoutMarkup of [topBarMarkup, mobileHeaderMarkup]) {
+    assert.match(layoutMarkup, /class="flex shrink-0 items-center gap-1\.5" data-navigation-utilities="true"/);
+    assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
+    assert.ok(layoutMarkup.indexOf('data-navigation-utility="theme"') < layoutMarkup.indexOf('data-navigation-utility="help"'));
+    assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));
+  }
+  assert.ok(topBarMarkup.indexOf("</nav>") < topBarMarkup.indexOf('data-navigation-utilities="true"'));
   assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-ghost[^"]*size-control/g) ?? []).length, 2);
   assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-secondary/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
@@ -128,22 +134,18 @@ test("responsive navigation shares compact settings, theme and help actions with
 test("active simulation remains visible in both navigation layouts", () => {
   const markup = renderNavigation("uebersicht", 3 * 24 * 60);
 
-  assert.match(markup, /Simulation aktiv/);
-  assert.match(markup, /Simulation · Sonntag, 9\. August 2026 · \+3 Tage/);
+  assert.equal((markup.match(/Simulation · Sonntag, 9\. August 2026 · \+3 Tage/g) ?? []).length, 2);
   assert.equal((markup.match(/data-reset-simulation="true"/g) ?? []).length, 2);
 
   const minuteMarkup = renderNavigation("uebersicht", 10);
   assert.match(minuteMarkup, /\+10 Minuten/);
 });
 
-test("active Pomodoro timer appears in the desktop sidebar and mobile header", () => {
+test("active Pomodoro timer appears in the desktop top bar and mobile header", () => {
   const timer = createPomodoroTimer(25, Date.now(), "pomodoro_navigation");
   assert.ok(timer);
   const markup = renderNavigation("uebersicht", 0, timer);
 
-  assert.equal((markup.match(/data-pomodoro-progress=/g) ?? []).length, 2);
-  assert.match(markup, /data-pomodoro-progress="sidebar"/);
-  assert.match(markup, /data-pomodoro-progress="header"/);
-  assert.match(markup, />25 min\.<\/p>/);
-  assert.match(markup, /Noch 25 Min\./);
+  assert.equal((markup.match(/data-pomodoro-progress="header"/g) ?? []).length, 2);
+  assert.equal((markup.match(/Noch 25 Min\./g) ?? []).length, 4);
 });

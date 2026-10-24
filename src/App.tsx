@@ -55,6 +55,7 @@ import { AuthGateScreen } from "./screens/AuthGateScreen.tsx";
 import { AppNavigation } from "./ui/AppNavigation.tsx";
 import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
+import { CoreWordmark } from "./ui/CoreWordmark.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
 import { VariantGenerationBar } from "./ui/VariantGenerationBar.tsx";
 import { useCardVariantBatch } from "./useCardVariantBatch.ts";
@@ -145,7 +146,7 @@ function LoadingScreen({ message = "CoRe wird geladen.", onRetry }: { message?: 
         <div className="flex items-center gap-3">
           <OrbIcon icon={Database} />
           <div>
-            <h1 className="core-heading-2 font-semibold text-core-text">CoRe</h1>
+            <h1 className="core-heading-2"><CoreWordmark /></h1>
             <p className="mt-1 core-body text-core-muted" role="status" aria-live="polite">
               {message}
             </p>
@@ -2029,7 +2030,7 @@ export function App() {
 
   return (
     <main className="min-h-dvh min-w-0 overflow-x-clip bg-core-surface text-core-text xl:h-dvh xl:overflow-y-hidden">
-      <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-canvas xl:h-dvh xl:min-h-0 xl:grid-cols-[15rem_minmax(0,1fr)] xl:grid-rows-1 xl:overflow-hidden">
+      <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-canvas xl:h-dvh xl:min-h-0 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}
           activeView={activeView}

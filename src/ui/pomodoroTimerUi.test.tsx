@@ -23,7 +23,7 @@ test("PomodoroProgress hides every projection without a running timer", () => {
   assert.ok(expiredTimer);
 
   for (const timer of [null, expiredTimer]) {
-    for (const variant of ["study", "sidebar", "header"] as const) {
+    for (const variant of ["study", "header"] as const) {
       assert.equal(renderToStaticMarkup(<PomodoroProgress timer={timer} variant={variant} />), "");
     }
   }
@@ -37,15 +37,4 @@ test("PomodoroProgress labels the running timer in whole minutes", () => {
   assert.match(markup, /aria-valuetext="Noch 25 Min\."/);
   assert.match(markup, /aria-valuemax="1500"/);
   assert.match(markup, /style="width:9[0-9]/);
-});
-
-test("PomodoroProgress fits the sidebar and shows only rounded-up remaining minutes", () => {
-  const timer = createPomodoroTimer(25, Date.now() - 60_100, "pomodoro_sidebar");
-  assert.ok(timer);
-  const markup = renderToStaticMarkup(<PomodoroProgress timer={timer} variant="sidebar" />);
-
-  assert.match(markup, /class="grid min-w-0 w-full gap-1\.5" data-pomodoro-progress="sidebar"/);
-  assert.match(markup, />24 min\.<\/p>/);
-  assert.match(markup, /aria-valuetext="24 min\."/);
-  assert.doesNotMatch(markup, />Pomodoro-Timer<|>Noch 24 Min\.</);
 });
