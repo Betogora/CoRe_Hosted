@@ -44,6 +44,7 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
             exam,
             newCards: getExamCalendarWork(day, new Set([exam.id])).newCards,
             quiz: quizzes.some((entry) => entry.id === exam.id),
+            summary: day?.summaries.some((entry) => entry.examId === exam.id) ?? false,
           })).filter(({ exam, newCards, quiz }) => newCards > 0 || quiz || (!hasForecast && exam.status === "active" && key < exam.examDate)) : [];
           const countLabel = hasForecast ? subjects.map(({ exam, newCards }) => `${exam.name}: ${newCards} neue Karten`).join(". ") || "Keine neuen Karten geplant" : "Lernmenge noch nicht berechnet";
           const remaining = Math.max(0, appointments.length + subjects.length - visibleEntries);
@@ -52,9 +53,10 @@ export function ExamMonthCalendar({ exams, shown, capacity, forecast, today, dat
             onClick={() => onSelect(key)} className={`grid min-h-0 min-w-0 content-start gap-0.5 overflow-hidden p-0.5 text-left transition hover:bg-core-subtle ${date === key ? "bg-core-info-soft shadow-inset" : outside ? "bg-core-subtle" : "bg-core-surface"}`}>
             <span className="flex h-5 min-w-0 items-center justify-between"><span className={`grid size-5 shrink-0 place-items-center rounded-round core-caption font-semibold ${key === today ? "bg-core-action text-core-on-accent" : outside ? "text-core-muted" : "text-core-text"}`}>{Number(key.slice(8))}</span>{remaining ? <span className="exam-month-more text-core-muted" title={`${remaining} weitere Einträge in den Tagesdetails`}>+{remaining}</span> : null}</span>
             {appointments.slice(0, visibleEntries).map((exam) => <span key={exam.id} data-exam-appointment={exam.id} title={`Klausur: ${exam.name}`} className="exam-month-entry flex min-w-0 items-center gap-1 rounded-inset px-1 font-bold" style={{ background: color(exam), color: examTextColor(exam) }}><Flag size={11} className="shrink-0" aria-hidden="true" /><span className="truncate"><span className="sr-only">Klausur: </span>{exam.name}</span></span>)}
-            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz }) => <React.Fragment key={exam.id}>
+            {subjects.slice(0, Math.max(0, visibleEntries - appointments.length)).map(({ exam, newCards, quiz, summary }) => <React.Fragment key={exam.id}>
               {newCards > 0 || !hasForecast ? <span data-exam-subject={exam.id} data-exam-task="study" title={`${exam.name}: ${hasForecast ? `${newCards} neue Karten` : "Karten: –"}`} className="exam-month-entry min-w-0 rounded-inset border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>{hasForecast ? `${newCards} neue Karten` : "Karten: –"}</span> : null}
               {quiz ? <span data-exam-subject={exam.id} data-exam-task="quiz" title={`${exam.name}: Quiz empfohlen`} className="exam-month-entry min-w-0 rounded-inset border-l-strong px-1 py-0.5 font-semibold text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>Quiz</span> : null}
+              {summary ? <span data-exam-subject={exam.id} data-exam-task="summary" aria-label={`${exam.name}: Zusammenfassung lesen`} title={`${exam.name}: Zusammenfassung lesen`} className="exam-month-entry min-w-0 rounded-inset border-l-strong px-1 py-0.5 text-core-text" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} 18%, var(--core-surface))` }}>Lesen</span> : null}
             </React.Fragment>)}
           </button>;
         })}

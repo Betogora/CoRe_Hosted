@@ -5,6 +5,14 @@ import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from ".
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
 
+test("Themenfolge, Tagesausnahmen und erledigte Leseaufgaben bleiben validiert", () => {
+  const original = exam("a"), settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...original, topicOrder: ["deck-a"], readSummaryBeforeTopics: true, completedSummaryDeckIds: ["deck-a"] });
+  assert.deepEqual(normalizeExamPlanningSettings(settings), settings);
+  assert.throws(() => upsertExamPlan(settings, { ...original, topicOrder: ["deck-a", "deck-a"] }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...original, completedSummaryDeckIds: ["missing"] }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...original, studyTime: { ...original.studyTime, dateOverrides: [{ date: "2026-10-12", minutes: 20 }, { date: "2026-10-12", minutes: 40 }] } }), /ungültig/);
+});
+
 test("Prüfungspläne bleiben beim Ändern anderer Lernwerte im Profil erhalten", () => {
   const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
   const profile = withGlobalSchedulerPreferences({}, { examPlanning: settings });
@@ -25,11 +33,11 @@ test("gewählte Prüfungsfarben bleiben im Profil und alte Pläne ohne Farbe gü
 });
 
 test("ungültige Prüfungen fallen einzeln weg, gültige bleiben", () => {
-  const stored = { version: 1, capacity: { ...createStudyTimeCapacity(), weekdays: [true] }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
+  const stored = { version: 2, capacity: { timeBlocks: "kaputt" }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
   const settings = normalizeExamPlanningSettings(stored);
   assert.deepEqual(settings.exams.map((entry) => entry.id), ["a", "d"]);
-  assert.deepEqual(settings.capacity, createStudyTimeCapacity(), "eine ungültige Lernzeit fällt auf die Standardwerte zurück");
-  assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 1, exams: [], capacity: createStudyTimeCapacity() });
+  assert.deepEqual(settings.capacity, createStudyTimeCapacity(), "ungültige Zeitblöcke fallen auf die Standardwerte zurück");
+  assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 2, exams: [], capacity: createStudyTimeCapacity() });
 });
 
 test("Obergrenzen halten das Profil klein: 20 Prüfungen mit je 200 Stapeln", () => {
@@ -49,7 +57,7 @@ test("Ausnahmetage sind eindeutig und Namen nicht leer", () => {
 
 
 test("neue Zeit- und Themenangaben überstehen die Profilnormalisierung", () => {
-  const settings = { ...normalizeExamPlanningSettings(undefined), exams: [{ ...exam("a"), topicDates: [{ deckId: "deck-a", date: "2026-10-12" }] }], capacity: { ...createStudyTimeCapacity(), weeklyMinutes: [180, 240, 60, 0, 90, 0, 0], timeBlocks: [{ id: "block-a", date: "2026-10-12", start: 480, end: 660, examId: "a" }] } };
+  const settings = { ...normalizeExamPlanningSettings(undefined), exams: [{ ...exam("a"), topicDates: [{ deckId: "deck-a", date: "2026-10-12" }], studyTime: { ...exam("a").studyTime, weeklyMinutes: [180, 240, 60, 0, 90, 0, 0] } }], capacity: { ...createStudyTimeCapacity(), timeBlocks: [{ id: "block-a", date: "2026-10-12", start: 480, end: 660, examId: "a" }] } };
   assert.deepEqual(validateExamPlanningSettings(settings), settings);
   assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning, settings);
   assert.deepEqual(removeExamPlan(settings, "a").capacity.timeBlocks, []);

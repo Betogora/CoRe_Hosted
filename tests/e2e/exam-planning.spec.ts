@@ -15,12 +15,10 @@ async function planExam(page: Page, name: string) {
   await inspector.getByRole("textbox", { name: "Name" }).fill(name);
   await inspector.getByRole("button", { name: "Weiter zum Lernstoff" }).click();
   await inspector.getByRole("checkbox", { name: /^Europa/ }).check();
-  await inspector.getByRole("button", { name: "Weiter zu Ziel und Zeit" }).click();
+  await inspector.getByRole("button", { name: "Weiter zur Lernzeit" }).click();
   await inspector.getByRole("button", { name: "Lernplan ansehen" }).click();
-  const feasibility = page.getByTestId("exam-feasibility");
+  const feasibility = page.getByTestId("exam-plan-preview");
   await expect(feasibility.getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
-  const acceptRisk = feasibility.getByRole("checkbox", { name: "Trotz Gefährdung aktivieren" });
-  if (await acceptRisk.isVisible()) await acceptRisk.check();
   await inspector.getByRole("button", { name: "Plan aktivieren" }).click();
 }
 
@@ -91,9 +89,7 @@ test("Prüfungskarte bearbeitet inline, schützt Entwürfe und stellt gelöschte
   await editor.getByRole("button", { name: "Abbrechen", exact: true }).click();
   await page.getByRole("dialog", { name: "Änderungen verwerfen?" }).getByRole("button", { name: "Weiter bearbeiten" }).click();
   await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
-  await expect(editor.getByTestId("exam-feasibility").getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
-  const acceptRisk = editor.getByRole("checkbox", { name: "Trotz Gefährdung aktivieren" });
-  if (await acceptRisk.isVisible()) await acceptRisk.check();
+  await expect(editor.getByTestId("exam-plan-preview").getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
   await editor.getByRole("button", { name: "Speichern", exact: true }).click();
   await expect(card.getByRole("button", { name: "Europa: Details schließen" })).toBeVisible();
   const beforeDelete = (await readActiveAccountState(page)).profile.schedulerPreferences.examPlanning;
@@ -118,4 +114,39 @@ test("Prüfungen bleiben auf dem Handy über die untere Navigation erreichbar", 
   await expect(page).toHaveURL(/\/pruefungen$/);
   await expect(page.getByRole("heading", { name: "Noch keine Prüfung geplant" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+});
+
+test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block", async ({ page }) => {
+  await resetToFreshLocalState(page);
+  await planExam(page, "Geografie");
+  await page.getByRole("button", { name: "Woche", exact: true }).click();
+  const calendar = page.getByTestId("exam-week-calendar");
+  const day = calendar.locator('[data-week-day][aria-disabled="false"]').first();
+  await day.focus();
+  await page.keyboard.press("Enter");
+  const block = calendar.locator("[data-week-block]").first();
+  await expect(block).toHaveAttribute("aria-pressed", "true");
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
+  const handle = calendar.getByRole("slider", { name: "Ende der Lernzeit ändern" });
+  await expect(handle).toBeEnabled();
+  await handle.focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:45/);
+  await expect(handle).toBeEnabled();
+  await page.keyboard.press("ArrowUp");
+  await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
+  await expect(handle).toBeEnabled();
+  const grip = await handle.boundingBox();
+  if (!grip) throw new Error("Ziehlasche ist nicht sichtbar");
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 + 48, { steps: 4 });
+  await expect(block).toHaveAccessibleName(/08:00 bis 09:30/);
+  await page.mouse.up();
+  await expect(block).toHaveAccessibleName(/08:00 bis 09:30/);
+  await expect(calendar.getByRole("button", { name: "Lernzeit im Kalender löschen" })).toBeEnabled();
+  await calendar.getByRole("button", { name: "Lernzeit im Kalender löschen" }).click();
+  await expect(block).toHaveCount(0);
+  await expect(calendar.getByRole("slider", { name: "Ende der Lernzeit ändern" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Kalenderänderungen speichern" })).toBeVisible();
 });

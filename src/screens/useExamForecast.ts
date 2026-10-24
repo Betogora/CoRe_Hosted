@@ -30,7 +30,7 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
   const deckIds = getActiveExamDeckIds(decks, exams, civilToday);
   const scope = deckIds.slice().sort().join("\n");
   const deckKey = decks.map((deck) => `${deck.id}:${deck.updatedAt}:${deck.parentDeckId ?? ""}`).join("|");
-  const key = JSON.stringify([exams, capacity, preferences.dayStartHour, preferences.easyDays, now, timeZone, scope, deckKey, revision]);
+  const key = JSON.stringify([exams, capacity, preferences.examPlanning.dailyTasks, preferences.dayStartHour, preferences.easyDays, now, timeZone, scope, deckKey, revision]);
 
   const calculate = React.useEffectEvent(async (signal: AbortSignal) => {
     setBusy(true);
@@ -40,7 +40,7 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
       const data = cached && cached.scope === scope && cached.revision === revision ? cached.data : await onLoadPlanningData(deckIds, signal);
       signal.throwIfAborted();
       loaded.current = { scope, revision, data };
-      const forecast = await createExamPortfolioForecast(decks, data.cards, exams, { now, preferences, timeZone, capacity, history: data.history, signal });
+      const forecast = await createExamPortfolioForecast(decks, data.cards, exams, { now, preferences, timeZone, capacity, history: data.history, signal, dailyTasks: preferences.examPlanning.dailyTasks });
       signal.throwIfAborted();
       setResult({ key, forecast, data });
     } catch (failure) {

@@ -24,6 +24,7 @@ import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
 import type { EasyDaysSchedulingContext } from "./easyDays.ts";
 import { createSiblingBurying } from "./siblingBurying.ts";
+import { EXAM_SESSION_DECK_ID } from "./examPlanSettings.ts";
 
 type DateInput = string | number | Date;
 
@@ -743,6 +744,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const allDecks = asDeckArray(decksOrDeck);
   const rootDeck = allDecks.find((deck) => deck.id === rootDeckId) ?? allDecks[0] ?? null;
   const scopeDecks = collectDeckScope(decksOrDeck, rootDeckId);
+  const examOrder = rootDeckId === EXAM_SESSION_DECK_ID ? new Map(allDecks.flatMap((deck) => deck.cards).map((card, index) => [card.id, index])) : null;
   const rootSettings = createDefaultDeckSettings(rootDeck?.deckSettings ?? {});
   const settingsByDeckId = new Map(scopeDecks.map((deck) => [deck.id, createDefaultDeckSettings(deck.deckSettings ?? {})]));
   const excludeKeys = new Set(options.excludeKeys ?? []);
@@ -797,7 +799,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const randomKeys = randomSeed
     ? new Map(newEntries.map((entry) => [entry.key, stableContentHash([randomSeed, entry.card.id], "queue")]))
     : null;
-  newEntries.sort((left, right) => compareNewQueueEntries(left, right, randomKeys));
+  newEntries.sort((left, right) => examOrder ? (examOrder.get(left.card.id) ?? 0) - (examOrder.get(right.card.id) ?? 0) : compareNewQueueEntries(left, right, randomKeys));
 
   const limits = new Map<string, RemainingDeckLimits>();
   const subtreeConsumption = new Map(scopeDecks.map((deck) => [deck.id, { introduced: 0, reviewed: 0 }]));
@@ -814,8 +816,8 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
     const consumption = subtreeConsumption.get(deck.id) ?? { introduced: 0, reviewed: 0 };
     const settings = settingsByDeckId.get(deck.id)!;
     limits.set(deck.id, {
-      newCards: Math.max(0, getEffectiveNewCardsPerDay(deck, { ...options, now }) - consumption.introduced),
-      reviews: Math.max(0, settings.maximumReviewsPerDay - consumption.introduced - consumption.reviewed),
+      newCards: examOrder ? Number.MAX_SAFE_INTEGER : Math.max(0, getEffectiveNewCardsPerDay(deck, { ...options, now }) - consumption.introduced),
+      reviews: examOrder ? Number.MAX_SAFE_INTEGER : Math.max(0, settings.maximumReviewsPerDay - consumption.introduced - consumption.reviewed),
     });
   }
 
