@@ -225,6 +225,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
     .filter((file) => file.endsWith(".woff2"))
     .map((file) => [`/fonts/${file.replaceAll("\\", "/")}`, `data:font/woff2;base64,${readFileSync(path.join(root, "public/fonts", file)).toString("base64")}`]));
   for (const [file, url] of fonts) styles = styles.replaceAll(file, url);
+  const images = new Map([["/core-socrates.svg", `data:image/svg+xml;base64,${Buffer.from(text("public/core-socrates.svg")).toString("base64")}`]]);
   const css = `${styles}\n${text("docs/tooling/site.css")}\n${text("scripts/uiCatalog.css")}`;
   const viewer = ts.transpileModule(text("docs/tooling/viewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
   const pdfWorker = (await transformWithEsbuild(readFileSync(path.join(root, "node_modules/pdfjs-dist/build/pdf.worker.mjs"), "utf8"), "pdf.worker.js", { minify: true, target: "es2022" })).code;
@@ -234,7 +235,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
       const normalized = id.replaceAll("\\", "/");
       if (!normalized.includes("/src/")) return;
       let result = code;
-      for (const [file, url] of fonts) result = result.replaceAll(file, url);
+      for (const [file, url] of [...fonts, ...images]) result = result.replaceAll(file, url);
       if (normalized.endsWith("/src/pdfRuntime.ts")) result = result.replace('new URL("pdfjs-dist/build/pdf.worker.mjs", import.meta.url).toString()', () => `URL.createObjectURL(new Blob([${JSON.stringify(pdfWorker)}], { type: "application/javascript" }))`);
       if (normalized.endsWith("/src/apkgImportInternal.ts")) result = 'import CatalogApkgWorker from "./apkgImportWorker.ts?worker&inline";\n' + result.replace('new Worker(new URL("./apkgImportWorker.ts", import.meta.url), { type: "module" })', 'new CatalogApkgWorker()');
       return result === code ? undefined : { code: result, map: null };

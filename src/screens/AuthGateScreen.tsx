@@ -1,6 +1,7 @@
 import React from "react";
 import { Chrome, KeyRound, Link2, Lock, Mail, RotateCcw, ShieldCheck, UserPlus } from "lucide-react";
 import { OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreWordmark } from "../ui/CoreWordmark.tsx";
 
 export function AuthGateScreen({
   configured = true,
@@ -66,8 +67,9 @@ export function AuthGateScreen({
   return (
     <main className="core-centered-viewport grid min-h-dvh min-w-0 grid-cols-[minmax(0,1fr)] place-items-center bg-core-surface px-6 py-10 text-core-text">
       <div className="min-w-0 w-full max-w-md">
-          <div className="mb-8">
-            <h1 className="core-heading-1 font-semibold tracking-normal text-core-text">CoRe</h1>
+          <div className="mb-8 text-center">
+            <img src="/core-socrates.svg" alt="" className="mx-auto mb-5 h-28 w-auto" />
+            <h1 className="core-heading-1 tracking-normal"><CoreWordmark /></h1>
             <p className="mt-2 core-body-large text-core-muted">Content Repetition</p>
           </div>
 
@@ -150,7 +152,7 @@ export function AuthGateScreen({
             ) : null}
 
             {!isRecovery ? (
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {mode !== "sign-in" ? (
                   <button type="button" onClick={() => setMode("sign-in")} className="core-body font-semibold text-core-action" aria-pressed={false}>
                     Anmelden
