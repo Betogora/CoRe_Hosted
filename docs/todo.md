@@ -1,9 +1,87 @@
 # CoRe TODO
 
-Stand: 2026-10-17
+Stand: 2026-10-24
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
+
+## P0: Prüfungen (K0–K8)
+
+Reihenfolge = Priorität. Vereint den Klausurplaner aus PR #42
+(`codex/klausurplaner-fsrs-kontakte`, FSRS-Kontaktverteilung, Profilformat V2)
+mit dem Prüfungen-Stand auf main; am Ende liegt alles auf main. Kein Scope
+Creep: Neues nur, wenn es eine Entscheidung unten verlangt.
+Entscheidungen vom 2026-10-24:
+
+- E1 Unrealistische Tagesmengen bleiben speicherbar, ab einer klaren Schwelle
+  erscheint ein Hinweis in Vorschau und Tag.
+- E2 Priorität und Lernziel-Frage entfallen; Feld entfernen, ADR-042 ergänzen.
+- E3 Gemeinsame Stapel mehrerer Klausuren werden gemeinsam geplant: jede Karte
+  genau einmal eingeführt, spätestens zum frühesten Stichtag; die Tageslast
+  aller Klausuren wird zusammen ausgeglichen.
+- E4 Ein Zeitblock ohne Fach ergänzt die Tageszeit der Fächer anteilig und
+  ersetzt sie nicht.
+- E5 Speichern wird nie blockiert; nicht mehr einplanbarer Stoff erscheint als
+  offen.
+- E6 Cutover auf das neue Profilformat ohne Umrechnungscode in der App;
+  vorhandene Pläne rechnet einmalig eine Datenbank-Migration um. Offene Tabs
+  alter Versionen laden nach dem Deploy neu.
+- E7 Eine verpasste Leseaufgabe bleibt sichtbar, bis sie abgehakt oder das
+  Thema abgeschlossen ist.
+- E8 Kein Migrationshinweis (entfällt mit E6).
+- E9 Seite und Heute-Widget teilen eine Planung; keine Doppelberechnung.
+- E10 Tagesaufgaben speichern Kartenverweise schlank und begrenzt im Profil.
+- E11 Quiz-Planung (Blöcke, Empfehlungen, gesperrte Aktion) wird samt Code
+  entfernt und kommt mit einem eigenen Quiz-Feature später zurück.
+- E12 Offline zeigt die zuletzt geplanten Tagesziele und den Kalender und
+  startet die heutige Einheit aus lokal vorhandenen Zielkarten; fehlende
+  Karten erscheinen als „erst online verfügbar“. Ohne lokalen Stand gilt die
+  allgemeine Offline-Meldung. Neu geplant wird nur online.
+
+- [ ] **K0 Integration:** PR #42 auf einem eigenen Branch mit main
+      zusammenführen (Commits per Merge-Commit erhalten), generierte Docs neu
+      erzeugen. Nachweis: `npm run gate:push`.
+- [ ] **K1 Cutover und Speicherregeln (vor dem Merge nach main):** E6
+      (V1-Felder, `migrateStudyTime` und V1-Rückfall entfernen, Migration der
+      Profil-JSONB mit Verify-SQL), E5 und E8. Danach PR nach main; PR #42 mit
+      Verweis schließen. Nachweis: Unit-Tests, `npm run db:types:check`,
+      `npm run test:rls:local`.
+- [ ] **K2 Soll-Ist-Prüfung:** Jede Funktion des Inventars (Assistent,
+      Kontaktverteilung, Stichtag, Themenfolge, Lernzeit, Blöcke,
+      Tagesausnahmen, Leseaufgaben, eingefrorene Tagesziele, Sitzung,
+      Kalender) gegen Spec und Absicht prüfen; Abweichungen mit dem Nutzer
+      klären statt raten.
+- [ ] **K3 Entscheidungen umsetzen:** E1–E4, E7, E11 in Modell und UI;
+      Planungsschlüssel je Klausur statt global, damit ein Block für eine
+      Klausur keine Ziele anderer Klausuren zurücksetzt.
+- [ ] **K4 Specs und Docs:** specs §6.9, `architecture.md`, ADR-042
+      (veralteter Satz zum Monatskalender, Ergänzung E2/E3/E11), `status.md`;
+      toten Code entfernen (`priority`, `reserveFraction`, `minimumMinutes`,
+      `budgetMinutes`, `buffer`, nur von Tests gelesene Diagnosefelder).
+- [ ] **K5 Zuständigkeiten und Datenpfad:** Bewertungshistogramm,
+      `summary:`-IDs und Sitzungsauswahl aus `App.tsx` in die
+      Prüfungsmodule; `reviewService.ts` ohne festen Import der
+      Prüfungssitzung; eine Zeitzonenregel für Widget, Seite und App;
+      Profilschreibwege des automatischen Tagesziel-Speicherns gegen
+      parallele Änderungen absichern; E10.
+- [ ] **K6 Performance:** E9; Planungsdaten über Bildschirmwechsel cachen und
+      nach Reviews gezielt invalidieren; kein Neuplanen durch automatisches
+      Speichern der Tagesaufgaben; Sitzungsstart nutzt den vorhandenen Plan;
+      `balanceExamContacts` ohne Neuanlage je Score und mit inkrementeller
+      Bewertung; Kohorten bekannter Karten wirksam bündeln; Worker nur bei
+      gemessenem Bedarf; Benchmark-Skript ins Repo (main gegen neuen Stand,
+      fester Horizont). Nachweis: Messwerte vorher/nachher,
+      `npm run performance:measure:local`.
+- [ ] **K7 UI/UX iterativ:** visuelle Pflichtmatrix aller Prüfungsansichten
+      mit Top-Bar; Ziehen der Themenfolge scrollt ab 1280 px den
+      Inhaltsbereich; Wochenkalender per Touch; Hinweis aus E1; schlanke
+      Oberfläche ohne Erklärtexte; Iteration mit Screenshots.
+- [ ] **K8 App-Anbindung und Abnahme:** E12; Prüfungssitzung in Hilfe
+      erklären; E2E gegen die echte App statt Katalog-Demo, lokales Supabase
+      mit zwei Browserkontexten desselben Kontos; Unit-Tests für
+      `balanceExamContacts` (Mengenerhaltung, Zielreihenfolge, Abbruch),
+      `ratingAt` mit Bewertungshistorie und gemeinsame Planung (E3);
+      `history.md` und Abschluss dieses Blocks.
 
 ## Offene Abnahmen der Kartenmodell-Roadmap
 
