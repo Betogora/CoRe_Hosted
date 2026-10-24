@@ -1,9 +1,16 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-21
+**Stand:** 2026-10-24
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-24 — Prüfungen K0/K1: Klausurplaner mit main vereint, Profilformat 2 als Cutover
+
+- K0: PR #42 (`codex/klausurplaner-fsrs-kontakte`) per Merge-Commit auf `claude/pruefungen-integration` mit main zusammengeführt; Konflikte bestanden nur in generierten Docs-Seiten. Roadmap K0–K8 mit Entscheidungen E1–E12 in `todo.md`.
+- K1 (E5, E6, E8): Format 2 ist das einzige Profilformat der Prüfungsplanung. Entfernt: Umrechnung aus Format 1, gemeinsame Kapazitätsfelder (`weekdayMinutes`, `weekendMinutes`, `weekdays`, `reserveFraction`, `minimumMinutes`, `dateOverrides`, `weeklyMinutes`), `priority`, `migratedFromSharedTime` samt Hinweis. Lernzeit ist je Klausur Pflicht; global bleiben nur Zeitblöcke. Tageszeiten bearbeitet der Kalender nur mit gewählter Prüfung. Speichern hängt nur an Name, künftigem Termin und Stapeln, nicht mehr an der Vorschau.
+- Migration `20261024153629_exam_planning_format_2.sql` stellt Bestände einmalig um (gemeinsame Zeit geteilt auf aktive Prüfungen, Puffer über die Lernwochentage in Kalendertage) und bricht ab, falls danach noch Format 1 vorliegt. Gegen PGlite mit Format-1-Beispieldaten geprüft; das Ergebnis besteht `validateExamPlanningSettings`, andere Profilwerte bleiben unberührt.
+- Verifiziert: 61 fokussierte Prüfungs-/Profiltests, neuer Test für Speichern ohne fertige Vorschau, `npm run gate:push`, Sichtprüfung des Tageseditors im Katalog bei 320, 390, 1280 und 1440 px hell/dunkel ohne horizontales Scrollen. Abschlussaudit mit `audit-last-change`: Tageslimit wieder aus `EXAM_PLANNING_LIMITS`. Nicht geprüft: `db:types:check`, `test:rls:local` und lokale E2E mangels Docker; die Migration ändert nur JSONB-Inhalte, kein Schema.
 
 ## 2026-10-21 — Themenreihenfolge im Klausurplaner einklappbar und verschiebbar
 

@@ -25,8 +25,8 @@ test("filtered work counts shared cards once and all repeat methods", () => {
   assert.equal(getExamCalendarWork(undefined, new Set()).newCards, 0);
 });
 
-const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "exam", createdAt: "2026-10-18T08:00:00.000Z", examDate: "2026-10-30", studyTime: undefined };
-const capacity = { ...createStudyTimeCapacity(), weekdays: Array(7).fill(true), weeklyMinutes: Array(7).fill(60) };
+const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "exam", createdAt: "2026-10-18T08:00:00.000Z", examDate: "2026-10-30", studyTime: { dailyMinutes: 60, weekdays: Array(7).fill(true), dateOverrides: [] } };
+const capacity = createStudyTimeCapacity();
 
 test("quiz recommendations repeat every three days and on the final available day", () => {
   const days = createExamQuizRecommendations([exam], capacity, "2026-10-18");
@@ -35,17 +35,17 @@ test("quiz recommendations repeat every three days and on the final available da
 
 test("quiz recommendations skip free days, other exams, past dates and inactive exams", () => {
   const other = { ...exam, id: "other", examDate: "2026-10-28", status: "paused" as const };
-  const days = createExamQuizRecommendations([exam, other], { ...capacity, dateOverrides: [{ date: "2026-10-29", minutes: 0 }] }, "2026-10-24");
+  const days = createExamQuizRecommendations([{ ...exam, studyTime: { ...exam.studyTime, dateOverrides: [{ date: "2026-10-29", minutes: 0 }] } }, other], capacity, "2026-10-24");
   assert.deepEqual([...days], [["2026-10-24", ["exam"]], ["2026-10-27", ["exam"]]]);
   assert.equal(createExamQuizRecommendations([{ ...exam, status: "completed" }], capacity, "2026-10-18").size, 0);
 });
 
 test("quiz recommendations deduplicate checkpoints on the same available date", () => {
   const weeklyMinutes = Array(7).fill(0); weeklyMinutes[0] = 60;
-  const days = createExamQuizRecommendations([exam], { ...capacity, weeklyMinutes }, "2026-10-19");
+  const days = createExamQuizRecommendations([{ ...exam, studyTime: { ...exam.studyTime, weeklyMinutes } }], capacity, "2026-10-19");
   assert.deepEqual([...days], [["2026-10-19", ["exam"]], ["2026-10-26", ["exam"]]]);
   const overrides = Array.from({ length: 6 }, (_, i) => ({ date: `2026-10-${24 + i}`, minutes: 0 }));
-  assert.deepEqual([...createExamQuizRecommendations([exam], { ...capacity, dateOverrides: overrides }, "2026-10-23")], [["2026-10-23", ["exam"]]]);
+  assert.deepEqual([...createExamQuizRecommendations([{ ...exam, studyTime: { ...exam.studyTime, dateOverrides: overrides } }], capacity, "2026-10-23")], [["2026-10-23", ["exam"]]]);
 });
 
 

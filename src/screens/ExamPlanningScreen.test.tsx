@@ -5,7 +5,9 @@ import { createCoreRepository } from "../coreRepository.ts";
 import { ExamPlanningScreen } from "./ExamPlanningScreen.tsx";
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
-import { withGlobalSchedulerPreferences } from "../learningProfiles.ts";
+import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../learningProfiles.ts";
+import { createCoreDeck } from "../coreModel.ts";
+import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 import { createExamPlan, createStudyTimeCapacity } from "../examPlanSettings.ts";
 import { type ExamPortfolioForecast, type StudyPlanBlock } from "../examPlanning.ts";
@@ -31,7 +33,7 @@ test("the empty exam screen starts with a month calendar and creation below", ()
 test("Prüfungskarten beginnen als neutrale, beschriftete Disclosure ohne sofortige Aktionen", () => {
   const state = createCoreRepository().getState();
   const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-11-19" };
-  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 1, exams: [exam], capacity: createStudyTimeCapacity() } });
+  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 2, exams: [exam], capacity: createStudyTimeCapacity() } });
   const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onStartUnit={async () => undefined} />);
   assert.match(html, /aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*aria-label="Patho: Details öffnen"/);
   assert.match(html, /19\. November 2026[^]*?Noch 32 Tage/);
@@ -119,7 +121,7 @@ test("Wochenansicht zeigt To-dos über 24 Stunden und erhält neutrale Lernzeitb
 test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und nur vorbereitete Quizaktionen", () => {
   const state = createCoreRepository().getState();
   const date = "2026-10-20", exam = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27", colorIndex: 4 };
-  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 1, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [
+  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 2, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [
     { id: "topic:anatomy:deck", examId: exam.id, date, kind: "study", deckIds: ["deck"], cardIds: ["card"], capturedAt: date + "T08:00:00.000Z", completed: "automatic" },
     { id: "quiz:anatomy:" + date, examId: exam.id, date, kind: "quiz", deckIds: ["deck"], cardIds: [], capturedAt: date + "T08:00:00.000Z", completed: null },
   ] } });
@@ -131,4 +133,13 @@ test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und nur vorbereitete 
   assert.match(html, /Themenquiz/);
   assert.match(html, /<button[^>]*disabled=""[^>]*>[^]*?KI generieren/);
   assert.match(html, /Quiz-Erstellung folgt/);
+});
+
+test("Bearbeiten lässt gültige Angaben ohne fertige Planung speichern", () => {
+  const state = createCoreRepository().getState();
+  const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
+  const exam = { ...createExamPlan("2026-10-18", [deck.id]), id: "anatomy", name: "Anatomie", examDate: "2026-11-19" };
+  const html = renderToStaticMarkup(<ExamPlanEditor embedded decks={[deck]} exams={[exam]} capacity={createStudyTimeCapacity()} initialPlan={exam} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
+  assert.match(html, /Dein Plan wird berechnet/);
+  assert.match(html, /<button class="core-action-primary ">(?:(?!<\/button>).)*<span>Speichern<\/span><\/button>/);
 });

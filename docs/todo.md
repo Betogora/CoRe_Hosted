@@ -38,14 +38,8 @@ Entscheidungen vom 2026-10-24:
   Karten erscheinen als „erst online verfügbar“. Ohne lokalen Stand gilt die
   allgemeine Offline-Meldung. Neu geplant wird nur online.
 
-- [ ] **K0 Integration:** PR #42 auf einem eigenen Branch mit main
-      zusammenführen (Commits per Merge-Commit erhalten), generierte Docs neu
-      erzeugen. Nachweis: `npm run gate:push`.
-- [ ] **K1 Cutover und Speicherregeln (vor dem Merge nach main):** E6
-      (V1-Felder, `migrateStudyTime` und V1-Rückfall entfernen, Migration der
-      Profil-JSONB mit Verify-SQL), E5 und E8. Danach PR nach main; PR #42 mit
-      Verweis schließen. Nachweis: Unit-Tests, `npm run db:types:check`,
-      `npm run test:rls:local`.
+K0 und K1 sind erledigt, Details in [`history.md`](history.md).
+
 - [ ] **K2 Soll-Ist-Prüfung:** Jede Funktion des Inventars (Assistent,
       Kontaktverteilung, Stichtag, Themenfolge, Lernzeit, Blöcke,
       Tagesausnahmen, Leseaufgaben, eingefrorene Tagesziele, Sitzung,

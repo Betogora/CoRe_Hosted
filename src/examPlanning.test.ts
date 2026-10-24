@@ -43,7 +43,7 @@ test("selbst 6000 Karten an einem einzigen Tag bleiben planbar", async () => {
 test("proportional skalierte Stunden verändern die Verteilung nicht", async () => {
   const exam = plan(), input = cards(400);
   const first = await forecast(input, exam);
-  const second = await forecast(input, { ...exam, studyTime: { ...exam.studyTime!, dailyMinutes: 200 } });
+  const second = await forecast(input, { ...exam, studyTime: { ...exam.studyTime, dailyMinutes: 200 } });
   assert.deepEqual(first.days.map((day) => day.newCardIds), second.days.map((day) => day.newCardIds));
 });
 test("gespeicherte Tagesziele bleiben auch in der gesamten Kalenderplanung stabil", async () => {

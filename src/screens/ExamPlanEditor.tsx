@@ -67,8 +67,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   const plannedExams = (embedded || step >= 2) && valid ? exams.some((exam) => exam.id === plan.id) ? exams.map((exam) => exam.id === plan.id ? candidate : exam) : [...exams, candidate] : [];
   const { forecast, current, busy, error } = useExamForecast({ decks, exams: plannedExams, capacity, preferences, timeZone, now, onLoadPlanningData, delayMs: 250 });
   const summary = current ? forecast?.exams.find((exam) => exam.examId === plan.id) ?? null : null;
-  const canSave = valid && !saving && current && summary !== null && summary.totalCards > 0 && (summary.remainingNewCount === 0 || summary.usableDays > 0) && summary.unscheduledNewCount === 0;
-  const time = plan.studyTime!;
+  const time = plan.studyTime;
   const topicOrder = getExamTopicOrder(decks, plan).filter((id) => (rows.find((row) => row.id === id)?.directInventory.totalCards ?? 0) > 0);
   const selectedCards = rows.filter((row) => selected.has(row.id)).reduce((sum, row) => sum + row.directInventory.totalCards, 0);
   function patch(fields: Partial<ExamPlan>) { setPlan((value) => ({ ...value, ...fields })); }
@@ -114,7 +113,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       {!embedded && step === 2 ? renderPlanningOptions() : null}
       {valid && (embedded || step >= 2) ? renderFeasibility() : null}
       {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
-      {embedded ? <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end"><ActionButton variant="secondary" disabled={saving} onClick={cancel}>Abbrechen</ActionButton><ActionButton variant="primary" icon={Save} loading={saving} disabled={valid && !canSave} onClick={() => { if (!valid) setShowErrors(true); else void onSave({ ...plan, name: plan.name.trim(), updatedAt: new Date().toISOString() }, capacity); }}>Speichern</ActionButton></div> : renderStepActions()}
+      {embedded ? <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end"><ActionButton variant="secondary" disabled={saving} onClick={cancel}>Abbrechen</ActionButton><ActionButton variant="primary" icon={Save} loading={saving} onClick={() => { if (!valid) setShowErrors(true); else void onSave({ ...plan, name: plan.name.trim(), updatedAt: new Date().toISOString() }, capacity); }}>Speichern</ActionButton></div> : renderStepActions()}
     </fieldset>
     {!embedded && step === 3 ? renderCalendar() : null}
     <ActionDialog open={discarding} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setDiscarding(false)} onConfirm={onCancel} />
@@ -144,5 +143,5 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       <p className="core-caption text-core-muted">Die Verteilung berücksichtigt erwartete FSRS-Lernkontakte. Künftige Antworten sind Annahmen; deine tatsächlichen Ergebnisse aktualisieren den Plan. Auch hohe Tagesmengen lassen sich planen.</p></> : null}
   </div>; }
   function renderCalendar() { return <ExamCalendar exams={plannedExams} capacity={capacity} forecast={current ? forecast : null} decks={decks} today={today} initialExamId={plan.id} busy={busy} onChange={(nextExams, nextCapacity) => { const changed = nextExams.find((exam) => exam.id === plan.id); if (changed) patch(changed); setCapacity(nextCapacity); }} />; }
-  function renderStepActions() { return <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={() => go(step - 1)}>Vorheriger Schritt</ActionButton> : <span />}{step < 3 ? <ActionButton variant="primary" icon={ArrowRight} disabled={(step === 0 && !validBasics) || (step === 1 && !plan.deckIds.length)} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zur Lernzeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!canSave} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>; }
+  function renderStepActions() { return <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={() => go(step - 1)}>Vorheriger Schritt</ActionButton> : <span />}{step < 3 ? <ActionButton variant="primary" icon={ArrowRight} disabled={(step === 0 && !validBasics) || (step === 1 && !plan.deckIds.length)} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zur Lernzeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!valid} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>; }
 }

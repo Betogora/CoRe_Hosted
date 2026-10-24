@@ -13,8 +13,8 @@ const made = createBasicNote("heart", "Frage", "Antwort", { createdAt: now });
 const { extra: _extra, ...study } = made.cards[0].study;
 const card: CardStudySnapshot = { cardId: made.cards[0].id, deckId: "heart", noteId: made.note.id, status: "active", study, studyRevision: 0, activeVariantCount: 0, createdAt: now, maturityXp: 0 };
 const decks = [createCoreDeck({ id: "root", name: "Anatomie" }), ...["heart", "lung", "kidney", "brain"].map((id) => createCoreDeck({ id, name: id, parentDeckId: "root" }))];
-const exam = { ...createExamPlan(date, decks.map((deck) => deck.id)), id: "exam", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-30" };
-const settings: ExamPlanningSettings = { version: 1, exams: [exam], capacity: { ...createStudyTimeCapacity(), weekdays: Array(7).fill(true) } };
+const exam = { ...createExamPlan(date, decks.map((deck) => deck.id)), id: "exam", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-30", studyTime: { dailyMinutes: 120, weekdays: Array(7).fill(true), dateOverrides: [] } };
+const settings: ExamPlanningSettings = { version: 2, exams: [exam], capacity: createStudyTimeCapacity() };
 const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 60, newCardIds: [card.cardId], reviewCardIds: [], reviewCount: 0, buffer: false, summaries: [], blocks: [{ id: "new", date, deckId: "heart", examIds: [exam.id], method: "new", expectedItems: 1, priority: 1, cardIds: [card.cardId] }] }], exams: [{ examId: exam.id, decks: decks.slice(1).map((deck) => ({ deckId: deck.id, name: deck.name, known: 0, total: 1,  })), usableDays: 10, totalCards: 4, remainingNewCount: 4, unscheduledNewCount: 0, availableMinutes: 60, current: { coverage: 0, consolidated: 0,  }, issues: [] }] };
 const reconcile = (saved = settings, cards = [card], plan = forecast, at = now) => reconcileExamDailyTasks(saved, decks, plan, cards, at, "Europe/Berlin", 4);
 

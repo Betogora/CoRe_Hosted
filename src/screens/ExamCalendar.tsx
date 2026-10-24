@@ -2,7 +2,7 @@ import React from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import type { Deck, ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
 import { validateExamPlanningSettings } from "../examPlanSettings.ts";
-import { getExamDayCapacity, getExamLastNewDate, getExamStudyMinutes, getExamTopicOrder, shiftExamDay, type ExamPortfolioForecast } from "../examPlanning.ts";
+import { getExamLastNewDate, getExamStudyMinutes, getExamTopicOrder, shiftExamDay, type ExamPortfolioForecast } from "../examPlanning.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { SoftPanel, CoreSegmentedControl } from "../ui/coreUi.tsx";
@@ -60,11 +60,10 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
     catch { setError("Bitte prüfe die Zeiten: Blöcke dürfen sich nicht überschneiden und müssen vor der jeweiligen Prüfung liegen."); return false; }
   }
   function setDayMinutes(minutes: number | null) {
-    if (selectedExam?.studyTime) {
-      const dateOverrides = selectedExam.studyTime.dateOverrides.filter((day) => day.date !== date);
-      if (minutes !== null) dateOverrides.push({ date, minutes });
-      change(exams.map((exam) => exam.id === selectedExam.id ? { ...exam, studyTime: { ...selectedExam.studyTime!, dateOverrides } } : exam), capacity);
-    } else change(exams, { ...capacity, dateOverrides: [...capacity.dateOverrides.filter((day) => day.date !== date), ...(minutes === null ? [] : [{ date, minutes }])] });
+    if (!selectedExam) return;
+    const dateOverrides = selectedExam.studyTime.dateOverrides.filter((day) => day.date !== date);
+    if (minutes !== null) dateOverrides.push({ date, minutes });
+    change(exams.map((exam) => exam.id === selectedExam.id ? { ...exam, studyTime: { ...selectedExam.studyTime, dateOverrides } } : exam), capacity);
   }
   function moveTopic(deckId: string, nextDate: string) {
     if (!selectedExam) return;
@@ -104,8 +103,8 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
       {dayByKey.get(date)?.summaries.filter((entry) => ids.has(entry.examId)).map((entry) => <p key={`${entry.examId}:${entry.deckId}`} className="core-body text-core-text">Zusammenfassung lesen · {deckName(entry.deckId)}</p>)}
       <fieldset disabled={busy || date < today || date >= horizon} className="min-w-0">
       <div className="grid min-w-0 gap-5 md:grid-cols-2">
-        <div className="grid content-start gap-3"><label className={LABEL}>Zeit für diesen Tag · Min.<input className={FIELD} type="number" min={0} max={1440} disabled={selectedBlocks.length > 0} value={selectedExam ? getExamStudyMinutes(date, selectedExam, exams, capacity) : getExamDayCapacity(date, capacity)} onChange={(event) => setDayMinutes(Math.min(1440, Math.max(0, Math.round(Number(event.target.value)))))} /></label>
-          {(selectedExam?.studyTime?.dateOverrides ?? capacity.dateOverrides).some((day) => day.date === date) ? <ActionButton variant="secondary" onClick={() => setDayMinutes(null)}>Wochenrhythmus verwenden</ActionButton> : null}
+        <div className="grid content-start gap-3">{selectedExam ? <><label className={LABEL}>Zeit für diesen Tag · Min.<input className={FIELD} type="number" min={0} max={1440} disabled={selectedBlocks.length > 0} value={getExamStudyMinutes(date, selectedExam, exams, capacity)} onChange={(event) => setDayMinutes(Math.min(1440, Math.max(0, Math.round(Number(event.target.value)))))} /></label>
+          {selectedExam.studyTime.dateOverrides.some((day) => day.date === date) ? <ActionButton variant="secondary" onClick={() => setDayMinutes(null)}>Wochenrhythmus verwenden</ActionButton> : null}</> : null}
           <p className="core-caption text-core-muted">Ohne feste Blöcke gilt dein Wochenrhythmus oder die Tagesausnahme. Zugeordnete Kartenblöcke ersetzen die Vorgabe dieses Tages für ihr Fach.</p>
           <ul className="grid gap-2">{selectedBlocks.map((block) => <li key={block.id} className="flex min-w-0 items-center gap-2 rounded-control bg-core-subtle p-3"><span className="min-w-0 flex-1 break-words core-body text-core-text">{clock(block.start)}–{clock(block.end)} · {(block.examId === null ? "Lernzeit · Fach noch zuordnen" : `${exams.find((exam) => exam.id === block.examId)?.name}${block.kind === "quiz" ? " · Quiz" : " · Karten"}`)}</span><IconButton label={`Lernblock ${clock(block.start)} löschen`} icon={Trash2} onClick={() => change(exams, { ...capacity, timeBlocks: capacity.timeBlocks?.filter((entry) => entry.id !== block.id) })} /></li>)}</ul>
         </div>

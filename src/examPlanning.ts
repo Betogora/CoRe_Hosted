@@ -53,31 +53,24 @@ export function getExamCurrentProgress(cards: readonly CardStudySnapshot[], plan
   const own = cards.filter((card) => card.status === "active" && plan.deckIds.includes(card.deckId));
   return { ...readiness(own), totalCards: own.length };
 }
-export function getExamDayCapacity(key: string, capacity: StudyTimeCapacity) {
-  const override = capacity.dateOverrides.find((day) => day.date === key);
-  if (override) return override.minutes;
-  const weekday = (new Date(`${key}T12:00:00Z`).getUTCDay() + 6) % 7;
-  return capacity.weekdays[weekday] ? capacity.weeklyMinutes?.[weekday] ?? (weekday < 5 ? capacity.weekdayMinutes : capacity.weekendMinutes) : 0;
-}
-function baseMinutes(key: string, exam: ExamPlan, capacity: StudyTimeCapacity) {
+function baseMinutes(key: string, exam: ExamPlan) {
   const weekday = (new Date(`${key}T12:00:00Z`).getUTCDay() + 6) % 7, time = exam.studyTime;
-  return time?.dateOverrides.find((day) => day.date === key)?.minutes ?? capacity.dateOverrides.find((day) => day.date === key)?.minutes
-    ?? (time ? time.weekdays[weekday] ? time.weeklyMinutes?.[weekday] ?? time.dailyMinutes : 0 : getExamDayCapacity(key, capacity));
+  return time.dateOverrides.find((day) => day.date === key)?.minutes ?? (time.weekdays[weekday] ? time.weeklyMinutes?.[weekday] ?? time.dailyMinutes : 0);
 }
 /** Concrete blocks replace only the corresponding exam/date, never the rest of the horizon. */
 export function getExamStudyMinutes(key: string, exam: ExamPlan, exams: readonly ExamPlan[], capacity: StudyTimeCapacity): number {
   if (key >= exam.examDate || exams.some((entry) => entry.status === "active" && entry.examDate === key)) return 0;
   const blocks = (capacity.timeBlocks ?? []).filter((block) => block.date === key);
   const own = blocks.filter((block) => block.examId === exam.id && block.kind !== "quiz");
-  const shared = blocks.filter((block) => block.examId === null).reduce((sum, block) => sum + block.end - block.start, 0), baseline = baseMinutes(key, exam, capacity);
-  const total = exams.filter((entry) => entry.status === "active" && key < entry.examDate).reduce((sum, entry) => sum + baseMinutes(key, entry, capacity), 0);
+  const shared = blocks.filter((block) => block.examId === null).reduce((sum, block) => sum + block.end - block.start, 0), baseline = baseMinutes(key, exam);
+  const total = exams.filter((entry) => entry.status === "active" && key < entry.examDate).reduce((sum, entry) => sum + baseMinutes(key, entry), 0);
   const share = total > 0 ? shared * baseline / total : 0;
   if (own.length || share > 0) return own.reduce((sum, block) => sum + block.end - block.start, 0) + share;
   const quiz = blocks.filter((block) => block.examId === exam.id && block.kind === "quiz").reduce((sum, block) => sum + block.end - block.start, 0);
   return Math.max(0, baseline - quiz);
 }
 export function getExamPlanningKey(exam: ExamPlan, capacity: StudyTimeCapacity) {
-  return stableContentHash([exam.deckIds, exam.examDate, exam.bufferDays, exam.studyTime, exam.topicOrder, exam.topicDates, exam.desiredRetention, exam.variants, exam.readSummaryBeforeTopics, capacity.dateOverrides, capacity.timeBlocks], "exam-plan");
+  return stableContentHash([exam.deckIds, exam.examDate, exam.bufferDays, exam.studyTime, exam.topicOrder, exam.topicDates, exam.desiredRetention, exam.variants, exam.readSummaryBeforeTopics, capacity.timeBlocks], "exam-plan");
 }
 function getExamStudySettings(settings: DeckSettings, desiredRetention: number, variants: boolean): DeckSettings {
   return { ...settings, ...markLearningSettingsCustom({ ...settings, newCardsPerDay: 500, maximumReviewsPerDay: 2000, newReviewOrder: "reviews-first", newCardSortOrder: "oldest-first", buryNewSiblings: false,
@@ -129,7 +122,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     const windows = ownKeys.map((key, i) => {
       if (minutes[i] <= 0) return [];
       const clock = (minute: number) => minute === 1440 ? getLearningDayStartForKey(shiftExamDay(key, 1), { timeZone })!.getTime() : getLearningDayStartForKey(key, { timeZone, dayStartHour: Math.floor(minute / 60) })!.getTime() + minute % 60 * 60000;
-      const blocks = (capacity.timeBlocks ?? []).filter((block) => block.date === key && block.kind !== "quiz" && (block.examId === exam.id || (block.examId === null && baseMinutes(key, exam, capacity) > 0)));
+      const blocks = (capacity.timeBlocks ?? []).filter((block) => block.date === key && block.kind !== "quiz" && (block.examId === exam.id || (block.examId === null && baseMinutes(key, exam) > 0)));
       return blocks.length ? blocks.map((block) => [Math.max(dayStarts[i], clock(block.start)), Math.min(ends[i], clock(block.end))]).sort((a, b) => a[0] - b[0]) : [[Math.min(ends[i] - 1, dayStarts[i] + 8 * 3600000), ends[i]]];
     });
     eligible = eligible.filter((i) => windows[i].some(([begin, end]) => Math.max(begin, i === 0 ? Date.parse(now) : begin) < Math.min(end, introductionEnd)));

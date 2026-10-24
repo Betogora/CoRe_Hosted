@@ -134,13 +134,12 @@ export interface ExamPlan {
   colorIndex?: number;
   color?: string;
   status: "active" | "paused" | "completed";
-  priority: "low" | "normal" | "high";
   deckIds: string[];
   examDate: string;
   desiredRetention: number;
   variants: boolean;
   bufferDays: number;
-  studyTime?: { dailyMinutes: number; weekdays: boolean[]; weeklyMinutes?: number[]; dateOverrides: Array<{ date: string; minutes: number }> };
+  studyTime: { dailyMinutes: number; weekdays: boolean[]; weeklyMinutes?: number[]; dateOverrides: Array<{ date: string; minutes: number }> };
   topicOrder?: string[];
   readSummaryBeforeTopics?: boolean;
   completedSummaryDeckIds?: string[];
@@ -150,15 +149,8 @@ export interface ExamPlan {
   updatedAt: string;
 }
 
-/** Study minutes per day shared by all active exams. */
+/** Concrete calendar blocks shared by all exams; study time itself belongs to each exam. */
 export interface StudyTimeCapacity {
-  weekdayMinutes: number;
-  weekendMinutes: number;
-  weekdays: boolean[];
-  reserveFraction: number;
-  minimumMinutes: number;
-  dateOverrides: Array<{ date: string; minutes: number }>;
-  weeklyMinutes?: number[];
   timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null; kind?: "study" | "quiz" }>;
 }
 
@@ -176,11 +168,10 @@ export interface ExamDailyTask {
 }
 
 export interface ExamPlanningSettings {
-  version: 1 | 2;
+  version: 2;
   exams: ExamPlan[];
   capacity: StudyTimeCapacity;
   dailyTasks?: ExamDailyTask[];
-  migratedFromSharedTime?: boolean;
 }
 
 export interface DeckSettings {

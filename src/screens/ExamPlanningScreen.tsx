@@ -170,7 +170,6 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
         <h3 id="exam-list-title" className="core-heading-3 font-semibold text-core-text">Deine Prüfungen</h3>
         <div className="flex flex-wrap gap-2">{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton></div>
       </div>
-      {preferences.examPlanning.migratedFromSharedTime ? <StatusMessage tone="info">Die frühere gemeinsame Lernzeit wurde auf die aktiven Klausuren verteilt. Bitte prüfe die Lernzeit je Klausur unter Bearbeiten.</StatusMessage> : null}
       {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {
         try {
         const restored = upsertExamPlan(preferences.examPlanning, deletedPlan.exam);

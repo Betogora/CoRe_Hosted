@@ -5,22 +5,12 @@ import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from ".
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
 
-test("V1 teilt gemeinsame Zeit einmalig und erhält den bisherigen letzten Einführungstag", () => {
-  const legacy = { ...exam("a"), studyTime: undefined, bufferDays: 2, examDate: "2026-10-20" };
-  const capacity = { ...createStudyTimeCapacity(), weekdayMinutes: 120, weekendMinutes: 120, weekdays: Array(7).fill(true) };
-  const migrated = normalizeExamPlanningSettings({ version: 1, exams: [legacy, { ...legacy, id: "b" }], capacity });
-  assert.equal(migrated.version, 2); assert.equal(migrated.migratedFromSharedTime, true);
-  assert.equal(migrated.exams[0].studyTime?.dailyMinutes, 60);
-  assert.equal(migrated.exams[0].bufferDays, 3);
-  assert.deepEqual(normalizeExamPlanningSettings(migrated), migrated, "kein erneutes Teilen bei Profilnormalisierung");
-});
-
 test("Themenfolge, Tagesausnahmen und erledigte Leseaufgaben bleiben validiert", () => {
   const original = exam("a"), settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...original, topicOrder: ["deck-a"], readSummaryBeforeTopics: true, completedSummaryDeckIds: ["deck-a"] });
   assert.deepEqual(normalizeExamPlanningSettings(settings), settings);
   assert.throws(() => upsertExamPlan(settings, { ...original, topicOrder: ["deck-a", "deck-a"] }), /ungültig/);
   assert.throws(() => upsertExamPlan(settings, { ...original, completedSummaryDeckIds: ["missing"] }), /ungültig/);
-  assert.throws(() => upsertExamPlan(settings, { ...original, studyTime: { ...original.studyTime!, dateOverrides: [{ date: "2026-10-12", minutes: 20 }, { date: "2026-10-12", minutes: 40 }] } }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...original, studyTime: { ...original.studyTime, dateOverrides: [{ date: "2026-10-12", minutes: 20 }, { date: "2026-10-12", minutes: 40 }] } }), /ungültig/);
 });
 
 test("Prüfungspläne bleiben beim Ändern anderer Lernwerte im Profil erhalten", () => {
@@ -43,10 +33,10 @@ test("gewählte Prüfungsfarben bleiben im Profil und alte Pläne ohne Farbe gü
 });
 
 test("ungültige Prüfungen fallen einzeln weg, gültige bleiben", () => {
-  const stored = { version: 1, capacity: { ...createStudyTimeCapacity(), weekdays: [true] }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
+  const stored = { version: 2, capacity: { timeBlocks: "kaputt" }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
   const settings = normalizeExamPlanningSettings(stored);
   assert.deepEqual(settings.exams.map((entry) => entry.id), ["a", "d"]);
-  assert.deepEqual(settings.capacity, createStudyTimeCapacity(), "eine ungültige Lernzeit fällt auf die Standardwerte zurück");
+  assert.deepEqual(settings.capacity, createStudyTimeCapacity(), "ungültige Zeitblöcke fallen auf die Standardwerte zurück");
   assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 2, exams: [], capacity: createStudyTimeCapacity() });
 });
 
@@ -67,7 +57,7 @@ test("Ausnahmetage sind eindeutig und Namen nicht leer", () => {
 
 
 test("neue Zeit- und Themenangaben überstehen die Profilnormalisierung", () => {
-  const settings = { ...normalizeExamPlanningSettings(undefined), exams: [{ ...exam("a"), topicDates: [{ deckId: "deck-a", date: "2026-10-12" }] }], capacity: { ...createStudyTimeCapacity(), weeklyMinutes: [180, 240, 60, 0, 90, 0, 0], timeBlocks: [{ id: "block-a", date: "2026-10-12", start: 480, end: 660, examId: "a" }] } };
+  const settings = { ...normalizeExamPlanningSettings(undefined), exams: [{ ...exam("a"), topicDates: [{ deckId: "deck-a", date: "2026-10-12" }], studyTime: { ...exam("a").studyTime, weeklyMinutes: [180, 240, 60, 0, 90, 0, 0] } }], capacity: { ...createStudyTimeCapacity(), timeBlocks: [{ id: "block-a", date: "2026-10-12", start: 480, end: 660, examId: "a" }] } };
   assert.deepEqual(validateExamPlanningSettings(settings), settings);
   assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning, settings);
   assert.deepEqual(removeExamPlan(settings, "a").capacity.timeBlocks, []);
