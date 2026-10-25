@@ -69,3 +69,18 @@ test("learning-day keys resolve to exact configured starts across DST changes", 
   );
   assert.equal(getLearningDayStartForKey("2026-02-30", { timeZone: "UTC" }), null);
 });
+
+test("zwischengespeicherte Zeitzonenversätze ergeben auch an Umstellungen dieselben Lerntage wie Intl direkt", () => {
+  const reference = (time: number, timeZone: string, dayStartHour: number) => {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date(time)).map((part) => [part.type, part.value]));
+    const date = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) - (Number(parts.hour) < dayStartHour ? 1 : 0)));
+    return date.toISOString().slice(0, 10);
+  };
+  const transitions = { "Europe/Berlin": ["2026-03-29T00:00:00Z", "2026-10-25T00:00:00Z"], "America/St_Johns": ["2026-03-08T04:00:00Z", "2026-11-01T02:00:00Z"],
+    "Australia/Lord_Howe": ["2026-04-04T14:00:00Z", "2026-10-03T15:00:00Z"], "Asia/Kathmandu": ["2026-06-01T00:00:00Z"] };
+  for (const [timeZone, starts] of Object.entries(transitions)) for (const start of starts) for (let minute = 0; minute < 6 * 60; minute += 7) {
+    const time = Date.parse(start) + minute * 60_000 + 13_000;
+    for (const dayStartHour of [0, 4]) assert.equal(getLearningDayKey(time, { timeZone, dayStartHour }), reference(time, timeZone, dayStartHour), `${timeZone} ${new Date(time).toISOString()} ${dayStartHour}`);
+  }
+});

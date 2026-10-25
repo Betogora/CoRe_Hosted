@@ -10,7 +10,7 @@ import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { examColor } from "./examPlanningUi.ts";
-import { useExamForecast } from "./useExamForecast.ts";
+import { useExamForecast, type ExamForecastState } from "./useExamForecast.ts";
 
 interface ExamDashboardWidgetProps {
   state: DashboardScreenProps["state"]; now: string;
@@ -19,17 +19,20 @@ interface ExamDashboardWidgetProps {
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
   onOpen?: () => void;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
+  /** The page's plan; without it the widget computes its own (Heute). */
+  planning?: ExamForecastState;
 }
 
 /** A persisted daily checklist; checking a task never changes the scheduler or answers cards. */
-export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability }: ExamDashboardWidgetProps) {
+export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, onOpen, onLoadSummaryAvailability, planning }: ExamDashboardWidgetProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const settings = preferences.examPlanning;
   const { exams, capacity } = settings;
   const timeZone = getLearningTimeZone(state.profile);
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const today = getLearningDayKey(now, { timeZone, dayStartHour: preferences.dayStartHour }) ?? civilToday;
-  const { forecast, cards, current, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, now, timeZone, onLoadPlanningData: onLoad });
+  const ownPlanning = useExamForecast({ decks: state.decks, exams, capacity, preferences, now, timeZone, onLoadPlanningData: onLoad, enabled: !planning });
+  const { forecast, cards, current, busy, error, reload } = planning ?? ownPlanning;
   const [summaryAvailability, setSummaryAvailability] = React.useState<Record<string, boolean | null>>({});
   const [starting, setStarting] = React.useState(false);
   const [saving, setSaving] = React.useState(false);

@@ -49,18 +49,8 @@ Entscheidungen vom 2026-10-24:
   abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
   neues Datum.
 
-K0–K5 sind erledigt, Details in [`history.md`](history.md).
+K0–K6 sind erledigt, Details in [`history.md`](history.md). Aus K6 offen: `npm run performance:measure:local` mit Docker nachholen.
 
-- [ ] **K6 Performance:** E9; Planungsdaten über Bildschirmwechsel cachen und
-      nach Reviews gezielt invalidieren; kein Neuplanen durch automatisches
-      Speichern der Tagesaufgaben; Sitzungsstart nutzt den vorhandenen Plan
-      (heute dritte Berechnung); Ausgangswert 5000 neue und 2000 bekannte
-      Karten bei 200 Tagen Horizont 1,4–1,6 s im Hauptthread;
-      `balanceExamContacts` ohne Neuanlage je Score und mit inkrementeller
-      Bewertung; Kohorten bekannter Karten wirksam bündeln; Worker nur bei
-      gemessenem Bedarf; Benchmark-Skript ins Repo (main gegen neuen Stand,
-      fester Horizont). Nachweis: Messwerte vorher/nachher,
-      `npm run performance:measure:local`.
 - [ ] **K7 UI/UX iterativ:** visuelle Pflichtmatrix aller Prüfungsansichten
       mit Top-Bar; Ziehen der Themenfolge scrollt ab 1280 px den
       Inhaltsbereich; Wochenkalender per Touch; Hinweis aus E1; schlanke

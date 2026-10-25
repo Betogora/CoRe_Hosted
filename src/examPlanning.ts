@@ -167,7 +167,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     const simulate = async (initial: ReviewState, settings: DeckSettings, start: number): Promise<ContactColumn> => {
       const contacts = new Float64Array(length); let state = initial, after = start, due = Math.max(Date.parse(initial.dueAt), dayStarts[start]), answer = 0;
       while (true) {
-        if (++operations % 128 === 0) { signal?.throwIfAborted(); await pause(); }
+        if (++operations % 16 === 0) { signal?.throwIfAborted(); await pause(); }
         const next = nextContact(due, after); if (!next) break;
         contacts[next.day]++; state = scheduleWithFsrs(state, ratingAt(answer++), { now: new Date(next.at).toISOString(), ...context, deckSettings: settings, easyDaysContext: { ...context, easyDays: preferences.easyDays, dueCountsByDay } });
         after = next.day; due = Math.max(next.at + 1000, Date.parse(state.dueAt));
@@ -204,7 +204,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     }
     const load = Float64Array.from(baseline);
     for (let i = 0; i < length; i++) if (days[i].budgetMinutes > 0) load[i] += plannedContacts[i] * minutes[i] / days[i].budgetMinutes;
-    const counts = await balanceExamContacts(columns, load, minutes, eligible, fresh.length, signal);
+    const counts = await balanceExamContacts(columns, load, minutes, eligible, fresh.length, pause, signal);
     const minimumDates = new Map(exam.topicDates?.map((entry) => [entry.deckId, entry.date])); let cursor = 0;
     for (let slot = 0; slot < eligible.length; slot++) {
       const day = ownDays[eligible[slot]], remaining = fresh.length - cursor; if (!remaining) break;

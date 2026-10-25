@@ -96,7 +96,8 @@ export interface ExamPlanningScreenProps {
   state: WorkspaceState;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   now: string;
-  onLoadPlanningData: (deckIds: string[], signal: AbortSignal) => Promise<ExamPlanningData>;
+  /** May answer from a short-lived cache; `fresh` asks for study states straight from the cloud. */
+  onLoadPlanningData: (deckIds: string[], signal: AbortSignal, options?: { fresh?: boolean }) => Promise<ExamPlanningData>;
   onSavePlanning: (settings: ExamPlanningSettings) => Promise<void>;
   /** Merges today's checklist into the latest stored plan, never into a rendered snapshot. */
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;

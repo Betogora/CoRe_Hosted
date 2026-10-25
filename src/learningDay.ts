@@ -9,6 +9,10 @@ export interface LearningDayOptions {
 }
 
 const formatterCache = new Map<string, Intl.DateTimeFormat>();
+/** UTC offset per time zone and UTC quarter hour; offset changes always fall on a UTC quarter hour. */
+const offsetCache = new Map<string, Map<number, number | null>>();
+const OFFSET_BUCKET_MS = 15 * 60_000;
+const OFFSET_CACHE_LIMIT = 50_000;
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
@@ -57,6 +61,20 @@ interface LocalDateTimeParts {
   millisecond: number;
 }
 
+function utcOffset(formatter: Intl.DateTimeFormat, timeZone: string, time: number): number | null {
+  const bucket = Math.floor(time / OFFSET_BUCKET_MS);
+  let offsets = offsetCache.get(timeZone);
+  if (!offsets) { offsets = new Map(); offsetCache.set(timeZone, offsets); }
+  if (offsets.has(bucket)) return offsets.get(bucket)!;
+  const start = bucket * OFFSET_BUCKET_MS;
+  const parts = Object.fromEntries(formatter.formatToParts(new Date(start)).map((part) => [part.type, part.value]));
+  const values = [parts.year, parts.month, parts.day, parts.hour, parts.minute, parts.second].map(Number);
+  const offset = values.every(Number.isFinite) ? Date.UTC(values[0], values[1] - 1, values[2], values[3], values[4], values[5]) - start : null;
+  if (offsets.size >= OFFSET_CACHE_LIMIT) offsets.clear();
+  offsets.set(bucket, offset);
+  return offset;
+}
+
 function localDayParts(value: DateInput, timeZone?: string): LocalDateTimeParts | null {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return null;
@@ -75,22 +93,17 @@ function localDayParts(value: DateInput, timeZone?: string): LocalDateTimeParts 
     };
   }
 
-  const parts = Object.fromEntries(formatter.formatToParts(date).map((part) => [part.type, part.value]));
-  const year = Number(parts.year);
-  const month = Number(parts.month);
-  const day = Number(parts.day);
-  const hour = Number(parts.hour);
-  const minute = Number(parts.minute);
-  const second = Number(parts.second);
-  if (![year, month, day, hour, minute, second].every(Number.isFinite)) return null;
+  const offset = utcOffset(formatter, timeZone!, date.getTime());
+  if (offset === null) return null;
+  const local = new Date(date.getTime() + offset);
   return {
-    year,
-    month,
-    day,
-    dayIndex: Math.floor(Date.UTC(year, month - 1, day) / 86_400_000),
-    hour,
-    minute,
-    second,
+    year: local.getUTCFullYear(),
+    month: local.getUTCMonth() + 1,
+    day: local.getUTCDate(),
+    dayIndex: Math.floor(local.getTime() / 86_400_000),
+    hour: local.getUTCHours(),
+    minute: local.getUTCMinutes(),
+    second: local.getUTCSeconds(),
     millisecond: date.getUTCMilliseconds(),
   };
 }

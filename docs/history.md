@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-25 — Prüfungen K6: Performance
+
+- Messskript `npm run benchmark:exams` (5 Läufe, Median, längster zusammenhängender Hauptthread-Abschnitt). Vorher → nachher bei identischen Plänen (Vergleich der vollständigen Prognosen): 60 Tage 428 → 226 ms, 200 Tage 1.231 → 719 ms, gemeinsame Stapel 120 Tage 572 → 339 ms; längster Block 77/107/92 → 62/63/62 ms.
+- Maßnahmen: Tauschschritte der Lastverteilung inkrementell bewertet statt die Gesamtlast neu zu summieren; ein gemeinsames Hauptthread-Budget für Planung und Lastverteilung (vorher zwei, daher bis ~100 ms Blöcke) und Budgetprüfung je Iteration sowie alle 16 Simulationsschritte; FSRS-Instanzen je Konfiguration zwischengespeichert (`scheduler.ts`, wirkt app-weit); Zeitzonenversätze je UTC-Viertelstunde zwischengespeichert (`learningDay.ts`, Vergleichstest über Umstellungen in Berlin, St. John's, Lord Howe und Kathmandu).
+- E9: Prüfungsseite und eingebettetes Widget teilen eine Planung. Abhaken löst kein Neuplanen aus; nur geänderte Zielkarten zählen. Lernstände bleiben eine Minute für Heute und Prüfungen gemeinsam, eigene Antworten verwerfen sie, „Plan neu berechnen“ lädt frisch. Der Sitzungsstart nutzt gespeicherte Ziele ohne Laden und Planen.
+- Verworfen: gröbere Kohorten bekannter Karten brachten in den Messszenarien keinen Gewinn und hätten Ergebnisse nur angenähert. Ein Worker ist bei 63 ms längstem Block nicht nötig.
+- Nicht ausgeführt: `npm run performance:measure:local` (kein Docker).
+
 ## 2026-10-25 — Prüfungen K5: Zuständigkeiten und Datenpfad
 
 - `workspaceHydrationService.loadExamPlanningData` ersetzt Serverlernstände durch ausstehende Antworten der Outbox (vorher in `App`); die Planung bildet die Bewertungsverteilung selbst aus den geladenen Karten (`ExamHistory`/`history` entfallen). `getExamSummaryTaskDeckId` und `getExamSessionTargetIds` in `examDailyTasks.ts` ersetzen ID-Zerlegung und Sitzungsauswahl in `App`.

@@ -107,7 +107,8 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
   const [deleting, setDeleting] = React.useState<ExamPlan | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [actionError, setActionError] = React.useState("");
-  const { forecast, current, cards, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData, includeInactive: true });
+  const planning = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData, includeInactive: true });
+  const { forecast, current, cards, busy, error, reload } = planning;
   const today = forecast?.days[0]?.key === todayKey ? forecast.days[0] : null;
   const sortedExams = exams.slice().sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || a.examDate.localeCompare(b.examDate));
 
@@ -213,7 +214,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
               })}
             </div>
           </section>
-          {today && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onSaveTasks={onSaveTasks} /></div> : null}
+          {today && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} planning={planning} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onSaveTasks={onSaveTasks} /></div> : null}
         </>
       )}
       <ActionDialog open={Boolean(pendingEditor)} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setPendingEditor(null)} onConfirm={() => { setEditing(pendingEditor?.next ?? null); setEditorDirty(false); setPendingEditor(null); }} />

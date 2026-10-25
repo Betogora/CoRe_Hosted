@@ -217,20 +217,29 @@ function toFsrsCard(state: ReviewState, now: Date): FsrsCard {
   };
 }
 
+/** FSRS schedulers are stateless per configuration, so each configuration is built once. */
+const fsrsSchedulers = new Map<string, ReturnType<typeof fsrs>>();
+
 function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput) {
   const profile = getSchedulerProfile(deckSettings ?? {});
   const requestRetention = getDesiredRetention(deckSettings, state);
   const learningSteps = profile.learningStepsMinutes.map((minutes) => `${minutes}m` as StepUnit);
   const relearningSteps = [`${profile.relearningStepMinutes}m` as StepUnit];
-  const scheduler = fsrs({
-    w: default_w,
-    request_retention: requestRetention,
-    maximum_interval: profile.maximumIntervalDays,
-    enable_fuzz: false,
-    enable_short_term: true,
-    learning_steps: learningSteps,
-    relearning_steps: relearningSteps,
-  });
+  const key = [requestRetention, profile.maximumIntervalDays, learningSteps.join(","), relearningSteps.join(",")].join("|");
+  let scheduler = fsrsSchedulers.get(key);
+  if (!scheduler) {
+    if (fsrsSchedulers.size >= 256) fsrsSchedulers.clear();
+    scheduler = fsrs({
+      w: default_w,
+      request_retention: requestRetention,
+      maximum_interval: profile.maximumIntervalDays,
+      enable_fuzz: false,
+      enable_short_term: true,
+      learning_steps: learningSteps,
+      relearning_steps: relearningSteps,
+    });
+    fsrsSchedulers.set(key, scheduler);
+  }
   return { scheduler, profile, requestRetention, learningSteps, relearningSteps };
 }
 

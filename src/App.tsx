@@ -13,6 +13,7 @@ import type {
   DeckSettingsSaveScope,
   DecksCardPage,
   DecksCardPageRequest,
+  ExamPlanningData,
   SettingsDraftGuard,
   SettingsSaveScope,
   GlobalLearningSettingsSaveScope,
@@ -715,10 +716,18 @@ export function App() {
   });
   const { prepare: prepareStudyWindow, adopt: adoptStudyWindow, reset: resetStudySession } = study;
 
-  /** Study states for the exam forecast (ADR-042). */
-  const loadExamPlanningData = React.useCallback(async (deckIds: string[], signal?: AbortSignal) => {
+  /** Study states for the exam forecast (ADR-042); Heute and Prüfungen share them for a minute or until the next own answer. */
+  const examPlanningDataCache = React.useRef<{ deckIds: ReadonlySet<string>; loadedAt: number; cards: ExamPlanningData["cards"] } | null>(null);
+  const loadExamPlanningData = React.useCallback(async (deckIds: string[], signal?: AbortSignal, options: { fresh?: boolean } = {}) => {
     if (!workspaceHydrationService) throw new Error("Die Kartenablage ist noch nicht bereit.");
-    return workspaceHydrationService.loadExamPlanningData(deckIds, signal);
+    const cached = examPlanningDataCache.current;
+    if (!options.fresh && cached && Date.now() - cached.loadedAt < 60_000 && deckIds.every((id) => cached.deckIds.has(id))) {
+      const requested = new Set(deckIds);
+      return { cards: cached.cards.filter((card) => requested.has(card.deckId)) };
+    }
+    const data = await workspaceHydrationService.loadExamPlanningData(deckIds, signal);
+    examPlanningDataCache.current = { deckIds: new Set(deckIds), loadedAt: Date.now(), cards: data.cards };
+    return data;
   }, [workspaceHydrationService]);
 
   const loadExamSummaryAvailability = React.useCallback(async (deckId: string) => {
@@ -739,11 +748,16 @@ export function App() {
     const civilToday = getLearningDayKey(now, { timeZone: learningTimeZone })!;
     const todayKey = getLearningDayKey(now, { timeZone: learningTimeZone, dayStartHour: preferences.dayStartHour })!;
     const { createExamPortfolioForecast, createExamSessionDecks, getActiveExamDeckIds } = await import("./examPlanning.ts");
-    const data = await loadExamPlanningData(getActiveExamDeckIds(currentState.decks, exams, civilToday));
-    const forecast = await createExamPortfolioForecast(currentState.decks, data.cards, exams, { now, preferences, timeZone: learningTimeZone, capacity, dailyTasks: preferences.examPlanning.dailyTasks });
     const { getExamSessionTargetIds, reconcileExamDailyTasks } = await import("./examDailyTasks.ts");
-    const tasks = reconcileExamDailyTasks(preferences.examPlanning, currentState.decks, forecast, data.cards, now, learningTimeZone, preferences.dayStartHour);
-    const ids = getExamSessionTargetIds(tasks, forecast.days[0], todayKey, blockId);
+    // Today's saved checklist already holds the frozen targets; only calendar blocks or a missing checklist need a new plan.
+    const storedTasks = (preferences.examPlanning.dailyTasks ?? []).filter((task) => task.date === todayKey);
+    let ids = blockId && !storedTasks.some((task) => task.id === blockId) ? [] : getExamSessionTargetIds(storedTasks, undefined, todayKey, blockId);
+    if (!ids.length) {
+      const data = await loadExamPlanningData(getActiveExamDeckIds(currentState.decks, exams, civilToday));
+      const forecast = await createExamPortfolioForecast(currentState.decks, data.cards, exams, { now, preferences, timeZone: learningTimeZone, capacity, dailyTasks: preferences.examPlanning.dailyTasks });
+      const tasks = reconcileExamDailyTasks(preferences.examPlanning, currentState.decks, forecast, data.cards, now, learningTimeZone, preferences.dayStartHour);
+      ids = getExamSessionTargetIds(tasks, forecast.days[0], todayKey, blockId);
+    }
     if (!ids.length) throw new Error("Für heute ist in der Prüfungsplanung nichts mehr offen.");
     const bodies = (await workspaceHydrationService.openCards(ids)).filter((body): body is { card: Card; note: Note } => Boolean(body));
     const position = new Map(ids.map((id, index) => [id, index]));
@@ -1118,6 +1132,7 @@ export function App() {
 
   function recordReview(result: ReviewAnswerResult) {
     if (!workspaceRepository) return;
+    examPlanningDataCache.current = null;
     workspaceRepository.recordReview(result);
     syncEngine?.requestSync();
   }
