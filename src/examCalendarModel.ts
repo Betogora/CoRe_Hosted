@@ -1,12 +1,17 @@
+import type { ExamPlan } from "./coreTypes.ts";
 import { examDayDistance, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
 
-export function createExamMonthDays(month: string): string[] {
+/** The month's Monday–Sunday grid; with `today` in it, following weeks fill up to four weeks from today's week. */
+export function createExamMonthDays(month: string, today?: string): string[] {
   const first = `${month.slice(0, 7)}-01`;
   const next = new Date(`${first}T12:00:00Z`);
   next.setUTCMonth(next.getUTCMonth() + 1);
   const offset = (new Date(`${first}T12:00:00Z`).getUTCDay() + 6) % 7;
   const length = Math.ceil((offset + examDayDistance(first, next.toISOString().slice(0, 10))) / 7) * 7;
-  return Array.from({ length }, (_, index) => shiftExamDay(first, index - offset));
+  const days = Array.from({ length }, (_, index) => shiftExamDay(first, index - offset));
+  if (today?.slice(0, 7) !== month.slice(0, 7)) return days;
+  while (days.filter((key, index) => index % 7 === 6 && key >= today).length < 4) days.push(...Array.from({ length: 7 }, (_, index) => shiftExamDay(days.at(-1)!, index + 1)));
+  return days;
 }
 
 export function shiftExamMonth(month: string, offset: number): string {
@@ -37,4 +42,9 @@ export function getExamCalendarWork(day: ExamPlanDay | undefined, examIds: Reado
     repetitions: blocks.filter((block) => block.method !== "new").reduce((sum, block) => sum + block.expectedItems, 0),
     blocks,
   };
+}
+
+/** One editing horizon for day details and week: from today for a year, exam days stay free. */
+export function isExamCalendarDayLocked(key: string, today: string, exams: readonly ExamPlan[]) {
+  return key < today || key > shiftExamDay(today, 365) || exams.some((exam) => exam.status === "active" && exam.examDate === key);
 }

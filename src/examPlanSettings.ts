@@ -125,6 +125,11 @@ export function validateExamPlanningSettings(value: unknown): ExamPlanningSettin
   return normalizeExamPlanningSettings(result.output);
 }
 
+/** Whether calendar edits keep blocks free of overlaps and before their exams. */
+export function isValidExamCalendar(exams: ExamPlan[], capacity: StudyTimeCapacity) {
+  return v.safeParse(settingsSchema, { version: 3, exams, capacity }).success;
+}
+
 /** Open daily targets of an exam stay valid only while everything that shapes its plan is unchanged. */
 export function getExamPlanningKey(exam: ExamPlan, capacity: StudyTimeCapacity) {
   return stableContentHash([exam.deckIds, exam.excludedDeckIds, exam.examDate, exam.bufferDays, exam.studyTime, exam.topicOrder, exam.topicDates, exam.desiredRetention, exam.variants, exam.readSummaryBeforeTopics,

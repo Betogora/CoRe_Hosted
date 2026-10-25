@@ -49,16 +49,8 @@ Entscheidungen vom 2026-10-24:
   abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
   neues Datum.
 
-K0–K6 sind erledigt, Details in [`history.md`](history.md). Aus K6 offen: `npm run performance:measure:local` mit Docker nachholen.
+K0–K7 sind erledigt, Details in [`history.md`](history.md). Aus K6 offen: `npm run performance:measure:local` mit Docker nachholen.
 
-- [ ] **K7 UI/UX iterativ:** visuelle Pflichtmatrix aller Prüfungsansichten
-      mit Top-Bar; Ziehen der Themenfolge scrollt ab 1280 px den
-      Inhaltsbereich; Wochenkalender per Touch; Hinweis aus E1; schlanke
-      Oberfläche ohne Erklärtexte; ganze Minuten statt Kommawerten,
-      einheitliche Zeiteinheit in Editor und Kalender; Tagesausnahme nicht
-      durch Blöcke anderer Fächer gesperrt; ein Bearbeitungshorizont für Tag
-      und Woche; „In 1 Tagen“; ungespeicherte Bearbeitung auch beim Wechsel
-      über die Hauptnavigation schützen; Iteration mit Screenshots.
 - [ ] **K8 App-Anbindung und Abnahme:** E12; Prüfungssitzung in Hilfe
       erklären; E2E gegen die echte App statt Katalog-Demo, lokales Supabase
       mit zwei Browserkontexten desselben Kontos; Unit-Tests für

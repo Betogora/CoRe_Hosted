@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
+import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, isValidExamCalendar, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./learningProfiles.ts";
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
@@ -112,4 +112,12 @@ test("Tagesaufgaben speichern höchstens die zulässige Zahl an Kartenverweisen"
   const full = task("deck-a", EXAM_PLANNING_LIMITS.dailyCardRefs);
   assert.deepEqual(normalizeExamPlanningSettings({ ...settings, dailyTasks: [full, task("deck-b", 1)] }).dailyTasks?.map((entry) => entry.id), [full.id]);
   assert.throws(() => validateExamPlanningSettings({ ...settings, dailyTasks: [full, task("deck-b", 1)] }), /ungültig/);
+});
+
+test("Kalenderänderungen im aktuellen Format gelten, Überschneidungen und Blöcke nach der Prüfung nicht", () => {
+  const exam = { ...createExamPlan("2026-10-12", ["deck"]), id: "a", name: "Anatomie", examDate: "2026-10-20" };
+  const block = (id: string, date: string, start: number, end: number) => ({ id, date, start, end, examId: exam.id });
+  assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("one", "2026-10-13", 480, 540), block("two", "2026-10-13", 540, 600)] }), true);
+  assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("one", "2026-10-13", 480, 600), block("two", "2026-10-13", 540, 660)] }), false);
+  assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("late", "2026-10-20", 480, 540)] }), false);
 });

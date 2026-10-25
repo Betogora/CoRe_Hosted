@@ -103,6 +103,8 @@ export interface ExamPlanningScreenProps {
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
   onStartUnit: (blockId: string | null) => Promise<void>;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
+  /** Unsaved plan edits or calendar drafts; the app confirms before navigating away. */
+  onDraftStateChange?: (dirty: boolean) => void;
 }
 
 export interface DeckSettingsScreenProps {

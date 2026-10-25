@@ -15,8 +15,16 @@ export function examTextColor(exam: { color?: string }) {
 export function formatExamDate(key: string, format: "long" | "short" = "long") {
   return (format === "long" ? LONG_DATE : SHORT_DATE).format(new Date(`${key}T12:00:00Z`));
 }
+/** Whole hours and minutes, never decimal hours. */
 export function formatExamMinutes(minutes: number) {
-  return minutes >= 90 ? `${new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }).format(minutes / 60)} Std.` : `${Math.ceil(minutes)} Min.`;
+  const total = Math.ceil(minutes), hours = Math.floor(total / 60), rest = total % 60;
+  return hours ? `${hours} Std.${rest ? ` ${rest} Min.` : ""}` : `${rest} Min.`;
+}
+export function formatExamCount(count: number, singular: string, plural: string) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+export function formatExamDistance(days: number) {
+  return days <= 0 ? "heute" : days === 1 ? "morgen" : `in ${days} Tagen`;
 }
 export function formatExamClock(minutes: number) {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;

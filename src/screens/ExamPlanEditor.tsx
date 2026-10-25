@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ArrowRight, Save } from "lucide-react";
+import { ArrowLeft, ArrowRight, ChevronDown, Save } from "lucide-react";
 import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { Deck, ExamPlan, GlobalSchedulerPreferences, StudyTimeCapacity } from "../coreTypes.ts";
 import { EXAM_PLANNING_LIMITS, EXAM_RETENTION_LEVELS, createExamPlan } from "../examPlanSettings.ts";
@@ -15,7 +15,7 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamTopicOrder } from "./ExamTopicOrder.tsx";
-import { formatExamDate, formatExamMinutes, formatExamPercent } from "./examPlanningUi.ts";
+import { formatExamCount, formatExamDate, formatExamMinutes, formatExamPercent } from "./examPlanningUi.ts";
 import { useExamForecast } from "./useExamForecast.ts";
 
 const STEPS = ["Prüfung", "Lernstoff", "Lernzeit", "Dein Plan"];
@@ -23,6 +23,10 @@ const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Sa
 
 const FIELD = "min-h-control w-full min-w-0 rounded-control border border-core-border bg-core-surface px-3 text-core-text";
 const LABEL = "grid min-w-0 gap-2 core-body font-semibold text-core-muted";
+
+function Summary({ children }: { children: React.ReactNode }) {
+  return <summary className="flex min-h-control cursor-pointer list-none items-center gap-2 py-2 core-body font-semibold text-core-text"><ChevronDown size={16} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" />{children}</summary>;
+}
 
 interface ExamPlanEditorProps {
   embedded?: boolean; onDirtyChange?: (dirty: boolean) => void;
@@ -78,38 +82,34 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
     if (next.deckIds.length > EXAM_PLANNING_LIMITS.decksPerExam || (next.excludedDeckIds?.length ?? 0) > EXAM_PLANNING_LIMITS.decksPerExam) { setSelectionError("Bitte wähle höchstens 200 Stapel aus."); return; }
     setSelectionError(""); patch({ ...next, topicOrder: topicOrder.filter((id) => scope.has(id)), completedSummaryDeckIds: plan.completedSummaryDeckIds?.filter((id) => scope.has(id)), ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => scope.has(topic.deckId)) } : {}) });
   }
-  return <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6" data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
+  return <div className={`grid w-full min-w-0 gap-6 ${embedded ? "" : "mx-auto max-w-5xl"}`} data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
     {!embedded ? <>
     <PageHeader eyebrow="Prüfungen" title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} action={<ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={cancel}>Zurück</ActionButton>} />
     <ol className="grid grid-cols-4 gap-2" aria-label="Schritte der Prüfungsplanung">{STEPS.map((name, index) => <li key={name}><button type="button" disabled={saving || index > step} aria-current={step === index ? "step" : undefined} onClick={() => go(index)} className={`grid min-h-control w-full gap-1 rounded-control border px-2 py-3 text-left ${step === index ? "border-core-action bg-core-surface" : "border-transparent bg-core-subtle"}`}><span className="core-caption text-core-muted">{index + 1}</span><span className="break-words core-caption font-semibold text-core-text">{name}</span></button></li>)}</ol>
     </> : null}
     <fieldset disabled={saving} className={embedded ? "grid min-w-0 gap-5" : "core-surface-raised grid min-w-0 gap-6 rounded-panel p-4 sm:p-6"} data-testid="exam-plan-inspector">
-      {!embedded ? <div><p className="core-caption text-core-muted">Schritt {step + 1} von 4</p><h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 font-semibold text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Deine Lernzeit", "So sieht dein Lernplan aus"][step]}</h2></div> : <h5 className="core-body font-semibold text-core-text">Prüfung bearbeiten</h5>}
+      {!embedded ? <div><p className="core-caption text-core-muted">Schritt {step + 1} von 4</p><h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 font-semibold text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Deine Lernzeit", "So sieht dein Lernplan aus"][step]}</h2></div> : null}
       {embedded || step === 0 ? <div className="grid max-w-2xl gap-5">
-        {!embedded ? <p className="core-body text-core-muted">Gib deiner Prüfung einen Namen und lege den Termin fest. Danach wählen wir den Lernstoff und verteilen ihn auf deine verfügbaren Tage.</p> : null}
         <label className={LABEL}>Name<input autoComplete="off" aria-invalid={showErrors && !plan.name.trim()} placeholder="Zum Beispiel Anatomie" className={FIELD} maxLength={120} value={plan.name} onChange={(event) => patch({ name: event.target.value })} /></label>
         <label className={LABEL}>Farbe<ColorWheelPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
         {showErrors && !plan.name.trim() ? <p role="alert" className="core-field-error">Bitte gib der Prüfung einen Namen.</p> : null}
         <div className={LABEL}><span>Prüfungsdatum</span><CoreDatePicker value={plan.examDate} min={shiftExamDay(today, 1)} max={shiftExamDay(today, 365)} today={today} ariaLabel="Prüfungsdatum auswählen" onValueChange={(examDate) => { patch({ examDate, ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => topic.date < examDate) } : {}) }); if (capacity.timeBlocks) patchCapacity({ timeBlocks: capacity.timeBlocks.filter((block) => block.examId !== plan.id || block.date < examDate) }); }} className="w-full" /></div>
         {showErrors && (plan.examDate <= today || plan.examDate > shiftExamDay(today, 365)) ? <p role="alert" className="core-field-error">Wähle einen zukünftigen Termin innerhalb der nächsten 365 Tage.</p> : null}
-        <p className="core-caption text-core-muted">Datum und Lernzeiten kannst du später anpassen. Bei einem früheren Termin werden spätere Themenwünsche und Zeitblöcke dieser Prüfung entfernt.</p>
       </div> : null}
-      {embedded || step === 1 ? <details open={embedded ? (showErrors && !selected.size) || undefined : true}>
-        <summary className={embedded ? "flex min-h-control cursor-pointer items-center gap-2 core-body font-semibold text-core-text" : "hidden"}>Stapel · {selected.size} ausgewählt</summary><div className="grid min-w-0 gap-3">
-        <p className="core-body text-core-muted">Ein Oberstapel wählt alle Unterstapel mit aus. Einzelne Unterstapel kannst du anschließend abwählen.</p>
-        <fieldset className="grid min-w-0 gap-3"><legend className="core-body font-semibold text-core-muted">Stapel · {selected.size} ausgewählt · {selectedCards} Karten</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
+      {embedded || step === 1 ? <details className="group min-w-0" open={embedded ? (showErrors && !selected.size) || undefined : true}>
+        {embedded ? <Summary>Lernstoff · {formatExamCount(selected.size, "Stapel", "Stapel")}</Summary> : <summary className="hidden" />}<div className="grid min-w-0 gap-4">
+        <fieldset className="grid min-w-0 gap-3"><legend className="core-body font-semibold text-core-muted">{formatExamCount(selected.size, "Stapel", "Stapel")} · {formatExamCount(selectedCards, "Karte", "Karten")}</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
           const branch = row.childrenCount ? [...collectDeckTreeIds(decks, row.id)] : [row.id];
           const checked = selected.has(row.id), partial = branch.some((id) => selected.has(id) !== checked);
-          return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-control px-3 py-2 hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={checked} onChange={(event) => toggleDeck(row.id, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption text-core-muted">{row.directInventory.totalCards}</span></label>;
+          return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-control px-3 py-2 hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={checked} onChange={(event) => toggleDeck(row.id, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption text-core-muted">{row.summary?.totalCards ?? row.directInventory.totalCards}</span></label>;
         })}</div></fieldset>
         {showErrors && !selected.size ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
-        <label className={LABEL}>Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?<input type="number" className={FIELD} min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></label>
-        <p className="core-caption text-core-muted">Letzte neue Karten spätestens am {formatExamDate(getExamLastNewDate(plan))}. Ist dieser Tag frei, endet neuer Stoff früher.</p>
+        <div className="grid gap-2"><label className={`${LABEL} sm:max-w-xs`}>Puffer vor der Prüfung · Tage<input type="number" inputMode="numeric" className={FIELD} min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></label>
+        <p className="core-caption text-core-muted">Letzte neue Karten am {formatExamDate(getExamLastNewDate(plan))}</p></div>
         <ExamTopicOrder topics={topicOrder.map((id) => ({ id, name: decks.find((deck) => deck.id === id)!.name }))} disabled={saving} onChange={(topicOrder) => patch({ topicOrder })} />
-        <div className="rounded-control bg-core-subtle p-4"><p className="core-body font-semibold text-core-text">Zusammenhängend nach Themen lernen</p><p className="mt-1 core-body text-core-muted">Deine Unterstapel bilden die Themen. Kleine Themen bleiben möglichst an einem Tag; große Themen werden fortlaufend aufgeteilt. Ohne thematische Unterstapel behandeln wir den Stapel als ein Thema.</p></div>
       </div></details> : null}
-      {embedded ? <details><summary className="min-h-control cursor-pointer py-2 core-body font-semibold text-core-text">Lernzeit und weitere Einstellungen</summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
+      {embedded ? <details className="group min-w-0"><Summary>Lernzeit und weitere Einstellungen</Summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
       {!embedded && step === 2 ? renderPlanningOptions() : null}
       {valid && (embedded || step >= 2) ? renderPreview() : null}
       {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
@@ -120,27 +120,23 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   </div>;
 
   function renderPlanningOptions() { return <>
-    <fieldset className="grid gap-3"><legend className="core-body font-semibold text-core-muted">Wie viel möchtest du für diese Klausur lernen?</legend>
-      <label className={LABEL}>Durchschnittliche Stunden pro Lerntag<input className={FIELD} type="number" inputMode="decimal" min={0} max={24} step={0.25} value={time.dailyMinutes / 60} onChange={(event) => patch({ studyTime: { ...time, dailyMinutes: Math.min(1440, Math.max(0, Math.round(Number(event.target.value) * 60 || 0))), weeklyMinutes: undefined } })} /></label>
-      <p className="core-body text-core-muted">Deine Zeitangaben gewichten die Tage dieser Klausur. Daraus wird keine Bearbeitungszeit pro Karte berechnet. Einzelne Tage kannst du im Kalender ändern.</p>
-      <div className="flex flex-wrap gap-3">{WEEKDAYS.map((name, index) => <label key={name} className="flex min-h-control items-center gap-2 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={time.weekdays[index]} onChange={(event) => patch({ studyTime: { ...time, weekdays: time.weekdays.map((value, i) => i === index ? event.target.checked : value) } })} />{name}</label>)}</div>
-      <p className="core-caption text-core-muted">Nicht ausgewählte Wochentage bleiben frei. Ein konkreter Lernblock kann einen freien Tag überschreiben.</p>
+    <fieldset className="grid gap-3"><legend className="sr-only">Lernzeit</legend>
+      <label className={`${LABEL} sm:max-w-xs`}>Lernzeit pro Lerntag · Min.<input className={FIELD} type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.dailyMinutes} onChange={(event) => patch({ studyTime: { ...time, dailyMinutes: Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))), weeklyMinutes: undefined } })} /></label>
+      <div className="flex flex-wrap gap-x-4 gap-y-1" role="group" aria-label="Lerntage">{WEEKDAYS.map((name, index) => <label key={name} className="flex min-h-control items-center gap-2 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={time.weekdays[index]} onChange={(event) => patch({ studyTime: { ...time, weekdays: time.weekdays.map((value, i) => i === index ? event.target.checked : value) } })} />{name}</label>)}</div>
     </fieldset>
     <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.readSummaryBeforeTopics ?? false} onChange={(event) => patch({ readSummaryBeforeTopics: event.target.checked })} />Vor neuen Themen Zusammenfassung lesen</label>
-    <details onToggle={(event) => setShowTimeBlocks(event.currentTarget.open)}><summary className="min-h-control cursor-pointer py-3 core-body font-semibold text-core-text">Konkrete Lernblöcke im Kalender setzen</summary><p className="mb-4 core-body text-core-muted">Zugeordnete Kartenlernblöcke ersetzen die normale Lernzeit dieses Tages für ihr Fach. Alle anderen Tage behalten ihre Vorgabe.</p>{showTimeBlocks ? renderCalendar() : null}</details>
-    <details><summary className="min-h-control cursor-pointer py-3 core-body font-semibold text-core-text">Weitere Lerneinstellungen</summary><div className="mt-3 grid gap-4">
+    <details className="group min-w-0" onToggle={(event) => setShowTimeBlocks(event.currentTarget.open)}><Summary>Konkrete Lernblöcke im Kalender setzen</Summary><div className="mt-3">{showTimeBlocks ? renderCalendar() : null}</div></details>
+    <details className="group min-w-0"><Summary>Weitere Lerneinstellungen</Summary><div className="mt-3 grid gap-4">
       <label className={LABEL}>Abrufziel für Wiederholungen<CoreSelect ariaLabel="Abrufziel für Wiederholungen" value={String(plan.desiredRetention)} options={EXAM_RETENTION_LEVELS.map((level) => ({ value: String(level), label: formatExamPercent(level) }))} onValueChange={(value) => patch({ desiredRetention: Number(value) })} /></label>
       <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.variants} onChange={(event) => patch({ variants: event.target.checked })} />Varianten einbeziehen</label>
-      <p className="core-caption text-core-muted">Das Abrufziel steuert die Wiederholungen. Es ist keine Bestehenswahrscheinlichkeit.</p>
-      {time.weeklyMinutes ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{WEEKDAYS.map((name, index) => <label key={name} className={LABEL}>{name} · Stunden<input className={FIELD} type="number" min={0} max={24} step={0.25} value={time.weeklyMinutes![index] / 60} onChange={(event) => patch({ studyTime: { ...time, weeklyMinutes: time.weeklyMinutes!.map((value, i) => i === index ? Math.min(1440, Math.max(0, Math.round(Number(event.target.value) * 60 || 0))) : value) } })} /></label>)}</div> : null}
+      {time.weeklyMinutes ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{WEEKDAYS.map((name, index) => <label key={name} className={LABEL}>{name} · Min.<input className={FIELD} type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.weeklyMinutes![index]} onChange={(event) => patch({ studyTime: { ...time, weeklyMinutes: time.weeklyMinutes!.map((value, i) => i === index ? Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))) : value) } })} /></label>)}</div> : null}
     </div></details>
   </>; }
   function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
     {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
     {!summary && !error ? <p role="status" className="core-body text-core-muted">Dein Plan wird berechnet …</p> : null}
     {summary ? <><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatTile size="compact" label="Karten" value={String(summary.totalCards)} /><StatTile size="compact" label="Noch neu" value={String(summary.remainingNewCount)} /><StatTile size="compact" label="Einführungstage" value={String(summary.usableDays)} /><StatTile size="compact" label="Eingeplante Lernzeit" value={formatExamMinutes(summary.availableMinutes)} /></div>
-      {summary.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}
-      <p className="core-caption text-core-muted">Die Verteilung berücksichtigt erwartete FSRS-Lernkontakte. Künftige Antworten sind Annahmen; deine tatsächlichen Ergebnisse aktualisieren den Plan. Auch hohe Tagesmengen lassen sich planen.</p></> : null}
+      {summary.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}</> : null}
   </div>; }
   function renderCalendar() { return <ExamCalendar exams={plannedExams} capacity={capacity} forecast={current ? forecast : null} decks={decks} today={today} initialExamId={plan.id} busy={busy} onChange={(nextExams, nextCapacity) => { const changed = nextExams.find((exam) => exam.id === plan.id); if (changed) patch(changed); setCapacity(nextCapacity); }} />; }
   function renderStepActions() { return <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={() => go(step - 1)}>Vorheriger Schritt</ActionButton> : <span />}{step < 3 ? <ActionButton variant="primary" icon={ArrowRight} disabled={(step === 0 && !validBasics) || (step === 1 && !plan.deckIds.length)} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zur Lernzeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!valid} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>; }

@@ -2319,7 +2319,7 @@ summary {
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
 
-.exam-month-days { --exam-month-day-height: 112px; min-height: clamp(560px, 65svh, 700px); }
+.exam-month-days { --exam-month-day-height: 112px; }
 .exam-month-days > button { min-width: 0; }
 .exam-month-entry { min-height: 20px; overflow-wrap: anywhere; font-size: var(--core-type-caption); line-height: 16px; }
 .exam-month-more { font-size: 10px; line-height: 16px; }

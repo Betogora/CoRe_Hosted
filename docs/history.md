@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-25 — Prüfungen K7: UI/UX iterativ
+
+- Fehler behoben: Kalenderänderungen (Lernblöcke, Tageszeit, Themenstart) wurden seit Format 3 gegen Version 2 geprüft und immer abgelehnt; `isValidExamCalendar` prüft jetzt im aktuellen Format.
+- Tagesdetails zeigen je Fach neue Karten, Themen, Leseaufgaben und die eigene Tageszeit in Minuten; nur eigene Lernblöcke sperren sie. Tag und Woche teilen einen Bearbeitungshorizont (`isExamCalendarDayLocked`). Lernblöcke lassen sich auch ohne Fach reservieren.
+- Monat: vergangene Wochen auf eine Zeile verkleinert, im laufenden Monat Folgewochen bis vier Wochen ab heute. Woche: Leseaufgaben mit Themenname; per Touch blockt Antippen eine Stunde, Wischen scrollt (vorher sperrte das Raster jedes Scrollen). Kopfzeilen mobil mit Titel und Navigation in einer Zeile.
+- Ganze Minuten in Einrichtung und Kalender, Anzeigen ohne Kommastunden; Einzahl/Mehrzahl („1 neue Karte“, „morgen“, „in 26 Tagen“); Erklärtexte entfernt; Statusmarke nur für pausierte und abgeschlossene Prüfungen; Themenreihenfolge mit Pfeilschaltflächen; einheitliche Aufklapper und Summen bei Oberstapeln in der Stapelauswahl.
+- Ziehen der Themenreihenfolge scrollt ab 1280 px den Inhaltsbereich. Ungespeicherte Bearbeitungen und Kalenderentwürfe halten den Wechsel über die Hauptnavigation an.
+- Verifiziert: Pflichtmatrix 320/360/390/430/1279/1280/1440 in Hell und Dunkel für Seite, Tagesdetails, Themen, Woche, Prüfungskarte, Bearbeitung, alle Einrichtungsschritte, Leerzustand und Heute mit Top-Bar in einer lokalen Prüfseite (echte Komponenten, Beispieldaten), ohne horizontales Scrollen und Konsolenfehler; Ziehen bei 1440 × 620 (Inhaltsbereich 540 → 872 px) sowie Antippen und Wischen auf emuliertem Pixel 7. Nicht geprüft: echte Geräte, Bildschirmtastatur, 200 % Zoom.
+
 ## 2026-10-25 — Prüfungen K6: Performance
 
 - Messskript `npm run benchmark:exams` (5 Läufe, Median, längster zusammenhängender Hauptthread-Abschnitt). Vorher → nachher bei identischen Plänen (Vergleich der vollständigen Prognosen): 60 Tage 428 → 226 ms, 200 Tage 1.231 → 719 ms, gemeinsame Stapel 120 Tage 572 → 339 ms; längster Block 77/107/92 → 62/63/62 ms.

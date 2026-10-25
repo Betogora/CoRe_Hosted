@@ -72,7 +72,7 @@ interface SignUpInput extends SignInInput { displayName: string }
 interface EmailInput { email: string }
 interface PasswordUpdateInput { password: string; passwordRepeat: string }
 type CreateDeckInput = Parameters<typeof createWorkspaceDeck>[1];
-type PendingNavigation = { run: () => void; source: "creation" | "card" };
+type PendingNavigation = { run: () => void; source: "creation" | "card" | "exams" };
 type SupabaseBrowserClient = ReturnType<typeof createSupabaseBrowserClient>;
 interface StateRefreshOptions { preserveCardPages?: boolean }
 interface EmptyStudyStart {
@@ -217,6 +217,7 @@ export function App() {
   const [focusedDeckBodyCache, setFocusedDeckBodyCache] = React.useState<{ total: number; cached: number; downloaded: number } | null>(null);
   const [apkgImportSession, setApkgImportSessionState] = React.useState<ApkgImportSession>(() => createEmptyApkgImportSession());
   const creationDraftDirtyRef = React.useRef(false);
+  const examDraftDirtyRef = React.useRef(false);
   const creationSavingRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
@@ -491,6 +492,10 @@ export function App() {
       setPendingNavigation({ source: "card", run: () => { navigateToViewNow(...args); } });
       return createViewRoute(activeView);
     }
+    if (activeView === "pruefungen" && examDraftDirtyRef.current) {
+      setPendingNavigation({ source: "exams", run: () => { navigateToViewNow(...args); } });
+      return createViewRoute(activeView);
+    }
     return navigateToViewNow(...args);
   }, [activeView, navigateToViewNow]);
 
@@ -498,6 +503,10 @@ export function App() {
     creationDraftDirtyRef.current = dirty;
     creationDraftFocusRef.current = focusDraft;
     creationSavingRef.current = saving;
+  }, []);
+
+  const handleExamDraftStateChange = React.useCallback((dirty: boolean) => {
+    examDraftDirtyRef.current = dirty;
   }, []);
 
   const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
@@ -571,6 +580,7 @@ export function App() {
   async function confirmPendingNavigation() {
     if (!pendingCardNavigation) {
       creationDraftDirtyRef.current = false;
+      examDraftDirtyRef.current = false;
       runPendingNavigation();
       return;
     }
@@ -1845,6 +1855,7 @@ export function App() {
           onSaveTasks={saveExamTasks}
           onStartUnit={startExamUnit}
           onLoadSummaryAvailability={loadExamSummaryAvailability}
+          onDraftStateChange={handleExamDraftStateChange}
         />
       );
     }
@@ -2112,10 +2123,12 @@ export function App() {
       />
       <ActionDialog
         open={Boolean(pendingNavigation)}
-        title={pendingCardNavigation ? "Änderungen übernehmen?" : "Ungespeicherten Entwurf verlassen?"}
+        title={pendingCardNavigation ? "Änderungen übernehmen?" : pendingNavigation?.source === "exams" ? "Änderungen verwerfen?" : "Ungespeicherten Entwurf verlassen?"}
         description={pendingCardNavigation
           ? "Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du die Kartenverwaltung verlässt."
-          : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
+          : pendingNavigation?.source === "exams"
+            ? "Deine Änderungen an der Prüfungsplanung wurden noch nicht gespeichert."
+            : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
         confirmLabel={pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
         cancelLabel="Weiter bearbeiten"
         discardLabel={pendingCardNavigation ? "Verwerfen" : undefined}

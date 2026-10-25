@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createExamMonthDays, getExamCalendarWork, shiftExamMonth, createExamWeekDays, examMinuteAtPosition, examSelectionRange } from "./examCalendarModel.ts";
+import { createExamMonthDays, getExamCalendarWork, shiftExamMonth, createExamWeekDays, examMinuteAtPosition, examSelectionRange, isExamCalendarDayLocked } from "./examCalendarModel.ts";
+import type { ExamPlan } from "./coreTypes.ts";
 import type { ExamPlanDay, StudyPlanBlock } from "./examPlanning.ts";
 
 test("month grids start on Monday and include leap days and six-week months", () => {
@@ -32,4 +33,18 @@ test("Wochenraster beginnt montags und markiert Viertelstunden in beiden Ziehric
   assert.deepEqual(examSelectionRange(780, 900), { start: 780, end: 900 });
   assert.deepEqual(examSelectionRange(900, 780), { start: 780, end: 900 });
   assert.deepEqual(examSelectionRange(1440, 1440), { start: 1425, end: 1440 });
+});
+
+test("Tag und Woche teilen einen Bearbeitungshorizont: ab heute ein Jahr, Prüfungstage frei", () => {
+  const exams = [{ status: "active", examDate: "2026-10-30" }, { status: "paused", examDate: "2026-11-02" }] as ExamPlan[];
+  assert.deepEqual(["2026-10-19", "2026-10-20", "2026-10-30", "2026-11-02", "2026-12-24", "2027-10-20", "2027-10-21"].map((key) => isExamCalendarDayLocked(key, "2026-10-20", exams)),
+    [true, false, true, false, false, false, true]);
+});
+
+test("der laufende Monat zeigt mindestens vier Wochen ab heute, andere Monate bleiben unverändert", () => {
+  const extended = createExamMonthDays("2026-10", "2026-10-25");
+  assert.equal(extended.length, 49);
+  assert.equal(extended.at(-1), "2026-11-15");
+  assert.deepEqual(createExamMonthDays("2026-10", "2026-10-03"), createExamMonthDays("2026-10"));
+  assert.deepEqual(createExamMonthDays("2026-11", "2026-10-25"), createExamMonthDays("2026-11"));
 });
