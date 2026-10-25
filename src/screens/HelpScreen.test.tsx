@@ -8,6 +8,7 @@ test("renders scroll stories for active recall and spaced repetition", () => {
 
   assert.match(markup, /Wie CoRe dein Lernen stärkt/);
   assert.match(markup, /Wir wollen Lernen verbessern/);
+  assert.match(markup, /data-testid="help-exam-session"[^]*So läuft eine Prüfungssitzung[^]*Abrufziel der Prüfung[^]*Ohne Verbindung startet die Einheit/);
   assert.equal((markup.match(/class="core-help-keyword"/g) ?? []).length, 4);
   assert.equal((markup.match(/data-testid="help-intro-card-layer"/g) ?? []).length, 2);
   assert.match(markup, /data-testid="help-intro-card-front"/);

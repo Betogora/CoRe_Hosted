@@ -131,6 +131,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur den geöffneten Inhalt sam
   assert.deepEqual(page.selected?.cards.map((card) => `${card.id}@${card.deckId}`).sort(), ["card-beta-reverse@deck-other", "card-beta@deck-hydration"]);
   assert.equal(page.items.find((entry) => entry.id === "card-alpha")?.frontPreview, "Alpha");
   assert.deepEqual(await repository.missingCardBodyIds(["card-alpha"]), ["card-alpha"], "nicht geöffnete Karten bleiben Katalogeinträge");
+  assert.deepEqual(await service.listLocalCardIds(["card-alpha", "card-beta"]), ["card-beta"], "offline zählen nur Karten mit Inhalt auf dem Gerät (E12)");
   assert.equal(page.totalCount, deckCards.length);
 
   await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);

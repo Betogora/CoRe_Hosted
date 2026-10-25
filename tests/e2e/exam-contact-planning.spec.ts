@@ -22,7 +22,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Klausur mit sehr langem Namen: Herz und Lunge");
     await editor.getByRole("button", { name: "Weiter zum Lernstoff", exact: true }).click();
     await editor.getByRole("checkbox").first().check();
-    await expect(editor.getByRole("spinbutton", { name: "Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?", exact: true })).toHaveValue("4");
+    await expect(editor.getByRole("spinbutton", { name: "Puffer vor der Prüfung · Tage", exact: true })).toHaveValue("4");
     await product.screenshot({ path: info.outputPath("03-lernstoff.png") });
     await editor.getByText("Themenreihenfolge ändern", { exact: true }).click();
     const topicList = editor.getByRole("list", { name: "Themenreihenfolge", exact: true });
@@ -36,7 +36,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     }
     await product.screenshot({ path: info.outputPath("03b-themenfolge.png") });
     await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
-    await editor.getByRole("spinbutton", { name: "Durchschnittliche Stunden pro Lerntag", exact: true }).fill("0.25");
+    await editor.getByRole("spinbutton", { name: "Lernzeit pro Lerntag · Min.", exact: true }).fill("15");
     await editor.getByRole("checkbox", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true }).check();
     await editor.getByText("Konkrete Lernblöcke im Kalender setzen", { exact: true }).click();
     await expect(editor.getByTestId("exam-calendar")).toBeVisible();
@@ -53,7 +53,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     if (changedOrder) {
       await product.getByRole("button", { name: "Klausur mit sehr langem Namen: Herz und Lunge: Details öffnen", exact: true }).click();
       await product.getByRole("button", { name: "Bearbeiten", exact: true }).click();
-      await editor.locator("summary").filter({ hasText: /^Stapel · \d+ ausgewählt$/ }).click();
+      await editor.locator("summary").filter({ hasText: /^Lernstoff · \d+ Stapel$/ }).click();
       await editor.getByText("Themenreihenfolge ändern", { exact: true }).click();
       await expect.poll(() => editor.getByRole("list", { name: "Themenreihenfolge", exact: true }).locator(":scope > li").evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.topicId))).toEqual(changedOrder);
     }

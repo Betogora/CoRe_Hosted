@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Brain,
+  CalendarCheck,
   Clock3,
   ExternalLink,
   RotateCcw,
@@ -805,6 +806,19 @@ function ReferenceSection() {
           </p>
         </SoftPanel>
       </div>
+
+      <SoftPanel className="p-6" data-testid="help-exam-session">
+        <div className="flex items-center gap-3">
+          <OrbIcon icon={CalendarCheck} />
+          <h3 className="core-heading-2 font-semibold text-core-text">So läuft eine Prüfungssitzung</h3>
+        </div>
+        <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary lg:grid-cols-2 lg:gap-x-8">
+          <li>• „Heutige Einheit lernen“ enthält die geplanten neuen Karten deiner Prüfungsthemen, ihre Lernschritte und die heute fälligen Wiederholungen dieser Stapel. Eine einzelne Lernaufgabe startet nur ihr Thema.</li>
+          <li>• Themen kommen in der geplanten Reihenfolge. Es gilt das Abrufziel der Prüfung; normale Tageslimits greifen nicht, und deine Stapeleinstellungen bleiben unverändert.</li>
+          <li>• Eine Lernaufgabe wird automatisch abgehakt, sobald alle ihre Karten bewertet und erst nach heute wieder fällig sind. Selbst abhaken ändert keinen Lernstand.</li>
+          <li>• Die Zielkarten eines Tages bleiben fest. Nach deinen Antworten verteilt CoRe nur noch ungesehenen Stoff neu. Ohne Verbindung startet die Einheit mit den Karten auf diesem Gerät; neu geplant wird erst wieder online.</li>
+        </ul>
+      </SoftPanel>
 
       <dl className="grid border-t border-core-border md:grid-cols-2 xl:grid-cols-3">
         {MEMORY_TERMS.map((memoryTerm) => (

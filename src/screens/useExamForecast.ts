@@ -30,6 +30,7 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
   const [result, setResult] = React.useState<{ key: string; forecast: ExamPortfolioForecast; data: ExamPlanningData } | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [offline, setOffline] = React.useState(false);
   const [revision, setRevision] = React.useState(0);
   const loaded = React.useRef<{ scope: string; revision: number; data: ExamPlanningData } | null>(null);
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
@@ -43,6 +44,7 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
   const calculate = React.useEffectEvent(async (signal: AbortSignal) => {
     setBusy(true);
     setError("");
+    setOffline(false);
     try {
       const cached = loaded.current;
       const data = cached && cached.scope === scope && cached.revision === revision ? cached.data : await onLoadPlanningData(deckIds, signal, { fresh: revision > 0 });
@@ -52,7 +54,10 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
       signal.throwIfAborted();
       setResult({ key, forecast, data });
     } catch (failure) {
-      if (!signal.aborted) setError(failure instanceof Error ? failure.message : "Die Prüfungsplanung konnte nicht berechnet werden.");
+      if (signal.aborted) return;
+      // Without a connection nothing is planned anew; the stored targets of today remain (E12).
+      if (typeof navigator !== "undefined" && navigator.onLine === false) setOffline(true);
+      else setError(failure instanceof Error ? failure.message : "Die Prüfungsplanung konnte nicht berechnet werden.");
     } finally {
       if (!signal.aborted) setBusy(false);
     }
@@ -73,12 +78,20 @@ export function useExamForecast({ decks, exams, capacity, preferences, timeZone,
     // The key covers every input of the calculation.
   }, [key, delayMs]);
 
+  React.useEffect(() => {
+    if (!offline) return undefined;
+    const reconnect = () => setRevision((value) => value + 1);
+    window.addEventListener("online", reconnect);
+    return () => window.removeEventListener("online", reconnect);
+  }, [offline]);
+
   return {
     forecast: deckIds.length ? result?.forecast ?? null : null,
     current: result?.key === key,
     cards: result?.data.cards ?? [],
     busy,
     error,
+    offline,
     /** Loads the study states again, e.g. after studying elsewhere. */
     reload: () => setRevision((value) => value + 1),
   };

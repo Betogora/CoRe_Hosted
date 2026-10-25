@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-25 — Prüfungen K8: App-Anbindung und Abnahme (Abschluss K0–K8)
+
+- E12 offline: Heute und Prüfungen zeigen die gespeicherten Tagesziele mit „Offline: zuletzt geplante Aufgaben“, Häkchen und Start bleiben nutzbar; je Aufgabe nennt CoRe lokal vorhandene Karten und den Rest als „erst online verfügbar“; der Sitzungsstart nimmt offline nur lokale Zielkarten (`listLocalCardIds`). Beim Wiederverbinden plant der Hook neu.
+- Häkchen erscheinen sofort statt erst nach dem Speichern (die kontrollierte Checkbox sprang vorher zurück; im E2E gefunden).
+- Hilfe: Nachschlageabschnitt „So läuft eine Prüfungssitzung“.
+- Tests: `balanceExamContacts` (Mengenerhaltung, Spitze vor Schwankung vor Erinnerung, Abbruch auch mitten in der Suche), Bewertungshistorie ab zehn Bewertungen, lokale Kartenliste; gemeinsame Planung (E3) war seit K3 abgedeckt. Neuer E2E-Test gegen die echte App: zweites Gerät desselben Kontos sieht Plan und Häkchen, Offline-Start aus lokalen Karten, Hauptnavigation hält eine ungespeicherte Bearbeitung an. Der bestehende Planungstest griff mit seinem Kartenselektor auch die Kartendetails und ist korrigiert.
+- Verifiziert mit lokalem Supabase: volle RLS-Suite (19), alle Prüfungen-Specs (`exam-planning`, `exam-contact-planning`, `exam-topic-order`) grün; `npm run performance:measure:local` (aus K6 offen) mit allen Gates eingehalten. Windows reservierte die Supabase-Ports 54234–54333; die Läufe nutzten dafür lokal um 1000 verschobene Ports ohne Änderung im Repo.
+- Die Entscheidungen E1–E16 stehen jetzt als Ergänzung in ADR-042; der Prüfungen-Block ist aus `todo.md` entfernt. Offen bleiben nur Gerätenachweise auf echten Smartphones.
+
 ## 2026-10-25 — Prüfungen K7: UI/UX iterativ
 
 - Fehler behoben: Kalenderänderungen (Lernblöcke, Tageszeit, Themenstart) wurden seit Format 3 gegen Version 2 geprüft und immer abgelehnt; `isValidExamCalendar` prüft jetzt im aktuellen Format.

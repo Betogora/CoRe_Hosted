@@ -1,62 +1,9 @@
 # CoRe TODO
 
-Stand: 2026-10-24
+Stand: 2026-10-25
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
-
-## P0: Prüfungen (K0–K8)
-
-Reihenfolge = Priorität. Vereint den Klausurplaner aus PR #42
-(`codex/klausurplaner-fsrs-kontakte`, FSRS-Kontaktverteilung, Profilformat V2)
-mit dem Prüfungen-Stand auf main; am Ende liegt alles auf main. Kein Scope
-Creep: Neues nur, wenn es eine Entscheidung unten verlangt.
-Entscheidungen vom 2026-10-24:
-
-- E1 Unrealistische Tagesmengen bleiben speicherbar, ab einer klaren Schwelle
-  erscheint ein Hinweis in Vorschau und Tag.
-- E2 Priorität und Lernziel-Frage entfallen; Feld entfernen, ADR-042 ergänzen.
-- E3 Gemeinsame Stapel mehrerer Klausuren werden gemeinsam geplant: jede Karte
-  genau einmal eingeführt, spätestens zum frühesten Stichtag; die Tageslast
-  aller Klausuren wird zusammen ausgeglichen.
-- E4 Zeitblöcke ohne Fach sind reine Kalendernotizen ohne Einfluss auf die
-  Kartenverteilung; Blöcke mit Fach steuern die Lernzeit ihres Fachs (in K2
-  revidiert).
-- E5 Speichern wird nie blockiert; nicht mehr einplanbarer Stoff erscheint als
-  offen.
-- E6 Cutover auf das neue Profilformat ohne Umrechnungscode in der App;
-  vorhandene Pläne rechnet einmalig eine Datenbank-Migration um. Offene Tabs
-  alter Versionen laden nach dem Deploy neu.
-- E7 Eine verpasste Leseaufgabe bleibt sichtbar, bis sie abgehakt oder das
-  Thema abgeschlossen ist.
-- E8 Kein Migrationshinweis (entfällt mit E6).
-- E9 Seite und Heute-Widget teilen eine Planung; keine Doppelberechnung.
-- E10 Tagesaufgaben speichern Kartenverweise schlank und begrenzt im Profil.
-- E11 Quiz-Planung (Blöcke, Empfehlungen, gesperrte Aktion) wird samt Code
-  entfernt und kommt mit einem eigenen Quiz-Feature später zurück.
-- E12 Offline zeigt die zuletzt geplanten Tagesziele und den Kalender und
-  startet die heutige Einheit aus lokal vorhandenen Zielkarten; fehlende
-  Karten erscheinen als „erst online verfügbar“. Ohne lokalen Stand gilt die
-  allgemeine Offline-Meldung. Neu geplant wird nur online.
-- E13 Ein gewählter Oberstapel bleibt als Ganzes ausgewählt; neue Unterstapel
-  gehören automatisch dazu, nur ausdrücklich abgewählte bleiben draußen.
-- E14 Die Themenreihenfolge bestimmt den Ablauf; „Ab Datum“ heißt „frühestens
-  ab“ und schiebt spätere Themen mit. Der Kalender zeigt immer den
-  tatsächlichen Start; der Datumswähler bietet keinen Tag vor dem Start des
-  vorherigen Themas.
-- E15 Abgehakte Lernaufgaben bleiben startbar; das Häkchen bleibt.
-- E16 Prüfungen gelten ab dem Tag nach dem Termin automatisch als
-  abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
-  neues Datum.
-
-K0–K7 sind erledigt, Details in [`history.md`](history.md). Aus K6 offen: `npm run performance:measure:local` mit Docker nachholen.
-
-- [ ] **K8 App-Anbindung und Abnahme:** E12; Prüfungssitzung in Hilfe
-      erklären; E2E gegen die echte App statt Katalog-Demo, lokales Supabase
-      mit zwei Browserkontexten desselben Kontos; Unit-Tests für
-      `balanceExamContacts` (Mengenerhaltung, Zielreihenfolge, Abbruch),
-      `ratingAt` mit Bewertungshistorie und gemeinsame Planung (E3);
-      `history.md` und Abschluss dieses Blocks.
 
 ## Offene Abnahmen der Kartenmodell-Roadmap
 

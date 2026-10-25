@@ -769,6 +769,11 @@ export function App() {
       ids = getExamSessionTargetIds(tasks, forecast.days[0], todayKey, blockId);
     }
     if (!ids.length) throw new Error("Für heute ist in der Prüfungsplanung nichts mehr offen.");
+    // Offline the unit runs on the target cards already on this device (E12).
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      ids = await workspaceHydrationService.listLocalCardIds(ids);
+      if (!ids.length) throw new Error("Die Karten der heutigen Einheit sind erst online verfügbar.");
+    }
     const bodies = (await workspaceHydrationService.openCards(ids)).filter((body): body is { card: Card; note: Note } => Boolean(body));
     const position = new Map(ids.map((id, index) => [id, index]));
     bodies.sort((a, b) => (position.get(a.card.id) ?? 0) - (position.get(b.card.id) ?? 0));
@@ -1855,6 +1860,7 @@ export function App() {
           onSaveTasks={saveExamTasks}
           onStartUnit={startExamUnit}
           onLoadSummaryAvailability={loadExamSummaryAvailability}
+          onLoadLocalCardIds={workspaceHydrationService?.listLocalCardIds}
           onDraftStateChange={handleExamDraftStateChange}
         />
       );
@@ -1921,7 +1927,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onSaveExamTasks={saveExamTasks} />;
+    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
   }
 
   if (authPhase === "checking-session") {

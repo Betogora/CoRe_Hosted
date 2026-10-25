@@ -85,6 +85,7 @@ export interface DashboardScreenProps {
   onLoadExamPlanningData?: ExamPlanningScreenProps["onLoadPlanningData"];
   onSaveExamTasks?: (tasks: ExamDailyTask[]) => Promise<void>;
   onLoadExamSummaryAvailability?: (deckId: string) => Promise<boolean>;
+  onLoadExamLocalCardIds?: ExamPlanningScreenProps["onLoadLocalCardIds"];
 }
 
 /** Study states the exam forecast runs on, including answers still waiting for sync. */
@@ -103,6 +104,8 @@ export interface ExamPlanningScreenProps {
   onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
   onStartUnit: (blockId: string | null) => Promise<void>;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
+  /** Offline the stored targets stay startable with the cards already on this device. */
+  onLoadLocalCardIds?: (cardIds: string[]) => Promise<string[]>;
   /** Unsaved plan edits or calendar drafts; the app confirms before navigating away. */
   onDraftStateChange?: (dirty: boolean) => void;
 }

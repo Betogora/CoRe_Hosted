@@ -272,6 +272,11 @@ export function createWorkspaceHydrationService({
 
   /** Several card bodies in one hydration, in the given order; a missing body stays null. */
   const openCards = (cardIds: string[]) => hydrateCards(cardIds);
+  /** Card ids whose bodies are on this device; offline exam units run on these only (E12). */
+  const listLocalCardIds = async (cardIds: string[]) => {
+    const missing = new Set(await repository.missingCardBodyIds(cardIds));
+    return cardIds.filter((id) => !missing.has(id));
+  };
 
   const prepareStudyWindow = async (deckIds: string[], options: StudyWindowOptions = {}) => {
     const bufferSize = constrainedConnection() ? 5 : 50;
@@ -545,6 +550,7 @@ export function createWorkspaceHydrationService({
     queryCardPage,
     openCard,
     openCards,
+    listLocalCardIds,
     loadNoteGraph,
     prepareStudyWindow,
     downloadDeck,

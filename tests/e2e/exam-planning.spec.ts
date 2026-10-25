@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { readActiveAccountState, resetToFreshLocalState } from "./support/appState.ts";
+import { e2eAuthStatePath } from "./support/e2eEnvironment.ts";
 
 const EUROPE_DECK_ID = "deck_world_capitals_europa";
 
@@ -26,7 +27,7 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
   await resetToFreshLocalState(page);
   await planExam(page, "Geografie");
 
-  const card = page.locator('[data-testid^="exam-card-"]');
+  const card = page.locator('[data-testid^="exam-card-exam"]');
   await expect(card).toHaveCount(1);
   await expect(card.getByRole("heading", { name: "Geografie" })).toBeVisible();
   const today = page.getByTestId("exam-today");
@@ -70,7 +71,7 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
 test("Prüfungskarte bearbeitet inline, schützt Entwürfe und stellt gelöschte Pläne wieder her", async ({ page }) => {
   await resetToFreshLocalState(page);
   await planExam(page, "Geografie");
-  const card = page.locator('[data-testid^="exam-card-"]').first();
+  const card = page.locator('[data-testid^="exam-card-exam"]').first();
   await expect(card.getByRole("button", { name: "Bearbeiten", exact: true })).toHaveCount(0);
   await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
   await expect(card.getByRole("progressbar")).toHaveCount(1);
@@ -148,5 +149,60 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
   await calendar.getByRole("button", { name: "Lernzeit im Kalender löschen" }).click();
   await expect(block).toHaveCount(0);
   await expect(calendar.getByRole("slider", { name: "Ende der Lernzeit ändern" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Kalenderänderungen speichern" })).toBeVisible();
+  await expect(page.getByText("Ungespeicherte Kalenderänderungen", { exact: true })).toBeVisible();
+});
+
+async function synchronized(page: Page) {
+  await page.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible').waitFor({ state: "visible", timeout: 20_000 });
+}
+
+test("Zwei Geräte teilen Plan und Häkchen; offline startet die Einheit aus lokalen Karten; die Hauptnavigation schützt Entwürfe", async ({ page, browser }) => {
+  test.setTimeout(120_000);
+  await resetToFreshLocalState(page);
+  await planExam(page, "Geografie");
+  const today = page.getByTestId("exam-today");
+  await expect(today.getByRole("button", { name: "Heutige Einheit lernen" })).toBeEnabled({ timeout: 20_000 });
+  const firstTask = today.locator('[data-exam-block="study"]').first().getByRole("checkbox");
+  await firstTask.check();
+  await expect(firstTask).toBeChecked();
+  await synchronized(page);
+
+  const second = await browser.newContext({ storageState: e2eAuthStatePath }), other = await second.newPage();
+  try {
+    await other.goto("/pruefungen");
+    const otherCard = other.locator('[data-testid^="exam-card-exam"]');
+    await expect(otherCard.getByRole("heading", { name: "Geografie" })).toBeVisible({ timeout: 20_000 });
+    await expect(other.getByTestId("exam-today").locator('[data-exam-block="study"]').first().getByRole("checkbox")).toBeChecked({ timeout: 20_000 });
+  } finally { await second.close(); }
+
+  // Studying once online keeps the target cards on this device.
+  await today.getByRole("button", { name: "Heutige Einheit lernen" }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole("heading", { name: "Prüfungen", exact: true })).toBeVisible();
+
+  await page.context().setOffline(true);
+  try {
+    await page.getByRole("button", { name: "Plan neu berechnen" }).click();
+    await expect(today.getByText("Offline: zuletzt geplante Aufgaben", { exact: true })).toBeVisible();
+    await expect(today.locator('[data-exam-block="study"]').first().getByRole("checkbox")).toBeEnabled();
+    await today.getByRole("button", { name: "Heutige Einheit lernen" }).click();
+    await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+    await page.goBack();
+  } finally { await page.context().setOffline(false); }
+  await expect(today.getByText("Offline: zuletzt geplante Aufgaben", { exact: true })).toHaveCount(0, { timeout: 20_000 });
+
+  const card = page.locator('[data-testid^="exam-card-exam"]').first();
+  await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
+  await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await card.getByRole("textbox", { name: "Name", exact: true }).fill("Europa");
+  await mainMenu(page).getByRole("button", { name: "Heute" }).click();
+  const leave = page.getByRole("dialog", { name: "Änderungen verwerfen?" });
+  await expect(leave).toBeVisible();
+  await leave.getByRole("button", { name: "Weiter bearbeiten" }).click();
+  await expect(page).toHaveURL(/\/pruefungen$/);
+  await expect(card.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Europa");
+  await mainMenu(page).getByRole("button", { name: "Heute" }).click();
+  await leave.getByRole("button", { name: "Verwerfen und verlassen" }).click();
+  await expect(page).toHaveURL(/\/$|\/heute$/);
 });

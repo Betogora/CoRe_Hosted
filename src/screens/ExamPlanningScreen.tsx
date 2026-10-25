@@ -92,7 +92,7 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
 }
 
 /** Global exam planner (ADR-042), with relative study time for each exam. */
-export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability, onDraftStateChange }: ExamPlanningScreenProps) {
+export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability, onLoadLocalCardIds, onDraftStateChange }: ExamPlanningScreenProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const [calendarDraft, setCalendarDraft] = React.useState<ExamPlanningSettings | null>(null);
   const { exams, capacity } = calendarDraft ?? preferences.examPlanning;
@@ -108,7 +108,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
   const [saving, setSaving] = React.useState(false);
   const [actionError, setActionError] = React.useState("");
   const planning = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData, includeInactive: true });
-  const { forecast, current, cards, busy, error, reload } = planning;
+  const { forecast, current, cards, busy, error, offline, reload } = planning;
   const today = forecast?.days[0]?.key === todayKey ? forecast.days[0] : null;
   const dirty = editorDirty || Boolean(calendarDraft);
   React.useEffect(() => { onDraftStateChange?.(dirty); }, [dirty, onDraftStateChange]);
@@ -217,7 +217,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
               })}
             </div>
           </section>
-          {today && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} planning={planning} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onSaveTasks={onSaveTasks} /></div> : null}
+          {(today || offline) && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} planning={planning} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onLoadLocalCardIds={onLoadLocalCardIds} onSaveTasks={onSaveTasks} /></div> : null}
         </>
       )}
       <ActionDialog open={Boolean(pendingEditor)} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setPendingEditor(null)} onConfirm={() => { setEditing(pendingEditor?.next ?? null); setEditorDirty(false); setPendingEditor(null); }} />

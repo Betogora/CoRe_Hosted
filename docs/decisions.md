@@ -378,3 +378,43 @@ Die frühere zeitbegrenzte Prognose wird durch gemeinsame Planung von Lernkontak
 ### Ergänzung zu ADR-042 — Gemeinsame Planung, Notizblöcke, kein Quiz (2026-10-24)
 
 Teilen sich Prüfungen Stapel, wird jede Karte genau einmal eingeführt, spätestens zum frühesten Einführungsstichtag, und gehört nur zu den Tagesaufgaben dieser Prüfung; später geplante Prüfungen berücksichtigen deren Last. Blöcke ohne Fach sind Kalendernotizen ohne Einfluss auf die Verteilung. Priorität und Lernziel-Frage entfallen. Quizempfehlungen, Quizblöcke und Quizaufgaben sind entfernt und kehren nur mit einem eigenen Quiz-Feature zurück. Ein gewählter Stapel umfasst künftig hinzukommende Unterstapel; abgewählte bleiben als Ausnahme gespeichert. Themenstarttage bedeuten „frühestens ab“, angezeigt wird der tatsächliche Start. Abgehakte Lernaufgaben bleiben startbar, Prüfungen gelten ab dem Folgetag ihres Termins als abgeschlossen, und mehr als zwei neue Karten pro Minute eingeplanter Lernzeit werden als Hinweis gezeigt, ohne das Speichern zu verhindern. Profilformat 3 setzt das ohne Kompatibilitätscode um; `20261025192248_exam_planning_format_3.sql` stellt Bestände einmalig um.
+
+### Ergänzung zu ADR-042 — Entscheidungen der Prüfungen-Roadmap K0–K8 (2026-10-24/25)
+
+Beim Zusammenführen des Klausurplaners aus PR #42 mit main wurden diese Produktentscheidungen getroffen; Spezifikation §6.9 und Architektur beschreiben ihre Umsetzung.
+
+- E1 Unrealistische Tagesmengen bleiben speicherbar, ab einer klaren Schwelle
+  erscheint ein Hinweis in Vorschau und Tag.
+- E2 Priorität und Lernziel-Frage entfallen; Feld entfernen, ADR-042 ergänzen.
+- E3 Gemeinsame Stapel mehrerer Klausuren werden gemeinsam geplant: jede Karte
+  genau einmal eingeführt, spätestens zum frühesten Stichtag; die Tageslast
+  aller Klausuren wird zusammen ausgeglichen.
+- E4 Zeitblöcke ohne Fach sind reine Kalendernotizen ohne Einfluss auf die
+  Kartenverteilung; Blöcke mit Fach steuern die Lernzeit ihres Fachs (in K2
+  revidiert).
+- E5 Speichern wird nie blockiert; nicht mehr einplanbarer Stoff erscheint als
+  offen.
+- E6 Cutover auf das neue Profilformat ohne Umrechnungscode in der App;
+  vorhandene Pläne rechnet einmalig eine Datenbank-Migration um. Offene Tabs
+  alter Versionen laden nach dem Deploy neu.
+- E7 Eine verpasste Leseaufgabe bleibt sichtbar, bis sie abgehakt oder das
+  Thema abgeschlossen ist.
+- E8 Kein Migrationshinweis (entfällt mit E6).
+- E9 Seite und Heute-Widget teilen eine Planung; keine Doppelberechnung.
+- E10 Tagesaufgaben speichern Kartenverweise schlank und begrenzt im Profil.
+- E11 Quiz-Planung (Blöcke, Empfehlungen, gesperrte Aktion) wird samt Code
+  entfernt und kommt mit einem eigenen Quiz-Feature später zurück.
+- E12 Offline zeigt die zuletzt geplanten Tagesziele und den Kalender und
+  startet die heutige Einheit aus lokal vorhandenen Zielkarten; fehlende
+  Karten erscheinen als „erst online verfügbar“. Ohne lokalen Stand gilt die
+  allgemeine Offline-Meldung. Neu geplant wird nur online.
+- E13 Ein gewählter Oberstapel bleibt als Ganzes ausgewählt; neue Unterstapel
+  gehören automatisch dazu, nur ausdrücklich abgewählte bleiben draußen.
+- E14 Die Themenreihenfolge bestimmt den Ablauf; „Ab Datum“ heißt „frühestens
+  ab“ und schiebt spätere Themen mit. Der Kalender zeigt immer den
+  tatsächlichen Start; der Datumswähler bietet keinen Tag vor dem Start des
+  vorherigen Themas.
+- E15 Abgehakte Lernaufgaben bleiben startbar; das Häkchen bleibt.
+- E16 Prüfungen gelten ab dem Tag nach dem Termin automatisch als
+  abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
+  neues Datum.
