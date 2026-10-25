@@ -1,9 +1,18 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-24
+**Stand:** 2026-10-25
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-25 — Prüfungen K3: Entscheidungen umgesetzt
+
+- E3: Prüfungen werden nach Einführungsstichtag geplant; jeder Stapel gehört der ersten Prüfung, die ihn enthält. Jede Karte wird genau einmal eingeführt und erscheint nur in deren Tagesaufgaben; spätere Prüfungen sehen die geplanten Kontakte anteilig ihrer Lernzeit als Grundlast.
+- E4: Blöcke ohne Fach sind Notizen ohne Einfluss auf Lernzeit und Verteilung. E7: Leseaufgaben stehen nach Themenbeginn auf Heute, bis sie abgehakt oder alle Karten eingeführt sind. E11: Quizempfehlungen, Quizblöcke, Quizaufgaben und die gesperrte KI-Aktion samt Code entfernt. E13: `excludedDeckIds` mit `getExamDeckIds`/`toggleExamDeckSelection`; neue Unterstapel gehören zur Prüfung. E14: Themenliste zeigt den tatsächlichen Start, der Datumswähler beginnt beim Start des vorherigen Themas. E15: abgehakte Aufgaben bleiben startbar. E16: `getExamStatus` führt Prüfungen ab dem Folgetag als abgeschlossen. E1: Hinweis ab mehr als zwei neuen Karten pro geplanter Minute in Vorschau und Tagesdetails. E5-Rest: Kalenderänderungen speichern ohne Warten auf die Vorschau. Einführungsstichtag mindestens 1 Tag vor der Klausur.
+- `getExamPlanningKey` liegt in `examPlanSettings.ts`, berücksichtigt nur eigene Zeitblöcke und ist die einzige Regel für „Plan geändert“, auch in `upsertExamPlan`.
+- Profilformat 3 mit Migration `20261025192248_exam_planning_format_3.sql`; beide Migrationen nacheinander gegen PGlite mit Format-1-Daten geprüft (Quiz entfernt, Ausnahme für nicht gewählten Unterstapel, gelöschte und fremde Stapel unberührt, Stichtag 0 wird 1); das Ergebnis besteht `validateExamPlanningSettings`.
+- Verifiziert: 62 fokussierte Prüfungs-/Profiltests (neu: gemeinsame Planung, Notizblöcke, Leseaufgaben, Oberstapel-Auswahl, Hinweis zu Tagesmengen, Abschluss nach Termin, Planungsschlüssel je Prüfung), `npm run gate:push`, Sichtprüfung im Katalog bei 320, 390, 1280 und 1440 px hell/dunkel (Monat, Tag, Woche, Editor-Stapelauswahl; kein Quiz-Text, kein horizontales Scrollen, keine Laufzeitfehler). Dabei gefunden und behoben: gemeinsame Themen erhielten die Leseaufgabe doppelt.
+- Abschlussaudit mit `audit-last-change`: Stapelbereich je Stapelliste und Prüfungsobjekt zwischengespeichert (vorher je Thema, Aufgabe und Prüfung neu berechnet), `toggleExamDeckSelection` ohne nachträgliche Mutation, toter Zweig für mehrere Prüfungen je Kartenblock entfernt; im Kalender werden tatsächliche Themenstarts einmal je Darstellung ermittelt statt je Thema über alle Prognosetage. Nicht geprüft: lokale DB-Gates und E2E mangels Docker.
 
 ## 2026-10-24 — Prüfungen K2: Soll-Ist-Prüfung
 

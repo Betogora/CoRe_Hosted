@@ -4,7 +4,7 @@ import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { Deck, ExamPlan, GlobalSchedulerPreferences, StudyTimeCapacity } from "../coreTypes.ts";
 import { EXAM_PLANNING_LIMITS, EXAM_RETENTION_LEVELS, createExamPlan } from "../examPlanSettings.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
-import { getExamLastNewDate, getExamTopicOrder, shiftExamDay } from "../examPlanning.ts";
+import { getExamDeckIds, getExamLastNewDate, getExamTopicOrder, shiftExamDay, toggleExamDeckSelection } from "../examPlanning.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { createDeckLibraryModel, type DeckLibrarySummary } from "../libraryModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
@@ -60,9 +60,9 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   function cancel() { if (dirty) setDiscarding(true); else onCancel(); }
   const heading = React.useRef<HTMLHeadingElement>(null);
   const rows = React.useMemo(() => createDeckLibraryModel(decks, { now, timeZone, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, deckSummaries }).rows, [deckSummaries, decks, now, preferences.dayStartHour, preferences.learnAheadMinutes, timeZone]);
-  const selected = new Set(plan.deckIds);
+  const selected = getExamDeckIds(decks, plan);
   const validBasics = Boolean(plan.name.trim() && plan.examDate > today && plan.examDate <= shiftExamDay(today, 365));
-  const valid = validBasics && plan.deckIds.length > 0;
+  const valid = validBasics && selected.size > 0;
   const candidate = { ...plan, status: "active" as const, name: plan.name.trim() || "Neue Prüfung" };
   const plannedExams = (embedded || step >= 2) && valid ? exams.some((exam) => exam.id === plan.id) ? exams.map((exam) => exam.id === plan.id ? candidate : exam) : [...exams, candidate] : [];
   const { forecast, current, busy, error } = useExamForecast({ decks, exams: plannedExams, capacity, preferences, timeZone, now, onLoadPlanningData, delayMs: 250 });
@@ -73,10 +73,10 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   function patch(fields: Partial<ExamPlan>) { setPlan((value) => ({ ...value, ...fields })); }
   function patchCapacity(fields: Partial<StudyTimeCapacity>) { setCapacity((value) => ({ ...value, ...fields })); }
   function go(next: number) { setStep(next); requestAnimationFrame(() => { heading.current?.focus(); heading.current?.scrollIntoView({ block: "start", behavior: "instant" }); }); }
-  function toggleDecks(ids: string[], on: boolean) {
-    const next = on ? [...new Set([...plan.deckIds, ...ids])] : plan.deckIds.filter((id) => !ids.includes(id));
-    if (next.length > EXAM_PLANNING_LIMITS.decksPerExam) { setSelectionError("Bitte wähle höchstens 200 Stapel aus."); return; }
-    setSelectionError(""); patch({ deckIds: next, topicOrder: topicOrder.filter((id) => next.includes(id)), completedSummaryDeckIds: plan.completedSummaryDeckIds?.filter((id) => next.includes(id)), ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => next.includes(topic.deckId)) } : {}) });
+  function toggleDeck(deckId: string, on: boolean) {
+    const next = toggleExamDeckSelection(decks, plan, deckId, on), scope = getExamDeckIds(decks, next);
+    if (next.deckIds.length > EXAM_PLANNING_LIMITS.decksPerExam || (next.excludedDeckIds?.length ?? 0) > EXAM_PLANNING_LIMITS.decksPerExam) { setSelectionError("Bitte wähle höchstens 200 Stapel aus."); return; }
+    setSelectionError(""); patch({ ...next, topicOrder: topicOrder.filter((id) => scope.has(id)), completedSummaryDeckIds: plan.completedSummaryDeckIds?.filter((id) => scope.has(id)), ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => scope.has(topic.deckId)) } : {}) });
   }
   return <div className="mx-auto grid w-full min-w-0 max-w-5xl gap-6" data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
     {!embedded ? <>
@@ -94,17 +94,17 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         {showErrors && (plan.examDate <= today || plan.examDate > shiftExamDay(today, 365)) ? <p role="alert" className="core-field-error">Wähle einen zukünftigen Termin innerhalb der nächsten 365 Tage.</p> : null}
         <p className="core-caption text-core-muted">Datum und Lernzeiten kannst du später anpassen. Bei einem früheren Termin werden spätere Themenwünsche und Zeitblöcke dieser Prüfung entfernt.</p>
       </div> : null}
-      {embedded || step === 1 ? <details open={embedded ? (showErrors && !plan.deckIds.length) || undefined : true}>
-        <summary className={embedded ? "flex min-h-control cursor-pointer items-center gap-2 core-body font-semibold text-core-text" : "hidden"}>Stapel · {plan.deckIds.length} ausgewählt</summary><div className="grid min-w-0 gap-3">
+      {embedded || step === 1 ? <details open={embedded ? (showErrors && !selected.size) || undefined : true}>
+        <summary className={embedded ? "flex min-h-control cursor-pointer items-center gap-2 core-body font-semibold text-core-text" : "hidden"}>Stapel · {selected.size} ausgewählt</summary><div className="grid min-w-0 gap-3">
         <p className="core-body text-core-muted">Ein Oberstapel wählt alle Unterstapel mit aus. Einzelne Unterstapel kannst du anschließend abwählen.</p>
-        <fieldset className="grid min-w-0 gap-3"><legend className="core-body font-semibold text-core-muted">Stapel · {plan.deckIds.length} ausgewählt · {selectedCards} Karten</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
+        <fieldset className="grid min-w-0 gap-3"><legend className="core-body font-semibold text-core-muted">Stapel · {selected.size} ausgewählt · {selectedCards} Karten</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
           const branch = row.childrenCount ? [...collectDeckTreeIds(decks, row.id)] : [row.id];
-          const all = branch.every((id) => selected.has(id)), partial = !all && branch.some((id) => selected.has(id));
-          return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-control px-3 py-2 hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={all} onChange={(event) => toggleDecks(branch, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption text-core-muted">{row.directInventory.totalCards}</span></label>;
+          const checked = selected.has(row.id), partial = branch.some((id) => selected.has(id) !== checked);
+          return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-control px-3 py-2 hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={checked} onChange={(event) => toggleDeck(row.id, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption text-core-muted">{row.directInventory.totalCards}</span></label>;
         })}</div></fieldset>
-        {showErrors && !plan.deckIds.length ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
+        {showErrors && !selected.size ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
-        <label className={LABEL}>Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?<input type="number" className={FIELD} min={0} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(0, Math.round(Number(event.target.value) || 0))) })} /></label>
+        <label className={LABEL}>Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?<input type="number" className={FIELD} min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></label>
         <p className="core-caption text-core-muted">Letzte neue Karten spätestens am {formatExamDate(getExamLastNewDate(plan))}. Ist dieser Tag frei, endet neuer Stoff früher.</p>
         <ExamTopicOrder topics={topicOrder.map((id) => ({ id, name: decks.find((deck) => deck.id === id)!.name }))} disabled={saving} onChange={(topicOrder) => patch({ topicOrder })} />
         <div className="rounded-control bg-core-subtle p-4"><p className="core-body font-semibold text-core-text">Zusammenhängend nach Themen lernen</p><p className="mt-1 core-body text-core-muted">Deine Unterstapel bilden die Themen. Kleine Themen bleiben möglichst an einem Tag; große Themen werden fortlaufend aufgeteilt. Ohne thematische Unterstapel behandeln wir den Stapel als ein Thema.</p></div>
@@ -131,7 +131,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
     <details><summary className="min-h-control cursor-pointer py-3 core-body font-semibold text-core-text">Weitere Lerneinstellungen</summary><div className="mt-3 grid gap-4">
       <label className={LABEL}>Abrufziel für Wiederholungen<CoreSelect ariaLabel="Abrufziel für Wiederholungen" value={String(plan.desiredRetention)} options={EXAM_RETENTION_LEVELS.map((level) => ({ value: String(level), label: formatExamPercent(level) }))} onValueChange={(value) => patch({ desiredRetention: Number(value) })} /></label>
       <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.variants} onChange={(event) => patch({ variants: event.target.checked })} />Varianten einbeziehen</label>
-      <p className="core-caption text-core-muted">Das Abrufziel steuert die Wiederholungen. Es ist keine Bestehenswahrscheinlichkeit. Quizempfehlungen bleiben im Kalender; die Quiz-Erstellung folgt.</p>
+      <p className="core-caption text-core-muted">Das Abrufziel steuert die Wiederholungen. Es ist keine Bestehenswahrscheinlichkeit.</p>
       {time.weeklyMinutes ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{WEEKDAYS.map((name, index) => <label key={name} className={LABEL}>{name} · Stunden<input className={FIELD} type="number" min={0} max={24} step={0.25} value={time.weeklyMinutes![index] / 60} onChange={(event) => patch({ studyTime: { ...time, weeklyMinutes: time.weeklyMinutes!.map((value, i) => i === index ? Math.min(1440, Math.max(0, Math.round(Number(event.target.value) * 60 || 0))) : value) } })} /></label>)}</div> : null}
     </div></details>
   </>; }

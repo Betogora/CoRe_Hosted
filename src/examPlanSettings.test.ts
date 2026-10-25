@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
+import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./learningProfiles.ts";
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
@@ -9,7 +9,8 @@ test("Themenfolge, Tagesausnahmen und erledigte Leseaufgaben bleiben validiert",
   const original = exam("a"), settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...original, topicOrder: ["deck-a"], readSummaryBeforeTopics: true, completedSummaryDeckIds: ["deck-a"] });
   assert.deepEqual(normalizeExamPlanningSettings(settings), settings);
   assert.throws(() => upsertExamPlan(settings, { ...original, topicOrder: ["deck-a", "deck-a"] }), /ungültig/);
-  assert.throws(() => upsertExamPlan(settings, { ...original, completedSummaryDeckIds: ["missing"] }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...original, excludedDeckIds: ["deck-a"] }), /ungültig/, "ein Stapel ist nicht zugleich gewählt und abgewählt");
+  assert.throws(() => upsertExamPlan(settings, { ...original, bufferDays: 0 }), /ungültig/, "die letzte neue Karte liegt mindestens einen Tag vor der Klausur");
   assert.throws(() => upsertExamPlan(settings, { ...original, studyTime: { ...original.studyTime, dateOverrides: [{ date: "2026-10-12", minutes: 20 }, { date: "2026-10-12", minutes: 40 }] } }), /ungültig/);
 });
 
@@ -33,11 +34,11 @@ test("gewählte Prüfungsfarben bleiben im Profil und alte Pläne ohne Farbe gü
 });
 
 test("ungültige Prüfungen fallen einzeln weg, gültige bleiben", () => {
-  const stored = { version: 2, capacity: { timeBlocks: "kaputt" }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
+  const stored = { version: 3, capacity: { timeBlocks: "kaputt" }, exams: [exam("a"), { ...exam("b"), examDate: "2026-02-30" }, exam("a"), { ...exam("c"), deckIds: [] }, exam("d")] };
   const settings = normalizeExamPlanningSettings(stored);
   assert.deepEqual(settings.exams.map((entry) => entry.id), ["a", "d"]);
   assert.deepEqual(settings.capacity, createStudyTimeCapacity(), "ungültige Zeitblöcke fallen auf die Standardwerte zurück");
-  assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 2, exams: [], capacity: createStudyTimeCapacity() });
+  assert.deepEqual(normalizeExamPlanningSettings("kaputt"), { version: 3, exams: [], capacity: createStudyTimeCapacity() });
 });
 
 test("Obergrenzen halten das Profil klein: 20 Prüfungen mit je 200 Stapeln", () => {
@@ -48,11 +49,8 @@ test("Obergrenzen halten das Profil klein: 20 Prüfungen mit je 200 Stapeln", ()
   assert.throws(() => upsertExamPlan(removeExamPlan(settings, "exam-0"), { ...exam("x"), deckIds: Array.from({ length: 201 }, (_, index) => `deck-${index}`) }), /ungültig/);
 });
 
-test("Ausnahmetage sind eindeutig und Namen nicht leer", () => {
-  const settings = normalizeExamPlanningSettings(undefined);
-  const capacity = { ...settings.capacity, dateOverrides: [{ date: "2026-10-09", minutes: 0 }, { date: "2026-10-09", minutes: 30 }] };
-  assert.throws(() => validateExamPlanningSettings({ ...settings, capacity }), /ungültig/);
-  assert.throws(() => upsertExamPlan(settings, { ...exam("a"), name: "   " }), /ungültig/);
+test("Namen sind nicht leer", () => {
+  assert.throws(() => upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...exam("a"), name: "   " }), /ungültig/);
 });
 
 
@@ -71,7 +69,7 @@ test("überlappende, rückwärts laufende und fremde Zeitblöcke werden abgelehn
   }
   const valid = validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, { ...block, id: "2", start: 660, end: 720 }] } });
   assert.equal(valid.capacity.timeBlocks?.length, 2);
-  assert.throws(() => upsertExamPlan(settings, { ...exam("a"), topicDates: [{ deckId: "missing", date: "2026-10-12" }] }), /ungültig/);
+  assert.throws(() => upsertExamPlan(settings, { ...exam("a"), topicDates: [{ deckId: "deck-a", date: exam("a").examDate }] }), /ungültig/);
 });
 
 
@@ -87,13 +85,12 @@ test("Lernzeit bleibt ohne Fachzuordnung speicherbar und kollisionsgeprüft", ()
   assert.deepEqual(removeExamPlan(withExam, "a").capacity.timeBlocks, [block]);
 });
 
-test("Karten und Quiz behalten ihre getrennte Zeitblock-Zuordnung im Profil", () => {
-  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
-  const block = { id: "cards", date: "2026-10-12", start: 480, end: 540, examId: "a", kind: "study" as const };
-  const quiz = { ...block, id: "quiz", start: 540, end: 570, kind: "quiz" as const };
-  const next = validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, quiz] } });
-  assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: next })).examPlanning.capacity.timeBlocks, [block, quiz]);
-  for (const invalid of [{ ...quiz, examId: null }, { ...quiz, kind: "unknown" }, { ...quiz, start: 530 }]) {
-    assert.throws(() => validateExamPlanningSettings({ ...settings, capacity: { ...settings.capacity, timeBlocks: [block, invalid] } }), /ungültig/);
-  }
+test("ein Zeitblock und Notizen ändern nur den Planungsschlüssel ihrer eigenen Prüfung", () => {
+  const settings = upsertExamPlan(upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a")), exam("b"));
+  const before = settings.exams.map((entry) => getExamPlanningKey(entry, settings.capacity));
+  const block = { id: "cards", date: "2026-10-12", start: 480, end: 540, examId: "a" }, note = { ...block, id: "note", start: 600, end: 660, examId: null };
+  const capacity = { timeBlocks: [block, note] };
+  assert.notEqual(getExamPlanningKey(settings.exams[0], capacity), before[0]);
+  assert.equal(getExamPlanningKey(settings.exams[1], capacity), before[1]);
+  assert.equal(getExamPlanningKey(settings.exams[1], { timeBlocks: [note] }), before[1]);
 });

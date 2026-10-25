@@ -49,15 +49,8 @@ Entscheidungen vom 2026-10-24:
   abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
   neues Datum.
 
-K0–K2 sind erledigt, Details in [`history.md`](history.md).
+K0–K3 sind erledigt, Details in [`history.md`](history.md).
 
-- [ ] **K3 Entscheidungen umsetzen:** E1, E3 (auch Tagesaufgaben je Klausur
-      nur mit eigenen Karten), E4, E7 (auch wenn schon Karten des Themas
-      gelernt sind), E11, E13–E16. Planungsschlüssel je Klausur und eine
-      gemeinsame Regel für „Plan geändert“, damit ein Block für eine Klausur
-      keine Ziele anderer zurücksetzt. Kalenderänderungen auch während der
-      Berechnung und offline speicherbar (Rest von E5). Einführungsstichtag
-      mindestens 1 Tag vor der Klausur (0 und 1 sind heute gleich).
 - [ ] **K4 Specs und Docs:** specs §6.9, `architecture.md`, ADR-042
       (veralteter Satz zum Monatskalender, Ergänzung E2/E3/E11), `status.md`;
       veraltete Aussagen zu „Prognose“ und „Heutige Einheit als erste

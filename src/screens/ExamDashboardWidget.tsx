@@ -1,5 +1,5 @@
 import React from "react";
-import { ChevronDown, ChevronUp, BookOpen, Play, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, BookOpen, Play } from "lucide-react";
 import type { DashboardScreenProps, ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamDailyTask } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
@@ -86,15 +86,15 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
           const title = task.deckIds.map(deckName).join(" · ");
           const checked = task.completed !== null;
           return <li key={task.id} data-exam-todo={task.id} data-exam-block={task.kind} className="flex min-w-0 flex-wrap items-center gap-2 rounded-control bg-core-surface p-2">
-            <label className={`flex min-h-control min-w-0 flex-1 cursor-pointer items-center gap-3 px-1 ${task.kind === "quiz" ? "basis-full sm:basis-0" : ""}`}>
-              <input type="checkbox" checked={checked} disabled={!current || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "quiz" ? "Themenquiz: " : task.kind === "summary" ? "Zusammenfassung lesen: " : ""}${title} als erledigt markieren`} onChange={(event) => void persist(setExamDailyTaskChecked(tasks, task.id, event.target.checked))} className="size-5 shrink-0" style={{ accentColor: color }}/>
-              <span className="min-w-0"><strong className={`block break-words core-body text-core-text ${checked ? "line-through" : ""}`}>{task.kind === "quiz" ? "Themenquiz" : task.kind === "summary" ? "Zusammenfassung lesen" : title}</strong>
-                <span className="block break-words core-caption text-core-muted">{task.kind !== "study" ? title : `${task.cardIds.length} Karten`}{task.completed === "automatic" ? " · Automatisch erledigt" : checked ? " · Erledigt" : task.kind === "quiz" ? " · Empfohlen" : ""}</span>
+            <label className="flex min-h-control min-w-0 flex-1 cursor-pointer items-center gap-3 px-1">
+              <input type="checkbox" checked={checked} disabled={!current || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "summary" ? "Zusammenfassung lesen: " : ""}${title} als erledigt markieren`} onChange={(event) => void persist(setExamDailyTaskChecked(tasks, task.id, event.target.checked))} className="size-5 shrink-0" style={{ accentColor: color }}/>
+              <span className="min-w-0"><strong className={`block break-words core-body text-core-text ${checked ? "line-through" : ""}`}>{task.kind === "summary" ? "Zusammenfassung lesen" : title}</strong>
+                <span className="block break-words core-caption text-core-muted">{task.kind === "summary" ? title : `${task.cardIds.length} Karten`}{task.completed === "automatic" ? " · Automatisch erledigt" : checked ? " · Erledigt" : ""}</span>
                 {task.kind === "summary" && summaryAvailability[task.deckIds[0]] === false ? <span className="block core-caption text-core-muted">Noch keine Zusammenfassung vorhanden</span> : null}
                 {task.kind === "summary" && summaryAvailability[task.deckIds[0]] === null ? <span className="block core-caption text-core-muted">Zusammenfassung konnte nicht geprüft werden</span> : null}
               </span>
             </label>
-            {task.kind === "quiz" ? <div className="grid w-full min-w-0 gap-1 sm:w-auto"><ActionButton className="w-full sm:w-auto" variant="secondary" icon={Sparkles} disabled>KI generieren</ActionButton><span className="core-caption text-core-muted">Quiz-Erstellung folgt</span></div> : <IconButton label={task.kind === "summary" ? `${title}: Zusammenfassungen öffnen` : `${title} lernen`} icon={task.kind === "summary" ? BookOpen : Play} variant="ghost" disabled={starting || !current || saving || Boolean(saveError) || taskKey !== storedKey || checked} onClick={() => void start(task.id)}/>}
+            <IconButton label={task.kind === "summary" ? `${title}: Zusammenfassungen öffnen` : `${title} lernen`} icon={task.kind === "summary" ? BookOpen : Play} variant="ghost" disabled={starting || !current || saving || Boolean(saveError) || taskKey !== storedKey} onClick={() => void start(task.id)}/>
           </li>;
         })}</ul>
         {own.length > 3 ? <ActionButton variant="secondary" icon={expanded ? ChevronUp : ChevronDown} aria-expanded={expanded} aria-controls={listId} onClick={() => setExpandedExams((ids) => ids.includes(exam.id) ? ids.filter((id) => id !== exam.id) : [...ids, exam.id])}>

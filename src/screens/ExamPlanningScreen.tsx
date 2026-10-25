@@ -4,7 +4,7 @@ import { CalendarCheck, ChevronDown, Pause, Pencil, Play, Plus, RefreshCcw, Rota
 import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "../coreTypes.ts";
 import { removeExamPlan, upsertExamPlan } from "../examPlanSettings.ts";
-import { examDayDistance, getExamCurrentProgress, type ExamForecastSummary } from "../examPlanning.ts";
+import { examDayDistance, getExamCurrentProgress, getExamStatus, type ExamForecastSummary } from "../examPlanning.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
@@ -37,7 +37,7 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
   const [expanded, setExpanded] = React.useState(false);
   const detailsId = React.useId();
   const daysLeft = examDayDistance(civilToday, exam.examDate);
-  const past = daysLeft <= 0;
+  const past = daysLeft <= 0, status = getExamStatus(exam, civilToday);
   const readiness = summary?.current ?? progress;
   const total = summary?.totalCards ?? progress?.totalCards;
   const known = total === undefined || !readiness ? null : Math.round(total * readiness.coverage);
@@ -45,14 +45,14 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
   const progressDescriptionId = React.useId();
   const open = expanded || Boolean(editor);
   return (
-    <SoftPanel className={`grid min-w-0 content-start p-4 sm:p-6 ${editor ? "lg:col-span-2" : ""}`} data-testid={`exam-card-${exam.id}`} data-status={exam.status}>
+    <SoftPanel className={`grid min-w-0 content-start p-4 sm:p-6 ${editor ? "lg:col-span-2" : ""}`} data-testid={`exam-card-${exam.id}`} data-status={status}>
       <h4>
         <button type="button" disabled={busy} aria-expanded={open} aria-controls={detailsId} aria-label={`${exam.name}: ${open ? "Details schließen" : "Details öffnen"}`} onClick={() => editor ? onCloseEditor() : setExpanded(!expanded)} className="flex min-h-control w-full min-w-0 items-center gap-3 text-left">
           <span className="grow min-w-0">
             <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
               <span className="size-2 shrink-0 rounded-round border border-core-border" style={{ backgroundColor: color }} aria-hidden="true" />
               <span className="min-w-0 break-words core-heading-3 font-semibold text-core-text">{exam.name}</span>
-              <span className={`rounded-round px-2 py-1 core-caption font-medium ${exam.status === "paused" ? "bg-core-warning-soft text-core-text" : exam.status === "completed" ? "bg-core-success-soft text-core-text" : "bg-core-subtle text-core-muted"}`}>{STATUS_LABELS[exam.status]}</span>
+              <span className={`rounded-round px-2 py-1 core-caption font-medium ${status === "paused" ? "bg-core-warning-soft text-core-text" : status === "completed" ? "bg-core-success-soft text-core-text" : "bg-core-subtle text-core-muted"}`}>{STATUS_LABELS[status]}</span>
             </span>
             <span className="mt-1 block core-caption font-normal text-core-muted">{formatExamDate(exam.examDate)} · {past ? "Termin erreicht" : `Noch ${daysLeft} ${daysLeft === 1 ? "Tag" : "Tage"}`}</span>
           </span>
@@ -78,13 +78,12 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
               <p id={progressDescriptionId} className="core-caption text-core-muted">Gefestigt: bereits gesehene Karten ab Lernstufe Stabil, ohne aktuellen Rückfall. Varianten zählen mit.</p>
             </div>
           </> : <p className="core-body text-core-muted">Der Lernstand ist noch nicht verfügbar.</p>}
-          {exam.status === "active" && past ? <StatusMessage tone="warning">Schließe die Prüfung ab oder ändere das Datum.</StatusMessage> : null}
           {summary?.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}
           {summary?.decks.length ? <details className="group min-w-0"><summary className="flex min-h-control cursor-pointer list-none items-center gap-2 core-body font-semibold text-core-text"><ChevronDown size={16} aria-hidden="true" className="transition-transform group-open:rotate-180" />Stapel · {summary.decks.length}</summary><ul className="mt-2 grid gap-2">{summary.decks.map((deck) => <li key={deck.deckId} className="flex min-w-0 justify-between gap-3 core-body"><span className="min-w-0 break-words text-core-text">{deck.name}</span><span className="shrink-0 text-core-muted">{deck.known} / {deck.total}</span></li>)}</ul></details> : null}
           <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap [&_svg]:shrink-0">
             <ActionButton variant="secondary" icon={Pencil} disabled={busy} onClick={onEdit}>Bearbeiten</ActionButton>
-            <ActionButton variant="secondary" icon={exam.status === "active" ? Pause : Play} disabled={busy || (exam.status !== "active" && past)} onClick={() => onStatus(exam.status === "active" ? "paused" : "active")}>{exam.status === "active" ? "Pausieren" : exam.status === "completed" ? "Wieder öffnen" : "Fortsetzen"}</ActionButton>
-            {exam.status !== "completed" ? <ActionButton variant="secondary" icon={CalendarCheck} disabled={busy} onClick={() => onStatus("completed")}>Abschließen</ActionButton> : null}
+            <ActionButton variant="secondary" icon={status === "active" ? Pause : Play} disabled={busy || (status !== "active" && past)} onClick={() => onStatus(status === "active" ? "paused" : "active")}>{status === "active" ? "Pausieren" : status === "completed" ? "Wieder öffnen" : "Fortsetzen"}</ActionButton>
+            {status !== "completed" ? <ActionButton variant="secondary" icon={CalendarCheck} disabled={busy} onClick={() => onStatus("completed")}>Abschließen</ActionButton> : null}
             <ActionButton variant="secondary" icon={Trash2} disabled={busy} onClick={onDelete}>Löschen</ActionButton>
           </div>
         </>}
@@ -165,7 +164,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
         </StatusMessage>
       ) : null}
       <ExamCalendar exams={exams} capacity={capacity} forecast={current ? forecast : null} decks={state.decks} today={civilToday} busy={busy || saving || Boolean(editing)} onChange={(nextExams, nextCapacity) => setCalendarDraft({ ...preferences.examPlanning, exams: nextExams, capacity: nextCapacity })} />
-      {calendarDraft ? <SoftPanel className="grid gap-3 p-4"><p className="core-body text-core-text">Kalenderänderungen sind eine Vorschau. Prüfe die neue Zeitplanung und speichere sie.</p><div className="flex flex-wrap gap-3"><ActionButton variant="primary" loading={saving} disabled={(exams.some((exam) => exam.status === "active" && exam.examDate > civilToday) && !current) || busy || saving} onClick={async () => { if (await save(calendarDraft)) setCalendarDraft(null); }}>Kalenderänderungen speichern</ActionButton><ActionButton variant="secondary" disabled={saving} onClick={() => setCalendarDraft(null)}>Verwerfen</ActionButton></div></SoftPanel> : null}
+      {calendarDraft ? <SoftPanel className="grid gap-3 p-4"><p className="core-body text-core-text">Kalenderänderungen sind eine Vorschau. Prüfe die neue Zeitplanung und speichere sie.</p><div className="flex flex-wrap gap-3"><ActionButton variant="primary" loading={saving} disabled={saving} onClick={async () => { if (await save(calendarDraft)) setCalendarDraft(null); }}>Kalenderänderungen speichern</ActionButton><ActionButton variant="secondary" disabled={saving} onClick={() => setCalendarDraft(null)}>Verwerfen</ActionButton></div></SoftPanel> : null}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <h3 id="exam-list-title" className="core-heading-3 font-semibold text-core-text">Deine Prüfungen</h3>
         <div className="flex flex-wrap gap-2">{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton></div>
@@ -202,7 +201,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
                     exam={exam}
                     color={examColor(exams.indexOf(exam), exam)}
                     summary={current ? summary : null}
-                    progress={summary || !cards.length ? null : getExamCurrentProgress(cards, exam)}
+                    progress={summary || !cards.length ? null : getExamCurrentProgress(state.decks, cards, exam)}
                     civilToday={civilToday}
                     busy={saving || Boolean(calendarDraft)}
                     editor={editing?.id === exam.id ? editor(exam, true) : null}

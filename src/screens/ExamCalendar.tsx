@@ -2,14 +2,14 @@ import React from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import type { Deck, ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
 import { validateExamPlanningSettings } from "../examPlanSettings.ts";
-import { getExamLastNewDate, getExamStudyMinutes, getExamTopicOrder, shiftExamDay, type ExamPortfolioForecast } from "../examPlanning.ts";
+import { EXAM_NEW_CARDS_PER_MINUTE_LIMIT, getExamLastNewDate, getExamStudyMinutes, isExamDayOverloaded, getExamTopicOrder, shiftExamDay, type ExamPortfolioForecast } from "../examPlanning.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { SoftPanel, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { examColor, formatExamClock as clock, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
-import { createExamQuizRecommendations, getExamCalendarWork } from "../examCalendarModel.ts";
+import { getExamCalendarWork } from "../examCalendarModel.ts";
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 
@@ -45,14 +45,18 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
   const dayByKey = new Map(forecast?.days.map((day) => [day.key, day]));
   const selectedWork = getExamCalendarWork(dayByKey.get(date), ids);
   const hasSelectedForecast = Boolean(dayByKey.get(date)) || exams.every((exam) => exam.status !== "active" || date >= exam.examDate);
-  const selectedQuizzes = createExamQuizRecommendations(exams, capacity, today).get(date) ?? [];
-  const selectedSubjects = shown.map((exam) => ({ exam, newCards: getExamCalendarWork(dayByKey.get(date), new Set([exam.id])).newCards, quiz: selectedQuizzes.includes(exam.id) }))
-    .filter(({ exam, newCards, quiz }) => date >= today && (newCards > 0 || quiz || (!hasSelectedForecast && exam.status === "active" && date < exam.examDate)));
+  const selectedSubjects = shown.map((exam) => ({ exam, newCards: getExamCalendarWork(dayByKey.get(date), new Set([exam.id])).newCards }))
+    .filter(({ exam, newCards }) => date >= today && (newCards > 0 || (!hasSelectedForecast && exam.status === "active" && date < exam.examDate)));
   const selectedBlocks = (capacity.timeBlocks ?? []).filter((block) => block.date === date).sort((a, b) => a.start - b.start);
   const selectedExam = filter === "all" ? null : exams.find((exam) => exam.id === filter) ?? null;
   const topicSummary = forecast?.exams.find((exam) => exam.examId === selectedExam?.id);
   const topics = selectedExam && (!initialExamId || selectedExam.id === initialExamId) ? getExamTopicOrder(decks, selectedExam).filter((id) => topicSummary?.decks.some((deck) => deck.deckId === id && deck.total > deck.known)) : [];
-  const topicDate = (id: string) => selectedExam?.topicDates?.find((topic) => topic.deckId === id)?.date ?? forecast?.days.find((day) => day.blocks.some((block) => block.method === "new" && block.deckId === id && block.examIds.includes(selectedExam?.id ?? "")))?.key;
+  // The planned start is shown even when an earlier wish cannot apply because previous topics come first.
+  const plannedStarts = new Map<string, string>();
+  for (const day of forecast?.days ?? []) for (const block of day.blocks) if (block.method === "new" && !plannedStarts.has(block.deckId)) plannedStarts.set(block.deckId, day.key);
+  const topicDate = (id: string) => plannedStarts.get(id) ?? selectedExam?.topicDates?.find((topic) => topic.deckId === id)?.date;
+  const dayMinutes = selectedExam ? getExamStudyMinutes(date, selectedExam, exams, capacity) : shown.reduce((sum, exam) => sum + getExamStudyMinutes(date, exam, exams, capacity), 0);
+  const earliestStart = (id: string) => topics.slice(0, topics.indexOf(id)).map(topicDate).reduce<string>((latest, key) => key && key > latest ? key : latest, today);
   const deckName = (id: string) => decks.find((deck) => deck.id === id)?.name ?? "Entfernter Stapel";
 
   function change(nextExams: ExamPlan[], nextCapacity: StudyTimeCapacity) {
@@ -89,16 +93,14 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
     <div className="flex flex-wrap items-center gap-3">
       <CoreSegmentedControl ariaLabel="Kalenderansicht" value={view} options={[{ value: "month", label: "Monat" }, { value: "week", label: "Woche" }]} onValueChange={setView} />
     </div>
-    {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
+    {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
     {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
     {detailsOpen ? <>
     <SoftPanel className="grid min-w-0 gap-5 p-4 sm:p-6" data-testid="exam-day-editor">
-      <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 font-semibold text-core-text">{formatExamDate(date)}</h4><p className="core-body text-core-muted">{selectedWork.newCards} neue Karten · {formatExamMinutes(selectedExam ? getExamStudyMinutes(date, selectedExam, exams, capacity) : shown.reduce((sum, exam) => sum + getExamStudyMinutes(date, exam, exams, capacity), 0))} eingeplante Lernzeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
+      <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 font-semibold text-core-text">{formatExamDate(date)}</h4><p className="core-body text-core-muted">{selectedWork.newCards} neue Karten · {formatExamMinutes(dayMinutes)} eingeplante Lernzeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
+      {isExamDayOverloaded(selectedWork.newCards, dayMinutes) ? <StatusMessage tone="warning">Mehr als {EXAM_NEW_CARDS_PER_MINUTE_LIMIT} neue Karten pro Minute Lernzeit</StatusMessage> : null}
       {shown.filter((exam) => exam.examDate === date).map((exam) => <StatusMessage key={exam.id} tone="info">Klausur: {exam.name}. Prüfungstage bleiben frei.</StatusMessage>)}
-      {selectedSubjects.length ? <ul className="grid gap-2" aria-label="Lernaufgaben an diesem Tag">{selectedSubjects.flatMap(({ exam, newCards, quiz }) => [
-        ...(newCards > 0 || !hasSelectedForecast ? [{ exam, kind: "study", label: hasSelectedForecast ? `${newCards} neue Karten` : "Karten: –" }] : []),
-        ...(quiz ? [{ exam, kind: "quiz", label: "Quiz empfohlen" }] : []),
-      ]).map(({ exam, kind, label }) => <li key={`${exam.id}:${kind}`} className="min-w-0 break-words rounded-inset border-l-strong p-3 core-body text-core-text" style={{ borderColor: examColor(exams.indexOf(exam), exam), background: `color-mix(in srgb, ${examColor(exams.indexOf(exam), exam)} 10%, var(--core-surface))` }}><strong>{exam.name}</strong> · {label}</li>)}</ul> : null}
+      {selectedSubjects.length ? <ul className="grid gap-2" aria-label="Lernaufgaben an diesem Tag">{selectedSubjects.map(({ exam, newCards }) => <li key={exam.id} className="min-w-0 break-words rounded-inset border-l-strong p-3 core-body text-core-text" style={{ borderColor: examColor(exams.indexOf(exam), exam), background: `color-mix(in srgb, ${examColor(exams.indexOf(exam), exam)} 10%, var(--core-surface))` }}><strong>{exam.name}</strong> · {hasSelectedForecast ? `${newCards} neue Karten` : "Karten: –"}</li>)}</ul> : null}
       <ul className="grid gap-2" aria-label="Themen an diesem Tag">{[...new Set(selectedWork.blocks.map((block) => block.deckId))].map((id) => <li key={id} className="core-body text-core-text">{deckName(id)} · {new Set(selectedWork.blocks.filter((block) => block.deckId === id).flatMap((block) => block.cardIds)).size} Karten</li>)}</ul>
       {dayByKey.get(date)?.summaries.filter((entry) => ids.has(entry.examId)).map((entry) => <p key={`${entry.examId}:${entry.deckId}`} className="core-body text-core-text">Zusammenfassung lesen · {deckName(entry.deckId)}</p>)}
       <fieldset disabled={busy || date < today || date >= horizon} className="min-w-0">
@@ -106,7 +108,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
         <div className="grid content-start gap-3">{selectedExam ? <><label className={LABEL}>Zeit für diesen Tag · Min.<input className={FIELD} type="number" min={0} max={1440} disabled={selectedBlocks.length > 0} value={getExamStudyMinutes(date, selectedExam, exams, capacity)} onChange={(event) => setDayMinutes(Math.min(1440, Math.max(0, Math.round(Number(event.target.value)))))} /></label>
           {selectedExam.studyTime.dateOverrides.some((day) => day.date === date) ? <ActionButton variant="secondary" onClick={() => setDayMinutes(null)}>Wochenrhythmus verwenden</ActionButton> : null}</> : null}
           <p className="core-caption text-core-muted">Ohne feste Blöcke gilt dein Wochenrhythmus oder die Tagesausnahme. Zugeordnete Kartenblöcke ersetzen die Vorgabe dieses Tages für ihr Fach.</p>
-          <ul className="grid gap-2">{selectedBlocks.map((block) => <li key={block.id} className="flex min-w-0 items-center gap-2 rounded-control bg-core-subtle p-3"><span className="min-w-0 flex-1 break-words core-body text-core-text">{clock(block.start)}–{clock(block.end)} · {(block.examId === null ? "Lernzeit · Fach noch zuordnen" : `${exams.find((exam) => exam.id === block.examId)?.name}${block.kind === "quiz" ? " · Quiz" : " · Karten"}`)}</span><IconButton label={`Lernblock ${clock(block.start)} löschen`} icon={Trash2} onClick={() => change(exams, { ...capacity, timeBlocks: capacity.timeBlocks?.filter((entry) => entry.id !== block.id) })} /></li>)}</ul>
+          <ul className="grid gap-2">{selectedBlocks.map((block) => <li key={block.id} className="flex min-w-0 items-center gap-2 rounded-control bg-core-subtle p-3"><span className="min-w-0 flex-1 break-words core-body text-core-text">{clock(block.start)}–{clock(block.end)} · {block.examId === null ? "Lernzeit ohne Fach" : exams.find((exam) => exam.id === block.examId)?.name}</span><IconButton label={`Lernblock ${clock(block.start)} löschen`} icon={Trash2} onClick={() => change(exams, { ...capacity, timeBlocks: capacity.timeBlocks?.filter((entry) => entry.id !== block.id) })} /></li>)}</ul>
         </div>
         <form className="grid min-w-0 content-start gap-3" onSubmit={(event) => { event.preventDefault(); change(exams, { ...capacity, timeBlocks: [...(capacity.timeBlocks ?? []), { id: `time_${crypto.randomUUID()}`, date, start: parseClock(start), end: parseClock(end), examId: blockExam }] }); }}>
           <h5 className="core-body font-semibold text-core-text">Lernblock reservieren</h5>
@@ -122,7 +124,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
       <div><h4 className="core-heading-3 font-semibold text-core-text">Themen verschieben oder tauschen</h4><p className="core-body text-core-muted">Neue Themen erhalten einen gewünschten Starttag. Fällige Wiederholungen bleiben berücksichtigt; die übrigen neuen Karten werden neu verteilt. Themen werden nicht übersprungen.</p></div>
       {!selectedExam ? <p className="core-body text-core-muted">Wähle oben eine einzelne Prüfung, um ihre Themen zu ändern.</p> : !topics.length ? <p className="core-body text-core-muted">Für diese Prüfung ist kein neuer Stoff offen.</p> : <ul className="grid gap-3">{topics.map((id) => <li key={id} className="grid min-w-0 gap-3 rounded-control bg-core-subtle p-3 sm:grid-cols-[minmax(0,1fr)_12rem]">
         <div><p className="break-words core-body font-semibold text-core-text">{deckName(id)}</p><p className="core-caption text-core-muted">{topicSummary?.decks.find((deck) => deck.deckId === id)?.total} Karten · {topicDate(id) ? `Ab ${formatExamDate(topicDate(id)!, "short")}` : "Noch nicht eingeplant"}</p></div>
-        <CoreDatePicker value={topicDate(id) ?? date} min={today} max={getExamLastNewDate(selectedExam)} today={today} ariaLabel={`Starttag für ${deckName(id)}`} onValueChange={(key) => moveTopic(id, key)} />
+        <CoreDatePicker value={topicDate(id) ?? date} min={earliestStart(id)} max={getExamLastNewDate(selectedExam)} today={today} ariaLabel={`Starttag für ${deckName(id)}`} onValueChange={(key) => moveTopic(id, key)} />
         <div className="flex flex-wrap gap-2 sm:col-span-2"><ActionButton variant="secondary" disabled={!topicDate(id)} onClick={() => setSwap(swap === id ? "" : id)}>Mit Thema tauschen</ActionButton>{selectedExam.topicDates?.some((topic) => topic.deckId === id) ? <ActionButton variant="secondary" onClick={() => change(exams.map((exam) => exam.id === selectedExam.id ? { ...exam, topicDates: exam.topicDates?.filter((topic) => topic.deckId !== id) } : exam), capacity)}>Automatisch planen</ActionButton> : null}</div>
         {swap === id ? <div className="grid gap-2 sm:col-span-2">{topics.filter((other) => other !== id && topicDate(other)).map((other) => <ActionButton key={other} variant="secondary" onClick={() => swapTopics(id, other)}>Mit {deckName(other)} tauschen</ActionButton>)}</div> : null}
       </li>)}</ul>}
