@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createBasicNote, createCoreDeck } from "./coreModel.ts";
 import { createExamPlan, createStudyTimeCapacity, validateExamPlanningSettings, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan } from "./examPlanSettings.ts";
-import { getExamQuizDeckIds, reconcileExamDailyTasks, setExamDailyTaskChecked, withExamDailyTasks } from "./examDailyTasks.ts";
+import { reconcileExamDailyTasks, setExamDailyTaskChecked, withExamDailyTasks } from "./examDailyTasks.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./learningProfiles.ts";
 import { type ExamPortfolioForecast } from "./examPlanning.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
@@ -14,7 +14,7 @@ const { extra: _extra, ...study } = made.cards[0].study;
 const card: CardStudySnapshot = { cardId: made.cards[0].id, deckId: "heart", noteId: made.note.id, status: "active", study, studyRevision: 0, activeVariantCount: 0, createdAt: now, maturityXp: 0 };
 const decks = [createCoreDeck({ id: "root", name: "Anatomie" }), ...["heart", "lung", "kidney", "brain"].map((id) => createCoreDeck({ id, name: id, parentDeckId: "root" }))];
 const exam = { ...createExamPlan(date, decks.map((deck) => deck.id)), id: "exam", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-30", studyTime: { dailyMinutes: 120, weekdays: Array(7).fill(true), dateOverrides: [] } };
-const settings: ExamPlanningSettings = { version: 2, exams: [exam], capacity: createStudyTimeCapacity() };
+const settings: ExamPlanningSettings = { version: 3, exams: [exam], capacity: createStudyTimeCapacity() };
 const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 60, newCardIds: [card.cardId], reviewCardIds: [], reviewCount: 0, buffer: false, summaries: [], blocks: [{ id: "new", date, deckId: "heart", examIds: [exam.id], method: "new", expectedItems: 1, priority: 1, cardIds: [card.cardId] }] }], exams: [{ examId: exam.id, decks: decks.slice(1).map((deck) => ({ deckId: deck.id, name: deck.name, known: 0, total: 1,  })), usableDays: 10, totalCards: 4, remainingNewCount: 4, unscheduledNewCount: 0, availableMinutes: 60, current: { coverage: 0, consolidated: 0,  }, issues: [] }] };
 const reconcile = (saved = settings, cards = [card], plan = forecast, at = now) => reconcileExamDailyTasks(saved, decks, plan, cards, at, "Europe/Berlin", 4);
 
@@ -29,12 +29,9 @@ test("Lesehäkchen bleiben je Thema dauerhaft, und Abgleich verändert keine ges
   assert.deepEqual(withExamDailyTasks(done, setExamDailyTaskChecked(done.dailyTasks!, id, false)).exams[0].completedSummaryDeckIds, []);
 });
 
-test("Tagesziele bleiben bei Neuberechnung erhalten, Themenquizze bündeln verwandte Stapel", () => {
+test("Tagesziele bleiben bei Neuberechnung erhalten", () => {
   const tasks = reconcile();
-  assert.equal(tasks.length, 2);
-  assert.equal(tasks[0].id, "topic:exam:heart");
-  assert.deepEqual(tasks[1].deckIds, ["heart", "lung", "kidney"]);
-  assert.deepEqual(getExamQuizDeckIds(exam, decks, forecast, "2026-10-23"), ["brain"]);
+  assert.deepEqual(tasks.map((task) => task.id), ["topic:exam:heart"]);
   const empty = { ...forecast, days: [{ ...forecast.days[0], blocks: [] }] };
   assert.deepEqual(reconcile({ ...settings, dailyTasks: tasks }, [card], empty), tasks);
 });

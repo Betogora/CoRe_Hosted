@@ -1,5 +1,4 @@
-import type { ExamPlan, StudyTimeCapacity } from "./coreTypes.ts";
-import { examDayDistance, getExamStudyMinutes, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
+import { examDayDistance, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
 
 export function createExamMonthDays(month: string): string[] {
   const first = `${month.slice(0, 7)}-01`;
@@ -38,28 +37,4 @@ export function getExamCalendarWork(day: ExamPlanDay | undefined, examIds: Reado
     repetitions: blocks.filter((block) => block.method !== "new").reduce((sum, block) => sum + block.expectedItems, 0),
     blocks,
   };
-}
-
-/** Regular topic checkpoints, anchored to creation so recalculating does not move the cadence. */
-export function createExamQuizRecommendations(exams: ExamPlan[], capacity: StudyTimeCapacity, today: string): Map<string, string[]> {
-  const result = new Map<string, string[]>();
-  const examDates = new Set(exams.map((exam) => exam.examDate));
-  for (const exam of exams.filter((exam) => exam.status === "active" && exam.examDate > today)) {
-    const start = examQuizStart(exam);
-    const dates: string[] = [];
-    for (let date = shiftExamDay(start, 3); date < exam.examDate; date = shiftExamDay(date, 3)) dates.push(date);
-    dates.push(shiftExamDay(exam.examDate, -1));
-    for (let date of dates) {
-      while (date >= start && (getExamStudyMinutes(date, exam, exams, capacity) <= 0 || examDates.has(date))) date = shiftExamDay(date, -1);
-      if (date < today || date <= start) continue;
-      const ids = result.get(date) ?? [];
-      if (!ids.includes(exam.id)) result.set(date, [...ids, exam.id]);
-    }
-  }
-  return new Map([...result].sort(([a], [b]) => a.localeCompare(b)));
-}
-
-export function examQuizStart(exam: ExamPlan): string {
-  const oldest = shiftExamDay(exam.examDate, -365);
-  return exam.createdAt.slice(0, 10) < oldest ? oldest : exam.createdAt.slice(0, 10);
 }

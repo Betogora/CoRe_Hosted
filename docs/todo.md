@@ -19,8 +19,9 @@ Entscheidungen vom 2026-10-24:
 - E3 Gemeinsame Stapel mehrerer Klausuren werden gemeinsam geplant: jede Karte
   genau einmal eingeführt, spätestens zum frühesten Stichtag; die Tageslast
   aller Klausuren wird zusammen ausgeglichen.
-- E4 Ein Zeitblock ohne Fach ergänzt die Tageszeit der Fächer anteilig und
-  ersetzt sie nicht.
+- E4 Zeitblöcke ohne Fach sind reine Kalendernotizen ohne Einfluss auf die
+  Kartenverteilung; Blöcke mit Fach steuern die Lernzeit ihres Fachs (in K2
+  revidiert).
 - E5 Speichern wird nie blockiert; nicht mehr einplanbarer Stoff erscheint als
   offen.
 - E6 Cutover auf das neue Profilformat ohne Umrechnungscode in der App;
@@ -37,30 +38,38 @@ Entscheidungen vom 2026-10-24:
   startet die heutige Einheit aus lokal vorhandenen Zielkarten; fehlende
   Karten erscheinen als „erst online verfügbar“. Ohne lokalen Stand gilt die
   allgemeine Offline-Meldung. Neu geplant wird nur online.
+- E13 Ein gewählter Oberstapel bleibt als Ganzes ausgewählt; neue Unterstapel
+  gehören automatisch dazu, nur ausdrücklich abgewählte bleiben draußen.
+- E14 Die Themenreihenfolge bestimmt den Ablauf; „Ab Datum“ heißt „frühestens
+  ab“ und schiebt spätere Themen mit. Der Kalender zeigt immer den
+  tatsächlichen Start; der Datumswähler bietet keinen Tag vor dem Start des
+  vorherigen Themas.
+- E15 Abgehakte Lernaufgaben bleiben startbar; das Häkchen bleibt.
+- E16 Prüfungen gelten ab dem Tag nach dem Termin automatisch als
+  abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
+  neues Datum.
 
-K0 und K1 sind erledigt, Details in [`history.md`](history.md).
+K0–K3 sind erledigt, Details in [`history.md`](history.md).
 
-- [ ] **K2 Soll-Ist-Prüfung:** Jede Funktion des Inventars (Assistent,
-      Kontaktverteilung, Stichtag, Themenfolge, Lernzeit, Blöcke,
-      Tagesausnahmen, Leseaufgaben, eingefrorene Tagesziele, Sitzung,
-      Kalender) gegen Spec und Absicht prüfen; Abweichungen mit dem Nutzer
-      klären statt raten.
-- [ ] **K3 Entscheidungen umsetzen:** E1–E4, E7, E11 in Modell und UI;
-      Planungsschlüssel je Klausur statt global, damit ein Block für eine
-      Klausur keine Ziele anderer Klausuren zurücksetzt.
 - [ ] **K4 Specs und Docs:** specs §6.9, `architecture.md`, ADR-042
       (veralteter Satz zum Monatskalender, Ergänzung E2/E3/E11), `status.md`;
-      toten Code entfernen (`priority`, `reserveFraction`, `minimumMinutes`,
-      `budgetMinutes`, `buffer`, nur von Tests gelesene Diagnosefelder).
+      veraltete Aussagen zu „Prognose“ und „Heutige Einheit als erste
+      Aktion“; toten Code entfernen (`StudyPlanBlock.priority`,
+      `budgetMinutes`, `buffer`, `reviewCount`, nur von Tests gelesene
+      Diagnosefelder, `renderFeasibility`).
 - [ ] **K5 Zuständigkeiten und Datenpfad:** Bewertungshistogramm,
       `summary:`-IDs und Sitzungsauswahl aus `App.tsx` in die
       Prüfungsmodule; `reviewService.ts` ohne festen Import der
       Prüfungssitzung; eine Zeitzonenregel für Widget, Seite und App;
       Profilschreibwege des automatischen Tagesziel-Speicherns gegen
-      parallele Änderungen absichern; E10.
+      parallele Änderungen absichern; ungültige Zeitblöcke und Tagesaufgaben
+      fallen einzeln weg statt alle; Fortschritt pausierter, abgeschlossener
+      und vergangener Prüfungen aus echten Lernständen; E10.
 - [ ] **K6 Performance:** E9; Planungsdaten über Bildschirmwechsel cachen und
       nach Reviews gezielt invalidieren; kein Neuplanen durch automatisches
-      Speichern der Tagesaufgaben; Sitzungsstart nutzt den vorhandenen Plan;
+      Speichern der Tagesaufgaben; Sitzungsstart nutzt den vorhandenen Plan
+      (heute dritte Berechnung); Ausgangswert 5000 neue und 2000 bekannte
+      Karten bei 200 Tagen Horizont 1,4–1,6 s im Hauptthread;
       `balanceExamContacts` ohne Neuanlage je Score und mit inkrementeller
       Bewertung; Kohorten bekannter Karten wirksam bündeln; Worker nur bei
       gemessenem Bedarf; Benchmark-Skript ins Repo (main gegen neuen Stand,
@@ -69,7 +78,11 @@ K0 und K1 sind erledigt, Details in [`history.md`](history.md).
 - [ ] **K7 UI/UX iterativ:** visuelle Pflichtmatrix aller Prüfungsansichten
       mit Top-Bar; Ziehen der Themenfolge scrollt ab 1280 px den
       Inhaltsbereich; Wochenkalender per Touch; Hinweis aus E1; schlanke
-      Oberfläche ohne Erklärtexte; Iteration mit Screenshots.
+      Oberfläche ohne Erklärtexte; ganze Minuten statt Kommawerten,
+      einheitliche Zeiteinheit in Editor und Kalender; Tagesausnahme nicht
+      durch Blöcke anderer Fächer gesperrt; ein Bearbeitungshorizont für Tag
+      und Woche; „In 1 Tagen“; ungespeicherte Bearbeitung auch beim Wechsel
+      über die Hauptnavigation schützen; Iteration mit Screenshots.
 - [ ] **K8 App-Anbindung und Abnahme:** E12; Prüfungssitzung in Hilfe
       erklären; E2E gegen die echte App statt Katalog-Demo, lokales Supabase
       mit zwei Browserkontexten desselben Kontos; Unit-Tests für

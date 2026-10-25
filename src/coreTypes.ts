@@ -134,7 +134,10 @@ export interface ExamPlan {
   colorIndex?: number;
   color?: string;
   status: "active" | "paused" | "completed";
+  /** Selected decks; a selected deck includes its subdecks unless the nearer mark is an exclusion. */
   deckIds: string[];
+  /** Subdecks deselected below a selected deck; later subdecks of a selected deck join automatically. */
+  excludedDeckIds?: string[];
   examDate: string;
   desiredRetention: number;
   variants: boolean;
@@ -149,9 +152,9 @@ export interface ExamPlan {
   updatedAt: string;
 }
 
-/** Concrete calendar blocks shared by all exams; study time itself belongs to each exam. */
+/** Calendar blocks: a block with an exam sets that exam's study time for the day; one without is only a note. */
 export interface StudyTimeCapacity {
-  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null; kind?: "study" | "quiz" }>;
+  timeBlocks?: Array<{ id: string; date: string; start: number; end: number; examId: string | null }>;
 }
 
 /** A single learning day's checklist; target cards survive forecast recalculation. */
@@ -159,7 +162,7 @@ export interface ExamDailyTask {
   id: string;
   date: string;
   examId: string;
-  kind: "study" | "quiz" | "summary";
+  kind: "study" | "summary";
   deckIds: string[];
   cardIds: string[];
   capturedAt: string;
@@ -168,7 +171,7 @@ export interface ExamDailyTask {
 }
 
 export interface ExamPlanningSettings {
-  version: 2;
+  version: 3;
   exams: ExamPlan[];
   capacity: StudyTimeCapacity;
   dailyTasks?: ExamDailyTask[];
