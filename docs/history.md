@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-24 — Prüfungen K2: Soll-Ist-Prüfung
+
+- 44 Aussagen aus specs §6.9, den Heute-Abschnitten, `architecture.md` und ADR-042 gegen den Code geprüft: 29 erfüllt, 13 teilweise, 2 Spec-Formulierungen veraltet. Zehn Verhaltensszenarien mit den echten Domänenfunktionen nachgerechnet (Skripte im Sitzungsscratchpad `k2-scenarios/`).
+- Bestätigt: gemeinsame Stapel werden je Klausur geplant (262 von 300 Karten an zwei Tagen eingeführt, Tagesaufgaben enthalten fremde Karten); Zeitblöcke ohne Fach ersetzen die Tageszeit und verfallen an freien Tagen; Kommaminuten; ein Block für eine Klausur setzt Ziele anderer zurück; Leseaufgaben verschwinden nach der ersten gelernten Karte; ein ungültiger Zeitblock entfernt alle Blöcke; Fortschritt 0/0 für nicht aktive Prüfungen; Kalenderänderungen ohne fertige Planung nicht speicherbar. Widerlegt: pausierte und abgeschlossene Prüfungen stören die Planung nicht.
+- Laufzeit `createExamPortfolioForecast` (5000 neue und 2000 bekannte Karten, 2 Prüfungen): 60 Tage Horizont 292–317 ms, 200 Tage 1404–1597 ms, etwa linear im Horizont.
+- Entscheidungen E13–E16 und revidiertes E4 in `todo.md`; alle Abweichungen den Schritten K3–K7 zugeordnet.
+
 ## 2026-10-24 — Prüfungen K0/K1: Klausurplaner mit main vereint, Profilformat 2 als Cutover
 
 - K0: PR #42 (`codex/klausurplaner-fsrs-kontakte`) per Merge-Commit auf `claude/pruefungen-integration` mit main zusammengeführt; Konflikte bestanden nur in generierten Docs-Seiten. Roadmap K0–K8 mit Entscheidungen E1–E12 in `todo.md`.
