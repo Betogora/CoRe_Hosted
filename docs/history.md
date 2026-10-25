@@ -5,6 +5,11 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-25 — Prüfungen auf main, Migrationen angewandt, K4
+
+- #44 (K0/K1) und #45 (K2/K3) per Merge-Commit nach main; PR #42 dadurch als gemergt geführt. `20261024153629_exam_planning_format_2.sql` direkt nach #44 und `20261025192248_exam_planning_format_3.sql` direkt nach #45 mit `supabase db push --linked` auf `CoRe-Database` (`hirbiuiydczmnjqtoyqx`) angewandt, jeweils nach Trockenlauf; beide eingebauten Formatprüfungen grün, `supabase migration list --linked` zeigt beide Migrationen.
+- K4: toter Code entfernt (`StudyPlanBlock.priority`, `ExamPlanDay.buffer`, `ExamPlanDay.reviewCount` als Doppel von `reviewCardIds`, nur von Tests gelesene `projectedContacts`/`expectedRecall` samt Erinnerungssumme; Vorschau-Renderer heißt `renderPreview`). ADR-042 nennt seine überholten Teile, Spec ohne „Prognose“ in der Übersicht, Status ohne „lokal erweitert“.
+
 ## 2026-10-25 — Prüfungen K3: Entscheidungen umgesetzt
 
 - E3: Prüfungen werden nach Einführungsstichtag geplant; jeder Stapel gehört der ersten Prüfung, die ihn enthält. Jede Karte wird genau einmal eingeführt und erscheint nur in deren Tagesaufgaben; spätere Prüfungen sehen die geplanten Kontakte anteilig ihrer Lernzeit als Grundlast.

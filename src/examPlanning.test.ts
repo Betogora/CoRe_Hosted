@@ -33,7 +33,7 @@ test("1000 neue Karten werden vollständig und ohne Zeitkapazität bis zum Stich
   const counts = result.days.map((day) => day.newCardIds.length);
   assert.ok(counts.slice(0, 14).reduce((a, b) => a + b) > counts.slice(73, 87).reduce((a, b) => a + b), counts.join(","));
   assert.equal(JSON.stringify(input), original);
-  assert.ok(result.days.slice(1).every((day) => day.reviewCount === 0), "hypothetische Wiederholungen erscheinen nicht als zukünftige Aufgaben");
+  assert.ok(result.days.slice(1).every((day) => !day.reviewCardIds.length), "hypothetische Wiederholungen erscheinen nicht als zukünftige Aufgaben");
 });
 test("selbst 6000 Karten an einem einzigen Tag bleiben planbar und werden als sehr voll gemeldet", async () => {
   const exam = plan({ examDate: shiftExamDay(date, 1), bufferDays: 1, studyTime: { dailyMinutes: 1, weekdays: Array(7).fill(true), dateOverrides: [] } });
@@ -54,7 +54,6 @@ test("gespeicherte Tagesziele bleiben auch in der gesamten Kalenderplanung stabi
   const second = await forecast(input, exam, { dailyTasks });
   assert.deepEqual(second.days[0].newCardIds, target);
   assert.equal(second.days.flatMap((day) => day.newCardIds).length, 200);
-  assert.ok(second.exams[0].projectedContacts!.every(Number.isFinite));
 });
 test("sechs und drei Stunden ergeben bei gleicher Kontaktfolge das Verhältnis zwei zu eins", async () => {
   const exam = plan({ examDate: shiftExamDay(date, 2), bufferDays: 1 });
@@ -112,7 +111,7 @@ test("gemeinsame Karten plant genau eine Prüfung, Sitzung und Tagesaufgaben ent
   const exam = plan({ examDate: shiftExamDay(date, 1), bufferDays: 1 }), input = [...cards(80), card(81, "root", true)];
   const result = await createExamPortfolioForecast(decks, input, [exam, { ...exam, id: "other" }], options), day = result.days[0];
   assert.deepEqual(day.newCardIds, input.slice(0, 80).map((entry) => entry.cardId));
-  assert.deepEqual(day.reviewCardIds, [input[80].cardId]); assert.equal(day.reviewCount, 1);
+  assert.deepEqual(day.reviewCardIds, [input[80].cardId]);
   assert.equal(day.blocks.length, 2);
   for (const block of day.blocks) {
     assert.deepEqual(block.examIds, [exam.id]);

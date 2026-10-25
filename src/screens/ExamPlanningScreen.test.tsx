@@ -45,8 +45,8 @@ test("calendar shows new cards in subject color without duration or repetitions"
   const today = "2026-10-20";
   const first = { ...createExamPlan(today, ["deck"]), id: "anatomy", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-27" };
   const second = { ...first, id: "physiology", name: "Physiologie", examDate: "2026-10-30" };
-  const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, priority: 1, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
-  const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], reviewCount: 8, buffer: false, summaries: [], blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [] };
+  const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
+  const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], summaries: [], blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [] };
   const html = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[first, second]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
   assert.match(html, /data-exam-subject="anatomy" data-exam-task="study"[^>]*>24 neue Karten<\/span>/);
   assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
@@ -75,7 +75,7 @@ test("exam dates stay visible without a forecast and distinguish same-day exams"
 test("six-week months keep task entries and omit zero cards", () => {
   const today = "2026-08-03";
   const exam = { ...createExamPlan(today, ["deck"]), id: "exam", name: "Anatomie", createdAt: "2026-07-31T08:00:00.000Z", examDate: "2026-08-28" };
-  const day = { key: today, budgetMinutes: 60, newCardIds: ["card"], reviewCardIds: [], reviewCount: 0, buffer: false, summaries: [], blocks: [{ id: "new", date: today, examIds: [exam.id], deckId: "deck", method: "new" as const, expectedItems: 1, priority: 1, cardIds: ["card"] }] };
+  const day = { key: today, budgetMinutes: 60, newCardIds: ["card"], reviewCardIds: [], summaries: [], blocks: [{ id: "new", date: today, examIds: [exam.id], deckId: "deck", method: "new" as const, expectedItems: 1, cardIds: ["card"] }] };
   const forecast: ExamPortfolioForecast = { days: [day], exams: [] };
   const render = () => renderToStaticMarkup(<ExamMonthCalendar exams={[exam]} shown={[exam]} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
   const cell = (html: string) => html.split(`data-date="${today}"`)[1].split("</button>")[0];

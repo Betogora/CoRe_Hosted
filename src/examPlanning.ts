@@ -13,11 +13,10 @@ type ExamStudyMethod = "new" | "review" | "relearning" | "variant";
 export interface ExamHistory { ratings: Partial<Record<ReviewRating, number>> }
 export interface StudyPlanBlock {
   id: string; date: string; examIds: string[]; deckId: string; method: ExamStudyMethod;
-  expectedItems: number; priority: number; cardIds: string[];
+  expectedItems: number; cardIds: string[];
 }
 export interface ExamPlanDay {
-  key: string; budgetMinutes: number; newCardIds: string[]; reviewCardIds: string[];
-  reviewCount: number; buffer: boolean; blocks: StudyPlanBlock[];
+  key: string; budgetMinutes: number; newCardIds: string[]; reviewCardIds: string[]; blocks: StudyPlanBlock[];
   summaries: Array<{ examId: string; deckId: string }>;
 }
 export interface ExamReadiness { coverage: number; consolidated: number }
@@ -25,9 +24,6 @@ export interface ExamForecastSummary {
   examId: string; usableDays: number; totalCards: number; remainingNewCount: number;
   unscheduledNewCount: number; availableMinutes: number; current: ExamReadiness; issues: string[];
   decks: Array<{ deckId: string; name: string; total: number; known: number }>;
-  /** Internal diagnostics after topic rounding; never shown as future task counts. */
-  projectedContacts?: number[];
-  expectedRecall?: number;
 }
 export interface ExamPortfolioForecast { days: ExamPlanDay[]; exams: ExamForecastSummary[] }
 export interface ExamForecastOptions {
@@ -114,7 +110,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
   const last = active.map((exam) => exam.examDate).sort().at(-1);
   if (!last) return { days: [], exams: [] };
   const keys = Array.from({ length: examDayDistance(today, last) }, (_, i) => shiftExamDay(today, i));
-  const days: ExamPlanDay[] = keys.map((key) => ({ key, budgetMinutes: active.reduce((sum, exam) => sum + getExamStudyMinutes(key, exam, active, capacity), 0), newCardIds: [], reviewCardIds: [], reviewCount: 0, buffer: active.some((exam) => key > getExamLastNewDate(exam) && key < exam.examDate), blocks: [], summaries: [] }));
+  const days: ExamPlanDay[] = keys.map((key) => ({ key, budgetMinutes: active.reduce((sum, exam) => sum + getExamStudyMinutes(key, exam, active, capacity), 0), newCardIds: [], reviewCardIds: [], blocks: [], summaries: [] }));
   const recorded = new Map(days.map((day) => [day, {
     blocks: new Map<string, StudyPlanBlock>(), newCards: new Set<string>(), reviews: new Set<string>(),
   }]));
@@ -182,8 +178,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       if (group) group.count++; else knownGroups.set(signature, { card, count: 1 });
       if (Date.parse(card.study.dueAt) < ends[0]) record(ownDays[0], card, methodFor(card, settingsByDeck.get(card.deckId)!));
     }
-    let recallTotal = 0;
-    for (const { card, count } of knownGroups.values()) { const projection = await simulate(snapshotState(card), settingsByDeck.get(card.deckId)!, 0); projection.contacts.forEach((value, i) => { baseline[i] += value * count; }); recallTotal += projection.recall * count; }
+    for (const { card, count } of knownGroups.values()) { const projection = await simulate(snapshotState(card), settingsByDeck.get(card.deckId)!, 0); projection.contacts.forEach((value, i) => { baseline[i] += value * count; }); }
     const fixedGroups = new Map<string, { settings: DeckSettings; count: number }>();
     for (const card of fixedFresh) {
       record(ownDays[0], card, "new");
@@ -193,7 +188,6 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     for (const { settings, count } of fixedGroups.values()) {
       const projection = await simulate(createReviewState({ state: "new", reps: 0, dueAt: now }), settings, 0);
       projection.contacts.forEach((value, i) => { baseline[i] += value * count; });
-      recallTotal += projection.recall * count;
     }
     const columnCache = new Map<string, ContactColumn>(), columns: ContactColumn[] = [], groups = new Map<string, { settings: DeckSettings; count: number }>();
     for (const card of fresh) { const settings = settingsByDeck.get(card.deckId)!, key = JSON.stringify(settings.schedulerProfile), group = groups.get(key); if (group) group.count++; else groups.set(key, { settings, count: 1 }); }
@@ -237,31 +231,31 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       const day = topic.some((card) => !isNew(card.study)) ? ownDays[0] : ownDays.find((entry) => entry.blocks.some((block) => block.deckId === id && block.method === "new"));
       day?.summaries.push({ examId: exam.id, deckId: id });
     }
-    // Re-evaluate the concrete topic assignment, including all rounding and differing learning profiles.
+    // The concrete assignment, including rounding and differing learning profiles, is the load later exams see.
     const projectedContacts = Float64Array.from(baseline);
     for (let start = 0; start < ownDays.length; start++) for (const block of ownDays[start].blocks.filter((entry) => entry.method === "new" && entry.examIds.includes(exam.id))) {
       const count = block.cardIds.filter((id) => !frozenIds.has(id)).length;
       if (!count) continue;
       const settings = settingsByDeck.get(block.deckId)!, cacheKey = `${start}:${JSON.stringify(settings.schedulerProfile)}`;
       const column = columnCache.get(cacheKey) ?? await simulate(createReviewState({ state: "new", reps: 0, dueAt: new Date(dayStarts[start]).toISOString() }), settings, start);
-      column.contacts.forEach((value, i) => { projectedContacts[i] += value * count; }); recallTotal += column.recall * count;
+      column.contacts.forEach((value, i) => { projectedContacts[i] += value * count; });
     }
     summaries.push({ examId: exam.id, usableDays: eligible.length + (fixedFresh.length && !eligible.includes(0) ? 1 : 0), totalCards: own.length, remainingNewCount: own.filter((card) => isNew(card.study)).length, unscheduledNewCount: fresh.length - cursor, availableMinutes: minutes.reduce((sum, value) => sum + value, 0), current: readiness(own), issues: [
       ...(exam.deckIds.some((id) => !deckById.has(id)) ? ["Ausgewählte Stapel wurden gelöscht."] : []), ...(!own.length ? ["Keine lernbaren Karten ausgewählt."] : []),
       ...(fresh.length && !eligible.length ? [cutoff < civilToday ? `${fresh.length} neue Karten sind nach dem Einführungsstichtag noch offen.` : "Wähle mindestens einen Lerntag vor dem Einführungsstichtag."] : []),
       ...(cursor < fresh.length && eligible.length ? [`${fresh.length - cursor} neue Karten sind wegen ihrer gewünschten Themenstarttage noch offen.`] : []),
       ...overloadIssue(ownDays.filter((day, i) => isExamDayOverloaded(day.blocks.filter((block) => block.method === "new" && block.examIds.includes(exam.id)).reduce((sum, block) => sum + block.cardIds.length, 0), minutes[i])).length),
-    ], projectedContacts: Array.from(projectedContacts), expectedRecall: own.length ? recallTotal / own.length : 0, decks: order.map((id) => { const selected = cardsByDeck.get(id) ?? []; return { deckId: id, name: deckById.get(id)!.name, total: selected.length, known: selected.filter((card) => !isNew(card.study)).length }; }) });
+    ], decks: order.map((id) => { const selected = cardsByDeck.get(id) ?? []; return { deckId: id, name: deckById.get(id)!.name, total: selected.length, known: selected.filter((card) => !isNew(card.study)).length }; }) });
     projectedContacts.forEach((value, i) => { plannedContacts[i] += value; });
     function record(day: ExamPlanDay, card: CardStudySnapshot, method: ExamStudyMethod) {
       const index = recorded.get(day)!, key = JSON.stringify([card.deckId, method, card.cardId]);
       if (index.blocks.has(key)) return;
       let block = day.blocks.find((entry) => entry.deckId === card.deckId && entry.method === method && entry.examIds[0] === exam.id);
-      if (!block) { block = { id: `${day.key}:${exam.id}:${method}:${card.deckId}`, date: day.key, examIds: [exam.id], deckId: card.deckId, method, expectedItems: 0, priority: method === "new" ? 3 : 0, cardIds: [] }; day.blocks.push(block); }
+      if (!block) { block = { id: `${day.key}:${exam.id}:${method}:${card.deckId}`, date: day.key, examIds: [exam.id], deckId: card.deckId, method, expectedItems: 0, cardIds: [] }; day.blocks.push(block); }
       block.cardIds.push(card.cardId); block.expectedItems++;
       index.blocks.set(key, block);
       if (method === "new") { if (!index.newCards.has(card.cardId)) { index.newCards.add(card.cardId); day.newCardIds.push(card.cardId); } }
-      else if (!index.reviews.has(card.cardId)) { index.reviews.add(card.cardId); day.reviewCardIds.push(card.cardId); day.reviewCount++; }
+      else if (!index.reviews.has(card.cardId)) { index.reviews.add(card.cardId); day.reviewCardIds.push(card.cardId); }
     }
   }
   return { days, exams: summaries };

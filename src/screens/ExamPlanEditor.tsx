@@ -111,7 +111,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       </div></details> : null}
       {embedded ? <details><summary className="min-h-control cursor-pointer py-2 core-body font-semibold text-core-text">Lernzeit und weitere Einstellungen</summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
       {!embedded && step === 2 ? renderPlanningOptions() : null}
-      {valid && (embedded || step >= 2) ? renderFeasibility() : null}
+      {valid && (embedded || step >= 2) ? renderPreview() : null}
       {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
       {embedded ? <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end"><ActionButton variant="secondary" disabled={saving} onClick={cancel}>Abbrechen</ActionButton><ActionButton variant="primary" icon={Save} loading={saving} onClick={() => { if (!valid) setShowErrors(true); else void onSave({ ...plan, name: plan.name.trim(), updatedAt: new Date().toISOString() }, capacity); }}>Speichern</ActionButton></div> : renderStepActions()}
     </fieldset>
@@ -135,7 +135,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       {time.weeklyMinutes ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{WEEKDAYS.map((name, index) => <label key={name} className={LABEL}>{name} · Stunden<input className={FIELD} type="number" min={0} max={24} step={0.25} value={time.weeklyMinutes![index] / 60} onChange={(event) => patch({ studyTime: { ...time, weeklyMinutes: time.weeklyMinutes!.map((value, i) => i === index ? Math.min(1440, Math.max(0, Math.round(Number(event.target.value) * 60 || 0))) : value) } })} /></label>)}</div> : null}
     </div></details>
   </>; }
-  function renderFeasibility() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
+  function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
     {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
     {!summary && !error ? <p role="status" className="core-body text-core-muted">Dein Plan wird berechnet …</p> : null}
     {summary ? <><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatTile size="compact" label="Karten" value={String(summary.totalCards)} /><StatTile size="compact" label="Noch neu" value={String(summary.remainingNewCount)} /><StatTile size="compact" label="Einführungstage" value={String(summary.usableDays)} /><StatTile size="compact" label="Eingeplante Lernzeit" value={formatExamMinutes(summary.availableMinutes)} /></div>

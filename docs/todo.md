@@ -49,14 +49,8 @@ Entscheidungen vom 2026-10-24:
   abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
   neues Datum.
 
-K0–K3 sind erledigt, Details in [`history.md`](history.md).
+K0–K4 sind erledigt, Details in [`history.md`](history.md).
 
-- [ ] **K4 Specs und Docs:** specs §6.9, `architecture.md`, ADR-042
-      (veralteter Satz zum Monatskalender, Ergänzung E2/E3/E11), `status.md`;
-      veraltete Aussagen zu „Prognose“ und „Heutige Einheit als erste
-      Aktion“; toten Code entfernen (`StudyPlanBlock.priority`,
-      `budgetMinutes`, `buffer`, `reviewCount`, nur von Tests gelesene
-      Diagnosefelder, `renderFeasibility`).
 - [ ] **K5 Zuständigkeiten und Datenpfad:** Bewertungshistogramm,
       `summary:`-IDs und Sitzungsauswahl aus `App.tsx` in die
       Prüfungsmodule; `reviewService.ts` ohne festen Import der

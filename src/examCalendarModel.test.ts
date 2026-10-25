@@ -15,8 +15,8 @@ test("month grids start on Monday and include leap days and six-week months", ()
 });
 
 test("filtered work counts shared cards once and all repeat methods", () => {
-  const block = (id: string, method: StudyPlanBlock["method"], examIds: string[], cardIds: string[], expectedItems = 2): StudyPlanBlock => ({ id, method, examIds, cardIds, expectedItems, date: "2026-10-18", deckId: "deck", priority: 1 });
-  const day: ExamPlanDay = { key: "2026-10-18", budgetMinutes: 60, newCardIds: [], reviewCardIds: [], reviewCount: 6, buffer: false, summaries: [], blocks: [block("new", "new", ["a", "b"], ["1", "2"]), block("review", "review", ["a", "b"], ["3"]), block("steps", "relearning", ["a"], ["4"]), block("variant", "variant", ["b"], ["5"])] };
+  const block = (id: string, method: StudyPlanBlock["method"], examIds: string[], cardIds: string[], expectedItems = 2): StudyPlanBlock => ({ id, method, examIds, cardIds, expectedItems, date: "2026-10-18", deckId: "deck" });
+  const day: ExamPlanDay = { key: "2026-10-18", budgetMinutes: 60, newCardIds: [], reviewCardIds: [], summaries: [], blocks: [block("new", "new", ["a", "b"], ["1", "2"]), block("review", "review", ["a", "b"], ["3"]), block("steps", "relearning", ["a"], ["4"]), block("variant", "variant", ["b"], ["5"])] };
   const all = getExamCalendarWork(day, new Set(["a", "b"]));
   assert.equal(all.newCards, 2);
   assert.equal(all.repetitions, 6);
