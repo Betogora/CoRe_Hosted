@@ -5,6 +5,16 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-25 — Prüfungen K5: Zuständigkeiten und Datenpfad
+
+- `workspaceHydrationService.loadExamPlanningData` ersetzt Serverlernstände durch ausstehende Antworten der Outbox (vorher in `App`); die Planung bildet die Bewertungsverteilung selbst aus den geladenen Karten (`ExamHistory`/`history` entfallen). `getExamSummaryTaskDeckId` und `getExamSessionTargetIds` in `examDailyTasks.ts` ersetzen ID-Zerlegung und Sitzungsauswahl in `App`.
+- `reviewService.ts` importiert die Prüfungsplanung nicht mehr: Der transiente Sitzungsstapel trägt `Deck.plannedOrder`; dasselbe Merkmal schützt ihn in `App` vor dem Speichern.
+- `getLearningTimeZone` (Profil, sonst Browser, sonst UTC) für App, Prüfungsseite und Heute-Widget; das Widget fiel vorher direkt auf UTC.
+- Prüfungsseite und Heute speichern die Checkliste über denselben App-Handler, der in den aktuellen Profilstand mischt; vorher schrieb die Prüfungsseite aus dem gerenderten Stand.
+- Ungültige Zeitblöcke und Tagesaufgaben fallen beim Lesen einzeln weg. E10: höchstens 5.000 Kartenverweise je Lerntag, der Abgleich kürzt darauf.
+- Die Prüfungsseite lädt Lernstände auch für pausierte, abgeschlossene und vergangene Prüfungen; ihr Fortschritt zeigt nicht mehr 0/0.
+- Verifiziert: neue Tests für Outbox-Übernahme, einzelnes Verwerfen, Kartenverweis-Grenze, Aufgaben-ID und Sitzungsziele; fokussierte Suiten für Prüfungen, Profil, Lernqueue, Lerntag und Hydrierung.
+
 ## 2026-10-25 — Prüfungen auf main, Migrationen angewandt, K4
 
 - #44 (K0/K1) und #45 (K2/K3) per Merge-Commit nach main; PR #42 dadurch als gemergt geführt. `20261024153629_exam_planning_format_2.sql` direkt nach #44 und `20261025192248_exam_planning_format_3.sql` direkt nach #45 mit `supabase db push --linked` auf `CoRe-Database` (`hirbiuiydczmnjqtoyqx`) angewandt, jeweils nach Trockenlauf; beide eingebauten Formatprüfungen grün, `supabase migration list --linked` zeigt beide Migrationen.

@@ -10,7 +10,6 @@ import { calculateRetrievability, scheduleWithFsrs } from "./scheduler.ts";
 import { balanceExamContacts, type ContactColumn } from "./examContactPlanning.ts";
 
 type ExamStudyMethod = "new" | "review" | "relearning" | "variant";
-export interface ExamHistory { ratings: Partial<Record<ReviewRating, number>> }
 export interface StudyPlanBlock {
   id: string; date: string; examIds: string[]; deckId: string; method: ExamStudyMethod;
   expectedItems: number; cardIds: string[];
@@ -28,7 +27,7 @@ export interface ExamForecastSummary {
 export interface ExamPortfolioForecast { days: ExamPlanDay[]; exams: ExamForecastSummary[] }
 export interface ExamForecastOptions {
   now: string; preferences: Pick<GlobalSchedulerPreferences, "dayStartHour" | "easyDays">; timeZone: string;
-  capacity: StudyTimeCapacity; history: ExamHistory; signal?: AbortSignal; dailyTasks?: readonly ExamDailyTask[];
+  capacity: StudyTimeCapacity; signal?: AbortSignal; dailyTasks?: readonly ExamDailyTask[];
 }
 export function shiftExamDay(key: string, days: number) { const date = new Date(`${key}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + days); return date.toISOString().slice(0, 10); }
 export function examDayDistance(from: string, to: string) { return Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000); }
@@ -104,7 +103,7 @@ function methodFor(card: CardStudySnapshot, settings: DeckSettings): ExamStudyMe
 
 /** Whole-horizon contact planning, including for today's start. Study states remain hypothetical. */
 export async function createExamPortfolioForecast(decks: readonly Deck[], cards: readonly CardStudySnapshot[], exams: readonly ExamPlan[], options: ExamForecastOptions): Promise<ExamPortfolioForecast> {
-  const { now, preferences, timeZone, signal, capacity, history } = options, context = { dayStartHour: preferences.dayStartHour, timeZone };
+  const { now, preferences, timeZone, signal, capacity } = options, context = { dayStartHour: preferences.dayStartHour, timeZone };
   const pause = createMainThreadBudget(), today = getLearningDayKey(now, context)!, civilToday = getLearningDayKey(now, { timeZone })!;
   const active = exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday && examDayDistance(civilToday, exam.examDate) <= 365);
   const last = active.map((exam) => exam.examDate).sort().at(-1);
@@ -117,11 +116,14 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
   const deckById = new Map(decks.filter((deck) => !deck.deletedAt).map((deck) => [deck.id, deck])), cardsByDeck = new Map<string, CardStudySnapshot[]>();
   for (const card of cards) if (card.status === "active" && deckById.has(card.deckId)) { const own = cardsByDeck.get(card.deckId) ?? []; own.push(card); cardsByDeck.set(card.deckId, own); }
   for (const own of cardsByDeck.values()) own.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.cardId.localeCompare(b.cardId));
-  const ratingTotal = Object.values(history.ratings).reduce((sum, value) => sum + (value ?? 0), 0);
+  // The latest answers of the planned cards form the simplified scenario; below ten answers every contact counts as "good".
+  const ratings: Partial<Record<ReviewRating, number>> = {};
+  for (const card of cards) if (card.study.lastRating) ratings[card.study.lastRating] = (ratings[card.study.lastRating] ?? 0) + 1;
+  const ratingTotal = Object.values(ratings).reduce((sum, value) => sum + (value ?? 0), 0);
   const ratingAt = (answer: number): ReviewRating => {
     if (ratingTotal < 10) return "good";
     const slot = ((answer * 7 + 19) % 101) / 101 * ratingTotal; let threshold = 0;
-    for (const rating of ["again", "hard", "good", "easy"] as const) { threshold += history.ratings[rating] ?? 0; if (slot < threshold) return rating; }
+    for (const rating of ["again", "hard", "good", "easy"] as const) { threshold += ratings[rating] ?? 0; if (slot < threshold) return rating; }
     return "good";
   };
   let operations = 0;
@@ -283,7 +285,7 @@ export function getActiveExamDeckIds(decks: readonly Deck[], exams: readonly Exa
 }
 export function createExamSessionDecks(decks: readonly Deck[], cards: readonly Card[], exams: readonly ExamPlan[], todayKey: string): Deck[] {
   const root = createCoreDeck({ id: EXAM_SESSION_DECK_ID, name: "Heutige Einheit", createdAt: todayKey, updatedAt: todayKey });
-  const session: Deck[] = [{ ...root, deckSettings: getExamStudySettings(root.deckSettings, root.deckSettings.schedulerProfile.desiredRetention, false) }];
+  const session: Deck[] = [{ ...root, plannedOrder: true, deckSettings: getExamStudySettings(root.deckSettings, root.deckSettings.schedulerProfile.desiredRetention, false) }];
   const selected = new Set(cards.map((card) => card.deckId));
   const order = [...new Set(exams.filter((exam) => exam.status === "active" && exam.examDate > todayKey).slice().sort((a, b) => a.examDate.localeCompare(b.examDate)).flatMap((exam) => getExamTopicOrder(decks, exam)))].filter((id) => selected.has(id));
   for (const id of order) { const deck = decks.find((entry) => entry.id === id); if (deck) session.push({ ...deck, parentDeckId: EXAM_SESSION_DECK_ID, cards: cards.filter((card) => card.deckId === id), reviewEvents: [], deckSettings: getExamSessionDeckSettings(decks, deck, exams, todayKey) }); }

@@ -5,7 +5,6 @@ import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
-import type { ExamHistory } from "./examPlanning.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -88,10 +87,9 @@ export interface DashboardScreenProps {
   onLoadExamSummaryAvailability?: (deckId: string) => Promise<boolean>;
 }
 
-/** Study states and observed history the exam forecast runs on. */
+/** Study states the exam forecast runs on, including answers still waiting for sync. */
 export interface ExamPlanningData {
   cards: CardStudySnapshot[];
-  history: ExamHistory;
 }
 
 export interface ExamPlanningScreenProps {
@@ -100,6 +98,8 @@ export interface ExamPlanningScreenProps {
   now: string;
   onLoadPlanningData: (deckIds: string[], signal: AbortSignal) => Promise<ExamPlanningData>;
   onSavePlanning: (settings: ExamPlanningSettings) => Promise<void>;
+  /** Merges today's checklist into the latest stored plan, never into a rendered snapshot. */
+  onSaveTasks: (tasks: ExamDailyTask[]) => Promise<void>;
   onStartUnit: (blockId: string | null) => Promise<void>;
   onLoadSummaryAvailability?: (deckId: string) => Promise<boolean>;
 }

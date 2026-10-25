@@ -94,3 +94,22 @@ test("ein Zeitblock und Notizen ändern nur den Planungsschlüssel ihrer eigenen
   assert.equal(getExamPlanningKey(settings.exams[1], capacity), before[1]);
   assert.equal(getExamPlanningKey(settings.exams[1], { timeBlocks: [note] }), before[1]);
 });
+
+test("ein ungültiger Zeitblock oder eine ungültige Tagesaufgabe fällt einzeln weg", () => {
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
+  const block = { id: "ok", date: "2026-10-12", start: 480, end: 540, examId: "a" };
+  const task = { id: "topic:a:deck-a", date: "2026-10-12", examId: "a", kind: "study", deckIds: ["deck-a"], cardIds: ["card"], capturedAt: "2026-10-12T08:00:00.000Z", completed: null };
+  const stored = { ...settings, capacity: { timeBlocks: [block, { ...block, id: "rückwärts", start: 600, end: 500 }, { ...block, id: "überlappt", start: 500 }, { ...block, id: "fremd", examId: "missing" }] },
+    dailyTasks: [task, { ...task, id: "kaputt" }, { ...task, id: "summary:a:deck-a", kind: "summary", cardIds: ["card"] }] };
+  const normalized = normalizeExamPlanningSettings(stored);
+  assert.deepEqual(normalized.capacity.timeBlocks, [block]);
+  assert.deepEqual(normalized.dailyTasks, [task]);
+});
+
+test("Tagesaufgaben speichern höchstens die zulässige Zahl an Kartenverweisen", () => {
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), exam("a"));
+  const task = (deck: string, count: number) => ({ id: `topic:a:${deck}`, date: "2026-10-12", examId: "a", kind: "study", deckIds: [deck], cardIds: Array.from({ length: count }, (_, i) => `${deck}-${i}`), capturedAt: "2026-10-12T08:00:00.000Z", completed: null });
+  const full = task("deck-a", EXAM_PLANNING_LIMITS.dailyCardRefs);
+  assert.deepEqual(normalizeExamPlanningSettings({ ...settings, dailyTasks: [full, task("deck-b", 1)] }).dailyTasks?.map((entry) => entry.id), [full.id]);
+  assert.throws(() => validateExamPlanningSettings({ ...settings, dailyTasks: [full, task("deck-b", 1)] }), /ungültig/);
+});

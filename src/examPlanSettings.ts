@@ -1,9 +1,9 @@
 import * as v from "valibot";
 import { stableContentHash } from "./coreModel.ts";
-import type { ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "./coreTypes.ts";
+import type { ExamDailyTask, ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "./coreTypes.ts";
 
 /** Upper bounds keep the profile small enough to load with every start (ADR-042). */
-export const EXAM_PLANNING_LIMITS = { exams: 20, decksPerExam: 200, dateOverrides: 365 } as const;
+export const EXAM_PLANNING_LIMITS = { exams: 20, decksPerExam: 200, dateOverrides: 365, timeBlocks: 500, dailyTasks: 4000, dailyCardRefs: 5000 } as const;
 export const EXAM_RETENTION_LEVELS = [0.85, 0.9, 0.95, 0.97] as const;
 /** Root of an exam session; it only scopes the queue and lifts its limits, answers stay with each card's own deck. */
 export const EXAM_SESSION_DECK_ID = "exam-session";
@@ -20,8 +20,9 @@ const studyTimeSchema = v.pipe(v.strictObject({
   weeklyMinutes: v.optional(v.pipe(v.array(minutes), v.length(7))),
   dateOverrides: v.pipe(v.array(v.strictObject({ date: daySchema, minutes })), v.maxLength(EXAM_PLANNING_LIMITS.dateOverrides)),
 }), v.check((time) => new Set(time.dateOverrides.map((day) => day.date)).size === time.dateOverrides.length));
+const timeBlockSchema = v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: v.nullable(identifier) });
 const capacitySchema = v.strictObject({
-  timeBlocks: v.optional(v.pipe(v.array(v.strictObject({ id: identifier, date: daySchema, start: minutes, end: minutes, examId: v.nullable(identifier) })), v.maxLength(500))),
+  timeBlocks: v.optional(v.pipe(v.array(timeBlockSchema), v.maxLength(EXAM_PLANNING_LIMITS.timeBlocks))),
 });
 const planSchema = v.pipe(v.strictObject({
   id: identifier,
@@ -45,18 +46,18 @@ const planSchema = v.pipe(v.strictObject({
 }), v.check((plan) => [plan.deckIds, plan.excludedDeckIds, plan.topicOrder, plan.completedSummaryDeckIds].every((ids) => !ids || new Set(ids).size === ids.length)),
   v.check((plan) => !plan.excludedDeckIds?.some((id) => plan.deckIds.includes(id))),
   v.check((plan) => !plan.topicDates || (new Set(plan.topicDates.map((topic) => topic.deckId)).size === plan.topicDates.length && plan.topicDates.every((topic) => topic.date < plan.examDate))));
-const dailyTaskSchema = v.strictObject({
+const dailyTaskSchema = v.pipe(v.strictObject({
   id: v.pipe(v.string(), v.minLength(1), v.maxLength(800)), date: daySchema, examId: identifier,
   kind: v.picklist(["study", "summary"]),
-  deckIds: v.pipe(v.array(identifier), v.minLength(1), v.maxLength(EXAM_PLANNING_LIMITS.decksPerExam)),
-  cardIds: v.pipe(v.array(identifier), v.maxLength(100000)),
+  deckIds: v.pipe(v.array(identifier), v.length(1)),
+  cardIds: v.pipe(v.array(identifier), v.maxLength(EXAM_PLANNING_LIMITS.dailyCardRefs)),
   capturedAt: v.pipe(v.string(), v.isoTimestamp()), completed: v.nullable(v.picklist(["manual", "automatic"])),
   planningKey: v.optional(identifier),
-});
-const dailyTasksSchema = v.pipe(v.array(dailyTaskSchema), v.maxLength(4000),
-  v.check((tasks) => new Set(tasks.map((task) => task.id)).size === tasks.length && tasks.reduce((sum, task) => sum + task.cardIds.length, 0) <= 100000
-    && new Set(tasks.map((task) => task.date)).size <= 1
-    && tasks.every((task) => new Set(task.cardIds).size === task.cardIds.length && task.deckIds.length === 1 && (task.kind === "summary" ? !task.cardIds.length && task.completed !== "automatic" : task.cardIds.length > 0))));
+}), v.check((task) => new Set(task.cardIds).size === task.cardIds.length && (task.kind === "summary" ? !task.cardIds.length && task.completed !== "automatic" : task.cardIds.length > 0)));
+/** One learning day's checklist with at most `dailyCardRefs` card references in total, so the synced profile stays small. */
+const dailyTasksSchema = v.pipe(v.array(dailyTaskSchema), v.maxLength(EXAM_PLANNING_LIMITS.dailyTasks),
+  v.check((tasks) => new Set(tasks.map((task) => task.id)).size === tasks.length && tasks.reduce((sum, task) => sum + task.cardIds.length, 0) <= EXAM_PLANNING_LIMITS.dailyCardRefs
+    && new Set(tasks.map((task) => task.date)).size <= 1));
 function validDailyTasks(settings: ExamPlanningSettings) {
   return (settings.dailyTasks ?? []).every((task) => task.id === `${task.kind === "study" ? "topic" : "summary"}:${encodeURIComponent(task.examId)}:${encodeURIComponent(task.deckIds[0])}` && settings.exams.some((exam) => exam.id === task.examId && task.date < exam.examDate));
 }
@@ -67,11 +68,14 @@ const settingsSchema = v.pipe(v.strictObject({
   dailyTasks: v.optional(dailyTasksSchema),
 }), v.check((settings) => new Set(settings.exams.map((exam) => exam.id)).size === settings.exams.length), v.check(validTimeBlocks), v.check(validDailyTasks));
 
+type TimeBlock = NonNullable<StudyTimeCapacity["timeBlocks"]>[number];
+function validTimeBlock(block: TimeBlock, exams: readonly ExamPlan[], earlier: readonly TimeBlock[]) {
+  return block.start < block.end && (block.examId === null || exams.some((exam) => exam.id === block.examId && block.date < exam.examDate))
+    && !earlier.some((other) => other.id === block.id || (other.date === block.date && other.start < block.end && block.start < other.end));
+}
 function validTimeBlocks(settings: ExamPlanningSettings) {
   const blocks = settings.capacity.timeBlocks ?? [];
-  return new Set(blocks.map((block) => block.id)).size === blocks.length && blocks.every((block, index) =>
-    block.start < block.end && (block.examId === null || settings.exams.some((exam) => exam.id === block.examId && block.date < exam.examDate))
-    && !blocks.slice(0, index).some((other) => other.date === block.date && other.start < block.end && block.start < other.end));
+  return blocks.every((block, index) => validTimeBlock(block, settings.exams, blocks.slice(0, index)));
 }
 
 export function createStudyTimeCapacity(): StudyTimeCapacity {
@@ -91,11 +95,26 @@ export function normalizeExamPlanningSettings(value: unknown): ExamPlanningSetti
     const exam = parsePlan(candidate);
     if (exam && !exams.some((entry) => entry.id === exam.id) && exams.length < EXAM_PLANNING_LIMITS.exams) exams.push(exam);
   }
-  const capacity = v.safeParse(capacitySchema, input.capacity);
-  const settings: ExamPlanningSettings = { version: 3, exams, capacity: capacity.success ? capacity.output : createStudyTimeCapacity() };
-  const dailyTasks = v.safeParse(dailyTasksSchema, input.dailyTasks);
-  if (dailyTasks.success) settings.dailyTasks = dailyTasks.output.filter((task) => validDailyTasks({ ...settings, dailyTasks: [task] }));
-  if (!validTimeBlocks(settings)) settings.capacity = { ...settings.capacity, timeBlocks: [] };
+  const capacity = input.capacity && typeof input.capacity === "object" ? input.capacity as Record<string, unknown> : {};
+  const timeBlocks: TimeBlock[] = [];
+  for (const candidate of Array.isArray(capacity.timeBlocks) ? capacity.timeBlocks : []) {
+    const block = v.safeParse(timeBlockSchema, candidate);
+    if (block.success && timeBlocks.length < EXAM_PLANNING_LIMITS.timeBlocks && validTimeBlock(block.output, exams, timeBlocks)) timeBlocks.push(block.output);
+  }
+  const settings: ExamPlanningSettings = { version: 3, exams, capacity: { timeBlocks } };
+  if (!Array.isArray(input.dailyTasks)) return settings;
+  // Invalid entries are dropped one by one, so a single broken task or block never costs the rest of the plan.
+  const dailyTasks: ExamDailyTask[] = [];
+  let cardRefs = 0;
+  for (const candidate of input.dailyTasks) {
+    const parsed = v.safeParse(dailyTaskSchema, candidate);
+    if (!parsed.success) continue;
+    const task = parsed.output;
+    if (dailyTasks.length >= EXAM_PLANNING_LIMITS.dailyTasks || dailyTasks.some((entry) => entry.id === task.id) || (dailyTasks[0] && dailyTasks[0].date !== task.date)
+      || cardRefs + task.cardIds.length > EXAM_PLANNING_LIMITS.dailyCardRefs || !validDailyTasks({ ...settings, dailyTasks: [task] })) continue;
+    dailyTasks.push(task); cardRefs += task.cardIds.length;
+  }
+  settings.dailyTasks = dailyTasks;
   return settings;
 }
 

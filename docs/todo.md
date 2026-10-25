@@ -49,16 +49,8 @@ Entscheidungen vom 2026-10-24:
   abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
   neues Datum.
 
-K0–K4 sind erledigt, Details in [`history.md`](history.md).
+K0–K5 sind erledigt, Details in [`history.md`](history.md).
 
-- [ ] **K5 Zuständigkeiten und Datenpfad:** Bewertungshistogramm,
-      `summary:`-IDs und Sitzungsauswahl aus `App.tsx` in die
-      Prüfungsmodule; `reviewService.ts` ohne festen Import der
-      Prüfungssitzung; eine Zeitzonenregel für Widget, Seite und App;
-      Profilschreibwege des automatischen Tagesziel-Speicherns gegen
-      parallele Änderungen absichern; ungültige Zeitblöcke und Tagesaufgaben
-      fallen einzeln weg statt alle; Fortschritt pausierter, abgeschlossener
-      und vergangener Prüfungen aus echten Lernständen; E10.
 - [ ] **K6 Performance:** E9; Planungsdaten über Bildschirmwechsel cachen und
       nach Reviews gezielt invalidieren; kein Neuplanen durch automatisches
       Speichern der Tagesaufgaben; Sitzungsstart nutzt den vorhandenen Plan

@@ -4,7 +4,7 @@ import type { DashboardScreenProps, ExamPlanningScreenProps } from "../appScreen
 import type { ExamDailyTask } from "../coreTypes.ts";
 import { reconcileExamDailyTasks, setExamDailyTaskChecked } from "../examDailyTasks.ts";
 import { examDayDistance } from "../examPlanning.ts";
-import { getLearningDayKey } from "../learningDay.ts";
+import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
@@ -26,7 +26,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const settings = preferences.examPlanning;
   const { exams, capacity } = settings;
-  const timeZone = state.profile.timezone || "UTC";
+  const timeZone = getLearningTimeZone(state.profile);
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const today = getLearningDayKey(now, { timeZone, dayStartHour: preferences.dayStartHour }) ?? civilToday;
   const { forecast, cards, current, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, now, timeZone, onLoadPlanningData: onLoad });

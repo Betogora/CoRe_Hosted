@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createBasicNote, createCoreDeck } from "./coreModel.ts";
-import { createExamPlan, createStudyTimeCapacity, validateExamPlanningSettings, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan } from "./examPlanSettings.ts";
-import { reconcileExamDailyTasks, setExamDailyTaskChecked, withExamDailyTasks } from "./examDailyTasks.ts";
+import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, validateExamPlanningSettings, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan } from "./examPlanSettings.ts";
+import { getExamSessionTargetIds, getExamSummaryTaskDeckId, reconcileExamDailyTasks, setExamDailyTaskChecked, withExamDailyTasks } from "./examDailyTasks.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./learningProfiles.ts";
 import { type ExamPortfolioForecast } from "./examPlanning.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
@@ -90,4 +90,20 @@ test("vor der Lerntagsgrenze bleibt die Checkliste erhalten und Teilfortschritt 
   const both = reconcile({ ...settings, dailyTasks: tasks }, [done, { ...done, cardId: second.cardId }], forecast, at);
   assert.equal(both[0].completed, "automatic");
   assert.equal(both[0].date, date);
+});
+
+test("Aufgaben-IDs und Sitzungsziele kommen aus dem Aufgabenmodul", () => {
+  assert.equal(getExamSummaryTaskDeckId(`summary:${encodeURIComponent("exam:1")}:${encodeURIComponent("Herz & Lunge")}`), "Herz & Lunge");
+  assert.equal(getExamSummaryTaskDeckId("topic:exam:heart"), null);
+  const tasks = reconcile();
+  assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], date, "topic:exam:heart"), [card.cardId]);
+  assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], date, null), [card.cardId]);
+  assert.deepEqual(getExamSessionTargetIds(tasks, forecast.days[0], "2026-10-21", "new"), [], "Kalenderblöcke anderer Tage starten keine Sitzung");
+});
+
+test("der Abgleich kürzt Zielkarten auf die zulässige Zahl an Kartenverweisen", () => {
+  const many = Array.from({ length: EXAM_PLANNING_LIMITS.dailyCardRefs + 5 }, (_, i) => `many-${i}`);
+  const plan = { ...forecast, days: [{ ...forecast.days[0], newCardIds: many, blocks: [{ ...forecast.days[0].blocks[0], cardIds: many, expectedItems: many.length }] }] };
+  const tasks = reconcile(settings, [card], plan);
+  assert.equal(tasks.reduce((sum, task) => sum + task.cardIds.length, 0), EXAM_PLANNING_LIMITS.dailyCardRefs);
 });

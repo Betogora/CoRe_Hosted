@@ -11,7 +11,7 @@ import { getGlobalSchedulerPreferences } from "./learningProfiles.ts";
 const now = "2026-10-20T08:00:00.000Z", date = "2026-10-20";
 const preferences = getGlobalSchedulerPreferences({});
 const capacity = createStudyTimeCapacity();
-const options = { now, preferences, timeZone: "UTC", capacity, history: { ratings: {} } };
+const options = { now, preferences, timeZone: "UTC", capacity };
 const decks = [createCoreDeck({ id: "root", name: "Prüfung" }), createCoreDeck({ id: "b", name: "B", parentDeckId: "root" }), createCoreDeck({ id: "a", name: "A", parentDeckId: "root" })];
 function plan(patch: Partial<ExamPlan> = {}): ExamPlan {
   return { ...createExamPlan(date, ["root"]), id: "exam", name: "Prüfung", examDate: shiftExamDay(date, 20), studyTime: { dailyMinutes: 20, weekdays: Array(7).fill(true), dateOverrides: [] }, ...patch };

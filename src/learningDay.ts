@@ -14,6 +14,11 @@ const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
 const MAX_BOUNDARY_SEARCH_MINUTES = 27 * 60;
 
+/** The learner's time zone: the profile value, else the browser's, else UTC. */
+export function getLearningTimeZone(profile: { timezone?: string | null } | null | undefined): string {
+  return profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
 export function normalizeDayStartHour(value: unknown): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULT_DAY_START_HOUR;

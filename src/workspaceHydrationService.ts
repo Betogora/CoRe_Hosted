@@ -1,4 +1,4 @@
-import type { Card, Deck, Note } from "./coreTypes.ts";
+import type { Card, CardStudyState, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { AccountMediaStore } from "./mediaStore.ts";
@@ -484,12 +484,21 @@ export function createWorkspaceHydrationService({
     return snapshot;
   };
 
-  /** Exam planning reads study states only, never response times. */
+  /** Exam planning reads study states only, never response times; answers still waiting for sync replace the server's values. */
   const loadExamPlanningData = async (deckIds: string[], signal?: AbortSignal) => {
     if (!isOnline()) throw new Error("Die Prüfungsplanung braucht eine Verbindung.");
     if (!deckIds.length) return { cards: [] };
     const { listAccountCardStudyStates } = await import("./cloudRepository.ts");
-    return { cards: await listAccountCardStudyStates(client, deckIds, signal) };
+    const cards = new Map((await listAccountCardStudyStates(client, deckIds, signal)).map((card) => [card.cardId, card]));
+    for (const mutation of repository.outbox.listPending()) {
+      if (mutation.type !== "review-atomic") continue;
+      const { card } = mutation.payload as { card: { id: string; study: CardStudyState } };
+      const snapshot = cards.get(card.id);
+      if (!snapshot) continue;
+      const { extra, ...study } = card.study;
+      cards.set(card.id, { ...snapshot, study, maturityXp: extra.maturityXp ?? snapshot.maturityXp });
+    }
+    return { cards: [...cards.values()] };
   };
 
   const refreshDueForecast = async () => {

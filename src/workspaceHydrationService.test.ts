@@ -9,6 +9,7 @@ import { createCloudStateRows } from "./cloudRepository.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 import { createWorkspaceHydrationService } from "./workspaceHydrationService.ts";
+import { answerVariant } from "./reviewService.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
 
@@ -477,4 +478,22 @@ test("summary material loads beyond the first catalog page and deduplicates note
     await assert.rejects(service.prepareContentDecks([deck.id], { budget: (count) => { counts.push(count); if (count > 20) throw new Error("zu umfangreich"); } }), /zu umfangreich/);
     assert.deepEqual(counts, [25]);
   } finally { repository.close(); }
+});
+
+test("Prüfungsplanung übernimmt noch nicht synchronisierte Antworten statt des Serverstands", async () => {
+  const userId = randomUUID();
+  const learned = graph("deck-exam", "learned", "Frage", CREATED_AT);
+  const deck = createCoreDeck({ id: "deck-exam", ownerId: userId, name: "Prüfung", source: "manual", cards: learned.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [learned.note]), indexedDb: new IDBFactory() });
+  repository.recordReview(answerVariant(deck, "card-learned", null, "good", { now: "2026-08-20T08:00:00.000Z" }));
+  const serverRow = { card_id: "card-learned", deck_id: "deck-exam", note_id: "note-learned", status: "active", state: "new", due_at: CREATED_AT, stability: 0, difficulty: 0, reps: 0, lapses: 0,
+    interval_days: 0, learning_step_index: 0, last_reviewed_at: null, last_rating: null, study_revision: 0, active_variant_count: 0, created_at: CREATED_AT, maturity_xp: 0 };
+  const service = createWorkspaceHydrationService({ repository, mediaStore: null, client: { async rpc(name: string) { assert.equal(name, "list_account_card_study_states"); return { data: [serverRow], error: null }; } } });
+
+  const { cards } = await service.loadExamPlanningData(["deck-exam"]);
+
+  assert.equal(cards.length, 1);
+  assert.notEqual(cards[0].study.state, "new");
+  assert.equal(cards[0].study.lastRating, "good");
+  repository.close();
 });

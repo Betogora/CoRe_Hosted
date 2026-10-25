@@ -1,7 +1,7 @@
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import type { Deck, ExamDailyTask, ExamPlanningSettings } from "./coreTypes.ts";
-import { getExamDeckIds, getExamLastNewDate, getExamTopicTasks, type ExamPortfolioForecast } from "./examPlanning.ts";
-import { getExamPlanningKey } from "./examPlanSettings.ts";
+import { getExamDeckIds, getExamLastNewDate, getExamSessionCardIds, getExamTopicTasks, type ExamPlanDay, type ExamPortfolioForecast } from "./examPlanning.ts";
+import { EXAM_PLANNING_LIMITS, getExamPlanningKey } from "./examPlanSettings.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
 /** Freeze today's targets. Only real answers and finished learning steps can automatically check them. */
@@ -35,7 +35,15 @@ export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: r
       if (!ids.has(id)) { tasks.push({ id, date, examId: exam.id, kind: "summary", deckIds: [summary.deckId], cardIds: [], capturedAt: now, completed: null }); ids.add(id); }
     }
   }
-  return tasks.map((task) => {
+  // Frozen targets stay within the profile limit; cards beyond it remain in the plan without being stored for today.
+  let cardRefs = EXAM_PLANNING_LIMITS.dailyCardRefs;
+  const bounded = tasks.flatMap((task) => {
+    if (task.kind !== "study") return [task];
+    const cardIds = task.cardIds.slice(0, cardRefs);
+    cardRefs -= cardIds.length;
+    return cardIds.length ? [{ ...task, cardIds }] : [];
+  });
+  return bounded.map((task) => {
     if (task.kind !== "study") return task;
     const automatic = task.cardIds.length > 0 && task.cardIds.every((id) => {
       const card = byId.get(id);
@@ -46,6 +54,20 @@ export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: r
     });
     return { ...task, completed: automatic ? "automatic" : task.completed === "manual" ? "manual" : null };
   });
+}
+
+/** The deck whose summaries a reading task opens, or null for other tasks. */
+export function getExamSummaryTaskDeckId(taskId: string): string | null {
+  const [kind, , deckId] = taskId.split(":");
+  return kind === "summary" && deckId ? decodeURIComponent(deckId) : null;
+}
+
+/** Cards of today's unit: one task's targets, all targets, or a calendar block of today's plan. */
+export function getExamSessionTargetIds(tasks: readonly ExamDailyTask[], day: ExamPlanDay | undefined, todayKey: string, blockId: string | null): string[] {
+  const task = blockId ? tasks.find((entry) => entry.id === blockId && entry.kind === "study") : null;
+  if (task) return task.cardIds;
+  if (!blockId) return [...new Set(tasks.filter((entry) => entry.kind === "study").flatMap((entry) => entry.cardIds))];
+  return day?.key === todayKey ? getExamSessionCardIds(day, blockId) : [];
 }
 
 export function setExamDailyTaskChecked(tasks: readonly ExamDailyTask[], id: string, checked: boolean): ExamDailyTask[] {

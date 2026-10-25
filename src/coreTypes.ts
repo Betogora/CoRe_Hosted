@@ -416,6 +416,8 @@ export interface Deck {
   deckSettings: DeckSettings;
   cards: Card[];
   reviewEvents: ReviewEvent[];
+  /** Transient study root only, never persisted: its cards are learned in the given order without daily limits. */
+  plannedOrder?: true;
 }
 
 export interface ImportVerificationScope {

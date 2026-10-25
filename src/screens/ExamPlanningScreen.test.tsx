@@ -23,7 +23,7 @@ test("freie Prüfungsfarben behalten ihren Farbwert mit lesbarer Schrift", () =>
 });
 
 test("the empty exam screen starts with a month calendar and creation below", () => {
-  const markup = renderToStaticMarkup(<ExamPlanningScreen state={createCoreRepository().getState()} now="2026-10-18T08:00:00Z" onLoadPlanningData={async () => { throw new Error("Not used in static rendering"); }} onSavePlanning={async () => undefined} onStartUnit={async () => undefined} />);
+  const markup = renderToStaticMarkup(<ExamPlanningScreen state={createCoreRepository().getState()} now="2026-10-18T08:00:00Z" onLoadPlanningData={async () => { throw new Error("Not used in static rendering"); }} onSavePlanning={async () => undefined} onSaveTasks={async () => undefined} onStartUnit={async () => undefined} />);
   assert.ok(markup.indexOf('data-testid="exam-month-calendar"') < markup.indexOf("Prüfung hinzufügen"));
   assert.match(markup, /Oktober 2026/);
   assert.match(markup, /Noch keine Prüfung geplant/);
@@ -34,7 +34,7 @@ test("Prüfungskarten beginnen als neutrale, beschriftete Disclosure ohne sofort
   const state = createCoreRepository().getState();
   const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-11-19" };
   state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [exam], capacity: createStudyTimeCapacity() } });
-  const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onStartUnit={async () => undefined} />);
+  const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onSaveTasks={async () => undefined} onStartUnit={async () => undefined} />);
   assert.match(html, /aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*aria-label="Patho: Details öffnen"/);
   assert.match(html, /19\. November 2026[^]*?Noch 32 Tage/);
   assert.doesNotMatch(html, /data-testid="exam-card-details"/);

@@ -5,7 +5,7 @@ import type { ExamPlanningScreenProps } from "../appScreenProps.ts";
 import type { ExamPlan, ExamPlanningSettings, StudyTimeCapacity } from "../coreTypes.ts";
 import { removeExamPlan, upsertExamPlan } from "../examPlanSettings.ts";
 import { examDayDistance, getExamCurrentProgress, getExamStatus, type ExamForecastSummary } from "../examPlanning.ts";
-import { getLearningDayKey } from "../learningDay.ts";
+import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import { getGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
@@ -13,7 +13,6 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
-import { withExamDailyTasks } from "../examDailyTasks.ts";
 import { useExamForecast } from "./useExamForecast.ts";
 
 export const EXAM_METHOD_LABELS = { new: "Neue Karten", review: "Wiederholungen", relearning: "Lernschritte", variant: "Varianten" } as const;
@@ -93,11 +92,11 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
 }
 
 /** Global exam planner (ADR-042), with relative study time for each exam. */
-export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onStartUnit, onLoadSummaryAvailability }: ExamPlanningScreenProps) {
+export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningData, onSavePlanning, onSaveTasks, onStartUnit, onLoadSummaryAvailability }: ExamPlanningScreenProps) {
   const preferences = getGlobalSchedulerPreferences(state.profile);
   const [calendarDraft, setCalendarDraft] = React.useState<ExamPlanningSettings | null>(null);
   const { exams, capacity } = calendarDraft ?? preferences.examPlanning;
-  const timeZone = state.profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const timeZone = getLearningTimeZone(state.profile);
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const todayKey = getLearningDayKey(now, { timeZone, dayStartHour: preferences.dayStartHour }) ?? civilToday;
   const [editing, setEditing] = React.useState<ExamPlan | "new" | null>(null);
@@ -108,7 +107,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
   const [deleting, setDeleting] = React.useState<ExamPlan | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [actionError, setActionError] = React.useState("");
-  const { forecast, current, cards, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData });
+  const { forecast, current, cards, busy, error, reload } = useExamForecast({ decks: state.decks, exams, capacity, preferences, timeZone, now, onLoadPlanningData, includeInactive: true });
   const today = forecast?.days[0]?.key === todayKey ? forecast.days[0] : null;
   const sortedExams = exams.slice().sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || a.examDate.localeCompare(b.examDate));
 
@@ -214,7 +213,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
               })}
             </div>
           </section>
-          {today && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onSaveTasks={(tasks) => onSavePlanning(withExamDailyTasks(preferences.examPlanning, tasks))} /></div> : null}
+          {today && !calendarDraft ? <div data-testid="exam-today"><ExamDashboardWidget state={state} now={now} onLoad={onLoadPlanningData} onStart={onStartUnit} onLoadSummaryAvailability={onLoadSummaryAvailability} onSaveTasks={onSaveTasks} /></div> : null}
         </>
       )}
       <ActionDialog open={Boolean(pendingEditor)} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setPendingEditor(null)} onConfirm={() => { setEditing(pendingEditor?.next ?? null); setEditorDirty(false); setPendingEditor(null); }} />
