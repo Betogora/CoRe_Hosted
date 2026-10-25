@@ -1,5 +1,5 @@
 import React from "react";
-import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, ReviewRating, SyncStatus } from "./coreTypes.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
@@ -718,34 +718,29 @@ export function App() {
   /** Study states for the exam forecast (ADR-042); answers still waiting for sync replace the server's values. */
   const loadExamPlanningData = React.useCallback(async (deckIds: string[], signal?: AbortSignal) => {
     if (!workspaceRepository || !workspaceHydrationService) throw new Error("Die Kartenablage ist noch nicht bereit.");
-    const now = getLearningNow();
-    const dayOptions = { timeZone: learningTimeZone, dayStartHour: globalSchedulerPreferences.dayStartHour };
-    const startRange = getLearningDayRange(new Date(Date.parse(now) - 89 * 86_400_000).toISOString(), dayOptions);
-    const endRange = getLearningDayRange(now, dayOptions);
-    const todayKey = getLearningDayKey(now, dayOptions);
-    if (!startRange || !endRange || !todayKey) throw new Error("Der Lerntag konnte nicht bestimmt werden.");
-    const { estimateExamHistory } = await import("./examPlanning.ts");
-    const data = await workspaceHydrationService.loadExamPlanningData(deckIds, {
-      from: new Date(startRange.start).toISOString(),
-      to: new Date(endRange.end).toISOString(),
-      ...dayOptions,
-    }, signal);
-    const scope = new Set(deckIds);
+    const data = await workspaceHydrationService.loadExamPlanningData(deckIds, signal);
     const cards = new Map(data.cards.map((card) => [card.cardId, card]));
-    let pendingTodayMinutes = 0;
     for (const mutation of workspaceRepository.outbox.listPending()) {
       if (mutation.type !== "review-atomic") continue;
-      const { event, card } = mutation.payload as { event: ReviewEvent; card: { id: string; study: CardStudyState } };
+      const { card } = mutation.payload as { card: { id: string; study: CardStudyState } };
       const snapshot = cards.get(card.id);
       if (snapshot) {
         const { extra, ...study } = card.study;
         cards.set(card.id, { ...snapshot, study, maturityXp: extra.maturityXp ?? snapshot.maturityXp });
       }
-      if (scope.has(event.deckId) && getLearningDayKey(event.answeredAt, dayOptions) === todayKey) pendingTodayMinutes += Math.min(60_000, event.responseTimeMs ?? 0) / 60_000;
     }
-    const history = estimateExamHistory(data.statistics, todayKey);
-    return { cards: [...cards.values()], history: { ...history, spentTodayMinutes: history.spentTodayMinutes + pendingTodayMinutes } };
-  }, [getLearningNow, globalSchedulerPreferences.dayStartHour, learningTimeZone, workspaceHydrationService, workspaceRepository]);
+    const ratings: Partial<Record<ReviewRating, number>> = {};
+    for (const card of cards.values()) if (card.study.lastRating) ratings[card.study.lastRating] = (ratings[card.study.lastRating] ?? 0) + 1;
+    return { cards: [...cards.values()], history: { ratings } };
+  }, [workspaceHydrationService, workspaceRepository]);
+
+  const loadExamSummaryAvailability = React.useCallback(async (deckId: string) => {
+    const current = latestStateRef.current;
+    if (!current) return false;
+    const { loadLearningSummaries } = await import("./learningSummaries.ts");
+    const result = await loadLearningSummaries({ userId: current.profile.userId, cloud: supabase ?? null }, deckId);
+    return result.summaries.length > 0;
+  }, [latestStateRef, supabase]);
 
   /** Today's exam unit, or one of its blocks, as a study session over exactly the planned cards. */
   const prepareExamUnit = React.useCallback(async (blockId: string | null): Promise<StudyPreparation> => {
@@ -758,11 +753,16 @@ export function App() {
     const todayKey = getLearningDayKey(now, { timeZone: learningTimeZone, dayStartHour: preferences.dayStartHour })!;
     const { createExamPortfolioForecast, createExamSessionDecks, getActiveExamDeckIds, getExamSessionCardIds } = await import("./examPlanning.ts");
     const data = await loadExamPlanningData(getActiveExamDeckIds(currentState.decks, exams, civilToday));
-    const forecast = await createExamPortfolioForecast(currentState.decks, data.cards, exams, { now, preferences, timeZone: learningTimeZone, capacity, history: data.history, todayOnly: true });
+    const forecast = await createExamPortfolioForecast(currentState.decks, data.cards, exams, { now, preferences, timeZone: learningTimeZone, capacity, history: data.history, dailyTasks: preferences.examPlanning.dailyTasks });
     const day = forecast.days[0];
-    const ids = day?.key === todayKey ? getExamSessionCardIds(day, blockId) : [];
+    const { reconcileExamDailyTasks } = await import("./examDailyTasks.ts");
+    const tasks = reconcileExamDailyTasks(preferences.examPlanning, currentState.decks, forecast, data.cards, now, learningTimeZone, preferences.dayStartHour);
+    const task = blockId ? tasks.find((entry) => entry.id === blockId && entry.kind === "study") : null;
+    const ids = task ? task.cardIds : !blockId ? [...new Set(tasks.filter((entry) => entry.kind === "study").flatMap((entry) => entry.cardIds))] : day?.key === todayKey ? getExamSessionCardIds(day, blockId) : [];
     if (!ids.length) throw new Error("Für heute ist in der Prüfungsplanung nichts mehr offen.");
     const bodies = (await workspaceHydrationService.openCards(ids)).filter((body): body is { card: Card; note: Note } => Boolean(body));
+    const position = new Map(ids.map((id, index) => [id, index]));
+    bodies.sort((a, b) => (position.get(a.card.id) ?? 0) - (position.get(b.card.id) ?? 0));
     const decks = createExamSessionDecks(currentState.decks, bodies.map(({ card }) => card), exams, todayKey);
     const queue = createDailyReviewQueue(decks, { deckId: EXAM_SESSION_DECK_ID, now, dayStartHour: preferences.dayStartHour, learnAheadMinutes: preferences.learnAheadMinutes, timeZone: learningTimeZone });
     if (!queue.total) throw new Error("Gerade ist keine Karte der heutigen Einheit fällig.");
@@ -1098,6 +1098,11 @@ export function App() {
   }
 
   async function startExamUnit(blockId: string | null) {
+    if (blockId?.startsWith("summary:")) {
+      const parts = blockId.split(":");
+      navigateToViewNow("kartenstapel", { focusedDeckId: decodeURIComponent(parts[2]), deckContent: true, deckContentTab: "summary" });
+      return;
+    }
     if (study.preparingKeyRef.current === EXAM_SESSION_DECK_ID) return;
     study.preparingKeyRef.current = EXAM_SESSION_DECK_ID;
     try {
@@ -1830,6 +1835,7 @@ export function App() {
           onLoadPlanningData={loadExamPlanningData}
           onSavePlanning={saveExamPlanning}
           onStartUnit={startExamUnit}
+          onLoadSummaryAvailability={loadExamSummaryAvailability}
         />
       );
     }
@@ -1895,10 +1901,11 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onSaveExamTasks={async (dailyTasks) => {
+    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onSaveExamTasks={async (dailyTasks) => {
       const latest = latestStateRef.current;
       if (!latest) throw new Error("Die Prüfungsplanung ist noch nicht bereit.");
-      await saveExamPlanning({ ...getGlobalSchedulerPreferences(latest.profile).examPlanning, dailyTasks });
+      const { withExamDailyTasks } = await import("./examDailyTasks.ts");
+      await saveExamPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(latest.profile).examPlanning, dailyTasks));
     }} />;
   }
 

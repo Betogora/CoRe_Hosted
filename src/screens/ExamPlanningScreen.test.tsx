@@ -5,10 +5,12 @@ import { createCoreRepository } from "../coreRepository.ts";
 import { ExamPlanningScreen } from "./ExamPlanningScreen.tsx";
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
-import { withGlobalSchedulerPreferences } from "../learningProfiles.ts";
+import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../learningProfiles.ts";
+import { createCoreDeck } from "../coreModel.ts";
+import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 import { createExamPlan, createStudyTimeCapacity } from "../examPlanSettings.ts";
-import { estimateExamHistory, type ExamPortfolioForecast, type StudyPlanBlock } from "../examPlanning.ts";
+import { type ExamPortfolioForecast, type StudyPlanBlock } from "../examPlanning.ts";
 import { examColor, examTextColor } from "./examPlanningUi.ts";
 import { colorContrast } from "../ui/colorMath.ts";
 
@@ -31,7 +33,7 @@ test("the empty exam screen starts with a month calendar and creation below", ()
 test("Prüfungskarten beginnen als neutrale, beschriftete Disclosure ohne sofortige Aktionen", () => {
   const state = createCoreRepository().getState();
   const exam = { ...createExamPlan("2026-10-18", ["deck"]), id: "patho", name: "Patho", examDate: "2026-11-19" };
-  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 1, exams: [exam], capacity: createStudyTimeCapacity() } });
+  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 2, exams: [exam], capacity: createStudyTimeCapacity() } });
   const html = renderToStaticMarkup(<ExamPlanningScreen state={state} now="2026-10-18T12:00:00Z" onLoadPlanningData={async () => { throw new Error("Not called in SSR"); }} onSavePlanning={async () => undefined} onStartUnit={async () => undefined} />);
   assert.match(html, /aria-expanded="false"[^>]*aria-controls="[^"]+"[^>]*aria-label="Patho: Details öffnen"/);
   assert.match(html, /19\. November 2026[^]*?Noch 32 Tage/);
@@ -43,8 +45,8 @@ test("calendar separates cards and quiz in subject color without duration or rep
   const today = "2026-10-20";
   const first = { ...createExamPlan(today, ["deck"]), id: "anatomy", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-27" };
   const second = { ...first, id: "physiology", name: "Physiologie", examDate: "2026-10-30" };
-  const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, plannedMinutes: 12, priority: 1, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
-  const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, spentMinutes: 0, newMinutes: 24, reviewMinutes: 12, newCardIds: [], reviewCardIds: [], reviewCount: 8, backlogCount: 0, buffer: false, blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [], uncertainty: "high", timing: estimateExamHistory(null, today).timing };
+  const block = (examId: string, count: number, method: StudyPlanBlock["method"]): StudyPlanBlock => ({ id: `${examId}-${method}`, date: today, examIds: [examId], deckId: "deck", method, expectedItems: count, priority: 1, cardIds: Array.from({ length: count }, (_, i) => `${examId}-${method}-${i}`) });
+  const forecast: ExamPortfolioForecast = { days: [{ key: today, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], reviewCount: 8, buffer: false, summaries: [], blocks: [block(first.id, 24, "new"), block(second.id, 9, "new"), block(first.id, 8, "review")] }], exams: [] };
   const html = renderToStaticMarkup(<ExamMonthCalendar exams={[first, second]} shown={[first, second]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
   assert.match(html, /data-exam-subject="anatomy" data-exam-task="study"[^>]*>24 neue Karten<\/span><span data-exam-subject="anatomy" data-exam-task="quiz"[^>]*>Quiz<\/span>/);
   assert.match(html, /data-exam-subject="physiology"[^]*?>9 neue Karten</);
@@ -74,8 +76,8 @@ test("exam dates stay visible without a forecast and distinguish same-day exams"
 test("six-week months retain both task brackets and quiz-only days omit zero cards", () => {
   const today = "2026-08-03";
   const exam = { ...createExamPlan(today, ["deck"]), id: "exam", name: "Anatomie", createdAt: "2026-07-31T08:00:00.000Z", examDate: "2026-08-28" };
-  const day = { key: today, budgetMinutes: 60, spentMinutes: 0, newMinutes: 5, reviewMinutes: 0, newCardIds: ["card"], reviewCardIds: [], reviewCount: 0, backlogCount: 0, buffer: false, blocks: [{ id: "new", date: today, examIds: [exam.id], deckId: "deck", method: "new" as const, expectedItems: 1, plannedMinutes: 5, priority: 1, cardIds: ["card"] }] };
-  const forecast: ExamPortfolioForecast = { days: [day], exams: [], uncertainty: "high", timing: estimateExamHistory(null, today).timing };
+  const day = { key: today, budgetMinutes: 60, newCardIds: ["card"], reviewCardIds: [], reviewCount: 0, buffer: false, summaries: [], blocks: [{ id: "new", date: today, examIds: [exam.id], deckId: "deck", method: "new" as const, expectedItems: 1, priority: 1, cardIds: ["card"] }] };
+  const forecast: ExamPortfolioForecast = { days: [day], exams: [] };
   const render = () => renderToStaticMarkup(<ExamMonthCalendar exams={[exam]} shown={[exam]} capacity={createStudyTimeCapacity()} forecast={forecast} today={today} date={today} color={() => "var(--core-info)"} onSelect={() => undefined} />);
   const cell = (html: string) => html.split(`data-date="${today}"`)[1].split("</button>")[0];
   assert.match(render(), /repeat\(6,/);
@@ -119,7 +121,7 @@ test("Wochenansicht zeigt To-dos über 24 Stunden und erhält neutrale Lernzeitb
 test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und nur vorbereitete Quizaktionen", () => {
   const state = createCoreRepository().getState();
   const date = "2026-10-20", exam = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27", colorIndex: 4 };
-  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 1, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [
+  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 2, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [
     { id: "topic:anatomy:deck", examId: exam.id, date, kind: "study", deckIds: ["deck"], cardIds: ["card"], capturedAt: date + "T08:00:00.000Z", completed: "automatic" },
     { id: "quiz:anatomy:" + date, examId: exam.id, date, kind: "quiz", deckIds: ["deck"], cardIds: [], capturedAt: date + "T08:00:00.000Z", completed: null },
   ] } });
@@ -131,4 +133,13 @@ test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und nur vorbereitete 
   assert.match(html, /Themenquiz/);
   assert.match(html, /<button[^>]*disabled=""[^>]*>[^]*?KI generieren/);
   assert.match(html, /Quiz-Erstellung folgt/);
+});
+
+test("Bearbeiten lässt gültige Angaben ohne fertige Planung speichern", () => {
+  const state = createCoreRepository().getState();
+  const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
+  const exam = { ...createExamPlan("2026-10-18", [deck.id]), id: "anatomy", name: "Anatomie", examDate: "2026-11-19" };
+  const html = renderToStaticMarkup(<ExamPlanEditor embedded decks={[deck]} exams={[exam]} capacity={createStudyTimeCapacity()} initialPlan={exam} preferences={getGlobalSchedulerPreferences(state.profile)} timeZone="Europe/Berlin" now="2026-10-18T12:00:00Z" onLoadPlanningData={() => new Promise(() => undefined)} onSave={async () => undefined} onCancel={() => undefined} saving={false} saveError="" />);
+  assert.match(html, /Dein Plan wird berechnet/);
+  assert.match(html, /<button class="core-action-primary ">(?:(?!<\/button>).)*<span>Speichern<\/span><\/button>/);
 });

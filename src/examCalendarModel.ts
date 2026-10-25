@@ -1,5 +1,5 @@
 import type { ExamPlan, StudyTimeCapacity } from "./coreTypes.ts";
-import { examDayDistance, getExamDayCapacity, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
+import { examDayDistance, getExamStudyMinutes, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
 
 export function createExamMonthDays(month: string): string[] {
   const first = `${month.slice(0, 7)}-01`;
@@ -36,7 +36,6 @@ export function getExamCalendarWork(day: ExamPlanDay | undefined, examIds: Reado
   return {
     newCards: new Set(blocks.filter((block) => block.method === "new").flatMap((block) => block.cardIds)).size,
     repetitions: blocks.filter((block) => block.method !== "new").reduce((sum, block) => sum + block.expectedItems, 0),
-    minutes: blocks.reduce((sum, block) => sum + block.plannedMinutes, 0),
     blocks,
   };
 }
@@ -51,7 +50,7 @@ export function createExamQuizRecommendations(exams: ExamPlan[], capacity: Study
     for (let date = shiftExamDay(start, 3); date < exam.examDate; date = shiftExamDay(date, 3)) dates.push(date);
     dates.push(shiftExamDay(exam.examDate, -1));
     for (let date of dates) {
-      while (date >= start && (getExamDayCapacity(date, capacity) <= 0 || examDates.has(date))) date = shiftExamDay(date, -1);
+      while (date >= start && (getExamStudyMinutes(date, exam, exams, capacity) <= 0 || examDates.has(date))) date = shiftExamDay(date, -1);
       if (date < today || date <= start) continue;
       const ids = result.get(date) ?? [];
       if (!ids.includes(exam.id)) result.set(date, [...ids, exam.id]);

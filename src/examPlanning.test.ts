@@ -1,286 +1,142 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { createBasicNote, createCoreDeck } from "./coreModel.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import { createCoreDeck } from "./coreModel.ts";
-import type { ExamPlan, StudyTimeCapacity } from "./coreTypes.ts";
+import type { ExamPlan } from "./coreTypes.ts";
 import { createExamPlan, createStudyTimeCapacity } from "./examPlanSettings.ts";
-import {
-  EXAM_MODEL,
-  createExamPortfolioForecast,
-  estimateExamHistory,
-  getExamCurrentProgress,
-  getExamSessionCardIds,
-  getExamSessionDeckSettings,
-  getExamDayCapacity,
-  getExamTopicTasks,
-  type ExamHistory,
-} from "./examPlanning.ts";
-import { getLearningDayKey } from "./learningDay.ts";
+import { createExamPortfolioForecast, createExamSessionDecks, getExamCurrentProgress, getExamLastNewDate, getExamPlanningKey, getExamSessionCardIds, getExamSessionDeckSettings, getExamStudyMinutes, getExamTopicOrder, getExamTopicTasks, shiftExamDay } from "./examPlanning.ts";
+import { createDailyReviewQueue } from "./reviewService.ts";
 import { getGlobalSchedulerPreferences } from "./learningProfiles.ts";
-import { scheduleWithFsrs } from "./scheduler.ts";
-import type { AccountStatisticsSnapshot } from "./workspaceReplica.ts";
 
-const now = "2026-10-08T08:00:00.000Z";
-const timeZone = "Europe/Berlin";
+const now = "2026-10-20T08:00:00.000Z", date = "2026-10-20";
 const preferences = getGlobalSchedulerPreferences({});
-const capacity = { ...createStudyTimeCapacity(), weekdayMinutes: 15, weekendMinutes: 15, weekdays: Array(7).fill(true), reserveFraction: 0 };
-const history: ExamHistory = { timing: { new: { seconds: 60, samples: 0 }, review: { seconds: 20, samples: 0 }, relearning: { seconds: 30, samples: 0 }, variant: { seconds: 30, samples: 0 } }, againShare: 0, ratingSamples: 0, spentTodayMinutes: 0 };
-const options = { now, preferences, timeZone, capacity, history };
-const decks = [createCoreDeck({ id: "root", name: "Prüfung" }), createCoreDeck({ id: "chapter-b", name: "B", parentDeckId: "root" }), createCoreDeck({ id: "chapter-a", name: "A", parentDeckId: "root" })];
-
-function card(index: number, patch: Partial<CardStudySnapshot> & { study?: Partial<CardStudySnapshot["study"]> } = {}): CardStudySnapshot {
-  return {
-    cardId: `card-${String(index).padStart(3, "0")}`, deckId: "root", noteId: `note-${index}`, status: "active", studyRevision: 0, activeVariantCount: 0,
-    createdAt: `2026-10-01T08:${String(index % 60).padStart(2, "0")}:00.000Z`, maturityXp: 0, ...patch,
-    study: { state: "new", dueAt: now, stability: 0, difficulty: 0, reps: 0, lapses: 0, intervalDays: 0, learningStepIndex: 0, lastReviewedAt: null, lastRating: null, ...patch.study },
-  };
-}
-const cards = (count: number, patch: Partial<CardStudySnapshot> = {}) => Array.from({ length: count }, (_, index) => card(index, patch));
-const reviewed = { state: "review" as const, reps: 10, lapses: 0, intervalDays: 3, learningStepIndex: 0, dueAt: now, stability: 3, difficulty: 5, lastReviewedAt: "2026-10-05T08:00:00.000Z", lastRating: "good" as const };
+const capacity = createStudyTimeCapacity();
+const options = { now, preferences, timeZone: "UTC", capacity, history: { ratings: {} } };
+const decks = [createCoreDeck({ id: "root", name: "Prüfung" }), createCoreDeck({ id: "b", name: "B", parentDeckId: "root" }), createCoreDeck({ id: "a", name: "A", parentDeckId: "root" })];
 function plan(patch: Partial<ExamPlan> = {}): ExamPlan {
-  return { ...createExamPlan("2026-10-08", ["root"]), name: "Prüfung", ...patch };
+  return { ...createExamPlan(date, ["root"]), id: "exam", name: "Prüfung", examDate: shiftExamDay(date, 20), studyTime: { dailyMinutes: 20, weekdays: Array(7).fill(true), dateOverrides: [] }, ...patch };
 }
+function card(index: number, deckId = "root", known = false): CardStudySnapshot {
+  return { cardId: `card-${String(index).padStart(5, "0")}`, noteId: `note-${index}`, deckId, status: "active", studyRevision: 0, activeVariantCount: 0, maturityXp: 0, createdAt: "2026-10-01T08:00:00.000Z",
+    study: { state: known ? "review" : "new", dueAt: now, stability: known ? 3 : 0, difficulty: 5, reps: known ? 10 : 0, lapses: 0, intervalDays: known ? 3 : 0, learningStepIndex: 0, lastReviewedAt: known ? "2026-10-17T08:00:00.000Z" : null, lastRating: known ? "good" : null } };
+}
+const cards = (count: number, deckId = "root") => Array.from({ length: count }, (_, i) => card(i, deckId));
+const forecast = (input = cards(1000), exam = plan(), extra = {}) => createExamPortfolioForecast(decks, input, [exam], { ...options, ...extra });
 
-test("neuer Stoff kommt früh, Wiederholungen verbrauchen Budget und Puffertage nehmen nur Wiederholungen", async () => {
-  const input = cards(200), original = JSON.stringify(input);
-  const forecast = await createExamPortfolioForecast(decks, input, [plan()], options);
-  const [first] = forecast.days;
-  assert.ok(first.newCardIds.length > 0);
-  assert.ok(first.reviewCount > 0, "erste Lernschritte zählen mit");
-  assert.equal(forecast.days.slice(-3).every((day) => day.buffer && day.newCardIds.length === 0), true);
-  assert.equal(forecast.days.some((day) => day.key === "2026-11-19"), false, "der Prüfungstag bleibt frei");
-  for (const day of forecast.days) assert.ok(day.newMinutes + day.reviewMinutes <= day.budgetMinutes + 0.001);
-  assert.equal(JSON.stringify(input), original, "die Prognose verändert keine Lernstände");
+test("1000 neue Karten werden vollständig und ohne Zeitkapazität bis zum Stichtag verteilt", async () => {
+  const input = cards(1000), original = JSON.stringify(input), exam = plan({ examDate: shiftExamDay(date, 90) });
+  const result = await forecast(input, exam);
+  const ids = result.days.flatMap((day) => day.newCardIds);
+  assert.equal(ids.length, 1000); assert.equal(new Set(ids).size, 1000);
+  assert.equal(result.exams[0].unscheduledNewCount, 0);
+  assert.ok(result.days.filter((day) => day.key > getExamLastNewDate(exam)).every((day) => !day.newCardIds.length));
+  const counts = result.days.map((day) => day.newCardIds.length);
+  assert.ok(counts.slice(0, 14).reduce((a, b) => a + b) > counts.slice(73, 87).reduce((a, b) => a + b), counts.join(","));
+  assert.equal(JSON.stringify(input), original);
+  assert.ok(result.days.slice(1).every((day) => day.reviewCount === 0), "hypothetische Wiederholungen erscheinen nicht als zukünftige Aufgaben");
 });
-
-test("eine gelernte Karte folgt den Intervallen des Schedulers", async () => {
-  const config = plan({ bufferDays: 0 });
-  const forecast = await createExamPortfolioForecast(decks, [card(0, { study: reviewed })], [config], options);
-  const reviewedDays = forecast.days.filter((day) => day.reviewCardIds.includes("card-000"));
-  const firstState = scheduleWithFsrs({ ...reviewed }, "good", { now, timeZone, dayStartHour: 0, deckSettings: getExamSessionDeckSettings(decks[0], [config], "2026-10-08") });
-  assert.equal(reviewedDays[0].key, "2026-10-08");
-  assert.equal(reviewedDays[1].key, getLearningDayKey(firstState.dueAt, { timeZone }));
-  assert.ok(reviewedDays.length < forecast.days.length / 2);
-  assert.equal(forecast.exams[0].feasible, true);
+test("selbst 6000 Karten an einem einzigen Tag bleiben planbar", async () => {
+  const exam = plan({ examDate: shiftExamDay(date, 1), bufferDays: 0, studyTime: { dailyMinutes: 1, weekdays: Array(7).fill(true), dateOverrides: [] } });
+  const result = await forecast(cards(6000), exam);
+  assert.equal(result.days[0].newCardIds.length, 6000); assert.equal(result.exams[0].unscheduledNewCount, 0);
 });
-
-test("knappes Budget nimmt fällige Wiederholungen zuerst und meldet nicht eingeplante neue Karten", async () => {
-  const forecast = await createExamPortfolioForecast(decks, [card(0, { study: reviewed }), ...cards(100).slice(1)], [plan()], { ...options, capacity: { ...capacity, weekdayMinutes: 1, weekendMinutes: 1 } });
-  assert.ok(forecast.days[0].reviewCardIds.includes("card-000"));
-  assert.equal(forecast.days[0].newCardIds.length, 0);
-  assert.equal(forecast.exams[0].feasible, false);
-  assert.ok(forecast.exams[0].unscheduledNewCount > 0);
-  assert.match(forecast.exams[0].issues.join(" "), /neue Karten passen nicht/);
+test("proportional skalierte Stunden verändern die Verteilung nicht", async () => {
+  const exam = plan(), input = cards(400);
+  const first = await forecast(input, exam);
+  const second = await forecast(input, { ...exam, studyTime: { ...exam.studyTime, dailyMinutes: 200 } });
+  assert.deepEqual(first.days.map((day) => day.newCardIds), second.days.map((day) => day.newCardIds));
 });
-
-test("freie Wochentage bleiben auch über den Wechsel zur Winterzeit frei", async () => {
-  const forecast = await createExamPortfolioForecast(decks, cards(80), [plan()], { ...options, capacity: { ...capacity, weekdays: [true, true, true, true, true, false, false] }, preferences: { ...preferences, dayStartHour: 3 } });
-  assert.equal(forecast.days.length, 42);
-  for (const day of forecast.days.filter((entry) => [0, 6].includes(new Date(`${entry.key}T12:00:00Z`).getUTCDay()))) {
-    assert.equal(day.budgetMinutes, 0);
-    assert.equal(day.reviewCount + day.newCardIds.length, 0);
+test("gespeicherte Tagesziele bleiben auch in der gesamten Kalenderplanung stabil", async () => {
+  const exam = plan(), input = cards(200), first = await forecast(input, exam), target = first.days[0].newCardIds;
+  const dailyTasks = [{ id: `topic:${exam.id}:root`, date, examId: exam.id, kind: "study" as const, deckIds: ["root"], cardIds: target, capturedAt: now, completed: null, planningKey: getExamPlanningKey(exam, capacity) }];
+  const second = await forecast(input, exam, { dailyTasks });
+  assert.deepEqual(second.days[0].newCardIds, target);
+  assert.equal(second.days.flatMap((day) => day.newCardIds).length, 200);
+  assert.ok(second.exams[0].projectedContacts!.every(Number.isFinite));
+});
+test("sechs und drei Stunden ergeben bei gleicher Kontaktfolge das Verhältnis zwei zu eins", async () => {
+  const exam = plan({ examDate: shiftExamDay(date, 2), bufferDays: 0 });
+  const capacity = { ...options.capacity, timeBlocks: [{ id: "six", date, start: 480, end: 840, examId: exam.id }, { id: "three", date: shiftExamDay(date, 1), start: 480, end: 660, examId: exam.id }] };
+  const result = await forecast(cards(600), exam, { capacity });
+  assert.equal(result.days[0].newCardIds.length, 400);
+  assert.equal(result.days[1].newCardIds.length, 200);
+});
+test("konkrete Blöcke ersetzen nur die Zeit ihres Faches an diesem Datum", () => {
+  const first = plan(), second = plan({ id: "second" }), exams = [first, second];
+  const time = { ...capacity, timeBlocks: [{ id: "six", date, start: 480, end: 840, examId: first.id }] };
+  assert.equal(getExamStudyMinutes(date, first, exams, time), 360);
+  assert.equal(getExamStudyMinutes(date, second, exams, time), 20);
+  assert.equal(getExamStudyMinutes(shiftExamDay(date, 1), first, exams, time), 20);
+  const shared = { ...capacity, timeBlocks: [{ id: "shared", date, start: 480, end: 600, examId: null }] };
+  assert.equal(getExamStudyMinutes(date, first, exams, shared), 60);
+});
+test("freie Tage, Ausnahmen und Puffer werden kalendarisch respektiert", async () => {
+  const exam = plan({ studyTime: { dailyMinutes: 20, weekdays: [true, true, true, true, true, false, false], dateOverrides: [{ date: "2026-10-22", minutes: 0 }] } });
+  const result = await forecast(cards(100), exam);
+  assert.ok(result.days.filter((day) => [0, 6].includes(new Date(`${day.key}T12:00Z`).getUTCDay()) || day.key === "2026-10-22").every((day) => !day.newCardIds.length));
+  assert.equal(getExamLastNewDate(plan({ examDate: "2026-11-20", bufferDays: 4 })), "2026-11-16");
+});
+test("fehlende Einführungstage und verstrichene Stichtage bleiben ausdrücklich offen", async () => {
+  const exam = plan({ studyTime: { dailyMinutes: 0, weekdays: Array(7).fill(false), dateOverrides: [] } });
+  const result = await forecast(cards(100), exam);
+  assert.equal(result.exams[0].unscheduledNewCount, 100); assert.match(result.exams[0].issues.join(" "), /Lerntag/);
+  const late = await forecast(cards(100), plan({ bufferDays: 30 }));
+  assert.equal(late.exams[0].unscheduledNewCount, 100); assert.match(late.exams[0].issues.join(" "), /stichtag/i);
+});
+test("der kalendarische Stichtag endet auch vor der späteren Lerntagsgrenze", async () => {
+  const exam = plan({ examDate: "2026-10-25", bufferDays: 4 });
+  const result = await forecast(cards(100), exam, { now: "2026-10-22T02:00:00.000Z", preferences: { ...preferences, dayStartHour: 4 } });
+  assert.equal(result.days[0].key, "2026-10-21");
+  assert.equal(result.days.flatMap((day) => day.newCardIds).length, 0);
+  assert.equal(result.exams[0].unscheduledNewCount, 100);
+});
+test("Themen bleiben chronologisch zusammen, große Themen dürfen über mehrere Tage laufen", async () => {
+  const input = [...cards(250, "a"), ...cards(250, "b").map((entry) => ({ ...entry, cardId: `b-${entry.cardId}` }))];
+  const exam = plan({ deckIds: ["a", "b"], topicOrder: ["b", "a"], readSummaryBeforeTopics: true });
+  const result = await forecast(input, exam), ids = result.days.flatMap((day) => day.newCardIds);
+  assert.equal(ids.length, 500); assert.ok(ids.slice(0, 250).every((id) => id.startsWith("b-")));
+  assert.ok(result.days.filter((day) => day.newCardIds.some((id) => id.startsWith("b-"))).length > 1);
+  assert.deepEqual(getExamTopicOrder(decks, exam), ["b", "a"]);
+  assert.equal(result.days.flatMap((day) => day.summaries).length, 2);
+});
+test("echte Fälligkeiten bleiben ohne Zeitlimit sichtbar; bekannte Karten sind nicht erneut neu", async () => {
+  const known = card(1001, "root", true), result = await forecast([...cards(50), known]);
+  assert.deepEqual(result.days[0].reviewCardIds, [known.cardId]);
+  assert.ok(!result.days.flatMap((day) => day.newCardIds).includes(known.cardId));
+  assert.equal(result.exams[0].remainingNewCount, 50);
+});
+test("gemeinsame Karten werden beim Sitzungsstart nicht doppelt ausgegeben", async () => {
+  const exam = plan({ examDate: shiftExamDay(date, 1), bufferDays: 0 }), input = [...cards(80), card(81, "root", true)];
+  const result = await createExamPortfolioForecast(decks, input, [exam, { ...exam, id: "other" }], options), day = result.days[0];
+  assert.deepEqual(day.newCardIds, input.slice(0, 80).map((entry) => entry.cardId));
+  assert.deepEqual(day.reviewCardIds, [input[80].cardId]); assert.equal(day.reviewCount, 1);
+  assert.equal(day.blocks.length, 2);
+  for (const block of day.blocks) {
+    assert.deepEqual(block.examIds, [exam.id, "other"]);
+    assert.equal(block.expectedItems, block.method === "new" ? 80 : 1);
   }
+  assert.deepEqual(new Set(getExamSessionCardIds(day)), new Set(input.map((entry) => entry.cardId)));
+  const tasks = getExamTopicTasks(day, exam.id);
+  assert.deepEqual(getExamSessionCardIds(day, tasks[0].id), tasks[0].cardIds);
 });
-
-test("neue Karten folgen der Kapitelreihenfolge des Stapelbaums, darin der Erstellreihenfolge", async () => {
-  const input = [card(1, { deckId: "chapter-b" }), card(2, { deckId: "chapter-a", createdAt: "2026-10-03T08:00:00.000Z" }), card(3, { deckId: "chapter-a", createdAt: "2026-10-02T08:00:00.000Z" }), card(4)];
-  const forecast = await createExamPortfolioForecast(decks, input, [plan({ deckIds: ["root", "chapter-a", "chapter-b"] })], { ...options, capacity: { ...capacity, weekdayMinutes: 60, weekendMinutes: 60 } });
-  assert.deepEqual(forecast.days[0].newCardIds, ["card-004", "card-003", "card-002", "card-001"]);
+test("eine erneute Planung verteilt nur tatsächlich noch ungesehene Karten", async () => {
+  const input = cards(80), initial = await forecast(input), learned = new Set(initial.days[0].newCardIds);
+  const changed = input.map((entry) => learned.has(entry.cardId) ? { ...entry, study: { ...entry.study, state: "review" as const, reps: 1, dueAt: shiftExamDay(date, 2) + "T08:00:00Z", lastRating: "good" as const, lastReviewedAt: now } } : entry);
+  const result = await forecast(changed, plan(), { now: shiftExamDay(date, 1) + "T08:00:00Z" });
+  assert.equal(result.days.flatMap((day) => day.newCardIds).length, 80 - learned.size);
 });
-
-test("mehrere Prüfungen teilen Minuten und gemeinsame Karten ohne doppelte Arbeit", async () => {
-  const a = plan({ id: "a", bufferDays: 0 }), b = plan({ id: "b", examDate: "2026-11-25", bufferDays: 0 });
-  const forecast = await createExamPortfolioForecast(decks, cards(25), [a, b], { ...options, capacity: { ...capacity, reserveFraction: 0.15 } });
-  const [first] = forecast.days;
-  assert.equal(new Set(first.newCardIds).size, first.newCardIds.length);
-  assert.ok(first.blocks.some((block) => block.examIds.length === 2));
-  assert.ok(first.newMinutes + first.reviewMinutes <= first.budgetMinutes * 0.85 + 0.001);
-  const allocated = forecast.exams.reduce((sum, exam) => sum + exam.allocatedMinutes, 0);
-  assert.ok(Math.abs(allocated - forecast.days.reduce((sum, day) => sum + day.newMinutes + day.reviewMinutes, 0)) < 0.001);
+test("Sitzungen erhalten geplante Reihenfolge auch über normale Tageslimits hinaus", () => {
+  const own = Array.from({ length: 600 }, (_, i) => ({ ...createBasicNote(i < 300 ? "b" : "a", "F", "A", { createdAt: now }).cards[0], id: `card-${i}` }));
+  const exam = plan({ deckIds: ["a", "b"], topicOrder: ["b", "a"] }), session = createExamSessionDecks(decks, own, [exam], date);
+  const queue = createDailyReviewQueue(session, { deckId: "exam-session", now, timeZone: "UTC" });
+  assert.equal(queue.total, 600); assert.deepEqual(queue.items.map((entry) => entry.cardId), own.map((entry) => entry.id));
+  assert.equal(getExamSessionDeckSettings(decks[1], [exam], date).schedulerProfile.desiredRetention, .9);
 });
-
-test("Priorität und Termin bestimmen die neuen Karten; überfällige Wiederholungen behalten Vorrang", async () => {
-  const input = [...cards(50), ...cards(50, { deckId: "chapter-a" }).map((entry, index) => ({ ...entry, cardId: `other-${index}` }))];
-  input[50] = { ...input[50], study: { ...input[50].study, ...reviewed } };
-  const a = plan({ id: "a", examDate: "2026-10-20", bufferDays: 0 }), b = plan({ id: "b", deckIds: ["chapter-a"], examDate: "2026-11-20", bufferDays: 0 });
-  const forecast = await createExamPortfolioForecast(decks, input, [b, a], options);
-  assert.ok(forecast.days[0].reviewCardIds.includes("other-0"));
-  assert.ok(forecast.days[0].newCardIds.every((id) => id.startsWith("card-")), "der nähere Termin führt");
-  const urgent = await createExamPortfolioForecast(decks, input, [{ ...b, priority: "high" }, a], options);
-  assert.ok(urgent.days[0].newCardIds.every((id) => id.startsWith("other-")), "hohe Priorität führt");
+test("aktueller Fortschritt unterscheidet gesehen und gefestigt ohne Prognose", () => {
+  const known = { ...card(1, "root", true), maturityXp: 81 };
+  assert.deepEqual(getExamCurrentProgress([known, card(2)], plan()), { totalCards: 2, coverage: .5, consolidated: .5 });
 });
-
-test("pausierte und abgeschlossene Prüfungen buchen keine Arbeit, behalten aber ihren Lernstand", async () => {
-  const input = [card(0, { study: reviewed }), ...cards(5).slice(1)];
-  const forecast = await createExamPortfolioForecast(decks, input, [plan({ status: "paused" }), plan({ status: "completed" })], options);
-  assert.deepEqual(forecast.days, []);
-  const progress = getExamCurrentProgress(input, plan({ status: "paused" }), now, timeZone);
-  assert.equal(progress.totalCards, 5);
-  assert.equal(progress.coverage, 0.2);
-});
-
-test("Gesehen und gefestigt unterscheiden aktuelle Reife, Lernschritte und Rückfälle", async () => {
-  const input = [
-    card(0),
-    card(1, { study: { ...reviewed, state: "learning" }, maturityXp: 121 }),
-    card(2, { study: reviewed, maturityXp: 80 }),
-    card(3, { study: reviewed, maturityXp: 81 }),
-    card(4, { study: reviewed, maturityXp: 181, activeVariantCount: 3 }),
-    card(5, { study: { ...reviewed, lastRating: "again" }, maturityXp: 200 }),
-    card(6, { study: { ...reviewed, state: "relearning" }, maturityXp: 200 }),
-    card(7, { status: "suspended", study: reviewed, maturityXp: 200 }),
-    card(8, { deckId: "other", study: reviewed, maturityXp: 200 }),
-  ];
-  const exam = plan();
-  const progress = getExamCurrentProgress(input, exam, now, timeZone);
-  assert.equal(progress.totalCards, 7);
-  assert.equal(progress.coverage, 6 / 7);
-  assert.equal(progress.consolidated, 2 / 7);
-  const forecast = await createExamPortfolioForecast(decks, input, [exam], options);
-  assert.equal(forecast.exams[0].current.consolidated, progress.consolidated, "Die Übersicht verwendet den belegten Lernstand vor der Simulation");
-  assert.equal(getExamCurrentProgress([], exam, now, timeZone).consolidated, 0);
-});
-
-test("erfolgreiche Variantenantworten zählen über die gemeinsame Kartenreife", () => {
-  const before = { ...reviewed, maturityXp: 65 };
-  const next = scheduleWithFsrs(before, "good", { now, timeZone, dayStartHour: 0, deckSettings: decks[0].deckSettings, isVariant: true });
-  assert.equal(next.maturityXp, 81);
-  assert.equal(getExamCurrentProgress([card(0, { study: next, maturityXp: next.maturityXp, activeVariantCount: 2 })], plan(), now, timeZone).consolidated, 1);
-});
-
-test("Varianten zählen als eigene Methode und lassen sich je Prüfung abschalten", async () => {
-  const variantDeck = createCoreDeck({ id: "root", name: "Prüfung", deckSettings: { coreMode: "on" } });
-  const input = [card(0, { study: reviewed, activeVariantCount: 1, maturityXp: 500 })];
-  const withVariants = await createExamPortfolioForecast([variantDeck], input, [plan({ bufferDays: 0 })], options);
-  assert.equal(withVariants.days[0].blocks[0].method, "variant");
-  const without = await createExamPortfolioForecast([variantDeck], input, [plan({ bufferDays: 0, variants: false })], options);
-  assert.equal(without.days[0].blocks[0].method, "review");
-});
-
-test("Sitzungen lernen genau die Karten des Tages oder eines Blocks mit dem strengsten Retentionsziel", async () => {
-  const forecast = await createExamPortfolioForecast(decks, cards(30), [plan()], options);
-  const [day] = forecast.days, block = day.blocks.at(-1)!;
-  assert.deepEqual(getExamSessionCardIds(day).sort(), [...new Set(day.blocks.flatMap((entry) => entry.cardIds))].sort());
-  assert.deepEqual(getExamSessionCardIds(day, block.id), block.cardIds);
-  const settings = getExamSessionDeckSettings(decks[0], [plan({ desiredRetention: 0.95 }), plan({ desiredRetention: 0.85 }), plan({ desiredRetention: 0.97, examDate: "2026-10-08" })], "2026-10-08");
-  assert.equal(settings.schedulerProfile.desiredRetention, 0.95, "vergangene Prüfungen heben die Retention nicht mehr an");
-  assert.equal(settings.newCardsPerDay, EXAM_MODEL.maxNewPerDay);
-  assert.equal(decks[0].deckSettings.schedulerProfile.desiredRetention, 0.9, "die Stapeleinstellungen bleiben unverändert");
-  assert.equal(getExamSessionDeckSettings(decks[1], [plan()], "2026-10-08"), decks[1].deckSettings);
-});
-
-test("Zeiten und Fehlerquote kommen aus den Statistik-Rollups, mit Standardwerten bei wenig Daten", () => {
-  const day = { total: 40, learning: 10, relearning: 2, young: 20, mature: 8, successful: 30, timedCount: 20, durationMs: 600_000, durationLearningMs: 150_000, durationRelearningMs: 20_000, durationYoungMs: 200_000, durationMatureMs: 80_000 };
-  const statistics = { reviewsByDay: { "2026-10-07": day, "2026-10-08": { ...day, durationMs: 300_000 } } } as unknown as AccountStatisticsSnapshot;
-  const estimate = estimateExamHistory(statistics, "2026-10-08");
-  assert.deepEqual(estimate.timing.new, { seconds: 30, samples: 10 }, "nur der gestoppte Anteil zählt");
-  assert.deepEqual(estimate.timing.review, { seconds: 20, samples: 28 });
-  assert.equal(estimate.timing.relearning.seconds, EXAM_MODEL.defaultSeconds.relearning);
-  assert.equal(estimate.againShare, 0.25);
-  assert.equal(estimate.spentTodayMinutes, 5);
-  assert.deepEqual(estimateExamHistory(null, "2026-10-08").timing.new, { seconds: EXAM_MODEL.defaultSeconds.new, samples: 0 });
-});
-
-test("der Sitzungsstart plant nur heute und erhält dabei denselben Tag", async () => {
-  const input = [card(0, { study: reviewed }), ...cards(120).slice(1)];
-  const exam = plan();
-  const full = await createExamPortfolioForecast(decks, input, [exam], options);
-  const today = await createExamPortfolioForecast(decks, input, [exam], { ...options, todayOnly: true });
-  assert.equal(today.days.length, 1);
-  assert.deepEqual(today.days[0], full.days[0]);
-  assert.equal(today.exams[0].requiredMinutes, today.exams[0].allocatedMinutes, "ohne Aufwandsschätzung über alle Tage");
-});
-
-test("heute schon gelernte Minuten verringern das heutige Budget", async () => {
-  const spent = await createExamPortfolioForecast(decks, cards(100), [plan()], { ...options, history: { ...history, spentTodayMinutes: 15 } });
-  assert.equal(spent.days[0].newCardIds.length + spent.days[0].reviewCount, 0);
-  assert.ok(spent.days[1].newCardIds.length > 0);
-});
-
-test("eine abgebrochene Berechnung endet sichtbar", async () => {
-  const controller = new AbortController();
-  controller.abort();
-  await assert.rejects(createExamPortfolioForecast(decks, cards(10), [plan()], { ...options, signal: controller.signal }), /abort/i);
-});
-
-
-test("individuelle Wochenzeiten, Tagesausnahmen und feste Blöcke bestimmen das Budget", () => {
-  const custom = { ...capacity, weeklyMinutes: [180, 240, 60, 120, 0, 0, 0], weekdays: Array(7).fill(true) };
-  assert.equal(getExamDayCapacity("2026-10-12", custom), 180);
-  assert.equal(getExamDayCapacity("2026-10-13", custom), 240);
-  const changed = { ...custom, dateOverrides: [{ date: "2026-10-12", minutes: 45 }] };
-  assert.equal(getExamDayCapacity("2026-10-12", changed), 45);
-  assert.equal(getExamDayCapacity("2026-10-12", { ...changed, timeBlocks: [{ id: "x", examId: "a", date: "2026-10-12", start: 480, end: 660 }] }), 180);
-});
-
-test("das nächste Thema wird nicht in den Rest des Tages zerschnitten", async () => {
-  const input = [...cards(3, { deckId: "chapter-a" }), ...cards(3, { deckId: "chapter-b" }).map((value) => ({ ...value, cardId: value.cardId + "b" }))];
-  const forecast = await createExamPortfolioForecast(decks, input, [plan({ deckIds: ["chapter-a", "chapter-b"], bufferDays: 0 })], { ...options, capacity: { ...capacity, weekdayMinutes: 7, weekendMinutes: 7 } });
-  assert.equal(forecast.days[0].newCardIds.length, 3);
-  assert.equal(forecast.days[0].blocks.filter((block) => block.method === "new").every((block) => block.deckId === "chapter-a"), true);
-  assert.equal(forecast.days[1].newCardIds.length, 3);
-  assert.equal(forecast.days[1].blocks.filter((block) => block.method === "new").every((block) => block.deckId === "chapter-b"), true);
-});
-
-test("Thementage ändern die Einführung, Wiederholungen bleiben fällig", async () => {
-  const input = [card(1, { deckId: "chapter-a" }), card(2, { deckId: "chapter-b" }), card(3, { deckId: "chapter-a", study: reviewed })];
-  const exam = plan({ deckIds: ["chapter-a", "chapter-b"], topicDates: [{ deckId: "chapter-a", date: "2026-10-10" }] });
-  const forecast = await createExamPortfolioForecast(decks, input, [exam], options);
-  assert.deepEqual(forecast.days[0].newCardIds, ["card-002"]);
-  assert.ok(forecast.days[0].reviewCardIds.includes("card-003"));
-  assert.ok(forecast.days.find((day) => day.key === "2026-10-10")!.newCardIds.includes("card-001"));
-});
-
-test("reservierte Zeit ist nur für die zugeordnete Prüfung verfügbar und bleibt im Budget", async () => {
-  const a = plan({ id: "a", deckIds: ["chapter-a"] }), b = plan({ id: "b", deckIds: ["chapter-b"] });
-  const input = [...cards(5, { deckId: "chapter-a" }), ...cards(5, { deckId: "chapter-b" }).map((value) => ({ ...value, cardId: value.cardId + "b" }))];
-  const settings = { ...capacity, timeBlocks: [{ id: "block", date: "2026-10-08", start: 480, end: 495, examId: "a" }] };
-  const forecast = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: settings });
-  assert.equal(forecast.days[0].blocks.every((block) => block.examIds.includes("a")), true);
-  assert.ok(forecast.days[1].blocks.some((block) => block.examIds.includes("b")));
-  assert.ok(forecast.days[0].newMinutes + forecast.days[0].reviewMinutes <= 15);
-  const quick = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: settings, todayOnly: true });
-  assert.deepEqual(quick.days[0], forecast.days[0]);
-});
-
-
-test("nach einem vollen Themenbudget bleibt die reservierte Zeit anderer Prüfungen nutzbar", async () => {
-  const a = plan({ id: "a", deckIds: ["root", "chapter-a"] }), b = plan({ id: "b", deckIds: ["chapter-b"] });
-  const input = [card(100), ...cards(20, { deckId: "chapter-a" }), ...cards(3, { deckId: "chapter-b" }).map((value) => ({ ...value, cardId: value.cardId + "b" }))];
-  const timeBlocks = [{ id: "a", examId: "a", date: "2026-10-08", start: 480, end: 490 }, { id: "b", examId: "b", date: "2026-10-08", start: 490, end: 500 }];
-  const forecast = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: { ...capacity, timeBlocks } });
-  assert.ok(forecast.days[0].blocks.some((block) => block.examIds.includes("a")));
-  assert.ok(forecast.days[0].blocks.some((block) => block.examIds.includes("b")));
-  const tasks = getExamTopicTasks(forecast.days[0], "b");
-  assert.equal(tasks.length, 1);
-  assert.equal(tasks[0].cardIds.length, 3);
-  assert.deepEqual(getExamSessionCardIds(forecast.days[0], tasks[0].id), tasks[0].cardIds);
-  assert.deepEqual(getExamSessionCardIds(forecast.days[0], "topic:missing:missing"), []);
-});
-
-
-test("unzugeordnete Lernzeit ist gemeinsam verfügbar, die Fachzuordnung reserviert sie", async () => {
-  const a = plan({ id: "a", deckIds: ["chapter-a"] }), b = plan({ id: "b", deckIds: ["chapter-b"] });
-  const input = [...cards(5, { deckId: "chapter-a" }), ...cards(5, { deckId: "chapter-b" }).map((value) => ({ ...value, cardId: value.cardId + "b" }))];
-  const block = { id: "free", date: "2026-10-08", start: 780, end: 810, examId: null };
-  const shared = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: { ...capacity, timeBlocks: [block] }, todayOnly: true });
-  assert.ok(shared.days[0].blocks.some((entry) => entry.examIds.includes("a")));
-  assert.ok(shared.days[0].blocks.some((entry) => entry.examIds.includes("b")));
-  assert.ok(shared.days[0].newMinutes + shared.days[0].reviewMinutes <= 30);
-  const assigned = await createExamPortfolioForecast(decks, input, [a, b], { ...options, capacity: { ...capacity, timeBlocks: [{ ...block, examId: "a" }] }, todayOnly: true });
-  assert.ok(assigned.days[0].blocks.length > 0);
-  assert.ok(assigned.days[0].blocks.every((entry) => entry.examIds.includes("a")));
-});
-
-test("Quizblöcke reservieren eigene Zeit und vergrößern das Kartenbudget nicht", async () => {
-  const exam = plan({ id: "a", bufferDays: 0 });
-  const study = { id: "cards", date: "2026-10-08", start: 480, end: 495, examId: "a" };
-  const quiz = { ...study, id: "quiz", start: 495, end: 555, kind: "quiz" as const };
-  const run = (timeBlocks: NonNullable<StudyTimeCapacity["timeBlocks"]>) => createExamPortfolioForecast(decks, cards(100), [exam], { ...options, capacity: { ...capacity, timeBlocks }, todayOnly: true });
-  const baseline = await run([study]);
-  const separate = await run([study, quiz]);
-  assert.deepEqual(separate.days[0].newCardIds, baseline.days[0].newCardIds);
-  assert.equal(separate.days[0].newMinutes, baseline.days[0].newMinutes);
-  const quizOnly = await run([quiz]);
-  assert.equal(quizOnly.days[0].blocks.length, 0);
+test("abgebrochene Planung endet sichtbar", async () => {
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(forecast(cards(100), plan(), { signal: controller.signal }), /abort/i);
 });
