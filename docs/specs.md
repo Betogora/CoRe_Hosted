@@ -2,7 +2,7 @@
 
 **Rolle:** einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 **Status:** Arbeitsfassung
-**Stand:** 2026-10-13
+**Stand:** 2026-10-25
 
 CoRe ergänzt Spaced Repetition um Content Repetition: Wissen auch bei veränderter Frage abrufen. Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und Roadmap stehen in der [Dokumentenlandkarte](README.md).
 

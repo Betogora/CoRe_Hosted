@@ -297,6 +297,8 @@ npm run test:rls:local
 npm run test:e2e:local
 ```
 
+Unter Windows kann WinNAT die Supabase-Ports dynamisch reservieren (`netsh interface ipv4 show excludedportrange protocol=tcp`; beobachtet 2026-10-25: 54234–54333). `supabase start` scheitert dann mit „Zugriff auf einen Socket … unzulässig“. Ohne Systemeingriff hilft, die Ports in `supabase/config.toml` für den Lauf zu verschieben und die Datei danach zurückzusetzen; die Testskripte lesen URLs aus `supabase status`.
+
 `supabase/verify_schema_v1.sql` prüft Struktur, RLS, Policies, Grants, Constraints und Buckets. Restore-Proben für Datenbank und Storage bleiben getrennt und werden erst nach dokumentiertem Ergebnis als bestanden gewertet.
 
 ### Irreversibler Labs-/Groß-APKG-Rückbau

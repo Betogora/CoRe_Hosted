@@ -1,7 +1,7 @@
 # CoRe-Entscheidungen
 
 **Rolle:** einzige kanonische Quelle für dauerhafte Produkt- und Architekturentscheidungen.
-**Stand:** 2026-10-07
+**Stand:** 2026-10-25
 
 ## ADR-Format
 
@@ -381,7 +381,7 @@ Teilen sich Prüfungen Stapel, wird jede Karte genau einmal eingeführt, spätes
 
 ### Ergänzung zu ADR-042 — Entscheidungen der Prüfungen-Roadmap K0–K8 (2026-10-24/25)
 
-Beim Zusammenführen des Klausurplaners aus PR #42 mit main wurden diese Produktentscheidungen getroffen; Spezifikation §6.9 und Architektur beschreiben ihre Umsetzung.
+Beim Zusammenführen des Klausurplaners aus PR #42 mit main wurden diese Produktentscheidungen getroffen; Spezifikation §6.9 und Architektur beschreiben ihre Umsetzung. E12 ersetzt die ursprüngliche Konsequenz, dass die Planung eine Verbindung braucht: Neu geplant wird weiterhin nur online, gespeicherte Tagesziele bleiben offline nutzbar.
 
 - E1 Unrealistische Tagesmengen bleiben speicherbar, ab einer klaren Schwelle
   erscheint ein Hinweis in Vorschau und Tag.
