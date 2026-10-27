@@ -748,6 +748,14 @@ video {
     flex: 1 1 0;
   }
 
+  .core-icon-segmented-control {
+    grid-auto-columns: var(--core-control-height);
+  }
+
+  .core-icon-segmented-control .core-segmented-control-option {
+    padding-inline: 0;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .core-segmented-control-indicator {
       transition: none;

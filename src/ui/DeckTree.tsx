@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, ChevronDown, ChevronRight, PanelsTopLeft, Play, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronRight, Grid2x2, List, PanelsTopLeft, Play, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { createDeckPlacementValidator, type DeckMutationResult } from "../coreWorkspace.ts";
 import type { CoreMode, Deck } from "../coreTypes.ts";
@@ -8,18 +8,48 @@ import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
 import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
 import { ActionButton, IconButton } from "./actionUi.tsx";
-import { SoftPanel } from "./coreUi.tsx";
+import { CoreIconSegmentedControl, SoftPanel } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { getDeckAppearance } from "./deckAppearance.tsx";
 import { useStableCallback } from "./useStableCallback.ts";
 
 export type DeckTreeView = "list" | "tiles";
 
+const DECK_TREE_VIEW_OPTIONS = [
+  { value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 },
+  { value: "list", label: "Als Liste anzeigen", icon: List },
+] as const;
+
+function readStoredDeckTreeView(storageKey: string): DeckTreeView {
+  if (typeof window === "undefined") return "list";
+  try {
+    return window.localStorage.getItem(storageKey) === "tiles" ? "tiles" : "list";
+  } catch {
+    return "list";
+  }
+}
+
+/** Browser-local view choice of one DeckTree caller. */
+export function useStoredDeckTreeView(storageKey: string) {
+  const [view, setView] = React.useState(() => readStoredDeckTreeView(storageKey));
+  const changeView = React.useCallback((next: DeckTreeView) => {
+    setView(next);
+    try {
+      window.localStorage.setItem(storageKey, next);
+    } catch {
+      // Die Ansicht bleibt ohne browserlokale Speicherung umschaltbar.
+    }
+  }, [storageKey]);
+  return [view, changeView] as const;
+}
+
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
   mode: "dashboard" | "learn";
   /** `list` groups every main deck in its own card; `tiles` shows main decks as tiles with an inline branch panel. */
   view?: DeckTreeView;
+  /** Shows the icon-only tiles/list control in the header when set. */
+  onViewChange?: (view: DeckTreeView) => void;
   headerAction?: React.ReactNode;
   /** Caller-owned area below the collection, e.g. the quick-create form in Lernen. */
   contentAfterRows?: React.ReactNode;
@@ -217,7 +247,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, mode, view = "list", headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -568,6 +598,7 @@ export function DeckTree({ rows, mode, view = "list", headerAction, contentAfter
     </section>
   ) : null;
   const showExpandAll = mode === "learn" && view === "list" && parentDeckIds.length > 0;
+  const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
     <>
@@ -581,18 +612,21 @@ export function DeckTree({ rows, mode, view = "list", headerAction, contentAfter
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid gap-6">
-          <div className={`core-deck-tree-header grid min-h-control items-center gap-3${mode === "learn" && headerAction ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          <div className={`core-deck-tree-header grid min-h-control items-center gap-3${mode === "learn" && showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
               <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
             </div>
-            {headerAction || showExpandAll ? (
-              <div className="core-deck-tree-header-action flex flex-wrap justify-end gap-2 justify-self-end">
+            {headerAction || showExpandAll || showViewControl ? (
+              <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">
                 {showExpandAll ? (
                   <ActionButton variant="secondary" icon={ChevronDown} onClick={() => setAllExpanded(anyCollapsed)}>
                     {anyCollapsed ? "Alle aufklappen" : "Alle einklappen"}
                   </ActionButton>
                 ) : null}
                 {headerAction}
+                {showViewControl && onViewChange ? (
+                  <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={view} onValueChange={onViewChange} />
+                ) : null}
               </div>
             ) : null}
           </div>

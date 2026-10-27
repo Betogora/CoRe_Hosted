@@ -104,6 +104,8 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /Alle ansehen/);
   assert.match(markup, /whitespace-nowrap[^\"]*rounded-control[^>]*>Alle ansehen/);
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
+  assert.match(markup, /Alle ansehen[\s\S]*aria-label="Stapelansicht"[^>]*core-icon-segmented-control/);
+  assert.match(markup, /data-deck-view="list"/);
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);

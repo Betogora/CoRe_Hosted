@@ -748,6 +748,14 @@ video {
     flex: 1 1 0;
   }
 
+  .core-icon-segmented-control {
+    grid-auto-columns: var(--core-control-height);
+  }
+
+  .core-icon-segmented-control .core-segmented-control-option {
+    padding-inline: 0;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .core-segmented-control-indicator {
       transition: none;
@@ -5909,11 +5917,11 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <li>Zeilen zeigen lokale Namen. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (<code>Stapel 10</code> vor <code>Stapel 9</code>); Elternstapel bleiben mit ihrem Unterbaum zusammen.</li>
 <li><code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> unter einer nicht sortierbaren Kopfzeile; einen Fortschrittsring gibt es nicht. Auf schmalen Flächen entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen, auch nicht assistiv.</li>
 <li>Jeder Hauptstapel bildet mit seinen Unterstapeln eine eigene umrandete Gruppe. Nur die Zeile des Hauptstapels ist leicht in seiner Stapelfarbe getönt; Unterstapelzeilen bleiben neutral. Badges und Untertitel mit Karten- oder Unterstapelanzahl erscheinen nicht.</li>
-<li><code>Lernen</code> bietet einen Umschalter zwischen <code>Liste</code> und <code>Kacheln</code>; die Wahl gilt browserlokal. In der Liste klappt <code>Alle aufklappen</code>/<code>Alle einklappen</code> sämtliche Elternstapel gemeinsam. Die Kachelansicht zeigt jeden Hauptstapel als Kachel mit beschrifteten Tageszahlen und einer Aktionsleiste aus <code>Inhalte</code>, Lernaktion und Stapeloptionen. Ein Klick auf eine Kachel öffnet unter ihrer Kachelreihe ein Panel mit Stapelpfad, Name, <code>Eine Ebene zurück</code>, Schließen, den direkten Unterstapeln als kleineren Kacheln (ohne Unterstapel <code>Keine Unterstapel.</code>) sowie <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; Unterstapel-Kacheln führen eine Ebene tiefer.</li>
+<li>Dashboard und <code>Lernen</code> bieten im Kopf von <code>Aktive Stapel</code> dieselbe reine Icon-Auswahl zwischen Kacheln und Liste (Tooltip und zugänglicher Name <code>Als Kacheln anzeigen</code>/<code>Als Liste anzeigen</code>); die Wahl gilt browserlokal und je Bereich getrennt. In der Liste klappt <code>Alle aufklappen</code>/<code>Alle einklappen</code> sämtliche Elternstapel gemeinsam. Die Kachelansicht zeigt jeden Hauptstapel als Kachel mit beschrifteten Tageszahlen und einer Aktionsleiste aus <code>Inhalte</code>, Lernaktion und Stapeloptionen. Ein Klick auf eine Kachel öffnet unter ihrer Kachelreihe ein Panel mit Stapelpfad, Name, <code>Eine Ebene zurück</code>, Schließen, den direkten Unterstapeln als kleineren Kacheln (ohne Unterstapel <code>Keine Unterstapel.</code>) sowie <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; Unterstapel-Kacheln führen eine Ebene tiefer.</li>
 <li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
 <li>Die Stapelfläche öffnet <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Eine eigene Lernaktion startet den Reviewpfad samt Unterstapeln und Limits; ihr zugänglicher Name enthält den Stapelpfad, ihr Tooltip den lokalen Namen. Auf-/Zuklappen, Lernen und Stapeloptionen lösen die Flächenaktion nicht aus; die Fläche ist per Enter und Leertaste bedienbar.</li>
 <li>Lernaktion und Stapeloptionen haben 44-px-Klickflächen.</li>
-<li>Dashboard und Lernen verwenden dieselbe Sammlung <code>Aktive Stapel</code>; nur das Dashboard zeigt <code>Alle ansehen</code>. Lernen zeigt unter den Stapeln dauerhaft das Schnellformular <code>Stapelname</code>, <code>Ebene</code>, <code>Anlegen</code>, auch ohne Stapel und nach dem Anlegen.</li>
+<li>Dashboard und Lernen verwenden dieselbe Sammlung <code>Aktive Stapel</code>; nur das Dashboard zeigt <code>Alle ansehen</code> vor der Ansichtsauswahl. Lernen zeigt unter den Stapeln dauerhaft das Schnellformular <code>Stapelname</code>, <code>Ebene</code>, <code>Anlegen</code>, auch ohne Stapel und nach dem Anlegen.</li>
 <li>Auf-/Zuklappzustände sind je Ansicht kontogebunden und überstehen Navigation, Reload und Neuanmeldung. Ohne Präferenz starten die Sektionen der Kartenverwaltung eingeklappt; ein fokussierter Stapel oder eine verlinkte Karte öffnet und speichert die betroffene Sektion. Eine leere, als <code>Nicht festgelegt</code> dargestellte Profilzeitzone blockiert das Speichern nicht.</li>
 </ul>
 <h4 id="journey-3-rules--stapelinhalte" class="core-control-label" tabindex="-1">Stapelinhalte <a class="docs-anchor" href="#journey-3-rules--stapelinhalte" aria-label="Link zu Stapelinhalte">#</a></h4>

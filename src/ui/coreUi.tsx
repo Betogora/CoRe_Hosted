@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { CoreMode } from "../coreTypes.ts";
 import { ActionButton } from "./actionUi.tsx";
+import { CoreTooltip } from "./tooltipUi.tsx";
 
 interface SoftPanelProps extends HTMLAttributes<HTMLElement> {
   children?: ReactNode;
@@ -358,7 +359,7 @@ export interface CoreSegmentedControlProps<T extends string> {
   disabled?: boolean;
   className?: string;
   typography?: "status" | "control";
-  collapseInactiveLabels?: boolean;
+  labels?: "visible" | "active" | "hidden";
 }
 
 const CORE_MODE_OPTIONS: ReadonlyArray<CoreSegmentedControlOption<CoreMode>> = [
@@ -396,7 +397,7 @@ export function CoreSegmentedControl<T extends string>({
   disabled = false,
   className = "",
   typography = "status",
-  collapseInactiveLabels = false,
+  labels = "visible",
 }: CoreSegmentedControlProps<T>) {
   const { containerRef, indicator } = useSlidingSelection<HTMLDivElement>(value, options);
   return (
@@ -406,31 +407,39 @@ export function CoreSegmentedControl<T extends string>({
       aria-label={ariaLabel}
       data-size={size}
       data-sliding={indicator ? "true" : undefined}
-      className={`core-segmented-control ${collapseInactiveLabels ? "core-sliding-tabs" : ""} ${typography === "control" ? "core-control-label" : "core-status-label"} ${className}`}
+      className={`core-segmented-control ${labels === "active" ? "core-sliding-tabs" : labels === "hidden" ? "core-icon-segmented-control" : ""} ${typography === "control" ? "core-control-label" : "core-status-label"} ${className}`}
     >
       {indicator ? <span aria-hidden="true" className="core-segmented-control-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} /> : null}
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          aria-label={collapseInactiveLabels ? option.label : undefined}
-          disabled={disabled}
-          onClick={() => onValueChange(option.value)}
-          className="core-segmented-control-option"
-        >
-          {option.icon ? <option.icon size={18} aria-hidden="true" /> : null}
-          {collapseInactiveLabels ? <span className={value === option.value ? "truncate" : "sr-only"}>{option.label}</span> : option.label}
-        </button>
-      ))}
+      {options.map((option) => {
+        const button = (
+          <button
+            type="button"
+            aria-pressed={value === option.value}
+            aria-label={labels === "visible" ? undefined : option.label}
+            disabled={disabled}
+            onClick={() => onValueChange(option.value)}
+            className="core-segmented-control-option"
+          >
+            {option.icon ? <option.icon size={18} aria-hidden="true" /> : null}
+            {labels === "active" ? <span className={value === option.value ? "truncate" : "sr-only"}>{option.label}</span> : labels === "visible" ? option.label : null}
+          </button>
+        );
+        return <React.Fragment key={option.value}>{labels === "hidden" ? <CoreTooltip label={option.label}>{button}</CoreTooltip> : button}</React.Fragment>;
+      })}
     </div>
   );
 }
 
-export function CoreSlidingTabs<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "collapseInactiveLabels" | "options" | "typography"> & {
+export function CoreSlidingTabs<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "labels" | "options" | "typography"> & {
   options: ReadonlyArray<CoreSegmentedControlOption<T> & { icon: LucideIcon }>;
 }) {
-  return <CoreSegmentedControl {...props} collapseInactiveLabels typography="control" />;
+  return <CoreSegmentedControl {...props} labels="active" typography="control" />;
+}
+
+export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "labels" | "options" | "size" | "typography"> & {
+  options: ReadonlyArray<CoreSegmentedControlOption<T> & { icon: LucideIcon }>;
+}) {
+  return <CoreSegmentedControl {...props} labels="hidden" />;
 }
 
 export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange: (value: CoreMode) => void }) {

@@ -2,7 +2,7 @@ import { registerAppModuleLoadErrors } from "../src/pwa.ts";
 import { CreationActionCard } from "../src/ui/CreationActionCard.tsx";
 import { CoreWordmark } from "../src/ui/CoreWordmark.tsx";
 import React, { useRef, useState } from "react";
-import { Ban, BookOpen, ChevronRight, Copy, Eye, Home, Info, Layers, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
+import { Ban, BookOpen, ChevronRight, Copy, Eye, Grid2x2, Home, Info, Layers, List, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
 import { addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask } from "../src/coreTypes.ts";
 import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
@@ -13,7 +13,7 @@ import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../src/ui/actionUi.tsx";
-import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, EmptyState, OrbIcon, PageHeader, SegmentedDonut, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, EmptyState, OrbIcon, PageHeader, SegmentedDonut, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
@@ -126,11 +126,13 @@ function FoundationsDemo({ section }: { section: string }) {
 function ControlsDemo({ section }: { section: string }) {
   const [mode, setMode] = useState<CoreMode>("on");
   const [tab, setTab] = useState("front");
+  const [iconView, setIconView] = useState<DeckTreeView>("tiles");
   const [marked, setMarked] = useState(false);
   const [suspended, setSuspended] = useState(false);
   const options = [{ value: "front", label: "Vorderseite", icon: BookOpen }, { value: "back", label: "Rückseite", icon: Layers }];
   return <>
     {section === "segments" && <Demo title="CoreSegmentedControl · regulär und kompakt"><CoreSegmentedControl ariaLabel="Kartenseite" value={tab} options={options} onValueChange={setTab} /><CoreSegmentedControl ariaLabel="Kompakte Kartenseite" size="compact" value={tab} options={options} onValueChange={setTab} /><CoreSegmentedControl ariaLabel="Deaktivierte Kartenseite" value={tab} options={options} onValueChange={setTab} disabled /></Demo>}
+    {section === "segments" && <Demo title="CoreIconSegmentedControl"><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={iconView} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setIconView} /></Demo>}
     {section === "segments" && <Demo title="CoreSlidingTabs"><CoreSlidingTabs ariaLabel="Vorschautabs" value={tab} options={options} onValueChange={setTab} /></Demo>}
     {section === "segments" && <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>}
     {section === "buttons" && <Demo title="CardMarkButton und CardStudyStateControls"><CardMarkButton marked={marked} onMarkedChange={setMarked} /><CardStudyStateControls marked={marked} suspended={suspended} onMarkedChange={setMarked} onSuspendedChange={setSuspended} /><CardStudyStateControls marked suspended disabled onMarkedChange={setMarked} onSuspendedChange={setSuspended} /></Demo>}
@@ -199,7 +201,7 @@ function DecksDemo({ section }: { section: string }) {
   return <>
     {section === "stapel" && <Demo title="DeckSummaryHeader und DeckSummaryRow · verfügbare Breite" wide><DeckSummaryHeader /><DeckSummaryRow row={row} density="responsive" leadingControl={<ChevronRight size={18} />} actions={<IconButton label="Stapeloptionen" icon={Settings} variant="ghost" />} learningStatus={{ summary: row.summary, metricLabels: "sr-only" }} studyAction={<IconButton label="Jetzt lernen" icon={BookOpen} variant="ghost" />} /></Demo>}
     {section === "stapel" && <Demo title="DeckOptionsMenu"><DeckOptionsMenu row={row} decks={decks} onSetCoreMode={mode} onMoveDeck={move} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} /></Demo>}
-    {section === "stapel" && <Demo title="DeckTree · Liste und Kacheln" wide><div className="catalog-row"><CoreSelect ariaLabel="Baumkontext" value={treeMode} onValueChange={(value) => setTreeMode(value as typeof treeMode)} options={[{ value: "dashboard", label: "Dashboard" }, { value: "learn", label: "Lernen" }]} /><CoreSelect ariaLabel="Ansicht" value={treeView} onValueChange={(value) => setTreeView(value as DeckTreeView)} options={[{ value: "list", label: "Liste" }, { value: "tiles", label: "Kacheln" }]} /></div><DeckTree rows={rows} mode={treeMode} view={treeView} onActivate={(entry) => toast(`Inhalt: ${entry.name}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => {
+    {section === "stapel" && <Demo title="DeckTree · Liste und Kacheln" wide><div className="catalog-row"><CoreSelect ariaLabel="Baumkontext" value={treeMode} onValueChange={(value) => setTreeMode(value as typeof treeMode)} options={[{ value: "dashboard", label: "Dashboard" }, { value: "learn", label: "Lernen" }]} /></div><DeckTree rows={rows} mode={treeMode} view={treeView} onViewChange={setTreeView} headerAction={treeMode === "dashboard" ? <CrossLinkButton onSelect={() => toast("Lernen geöffnet.")}>Alle ansehen</CrossLinkButton> : undefined} onActivate={(entry) => toast(`Inhalt: ${entry.name}`)} onStudy={(entry) => toast(`Lernstart: ${entry.name}`)} onOpenSettings={() => toast("Stapeleinstellungen geöffnet.")} onSetDeckCoreMode={mode} onMoveDeck={move} collapsedDeckIds={collapsed} onDeckExpansionChange={(id, expanded) => setCollapsed((current) => {
       const ids: readonly string[] = typeof id === "string" ? [id] : id;
       return expanded ? current.filter((value) => !ids.includes(value)) : [...new Set([...current, ...ids])];
     })} /></Demo>}
@@ -533,7 +535,7 @@ export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmust
 
 export const DEMO_GROUPS = [
   { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
-  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Reguläre und kompakte Segmente, gleitende Tabs und CoRe-Modus.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreModeControl"], render: () => <ControlsDemo section="segments" /> },
+  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Reguläre und kompakte Segmente, gleitende Tabs, reine Icon-Auswahl und CoRe-Modus.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl"], render: () => <ControlsDemo section="segments" /> },
   { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei und zusammengesetzte Einstellungsformulare.", components: ["CoreSelect", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel", "AuthGateScreen", "SimulatorScreen"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /><ProductViewsDemo kind="auth" /><ProductViewsDemo kind="simulator" /></> },
   { id: "badges", section: "primitive", title: "Badge", description: "Bestehende lokale Beschriftungen für Original, Kartenseite und Synchronisierung.", components: [], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },

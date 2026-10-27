@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, PageHeader, SegmentedDonut } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, PageHeader, SegmentedDonut } from "./coreUi.tsx";
 import { FileText, NotebookPen } from "lucide-react";
 
 test("sliding tabs keep every icon and accessible label but show only the selected label", () => {
@@ -16,6 +16,19 @@ test("sliding tabs keep every icon and accessible label but show only the select
   assert.match(markup, /<span class="truncate">Notizen<\/span>/);
   assert.equal((markup.match(/<svg/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /disabled=/);
+});
+
+test("icon segmented control names every option without visible labels and adds tooltips", () => {
+  const markup = renderToStaticMarkup(<CoreIconSegmentedControl ariaLabel="Stapelansicht" options={[
+    { value: "tiles", label: "Als Kacheln anzeigen", icon: FileText },
+    { value: "list", label: "Als Liste anzeigen", icon: NotebookPen },
+  ]} value="list" onValueChange={() => undefined} />);
+  assert.match(markup, /core-icon-segmented-control/);
+  assert.match(markup, /aria-pressed="false" aria-label="Als Kacheln anzeigen"/);
+  assert.match(markup, /aria-pressed="true" aria-label="Als Liste anzeigen"/);
+  assert.match(markup, /data-core-tooltip="Als Kacheln anzeigen"/);
+  assert.doesNotMatch(markup, /<span/);
+  assert.equal((markup.match(/<svg/g) ?? []).length, 2);
 });
 
 test("page header keeps an optional action beside its title block", () => {

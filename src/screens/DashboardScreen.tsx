@@ -11,7 +11,7 @@ import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
-import { DeckTree } from "../ui/DeckTree.tsx";
+import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
@@ -252,6 +252,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
     () => loadedHeatmap ?? createStudyHeatmapModel(state.decks, { now, timeZone, dayStartHour: globalSettings.dayStartHour }),
     [globalSettings.dayStartHour, loadedHeatmap, now, state.decks, timeZone],
   );
+  const [deckView, setDeckView] = useStoredDeckTreeView("core.dashboard.deckView.v1");
   const [demoStatus, setDemoStatus] = React.useState<"idle" | "busy" | "error">("idle");
   const demoBusyRef = React.useRef(false);
   const displayName = state.profile?.displayName?.trim();
@@ -328,6 +329,8 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
       <DeckTree
         rows={library.rows}
         mode="dashboard"
+        view={deckView}
+        onViewChange={setDeckView}
         collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
         onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
         headerAction={(
