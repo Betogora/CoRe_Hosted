@@ -132,7 +132,7 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
   await expect(handle).toBeEnabled();
   await handle.focus();
   await page.keyboard.press("ArrowDown");
-  await expect(block).toHaveAccessibleName(/08:00 bis 08:45/);
+  await expect(block).toHaveAccessibleName(/08:00 bis 09:00/);
   await expect(handle).toBeEnabled();
   await page.keyboard.press("ArrowUp");
   await expect(block).toHaveAccessibleName(/08:00 bis 08:30/);
@@ -141,10 +141,13 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
   if (!grip) throw new Error("Ziehlasche ist nicht sichtbar");
   await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
   await page.mouse.down();
-  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 + 48, { steps: 4 });
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2 + 32, { steps: 4 });
   await expect(block).toHaveAccessibleName(/08:00 bis 09:30/);
   await page.mouse.up();
   await expect(block).toHaveAccessibleName(/08:00 bis 09:30/);
+  await calendar.getByRole("slider", { name: "Lernzeit verschieben" }).focus();
+  await page.keyboard.press("ArrowDown");
+  await expect(block).toHaveAccessibleName(/08:30 bis 10:00/);
   await expect(calendar.getByRole("button", { name: "Lernzeit im Kalender löschen" })).toBeEnabled();
   await calendar.getByRole("button", { name: "Lernzeit im Kalender löschen" }).click();
   await expect(block).toHaveCount(0);

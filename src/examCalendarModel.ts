@@ -25,13 +25,25 @@ export function createExamWeekDays(anchor: string): string[] {
   return Array.from({ length: 7 }, (_, index) => shiftExamDay(anchor, index - offset));
 }
 
+export const EXAM_DAY_START = 420;
+export const EXAM_SLOT_MINUTES = 30;
+export const EXAM_DAY_MINUTES = 1440 - EXAM_DAY_START;
+
 export function examMinuteAtPosition(offset: number, height: number): number {
-  return Math.min(1440, Math.max(0, Math.round(offset / height * 1440 / 15) * 15));
+  return Math.min(1440, Math.max(EXAM_DAY_START, EXAM_DAY_START + Math.round(offset / height * EXAM_DAY_MINUTES / EXAM_SLOT_MINUTES) * EXAM_SLOT_MINUTES));
 }
 
 export function examSelectionRange(first: number, last: number) {
-  const start = Math.min(1425, Math.min(first, last));
-  return { start, end: Math.min(1440, Math.max(start + 15, first, last)) };
+  const start = Math.min(1440 - EXAM_SLOT_MINUTES, Math.min(first, last));
+  return { start, end: Math.min(1440, Math.max(start + EXAM_SLOT_MINUTES, first, last)) };
+}
+
+/** Moving keeps the duration inside the visible day; resizing keeps the start and at least one slot. */
+export function examBlockRangeAt(block: { start: number; end: number }, move: boolean, minute: number) {
+  const duration = block.end - block.start;
+  if (!move) return { start: block.start, end: Math.max(block.start + EXAM_SLOT_MINUTES, Math.min(1440, minute)) };
+  const start = Math.max(EXAM_DAY_START, Math.min(1440 - duration, minute));
+  return { start, end: start + duration };
 }
 
 /** Shared material counts once, including when several selected exams own the same block. */

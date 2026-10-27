@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createExamMonthDays, getExamCalendarWork, shiftExamMonth, createExamWeekDays, examMinuteAtPosition, examSelectionRange, isExamCalendarDayLocked } from "./examCalendarModel.ts";
+import { createExamMonthDays, getExamCalendarWork, shiftExamMonth, createExamWeekDays, examBlockRangeAt, examMinuteAtPosition, examSelectionRange, isExamCalendarDayLocked } from "./examCalendarModel.ts";
 import type { ExamPlan } from "./coreTypes.ts";
 import type { ExamPlanDay, StudyPlanBlock } from "./examPlanning.ts";
 
@@ -25,14 +25,24 @@ test("filtered work counts shared cards once and all repeat methods", () => {
   assert.equal(getExamCalendarWork(undefined, new Set()).newCards, 0);
 });
 
-test("Wochenraster beginnt montags und markiert Viertelstunden in beiden Ziehrichtungen", () => {
+test("Wochenraster beginnt montags und markiert halbe Stunden ab 7 Uhr in beiden Ziehrichtungen", () => {
   assert.deepEqual(createExamWeekDays("2026-11-01"), ["2026-10-26", "2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30", "2026-10-31", "2026-11-01"]);
-  assert.equal(examMinuteAtPosition(832, 1536), 780);
-  assert.equal(examMinuteAtPosition(-10, 1536), 0);
-  assert.equal(examMinuteAtPosition(2000, 1536), 1440);
+  assert.equal(examMinuteAtPosition(192, 544), 780);
+  assert.equal(examMinuteAtPosition(196, 544), 780);
+  assert.equal(examMinuteAtPosition(-10, 544), 420);
+  assert.equal(examMinuteAtPosition(2000, 544), 1440);
   assert.deepEqual(examSelectionRange(780, 900), { start: 780, end: 900 });
   assert.deepEqual(examSelectionRange(900, 780), { start: 780, end: 900 });
-  assert.deepEqual(examSelectionRange(1440, 1440), { start: 1425, end: 1440 });
+  assert.deepEqual(examSelectionRange(1440, 1440), { start: 1410, end: 1440 });
+});
+
+test("Zeitblöcke verschieben mit gleicher Dauer innerhalb 7–24 Uhr und verlängern nur das Ende", () => {
+  const block = { start: 630, end: 825 };
+  assert.deepEqual(examBlockRangeAt(block, true, 750), { start: 750, end: 945 });
+  assert.deepEqual(examBlockRangeAt(block, true, 0), { start: 420, end: 615 });
+  assert.deepEqual(examBlockRangeAt(block, true, 1440), { start: 1245, end: 1440 });
+  assert.deepEqual(examBlockRangeAt(block, false, 600), { start: 630, end: 660 });
+  assert.deepEqual(examBlockRangeAt(block, false, 1500), { start: 630, end: 1440 });
 });
 
 test("Tag und Woche teilen einen Bearbeitungshorizont: ab heute ein Jahr, Prüfungstage frei", () => {

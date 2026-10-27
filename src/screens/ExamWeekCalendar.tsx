@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, GripVertical, Plus, Trash2, X } from "lucide
 import type { Deck, ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
 import type { ExamPortfolioForecast } from "../examPlanning.ts";
 import { shiftExamDay } from "../examPlanning.ts";
-import { createExamWeekDays, examMinuteAtPosition, examSelectionRange, getExamCalendarWork, isExamCalendarDayLocked } from "../examCalendarModel.ts";
+import { createExamWeekDays, examBlockRangeAt, EXAM_DAY_MINUTES, EXAM_DAY_START, EXAM_SLOT_MINUTES, examMinuteAtPosition, examSelectionRange, getExamCalendarWork, isExamCalendarDayLocked } from "../examCalendarModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
@@ -14,7 +14,12 @@ import { examTextColor, formatExamClock, formatExamCount, formatExamDate } from 
 type TimeBlock = NonNullable<StudyTimeCapacity["timeBlocks"]>[number];
 type Task = { examId: string };
 type Selection = { date: string; first: number; last: number; touch: boolean };
-const HOUR_HEIGHT = 48;
+type TimeRange = { start: number; end: number };
+const HOUR_HEIGHT = 32;
+const GRID_HEIGHT = HOUR_HEIGHT * EXAM_DAY_MINUTES / 60;
+const LAST_SLOT = 1440 - EXAM_SLOT_MINUTES;
+const gridOffset = (minute: number) => (Math.max(minute, EXAM_DAY_START) - EXAM_DAY_START) / 60 * HOUR_HEIGHT;
+const gridPercent = (minute: number) => gridOffset(minute) / GRID_HEIGHT * 100 + "%";
 const FIELD = "core-field w-full min-w-0";
 
 export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, today, date, busy, color, onSelect, onChange }: {
@@ -27,8 +32,8 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
   const [cursor, setCursor] = React.useState({ date, minute: 480 });
   const [focusedDay, setFocusedDay] = React.useState("");
   const [selectedId, setSelectedId] = React.useState("");
-  const [resizing, setResizing] = React.useState<{ id: string; end: number } | null>(null);
-  const resize = React.useRef<{ id: string; y: number; end: number; nextEnd: number } | null>(null);
+  const [editing, setEditing] = React.useState<TimeRange & { id: string } | null>(null);
+  const edit = React.useRef<{ id: string; y: number; move: boolean; next: TimeRange } | null>(null);
   const [task, setTask] = React.useState<Task | null>(null);
   const [dragging, setDragging] = React.useState<Task & { x: number; y: number } | null>(null);
   const drag = React.useRef<Task & { x: number; y: number; moved: boolean } | null>(null);
@@ -63,7 +68,6 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
     observer.observe(container);
     return () => observer.disconnect();
   }, [week, date]);
-  React.useLayoutEffect(() => { if (scroller.current) scroller.current.scrollTop = 8 * HOUR_HEIGHT; }, []);
   React.useLayoutEffect(() => {
     const container = scroller.current;
     const block = container?.querySelector<HTMLElement>(`[data-week-block-container="${CSS.escape(selectedId)}"]`);
@@ -89,26 +93,48 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
     if (busy || unavailable(block.date)) return;
     if (onChange({ ...capacity, timeBlocks: capacity.timeBlocks?.filter((entry) => entry.id !== block.id) })) setSelectedId("");
   }
-  function changeEnd(block: TimeBlock, end: number) {
-    if (busy || unavailable(block.date) || end === block.end) return;
-    onChange({ ...capacity, timeBlocks: capacity.timeBlocks?.map((entry) => entry.id === block.id ? { ...entry, end } : entry) });
+  function changeTime(block: TimeBlock, { start, end }: TimeRange) {
+    if (busy || unavailable(block.date) || (start === block.start && end === block.end)) return;
+    onChange({ ...capacity, timeBlocks: capacity.timeBlocks?.map((entry) => entry.id === block.id ? { ...entry, start, end } : entry) });
   }
-  function cancelResize() { resize.current = null; setResizing(null); }
+  function cancelEdit() { edit.current = null; setEditing(null); }
+  function beginEdit(event: React.PointerEvent<HTMLElement>, block: TimeBlock, move: boolean) {
+    if (event.button !== 0 || busy || unavailable(block.date)) return;
+    event.preventDefault(); event.currentTarget.focus();
+    edit.current = { id: block.id, y: event.clientY, move, next: block };
+    setEditing({ id: block.id, start: block.start, end: block.end });
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+  function updateEdit(event: React.PointerEvent<HTMLElement>, block: TimeBlock) {
+    const gesture = edit.current;
+    if (gesture?.id !== block.id) return;
+    const anchor = gesture.move ? block.start : block.end;
+    gesture.next = examBlockRangeAt(block, gesture.move, examMinuteAtPosition(gridOffset(anchor) + event.clientY - gesture.y, GRID_HEIGHT));
+    setEditing({ id: block.id, ...gesture.next });
+  }
+  function finishEdit(block: TimeBlock) { const gesture = edit.current; cancelEdit(); if (gesture?.id === block.id) changeTime(block, gesture.next); }
+  function editByKeyboard(event: React.KeyboardEvent<HTMLElement>, block: TimeBlock, move: boolean) {
+    if (event.key === "Escape") { event.preventDefault(); cancelEdit(); return; }
+    if (edit.current || !["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = move ? block.start : block.end;
+    changeTime(block, examBlockRangeAt(block, move, event.key === "Home" ? 0 : event.key === "End" ? 1440 : current + (["ArrowDown", "ArrowRight"].includes(event.key) ? EXAM_SLOT_MINUTES : -EXAM_SLOT_MINUTES)));
+  }
   function keyboard(event: React.KeyboardEvent<HTMLDivElement>, key: string) {
     const current = cursor.date === key ? cursor.minute : 480;
     if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
       event.preventDefault();
-      const next = event.key === "Home" ? 0 : event.key === "End" ? 1425 : Math.max(0, Math.min(1425, current + (event.key === "ArrowDown" ? 15 : -15)));
+      const next = event.key === "Home" ? EXAM_DAY_START : event.key === "End" ? LAST_SLOT : Math.max(EXAM_DAY_START, Math.min(LAST_SLOT, current + (event.key === "ArrowDown" ? EXAM_SLOT_MINUTES : -EXAM_SLOT_MINUTES)));
       setCursor({ date: key, minute: next });
       const container = scroller.current;
       if (container) {
-        const position = next / 60 * HOUR_HEIGHT;
+        const position = gridOffset(next);
         const visibleHeight = container.clientHeight - (container.querySelector<HTMLElement>("[data-week-todos]")?.offsetHeight ?? 0);
         if (position < container.scrollTop || position > container.scrollTop + visibleHeight - 32) container.scrollTop = Math.max(0, position - visibleHeight / 2);
       }
       setSelection(event.shiftKey ? { date: key, first: selection?.date === key ? selection.first : current, last: next, touch: false } : null);
     } else if (event.key === "Enter") {
-      event.preventDefault(); createBlock(key, selection?.date === key ? selection.first : current, selection?.date === key ? selection.last : current + 30);
+      event.preventDefault(); createBlock(key, selection?.date === key ? selection.first : current, selection?.date === key ? selection.last : current + EXAM_SLOT_MINUTES);
     } else if (event.key === "Escape") { setSelection(null); setTask(null); }
   }
   function dropSubject(event: React.PointerEvent<HTMLButtonElement>) {
@@ -156,35 +182,36 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
           })}
         </div>
         <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
-          <div className="sticky left-0 z-10 bg-core-surface" style={{ height: HOUR_HEIGHT * 24 }}>{Array.from({ length: 24 }, (_, hour) => <span key={hour} className="absolute right-2 core-caption text-core-muted" style={{ top: hour * HOUR_HEIGHT + 2 }}>{formatExamClock(hour * 60)}</span>)}</div>
-          {days.map((key) => <div key={key} className={`relative border-l border-core-border ${unavailable(key) ? "bg-core-subtle" : "bg-core-surface"}`} style={{ height: HOUR_HEIGHT * 24 }}>
-            <div role="slider" tabIndex={unavailable(key) || busy ? -1 : 0} aria-label={`Lernzeit am ${formatExamDate(key)}`} aria-disabled={unavailable(key) || busy} aria-valuemin={0} aria-valuemax={1425} aria-valuenow={cursor.date === key ? cursor.minute : 480} aria-valuetext={`${formatExamClock(cursor.date === key ? cursor.minute : 480)}. Pfeiltasten wählen die Uhrzeit, Umschalt verlängert die Auswahl, Enter blockt die Zeit.`} data-week-day={key} className="absolute inset-0 touch-pan-x touch-pan-y outline-none"
+          <div className="sticky left-0 z-10 bg-core-surface" style={{ height: GRID_HEIGHT }}>{Array.from({ length: EXAM_DAY_MINUTES / 60 }, (_, hour) => <span key={hour} className="absolute right-2 core-caption text-core-muted" style={{ top: hour * HOUR_HEIGHT + 2 }}>{formatExamClock(EXAM_DAY_START + hour * 60)}</span>)}</div>
+          {days.map((key) => <div key={key} className={`relative border-l border-core-border ${unavailable(key) ? "bg-core-subtle" : "bg-core-surface"}`} style={{ height: GRID_HEIGHT }}>
+            <div role="slider" tabIndex={unavailable(key) || busy ? -1 : 0} aria-label={`Lernzeit am ${formatExamDate(key)}`} aria-disabled={unavailable(key) || busy} aria-valuemin={EXAM_DAY_START} aria-valuemax={LAST_SLOT} aria-valuenow={cursor.date === key ? cursor.minute : 480} aria-valuetext={`${formatExamClock(cursor.date === key ? cursor.minute : 480)}. Pfeiltasten wählen die Uhrzeit, Umschalt verlängert die Auswahl, Enter blockt die Zeit.`} data-week-day={key} className="absolute inset-0 touch-pan-x touch-pan-y outline-none"
               onFocus={() => setFocusedDay(key)} onBlur={() => setFocusedDay("")}
               onKeyDown={(event) => { if (!busy && !unavailable(key)) keyboard(event, key); }}
-              onPointerDown={(event) => { if (event.button !== 0 || busy || unavailable(key)) return; const minute = examMinuteAtPosition(event.clientY - event.currentTarget.getBoundingClientRect().top, HOUR_HEIGHT * 24); const next = { date: key, first: minute, last: minute, touch: event.pointerType === "touch" }; pointerSelection.current = next; setSelection(next); event.currentTarget.setPointerCapture(event.pointerId); }}
-              onPointerMove={(event) => { const current = pointerSelection.current; if (!current || current.date !== key) return; const last = examMinuteAtPosition(event.clientY - event.currentTarget.getBoundingClientRect().top, HOUR_HEIGHT * 24); const next = { ...current, last }; pointerSelection.current = next; setSelection(next); }}
+              onPointerDown={(event) => { if (event.button !== 0 || busy || unavailable(key)) return; const minute = examMinuteAtPosition(event.clientY - event.currentTarget.getBoundingClientRect().top, GRID_HEIGHT); const next = { date: key, first: minute, last: minute, touch: event.pointerType === "touch" }; pointerSelection.current = next; setSelection(next); event.currentTarget.setPointerCapture(event.pointerId); }}
+              onPointerMove={(event) => { const current = pointerSelection.current; if (!current || current.date !== key) return; const last = examMinuteAtPosition(event.clientY - event.currentTarget.getBoundingClientRect().top, GRID_HEIGHT); const next = { ...current, last }; pointerSelection.current = next; setSelection(next); }}
               onPointerUp={() => { const current = pointerSelection.current; pointerSelection.current = null; if (current?.date === key) createBlock(key, current.first, current.touch && current.first === current.last ? current.first + 60 : current.last); }} onPointerCancel={() => { pointerSelection.current = null; setSelection(null); }}>
-              {Array.from({ length: 24 }, (_, hour) => <span key={hour} className="pointer-events-none absolute inset-x-0 border-t border-core-border" style={{ top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }}><span className="absolute inset-x-0 top-1/2 border-t border-dashed border-core-border" /></span>)}
+              {Array.from({ length: EXAM_DAY_MINUTES / 60 }, (_, hour) => <span key={hour} className="pointer-events-none absolute inset-x-0 border-t border-core-border" style={{ top: hour * HOUR_HEIGHT }} />)}
             </div>
-            {focusedDay === key ? <span className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-core-action" style={{ top: (cursor.date === key ? cursor.minute : 480) / 1440 * 100 + "%" }}><span className="rounded-inset bg-core-action px-1 core-caption text-core-on-accent">{formatExamClock(cursor.date === key ? cursor.minute : 480)}</span></span> : null}
-            {selection?.date === key ? <span className="pointer-events-none absolute inset-x-1 z-10 overflow-hidden rounded-inset border-strong border-dashed border-core-action bg-core-info-soft p-1 core-caption text-core-text" style={{ top: examSelectionRange(selection.first, selection.last).start / 1440 * 100 + "%", height: (examSelectionRange(selection.first, selection.last).end - examSelectionRange(selection.first, selection.last).start) / 1440 * 100 + "%" }}>{formatExamClock(examSelectionRange(selection.first, selection.last).start)}–{formatExamClock(examSelectionRange(selection.first, selection.last).end)}</span> : null}
+            {focusedDay === key ? <span className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-core-action" style={{ top: gridPercent(cursor.date === key ? cursor.minute : 480) }}><span className="rounded-inset bg-core-action px-1 core-caption text-core-on-accent">{formatExamClock(cursor.date === key ? cursor.minute : 480)}</span></span> : null}
+            {selection?.date === key ? <span className="pointer-events-none absolute inset-x-1 z-10 overflow-hidden rounded-inset border-strong border-dashed border-core-action bg-core-info-soft p-1 core-caption text-core-text" style={{ top: gridPercent(examSelectionRange(selection.first, selection.last).start), height: (examSelectionRange(selection.first, selection.last).end - examSelectionRange(selection.first, selection.last).start) / EXAM_DAY_MINUTES * 100 + "%" }}>{formatExamClock(examSelectionRange(selection.first, selection.last).start)}–{formatExamClock(examSelectionRange(selection.first, selection.last).end)}</span> : null}
             {(capacity.timeBlocks ?? []).filter((block) => block.date === key).map((block) => {
               const exam = exams.find((entry) => entry.id === block.examId);
               const muted = Boolean(exam && !shown.some((entry) => entry.id === exam.id));
-              const end = resizing?.id === block.id ? resizing.end : block.end;
+              const { start, end } = editing?.id === block.id ? editing : block;
               const isSelected = selectedId === block.id;
               const editable = !busy && !unavailable(key);
-              return <div key={block.id} data-week-block-container={block.id} className={`absolute inset-x-1 min-w-0 ${isSelected ? "z-[15]" : "z-10"}`} style={{ top: block.start / 1440 * 100 + "%", height: (end - block.start) / 1440 * 100 + "%" }}>
-                <CoreTooltip label={`${formatExamClock(block.start)}–${formatExamClock(end)} · ${blockName(block)}`}><button type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(block.start)} bis ${formatExamClock(end)}. ${blockName(block)}. ${task ? "Ausgewählte Aufgabe zuordnen" : "Zeitblock auswählen"}`} aria-pressed={isSelected} className={`absolute inset-0 grid min-h-0 w-full min-w-0 content-start gap-1 overflow-hidden rounded-inset border-strong px-1 text-left ${end - block.start >= 60 ? "py-1" : ""} ${isSelected ? "shadow-selection" : ""} ${muted ? "opacity-50" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : undefined} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
-                  {end - block.start >= 30 ? <strong className="min-w-0 whitespace-nowrap core-caption">{formatExamClock(block.start)}–{formatExamClock(end)}</strong> : null}{end - block.start >= 60 ? <span className="min-w-0 truncate core-caption">{blockName(block)}</span> : null}
+              const edge = `absolute touch-none select-none ${editable ? "cursor-move" : ""}`;
+              const gestures = (move: boolean) => ({ onPointerDown: (event: React.PointerEvent<HTMLElement>) => beginEdit(event, block, move), onPointerMove: (event: React.PointerEvent<HTMLElement>) => updateEdit(event, block), onPointerUp: () => finishEdit(block), onPointerCancel: cancelEdit, onLostPointerCapture: cancelEdit });
+              return <div key={block.id} data-week-block-container={block.id} className={`absolute inset-x-1 min-w-0 ${isSelected ? "z-[15]" : "z-10"}`} style={{ top: gridPercent(start), height: (end - start) / EXAM_DAY_MINUTES * 100 + "%" }}>
+                <CoreTooltip label={`${formatExamClock(start)}–${formatExamClock(end)} · ${blockName(block)}`}><button type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(start)} bis ${formatExamClock(end)}. ${blockName(block)}. ${task ? "Ausgewählte Aufgabe zuordnen" : "Zeitblock auswählen"}`} aria-pressed={isSelected} className={`absolute inset-0 grid min-h-0 w-full min-w-0 content-start gap-1 overflow-hidden rounded-inset border-strong px-1 text-left ${end - start >= 60 ? "py-1" : ""} ${isSelected ? "shadow-selection" : ""} ${muted ? "opacity-50" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : undefined} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
+                  {end - start >= 30 ? <strong className="min-w-0 whitespace-nowrap core-caption">{formatExamClock(start)}–{formatExamClock(end)}</strong> : null}{end - start >= 90 ? <span className="min-w-0 truncate core-caption">{blockName(block)}</span> : null}
                 </button></CoreTooltip>
                 {isSelected ? <>
-                  <div className={`absolute right-0 ${block.start < 60 ? "top-0" : "bottom-full mb-1"}`}><IconButton label="Lernzeit im Kalender löschen" icon={X} disabled={!editable} onClick={() => removeBlock(block)} /></div>
-                  <button type="button" role="slider" aria-label="Ende der Lernzeit ändern" aria-valuemin={block.start + 15} aria-valuemax={1440} aria-valuenow={end} aria-valuetext={`${formatExamClock(end)}. Ziehen oder Pfeiltasten verlängern oder verkürzen die Lernzeit um 15 Minuten.`} disabled={!editable} className="absolute -bottom-5 left-1/2 flex h-control w-control -translate-x-1/2 touch-none select-none items-center justify-center rounded-control text-core-text disabled:cursor-default disabled:opacity-50 enabled:cursor-ns-resize"
-                    onPointerDown={(event) => { if (event.button !== 0) return; event.preventDefault(); event.currentTarget.focus(); resize.current = { id: block.id, y: event.clientY, end: block.end, nextEnd: block.end }; setResizing({ id: block.id, end: block.end }); event.currentTarget.setPointerCapture(event.pointerId); }}
-                    onPointerMove={(event) => { const gesture = resize.current; if (gesture?.id !== block.id) return; gesture.nextEnd = Math.max(block.start + 15, examMinuteAtPosition(gesture.end / 60 * HOUR_HEIGHT + event.clientY - gesture.y, HOUR_HEIGHT * 24)); setResizing({ id: block.id, end: gesture.nextEnd }); }}
-                    onPointerUp={() => { const gesture = resize.current; cancelResize(); if (gesture?.id === block.id) changeEnd(block, gesture.nextEnd); }} onPointerCancel={cancelResize} onLostPointerCapture={cancelResize}
-                    onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelResize(); return; } if (resize.current || !["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft", "Home", "End"].includes(event.key)) return; event.preventDefault(); changeEnd(block, event.key === "Home" ? block.start + 15 : event.key === "End" ? 1440 : Math.max(block.start + 15, Math.min(1440, block.end + (["ArrowDown", "ArrowRight"].includes(event.key) ? 15 : -15)))); }}>
+                  <span role="slider" tabIndex={editable ? 0 : -1} aria-label="Lernzeit verschieben" aria-disabled={!editable} aria-valuemin={EXAM_DAY_START} aria-valuemax={1440 - (block.end - block.start)} aria-valuenow={start} aria-valuetext={`Beginn ${formatExamClock(start)}. Ziehen am oberen oder seitlichen Rand oder Pfeiltasten verschieben die Lernzeit um 30 Minuten.`} className={`${edge} inset-x-0 -top-1 h-3`} {...gestures(true)} onKeyDown={(event) => editByKeyboard(event, block, true)} />
+                  {["-left-1", "-right-1"].map((side) => <span key={side} aria-hidden="true" className={`${edge} ${side} inset-y-0 w-3`} {...gestures(true)} />)}
+                  <div className={`absolute right-0 ${block.start < EXAM_DAY_START + 60 ? "top-0" : "bottom-full mb-1"}`}><IconButton label="Lernzeit im Kalender löschen" icon={X} disabled={!editable} onClick={() => removeBlock(block)} /></div>
+                  <button type="button" role="slider" aria-label="Ende der Lernzeit ändern" aria-valuemin={block.start + EXAM_SLOT_MINUTES} aria-valuemax={1440} aria-valuenow={end} aria-valuetext={`${formatExamClock(end)}. Ziehen oder Pfeiltasten verlängern oder verkürzen die Lernzeit um 30 Minuten.`} disabled={!editable} className="absolute -bottom-5 left-1/2 flex h-control w-control -translate-x-1/2 touch-none select-none items-center justify-center rounded-control text-core-text disabled:cursor-default disabled:opacity-50 enabled:cursor-ns-resize"
+                    {...gestures(false)} onKeyDown={(event) => editByKeyboard(event, block, false)}>
                     <span aria-hidden="true" className="h-2 w-8 rounded-round border border-core-border-strong bg-core-text shadow-soft" />
                   </button>
                 </> : null}
@@ -195,12 +222,12 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
       </div>
     </div>
     {dragging ? <span className="pointer-events-none fixed z-50 max-w-48 rounded-control px-3 py-2 core-body font-semibold shadow-raised" style={{ left: dragging.x + 12, top: dragging.y + 12, background: color(exams.find((exam) => exam.id === dragging.examId)!), color: examTextColor(exams.find((exam) => exam.id === dragging.examId)!) }}>{exams.find((exam) => exam.id === dragging.examId)?.name}</span> : null}
-    {selected ? <p role="status" className="break-words core-body text-core-text">{formatExamDate(selected.date)} · {formatExamClock(selected.start)}–{formatExamClock(resizing?.id === selected.id ? resizing.end : selected.end)} · {blockName(selected)}</p> : null}
+    {selected ? <p role="status" className="break-words core-body text-core-text">{formatExamDate(selected.date)} · {formatExamClock(editing?.id === selected.id ? editing.start : selected.start)}–{formatExamClock(editing?.id === selected.id ? editing.end : selected.end)} · {blockName(selected)}</p> : null}
     {weekBlocks.length ? <div className="grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="core-field-group"><span className="core-field-label">Zeitblock auswählen</span><CoreSelect className="w-full" ariaLabel="Zeitblock auswählen" value={selected?.id ?? ""} options={[{ value: "", label: "Zeitblock im Kalender wählen" }, ...weekBlocks.map((block) => ({ value: block.id, label: `${formatExamDate(block.date, "short")} · ${formatExamClock(block.start)}–${formatExamClock(block.end)} · ${blockName(block)}` }))]} onValueChange={setSelectedId} /></label>
       {selected ? <div className="flex min-w-0 items-end gap-2"><fieldset disabled={busy || unavailable(selected.date)} className="core-field-group min-w-0 flex-1"><span className="core-field-label">Fach im Zeitblock</span><CoreSelect className="w-full" ariaLabel="Fach im Zeitblock" value={selected.examId ?? ""} options={[{ value: "", label: "Ohne Fach" }, ...exams.filter((exam) => exam.status === "active" && selected.date < exam.examDate).map((exam) => ({ value: exam.id, label: exam.name }))]} onValueChange={(id) => assign(selected.id, id || null)} /></fieldset><IconButton label="Ausgewählten Zeitblock löschen" icon={Trash2} disabled={busy || unavailable(selected.date)} onClick={() => removeBlock(selected)} /></div> : null}
     </div> : null}
     <div><ActionButton variant="secondary" icon={Plus} onClick={() => setManual(!manual)} aria-expanded={manual}>Zeitblock per Eingabe</ActionButton></div>
-    {manual ? <form className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(event) => { event.preventDefault(); if (unavailable(manualDate)) return; const parse = (value: string) => { const [hours, minutes] = value.split(":").map(Number); return hours * 60 + minutes; }; if (parse(start) >= parse(end)) return; createBlock(manualDate, parse(start), parse(end)); }}><label className="core-field-group"><span className="core-field-label">Tag</span><CoreDatePicker ariaLabel="Tag für Zeitblock" value={manualDate} min={today} max={shiftExamDay(today, 365)} today={today} onValueChange={setManualDate}/></label><label className="core-field-group"><span className="core-field-label">Von</span><input className={FIELD} type="time" step={900} required value={start} onChange={(event) => setStart(event.target.value)}/></label><label className="core-field-group"><span className="core-field-label">Bis</span><input className={FIELD} type="time" step={900} required value={end} min={start} onChange={(event) => setEnd(event.target.value)}/></label><ActionButton type="submit" variant="secondary" disabled={busy || unavailable(manualDate) || start >= end}>Lernzeit blocken</ActionButton></form> : null}
+    {manual ? <form className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(event) => { event.preventDefault(); if (unavailable(manualDate)) return; const parse = (value: string) => { const [hours, minutes] = value.split(":").map(Number); return hours * 60 + minutes; }; if (parse(start) >= parse(end)) return; createBlock(manualDate, parse(start), parse(end)); }}><label className="core-field-group"><span className="core-field-label">Tag</span><CoreDatePicker ariaLabel="Tag für Zeitblock" value={manualDate} min={today} max={shiftExamDay(today, 365)} today={today} onValueChange={setManualDate}/></label><label className="core-field-group"><span className="core-field-label">Von</span><input className={FIELD} type="time" step={1800} min="07:00" required value={start} onChange={(event) => setStart(event.target.value)}/></label><label className="core-field-group"><span className="core-field-label">Bis</span><input className={FIELD} type="time" step={1800} required value={end} min={start} onChange={(event) => setEnd(event.target.value)}/></label><ActionButton type="submit" variant="secondary" disabled={busy || unavailable(manualDate) || start >= end}>Lernzeit blocken</ActionButton></form> : null}
   </SoftPanel>;
 }

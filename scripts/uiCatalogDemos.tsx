@@ -451,7 +451,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     const today = selection.now.slice(0, 10);
     const exam = { ...createExamPlan(today, examDemoDecks.map((candidate) => candidate.id)), id: "exam-demo", name: "Anatomie", readSummaryBeforeTopics: true, examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
     const initialPlanning = upsertExamPlan(upsertExamPlan(normalizeExamPlanningSettings(undefined), exam), { ...exam, id: "exam-demo-second", name: "Physiologie", examDate: "2026-10-27" });
-    initialPlanning.capacity.timeBlocks = [{ id: "catalog-study-block", date: today, start: 540, end: 600, examId: exam.id }, { id: "catalog-open-block", date: today, start: 780, end: 795, examId: null }];
+    initialPlanning.capacity.timeBlocks = [{ id: "catalog-study-block", date: today, start: 540, end: 600, examId: exam.id }, { id: "catalog-open-block", date: today, start: 780, end: 810, examId: null }];
     initialPlanning.dailyTasks = examDemoDecks.slice(0, 4).map((candidate, index) => ({ id: `topic:${exam.id}:${candidate.id}`, date: today, examId: exam.id, kind: "study", deckIds: [candidate.id], cardIds: candidate.cards.map((card) => card.id), capturedAt: selection.now, completed: index === 0 ? "manual" : null }));
     return { ...workspace, decks: examDemoDecks, profile: withGlobalSchedulerPreferences(workspace.profile, { examPlanning: demoPlanning ?? initialPlanning }) };
   }, [demoPlanning, examDemoDecks, selection.now, workspace]);

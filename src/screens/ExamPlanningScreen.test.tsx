@@ -98,13 +98,14 @@ test("compact month prioritizes exams and announces tasks beyond the visible ent
   assert.doesNotMatch(html, /data-exam-appointment="Biochemie"/);
 });
 
-test("Wochenansicht zeigt To-dos über 24 Stunden und erhält neutrale Lernzeitblöcke", () => {
+test("Wochenansicht zeigt To-dos über 7–24 Uhr und erhält neutrale Lernzeitblöcke", () => {
   const today = "2026-10-20";
   const exam = { ...createExamPlan(today, ["deck"]), id: "anatomy", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-27" };
   const capacity = { ...createStudyTimeCapacity(), timeBlocks: [{ id: "open", date: today, start: 780, end: 900, examId: null }] };
   const html = renderToStaticMarkup(<ExamWeekCalendar exams={[exam]} shown={[exam]} decks={[]} capacity={capacity} forecast={null} today={today} date={today} busy={false} color={() => "var(--core-exam-color-1)"} onSelect={() => undefined} onChange={() => true} />);
   assert.ok(html.indexOf("To-dos") < html.indexOf('data-week-day="2026-10-20"'));
-  assert.match(html, /00:00/);
+  assert.match(html, />07:00</);
+  assert.doesNotMatch(html, />06:00</);
   assert.match(html, /23:00/);
   assert.match(html, /data-week-block="open"/);
   assert.match(html, /13:00–15:00/);
