@@ -1927,7 +1927,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
+    return <DashboardScreen pomodoroTimer={pomodoroTimer} onStartPomodoro={startPomodoro} state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
   }
 
   if (authPhase === "checking-session") {

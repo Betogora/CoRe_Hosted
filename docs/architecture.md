@@ -36,6 +36,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
 | `mediaStore.ts`, `cloudMediaStore.ts` | öffentliche Cache-/Queue-/URL-Grenze; private Storage-, Signed-URL- und TUS-Details |
 | `aiCardVariantContract.ts`, `aiCardVariant.ts`, `api/ai/card-variant.ts` | validierter Textvertrag, Browseraufruf und serverseitiger Providerzugriff |
+| `dashboardWidgets.ts`, `screens/DashboardWidgets.tsx` | validierte kontogebundene Browserablage für Widgetlayout und eigene To-dos; lokale Dashboard-Komposition, Reihenfolge und Größen. Planeraufgaben bleiben bei `ExamDashboardWidget`, Timerbesitz bei `App`/`pomodoroTimer.ts` |
 | `pomodoroTimer.ts` | einziger accountgebundener Timer, Validierung und Endzeitprojektion |
 
 Die Pfade in der Tabelle liegen unter `src/`, soweit kein anderer Pfad angegeben ist. Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert. Es gibt keine zentrale Sammelvalidierung oder allgemeine Anbieter-Adapterebene.

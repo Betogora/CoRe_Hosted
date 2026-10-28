@@ -1299,6 +1299,14 @@ video {
   margin-top: 0.5rem;
   margin-bottom: 0.5rem;
 }
+.my-4 {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+.my-5 {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
 .-me-2 {
   margin-inline-end: -0.5rem;
 }
@@ -2705,6 +2713,9 @@ video {
 }
 .underline-offset-4 {
   text-underline-offset: 4px;
+}
+.accent-\[var\(--core-action\)\] {
+  accent-color: var(--core-action);
 }
 .accent-core-action {
   accent-color: var(--core-action-primary);
@@ -4732,6 +4743,37 @@ summary {
   .exam-month-days { --exam-month-day-height: 144px; }
   .exam-month-entry { gap: 2px; padding-inline: 0; font-size: clamp(10px, 3vw, var(--core-type-caption)); }
 }
+
+/* Modulare Heute-Seite */
+.dashboard-widget-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5rem; align-items: stretch; }
+.dashboard-widget { min-width: 0; grid-column: span 12; display: flex; flex-direction: column; border-radius: var(--core-radius-panel, 1.5rem); }
+.dashboard-widget-content { min-width: 0; flex: 1; }
+.dashboard-widget-content > :first-child { height: 100%; }
+.dashboard-widget[data-editing="true"] { outline: 1px dashed var(--core-border); outline-offset: 5px; }
+.dashboard-widget[data-dragging="true"] { opacity: .55; }
+.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 5px; }
+.dashboard-widget-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .125rem; margin-bottom: .5rem; color: var(--core-text); }
+.dashboard-widget-grip { touch-action: none; cursor: grab; }
+.dashboard-widget-grip:active { cursor: grabbing; }
+.dashboard-widget-tools > span { flex-basis: 6rem; }
+.dashboard-timer-digits { font-size: clamp(2.75rem, 4.5vw, 4rem); line-height: 1.1; font-weight: 500; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
+.dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
+.dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
+.dashboard-todos [data-testid="dashboard-exam-unit"] > .grid { grid-template-columns: minmax(0, 1fr); }
+.dashboard-widget[data-width="small"] [data-daily-learning-metric] { flex-basis: calc(50% - .5rem); }
+@media (min-width: 1000px) {
+  .dashboard-widget[data-width="small"] { grid-column: span 4; }
+  .dashboard-widget[data-width="wide"] { grid-column: span 8; }
+}
+@media (min-width: 640px) and (max-width: 999px) {
+  .dashboard-widget-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-widget { grid-column: span 2; }
+  .dashboard-widget[data-width="small"] { grid-column: span 1; }
+}
+@media (max-width: 639px) {
+  .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
+  .dashboard-widget-grid { gap: 1rem; }
+}
 .placeholder\:text-core-muted::-moz-placeholder {
   color: var(--core-text-muted);
 }
@@ -5220,6 +5262,10 @@ summary {
 
   .sm\:p-4 {
     padding: 1rem;
+  }
+
+  .sm\:p-5 {
+    padding: 1.25rem;
   }
 
   .sm\:p-6 {
@@ -5838,8 +5884,9 @@ N3[&quot;Import, manuelle Karte oder Lernen wählen&quot;]</pre><ol><li>Account 
 </ul>
 <h4 id="journey-1-rules--tageslernfläche" class="core-control-label" tabindex="-1">Tageslernfläche <a class="docs-anchor" href="#journey-1-rules--tageslernfläche" aria-label="Link zu Tageslernfläche">#</a></h4>
 <ul>
-<li>Auf Heute folgen die Bereiche in dieser Reihenfolge: Tageslernfläche, Prüfungen (bei aktiver Prüfung), Heatmap, Stapel.</li>
-<li>Ein befülltes Dashboard zeigt genau eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung.</li>
+<li>Die befüllte Heute-Seite ist ein modulares Dashboard. Vorausgewählt sind <code>Dein Lernen heute</code>, <code>Lerntimer</code>, <code>Aktive Stapel</code>, <code>To-dos</code> und die Lern-Heatmap. <code>Seite anpassen</code> aktiviert die Bearbeitung innerhalb derselben Seite: Module hinzufügen oder entfernen, per Griff (Maus/Touch) oder Pfeilen verschieben und zwischen kompakter, breiter und voller Breite wechseln. <code>Fertig</code> beendet den Modus; <code>Standardlayout</code> stellt die Vorauswahl wieder her. Auf schmalen Displays stehen die Module untereinander.</li>
+<li>Layout und eigene To-dos werden pro Konto auf diesem Browser gespeichert. Eigene Aufgaben lassen sich hinzufügen, abhaken und löschen. Der To-do-Bereich übernimmt zusätzlich die vorhandenen Tagesaufgaben aus dem Prüfungsplaner samt seinen Lernaktionen; ohne Plan verweist er auf den Planer. Das Entfernen des Widgets löscht keine Aufgaben. Der Lerntimer bietet Fokusphasen von 25/45 Minuten und eine 5-Minuten-Pause; sein Start verwendet denselben globalen Timer wie Navigation und Review.</li>
+<li>Das Widget <code>Dein Lernen heute</code> zeigt eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung.</li>
 <li>Vier beschriftete Segmente <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zeigen den Tagesstand. <code>X / Y Karten</code> zählt eindeutige heute relevante Karten. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.</li>
 <li>Zustände: <code>Dein Lernen heute</code>, deaktiviertes <code>Später weiterlernen</code> bei noch nicht verfügbaren heutigen Lernschritten oder der Abschluss <code>Tagesziel erreicht</code> (auch bei <code>0 / 0 Karten</code>).</li>
 <li>Die Lernaktion <code>Jetzt lernen</code> startet die erste verfügbare Hauptstapel-Session. Name und Tooltip folgen dem Zustand; im Wartezustand ist sie deaktiviert. Plan-Vorschauen entfallen.</li>
