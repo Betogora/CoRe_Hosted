@@ -117,7 +117,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
 
       <InPageNavigation ariaLabel="Bereiche der Lerneinstellungen" items={settingsSections}>
         <section id={sectionIds.planning} className="grid gap-4" aria-labelledby="card-settings-planning-heading">
-          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Lerntag & Planung</h2>
+          <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Lerntag & Planung</h2>
           <SoftPanel className="p-6">
             <div className="grid gap-4 md:grid-cols-3">
               <label className="grid gap-2 core-body font-semibold text-core-muted">
@@ -175,7 +175,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
         />
 
         <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="card-settings-focus-heading">
-          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Fokuswerkzeuge</h2>
+          <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Fokuswerkzeuge</h2>
           <SoftPanel className="overflow-hidden p-0">
             <button type="button" onClick={() => onNavigate("simulator")} className="flex min-h-[4.75rem] w-full items-center gap-3 border-b border-core-border px-4 py-3 text-left transition hover:bg-core-hover sm:px-6">
               <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-warning-soft text-core-text"><CalendarClock size={20} aria-hidden="true" /></span>

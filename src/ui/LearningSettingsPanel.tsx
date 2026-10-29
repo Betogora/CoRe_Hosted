@@ -207,7 +207,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
   return (
     <>
       <section id={dailySectionId} className="grid gap-4" aria-labelledby={dailyHeadingId}>
-        <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Tagesrunde & Lernprofile</h2>
+        <h2 id={dailyHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Tagesrunde & Lernprofile</h2>
         <SoftPanel className="p-6">
           <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
             <SelectField label="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" onChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
@@ -263,7 +263,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
       </section>
 
       <section id={schedulerSectionId} className="grid gap-4" aria-labelledby={schedulerHeadingId}>
-        <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Scheduler & CoRe</h2>
+        <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Scheduler & CoRe</h2>
         <SoftPanel className="p-6">
           <fieldset className="grid gap-4">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Brain size={19} aria-hidden="true" />Lernablauf</legend>

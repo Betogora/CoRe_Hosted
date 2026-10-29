@@ -216,7 +216,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
 
       <InPageNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={deckSettingsSections}>
       <section id="deck-identity" className="grid gap-4" aria-labelledby="deck-identity-heading">
-        <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Stapel</h2>
+        <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Stapel</h2>
         <SoftPanel className="p-6">
           <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
             <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">Name<input className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} /></label>

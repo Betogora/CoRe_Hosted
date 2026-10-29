@@ -121,7 +121,7 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
 
       <InPageNavigation ariaLabel="Bereiche der allgemeinen Einstellungen" items={settingsSections}>
       <section id={sectionIds.account} className="grid gap-4" aria-labelledby="settings-account-heading">
-        <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Konto</h2>
+        <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Konto</h2>
         <SoftPanel className="p-6">
           <div className="mb-6 flex items-center gap-3">
             <OrbIcon icon={User} />
@@ -146,7 +146,7 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
       </section>
 
       <section id={sectionIds.data} className="grid gap-4" aria-labelledby="settings-data-heading">
-        <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Daten & Synchronisierung</h2>
+        <h2 id="settings-data-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Daten & Synchronisierung</h2>
         <SoftPanel className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
@@ -181,7 +181,7 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
       </section>
 
       <section id={sectionIds.about} className="grid gap-4" aria-labelledby="settings-about-heading">
-        <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Über uns</h2>
+        <h2 id="settings-about-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Über uns</h2>
         <SoftPanel className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">

@@ -1,9 +1,22 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-25
+**Stand:** 2026-10-29
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-29 — Reife aus FSRS (P1 R1): ADR-Bereinigung
+
+- `decisions.md` von 43 auf 20 geltende ADRs: gelöscht 002, 005, 010, 020, 021, 024, 025, 027, 030 (abgelöst) sowie 008, 012, 014, 016, 017, 023, 026, 040 (UI-Detailregeln, gegen Code und Specs abgeglichen); zusammengeführt 001 ← 005/007, 032 ← 021/029/033, 034 ← 020/022/024/025/027/028, 038 ← 004, 041 ← 031; Ergänzungen in ADR-011, ADR-037 und ADR-042 (Stand E1–E16, Teil von K4) eingearbeitet; ADR-015 nennt die tatsächliche Herleitung des Anki-Lernstands.
+- Fehlende UI-Regel (Stapelköpfe der Kartenverwaltung) in `specs.md` ergänzt, zwei Spec-Sätze und ein `src/ui/README.md`-Satz an den Code angepasst; Kriterium für neue ADRs in `docs/README.md`; Verweise in Code, Specs, Status, Architektur und TODO umgestellt (Migrationen und `history.md` bleiben unverändert).
+- Verifiziert: `npm run docs:build`, `npm run check:docs`, `npm run typecheck`.
+
+## 2026-10-29 — Reife aus FSRS (P1 R0): Neutralisierung und ADR-044
+
+- Beispielketten mit dem Produktions-Scheduler: Bei Zielerinnerung 0,90 erscheint die erste Variante einer stets mit `Gut` bewerteten Karte nach 5725 Tagen (121 XP), mit einem Fehler im Pfad nach 1587 Tagen; Stabilität ≥ 7 Tage entspricht in allen Pfaden etwa drei `Gut` am Stück.
+- `specs.md` (14 Aussagen und Hinweis in §5.5), `architecture.md` (3) und `status.md` (2) tragen `Neuplanung P1` und sind dort bis zum Abschluss von P1 nicht bindend.
+- ADR-044 „Reife aus FSRS-7-Stabilität statt XP“ als `vorgeschlagen`; ADR-009 und die Lernstufen-Schwelle aus ADR-039 als in Neuplanung markiert.
+- Verifiziert: `npm run docs:build`, `npm run check:docs`.
 
 ## 2026-10-25 — Prüfungen K8: App-Anbindung und Abnahme (Abschluss K0–K8)
 
