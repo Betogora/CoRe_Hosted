@@ -40,7 +40,7 @@ export interface ViewRoute {
   deckContent?: boolean;
   deckContentTab?: DeckContentTab;
   deckCreationParentId?: string;
-  creationMethod?: "manual" | "import";
+  creationMethod?: "manual" | "import" | "ai-source";
   creationDeckId?: string;
   completedDeckId?: string;
   completedCount?: number;
@@ -135,8 +135,8 @@ function normalizeViewRoute(
   const selectedCardId = cleanIdentifier(route.selectedCardId);
   const deckContentTab = normalizeDeckContentTab(route.deckContentTab);
   const deckCreationParentId = cleanIdentifier(route.deckCreationParentId);
-  const creationMethod = ["manual", "import"].includes(String(route.creationMethod))
-    ? route.creationMethod as "manual" | "import"
+  const creationMethod = ["manual", "import", "ai-source"].includes(String(route.creationMethod))
+    ? route.creationMethod as "manual" | "import" | "ai-source"
     : "";
   const creationDeckId = cleanIdentifier(route.creationDeckId);
   const completedDeckId = cleanIdentifier(route.completedDeckId);

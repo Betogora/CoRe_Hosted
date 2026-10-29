@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Gemeinsamer lokaler Stand: Klausurplaner, Widgets und KI-Quellenformular
+
+- `codex/gesamtstand` vereint `main` bis `3f4c119`, den Klausurplaner aus `71a7892`, die Dashboard-Widgets aus `198c54a` einschließlich der zuvor ungespeicherten Weiterentwicklung (gesichert in `69528bd`) und die KI-Quellenerstellung aus `28f1871`. Die neuesten Widget- und KI-Komponenten bleiben unverändert; die Planung behält die aktuellen FSRS-7-Verträge aus main. Konflikte in Dokumentation und Katalog wurden zusammengeführt, HTML wurde ausschließlich neu generiert.
+- Ein gemeinsamer Entwicklungsserver auf `http://127.0.0.1:5190/` zeigt Heute, Prüfungen und `/neue-karten?method=ai-source`. Der getrennte KI-Server auf 5194 wurde beendet. Die frühere lokale KI-Arbeitskopie ist zusätzlich im Git-Stash `3d966d4e897f5bdd8157f6a035ccb1528562f907` gesichert.
+- Verifiziert: 884 Tests aus 125 Dateien, Typprüfung einschließlich Knip und Dokumentation, Produktionsbuild und Chunk-Budgets (80 Chunks; Initialgraph 239,9 KiB gzip). Die drei Browser-Suites ergeben 71 erfolgreiche Fälle: im Gesamtlauf 70 bestanden; ein durch nun gemeinsam sichtbare To-do-Gruppen mehrdeutiger Selektor wurde auf eigene Aufgaben eingegrenzt und im gezielten Nachlauf erfolgreich geprüft. Die Widget-Suite ist jetzt auch im regulären Playwright-Projekt registriert.
+- Browsernachweise: `C:/Users/noemi/Documents/Codex/2026-10-29/irg/work/integration/`. Geprüft wurden Hell/Dunkel, Smartphone- und Desktopbreiten, relevante Übergänge, Drag/Drop samt Abbruch und Speicherung, die Klausureinrichtung sowie Quellenformular und Entwurfsschutz. Die echte angemeldete App zeigt alle drei Bereiche unter derselben Adresse. Physische Bildschirmtastatur und nativer 200-%-Browserzoom wurden nicht geprüft; die vorhandene 200-%-Layoutemulation ersetzt diese Nachweise nicht. Audit: keine weitere sinnvolle Vereinfachung oder belegbare Performance-Änderung im Integrationsumfang.
+
 ## 2026-10-29 — Reife aus FSRS (P1 R3): Haltbarkeit statt XP
 
 - XP entfällt vollständig (Bewertungspunkte, Varianten-Bonus, `maturityXp`, `variantThresholdXp`, sechs XP-Bänder). Reife leitet `scheduler.ts` aus dem FSRS-7-Gedächtniszustand ab: Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt (`getDurabilityDays`); Bänder `new`, `learning` (Lern- und Wiederlernphase), `young` und `mature` ab 21 Tagen. Die rohe Stabilität eignet sich nicht, weil sie nach einem Fehler hoch bleibt, während die schnelle Spur und damit die Haltbarkeit einbrechen.
@@ -34,6 +41,14 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - `specs.md` (14 Aussagen und Hinweis in §5.5), `architecture.md` (3) und `status.md` (2) tragen `Neuplanung P1` und sind dort bis zum Abschluss von P1 nicht bindend.
 - ADR-044 „Reife aus FSRS-7-Stabilität statt XP“ als `vorgeschlagen`; ADR-009 und die Lernstufen-Schwelle aus ADR-039 als in Neuplanung markiert.
 - Verifiziert: `npm run docs:build`, `npm run check:docs`.
+
+## 2026-10-28 — Karten aus einer Quelle: Formular und Auftragsprüfung
+
+- Dritter Einstieg mit Funkeln-Symbol, eigener URL, lokaler Dateiauswahl, diskreten Lernwünschen, neuem oder vorhandenem Zielstapel und bearbeitbarer Zusammenfassung. Dateien bleiben ungelesen im Browser; „Karten erstellen“ bleibt deaktiviert. Das neue Fachmodul besitzt Defaults, Validierung und den deutschen Hintergrundprompt. Produktvertrag, Architektur, Status, offene Quellen-/KI-Anbindung und echte Katalogdemos sind synchronisiert.
+- Entwurfsschutz auch bei Browser-Zurück: Abbrechen erhält sämtliche Angaben, bestätigtes Verlassen oder Reload verwirft sie. Lange Dateinamen brechen auch bei 320 px um. Die Fokusführung beim Formularwechsel hält die Überschrift unterhalb fester Kopfleisten sichtbar.
+- Verifiziert: vollständige Modulsuite (123 Testdateien), 41 fokussierte Tests, 18 Browserprüfungen, `npm run typecheck`, `npm run build`, `npm run docs:build` und `npm run check:docs`. Knip lief mit `KNIP_DISABLE_RAW_TRANSFER=1`, da sein experimenteller Parsermodus auf diesem Windows-Rechner die 6-GiB-Pufferreservierung nicht ausführen konnte. Produktionsbudgets eingehalten: 78 Chunks, Initialgraph 243,0 KiB gzip, größter Lazy-Graph 170,3 KiB gzip. Rollup meldet zyklische Reexports in unveränderten Kernmodulen.
+- Sichtprüfung in Chromium, jeweils Hell/Dunkel: 320 × 720, 360 × 800, 390 × 844, 430 × 932, 1280 × 720 und 1440 × 900; Einstieg zusätzlich bei 767/768/1279/1280 × 900. Zustände: drei Einstiege, leeres Formular, Pflichtfehler, lange Quelldatei und erweiterte Einstellungen, offene Auswahl, Zusammenfassung, Verwerfdialog; bestehende APKG-, manuelle Quellen- und Bildablage sowie Formular/Zusammenfassung im Katalog. Kein horizontales Hauptscrolling. Enter-Auswahl, Leertaste für Kartenformen, Öffnen/Schließen der weiteren Einstellungen und Fokuswechsel geprüft.
+- Nachweise: 152 PNG-Aufnahmen im Sitzungsscratchpad `C:/Users/noemi/AppData/Local/Temp/codex-01a18315-ai-source/results/`, gruppiert nach Theme und Viewport; Vergleichsbögen unter `visual-review/`. Der gezielte Browserlauf nutzt `CORE_UI_TEST_MODE=development`, `CORE_VISUAL_OUTPUT=1` und die Scratchpad-Playwright-Konfiguration mit einem vollständig abgefangenen Testkonto. Port 5194 wurde verwendet, weil 5190 bereits einem anderen Checkout gehörte. Nicht verifiziert: echte Smartphones mit Bildschirmtastatur und tatsächlicher 200-%-Browserzoom; Viewport-Emulation ersetzt diese Nachweise nicht.
 
 ## 2026-10-25 — Prüfungen K8: App-Anbindung und Abnahme (Abschluss K0–K8)
 

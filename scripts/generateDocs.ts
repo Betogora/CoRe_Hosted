@@ -33,7 +33,7 @@ export function codeFootprint() {
   const groups = [
     { label: "Heute", files: ["DashboardScreen"], color: "var(--core-learning-status-learned)" },
     { label: "Lernen & Karten", files: ["LearnScreen", "LearningAreaHeader", "DecksScreen", "StudyMode", "DeckSettingsScreen", "GlobalCardSettingsScreen", "SimulatorScreen"], color: "var(--core-learning-status-new)" },
-    { label: "Erstellen & Import", files: ["CreationScreen", "CreationHome", "ManualCreationPanel", "ApkgImportPanel"], color: "var(--core-learning-status-in-progress)" },
+    { label: "Erstellen & Import", files: ["CreationScreen", "CreationHome", "ManualCreationPanel", "ApkgImportPanel", "AiSourceCreationPanel"], color: "var(--core-learning-status-in-progress)" },
     { label: "Prüfungen", files: ["ExamPlanningScreen", "ExamPlanEditor"], color: "var(--core-action-primary)" },
     { label: "Statistik", files: ["StatisticsScreen"], color: "var(--core-learning-status-due)" },
     { label: "Konto & Sync", files: ["AuthGateScreen", "SettingsScreen", "SyncConflictPanel"], color: "var(--core-learning-progress-completed)" },

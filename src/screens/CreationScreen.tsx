@@ -9,6 +9,7 @@ import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { ApkgImportPanel, type ImportCompletion } from "./ApkgImportPanel.tsx";
 import { CreationHome, creationMethods } from "./CreationHome.tsx";
 import { ManualCreationPanel } from "./ManualCreationPanel.tsx";
+import { AiSourceCreationPanel } from "./AiSourceCreationPanel.tsx";
 
 export type CreationScreenViewProps = Partial<CreationScreenProps>;
 
@@ -69,6 +70,9 @@ export function CreationScreen({
   }, [completedDeck]);
 
   function renderSelectedMethod() {
+    if (selectedMethod === "ai-source") {
+      return <AiSourceCreationPanel key={initialTargetDeckId} decks={decks} initialTargetDeckId={initialTargetDeckId} onDraftStateChange={onDraftStateChange} />;
+    }
     if (selectedMethod === "import") {
       return (
         <ApkgImportPanel

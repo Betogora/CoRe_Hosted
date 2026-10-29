@@ -135,7 +135,7 @@ test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an
     await page.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
   }
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Alle 4 Aufgaben anzeigen", exact: true }).click();
+  await page.getByRole("button", { name: "Alle 4 Aufgaben anzeigen", exact: true }).and(page.locator(".dashboard-todos > button")).click();
   await page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true }).click();
   await page.getByText("Erledigt (1)", { exact: true }).click();
   await expect(page.getByRole("checkbox", { name: "Weitere Aufgabe vier", exact: true })).toBeChecked();

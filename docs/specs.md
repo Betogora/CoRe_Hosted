@@ -2,7 +2,7 @@
 
 **Rolle:** einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.
 **Status:** Arbeitsfassung
-**Stand:** 2026-10-25
+**Stand:** 2026-10-28
 
 CoRe ergänzt Spaced Repetition um Content Repetition: Wissen auch bei veränderter Frage abrufen. Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und Roadmap stehen in der [Dokumentenlandkarte](README.md).
 
@@ -96,7 +96,7 @@ Akzeptanz:
 
 ### 5.2 Stapel importieren oder manuell anlegen
 
-Nutzer wählen zwischen manueller Erstellung und APKG-Import. Beide Wege speichern zuerst lokal und synchronisieren danach.
+Nutzer wählen zwischen manueller Erstellung, APKG-Import und „Karten automatisch erstellen lassen“. Manuelle Erstellung und Import speichern zuerst lokal und synchronisieren danach; automatische Erstellung führt vorerst nur bis zur Auftragsprüfung.
 
 Akzeptanz:
 
@@ -132,6 +132,17 @@ Akzeptanz:
 - Meldungen: Vollständiger Cloudabschluss meldet `Karte wurde erfolgreich gespeichert.`; ein erneut versuchbarer oder Offline-Teilabschluss `Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt.`; ein nicht erneut versuchbarer Medienfehler nach lokaler Speicherung erscheint als unvollständiger Medienzustand.
 - Zielauswahlen zeigen vollständige Stapelpfade. Erst `Fertig` öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, `Jetzt lernen` und `Karten prüfen`. Bei nichtleerem Entwurf fragt `Fertig` zuvor `Ungespeicherten Entwurf verwerfen?`.
 - Interne Navigation mit nichtleerem Entwurf verlangt eine Bestätigung: `Weiter bearbeiten` erhält Inhalt und Fokus, `Verwerfen und verlassen` verwirft nur den aktuellen Entwurf. Während eines Speicherversuchs bleibt die Navigation ohne Verwerfoption auf der Seite und fokussiert den Fortschritt.
+
+#### Automatische Erstellung aus einer Quelle
+
+- Der dritte Einstieg „Karten automatisch erstellen lassen“ öffnet `/neue-karten?method=ai-source`. Desktop zeigt drei gleichwertige Aktionskarten, Mobilgeräte eine Spalte.
+- Eine einzelne PDF-, TXT-, Markdown-, CSV-, TSV-, DOCX- oder PPTX-Datei wird per Auswahl oder Drag-and-drop temporär im Browser gehalten. Dateiname, Größe, Ersetzen und Entfernen sind sichtbar. Leere und nicht unterstützte Dateien werden mit Meldung abgelehnt, eine gültige vorherige Auswahl bleibt erhalten. Die erweiterten Formate gelten nur für diesen Weg.
+- Direkt sichtbar sind Lernziel (Wissen abrufen, Zusammenhänge verstehen, Wissen anwenden, Gemischt), Stoffabdeckung (Überblick, Gründlich, Sehr genau), Antwortumfang (Knapp, Mit kurzer Erklärung, Ausführlicher erklärt) und die erlaubten Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice). Standards: Gemischt, Gründlich, Mit kurzer Erklärung und alle vier Formen. Mindestens eine Form ist erforderlich; ihre Auswahl erlaubt sie, erzwingt sie aber nicht.
+- „Weitere Einstellungen“ enthält Vorwissen (Neu im Thema, Grundkenntnisse, Fortgeschritten; Standard Grundkenntnisse), optionalen Lernkontext und Wünsche sowie „Zusätzliche Erklärungen erlauben“ (standardmäßig an). Ergänzungen außerhalb der Quelle werden gesondert gekennzeichnet und dürfen die erwartete Antwort nicht erweitern. Ohne Ergänzungen müssen auch Erklärungen aus der Quelle stammen.
+- Stoffabdeckung und Antwortumfang bleiben unabhängig: mehr Abdeckung bedeutet bei Bedarf mehr gezielte Karten; die erwartete Antwort bleibt kurz und Erklärungen stehen getrennt darunter. Es gibt keine Abfrage von Prozenten, Mischungsverhältnissen oder Kartenanzahl.
+- Ein übergebenes Stapelziel wird vorausgewählt. Andernfalls ist ein neuer Stapel vorgesehen; sein bearbeitbarer Namensvorschlag stammt aus dem Dateinamen. Ein bestehender Stapel muss verfügbar und ein neuer Name nicht leer sein.
+- „Auftrag prüfen“ validiert Datei, Kartenformen und Ziel und zeigt dann alle wirksamen Angaben. „Einstellungen bearbeiten“ erhält Datei und Einstellungen. Der vorhandene Entwurfsschutz gilt beim Verlassen, auch über Browser-Zurück/-Vorwärts; bestätigtes Verlassen und Reload verwerfen den Entwurf.
+- Bereits das Formular meldet „Die automatische Erstellung ist noch nicht verfügbar.“ In der Zusammenfassung bleibt „Karten erstellen“ deaktiviert. Es werden keine Dateien ausgelesen oder übertragen und keine Karten oder Stapel angelegt; erfundene Kartenzahlen und Ergebnisse erscheinen nicht.
 
 #### Bildverdeckung
 

@@ -124,7 +124,7 @@ setSuccessToast("Import erfolgreich abgeschlossen.");
 
 `CoreDatePicker` aus `src/ui/CoreDatePicker.tsx` ist die gemeinsame kontrollierte Auswahl eines einzelnen Kalendertags für Karten-Neuplanung und Simulator. Der Trigger zeigt das Datum deutsch formatiert; das kollisionssichere CoRe-Popover besitzt Montag–Sonntag, Monats- und Jahresnavigation, Min-/Max-Grenzen, Heute- und Auswahlzustand, Pfeiltastennavigation sowie Fokuswiederherstellung. Fachliche Datumsrechnung und die Reaktion auf eine Auswahl bleiben beim Aufrufer.
 
-`FileDropField` aus `src/ui/FileDropField.tsx` bündelt Datei-Input, Auswahlbutton, Drag-and-drop, Disabled/Busy sowie Strg+V für die Varianten `apkg`, `document` und `image`. Fachliche Verarbeitung und ausgewählte Inhalte bleiben beim jeweiligen Feature.
+`FileDropField` aus `src/ui/FileDropField.tsx` bündelt Datei-Input, Auswahlbutton, Drag-and-drop, Disabled/Busy sowie Strg+V für die Varianten `apkg`, `document`, `image` und `ai-source`. Nur `ai-source` bietet zusätzlich DOCX und PPTX zur temporären Auswahl an; Auslesen und Validierung bleiben beim Feature. Fachliche Verarbeitung und ausgewählte Inhalte bleiben beim jeweiligen Feature.
 
 Auswahlfelder verwenden `CoreSelect` aus `src/ui/selectUi.tsx`. Die Komponente verlangt einen kontrollierten Stringwert, eine Liste aus `{ value, label }`, `onValueChange` und ein zugängliches `ariaLabel`. Sie besitzt den symmetrisch gepolsterten Trigger, das CoRe-Overlay, Auswahlmarkierung, Viewport-Kollisionen, Scrollen, Tastaturnavigation, Typeahead und Fokuswiederherstellung. Leere fachliche Werte bleiben nach außen unverändert; ihre technische Codierung ist privat.
 
