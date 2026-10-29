@@ -488,7 +488,7 @@ test("Prüfungsplanung übernimmt noch nicht synchronisierte Antworten statt des
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [learned.note]), indexedDb: new IDBFactory() });
   repository.recordReview(answerVariant(deck, "card-learned", null, "good", { now: "2026-08-20T08:00:00.000Z" }));
   const serverRow = { card_id: "card-learned", deck_id: "deck-exam", note_id: "note-learned", status: "active", state: "new", due_at: CREATED_AT, stability: 0, difficulty: 0, reps: 0, lapses: 0,
-    interval_days: 0, learning_step_index: 0, last_reviewed_at: null, last_rating: null, study_revision: 0, active_variant_count: 0, created_at: CREATED_AT, maturity_xp: 0 };
+    interval_days: 0, learning_step_index: 0, last_reviewed_at: null, last_rating: null, study_revision: 0, active_variant_count: 0, created_at: CREATED_AT, stability_fast: 0 };
   const service = createWorkspaceHydrationService({ repository, mediaStore: null, client: { async rpc(name: string) { assert.equal(name, "list_account_card_study_states"); return { data: [serverRow], error: null }; } } });
 
   const { cards } = await service.loadExamPlanningData(["deck-exam"]);

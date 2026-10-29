@@ -1,7 +1,8 @@
 import { getActiveVariants } from "../coreModel.ts";
 import type { Card, CardVariant, DeckSettings } from "../coreTypes.ts";
+import { getDurabilityDays } from "../scheduler.ts";
 
-type VariantSettings = Pick<DeckSettings, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard">;
+type VariantSettings = Pick<DeckSettings, "coreMode" | "variantThresholdDays" | "maxActiveVariantsPerCard">;
 
 /** Active rephrasings that may be asked: the oldest ones up to the deck's limit. */
 function reviewableVariants(card: Card, settings: Pick<VariantSettings, "maxActiveVariantsPerCard">): CardVariant[] {
@@ -10,13 +11,13 @@ function reviewableVariants(card: Card, settings: Pick<VariantSettings, "maxActi
     .slice(0, Math.max(0, settings.maxActiveVariantsPerCard));
 }
 
-/** Whether a card is mature enough for rephrasings: review phase, no current failure and the deck's learning level reached. */
+/** Whether a card is mature enough for rephrasings: review phase, no current failure and the deck's durability reached. */
 export function isCardReadyForVariants(card: Card, settings: VariantSettings): boolean {
   const { study } = card;
   return settings.coreMode === "on"
     && study.state === "review"
     && study.lastRating !== "again"
-    && study.extra.maturityXp >= settings.variantThresholdXp;
+    && getDurabilityDays({ state: study.state, stability: study.stability, stabilityFast: study.extra.stabilityFast, difficulty: study.difficulty }) >= settings.variantThresholdDays;
 }
 
 /**

@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { downloadMindMapImage, listLearningDocuments, removeMindMapImages, uploadMindMapImage, writeLearningDocument } from "./cloudLearningDocuments.ts";
 import { sanitizeCardHtml } from "./htmlSafety.ts";
 import { compressImage } from "./imageDownscale.ts";
+import { sha1DigestHex } from "./sha1.ts";
 
 const id = v.pipe(v.string(), v.minLength(1), v.maxLength(200));
 const coordinate = v.pipe(v.number(), v.finite());
@@ -152,8 +153,7 @@ export async function storeMindMapImages(account: LearningContentAccount, files:
     if (file.size > 20_000_000) throw new Error("Ein Bild darf höchstens 20 MB groß sein.");
     const blob = await compressImage(file, 1_600);
     if (blob.size > 2_000_000) throw new Error("Ein Bild darf auch verkleinert höchstens 2 MB groß sein.");
-    const digest = new Uint8Array(await crypto.subtle.digest("SHA-1", await blob.arrayBuffer()));
-    return { id: Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join(""), name: file.name.slice(0, 240) || "Bild", blob };
+    return { id: await sha1DigestHex(await blob.arrayBuffer()), name: file.name.slice(0, 240) || "Bild", blob };
   }));
   const createdAt = Date.now(), stored = images.map((image) => ({ id: image.id, blob: image.blob, createdAt, uploaded: false }));
   await writeMindMapStores(account.userId, { images: stored }, "Das Bild konnte nicht gespeichert werden.");

@@ -64,21 +64,6 @@ function mediaProgressPercent(progress: MediaSyncProgress, status: MediaSyncStat
   return Math.min(99, normalizeProgress((progress.completed / progress.total) * 100));
 }
 
-function toStrings(value: unknown): string[] {
-  return Array.isArray(value) ? value.map(String) : [];
-}
-
-function toImportJob(value: unknown): ApkgImportJob {
-  const job = value && typeof value === "object" ? value as Record<string, unknown> : {};
-  return {
-    fileName: typeof job.fileName === "string" ? job.fileName : undefined,
-    fileSize: typeof job.fileSize === "number" ? job.fileSize : undefined,
-    status: typeof job.status === "string" ? job.status : "error",
-    warnings: toStrings(job.warnings),
-    errors: toStrings(job.errors),
-  };
-}
-
 function importStatusLabel(status: ImportUiState["status"]): string {
   return {
     idle: "Bereit",
@@ -260,7 +245,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
         return;
       }
       reportProgress("analyzing", 100);
-      setJob(toImportJob(result.job));
+      setJob(result.job);
       setPreview(result.preview);
     } catch (error) {
       setJob({

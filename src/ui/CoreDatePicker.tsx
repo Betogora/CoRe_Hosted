@@ -1,8 +1,8 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { CalendarDays, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { dayKeyFromIndex, dayKeyIndex, endOfMonthKey, isDayKey, shiftDayKey, shiftMonthKey, startOfMonthKey } from "../learningDay.ts";
 
-const DAY_MS = 86_400_000;
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const DISPLAY_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 const LONG_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -29,43 +29,8 @@ interface CoreDatePickerDay {
   disabled: boolean;
 }
 
-function dayIndex(key: string) {
-  const [year, month, day] = key.split("-").map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-}
-
-function keyFromDayIndex(index: number) {
-  return new Date(index * DAY_MS).toISOString().slice(0, 10);
-}
-
-function isDayKey(value: unknown): value is string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ""))) return false;
-  const key = String(value);
-  return keyFromDayIndex(dayIndex(key)) === key;
-}
-
 function dateFromKey(key: string) {
   return new Date(`${key}T12:00:00Z`);
-}
-
-function startOfMonthKey(key: string) {
-  return `${key.slice(0, 7)}-01`;
-}
-
-function endOfMonthKey(monthKey: string) {
-  const year = Number(monthKey.slice(0, 4));
-  const month = Number(monthKey.slice(5, 7));
-  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-}
-
-function shiftDayKey(key: string, days: number) {
-  return keyFromDayIndex(dayIndex(key) + days);
-}
-
-function shiftMonthKey(key: string, months: number) {
-  const year = Number(key.slice(0, 4));
-  const monthIndex = Number(key.slice(5, 7)) - 1;
-  return new Date(Date.UTC(year, monthIndex + months, 1)).toISOString().slice(0, 10);
 }
 
 function moveDayToMonth(key: string, monthKey: string) {
@@ -91,11 +56,11 @@ function monthHasEnabledDay(monthKey: string, min?: string, max?: string) {
 export function createCoreDatePickerMonth(monthKey: string, options: { value: string; today: string; min?: string; max?: string }): CoreDatePickerDay[] {
   const firstDay = startOfMonthKey(monthKey);
   const mondayOffset = (dateFromKey(firstDay).getUTCDay() + 6) % 7;
-  const firstGridDayIndex = dayIndex(firstDay) - mondayOffset;
+  const firstGridDayIndex = dayKeyIndex(firstDay) - mondayOffset;
   const minimum = isDayKey(options.min) ? options.min : undefined;
   const maximum = isDayKey(options.max) ? options.max : undefined;
   return Array.from({ length: 42 }, (_, index) => {
-    const key = keyFromDayIndex(firstGridDayIndex + index);
+    const key = dayKeyFromIndex(firstGridDayIndex + index);
     return {
       key,
       dayOfMonth: Number(key.slice(8, 10)),

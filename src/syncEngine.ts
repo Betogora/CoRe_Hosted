@@ -184,6 +184,12 @@ function createDefaultAdapter(client: any, userId: string) {
       const failures: any[] = [];
       const conflicts: any[] = [];
       const persistedRows: any[] = [];
+      const recordFailure = (mutationId: any, error: any) => {
+        failedMutationIds.push(mutationId);
+        failures.push({ mutationId, error });
+        if (error?.conflict) conflicts.push(error.conflict);
+      };
+      const entityOptions = (item: any) => ({ deviceId: item.deviceId ?? context.deviceId, flushedAt: context.flushedAt });
       for (let mutationIndex = 0; mutationIndex < mutations.length;) {
         const mutation = mutations[mutationIndex];
         if (mutation.type === SYNC_MUTATION_TYPES.entityMutation && !mutation.payload?.tombstone) {
@@ -196,10 +202,7 @@ function createDefaultAdapter(client: any, userId: string) {
           ) groupEnd += 1;
           const group = mutations.slice(mutationIndex, groupEnd);
           try {
-            const acknowledgements = await applyEntityMutationBatch(client, group.map((item: any) => item.payload), {
-              deviceId: mutation.deviceId ?? context.deviceId,
-              flushedAt: context.flushedAt,
-            });
+            const acknowledgements = await applyEntityMutationBatch(client, group.map((item: any) => item.payload), entityOptions(mutation));
             group.forEach((item: any, index: number) => {
               acknowledgedMutationIds.push(item.id);
               if (acknowledgements[index]?.persistedRow) persistedRows.push({ table: item.payload.table, row: acknowledgements[index].persistedRow });
@@ -207,16 +210,11 @@ function createDefaultAdapter(client: any, userId: string) {
           } catch (error) {
             for (const item of group) {
               try {
-                const acknowledgement = await applyEntityMutation(client, item.payload, {
-                  deviceId: item.deviceId ?? context.deviceId,
-                  flushedAt: context.flushedAt,
-                });
+                const acknowledgement = await applyEntityMutation(client, item.payload, entityOptions(item));
                 acknowledgedMutationIds.push(item.id);
                 if (acknowledgement?.persistedRow) persistedRows.push({ table: item.payload.table, row: acknowledgement.persistedRow });
-              } catch (itemError: any) {
-                failedMutationIds.push(item.id);
-                failures.push({ mutationId: item.id, error: itemError });
-                if (itemError?.conflict) conflicts.push(itemError.conflict);
+              } catch (itemError) {
+                recordFailure(item.id, itemError);
               }
             }
           }
@@ -244,10 +242,7 @@ function createDefaultAdapter(client: any, userId: string) {
                   acknowledgedMutationId: mutation.id,
                 }
             : mutation.type === SYNC_MUTATION_TYPES.entityMutation
-              ? { ...(await applyEntityMutation(client, mutation.payload, {
-                  deviceId: mutation.deviceId ?? context.deviceId,
-                  flushedAt: context.flushedAt,
-                })), acknowledgedMutationId: mutation.id }
+              ? { ...(await applyEntityMutation(client, mutation.payload, entityOptions(mutation))), acknowledgedMutationId: mutation.id }
               : await recordAtomicReview(client, mutation.payload, {
                     mutationId: mutation.id,
                     deviceId: mutation.deviceId ?? context.deviceId,
@@ -264,9 +259,7 @@ function createDefaultAdapter(client: any, userId: string) {
             failedMutationIds.push(mutation.id);
           }
         } catch (error) {
-          failedMutationIds.push(mutation.id);
-          failures.push({ mutationId: mutation.id, error });
-          if ((error as any)?.conflict) conflicts.push((error as any).conflict);
+          recordFailure(mutation.id, error);
         }
       }
       return { acknowledgedMutationIds, failedMutationIds, failures, conflicts, persistedRows };
@@ -315,10 +308,6 @@ export function createSyncEngine({
   let syncIntervalMinutes = 5;
   let currentStatus = createSyncIdleStatus();
   let lastOnlineStatus = currentStatus;
-
-  function removeMutations(ids: any = []) {
-    outbox.remove(ids);
-  }
 
   function safelyIsOnline() {
     try {
@@ -442,8 +431,8 @@ export function createSyncEngine({
     return retryTimer;
   }
 
-  async function refreshConflicts() {
-    const conflicts = adapter.listConflicts ? await adapter.listConflicts() : [];
+  async function refreshConflicts(options?: any) {
+    const conflicts = adapter.listConflicts ? await adapter.listConflicts(options) : [];
     await persistConflictState?.(conflicts);
     return conflicts;
   }
@@ -479,7 +468,7 @@ export function createSyncEngine({
         const staleProfilePatchIds = outbox.listPending()
           .filter((pending: any) => pending.type === SYNC_MUTATION_TYPES.profilePatch)
           .map((pending: any) => pending.id);
-        removeMutations(staleProfilePatchIds);
+        outbox.remove(staleProfilePatchIds);
         return enqueuePendingMutation(mutation);
       }
       if (mutation.type === SYNC_MUTATION_TYPES.entityMutation) {
@@ -491,7 +480,7 @@ export function createSyncEngine({
             && (pending.payload?.table ?? pending.table) === table
             && (pending.entityId ?? pending.payload?.entity?.id ?? pending.payload?.entityId) === entityId)
           .map((pending: any) => pending.id);
-        removeMutations(staleEntityMutationIds);
+        outbox.remove(staleEntityMutationIds);
         return enqueuePendingMutation(mutation);
       }
       return enqueuePendingMutation(mutation);
@@ -546,7 +535,7 @@ export function createSyncEngine({
             }
             const failedMutationIds = (batchResult?.failedMutationIds ?? []).filter((id: any) => remainingIds.has(id));
             outbox.markFlushed(acknowledgedMutationIds, result.flushedAt);
-            removeMutations(acknowledgedMutationIds);
+            outbox.remove(acknowledgedMutationIds);
             outbox.markFailed(failedMutationIds, new Error("Mutation konnte nicht synchronisiert werden."));
             if (failedMutationIds.length > 0) {
               const failureErrors = (batchResult?.failures ?? [])
@@ -677,11 +666,7 @@ export function createSyncEngine({
       return lifecycleCleanup;
     },
 
-    async listConflicts(options: any = {}) {
-      const conflicts = adapter.listConflicts ? await adapter.listConflicts(options) : [];
-      await persistConflictState?.(conflicts);
-      return conflicts;
-    },
+    listConflicts: (options: any = {}) => refreshConflicts(options),
 
     async resolveConflict(conflictId: any, decision: any) {
       if (!adapter.resolveConflict) throw new Error("Dieser Sync-Adapter kann Konflikte nicht auflösen.");

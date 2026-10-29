@@ -19,8 +19,9 @@ import { createNote } from "./coreModel/notes.ts";
 import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
 import { compileSafeTemplate, type SafeTemplateAstNode } from "./safeTemplate.ts";
 import { scheduleWithFsrs } from "./scheduler.ts";
+import { sha1DigestHex } from "./sha1.ts";
 
-// ADR-033: versioned translators turn Anki note types into the universal CoRe content.
+// ADR-032: versioned translators turn Anki note types into the universal CoRe content.
 // The pipeline is pure apart from reading media for nothing but its index; it is wired into the app in the cutover (K4.9).
 
 interface TranslatorId { id: string; version: number }
@@ -712,15 +713,16 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     : collectionCreatedAt !== null && Number.isFinite(due) ? new Date(collectionCreatedAt * 1_000 + due * DAY_MS).toISOString()
       : new Date(Date.parse(importedAt) + intervalDays * DAY_MS).toISOString();
   let migration: StudyMigration;
-  let memoryState: { stability: number; difficulty: number; lastReviewedAt: string | null; desiredRetention?: number | null };
-  if (memory) {
-    migration = "fsrs-memory-state";
-    memoryState = memory;
-  } else if (history.length > 0) {
+  let memoryState: { stability: number; stabilityFast?: number; difficulty: number; lastReviewedAt: string | null; desiredRetention?: number | null };
+  // Anki stores an FSRS-6 memory state; a history from the first contact rebuilds both FSRS-7 traces and takes precedence.
+  if (history.length > 0 && (history[0].beforeState === "new" || !memory)) {
     migration = "revlog-replay";
     let replay = createReviewState({ dueAt: history[0].answeredAt });
     for (const entry of history) replay = scheduleWithFsrs(replay, entry.rating, { now: entry.answeredAt, isVariant: false, variantId: null, variantIsOriginal: true });
-    memoryState = { stability: replay.stability, difficulty: replay.difficulty, lastReviewedAt: history.at(-1)!.answeredAt };
+    memoryState = { stability: replay.stability, stabilityFast: replay.stabilityFast, difficulty: replay.difficulty, lastReviewedAt: history.at(-1)!.answeredAt, desiredRetention: memory?.desiredRetention };
+  } else if (memory) {
+    migration = "fsrs-memory-state";
+    memoryState = memory;
   } else {
     migration = "classic-state";
     const ease = Number(ankiCard.factor) > 0 ? Number(ankiCard.factor) / 1000 : 2.5;
@@ -731,6 +733,7 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     dueAt,
     intervalDays,
     stability: memoryState.stability,
+    stabilityFast: memoryState.stabilityFast ?? 0,
     difficulty: Math.min(10, Math.max(1, memoryState.difficulty)),
     ...(memoryState.desiredRetention ? { desiredRetention: memoryState.desiredRetention } : {}),
     reps,
@@ -738,7 +741,7 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     lastReviewedAt: memoryState.lastReviewedAt,
     sourceSchedulerData: {
       source: "anki",
-      migrationVersion: 2,
+      migrationVersion: 3,
       migrationMethod: migration,
       rawCardState: snapshot,
       ...(memory ? { rawMemoryState: memory.raw } : {}),
@@ -1014,11 +1017,6 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
 const NOTE_CHUNK_SIZE = 250;
 const REVIEW_CHUNK_SIZE = 500;
 
-async function sha1Hex(bytes: Uint8Array): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest("SHA-1", bytes as BufferSource);
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 /** Preview of a translated package: report, five sample cards and the counts the commit will stream. */
 export function describeImportGraph(graph: ApkgImportGraph) {
   const notesById = new Map(graph.notes.map((note) => [note.id, note]));
@@ -1055,7 +1053,7 @@ export async function readSampleMedia(graph: ApkgImportGraph, samples: ReadonlyA
     const file = filesBySha1.get(sha1);
     if (!file || total + file.size > SAMPLE_MEDIA_MAX_BYTES) continue;
     const bytes = await file.readBytes();
-    if (await sha1Hex(bytes) !== sha1) continue;
+    if (await sha1DigestHex(bytes as BufferSource) !== sha1) continue;
     total += bytes.length;
     result.push({ name: file.name, sha1, size: bytes.length, mimeType: file.mimeType, bytes });
   }
@@ -1086,7 +1084,7 @@ export async function* createImportGraphChunks(graph: ApkgImportGraph) {
   }
   for (const file of graph.mediaFiles) {
     const bytes = await file.readBytes();
-    if (bytes.length !== file.size && file.size > 0 || await sha1Hex(bytes) !== file.sha1) {
+    if (bytes.length !== file.size && file.size > 0 || await sha1DigestHex(bytes as BufferSource) !== file.sha1) {
       throw new Error(`Die Mediendatei „${file.name}“ ist beschädigt.`);
     }
     yield { kind: "media" as const, file: { name: file.name, sha1: file.sha1, size: bytes.length, mimeType: file.mimeType, bytes } };

@@ -1,5 +1,6 @@
 import type { ReviewRating, ReviewSchedulerState } from "./coreTypes.ts";
 import { readSqliteDatabase } from "./sqliteReader.ts";
+import { sha1DigestHex } from "./sha1.ts";
 import { readZipArchive } from "./zipReader.ts";
 import { decompress as decompressZstd } from "fzstd";
 
@@ -105,10 +106,6 @@ function parseJson(value: any, fallback: any) {
   }
 }
 
-function bytesToHex(bytes: any) {
-  return [...bytes].map((byte: any) => byte.toString(16).padStart(2, "0")).join("");
-}
-
 function normalizeMediaFileName(value: any) {
   return String(value ?? "")
     .replace(/\\/g, "/")
@@ -200,11 +197,7 @@ function sha1HexSync(bytes: any) {
 }
 
 async function sha1Hex(bytes: any) {
-  if (globalThis.crypto?.subtle) {
-    const digest = await globalThis.crypto.subtle.digest("SHA-1", bytes);
-    return bytesToHex(new Uint8Array(digest));
-  }
-
+  if (globalThis.crypto?.subtle) return sha1DigestHex(bytes);
   return sha1HexSync(bytes);
 }
 

@@ -23,6 +23,42 @@ export function getLearningTimeZone(profile: { timezone?: string | null } | null
   return profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
+/** Day keys are calendar dates (`YYYY-MM-DD`); their arithmetic is independent of time zones. */
+export function dayKeyIndex(key: string): number {
+  const [year, month, day] = key.split("-").map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
+}
+
+export function dayKeyFromIndex(index: number): string {
+  return new Date(index * DAY_MS).toISOString().slice(0, 10);
+}
+
+export function isDayKey(value: unknown): value is string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ""))) return false;
+  const key = String(value);
+  return dayKeyFromIndex(dayKeyIndex(key)) === key;
+}
+
+export function shiftDayKey(key: string, days: number): string {
+  return dayKeyFromIndex(dayKeyIndex(key) + days);
+}
+
+export function startOfMonthKey(key: string): string {
+  return `${key.slice(0, 7)}-01`;
+}
+
+export function endOfMonthKey(key: string): string {
+  const year = Number(key.slice(0, 4));
+  const month = Number(key.slice(5, 7));
+  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+}
+
+export function shiftMonthKey(key: string, months: number): string {
+  const year = Number(key.slice(0, 4));
+  const monthIndex = Number(key.slice(5, 7)) - 1;
+  return new Date(Date.UTC(year, monthIndex + months, 1)).toISOString().slice(0, 10);
+}
+
 export function normalizeDayStartHour(value: unknown): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULT_DAY_START_HOUR;
@@ -119,7 +155,7 @@ function getLearningDayIndex(value: DateInput, options: LearningDayOptions = {})
 
 export function getLearningDayKey(value: DateInput, options: LearningDayOptions = {}): string | null {
   const dayIndex = getLearningDayIndex(value, options);
-  return dayIndex == null ? null : new Date(dayIndex * 86_400_000).toISOString().slice(0, 10);
+  return dayIndex == null ? null : dayKeyFromIndex(dayIndex);
 }
 
 function learningDayBoundary(dayIndex: number, options: LearningDayOptions): number {
@@ -144,19 +180,8 @@ export function getLearningDayRange(value: DateInput, options: LearningDayOption
 }
 
 export function getLearningDayStartForKey(dayKey: string, options: LearningDayOptions = {}): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey);
-  if (!match) return null;
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const dayIndex = Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-  const normalized = new Date(dayIndex * DAY_MS);
-  if (
-    normalized.getUTCFullYear() !== year
-    || normalized.getUTCMonth() + 1 !== month
-    || normalized.getUTCDate() !== day
-  ) return null;
-  return new Date(learningDayBoundary(dayIndex, options));
+  if (!isDayKey(dayKey)) return null;
+  return new Date(learningDayBoundary(dayKeyIndex(dayKey), options));
 }
 
 function zonedDateTimeToUtc(parts: LocalDateTimeParts, timeZone: string): Date {

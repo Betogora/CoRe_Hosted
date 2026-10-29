@@ -1,6 +1,6 @@
 import type { Card, CardVariant, Deck, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
 import { reviewStateFromCardStudy } from "./coreModel.ts";
-import { learningDayIndexFromLocalTime, normalizeDayStartHour } from "./learningDay.ts";
+import { dayKeyFromIndex, dayKeyIndex, learningDayIndexFromLocalTime, normalizeDayStartHour, shiftDayKey } from "./learningDay.ts";
 import { calculateRetrievability } from "./scheduler.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey, type StudyHeatmapModel } from "./studyHeatmapModel.ts";
 import type { AccountStatisticsSnapshot } from "./workspaceReplica.ts";
@@ -150,19 +150,6 @@ function percentage(count: number, total: number) {
   return total > 0 ? Math.round((count / total) * 1_000) / 10 : 0;
 }
 
-function dayIndex(key: string) {
-  const [year, month, day] = key.split("-").map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-}
-
-function keyFromDayIndex(index: number) {
-  return new Date(index * DAY_MS).toISOString().slice(0, 10);
-}
-
-function shiftDayKey(key: string, days: number) {
-  return keyFromDayIndex(dayIndex(key) + days);
-}
-
 function formatRangeLabel(startKey: string, endKey: string) {
   if (startKey === endKey) return LONG_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`));
   return `${RANGE_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`))} – ${RANGE_DAY_FORMATTER.format(new Date(`${endKey}T12:00:00Z`))}`;
@@ -240,8 +227,8 @@ function createBuckets(startIndex: number, endIndex: number, period: StatisticsP
   const buckets: Array<{ start: number; end: number; point: StatisticsSeriesPoint }> = [];
   for (let index = startIndex; index <= endIndex; index += size) {
     const end = Math.min(endIndex, index + size - 1);
-    const startKey = keyFromDayIndex(index);
-    const endKey = keyFromDayIndex(end);
+    const startKey = dayKeyFromIndex(index);
+    const endKey = dayKeyFromIndex(end);
     buckets.push({ start: index, end, point: emptySeriesPoint(startKey, SHORT_DAY_FORMATTER.format(new Date(`${startKey}T12:00:00Z`)), formatRangeLabel(startKey, endKey)) });
   }
   return buckets;
@@ -421,7 +408,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       const details = eventDetails(event);
       if (!details || details.local.dayIndex > nowLocal.dayIndex) return;
       earliestDay = Math.min(earliestDay, details.local.dayIndex);
-      const heatmapKey = keyFromDayIndex(details.local.dayIndex);
+      const heatmapKey = dayKeyFromIndex(details.local.dayIndex);
       heatmapCounts.set(heatmapKey, (heatmapCounts.get(heatmapKey) ?? 0) + 1);
       if (fixedStart != null && details.local.dayIndex < fixedStart) return;
       const eventCategory = category(details.before);
@@ -482,7 +469,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       const state = reviewStateFromCardStudy(card.study);
       if (!card.deletedAt && card.status === "active") addCurrentState(deckId, state);
       const dueKey = getStudyHeatmapDayKey(state.dueAt, timeZone, dayStartHour);
-      const nowKey = keyFromDayIndex(nowLocal.dayIndex);
+      const nowKey = dayKeyFromIndex(nowLocal.dayIndex);
       if (dueKey && dueKey > nowKey && dueKey <= shiftDayKey(nowKey, 365) && !card.deletedAt) {
         forecastCounts.set(dueKey, (forecastCounts.get(dueKey) ?? 0) + 1);
       }
@@ -490,8 +477,8 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
     addVariant(_deckId: string, _variant: CardVariant) {},
     finish(): StatisticsProjection {
       const startDay = fixedStart ?? earliestDay;
-      const nowKey = keyFromDayIndex(nowLocal.dayIndex);
-      const startKey = keyFromDayIndex(startDay);
+      const nowKey = dayKeyFromIndex(nowLocal.dayIndex);
+      const startKey = dayKeyFromIndex(startDay);
       const activityBuckets = createBuckets(startDay, nowLocal.dayIndex, input.period);
       for (const [index, raw] of activityByDay) {
         const bucket = bucketFor(activityBuckets, index);
@@ -615,14 +602,14 @@ export function mergeAccountStatisticsSnapshot(
   const historicalKeys = [...new Set([...Object.keys(snapshotValue.reviewsByDay), ...Object.keys(snapshotValue.addedCardsByDay)])].sort();
   const allTimeStartKey = projection.selection.period === "all" ? historicalKeys[0] : null;
   const activityTemplate = allTimeStartKey
-    ? createBuckets(dayIndex(allTimeStartKey), dayIndex(lastKey), "all").map(({ point }) => point)
+    ? createBuckets(dayKeyIndex(allTimeStartKey), dayKeyIndex(lastKey), "all").map(({ point }) => point)
     : projection.activity;
   const firstKey = activityTemplate[0]?.key ?? lastKey;
   for (const event of pendingReviews) {
     if (!projection.scopeDeckIds.includes(event.deckId)) continue;
     const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
     if (!Number.isFinite(timestamp) || event.rating === "manual" || !RATINGS.includes(event.rating)) continue;
-    const dayKey = keyFromDayIndex(resolveLocalTime(timestamp).dayIndex);
+    const dayKey = dayKeyFromIndex(resolveLocalTime(timestamp).dayIndex);
     if (dayKey < firstKey || dayKey > lastKey) continue;
     const eventCategory = category(snapshot(event.schedulerBefore));
     const row = daily.get(dayKey) ?? {
@@ -675,7 +662,7 @@ export function mergeAccountStatisticsSnapshot(
   for (const event of pendingReviews) {
     const timestamp = Date.parse(String(event.answeredAt || event.createdAt || ""));
     if (!Number.isFinite(timestamp) || !projection.scopeDeckIds.includes(event.deckId)) continue;
-    const key = keyFromDayIndex(resolveLocalTime(timestamp).dayIndex);
+    const key = dayKeyFromIndex(resolveLocalTime(timestamp).dayIndex);
     countsByDay.set(key, (countsByDay.get(key) ?? 0) + 1);
   }
   const studyHeatmap = createStudyHeatmapModelFromCounts({
@@ -710,7 +697,7 @@ export function mergeAccountStatisticsSnapshot(
 
   const forecastKeys = Object.keys(snapshotValue.forecastByDay).sort();
   const planningTemplate = projection.selection.period === "all" && forecastKeys.length > 0
-    ? createBuckets(dayIndex(lastKey), Math.max(dayIndex(lastKey), dayIndex(forecastKeys.at(-1)!)), "all").map(({ point }) => point)
+    ? createBuckets(dayKeyIndex(lastKey), Math.max(dayKeyIndex(lastKey), dayKeyIndex(forecastKeys.at(-1)!)), "all").map(({ point }) => point)
     : projection.planning.points;
   const planningPoints = planningTemplate.map((point) => ({ ...emptySeriesPoint(point.key, point.label, point.rangeLabel) }));
   for (const [key, counts] of Object.entries(snapshotValue.forecastByDay)) {

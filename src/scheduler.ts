@@ -1,13 +1,20 @@
 import {
   Rating,
   State,
-  default_w,
-  fsrs,
-  type Card as FsrsCard,
+  dateChrono,
+  defineScheduler,
+  schedulerDesiredRetentionMiddleware,
+  schedulerFuzzingMiddleware,
+  schedulerLearningStepsMiddleware,
+  schedulerMaximumIntervalMiddleware,
+  schedulerMonotonicIntervalMiddleware,
+  schedulerScheduledDaysMiddleware,
+  schedulerStatsMiddleware,
   type Grade,
   type StepUnit,
 } from "ts-fsrs";
-import { REVIEW_RATINGS, createReviewState, getMaturityBand, isCardReviewBlocked, reviewStateFromCardStudy } from "./coreModel.ts";
+import { FSRS7Model, migrateFSRS7Parameters } from "ts-fsrs/models/fsrs-7";
+import { REVIEW_RATINGS, createReviewState, isCardReviewBlocked, reviewStateFromCardStudy } from "./coreModel.ts";
 import { normalizeLearningSettings } from "./deckSettings.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import { hasEasyDayDifferences, selectEasyDayInterval, type EasyDaysSchedulingContext } from "./easyDays.ts";
@@ -16,6 +23,7 @@ import type {
   Card,
   CardVariant,
   Deck,
+  MaturityBand,
   ReviewRating,
   ReviewSchedulerState,
   ReviewState,
@@ -73,7 +81,7 @@ type ReviewButtonOption = Pick<RatingOutcome,
   "rating" | "label" | "intervalLabel" | "dueAt" | "nextState" | "schedulerVersion" | "effect" | "intervalDays" | "intervalMinutes"
 >;
 
-export const SCHEDULER_VERSION = "fsrs_6_v1";
+export const SCHEDULER_VERSION = "fsrs_7_v1";
 const FSRS_SCHEDULER_VERSION = SCHEDULER_VERSION;
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -92,13 +100,6 @@ const RATING_EFFECT_LABELS: Record<ReviewRating, string> = {
   easy: "Leicht",
 };
 
-const RATING_XP: Record<ReviewRating, number> = {
-  again: -18,
-  hard: 2,
-  good: 12,
-  easy: 18,
-};
-
 const FSRS_RATINGS: Record<ReviewRating, Grade> = {
   again: Rating.Again,
   hard: Rating.Hard,
@@ -106,14 +107,16 @@ const FSRS_RATINGS: Record<ReviewRating, Grade> = {
   easy: Rating.Easy,
 };
 
-const TO_FSRS_STATE: Record<ReviewSchedulerState, State> = {
+type FsrsState = (typeof State)[keyof typeof State];
+
+const TO_FSRS_STATE: Record<ReviewSchedulerState, FsrsState> = {
   new: State.New,
   learning: State.Learning,
   review: State.Review,
   relearning: State.Relearning,
 };
 
-const FROM_FSRS_STATE: Record<State, ReviewSchedulerState> = {
+const FROM_FSRS_STATE: Record<FsrsState, ReviewSchedulerState> = {
   [State.New]: "new",
   [State.Learning]: "learning",
   [State.Review]: "review",
@@ -141,7 +144,7 @@ function getSchedulerProfile(deckSettings: LearningSettingsInput = {}) {
 function getDesiredRetention(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput): number {
   const configuredRetention = deckSettings?.schedulerProfile?.desiredRetention;
   return configuredRetention == null
-    ? clamp(state?.desiredRetention ?? 0.9, 0.7, 0.99)
+    ? clamp(state?.desiredRetention ?? 0.92, 0.7, 0.99)
     : getSchedulerProfile(deckSettings ?? {}).desiredRetention;
 }
 
@@ -197,28 +200,47 @@ function phaseForState(state: ReviewStateInput): ReviewSchedulerState {
   return state.state ?? (getStateReps(state) > 0 ? "review" : "new");
 }
 
+/** Same middleware chain as `ts-fsrs`' `DefaultScheduler`, built synchronously because the FSRS-7 model is imported statically. */
+const fsrs7Definition = defineScheduler({ model: FSRS7Model, chrono: dateChrono }).use(
+  schedulerDesiredRetentionMiddleware,
+  schedulerFuzzingMiddleware,
+  schedulerStatsMiddleware,
+  schedulerScheduledDaysMiddleware,
+  schedulerLearningStepsMiddleware,
+  schedulerMaximumIntervalMiddleware,
+  schedulerMonotonicIntervalMiddleware,
+);
+type FsrsScheduler = ReturnType<typeof fsrs7Definition.create>;
+type FsrsCard = Parameters<FsrsScheduler["review"]>[0]["card"];
+const FSRS7_WEIGHTS = migrateFSRS7Parameters();
+
 function toFsrsCard(state: ReviewState, now: Date): FsrsCard {
   const phase = phaseForState(state);
   const reps = getStateReps(state);
-  const lastReview = state.lastReviewedAt ? validDate(state.lastReviewedAt, now) : undefined;
+  const isNew = phase === "new" && reps === 0;
   const storedStability = Number(state.stability ?? 0) || 0;
-  const migratedStability = Math.max(0.1, Number(state.intervalDays ?? 0) || 1);
+  const stability = isNew ? 0 : storedStability > 0 ? storedStability : Math.max(0.1, Number(state.intervalDays ?? 0) || 1);
+  const storedFastStability = Number(state.stabilityFast ?? 0) || 0;
   return {
-    due: validDate(state.dueAt, now),
-    stability: phase === "new" && reps === 0 ? 0 : storedStability > 0 ? storedStability : migratedStability,
-    difficulty: phase === "new" && reps === 0 ? 0 : clamp(state.difficulty ?? 5, 1, 10),
-    elapsed_days: lastReview ? Math.max(0, round((now.getTime() - lastReview.getTime()) / DAY_MS, 8)) : 0,
-    scheduled_days: Math.max(0, Math.round(Number(state.intervalDays ?? 0) || 0)),
-    learning_steps: Math.max(0, Math.round(Number(state.learningStepIndex ?? 0) || 0)),
+    stability,
+    // A memory state without the FSRS-7 fast trace (Anki's FSRS-6 state without history) starts both traces equal.
+    stabilityFast: isNew ? 0 : storedFastStability > 0 ? storedFastStability : stability,
+    difficulty: isNew ? 0 : clamp(state.difficulty ?? 5, 1, 10),
+    state: TO_FSRS_STATE[phase],
+    scheduleStatus: phase === "new" ? "new" : phase === "review" ? "review" : "learning",
+    dueAt: validDate(state.dueAt, now),
+    // Without a review time, or one stamped after `now` (clock skew between devices), the card counts as just answered.
+    lastReviewAt: isNew ? null : new Date(Math.min(validDate(state.lastReviewedAt, now).getTime(), now.getTime())),
+    cardId: "core-card",
     reps,
     lapses: Math.max(0, Math.round(Number(state.lapses ?? 0) || 0)),
-    state: TO_FSRS_STATE[phase],
-    last_review: lastReview,
+    scheduledDays: Math.max(0, Number(state.intervalDays ?? 0) || 0),
+    learningStep: Math.max(0, Math.round(Number(state.learningStepIndex ?? 0) || 0)),
   };
 }
 
 /** FSRS schedulers are stateless per configuration, so each configuration is built once. */
-const fsrsSchedulers = new Map<string, ReturnType<typeof fsrs>>();
+const fsrsSchedulers = new Map<string, FsrsScheduler>();
 
 function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput) {
   const profile = getSchedulerProfile(deckSettings ?? {});
@@ -229,14 +251,19 @@ function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefi
   let scheduler = fsrsSchedulers.get(key);
   if (!scheduler) {
     if (fsrsSchedulers.size >= 256) fsrsSchedulers.clear();
-    scheduler = fsrs({
-      w: default_w,
-      request_retention: requestRetention,
-      maximum_interval: profile.maximumIntervalDays,
-      enable_fuzz: false,
-      enable_short_term: true,
-      learning_steps: learningSteps,
-      relearning_steps: relearningSteps,
+    scheduler = fsrs7Definition.create({
+      config: {
+        fractionalDays: true,
+        weights: FSRS7_WEIGHTS,
+        enableShortTerm: true,
+        desiredRetention: requestRetention,
+        learningSteps,
+        relearningSteps,
+        // Configured learning steps take precedence over a longer model interval, as in Anki.
+        allowModelOverride: false,
+        enableFuzz: false,
+        maximumInterval: profile.maximumIntervalDays,
+      },
     });
     fsrsSchedulers.set(key, scheduler);
   }
@@ -248,13 +275,29 @@ export function calculateRetrievability(studyState: unknown, now: DateInput = ne
   if (phaseForState(state) === "new" || getStateReps(state) === 0 || Number(state.stability ?? 0) <= 0 || !state.lastReviewedAt) return 0;
   const nowDate = validDate(now, new Date());
   const { scheduler } = createFsrsScheduler(null, state);
-  return round(scheduler.get_retrievability(toFsrsCard(state, nowDate), nowDate, false), 4);
+  const elapsedDays = Math.max(0, scheduler.chrono.difference(validDate(state.lastReviewedAt, nowDate), nowDate));
+  return round(scheduler.model.forgettingCurve(toFsrsCard(state, nowDate), elapsedDays), 4);
 }
 
-function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
-  if (!REVIEW_RATINGS.includes(rating)) throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
-  const variantBonus = wasVariant && (rating === "good" || rating === "easy") ? 4 : 0;
-  return Math.max(0, Math.round(Number(oldXp ?? 0) + RATING_XP[rating] + variantBonus));
+type MemoryStateInput = Pick<ReviewStateInput, "state" | "stability" | "stabilityFast" | "difficulty">;
+
+/** Durability from which a card counts as mature. */
+const MATURE_DURABILITY_DAYS = 21;
+
+/** Days until the card's recall probability falls to 90 %; 0 while it has no memory state yet. */
+export function getDurabilityDays(study: MemoryStateInput): number {
+  const stability = Number(study.stability ?? 0) || 0;
+  if (!study.state || study.state === "new" || stability <= 0) return 0;
+  const stabilityFast = Number(study.stabilityFast ?? 0) || stability;
+  const { scheduler } = createFsrsScheduler(null, {});
+  return round(scheduler.model.nextInterval({ stability, stabilityFast, difficulty: clamp(study.difficulty ?? 5, 1, 10) }, 0.9), 2);
+}
+
+/** Maturity derived from the memory state; never counted separately. */
+export function getMaturityBand(study: MemoryStateInput): MaturityBand {
+  if (!study.state || study.state === "new") return "new";
+  if (study.state !== "review") return "learning";
+  return getDurabilityDays(study) >= MATURE_DURABILITY_DAYS ? "mature" : "young";
 }
 
 function learningProgress(previousState: ReviewState, nextPhase: ReviewSchedulerState, rating: ReviewRating, nextStep: number, now: Date, context: SchedulerContext) {
@@ -299,33 +342,34 @@ function projectFsrsResult(
   now: Date,
   context: SchedulerContext,
   schedulerMeta: ReturnType<typeof createFsrsScheduler>,
-  fsrsInputCard: FsrsCard,
 ): ReviewState {
   const nextPhase = FROM_FSRS_STATE[nextCard.state];
-  const rawIntervalDays = nextCard.scheduled_days;
-  const intervalDays = phaseForState(previousState) === "review" && nextPhase === "review"
-    ? selectEasyDayInterval({
-      rawIntervalDays,
-      elapsedDays: fsrsInputCard.elapsed_days,
-      maximumIntervalDays: schedulerMeta.profile.maximumIntervalDays,
-      now,
-      context: context.easyDaysContext,
-    })
-    : rawIntervalDays;
+  // FSRS-7 schedules fractional days; intervals below one day are shown in minutes.
+  const rawIntervalDays = nextCard.scheduledDays >= 1 ? round(nextCard.scheduledDays, 2) : 0;
+  const calendarDays = Math.round(rawIntervalDays);
   const usesEasyDayCalendar = Boolean(
     context.easyDaysContext
-    && rawIntervalDays >= 3
-    && rawIntervalDays <= 90
+    && calendarDays >= 3
+    && calendarDays <= 90
     && hasEasyDayDifferences(context.easyDaysContext.easyDays),
   );
-  const adjustedDueAt = usesEasyDayCalendar
-    ? addLearningDays(now, intervalDays, context.easyDaysContext ?? undefined)
-    : nextCard.due;
-  const dueAt = (adjustedDueAt ?? nextCard.due).toISOString();
+  const intervalDays = !usesEasyDayCalendar
+    ? rawIntervalDays
+    : phaseForState(previousState) === "review" && nextPhase === "review"
+      ? selectEasyDayInterval({
+        rawIntervalDays,
+        elapsedDays: previousState.lastReviewedAt ? Math.max(0, (now.getTime() - validDate(previousState.lastReviewedAt, now).getTime()) / DAY_MS) : 0,
+        maximumIntervalDays: schedulerMeta.profile.maximumIntervalDays,
+        now,
+        context: context.easyDaysContext,
+      })
+      : calendarDays;
+  const dueAt = (usesEasyDayCalendar
+    ? addLearningDays(now, intervalDays, context.easyDaysContext ?? undefined) ?? nextCard.dueAt
+    : nextCard.dueAt).toISOString();
   const intervalMs = Math.max(0, new Date(dueAt).getTime() - now.getTime());
   const intervalMinutes = intervalDays === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
-  const maturityXp = updateMaturityXp(previousState.maturityXp, rating, Boolean(context.isVariant));
-  const progress = learningProgress(previousState, nextPhase, rating, nextCard.learning_steps, now, context);
+  const progress = learningProgress(previousState, nextPhase, rating, nextCard.learningStep ?? 0, now, context);
 
   return createReviewState({
     ...previousState,
@@ -337,11 +381,11 @@ function projectFsrsResult(
     intervalMinutes,
     difficulty: nextCard.difficulty,
     stability: nextCard.stability,
+    stabilityFast: nextCard.stabilityFast,
     desiredRetention: schedulerMeta.requestRetention,
     reps: nextCard.reps,
     lapses: nextCard.lapses,
-    maturityXp,
-    maturityBand: getMaturityBand(maturityXp),
+    maturityBand: getMaturityBand({ state: nextPhase, stability: nextCard.stability, stabilityFast: nextCard.stabilityFast, difficulty: nextCard.difficulty }),
     lastReviewedAt: now.toISOString(),
     lastRating: rating,
   });
@@ -371,9 +415,8 @@ export function simulateRatingOutcome({
     isVariant: context.isVariant ?? Boolean(variant),
   };
   const schedulerMeta = createFsrsScheduler(deckSettings, state);
-  const fsrsInputCard = toFsrsCard(state, nowDate);
-  const result = schedulerMeta.scheduler.next(fsrsInputCard, nowDate, FSRS_RATINGS[rating]);
-  const nextReviewState = projectFsrsResult(state, result.card, rating, nowDate, variantContext, schedulerMeta, fsrsInputCard);
+  const result = schedulerMeta.scheduler.review({ card: toFsrsCard(state, nowDate), grade: FSRS_RATINGS[rating], now: nowDate });
+  const nextReviewState = projectFsrsResult(state, result.card, rating, nowDate, variantContext, schedulerMeta);
   const interval = intervalParts({
     intervalMinutes: nextReviewState.intervalMinutes,
     intervalDays: nextReviewState.intervalMinutes == null ? nextReviewState.intervalDays : null,
@@ -443,10 +486,6 @@ export function scheduleWithFsrs(previousState: ReviewStateInput, rating: Review
   }).nextReviewState;
 }
 
-export function applyReviewRating(reviewState: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}): ReviewState {
-  return scheduleWithFsrs(reviewState, rating, context);
-}
-
 export function listReviewableCards(deck: Deck): Card[] {
   return (deck.cards ?? []).filter((card) => card.deletedAt === null);
 }
@@ -470,7 +509,7 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
       }
     }
   }
-  const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.study.extra.maturityBand));
+  const matureCards = cards.filter((card) => card.study.extra.maturityBand === "mature");
   const activeVariants = cards
     .flatMap((card) => card.variants ?? [])
     .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false);
@@ -481,8 +520,5 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
     inProgressCards,
     matureCards: matureCards.length,
     activeVariants: activeVariants.length,
-    averageMaturityXp: cards.length
-      ? Math.round(cards.reduce((sum, card) => sum + Number(card.study.extra.maturityXp ?? 0), 0) / cards.length)
-      : 0,
   };
 }

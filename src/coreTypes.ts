@@ -5,7 +5,8 @@ export type DeckSource = "manual" | "anki-apkg";
 export type CardVariantType = "basic";
 export type TransformType = "rephrase";
 export type VariantQualityStatus = "draft" | "active" | "rejected" | "flagged" | "disabled";
-export type MaturityBand = "new" | "learning" | "young" | "mature" | "variant_ready" | "mastered";
+/** Derived from the FSRS memory state: mature from 21 days of durability (days until recall falls to 90 %). */
+export type MaturityBand = "new" | "learning" | "young" | "mature";
 export type ReviewSchedulerState = "new" | "learning" | "review" | "relearning";
 export type CardStatus = "active" | "suspended";
 export type NewReviewOrder = "reviews-first" | "new-first" | "mixed";
@@ -112,7 +113,8 @@ export interface LearningProfileSource {
 
 export interface GlobalLearningDefaults extends LearningSettings {
   learningProfileSource: LearningProfileSource | null;
-  variantThresholdXp: number;
+  /** Durability in days from which a card alternates with its variants. */
+  variantThresholdDays: number;
   maxActiveVariantsPerCard: number;
 }
 
@@ -193,7 +195,7 @@ export interface DeckSettings {
     date: string;
     limit: number;
   } | null;
-  variantThresholdXp: number;
+  variantThresholdDays: number;
   maxActiveVariantsPerCard: number;
   schedulerProfile: SchedulerProfile;
 }
@@ -290,8 +292,9 @@ export interface Note {
 
 export interface CardStudyExtra {
   schedulerVersion: string;
+  /** FSRS-7 fast memory trace; 0 for new cards. */
+  stabilityFast: number;
   desiredRetention: number;
-  maturityXp: number;
   maturityBand: MaturityBand;
   intervalMinutes: number | null;
   learningSuccessCount: number;

@@ -3350,6 +3350,7 @@ button[aria-label] {
 
 .core-deck-tree-container {
   container: core-deck-tree / inline-size;
+  --core-deck-depth-indent: 18px;
 }
 
 
@@ -3761,16 +3762,8 @@ button[aria-label] {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.core-deck-tree-container[data-deck-view="list"] {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  --core-deck-depth-indent: 18px;
-}
-
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-layout { gap: var(--core-space-md); }
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
+.core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-md); }
+.core-deck-tree-container .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
 
 .core-deck-tree-groups {
   display: grid;
@@ -3780,7 +3773,7 @@ button[aria-label] {
 
 .core-deck-tree-group {
   min-width: 0;
-  padding: 6px 12px 9px;
+  padding: 6px;
   border: var(--core-border-width) solid var(--core-border);
   border-radius: var(--core-radius-panel);
   background: var(--core-surface);
@@ -3797,8 +3790,9 @@ button[aria-label] {
   border-radius: inherit;
 }
 
+.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"]:not(:last-child) { margin-block-end: 3px; }
+
 .core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] {
-  margin-block: 0 3px;
   background: color-mix(in srgb, var(--core-deck-group-accent) 9%, var(--core-surface));
   --core-deck-icon-background: var(--core-surface);
 }
@@ -3881,7 +3875,7 @@ button[aria-label] {
 .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
   -moz-column-gap: 0;
        column-gap: 0;
-  padding-inline: 0;
+  padding-inline: 6px;
 }
 .core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-sm); }
 .core-deck-tree-group .core-deck-summary-name,
@@ -3909,7 +3903,8 @@ button[aria-label] {
 }
 
 @container core-deck-tree (max-width: 32rem) {
-  .core-deck-tree-group { padding: 6px; --core-deck-depth-indent: 10px; }
+  .core-deck-tree-group { --core-deck-depth-indent: 10px; }
+  .core-deck-tree-container[data-deck-view="list"] .core-deck-tree-group .core-deck-summary-responsive { padding-inline: 0; }
   .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
   .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
   .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics { grid-template-columns: repeat(3, 2.75rem); width: 8.25rem; }
@@ -5967,7 +5962,7 @@ diesen Check ebenfalls aus. HTML-Ausgaben nie direkt bearbeiten.</li>
 <tr>
 <td>Entscheidungen</td>
 <td><a href="decisions.md"><code>decisions.md</code></a></td>
-<td>angenommene oder abgelöste ADRs mit Status, Kontext, Entscheidung, Konsequenzen und Datum</td>
+<td>geltende ADRs (vorgeschlagen oder angenommen) mit Status, Kontext, Entscheidung, Konsequenzen und Datum</td>
 <td>offene Umsetzungsschritte</td>
 </tr>
 <tr>
@@ -6011,6 +6006,14 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</
 <li><a href="../supabase/migrations/20261008101057_kartenmodell_baseline.sql"><code>../supabase/migrations/20261008101057_kartenmodell_baseline.sql</code></a>: einzige frische Pre-Release-Schemabaseline (Kartenmodell <code>Note</code>/<code>Card</code>); additiv danach <a href="../supabase/migrations/20261010093049_bury_siblings_in_day_counts.sql"><code>20261010093049_bury_siblings_in_day_counts.sql</code></a>.</li>
 <li><a href="../supabase/verify_schema_v1.sql"><code>../supabase/verify_schema_v1.sql</code></a>: ausführbares Struktur-, RLS- und Policy-Gate.</li>
 </ul>
+<h2 id="readme--entscheidungen" class="core-heading-2" tabindex="-1">Entscheidungen <a class="docs-anchor" href="#readme--entscheidungen" aria-label="Link zu Entscheidungen">#</a></h2>
+<p>Ein ADR in <a href="decisions.md"><code>decisions.md</code></a> entsteht nur, wenn alle drei Punkte zutreffen:</p>
+<ul>
+<li>Die Entscheidung betrifft mehrere Module oder Produktbereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).</li>
+<li>Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen und Abwägungen betrifft.</li>
+<li>Ohne Festhalten würde sie wahrscheinlich erneut diskutiert oder versehentlich umgekehrt.</li>
+</ul>
+<p>Nicht in ADRs gehören Layout- und Bedienregeln (<code>specs.md</code>, <code>src/ui/README.md</code>), Modulzuständigkeiten (<code>architecture.md</code>), offene Schritte (<code>todo.md</code>) und Verlauf (<code>history.md</code>, Git). Ändert sich eine Entscheidung, wird ihr Text aktualisiert statt eine Kette aus „teilweise abgelöst durch …“ zu bilden; eine aufgehobene Entscheidung wird gelöscht. Nummern bleiben stabil und werden nicht neu vergeben.</p>
 <h2 id="readme--inventarregeln" class="core-heading-2" tabindex="-1">Inventarregeln <a class="docs-anchor" href="#readme--inventarregeln" aria-label="Link zu Inventarregeln">#</a></h2>
 <ul>
 <li><code>docs/todo.md</code> ist die einzige TODO-Markdown-Datei.</li>
@@ -6018,7 +6021,7 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</
 <li>Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in <code>history.md</code> dokumentiert.</li>
 <li>Historische Roadmaps, Audits und Recherchezwischenstände bleiben über Git erhalten und werden nicht als parallele Dokumente fortgeführt.</li>
 <li>Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.</li>
-<li>Abgelöste Entscheidungen und datierte Nachweise bleiben als solche gekennzeichnet; sie definieren keinen heutigen Produktvertrag.</li>
+<li>Aufgehobene Entscheidungen werden aus <code>decisions.md</code> gelöscht; Git bewahrt sie. Datierte Nachweise in <code>history.md</code> definieren keinen heutigen Produktvertrag.</li>
 </ul>
 </article></main></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");

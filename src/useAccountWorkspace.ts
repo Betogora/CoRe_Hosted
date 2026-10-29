@@ -26,7 +26,7 @@ interface AccountWorkspaceEvents {
 }
 
 /**
- * Supabase session, account-bound workspace start and cloud bootstrap (ADR-024, ADR-038). Every start gets a run id;
+ * Supabase session, account-bound workspace start and cloud bootstrap (ADR-034, ADR-038). Every start gets a run id;
  * a discarded or newer start makes the results of older ones void.
  */
 export function useAccountWorkspace(supabase: SupabaseBrowserClient | undefined, events: AccountWorkspaceEvents) {

@@ -11,7 +11,7 @@ import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { stripHtml } from "../htmlSafety.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
-import { CARD_TABLE_PAGE_SIZE, cardsWithoutVariants, createCardTableModel, createCardTableRow, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import { catalogEntryFromCard, type CardCatalogEntry, type NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
@@ -53,14 +53,6 @@ const deckContentTabs = [
   { value: "cards", label: "Karten", icon: PanelsTopLeft },
   { value: "source", label: "Quelle", icon: FileText },
 ] as const;
-
-function sameSort(left: CardTableSort, right: CardTableSort) {
-  return left.field === right.field && left.direction === right.direction;
-}
-
-function normalizeCardQuery(value: string) {
-  return value.trim().toLocaleLowerCase("de");
-}
 
 const CARD_SEARCH_DEBOUNCE_MS = 250;
 
@@ -726,7 +718,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
           <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten</h3>
           <p className="core-caption font-semibold text-core-muted" data-testid="variant-active-count">{variantReadiness!.activeCount} von {variantReadiness!.maxActive} aktiv</p>
         </div>
-        <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Lernstufe {variantReadiness!.maturityXp} von {variantReadiness!.thresholdXp} XP · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
+        <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Haltbarkeit {variantReadiness!.durabilityDays} von {variantReadiness!.thresholdDays} Tagen · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
         {variants.length > 0 ? (
           <ul className="mt-3 grid divide-y divide-core-border border-y border-core-border">
             {variants.map((variant: CardVariant, index) => {
@@ -990,47 +982,10 @@ export function DecksScreen({
     if (!usesCardPages) {
       return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries });
     }
-    const originalDecks = new Map(libraryDecks.map((deck) => [deck.id, deck]));
-    const baseModel = createCardTableModel(
-      libraryDecks.map((deck) => ({ ...deck, cards: [] })),
-      { now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries },
-    );
-    const normalizedQuery = normalizeCardQuery(deferredQuery);
-    const allGroups = baseModel.allGroups.map((group) => {
-      const candidate = cardPages?.[group.id];
-      const page = candidate && candidate.query === deferredQuery && sameSort(candidate.sort, cardSort) ? candidate : undefined;
-      const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
-      const pageItems = (page?.items ?? []).slice(0, pageSize);
-      const knownTotal = Math.floor(page?.totalCount ?? (normalizedQuery || withoutVariants ? 0 : deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
-      const { items, totalCount } = withoutVariants
-        ? cardsWithoutVariants(pageItems, Math.floor(page?.page ?? 0), pageSize, knownTotal)
-        : { items: pageItems, totalCount: knownTotal };
-      const totalCardCount = Math.max(items.length, totalCount);
-      const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
-      const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
-      const deckMatches = Boolean(normalizedQuery) && normalizeCardQuery(group.path).includes(normalizedQuery);
-      return {
-        ...group,
-        deck: originalDecks.get(group.id) ?? group.deck,
-        cardRows: items.map((entry) => createCardTableRow(entry, { dayStartHour, timeZone })),
-        totalCardCount,
-        page: currentPage,
-        pageCount,
-        pageSize,
-        deckMatches,
-      };
+    return createPagedCardTableModel(libraryDecks, cardPages, {
+      query: deferredQuery, cardSort, cardPageByDeckId, withoutVariants, awaitingPages: Boolean(onRequestCardPage),
+      now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries,
     });
-    const groups = allGroups.filter((group) => (
-      !normalizedQuery
-      || group.deckMatches
-      || group.totalCardCount > 0
-      || Boolean(onRequestCardPage && !cardPages?.[group.id])
-    ));
-    return {
-      allGroups,
-      groups,
-      cardSort,
-    };
   }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages, withoutVariants]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
@@ -1089,7 +1044,7 @@ export function DecksScreen({
       if (current
         && current.page === page
         && current.query === deferredQuery
-        && sameSort(current.sort, cardSort)
+        && sameCardTableSort(current.sort, cardSort)
         && (hasSelectedCard || Boolean(current.loadError))) continue;
       void onRequestCardPage({
         deckId: group.id,

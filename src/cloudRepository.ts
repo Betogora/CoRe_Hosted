@@ -15,8 +15,8 @@ import {
   validateDeckStudySummary,
   validateDeckStudySummaryRows,
   validateDueForecast,
-  validateIdRows,
   validateOfflineManifestRows,
+  requireJsonRecord,
   validateProfileRows,
   variantFromRow,
   type AccountTable,
@@ -39,7 +39,6 @@ const REVISIONED_TABLES = ["decks", "notes", "cards", "card_variants"];
 /** Raw Anki import data: written by imports and re-translation only, last write wins. */
 const UPSERT_TABLES = new Set(["note_type_sources", "note_sources"]);
 const REVISIONED_TABLE_SET = new Set(REVISIONED_TABLES);
-const TABLES_WITH_UPDATED_AT = REVISIONED_TABLE_SET;
 const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at", "sync_change_id", "revision", "updated_by_device_id"]);
 const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "due_at", "last_reviewed_at"]);
 const CARD_STUDY_FIELDS = [
@@ -212,14 +211,14 @@ function conflictValue(row: any = {}) {
   return Object.fromEntries(Object.entries(row).filter(([key]: any) => key !== "user_id"));
 }
 
-function conflictValuesEqual(left: any, right: any) {
-  return jsonValuesEqual(left, right);
+function isTombstoneConflict(localValue: any, remoteValue: any) {
+  return Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
 }
 
 function conflictFieldKeys(localValue: any = {}, remoteValue: any = {}) {
   return [...new Set([...Object.keys(localValue), ...Object.keys(remoteValue)])]
     .filter((field: any) => !CONFLICT_PROTECTED_FIELDS.has(field) && field !== "deleted_at")
-    .filter((field: any) => !conflictValuesEqual(localValue[field], remoteValue[field]))
+    .filter((field: any) => !jsonValuesEqual(localValue[field], remoteValue[field]))
     .sort((left: any, right: any) => ((CONFLICT_FIELD_LABELS as Record<string, string>)[left] ?? left).localeCompare((CONFLICT_FIELD_LABELS as Record<string, string>)[right] ?? right, "de"));
 }
 
@@ -240,7 +239,7 @@ function conflictEntityTitle(row: any = {}) {
 function createConflictProjection(row: any = {}) {
   const localValue = conflictValue(row.local_value ?? {});
   const remoteValue = conflictValue(row.remote_value ?? {});
-  const tombstone = Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
+  const tombstone = isTombstoneConflict(localValue, remoteValue);
   const fields = conflictFieldKeys(localValue, remoteValue).map((field: any) => ({
     key: field,
     label: (CONFLICT_FIELD_LABELS as Record<string, string>)[field] ?? field,
@@ -385,14 +384,6 @@ async function selectKeysetRows(client: any, table: string, userId: string, colu
   return rows;
 }
 
-async function selectRows(client: any, table: AccountTable, userId: string, columns: string = "*"): Promise<any[]> {
-  const data = await selectKeysetRows(client, table, userId, columns);
-  if (columns !== "*") {
-    return validateIdRows(data, table);
-  }
-  return validateAccountRows(table as AccountTable, data);
-}
-
 async function selectRowsByField(client: any, table: AccountTable, userId: string, field: string, values: string[]) {
   const uniqueValues = [...new Set(values.filter(Boolean))];
   const rows: any[] = [];
@@ -511,8 +502,7 @@ export async function loadAccountCloudBootstrap(
     p_max_bytes: Math.min(200 * 1024, Math.max(64 * 1024, Math.floor(maxBytes))),
   });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Account-Bootstrap-Antwort ist ungültig.");
-  const candidate = data as Record<string, unknown>;
+  const candidate = requireJsonRecord(data, "Account-Bootstrap-Antwort ist ungültig.");
   if (!Array.isArray(candidate.decks) || typeof candidate.nextCursor !== "string" || typeof candidate.hasMore !== "boolean" || typeof candidate.confirmedEmpty !== "boolean") {
     throw new Error("Account-Bootstrap-Antwort ist unvollständig.");
   }
@@ -523,8 +513,7 @@ export async function loadAccountCloudBootstrap(
   }
   const profileRows = candidate.profile == null ? [] : validateProfileRows([candidate.profile]);
   const decks = candidate.decks.map((value) => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Account-Bootstrap enthält einen ungültigen Stapel.");
-    const entry = value as Record<string, unknown>;
+    const entry = requireJsonRecord(value, "Account-Bootstrap enthält einen ungültigen Stapel.");
     const [deck] = validateAccountRows("decks", [entry.deck]);
     return { deck: deckFromRow(deck), summary: validateDeckStudySummary(entry.summary) };
   });
@@ -552,15 +541,13 @@ export interface CloudCatalogPage {
 }
 
 function validateCatalogDeltaResponse(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Katalog-Delta-Antwort ist ungültig.");
-  const candidate = value as Record<string, unknown>;
+  const candidate = requireJsonRecord(value, "Katalog-Delta-Antwort ist ungültig.");
   const nextCursor = Number(candidate.nextCursor);
   if (!Number.isSafeInteger(nextCursor) || nextCursor < 0 || !Array.isArray(candidate.changes) || typeof candidate.hasMore !== "boolean") {
     throw new Error("Katalog-Delta-Antwort ist unvollständig.");
   }
   const changes = candidate.changes.map((value) => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Katalog-Delta-Eintrag ist ungültig.");
-    const entry = value as Record<string, unknown>;
+    const entry = requireJsonRecord(value, "Katalog-Delta-Eintrag ist ungültig.");
     const table = String(entry.table) as CatalogCloudTable;
     if (!CATALOG_TABLES.includes(table) || !entry.row || typeof entry.row !== "object" || Array.isArray(entry.row)) {
       throw new Error("Katalog-Delta-Eintrag ist unvollständig.");
@@ -600,8 +587,7 @@ export async function streamAccountCatalogChanges(
 }
 
 function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage {
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Kartenkatalog-Seite ist ungültig.");
-  const candidate = data as Record<string, unknown>;
+  const candidate = requireJsonRecord(data, "Kartenkatalog-Seite ist ungültig.");
   const totalCount = candidate.totalCount == null ? knownTotalCount : Number(candidate.totalCount);
   if (!Array.isArray(candidate.items) || !Number.isSafeInteger(totalCount) || totalCount! < 0 || typeof candidate.hasMore !== "boolean") {
     throw new Error("Kartenkatalog-Seite ist unvollständig.");
@@ -680,8 +666,7 @@ export async function hydrateAccountCards(client: any, cardIds: string[], noteId
   if (ids.length > 50 || noteIdList.length > 50) throw new Error("Höchstens 50 Karten oder Inhalte können gleichzeitig geladen werden.");
   const { data, error } = await client.rpc("hydrate_account_cards", { p_card_ids: ids, p_note_ids: noteIdList });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Kartenkörper-Antwort ist ungültig.");
-  const candidate = data as Record<string, unknown>;
+  const candidate = requireJsonRecord(data, "Kartenkörper-Antwort ist ungültig.");
   const variants = validateAccountRows("card_variants", candidate.variants).map(variantFromRow);
   const variantsByCard = new Map<string, CardVariant[]>();
   for (const variant of variants) variantsByCard.set(variant.cardId, [...(variantsByCard.get(variant.cardId) ?? []), variant]);
@@ -712,8 +697,7 @@ export async function loadDeckOfflineManifest(
     p_include_total: cursor === "",
   });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Offline-Manifest-Antwort ist ungültig.");
-  const candidate = data as Record<string, unknown>;
+  const candidate = requireJsonRecord(data, "Offline-Manifest-Antwort ist ungültig.");
   const totalCount = candidate.totalCount == null ? null : Number(candidate.totalCount);
   if (typeof candidate.nextCursor !== "string" || typeof candidate.hasMore !== "boolean" || (totalCount !== null && (!Number.isSafeInteger(totalCount) || totalCount < 0))) {
     throw new Error("Offline-Manifest-Antwort ist unvollständig.");
@@ -748,8 +732,7 @@ export async function deleteAccountDeckTree(
     p_device_id: deviceId,
   });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Deckbaum-Löschantwort ist ungültig.");
-  const candidate = data as Record<string, unknown>;
+  const candidate = requireJsonRecord(data, "Deckbaum-Löschantwort ist ungültig.");
   if (!Array.isArray(candidate.deletedDeckIds) || candidate.deletedDeckIds.some((id) => typeof id !== "string")) {
     throw new Error("Deckbaum-Löschantwort enthält ungültige Stapel-IDs.");
   }
@@ -776,8 +759,7 @@ export async function listRetranslationCandidates(client: any, currentVersions: 
     p_limit: 100,
   });
   if (error) throw error;
-  if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Neuübersetzungs-Antwort ist ungültig.");
-  const candidate = data as Record<string, unknown>;
+  const candidate = requireJsonRecord(data, "Neuübersetzungs-Antwort ist ungültig.");
   if (typeof candidate.nextCursor !== "string" || typeof candidate.hasMore !== "boolean") throw new Error("Neuübersetzungs-Antwort ist unvollständig.");
   return {
     notes: validateAccountRows("notes", candidate.notes).map(noteFromRow),
@@ -803,10 +785,6 @@ async function selectProfileRows(client: any, userId: any) {
   const { data, error } = await client.from("profiles").select("*").eq("id", userId);
   if (error) throw error;
   return validateProfileRows(data ?? []);
-}
-
-async function selectOptionalRows(client: any, table: any, userId: any, columns: any = "*") {
-  return selectKeysetRows(client, table, userId, columns, { optional: true });
 }
 
 async function selectRowById(client: any, table: any, userId: any, entityId: any, columns: any = "*") {
@@ -876,7 +854,7 @@ async function markConflictForUser(client: any, user: any, input: any = {}, { de
   }
   const persisted = await selectRowById(client, "sync_conflicts", user.id, persistedId);
   if (!persisted) throw new Error("Der Synchronisierungskonflikt konnte nicht bestätigt werden.");
-  return syncConflictFromRow(persisted);
+  return createConflictProjection(persisted);
 }
 
 async function throwRevisionConflict(client: any, user: any, { entityTable, entityId, baseRevision, localValue, remoteValue, deviceId, createdAt }: any) {
@@ -1156,7 +1134,7 @@ async function applyRevisionedRowMutation(client: any, user: any, entityTable: a
       ...row,
       revision: 1,
       updated_by_device_id: deviceId,
-      ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: flushedAt } : {}),
+      updated_at: flushedAt,
     };
     const { data, error } = await client.from(entityTable).insert(candidate).select("*");
     if (!error && data?.[0]) return revisionMutationResult(entityTable, data[0], { applied: true });
@@ -1248,7 +1226,7 @@ async function softDeleteEntityForUser(client: any, user: any, input: any = {}, 
     deleted_at: deletedAt,
     revision: normalizeRevision(baseRevision) + 1,
     updated_by_device_id: deviceId,
-    ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: deletedAt } : {}),
+    updated_at: deletedAt,
   };
   const { data, error } = await client
     .from(entityTable)
@@ -1367,8 +1345,7 @@ export async function loadReimportTargets(client: any, ankiGuids: string[]) {
   for (let offset = 0; offset < guids.length; offset += 2_000) {
     const { data, error } = await client.rpc("load_reimport_targets", { p_guids: guids.slice(offset, offset + 2_000) });
     if (error) throw error;
-    if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Reimport-Antwort ist ungültig.");
-    const candidate = data as Record<string, unknown>;
+    const candidate = requireJsonRecord(data, "Reimport-Antwort ist ungültig.");
     if (!Array.isArray(candidate.cards) || !Array.isArray(candidate.noteTypeSources)) throw new Error("Reimport-Antwort ist unvollständig.");
     notes.push(...validateAccountRows("notes", candidate.notes).map(noteFromRow));
     for (const card of candidate.cards as any[]) {
@@ -1424,7 +1401,7 @@ export async function applyEntityMutationBatch(client: any, mutations: any[], op
       ...validRows[index],
       revision: 1,
       updated_by_device_id: deviceId,
-      ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: flushedAt } : {}),
+      updated_at: flushedAt,
     }));
     try {
       const persisted = await insertRowsReturning(client, entityTable, candidates);
@@ -1472,10 +1449,7 @@ export async function recordAtomicReview(client: any, input: any, { deviceId, mu
     }
     throw error;
   }
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new Error("Die atomare Review-Antwort hatte ein ungültiges Format.");
-  }
-  const response = data as Record<string, unknown>;
+  const response = requireJsonRecord(data, "Die atomare Review-Antwort hatte ein ungültiges Format.");
   const rows = {
     card: validateAccountRows("cards", [response.card])[0],
     variant: response.variant == null ? null : validateAccountRows("card_variants", [response.variant])[0],
@@ -1496,10 +1470,6 @@ export async function upsertAccountCloudProfile(client: any, profile: unknown, {
   const writeTimestamp = requireTimestamp(flushedAt, nowIso, "Flush-Zeitpunkt ist ungültig.");
   await saveCloudProfile(client, requireCompleteProfile(profile), writeTimestamp);
   return { acknowledgedMutationId: resolvedMutationId };
-}
-
-function syncConflictFromRow(row: any) {
-  return createConflictProjection(row);
 }
 
 function conflictTargetKey(row: any) {
@@ -1554,7 +1524,7 @@ async function closeObsoleteConflict(client: any, userId: string, row: any, remo
 
 export async function listAccountSyncConflicts(client: any, { refreshRemote = false, userId }: { refreshRemote?: boolean; userId?: string } = {}) {
   const user = await authenticatedUserForKnownSession(client, userId);
-  const activeRows = (await selectOptionalRows(client, "sync_conflicts", user.id))
+  const activeRows = (await selectKeysetRows(client, "sync_conflicts", user.id, "*", { optional: true }))
     .filter((row: any) => row.status === "open" || row.status === "ignored");
   const rowsToCheck = activeRows.filter((row: any) => REVISIONED_TABLE_SET.has(row.entity_table) && (
     refreshRemote || !rowsHaveSameContent(conflictValue(row.local_value ?? {}), conflictValue(row.remote_value ?? {}), row.entity_table)
@@ -1573,7 +1543,7 @@ export async function listAccountSyncConflicts(client: any, { refreshRemote = fa
   return rows
     .filter((row: any) => row.status === "open" || row.status === "ignored")
     .sort((left: any, right: any) => (statusOrder[left.status] - statusOrder[right.status]) || String(right.created_at).localeCompare(String(left.created_at)))
-    .map(syncConflictFromRow);
+    .map(createConflictProjection);
 }
 
 function normalizeConflictDecision(decision: any = {}, conflictRow: any = {}) {
@@ -1582,7 +1552,7 @@ function normalizeConflictDecision(decision: any = {}, conflictRow: any = {}) {
   const localValue = conflictValue(conflictRow.local_value ?? {});
   const remoteValue = conflictValue(conflictRow.remote_value ?? {});
   const fields = conflictFieldKeys(localValue, remoteValue);
-  const tombstone = Boolean(localValue.deleted_at || remoteValue.deleted_at || Object.keys(localValue).length === 0 || Object.keys(remoteValue).length === 0);
+  const tombstone = isTombstoneConflict(localValue, remoteValue);
 
   if (action !== "merge-fields") return { action, fieldChoices: {}, localValue, remoteValue, fields, tombstone };
   if (tombstone) throw new Error("Gelöschte Inhalte können nicht feldweise zusammengeführt werden.");
@@ -1637,7 +1607,7 @@ async function persistConflictChoice(client: any, user: any, conflictRow: any, n
     created_at: chosen?.created_at ?? currentRemote?.created_at ?? resolvedAt,
     revision: currentRemoteRevision == null ? 1 : currentRemoteRevision + 1,
     updated_by_device_id: deviceId,
-    ...(TABLES_WITH_UPDATED_AT.has(entityTable) ? { updated_at: resolvedAt } : {}),
+    updated_at: resolvedAt,
   };
   if (!currentRemote) {
     const { data, error } = await client.from(entityTable).insert(candidate).select("*");
@@ -1689,7 +1659,7 @@ export async function resolveAccountSyncConflict(client: any, conflictId: any, d
 
   if (conflictRow.status === "resolved") {
     return {
-      conflict: syncConflictFromRow(conflictRow),
+      conflict: createConflictProjection(conflictRow),
       resolvedPage: null,
       resolutionTarget: { table: conflictRow.entity_table, entityId: conflictRow.entity_id, action: normalized.action },
       resolved: true,
@@ -1702,7 +1672,7 @@ export async function resolveAccountSyncConflict(client: any, conflictId: any, d
     : null;
   const updatedConflict = await updateConflictResolution(client, user, conflictRow, normalized, { deviceId, resolvedAt });
   return {
-    conflict: syncConflictFromRow(updatedConflict),
+    conflict: createConflictProjection(updatedConflict),
     resolvedPage: persisted ? {
       table: conflictRow.entity_table,
       entities: projectCloudEntities(conflictRow.entity_table, [persisted]),

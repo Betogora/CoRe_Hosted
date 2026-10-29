@@ -1,4 +1,5 @@
 import { BinaryReader, WireType } from "@bufbuild/protobuf/wire";
+import { bytesToHex } from "./sha1.ts";
 
 interface AnkiCardRequirementConfig {
   cardOrdinal: number;
@@ -74,10 +75,6 @@ function bytesToBase64(bytes: Uint8Array) {
     output += third == null ? "=" : BASE64_ALPHABET[third & 0x3f];
   }
   return output;
-}
-
-function bytesToHex(bytes: Uint8Array) {
-  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function int64String(reader: BinaryReader) {

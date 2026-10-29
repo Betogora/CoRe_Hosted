@@ -180,7 +180,7 @@ const noteHtmlFilter = new FilterXSS({
   },
 });
 
-/** Field HTML of the universal note content (ADR-033): semantic markup only, no layout, fonts or remote media. */
+/** Field HTML of the universal note content (ADR-032): semantic markup only, no layout, fonts or remote media. */
 export function sanitizeNoteHtml(html: unknown) {
   return noteHtmlFilter.process(String(html ?? ""))
     .replace(VOID_TAG_PATTERN, (_match, tag: string, attributes: string) => `<${tag}${attributes.replace(/\s*\/$/, "")} />`)

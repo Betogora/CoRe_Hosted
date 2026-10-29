@@ -1,7 +1,8 @@
-import type { CardStudyState, ReviewRating, ReviewSchedulerState, ReviewState, VariantPerformance } from "../coreTypes.ts";
-import { REVIEW_RATINGS, getMaturityBand, stableContentHash } from "./coreValues.ts";
+import type { CardStudyState, MaturityBand, ReviewRating, ReviewSchedulerState, ReviewState, VariantPerformance } from "../coreTypes.ts";
+import { REVIEW_RATINGS, stableContentHash } from "./coreValues.ts";
 
 type StringMap = Record<string, unknown>;
+const MATURITY_BANDS: readonly MaturityBand[] = ["new", "learning", "young", "mature"];
 type ReviewStateInput = Partial<Omit<ReviewState, "state" | "reps">> & { state?: ReviewSchedulerState | null; reps?: number | null };
 interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "attempts">> { id?: string | null; attempts?: number | null; }
 function objectRecord(value: unknown): StringMap { return value !== null && typeof value === "object" ? value as StringMap : {}; }
@@ -9,16 +10,17 @@ function objectRecord(value: unknown): StringMap { return value !== null && type
 /** Normalizes a flat scheduler state; unknown keys of older snapshots are ignored. */
 export function createReviewState(input: unknown = {}): ReviewState {
   const {
-    schedulerVersion = "fsrs_6_v1",
+    schedulerVersion = "fsrs_7_v1",
     state = null,
     dueAt = new Date().toISOString(),
     intervalDays = 0,
     difficulty = 5,
     stability = 0,
-    desiredRetention = 0.9,
+    stabilityFast = 0,
+    desiredRetention = 0.92,
     reps = null,
     lapses = 0,
-    maturityXp = 0,
+    maturityBand = "new",
     lastReviewedAt = null,
     lastRating = null,
     intervalMinutes = null,
@@ -31,7 +33,6 @@ export function createReviewState(input: unknown = {}): ReviewState {
     learningDayKey = null,
     sourceSchedulerData = null,
   } = objectRecord(input) as ReviewStateInput;
-  const normalizedMaturityXp = Math.max(0, Math.round(Number(maturityXp ?? 0)));
   const normalizedReps = Math.max(0, Math.round(Number(reps ?? 0) || 0));
   return {
     schedulerVersion,
@@ -40,11 +41,11 @@ export function createReviewState(input: unknown = {}): ReviewState {
     intervalDays: Math.max(0, Number(intervalDays) || 0),
     difficulty: Math.min(10, Math.max(1, Number(difficulty ?? 5) || 5)),
     stability: Math.max(0, Number(stability ?? 0) || 0),
-    desiredRetention: Math.min(0.99, Math.max(0.5, Number(desiredRetention ?? 0.9) || 0.9)),
+    stabilityFast: Math.max(0, Number(stabilityFast ?? 0) || 0),
+    desiredRetention: Math.min(0.99, Math.max(0.5, Number(desiredRetention ?? 0.92) || 0.92)),
     reps: normalizedReps,
     lapses: Math.max(0, Math.round(Number(lapses) || 0)),
-    maturityXp: normalizedMaturityXp,
-    maturityBand: getMaturityBand(normalizedMaturityXp),
+    maturityBand: MATURITY_BANDS.includes(maturityBand as MaturityBand) ? maturityBand as MaturityBand : "new",
     lastReviewedAt,
     lastRating,
     intervalMinutes: intervalMinutes == null ? null : Math.max(0, Math.round(Number(intervalMinutes) || 0)),
@@ -74,8 +75,8 @@ export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
     lastRating: state.lastRating,
     extra: {
       schedulerVersion: state.schedulerVersion,
+      stabilityFast: state.stabilityFast,
       desiredRetention: state.desiredRetention,
-      maturityXp: state.maturityXp,
       maturityBand: state.maturityBand,
       intervalMinutes: state.intervalMinutes,
       learningSuccessCount: state.learningSuccessCount,

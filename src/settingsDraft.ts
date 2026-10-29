@@ -18,7 +18,7 @@ export interface GlobalCardSettingsDraft {
 
 export type DeckLearningSettingsDraft = ReturnType<typeof normalizeLearningSettings> & {
   coreMode: DeckSettings["coreMode"];
-  variantThresholdXp: number;
+  variantThresholdDays: number;
   maxActiveVariantsPerCard: number;
   learningProfileSource: LearningProfileSource | null;
 };
@@ -51,12 +51,12 @@ export function createGlobalCardSettingsDraft(
 }
 
 export function createDeckLearningSettingsDraft(
-  settings: LearningSettingsInput & Partial<Pick<DeckLearningSettingsDraft, "coreMode" | "variantThresholdXp" | "maxActiveVariantsPerCard" | "learningProfileSource">>,
+  settings: LearningSettingsInput & Partial<Pick<DeckLearningSettingsDraft, "coreMode" | "variantThresholdDays" | "maxActiveVariantsPerCard" | "learningProfileSource">>,
 ): DeckLearningSettingsDraft {
   return {
     ...normalizeLearningSettings(settings),
     coreMode: settings.coreMode === "off" ? "off" : "on",
-    variantThresholdXp: Number.isFinite(Number(settings.variantThresholdXp)) ? Number(settings.variantThresholdXp) : 121,
+    variantThresholdDays: Number.isFinite(Number(settings.variantThresholdDays)) ? Number(settings.variantThresholdDays) : 21,
     maxActiveVariantsPerCard: Number.isFinite(Number(settings.maxActiveVariantsPerCard)) ? Number(settings.maxActiveVariantsPerCard) : 2,
     learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
   };

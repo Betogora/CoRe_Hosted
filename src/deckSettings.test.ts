@@ -107,7 +107,7 @@ test("global defaults keep their copied values when the template is updated or d
     defaultLearningSettings: {
       ...profile.settings,
       learningProfileSource: { id: profile.id, contentVersion: profile.contentVersion },
-      variantThresholdXp: 181,
+      variantThresholdDays: 60,
       maxActiveVariantsPerCard: 3,
     },
   });
@@ -121,7 +121,7 @@ test("global defaults keep their copied values when the template is updated or d
   assert.deepEqual(updated.schedulerPreferences.defaultLearningSettings.learningProfileSource, { id: profile.id, contentVersion: 2 });
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.newCardsPerDay, 40);
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.learningProfileSource, null);
-  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.variantThresholdXp, 181);
+  assert.equal(deleted.schedulerPreferences.defaultLearningSettings.variantThresholdDays, 60);
 });
 
 test("direct deck edits clear copied-profile provenance and preserve deck-only fields", () => {
