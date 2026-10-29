@@ -5918,7 +5918,7 @@ diesen Check ebenfalls aus. HTML-Ausgaben nie direkt bearbeiten.</li>
 <tr>
 <td>Entscheidungen</td>
 <td><a href="decisions.md"><code>decisions.md</code></a></td>
-<td>angenommene oder abgelöste ADRs mit Status, Kontext, Entscheidung, Konsequenzen und Datum</td>
+<td>geltende ADRs (vorgeschlagen oder angenommen) mit Status, Kontext, Entscheidung, Konsequenzen und Datum</td>
 <td>offene Umsetzungsschritte</td>
 </tr>
 <tr>
@@ -5962,6 +5962,14 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</
 <li><a href="../supabase/migrations/20261008101057_kartenmodell_baseline.sql"><code>../supabase/migrations/20261008101057_kartenmodell_baseline.sql</code></a>: einzige frische Pre-Release-Schemabaseline (Kartenmodell <code>Note</code>/<code>Card</code>); additiv danach <a href="../supabase/migrations/20261010093049_bury_siblings_in_day_counts.sql"><code>20261010093049_bury_siblings_in_day_counts.sql</code></a>.</li>
 <li><a href="../supabase/verify_schema_v1.sql"><code>../supabase/verify_schema_v1.sql</code></a>: ausführbares Struktur-, RLS- und Policy-Gate.</li>
 </ul>
+<h2 id="readme--entscheidungen" class="core-heading-2" tabindex="-1">Entscheidungen <a class="docs-anchor" href="#readme--entscheidungen" aria-label="Link zu Entscheidungen">#</a></h2>
+<p>Ein ADR in <a href="decisions.md"><code>decisions.md</code></a> entsteht nur, wenn alle drei Punkte zutreffen:</p>
+<ul>
+<li>Die Entscheidung betrifft mehrere Module oder Produktbereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).</li>
+<li>Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen und Abwägungen betrifft.</li>
+<li>Ohne Festhalten würde sie wahrscheinlich erneut diskutiert oder versehentlich umgekehrt.</li>
+</ul>
+<p>Nicht in ADRs gehören Layout- und Bedienregeln (<code>specs.md</code>, <code>src/ui/README.md</code>), Modulzuständigkeiten (<code>architecture.md</code>), offene Schritte (<code>todo.md</code>) und Verlauf (<code>history.md</code>, Git). Ändert sich eine Entscheidung, wird ihr Text aktualisiert statt eine Kette aus „teilweise abgelöst durch …“ zu bilden; eine aufgehobene Entscheidung wird gelöscht. Nummern bleiben stabil und werden nicht neu vergeben.</p>
 <h2 id="readme--inventarregeln" class="core-heading-2" tabindex="-1">Inventarregeln <a class="docs-anchor" href="#readme--inventarregeln" aria-label="Link zu Inventarregeln">#</a></h2>
 <ul>
 <li><code>docs/todo.md</code> ist die einzige TODO-Markdown-Datei.</li>
@@ -5969,7 +5977,7 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</
 <li>Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in <code>history.md</code> dokumentiert.</li>
 <li>Historische Roadmaps, Audits und Recherchezwischenstände bleiben über Git erhalten und werden nicht als parallele Dokumente fortgeführt.</li>
 <li>Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.</li>
-<li>Abgelöste Entscheidungen und datierte Nachweise bleiben als solche gekennzeichnet; sie definieren keinen heutigen Produktvertrag.</li>
+<li>Aufgehobene Entscheidungen werden aus <code>decisions.md</code> gelöscht; Git bewahrt sie. Datierte Nachweise in <code>history.md</code> definieren keinen heutigen Produktvertrag.</li>
 </ul>
 </article></main></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");

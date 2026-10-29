@@ -13,8 +13,8 @@ dieselben Stufen; eckige Flächen bleiben `rounded-none`. Normale Rahmen nutzen
 `--core-border-width` (1 px), hervorgehobene Rahmen `border-strong` (2 px).
 `shadow-soft` und `shadow-raised` besitzen themeabhängige Werte; `shadow-inset`
 und `shadow-selection` unterscheiden Vertiefung und fachliche Auswahl von
-Elevation. Sichtbare DOM-Fokusringe bleiben gemäß dem bestehenden Vertrag
-unterdrückt. Die Auswahlmarkierung ist kein Fokusring.
+Elevation. Sichtbare Fokusrahmen erscheinen nur bei Tastaturfokus (siehe
+unten). Die Auswahlmarkierung ist kein Fokusring.
 
 Die sechs Schriftgrößen 12, 14, 16, 22, 28 und 36 px sowie ihre Zeilenhöhen
 liegen in `--core-type-*` und `--core-leading-*`; die vorhandenen Rollen bleiben
@@ -35,7 +35,7 @@ Die interaktive Design-Arbeitsfläche liegt in [`../../docs/ui-elements.html`](.
 - Überschriften: `core-heading-1`, `core-heading-2`, `core-heading-3`.
 - Fließtext: `core-body-large`, `core-body`, `core-caption`.
 - Labels: `core-control-label`, `core-status-label`, `core-emphasis`.
-- DOM-Fokus und Tastaturführung bleiben global erhalten. Eine globale Regel zeigt bei Tastaturfokus (`:focus-visible`) einen einheitlichen Rahmen; Maus- und programmatischer Fokus, Tailwind-Ringe und `focus-within`-Rahmen bleiben unsichtbar (ADR-040). Komponenten setzen keine eigenen Fokusrahmen. Disabled, Placeholder und fachliche Auswahl werden weiterhin aus Theme-Tokens abgeleitet.
+- DOM-Fokus und Tastaturführung bleiben global erhalten. Eine globale Regel zeigt bei Tastaturfokus (`:focus-visible`) einen einheitlichen Rahmen; Maus- und programmatischer Fokus, Tailwind-Ringe und `focus-within`-Rahmen bleiben unsichtbar (WCAG 2.4.7: Fokus sichtbar). Komponenten setzen keine eigenen Fokusrahmen. Disabled, Placeholder und fachliche Auswahl werden weiterhin aus Theme-Tokens abgeleitet.
 
 ## Actions
 

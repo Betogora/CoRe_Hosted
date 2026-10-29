@@ -52,7 +52,7 @@ Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre, unvers
 | Architektur und Invarianten | [`architecture.md`](architecture.md) | Modulgrenzen, Domäneninvarianten, persistierte Begriffe und implementierte APIs | Produktstatus, Release-Nachweise |
 | Aktueller Status | [`status.md`](status.md) | heutiger verifizierter Ist-Stand und bekannte Lücken | historisch grüne Läufe, offene Planung |
 | Betrieb und Runbooks | [`operations.md`](operations.md) | lokale Gates, Release, Smoke, Rollback, Auth, Restore und Störungen | ausgefüllte Release-Protokolle |
-| Entscheidungen | [`decisions.md`](decisions.md) | angenommene oder abgelöste ADRs mit Status, Kontext, Entscheidung, Konsequenzen und Datum | offene Umsetzungsschritte |
+| Entscheidungen | [`decisions.md`](decisions.md) | geltende ADRs (vorgeschlagen oder angenommen) mit Status, Kontext, Entscheidung, Konsequenzen und Datum | offene Umsetzungsschritte |
 | Verlauf | [`history.md`](history.md) | abgeschlossene Pakete, datierte Abnahmen, Release-IDs und Smoke-Protokolle | heutiger Vertrag, offene Roadmap |
 | Offene Roadmap | [`todo.md`](todo.md) | ausschließlich offene Aufgaben, Gates und geparkte Themen | abgeschlossene Checklisten, Releasehistorie |
 
@@ -87,6 +87,16 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - [`../supabase/migrations/20261008101057_kartenmodell_baseline.sql`](../supabase/migrations/20261008101057_kartenmodell_baseline.sql): einzige frische Pre-Release-Schemabaseline (Kartenmodell `Note`/`Card`); additiv danach [`20261010093049_bury_siblings_in_day_counts.sql`](../supabase/migrations/20261010093049_bury_siblings_in_day_counts.sql).
 - [`../supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql): ausführbares Struktur-, RLS- und Policy-Gate.
 
+## Entscheidungen
+
+Ein ADR in [`decisions.md`](decisions.md) entsteht nur, wenn alle drei Punkte zutreffen:
+
+- Die Entscheidung betrifft mehrere Module oder Produktbereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).
+- Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen und Abwägungen betrifft.
+- Ohne Festhalten würde sie wahrscheinlich erneut diskutiert oder versehentlich umgekehrt.
+
+Nicht in ADRs gehören Layout- und Bedienregeln (`specs.md`, `src/ui/README.md`), Modulzuständigkeiten (`architecture.md`), offene Schritte (`todo.md`) und Verlauf (`history.md`, Git). Ändert sich eine Entscheidung, wird ihr Text aktualisiert statt eine Kette aus „teilweise abgelöst durch …“ zu bilden; eine aufgehobene Entscheidung wird gelöscht. Nummern bleiben stabil und werden nicht neu vergeben.
+
 ## Inventarregeln
 
 - `docs/todo.md` ist die einzige TODO-Markdown-Datei.
@@ -94,4 +104,4 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in `history.md` dokumentiert.
 - Historische Roadmaps, Audits und Recherchezwischenstände bleiben über Git erhalten und werden nicht als parallele Dokumente fortgeführt.
 - Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.
-- Abgelöste Entscheidungen und datierte Nachweise bleiben als solche gekennzeichnet; sie definieren keinen heutigen Produktvertrag.
+- Aufgehobene Entscheidungen werden aus `decisions.md` gelöscht; Git bewahrt sie. Datierte Nachweise in `history.md` definieren keinen heutigen Produktvertrag.

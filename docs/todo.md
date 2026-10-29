@@ -1,9 +1,87 @@
 # CoRe TODO
 
-Stand: 2026-10-25
+Stand: 2026-10-29
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
+
+## P1: Reife aus FSRS-7 statt XP (R0–R7)
+
+Anlass: Die Lernstufe (XP) zählt nur Klicks und ignoriert FSRS. Bei
+Zielerinnerung 0,90 erscheint die erste Variante einer immer mit `Gut`
+bewerteten Karte erst nach etwa 15 Jahren; Karten mit Fehlern werden früher
+reif, importierte Anki-Karten starten mit 0 XP. Ziel: XP entfällt
+vollständig, Reife und Variantenbereitschaft kommen aus dem
+FSRS-Gedächtniszustand, FSRS-7 wird Standard. Reihenfolge = Abhängigkeit;
+R2–R5 liegen auf einem Branch und werden erst nach R5 gemergt.
+Entscheidungsvorschläge (vor R2 bestätigen):
+
+- ER1 XP entfällt samt `maturityXp`, Bonus für Varianten, Bändern, Spalten
+  und Anzeige „XP“; der Begriff „Lernstufe“ entfällt.
+- ER2 Reife wird aus der Stabilität S abgeleitet und nicht gespeichert: `Neu`,
+  `Lernen` (Lern-/Wiederlernphase), `Jung` (S < 7 Tage), `Reif`
+  (7 ≤ S < 21), `Gefestigt` (S ≥ 21). „Reif“ heißt überall S ≥ 7 Tage:
+  Stapelzahlen, Statistik und Prüfungsfortschritt verwenden dieselbe Funktion.
+- ER3 Varianten erscheinen in der Reviewphase, wenn die letzte Bewertung nicht
+  `Nochmal` war und S die Stapelschwelle erreicht; Stapelschwelle `früher`
+  (3 Tage), `Standard` (7 Tage), `später` (21 Tage). Bei FSRS-7 zählt die
+  langfristige Stabilität, nicht `stabilityFast`. Die Rotation bleibt.
+- ER4 FSRS-7 aus der jeweils neuesten stabilen `ts-fsrs`-Hauptversion (keine
+  Beta) mit offiziellen Standardparametern; Fuzz bleibt aus (Easy Days
+  ausgenommen). Vorläufig 2026-10-29: Lernschritte folgen den
+  `ts-fsrs`-Standardwerten (heute 1 und 10 Minuten, Wiederlernen 10 Minuten);
+  offen: Die heutigen Profilschritte stammen aus dem Scheduler vor FSRS, nicht
+  aus `ts-fsrs`; zu bestätigen, auch für Intensiv und Entspannt.
+- ER5 Vorhandene Lernstände: vollständiger Cutover ohne Migrationscode in der
+  App. Entweder Neuberechnung aus den Reviewereignissen durch ein einmaliges
+  Skript außerhalb des App-Codes, das danach gelöscht wird, oder Reset nach
+  ADR-034. Offen.
+- ER6 Entschieden 2026-10-29: `Leicht` beendet bei neuen Karten die
+  Lernphase sofort (heutiger Code, specs §6.5); ADR-009 ist korrigiert.
+
+R0 und R1 sind erledigt (Markierung `Neuplanung P1`, ADR-044 vorgeschlagen,
+`decisions.md` mit 20 geltenden ADRs), Details in [`history.md`](history.md).
+
+- [ ] **R2 FSRS-7:** `ts-fsrs` auf die neueste stabile Version; FSRS-7-Modell
+      statt veraltetem `fsrs()`; entfernte APIs ersetzen
+      (`get_retrievability`, `elapsed_days`); `stabilityFast` in
+      `ReviewState`/`CardStudyState`; Easy Days gegen die neue Fuzz-Spanne
+      prüfen; APKG-Import spielt die Anki-Historie mit FSRS-7 ab (Anki-eigene
+      FSRS-6-Werte nur ohne Historie); Prüfungsprognose messen (FSRS-7 je
+      Simulation); Node 24 in `engines`, CI und Vercel; ER4 Lernschritte.
+- [ ] **R3 Reifemodell:** Eine Funktion für Reifeband und
+      Variantenbereitschaft aus dem Lernstand (ER2, ER3). XP-Logik,
+      `variantThresholdXp` und Reifebänder entfernen; Stapeleinstellung auf
+      Stabilitätstage umstellen. Nutzer: `selectReviewVariant`,
+      `describeVariantReadiness`, Stapelzahlen (`matureCount`),
+      Prüfungsplanung (gefestigt, Methode „Variante“), Statistikkategorien.
+      Importierte Anki-Karten sind damit sofort richtig eingestuft.
+- [ ] **R4 Oberfläche und Texte:** Kartendetail (Stabilität statt
+      „Lernstufe X von Y XP“), Auswahl der Stapelschwelle, Einschalt-Dialog,
+      Hilfe zu S und Variantenbereitschaft, Statistikkategorien, Simulator;
+      `scripts/uiCatalogDemos.tsx`; visuelle Pflichtmatrix der betroffenen
+      Ansichten.
+- [ ] **R5 Datenbank-Cutover:** `maturity_xp` und `maturity_band` entfallen,
+      `stability_fast` kommt hinzu; Katalog, `mature_count` und
+      `young`/`mature` leiten Reife aus der Stabilitätsspalte ab (gleiche
+      Grenzen wie R3, Verify-SQL); Stapeleinstellungen ohne alten
+      Schwellenschlüssel; ER5 ausführen. `db:types:generate`,
+      `db:types:check`, `test:rls:local`, `test:e2e:local`; Remote-Reset nur
+      unter den Bedingungen aus ADR-034.
+- [ ] **R6 Tests:** Tabellengetriebener Golden-Test der Beispielketten
+      (Bewertungspfad × Zielerinnerung → Intervalle, S, D, Reifeband, erster
+      Kontakt mit Variante) mit FSRS-7; XP-Tests entfernen; Fixtures
+      (`worldCapitals`, Showcase-Daten), `coreVariantService`- und
+      Prüfungsplanungstests, E2E `core-stabilization` anpassen.
+      `npm run gate:push`, `npm run performance:measure:local`.
+- [ ] **R7 Specs und Doku:** Neuer Spec-Abschnitt „Wann Varianten
+      erscheinen“ mit Tabelle der Klickpfade je Zielerinnerung und
+      Stapelschwelle (Werte aus dem Golden-Test); Glossar „Reife“ und
+      „Stabilität“; Prüfungsfortschritt „gefestigt“ in die Prüfungs-Specs;
+      `architecture.md`, `status.md`; Neutralisierungshinweise aus R0
+      entfernen; ADR-044 `angenommen`, ADR-009 entfernt, ADR-039 angepasst;
+      TODO-Punkt „KI-Varianten vorausschauend erzeugen“ auf
+      Stabilitätsprognose umformulieren; `history.md`; diesen Block löschen.
 
 ## Offene Abnahmen der Kartenmodell-Roadmap
 

@@ -400,7 +400,7 @@ test("[Vertrag: Tastaturfokus bei Navigation und Overlays] Fokus folgt Seiten- u
 
   const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen" });
   await learnNavigation.focus();
-  // Reaching the control by keyboard shows the focus frame (ADR-040); headings and card content stay frameless.
+  // Reaching the control by keyboard shows the focus frame (src/ui/README.md); headings and card content stay frameless.
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");
   await expect(learnNavigation).toBeFocused();

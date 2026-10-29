@@ -21,7 +21,7 @@ import { compileSafeTemplate, type SafeTemplateAstNode } from "./safeTemplate.ts
 import { scheduleWithFsrs } from "./scheduler.ts";
 import { sha1DigestHex } from "./sha1.ts";
 
-// ADR-033: versioned translators turn Anki note types into the universal CoRe content.
+// ADR-032: versioned translators turn Anki note types into the universal CoRe content.
 // The pipeline is pure apart from reading media for nothing but its index; it is wired into the app in the cutover (K4.9).
 
 interface TranslatorId { id: string; version: number }

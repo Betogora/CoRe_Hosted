@@ -21,9 +21,9 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `libraryModel.ts`, `deckHierarchy.ts` | Stapel-/Kartentabellenprojektion und rein visuelle Tiefenkappung |
 | `examPlanning.ts`, `examPlanSettings.ts` | Prüfungsplanung (FSRS-Kontaktmodell, dynamische Einführung, Themenfolge und relative Lernzeit je Klausur), Sitzungsstapel und validierte Planablage im Profil (ADR-042) |
 | `statisticsModel.ts`, `studyHeatmapModel.ts` | begrenzte Statistikreihen, Tageszähler, Streak und Kalenderprojektionen |
-| `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |
+| `reviewService.ts`, `scheduler.ts`, `easyDays.ts`, `siblingBurying.ts` | **Neuplanung P1:** Queue, Bewertung, FSRS-6, deterministische Intervallentlastung und die Begrabregel |
 | `cardVariantBatch.ts`, `useCardVariantBatch.ts` | Stapelgenerierung: Auswahl der ersten Karten ohne aktive Variante über Katalogseiten und gebündelte Hydrierung, Eignungsprüfung, sequentielle Erzeugung mit Abbruch und Stopp bei kartenübergreifenden Fehlern; der Hook hält den einen app-weiten Lauf und dessen Rückmeldung |
-| `coreVariantService.ts` | Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Lernstufen-Bereitschaft, Variantenquelle, Variantenwahl im Review, Variantendarstellung sowie Abschalten, Melden, Reaktivieren und Löschen einzelner Varianten |
+| `coreVariantService.ts` | **Neuplanung P1:** Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Lernstufen-Bereitschaft, Variantenquelle, Variantenwahl im Review, Variantendarstellung sowie Abschalten, Melden, Reaktivieren und Löschen einzelner Varianten |
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung einschließlich Bildverdeckung (Bild als SHA-1-benanntes Medium), Batchzustand und getrennte lokale Medienvorbereitung |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
 | `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |
@@ -52,7 +52,7 @@ Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Re
 
 - Ein Inhalt (`Note`) speichert Felder mit Rollen, Interaktion, Tags, Medienzuordnung (Name → SHA-1), Herkunft und Markierung genau einmal. Seine Abfrageschlüssel bestimmen die Kartenmenge; jede Karte (`Card`) trägt Stapel, Abfrageschlüssel, Status, Anki-Flagge, eigenen Lernstand und Varianten. Reverse-Richtungen, Lückengruppen und reale Anki-Karten sind Geschwister desselben Inhalts und dürfen in verschiedenen Stapeln liegen.
 - KI-Varianten in `card.variants[]` bleiben an ihre Karte gebunden, haben keinen eigenen Lernstand oder Termin und zählen nicht zusätzlich für Queue oder Bestand. Im Review werden sie als transienter Frage-/Antwort-Inhalt mit den Zusatz- und Quellenfeldern des Inhalts dargestellt.
-- `selectReviewVariant` wählt ausschließlich aus Stapeleinstellungen und Lernstand: Nur bei `coreMode: "on"`, Phase `review`, letzter Bewertung ungleich `again` und `study.extra.maturityXp >= variantThresholdXp` rotiert `study.reps` über die Karte selbst und ihre ältesten `maxActiveVariantsPerCard` aktiven Varianten. Es gibt keinen gespeicherten Rückfall- oder Bevorzugungszustand; ein Fehler führt über Wiederlernen und gesunkene Lernstufe zur Originalkarte.
+- **Neuplanung P1:** `selectReviewVariant` wählt ausschließlich aus Stapeleinstellungen und Lernstand: Nur bei `coreMode: "on"`, Phase `review`, letzter Bewertung ungleich `again` und `study.extra.maturityXp >= variantThresholdXp` rotiert `study.reps` über die Karte selbst und ihre ältesten `maxActiveVariantsPerCard` aktiven Varianten. Es gibt keinen gespeicherten Rückfall- oder Bevorzugungszustand; ein Fehler führt über Wiederlernen und gesunkene Lernstufe zur Originalkarte.
 - Inhaltsänderungen laufen über `planNoteContentChange`: unveränderter bereinigter Inhalt meldet `changed: false` und schreibt nichts; neue Abfragen werden neue Karten, entfallende Karten werden erst nach Bestätigung soft-gelöscht. Ändert sich der bereinigte Frage- oder Antworttext einer behaltenen Karte, markiert die Planung deren aktive KI-Varianten als veraltet (`isActive: false`, `meta.outdated: true`, Revision +1); `replaceOutdatedVariants` ersetzt sie bei der Neuerzeugung durch eine neue Variante und soft-löscht die veralteten. Löschen betrifft immer den Inhalt mit allen Geschwistern; Undo stellt die vorherigen Datensätze mit fortlaufenden Revisionen wieder her. Die Markierung erhöht nur die Entitätsrevision, nicht `contentRevision`.
 - Der Lernstand besitzt mit `studyRevision` eine eigene Konfliktgrenze. Reviews erhöhen sie atomar über `record_review_atomic`, Inhalts- und Kartenänderungen die Entitätsrevision; ein Review auf einem Gerät und eine Inhaltskorrektur auf einem anderen kollidieren daher nicht.
 - Darstellung, Sanitization und URL-Auflösung bleiben getrennt. Scripts und externe Ressourcen werden nicht ausgeführt; lokale Darstellung verwendet nur `blob:`/`data:`, Sandbox-CSP und eingebettete Basisschriften. Gerendertes HTML wird nie persistiert.
@@ -64,8 +64,8 @@ Der AppRoute enthält View sowie zulässigen Deck-, Karten-, Erstellungs- und Re
 
 ## Inhalte und Karten
 
-`coreTypes.ts` definiert `Note`, `Card` und `CardStudyState` nach ADR-032 bis
-ADR-036. Queue-Werte des Lernstands sind direkt typisiert, weitere Lern- und
+`coreTypes.ts` definiert `Note`, `Card` und `CardStudyState` nach ADR-032, ADR-034
+bis ADR-036. Queue-Werte des Lernstands sind direkt typisiert, weitere Lern- und
 Variantenwerte liegen typisiert in `study.extra`. Scheduler und Queue arbeiten
 auf der flachen Sicht `ReviewState`; `reviewStateFromCardStudy` und
 `cardStudyFromReviewState` bilden beide Formen verlustfrei aufeinander ab.
