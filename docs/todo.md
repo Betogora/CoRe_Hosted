@@ -5,91 +5,53 @@ Stand: 2026-10-29
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-## P1: Reife aus FSRS-7 statt XP (R0–R7)
+## P1: Reife aus FSRS-7 statt XP (R4–R7)
 
-Anlass: Die Lernstufe (XP) zählt nur Klicks und ignoriert FSRS. Bei
-Zielerinnerung 0,90 erscheint die erste Variante einer immer mit `Gut`
-bewerteten Karte erst nach etwa 15 Jahren; Karten mit Fehlern werden früher
-reif, importierte Anki-Karten starten mit 0 XP. Ziel: XP entfällt
-vollständig, Reife und Variantenbereitschaft kommen aus dem
-FSRS-Gedächtniszustand, FSRS-7 wird Standard. Reihenfolge = Abhängigkeit;
-R2–R5 liegen auf einem Branch und werden erst nach R5 gemergt.
-Entscheidungsvorschläge (vor R2 bestätigen):
+R0–R3 sind erledigt, Details in [`history.md`](history.md): FSRS-7 ist der
+einzige Scheduler, XP ist entfernt, Reife folgt der Haltbarkeit (Tage, bis die
+Erinnerung auf 90 % fällt). Die mit `Neuplanung P1` markierten Aussagen in
+`specs.md`, `architecture.md` und `status.md` bleiben bis R7 nicht bindend.
 
-- ER1 XP entfällt samt `maturityXp`, Bonus für Varianten, Bändern, Spalten
-  und Anzeige „XP“; der Begriff „Lernstufe“ entfällt.
-- ER2 Reife wird aus der Stabilität S abgeleitet und nicht gespeichert: `Neu`,
-  `Lernen` (Lern-/Wiederlernphase), `Jung` (S < 7 Tage), `Reif`
-  (7 ≤ S < 21), `Gefestigt` (S ≥ 21). „Reif“ heißt überall S ≥ 7 Tage:
-  Stapelzahlen, Statistik und Prüfungsfortschritt verwenden dieselbe Funktion.
-- ER3 Varianten erscheinen in der Reviewphase, wenn die letzte Bewertung nicht
-  `Nochmal` war und S die Stapelschwelle erreicht; Stapelschwelle `früher`
-  (3 Tage), `Standard` (7 Tage), `später` (21 Tage). Bei FSRS-7 zählt die
-  langfristige Stabilität, nicht `stabilityFast`. Die Rotation bleibt.
-- ER4 FSRS-7 aus der jeweils neuesten stabilen `ts-fsrs`-Hauptversion (keine
-  Beta) mit offiziellen Standardparametern; Fuzz bleibt aus (Easy Days
-  ausgenommen). Entschieden 2026-10-29: Alle drei Profile nutzen die
-  `ts-fsrs`-Standardwerte (1 und 10 Minuten, Wiederlernen 10 Minuten); die
-  bisherigen Schritte stammten aus dem Scheduler vor FSRS.
-- ER7 Entschieden 2026-10-29: Konfigurierte Lernschritte haben Vorrang vor dem
-  Modellintervall (`allowModelOverride: false`, wie Anki). Eine neue Karte
-  durchläuft bei `Gut` 1 → 10 Minuten; erst danach plant FSRS-7. R2 nutzt
-  noch die Übersteuerung und wird mit R3 umgestellt.
-- ER9 Standard-Zielerinnerung neuer Stapel und Profile: Anki, `ts-fsrs` und
-  `py-fsrs` nutzen 0,90; das Anki-Handbuch rät zu Werten zwischen dem
-  berechneten Minimum und 0,97. 0,94 verkürzt die Abstände guter Karten auf ein Drittel bis ein Fünftel und
-  kostet im ersten Jahr rund 40 % mehr Wiederholungen. Offen.
-- ER10 `Leicht` auf einer neuen Karte ergibt unter FSRS-7 bei 0,90 etwa 54,
-  bei 0,94 etwa 19 Tage (FSRS-6: rund 8). Anki behandelt `Leicht` gleich
-  (Lernphase sofort beendet). Offen, ob CoRe dem folgt.
-- ER8 FSRS-7 rechnet je Bewertung etwa 13 µs in der Bibliothek; die
-  Prüfungsplanung braucht für 200 Tage, 5.000 neue und 2.000 bekannte Karten
-  im Median 2.054 statt 821 ms (längster Block unverändert 65 ms).
-  Entschieden 2026-10-29: vorerst hinnehmen, später optimieren (siehe
-  `Betrieb`).
+Die getroffenen Entscheidungen stehen in ADR-044. Offen:
+
 - ER5 Vorhandene Lernstände: vollständiger Cutover ohne Migrationscode in der
-  App. Entweder Neuberechnung aus den Reviewereignissen durch ein einmaliges
-  Skript außerhalb des App-Codes, das danach gelöscht wird, oder Reset nach
-  ADR-034. Offen.
-- ER6 Entschieden 2026-10-29: `Leicht` beendet bei neuen Karten die
-  Lernphase sofort (heutiger Code, specs §6.5); ADR-009 ist korrigiert.
+  App. Entweder Neuberechnung aller Lernstände aus den Reviewereignissen mit
+  FSRS-7 durch ein einmaliges Skript außerhalb des App-Codes, das danach
+  gelöscht wird, oder Reset nach ADR-034. Bis dahin gelten Lernstände ohne
+  schnelle Spur als „schnelle Spur = Stabilität“. Vor R5 entscheiden.
 
-R0 und R1 sind erledigt (Markierung `Neuplanung P1`, ADR-044 vorgeschlagen,
-`decisions.md` mit 20 geltenden ADRs), Details in [`history.md`](history.md).
-R2 (FSRS-7) und R3 (Reife aus der Haltbarkeit) sind erledigt, Details in
-[`history.md`](history.md).
-- [ ] **R4 Oberfläche und Texte:** Kartendetail (Stabilität statt
-      „Lernstufe X von Y XP“), Auswahl der Stapelschwelle, Einschalt-Dialog,
-      Hilfe zu S und Variantenbereitschaft, Statistikkategorien, Simulator;
-      `scripts/uiCatalogDemos.tsx`; visuelle Pflichtmatrix der betroffenen
-      Ansichten.
-- [ ] **R5 Datenbank-Cutover:** `maturity_xp` und `maturity_band` entfallen,
-      `stability_fast` kommt hinzu; Katalog, `mature_count` und
-      `young`/`mature` leiten Reife aus der Stabilitätsspalte ab (gleiche
-      Grenzen wie R3, Verify-SQL); Stapeleinstellungen ohne alten
-      Schwellenschlüssel; ER5 ausführen. `db:types:generate`,
-      `db:types:check`, `test:rls:local`, `test:e2e:local`; Remote-Reset nur
-      unter den Bedingungen aus ADR-034.
+- [ ] **R4 Oberfläche und Texte:** Kartendetail („Haltbarkeit X von Y
+      Tagen“), Auswahl der Stapelschwelle, Einschalt-Dialog, Hilfe (Erklärung
+      von `S` als Haltbarkeit statt „Zeit bis 90 %“, FSRS-7 statt FSRS-6,
+      Variantenbereitschaft), Statistikkategorien (die historischen bleiben
+      Anki-kompatibel nach Intervall, weil Reviewereignisse keine schnelle Spur
+      tragen; Beschriftung „Intervall ab 21 Tagen“ statt „Reif“), Simulator,
+      Lernschritt-Labels der Profile; `scripts/uiCatalogDemos.tsx`; visuelle Pflichtmatrix der
+      betroffenen Ansichten.
+- [ ] **R5 Datenbank-Cutover:** `list_account_card_study_states` liefert
+      `stability_fast` als Pflichtfeld (die Validierung erlaubt es bis dahin
+      leer); `card_study_states.maturity_xp` entfällt; Katalog und
+      Stapelzahlen lesen weiter das von der App geschriebene Reifeband aus
+      `study_extra`. ER5 ausführen. `db:types:generate`, `db:types:check`,
+      `test:rls:local`, `test:e2e:local`; Migration vor dem App-Deployment auf
+      dem gehosteten Supabase; Remote-Reset nur unter den Bedingungen aus
+      ADR-034.
 - [ ] **R6 Tests:** Tabellengetriebener Golden-Test der Beispielketten
-      (Bewertungspfad × Zielerinnerung → Intervalle, S, D, Reifeband, erster
-      Kontakt mit Variante) mit FSRS-7; XP-Tests entfernen; Fixtures
-      (`worldCapitals`, Showcase-Daten), `coreVariantService`- und
-      Prüfungsplanungstests, E2E `core-stabilization` anpassen.
+      (Bewertungspfad × Zielerinnerung 0,90/0,92/0,94 → Abstände, Haltbarkeit,
+      Reifeband, erster Kontakt mit Variante); Fixtures (`worldCapitals`,
+      Showcase-Daten) und E2E `core-stabilization` gegen die neue Reife prüfen.
       `npm run gate:push`, `npm run performance:measure:local`.
 - [ ] **R7 Specs und Doku:** Neuer Spec-Abschnitt „Lernverlauf einer Karte“
-      für Bearbeiter, der das Scheduling sichtbar macht: je Lage der Karte
-      (neu, Lernschritt, Wiederholung, Wiederlernen) was jede Bewertung
-      bewirkt; Beispielketten als visuelle Zeitleisten (Klick → Abstand →
-      nächster Kontakt, Phase farbig, Reife und erste Variante markiert) und
-      zusätzlich als Tabellen je Zielerinnerung; darin „Wann Varianten
-      erscheinen“ je Stapelschwelle. Alle Werte stammen aus dem Golden-Test
-      (R6) und werden mit `npm run docs:build` erzeugt, nicht von Hand
-      gepflegt; die Darstellung kommt in die Specs-HTML. Glossar „Reife“ und
-      „Stabilität“; Prüfungsfortschritt „gefestigt“ in die Prüfungs-Specs;
-      `architecture.md`, `status.md`; Neutralisierungshinweise aus R0
-      entfernen; ADR-044 `angenommen`, ADR-009 entfernt, ADR-039 angepasst;
-      TODO-Punkt „KI-Varianten vorausschauend erzeugen“ auf
-      Stabilitätsprognose umformulieren; `history.md`; diesen Block löschen.
+      für Bearbeiter: je Lage der Karte (neu, Lernschritt, Wiederholung,
+      Wiederlernen), was jede Bewertung bewirkt; Beispielketten als visuelle
+      Zeitleisten (Klick → Abstand → nächster Kontakt, Phase farbig, Reife und
+      erste Variante markiert) und als Tabellen je Zielerinnerung; darin „Wann
+      Varianten erscheinen“ je Stapelschwelle. Alle Werte stammen aus dem
+      Golden-Test (R6) und werden mit `npm run docs:build` erzeugt. Glossar
+      „Reife“ und „Haltbarkeit“; „gefestigt“ in die Prüfungs-Specs;
+      `architecture.md`, `status.md`; Markierungen `Neuplanung P1` entfernen;
+      ADR-044 auf Haltbarkeit präzisieren und `angenommen`, ADR-009 löschen,
+      ADR-015 und ADR-039 anpassen; `history.md`; diesen Block löschen.
 
 ## Offene Abnahmen der Kartenmodell-Roadmap
 
@@ -119,18 +81,22 @@ geglättet.
 
 ## Betrieb
 
-- [ ] **Prüfungsplanung unter FSRS-7 beschleunigen:** Seit FSRS-7 dauert
-      `createExamPortfolioForecast` für 200 Tage, 5.000 neue und 2.000
-      bekannte Karten im Median 2.054 statt 821 ms (`npm run benchmark:exams`,
-      2026-10-29); der längste Hauptthread-Block bleibt bei 65 ms. Die
-      Bibliothek braucht etwa 13 µs je Bewertung, unser Wrapper etwa 3,5 µs.
-      Ansätze: weniger simulierte Kontakte (Kohorten gröber bündeln,
-      Zukunftskontakte jenseits des Horizonts abschneiden), Schema-Prüfung von
-      `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem
-      Bedarf. Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark
-      vorher/nachher, `npm run performance:measure:local`.
-- [ ] **Hosted-Smoke nach den Migrationen vom 2026-10-10:** `npm run test:beta:hosted`
-      mit dem dedizierten Testaccount gegen `https://core-hosted.vercel.app`.
+- [ ] **Hosted-Smoke:** Der letzte `npm run test:beta:hosted` lief am
+      2026-10-10. Seitdem kamen die Migrationen für die Planungs-RPC (10-12),
+      Online-Zusammenfassungen und -Mindmaps (10-17) und Profilformat 2 und 3
+      (10-24, 10-25) hinzu; nach R5 gemeinsam mit dem Testaccount gegen
+      `https://core-hosted.vercel.app` wiederholen.
+- [ ] **Prüfungsplanung beschleunigen:** Seit FSRS-7 und den simulierten
+      Lernschritten dauert `createExamPortfolioForecast` für 200 Tage, 5.000
+      neue und 2.000 bekannte Karten im Median 2.680 statt 821 ms
+      (`npm run benchmark:exams`, 2026-10-29; gemeinsame Stapel 2.207 statt
+      398 ms); der längste Hauptthread-Block bleibt bei 66 ms. Die Bibliothek
+      braucht etwa 13 µs je Bewertung. Ansätze: weniger simulierte Kontakte
+      (Kohorten gröber bündeln, Lernschritte desselben Tages zusammenfassen,
+      Kontakte jenseits des Horizonts abschneiden), Schema-Prüfung von
+      `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem Bedarf.
+      Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark vorher/nachher,
+      `npm run performance:measure:local`.
 
 ## Später
 
@@ -144,14 +110,15 @@ geglättet.
   ADR-011.
 - KI-Varianten vorausschauend erzeugen: Bei eingeschaltetem CoRe-Modus erzeugt
   CoRe Varianten im Hintergrund und gesammelt für die Karten, die in den nächsten
-  Tagen die Lernstufe des Stapels erreichen, statt beim Einschalten den ganzen
-  Stapel zu bearbeiten. Verteilt die Last über die Tage und
+  Tagen die Haltbarkeitsschwelle des Stapels erreichen, statt beim Einschalten
+  den ganzen Stapel zu bearbeiten. Verteilt die Last über die Tage und
   verbraucht nichts für ungelernte Karten. Löst die Stapelaktion des
   Proof of Concept automatisch aus. Braucht eine Ergänzung zu ADR-011.
-- KI-Routen in `npm run dev`: `fitzbert` bedient `/api/ai/*` lokal per
-  Vite-Plugin statt über `vercel dev`. Vor dem ersten Release oder wenn weitere
-  Entwickler lokal mit KI arbeiten, entscheiden und dann `operations.md`
-  anpassen.
+- Persönliche FSRS-Parameteroptimierung (mit `ts-fsrs` 6 und
+  `@open-spaced-repetition/binding` im Browser möglich).
+- KI-Routen in `npm run dev`: Ein Vite-Plugin bedient `/api/ai/*` lokal statt
+  `vercel dev`. Vor dem ersten Release oder wenn weitere Entwickler lokal mit KI
+  arbeiten, entscheiden und dann `operations.md` anpassen.
 - Bild einer eigenen Bildverdeckung im Karteneditor austauschen.
 - Flaggen als Feature: je Karte eine von sieben Farben wie in Anki (importiert
   und synchronisiert bereits als `anki_flag`, bisher unsichtbar). Umfang:
@@ -164,7 +131,6 @@ geglättet.
   zusätzlich einen 6-stelligen Code zum Eintippen, weil der Link auf Mobilgeräten
   oft im falschen Browser landet. Google erst nach Entscheidung über den
   OAuth-Prüfprozess und den Datenschutztext; sonst Code und Flag entfernen.
-
-## Prüfungsplanung: verbleibende Themenanbindung
-
-- [ ] Semantische Themenzuordnung innerhalb ungegliederter Stapel entwerfen. Aktuell bilden Unterstapel die Themen; eine spätere Zuordnung braucht explizite, prüfbare Themengrenzen und darf Lernstände nicht ändern.
+- Prüfungsplanung: semantische Themenzuordnung innerhalb ungegliederter Stapel.
+  Heute bilden Unterstapel die Themen; eine spätere Zuordnung braucht
+  explizite, prüfbare Themengrenzen und darf Lernstände nicht ändern.
