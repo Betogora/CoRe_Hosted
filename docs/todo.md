@@ -31,12 +31,17 @@ Entscheidungsvorschläge (vor R2 bestätigen):
   ausgenommen). Entschieden 2026-10-29: Alle drei Profile nutzen die
   `ts-fsrs`-Standardwerte (1 und 10 Minuten, Wiederlernen 10 Minuten); die
   bisherigen Schritte stammten aus dem Scheduler vor FSRS.
-- ER7 Mit dem FSRS-7-Standard `allowModelOverride` übernimmt ein längeres
-  Modellintervall den Lernschritt: `Gut` auf einer neuen Karte führt bei
-  Zielerinnerung 0,90 direkt in die Wiederholungsphase (rund 5 Tage),
-  `Schwer` auf rund 14 Stunden; `Nochmal` bleibt beim 1-Minuten-Schritt. So
-  in R2 umgesetzt; zu bestätigen, Alternative ist das Abschalten der
-  Übersteuerung (dann 1 und 10 Minuten wie bisher).
+- ER7 Entschieden 2026-10-29: Konfigurierte Lernschritte haben Vorrang vor dem
+  Modellintervall (`allowModelOverride: false`, wie Anki). Eine neue Karte
+  durchläuft bei `Gut` 1 → 10 Minuten; erst danach plant FSRS-7. R2 nutzt
+  noch die Übersteuerung und wird mit R3 umgestellt.
+- ER9 Standard-Zielerinnerung neuer Stapel und Profile: Anki, `ts-fsrs` und
+  `py-fsrs` nutzen 0,90; das Anki-Handbuch rät zu Werten zwischen dem
+  berechneten Minimum und 0,97. 0,94 halbiert die ersten Abstände etwa und
+  kostet im ersten Jahr rund 40 % mehr Wiederholungen. Offen.
+- ER10 `Leicht` auf einer neuen Karte ergibt unter FSRS-7 bei 0,90 etwa 54,
+  bei 0,94 etwa 19 Tage (FSRS-6: rund 8). Anki behandelt `Leicht` gleich
+  (Lernphase sofort beendet). Offen, ob CoRe dem folgt.
 - ER8 FSRS-7 rechnet je Bewertung etwa 13 µs in der Bibliothek; die
   Prüfungsplanung braucht für 200 Tage, 5.000 neue und 2.000 bekannte Karten
   im Median 2.054 statt 821 ms (längster Block unverändert 65 ms).
@@ -78,9 +83,15 @@ R2 (FSRS-7) liegt auf dem Branch `claude/p1-r2-fsrs7`.
       (`worldCapitals`, Showcase-Daten), `coreVariantService`- und
       Prüfungsplanungstests, E2E `core-stabilization` anpassen.
       `npm run gate:push`, `npm run performance:measure:local`.
-- [ ] **R7 Specs und Doku:** Neuer Spec-Abschnitt „Wann Varianten
-      erscheinen“ mit Tabelle der Klickpfade je Zielerinnerung und
-      Stapelschwelle (Werte aus dem Golden-Test); Glossar „Reife“ und
+- [ ] **R7 Specs und Doku:** Neuer Spec-Abschnitt „Lernverlauf einer Karte“
+      für Bearbeiter, der das Scheduling sichtbar macht: je Lage der Karte
+      (neu, Lernschritt, Wiederholung, Wiederlernen) was jede Bewertung
+      bewirkt; Beispielketten als visuelle Zeitleisten (Klick → Abstand →
+      nächster Kontakt, Phase farbig, Reife und erste Variante markiert) und
+      zusätzlich als Tabellen je Zielerinnerung; darin „Wann Varianten
+      erscheinen“ je Stapelschwelle. Alle Werte stammen aus dem Golden-Test
+      (R6) und werden mit `npm run docs:build` erzeugt, nicht von Hand
+      gepflegt; die Darstellung kommt in die Specs-HTML. Glossar „Reife“ und
       „Stabilität“; Prüfungsfortschritt „gefestigt“ in die Prüfungs-Specs;
       `architecture.md`, `status.md`; Neutralisierungshinweise aus R0
       entfernen; ADR-044 `angenommen`, ADR-009 entfernt, ADR-039 angepasst;
