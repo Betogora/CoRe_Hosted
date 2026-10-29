@@ -29,7 +29,7 @@ function statsCard(id: string, front: string, back: string, createdAt?: string, 
 
 function fixture() {
   const card = statsCard("card_stats", "Welche Aufgabe hat der Hippocampus?", "Gedächtniskonsolidierung", "2026-06-01T08:00:00.000Z", {
-    state: "review", dueAt: "2026-07-08T08:00:00.000Z", intervalDays: 30, difficulty: 6, stability: 25, reps: 5,
+    state: "review", dueAt: "2026-07-08T08:00:00.000Z", intervalDays: 30, difficulty: 6, stability: 25, reps: 5, maturityBand: "young",
   });
   const parent = createCoreDeck({ id: "deck_parent", name: "Medizin", source: "manual", cards: [] });
   const child = createCoreDeck({
@@ -54,6 +54,8 @@ test("statistics aggregate a parent scope once and keep every public series boun
   assert.equal(result.summary.totalDurationMs, 6_000);
   assert.equal(result.activity.reduce((sum, point) => sum + point.learning + point.relearning + point.young + point.mature, 0), 4);
   assert.equal(result.status.activeVariants, 1);
+  // The card status follows the stored maturity band, not the Anki interval category of the review history.
+  assert.deepEqual(result.status.rows.map(({ label, count }) => [label, count]), [["Neu", 0], ["Lernen", 0], ["Jung", 1], ["Reif", 0]]);
   assert.equal(result.planning.dueTomorrow, 1);
   assert.equal(result.studyHeatmap.forecastCountsByDay.get("2026-07-08"), 1);
   assert.equal("difficultCards" in result, false);

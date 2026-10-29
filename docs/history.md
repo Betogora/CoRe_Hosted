@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Reife aus FSRS (P1 R4): Oberfläche und Texte
+
+- Hilfe: FSRS-7 statt FSRS-6, `S` wird als Haltbarkeit (Tage bis 90 % Abrufwahrscheinlichkeit) erklärt, Varianten ab der Haltbarkeitsschwelle des Stapels, „Gut“ führt bei neuen Karten nach 10 Minuten zum zweiten Kontakt, „Leicht“ beendet die Lernphase.
+- Statistik: Die Kategorien der Reviewhistorie und der Planung bleiben Anki-kompatibel nach Intervall und heißen „Intervall unter 21 Tagen“ und „Intervall ab 21 Tagen“. Das Statusdiagramm zählt lokal wie in der Cloud das gespeicherte Reifeband (`Neu`, `Lernen`, `Jung`, `Reif`); vorher zählte es lokal nach Intervall und neue Karten als „Lernen“.
+- Statistik: Das Diagramm „Antwortknöpfe“ gruppiert nach Knopf und färbt nach Kategorie wie „Wiederholungen“, damit die langen Kategorienamen in der umbrechenden Legende statt auf der schmalen Achse stehen. Das Statusdiagramm färbt nach Reifeband statt nach Position; „Neu“ und „Lernen“ hatten vorher dieselbe Farbe.
+- Simulator: Schnellauswahl „+1 Min.“ für den ersten Lernschritt.
+- Kartendetail, Stapelschwelle, Einschalt-Dialog und Lernschritt-Labels waren mit R3 umgestellt. ER5 entschieden: Neuberechnung aus den Reviewereignissen in R5.
+- Verifiziert: `npm test` (856/856, neu: Statusdiagramm folgt dem Reifeband), `npm run typecheck`, `npm run build`, `npm run check:docs`; visuelle Prüfung von Statistik, Hilfe und Simulator im UI-Katalog bei 320, 390, 1280 und 1440 px in Light und Dark. Nicht geprüft: 360 und 430 px, 200 % Zoom, die App mit Cloud-Snapshot (braucht Anmeldung).
+
 ## 2026-10-29 — Reife aus FSRS (P1 R3): Haltbarkeit statt XP
 
 - XP entfällt vollständig (Bewertungspunkte, Varianten-Bonus, `maturityXp`, `variantThresholdXp`, sechs XP-Bänder). Reife leitet `scheduler.ts` aus dem FSRS-7-Gedächtniszustand ab: Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt (`getDurabilityDays`); Bänder `new`, `learning` (Lern- und Wiederlernphase), `young` und `mature` ab 21 Tagen. Die rohe Stabilität eignet sich nicht, weil sie nach einem Fehler hoch bleibt, während die schnelle Spur und damit die Haltbarkeit einbrechen.

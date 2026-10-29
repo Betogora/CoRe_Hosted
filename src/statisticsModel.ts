@@ -1,4 +1,4 @@
-import type { Card, CardVariant, Deck, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
+import type { Card, CardVariant, Deck, MaturityBand, ReviewEvent, ReviewRating, ReviewState } from "./coreTypes.ts";
 import { reviewStateFromCardStudy } from "./coreModel.ts";
 import { dayKeyFromIndex, dayKeyIndex, learningDayIndexFromLocalTime, normalizeDayStartHour, shiftDayKey } from "./learningDay.ts";
 import { calculateRetrievability } from "./scheduler.ts";
@@ -98,7 +98,7 @@ export interface StatisticsProjection {
     cards: number;
     suspendedCards: number;
     deletedCards: number;
-    rows: Array<{ key: string; label: string; count: number; percent: number }>;
+    rows: Array<{ key: MaturityBand; label: string; count: number; percent: number }>;
   };
   intervals: { points: StatisticsDistributionPoint[]; averageDays: number; medianDays: number; percentile95Days: number };
   fsrs: { difficulty: StatisticsDistributionPoint[]; stability: StatisticsDistributionPoint[]; retrievability: StatisticsDistributionPoint[] };
@@ -130,7 +130,9 @@ type Histogram = { counts: Map<number, number>; total: number; sum: number; max:
 
 const DAY_MS = 86_400_000;
 const PERIOD_DAYS = { "30d": 30, "90d": 90, "365d": 365 } as const;
-const CATEGORY_LABELS: Record<StatisticsReviewCategory, string> = { learning: "Lernen", relearning: "Wiederlernen", young: "Jung", mature: "Reif" };
+const CATEGORY_LABELS: Record<StatisticsReviewCategory, string> = { learning: "Lernen", relearning: "Wiederlernen", young: "Intervall unter 21 Tagen", mature: "Intervall ab 21 Tagen" };
+const STATUS_LABELS: Record<MaturityBand, string> = { new: "Neu", learning: "Lernen", young: "Jung", mature: "Reif" };
+const STATUS_KEYS = Object.keys(STATUS_LABELS) as MaturityBand[];
 const CATEGORIES = Object.keys(CATEGORY_LABELS) as StatisticsReviewCategory[];
 const RATINGS: ReviewRating[] = ["again", "hard", "good", "easy"];
 const SHORT_DAY_FORMATTER = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "short", timeZone: "UTC" });
@@ -342,7 +344,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
   const previousRetention = retentionAggregate();
   const allRetention = retentionAggregate();
   const retentionByDeck = new Map<string, RetentionAggregate>();
-  const status = new Map<string, number>([["new", 0], ["learning", 0], ["relearning", 0], ["young", 0], ["mature", 0]]);
+  const status = new Map(STATUS_KEYS.map((key) => [key, 0]));
   const intervals = histogram();
   const stability = histogram();
   const difficultyCounts = Array.from({ length: 10 }, () => 0);
@@ -364,7 +366,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
 
   function addCurrentState(deckId: string, state: ReviewState) {
     activeVariants += 1;
-    status.set(category(state), (status.get(category(state)) ?? 0) + 1);
+    status.set(state.maturityBand, (status.get(state.maturityBand) ?? 0) + 1);
     const interval = Math.max(0, finite(state.intervalDays));
     if (input.period === "all" || interval <= PERIOD_DAYS[input.period]) addHistogram(intervals, interval);
     const difficulty = finite(state.difficulty);
@@ -527,7 +529,6 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
       let retrievabilityCumulative = 0;
       const retrievability = retrievabilityCounts.map((count, index) => ({ key: `${index * 5}-${(index + 1) * 5}`, label: `${index * 5}–${(index + 1) * 5} %`, count, cumulativePercent: percentage(retrievabilityCumulative += count, retrievabilityEligible) }));
       const selectedCell = retentionCell(selectedRetention.youngRemembered + selectedRetention.matureRemembered, selectedRetention.youngTotal + selectedRetention.matureTotal);
-      const statusLabels: Record<string, string> = { new: "Neu", learning: "Lernen", relearning: "Wiederlernen", young: "Jung", mature: "Reif" };
       const deckRows = scopeDeckIds.map((id) => {
         const review = deckReviews.get(id) ?? { reviewCount: 0, positive: 0, again: 0 };
         const retained = retentionByDeck.get(id) ?? retentionAggregate();
@@ -565,7 +566,7 @@ export function createStatisticsAccumulator(decks: Deck[], input: StatisticsSele
         addedCards: added,
         studyHeatmap,
         planning: { points: planning, overdue, dueTomorrow, dueInHorizon: planning.reduce((sum, point) => sum + point.total, 0), dailyWorkload: Math.round(dailyWorkload * 10) / 10 },
-        status: { activeVariants, cards, suspendedCards, deletedCards, rows: [...status].map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeVariants) })) },
+        status: { activeVariants, cards, suspendedCards, deletedCards, rows: [...status].map(([key, count]) => ({ key, label: STATUS_LABELS[key], count, percent: percentage(count, activeVariants) })) },
         intervals: { points: distribution(intervals, input.period === "all" ? Math.max(1, intervals.max) : PERIOD_DAYS[input.period], 60, "Tage"), averageDays: intervals.total ? Math.round((intervals.sum / intervals.total) * 10) / 10 : 0, medianDays: percentile(intervals, 0.5), percentile95Days: percentile(intervals, 0.95) },
         fsrs: { difficulty, stability: distribution(stability, Math.max(1, stability.max), 40, "Tage"), retrievability },
         hourly: hours.map(({ success, ...row }) => ({ ...row, successPercent: percentage(success, row.reviews) })),
@@ -670,14 +671,13 @@ export function mergeAccountStatisticsSnapshot(
     countsByDay,
     forecastCountsByDay: new Map(Object.entries(snapshotValue.forecastByDay).map(([key, value]) => [key, value.total])),
   });
-  const statusCounts = {
+  const statusCounts: Record<MaturityBand, number> = {
     new: snapshotValue.cards.new,
     learning: snapshotValue.cards.learning,
     mature: snapshotValue.cards.mature,
     young: Math.max(0, snapshotValue.cards.total - snapshotValue.cards.suspended - snapshotValue.cards.new - snapshotValue.cards.learning - snapshotValue.cards.mature),
   };
   const activeCount = Math.max(0, snapshotValue.cards.total - snapshotValue.cards.suspended);
-  const statusLabels: Record<string, string> = { new: "Neu", learning: "Lernen", young: "Jung", mature: "Reif" };
   const ratingMap = new Map(snapshotValue.ratings.map((row) => [`${row.category}:${row.rating}`, row.count]));
   const ratings = CATEGORIES.map((key) => {
     const row = { category: key, label: CATEGORY_LABELS[key], again: 0, hard: 0, good: 0, easy: 0, total: 0, successPercent: 0 } satisfies StatisticsRatingPoint;
@@ -760,7 +760,7 @@ export function mergeAccountStatisticsSnapshot(
       cards: snapshotValue.cards.total,
       suspendedCards: snapshotValue.cards.suspended,
       deletedCards: snapshotValue.status.deletedItems,
-      rows: Object.entries(statusCounts).map(([key, count]) => ({ key, label: statusLabels[key], count, percent: percentage(count, activeCount) })),
+      rows: STATUS_KEYS.map((key) => ({ key, label: STATUS_LABELS[key], count: statusCounts[key], percent: percentage(statusCounts[key], activeCount) })),
     },
     intervals: snapshotValue.intervals,
     fsrs: snapshotValue.fsrs,

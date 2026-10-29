@@ -49,6 +49,7 @@ import { StatisticsScreenContent } from "../src/screens/StatisticsScreen.tsx";
 import { SimulatorScreen } from "../src/screens/SimulatorScreen.tsx";
 import { HelpScreen } from "../src/screens/HelpScreen.tsx";
 import { projectStatistics, type StatisticsSelection } from "../src/statisticsModel.ts";
+import { getMaturityBand } from "../src/scheduler.ts";
 import { createMenuModel } from "../src/menuModel.ts";
 import { createCoreRepository } from "../src/coreRepository.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "../src/learningProfiles.ts";
@@ -422,7 +423,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     return { conflicts: conflicts.current };
   }, []);
   const statisticsDecks = React.useMemo(() => {
-    const cards = Array.from({ length: 8 }, (_, index) => ({ ...createBasicNote("catalog-statistics", `Frage ${index + 1}`, "Antwort").cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", dueAt: `2026-10-${String(3 + index).padStart(2, "0")}T12:00:00Z`, intervalDays: 3 + index * 5, stability: 5 + index * 10, difficulty: 2 + index, reps: 6 })) }));
+    const cards = Array.from({ length: 8 }, (_, index) => ({ ...createBasicNote("catalog-statistics", `Frage ${index + 1}`, "Antwort").cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", dueAt: `2026-10-${String(3 + index).padStart(2, "0")}T12:00:00Z`, intervalDays: 3 + index * 5, stability: 5 + index * 10, difficulty: 2 + index, reps: 6, maturityBand: getMaturityBand({ state: "review", stability: 5 + index * 10, difficulty: 2 + index }) })) }));
     return [createCoreDeck({ id: "catalog-statistics", name: "Welt-Hauptstädte", source: "manual", cards, reviewEvents: Array.from({ length: 28 }, (_, index) => {
       const item = cards[index % cards.length]; const answeredAt = `2026-09-${String(3 + index).padStart(2, "0")}T12:00:00Z`;
       return { id: `catalog-review-${index}`, userId: "catalog", deckId: "catalog-statistics", cardId: item.id, variantId: null, rating: (["again", "hard", "good", "easy"] as const)[index % 4], answeredAt, responseTimeMs: 1800 + index * 100, schedulerBefore: { card: { state: "review", intervalDays: 3 + index } }, schedulerAfter: {}, flags: {}, createdAt: answeredAt };

@@ -43,10 +43,9 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.doesNotMatch(markup, /Scrolle durch die Schritte|Das Diagramm bleibt stehen/);
   assert.match(markup, /So arbeitet ein Spaced-Repetition-Scheduler/);
   assert.match(markup, /alle Reviews einschließlich mehrerer Abrufe am selben Tag/);
-  assert.match(markup, /21 Modellparameter/);
-  assert.match(markup, /offiziellen 21 Standardparametern/);
+  assert.match(markup, /FSRS-7 mit den offiziellen Standardparametern/);
   assert.match(markup, /persönliche Optimierung der Parameter[^.]+noch nicht aktiviert/);
-  assert.match(markup, /zweiten Kontakt nach 15 Minuten/);
+  assert.match(markup, /zweiten Kontakt nach 10 Minuten/);
   assert.match(markup, /höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/);
   assert.match(markup, /erst ab der Haltbarkeit des Stapels/);
   assert.match(markup, /Nach einem Fehler fragt CoRe wieder die Originalkarte ab/);
@@ -63,7 +62,7 @@ test("renders scroll stories for active recall and spaced repetition", () => {
   assert.match(markup, /x\. Wiederholung · Variante/);
   assert.match(markup, /„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet/);
   assert.match(markup, /Erst dann kommt eine Variante als neuer Punkt hinzu/);
-  assert.match(markup, /01 · Grundidee[\s\S]*02 · Erste Wiederholung[\s\S]*03 · Bewertung[\s\S]*04 · Ausreichende Stabilität[\s\S]*05 · D[\s\S]*06 · R[\s\S]*07 · S/);
+  assert.match(markup, /01 · Grundidee[\s\S]*02 · Erste Wiederholung[\s\S]*03 · Bewertung[\s\S]*04 · Ausreichende Haltbarkeit[\s\S]*05 · D[\s\S]*06 · R[\s\S]*07 · S/);
   assert.doesNotMatch(markup, /Nochmal · S sehr kurz|Schwer · S kurz|Gut · S länger|Leicht · S am längsten/);
   assert.match(markup, /keine garantierte Produktionsschwelle/);
   assert.match(markup, /href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/);
