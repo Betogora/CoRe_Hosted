@@ -83,9 +83,9 @@ function decimal(value: unknown, fallback: number, min: number, max: number) {
 
 function normalizeLearningSteps(profile: LearningSettingsInput["schedulerProfile"] = {}) {
   const rawSteps = Array.isArray(profile?.learningStepsMinutes) ? profile.learningStepsMinutes : null;
-  const source = rawSteps ?? [5, 15];
+  const source = rawSteps ?? [1, 10];
   const first = wholeNumber(source[0], 5, 1, 720);
-  const second = wholeNumber(source[1], Math.max(15, first * 3), first, 720);
+  const second = wholeNumber(source[1], Math.max(10, first * 3), first, 720);
   return [first, second];
 }
 
@@ -107,8 +107,8 @@ const presetDefinitions = {
         settingsVersion: 2,
         presetId: "standard",
         desiredRetention: 0.9,
-        learningStepsMinutes: [5, 15],
-        relearningStepMinutes: 5,
+        learningStepsMinutes: [1, 10],
+        relearningStepMinutes: 10,
         maximumIntervalDays: 1000,
       },
     },
@@ -130,8 +130,8 @@ const presetDefinitions = {
         settingsVersion: 2,
         presetId: "intensive",
         desiredRetention: 0.94,
-        learningStepsMinutes: [3, 10],
-        relearningStepMinutes: 3,
+        learningStepsMinutes: [1, 10],
+        relearningStepMinutes: 10,
         maximumIntervalDays: 365,
       },
     },
@@ -153,7 +153,7 @@ const presetDefinitions = {
         settingsVersion: 2,
         presetId: "relaxed",
         desiredRetention: 0.85,
-        learningStepsMinutes: [10, 30],
+        learningStepsMinutes: [1, 10],
         relearningStepMinutes: 10,
         maximumIntervalDays: 2000,
       },
@@ -211,7 +211,7 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
       presetId: requestedPreset,
       learningStepsMinutes: preset?.settings.schedulerProfile.learningStepsMinutes ?? normalizeLearningSteps(profile),
       relearningStepMinutes: preset?.settings.schedulerProfile.relearningStepMinutes
-        ?? wholeNumber(profile.relearningStepMinutes, 5, 1, 720),
+        ?? wholeNumber(profile.relearningStepMinutes, 10, 1, 720),
       desiredRetention: preset?.settings.schedulerProfile.desiredRetention
         ?? decimal(profile.desiredRetention, 0.9, 0.7, 0.99),
       maximumIntervalDays: preset?.settings.schedulerProfile.maximumIntervalDays

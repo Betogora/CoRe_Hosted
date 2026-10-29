@@ -28,10 +28,19 @@ Entscheidungsvorschläge (vor R2 bestätigen):
   langfristige Stabilität, nicht `stabilityFast`. Die Rotation bleibt.
 - ER4 FSRS-7 aus der jeweils neuesten stabilen `ts-fsrs`-Hauptversion (keine
   Beta) mit offiziellen Standardparametern; Fuzz bleibt aus (Easy Days
-  ausgenommen). Vorläufig 2026-10-29: Lernschritte folgen den
-  `ts-fsrs`-Standardwerten (heute 1 und 10 Minuten, Wiederlernen 10 Minuten);
-  offen: Die heutigen Profilschritte stammen aus dem Scheduler vor FSRS, nicht
-  aus `ts-fsrs`; zu bestätigen, auch für Intensiv und Entspannt.
+  ausgenommen). Entschieden 2026-10-29: Alle drei Profile nutzen die
+  `ts-fsrs`-Standardwerte (1 und 10 Minuten, Wiederlernen 10 Minuten); die
+  bisherigen Schritte stammten aus dem Scheduler vor FSRS.
+- ER7 Mit dem FSRS-7-Standard `allowModelOverride` übernimmt ein längeres
+  Modellintervall den Lernschritt: `Gut` auf einer neuen Karte führt bei
+  Zielerinnerung 0,90 direkt in die Wiederholungsphase (rund 5 Tage),
+  `Schwer` auf rund 14 Stunden; `Nochmal` bleibt beim 1-Minuten-Schritt. So
+  in R2 umgesetzt; zu bestätigen, Alternative ist das Abschalten der
+  Übersteuerung (dann 1 und 10 Minuten wie bisher).
+- ER8 FSRS-7 rechnet je Bewertung etwa 13 µs in der Bibliothek; die
+  Prüfungsplanung braucht für 200 Tage, 5.000 neue und 2.000 bekannte Karten
+  im Median 2.054 statt 821 ms (längster Block unverändert 65 ms). Offen, ob
+  das hingenommen oder in K6-Art weiter optimiert wird.
 - ER5 Vorhandene Lernstände: vollständiger Cutover ohne Migrationscode in der
   App. Entweder Neuberechnung aus den Reviewereignissen durch ein einmaliges
   Skript außerhalb des App-Codes, das danach gelöscht wird, oder Reset nach
@@ -41,14 +50,8 @@ Entscheidungsvorschläge (vor R2 bestätigen):
 
 R0 und R1 sind erledigt (Markierung `Neuplanung P1`, ADR-044 vorgeschlagen,
 `decisions.md` mit 20 geltenden ADRs), Details in [`history.md`](history.md).
+R2 (FSRS-7) liegt auf dem Branch `claude/p1-r2-fsrs7`.
 
-- [ ] **R2 FSRS-7:** `ts-fsrs` auf die neueste stabile Version; FSRS-7-Modell
-      statt veraltetem `fsrs()`; entfernte APIs ersetzen
-      (`get_retrievability`, `elapsed_days`); `stabilityFast` in
-      `ReviewState`/`CardStudyState`; Easy Days gegen die neue Fuzz-Spanne
-      prüfen; APKG-Import spielt die Anki-Historie mit FSRS-7 ab (Anki-eigene
-      FSRS-6-Werte nur ohne Historie); Prüfungsprognose messen (FSRS-7 je
-      Simulation); Node 24 in `engines`, CI und Vercel; ER4 Lernschritte.
 - [ ] **R3 Reifemodell:** Eine Funktion für Reifeband und
       Variantenbereitschaft aus dem Lernstand (ER2, ER3). XP-Logik,
       `variantThresholdXp` und Reifebänder entfernen; Stapeleinstellung auf

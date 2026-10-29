@@ -5,11 +5,14 @@ import { calculateRetrievability, getReviewButtonOptions, scheduleWithFsrs, simu
 
 const now = "2026-08-21T10:00:00.000Z";
 
-test("FSRS bietet für eine neue Karte alle vier Bewertungen an", () => {
+test("FSRS-7 bietet für eine neue Karte alle vier Bewertungen an; Gut übernimmt das längere Modellintervall", () => {
   const [card] = createBasicNote("deck", "Q", "A").cards;
   const options = getReviewButtonOptions(card, null, { now });
   assert.deepEqual(Object.keys(options), ["again", "hard", "good", "easy"]);
-  assert.equal(options.good?.nextState, "learning");
+  assert.equal(options.again?.nextState, "learning");
+  assert.equal(options.again?.intervalMinutes, 1);
+  assert.equal(options.good?.nextState, "review");
+  assert.equal(options.good?.intervalLabel, "5 Tage");
 });
 
 test("jede echte Bewertung erhöht Wiederholungen und setzt lastReviewedAt", () => {

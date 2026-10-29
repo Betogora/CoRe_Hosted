@@ -18,8 +18,8 @@ import { useSuccessToast } from "./feedbackUi.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 
 const learningStepOptions = [
-  { value: "1,10", label: "Kompakt · 1 Min. → 10 Min." },
-  { value: "5,15", label: "Standard · 5 Min. → 15 Min." },
+  { value: "1,10", label: "Standard · 1 Min. → 10 Min." },
+  { value: "5,15", label: "Länger · 5 Min. → 15 Min." },
   { value: "10,30", label: "Ruhig · 10 Min. → 30 Min." },
 ];
 /** Keeps a stored value that is not one of the presets (from a template or an import) visible and selectable. */

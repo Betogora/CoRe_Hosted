@@ -9,12 +9,13 @@ function objectRecord(value: unknown): StringMap { return value !== null && type
 /** Normalizes a flat scheduler state; unknown keys of older snapshots are ignored. */
 export function createReviewState(input: unknown = {}): ReviewState {
   const {
-    schedulerVersion = "fsrs_6_v1",
+    schedulerVersion = "fsrs_7_v1",
     state = null,
     dueAt = new Date().toISOString(),
     intervalDays = 0,
     difficulty = 5,
     stability = 0,
+    stabilityFast = 0,
     desiredRetention = 0.9,
     reps = null,
     lapses = 0,
@@ -40,6 +41,7 @@ export function createReviewState(input: unknown = {}): ReviewState {
     intervalDays: Math.max(0, Number(intervalDays) || 0),
     difficulty: Math.min(10, Math.max(1, Number(difficulty ?? 5) || 5)),
     stability: Math.max(0, Number(stability ?? 0) || 0),
+    stabilityFast: Math.max(0, Number(stabilityFast ?? 0) || 0),
     desiredRetention: Math.min(0.99, Math.max(0.5, Number(desiredRetention ?? 0.9) || 0.9)),
     reps: normalizedReps,
     lapses: Math.max(0, Math.round(Number(lapses) || 0)),
@@ -74,6 +76,7 @@ export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
     lastRating: state.lastRating,
     extra: {
       schedulerVersion: state.schedulerVersion,
+      stabilityFast: state.stabilityFast,
       desiredRetention: state.desiredRetention,
       maturityXp: state.maturityXp,
       maturityBand: state.maturityBand,

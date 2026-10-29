@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Reife aus FSRS (P1 R2): FSRS-7
+
+- `ts-fsrs` 6.0.0 mit FSRS-7 (34 Standardgewichte, zweite Gedächtnisspur `stabilityFast`, gebrochene Tage); der Scheduler baut die Middleware-Kette von `DefaultScheduler` synchron mit dem statisch importierten FSRS-7-Modell, damit Vorschau, Review und Prüfungsplanung synchron bleiben. `stabilityFast` liegt im Lernstand (`study_extra`), `schedulerVersion` ist `fsrs_7_v1`.
+- Lernschritte aller Profile 1 und 10 Minuten, Wiederlernen 10 Minuten (ER4); Modellübersteuerung nach FSRS-7-Standard (ER7). Easy Days nutzt `getFuzzRange`. Ein Lernstand ohne schnelle Spur startet beide Spuren gleich; ein Review ohne oder mit zukünftigem Zeitstempel gilt als gerade beantwortet.
+- APKG-Import spielt eine vollständige Anki-Historie (ab neuer Karte) mit FSRS-7 ab; Ankis FSRS-6-Gedächtniszustand gilt nur bei abgeschnittener oder fehlender Historie.
+- Node 24 in `engines` und CI. Messung `npm run benchmark:exams`: 60 Tage 229 → 669 ms, 200 Tage 821 → 2.054 ms, gemeinsame Stapel 398 → 902 ms (Median), längster Block 60–63 → 64–65 ms.
+- Verifiziert: `npm test` (855/855), `npm run typecheck`, `npm run build`.
+
 ## 2026-10-29 — Reife aus FSRS (P1 R1): ADR-Bereinigung
 
 - `decisions.md` von 43 auf 20 geltende ADRs: gelöscht 002, 005, 010, 020, 021, 024, 025, 027, 030 (abgelöst) sowie 008, 012, 014, 016, 017, 023, 026, 040 (UI-Detailregeln, gegen Code und Specs abgeglichen); zusammengeführt 001 ← 005/007, 032 ← 021/029/033, 034 ← 020/022/024/025/027/028, 038 ← 004, 041 ← 031; Ergänzungen in ADR-011, ADR-037 und ADR-042 (Stand E1–E16, Teil von K4) eingearbeitet; ADR-015 nennt die tatsächliche Herleitung des Anki-Lernstands.

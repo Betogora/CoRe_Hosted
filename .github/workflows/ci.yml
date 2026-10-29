@@ -21,7 +21,7 @@ jobs:
       - name: Node.js einrichten
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Abhängigkeiten installieren

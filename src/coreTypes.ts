@@ -290,6 +290,8 @@ export interface Note {
 
 export interface CardStudyExtra {
   schedulerVersion: string;
+  /** FSRS-7 fast memory trace; 0 for new cards. */
+  stabilityFast: number;
   desiredRetention: number;
   maturityXp: number;
   maturityBand: MaturityBand;
