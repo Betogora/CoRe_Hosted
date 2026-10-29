@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Reife aus FSRS (P1 R5): Datenbank-Cutover
+
+- Migration `20261029120000_card_study_states_stability_fast.sql`: `list_account_card_study_states` liefert `stability_fast` aus `study_extra` (ohne Wert 0, der Scheduler setzt die schnelle Spur dann gleich der Stabilität) statt `maturity_xp`; die Validierung verlangt das Feld. Katalog und Stapelzahlen lesen weiter `study_extra.maturityBand`.
+- Neuberechnung (ER5) mit einem einmaligen Skript außerhalb des Repos über den Produktions-Scheduler: Ab der letzten Antwort auf eine neue Karte werden die Reviewereignisse mit den Stapeleinstellungen nachgespielt (manuelle Verschiebungen übernehmen ihren Termin); Karten ohne vollständige Folge behalten Stabilität und Schwierigkeit und bekommen nur das Reifeband. `study_revision` steigt, damit Geräte den neuen Lernstand laden; neue Karten verlieren nur das XP-Feld. Ein zweiter Lauf ändert nichts.
+- E2E an die Neuplanung angepasst: `card-lifecycle` erwartet für `Nochmal` bei neuen Karten 1 statt 5 Minuten (ER4); `core-stabilization` stellt für den Variantentest die Schwelle auf 7 Tage, weil die Fixture-Karte mit 18 Tagen Haltbarkeit unter dem Standard von 21 liegt.
+- Hosted: Migration am 2026-10-29 per `supabase db push --linked` auf `hirbiuiydczmnjqtoyqx` angewendet (Trockenlauf zeigte nur diese Migration), `verify_schema_v1.sql` remote ohne Fehler. Danach die Neuberechnung: 185 gelernte Karten (156 nachgespielt, 29 nur Reifeband), 9.957 neue Karten ohne XP-Feld; ein zweiter Lauf änderte nichts. Katalog danach: 9.957 `new`, 11 `learning`, 38 `young`, 136 `mature`. Skript gelöscht.
+- Verifiziert: `npm test` (856/856), `npm run typecheck`, `npm run db:types:generate`, `npm run db:types:check`, `npm run test:rls:local` (19/19, neu: `stability_fast` ist eine Zahl); `npm run test:e2e:local` 209 bestanden, 3 fehlgeschlagen, 1 übersprungen; die drei betroffenen Specs danach 51/51 (der Hilfe-Scrolltest war sporadisch). Neuberechnung lokal (291 Karten) und erneuter Lauf ohne Änderung. Nicht geprüft: Hosted-Smoke (siehe `todo.md`, Betrieb).
+
 ## 2026-10-29 — Reife aus FSRS (P1 R4): Oberfläche und Texte
 
 - Hilfe: FSRS-7 statt FSRS-6, `S` wird als Haltbarkeit (Tage bis 90 % Abrufwahrscheinlichkeit) erklärt, Varianten ab der Haltbarkeitsschwelle des Stapels, „Gut“ führt bei neuen Karten nach 10 Minuten zum zweiten Kontakt, „Leicht“ beendet die Lernphase.

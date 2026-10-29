@@ -175,8 +175,7 @@ const cardStudyStateRowSchema = v.object({
   ...cardStudyColumnsSchema,
   active_variant_count: nonNegativeIntegerSchema,
   created_at: v.string(),
-  // Until the planning RPC returns the fast trace (P1 R5), a missing value counts as equal to the stability.
-  stability_fast: v.optional(v.pipe(v.number(), v.minValue(0)), 0),
+  stability_fast: v.pipe(v.number(), v.minValue(0)),
 });
 
 /** Study state of one card without its body; planning reads it for whole decks (ADR-034). */

@@ -194,7 +194,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await expect(ratingButtons).toHaveCount(4);
   await expect(ratingButtons.nth(0).locator("span").first()).toHaveText("Nochmal");
   await expect(ratingButtons.nth(0)).toHaveAttribute("data-core-tooltip", "Taste 1");
-  await expect(ratingButtons.nth(0)).toContainText("5 min");
+  await expect(ratingButtons.nth(0)).toContainText("1 min");
   await ratingButtons.nth(0).hover();
   await expect(page.getByRole("tooltip")).toHaveText("Taste 1");
   await page.keyboard.press("3");

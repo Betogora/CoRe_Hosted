@@ -865,6 +865,9 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
   await page.getByTestId("learning-settings-new-cards").fill("0");
   await page.getByTestId("learning-settings-max-reviews").fill("1");
+  // The fixture card lasts about 18 days, below the default threshold of 21.
+  await page.getByRole("combobox", { name: "Varianten einsetzen ab Haltbarkeit" }).click();
+  await page.getByRole("option", { name: "Früher · 7 Tage" }).click();
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
