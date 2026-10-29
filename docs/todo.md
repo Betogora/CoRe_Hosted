@@ -37,7 +37,7 @@ Entscheidungsvorschläge (vor R2 bestätigen):
   noch die Übersteuerung und wird mit R3 umgestellt.
 - ER9 Standard-Zielerinnerung neuer Stapel und Profile: Anki, `ts-fsrs` und
   `py-fsrs` nutzen 0,90; das Anki-Handbuch rät zu Werten zwischen dem
-  berechneten Minimum und 0,97. 0,94 halbiert die ersten Abstände etwa und
+  berechneten Minimum und 0,97. 0,94 verkürzt die Abstände guter Karten auf ein Drittel bis ein Fünftel und
   kostet im ersten Jahr rund 40 % mehr Wiederholungen. Offen.
 - ER10 `Leicht` auf einer neuen Karte ergibt unter FSRS-7 bei 0,90 etwa 54,
   bei 0,94 etwa 19 Tage (FSRS-6: rund 8). Anki behandelt `Leicht` gleich
