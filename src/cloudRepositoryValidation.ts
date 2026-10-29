@@ -175,7 +175,8 @@ const cardStudyStateRowSchema = v.object({
   ...cardStudyColumnsSchema,
   active_variant_count: nonNegativeIntegerSchema,
   created_at: v.string(),
-  maturity_xp: v.pipe(v.number(), v.minValue(0)),
+  // Until the planning RPC returns the fast trace (P1 R5), a missing value counts as equal to the stability.
+  stability_fast: v.optional(v.pipe(v.number(), v.minValue(0)), 0),
 });
 
 /** Study state of one card without its body; planning reads it for whole decks (ADR-034). */
@@ -188,7 +189,8 @@ export interface CardStudySnapshot {
   studyRevision: number;
   activeVariantCount: number;
   createdAt: string;
-  maturityXp: number;
+  /** FSRS-7 fast memory trace from the study extras; the planning RPC carries it without the card body. */
+  stabilityFast: number;
 }
 
 const deckStudySummarySchema = v.looseObject({
@@ -481,7 +483,7 @@ export function validateCardStudyStateRows(input: unknown): CardStudySnapshot[] 
     studyRevision: row.study_revision,
     activeVariantCount: row.active_variant_count,
     createdAt: row.created_at,
-    maturityXp: row.maturity_xp,
+    stabilityFast: row.stability_fast,
   }));
 }
 

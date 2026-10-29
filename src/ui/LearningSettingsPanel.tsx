@@ -46,9 +46,9 @@ const buryOptions = [
 ] as const;
 const relearningStepOptions =[1, 3, 5, 10, 20, 30].map((minutes) => ({ value: String(minutes), label: `${minutes} Min.` }));
 const variantThresholdOptions = [
-  { value: "81", label: "Stabil · früher" },
-  { value: "121", label: "CoRe-ready · Standard" },
-  { value: "181", label: "Sicher · später" },
+  { value: "7", label: "Früher · 7 Tage" },
+  { value: "21", label: "Standard · 21 Tage" },
+  { value: "60", label: "Später · 60 Tage" },
 ];
 const activeVariantOptions = [1, 2, 3].map((count) => ({ value: String(count), label: `${count} ${count === 1 ? "Variante" : "Varianten"}` }));
 
@@ -157,7 +157,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
     setSelectedProfileId("custom");
   }
 
-  function editCore(patch: Partial<Pick<DeckLearningSettingsDraft, "variantThresholdXp" | "maxActiveVariantsPerCard">>) {
+  function editCore(patch: Partial<Pick<DeckLearningSettingsDraft, "variantThresholdDays" | "maxActiveVariantsPerCard">>) {
     onDraftChange({ ...draft, ...patch });
   }
 
@@ -284,9 +284,9 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
             <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
-            <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."} Varianten wechseln sich erst ab der gewählten Lernstufe mit der Karte ab; die Höchstzahl begrenzt Erzeugen und Abfragen.</p>
+            <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."} Varianten wechseln sich erst ab der gewählten Haltbarkeit mit der Karte ab; die Höchstzahl begrenzt Erzeugen und Abfragen.</p>
             <div className="grid gap-4 md:grid-cols-2">
-              <SelectField label="Varianten einsetzen ab Lernstufe" value={draft.variantThresholdXp} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdXp: Number(value) })} />
+              <SelectField label="Varianten einsetzen ab Haltbarkeit" value={draft.variantThresholdDays} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdDays: Number(value) })} />
               <SelectField label="Aktive Varianten pro Karte" value={draft.maxActiveVariantsPerCard} options={activeVariantOptions} testId="learning-settings-active-variants" onChange={(value) => editCore({ maxActiveVariantsPerCard: Number(value) })} />
             </div>
           </fieldset>

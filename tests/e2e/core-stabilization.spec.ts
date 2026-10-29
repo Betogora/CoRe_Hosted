@@ -809,8 +809,8 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.maximumReviewsPerDay).toBe(initialMaximumReviews);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.schedulerProfile.maximumIntervalDays).toBe(initialMaximumInterval);
 
-  await page.getByLabel("Varianten einsetzen ab Lernstufe").click();
-  await page.getByRole("option", { name: "Sicher · später" }).click();
+  await page.getByLabel("Varianten einsetzen ab Haltbarkeit").click();
+  await page.getByRole("option", { name: "Später · 60 Tage" }).click();
   await page.getByLabel("Aktive Varianten pro Karte").click();
   await page.getByRole("option", { name: "3 Varianten" }).click();
   await expect(saveBar).toHaveCount(1);
@@ -825,7 +825,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
       maximumReviewsPerDay: deck.deckSettings.maximumReviewsPerDay,
       maximumIntervalDays: deck.deckSettings.schedulerProfile.maximumIntervalDays,
       desiredRetention: deck.deckSettings.schedulerProfile.desiredRetention,
-      variantThresholdXp: deck.deckSettings.variantThresholdXp,
+      variantThresholdDays: deck.deckSettings.variantThresholdDays,
       maxActiveVariantsPerCard: deck.deckSettings.maxActiveVariantsPerCard,
     };
   }).toEqual({
@@ -833,7 +833,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     maximumReviewsPerDay: nextMaximumReviews,
     maximumIntervalDays: nextMaximumInterval,
     desiredRetention: nextRetentionPercent / 100,
-    variantThresholdXp: 181,
+    variantThresholdDays: 60,
     maxActiveVariantsPerCard: 3,
   });
 
@@ -842,7 +842,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await expect(page.getByTestId("learning-settings-max-reviews")).toHaveValue(String(nextMaximumReviews));
   await expect(page.getByTestId("learning-settings-maximum-interval")).toHaveValue(String(nextMaximumInterval));
   await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
-  await expect(page.getByLabel("Varianten einsetzen ab Lernstufe")).toContainText("Sicher · später");
+  await expect(page.getByLabel("Varianten einsetzen ab Haltbarkeit")).toContainText("Später · 60 Tage");
   await expect(page.getByLabel("Aktive Varianten pro Karte")).toContainText("3 Varianten");
 
   await page.goto(`/decks/${DECK_IDS.africa}/review?returnView=learn&returnDeck=${DECK_IDS.africa}`);

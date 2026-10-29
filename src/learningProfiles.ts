@@ -24,7 +24,7 @@ export interface LearningSettingsInput {
   buryReviewSiblings?: unknown;
   buryInterdayLearningSiblings?: unknown;
   coreMode?: unknown;
-  variantThresholdXp?: unknown;
+  variantThresholdDays?: unknown;
   maxActiveVariantsPerCard?: unknown;
   learningProfileSource?: unknown;
   schedulerProfile?: {
@@ -106,7 +106,7 @@ const presetDefinitions = {
       schedulerProfile: {
         settingsVersion: 2,
         presetId: "standard",
-        desiredRetention: 0.9,
+        desiredRetention: 0.92,
         learningStepsMinutes: [1, 10],
         relearningStepMinutes: 10,
         maximumIntervalDays: 1000,
@@ -213,7 +213,7 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
       relearningStepMinutes: preset?.settings.schedulerProfile.relearningStepMinutes
         ?? wholeNumber(profile.relearningStepMinutes, 10, 1, 720),
       desiredRetention: preset?.settings.schedulerProfile.desiredRetention
-        ?? decimal(profile.desiredRetention, 0.9, 0.7, 0.99),
+        ?? decimal(profile.desiredRetention, 0.92, 0.7, 0.99),
       maximumIntervalDays: preset?.settings.schedulerProfile.maximumIntervalDays
         ?? wholeNumber(profile.maximumIntervalDays, 1000, 30, 36500),
     },
@@ -385,7 +385,7 @@ function normalizeGlobalLearningDefaults(value: unknown, profiles: LearningProfi
     learningProfileSource: selectedProfile
       ? { id: selectedProfile.id, contentVersion: hasStoredValues && storedSource ? storedSource.contentVersion : selectedProfile.contentVersion }
       : null,
-    variantThresholdXp: wholeNumber(input.variantThresholdXp, 121, 1, 10000),
+    variantThresholdDays: wholeNumber(input.variantThresholdDays, 21, 1, 1000),
     maxActiveVariantsPerCard: wholeNumber(input.maxActiveVariantsPerCard, 2, 1, 10),
   };
 }

@@ -14,7 +14,7 @@ import {
   type StepUnit,
 } from "ts-fsrs";
 import { FSRS7Model, migrateFSRS7Parameters } from "ts-fsrs/models/fsrs-7";
-import { REVIEW_RATINGS, createReviewState, getMaturityBand, isCardReviewBlocked, reviewStateFromCardStudy } from "./coreModel.ts";
+import { REVIEW_RATINGS, createReviewState, isCardReviewBlocked, reviewStateFromCardStudy } from "./coreModel.ts";
 import { normalizeLearningSettings } from "./deckSettings.ts";
 import type { LearningSettingsInput } from "./deckSettings.ts";
 import { hasEasyDayDifferences, selectEasyDayInterval, type EasyDaysSchedulingContext } from "./easyDays.ts";
@@ -23,6 +23,7 @@ import type {
   Card,
   CardVariant,
   Deck,
+  MaturityBand,
   ReviewRating,
   ReviewSchedulerState,
   ReviewState,
@@ -99,13 +100,6 @@ const RATING_EFFECT_LABELS: Record<ReviewRating, string> = {
   easy: "Leicht",
 };
 
-const RATING_XP: Record<ReviewRating, number> = {
-  again: -18,
-  hard: 2,
-  good: 12,
-  easy: 18,
-};
-
 const FSRS_RATINGS: Record<ReviewRating, Grade> = {
   again: Rating.Again,
   hard: Rating.Hard,
@@ -150,7 +144,7 @@ function getSchedulerProfile(deckSettings: LearningSettingsInput = {}) {
 function getDesiredRetention(deckSettings: LearningSettingsInput | null | undefined, state: ReviewStateInput): number {
   const configuredRetention = deckSettings?.schedulerProfile?.desiredRetention;
   return configuredRetention == null
-    ? clamp(state?.desiredRetention ?? 0.9, 0.7, 0.99)
+    ? clamp(state?.desiredRetention ?? 0.92, 0.7, 0.99)
     : getSchedulerProfile(deckSettings ?? {}).desiredRetention;
 }
 
@@ -265,7 +259,8 @@ function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefi
         desiredRetention: requestRetention,
         learningSteps,
         relearningSteps,
-        allowModelOverride: true,
+        // Configured learning steps take precedence over a longer model interval, as in Anki.
+        allowModelOverride: false,
         enableFuzz: false,
         maximumInterval: profile.maximumIntervalDays,
       },
@@ -284,10 +279,25 @@ export function calculateRetrievability(studyState: unknown, now: DateInput = ne
   return round(scheduler.model.forgettingCurve(toFsrsCard(state, nowDate), elapsedDays), 4);
 }
 
-function updateMaturityXp(oldXp: unknown, rating: ReviewRating, wasVariant = false): number {
-  if (!REVIEW_RATINGS.includes(rating)) throw new Error(`Unbekannte Review-Bewertung: ${rating}`);
-  const variantBonus = wasVariant && (rating === "good" || rating === "easy") ? 4 : 0;
-  return Math.max(0, Math.round(Number(oldXp ?? 0) + RATING_XP[rating] + variantBonus));
+type MemoryStateInput = Pick<ReviewStateInput, "state" | "stability" | "stabilityFast" | "difficulty">;
+
+/** Durability from which a card counts as mature. */
+const MATURE_DURABILITY_DAYS = 21;
+
+/** Days until the card's recall probability falls to 90 %; 0 while it has no memory state yet. */
+export function getDurabilityDays(study: MemoryStateInput): number {
+  const stability = Number(study.stability ?? 0) || 0;
+  if (!study.state || study.state === "new" || stability <= 0) return 0;
+  const stabilityFast = Number(study.stabilityFast ?? 0) || stability;
+  const { scheduler } = createFsrsScheduler(null, {});
+  return round(scheduler.model.nextInterval({ stability, stabilityFast, difficulty: clamp(study.difficulty ?? 5, 1, 10) }, 0.9), 2);
+}
+
+/** Maturity derived from the memory state; never counted separately. */
+export function getMaturityBand(study: MemoryStateInput): MaturityBand {
+  if (!study.state || study.state === "new") return "new";
+  if (study.state !== "review") return "learning";
+  return getDurabilityDays(study) >= MATURE_DURABILITY_DAYS ? "mature" : "young";
 }
 
 function learningProgress(previousState: ReviewState, nextPhase: ReviewSchedulerState, rating: ReviewRating, nextStep: number, now: Date, context: SchedulerContext) {
@@ -359,7 +369,6 @@ function projectFsrsResult(
     : nextCard.dueAt).toISOString();
   const intervalMs = Math.max(0, new Date(dueAt).getTime() - now.getTime());
   const intervalMinutes = intervalDays === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
-  const maturityXp = updateMaturityXp(previousState.maturityXp, rating, Boolean(context.isVariant));
   const progress = learningProgress(previousState, nextPhase, rating, nextCard.learningStep ?? 0, now, context);
 
   return createReviewState({
@@ -376,8 +385,7 @@ function projectFsrsResult(
     desiredRetention: schedulerMeta.requestRetention,
     reps: nextCard.reps,
     lapses: nextCard.lapses,
-    maturityXp,
-    maturityBand: getMaturityBand(maturityXp),
+    maturityBand: getMaturityBand({ state: nextPhase, stability: nextCard.stability, stabilityFast: nextCard.stabilityFast, difficulty: nextCard.difficulty }),
     lastReviewedAt: now.toISOString(),
     lastRating: rating,
   });
@@ -501,7 +509,7 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
       }
     }
   }
-  const matureCards = cards.filter((card) => ["variant_ready", "mastered"].includes(card.study.extra.maturityBand));
+  const matureCards = cards.filter((card) => card.study.extra.maturityBand === "mature");
   const activeVariants = cards
     .flatMap((card) => card.variants ?? [])
     .filter((variant) => variant.qualityStatus === "active" && variant.isActive !== false);
@@ -512,8 +520,5 @@ export function summarizeDeckReview(deck: Deck, now: DateInput = new Date(), day
     inProgressCards,
     matureCards: matureCards.length,
     activeVariants: activeVariants.length,
-    averageMaturityXp: cards.length
-      ? Math.round(cards.reduce((sum, card) => sum + Number(card.study.extra.maturityXp ?? 0), 0) / cards.length)
-      : 0,
   };
 }

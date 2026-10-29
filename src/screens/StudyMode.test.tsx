@@ -57,7 +57,7 @@ test("StudyMode exposes no origin or scheduler hints before reveal", () => {
     review: {
       state: "review",
       repetitions: 4,
-      maturityXp: 140,
+      maturityBand: "mature",
       dueAt: "2026-07-01T08:00:00.000Z",
     },
   });

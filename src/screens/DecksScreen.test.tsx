@@ -531,7 +531,7 @@ test("reported or switched-off variants can be reactivated; every variant can be
   const markup = renderEditorFor({ ...graph, cards: [reported] });
   assert.match(markup, />gemeldet: unklar formuliert</);
   assert.match(markup, /data-testid="variant-active-count"[^>]*>0 von \d+ aktiv</);
-  assert.match(markup, /data-testid="variant-readiness"[^>]*>Lernstufe 0 von \d+ XP · /);
+  assert.match(markup, /data-testid="variant-readiness"[^>]*>Haltbarkeit 0 von \d+ Tagen · /);
   assert.match(markup, /aria-label="Variante 1 reaktivieren"/);
   assert.match(markup, /aria-label="Variante 1 löschen"/);
 

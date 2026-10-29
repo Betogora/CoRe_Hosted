@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Reife aus FSRS (P1 R3): Haltbarkeit statt XP
+
+- XP entfällt vollständig (Bewertungspunkte, Varianten-Bonus, `maturityXp`, `variantThresholdXp`, sechs XP-Bänder). Reife leitet `scheduler.ts` aus dem FSRS-7-Gedächtniszustand ab: Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt (`getDurabilityDays`); Bänder `new`, `learning` (Lern- und Wiederlernphase), `young` und `mature` ab 21 Tagen. Die rohe Stabilität eignet sich nicht, weil sie nach einem Fehler hoch bleibt, während die schnelle Spur und damit die Haltbarkeit einbrechen.
+- Varianten erscheinen in der Reviewphase ohne aktuelles `Nochmal`, sobald die Haltbarkeit die Stapelschwelle `variantThresholdDays` erreicht (früher 7, Standard 21, später 60 Tage). Bei Zielerinnerung 0,92 macht dreimal `Gut` ab einer neuen Karte reif (Haltbarkeit 4,8 → 10 → 36 Tage).
+- Konfigurierte Lernschritte haben Vorrang vor dem Modellintervall (ER7, `allowModelOverride: false`); Standard-Zielerinnerung 0,92 (ER9); `Leicht` beendet bei neuen Karten die Lernphase wie in Anki (ER10).
+- Prüfungsfortschritt „gefestigt“ und die Methode „Variante“ nutzen dieselbe Reife-Funktion; Stapelzahlen zählen `mature`. Die Planungs-RPC liefert `stability_fast` erst mit R5, bis dahin gilt die schnelle Spur als gleich der Stabilität.
+- Messung `npm run benchmark:exams` (Median): 60 Tage 669 → 799 ms, 200 Tage 2.054 → 2.680 ms, gemeinsame Stapel 902 → 2.207 ms; längster Block 66 ms. Der Anstieg kommt von den simulierten Lernschritten am ersten Tag.
+- Verifiziert: `npm test` (856/856, neu: Reife über dreimal Gut und Rückfall), `npm run typecheck`, `npm run build`.
+
 ## 2026-10-29 — Reife aus FSRS (P1 R2): FSRS-7
 
 - `ts-fsrs` 6.0.0 mit FSRS-7 (34 Standardgewichte, zweite Gedächtnisspur `stabilityFast`, gebrochene Tage); der Scheduler baut die Middleware-Kette von `DefaultScheduler` synchron mit dem statisch importierten FSRS-7-Modell, damit Vorschau, Review und Prüfungsplanung synchron bleiben. `stabilityFast` liegt im Lernstand (`study_extra`), `schedulerVersion` ist `fsrs_7_v1`.

@@ -56,15 +56,8 @@ Entscheidungsvorschläge (vor R2 bestätigen):
 
 R0 und R1 sind erledigt (Markierung `Neuplanung P1`, ADR-044 vorgeschlagen,
 `decisions.md` mit 20 geltenden ADRs), Details in [`history.md`](history.md).
-R2 (FSRS-7) liegt auf dem Branch `claude/p1-r2-fsrs7`.
-
-- [ ] **R3 Reifemodell:** Eine Funktion für Reifeband und
-      Variantenbereitschaft aus dem Lernstand (ER2, ER3). XP-Logik,
-      `variantThresholdXp` und Reifebänder entfernen; Stapeleinstellung auf
-      Stabilitätstage umstellen. Nutzer: `selectReviewVariant`,
-      `describeVariantReadiness`, Stapelzahlen (`matureCount`),
-      Prüfungsplanung (gefestigt, Methode „Variante“), Statistikkategorien.
-      Importierte Anki-Karten sind damit sofort richtig eingestuft.
+R2 (FSRS-7) und R3 (Reife aus der Haltbarkeit) sind erledigt, Details in
+[`history.md`](history.md).
 - [ ] **R4 Oberfläche und Texte:** Kartendetail (Stabilität statt
       „Lernstufe X von Y XP“), Auswahl der Stapelschwelle, Einschalt-Dialog,
       Hilfe zu S und Variantenbereitschaft, Statistikkategorien, Simulator;

@@ -1,5 +1,5 @@
 import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
-import { simulateRatingOutcome } from "../scheduler.ts";
+import { getMaturityBand, simulateRatingOutcome } from "../scheduler.ts";
 import worldCapitalsSource from "../../fixtures/apkg/world-capitals.source.json" with { type: "json" };
 import type { Card, Deck, Note, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
 import type { ImportCommitGraph } from "../apkgImport.ts";
@@ -60,7 +60,6 @@ interface StudyProfile {
   label: string;
   offsets: number[];
   ratings: ReviewRating[];
-  maturityXp(index: number): number;
   stability(index: number): number;
   difficulty(index: number): number;
   intervalDays(index: number): number;
@@ -74,7 +73,6 @@ const STUDY_PROFILES = {
     label: "sicher",
     offsets: [0, 0, 1, 3, 7, 14, 25, 40, 61, 82],
     ratings: ["good", "easy", "good", "easy", "good", "easy", "good", "easy", "good", "easy"],
-    maturityXp: (index: number) => 190 + (index % 24),
     stability: (index: number) => 42 + (index % 14),
     difficulty: (index: number) => 2.1 + (index % 6) / 10,
     intervalDays: (index: number) => 34 + (index % 24),
@@ -85,7 +83,6 @@ const STUDY_PROFILES = {
     label: "core-ready",
     offsets: [0, 0, 1, 4, 10, 21, 39, 66],
     ratings: ["good", "good", "hard", "good", "easy", "good", "good", "easy"],
-    maturityXp: (index: number) => 132 + (index % 42),
     stability: (index: number) => 16 + (index % 16),
     difficulty: (index: number) => 3.8 + (index % 12) / 10,
     intervalDays: (index: number) => 14 + (index % 14),
@@ -96,7 +93,6 @@ const STUDY_PROFILES = {
     label: "hartnäckig-aber-stabil",
     offsets: [0, 0, 1, 2, 5, 9, 15, 24, 38, 57, 78],
     ratings: ["again", "good", "hard", "good", "again", "good", "hard", "good", "easy", "good", "good"],
-    maturityXp: (index: number) => 128 + (index % 36),
     stability: (index: number) => 12 + (index % 18),
     difficulty: (index: number) => 6.4 + (index % 14) / 10,
     intervalDays: (index: number) => 10 + (index % 10),
@@ -108,7 +104,6 @@ const STUDY_PROFILES = {
     label: "fällig-stabil",
     offsets: [0, 0, 1, 4, 9, 20, 41, 70, 89],
     ratings: ["good", "hard", "good", "good", "hard", "good", "good", "hard", "good"],
-    maturityXp: (index: number) => 122 + (index % 34),
     stability: (index: number) => 8 + (index % 12),
     difficulty: (index: number) => 5.0 + (index % 14) / 10,
     intervalDays: (index: number) => 7 + (index % 8),
@@ -119,7 +114,6 @@ const STUDY_PROFILES = {
     label: "jung-stetig",
     offsets: [0, 0, 1, 5, 12, 28, 55],
     ratings: ["good", "good", "good", "hard", "good", "good", "easy"],
-    maturityXp: (index: number) => 82 + (index % 42),
     stability: (index: number) => 5 + (index % 10),
     difficulty: (index: number) => 4.5 + (index % 12) / 10,
     intervalDays: (index: number) => 5 + (index % 7),
@@ -215,10 +209,11 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
     intervalMinutes: null,
     difficulty: profile.difficulty(cardIndex),
     stability: profile.stability(cardIndex),
-    desiredRetention: 0.9,
+    stabilityFast: profile.stability(cardIndex),
+    desiredRetention: 0.92,
     reps: eventCount,
     lapses: typeof profile.lapses === "function" ? profile.lapses(cardIndex) : 0,
-    maturityXp: profile.maturityXp(cardIndex),
+    maturityBand: getMaturityBand({ state: "review", stability: profile.stability(cardIndex), stabilityFast: profile.stability(cardIndex), difficulty: profile.difficulty(cardIndex) }),
     lastReviewedAt,
     lastRating: "good",
     firstLearningAt: firstReviewedAt,
@@ -232,7 +227,7 @@ function createFinalReviewState({ profile, cardIndex, eventCount, firstReviewedA
 function withStudyHistory(deckId: string, card: Card, cardIndex: number, continentIndex: number) {
   const profile = selectStudyProfile(cardIndex);
   const introDay = Math.min(30, Math.floor(cardIndex / 9) + (continentIndex % 3));
-  let rollingState = createReviewState({ state: "new", dueAt: addDaysIso(HISTORY_START_TIME, introDay), reps: 0, maturityXp: 0 });
+  let rollingState = createReviewState({ state: "new", dueAt: addDaysIso(HISTORY_START_TIME, introDay), reps: 0 });
   const events: ReviewEvent[] = [];
 
   profile.ratings.forEach((rating, eventIndex) => {

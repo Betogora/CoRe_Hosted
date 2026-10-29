@@ -501,7 +501,7 @@ export function createWorkspaceHydrationService({
       const snapshot = cards.get(card.id);
       if (!snapshot) continue;
       const { extra, ...study } = card.study;
-      cards.set(card.id, { ...snapshot, study, maturityXp: extra.maturityXp ?? snapshot.maturityXp });
+      cards.set(card.id, { ...snapshot, study, stabilityFast: extra.stabilityFast ?? snapshot.stabilityFast });
     }
     return { cards: [...cards.values()] };
   };

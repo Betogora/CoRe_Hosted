@@ -9,7 +9,7 @@ function customPreferences() {
     defaultLearningSettings: {
       ...markLearningSettingsCustom({ newCardsPerDay: 48, maximumReviewsPerDay: 360 }),
       learningProfileSource: null,
-      variantThresholdXp: 181,
+      variantThresholdDays: 60,
       maxActiveVariantsPerCard: 3,
     },
   }).schedulerPreferences;
@@ -20,7 +20,7 @@ test("new deck settings use the complete global learning default", () => {
 
   assert.equal(settings.newCardsPerDay, 48);
   assert.equal(settings.maximumReviewsPerDay, 360);
-  assert.equal(settings.variantThresholdXp, 181);
+  assert.equal(settings.variantThresholdDays, 60);
   assert.equal(settings.maxActiveVariantsPerCard, 3);
   assert.equal(settings.coreMode, "on");
 });

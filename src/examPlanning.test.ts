@@ -17,7 +17,7 @@ function plan(patch: Partial<ExamPlan> = {}): ExamPlan {
   return { ...createExamPlan(date, ["root"]), id: "exam", name: "Prüfung", examDate: shiftExamDay(date, 20), studyTime: { dailyMinutes: 20, weekdays: Array(7).fill(true), dateOverrides: [] }, ...patch };
 }
 function card(index: number, deckId = "root", known = false): CardStudySnapshot {
-  return { cardId: `card-${String(index).padStart(5, "0")}`, noteId: `note-${index}`, deckId, status: "active", studyRevision: 0, activeVariantCount: 0, maturityXp: 0, createdAt: "2026-10-01T08:00:00.000Z",
+  return { cardId: `card-${String(index).padStart(5, "0")}`, noteId: `note-${index}`, deckId, status: "active", studyRevision: 0, activeVariantCount: 0, stabilityFast: known ? 3 : 0, createdAt: "2026-10-01T08:00:00.000Z",
     study: { state: known ? "review" : "new", dueAt: now, stability: known ? 3 : 0, difficulty: 5, reps: known ? 10 : 0, lapses: 0, intervalDays: known ? 3 : 0, learningStepIndex: 0, lastReviewedAt: known ? "2026-10-17T08:00:00.000Z" : null, lastRating: known ? "good" : null } };
 }
 const cards = (count: number, deckId = "root") => Array.from({ length: count }, (_, i) => card(i, deckId));
@@ -175,7 +175,8 @@ test("Sitzungen erhalten geplante Reihenfolge auch über normale Tageslimits hin
   assert.equal(getExamSessionDeckSettings(decks, decks[1], [exam], date).schedulerProfile.desiredRetention, .9);
 });
 test("aktueller Fortschritt unterscheidet gesehen und gefestigt ohne Prognose", () => {
-  const known = { ...card(1, "root", true), maturityXp: 81 };
+  const base = card(1, "root", true);
+  const known = { ...base, stabilityFast: 20, study: { ...base.study, stability: 20 } };
   assert.deepEqual(getExamCurrentProgress(decks, [known, card(2)], plan()), { totalCards: 2, coverage: .5, consolidated: .5 });
 });
 test("abgebrochene Planung endet sichtbar", async () => {

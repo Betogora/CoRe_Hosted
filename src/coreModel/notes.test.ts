@@ -85,12 +85,12 @@ test("Erstellung validiert und bereinigt den Inhalt einmal für alle Karten", ()
     assert.equal(card.study.reps, 0);
     assert.equal(card.study.stability, 0);
     assert.equal(card.study.difficulty, 5);
-    assert.equal(card.study.extra.maturityXp, 0);
+    assert.equal(card.study.extra.maturityBand, "new");
   }
   cards[0].study.reps = 5;
-  cards[0].study.extra.maturityXp = 120;
+  cards[0].study.extra.maturityBand = "mature";
   assert.equal(cards[1].study.reps, 0);
-  assert.equal(cards[1].study.extra.maturityXp, 0);
+  assert.equal(cards[1].study.extra.maturityBand, "new");
   assert.deepEqual(input, before);
 });
 
@@ -164,7 +164,7 @@ for (const scenario of [
     previous.cards[0].study.state = "review";
     previous.cards[0].study.reps = 12;
     previous.cards[0].study.stability = 33;
-    previous.cards[0].study.extra.maturityXp = 140;
+    previous.cards[0].study.extra.maturityBand = "mature";
     previous.cards[0].status = "suspended";
     previous.cards[0].ankiFlag = 3;
     previous.cards[0].ankiCardId = "anki-1";

@@ -1527,7 +1527,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
             inProgressCards: summary.learningCount,
             matureCards: summary.matureCount,
             activeVariants: summary.activeVariantCount,
-            averageMaturityXp: 0,
           },
           dailyProgress: { completedTodayCount, newCount: selectedNew, inProgressCount: studyLearningCards, dueCount: Math.max(0, selectedDue - studyLearningCards), total: completedTodayCount + selectedNew + selectedDue },
           startableCount: selectedNew + selectedDue,

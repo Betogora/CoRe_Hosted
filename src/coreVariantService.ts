@@ -1,6 +1,7 @@
 import { createDefaultDeckSettings, getActiveVariants, stableContentHash } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
+import { getDurabilityDays } from "./scheduler.ts";
 import type { Card, CardVariant, Note, VariantFeedbackType } from "./coreTypes.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
@@ -62,7 +63,7 @@ export function classifyCardEligibility(note: Pick<Note, "content">, card: Card,
   return { eligible: reasons.length === 0, reasons };
 }
 
-/** Learning level of a card compared with the deck's threshold for asking rephrasings. */
+/** Durability of a card compared with the deck's threshold for asking rephrasings. */
 export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsInput = {}) {
   const settings = createDefaultDeckSettings(deckSettings);
   const ready = isCardReadyForVariants(card, settings);
@@ -72,10 +73,10 @@ export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsI
       ? "Im Review wechseln sich die Karte und ihre Varianten ab."
       : card.study.state !== "review" || card.study.lastRating === "again"
         ? "Bis zur nächsten richtigen Wiederholung wird die Karte selbst abgefragt."
-        : "Bis zur Lernstufe des Stapels wird die Karte selbst abgefragt.";
+        : "Bis zur Haltbarkeit des Stapels wird die Karte selbst abgefragt.";
   return {
-    maturityXp: card.study.extra.maturityXp,
-    thresholdXp: settings.variantThresholdXp,
+    durabilityDays: Math.round(getDurabilityDays({ state: card.study.state, stability: card.study.stability, stabilityFast: card.study.extra.stabilityFast, difficulty: card.study.difficulty })),
+    thresholdDays: settings.variantThresholdDays,
     ready,
     reason,
     activeCount: getActiveVariants(card).length,

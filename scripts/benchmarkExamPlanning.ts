@@ -14,7 +14,7 @@ const options = { now, preferences: getGlobalSchedulerPreferences({}), timeZone:
 
 function snapshot(id: string, deckId: string, index: number, known: boolean): CardStudySnapshot {
   return {
-    cardId: id, noteId: `note-${id}`, deckId, status: "active", studyRevision: 0, activeVariantCount: 0, maturityXp: known ? 40 : 0,
+    cardId: id, noteId: `note-${id}`, deckId, status: "active", studyRevision: 0, activeVariantCount: 0, stabilityFast: known ? 2 + index * 0.013 : 0,
     createdAt: new Date(Date.parse("2026-10-01T08:00:00.000Z") + index * 1000).toISOString(),
     study: known
       ? { state: "review", dueAt: new Date(Date.parse(now) + (index % 30) * 86_400_000).toISOString(), stability: 2 + index * 0.013, difficulty: 3 + (index % 70) / 10, reps: 3 + (index % 15), lapses: index % 3,

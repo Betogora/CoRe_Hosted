@@ -169,7 +169,6 @@ type DeckInventorySummary = ReturnType<typeof summarizeDeckReview>;
 
 function combineInventory(summaries: DeckInventorySummary[]): DeckInventorySummary {
   const totalCards = summaries.reduce((total, summary) => total + summary.totalCards, 0);
-  const weightedMaturity = summaries.reduce((total, summary) => total + summary.averageMaturityXp * summary.totalCards, 0);
   return {
     totalCards,
     dueCards: summaries.reduce((total, summary) => total + summary.dueCards, 0),
@@ -177,7 +176,6 @@ function combineInventory(summaries: DeckInventorySummary[]): DeckInventorySumma
     inProgressCards: summaries.reduce((total, summary) => total + summary.inProgressCards, 0),
     matureCards: summaries.reduce((total, summary) => total + summary.matureCards, 0),
     activeVariants: summaries.reduce((total, summary) => total + summary.activeVariants, 0),
-    averageMaturityXp: totalCards > 0 ? Math.round(weightedMaturity / totalCards) : 0,
   };
 }
 
