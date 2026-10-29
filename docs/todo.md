@@ -71,6 +71,13 @@ geglättet.
       `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem Bedarf.
       Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark vorher/nachher,
       `npm run performance:measure:local`.
+- [ ] **Statistik-RPC am Gate:** `get_account_statistics` lag im lokalen
+      Benchmark (100k Karten, 1 Mio. Reviews) bei p95 1.031 und 1.063 ms
+      (Median 967 und 878 ms, 2026-10-29) und damit knapp über der Grenze von
+      1.000 ms, ohne dass sich Funktion oder Tabellen geändert hatten. Mit
+      `EXPLAIN (ANALYZE, BUFFERS)` klären, ob Rauschen oder echter Spielraum
+      fehlt; bei Bedarf Abfrage oder Rollup straffen. Nachweis:
+      `npm run benchmark:statistics` mehrfach unter der Grenze.
 
 ## Später
 
