@@ -2343,11 +2343,11 @@ summary {
 .dashboard-widget-content > :first-child { height: 100%; }
 .dashboard-widget[data-editing="true"] { outline: 1px dashed var(--core-border); outline-offset: 5px; }
 .dashboard-widget[data-dragging="true"] { opacity: .55; }
-.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 5px; }
+.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 5px; background: var(--core-action-soft); }
 .dashboard-widget-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .125rem; margin-bottom: .5rem; color: var(--core-text); }
-.dashboard-widget-grip { touch-action: none; cursor: grab; }
+.dashboard-widget-grip { touch-action: none; user-select: none; cursor: grab; justify-content: flex-start; }
 .dashboard-widget-grip:active { cursor: grabbing; }
-.dashboard-widget-tools > span { flex-basis: 6rem; }
+.dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
 .dashboard-timer-digits { font-size: clamp(2.75rem, 4.5vw, 4rem); line-height: 1.1; font-weight: 500; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }

@@ -1,10 +1,12 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { ArrowDown, ArrowUp, Check, GripVertical, LayoutGrid, Maximize2, Plus, Timer, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+import { useDashboardWidgetDrag } from "./useDashboardWidgetDrag.ts";
 
 export function DashboardWidgets({ userId, header, children, planner, onOpenPlanner, timer, onStartTimer }: {
   userId: string;
@@ -18,10 +20,8 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   const [preferences, setPreferences] = React.useState(() => readDashboardPreferences(userId));
   const [editing, setEditing] = React.useState(false);
   const [storageError, setStorageError] = React.useState(false);
-  const [dragging, setDragging] = React.useState<DashboardWidgetId | null>(null);
-  const [target, setTarget] = React.useState<DashboardWidgetId | null>(null);
   const [announcement, setAnnouncement] = React.useState("");
-  const drag = React.useRef<{ id: DashboardWidgetId; target: DashboardWidgetId | null; x: number; y: number; moved: boolean } | null>(null);
+  const dragHelpId = React.useId();
 
   function update(next: DashboardPreferences) {
     setPreferences(next);
@@ -31,48 +31,31 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
     update({ ...preferences, widgets: moveDashboardWidget(preferences.widgets, from, to) });
     setAnnouncement(`${DASHBOARD_WIDGETS.find((widget) => widget.id === from)?.title} verschoben.`);
   }
-  function finishDrag(event: React.PointerEvent, cancelled = false) {
-    const current = drag.current;
-    drag.current = null;
-    setDragging(null); setTarget(null);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (!cancelled && current?.moved && current.target) move(current.id, current.target);
-  }
+  const drag = useDashboardWidgetDrag(move);
 
   const contents = { ...children, timer: <DashboardTimer timer={timer} onStart={onStartTimer} />, todos: <DashboardTodos todos={preferences.todos} onChange={(todos) => update({ ...preferences, todos })} planner={planner} onOpenPlanner={onOpenPlanner} /> };
   return <div className="grid min-w-0 gap-6 dashboard-modules">
-    {header(<ActionButton variant={editing ? "primary" : "secondary"} icon={editing ? Check : LayoutGrid} aria-expanded={editing} aria-controls="dashboard-customize" onClick={() => { setEditing(!editing); setDragging(null); setTarget(null); }}>{editing ? "Fertig" : "Seite anpassen"}</ActionButton>)}
+    {header(<ActionButton variant={editing ? "primary" : "secondary"} icon={editing ? Check : LayoutGrid} aria-expanded={editing} aria-controls="dashboard-customize" onClick={() => { drag.cancel(); setEditing(!editing); }}>{editing ? "Fertig" : "Seite anpassen"}</ActionButton>)}
     {storageError ? <StatusMessage tone="error">Die Änderungen sind aktuell nur bis zum Neuladen verfügbar. Der Browserspeicher ist nicht erreichbar.</StatusMessage> : null}
     <p className="sr-only" role="status">{announcement}</p>
     {editing ? <section id="dashboard-customize" aria-label="Seite anpassen" className="dashboard-customize rounded-panel border border-core-border bg-core-subtle p-4 sm:p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="core-body-large font-semibold text-core-text">Dein Tag. Dein Überblick.</h2><p className="mt-1 core-body text-core-muted">Ziehe Module am Griff oder verschiebe sie mit den Pfeilen. Alles bleibt direkt hier.</p></div><ActionButton variant="secondary" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })}>Standardlayout</ActionButton></div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="core-body-large font-semibold text-core-text">Dein Tag. Dein Überblick.</h2><p className="mt-1 core-body text-core-muted">Ziehe ein Widget an seiner Titelleiste auf einen anderen Platz. Loslassen übernimmt die Reihenfolge.</p><p id={dragHelpId} className="sr-only">Mit Maus oder Touch ziehen. Escape bricht ab. Alternativ die Pfeilschaltflächen oder am Griff die Pfeiltasten verwenden.</p></div><ActionButton variant="secondary" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })}>Standardlayout</ActionButton></div>
       <div className="mt-4 flex flex-wrap gap-2" aria-label="Widgets hinzufügen">{DASHBOARD_WIDGETS.map((widget) => {
         const active = preferences.widgets.some((entry) => entry.id === widget.id);
         return <ActionButton key={widget.id} variant="secondary" icon={active ? Check : Plus} disabled={active} onClick={() => update({ ...preferences, widgets: [...preferences.widgets, { id: widget.id, width: widget.width }] })}>{widget.title}</ActionButton>;
       })}</div>
     </section> : null}
     {!preferences.widgets.length ? <SoftPanel className="p-6"><p className="core-body text-core-muted">Hier ist Platz für deinen Lerntag.</p><ActionButton variant="secondary" icon={Plus} className="mt-4" onClick={() => setEditing(true)}>Widgets auswählen</ActionButton></SoftPanel> : null}
-    <div className="dashboard-widget-grid">
+    <div ref={drag.grid} className="dashboard-widget-grid" onPointerMove={drag.move} onPointerUp={drag.finish} onPointerCancel={drag.cancel} onLostPointerCapture={drag.cancel} onKeyDownCapture={drag.keyDown}>
       {preferences.widgets.map((widget, index) => {
         const definition = DASHBOARD_WIDGETS.find((entry) => entry.id === widget.id)!;
-        return <section key={widget.id} aria-label={definition.title} data-dashboard-widget={widget.id} data-width={widget.width} data-editing={editing} data-dragging={dragging === widget.id} data-drop-target={target === widget.id && dragging !== widget.id} className="dashboard-widget">
+        return <section key={widget.id} aria-label={definition.title} data-dashboard-widget={widget.id} data-width={widget.width} data-editing={editing} data-dragging={drag.preview?.id === widget.id} data-drop-target={drag.preview?.target === widget.id && drag.preview.id !== widget.id} className="dashboard-widget">
           {editing ? <div className="dashboard-widget-tools">
-            <IconButton icon={GripVertical} label={`${definition.title} verschieben`} variant="ghost" className="dashboard-widget-grip" onPointerDown={(event) => { if (event.button !== 0) return; event.currentTarget.setPointerCapture(event.pointerId); drag.current = { id: widget.id, target: null, x: event.clientX, y: event.clientY, moved: false }; }} onPointerMove={(event) => {
-              const current = drag.current;
-              if (!current) return;
-              if (!current.moved && Math.hypot(event.clientX - current.x, event.clientY - current.y) < 7) return;
-              current.moved = true; setDragging(current.id);
-              const element = document.elementFromPoint(event.clientX, event.clientY)?.closest<HTMLElement>("[data-dashboard-widget]");
-              const id = preferences.widgets.find((entry) => entry.id === element?.dataset.dashboardWidget)?.id ?? null;
-              current.target = id; setTarget(id);
-              if (event.clientY < 90) window.scrollBy(0, -14);
-              if (event.clientY > window.innerHeight - 90) window.scrollBy(0, 14);
-            }} onPointerUp={finishDrag} onPointerCancel={(event) => finishDrag(event, true)} onKeyDown={(event) => {
-              if (event.key === "Escape") { drag.current = null; setDragging(null); setTarget(null); }
+            <button type="button" aria-label={`${definition.title} verschieben`} aria-describedby={dragHelpId} className="dashboard-widget-grip core-action-ghost min-w-0 flex-1 gap-2 text-left" onPointerDown={(event) => drag.start(event, widget.id)} onKeyDown={(event) => {
+              if (drag.preview) return;
               const adjacent = preferences.widgets[index + (event.key === "ArrowUp" ? -1 : 1)];
               if ((event.key === "ArrowUp" || event.key === "ArrowDown") && adjacent) { event.preventDefault(); move(widget.id, adjacent.id); }
-            }} />
-            <span className="min-w-0 flex-1 core-caption font-semibold text-core-text">{definition.title}</span>
+            }}><GripVertical size={20} className="shrink-0" aria-hidden="true" /><span className="min-w-0 break-words core-caption font-semibold text-core-text">{definition.title}</span></button>
             <IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
             <IconButton variant="ghost" icon={ArrowDown} label={`${definition.title} nach hinten`} disabled={index === preferences.widgets.length - 1} onClick={() => move(widget.id, preferences.widgets[index + 1].id)} />
             <IconButton variant="ghost" icon={Maximize2} label={`${definition.title}: Größe ändern (${widget.width === "small" ? "kompakt" : widget.width === "wide" ? "breit" : "volle Breite"})`} onClick={() => update({ ...preferences, widgets: preferences.widgets.map((entry) => entry.id === widget.id ? { ...entry, width: entry.width === "small" ? "wide" : entry.width === "wide" ? "full" : "small" } : entry) })} />
@@ -82,6 +65,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
         </section>;
       })}
     </div>
+    {drag.preview ? createPortal(<div ref={drag.ghost} className="dashboard-widget-drag-preview" data-testid="dashboard-widget-drag-preview" aria-hidden="true" style={{ left: drag.preview.x, top: drag.preview.y, width: drag.preview.width }}><GripVertical size={20} className="shrink-0" /><div className="min-w-0"><p className="break-words core-body font-semibold">{DASHBOARD_WIDGETS.find((widget) => widget.id === drag.preview!.id)?.title}</p><p className="core-caption text-core-muted">{drag.preview.target && drag.preview.target !== drag.preview.id ? "Loslassen zum Platzieren" : "Auf den gewünschten Platz ziehen"}</p></div></div>, document.body) : null}
   </div>;
 }
 

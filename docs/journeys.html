@@ -4751,11 +4751,11 @@ summary {
 .dashboard-widget-content > :first-child { height: 100%; }
 .dashboard-widget[data-editing="true"] { outline: 1px dashed var(--core-border); outline-offset: 5px; }
 .dashboard-widget[data-dragging="true"] { opacity: .55; }
-.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 5px; }
+.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 5px; background: var(--core-action-soft); }
 .dashboard-widget-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .125rem; margin-bottom: .5rem; color: var(--core-text); }
-.dashboard-widget-grip { touch-action: none; cursor: grab; }
+.dashboard-widget-grip { touch-action: none; -webkit-user-select: none; -moz-user-select: none; user-select: none; cursor: grab; justify-content: flex-start; }
 .dashboard-widget-grip:active { cursor: grabbing; }
-.dashboard-widget-tools > span { flex-basis: 6rem; }
+.dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
 .dashboard-timer-digits { font-size: clamp(2.75rem, 4.5vw, 4rem); line-height: 1.1; font-weight: 500; letter-spacing: -.055em; font-variant-numeric: tabular-nums; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
@@ -5884,7 +5884,7 @@ N3[&quot;Import, manuelle Karte oder Lernen wählen&quot;]</pre><ol><li>Account 
 </ul>
 <h4 id="journey-1-rules--tageslernfläche" class="core-control-label" tabindex="-1">Tageslernfläche <a class="docs-anchor" href="#journey-1-rules--tageslernfläche" aria-label="Link zu Tageslernfläche">#</a></h4>
 <ul>
-<li>Die befüllte Heute-Seite ist ein modulares Dashboard. Vorausgewählt sind <code>Dein Lernen heute</code>, <code>Lerntimer</code>, <code>Aktive Stapel</code>, <code>To-dos</code> und die Lern-Heatmap. <code>Seite anpassen</code> aktiviert die Bearbeitung innerhalb derselben Seite: Module hinzufügen oder entfernen, per Griff (Maus/Touch) oder Pfeilen verschieben und zwischen kompakter, breiter und voller Breite wechseln. <code>Fertig</code> beendet den Modus; <code>Standardlayout</code> stellt die Vorauswahl wieder her. Auf schmalen Displays stehen die Module untereinander.</li>
+<li>Die befüllte Heute-Seite ist ein modulares Dashboard. Vorausgewählt sind <code>Dein Lernen heute</code>, <code>Lerntimer</code>, <code>Aktive Stapel</code>, <code>To-dos</code> und die Lern-Heatmap. <code>Seite anpassen</code> aktiviert die Bearbeitung innerhalb derselben Seite: Module hinzufügen oder entfernen, per Titelleiste (Maus/Touch) oder Pfeilen verschieben und zwischen kompakter, breiter und voller Breite wechseln. Beim Ziehen folgt eine Widget-Vorschau dem Zeiger, das Ablageziel wird hervorgehoben und der tatsächliche Inhaltsbereich scrollt am Rand mit. Loslassen über dem Raster übernimmt die Reihenfolge; Escape, Zeigerabbruch oder Loslassen außerhalb verwerfen die Geste. <code>Fertig</code> beendet den Modus; <code>Standardlayout</code> stellt die Vorauswahl wieder her. Auf schmalen Displays stehen die Module untereinander.</li>
 <li>Layout und eigene To-dos werden pro Konto auf diesem Browser gespeichert. Eigene Aufgaben lassen sich hinzufügen, abhaken und löschen. Der To-do-Bereich übernimmt zusätzlich die vorhandenen Tagesaufgaben aus dem Prüfungsplaner samt seinen Lernaktionen; ohne Plan verweist er auf den Planer. Das Entfernen des Widgets löscht keine Aufgaben. Der Lerntimer bietet Fokusphasen von 25/45 Minuten und eine 5-Minuten-Pause; sein Start verwendet denselben globalen Timer wie Navigation und Review.</li>
 <li>Das Widget <code>Dein Lernen heute</code> zeigt eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung.</li>
 <li>Vier beschriftete Segmente <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zeigen den Tagesstand. <code>X / Y Karten</code> zählt eindeutige heute relevante Karten. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.</li>

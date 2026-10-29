@@ -467,7 +467,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   }), [examDemoDecks, selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
-    ["dashboard", "DashboardScreen · modulares Dashboard mit To-dos und Lerntimer", "Tagesübersicht"],
+    ["dashboard", "DashboardScreen · Widgets mit Drag-and-drop, To-dos und Lerntimer", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · Fächer neben Heute · kompakte Woche · Lernzeit mit Löschkreuz und Ziehlasche · aufklappbare Prüfungskarten", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
