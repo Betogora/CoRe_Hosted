@@ -51,7 +51,7 @@ function createDeckWithInactiveCards() {
     front: "<b>Welche Funktion hat Myelin?</b>",
     back: "Myelin isoliert Axone und beschleunigt die Erregungsleitung.",
     tags: ["neuro"],
-    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 4, maturityXp: 142 },
+    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 4, maturityBand: "mature" },
   }), {
     id: "variant_active",
     front: "Beschreibe die Funktion von Myelin.",
@@ -60,7 +60,7 @@ function createDeckWithInactiveCards() {
   const deletedCard = deleted(libraryCard("card_deleted", {
     front: "Gelöschte Karte",
     back: "Soll nicht zählen.",
-    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 4, maturityXp: 142 },
+    study: { dueAt: "2026-07-01T07:00:00.000Z", reps: 4, maturityBand: "mature" },
   }));
 
   return createCoreDeck({

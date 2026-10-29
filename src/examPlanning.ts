@@ -6,7 +6,7 @@ import { EXAM_SESSION_DECK_ID, getExamPlanningKey } from "./examPlanSettings.ts"
 import { getLearningDayKey, getLearningDayStartForKey } from "./learningDay.ts";
 import { markLearningSettingsCustom } from "./learningProfiles.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
-import { calculateRetrievability, scheduleWithFsrs } from "./scheduler.ts";
+import { calculateRetrievability, getDurabilityDays, getMaturityBand, scheduleWithFsrs } from "./scheduler.ts";
 import { balanceExamContacts, type ContactColumn } from "./examContactPlanning.ts";
 
 type ExamStudyMethod = "new" | "review" | "relearning" | "variant";
@@ -72,10 +72,10 @@ export function getExamTopicOrder(decks: readonly Deck[], exam: ExamPlan): strin
   return [...(exam.topicOrder ?? []).filter((id) => order.includes(id)), ...order.filter((id) => !exam.topicOrder?.includes(id))];
 }
 function isNew(state: Pick<ReviewState, "state" | "reps">) { return state.state === "new" && state.reps === 0; }
-function snapshotState(card: CardStudySnapshot) { return createReviewState({ ...card.study, maturityXp: card.maturityXp }); }
+function snapshotState(card: CardStudySnapshot) { return createReviewState({ ...card.study, stabilityFast: card.stabilityFast }); }
 function readiness(cards: readonly CardStudySnapshot[]): ExamReadiness {
   return { coverage: cards.length ? cards.filter((card) => !isNew(card.study)).length / cards.length : 0,
-    consolidated: cards.length ? cards.filter((card) => card.study.state === "review" && card.study.lastRating !== "again" && card.maturityXp >= 81).length / cards.length : 0 };
+    consolidated: cards.length ? cards.filter((card) => getMaturityBand(snapshotState(card)) === "mature").length / cards.length : 0 };
 }
 export function getExamCurrentProgress(decks: readonly Deck[], cards: readonly CardStudySnapshot[], plan: ExamPlan) {
   const scope = getExamDeckIds(decks, plan), own = cards.filter((card) => card.status === "active" && scope.has(card.deckId));
@@ -97,7 +97,7 @@ function getExamStudySettings(settings: DeckSettings, desiredRetention: number, 
 }
 function methodFor(card: CardStudySnapshot, settings: DeckSettings): ExamStudyMethod {
   if (isNew(card.study)) return "new";
-  if (settings.coreMode === "on" && card.activeVariantCount > 0 && card.maturityXp >= settings.variantThresholdXp) return "variant";
+  if (settings.coreMode === "on" && card.activeVariantCount > 0 && card.study.state === "review" && getDurabilityDays(snapshotState(card)) >= settings.variantThresholdDays) return "variant";
   return card.study.state === "learning" || card.study.state === "relearning" ? "relearning" : "review";
 }
 

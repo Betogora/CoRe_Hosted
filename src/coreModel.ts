@@ -3,7 +3,6 @@ export {
   DECK_ICON_KEYS,
   REVIEW_RATINGS,
   createDefaultDeckSettings,
-  getMaturityBand,
   makeId,
   normalizeDeckAppearance,
   stableContentHash,

@@ -838,7 +838,7 @@ function ReferenceSection() {
           <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary">
             <li>• Die Variante prüft dieselbe Wissenseinheit und führt keine neuen Fakten ein.</li>
             <li>• Genau eine Originalkarte bleibt als Vertrauensanker erhalten.</li>
-            <li>• Varianten erscheinen nur in der Wiederholungsphase und erst ab der Lernstufe des Stapels. Richtige Antworten heben die Lernstufe, Fehler senken sie.</li>
+            <li>• Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels: so vielen Tagen, bis die Erinnerung voraussichtlich auf 90 % fällt. Richtige Antworten verlängern die Haltbarkeit, Fehler verkürzen sie.</li>
             <li>• Nach einem Fehler fragt CoRe wieder die Originalkarte ab, bis du sie richtig beantwortest. Auch danach wechseln sich Original und Varianten ab.</li>
             <li>• Der Variantenpunkt im Diagramm ist keine garantierte Produktionsschwelle und keine garantierte Reviewnummer.</li>
           </ul>

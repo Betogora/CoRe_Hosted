@@ -74,7 +74,7 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
                 <li className="flex items-center gap-2"><span aria-hidden="true" className="size-2 shrink-0 rounded-round bg-core-action" />Gesehen · {formatExamPercent(readiness.coverage)}</li>
                 <li className="flex items-center gap-2"><span aria-hidden="true" className="size-2 shrink-0 rounded-round bg-core-success" />Gefestigt · {formatExamPercent(readiness.consolidated)}</li>
               </ul>
-              <p id={progressDescriptionId} className="core-caption text-core-muted">Gefestigt: ab Lernstufe Stabil ohne aktuellen Rückfall</p>
+              <p id={progressDescriptionId} className="core-caption text-core-muted">Gefestigt: Haltbarkeit ab 21 Tagen</p>
             </div>
           </> : <p className="core-body text-core-muted">Der Lernstand ist noch nicht verfügbar.</p>}
           {summary?.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}

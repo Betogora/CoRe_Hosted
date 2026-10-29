@@ -276,7 +276,7 @@ export function catalogSummaryContribution(card: StoredCardCatalog | null) {
     totalCount: active ? 1 : 0,
     newCount: active && card!.reviewable === 1 && card!.scheduleState === "new" ? 1 : 0,
     learningCount: active && card!.reviewable === 1 && ["learning", "relearning"].includes(card!.scheduleState) ? 1 : 0,
-    matureCount: active && card!.reviewable === 1 && ["mature", "variant_ready", "mastered"].includes(card!.maturityBand) ? 1 : 0,
+    matureCount: active && card!.reviewable === 1 && card!.maturityBand === "mature" ? 1 : 0,
     suspendedCount: active && card!.reviewable !== 1 ? 1 : 0,
     activeVariantCount: active ? card!.activeVariantCount : 0,
   };

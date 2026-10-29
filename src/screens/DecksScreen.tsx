@@ -718,7 +718,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
           <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten</h3>
           <p className="core-caption font-semibold text-core-muted" data-testid="variant-active-count">{variantReadiness!.activeCount} von {variantReadiness!.maxActive} aktiv</p>
         </div>
-        <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Lernstufe {variantReadiness!.maturityXp} von {variantReadiness!.thresholdXp} XP · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
+        <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Haltbarkeit {variantReadiness!.durabilityDays} von {variantReadiness!.thresholdDays} Tagen · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
         {variants.length > 0 ? (
           <ul className="mt-3 grid divide-y divide-core-border border-y border-core-border">
             {variants.map((variant: CardVariant, index) => {

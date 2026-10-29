@@ -713,15 +713,16 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     : collectionCreatedAt !== null && Number.isFinite(due) ? new Date(collectionCreatedAt * 1_000 + due * DAY_MS).toISOString()
       : new Date(Date.parse(importedAt) + intervalDays * DAY_MS).toISOString();
   let migration: StudyMigration;
-  let memoryState: { stability: number; difficulty: number; lastReviewedAt: string | null; desiredRetention?: number | null };
-  if (memory) {
-    migration = "fsrs-memory-state";
-    memoryState = memory;
-  } else if (history.length > 0) {
+  let memoryState: { stability: number; stabilityFast?: number; difficulty: number; lastReviewedAt: string | null; desiredRetention?: number | null };
+  // Anki stores an FSRS-6 memory state; a history from the first contact rebuilds both FSRS-7 traces and takes precedence.
+  if (history.length > 0 && (history[0].beforeState === "new" || !memory)) {
     migration = "revlog-replay";
     let replay = createReviewState({ dueAt: history[0].answeredAt });
     for (const entry of history) replay = scheduleWithFsrs(replay, entry.rating, { now: entry.answeredAt, isVariant: false, variantId: null, variantIsOriginal: true });
-    memoryState = { stability: replay.stability, difficulty: replay.difficulty, lastReviewedAt: history.at(-1)!.answeredAt };
+    memoryState = { stability: replay.stability, stabilityFast: replay.stabilityFast, difficulty: replay.difficulty, lastReviewedAt: history.at(-1)!.answeredAt, desiredRetention: memory?.desiredRetention };
+  } else if (memory) {
+    migration = "fsrs-memory-state";
+    memoryState = memory;
   } else {
     migration = "classic-state";
     const ease = Number(ankiCard.factor) > 0 ? Number(ankiCard.factor) / 1000 : 2.5;
@@ -732,6 +733,7 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     dueAt,
     intervalDays,
     stability: memoryState.stability,
+    stabilityFast: memoryState.stabilityFast ?? 0,
     difficulty: Math.min(10, Math.max(1, memoryState.difficulty)),
     ...(memoryState.desiredRetention ? { desiredRetention: memoryState.desiredRetention } : {}),
     reps,
@@ -739,7 +741,7 @@ function translateStudy(ankiCard: any, history: AnkiReviewHistoryEntry[], collec
     lastReviewedAt: memoryState.lastReviewedAt,
     sourceSchedulerData: {
       source: "anki",
-      migrationVersion: 2,
+      migrationVersion: 3,
       migrationMethod: migration,
       rawCardState: snapshot,
       ...(memory ? { rawMemoryState: memory.raw } : {}),

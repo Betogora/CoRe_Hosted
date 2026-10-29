@@ -4,12 +4,13 @@ import { addCardVariant, createBasicNote, createManualNoteContent, createNote } 
 import { cardVariantSource, classifyCardEligibility, deleteVariant, describeVariantReadiness, flagVariant, reactivateVariant, selectReviewVariant, variantPresentation } from "./coreVariantService.ts";
 import type { Card, NoteContent } from "./coreTypes.ts";
 
-const ON = { coreMode: "on", variantThresholdXp: 121, maxActiveVariantsPerCard: 2 } as const;
+const ON = { coreMode: "on", variantThresholdDays: 21, maxActiveVariantsPerCard: 2 } as const;
 
 /** A review card at the given learning level with two rephrasings created one after another. */
-function matureCard(maturityXp = 140, reps = 0): Card {
+/** Stability 20 holds about 33 days until recall falls to 90 %, stability 10 about 13 days. */
+function matureCard(stability = 20, reps = 0): Card {
   const { cards } = createBasicNote("deck", "Frage", "Antwort");
-  const base: Card = { ...cards[0], study: { ...cards[0].study, state: "review", reps, lastRating: "good", extra: { ...cards[0].study.extra, maturityXp } } };
+  const base: Card = { ...cards[0], study: { ...cards[0].study, state: "review", reps, stability, difficulty: 5, lastRating: "good", extra: { ...cards[0].study.extra, stabilityFast: stability } } };
   const first = addCardVariant(base, { id: "v1", front: "F1", back: "A" }, "2026-10-01T08:00:00.000Z");
   return addCardVariant(first, { id: "v2", front: "F2", back: "A" }, "2026-10-02T08:00:00.000Z");
 }
@@ -90,29 +91,29 @@ test("Variantendarstellung ersetzt Frage und Antwort und behält Zusatzfelder, T
 });
 
 test("Review wechselt reife Karten reihum zwischen Karte und Varianten ab", () => {
-  assert.deepEqual([0, 1, 2, 3].map((reps) => selectReviewVariant(matureCard(140, reps), ON)?.id ?? null), [null, "v1", "v2", null]);
+  assert.deepEqual([0, 1, 2, 3].map((reps) => selectReviewVariant(matureCard(20, reps), ON)?.id ?? null), [null, "v1", "v2", null]);
 });
 
 test("Review zeigt die Karte selbst bei ausgeschaltetem CoRe, unter der Lernstufe, in Lernphasen und nach einem Fehler", () => {
-  const card = matureCard(140, 1);
+  const card = matureCard(20, 1);
   assert.equal(selectReviewVariant(card, { ...ON, coreMode: "off" }), null);
-  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdXp: 181 }), null);
+  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdDays: 60 }), null);
   assert.equal(selectReviewVariant({ ...card, study: { ...card.study, state: "relearning" } }, ON), null);
   assert.equal(selectReviewVariant({ ...card, study: { ...card.study, lastRating: "again" } }, ON), null);
-  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdXp: 81 })?.id, "v1");
+  assert.equal(selectReviewVariant(card, { ...ON, variantThresholdDays: 7 })?.id, "v1");
 });
 
 test("Review fragt höchstens so viele Varianten ab, wie der Stapel erlaubt", () => {
-  assert.deepEqual([0, 1, 2].map((reps) => selectReviewVariant(matureCard(140, reps), { ...ON, maxActiveVariantsPerCard: 1 })?.id ?? null), [null, "v1", null]);
+  assert.deepEqual([0, 1, 2].map((reps) => selectReviewVariant(matureCard(20, reps), { ...ON, maxActiveVariantsPerCard: 1 })?.id ?? null), [null, "v1", null]);
 });
 
 test("Bereitschaft nennt Lernstufe, Schwelle und Variantenzahl des Stapels", () => {
   assert.deepEqual(
-    { ...describeVariantReadiness(matureCard(90), { variantThresholdXp: 121 }), reason: "" },
-    { maturityXp: 90, thresholdXp: 121, ready: false, reason: "", activeCount: 2, maxActive: 2 },
+    { ...describeVariantReadiness(matureCard(10), { variantThresholdDays: 21 }), reason: "" },
+    { durabilityDays: 13, thresholdDays: 21, ready: false, reason: "", activeCount: 2, maxActive: 2 },
   );
-  assert.equal(describeVariantReadiness(matureCard(140)).ready, true);
-  assert.match(describeVariantReadiness(matureCard(140), { coreMode: "off" }).reason, /ausgeschaltet/);
+  assert.equal(describeVariantReadiness(matureCard(20)).ready, true);
+  assert.match(describeVariantReadiness(matureCard(20), { coreMode: "off" }).reason, /ausgeschaltet/);
 });
 
 test("reactivating a reported variant returns it to rotation with its feedback; outdated ones stay out; deleting leaves a tombstone", () => {

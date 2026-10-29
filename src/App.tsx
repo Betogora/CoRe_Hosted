@@ -119,14 +119,14 @@ function createEmptyStudyStart(
 
 function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): Deck {
   const normalized = normalizeLearningSettings(settings);
-  const variantThresholdXp = settings.variantThresholdXp == null ? undefined : Number(settings.variantThresholdXp);
+  const variantThresholdDays = settings.variantThresholdDays == null ? undefined : Number(settings.variantThresholdDays);
   const maxActiveVariantsPerCard = settings.maxActiveVariantsPerCard == null ? undefined : Number(settings.maxActiveVariantsPerCard);
   const nextDeckSettings = createDefaultDeckSettings({
     ...deck.deckSettings,
     ...normalized,
     learningProfileSource: normalizeLearningProfileSource(settings.learningProfileSource),
     coreMode: settings.coreMode === "on" || settings.coreMode === "off" ? settings.coreMode : deck.deckSettings.coreMode,
-    ...(Number.isFinite(variantThresholdXp) ? { variantThresholdXp } : {}),
+    ...(Number.isFinite(variantThresholdDays) ? { variantThresholdDays } : {}),
     ...(Number.isFinite(maxActiveVariantsPerCard) ? { maxActiveVariantsPerCard } : {}),
     ...(settings.newCardsPerDay !== undefined && settings.newCardsPerDay !== deck.deckSettings.newCardsPerDay
       ? { newCardsTodayOverride: null }
@@ -2098,9 +2098,9 @@ export function App() {
         title={`CoRe für „${coreEnableDeck?.name ?? ""}“ einschalten`}
         description={(
           <div className="grid gap-3">
-            <p>CoRe fragt Karten ab einer Lernstufe auch umformuliert ab, damit du das Wissen statt des Wortlauts lernst. Die Varianten werden automatisch generiert.</p>
+            <p>CoRe fragt gut gefestigte Karten auch umformuliert ab, damit du das Wissen statt des Wortlauts lernst. Die Varianten werden automatisch generiert.</p>
             <ul className="grid list-disc gap-1 pl-5 core-body text-core-muted">
-              <li>Varianten erscheinen beim Lernen erst, wenn eine Karte die Lernstufe des Stapels erreicht.</li>
+              <li>Varianten erscheinen beim Lernen erst, wenn eine Karte die Haltbarkeit des Stapels erreicht (Standard: 21 Tage).</li>
               <li>Nur der bereinigte Text von Frage und Antwort geht an GPT-6 Luna; der Anbieter speichert ihn nicht.</li>
             </ul>
             <label className="flex items-start gap-3 rounded-control border border-core-border p-3 core-body font-semibold text-core-text">

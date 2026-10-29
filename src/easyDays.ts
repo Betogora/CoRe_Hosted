@@ -1,4 +1,4 @@
-import { get_fuzz_range } from "ts-fsrs";
+import { getFuzzRange } from "ts-fsrs";
 import type { Card, EasyDayLevel, EasyDays } from "./coreTypes.ts";
 import { getLearningDayKey, type LearningDayOptions } from "./learningDay.ts";
 
@@ -116,9 +116,9 @@ export function selectEasyDayInterval({
 }): number {
   const rawInterval = Math.round(rawIntervalDays);
   if (!context || rawInterval < 3 || rawInterval > 90 || !hasEasyDayDifferences(context.easyDays)) return rawInterval;
-  const range = get_fuzz_range(rawInterval, elapsedDays, maximumIntervalDays);
-  const minimumCandidate = Math.max(3, range.min_ivl);
-  const maximumCandidate = Math.min(90, range.max_ivl);
+  const range = getFuzzRange(rawInterval, elapsedDays, maximumIntervalDays);
+  const minimumCandidate = Math.max(3, range.minInterval);
+  const maximumCandidate = Math.min(90, range.maxInterval);
   if (minimumCandidate >= maximumCandidate) return rawInterval;
   const currentDayKey = getLearningDayKey(now, context);
   if (!currentDayKey) return rawInterval;

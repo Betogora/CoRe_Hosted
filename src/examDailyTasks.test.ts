@@ -11,7 +11,7 @@ import type { ExamPlanningSettings } from "./coreTypes.ts";
 const now = "2026-10-20T12:00:00.000Z", date = "2026-10-20";
 const made = createBasicNote("heart", "Frage", "Antwort", { createdAt: now });
 const { extra: _extra, ...study } = made.cards[0].study;
-const card: CardStudySnapshot = { cardId: made.cards[0].id, deckId: "heart", noteId: made.note.id, status: "active", study, studyRevision: 0, activeVariantCount: 0, createdAt: now, maturityXp: 0 };
+const card: CardStudySnapshot = { cardId: made.cards[0].id, deckId: "heart", noteId: made.note.id, status: "active", study, studyRevision: 0, activeVariantCount: 0, createdAt: now, stabilityFast: 0 };
 const decks = [createCoreDeck({ id: "root", name: "Anatomie" }), ...["heart", "lung", "kidney", "brain"].map((id) => createCoreDeck({ id, name: id, parentDeckId: "root" }))];
 const exam = { ...createExamPlan(date, decks.map((deck) => deck.id)), id: "exam", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-30", studyTime: { dailyMinutes: 120, weekdays: Array(7).fill(true), dateOverrides: [] } };
 const settings: ExamPlanningSettings = { version: 3, exams: [exam], capacity: createStudyTimeCapacity() };

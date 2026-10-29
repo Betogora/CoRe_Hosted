@@ -1,10 +1,10 @@
 import { normalizeLearningProfileSource, normalizeLearningSettings, type LearningSettingsInput } from "../deckSettings.ts";
-import type { CoreMode, DeckAppearance, DeckSettings, DeckSource, MaturityBand, ReviewRating, VariantQualityStatus } from "../coreTypes.ts";
+import type { CoreMode, DeckAppearance, DeckSettings, DeckSource, ReviewRating, VariantQualityStatus } from "../coreTypes.ts";
 
 interface DeckSettingsInput extends LearningSettingsInput {
   appearance?: Partial<DeckAppearance>;
   newCardsTodayOverride?: { date?: unknown; limit?: unknown } | null;
-  variantThresholdXp?: number;
+  variantThresholdDays?: number;
   maxActiveVariantsPerCard?: number;
 }
 export const CORE_DECK_SOURCES = ["anki-apkg", "manual"] as const satisfies readonly DeckSource[];
@@ -48,14 +48,6 @@ const DEFAULT_DECK_APPEARANCE = {
 };
 export const VARIANT_STATUSES = ["draft", "active", "rejected", "flagged", "disabled"] as const satisfies readonly VariantQualityStatus[];
 export const REVIEW_RATINGS = ["again", "hard", "good", "easy"] as const satisfies readonly ReviewRating[];
-const MATURITY_BANDS = [
-  { id: "new", min: 0, max: 20, label: "Neu" },
-  { id: "learning", min: 21, max: 50, label: "Aufbau" },
-  { id: "young", min: 51, max: 80, label: "Jung" },
-  { id: "mature", min: 81, max: 120, label: "Stabil" },
-  { id: "variant_ready", min: 121, max: 180, label: "CoRe-ready" },
-  { id: "mastered", min: 181, max: Number.POSITIVE_INFINITY, label: "Sicher" },
-] as const satisfies readonly { id: MaturityBand; min: number; max: number; label: string }[];
 
 export function makeId(prefix: string): string {
   const cryptoPart =
@@ -94,9 +86,6 @@ export function normalizeTags(tags: unknown): string[] {
   );
 }
 
-export function getMaturityBand(maturityXp = 0): MaturityBand {
-  return MATURITY_BANDS.find((band) => maturityXp >= band.min && maturityXp <= band.max)?.id ?? "new";
-}
 const deckIconColorPattern = /^#[0-9a-f]{6}$/i;
 
 export function normalizeDeckAppearance(appearance: Partial<DeckAppearance> = {}): DeckAppearance {
@@ -135,7 +124,7 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
         ? null
         : { id: `builtin:${learningSettings.schedulerProfile.presetId}`, contentVersion: 1 }),
     newCardsTodayOverride,
-    variantThresholdXp: typeof settings.variantThresholdXp === "number" && Number.isFinite(settings.variantThresholdXp) ? settings.variantThresholdXp : 121,
+    variantThresholdDays: typeof settings.variantThresholdDays === "number" && Number.isFinite(settings.variantThresholdDays) ? settings.variantThresholdDays : 21,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
   };
 }
