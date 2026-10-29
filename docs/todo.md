@@ -39,8 +39,9 @@ Entscheidungsvorschläge (vor R2 bestätigen):
   Übersteuerung (dann 1 und 10 Minuten wie bisher).
 - ER8 FSRS-7 rechnet je Bewertung etwa 13 µs in der Bibliothek; die
   Prüfungsplanung braucht für 200 Tage, 5.000 neue und 2.000 bekannte Karten
-  im Median 2.054 statt 821 ms (längster Block unverändert 65 ms). Offen, ob
-  das hingenommen oder in K6-Art weiter optimiert wird.
+  im Median 2.054 statt 821 ms (längster Block unverändert 65 ms).
+  Entschieden 2026-10-29: vorerst hinnehmen, später optimieren (siehe
+  `Betrieb`).
 - ER5 Vorhandene Lernstände: vollständiger Cutover ohne Migrationscode in der
   App. Entweder Neuberechnung aus den Reviewereignissen durch ein einmaliges
   Skript außerhalb des App-Codes, das danach gelöscht wird, oder Reset nach
@@ -114,6 +115,16 @@ geglättet.
 
 ## Betrieb
 
+- [ ] **Prüfungsplanung unter FSRS-7 beschleunigen:** Seit FSRS-7 dauert
+      `createExamPortfolioForecast` für 200 Tage, 5.000 neue und 2.000
+      bekannte Karten im Median 2.054 statt 821 ms (`npm run benchmark:exams`,
+      2026-10-29); der längste Hauptthread-Block bleibt bei 65 ms. Die
+      Bibliothek braucht etwa 13 µs je Bewertung, unser Wrapper etwa 3,5 µs.
+      Ansätze: weniger simulierte Kontakte (Kohorten gröber bündeln,
+      Zukunftskontakte jenseits des Horizonts abschneiden), Schema-Prüfung von
+      `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem
+      Bedarf. Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark
+      vorher/nachher, `npm run performance:measure:local`.
 - [ ] **Hosted-Smoke nach den Migrationen vom 2026-10-10:** `npm run test:beta:hosted`
       mit dem dedizierten Testaccount gegen `https://core-hosted.vercel.app`.
 
