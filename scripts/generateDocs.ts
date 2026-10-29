@@ -16,6 +16,7 @@ import tailwindConfig from "../tailwind.config.ts";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
 import { SegmentedDonut, StatTile } from "../src/ui/coreUi.tsx";
+import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
 import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 
 const root = process.cwd();
@@ -66,6 +67,52 @@ export function codeFootprintMarkup() {
   return `${tiles}<div class="docs-code-chart"><div class="docs-code-donut">${chart}<span class="core-caption">${number(footprint.screens)} Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
 }
 
+const DEFAULT_RETENTION = 0.92;
+const DEFAULT_VARIANT_THRESHOLD = 21;
+const RATING_LABELS = { again: "Nochmal", hard: "Schwer", good: "Gut", easy: "Leicht" } as const;
+const PHASE_LABELS = { new: "Neu", learning: "Lernschritt", review: "Wiederholung", relearning: "Wiederlernen" } as const;
+const BAND_LABELS = { new: "Neu", learning: "Lernen", young: "Jung", mature: "Reif" } as const;
+const decimal = (value: number) => value.toLocaleString("de-DE", { maximumFractionDigits: 1 });
+const percent = (retention: number) => `${Math.round(retention * 100)} %`;
+const days = (value: number) => `${decimal(value)} ${decimal(value) === "1" ? "Tag" : "Tage"}`;
+const gap = (outcome: ExampleOutcome) => outcome.intervalMinutes != null ? `${outcome.intervalMinutes} Min.` : days(outcome.intervalDays);
+const firstMature = (contacts: ExampleContact[]) => contacts.findIndex((contact) => contact.band === "mature");
+const firstVariant = (contacts: ExampleContact[], threshold: number) => contacts.findIndex((contact) => contact.variantThresholds.includes(threshold));
+
+/** Lernverlauf einer Karte (specs.md §6.11): Tabellen und Zeitleisten aus den Beispielketten des Golden-Tests. */
+export function cardHistoryCards(): SpecsCard[] {
+  const source = '<p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p>';
+  const effects = `<table><thead><tr><th>Lage der Karte</th>${Object.values(RATING_LABELS).map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${EXAMPLE_SITUATIONS.map((situation) => {
+    const outcomes = exampleRatingEffects(situation.ratings, DEFAULT_RETENTION);
+    return `<tr><th scope="row">${situation.name}</th>${Object.values(outcomes).map((outcome) => `<td>${PHASE_LABELS[outcome.phase]} in ${gap(outcome)}<br><span class="core-caption">Haltbarkeit ${days(outcome.durabilityDays)} · ${BAND_LABELS[outcome.band]}</span></td>`).join("")}</tr>`;
+  }).join("")}</tbody></table>`;
+  const timelines = EXAMPLE_CHAINS.map((chain) => {
+    const contacts = runExampleChain(chain.ratings, DEFAULT_RETENTION);
+    const mature = firstMature(contacts);
+    const variant = firstVariant(contacts, DEFAULT_VARIANT_THRESHOLD);
+    const steps = contacts.map((contact, index) => {
+      const marks = [index === variant ? '<span class="docs-chain-mark" data-mark="variant">Variante</span>' : "", index === mature ? '<span class="docs-chain-mark" data-mark="mature">wird reif</span>' : ""].join("");
+      return `<li class="docs-chain-step" data-phase="${contact.phaseBefore}"><span class="core-caption">Tag ${decimal(contact.day)}</span><strong>${RATING_LABELS[contact.rating]}</strong><span class="core-caption">${PHASE_LABELS[contact.phaseBefore]}</span><span class="docs-chain-gap">→ ${gap(contact)}</span>${marks}</li>`;
+    }).join("");
+    return `<h4 class="catalog-label">${chain.name}</h4><ol class="docs-chain" aria-label="Zeitleiste ${chain.name}">${steps}</ol>`;
+  }).join("");
+  const legend = `<ul class="docs-chain-legend">${Object.entries(PHASE_LABELS).map(([phase, label]) => `<li data-phase="${phase}">${label}</li>`).join("")}</ul>`;
+  const tables = EXAMPLE_RETENTIONS.map((retention) => `<h4 class="catalog-label">Zielerinnerung ${percent(retention)}</h4><table><thead><tr><th>Kette</th><th>Kontakt</th><th>Tag</th><th>Phase</th><th>Bewertung</th><th>Nächster Abstand</th><th>Haltbarkeit danach</th><th>Reife danach</th><th>Variante bei Schwelle</th></tr></thead><tbody>${EXAMPLE_CHAINS.map((chain) => runExampleChain(chain.ratings, retention).map((contact, index) => `<tr>${index ? "" : `<th scope="rowgroup" rowspan="${chain.ratings.length}">${chain.name}</th>`}<td>${index + 1}</td><td>${decimal(contact.day)}</td><td>${PHASE_LABELS[contact.phaseBefore]}</td><td>${RATING_LABELS[contact.rating]}</td><td>${gap(contact)}</td><td>${days(contact.durabilityDays)}</td><td>${BAND_LABELS[contact.band]}</td><td>${contact.variantThresholds.length ? contact.variantThresholds.map((threshold) => `${threshold} T.`).join(", ") : "–"}</td></tr>`).join("")).join("")}</tbody></table>`).join("");
+  const variants = `<table><thead><tr><th>Kette</th><th>Zielerinnerung</th>${EXAMPLE_VARIANT_THRESHOLDS.map((threshold) => `<th>Schwelle ${threshold} Tage</th>`).join("")}</tr></thead><tbody>${EXAMPLE_CHAINS.flatMap((chain) => EXAMPLE_RETENTIONS.map((retention) => {
+    const contacts = runExampleChain(chain.ratings, retention);
+    return `<tr><th scope="row">${chain.name}</th><td>${percent(retention)}</td>${EXAMPLE_VARIANT_THRESHOLDS.map((threshold) => {
+      const index = firstVariant(contacts, threshold);
+      return `<td>${index < 0 ? "nicht in der Kette" : `Kontakt ${index + 1} · Tag ${decimal(contacts[index].day)}`}</td>`;
+    }).join("")}</tr>`;
+  })).join("")}</tbody></table>`;
+  return [
+    { id: "specs--lernverlauf-bewertungen", title: "Was jede Bewertung bewirkt", html: `<p>Bei Zielerinnerung ${percent(DEFAULT_RETENTION)} und den Standardlernschritten 1 und 10 Minuten; „In der Wiederholung“ ist die Karte nach dreimal „Gut“.</p>${effects}${source}`, wide: true },
+    { id: "specs--lernverlauf-zeitleisten", title: `Beispielketten als Zeitleiste (${percent(DEFAULT_RETENTION)})`, html: `<p>Jeder Punkt ist ein Kontakt: Tag, Bewertung und Phase davor, dann der Abstand bis zum nächsten Kontakt. Markiert sind der Kontakt, nach dem die Karte reif ist, und der erste Kontakt mit Variante bei der Standardschwelle von ${DEFAULT_VARIANT_THRESHOLD} Tagen und einer aktiven Variante.</p>${legend}${timelines}${source}`, wide: true },
+    { id: "specs--lernverlauf-tabellen", title: "Beispielketten je Zielerinnerung", html: `<p>Die Haltbarkeit folgt dem Gedächtnis, nicht der Zielerinnerung; eine höhere Zielerinnerung verkürzt nur die Abstände und verschiebt damit die Tage.</p>${tables}${source}`, wide: true },
+    { id: "specs--lernverlauf-varianten", title: "Wann Varianten erscheinen", html: `<p>Erster Kontakt, bei dem statt der Karte die Variante kommt, je Stapelschwelle. Mit einer aktiven Variante wechseln Karte und Variante sich ab; nach „Nochmal“ kommt bis zur nächsten erfolgreichen Antwort die Karte selbst.</p>${variants}${source}`, wide: true },
+  ];
+}
+
 type SpecsCard = { id: string; title: string; html: string; wide?: boolean };
 type SpecsSection = { id: string; title: string; intro: string; cards: SpecsCard[] };
 
@@ -80,7 +127,7 @@ function specsCard({ id, title, html, wide }: SpecsCard) {
 }
 
 /** Projiziert docs/specs.md in den Katalogaufbau: `##`-Kapitel werden Abschnitte, `###`-Unterabschnitte Karten. */
-export function specsCatalog(markdown: string, appendix?: { section: SpecsSection; label: string }) {
+export function specsCatalog(markdown: string, appendix?: { section: SpecsSection; label: string }, generated: Record<string, SpecsCard[]> = {}) {
   const parts = renderMarkdown(markdown, "specs.md").split(/(<h[123] id="[^"]+" class="[^"]*" tabindex="-1">[\s\S]*?<\/h[123]>\n?)/);
   let title = { id: "", html: "" };
   let intro = "";
@@ -90,7 +137,7 @@ export function specsCatalog(markdown: string, appendix?: { section: SpecsSectio
     const content = parts[index + 1].replace(/<hr>\n?/g, "");
     if (depth === "1") { title = { id, html }; intro += content; }
     else if (depth === "2") sections.push({ id, title: html, intro: content, cards: [] });
-    else if (sections.length) sections.at(-1)!.cards.push({ id, title: html, html: content });
+    else if (sections.length) sections.at(-1)!.cards.push({ id, title: html, html: content }, ...(generated[id] ?? []));
   }
   if (!title.html || !sections.length) throw new Error("docs/specs.md braucht einen Titel und nummerierte Kapitel.");
   for (const section of sections) {
@@ -251,7 +298,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
   reader("index.html", "Docs", document("README.md"));
   const footprint = { id: "specs--codeumfang", title: "Codeumfang der Produktbereiche", intro: "<p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>", cards: [{ id: "specs--codeumfang-bereiche", title: "Bildschirmcode je Produktbereich", html: codeFootprintMarkup(), wide: true }] };
-  results.set("specs.html", htmlPage("specs.html", specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }), css, viewer));
+  results.set("specs.html", htmlPage("specs.html", specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() }), css, viewer));
   reader("journeys.html", "Journeys", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
   results.set("journeys.html", results.get("journeys.html")!.replace("</body>", '<script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body>'));
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {

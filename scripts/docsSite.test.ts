@@ -3,7 +3,8 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
-import { codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, specsCatalog } from "./generateDocs.ts";
+import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, specsCatalog } from "./generateDocs.ts";
+import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
@@ -88,6 +89,17 @@ test("Specs-Leseansicht enthält je Kapitel einen Navigationseintrag, je Unterab
   for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Anker #${anchor} fehlt`);
   for (const [, anchor] of journeyProjection(specs).matchAll(/href="specs\.html#([^"]+)"/g)) assert.ok(ids.has(anchor), `Journey-Anker ${anchor} fehlt`);
   assert.ok(ids.has("specs--document") && ids.has("specs--5-kernjourneys"));
+});
+
+test("Lernverlauf: erzeugte Karten folgen §6.11 und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
+  const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
+  const html = specsCatalog(specs, undefined, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
+  const order = [...html.matchAll(/<article id="(specs--611-lernverlauf-einer-karte|specs--lernverlauf-[a-z]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(order, ["specs--611-lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
+  const contacts = EXAMPLE_CHAINS.reduce((sum, chain) => sum + chain.ratings.length, 0);
+  assert.equal([...html.matchAll(/class="docs-chain-step"/g)].length, contacts);
+  assert.equal([...html.matchAll(/<tr><th scope="rowgroup"/g)].length, EXAMPLE_CHAINS.length * EXAMPLE_RETENTIONS.length);
+  assert.equal([...html.matchAll(/data-mark="mature"/g)].length, EXAMPLE_CHAINS.length);
 });
 
 test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte ins Ringdiagramm", () => {

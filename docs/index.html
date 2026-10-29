@@ -5635,6 +5635,20 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-code-chart tbody th { font-weight: var(--core-weight-control); }
 .docs-code-chart thead th { white-space: nowrap; }
 .docs-code-chart td { white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* Lernverlauf einer Karte: Zeitleisten der Beispielketten, Phase als Farbe der Kontaktkante. */
+.docs-chain, .docs-chain-legend { display: flex; flex-wrap: wrap; gap: var(--core-space-sm); margin: var(--core-space-sm) 0 var(--core-space-lg); padding: 0; list-style: none; }
+.docs-chain-step { display: grid; gap: var(--core-space-xs); min-width: 7.5rem; padding: var(--core-space-sm) var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-left: var(--core-border-width-strong) solid var(--docs-phase); border-radius: var(--core-radius-control); background: var(--core-surface); }
+.docs-chain-step strong { color: var(--core-text); }
+.docs-chain-gap { color: var(--core-text-secondary); font-variant-numeric: tabular-nums; }
+.docs-chain-mark { justify-self: start; padding: 0 var(--core-space-sm); border-radius: var(--core-radius-marker); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); color: var(--core-text); }
+.docs-chain-mark[data-mark="variant"] { background: var(--core-action-soft); }
+.docs-chain-mark[data-mark="mature"] { background: var(--core-warning-surface); }
+.docs-chain-legend li { display: inline-flex; align-items: center; gap: var(--core-space-xs); color: var(--core-text-secondary); font-size: var(--core-type-caption); }
+.docs-chain-legend li::before { content: ""; width: var(--core-space-md); height: var(--core-space-md); border-radius: var(--core-radius-marker); background: var(--docs-phase); }
+[data-phase="new"] { --docs-phase: var(--core-border-interactive); }
+[data-phase="learning"] { --docs-phase: var(--core-action-primary); }
+[data-phase="review"] { --docs-phase: var(--core-success); }
+[data-phase="relearning"] { --docs-phase: var(--core-danger); }
 /* Specs-Leseansicht im Aufbau des UI-Elemente-Katalogs. */
 .catalog-section[hidden], .catalog-card[hidden] { display: none; }
 .specs-meta { display: flex; flex-wrap: wrap; gap: var(--core-space-sm); max-width: 72ch; margin: var(--core-space-lg) 0 0; padding: 0; list-style: none; }
