@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Reife aus FSRS (P1 R7): Specs und Doku, Abschluss P1
+
+- `src/schedulerExampleChains.ts` hält Beispielketten und Lagen der Karte; Golden-Test und `npm run docs:build` lesen dieselben Ketten. Der Test prüft zusätzlich die Wirkung jeder Bewertung je Lage (neu, zweiter Lernschritt, Wiederholung, Wiederlernen) bei 92 %.
+- Neuer Spec-Abschnitt §6.11 „Lernverlauf einer Karte“ mit Regeln je Lage; `specs.html` erzeugt dazu die Karten „Was jede Bewertung bewirkt“, „Beispielketten als Zeitleiste“ (Phase als Farbkante, „wird reif“ und erste Variante markiert), „Beispielketten je Zielerinnerung“ und „Wann Varianten erscheinen“ je Schwelle 7/21/60 Tage. `specsCatalog` fügt erzeugte Karten hinter einer Spec-Karte ein.
+- Glossar `Haltbarkeit` und `Reife` statt `Lernstufe`; „gefestigt“ in §6.9 ist `Reif`. Alle 24 Markierungen `Neuplanung P1` in Specs, Architektur, Status und ADRs aufgelöst; dabei auch Import-Reihenfolge (FSRS-7-Replay vor Anki-Speicherstand), Statistik-Kategorien und Simulator-Schnellauswahl `+1` nachgezogen.
+- ADR-044 ist `angenommen` und übernimmt die weiter gültigen Teile von ADR-009 (einziger Scheduler, Lernschritte, Sitzungsreihenfolge, keine Parameteroptimierung); ADR-009 gelöscht, ADR-015 und ADR-039 auf Haltbarkeit angepasst. P1-Block im Todo entfernt.
+- Verifiziert: Golden-Test 5/5, `scripts/docsSite.test.ts` 13/13 (neu: Reihenfolge und Vollständigkeit der erzeugten Karten), `npm run docs:build`, `npm run check:docs`; Specs-Seite bei 1280 px hell und dunkel sowie 390 px ohne horizontales Scrollen geprüft.
+
 ## 2026-10-29 — Reife aus FSRS (P1 R6): Golden-Test und Gates
 
 - Golden-Test `src/schedulerExampleChains.test.ts`: vier Bewertungspfade (immer `Gut`, `Leicht` dann `Gut`, `Gut` mit einem Fehler, `Nochmal` am Anfang) je Zielerinnerung 0,90, 0,92 und 0,94 über Produktions-Scheduler und Variantenwahl; je Kontakt Tag, Bewertung, Stapelschwellen (7/21/60 Tage), bei denen die Variante statt der Karte kommt, nächster Abstand, Haltbarkeit und Reifeband. Die Haltbarkeit hängt nicht von der Zielerinnerung ab, nur die Abstände; mit einer Variante kommt sie ab erreichter Schwelle bei jedem zweiten Kontakt. Der Reife-Test aus `schedulerIntervals.test.ts` war darin enthalten und ist entfernt.
