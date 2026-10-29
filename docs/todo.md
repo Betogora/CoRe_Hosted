@@ -5,29 +5,15 @@ Stand: 2026-10-29
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-## P1: Reife aus FSRS-7 statt XP (R4–R7)
+## P1: Reife aus FSRS-7 statt XP (R6–R7)
 
-R0–R4 sind erledigt, Details in [`history.md`](history.md): FSRS-7 ist der
+R0–R5 sind erledigt, Details in [`history.md`](history.md): FSRS-7 ist der
 einzige Scheduler, XP ist entfernt, Reife folgt der Haltbarkeit (Tage, bis die
 Erinnerung auf 90 % fällt). Die mit `Neuplanung P1` markierten Aussagen in
 `specs.md`, `architecture.md` und `status.md` bleiben bis R7 nicht bindend.
 
-Die getroffenen Entscheidungen stehen in ADR-044. Bis R5 gelten Lernstände
-ohne schnelle Spur als „schnelle Spur = Stabilität“, und Lernstände aus der
-Zeit vor R3 tragen kein gültiges Reifeband.
+Die getroffenen Entscheidungen stehen in ADR-044.
 
-- [ ] **R5 Datenbank-Cutover:** `list_account_card_study_states` liefert
-      `stability_fast` als Pflichtfeld (die Validierung erlaubt es bis dahin
-      leer); `card_study_states.maturity_xp` entfällt; Katalog und
-      Stapelzahlen lesen weiter das von der App geschriebene Reifeband aus
-      `study_extra`. Alle Lernstände werden aus ihren Reviewereignissen mit
-      FSRS-7 neu berechnet (Lernstand, schnelle Spur, Reifeband; ER5) durch ein
-      einmaliges Skript außerhalb des App-Codes, das danach gelöscht wird;
-      Karten ohne vollständige Ereignisfolge behalten Stabilität und
-      Schwierigkeit und bekommen nur das Reifeband neu. `db:types:generate`,
-      `db:types:check`, `test:rls:local`, `test:e2e:local`; Migration vor dem App-Deployment auf
-      dem gehosteten Supabase; Remote-Reset nur unter den Bedingungen aus
-      ADR-034.
 - [ ] **R6 Tests:** Tabellengetriebener Golden-Test der Beispielketten
       (Bewertungspfad × Zielerinnerung 0,90/0,92/0,94 → Abstände, Haltbarkeit,
       Reifeband, erster Kontakt mit Variante); Fixtures (`worldCapitals`,

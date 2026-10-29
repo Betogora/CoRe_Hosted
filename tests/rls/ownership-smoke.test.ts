@@ -399,6 +399,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.ok(studyA.every((entry: any) => entry.deck_id === fixtureA.decks.id), "Nutzer A sieht keine fremden Lernstände");
       assert.equal(studyA.find((entry: any) => entry.card_id === fixtureA.cards.id)?.active_variant_count, 3);
       assert.equal(typeof studyA.find((entry: any) => entry.card_id === fixtureA.cards.id)?.created_at, "string", "Die Planung ordnet neue Karten nach Erstellzeit");
+      assert.equal(typeof studyA.find((entry: any) => entry.card_id === fixtureA.cards.id)?.stability_fast, "number", "Die Planung erhält die schnelle FSRS-7-Spur");
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_study_states", { ...studyRequest, p_deck_ids: [fixtureA.decks.id] }), "fremde Lernstände für Nutzer B"), []);
 
       const hydratedA = assertNoError(await clientA.rpc("hydrate_account_cards", { p_card_ids: [fixtureA.cards.id, fixtureB.cards.id], p_note_ids: [fixtureB.notes.id] }), "Kartenkörper für Nutzer A");

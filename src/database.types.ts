@@ -1008,10 +1008,10 @@ export type Database = {
           last_rating: string
           last_reviewed_at: string
           learning_step_index: number
-          maturity_xp: number
           note_id: string
           reps: number
           stability: number
+          stability_fast: number
           state: string
           status: string
           study_revision: number
