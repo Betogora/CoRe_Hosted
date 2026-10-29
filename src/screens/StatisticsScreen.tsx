@@ -30,6 +30,7 @@ import {
   type StatisticsProjection,
 } from "../statisticsModel.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
+import type { MaturityBand } from "../coreTypes.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreSegmentedControl, EmptyState, PageHeader, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
@@ -86,13 +87,13 @@ const CATEGORY_COLORS = {
   young: "var(--core-success)",
   mature: "var(--core-warning)",
 };
-const PIE_COLORS = [
-  "var(--core-action-primary)",
-  "var(--core-danger)",
-  "var(--core-warning)",
-  "var(--core-success)",
-  "var(--core-text-muted)",
-];
+const RATING_BUTTONS = [["again", "Nochmal"], ["hard", "Schwer"], ["good", "Gut"], ["easy", "Leicht"]] as const;
+const STATUS_COLORS: Record<MaturityBand, string> = {
+  new: "var(--core-border-interactive)",
+  learning: CATEGORY_COLORS.learning,
+  young: CATEGORY_COLORS.young,
+  mature: CATEGORY_COLORS.mature,
+};
 const axisTick = { fill: "var(--core-text-muted)", fontSize: 11 };
 const NUMBER_FORMATTERS = [
   new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }),
@@ -300,8 +301,8 @@ function ActivityChart({ points, duration = false }: { points: StatisticsProject
     >
       <Bar dataKey="learning" name="Lernen" stackId="reviews" fill={CATEGORY_COLORS.learning} isAnimationActive={false} />
       <Bar dataKey="relearning" name="Wiederlernen" stackId="reviews" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
-      <Bar dataKey="young" name="Jung" stackId="reviews" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
-      <Bar dataKey="mature" name="Reif" stackId="reviews" fill={CATEGORY_COLORS.mature} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+      <Bar dataKey="young" name="Intervall unter 21 Tagen" stackId="reviews" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
+      <Bar dataKey="mature" name="Intervall ab 21 Tagen" stackId="reviews" fill={CATEGORY_COLORS.mature} radius={[3, 3, 0, 0]} isAnimationActive={false} />
       <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke="var(--core-text-muted)" fill="var(--core-action-primary)" fillOpacity={0.08} isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
@@ -334,8 +335,8 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
       <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
         <Bar dataKey="learning" name="Lernen" stackId="due" fill={CATEGORY_COLORS.learning} isAnimationActive={false} />
         <Bar dataKey="relearning" name="Wiederlernen/Rückstand" stackId="due" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
-        <Bar dataKey="young" name="Jung" stackId="due" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
-        <Bar dataKey="mature" name="Reif" stackId="due" fill={CATEGORY_COLORS.mature} isAnimationActive={false} />
+        <Bar dataKey="young" name="Intervall unter 21 Tagen" stackId="due" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
+        <Bar dataKey="mature" name="Intervall ab 21 Tagen" stackId="due" fill={CATEGORY_COLORS.mature} isAnimationActive={false} />
         <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke="var(--core-text-muted)" fill="var(--core-action-primary)" fillOpacity={0.08} isAnimationActive={false} />
       </CartesianStatisticsChart>
     </>
@@ -350,16 +351,16 @@ function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart accessibilityLayer>
             <Pie data={status.rows} dataKey="count" nameKey="label" innerRadius="53%" outerRadius="82%" paddingAngle={2} isAnimationActive={false}>
-              {status.rows.map((row, index) => <Cell key={row.key} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
+              {status.rows.map((row) => <Cell key={row.key} fill={STATUS_COLORS[row.key]} />)}
             </Pie>
             <Tooltip content={<StatisticsTooltip valueFormatter={(value) => `${formatNumber(value)} Karten`} />} />
           </PieChart>
         </ResponsiveContainer>
       </div>
       <div className="grid gap-2">
-        {status.rows.map((row, index) => (
+        {status.rows.map((row) => (
           <div key={row.key} className="flex items-center justify-between gap-4 rounded-inset bg-core-subtle px-3 py-2 core-body">
-            <span className="flex items-center gap-2 text-core-secondary"><span className="size-3 rounded-marker" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }} />{row.label}</span>
+            <span className="flex items-center gap-2 text-core-secondary"><span className="size-3 rounded-marker" style={{ backgroundColor: STATUS_COLORS[row.key] }} />{row.label}</span>
             <strong className="text-core-text">{formatNumber(row.count)} · {formatPercent(row.percent)}</strong>
           </div>
         ))}
@@ -399,12 +400,11 @@ function HourlyChart({ points }: { points: StatisticsProjection["hourly"] }) {
 
 function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
   if (!points.some((point) => point.total > 0)) return <NoChartData>Im gewählten Zeitraum wurden keine Antwortknöpfe verwendet.</NoChartData>;
+  // Grouped by button so the long category names sit in the wrapping legend instead of the narrow axis.
+  const buttons = RATING_BUTTONS.map(([rating, label]) => ({ label, ...Object.fromEntries(points.map((point) => [point.category, point[rating]])) }));
   return (
-    <CartesianStatisticsChart data={points} ariaLabel="Diagramm zu verwendeten Antwortknöpfen" tooltip={<StatisticsTooltip valueFormatter={(value) => formatNumber(value)} />}>
-      <Bar dataKey="again" name="Nochmal" fill="var(--core-danger)" isAnimationActive={false} />
-      <Bar dataKey="hard" name="Schwer" fill="var(--core-warning)" isAnimationActive={false} />
-      <Bar dataKey="good" name="Gut" fill="var(--core-success)" isAnimationActive={false} />
-      <Bar dataKey="easy" name="Leicht" fill="var(--core-action-primary)" isAnimationActive={false} />
+    <CartesianStatisticsChart data={buttons} ariaLabel="Diagramm zu verwendeten Antwortknöpfen" tooltip={<StatisticsTooltip valueFormatter={(value) => formatNumber(value)} />}>
+      {points.map((point) => <Bar key={point.category} dataKey={point.category} name={point.label} fill={CATEGORY_COLORS[point.category]} isAnimationActive={false} />)}
     </CartesianStatisticsChart>
   );
 }
@@ -413,7 +413,7 @@ function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[38rem] border-collapse text-left core-body">
-        <thead><tr className="border-b border-core-border text-core-muted"><th className="px-3 py-3">Zeitraum</th><th className="px-3 py-3">Jung</th><th className="px-3 py-3">Reif</th><th className="px-3 py-3">Gesamt</th><th className="px-3 py-3 text-right">Stichprobe</th></tr></thead>
+        <thead><tr className="border-b border-core-border text-core-muted"><th className="px-3 py-3">Zeitraum</th><th className="px-3 py-3">Intervall unter 21 Tagen</th><th className="px-3 py-3">Intervall ab 21 Tagen</th><th className="px-3 py-3">Gesamt</th><th className="px-3 py-3 text-right">Stichprobe</th></tr></thead>
         <tbody>{rows.map((row) => <tr key={row.key} className="border-b border-core-border last:border-0"><th className="px-3 py-3 font-semibold text-core-text">{row.label}</th><td className="px-3 py-3 text-core-secondary">{formatPercent(row.young.percent)}</td><td className="px-3 py-3 text-core-secondary">{formatPercent(row.mature.percent)}</td><td className="px-3 py-3 font-semibold text-core-text">{formatPercent(row.total.percent)}</td><td className="px-3 py-3 text-right text-core-muted">{formatNumber(row.total.total)}</td></tr>)}</tbody>
       </table>
     </div>

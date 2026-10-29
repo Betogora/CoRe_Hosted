@@ -161,9 +161,9 @@ const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
   },
   {
     id: "spaced-variant",
-    eyebrow: "04 · Ausreichende Stabilität",
+    eyebrow: "04 · Ausreichende Haltbarkeit",
     title: "Erst dann kommt eine Variante als neuer Punkt hinzu",
-    text: "Sobald die Wissenseinheit ausreichend stabil ist, kann CoRe denselben Inhalt mit einer neuen Frageform prüfen. Der Variantenpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
+    text: "Sobald die Haltbarkeit die Schwelle des Stapels erreicht, kann CoRe denselben Inhalt mit einer neuen Frageform prüfen. Der Variantenpunkt ist ein Beispiel und keine garantierte Reviewnummer.",
     selection: "review-variant",
   },
   {
@@ -177,14 +177,14 @@ const SPACED_REPETITION_STEPS: readonly StoryStep<ExplorerSelectionId>[] = [
     id: "spaced-r",
     eyebrow: "06 · R",
     title: "R ist deine aktuelle Abrufwahrscheinlichkeit",
-    text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt die Zielerinnerung von 90 Prozent.",
+    text: "Nach einem erfolgreichen Review liegt R wieder nahe 100 Prozent und fällt anschließend mit der Zeit. Die gestrichelte Linie zeigt eine Zielerinnerung von 90 Prozent.",
     selection: "parameter-r",
   },
   {
     id: "spaced-s",
     eyebrow: "07 · S",
     title: "S beschreibt, wie lange die Erinnerung hält",
-    text: "Stabilität ist die Zeit, in der R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
+    text: "CoRe zeigt S als Haltbarkeit: die Tage, bis R von 100 auf 90 Prozent fällt. Die vier Pfeile zeigen qualitativ, wie deine Antwort das nächste Intervall beeinflusst.",
     selection: "parameter-s",
   },
 ];
@@ -206,7 +206,7 @@ const SCHEDULING_STEPS = [
 
 const MEMORY_TERMS: readonly MemoryTerm[] = [
   { term: "R · Abrufwahrscheinlichkeit", description: "Wie wahrscheinlich du den Inhalt jetzt korrekt erinnern kannst." },
-  { term: "S · Stabilität", description: "Wie lange R braucht, um von 100 auf 90 Prozent zu fallen." },
+  { term: "S · Stabilität", description: "Wie lange die Erinnerung hält. CoRe zeigt sie als Haltbarkeit: Tage, bis R auf 90 Prozent fällt." },
   { term: "D · Schwierigkeit", description: "Wie schwer sich diese Erinnerung dauerhaft festigen lässt." },
   { term: "Zielerinnerung", description: "Die gewünschte Abrufwahrscheinlichkeit am nächsten Termin." },
   { term: "Intervall", description: "Der zeitliche Abstand bis zur nächsten Wiederholung." },
@@ -799,10 +799,10 @@ function ReferenceSection() {
             <h3 className="core-heading-2 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h3>
           </div>
           <p className="mt-6 core-body leading-6 text-core-secondary">
-            CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
+            CoRe verwendet FSRS-7 mit den offiziellen Standardparametern. Es berücksichtigt alle Reviews einschließlich mehrerer Abrufe am selben Tag. Die persönliche Optimierung der Parameter aus deiner eigenen Reviewhistorie ist noch nicht aktiviert.
           </p>
           <p className="mt-3 core-body leading-6 text-core-secondary">
-            Neue Karten bleiben zunächst in der Lernphase. Standardmäßig bedeutet „Gut“ einen zweiten Kontakt nach 15 Minuten. Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag.
+            Neue Karten bleiben zunächst in der Lernphase. Standardmäßig bedeutet „Gut“ einen zweiten Kontakt nach 10 Minuten, „Leicht“ beendet die Lernphase sofort. Eine höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag.
           </p>
         </SoftPanel>
       </div>
@@ -849,7 +849,7 @@ function ReferenceSection() {
             <Brain className="text-core-action" size={24} aria-hidden="true" />
             <h3 className="core-heading-2 font-semibold text-core-text">Mehr über FSRS</h3>
           </div>
-          <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine 21 Modellparameter und die Zielerinnerung.</p>
+          <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine Modellparameter und die Zielerinnerung.</p>
           <a className="core-action-secondary mt-6 w-fit" href="https://github.com/open-spaced-repetition/awesome-fsrs/wiki/ABC-of-FSRS" target="_blank" rel="noreferrer noopener">
             ABC of FSRS öffnen
             <ExternalLink size={17} aria-hidden="true" />

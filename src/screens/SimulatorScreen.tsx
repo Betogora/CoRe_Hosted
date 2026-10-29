@@ -18,6 +18,7 @@ import { StatusMessage } from "../ui/feedbackUi.tsx";
 
 const quickOffsets = [
   { minutes: 0, label: "Heute" },
+  { minutes: 1, label: "+1 Min." },
   { minutes: 10, label: "+10 Min." },
   { minutes: 15, label: "+15 Min." },
   { minutes: 30, label: "+30 Min." },

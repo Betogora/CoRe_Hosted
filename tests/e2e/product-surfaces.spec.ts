@@ -663,7 +663,7 @@ test("help explains Active Recall and FSRS with accessible scroll stories", asyn
   });
   expect(spacedRepetitionReachedDirectly).toBe(true);
   await expect(spacedRepetitionHeading).toBeInViewport();
-  await expect(page.getByText(/CoRe verwendet echtes FSRS-6 mit den offiziellen 21 Standardparametern/)).toBeVisible();
+  await expect(page.getByText(/CoRe verwendet FSRS-7 mit den offiziellen Standardparametern/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "So arbeitet ein Spaced-Repetition-Scheduler" })).toBeVisible();
   await expect(page.getByText(/höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/i)).toBeVisible();
   await expect(page.getByText(/Varianten erscheinen nur in der Wiederholungsphase und erst ab der Haltbarkeit des Stapels/)).toBeVisible();

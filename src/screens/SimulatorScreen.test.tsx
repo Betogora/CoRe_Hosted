@@ -15,6 +15,7 @@ test("simulator exposes bounded calendar controls without the retired test deck"
   assert.match(markup, /Simulator/);
   assert.match(markup, /In 3 Tagen/);
   assert.match(markup, /Heute/);
+  assert.match(markup, /\+1 Min\./);
   assert.match(markup, /\+10 Min\./);
   assert.match(markup, /\+15 Min\./);
   assert.match(markup, /\+30 Min\./);
