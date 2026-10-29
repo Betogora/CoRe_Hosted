@@ -8,7 +8,7 @@ import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckOptionsMenu } from "./DeckOptionsMenu.tsx";
 import { DeckSummaryHeader, DeckSummaryRow } from "./DeckSummaryRow.tsx";
 import { ActionButton, IconButton } from "./actionUi.tsx";
-import { CoreIconSegmentedControl, SoftPanel } from "./coreUi.tsx";
+import { CoreIconSegmentedControl } from "./coreUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 import { getDeckAppearance } from "./deckAppearance.tsx";
 import { useStableCallback } from "./useStableCallback.ts";
@@ -602,8 +602,8 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
 
   return (
     <>
-      <SoftPanel
-        className="core-deck-tree-container overflow-visible p-4 sm:p-6"
+      <section
+        className="core-deck-tree-container min-w-0"
         data-testid={`${mode}-deck-list`}
         data-deck-view={view}
         onPointerMove={movePointer}
@@ -611,7 +611,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
         onPointerCancel={cancelPointer}
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
-        <div className="core-deck-tree-layout grid gap-6">
+        <div className="core-deck-tree-layout grid">
           <div className={`core-deck-tree-header grid min-h-control items-center gap-3${mode === "learn" && showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
               <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
@@ -660,7 +660,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
           ) : null}
           {rows.length > 0 && contentAfterRows ? <div className={view === "list" ? "core-deck-tree-create" : undefined}>{contentAfterRows}</div> : null}
         </div>
-      </SoftPanel>
+      </section>
       {portalContent}
     </>
   );

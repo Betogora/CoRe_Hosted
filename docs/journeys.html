@@ -3335,6 +3335,7 @@ button[aria-label] {
 
 .core-deck-tree-container {
   container: core-deck-tree / inline-size;
+  --core-deck-depth-indent: 18px;
 }
 
 
@@ -3746,16 +3747,8 @@ button[aria-label] {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.core-deck-tree-container[data-deck-view="list"] {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-  --core-deck-depth-indent: 18px;
-}
-
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-layout { gap: var(--core-space-md); }
-.core-deck-tree-container[data-deck-view="list"] .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
+.core-deck-tree-container .core-deck-tree-layout { gap: var(--core-space-md); }
+.core-deck-tree-container .core-deck-tree-title { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); font-weight: var(--core-weight-emphasis); }
 
 .core-deck-tree-groups {
   display: grid;
@@ -3765,7 +3758,7 @@ button[aria-label] {
 
 .core-deck-tree-group {
   min-width: 0;
-  padding: 6px 12px 9px;
+  padding: 6px;
   border: var(--core-border-width) solid var(--core-border);
   border-radius: var(--core-radius-panel);
   background: var(--core-surface);
@@ -3782,8 +3775,9 @@ button[aria-label] {
   border-radius: inherit;
 }
 
+.core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"]:not(:last-child) { margin-block-end: 3px; }
+
 .core-deck-tree-group > .core-deck-summary-row[data-deck-depth="0"] {
-  margin-block: 0 3px;
   background: color-mix(in srgb, var(--core-deck-group-accent) 9%, var(--core-surface));
   --core-deck-icon-background: var(--core-surface);
 }
@@ -3866,7 +3860,7 @@ button[aria-label] {
 .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-responsive {
   -moz-column-gap: 0;
        column-gap: 0;
-  padding-inline: 0;
+  padding-inline: 6px;
 }
 .core-deck-tree-group .core-deck-summary-leading { gap: var(--core-space-sm); }
 .core-deck-tree-group .core-deck-summary-name,
@@ -3894,7 +3888,8 @@ button[aria-label] {
 }
 
 @container core-deck-tree (max-width: 32rem) {
-  .core-deck-tree-group { padding: 6px; --core-deck-depth-indent: 10px; }
+  .core-deck-tree-group { --core-deck-depth-indent: 10px; }
+  .core-deck-tree-container[data-deck-view="list"] .core-deck-tree-group .core-deck-summary-responsive { padding-inline: 0; }
   .core-deck-tree-container .core-deck-tree-header { grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--core-space-sm); }
   .core-deck-tree-container .core-deck-tree-header-action { grid-column: 1; grid-row: 2; justify-self: start; gap: var(--core-space-xs); }
   .core-deck-tree-container[data-deck-view="list"] .core-deck-summary-metrics { grid-template-columns: repeat(3, 2.75rem); width: 8.25rem; }
