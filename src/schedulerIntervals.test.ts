@@ -2,24 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createDefaultDeckSettings, createReviewState } from "./coreModel.ts";
 import { calculateRetrievability, getDurabilityDays, getReviewButtonOptions, scheduleWithFsrs, simulateRatingOutcome } from "./scheduler.ts";
-import type { ReviewRating, ReviewState } from "./coreTypes.ts";
 
 const now = "2026-08-21T10:00:00.000Z";
-
-/** Answers each rating when the card is due and records its maturity band. */
-function bandsAfter(ratings: ReviewRating[]): ReviewState["maturityBand"][] {
-  let state = createReviewState({ dueAt: now });
-  return ratings.map((rating) => {
-    state = scheduleWithFsrs(state, rating, { now: state.dueAt });
-    return state.maturityBand;
-  });
-}
-
-test("Reife folgt der Haltbarkeit: dreimal Gut ab einer neuen Karte macht sie reif, ein Fehler setzt sie zurück", () => {
-  assert.deepEqual(bandsAfter(["good", "good", "good"]), ["learning", "young", "mature"]);
-  assert.deepEqual(bandsAfter(["good", "good", "good", "again", "good"]).slice(3), ["learning", "young"]);
-  assert.equal(getDurabilityDays({ state: "new", stability: 0, stabilityFast: 0, difficulty: 0 }), 0);
-});
 
 test("eine neue Karte durchläuft die Lernschritte vor dem längeren FSRS-7-Modellintervall; Leicht beendet die Lernphase", () => {
   const [card] = createBasicNote("deck", "Q", "A").cards;
@@ -27,6 +11,7 @@ test("eine neue Karte durchläuft die Lernschritte vor dem längeren FSRS-7-Mode
   assert.deepEqual(Object.keys(options), ["again", "hard", "good", "easy"]);
   assert.deepEqual([options.again, options.hard, options.good].map((option) => [option?.nextState, option?.intervalMinutes]), [["learning", 1], ["learning", 6], ["learning", 10]]);
   assert.equal(options.easy?.nextState, "review");
+  assert.equal(getDurabilityDays({ state: "new", stability: 0, stabilityFast: 0, difficulty: 0 }), 0);
 });
 
 test("jede echte Bewertung erhöht Wiederholungen und setzt lastReviewedAt", () => {

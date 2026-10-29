@@ -87,6 +87,10 @@ select
   '2026-08-18T00:00:00Z'
 from pg_catalog.generate_series(1, 100000) as series_id;
 
+-- Without fresh statistics the planner expects one row per table and joins 100k × 100k rows.
+analyze public.notes;
+analyze public.cards;
+
 insert into public.card_catalog (
   id, user_id, deck_id, note_id, front_preview, sort_text, due_at, schedule_state,
   maturity_band, reviewable, marked, has_active_variants, active_variant_count,
