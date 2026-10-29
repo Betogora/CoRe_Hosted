@@ -327,3 +327,9 @@ test("content tabs survive reload and study return while unsupported tabs are ig
   const selected = createViewRoute("kartenstapel", { focusedDeckId: "deck_a", deckContent: true, deckContentTab: "summary", selectedCardId: "card_a" });
   assert.equal(selected.deckContentTab, "cards");
 });
+test("source creation route round-trips with its explicit target", () => {
+  const route = createViewRoute("neue-karten", { creationMethod: "ai-source", creationDeckId: "biology" });
+  assert.equal(appRouteToUrl(route), "/neue-karten?method=ai-source&deck=biology");
+  assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
+  assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
+});

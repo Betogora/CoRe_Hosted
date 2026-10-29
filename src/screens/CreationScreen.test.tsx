@@ -36,13 +36,24 @@ test("completed import shows the verified count and only study or dashboard acti
   assert.doesNotMatch(markup, /Karten prüfen|Weitere Karten erstellen/);
 });
 
-test("creation entry presents the two concise creation methods", () => {
+test("creation entry presents all three creation methods", () => {
   const markup = renderToStaticMarkup(<CreationScreen decks={[]} {...callbacks} />);
 
   assert.match(markup, /Neue Karte/);
   assert.match(markup, /Karten selbst erstellen/);
+  assert.match(markup, /Karten automatisch erstellen lassen/);
+  assert.match(markup, /md:grid-cols-3/);
   assert.doesNotMatch(markup, /Schreibe Karten selbst oder mit einer PDF-Datei\.|Übernimm bestehende Stapel\./);
   assert.doesNotMatch(markup, /Core ·|Karten manuell erstellen|Front\/Back-Listen/);
+});
+
+test("source creation offers office files and settings without a generation action", () => {
+  const markup = renderToStaticMarkup(<CreationScreen decks={[]} initialMethod="ai-source" {...callbacks} />);
+  assert.match(markup, /Die automatische Erstellung ist noch nicht verfügbar/);
+  assert.match(markup, /accept="\.pdf,\.txt,\.md,\.markdown,\.csv,\.tsv,\.docx,\.pptx"/);
+  for (const label of ["Lernziel", "Stoffabdeckung", "Antwortumfang", "Vorwissen", "Weitere Einstellungen", "Auftrag prüfen"]) assert.ok(markup.includes(label));
+  assert.equal((markup.match(/type="checkbox"[^>]*checked=""/g) ?? []).length, 5);
+  assert.doesNotMatch(markup, /type="range"|type="number"|>Karten erstellen<\/span>/);
 });
 
 test("import creation exposes only APKG without a format selector", () => {

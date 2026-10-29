@@ -1,6 +1,6 @@
 # CoRe-Architektur und Invarianten
 
-**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-25.
+**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-28.
 Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Gates: [Betrieb](operations.md). Offene Änderungen: [TODO](todo.md). Formatdetails: [Anki-Referenz](anki-format-analysis.md).
 
 ## Systemkontext
@@ -25,6 +25,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `cardVariantBatch.ts`, `useCardVariantBatch.ts` | Stapelgenerierung: Auswahl der ersten Karten ohne aktive Variante über Katalogseiten und gebündelte Hydrierung, Eignungsprüfung, sequentielle Erzeugung mit Abbruch und Stopp bei kartenübergreifenden Fehlern; der Hook hält den einen app-weiten Lauf und dessen Rückmeldung |
 | `coreVariantService.ts` | Erzeugungseignung (CoRe-Modus, Inhaltsform, Höchstzahl), Lernstufen-Bereitschaft, Variantenquelle, Variantenwahl im Review, Variantendarstellung sowie Abschalten, Melden, Reaktivieren und Löschen einzelner Varianten |
 | `creationBatch.ts`, `creationWorkflow.ts` | manuelle Erstellung einschließlich Bildverdeckung (Bild als SHA-1-benanntes Medium), Batchzustand und getrennte lokale Medienvorbereitung |
+| `aiSourceCreation.ts`, `screens/AiSourceCreationPanel.tsx` | diskrete Lernwünsche, Dateiformat- und Zielvalidierung, reine deutsche Prompt-Zusammenstellung; flüchtiges Formular mit Auftragsprüfung, ohne Parser, Upload, KI-Aufruf oder Persistenz |
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
 | `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |
 | `apkgNoteTranslation.ts`, `importRetranslation.ts` | Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen und automatische Neuübersetzung unbearbeiteter Importe |
@@ -271,6 +272,10 @@ unverändert.
 Nur geänderte Inhalte werden geschrieben, mit `importedContentRevision` =
 `contentRevision`; Inhalte mit ausstehender lokaler Änderung werden
 übersprungen. Die App meldet die Zahl aktualisierter Inhalte.
+
+## Automatische Kartenerstellung
+
+`CreationMethod` und die URL-Projektion akzeptieren `ai-source`. `AiSourceCreationPanel` hält genau eine `File`-Referenz, das Stapelziel und `AiSourceSettings` ausschließlich im React-Entwurf. `aiSourceCreation.ts` besitzt Defaults, Auswahlbedeutungen, Validierung und `buildAiSourceCreationPrompt`; die Promptfunktion erzeugt ausschließlich Anweisungen und liest keine Quelldaten. Der spätere Serverpfad muss Material separat validieren und übergeben. Quellenbasierte Lösungen und Erklärungen, optionale externe Ergänzungen und Quellenverweise bleiben fachlich getrennt. Der Browser-Navigationsguard erhält Zielroute und Herkunft (`app` oder `browser`), damit ausstehende Erstellungsentwürfe auch bei History-Navigation bestätigt verworfen werden. Neue Note-/Card-Persistenz, API-Routen und Dokumentparser gehören nicht zu diesem vorbereiteten Ablauf.
 
 ## Zusammenfassungen und Mindmaps
 

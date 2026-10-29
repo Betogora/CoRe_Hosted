@@ -11,7 +11,7 @@ import {
   parseAppRouteFromUrl,
 } from "./appNavigation.ts";
 
-export type CreationMethod = "manual" | "import" | "";
+export type CreationMethod = "manual" | "import" | "ai-source" | "";
 
 interface AppNavigationProjection {
   activeView: AppViewId;
@@ -48,7 +48,7 @@ function readAppHistoryPosition(historyState: unknown): number | null {
 }
 
 function asCreationMethod(value: string | undefined): CreationMethod {
-  return value === "manual" || value === "import" ? value : "";
+  return value === "manual" || value === "import" || value === "ai-source" ? value : "";
 }
 
 export function projectAppRoute(route: AppRoute): AppNavigationProjection {
@@ -95,7 +95,7 @@ export function subscribeToBrowserNavigation(
 interface UseAppNavigationOptions {
   authPhase: AuthPhase;
   defaultViewId: AppViewId;
-  onBeforeNavigation?: () => boolean;
+  onBeforeNavigation?: (route: AppRoute, source: "app" | "browser") => boolean;
 }
 
 export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation }: UseAppNavigationOptions) {
@@ -139,7 +139,7 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
         : writeBrowserRoute(normalized, { replace: true });
     }
     const currentRoute = currentRouteRef.current;
-    if (!areAppRoutesEqual(currentRoute, normalized) && onBeforeNavigationRef.current?.()) return currentRoute;
+    if (!areAppRoutesEqual(currentRoute, normalized) && onBeforeNavigationRef.current?.(normalized, "app")) return currentRoute;
     return writeBrowserRoute(normalized, { replace });
   }, [applyRoute, writeBrowserRoute]);
 
@@ -189,7 +189,7 @@ export function useAppNavigation({ authPhase, defaultViewId, onBeforeNavigation 
         applyRoute(nextRoute);
         return;
       }
-      if (onBeforeNavigationRef.current?.()) {
+      if (onBeforeNavigationRef.current?.(nextRoute, "browser")) {
         if (nextPosition !== null && nextPosition !== historyPositionRef.current) {
           window.history.go(historyPositionRef.current - nextPosition);
           return;

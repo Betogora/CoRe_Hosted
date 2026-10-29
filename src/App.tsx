@@ -5,7 +5,7 @@ import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
-import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
+import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type AppRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgImportSession, resolveApkgCreationMethod, type ApkgImportSession } from "./apkgImportSession.ts";
 import type {
@@ -253,10 +253,20 @@ export function App() {
     });
     return () => { active = false; };
   }, []);
-  const handleBeforeSettingsNavigation = React.useCallback(() => {
-    if (!settingsDraftGuardRef.current) return false;
-    setSettingsNavigationBlocked(true);
-    return true;
+  const handleBeforeNavigation = React.useCallback((route: AppRoute, source: "app" | "browser") => {
+    if (settingsDraftGuardRef.current) {
+      setSettingsNavigationBlocked(true);
+      return true;
+    }
+    if (source === "browser" && creationSavingRef.current) {
+      creationDraftFocusRef.current?.();
+      return true;
+    }
+    if (source === "browser" && creationDraftDirtyRef.current) {
+      setPendingNavigation({ source: "creation", run: () => navigateToRoute(route) });
+      return true;
+    }
+    return false;
   }, []);
   const {
     activeView,
@@ -278,7 +288,7 @@ export function App() {
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
     resetBrowserRouteToDefault,
-  } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId, onBeforeNavigation: handleBeforeSettingsNavigation });
+  } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId, onBeforeNavigation: handleBeforeNavigation });
   React.useEffect(() => {
     let active = true;
     if (!cloudUser || !supabase) {
@@ -1798,11 +1808,11 @@ export function App() {
           completedDeckId={completedDeckId}
           completedCount={completedCount}
           completionKind={completionKind}
-          onMethodChange={(method: "manual" | "import" | "") => {
+          onMethodChange={(method) => {
             if (!method && hasVisibleApkgImportSession(apkgImportSessionRef.current)) resetApkgImportSession();
             navigateToView("neue-karten", method ? {
               creationMethod: method,
-              creationDeckId: method === "manual" ? creationDeckId || state.decks[0]?.id : null,
+              creationDeckId: method === "manual" ? creationDeckId || state.decks[0]?.id : method === "ai-source" ? creationDeckId || null : null,
             } : {});
           }}
           onTargetDeckChange={(deckId) => navigateToViewNow("neue-karten", {
@@ -2134,7 +2144,9 @@ export function App() {
           ? "Du hast ungespeicherte Änderungen an dieser Karte. Speichere oder verwirf sie, bevor du die Kartenverwaltung verlässt."
           : pendingNavigation?.source === "exams"
             ? "Deine Änderungen an der Prüfungsplanung wurden noch nicht gespeichert."
-            : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
+            : creationMethod === "ai-source"
+              ? "Deine ausgewählte Quelle und deine Einstellungen werden verworfen."
+              : "Deine bereits gespeicherten Karten bleiben erhalten. Nur die aktuell eingegebenen, noch nicht gespeicherten Inhalte würden verworfen."}
         confirmLabel={pendingCardNavigation ? "Speichern" : "Verwerfen und verlassen"}
         cancelLabel="Weiter bearbeiten"
         discardLabel={pendingCardNavigation ? "Verwerfen" : undefined}

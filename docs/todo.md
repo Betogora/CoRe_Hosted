@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-25
+Stand: 2026-10-28
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -30,6 +30,12 @@ geglättet.
       Variantenbereich der Stapeleinstellungen und Filter `Ohne Variante`; dazu
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
+
+## Automatische Kartenerstellung aus Quellen
+
+- [ ] Quellenverarbeitung für PDF, Text, Markdown, CSV, TSV, DOCX und PPTX anbinden; lesbaren Inhalt und vorhandene Seiten-/Folien-/Abschnittsbelege validieren. Unlesbare, geschützte oder zu umfangreiche Dokumente sichtbar zurückweisen. Kein stilles Abschneiden oder Erfinden von Quellenstellen.
+- [ ] Serverseitige Generierung an die vorbereiteten Einstellungen und den deutschen Hintergrundprompt anbinden; Material getrennt von Anweisungen behandeln. Anbieter, Budgets und Anfrage-/Antwortvertrag festlegen. Erwartete Antworten, quellenbasierte Erklärungen, externe Ergänzungen und Belege getrennt validieren.
+- [ ] Ergebnisprüfung und bestätigte Übernahme über die bestehenden Core-Model-Helfer ergänzen. Erst dann „Karten erstellen“ freigeben. Abnahme: echte Quellen je Format, alle Kartenformen, getrennte Ergänzungen, Fehler-/Abbruchfälle und kein Speichern vor Übernahme.
 
 ## Betrieb
 
