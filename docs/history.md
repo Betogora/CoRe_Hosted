@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Reife aus FSRS (P1 R6): Golden-Test und Gates
+
+- Golden-Test `src/schedulerExampleChains.test.ts`: vier Bewertungspfade (immer `Gut`, `Leicht` dann `Gut`, `Gut` mit einem Fehler, `Nochmal` am Anfang) je Zielerinnerung 0,90, 0,92 und 0,94 über Produktions-Scheduler und Variantenwahl; je Kontakt Tag, Bewertung, Stapelschwellen (7/21/60 Tage), bei denen die Variante statt der Karte kommt, nächster Abstand, Haltbarkeit und Reifeband. Die Haltbarkeit hängt nicht von der Zielerinnerung ab, nur die Abstände; mit einer Variante kommt sie ab erreichter Schwelle bei jedem zweiten Kontakt. Der Reife-Test aus `schedulerIntervals.test.ts` war darin enthalten und ist entfernt.
+- Fixtures: `worldCapitals` berechnet das Reifeband bereits über `getMaturityBand` (etwa 45 % reif); das Profil `variantReady` erreicht mindestens 28 Tage Haltbarkeit und bleibt unverändert. Die Showcase-Daten liegen nicht im Repository.
+- `supabase/benchmark_replica_v2.sql` analysiert Notizen und Karten vor dem Katalog-Insert. Ohne Statistik schätzte der Planer eine Zeile je Tabelle und verband 100.000 × 100.000 Zeilen; die Befüllung lief über 24 Minuten statt Sekunden.
+- Audit (`audit-last-change`) nachträglich über R4 und R5: keine sinnvolle Vereinfachung. Bandbezeichnungen und -schlüssel der Statistik existieren je einmal; der Rückfall auf die schnelle Spur aus alten Outbox-Einträgen bleibt; die neuen Tests sichern Status nach Band, das RLS-Feld und den Simulator-Chip.
+- Verifiziert: `npm run gate:push` grün (Typecheck, Knip, Docs, alle Unit-/Contract-/Integrationstests, Build; Initialgraph 239,5 KiB gzip, größter Lazy-Graph 170,3 KiB). `npm run performance:measure:local`: Startmessung (vier Startkontexte und 4G-Preload) bestanden; Statistik-Benchmark knapp über dem Gate: `get_account_statistics` p95 1.031 und 1.063 ms in zwei Läufen (Median 967 und 878 ms, Grenze 1.000 ms). Die Funktion und ihre Tabellen sind seit dem letzten grünen Lauf unverändert; Katalogsuche p95 166/254 ms, Bootstrap 45/23 ms, App-Projektion unter 6 ms.
+
 ## 2026-10-29 — Reife aus FSRS (P1 R5): Datenbank-Cutover
 
 - Migration `20261029120000_card_study_states_stability_fast.sql`: `list_account_card_study_states` liefert `stability_fast` aus `study_extra` (ohne Wert 0, der Scheduler setzt die schnelle Spur dann gleich der Stabilität) statt `maturity_xp`; die Validierung verlangt das Feld. Katalog und Stapelzahlen lesen weiter `study_extra.maturityBand`.

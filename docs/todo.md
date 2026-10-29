@@ -5,28 +5,24 @@ Stand: 2026-10-29
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-## P1: Reife aus FSRS-7 statt XP (R6–R7)
+## P1: Reife aus FSRS-7 statt XP (R7)
 
-R0–R5 sind erledigt, Details in [`history.md`](history.md): FSRS-7 ist der
+R0–R6 sind erledigt, Details in [`history.md`](history.md): FSRS-7 ist der
 einzige Scheduler, XP ist entfernt, Reife folgt der Haltbarkeit (Tage, bis die
 Erinnerung auf 90 % fällt). Die mit `Neuplanung P1` markierten Aussagen in
 `specs.md`, `architecture.md` und `status.md` bleiben bis R7 nicht bindend.
 
 Die getroffenen Entscheidungen stehen in ADR-044.
 
-- [ ] **R6 Tests:** Tabellengetriebener Golden-Test der Beispielketten
-      (Bewertungspfad × Zielerinnerung 0,90/0,92/0,94 → Abstände, Haltbarkeit,
-      Reifeband, erster Kontakt mit Variante); Fixtures (`worldCapitals`,
-      Showcase-Daten) und E2E `core-stabilization` gegen die neue Reife prüfen.
-      `npm run gate:push`, `npm run performance:measure:local`.
 - [ ] **R7 Specs und Doku:** Neuer Spec-Abschnitt „Lernverlauf einer Karte“
       für Bearbeiter: je Lage der Karte (neu, Lernschritt, Wiederholung,
       Wiederlernen), was jede Bewertung bewirkt; Beispielketten als visuelle
       Zeitleisten (Klick → Abstand → nächster Kontakt, Phase farbig, Reife und
       erste Variante markiert) und als Tabellen je Zielerinnerung; darin „Wann
-      Varianten erscheinen“ je Stapelschwelle. Alle Werte stammen aus dem
-      Golden-Test (R6) und werden mit `npm run docs:build` erzeugt. Glossar
-      „Reife“ und „Haltbarkeit“; „gefestigt“ in die Prüfungs-Specs;
+      Varianten erscheinen“ je Stapelschwelle. Alle Werte stammen aus den
+      Ketten des Golden-Tests `src/schedulerExampleChains.test.ts` und werden
+      mit `npm run docs:build` erzeugt. Glossar „Reife“ und „Haltbarkeit“;
+      „gefestigt“ in die Prüfungs-Specs;
       `architecture.md`, `status.md`; Markierungen `Neuplanung P1` entfernen;
       ADR-044 auf Haltbarkeit präzisieren und `angenommen`, ADR-009 löschen,
       ADR-015 und ADR-039 anpassen; `history.md`; diesen Block löschen.
@@ -75,6 +71,13 @@ geglättet.
       `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem Bedarf.
       Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark vorher/nachher,
       `npm run performance:measure:local`.
+- [ ] **Statistik-RPC am Gate:** `get_account_statistics` lag im lokalen
+      Benchmark (100k Karten, 1 Mio. Reviews) bei p95 1.031 und 1.063 ms
+      (Median 967 und 878 ms, 2026-10-29) und damit knapp über der Grenze von
+      1.000 ms, ohne dass sich Funktion oder Tabellen geändert hatten. Mit
+      `EXPLAIN (ANALYZE, BUFFERS)` klären, ob Rauschen oder echter Spielraum
+      fehlt; bei Bedarf Abfrage oder Rollup straffen. Nachweis:
+      `npm run benchmark:statistics` mehrfach unter der Grenze.
 
 ## Später
 
