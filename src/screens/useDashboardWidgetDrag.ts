@@ -15,6 +15,7 @@ interface Gesture {
   moved: boolean;
   target: DashboardWidgetId | null;
   scroller: HTMLElement | null;
+  slots: { id: DashboardWidgetId; left: number; top: number; right: number; bottom: number }[];
 }
 
 interface DragPreview {
@@ -70,19 +71,17 @@ export function useDashboardWidgetDrag(onDrop: (from: DashboardWidgetId, to: Das
       if (scroll) (current.scroller ?? window).scrollBy({ top: scroll, behavior: "instant" });
     }
     const hit = document.elementFromPoint(current.x, current.y);
-    const widget = hit?.closest<HTMLElement>("[data-dashboard-widget]");
-    const candidates = [...board.querySelectorAll<HTMLElement>("[data-dashboard-widget]")];
-    let target = widget && board.contains(widget) ? candidates.find((candidate) => candidate === widget) : undefined;
-    // The gaps between tiles belong to the nearest tile; navigation and the rest of the page do not.
-    if (!target && hit === board) {
+    let target: DashboardWidgetId | null = null;
+    // Freeze slots for this gesture so live repacking cannot oscillate under a stationary pointer.
+    if (hit && board.contains(hit)) {
       let closest = Infinity;
-      for (const candidate of candidates) {
-        const rect = candidate.getBoundingClientRect();
-        const distance = Math.hypot(Math.max(rect.left - current.x, 0, current.x - rect.right), Math.max(rect.top - current.y, 0, current.y - rect.bottom));
-        if (distance < closest) { closest = distance; target = candidate; }
+      const x = current.x - bounds.left, y = current.y - bounds.top;
+      for (const slot of current.slots) {
+        const distance = Math.hypot(Math.max(slot.left - x, 0, x - slot.right), Math.max(slot.top - y, 0, y - slot.bottom));
+        if (distance < closest) { closest = distance; target = slot.id; }
       }
     }
-    current.target = (target?.dataset.dashboardWidget as DashboardWidgetId | undefined) ?? null;
+    current.target = target;
     const width = Math.min(current.width, window.innerWidth - 16);
     const height = ghost.current?.offsetHeight ?? 80;
     const next = { id: current.id, x: Math.max(8, Math.min(current.x - current.offsetX, window.innerWidth - width - 8)), y: Math.max(8, Math.min(current.y - current.offsetY, window.innerHeight - height - 8)), width, target: current.target };
@@ -101,7 +100,12 @@ export function useDashboardWidgetDrag(onDrop: (from: DashboardWidgetId, to: Das
     event.preventDefault();
     event.currentTarget.focus({ preventScroll: true });
     const rect = widget.getBoundingClientRect();
-    gesture.current = { id, handle: event.currentTarget, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, width: rect.width, moved: false, target: null, scroller: findScrollParent(widget) };
+    const bounds = grid.current!.getBoundingClientRect();
+    const slots = [...grid.current!.querySelectorAll<HTMLElement>("[data-dashboard-widget]")].map((entry) => {
+      const slot = entry.getBoundingClientRect();
+      return { id: entry.dataset.dashboardWidget as DashboardWidgetId, left: slot.left - bounds.left, top: slot.top - bounds.top, right: slot.right - bounds.left, bottom: slot.bottom - bounds.top };
+    });
+    gesture.current = { id, handle: event.currentTarget, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, width: rect.width, moved: false, target: null, scroller: findScrollParent(widget), slots };
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 

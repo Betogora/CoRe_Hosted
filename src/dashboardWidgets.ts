@@ -5,7 +5,7 @@ export const DASHBOARD_WIDGETS = [
   { id: "timer", title: "Lerntimer", description: "Zeit für Fokus. Und für eine kleine Pause.", width: "small" },
   { id: "decks", title: "Aktive Stapel", description: "Deine Stapel mit direktem Lernstart.", width: "wide" },
   { id: "todos", title: "To-dos", description: "Aufgaben aus dem Planer und eigene Vorhaben.", width: "small" },
-  { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "full" },
+  { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "wide" },
 ] as const;
 export type DashboardWidgetId = typeof DASHBOARD_WIDGETS[number]["id"];
 type DashboardWidgetWidth = "small" | "wide" | "full";

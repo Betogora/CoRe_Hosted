@@ -2,7 +2,7 @@ import React from "react";
 import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
+import { CheckCircle2, FileArchive, PenLine, Play, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
@@ -10,7 +10,7 @@ import type { Deck } from "../coreTypes.ts";
 import { getLearningDayKey } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
 import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
@@ -30,13 +30,6 @@ function heatmapDayLabel(day: StudyHeatmapDay) {
   if (day.count === 0) return `${date}: keine Karten gelernt`;
   return `${date}: ${formatLearningCardCount(day.count)} gelernt`;
 }
-
-const DAILY_METRIC_ICONS = {
-  learned: CheckCircle2,
-  new: Sparkles,
-  "in-progress": RefreshCcw,
-  due: CalendarDays,
-} as const;
 
 function createAdditionalCardAmounts(availableCount: number) {
   return [...new Set([5, 10, 20]
@@ -153,7 +146,6 @@ function DailyLearningOverview({
   const firstStartableDeck = decks.find((deck) => deck.id === plan.firstStartableDeckId) ?? null;
   const additionalSessions = plan.sessions.filter((session) => session.additionalNewCount > 0);
   const title = achieved ? "Tagesziel erreicht" : "Dein Lernen heute";
-  const Icon = achieved ? CheckCircle2 : Activity;
   const primaryLabel = achieved ? "Zusätzliche Karten lernen" : plan.status === "waiting" ? "Später weiterlernen" : "Jetzt lernen";
   const primaryDisabled = achieved ? additionalSessions.length === 0 : plan.status === "waiting" || !firstStartableDeck;
 
@@ -170,12 +162,6 @@ function DailyLearningOverview({
       <SoftPanel className="overflow-hidden" data-testid="daily-learning-overview" data-status={plan.status}>
         <div className="min-w-0 p-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <OrbIcon
-              icon={Icon}
-              className={achieved
-                ? "bg-core-subtle text-[var(--core-learning-goal-achieved)]"
-                : "bg-core-subtle text-core-action"}
-            />
             <h2 className={`min-w-0 flex-1 core-heading-3 font-semibold ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
             <CoreTooltip label={primaryLabel}>
               <IconButton
@@ -203,19 +189,13 @@ function DailyLearningOverview({
             />
           </div>
 
-          <dl className="mt-6 flex flex-wrap gap-4">
+          <dl className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
             {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
-              const MetricIcon = DAILY_METRIC_ICONS[segment.key];
               const color = achieved && segment.key === "learned" ? "var(--core-learning-goal-achieved)" : segment.color;
               return (
-                <div key={segment.key} className="flex min-w-max flex-1 basis-[calc(50%-0.5rem)] items-center gap-2 sm:basis-0 sm:gap-3" data-daily-learning-metric={segment.key}>
-                  <span
-                    className="grid size-10 shrink-0 place-items-center rounded-control"
-                    style={{ color, backgroundColor: `color-mix(in srgb, ${color} 14%, var(--core-surface))` }}
-                  >
-                    <MetricIcon size={18} aria-hidden="true" />
-                  </span>
-                  <div className="flex items-baseline gap-1.5 whitespace-nowrap core-body-large text-core-text">
+                <div key={segment.key} className="flex min-w-max items-center gap-2" data-daily-learning-metric={segment.key}>
+                  <span className="size-2 shrink-0 rounded-round" style={{ backgroundColor: color }} aria-hidden="true" />
+                  <div className="flex items-baseline gap-1.5 whitespace-nowrap core-caption text-core-secondary">
                     <dt className="order-2">{segment.label}</dt>
                     <dd className="order-1">{plan.progress[segment.countKey]}</dd>
                   </div>
