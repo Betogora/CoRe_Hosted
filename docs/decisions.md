@@ -418,3 +418,7 @@ Beim Zusammenführen des Klausurplaners aus PR #42 mit main wurden diese Produkt
 - E16 Prüfungen gelten ab dem Tag nach dem Termin automatisch als
   abgeschlossen und zeigen ihren letzten Lernstand; wieder öffnen über ein
   neues Datum.
+
+### Ergänzung zu ADR-042 — Zusätzliche Lernmethoden und manuelle Quizplanung (2026-10-28)
+
+Die Einrichtung erhält zwischen Lernstoff und Lernzeit einen eigenen Lernmethoden-Schritt mit zwei unabhängig wählbaren Piktogramm-Flächen. Zusammenfassungen werden dort vor einem Kapitel gewählt. Quizze lassen sich nach jedem Kapitel oder gebündelt nach einer wählbaren Anzahl von Kapiteln einplanen. Es sind ausschließlich manuelle Kalender- und Checklistenaufgaben; Nutzer erstellen und lösen die Quizze vorerst selbst. Die App erhält in diesem Schritt weder Quiz-Editor noch Quiz-Durchführung oder KI-Erstellung. Die Quizgruppierung verändert keine Kartenlernziele oder FSRS-Lernstände. Erledigung bleibt je enthaltenem Kapitel erhalten. Dies ersetzt den Ausschluss geplanter Quizaufgaben aus E11 ausschließlich in diesem Umfang; die spätere Quiz-Funktion bleibt offen.

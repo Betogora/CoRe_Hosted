@@ -82,9 +82,9 @@ export function ExamTopicOrder({ topics, disabled = false, onChange }: {
   }
 
   if (!topics.length) return null;
-  return <details className="group min-w-0" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
+  return <details className="exam-topic-order min-w-0" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
     <summary data-exam-topic-order-toggle className="flex min-h-control cursor-pointer list-none items-center gap-2 rounded-control border border-core-border px-3 py-2 core-body font-semibold text-core-text">
-      <ChevronDown size={16} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" />
+      <ChevronDown size={16} aria-hidden="true" className="shrink-0 transition-transform motion-reduce:transition-none" />
       <span className="min-w-0 break-words">Themenreihenfolge ändern</span><span className="ml-auto shrink-0 core-caption text-core-muted">{topics.length}</span>
     </summary>
     <p id={helpId} className="sr-only">Am Griff ziehen, um Themen zu verschieben. Alternativ die Pfeilschaltflächen oder am Griff die Pfeiltasten verwenden. Escape bricht das Ziehen ab.</p>
