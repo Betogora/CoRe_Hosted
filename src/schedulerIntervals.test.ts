@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createDefaultDeckSettings, createReviewState } from "./coreModel.ts";
-import { applyReviewRating, calculateRetrievability, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
+import { calculateRetrievability, getReviewButtonOptions, scheduleWithFsrs, simulateRatingOutcome } from "./scheduler.ts";
 
 const now = "2026-08-21T10:00:00.000Z";
 
@@ -15,7 +15,7 @@ test("FSRS bietet für eine neue Karte alle vier Bewertungen an", () => {
 test("jede echte Bewertung erhöht Wiederholungen und setzt lastReviewedAt", () => {
   for (const rating of ["again", "hard", "good", "easy"] as const) {
     const state = createReviewState({ state: "review", dueAt: now, reps: 4, stability: 10, difficulty: 5 });
-    const next = applyReviewRating(state, rating, { now });
+    const next = scheduleWithFsrs(state, rating, { now });
     assert.equal(next.reps, 5);
     assert.equal(next.lastReviewedAt, now);
     assert.equal(next.lastRating, rating);

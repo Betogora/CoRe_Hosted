@@ -40,7 +40,7 @@ function chunks<T>(values: T[], size: number): T[][] {
   return result;
 }
 
-async function mapWithConcurrency<T, R>(values: T[], concurrency: number, run: (value: T) => Promise<R>): Promise<R[]> {
+export async function mapWithConcurrency<T, R>(values: T[], concurrency: number, run: (value: T) => Promise<R>): Promise<R[]> {
   const results = new Array<R>(values.length);
   let nextIndex = 0;
   await Promise.all(Array.from({ length: Math.min(concurrency, values.length) }, async () => {

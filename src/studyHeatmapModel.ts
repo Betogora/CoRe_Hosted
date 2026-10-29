@@ -1,7 +1,6 @@
 import type { Card } from "./coreTypes.ts";
-import { getLearningDayKey } from "./learningDay.ts";
+import { dayKeyIndex, endOfMonthKey, getLearningDayKey, isDayKey, shiftDayKey, shiftMonthKey, startOfMonthKey } from "./learningDay.ts";
 
-const DAY_MS = 86_400_000;
 const STUDY_HEATMAP_FORECAST_DAYS = 365;
 const HEATMAP_MONTH_LABELS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
 const HEATMAP_WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -51,25 +50,6 @@ export interface StudyHeatmapWindow {
   visibleRangeEndKey: string;
 }
 
-function dayIndex(key: string): number {
-  const [year, month, day] = key.split("-").map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-}
-
-function keyFromDayIndex(index: number): string {
-  return new Date(index * DAY_MS).toISOString().slice(0, 10);
-}
-
-function isDayKey(value: unknown): value is string {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value ?? ""))) return false;
-  const key = String(value);
-  return keyFromDayIndex(dayIndex(key)) === key;
-}
-
-function shiftDayKey(key: string, days: number): string {
-  return keyFromDayIndex(dayIndex(key) + days);
-}
-
 function startOfWeekKey(key: string): string {
   const utcDay = new Date(`${key}T12:00:00Z`).getUTCDay();
   return shiftDayKey(key, -((utcDay + 6) % 7));
@@ -77,22 +57,6 @@ function startOfWeekKey(key: string): string {
 
 function endOfWeekKey(key: string): string {
   return shiftDayKey(startOfWeekKey(key), 6);
-}
-
-function startOfMonthKey(key: string): string {
-  return `${key.slice(0, 7)}-01`;
-}
-
-function endOfMonthKey(key: string): string {
-  const year = Number(key.slice(0, 4));
-  const month = Number(key.slice(5, 7));
-  return new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
-}
-
-function shiftMonthKey(key: string, months: number): string {
-  const year = Number(key.slice(0, 4));
-  const monthIndex = Number(key.slice(5, 7)) - 1;
-  return new Date(Date.UTC(year, monthIndex + months, 1)).toISOString().slice(0, 10);
 }
 
 function startOfYearKey(key: string): string {
@@ -164,13 +128,13 @@ function periodRange(period: StudyHeatmapPeriod, anchorKey: string): { startKey:
 
 function firstPeriodAnchor(period: StudyHeatmapPeriod, firstActivityKey: string, todayKey: string): string {
   if (period !== "week") return periodAnchor(period, firstActivityKey);
-  const completedWindows = Math.floor((dayIndex(todayKey) - dayIndex(firstActivityKey)) / 7);
+  const completedWindows = Math.floor((dayKeyIndex(todayKey) - dayKeyIndex(firstActivityKey)) / 7);
   return shiftDayKey(todayKey, -completedWindows * 7);
 }
 
 function lastPeriodAnchor(period: StudyHeatmapPeriod, forecastEndKey: string, todayKey: string): string {
   if (period !== "week") return periodAnchor(period, forecastEndKey);
-  const futureWindows = Math.ceil((dayIndex(forecastEndKey) - dayIndex(todayKey)) / 7);
+  const futureWindows = Math.ceil((dayKeyIndex(forecastEndKey) - dayKeyIndex(todayKey)) / 7);
   return shiftDayKey(todayKey, futureWindows * 7);
 }
 
@@ -273,7 +237,7 @@ export function createStudyHeatmapWindow(
   const paddedStartKey = period === "week" ? rangeStartKey : startOfWeekKey(rangeStartKey);
   const paddedEndKey = period === "week" ? rangeEndKey : endOfWeekKey(rangeEndKey);
   const rawDays = Array.from(
-    { length: dayIndex(paddedEndKey) - dayIndex(paddedStartKey) + 1 },
+    { length: dayKeyIndex(paddedEndKey) - dayKeyIndex(paddedStartKey) + 1 },
     (_, offset) => {
       const key = shiftDayKey(paddedStartKey, offset);
       const isOutsideRange = key < rangeStartKey || key > rangeEndKey;

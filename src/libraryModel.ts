@@ -397,6 +397,71 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
   return { rows, dailyLearningPlan };
 }
 
+/** One catalog page of a deck; it only counts while query and sort still match the table. */
+interface CardTablePage {
+  items: CardCatalogEntry[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  query: string;
+  sort: CardTableSort;
+}
+
+export function sameCardTableSort(left: CardTableSort, right: CardTableSort) {
+  return left.field === right.field && left.direction === right.direction;
+}
+
+/**
+ * Card table over server-side catalog pages: each group keeps its locally loaded deck, rows come from
+ * the matching page, and groups whose page is still requested stay visible during a search.
+ */
+export function createPagedCardTableModel(
+  decks: Deck[],
+  cardPages: Readonly<Record<string, CardTablePage | undefined>> | undefined,
+  options: Omit<LibraryOptions, "query" | "cardSort" | "cardPageSize" | "notesById"> & {
+    query: string;
+    cardSort: CardTableSort;
+    withoutVariants: boolean;
+    awaitingPages: boolean;
+  },
+) {
+  const { query, cardSort, withoutVariants, awaitingPages, cardPageByDeckId = {}, ...modelOptions } = options;
+  const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
+  const baseModel = createCardTableModel(decks.map((deck) => ({ ...deck, cards: [] })), modelOptions);
+  const normalizedQuery = normalizeQuery(query);
+  const allGroups = baseModel.allGroups.map((group) => {
+    const candidate = cardPages?.[group.id];
+    const page = candidate && candidate.query === query && sameCardTableSort(candidate.sort, cardSort) ? candidate : undefined;
+    const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
+    const pageItems = (page?.items ?? []).slice(0, pageSize);
+    const knownTotal = Math.floor(page?.totalCount ?? (normalizedQuery || withoutVariants ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
+    const { items, totalCount } = withoutVariants
+      ? cardsWithoutVariants(pageItems, Math.floor(page?.page ?? 0), pageSize, knownTotal)
+      : { items: pageItems, totalCount: knownTotal };
+    const totalCardCount = Math.max(items.length, totalCount);
+    const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
+    const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
+    const deckMatches = Boolean(normalizedQuery) && normalizeQuery(group.path).includes(normalizedQuery);
+    return {
+      ...group,
+      deck: originalDecks.get(group.id) ?? group.deck,
+      cardRows: items.map((entry) => createCardTableRow(entry, { dayStartHour: options.dayStartHour, timeZone: options.timeZone })),
+      totalCardCount,
+      page: currentPage,
+      pageCount,
+      pageSize,
+      deckMatches,
+    };
+  });
+  const groups = allGroups.filter((group) => (
+    !normalizedQuery
+    || group.deckMatches
+    || group.totalCardCount > 0
+    || (awaitingPages && !cardPages?.[group.id])
+  ));
+  return { allGroups, groups, cardSort };
+}
+
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
   const query = normalizeQuery(options.query);
   const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;

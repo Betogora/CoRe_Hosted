@@ -443,10 +443,6 @@ export function scheduleWithFsrs(previousState: ReviewStateInput, rating: Review
   }).nextReviewState;
 }
 
-export function applyReviewRating(reviewState: ReviewStateInput, rating: ReviewRating, context: SchedulerContext = {}): ReviewState {
-  return scheduleWithFsrs(reviewState, rating, context);
-}
-
 export function listReviewableCards(deck: Deck): Card[] {
   return (deck.cards ?? []).filter((card) => card.deletedAt === null);
 }

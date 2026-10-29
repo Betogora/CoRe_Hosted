@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
-import type { CardCatalogEntry } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import {
   type CardTableSort,
   cardsWithoutVariants,
   createCardTableModel,
   createDeckLibraryModel,
+  createPagedCardTableModel,
   createStudyHeatmapModel,
   createStudyHeatmapWindow,
 } from "./libraryModel.ts";
@@ -323,6 +324,28 @@ test("library model sorts every deck level alphabetically like Anki", () => {
     root10.id,
     root9.id,
   ]);
+});
+
+test("paged card table uses only pages for the current query and sort and keeps awaited groups", () => {
+  const cards = [libraryCard("card_nerv", { front: "Nerv" }), libraryCard("card_muskel", { front: "Muskel" })];
+  const { parent, child } = createDeckHierarchy(cards);
+  const sort: CardTableSort = { field: "sortField", direction: "asc" };
+  const items = cards.map((card) => catalogEntryFromCard(card, null));
+  const childPage = { items, page: 0, pageSize: 50, totalCount: 2, query: "nerv", sort };
+  const options = { query: "nerv", cardSort: sort, withoutVariants: false, now: "2026-07-01T08:00:00.000Z" };
+
+  const awaiting = createPagedCardTableModel([parent, child], { deck_child: childPage }, { ...options, awaitingPages: true });
+  assert.deepEqual(awaiting.groups.map((group) => group.id), ["deck_parent", "deck_child"]);
+  const childGroup = awaiting.allGroups.find((group) => group.id === "deck_child")!;
+  assert.deepEqual(childGroup.cardRows.map((row) => row.id), ["card_nerv", "card_muskel"]);
+  assert.equal(childGroup.totalCardCount, 2);
+  assert.equal(childGroup.deck.cards.length, 2);
+
+  const settled = createPagedCardTableModel([parent, child], { deck_child: childPage }, { ...options, awaitingPages: false });
+  assert.deepEqual(settled.groups.map((group) => group.id), ["deck_child"]);
+
+  const stale = createPagedCardTableModel([parent, child], { deck_child: { ...childPage, sort: { field: "variants", direction: "asc" } } }, { ...options, awaitingPages: false });
+  assert.deepEqual(stale.groups, []);
 });
 
 test("card table preserves hierarchy and card order while including empty decks", () => {

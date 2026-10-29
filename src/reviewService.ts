@@ -149,11 +149,7 @@ function isNewCard(card: Card): boolean {
 }
 
 function isLearningDueByToday(card: Card, now: DateInput, options: ReviewServiceOptions = {}): boolean {
-  const state = card.study;
-  const dueTime = new Date(state?.dueAt ?? "").getTime();
-  const dueKey = learningDayKey(dueTime, options);
-  const currentKey = learningDayKey(now, options);
-  return isLearningState(state) && Number.isFinite(dueTime) && Boolean(dueKey && currentKey && dueKey <= currentKey);
+  return isLearningState(card.study) && isReviewDueByLearningDay(card.study, now, options);
 }
 
 function isLearningAvailable(card: Card, now: DateInput, learnAheadMinutes: number, options: ReviewServiceOptions = {}): boolean {
@@ -771,10 +767,11 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
 
       const state = card.study;
       if (isLearningState(state)) {
-        if (isLearningDueByToday(card, now, options)) learningEntries.push(entry);
+        const learningDue = isLearningDueByToday(card, now, options);
+        if (learningDue) learningEntries.push(entry);
         if (isIntradayLearning(card, now, options)) {
           if (isLearningAvailable(card, now, learnAheadMinutes, options)) intradayLearningEntries.push(entry);
-        } else if (isLearningDueByToday(card, now, options)) {
+        } else if (learningDue) {
           interdayLearningEntries.push(entry);
         }
       } else if (state?.state === "review" && isReviewDueByLearningDay(state, now, options)) {

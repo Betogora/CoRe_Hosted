@@ -1,5 +1,6 @@
 import * as v from "valibot";
-import { classifyMediaError, releaseUnreferencedMedia, signMediaUrls, uploadMediaFiles, type CloudMediaControl, type MediaFailureKind } from "./cloudMediaStore.ts";
+import { sha1DigestHex } from "./sha1.ts";
+import { classifyMediaError, mapWithConcurrency, releaseUnreferencedMedia, signMediaUrls, uploadMediaFiles, type CloudMediaControl, type MediaFailureKind } from "./cloudMediaStore.ts";
 import type { OfflineMediaManifestEntry } from "./workspaceReplica.ts";
 
 // K4.7: one cached file per account and SHA-1; contents map their media names to SHA-1 (`Note.media`).
@@ -8,6 +9,7 @@ const DB_VERSION = 1;
 const ASSET_STORE = "assets";
 const QUEUE_STORE = "upload_queue";
 const CLOUD_MEDIA_DOWNLOAD_CONCURRENCY = 4;
+const SIGNED_MEDIA_FETCH_OPTIONS: RequestInit = { credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" };
 const SHA1_PATTERN = /^[a-f0-9]{40}$/;
 const sha1Schema = v.pipe(v.string(), v.regex(SHA1_PATTERN));
 const mediaFileSchema = v.looseObject({
@@ -65,8 +67,7 @@ async function getAllByIndex<T>(db: IDBDatabase, store: string, index: string, k
 
 async function sha1Hex(blob: Blob) {
   if (!globalThis.crypto?.subtle) throw new Error("Der Browser kann Medienprüfsummen nicht verifizieren.");
-  const digest = await globalThis.crypto.subtle.digest("SHA-1", await blob.arrayBuffer());
-  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return sha1DigestHex(await blob.arrayBuffer());
 }
 
 function normalizeFile(file: unknown) {
@@ -272,23 +273,19 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     if (cloudSha1s.length && client && fetchImpl && typeof URL?.createObjectURL === "function") {
       const signed = await signMediaUrls(client, userId, cloudSha1s).catch(() => ({ urls: {} as Record<string, string>, missing: cloudSha1s, expiresAt: null }));
       expiresAt = signed.expiresAt;
-      let next = 0;
-      await Promise.all(Array.from({ length: Math.min(CLOUD_MEDIA_DOWNLOAD_CONCURRENCY, cloudSha1s.length) }, async () => {
-        while (next < cloudSha1s.length) {
-          const sha1 = cloudSha1s[next++];
-          const url = trustedSignedMediaUrl(signed.urls[sha1], supabaseUrl);
-          if (!url) continue;
-          try {
-            const response = await fetchImpl(url, { credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" });
-            if (!response.ok) continue;
-            const objectUrl = URL.createObjectURL(await response.blob());
-            objectUrls.push(objectUrl);
-            for (const name of namesBySha1.get(sha1) ?? []) urls[name] = objectUrl;
-          } catch {
-            // The card renders without this file; the missing list names it.
-          }
+      await mapWithConcurrency(cloudSha1s, CLOUD_MEDIA_DOWNLOAD_CONCURRENCY, async (sha1) => {
+        const url = trustedSignedMediaUrl(signed.urls[sha1], supabaseUrl);
+        if (!url) return;
+        try {
+          const response = await fetchImpl(url, SIGNED_MEDIA_FETCH_OPTIONS);
+          if (!response.ok) return;
+          const objectUrl = URL.createObjectURL(await response.blob());
+          objectUrls.push(objectUrl);
+          for (const name of namesBySha1.get(sha1) ?? []) urls[name] = objectUrl;
+        } catch {
+          // The card renders without this file; the missing list names it.
         }
-      }));
+      });
     }
     for (const [name] of Object.entries(media)) if (!urls[name]) missing.push({ name, status: "Medium fehlt lokal und in der Cloud." });
     return { urls, missing, expiresAt, revoke() { objectUrls.forEach((url) => URL.revokeObjectURL(url)); } };
@@ -318,24 +315,20 @@ export function createAccountMediaStore({ client, supabaseUrl, userId, indexedDB
     }
     const signed = await signMediaUrls(client, userId, missing.map((entry) => entry.sha1));
     if (signed.missing.length > 0) throw new Error("Mindestens ein Cloud-Medium ist nicht mehr verfügbar.");
-    let next = 0;
-    await Promise.all(Array.from({ length: Math.min(CLOUD_MEDIA_DOWNLOAD_CONCURRENCY, missing.length) }, async () => {
-      while (next < missing.length) {
-        const entry = missing[next++];
-        const url = trustedSignedMediaUrl(signed.urls[entry.sha1], supabaseUrl);
-        if (!url) throw new Error("Eine Medien-URL konnte nicht sicher geprüft werden.");
-        const response = await fetchImpl(url, { credentials: "omit", redirect: "error", referrerPolicy: "no-referrer" });
-        if (!response.ok) throw new Error(`Medium „${entry.originalName}“ konnte nicht geladen werden.`);
-        const blob = await response.blob();
-        if (blob.size !== entry.size) throw new Error(`Medium „${entry.originalName}“ hat eine unerwartete Größe.`);
-        if (await sha1Hex(blob) !== entry.sha1) throw new Error(`Medium „${entry.originalName}“ hat eine ungültige Prüfsumme.`);
-        const cached = await cacheMedia([{ sha1: entry.sha1, name: entry.originalName, size: entry.size, mimeType: entry.mimeType, blob }], { queueUpload: false, pinDeckId: deckId });
-        if (cached.count !== 1 || cached.errors.length > 0) throw new Error(cached.errors[0] ?? "Medium konnte nicht lokal gespeichert werden.");
-        completed += 1;
-        downloadedBytes += entry.size;
-        onProgress?.({ completed, total: unique.length, downloadedBytes });
-      }
-    }));
+    await mapWithConcurrency(missing, CLOUD_MEDIA_DOWNLOAD_CONCURRENCY, async (entry) => {
+      const url = trustedSignedMediaUrl(signed.urls[entry.sha1], supabaseUrl);
+      if (!url) throw new Error("Eine Medien-URL konnte nicht sicher geprüft werden.");
+      const response = await fetchImpl(url, SIGNED_MEDIA_FETCH_OPTIONS);
+      if (!response.ok) throw new Error(`Medium „${entry.originalName}“ konnte nicht geladen werden.`);
+      const blob = await response.blob();
+      if (blob.size !== entry.size) throw new Error(`Medium „${entry.originalName}“ hat eine unerwartete Größe.`);
+      if (await sha1Hex(blob) !== entry.sha1) throw new Error(`Medium „${entry.originalName}“ hat eine ungültige Prüfsumme.`);
+      const cached = await cacheMedia([{ sha1: entry.sha1, name: entry.originalName, size: entry.size, mimeType: entry.mimeType, blob }], { queueUpload: false, pinDeckId: deckId });
+      if (cached.count !== 1 || cached.errors.length > 0) throw new Error(cached.errors[0] ?? "Medium konnte nicht lokal gespeichert werden.");
+      completed += 1;
+      downloadedBytes += entry.size;
+      onProgress?.({ completed, total: unique.length, downloadedBytes });
+    });
     return { completed, total: unique.length, downloadedBytes };
   }
 

@@ -7,6 +7,7 @@ import type { Deck, NoteContent, OcclusionMask } from "./coreTypes.ts";
 import { ANKI_PACKAGE_MAX_BYTES, type ApkgImportPreview, type ImportCommitGraph, type ImportMediaFile } from "./apkgImport.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import type { ApkgImportJob } from "./apkgImportSession.ts";
+import { sha1DigestHex } from "./sha1.ts";
 export { createImportCloudSyncTask } from "./importCloudSyncTask.ts";
 export type { ImportCloudSyncResult, ImportCloudSyncStatus, ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 
@@ -214,8 +215,7 @@ export function createCreationWorkflow({
         throw new Error("Das Bild kann in diesem Browser nicht sicher verarbeitet werden.");
       }
       const image = await downscaleImageToFullHd(file);
-      const digest = await globalThis.crypto.subtle.digest("SHA-1", await image.arrayBuffer());
-      const sha1 = [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+      const sha1 = await sha1DigestHex(await image.arrayBuffer());
       return {
         sha1,
         name: sha1,

@@ -245,10 +245,20 @@ const offlineMediaManifestSchema = v.object({
   createdAt: v.string(),
 });
 
-function parseRows<T>(schema: v.GenericSchema<unknown, T>, input: unknown, message: string): T[] {
-  const result = v.safeParse(v.array(schema), input);
+function parseValue<T>(schema: v.GenericSchema<unknown, T>, input: unknown, message: string): T {
+  const result = v.safeParse(schema, input);
   if (!result.success) throw new Error(message);
   return result.output;
+}
+
+function parseRows<T>(schema: v.GenericSchema<unknown, T>, input: unknown, message: string): T[] {
+  return parseValue(v.array(schema), input, message);
+}
+
+/** RPC responses are JSON objects; arrays and primitives are rejected with the caller's message. */
+export function requireJsonRecord(value: unknown, message: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
+  return value as Record<string, unknown>;
 }
 
 export function validateAccountRows(table: AccountTable, input: unknown): AccountRow[] {
@@ -424,10 +434,6 @@ export function validateLearningDocumentRows(input: unknown): LearningDocumentRo
     .map((row) => ({ id: row.id, deckId: row.deck_id, document: row.document, revision: row.revision, deleted: row.deleted_at !== null }));
 }
 
-export function validateIdRows(input: unknown, table: string) {
-  return parseRows(v.looseObject({ id: v.string() }), input, `Cloud-Daten für ${table} hatten ein ungültiges Format.`);
-}
-
 /** Cloud catalog rows carry no full text; their search text is the preview. */
 export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
   return parseRows(cardCatalogRowSchema, input, "Cloud-Kartenkatalog hatte ein ungültiges Format.").map((row) => ({
@@ -480,21 +486,15 @@ export function validateCardStudyStateRows(input: unknown): CardStudySnapshot[] 
 }
 
 export function validateDeckStudySummary(input: unknown): DeckStudySummary {
-  const result = v.safeParse(deckStudySummarySchema, input);
-  if (!result.success) throw new Error("Cloud-Stapelstatistik hatte ein ungültiges Format.");
-  return result.output;
+  return parseValue(deckStudySummarySchema, input, "Cloud-Stapelstatistik hatte ein ungültiges Format.");
 }
 
 export function validateAccountStudyOverview(input: unknown): AccountStudyOverview {
-  const result = v.safeParse(accountStudyOverviewSchema, input);
-  if (!result.success) throw new Error("Cloud-Lernübersicht hatte ein ungültiges Format.");
-  return result.output;
+  return parseValue(accountStudyOverviewSchema, input, "Cloud-Lernübersicht hatte ein ungültiges Format.");
 }
 
 export function validateDueForecast(input: unknown) {
-  const result = v.safeParse(dueForecastSchema, input);
-  if (!result.success) throw new Error("Cloud-Fälligkeitsprognose hatte ein ungültiges Format.");
-  return result.output;
+  return parseValue(dueForecastSchema, input, "Cloud-Fälligkeitsprognose hatte ein ungültiges Format.");
 }
 
 export function validateDeckStudySummaryRows(input: unknown): DeckStudySummary[] {
@@ -515,12 +515,10 @@ export function validateOfflineManifestRows(input: unknown): {
   cards: OfflineCardManifestEntry[];
   media: OfflineMediaManifestEntry[];
 } {
-  const result = v.safeParse(v.object({
+  return parseValue(v.object({
     cards: v.array(offlineCardManifestSchema),
     media: v.array(offlineMediaManifestSchema),
-  }), input);
-  if (!result.success) throw new Error("Offline-Manifest hatte ein ungültiges Format.");
-  return result.output;
+  }), input, "Offline-Manifest hatte ein ungültiges Format.");
 }
 
 export function validateAccountStatistics(input: unknown): AccountStatisticsSnapshot {
@@ -545,7 +543,7 @@ export function validateAccountStatistics(input: unknown): AccountStatisticsSnap
     count: nonNegativeIntegerSchema,
     cumulativePercent: nonNegativeNumberSchema,
   }));
-  const result = v.safeParse(v.object({
+  return parseValue(v.object({
     cards: v.object({
       total: nonNegativeIntegerSchema,
       new: nonNegativeIntegerSchema,
@@ -593,8 +591,6 @@ export function validateAccountStatistics(input: unknown): AccountStatisticsSnap
       nextDueAt: v.nullable(v.string()),
     })),
     generatedAt: v.string(),
-  }), input);
-  if (!result.success) throw new Error("Cloud-Statistik hatte ein ungültiges Format.");
-  return result.output;
+  }), input, "Cloud-Statistik hatte ein ungültiges Format.");
 }
 

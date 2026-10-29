@@ -19,7 +19,7 @@ import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
-import { planEntityMutations } from "./syncMutationPlanner.ts";
+import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
 import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
@@ -342,11 +342,24 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     shell = { ...shell!, updatedAt };
   });
 
+  const putSyncMetadata = async (key: string, value: unknown) => {
+    const transaction = database.transaction(STORE.syncMetadata, "readwrite");
+    transaction.objectStore(STORE.syncMetadata).put({ key, value });
+    await transactionDone(transaction);
+  };
+
+  const persistOutboxEntries = (ids: string[]) => void enqueueWrite(async () => {
+    const transaction = database.transaction(STORE.outbox, "readwrite");
+    for (const id of ids) {
+      const mutation = pendingOutbox.get(id);
+      if (mutation) transaction.objectStore(STORE.outbox).put(mutation);
+    }
+    await transactionDone(transaction);
+  });
+
   const persistReplicaStatus = async (patch: Partial<ReplicaStatus>) => {
     replicaStatus = { ...replicaStatus, ...patch };
-    const transaction = database.transaction(STORE.syncMetadata, "readwrite");
-    transaction.objectStore(STORE.syncMetadata).put({ key: "replicaStatus", value: replicaStatus });
-    await transactionDone(transaction);
+    await putSyncMetadata("replicaStatus", replicaStatus);
     return replicaStatus;
   };
 
@@ -741,7 +754,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         await transactionDone(read);
         await queueAndWrite(
           [STORE.noteTypeSources],
-          sources.map((source) => ({ type: "entity-mutation", table: "note_type_sources", entityId: source.id, baseRevision: null, payload: { table: "note_type_sources", entity: source, baseRevision: null } })),
+          sources.map((source) => insertEntityMutation("note_type_sources", source)),
           (transaction) => { for (const source of sources) transaction.objectStore(STORE.noteTypeSources).put(source); },
         );
         return;
@@ -819,7 +832,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         if (changes.length) await writeNoteGraphs(changes);
         await queueAndWrite(
           [STORE.noteSources],
-          noteSources.map((source) => ({ type: "entity-mutation", table: "note_sources", entityId: source.noteId, baseRevision: null, payload: { table: "note_sources", entity: source, baseRevision: null } })),
+          noteSources.map((source) => insertEntityMutation("note_sources", source, source.noteId)),
           (transaction) => { for (const source of noteSources) transaction.objectStore(STORE.noteSources).put(source); },
         );
         for (const change of changes) {
@@ -855,7 +868,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         .filter((event, index) => event.deckId && existing[index] == null);
       await queueAndWrite(
         [STORE.reviewEvents],
-        newEvents.map((event) => ({ type: "entity-mutation", table: "review_events", entityId: event.id, baseRevision: null, payload: { table: "review_events", entity: event, baseRevision: null } })),
+        newEvents.map((event) => insertEntityMutation("review_events", event)),
         (transaction) => { for (const event of newEvents) transaction.objectStore(STORE.reviewEvents).put(event); },
       );
       scope.reviewEventIds.push(...newEvents.map((event) => event.id));
@@ -912,14 +925,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           pendingOutbox.set(id, { ...mutation, flushedAt });
         }
       }
-      void enqueueWrite(async () => {
-        const transaction = database.transaction(STORE.outbox, "readwrite");
-        for (const id of idsToFlush) {
-          const mutation = pendingOutbox.get(id);
-          if (mutation) transaction.objectStore(STORE.outbox).put(mutation);
-        }
-        await transactionDone(transaction);
-      });
+      persistOutboxEntries(idsToFlush);
       return [...pendingOutbox.values()];
     },
     markFailed(idsToFail: string[] = [], error: unknown = null) {
@@ -931,14 +937,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           lastError: error ? String((error as Error).message ?? error).slice(0, 300) : null,
         });
       }
-      void enqueueWrite(async () => {
-        const transaction = database.transaction(STORE.outbox, "readwrite");
-        for (const id of idsToFail) {
-          const mutation = pendingOutbox.get(id);
-          if (mutation) transaction.objectStore(STORE.outbox).put(mutation);
-        }
-        await transactionDone(transaction);
-      });
+      persistOutboxEntries(idsToFail);
       return [...pendingOutbox.values()];
     },
     remove(idsToRemove: string[] = []) {
@@ -986,9 +985,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
     async applyAccountStudyOverview(overview: AccountStudyOverview) {
       studyOverview = overview;
-      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
-      transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: overview });
-      await transactionDone(transaction);
+      await putSyncMetadata("accountStudyOverview", overview);
     },
     /** Account-wide due counts per future learning day, or null while no overview for this learning day exists. */
     async loadDueForecast({ now = new Date().toISOString(), dayStartHour = 0, timeZone }: { now?: string; dayStartHour?: number; timeZone?: string } = {}) {
@@ -1001,9 +998,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     async applyDueForecast(forecast: { contextKey: string; forecastByDay: Record<string, number> }) {
       if (!studyOverview || studyOverview.contextKey !== forecast.contextKey) return;
       studyOverview = { ...studyOverview, forecastByDay: forecast.forecastByDay };
-      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
-      transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
-      await transactionDone(transaction);
+      await putSyncMetadata("accountStudyOverview", studyOverview);
     },
     applyCloudCatalogPage,
     listCatalogPage,
@@ -1274,15 +1269,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       if ([...decks, ...notes, ...cards, ...reviews, ...noteTypeSources].some((entity) => !entity)) {
         throw new Error("Der unvollständige Import kann lokal nicht mehr vollständig rekonstruiert werden.");
       }
-      const insert = (table: string, entity: any, entityId = entity.id) => ({ type: "entity-mutation", table, entityId, baseRevision: null, payload: { table, entity, baseRevision: null } });
       const inputs = [
-        ...noteTypeSources.map((source) => insert("note_type_sources", source)),
-        ...(decks as WorkspaceDeckSummary[]).map((deck) => insert("decks", deck)),
-        ...(notes as Note[]).map((note) => insert("notes", note)),
-        ...noteSources.filter(Boolean).map((source) => insert("note_sources", source, source.noteId)),
-        ...(cards as Card[]).map((card) => insert("cards", cardRecord(card))),
-        ...(cards as Card[]).flatMap((card) => card.variants.map((variant) => insert("card_variants", variant))),
-        ...(reviews as ReviewEvent[]).map((review) => insert("review_events", review)),
+        ...noteTypeSources.map((source) => insertEntityMutation("note_type_sources", source)),
+        ...(decks as WorkspaceDeckSummary[]).map((deck) => insertEntityMutation("decks", deck)),
+        ...(notes as Note[]).map((note) => insertEntityMutation("notes", note)),
+        ...noteSources.filter(Boolean).map((source) => insertEntityMutation("note_sources", source, source.noteId)),
+        ...(cards as Card[]).map((card) => insertEntityMutation("cards", cardRecord(card))),
+        ...(cards as Card[]).flatMap((card) => card.variants.map((variant) => insertEntityMutation("card_variants", variant))),
+        ...(reviews as ReviewEvent[]).map((review) => insertEntityMutation("review_events", review)),
       ];
       const batch = queueMutations(inputs);
       const write = database.transaction(STORE.outbox, "readwrite");
@@ -1296,11 +1290,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       const row = await requestResult<{ value?: unknown } | undefined>(transaction.objectStore(STORE.syncMetadata).get(key));
       return row?.value;
     },
-    async writeSyncMetadata(key: string, value: unknown) {
-      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
-      transaction.objectStore(STORE.syncMetadata).put({ key, value });
-      await transactionDone(transaction);
-    },
+    writeSyncMetadata: putSyncMetadata,
     async setSyncConflicts(conflicts: any[] = []) {
       syncConflictCardIds = new Set(conflicts.flatMap((conflict) => conflict?.cardId ? [String(conflict.cardId)] : []));
       const conflictedDeckIds = [...new Set(conflicts.filter((conflict) => conflict?.entityTable === "decks" && conflict?.entityId).map((conflict) => String(conflict.entityId)))];
@@ -1315,9 +1305,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         await transactionDone(read);
         for (const id of rows.flat()) syncConflictCardIds.add(String(id));
       }
-      const transaction = database.transaction(STORE.syncMetadata, "readwrite");
-      transaction.objectStore(STORE.syncMetadata).put({ key: "syncConflictCardIds", value: [...syncConflictCardIds] });
-      await transactionDone(transaction);
+      await putSyncMetadata("syncConflictCardIds", [...syncConflictCardIds]);
     },
     async prepareConflictResolution(result: any, decision: any) {
       const target = result?.resolutionTarget;
@@ -1491,9 +1479,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
 
       if (reviewDayCountsCache?.contextKey !== contextKey) {
         reviewDayCountsCache = { contextKey, timeZone, dayStartHour, counts: {} };
-        const cacheTransaction = database.transaction(STORE.syncMetadata, "readwrite");
-        cacheTransaction.objectStore(STORE.syncMetadata).put({ key: "reviewDayCounts", value: reviewDayCountsCache });
-        await transactionDone(cacheTransaction);
+        await putSyncMetadata("reviewDayCounts", reviewDayCountsCache);
       }
 
       // Counts from the server overview already leave out today's buried siblings.

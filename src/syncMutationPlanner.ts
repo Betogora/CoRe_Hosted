@@ -40,6 +40,17 @@ function entityMutation(table: string, entity: RevisionedEntity, previous?: Revi
   };
 }
 
+/** First write of an entity the cloud does not know yet; import sources are keyed by their note. */
+export function insertEntityMutation(table: string, entity: object, entityId = (entity as RevisionedEntity).id) {
+  return {
+    type: SYNC_MUTATION_TYPES.entityMutation,
+    table,
+    entityId,
+    baseRevision: null,
+    payload: { table, entity, baseRevision: null },
+  };
+}
+
 function tombstoneMutation(table: string, entity: RevisionedEntity) {
   const deletedAt = new Date().toISOString();
   return {
