@@ -2322,6 +2322,21 @@ summary {
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
 
+.exam-plan-actions { bottom: calc(env(safe-area-inset-bottom) + 6rem); }
+@media (min-width: 1280px) { .exam-plan-actions { bottom: 0; } }
+.exam-calendar-layout { container-type: inline-size; }
+.exam-topic-panel { container-type: inline-size; container-name: exam-topics; }
+@container exam-topics (min-width: 40rem) {
+  .exam-topic-row { grid-template-columns: minmax(0, 1fr) 12rem auto; }
+}
+.exam-topic-order[open] > summary > svg { transform: rotate(180deg); }
+.exam-today-layout { container-type: inline-size; }
+@container (min-width: 48rem) {
+  .exam-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 56rem) {
+  .exam-calendar-body[data-show-day="true"] { grid-template-columns: minmax(0, 1fr) 22rem; }
+}
 .exam-month-days { --exam-month-day-height: 112px; }
 .exam-month-days > button { min-width: 0; }
 .exam-month-entry { min-height: 20px; overflow-wrap: anywhere; font-size: var(--core-type-caption); line-height: 16px; }

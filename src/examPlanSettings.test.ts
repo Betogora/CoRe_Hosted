@@ -1,9 +1,26 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, isValidExamCalendar, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
+import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, getExamQuizPlanningKey, getExamQuizTaskId, isValidExamCalendar, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./learningProfiles.ts";
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
+
+test("manuelle Quizaufgaben behalten Kapitelgruppen und verbieten Karten oder automatische Erledigung", () => {
+  const plan = { ...exam("a"), quizChaptersPerTask: 3, completedQuizDeckIds: ["deck-a"] };
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), plan);
+  const task = { id: getExamQuizTaskId("a", ["deck-a", "deck-b"]), date: "2026-10-12", examId: "a", kind: "quiz", deckIds: ["deck-a", "deck-b"], cardIds: [], capturedAt: "2026-10-12T08:00:00.000Z", completed: "manual" };
+  assert.deepEqual(validateExamPlanningSettings({ ...settings, dailyTasks: [task] }).dailyTasks, [task]);
+  assert.deepEqual(normalizeExamPlanningSettings(settings), settings);
+  for (const quizChaptersPerTask of [0, 1.5, 201]) assert.throws(() => upsertExamPlan(settings, { ...plan, quizChaptersPerTask }), /ungültig/);
+  for (const change of [{ cardIds: ["card"] }, { completed: "automatic" }, { deckIds: ["deck-a", "deck-a"] }, { kind: "summary" }]) {
+    assert.throws(() => validateExamPlanningSettings({ ...settings, dailyTasks: [{ ...task, ...change }] }), /ungültig/);
+  }
+  assert.equal(getExamPlanningKey(plan, settings.capacity), getExamPlanningKey({ ...plan, quizChaptersPerTask: 1 }, settings.capacity));
+  assert.notEqual(getExamQuizPlanningKey(plan, settings.capacity), getExamQuizPlanningKey({ ...plan, quizChaptersPerTask: 1 }, settings.capacity));
+  const study = { ...task, id: "topic:a:deck-a", kind: "study" as const, deckIds: ["deck-a"], cardIds: ["card"], completed: null };
+  const stored = validateExamPlanningSettings({ ...settings, dailyTasks: [study, { ...task, completed: null }] });
+  assert.deepEqual(upsertExamPlan(stored, { ...plan, quizChaptersPerTask: 1 }).dailyTasks, [study]);
+});
 
 test("Themenfolge, Tagesausnahmen und erledigte Leseaufgaben bleiben validiert", () => {
   const original = exam("a"), settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...original, topicOrder: ["deck-a"], readSummaryBeforeTopics: true, completedSummaryDeckIds: ["deck-a"] });
@@ -120,4 +137,30 @@ test("Kalenderänderungen im aktuellen Format gelten, Überschneidungen und Blö
   assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("one", "2026-10-13", 480, 540), block("two", "2026-10-13", 540, 600)] }), true);
   assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("one", "2026-10-13", 480, 600), block("two", "2026-10-13", 540, 660)] }), false);
   assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("late", "2026-10-20", 480, 540)] }), false);
+});
+
+
+test("Lernstart ist heute vorbelegt, bleibt im Profil und lässt alte Pläne ohne Startdatum gültig", () => {
+  const plan = exam("start");
+  assert.equal(plan.studyStartDate, "2026-10-08");
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...plan, studyStartDate: "2026-10-15" });
+  assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning, settings);
+  const { studyStartDate: _start, ...legacy } = plan;
+  assert.deepEqual(validateExamPlanningSettings({ ...settings, exams: [legacy] }).exams, [legacy]);
+  for (const studyStartDate of [plan.examDate, "2026-12-01", "2026-02-30", ""]) {
+    assert.throws(() => validateExamPlanningSettings({ ...settings, exams: [{ ...plan, studyStartDate }] }), /ungültig/);
+  }
+});
+
+test("geänderter Lernstart ersetzt Tagesziele und verbietet frühere zugeordnete Blöcke", () => {
+  const plan = exam("start"), capacity = createStudyTimeCapacity();
+  const task = { id: "topic:start:deck-a", date: "2026-10-12", examId: plan.id, kind: "study" as const, deckIds: ["deck-a"], cardIds: ["card"], capturedAt: "2026-10-12T08:00:00.000Z", completed: null };
+  const settings = validateExamPlanningSettings({ version: 3, exams: [plan], capacity, dailyTasks: [task] });
+  const changed = { ...plan, studyStartDate: "2026-10-13" };
+  assert.notEqual(getExamPlanningKey(plan, capacity), getExamPlanningKey(changed, capacity));
+  assert.deepEqual(upsertExamPlan(settings, changed).dailyTasks, []);
+  const block = { id: "early", date: "2026-10-12", start: 480, end: 540, examId: plan.id };
+  assert.equal(isValidExamCalendar([changed], { timeBlocks: [block] }), false);
+  assert.equal(isValidExamCalendar([changed], { timeBlocks: [{ ...block, examId: null }] }), true);
+  assert.deepEqual(normalizeExamPlanningSettings({ ...settings, exams: [changed], capacity: { timeBlocks: [block] } }).capacity.timeBlocks, []);
 });

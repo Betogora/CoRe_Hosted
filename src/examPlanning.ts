@@ -2,7 +2,7 @@ import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import { createCoreDeck, createReviewState } from "./coreModel.ts";
 import type { Card, Deck, DeckSettings, ExamDailyTask, ExamPlan, GlobalSchedulerPreferences, ReviewRating, ReviewState, StudyTimeCapacity } from "./coreTypes.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
-import { EXAM_SESSION_DECK_ID, getExamPlanningKey } from "./examPlanSettings.ts";
+import { EXAM_SESSION_DECK_ID, getExamPlanningKey, getExamQuizPlanningKey, getExamQuizTaskId } from "./examPlanSettings.ts";
 import { getLearningDayKey, getLearningDayStartForKey } from "./learningDay.ts";
 import { markLearningSettingsCustom } from "./learningProfiles.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
@@ -17,10 +17,11 @@ export interface StudyPlanBlock {
 export interface ExamPlanDay {
   key: string; budgetMinutes: number; newCardIds: string[]; reviewCardIds: string[]; blocks: StudyPlanBlock[];
   summaries: Array<{ examId: string; deckId: string }>;
+  quizzes?: Array<{ examId: string; deckIds: string[] }>;
 }
 export interface ExamReadiness { coverage: number; consolidated: number }
 export interface ExamForecastSummary {
-  examId: string; usableDays: number; totalCards: number; remainingNewCount: number;
+  examId: string; studyDays: number; totalCards: number; remainingNewCount: number;
   unscheduledNewCount: number; availableMinutes: number; current: ExamReadiness; issues: string[];
   decks: Array<{ deckId: string; name: string; total: number; known: number }>;
 }
@@ -87,7 +88,7 @@ function baseMinutes(key: string, exam: ExamPlan) {
 }
 /** The exam's own blocks replace its time for that date; blocks without an exam are calendar notes only. */
 export function getExamStudyMinutes(key: string, exam: ExamPlan, exams: readonly ExamPlan[], capacity: StudyTimeCapacity): number {
-  if (key >= exam.examDate || exams.some((entry) => entry.status === "active" && entry.examDate === key)) return 0;
+  if ((exam.studyStartDate && key < exam.studyStartDate) || key >= exam.examDate || exams.some((entry) => entry.status === "active" && entry.examDate === key)) return 0;
   const own = (capacity.timeBlocks ?? []).filter((block) => block.date === key && block.examId === exam.id);
   return own.length ? own.reduce((sum, block) => sum + block.end - block.start, 0) : baseMinutes(key, exam);
 }
@@ -140,7 +141,8 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     const order = getExamTopicOrder(decks, exam), own = order.flatMap((id) => cardsByDeck.get(id) ?? []), planned = own.filter((card) => ownerByDeck.get(card.deckId) === exam.id);
     const allFresh = planned.filter((card) => isNew(card.study));
     const cutoff = getExamLastNewDate(exam), introductionEnd = getLearningDayStartForKey(shiftExamDay(cutoff, 1), { timeZone })!.getTime();
-    const frozen = options.dailyTasks?.filter((task) => civilToday <= cutoff && task.date === today && task.examId === exam.id && task.kind === "study" && (!task.planningKey || task.planningKey === getExamPlanningKey(exam, capacity))) ?? [];
+    const started = !exam.studyStartDate || today >= exam.studyStartDate;
+    const frozen = options.dailyTasks?.filter((task) => started && civilToday <= cutoff && task.date === today && task.examId === exam.id && task.kind === "study" && (!task.planningKey || task.planningKey === getExamPlanningKey(exam, capacity))) ?? [];
     const frozenIds = new Set(frozen.flatMap((task) => task.cardIds)), fixedFresh = allFresh.filter((card) => frozenIds.has(card.cardId)), fresh = allFresh.filter((card) => !frozenIds.has(card.cardId));
     let eligible = ownKeys.flatMap((key, i) => key <= cutoff && minutes[i] > 0 ? [i] : []);
     const settingsByDeck = new Map(order.map((id) => [id, getExamSessionDeckSettings(decks, deckById.get(id)!, active, today)]));
@@ -178,7 +180,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     for (const card of planned.filter((entry) => !isNew(entry.study))) {
       const signature = JSON.stringify([card.study, settingsByDeck.get(card.deckId)]), group = knownGroups.get(signature);
       if (group) group.count++; else knownGroups.set(signature, { card, count: 1 });
-      if (Date.parse(card.study.dueAt) < ends[0]) record(ownDays[0], card, methodFor(card, settingsByDeck.get(card.deckId)!));
+      if (started && Date.parse(card.study.dueAt) < ends[0]) record(ownDays[0], card, methodFor(card, settingsByDeck.get(card.deckId)!));
     }
     for (const { card, count } of knownGroups.values()) { const projection = await simulate(snapshotState(card), settingsByDeck.get(card.deckId)!, 0); projection.contacts.forEach((value, i) => { baseline[i] += value * count; }); }
     const fixedGroups = new Map<string, { settings: DeckSettings; count: number }>();
@@ -230,8 +232,27 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       const topic = own.filter((card) => card.deckId === id);
       if (readingTopics.has(id) || exam.completedSummaryDeckIds?.includes(id) || !topic.some((card) => isNew(card.study))) continue;
       readingTopics.add(id);
-      const day = topic.some((card) => !isNew(card.study)) ? ownDays[0] : ownDays.find((entry) => entry.blocks.some((block) => block.deckId === id && block.method === "new"));
+      const day = topic.some((card) => !isNew(card.study)) ? (started ? ownDays[0] : ownDays.find((_, index) => minutes[index] > 0)) : ownDays.find((entry) => entry.blocks.some((block) => block.deckId === id && block.method === "new"));
       day?.summaries.push({ examId: exam.id, deckId: id });
+    }
+    let unplannedQuizzes = 0;
+    if (exam.quizChaptersPerTask) {
+      const quizPlanningKey = getExamQuizPlanningKey(exam, capacity);
+      const chapters = order.filter((id) => (cardsByDeck.get(id)?.length ?? 0) > 0);
+      for (let index = 0; index < chapters.length; index += exam.quizChaptersPerTask) {
+        signal?.throwIfAborted(); await pause();
+        const deckIds = chapters.slice(index, index + exam.quizChaptersPerTask);
+        if (deckIds.every((id) => exam.completedQuizDeckIds?.includes(id))) continue;
+        const id = getExamQuizTaskId(exam.id, deckIds);
+        const frozen = options.dailyTasks?.some((task) => task.id === id && task.date === today && (!task.planningKey || task.planningKey === quizPlanningKey));
+        const newCards = deckIds.flatMap((id) => cardsByDeck.get(id) ?? []).filter((card) => isNew(card.study));
+        const introductions = ownDays.flatMap((day) => day.blocks.filter((block) => block.method === "new" && deckIds.includes(block.deckId)).map((block) => ({ date: day.key, cardIds: block.cardIds })));
+        const introduced = new Set(introductions.flatMap((entry) => entry.cardIds));
+        if (!frozen && newCards.some((card) => !introduced.has(card.cardId))) { unplannedQuizzes++; continue; }
+        const after = frozen ? today : introductions.at(-1)?.date ?? today;
+        const day = ownDays.find((day, index) => day.key >= after && minutes[index] > 0);
+        if (day) (day.quizzes ??= []).push({ examId: exam.id, deckIds }); else unplannedQuizzes++;
+      }
     }
     // The concrete assignment, including rounding and differing learning profiles, is the load later exams see.
     const projectedContacts = Float64Array.from(baseline);
@@ -242,10 +263,11 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       const column = columnCache.get(cacheKey) ?? await simulate(createReviewState({ state: "new", reps: 0, dueAt: new Date(dayStarts[start]).toISOString() }), settings, start);
       column.contacts.forEach((value, i) => { projectedContacts[i] += value * count; });
     }
-    summaries.push({ examId: exam.id, usableDays: eligible.length + (fixedFresh.length && !eligible.includes(0) ? 1 : 0), totalCards: own.length, remainingNewCount: own.filter((card) => isNew(card.study)).length, unscheduledNewCount: fresh.length - cursor, availableMinutes: minutes.reduce((sum, value) => sum + value, 0), current: readiness(own), issues: [
+    summaries.push({ examId: exam.id, studyDays: minutes.filter((value) => value > 0).length, totalCards: own.length, remainingNewCount: own.filter((card) => isNew(card.study)).length, unscheduledNewCount: fresh.length - cursor, availableMinutes: minutes.reduce((sum, value) => sum + value, 0), current: readiness(own), issues: [
       ...(exam.deckIds.some((id) => !deckById.has(id)) ? ["Ausgewählte Stapel wurden gelöscht."] : []), ...(!own.length ? ["Keine lernbaren Karten ausgewählt."] : []),
       ...(fresh.length && !eligible.length ? [cutoff < civilToday ? `${fresh.length} neue Karten sind nach dem Einführungsstichtag noch offen.` : "Wähle mindestens einen Lerntag vor dem Einführungsstichtag."] : []),
       ...(cursor < fresh.length && eligible.length ? [`${fresh.length - cursor} neue Karten sind wegen ihrer gewünschten Themenstarttage noch offen.`] : []),
+      ...(unplannedQuizzes ? [`${unplannedQuizzes} ${unplannedQuizzes === 1 ? "Quizaufgabe ist" : "Quizaufgaben sind"} noch nicht eingeplant.`] : []),
       ...overloadIssue(ownDays.filter((day, i) => isExamDayOverloaded(day.blocks.filter((block) => block.method === "new" && block.examIds.includes(exam.id)).reduce((sum, block) => sum + block.cardIds.length, 0), minutes[i])).length),
     ], decks: order.map((id) => { const selected = cardsByDeck.get(id) ?? []; return { deckId: id, name: deckById.get(id)!.name, total: selected.length, known: selected.filter((card) => !isNew(card.study)).length }; }) });
     projectedContacts.forEach((value, i) => { plannedContacts[i] += value; });

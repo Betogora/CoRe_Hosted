@@ -141,6 +141,7 @@ export interface ExamPlan {
   /** Subdecks deselected below a selected deck; later subdecks of a selected deck join automatically. */
   excludedDeckIds?: string[];
   examDate: string;
+  studyStartDate?: string;
   desiredRetention: number;
   variants: boolean;
   bufferDays: number;
@@ -148,6 +149,9 @@ export interface ExamPlan {
   topicOrder?: string[];
   readSummaryBeforeTopics?: boolean;
   completedSummaryDeckIds?: string[];
+  /** Manual quiz after this many chapters; 1 means after each chapter. */
+  quizChaptersPerTask?: number;
+  completedQuizDeckIds?: string[];
   /** Earliest introduction of a topic; repetitions continue to follow the scheduler. */
   topicDates?: Array<{ deckId: string; date: string }>;
   createdAt: string;
@@ -164,7 +168,7 @@ export interface ExamDailyTask {
   id: string;
   date: string;
   examId: string;
-  kind: "study" | "summary";
+  kind: "study" | "summary" | "quiz";
   deckIds: string[];
   cardIds: string[];
   capturedAt: string;

@@ -414,7 +414,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   const [view, setView] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === kind ? kind : "");
   const [offset, setOffset] = useState(0);
   const [message, setMessage] = useState("");
-  const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
+  const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: kind === "exams" ? "2026-10-14T12:00:00Z" : "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
   const conflict = { id: "catalog-conflict", status: "open", entityTable: "cards", entityLabel: "Karte", title: "Hauptstadt von Portugal", localPresent: true, remotePresent: true, remoteRevision: 2, createdAt: selection.now, allowedActions: ["merge-fields"], fields: [{ key: "front", label: "Frage", localText: "Hauptstadt von Portugal?", remoteText: "Wie heißt Portugals Hauptstadt?" }, { key: "back", label: "Antwort", localText: "Lissabon", remoteText: "Lissabon (Lisboa)" }] };
   const conflicts = React.useRef([conflict]);
   const listConflicts = React.useCallback(async () => conflicts.current, []);
@@ -452,7 +452,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   const [demoPlanning, setDemoPlanning] = React.useState<ExamPlanningSettings | null>(null);
   const examWorkspace = React.useMemo(() => {
     const today = selection.now.slice(0, 10);
-    const exam = { ...createExamPlan(today, examDemoDecks.map((candidate) => candidate.id)), id: "exam-demo", name: "Anatomie", readSummaryBeforeTopics: true, examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
+    const exam = { ...createExamPlan(today, examDemoDecks.map((candidate) => candidate.id)), id: "exam-demo", name: "Anatomie", readSummaryBeforeTopics: true, quizChaptersPerTask: 1, examDate: "2026-10-20", createdAt: "2026-09-29T08:00:00.000Z" };
     const initialPlanning = upsertExamPlan(upsertExamPlan(normalizeExamPlanningSettings(undefined), exam), { ...exam, id: "exam-demo-second", name: "Physiologie", examDate: "2026-10-27" });
     initialPlanning.capacity.timeBlocks = [{ id: "catalog-study-block", date: today, start: 540, end: 600, examId: exam.id }, { id: "catalog-open-block", date: today, start: 780, end: 810, examId: null }];
     initialPlanning.dailyTasks = examDemoDecks.slice(0, 4).map((candidate, index) => ({ id: `topic:${exam.id}:${candidate.id}`, date: today, examId: exam.id, kind: "study", deckIds: [candidate.id], cardIds: candidate.cards.map((card) => card.id), capturedAt: selection.now, completed: index === 0 ? "manual" : null }));
@@ -469,7 +469,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   views.push(
     ["dashboard", "DashboardScreen · Nachrückende Widgets, ruhige Übersicht und aufklappbare Werkzeuge", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
-    ["exams", "ExamPlanningScreen · Fächer neben Heute · kompakte Woche · Lernzeit mit Löschkreuz und Ziehlasche · aufklappbare Prüfungskarten", "Prüfungen"],
+    ["exams", "ExamPlanningScreen · lokaler Plus-Einstieg bei leerer Prüfungsliste und durchgehendes Plus-Feld Weitere Prüfung planen unter bestehenden Prüfungen · einzeln umschaltbare Prüfungsfarben im Kalenderkopf statt globalem Dropdown, ausgefüllt oder hell umrandet · gemeinsame Monatskachel je Fach für Karten, Lesen und Quiz, auch ohne neue Karten · Kalender ab aktueller Woche mit Rücknavigation · fünf Schritte mit Rücksprüngen und genau einem Schritt vorwärts über die Leiste, Lernstart mit Vorgabe heute und sichtbarem Prüfungsziel auf der ersten Seite und Piktogrammen für Lernmethoden und manueller Quizgruppierung · durchsuchbare Stapelzweige mit Plusauswahl ohne Teilmarkierung · alternative Zeitangaben mit Durchschnitt oder direkt editierbaren Wochentagszeiten, freie Tage mit 0 Minuten · Vorschau mit Lerntagen, auf Kalenderhöhe begrenzter ausklappbarer Themenfolge, dauerhaftem Prüfungstermin und erreichbarer Planbestätigung · nichtmodale Tagesdetails", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
     ["import", "ApkgImportPanel · Dateiauswahl", "Anki-Import"],

@@ -1091,6 +1091,9 @@ video {
 .pointer-events-auto {
   pointer-events: auto;
 }
+.\!visible {
+  visibility: visible !important;
+}
 .visible {
   visibility: visible;
 }
@@ -1161,6 +1164,9 @@ video {
 .left-0 {
   left: 0px;
 }
+.left-0\.5 {
+  left: 0.125rem;
+}
 .left-1\/2 {
   left: 50%;
 }
@@ -1199,6 +1205,9 @@ video {
 }
 .top-0 {
   top: 0px;
+}
+.top-0\.5 {
+  top: 0.125rem;
 }
 .top-1\/2 {
   top: 50%;
@@ -1286,6 +1295,9 @@ video {
 }
 .row-start-2 {
   grid-row-start: 2;
+}
+.m-2 {
+  margin: 0.5rem;
 }
 .mx-1 {
   margin-left: 0.25rem;
@@ -1748,6 +1760,9 @@ video {
 .w-\[min\(42rem\2c calc\(100dvw-2rem\)\)\] {
   width: min(42rem, calc(100dvw - 2rem));
 }
+.w-\[var\(--core-control-height\)\] {
+  width: var(--core-control-height);
+}
 .w-\[var\(--radix-popover-trigger-width\)\] {
   width: var(--radix-popover-trigger-width);
 }
@@ -2003,6 +2018,11 @@ video {
 }
 .list-none {
   list-style-type: none;
+}
+.appearance-none {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
 }
 .auto-rows-max {
   grid-auto-rows: max-content;
@@ -2542,6 +2562,9 @@ video {
 .pb-32 {
   padding-bottom: 8rem;
 }
+.pb-4 {
+  padding-bottom: 1rem;
+}
 .pb-\[max\(\.75rem\2c env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: max(.75rem, env(safe-area-inset-bottom));
 }
@@ -2732,9 +2755,6 @@ video {
 }
 .opacity-40 {
   opacity: 0.4;
-}
-.opacity-50 {
-  opacity: 0.5;
 }
 .opacity-60 {
   opacity: 0.6;
@@ -4734,6 +4754,21 @@ summary {
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
 
+.exam-plan-actions { bottom: calc(env(safe-area-inset-bottom) + 6rem); }
+@media (min-width: 1280px) { .exam-plan-actions { bottom: 0; } }
+.exam-calendar-layout { container-type: inline-size; }
+.exam-topic-panel { container-type: inline-size; container-name: exam-topics; }
+@container exam-topics (min-width: 40rem) {
+  .exam-topic-row { grid-template-columns: minmax(0, 1fr) 12rem auto; }
+}
+.exam-topic-order[open] > summary > svg { transform: rotate(180deg); }
+.exam-today-layout { container-type: inline-size; }
+@container (min-width: 48rem) {
+  .exam-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 56rem) {
+  .exam-calendar-body[data-show-day="true"] { grid-template-columns: minmax(0, 1fr) 22rem; }
+}
 .exam-month-days { --exam-month-day-height: 112px; }
 .exam-month-days > button { min-width: 0; }
 .exam-month-entry { min-height: 20px; overflow-wrap: anywhere; font-size: var(--core-type-caption); line-height: 16px; }
@@ -4821,6 +4856,12 @@ summary {
 }
 .last\:pb-0:last-child {
   padding-bottom: 0px;
+}
+.checked\:border-core-action:checked {
+  border-color: var(--core-action-primary);
+}
+.checked\:bg-core-action:checked {
+  background-color: var(--core-action-primary);
 }
 .hover\:-translate-y-0\.5:hover {
   --tw-translate-y: -0.125rem;
@@ -5065,10 +5106,6 @@ summary {
     grid-column: span 1 / span 1;
   }
 
-  .sm\:col-span-3 {
-    grid-column: span 3 / span 3;
-  }
-
   .sm\:col-start-2 {
     grid-column-start: 2;
   }
@@ -5093,6 +5130,10 @@ summary {
     display: flex;
   }
 
+  .sm\:hidden {
+    display: none;
+  }
+
   .sm\:h-\[21rem\] {
     height: 21rem;
   }
@@ -5113,12 +5154,12 @@ summary {
     min-height: calc(100vh - 4rem);
   }
 
-  .sm\:w-52 {
-    width: 13rem;
+  .sm\:w-24 {
+    width: 6rem;
   }
 
-  .sm\:w-64 {
-    width: 16rem;
+  .sm\:w-52 {
+    width: 13rem;
   }
 
   .sm\:w-\[5\.75rem\] {
@@ -5165,8 +5206,20 @@ summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sm\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .sm\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-7 {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
   }
 
   .sm\:grid-cols-\[2\.5rem_1fr\] {
@@ -5187,10 +5240,6 @@ summary {
 
   .sm\:grid-cols-\[minmax\(0\2c 18rem\)_auto\] {
     grid-template-columns: minmax(0,18rem) auto;
-  }
-
-  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
-    grid-template-columns: minmax(0,1fr) 12rem auto;
   }
 
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
@@ -5257,8 +5306,20 @@ summary {
     padding: 2.5rem;
   }
 
+  .sm\:p-2 {
+    padding: 0.5rem;
+  }
+
+  .sm\:p-3 {
+    padding: 0.75rem;
+  }
+
   .sm\:p-4 {
     padding: 1rem;
+  }
+
+  .sm\:p-5 {
+    padding: 1.25rem;
   }
 
   .sm\:p-6 {
@@ -5271,6 +5332,11 @@ summary {
 
   .sm\:p-9 {
     padding: 2.25rem;
+  }
+
+  .sm\:px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 
   .sm\:px-3 {
@@ -5313,10 +5379,6 @@ summary {
 }
 @media (min-width: 768px) {
 
-  .md\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .md\:flex {
     display: flex;
   }
@@ -5327,10 +5389,6 @@ summary {
 
   .md\:w-auto {
     width: auto;
-  }
-
-  .md\:max-w-md {
-    max-width: 28rem;
   }
 
   .md\:max-w-xl {
@@ -5405,10 +5463,6 @@ summary {
 }
 @media (min-width: 1024px) {
 
-  .lg\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .lg\:w-1\/2 {
     width: 50%;
   }
@@ -5449,6 +5503,10 @@ summary {
     grid-template-columns: minmax(220px,0.8fr) 1fr;
   }
 
+  .lg\:flex-row {
+    flex-direction: row;
+  }
+
   .lg\:items-start {
     align-items: flex-start;
   }
@@ -5464,6 +5522,11 @@ summary {
   .lg\:gap-x-8 {
     -moz-column-gap: 2rem;
          column-gap: 2rem;
+  }
+
+  .lg\:px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
   .lg\:px-6 {
@@ -5487,6 +5550,10 @@ summary {
 
   .xl\:left-\[calc\(50dvw\+7\.5rem\)\] {
     left: calc(50dvw + 7.5rem);
+  }
+
+  .xl\:top-24 {
+    top: 6rem;
   }
 
   .xl\:top-6 {
@@ -5553,6 +5620,10 @@ summary {
     grid-template-columns: minmax(0,0.9fr) minmax(20rem,1.1fr);
   }
 
+  .xl\:grid-cols-\[minmax\(0\2c 1fr\)_17rem\] {
+    grid-template-columns: minmax(0,1fr) 17rem;
+  }
+
   .xl\:grid-cols-\[minmax\(19rem\2c 0\.65fr\)_minmax\(38rem\2c 1\.35fr\)\] {
     grid-template-columns: minmax(19rem,0.65fr) minmax(38rem,1.35fr);
   }
@@ -5605,6 +5676,12 @@ summary {
 .\[\&\>svg\]\:size-\[15px\]>svg {
   width: 15px;
   height: 15px;
+}
+.\[\&_span\]\:min-w-0 span {
+  min-width: 0px;
+}
+.\[\&_span\]\:break-words span {
+  overflow-wrap: break-word;
 }
 .\[\&_svg\]\:size-\[18px\] svg {
   width: 18px;

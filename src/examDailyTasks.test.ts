@@ -15,8 +15,47 @@ const card: CardStudySnapshot = { cardId: made.cards[0].id, deckId: "heart", not
 const decks = [createCoreDeck({ id: "root", name: "Anatomie" }), ...["heart", "lung", "kidney", "brain"].map((id) => createCoreDeck({ id, name: id, parentDeckId: "root" }))];
 const exam = { ...createExamPlan(date, decks.map((deck) => deck.id)), id: "exam", name: "Anatomie", createdAt: "2026-10-17T08:00:00.000Z", examDate: "2026-10-30", studyTime: { dailyMinutes: 120, weekdays: Array(7).fill(true), dateOverrides: [] } };
 const settings: ExamPlanningSettings = { version: 3, exams: [exam], capacity: createStudyTimeCapacity() };
-const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 60, newCardIds: [card.cardId], reviewCardIds: [], summaries: [], blocks: [{ id: "new", date, deckId: "heart", examIds: [exam.id], method: "new", expectedItems: 1, cardIds: [card.cardId] }] }], exams: [{ examId: exam.id, decks: decks.slice(1).map((deck) => ({ deckId: deck.id, name: deck.name, known: 0, total: 1,  })), usableDays: 10, totalCards: 4, remainingNewCount: 4, unscheduledNewCount: 0, availableMinutes: 60, current: { coverage: 0, consolidated: 0,  }, issues: [] }] };
+const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 60, newCardIds: [card.cardId], reviewCardIds: [], summaries: [], blocks: [{ id: "new", date, deckId: "heart", examIds: [exam.id], method: "new", expectedItems: 1, cardIds: [card.cardId] }] }], exams: [{ examId: exam.id, decks: decks.slice(1).map((deck) => ({ deckId: deck.id, name: deck.name, known: 0, total: 1,  })), studyDays: 1, totalCards: 4, remainingNewCount: 4, unscheduledNewCount: 0, availableMinutes: 60, current: { coverage: 0, consolidated: 0,  }, issues: [] }] };
 const reconcile = (saved = settings, cards = [card], plan = forecast, at = now) => reconcileExamDailyTasks(saved, decks, plan, cards, at, "Europe/Berlin", 4);
+
+test("gebündelte Quizze sind manuelle Aufgaben ohne Sitzungskarten und behalten die Erledigung", () => {
+  const enabled = { ...settings, exams: [{ ...exam, quizChaptersPerTask: 2 }] };
+  const projection = { ...forecast, days: [{ ...forecast.days[0], quizzes: [{ examId: exam.id, deckIds: ["heart", "lung"] }] }] };
+  const tasks = reconcile(enabled, [card], projection), quiz = tasks.find((task) => task.kind === "quiz")!;
+  assert.deepEqual(quiz.deckIds, ["heart", "lung"]);
+  assert.deepEqual(quiz.cardIds, []);
+  assert.equal(quiz.completed, null);
+  assert.deepEqual(getExamSessionTargetIds(tasks, projection.days[0], date, quiz.id), []);
+  assert.deepEqual(getExamSessionTargetIds(tasks, projection.days[0], date, null), [card.cardId]);
+  const done = withExamDailyTasks(enabled, setExamDailyTaskChecked(tasks, quiz.id, true));
+  assert.deepEqual(done.exams[0].completedQuizDeckIds, ["heart", "lung"]);
+  assert.deepEqual(validateExamPlanningSettings(done), done);
+  const unchecked = withExamDailyTasks(done, setExamDailyTaskChecked(done.dailyTasks!, quiz.id, false));
+  assert.deepEqual(unchecked.exams[0].completedQuizDeckIds, []);
+  assert.equal(reconcile({ ...done, exams: [{ ...done.exams[0], quizChaptersPerTask: undefined }] }, [card], { ...projection, days: [{ ...projection.days[0], quizzes: [] }] }).some((task) => task.kind === "quiz"), false);
+});
+
+test("neu gruppierte Quizze mit gleichem Anfangskapitel erhalten eine eigene Aufgabe", () => {
+  const enabled = { ...settings, exams: [{ ...exam, quizChaptersPerTask: 2 }] };
+  const projection = (deckIds: string[]) => ({ ...forecast, days: [{ ...forecast.days[0], quizzes: [{ examId: exam.id, deckIds }] }] });
+  const tasks = reconcile(enabled, [card], projection(["heart", "lung"]));
+  const previous = tasks.find((task) => task.kind === "quiz")!;
+  const done = withExamDailyTasks(enabled, setExamDailyTaskChecked(tasks, previous.id, true));
+  const regrouped = upsertExamPlan(done, { ...done.exams[0], topicOrder: ["heart", "kidney", "lung", "brain"] });
+  const after = reconcile(regrouped, [card], projection(["heart", "kidney"]));
+  const quizzes = after.filter((task) => task.kind === "quiz");
+  assert.equal(quizzes.length, 2);
+  assert.equal(quizzes.find((task) => task.id === previous.id)?.completed, "manual");
+  assert.deepEqual(quizzes.find((task) => task.id !== previous.id)?.deckIds, ["heart", "kidney"]);
+  assert.equal(quizzes.find((task) => task.id !== previous.id)?.completed, null);
+  assert.deepEqual(validateExamPlanningSettings({ ...regrouped, dailyTasks: after }).dailyTasks, after);
+  const saved = withExamDailyTasks(regrouped, after);
+  assert.deepEqual(saved.exams[0].completedQuizDeckIds, ["heart", "lung"]);
+  const next = quizzes.find((task) => task.id !== previous.id)!;
+  const checked = withExamDailyTasks(saved, setExamDailyTaskChecked(after, next.id, true));
+  assert.deepEqual(new Set(checked.exams[0].completedQuizDeckIds), new Set(["heart", "lung", "kidney"]));
+  assert.deepEqual(withExamDailyTasks(checked, setExamDailyTaskChecked(checked.dailyTasks!, next.id, false)).exams[0].completedQuizDeckIds, ["heart", "lung"]);
+});
 
 test("Lesehäkchen bleiben je Thema dauerhaft, und Abgleich verändert keine gespeicherten Objekte", () => {
   const enabled = { ...settings, exams: [{ ...exam, readSummaryBeforeTopics: true }] };
@@ -106,4 +145,11 @@ test("der Abgleich kürzt Zielkarten auf die zulässige Zahl an Kartenverweisen"
   const plan = { ...forecast, days: [{ ...forecast.days[0], newCardIds: many, blocks: [{ ...forecast.days[0].blocks[0], cardIds: many, expectedItems: many.length }] }] };
   const tasks = reconcile(settings, [card], plan);
   assert.equal(tasks.reduce((sum, task) => sum + task.cardIds.length, 0), EXAM_PLANNING_LIMITS.dailyCardRefs);
+});
+
+
+test("ein zukünftiger Lernstart hält auch alte eingefrorene Aufgaben aus der heutigen Liste", () => {
+  const future = { ...settings, exams: [{ ...exam, studyStartDate: "2026-10-22", readSummaryBeforeTopics: true, quizChaptersPerTask: 1 }], dailyTasks: [{ id: "topic:exam:heart", date, examId: exam.id, kind: "study" as const, deckIds: ["heart"], cardIds: [card.cardId], capturedAt: now, completed: null }] };
+  assert.deepEqual(reconcile(future), []);
+  assert.equal(reconcile({ ...future, exams: [{ ...future.exams[0], studyStartDate: date }] }).length, 1);
 });

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const viewports = [[320, 720, 1], [360, 800, 1], [390, 844, 1], [430, 932, 1], [639, 900, 1], [640, 900, 1], [1280, 720, 1], [1440, 900, 1], [720, 450, 2]];
+const viewports = [[320, 720, 1], [360, 800, 1], [390, 844, 1], [430, 932, 1], [639, 900, 1], [640, 900, 1], [1279, 900, 1], [1280, 720, 1], [1280, 900, 1], [1440, 900, 1], [720, 450, 2]];
 
 for (const [width, height, scale] of viewports) test.describe(`${width}×${height} · ${scale === 2 ? "200%-Layout" : "Standard"}`, () => {
   test.use({ viewport: { width, height }, deviceScaleFactor: scale });
@@ -20,6 +20,12 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     await product.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
     const editor = product.getByTestId("exam-plan-editor");
     await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Klausur mit sehr langem Namen: Herz und Lunge");
+    const goals = editor.getByRole("group", { name: "Was ist dein Ziel für die Prüfung?", exact: true });
+    await expect(goals.getByRole("radio")).toHaveCount(4);
+    await expect(goals.getByRole("radio", { name: "Gute Note", exact: true })).toBeChecked();
+    await goals.getByRole("radio", { name: "Sehr gute Note", exact: true }).check();
+    await expect(goals.getByRole("radio", { name: "Sehr gute Note", exact: true })).toHaveValue("0.95");
+    await product.screenshot({ path: info.outputPath("01b-pruefungsziel.png") });
     await editor.getByRole("button", { name: "Weiter zum Lernstoff", exact: true }).click();
     await editor.getByRole("checkbox").first().check();
     await expect(editor.getByRole("spinbutton", { name: "Puffer vor der Prüfung · Tage", exact: true })).toHaveValue("4");
@@ -35,11 +41,17 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
       expect(changedOrder[0]).toBe(before[1]);
     }
     await product.screenshot({ path: info.outputPath("03b-themenfolge.png") });
+    await editor.getByRole("button", { name: "Weiter zu den Lernmethoden", exact: true }).click();
+    await editor.getByRole("checkbox", { name: "Vor jedem Kapitel Zusammenfassung lesen", exact: true }).check();
+    await editor.getByRole("checkbox", { name: "Wissen mit Quizzen überprüfen", exact: true }).check();
+    await editor.getByRole("radio", { name: "Mehrere Kapitel bündeln", exact: true }).check();
+    await editor.getByRole("spinbutton", { name: "Kapitel pro Quiz", exact: true }).fill("2");
     await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
+    await expect(editor.getByRole("checkbox", { name: "Vor jedem Kapitel Zusammenfassung lesen", exact: true })).toHaveCount(0);
+    await expect(editor.getByRole("combobox", { name: "Abrufziel für Wiederholungen", exact: true })).toHaveCount(0);
     await editor.getByRole("spinbutton", { name: "Lernzeit pro Lerntag · Min.", exact: true }).fill("15");
-    await editor.getByRole("checkbox", { name: "Vor neuen Themen Zusammenfassung lesen", exact: true }).check();
-    await editor.getByText("Konkrete Lernblöcke im Kalender setzen", { exact: true }).click();
-    await expect(editor.getByTestId("exam-calendar")).toBeVisible();
+    await expect(editor.getByTestId("exam-calendar")).toHaveCount(0);
+    await expect(editor.getByText("Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.", { exact: true })).toBeVisible();
     await product.screenshot({ path: info.outputPath("04-lernzeit.png") });
     await editor.getByRole("button", { name: "Lernplan ansehen", exact: true }).click();
     await expect(editor.getByTestId("exam-plan-preview").getByText("Noch neu", { exact: true })).toBeVisible();
@@ -59,4 +71,265 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
     }
   });
 }
+});
+
+test("der Kalender startet mit der aktuellen Woche und lässt frühere Wochen gezielt öffnen", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  const calendar = page.getByTestId("exam-month-calendar"), cells = calendar.locator("[data-date]");
+  const today = await calendar.locator('[aria-current="date"]').getAttribute("data-date");
+  const monday = new Date(`${today}T12:00:00Z`);
+  monday.setUTCDate(monday.getUTCDate() - (monday.getUTCDay() + 6) % 7);
+  const first = monday.toISOString().slice(0, 10), title = await calendar.getByRole("heading").innerText();
+  await expect(cells.first()).toHaveAttribute("data-date", first);
+  expect(await cells.count()).toBeGreaterThanOrEqual(28);
+  await calendar.getByRole("button", { name: "Frühere Wochen", exact: true }).click();
+  expect((await cells.first().getAttribute("data-date"))! < first).toBe(true);
+  await expect(calendar.getByRole("heading")).toHaveText(title);
+  await calendar.getByRole("button", { name: "Vorheriger Monat", exact: true }).click();
+  await expect(calendar.getByRole("heading")).not.toHaveText(title);
+  await calendar.getByRole("button", { name: "Nächster Monat", exact: true }).click();
+  await expect(calendar.getByRole("heading")).toHaveText(title);
+  await calendar.getByRole("button", { name: "Heute", exact: true }).click();
+  await expect(cells.first()).toHaveAttribute("data-date", first);
+  await calendar.getByRole("button", { name: "Nächster Monat", exact: true }).click();
+  await expect(calendar.getByRole("heading")).not.toHaveText(title);
+  await calendar.getByRole("button", { name: "Heute", exact: true }).click();
+  await expect(cells.first()).toHaveAttribute("data-date", first);
+});
+
+test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speichern erhalten", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  const product = page.locator(".catalog-product-preview"), editor = product.getByTestId("exam-plan-editor");
+  await product.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
+  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Wochentagsplan");
+  await editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true }).check();
+  await editor.getByRole("button", { name: "Weiter zum Lernstoff", exact: true }).click();
+  const selection = editor.getByTestId("exam-deck-selection");
+  await expect(selection.getByRole("checkbox")).toHaveCount(1);
+  await selection.getByRole("searchbox", { name: "Stapel durchsuchen" }).fill("Herz");
+  await selection.getByRole("checkbox", { name: "Herz und Kreislauf", exact: true }).check();
+  await expect(selection.getByRole("checkbox").first()).not.toBeChecked();
+  expect(await selection.getByRole("checkbox").first().evaluate((input: HTMLInputElement) => input.indeterminate)).toBe(false);
+  await selection.getByRole("button", { name: "Stapelsuche leeren" }).click();
+  await selection.getByRole("checkbox").first().check();
+  await selection.getByRole("searchbox", { name: "Stapel durchsuchen" }).fill("Herz");
+  await selection.getByRole("checkbox", { name: "Herz und Kreislauf", exact: true }).uncheck();
+  await selection.getByRole("button", { name: "Stapelsuche leeren" }).click();
+  await expect(selection.getByRole("checkbox")).toHaveCount(1);
+  await expect(selection.getByRole("checkbox").first()).toBeChecked();
+  expect(await selection.getByRole("checkbox").first().evaluate((input: HTMLInputElement) => input.indeterminate)).toBe(false);
+  await selection.getByRole("button", { name: /Unterstapel ausklappen$/ }).click();
+  await expect(selection.getByRole("checkbox", { name: "Herz und Kreislauf", exact: true })).not.toBeChecked();
+  await expect(editor.getByRole("list", { name: "Themenreihenfolge", exact: true })).toBeHidden();
+  await editor.getByRole("button", { name: "Weiter zu den Lernmethoden", exact: true }).click();
+  await editor.getByRole("checkbox", { name: "Vor jedem Kapitel Zusammenfassung lesen", exact: true }).check();
+  await editor.getByRole("checkbox", { name: "Wissen mit Quizzen überprüfen", exact: true }).check();
+  await editor.getByRole("radio", { name: "Mehrere Kapitel bündeln", exact: true }).check();
+  await editor.getByRole("spinbutton", { name: "Kapitel pro Quiz", exact: true }).fill("2");
+  await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
+  await editor.getByRole("button", { name: "Lernzeit je Wochentag festlegen", exact: true }).click();
+  await editor.getByRole("spinbutton", { name: "Montag · Min.", exact: true }).fill("30");
+  await editor.getByRole("spinbutton", { name: "Dienstag · Min.", exact: true }).fill("180");
+  await expect(editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true })).toBeEnabled();
+  await expect(editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true })).toHaveValue("0");
+  await expect(editor.getByRole("spinbutton", { name: "Sonntag · Min.", exact: true })).toBeEnabled();
+  await expect(editor.getByRole("spinbutton", { name: "Sonntag · Min.", exact: true })).toHaveValue("0");
+  await expect(editor.getByRole("group", { name: "Lerntage", exact: true })).toHaveCount(0);
+  await editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true }).fill("45");
+  await expect(editor.getByTestId("exam-setup-context")).toContainText("45 Min.");
+  await editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true }).fill("0");
+  await expect(editor.getByTestId("exam-setup-context")).toContainText("30 Min.");
+  await editor.getByRole("button", { name: "Lernplan ansehen", exact: true }).click();
+  await expect(editor.getByTestId("exam-plan-preview").getByText("Lerntage", { exact: true })).toBeVisible();
+  await expect(editor.getByTestId("exam-plan-preview").getByText("Einführungstage", { exact: true })).toHaveCount(0);
+  await expect(editor.getByTestId("exam-setup-context")).toHaveCount(0);
+  await expect(editor.getByRole("complementary", { name: "Themenvorschau" })).toBeVisible();
+  await expect(editor.getByTestId("exam-topic-exam-date")).toContainText("Prüfung");
+  await expect(editor.getByTestId("exam-plan-actions")).toBeInViewport({ ratio: 1 });
+  await expect(editor.getByTestId("exam-topic-exam-date")).toBeInViewport({ ratio: 1 });
+  await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
+  await product.getByRole("button", { name: "Wochentagsplan: Details öffnen", exact: true }).click();
+  const card = product.getByTestId("exam-card-details");
+  await card.getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await expect(editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true })).toBeChecked();
+  await expect(editor.getByRole("radio", { name: "Bestmöglich abschneiden", exact: true })).toHaveValue("0.97");
+  await editor.getByText("Lernmethoden", { exact: true }).click();
+  await expect(editor.getByRole("checkbox", { name: "Vor jedem Kapitel Zusammenfassung lesen", exact: true })).toBeChecked();
+  await expect(editor.getByRole("spinbutton", { name: "Kapitel pro Quiz", exact: true })).toHaveValue("2");
+  await editor.getByText("Lernzeit und weitere Einstellungen", { exact: true }).click();
+  await expect(editor.getByRole("spinbutton", { name: "Montag · Min.", exact: true })).toHaveValue("30");
+  await expect(editor.getByRole("spinbutton", { name: "Dienstag · Min.", exact: true })).toHaveValue("180");
+  await expect(editor.getByRole("spinbutton", { name: "Samstag · Min.", exact: true })).toHaveValue("0");
+  await expect(editor.getByRole("spinbutton", { name: "Sonntag · Min.", exact: true })).toHaveValue("0");
+  await editor.getByText(/^Lernstoff ·/).click();
+  await selection.getByRole("button", { name: /Unterstapel ausklappen$/ }).click();
+  await expect(selection.getByRole("checkbox", { name: "Herz und Kreislauf", exact: true })).not.toBeChecked();
+});
+
+
+test("Lernzeit-Eingabewege übernehmen Defaults, aktivieren Tage direkt und erhalten die genaue Planung", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  const product = page.locator(".catalog-product-preview"), editor = product.getByTestId("exam-plan-editor");
+  await product.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
+  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Zeitplan");
+  await editor.getByRole("button", { name: "Weiter zum Lernstoff", exact: true }).click();
+  await editor.getByRole("checkbox").first().check();
+  await editor.getByRole("button", { name: "Weiter zu den Lernmethoden", exact: true }).click();
+  await editor.getByRole("button", { name: "Weiter zur Lernzeit", exact: true }).click();
+  const average = editor.getByRole("button", { name: "Lerntage und durchschnittliche Lernzeit", exact: true });
+  const exact = editor.getByRole("button", { name: "Lernzeit je Wochentag festlegen", exact: true });
+  const minutes = (day: string) => editor.getByRole("spinbutton", { name: `${day} · Min.`, exact: true });
+  await expect(average).toHaveAttribute("aria-expanded", "true");
+  await expect(exact).toHaveAttribute("aria-expanded", "false");
+  await editor.getByRole("checkbox", { name: "Donnerstag", exact: true }).uncheck();
+  await editor.getByRole("checkbox", { name: "Freitag", exact: true }).uncheck();
+  await exact.click();
+  await expect(average).toHaveAttribute("aria-expanded", "false");
+  for (const day of ["Montag", "Dienstag", "Mittwoch"]) await expect(minutes(day)).toHaveValue("120");
+  for (const day of ["Donnerstag", "Freitag", "Samstag", "Sonntag"]) {
+    await expect(minutes(day)).toHaveValue("0");
+    await expect(minutes(day)).toBeEnabled();
+  }
+  await minutes("Montag").fill("0");
+  await minutes("Samstag").fill("45");
+  await average.click();
+  await expect(editor.getByRole("spinbutton", { name: "Lernzeit pro Lerntag · Min.", exact: true })).toHaveValue("95");
+  await expect(editor.getByRole("checkbox", { name: "Montag", exact: true })).not.toBeChecked();
+  await expect(editor.getByRole("checkbox", { name: "Samstag", exact: true })).toBeChecked();
+  await exact.click();
+  await expect(minutes("Samstag")).toHaveValue("95");
+  await minutes("Samstag").fill("45");
+  await editor.getByRole("button", { name: "Lernplan ansehen", exact: true }).click();
+  await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
+  await product.getByRole("button", { name: "Zeitplan: Details öffnen", exact: true }).click();
+  await product.getByTestId("exam-card-details").getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await editor.getByText("Lernzeit und weitere Einstellungen", { exact: true }).click();
+  await expect(exact).toHaveAttribute("aria-expanded", "true");
+  await expect(minutes("Montag")).toHaveValue("0");
+  await expect(minutes("Dienstag")).toHaveValue("95");
+  await expect(minutes("Samstag")).toHaveValue("45");
+  await expect(editor.getByTestId("exam-calendar")).toHaveCount(0);
+});
+
+
+test("die Schrittleiste erlaubt genau einen gültigen Schritt vorwärts und beliebig zurück", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  await page.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
+  const editor = page.getByTestId("exam-plan-editor"), steps = editor.getByRole("list", { name: "Schritte der Prüfungsplanung", exact: true });
+  const step = (name: string) => steps.getByRole("button", { name, exact: true });
+  await expect(step("2. Lernstoff")).toBeDisabled();
+  await expect(step("3. Lernmethoden")).toBeDisabled();
+  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Navigationstest");
+  await expect(step("2. Lernstoff")).toBeEnabled();
+  await expect(step("3. Lernmethoden")).toBeDisabled();
+  await step("2. Lernstoff").click();
+  await expect(step("2. Lernstoff")).toHaveAttribute("aria-current", "step");
+  await expect(step("3. Lernmethoden")).toBeDisabled();
+  await editor.getByRole("checkbox").first().check();
+  await expect(step("3. Lernmethoden")).toBeEnabled();
+  await expect(step("4. Lernzeit")).toBeDisabled();
+  await step("3. Lernmethoden").click();
+  await expect(step("5. Dein Plan")).toBeDisabled();
+  await step("4. Lernzeit").focus();
+  await page.keyboard.press("Enter");
+  await expect(step("4. Lernzeit")).toHaveAttribute("aria-current", "step");
+  await step("5. Dein Plan").click();
+  await expect(step("5. Dein Plan")).toHaveAttribute("aria-current", "step");
+  await step("1. Prüfung").click();
+  await expect(editor.getByRole("textbox", { name: "Name", exact: true })).toHaveValue("Navigationstest");
+  await expect(step("2. Lernstoff")).toBeEnabled();
+  await expect(step("3. Lernmethoden")).toBeDisabled();
+  await expect(step("5. Dein Plan")).toBeDisabled();
+});
+
+
+test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erhalten", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  const product = page.locator(".catalog-product-preview");
+  await product.getByRole("button", { name: "Weitere Prüfung planen", exact: true }).click();
+  const editor = product.getByTestId("exam-plan-editor");
+  await editor.getByRole("textbox", { name: "Name", exact: true }).fill("Plan mit späterem Start");
+  const start = editor.getByRole("button", { name: "Lernstart auswählen", exact: true });
+  await expect(start).toHaveText("14.10.2026");
+  await start.click();
+  const picker = page.getByRole("dialog", { name: "Lernstart auswählen: Datum auswählen", exact: true });
+  await expect(picker.locator('[data-date-key="2026-10-13"]')).toBeDisabled();
+  await picker.locator('[data-date-key="2026-10-19"]').click();
+  await expect(start).toHaveText("19.10.2026");
+  await expect(editor.getByTestId("exam-setup-context")).toContainText("Mo., 19.10.");
+  const steps = editor.getByRole("list", { name: "Schritte der Prüfungsplanung", exact: true });
+  await steps.getByRole("button", { name: "2. Lernstoff", exact: true }).click();
+  await editor.getByRole("checkbox").first().check();
+  for (const name of ["3. Lernmethoden", "4. Lernzeit", "5. Dein Plan"]) await steps.getByRole("button", { name, exact: true }).click();
+  await expect(editor.getByTestId("exam-topic-preview")).toBeVisible();
+  await expect(editor.getByTestId("exam-setup-context")).toHaveCount(0);
+  await editor.getByRole("button", { name: "Plan aktivieren", exact: true }).click();
+  await product.getByRole("button", { name: "Plan mit späterem Start: Details öffnen", exact: true }).click();
+  await product.getByTestId("exam-card-details").last().getByRole("button", { name: "Bearbeiten", exact: true }).click();
+  await expect(editor.getByRole("button", { name: "Lernstart auswählen", exact: true })).toHaveText("19.10.2026");
+});
+
+
+test("Prüfungsfarben filtern Monat, Woche und Tagesdetails unabhängig ohne Planänderung", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  const product = page.locator(".catalog-product-preview"), calendar = product.getByTestId("exam-calendar");
+  const chips = calendar.getByRole("group", { name: "Prüfungen im Kalender", exact: true });
+  const anatomy = chips.getByRole("button", { name: "Anatomie", exact: true });
+  const physiology = chips.getByRole("button", { name: "Physiologie", exact: true });
+  await expect(calendar.getByRole("combobox", { name: "Prüfung im Kalender", exact: true })).toHaveCount(0);
+  await expect(anatomy).toHaveAttribute("aria-pressed", "true");
+  await expect(physiology).toHaveAttribute("aria-pressed", "true");
+  await expect(calendar.locator('[data-exam-appointment="exam-demo-second"]')).toHaveCount(1);
+  await physiology.click();
+  await expect(physiology).toHaveAttribute("aria-pressed", "false");
+  await expect(calendar.locator('[data-exam-appointment="exam-demo-second"]')).toHaveCount(0);
+  await calendar.locator('[data-date="2026-10-14"]').click();
+  await expect(calendar.locator('[data-exam-day-subject="exam-demo"]')).toHaveCount(1);
+  await expect(calendar.locator('[data-exam-day-subject="exam-demo-second"]')).toHaveCount(0);
+  await calendar.getByRole("button", { name: "Tagesdetails schließen", exact: true }).click();
+  await calendar.getByRole("button", { name: "Woche", exact: true }).click();
+  await expect(physiology).toHaveAttribute("aria-pressed", "false");
+  await expect(calendar.locator('[data-week-block="catalog-study-block"]')).toHaveCount(1);
+  await anatomy.click();
+  await expect(calendar.locator('[data-week-block="catalog-study-block"]')).toHaveCount(0);
+  await expect(calendar.locator('[data-week-block="catalog-open-block"]')).toHaveCount(1);
+  await expect(anatomy).toHaveAttribute("aria-pressed", "false");
+  await anatomy.focus();
+  await page.keyboard.press("Space");
+  await expect(anatomy).toHaveAttribute("aria-pressed", "true");
+  await expect(calendar.locator('[data-week-block="catalog-study-block"]')).toHaveCount(1);
+  await physiology.click();
+  await calendar.getByRole("button", { name: "Monat", exact: true }).click();
+  await expect(calendar.locator('[data-exam-appointment="exam-demo-second"]')).toHaveCount(1);
+  await expect(product.getByText("Ungespeicherte Kalenderänderungen", { exact: false })).toHaveCount(0);
+});
+
+
+test("Monatsansicht zeigt Karten, Lesen und Quiz in derselben Fachkachel", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
+  const calendar = page.locator(".catalog-product-preview").getByTestId("exam-calendar");
+  const day = calendar.locator('[data-date="2026-10-14"]');
+  const tile = day.locator('[data-exam-subject="exam-demo"]');
+  await expect(tile).toHaveCount(1);
+  for (const task of ["study", "summary", "quiz"]) await expect(tile.locator(`[data-exam-task="${task}"]`)).toHaveCount(1);
+  await expect(day.locator('[data-exam-task]')).toHaveCount(await day.locator('[data-exam-subject] [data-exam-task]').count());
+  await day.click();
+  await expect(calendar.getByTestId("exam-day-editor").getByRole("list", { name: "Quizaufgaben an diesem Tag", exact: true })).toBeVisible();
+  await expect(calendar.locator('[data-exam-day-subject="exam-demo"]')).toContainText("Zusammenfassung lesen");
 });

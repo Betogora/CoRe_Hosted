@@ -100,6 +100,8 @@ geglättet.
 
 ## Später
 
+- Quiz-Erstellung und -Durchführung in der App: die manuell eingeplanten Kapitel- und Gruppenquizze anbinden; Inhalte, Interaktionen und Bewertung gesondert festlegen.
+
 - Native App nach ADR-036.
 - AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.

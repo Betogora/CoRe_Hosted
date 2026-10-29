@@ -170,6 +170,10 @@ Die Datei enthält nur geltende Entscheidungen. Eine geänderte Entscheidung wir
 **Konsequenzen:** Spätere Formatänderungen brauchen keine Datenbankmigration. Die lokale IndexedDB bleibt Zwischenspeicher und Offline-Warteschlange; ausstehende Änderungen werden beim nächsten Öffnen hochgeladen und bis dahin sichtbar markiert. Die Migration muss vor dem App-Deployment auf dem gehosteten Supabase angewendet sein.
 **Datum:** 2026-10-17
 
+### Ergänzung zu ADR-042 — Zusätzliche Lernmethoden und manuelle Quizplanung (2026-10-28)
+
+Die Einrichtung erhält zwischen Lernstoff und Lernzeit einen eigenen Lernmethoden-Schritt mit zwei unabhängig wählbaren Piktogramm-Flächen. Zusammenfassungen werden dort vor einem Kapitel gewählt. Quizze lassen sich nach jedem Kapitel oder gebündelt nach einer wählbaren Anzahl von Kapiteln einplanen. Es sind ausschließlich manuelle Kalender- und Checklistenaufgaben; Nutzer erstellen und lösen die Quizze vorerst selbst. Die App erhält in diesem Schritt weder Quiz-Editor noch Quiz-Durchführung oder KI-Erstellung. Die Quizgruppierung verändert keine Kartenlernziele oder FSRS-Lernstände. Erledigung bleibt je enthaltenem Kapitel erhalten. Dies ersetzt den Ausschluss geplanter Quizaufgaben aus E11 ausschließlich in diesem Umfang; die spätere Quiz-Funktion bleibt offen.
+
 ## ADR-044 — Reife aus der FSRS-7-Haltbarkeit statt XP
 
 **Status:** vorgeschlagen
