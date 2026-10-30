@@ -5,6 +5,19 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-30 — Übernahmen aus `codex/dashboard-widgets` und `codex/ai-source-creation`
+
+- PR #59: anpassbare Heute-Seite mit den Widgets `Dein Lernen heute`, `Lerntimer`, `Aktive Stapel`, `To-dos` und Lern-Heatmap; Layout und eigene To-dos liegen pro Konto im Browser. Die seither auf `main` gelandete Kachel-/Listen-Auswahl von `Aktive Stapel` bleibt erhalten. `dashboard-widgets.spec.ts` stand in keinem Playwright-Projekt und läuft jetzt in `learning-content-chromium`.
+- PR #60: Erstellungsweg „Karten automatisch erstellen lassen“ bis zur Auftragsprüfung (Eintrag vom 2026-10-28). Die fehlende Anbindung steht als P2 in [`todo.md`](todo.md); `product-surfaces.spec.ts` erwartet drei Erstellungsarten.
+- `codex/klausurplaner-design` bleibt offen: Er plant manuelle Quizaufgaben im gespeicherten Planformat, während ADR-042 Quizplanung bis zu einem eigenen Quiz-Feature ausschließt.
+- Verifiziert: `npm run typecheck`, `npm test` 877/877 mit beiden Übernahmen, `npm run build` mit Chunk-Budget; lokal gegen Supabase `dashboard-widgets`, `deck-ui-restoration`, `core-stabilization`, `exam-planning`, `product-surfaces`, `world-capitals-hierarchy` (93/93) sowie `ai-source-creation`, `product-surfaces`, `navigation-context` (alle grün nach der Anpassung; die Sichtmatrix des Quellen-Specs nicht erneut ausgeführt).
+
+## 2026-10-30 — Sync-Symbol nur bei Bedarf (PR #58)
+
+- Bei automatischem Sync zeigt die App-Navigation kein Sync-Symbol, solange synchronisiert, ausstehend oder laufend; Offline, Fehler und Konflikte öffnen `Daten & Synchronisierung` über `/einstellungen?target=sync` beziehungsweise `?target=sync-conflicts`. Bei `Aus` bleibt die direkte Sync-Aktion. `InPageNavigation` erhält das Deep-Link-Ziel `targetId`; der Scroll-Abstand gilt auch für verschachtelte Abschnitte.
+- Übertragen aus der WIP-Sicherung des Hauptordners (`9596a12`); deren Stapelansicht war bereits auf `main`.
+- Verifiziert: `npm run typecheck`, `npm test` 864/864; visuelle Matrix für App-Kopf (alle Sync-Zustände über den UI-Katalog) und Einstellungs-Deep-Links bei 320–1440 px einschließlich 1279/1280, Light und Dark. Offen: Das Konflikt-Badge hat im Dark Mode zu wenig Kontrast (helle Zahl auf Gelb, unverändert aus dem Bestand).
+
 ## 2026-10-30 — Statistik-RPC ohne Kartenzwischenstände
 
 - Migration `20261030103636_account_statistics_single_pass.sql`: `get_account_statistics` legt die Karten nicht mehr als Zwischenergebnis ab (bisher alle Karten, eine Kopie der aktiven Karten und eine der Abrufwahrscheinlichkeiten, bei 100.000 Karten auf Platte ausgelagert und neunmal gelesen). Drei Abfragen auf `cards` liefern alles: Übersicht je Konto und Stapel, Tageszählungen und Buckets in einem Durchlauf über `GROUPING SETS`, Intervall-Perzentile. Signatur, Rückgabe und Rechte bleiben gleich.

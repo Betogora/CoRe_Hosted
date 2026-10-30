@@ -463,6 +463,11 @@ neuen Code.
 - AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
 - KI-Umformulierungen für Lückentext und andere Bausteine.
+- Quiz als eigenes Feature (ADR-042): Stapel-Tab `Quiz` ist Platzhalter.
+  Danach Quizplanung im Prüfungsplaner; einen Entwurf mit manuellen
+  Kapitel- und Gruppenquizzen im gespeicherten Planformat enthält
+  `codex/klausurplaner-design`, ohne Quizplanung ist der Branch sonst
+  übernehmbar.
 - KI-Varianten vorausschauend erzeugen: Heute erzeugt die Stapelaktion des
   Proof of Concept beim Einschalten Varianten für bis zu 50 Karten auf einmal,
   auch für Karten, die noch lange keine Variante zeigen. Künftig erzeugt CoRe
