@@ -33,6 +33,17 @@ geglättet.
 
 ## Später
 
+- Neue Schemabaseline kurz vor dem ersten externen Release: Die Migrationen ab
+  `20261008101057_kartenmodell_baseline.sql` (Stand 2026-10-30: 12 Dateien,
+  3.224 Zeilen, davon rund 550 überschriebene Fassungen von
+  `get_account_bootstrap`, `get_account_statistics` und
+  `list_account_card_study_states`) zu einer Baseline zusammenfassen, damit
+  jede Funktion an genau einer Stelle steht. Kein Laufzeitgewinn, nur
+  Übersicht; Aufwand etwa 1–2 h. Hosted per `supabase migration repair`
+  umstellen, Daten bleiben unberührt. Nachweis: `supabase db diff --linked`
+  leer, `verify_schema_v1.sql` lokal und remote grün. Verweise in
+  `README.md`, `operations.md` und `status.md` anpassen, offene Branches mit
+  Migrationen nachziehen.
 - Native App nach ADR-036.
 - AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.
 - Serverseitiger APKG-Import, falls Import auf Mobilgeräten nötig wird.
