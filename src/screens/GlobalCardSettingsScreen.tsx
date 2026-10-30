@@ -188,7 +188,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
                 <label key={colorName} className="flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface px-3">
                   <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${index + 1})` }} />
                   <input
-                    className="min-h-control min-w-0 flex-1 bg-transparent text-core-text outline-none"
+                    className="min-w-0 flex-1 self-stretch bg-transparent text-core-text outline-none"
                     value={name}
                     maxLength={40}
                     placeholder={colorName}

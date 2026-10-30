@@ -238,6 +238,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
             </label>
             <CoreSegmentedControl
               ariaLabel="Aktion der Lernbremse"
+              className="core-segmented-touch"
               options={LEECH_ACTION_OPTIONS}
               value={activeDraft.leech.leechAction}
               onValueChange={(leechAction) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechAction } } : current)}
