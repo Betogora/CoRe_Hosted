@@ -10,7 +10,7 @@ import {
 import { createDefaultDeckSettings } from "./coreModel.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import type { AnsweredTodayCard } from "./reviewService.ts";
-import { buriesSiblings, createSiblingBurying, type SiblingKind } from "./siblingBurying.ts";
+import { createSiblingBurying, manuallyBuriedCardIds, type SiblingKind } from "./siblingBurying.ts";
 import { getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayRange } from "./learningDay.ts";
 import type { AccountStudyOverview, DeckStudySummary } from "./workspaceReplica.ts";
@@ -64,9 +64,9 @@ export interface BuriedSiblingCounts {
 }
 
 /**
- * Siblings buried today per deck, for the counters: cards of a content with another card answered today, when the
- * deck of the answered card buries their kind. Same rule as the queue's seeding from today's answers; a sibling that
- * is itself answered today stays countable. Reads nothing unless a deck buries.
+ * Cards buried today per deck, for the counters: siblings of a content with another card answered today, when the
+ * deck of the answered card buries their kind, and cards the learner buried. Same rules as the queue; a sibling that
+ * is itself answered today stays countable.
  */
 export async function buriedSiblingsByDeck(
   database: IDBDatabase,
@@ -76,8 +76,6 @@ export async function buriedSiblingsByDeck(
 ): Promise<Map<string, BuriedSiblingCounts>> {
   const settingsByDeck = new Map(decks.map((deck) => [deck.id, createDefaultDeckSettings(deck.deckSettings)]));
   const result = new Map<string, BuriedSiblingCounts>();
-  if (![...settingsByDeck.values()].some(buriesSiblings)) return result;
-
   const start = new Date(range.start).toISOString();
   const end = new Date(range.end).toISOString();
   const events = todayEvents ?? await (async () => {
@@ -85,10 +83,14 @@ export async function buriedSiblingsByDeck(
     return Promise.all(decks.map((deck) => requestResult<ReviewEvent[]>(index.getAll(IDBKeyRange.bound([deck.id, start, ""], [deck.id, end, ""], false, true)))));
   })();
   const answeredIds = new Set(events.flat().filter((event) => event.rating !== "manual").map((event) => event.cardId));
-  if (answeredIds.size === 0) return result;
+  const manuallyBuried = manuallyBuriedCardIds(events.flat());
+  if (answeredIds.size === 0 && manuallyBuried.size === 0) return result;
 
   const catalog = database.transaction(STORE.cardCatalog, "readonly").objectStore(STORE.cardCatalog);
-  const answeredRows = await Promise.all([...answeredIds].map((id) => requestResult<StoredCardCatalog | undefined>(catalog.get(id))));
+  const [answeredRows, buriedRows] = await Promise.all([
+    Promise.all([...answeredIds].map((id) => requestResult<StoredCardCatalog | undefined>(catalog.get(id)))),
+    Promise.all([...manuallyBuried].map((id) => requestResult<StoredCardCatalog | undefined>(catalog.get(id)))),
+  ]);
   const burying = createSiblingBurying((deckId) => settingsByDeck.get(deckId));
   for (const row of answeredRows) if (row) burying.answered(row.id, row.noteId, row.deckId);
   // Siblings not answered today are not in an intraday learning step, so learning means interday learning here.
@@ -99,9 +101,12 @@ export async function buriedSiblingsByDeck(
     relearning: ["interday-learning", "learningCards"],
   };
   const siblingRows = await Promise.all(burying.buryingNoteIds().map((noteId) => requestResult<StoredCardCatalog[]>(catalog.index("noteId").getAll(noteId))));
-  for (const row of siblingRows.flat()) {
+  const counted = new Set<string>();
+  for (const row of [...buriedRows.filter((row): row is StoredCardCatalog => Boolean(row)), ...siblingRows.flat()]) {
     const kind = kinds[row.scheduleState];
-    if (!kind || row.reviewable !== 1 || row.deletedAt || !(row.dueSort < end) || !burying.buriedBySeen(row, kind[0])) continue;
+    if (!kind || counted.has(row.id) || row.reviewable !== 1 || row.deletedAt || !(row.dueSort < end)) continue;
+    if (!manuallyBuried.has(row.id) && !burying.buriedBySeen(row, kind[0])) continue;
+    counted.add(row.id);
     const counts = result.get(row.deckId) ?? { newCards: 0, learningCards: 0, dueCards: 0 };
     counts[kind[1]] += 1;
     result.set(row.deckId, counts);

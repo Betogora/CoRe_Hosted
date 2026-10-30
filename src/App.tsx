@@ -23,8 +23,8 @@ import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } fr
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
-import { addCardVariant, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
-import { cardVariantSource, deleteVariant, reactivateVariant } from "./coreVariantService.ts";
+import { addCardVariant, applyCardStudyStatePatch, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants } from "./coreModel.ts";
+import { cardVariantSource, deactivateVariant, deleteVariant, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -1279,16 +1279,14 @@ export function App() {
     };
   }
 
-  /** Mark belongs to the content (all siblings show it); suspension belongs to the card. */
+  /** Mark and tags belong to the content (all siblings show them); suspension and flag belong to the card. */
   async function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
     if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
     const body = await workspaceRepository.loadCardBody(cardId);
     if (!body) return null;
-    const updatedAt = new Date().toISOString();
-    const note = patch.marked === undefined ? body.note : setNoteMarked(body.note, patch.marked, updatedAt);
-    const card = patch.suspended === undefined ? body.card : setCardSuspended(body.card, patch.suspended, updatedAt);
+    const { note, card } = applyCardStudyStatePatch(body.note, body.card, patch);
     if (note === body.note && card === body.card) return { note, card };
-    // A changed mark also refreshes the catalog rows of locally known siblings.
+    // A changed mark or tags also refresh the catalog rows of locally known siblings.
     const siblings = note !== body.note ? (await workspaceRepository.loadNoteGraph(body.note.id))?.cards ?? [body.card] : [body.card];
     await workspaceRepository.saveNoteGraphs([{
       previous: { note: body.note, cards: siblings },
@@ -1309,8 +1307,7 @@ export function App() {
     const note = card ? study.notes.find((candidate) => candidate.id === card.noteId) : null;
     if (!deck || !card || !note) return null;
     const updatedAt = new Date().toISOString();
-    const nextNote = patch.marked === undefined ? note : setNoteMarked(note, patch.marked, updatedAt);
-    const nextCard = patch.suspended === undefined ? card : setCardSuspended(card, patch.suspended, updatedAt);
+    const { note: nextNote, card: nextCard } = applyCardStudyStatePatch(note, card, patch, updatedAt);
     const updated = { ...deck, updatedAt, cards: deck.cards.map((candidate) => candidate.id === cardId ? nextCard : candidate) };
     study.setDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
     study.setNotes((current) => current.map((candidate) => candidate.id === note.id ? nextNote : candidate));
@@ -1420,7 +1417,7 @@ export function App() {
     return cards;
   }
 
-  /** `refresh` replaces all earlier variants of the card with the new one; otherwise it adds one and replaces outdated ones. */
+  /** `refresh` replaces the card's earlier variants except edited ones with the new one; otherwise it adds one and replaces outdated ones. */
   async function generateDeckCardVariant(_deckId: string, cardId: string, mode: CardVariantBatchMode = "missing") {
     if (!workspaceRepository) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
     const body = await workspaceRepository.loadCardBody(cardId);
@@ -1432,16 +1429,17 @@ export function App() {
     const draft = createAiGeneratedVariantDraft(source, current, generated);
     const input = { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } };
     const saved = await workspaceRepository.updateCard(cardId, (card) => mode === "refresh"
-      ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
+      ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt && !isEditedVariant(variant)).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
       : replaceOutdatedVariants(card, input));
     if (!saved) throw new AiCardVariantContractError("save_failed", "Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     return generated;
   }
 
-  async function updateDeckCardVariant(cardId: string, variantId: string, action: "reactivate" | "delete") {
+  async function updateDeckCardVariant(cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") {
     if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    const saved = await workspaceRepository.updateCard(cardId, (card) => action === "reactivate" ? reactivateVariant(card, variantId) : deleteVariant(card, variantId));
+    const apply = { reactivate: reactivateVariant, deactivate: deactivateVariant, delete: deleteVariant }[action];
+    const saved = await workspaceRepository.updateCard(cardId, (card) => apply(card, variantId));
     if (!saved) throw new Error("Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     syncEngine?.requestSync();

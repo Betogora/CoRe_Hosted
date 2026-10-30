@@ -12,6 +12,7 @@ test("UI preferences normalize persisted deck ids", () => {
     learnCollapsedDeckIds: [],
     deckManagerExpandedDeckIds: ["deck-b"],
     syncIntervalMinutes: 5,
+    flagNames: ["", "", "", "", "", "", ""],
   });
 });
 
@@ -25,6 +26,7 @@ test("deck expansion is stored with the correct semantics for every surface", ()
     learnCollapsedDeckIds: ["deck-b"],
     deckManagerExpandedDeckIds: ["deck-c"],
     syncIntervalMinutes: 5,
+    flagNames: ["", "", "", "", "", "", ""],
   });
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 15 }).syncIntervalMinutes, 15);
   assert.equal(normalizeUiPreferences({ syncIntervalMinutes: 7 }).syncIntervalMinutes, 5);
@@ -38,4 +40,8 @@ test("bulk expansion changes only the requested decks and preserves other surfac
   assert.deepEqual(expanded.learnCollapsedDeckIds, ["unrelated"]);
   assert.deepEqual(expanded.dashboardCollapsedDeckIds, ["a"]);
   assert.deepEqual(setDeckExpanded(expanded, "learn", ["a", "b", "a"], false).learnCollapsedDeckIds, ["unrelated", "a", "b"]);
+});
+
+test("Flaggennamen sind sieben gekürzte Texte, fehlende bleiben leer", () => {
+  assert.deepEqual(normalizeUiPreferences({ flagNames: [" Wichtig ", 3, "x".repeat(50)] }).flagNames, ["Wichtig", "", "x".repeat(40), "", "", "", ""]);
 });

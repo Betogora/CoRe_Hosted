@@ -9,6 +9,7 @@ import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
+import { isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
 
 export { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
 
@@ -427,6 +428,7 @@ export function createPagedCardTableModel(
   const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
   const baseModel = createCardTableModel(decks.map((deck) => ({ ...deck, cards: [] })), modelOptions);
   const normalizedQuery = normalizeQuery(query);
+  const searchText = parseCardSearchQuery(query).text;
   const allGroups = baseModel.allGroups.map((group) => {
     const candidate = cardPages?.[group.id];
     const page = candidate && candidate.query === query && sameCardTableSort(candidate.sort, cardSort) ? candidate : undefined;
@@ -439,7 +441,7 @@ export function createPagedCardTableModel(
     const totalCardCount = Math.max(items.length, totalCount);
     const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
     const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
-    const deckMatches = Boolean(normalizedQuery) && normalizeQuery(group.path).includes(normalizedQuery);
+    const deckMatches = Boolean(searchText) && normalizeQuery(group.path).includes(searchText);
     return {
       ...group,
       deck: originalDecks.get(group.id) ?? group.deck,
@@ -461,19 +463,21 @@ export function createPagedCardTableModel(
 }
 
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const query = normalizeQuery(options.query);
+  const search = parseCardSearchQuery(options.query);
+  const searching = !isEmptyCardSearch(search);
   const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;
   const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(options.cardPageSize ?? CARD_TABLE_PAGE_SIZE)));
   const now = options.now ?? new Date();
   const rows = flattenDeckTree(decks, { now, cardLimit: 0, dayStartHour: options.dayStartHour, learnAheadMinutes: options.learnAheadMinutes, timeZone: options.timeZone, deckSummaries: options.deckSummaries });
   const deckById = new Map(decks.map((deck) => [deck.id, deck]));
   const allGroups: CardTableGroup[] = rows.map((row) => {
-    const deckMatches = Boolean(query) && normalizeQuery(row.path).includes(query);
+    // A deck whose path contains the search text lists all its cards that match the remaining terms.
+    const deckMatches = Boolean(search.text) && normalizeQuery(row.path).includes(search.text);
     const entries = listReviewableCards(deckById.get(row.id) ?? row.deck)
       .map((card) => catalogEntryFromCard(card, options.notesById?.get(card.noteId) ?? null));
-    const matchingEntries = !query || deckMatches
-      ? entries
-      : entries.filter((entry) => entry.normalizedSearchText.includes(query));
+    const matchingEntries = searching
+      ? entries.filter((entry) => matchesCardSearch(entry, deckMatches ? { ...search, text: "" } : search))
+      : entries;
     const pageCount = Math.max(1, Math.ceil(matchingEntries.length / pageSize));
     const requestedPage = Math.max(0, Math.floor(options.cardPageByDeckId?.[row.id] ?? 0));
     const page = Math.min(requestedPage, pageCount - 1);
@@ -488,7 +492,7 @@ export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions
       deckMatches,
     };
   });
-  const groups = allGroups.filter((group) => !query || group.deckMatches || group.totalCardCount > 0);
+  const groups = allGroups.filter((group) => !searching || group.deckMatches || group.totalCardCount > 0);
 
   return {
     allGroups,

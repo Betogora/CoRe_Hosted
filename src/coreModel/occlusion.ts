@@ -1,5 +1,5 @@
 import type { MediaRef, NoteContent, NoteFieldRole, NoteInteraction, OcclusionMask, OcclusionShape } from "../coreTypes.ts";
-import { normalizeTags } from "./coreValues.ts";
+import { normalizeTags } from "./tags.ts";
 
 type OcclusionInteraction = Extract<NoteInteraction, { kind: "image-occlusion" }>;
 export type OcclusionMode = OcclusionInteraction["mode"];

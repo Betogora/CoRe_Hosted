@@ -4,6 +4,8 @@ begin;
 -- Abfragen (`cards`) sind getrennt; Lernstand liegt in typisierten Kartenspalten.
 -- `card_catalog` und `deck_study_summaries` bleiben als Delta- und Zählprojektion der
 -- Web-Replica und werden je Anweisung statt je Zeile gepflegt.
+-- Am 2026-10-30 aus den 13 Migrationen ab 20261008101057 zusammengefasst, damit jede
+-- Funktion an genau einer Stelle steht; reine Datenumstellungen entfallen.
 
 create extension if not exists pgcrypto;
 create extension if not exists pg_trgm with schema extensions;
@@ -152,12 +154,6 @@ create table public.card_variants (
   back text not null default '',
   variant_level integer not null default 2 check (variant_level between 1 and 3),
   is_active boolean not null default true,
-  transform_profile jsonb not null default '{}'::jsonb,
-  model_run_id text,
-  explanation text not null default '',
-  confidence numeric,
-  semantic_delta text,
-  changed_recognition_cues text[] not null default '{}'::text[],
   quality_status text not null default 'active' check (quality_status in ('draft', 'active', 'rejected', 'flagged', 'disabled')),
   content_hash text,
   performance jsonb not null default '{}'::jsonb,
@@ -1358,6 +1354,26 @@ as $$
       and review_row.answered_at >= learning_range.starts_at
       and review_row.answered_at < learning_range.ends_at
     group by review_row.deck_id, review_row.card_id
+  ), bury_modes as materialized (
+    select answered_card.note_id,
+      bool_or(answered_deck.deck_settings->>'buryNewSiblings' = 'true') as bury_new,
+      bool_or(answered_deck.deck_settings->>'buryReviewSiblings' = 'true') as bury_review,
+      bool_or(answered_deck.deck_settings->>'buryInterdayLearningSiblings' = 'true') as bury_interday
+    from today_events
+    join public.cards as answered_card
+      on answered_card.user_id = (select auth.uid()) and answered_card.id = today_events.card_id
+    join public.decks as answered_deck
+      on answered_deck.user_id = answered_card.user_id and answered_deck.id = answered_card.deck_id
+    group by answered_card.note_id
+  ), buried as materialized (
+    select sibling.id
+    from bury_modes
+    join public.cards as sibling
+      on sibling.user_id = (select auth.uid()) and sibling.note_id = bury_modes.note_id
+    where not exists (select 1 from today_events where today_events.card_id = sibling.id)
+      and ((sibling.state = 'new' and bury_modes.bury_new)
+        or (sibling.state = 'review' and bury_modes.bury_review)
+        or (sibling.state in ('learning', 'relearning') and bury_modes.bury_interday))
   ), available as materialized (
     select card_row.deck_id,
       count(*) filter (where card_row.state = 'new')::integer as new_count,
@@ -1369,6 +1385,7 @@ as $$
       and card_row.status = 'active'
       and card_row.deleted_at is null
       and card_row.due_at < learning_range.ends_at
+      and not exists (select 1 from buried where buried.id = card_row.id)
     group by card_row.deck_id
   )
   select pg_catalog.jsonb_build_object(
@@ -1746,32 +1763,72 @@ stable
 security invoker
 set search_path = ''
 as $$
-  with scoped_cards as materialized (
-    select card_row.deck_id, card_row.due_at, card_row.state, card_row.status,
-      coalesce(nullif(card_row.study_extra->>'maturityBand', ''), 'new') as maturity_band,
-      card_row.interval_days, card_row.difficulty, card_row.stability, card_row.last_reviewed_at,
-      card_row.deleted_at, card_row.created_at,
-      (select count(*)::integer from public.card_variants as variant_row
-        where variant_row.user_id = card_row.user_id and variant_row.card_id = card_row.id
-          and variant_row.deleted_at is null and variant_row.is_active and variant_row.quality_status = 'active') as active_variant_count
+  with active_variant_counts as materialized (
+    select variant_row.card_id, count(*)::integer as variant_count
+    from public.card_variants as variant_row
+    where variant_row.user_id = (select auth.uid())
+      and variant_row.deleted_at is null and variant_row.is_active and variant_row.quality_status = 'active'
+    group by variant_row.card_id
+  ), card_rows as not materialized (
+    select card_row.id, card_row.deck_id, card_row.state, card_row.status, card_row.due_at,
+      card_row.interval_days, card_row.difficulty, card_row.stability, card_row.last_reviewed_at, card_row.created_at,
+      card_row.deleted_at is null as is_live,
+      card_row.deleted_at is null and card_row.status = 'active' as is_current,
+      coalesce(nullif(card_row.study_extra->>'maturityBand', ''), 'new') in ('mature', 'variant_ready', 'mastered') as is_mature
     from public.cards as card_row
     where card_row.user_id = (select auth.uid())
       and (p_deck_ids is null or card_row.deck_id = any(p_deck_ids))
-  ), current_states as materialized (
-    select deck_id, due_at, interval_days, difficulty, stability, last_reviewed_at
-    from scoped_cards
-    where deleted_at is null and status = 'active'
+  ), card_overview as materialized (
+    select grouping(card_row.deck_id) = 0 as per_deck, card_row.deck_id,
+      count(*) filter (where card_row.is_live)::integer as total,
+      count(*) filter (where card_row.is_live and card_row.state = 'new')::integer as new_count,
+      count(*) filter (where card_row.is_live and card_row.state in ('learning', 'relearning'))::integer as learning_count,
+      count(*) filter (where card_row.is_live and card_row.is_mature)::integer as mature_count,
+      count(*) filter (where card_row.is_live and card_row.status <> 'active')::integer as suspended_count,
+      count(*) filter (where card_row.is_current and card_row.state <> 'new' and card_row.due_at < now())::integer as overdue_count,
+      coalesce(sum(1 + coalesce(variant_count.variant_count, 0)) filter (where card_row.is_current), 0)::integer as active_variants,
+      count(*) filter (where not card_row.is_live)::integer as deleted_items,
+      sum(card_row.interval_days) filter (where card_row.is_current) as interval_total,
+      count(*) filter (where card_row.is_current and card_row.interval_days > 0)::integer as interval_count,
+      min(card_row.due_at) filter (where card_row.is_current) as next_due_at
+    from card_rows as card_row
+    left join active_variant_counts as variant_count on variant_count.card_id = card_row.id
+    group by grouping sets ((), (card_row.deck_id))
+  ), card_counts as materialized (
+    select added_day, forecast_day, forecast_kind, interval_bucket, stability_bucket, difficulty_bucket,
+      retrievability_bucket, count(*)::integer as card_count
+    from (
+      select
+        case when (p_from is null or card_row.created_at >= p_from) and (p_to is null or card_row.created_at < p_to)
+          then ((card_row.created_at at time zone p_time_zone) - pg_catalog.make_interval(hours => least(greatest(p_day_start_hour, 0), 23)))::date end as added_day,
+        case when card_row.is_current and card_row.due_at >= now() and card_row.due_at < now() + interval '365 days'
+          then ((card_row.due_at at time zone p_time_zone) - pg_catalog.make_interval(hours => least(greatest(p_day_start_hour, 0), 23)))::date end as forecast_day,
+        case when card_row.state in ('new', 'learning') then 'learning'
+          when card_row.state = 'relearning' then 'relearning'
+          when card_row.is_mature then 'mature'
+          else 'young' end as forecast_kind,
+        case when card_row.is_current and card_row.interval_days > 0
+          then least(59, floor(card_row.interval_days))::integer end as interval_bucket,
+        case when card_row.is_current and card_row.stability > 0
+          then least(39, floor(card_row.stability))::integer end as stability_bucket,
+        case when card_row.is_current and card_row.difficulty > 0 and card_row.difficulty <= 10
+          then least(10, greatest(1, ceil(card_row.difficulty)))::integer end as difficulty_bucket,
+        case when card_row.is_current and card_row.stability > 0 and card_row.last_reviewed_at is not null
+          then floor(least(0.999999, greatest(0,
+            power(
+              1 + (19::double precision / 81)
+                * greatest(0, extract(epoch from (now() - card_row.last_reviewed_at))::double precision / 86400)
+                / card_row.stability,
+              -0.5::double precision
+            )
+          )) * 20)::integer end as retrievability_bucket
+      from card_rows as card_row
+    ) as card_key
+    group by grouping sets ((added_day), (forecast_day, forecast_kind), (interval_bucket), (stability_bucket),
+      (difficulty_bucket), (retrievability_bucket))
   ), card_totals as materialized (
-    select
-      count(*) filter (where deleted_at is null)::integer as total,
-      count(*) filter (where deleted_at is null and state = 'new')::integer as new_count,
-      count(*) filter (where deleted_at is null and state in ('learning', 'relearning'))::integer as learning_count,
-      count(*) filter (where deleted_at is null and maturity_band in ('mature', 'variant_ready', 'mastered'))::integer as mature_count,
-      count(*) filter (where deleted_at is null and status <> 'active')::integer as suspended_count,
-      count(*) filter (where deleted_at is null and status = 'active' and state <> 'new' and due_at < now())::integer as overdue_count,
-      coalesce(sum(1 + active_variant_count) filter (where deleted_at is null and status = 'active'), 0)::integer as active_variants,
-      count(*) filter (where deleted_at is not null)::integer as deleted_items
-    from scoped_cards
+    select total, new_count, learning_count, mature_count, suspended_count, overdue_count, active_variants, deleted_items
+    from card_overview where not per_deck
   ), statistics_bounds as materialized (
     select
       case when p_from is null then null else ((p_from at time zone p_time_zone)
@@ -1831,28 +1888,17 @@ as $$
         + coalesce((rating_counts ->> 'mature:again')::integer, 0))::integer as again
     from categorized_rollups group by deck_id
   ), added_cards_daily as materialized (
-    select ((card_row.created_at at time zone p_time_zone)
-              - pg_catalog.make_interval(hours => least(greatest(p_day_start_hour, 0), 23)))::date::text as day_key,
-           count(*)::integer as card_count
-    from scoped_cards as card_row
-    where (p_from is null or card_row.created_at >= p_from)
-      and (p_to is null or card_row.created_at < p_to)
-    group by day_key
+    select added_day::text as day_key, card_count
+    from card_counts where added_day is not null
   ), forecast_daily as materialized (
-    select
-      ((card_row.due_at at time zone p_time_zone)
-        - pg_catalog.make_interval(hours => least(greatest(p_day_start_hour, 0), 23)))::date::text as day_key,
-      count(*) filter (where card_row.state in ('new', 'learning'))::integer as learning,
-      count(*) filter (where card_row.state = 'relearning')::integer as relearning,
-      count(*) filter (where card_row.state not in ('new', 'learning', 'relearning')
-        and card_row.maturity_band not in ('mature', 'variant_ready', 'mastered'))::integer as young,
-      count(*) filter (where card_row.state not in ('new', 'learning', 'relearning')
-        and card_row.maturity_band in ('mature', 'variant_ready', 'mastered'))::integer as mature,
-      count(*)::integer as total
-    from scoped_cards as card_row
-    where card_row.deleted_at is null and card_row.status = 'active' and card_row.due_at >= now()
-      and card_row.due_at < now() + interval '365 days'
-    group by day_key
+    select forecast_day::text as day_key,
+      coalesce(sum(card_count) filter (where forecast_kind = 'learning'), 0)::integer as learning,
+      coalesce(sum(card_count) filter (where forecast_kind = 'relearning'), 0)::integer as relearning,
+      coalesce(sum(card_count) filter (where forecast_kind = 'young'), 0)::integer as young,
+      coalesce(sum(card_count) filter (where forecast_kind = 'mature'), 0)::integer as mature,
+      sum(card_count)::integer as total
+    from card_counts where forecast_day is not null
+    group by forecast_day
   ), retention_periods as materialized (
     select * from statistics_bounds, lateral (values
       ('selected'::text, from_day, to_day),
@@ -1878,10 +1924,8 @@ as $$
     from categorized_rollups
     group by deck_id
   ), deck_state as materialized (
-    select deck_id, sum(interval_days) as interval_total,
-      count(*) filter (where interval_days > 0)::integer as interval_count,
-      min(due_at) as next_due_at
-    from current_states group by deck_id
+    select deck_id, interval_total, interval_count, next_due_at
+    from card_overview where per_deck
   ), deck_aggregates as materialized (
     select deck_row.id as deck_id,
       coalesce(deck_reviews.reviews, 0) as reviews,
@@ -1900,8 +1944,8 @@ as $$
       and deck_row.deleted_at is null
       and (p_deck_ids is null or deck_row.id = any(p_deck_ids))
   ), interval_bucket_counts as materialized (
-    select least(59, floor(interval_days))::integer as bucket, count(*)::integer as bucket_count
-    from current_states where interval_days > 0 group by bucket
+    select interval_bucket as bucket, card_count as bucket_count
+    from card_counts where interval_bucket is not null
   ), interval_distribution as materialized (
     select bucket, bucket_count,
       100 * sum(bucket_count) over (order by bucket)::numeric / nullif(sum(bucket_count) over (), 0) as cumulative_percent
@@ -1911,34 +1955,24 @@ as $$
       percentile_cont(0.5) within group (order by interval_days) as median_days,
       percentile_cont(0.95) within group (order by interval_days) as percentile_95_days,
       round(sum(1 / greatest(interval_days, 1))::numeric, 1) as daily_workload
-    from current_states where interval_days > 0
+    from card_rows where is_current and interval_days > 0
   ), stability_bucket_counts as materialized (
-    select least(39, floor(stability))::integer as bucket, count(*)::integer as bucket_count
-    from current_states where stability > 0 group by bucket
+    select stability_bucket as bucket, card_count as bucket_count
+    from card_counts where stability_bucket is not null
   ), stability_distribution as materialized (
     select bucket, bucket_count,
       100 * sum(bucket_count) over (order by bucket)::numeric / nullif(sum(bucket_count) over (), 0) as cumulative_percent
     from stability_bucket_counts
   ), difficulty_bucket_counts as materialized (
-    select least(10, greatest(1, ceil(difficulty)))::integer as bucket, count(*)::integer as bucket_count
-    from current_states where difficulty > 0 and difficulty <= 10 group by bucket
+    select difficulty_bucket as bucket, card_count as bucket_count
+    from card_counts where difficulty_bucket is not null
   ), difficulty_distribution as materialized (
     select bucket, bucket_count,
       100 * sum(bucket_count) over (order by bucket)::numeric / nullif(sum(bucket_count) over (), 0) as cumulative_percent
     from difficulty_bucket_counts
-  ), retrievability_states as materialized (
-    select least(0.999999, greatest(0,
-      power(
-        1 + (19::double precision / 81)
-          * greatest(0, extract(epoch from (now() - last_reviewed_at))::double precision / 86400)
-          / stability,
-        -0.5::double precision
-      )
-    )) as retrievability
-    from current_states where stability > 0 and last_reviewed_at is not null
   ), retrievability_bucket_counts as materialized (
-    select floor(retrievability * 20)::integer as bucket, count(*)::integer as bucket_count
-    from retrievability_states group by bucket
+    select retrievability_bucket as bucket, card_count as bucket_count
+    from card_counts where retrievability_bucket is not null
   ), retrievability_distribution as materialized (
     select bucket, bucket_count,
       100 * sum(bucket_count) over (order by bucket)::numeric / nullif(sum(bucket_count) over (), 0) as cumulative_percent
@@ -2214,6 +2248,162 @@ as $$
   ) as releasable;
 $$;
 
+-- Erste Seite aller angefragten Stapel in einer Abfrage; Folgeseiten blättern mit dem Cursor in `list_account_card_catalog`.
+create or replace function public.search_account_card_catalog(
+  p_deck_ids text[],
+  p_query text,
+  p_sort_field text default 'sortField',
+  p_sort_direction text default 'asc',
+  p_limit integer default 50
+)
+returns jsonb
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  query_text text := lower(trim(coalesce(p_query, '')));
+  query_pattern text;
+  page_limit integer := least(greatest(p_limit, 1), 50);
+  sort_expression text;
+  cursor_output_expression text;
+  sort_direction text;
+  response jsonb;
+begin
+  if current_user_id is null then
+    raise exception 'Anmeldung erforderlich.' using errcode = '42501';
+  end if;
+  if query_text = '' then
+    raise exception 'Die Kartensuche braucht einen Suchbegriff.' using errcode = '22023';
+  end if;
+  if coalesce(pg_catalog.array_length(p_deck_ids, 1), 0) > 5000 then
+    raise exception 'Höchstens 5000 Stapel können gleichzeitig durchsucht werden.' using errcode = '22023';
+  end if;
+
+  case p_sort_field
+    when 'sortField' then
+      sort_expression := 'catalog_row.sort_text';
+      cursor_output_expression := 'catalog_row.sort_text';
+    when 'nextStudyDate' then
+      sort_expression := 'coalesce(catalog_row.due_at, ''infinity''::timestamptz)';
+      cursor_output_expression := 'case when catalog_row.due_at is null then ''infinity'' else pg_catalog.to_char(catalog_row.due_at at time zone ''UTC'', ''YYYY-MM-DD"T"HH24:MI:SS.US'') || ''Z'' end';
+    when 'variants' then
+      sort_expression := 'catalog_row.has_active_variants';
+      cursor_output_expression := 'catalog_row.has_active_variants::text';
+    else
+      raise exception 'Unbekannte Katalogsortierung.' using errcode = '22023';
+  end case;
+
+  if p_sort_direction in ('asc', 'desc') then
+    sort_direction := p_sort_direction;
+  else
+    raise exception 'Unbekannte Sortierrichtung.' using errcode = '22023';
+  end if;
+
+  query_pattern := '%' || pg_catalog.replace(pg_catalog.replace(pg_catalog.replace(query_text, '\', '\\'), '%', '\%'), '_', '\_') || '%';
+
+  execute pg_catalog.format($query$
+    with matching_notes as materialized (
+      select note_row.id
+      from public.notes as note_row
+      where note_row.user_id = $1 and note_row.search_text like $3
+    ), ranked as materialized (
+      select catalog_row.*,
+        %2$s as sort_value,
+        pg_catalog.row_number() over (partition by catalog_row.deck_id order by %1$s %3$s, catalog_row.id %3$s) as deck_position,
+        pg_catalog.count(*) over (partition by catalog_row.deck_id) as deck_total
+      from public.card_catalog as catalog_row
+      where catalog_row.user_id = $1
+        and catalog_row.deck_id = any($2)
+        and catalog_row.deleted_at is null
+        and catalog_row.note_id in (select matching_notes.id from matching_notes)
+    ), page as materialized (
+      select * from ranked where deck_position <= $4
+    )
+    select coalesce(pg_catalog.jsonb_object_agg(deck_page.deck_id, deck_page.result), '{}'::jsonb)
+    from (
+      select page.deck_id, pg_catalog.jsonb_build_object(
+        'items', pg_catalog.jsonb_agg(pg_catalog.to_jsonb(page) - 'sort_value' - 'deck_position' - 'deck_total' order by page.deck_position),
+        'totalCount', max(page.deck_total),
+        'hasMore', max(page.deck_total) > $4,
+        'nextCursor', case when max(page.deck_total) > $4 then
+          (pg_catalog.array_agg(pg_catalog.jsonb_build_object('sortValue', page.sort_value, 'id', page.id) order by page.deck_position desc))[1]
+        end
+      ) as result
+      from page
+      group by page.deck_id
+    ) as deck_page
+  $query$, sort_expression, cursor_output_expression, sort_direction)
+  into response
+  using current_user_id, p_deck_ids, query_pattern, page_limit;
+
+  return pg_catalog.jsonb_build_object('groups', response);
+end
+$$;
+
+-- Lernstand aller Karten gewählter Stapel ohne Kartenkörper, für Planungen wie die Prüfungsprognose.
+-- Seiten nach Karten-ID; die schnelle Spur liefert 0, wenn ein Anki-Speicherstand keine hat.
+create function public.list_account_card_study_states(
+  p_deck_ids text[],
+  p_after_card_id text default null,
+  p_limit integer default 2000
+)
+returns table (
+  card_id text,
+  deck_id text,
+  note_id text,
+  status text,
+  state text,
+  due_at timestamptz,
+  stability double precision,
+  difficulty double precision,
+  reps integer,
+  lapses integer,
+  interval_days double precision,
+  learning_step_index integer,
+  last_reviewed_at timestamptz,
+  last_rating text,
+  study_revision integer,
+  active_variant_count integer,
+  created_at timestamptz,
+  stability_fast double precision
+)
+language plpgsql
+stable
+security invoker
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+begin
+  if current_user_id is null then
+    raise exception 'Anmeldung erforderlich.' using errcode = '42501';
+  end if;
+  if coalesce(pg_catalog.array_length(p_deck_ids, 1), 0) > 5000 then
+    raise exception 'Höchstens 5000 Stapel können gleichzeitig geladen werden.' using errcode = '22023';
+  end if;
+
+  return query
+    select card_row.id, card_row.deck_id, card_row.note_id, card_row.status, card_row.state, card_row.due_at,
+      card_row.stability, card_row.difficulty, card_row.reps, card_row.lapses, card_row.interval_days,
+      card_row.learning_step_index, card_row.last_reviewed_at, card_row.last_rating, card_row.study_revision,
+      coalesce(catalog_row.active_variant_count, 0), card_row.created_at,
+      case when pg_catalog.jsonb_typeof(card_row.study_extra -> 'stabilityFast') = 'number'
+        then (card_row.study_extra ->> 'stabilityFast')::double precision else 0 end
+    from public.cards as card_row
+    left join public.card_catalog as catalog_row
+      on catalog_row.user_id = card_row.user_id and catalog_row.id = card_row.id
+    where card_row.user_id = current_user_id
+      and card_row.deck_id = any(p_deck_ids)
+      and card_row.deleted_at is null
+      and (p_after_card_id is null or card_row.id > p_after_card_id)
+    order by card_row.id
+    limit least(greatest(coalesce(p_limit, 2000), 1), 5000);
+end
+$$;
+
 revoke all privileges on table
   public.profiles, public.decks, public.note_type_sources, public.notes, public.note_sources,
   public.cards, public.card_variants, public.review_events, public.review_statistics_daily,
@@ -2255,6 +2445,8 @@ revoke all on function public.delete_account_deck_tree(text, timestamptz, text) 
 revoke all on function public.list_retranslation_candidates(jsonb, text, integer) from public, anon;
 revoke all on function public.list_releasable_media(integer) from public, anon;
 revoke all on function public.load_reimport_targets(text[]) from public, anon;
+revoke all on function public.search_account_card_catalog(text[], text, text, text, integer) from public, anon;
+revoke all on function public.list_account_card_study_states(text[], text, integer) from public, anon;
 
 grant execute on function public.record_review_atomic(text, jsonb, timestamptz, text, jsonb, timestamptz, jsonb, text) to authenticated, service_role;
 grant execute on function public.get_account_bootstrap(text, integer, integer) to authenticated, service_role;
@@ -2268,5 +2460,101 @@ grant execute on function public.delete_account_deck_tree(text, timestamptz, tex
 grant execute on function public.list_retranslation_candidates(jsonb, text, integer) to authenticated, service_role;
 grant execute on function public.list_releasable_media(integer) to authenticated, service_role;
 grant execute on function public.load_reimport_targets(text[]) to authenticated, service_role;
+grant execute on function public.search_account_card_catalog(text[], text, text, text, integer) to authenticated, service_role;
+grant execute on function public.list_account_card_study_states(text[], text, integer) to authenticated, service_role;
+
+-- W8a: Zusammenfassungen liegen je Konto online. Das Dokument bleibt versioniertes JSONB und wird
+-- in der App validiert; die Datenbank vergibt Revision und Zeitstempel, damit Schreibkonflikte erkennbar sind.
+create table public.learning_summaries (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  id text not null check (pg_catalog.char_length(id) between 1 and 200),
+  deck_id text not null,
+  document jsonb not null
+    check (pg_catalog.jsonb_typeof(document) = 'object' and pg_catalog.pg_column_size(document) <= 1048576),
+  revision integer not null default 1 check (revision >= 1),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  primary key (user_id, id),
+  foreign key (user_id, deck_id) references public.decks (user_id, id) on delete cascade
+);
+comment on table public.learning_summaries is 'Accountgebundene Zusammenfassungen je Stapel; document ist ein versioniertes App-Dokument.';
+create index learning_summaries_user_deck_idx on public.learning_summaries (user_id, deck_id);
+
+-- Neue Dokumente beginnen bei Revision 1, jede Änderung erhöht sie um genau eins; Konto, ID und Stapel bleiben fest.
+create or replace function private.stamp_learning_document()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  if tg_op = 'UPDATE' then
+    if new.user_id is distinct from old.user_id or new.id is distinct from old.id or new.deck_id is distinct from old.deck_id then
+      raise exception 'Konto, ID und Stapel eines Lerndokuments dürfen nicht geändert werden.' using errcode = '23514';
+    end if;
+    new.revision := old.revision + 1;
+  else
+    new.revision := 1;
+  end if;
+  new.updated_at := pg_catalog.now();
+  return new;
+end
+$$;
+revoke all on function private.stamp_learning_document() from public, anon, authenticated, service_role;
+
+create trigger learning_summaries_stamp before insert or update on public.learning_summaries
+  for each row execute function private.stamp_learning_document();
+
+alter table public.learning_summaries enable row level security;
+create policy "learning_summaries_owner_all" on public.learning_summaries for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+revoke all privileges on table public.learning_summaries from anon;
+grant select, insert, update, delete on table public.learning_summaries to authenticated;
+grant all privileges on table public.learning_summaries to service_role;
+
+-- W8b: Je Stapel liegt genau eine Mindmap online; ihre ID ist die Stapel-ID. Das Dokument bleibt versioniertes
+-- JSONB, Revision und Zeitstempel vergibt derselbe Trigger wie bei Zusammenfassungen. Bilder liegen privat im Bucket
+-- learning-mind-map-images unter <userId>/<sha1>.
+create table public.learning_mind_maps (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  id text not null check (pg_catalog.char_length(id) between 1 and 200),
+  deck_id text not null check (deck_id = id),
+  document jsonb not null
+    check (pg_catalog.jsonb_typeof(document) = 'object' and pg_catalog.pg_column_size(document) <= 5242880),
+  revision integer not null default 1 check (revision >= 1),
+  updated_at timestamptz not null default now(),
+  deleted_at timestamptz,
+  primary key (user_id, id),
+  foreign key (user_id, deck_id) references public.decks (user_id, id) on delete cascade
+);
+comment on table public.learning_mind_maps is 'Accountgebundene Infinity Map je Stapel; document ist ein versioniertes App-Dokument.';
+
+create trigger learning_mind_maps_stamp before insert or update on public.learning_mind_maps
+  for each row execute function private.stamp_learning_document();
+
+alter table public.learning_mind_maps enable row level security;
+create policy "learning_mind_maps_owner_all" on public.learning_mind_maps for all to authenticated
+  using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+revoke all privileges on table public.learning_mind_maps from anon;
+grant select, insert, update, delete on table public.learning_mind_maps to authenticated;
+grant all privileges on table public.learning_mind_maps to service_role;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('learning-mind-map-images', 'learning-mind-map-images', false, 2000000, array['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+create policy "learning_mind_map_images_select_own" on storage.objects for select to authenticated
+using (bucket_id = 'learning-mind-map-images' and (select auth.uid())::text = (storage.foldername(name))[1]);
+
+create policy "learning_mind_map_images_insert_own" on storage.objects for insert to authenticated
+with check (bucket_id = 'learning-mind-map-images' and (select auth.uid())::text = (storage.foldername(name))[1]);
+
+create policy "learning_mind_map_images_delete_own" on storage.objects for delete to authenticated
+using (bucket_id = 'learning-mind-map-images' and (select auth.uid())::text = (storage.foldername(name))[1]);
 
 commit;

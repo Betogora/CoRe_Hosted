@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           active_variant_count: number
           active_variant_id: string | null
+          anki_flag: number
           body_revision: number
           created_at: string
           deck_id: string
@@ -22,6 +23,7 @@ export type Database = {
           front_preview: string
           has_active_variants: boolean
           id: string
+          leeched: boolean
           marked: boolean
           maturity_band: string
           note_id: string
@@ -30,12 +32,14 @@ export type Database = {
           sort_text: string
           study_revision: number
           sync_change_id: number
+          tag_keys: string[]
           updated_at: string
           user_id: string
         }
         Insert: {
           active_variant_count?: number
           active_variant_id?: string | null
+          anki_flag?: number
           body_revision?: number
           created_at: string
           deck_id: string
@@ -45,6 +49,7 @@ export type Database = {
           front_preview?: string
           has_active_variants?: boolean
           id: string
+          leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id: string
@@ -53,12 +58,14 @@ export type Database = {
           sort_text?: string
           study_revision?: number
           sync_change_id: number
+          tag_keys?: string[]
           updated_at?: string
           user_id: string
         }
         Update: {
           active_variant_count?: number
           active_variant_id?: string | null
+          anki_flag?: number
           body_revision?: number
           created_at?: string
           deck_id?: string
@@ -68,6 +75,7 @@ export type Database = {
           front_preview?: string
           has_active_variants?: boolean
           id?: string
+          leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id?: string
@@ -76,6 +84,7 @@ export type Database = {
           sort_text?: string
           study_revision?: number
           sync_change_id?: number
+          tag_keys?: string[]
           updated_at?: string
           user_id?: string
         }
@@ -179,6 +188,7 @@ export type Database = {
           last_rating: string | null
           last_reviewed_at: string | null
           learning_step_index: number
+          leeched_at: string | null
           note_id: string
           prompt_key: string
           reps: number
@@ -207,6 +217,7 @@ export type Database = {
           last_rating?: string | null
           last_reviewed_at?: string | null
           learning_step_index?: number
+          leeched_at?: string | null
           note_id: string
           prompt_key: string
           reps?: number
@@ -235,6 +246,7 @@ export type Database = {
           last_rating?: string | null
           last_reviewed_at?: string | null
           learning_step_index?: number
+          leeched_at?: string | null
           note_id?: string
           prompt_key?: string
           reps?: number
@@ -601,6 +613,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           imported_content_revision: number | null
+          imported_tags: string[] | null
           marked: boolean
           media: Json
           note_type_source_id: string | null
@@ -622,6 +635,7 @@ export type Database = {
           deleted_at?: string | null
           id: string
           imported_content_revision?: number | null
+          imported_tags?: string[] | null
           marked?: boolean
           media?: Json
           note_type_source_id?: string | null
@@ -643,6 +657,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           imported_content_revision?: number | null
+          imported_tags?: string[] | null
           marked?: boolean
           media?: Json
           note_type_source_id?: string | null
@@ -987,6 +1002,7 @@ export type Database = {
           p_query?: string
           p_sort_direction?: string
           p_sort_field?: string
+          p_terms?: Json
         }
         Returns: Json
       }
@@ -1017,10 +1033,28 @@ export type Database = {
           study_revision: number
         }[]
       }
+      list_account_tags: {
+        Args: never
+        Returns: {
+          imported_count: number
+          note_count: number
+          tag: string
+        }[]
+      }
       list_releasable_media: { Args: { p_limit?: number }; Returns: Json }
       list_retranslation_candidates: {
         Args: { p_current_versions: Json; p_cursor?: string; p_limit?: number }
         Returns: Json
+      }
+      list_similar_notes: {
+        Args: { p_limit?: number; p_note_id: string }
+        Returns: {
+          card_id: string
+          deck_id: string
+          note_id: string
+          preview: string
+          similarity: number
+        }[]
       }
       load_reimport_targets: { Args: { p_guids: string[] }; Returns: Json }
       pull_account_catalog_delta: {
@@ -1047,6 +1081,7 @@ export type Database = {
           p_query: string
           p_sort_direction?: string
           p_sort_field?: string
+          p_terms?: Json
         }
         Returns: Json
       }
