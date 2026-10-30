@@ -554,7 +554,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const row = entry.value as StoredCardCatalog;
           scanned += 1;
           boundary = entry.key;
-          if (!row.deletedAt && matchesCardSearch(catalogEntry(row), search)) rows.push(row);
+          if (!row.deletedAt && (!filtered || matchesCardSearch(catalogEntry(row), search))) rows.push(row);
           const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
           if (rows.length > pageLimit || scanned >= LOCAL_WRITE_CHUNK_SIZE || elapsed >= 25) { resolve(); return; }
           entry.continue();

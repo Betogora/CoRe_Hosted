@@ -5,6 +5,15 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-30 — Karteneditor V2, PR A: Fundament
+
+- Roadmap P0 in drei PRs gegliedert, Entscheidungen W1–W23 (ADR-045); Specs „Kartendetail und Editor“ nach dem Zielbild neu gefasst, Abschnitt „Tags, Flaggen und Lernbremse“ ergänzt.
+- Schemabaseline: die 13 Migrationen ab `20261008101057` zu `20261030103636_kartenmodell_baseline.sql` zusammengefasst; Schemadump vor und nach identisch, `verify_schema_v1.sql` grün.
+- Daten-Cutover `20261030180000_karteneditor_v2.sql`: `notes.imported_tags`, `cards.leeched_at`, Katalogspalten `anki_flag`, `leeched`, `tag_keys`; `leech`-Tags, Import-Tags und Flaggennamen einmalig umgerechnet; lokale Replik auf `v5`.
+- Domäne: Tags nach Anki-Regeln und ohne Inhaltsrevision, dreiseitiger Tag-Merge beim Reimport, Lernbremse beim Import und beim Bewerten (Schwelle, halbe Schwelle, Aussetzen), Suchsyntax `flag:`/`tag:`/`is:` online und offline, Tag-Verzeichnis, ähnliche Inhalte, Bewertungsverlauf, manuelle Lernstandsänderungen (Als neu lernen, Lernbremse, Zurückstellen, Wiederherstellen), Variantenbearbeitung.
+- Verifiziert: `npm run gate:push` grün (Initialgraph 242,4 KiB gzip), `npm run test:rls:local` 20/20 (neu: `card-editor-queries`), `npm run db:types:check` grün. `npm run performance:measure:local`: alle Startkontexte und Server-Messungen im Rahmen (Statistik-RPC p75 585 ms, Katalogsuche p75 167 ms); das Gate „längster Hintergrund-/Preload-Task“ (50 ms) ist auf diesem Rechner schon auf `main` überschritten (zehn Läufe max. 70 ms, Median 59 ms), der Branch lag vor dem Audit-Fix bei max. 87 ms, Median 66 ms.
+- Nicht ausgeführt: `npm run test:e2e:local` und die visuelle Pflichtmatrix (keine Oberflächenänderung; Gesamtabnahme in PR C). Hosted-Migration und `migration repair` stehen aus.
+
 ## 2026-10-30 — Übernahmen aus `codex/dashboard-widgets` und `codex/ai-source-creation`
 
 - PR #59: anpassbare Heute-Seite mit den Widgets `Dein Lernen heute`, `Lerntimer`, `Aktive Stapel`, `To-dos` und Lern-Heatmap; Layout und eigene To-dos liegen pro Konto im Browser. Die seither auf `main` gelandete Kachel-/Listen-Auswahl von `Aktive Stapel` bleibt erhalten. `dashboard-widgets.spec.ts` stand in keinem Playwright-Projekt und läuft jetzt in `learning-content-chromium`.

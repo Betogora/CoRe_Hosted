@@ -195,10 +195,10 @@ Antworten auf die offenen Fragen O1–O4, jeweils nach Empfehlung:
   Lernmodus aus, erscheint einmal der Hinweis „Lernbremse: N-mal vergessen“
   mit der Aktion `Bearbeiten`, die den Editor im Reiter `Inhalt` öffnet.
 - W23 Eigene Flaggennamen werden an genau einer Stelle vergeben: in den
-  Karteneinstellungen (`karten-einstellungen`), sieben Zeilen mit Farbpunkt
-  und Namensfeld; ein leeres Feld steht für den Farbnamen. Der Flaggenwähler
-  verlinkt mit `Namen bearbeiten` dorthin (Ziel `flag-names` nach dem
-  Muster aus #58).
+  Lerneinstellungen (Route `karten-einstellungen`) im Abschnitt `Flaggen`,
+  sieben Zeilen mit Farbpunkt und Namensfeld; ein leeres Feld steht für den
+  Farbnamen. Der Flaggenwähler verlinkt mit `Namen bearbeiten` dorthin (Ziel
+  `flag-names` nach dem Muster aus #58).
 
 ### Konzept: Tags, Flaggen und Lernbremse
 
@@ -273,101 +273,28 @@ Anki-Grundlagen, öffentlich belegt:
 
 ### PR A: Fundament
 
-Keine sichtbare Änderung außer der Doku. Endet mit `npm run gate:push`,
-`npm run db:types:check`, `npm run test:rls:local` und
-`npm run performance:measure:local` (Sync und Katalog betroffen).
+Erledigt am 2026-10-30 (Verlauf in [`history.md`](history.md)). Für PR B und C
+liegen bereit, ohne Oberfläche:
 
-#### A1 Specs und Entscheidungen
-
-- [ ] `docs/specs.md`: „Kartendetail und Editor“ nach dem Zielbild neu fassen
-  (Dialog, vier Reiter, sofort gegen Entwurf, Einstieg je Herkunft,
-  Tastenkürzel, Markiert-Tönung, Ausgesetzt ohne Tönung, Rückgängig,
-  Live-Vorschau). Lernmodus-Satz zu Flaggen ersetzen, Begraben und
-  Zurückstellen ergänzen. Neuer Abschnitt „Tags, Flaggen und Lernbremse“ mit
-  Normalisierung, Herkunft, Reimport-Regel, Suche und Lernbremse.
-  Kartenverwaltung um Flaggenpunkt, Filter und Suchsyntax ergänzen. Alle
-  W4-Stellen ersetzen.
-- [ ] `docs/decisions.md`: ADR-045 „Karteneditor V2: Tags, Flaggen und
-  Lernbremse ankitreu speichern und auf CoRe-Begriffe abbilden“ mit V1–V12,
-  W1–W23; ADR-032 anpassen.
-- [ ] `docs/architecture.md`: persistierte Begriffe (`importedTags`,
-  `leechedAt`, Flaggennamen, Katalogspalten), Replik-Namensraum `v5`, neue
-  öffentliche `coreModel`-Bausteine.
-- [ ] `status.md`: Editor V2 als laufend vermerken.
-- [ ] `npm run docs:build`, `npm run check:docs`.
-
-#### A2 Schemabaseline
-
-- [ ] Die Migrationen ab `20261008101057_kartenmodell_baseline.sql`
-  (Stand 2026-10-30: 13 Dateien bis `20261030103636`, mit mehrfach
-  überschriebenen Fassungen von `get_account_bootstrap`,
-  `get_account_statistics` und `list_account_card_study_states`) zu einer
-  Baseline zusammenfassen, damit jede Funktion an genau einer Stelle steht.
-  Hosted per `supabase migration repair` umstellen, Daten bleiben unberührt.
-- Nachweis: `supabase db diff --linked` leer, `verify_schema_v1.sql` lokal und
-  remote grün. Verweise in `README.md`, `operations.md` und `status.md`
-  angepasst; offene Branches mit Migrationen nachgezogen.
-
-#### A3 Daten-Cutover
-
-- [ ] `Note.importedTags: string[] | null` und `Card.leechedAt: string | null`
-  in `src/coreTypes.ts`, Replik, Cloud-Zeilen, Sync-Planer und
-  `src/cloudRepositoryValidation.ts`; Replik-Namensraum `v5` (W2).
-- [ ] Eine Migration auf der Baseline: neue Spalten, `card_catalog` um
-  `anki_flag`, `leeched` und Tags erweitert (Trigger, Indizes). Einmalige
-  Umrechnung: `importedTags` aus den heutigen Tags importierter Notizen,
-  `leech`-Tag zu `leechedAt` nach der Regel oben und Tag entfernen.
-- [ ] `normalizeTags` nach den Anki-Regeln, ohne Trennung an `#`, `,` und `;`.
-  Behebt das Zerlegen von Tags wie `#AK_Step1_v12::#B&B`.
-- [ ] `coreModel`-Baustein `setNoteTags`: erhöht die Revision, nicht
-  `contentRevision`. Tags verlassen den Inhaltsentwurf. Behebt „Tag-Änderung
-  blockiert spätere Import-Updates“.
-- [ ] Reimport (`indexedDbCoreRepository.ts`, Abschnitt K5.7): Tags nach der
-  Drei-Wege-Regel zusammenführen; Flagge, Markierung und Lernbremse bleiben.
-- [ ] APKG-Import: `leech` setzt `leechedAt`, `importedTags` wird gesetzt.
-- [ ] `npm run db:types:generate`.
-- Nachweis: Tests mit einem Stapel im AnKing-Stil (tiefe `#`-Pfade,
-  Groß-/Kleinschreibung, `leech`, `marked`). Reimport mit lokal ergänzten und
-  im Stapel entfernten Tags. Eine reine Tag-Änderung blockiert kein
-  Feld-Update. Migration auf einer Kopie mit echten Daten geprüft.
-
-#### A4 Tags, Flaggen und Suche
-
-- [ ] Kontoweites Tag-Verzeichnis: lokal aus den Notizen abgeleitet, online per
-  Cloud-Abfrage mit Anzahl und Herkunft (eigen/importiert); Vorschläge
-  hierarchisch.
-- [ ] `coreModel`-Baustein `setCardFlag` (Kartenrevision, Sync, Konfliktanzeige
-  „Flagge“).
-- [ ] Eigene Flaggennamen im Profil, synchronisiert, Standard: Farbnamen.
-- [ ] Suchsyntax wie in Anki: `flag:n`, `tag:x` (inklusive Kindern),
-  `tag:none`, Verneinung mit `-`; Server-Suche
-  (`search_account_card_catalog`) und Offline-Suche über die Replik.
-- Nachweis: Tests für Vorschläge mit Groß-/Kleinschreibung und Hierarchie,
-  Flagge über zwei Geräte; Server- und Offline-Suche liefern dieselben
-  Treffer.
-
-#### A5 Lern- und Kartenaktionen
-
-- [ ] Karten verschieben (eine Karte oder alle Karten eines Inhalts) als
-  `coreModel`-Baustein.
-- [ ] `Als neu lernen`: Lernstand zurücksetzen über `record_review_atomic`
-  (normale Kartenupdates übernehmen Lernfelder in der Cloud nicht), als
-  manuelles Ereignis im Verlauf; Zähler und Lernbremse nach W21.
-- [ ] Einzelne Karte zurückstellen über `src/siblingBurying.ts`.
-- [ ] Rückgängig je Sofortaktion als Gegenänderung mit neuer Revision (W7).
-- [ ] Bewertungen einer Karte: lokal über den Index `cardAnswered`, sonst aus
-  der Cloud über `review_events_user_card_answered_idx`.
-- [ ] Ähnliche Inhalte: Server-Abfrage über Textähnlichkeit (pg_trgm),
-  höchstens 3 Treffer, lazy und abbrechbar.
-- [ ] Varianten abschalten (`deactivateVariant` freigeben; heute gibt es nur
-  `Reaktivieren`) und Variantentext bearbeiten, bearbeitete Varianten von
-  `Varianten neu generieren` ausgenommen (W12).
-- [ ] Lernbremsen-Erkennung im FSRS-7-Scheduler (ADR-044) und in
-  `record_review_atomic`: Schwelle (Standard 8 Lapses), danach erneut bei
-  jeder halben Schwelle; Standardaktion nach W22. Die Stapeleinstellung dafür ist
-  gespeichert, ihre Oberfläche folgt in PR C.
-- Nachweis: Tests je Baustein; RLS-Tests für neue Abfragen; Tests für
-  Schwelle, Wiederholung bei halber Schwelle und keine rückwirkende Auslösung.
+- Sofortaktionen: `applyCardStudyStatePatch` (Markiert, Tags, Aussetzen,
+  Flagge) über `onSetStudyState`; `moveCardToDeck` für Verschieben über
+  `saveNoteGraphs`.
+- Manuelle Lernstandsänderungen im lokalen Repository: `rescheduleCards`,
+  `resetCards` (Als neu lernen), `setCardsLeech`, `buryCards` (auch
+  aufheben), `restoreCardStudies` (Rückgängig); jeweils ein manuelles
+  Ereignis mit `flags.kind`.
+- Rückgängig: Gegenänderungen über dieselben Bausteine; die Oberfläche
+  vergleicht vorher `revision`/`studyRevision` der Karte (W7).
+- Varianten: `onUpdateVariant` kennt `deactivate`; `editVariantText` und
+  `isEditedVariant` in `coreVariantService.ts`.
+- Lesen: `listCardReviewEvents` (lokal und Cloud), `listTagDirectory` bzw.
+  `listAccountTags`, `suggestTags`, `canonicalTagSpelling`,
+  `listSimilarNotes`.
+- Lernbremse: `answerVariant` liefert `leechTriggered`; Schwelle und Aktion
+  stehen in `DeckSettings` (`leechThreshold`, `leechAction`), Flaggennamen
+  in `uiPreferences.flagNames`.
+- Suche: `flag:`/`tag:`-Begriffe wirken bereits in der vorhandenen
+  Suchzeile der Kartenverwaltung.
 
 ### PR B: Editor
 
@@ -473,11 +400,12 @@ den betroffenen E2E-Tests.
 
 #### C2 Kartenverwaltung und Stapeleinstellungen
 
-- [ ] Flaggenpunkt in der Tabelle; Filter für Flagge, Lernbremse und Tags;
-  Suchsyntax aus A4 in der Suchzeile.
+- [ ] Flaggenpunkt in der Tabelle; Filter für Flagge, Lernbremse und Tags,
+  die Suchbegriffe aus PR A erzeugen (`cardSearchQuery.ts`).
 - [ ] Stapeleinstellungen: Schwelle und Aktion der Lernbremse
   (`Nur kennzeichnen`, `Aussetzen`).
-- [ ] Karteneinstellungen: Flaggennamen nach W23, Deep-Link-Ziel `flag-names`.
+- [ ] Lerneinstellungen: Abschnitt `Flaggen` nach W23, Deep-Link-Ziel
+  `flag-names`.
 
 #### C3 Gesamtabnahme
 
