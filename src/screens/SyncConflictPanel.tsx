@@ -38,7 +38,7 @@ function formatConflictDate(value: string|number|Date) {
   return Number.isNaN(date.getTime()) ? "Unbekannter Zeitpunkt" : date.toLocaleString("de-DE");
 }
 
-export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
+export function SyncConflictPanel({ id, onListConflicts, onResolveConflict }: any) {
   const mountedRef = React.useRef(true);
   const refreshButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const [conflicts, setConflicts] = React.useState<any[]>([]);
@@ -140,13 +140,13 @@ export function SyncConflictPanel({ onListConflicts, onResolveConflict }: any) {
   }
 
   return (
-    <SoftPanel className="p-6" data-testid="sync-conflict-panel">
+    <SoftPanel id={id} aria-labelledby={id ? `${id}-heading` : undefined} className="p-6" data-testid="sync-conflict-panel">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <OrbIcon icon={AlertTriangle} className="bg-core-warning-soft text-core-text" />
           <div>
             <p className="core-body font-semibold text-core-text">Synchronisierung</p>
-            <h3 className="core-heading-3 font-semibold text-core-text">Änderungskonflikte lösen</h3>
+            <h3 id={id ? `${id}-heading` : undefined} tabIndex={id ? -1 : undefined} className="core-heading-3 rounded-inset font-semibold text-core-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4">Änderungskonflikte lösen</h3>
           </div>
         </div>
         <button ref={refreshButtonRef} type="button" onClick={loadConflicts} disabled={loading || Boolean(busyId)} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-action disabled:text-[var(--core-action-disabled-text)]">

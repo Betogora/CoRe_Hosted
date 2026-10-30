@@ -119,7 +119,7 @@ export async function resetToFreshLocalState(page: Page, options: { resetCloud?:
   await page.goto("/");
   await page.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
   if (options.waitForCloud !== false) {
-    await page.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible')
+    await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible')
       .waitFor({ state: "visible", timeout: 20_000 });
   }
 

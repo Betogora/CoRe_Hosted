@@ -1911,6 +1911,7 @@ export function App() {
         <SettingsScreen
           profile={state.profile}
           syncStatus={syncStatus}
+          settingsTarget={settingsTarget}
           lastSyncedAt={lastSyncedAt}
           storageStatus={storageStatus}
           onSaveSettings={saveGeneralSettings}
@@ -2059,7 +2060,9 @@ export function App() {
           simulationDateLabel={formatSimulationDate(learningNow)}
           pomodoroTimer={pomodoroTimer}
           syncStatus={syncStatus}
+          manualSync={state.profile.uiPreferences.syncIntervalMinutes === 0}
           onSyncNow={() => void syncNow()}
+          onOpenSyncSettings={(target) => navigateToView("einstellungen", { settingsTarget: target })}
           onPreloadView={(viewId) => {
             if (featurePreloadingAllowed && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId);
           }}

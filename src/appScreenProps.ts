@@ -231,6 +231,7 @@ export interface LearnScreenProps {
 export interface SettingsScreenProps {
   profile: Profile;
   syncStatus: SyncStatus;
+  settingsTarget?: SettingsTarget | null;
   /** Time of the last successful sync in this session; stays visible while changes are pending. */
   lastSyncedAt?: string | null;
   storageStatus?: WorkspaceStorageStatus | null;

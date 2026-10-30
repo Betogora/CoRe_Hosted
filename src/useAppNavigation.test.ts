@@ -69,6 +69,7 @@ test("projects the settings return context only on the settings route", () => {
     cardEditorReturnContext: null,
   });
   assert.equal(projectAppRoute(createViewRoute("lernen")).settingsReturnContext, null);
+  assert.equal(projectAppRoute(createViewRoute("einstellungen", { settingsTarget: "sync-conflicts" })).settingsTarget, "sync-conflicts");
 
   const reviewReturnContext = {
     deckId: "deck-1",

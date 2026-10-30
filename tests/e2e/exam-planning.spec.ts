@@ -156,7 +156,7 @@ test("Wochenkalender ändert und löscht ausgewählte Lernzeit direkt am Block",
 });
 
 async function synchronized(page: Page) {
-  await page.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible').waitFor({ state: "visible", timeout: 20_000 });
+  await page.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible').waitFor({ state: "visible", timeout: 20_000 });
 }
 
 test("Zwei Geräte teilen Plan und Häkchen; offline startet die Einheit aus lokalen Karten; die Hauptnavigation schützt Entwürfe", async ({ page, browser }) => {

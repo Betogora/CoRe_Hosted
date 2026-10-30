@@ -1,6 +1,6 @@
 import React from "react";
 import type { LucideIcon } from "lucide-react";
-import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, Cloud, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
+import { AlertTriangle, BarChart3, BookOpen, CalendarCheck, CalendarClock, CircleHelp, CloudAlert, CloudOff, Home, Layers, Moon, PlusSquare, RefreshCw, Settings, Sun } from "lucide-react";
 import { createPortal } from "react-dom";
 import { readCoreTheme, toggleCoreTheme, type CoreTheme } from "../coreTheme.ts";
 import type { MenuViewId } from "../menuModel.ts";
@@ -28,7 +28,10 @@ export interface AppNavigationProps {
   onPreloadView?: (viewId: MenuViewId) => unknown;
   onResetSimulation: () => unknown;
   syncStatus: SyncStatus;
+  /** Without automatic sync the header keeps a direct sync action. */
+  manualSync: boolean;
   onSyncNow: () => unknown;
+  onOpenSyncSettings: (target: "sync" | "sync-conflicts") => unknown;
 }
 
 const iconByKey: Record<string, LucideIcon> = {
@@ -63,42 +66,69 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
   );
 }
 
-function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, syncStatus, onSyncNow }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "onSyncNow">) {
-  const settingsActive = activeView === "einstellungen";
-  const helpActive = activeView === "hilfe";
-  const darkModeActive = theme === "dark";
-  const ThemeIcon = darkModeActive ? Moon : Sun;
-  const SyncIcon = syncStatus.status === "offline" ? CloudOff : syncStatus.status === "conflict" ? AlertTriangle : syncStatus.status === "saved" ? Cloud : RefreshCw;
-  const syncLabel = syncStatus.status === "conflict"
-    ? syncStatus.conflictCount === 1
-      ? "1 Synchronisierungskonflikt klären"
-      : `${syncStatus.conflictCount} Synchronisierungskonflikte klären`
-    : syncStatus.status === "offline"
-      ? "Offline – Synchronisierung versuchen"
-      : syncStatus.status === "saving"
-        ? "Synchronisiert gerade"
-        : syncStatus.status === "pending"
-          ? "Ausstehende Änderungen synchronisieren"
-          : syncStatus.status === "saved"
-            ? "Synchronisiert – jetzt erneut synchronisieren"
-            : syncStatus.status === "error"
-              ? "Synchronisierung erneut versuchen"
-              : "Jetzt synchronisieren";
-  const syncButton = (
+type SyncUtilityProps = Pick<AppNavigationProps, "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings" | "onPreloadView">;
+
+function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettings, onPreloadView }: SyncUtilityProps) {
+  const preloadSettings = () => onPreloadView?.("einstellungen");
+  const problem = syncStatus.status === "conflict" ? {
+    icon: AlertTriangle,
+    label: syncStatus.conflictCount === 1 ? "1 Synchronisierungskonflikt klären" : `${syncStatus.conflictCount} Synchronisierungskonflikte klären`,
+    target: "sync-conflicts" as const,
+  } : syncStatus.status === "offline" ? {
+    icon: CloudOff,
+    label: "Offline – Synchronisierung ansehen",
+    target: "sync" as const,
+  } : syncStatus.status === "error" ? {
+    icon: CloudAlert,
+    label: "Synchronisierung fehlgeschlagen – Details ansehen",
+    target: "sync" as const,
+  } : null;
+
+  if (problem) {
+    return (
+      <span className="relative inline-flex">
+        <IconButton
+          type="button"
+          variant="ghost"
+          data-navigation-utility="sync"
+          label={problem.label}
+          icon={problem.icon}
+          onClick={() => onOpenSyncSettings(problem.target)}
+          onPointerEnter={preloadSettings}
+          onFocus={preloadSettings}
+          onTouchStart={preloadSettings}
+          className="size-control shrink-0 rounded-control"
+        />
+        {syncStatus.status === "conflict" ? <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-round bg-core-warning px-1 core-caption font-bold text-core-text" aria-hidden="true">{syncStatus.conflictCount}</span> : null}
+        {syncStatus.status === "error" ? <span className="absolute right-1.5 top-1.5 size-2 rounded-round bg-core-danger" aria-hidden="true" /> : null}
+      </span>
+    );
+  }
+  if (!manualSync) return null;
+
+  const pending = syncStatus.status === "pending";
+  return (
     <span className="relative inline-flex">
       <IconButton
         type="button"
         variant="ghost"
         data-navigation-utility="sync"
-        label={syncLabel}
-        icon={SyncIcon}
+        label={syncStatus.status === "saving" ? "Synchronisiert gerade" : pending ? "Ausstehende Änderungen synchronisieren" : "Jetzt synchronisieren"}
+        icon={RefreshCw}
         onClick={onSyncNow}
         disabled={syncStatus.status === "saving"}
         className={`size-control shrink-0 rounded-control ${syncStatus.status === "saving" ? "[&_svg]:animate-spin" : ""}`}
       />
-      {syncStatus.status === "conflict" ? <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-round bg-core-warning px-1 core-caption font-bold text-core-text" aria-hidden="true">{syncStatus.conflictCount}</span> : null}
+      {pending ? <span className="absolute right-1.5 top-1.5 size-2 rounded-round bg-core-action" aria-hidden="true" /> : null}
     </span>
   );
+}
+
+function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, ...syncProps }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings">) {
+  const settingsActive = activeView === "einstellungen";
+  const helpActive = activeView === "hilfe";
+  const darkModeActive = theme === "dark";
+  const ThemeIcon = darkModeActive ? Moon : Sun;
   const settingsButton = (
     <IconButton
       type="button"
@@ -144,8 +174,8 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5" data-navigation-utilities="true">
-      {syncButton}
+    <div className="flex shrink-0 items-center gap-1.5" data-navigation-utilities="true" data-sync-status={syncProps.syncStatus.status}>
+      <SyncUtilityButton {...syncProps} onPreloadView={onPreloadView} />
       {themeButton}
       {helpButton}
       {settingsButton}
@@ -163,7 +193,7 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
   );
 }
 
-function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
+function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings }: ResponsiveNavigationProps) {
   return (
     <header className="hidden min-w-0 px-2 pt-2 xl:block" data-navigation-layout="top-bar">
       <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-5 shadow-floating">
@@ -198,7 +228,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
 
         <div className="flex min-w-0 items-center justify-end gap-3">
           <PomodoroProgress timer={pomodoroTimer} variant="header" />
-          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} />
+          <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} />
         </div>
       </div>
       {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
@@ -206,7 +236,7 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
   );
 }
 
-function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, onSyncNow }: ResponsiveNavigationProps) {
+function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
       <div className="flex h-14 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
@@ -214,7 +244,7 @@ function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />
-        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} onSyncNow={onSyncNow} />
+        <NavigationUtilityButtons activeView={activeView} theme={theme} onNavigate={onNavigate} onPreloadView={onPreloadView} onToggleTheme={onToggleTheme} syncStatus={syncStatus} manualSync={manualSync} onSyncNow={onSyncNow} onOpenSyncSettings={onOpenSyncSettings} />
       </div>
       {simulationOffsetMinutes > 0 ? <SimulationStatus simulationDateLabel={simulationDateLabel} simulationOffsetMinutes={simulationOffsetMinutes} onResetSimulation={onResetSimulation} /> : null}
     </header>

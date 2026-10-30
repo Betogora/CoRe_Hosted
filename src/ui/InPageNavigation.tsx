@@ -10,6 +10,8 @@ export interface InPageNavigationItem {
 export interface InPageNavigationProps {
   ariaLabel: string;
   items: readonly InPageNavigationItem[];
+  /** Deep-link target: a section or an element inside one, scrolled to with its heading focused. */
+  targetId?: string | null;
   children: React.ReactNode;
 }
 
@@ -33,7 +35,7 @@ function sectionHeading(section: HTMLElement) {
   return headingId ? document.getElementById(headingId) : null;
 }
 
-export function InPageNavigation({ ariaLabel, items, children }: InPageNavigationProps) {
+export function InPageNavigation({ ariaLabel, items, targetId = null, children }: InPageNavigationProps) {
   const firstItemId = items[0]?.id ?? "";
   const [activeId, setActiveId] = React.useState(firstItemId);
   const [compactOpen, setCompactOpen] = React.useState(false);
@@ -114,6 +116,22 @@ export function InPageNavigation({ ariaLabel, items, children }: InPageNavigatio
       window.removeEventListener("popstate", handleHistoryNavigation);
     };
   }, [firstItemId, itemIds]);
+
+  React.useEffect(() => {
+    const target = targetId ? document.getElementById(targetId) : null;
+    const sectionId = target ? itemIds.split("|").find((id) => document.getElementById(id)?.contains(target)) : undefined;
+    if (!target || !sectionId) return undefined;
+    navigationTargetRef.current = sectionId;
+    setActiveId(sectionId);
+    // The second frame runs after the app shell has focused the screen heading on view changes.
+    let frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+        sectionHeading(target)?.focus({ preventScroll: true });
+      });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [itemIds, targetId]);
 
   React.useEffect(() => {
     const releaseNavigationTarget = () => {

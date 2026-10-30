@@ -77,7 +77,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     completedDeckId: viewRoute.viewId === "neue-karten" ? (viewRoute.completedDeckId ?? "") : "",
     completedCount: viewRoute.viewId === "neue-karten" ? (viewRoute.completedCount ?? 0) : 0,
     completionKind: viewRoute.viewId === "neue-karten" ? (viewRoute.completionKind ?? "") : "",
-    settingsTarget: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsTarget ?? null) : null,
+    settingsTarget: viewRoute.settingsTarget ?? null,
     settingsReturnContext: viewRoute.viewId === "stapel-einstellungen" ? (viewRoute.settingsReturnContext ?? null) : null,
     cardEditorReturnContext: viewRoute.viewId === "kartenstapel" ? (viewRoute.cardEditorReturnContext ?? null) : null,
   };

@@ -67,6 +67,13 @@ test("data settings omit the removed CoRe JSON portability controls", () => {
   assert.doesNotMatch(html, /Export herunterladen|Roh-JSON anzeigen|JSON importieren|portable-import-json/);
 });
 
+test("the conflict panel is a focusable deep-link target inside data and sync", () => {
+  const html = renderSettings();
+  const dataSection = html.match(/<section id="settings-data-sync"[\s\S]*?(?=<section id="settings-about")/)?.[0] ?? "";
+  assert.match(dataSection, /<section id="settings-sync-conflicts" aria-labelledby="settings-sync-conflicts-heading"/);
+  assert.match(dataSection, /<h3 id="settings-sync-conflicts-heading" tabindex="-1"[^>]*>Änderungskonflikte lösen<\/h3>/);
+});
+
 test("conflict previews count only the selected direction", () => {
   const conflicts = [
     { id: "deck-add", status: "open", entityTable: "decks", localPresent: true, remotePresent: false, remoteRevision: null },

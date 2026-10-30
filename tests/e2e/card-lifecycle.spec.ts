@@ -388,9 +388,8 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
     return card?.variants.find((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated")?.front;
   }).toBe("Wofür nutzt die Zelle ATP?");
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
-  const syncButton = page.locator('[data-navigation-utility="sync"]:visible');
-  await expect(syncButton).toBeEnabled();
-  await syncButton.click();
+  await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  await page.getByRole("button", { name: "Jetzt synchronisieren" }).click();
   await waitForCloudCard(deck.cards[0].id, (card) => card.variants.some((variant: { meta?: { generationSource?: string } }) => variant.meta?.generationSource === "ai_generated"));
 
   await page.reload();
