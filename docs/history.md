@@ -13,7 +13,7 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Stapeleinstellungen: Fehlerschwelle und Aktion der Lernbremse (`Nur kennzeichnen`, `Aussetzen`) als Stapelwert außerhalb der Lernprofile; Lerneinstellungen: Abschnitt `Flaggen` mit sieben Namensfeldern, Ziel `flag-names` (W23).
 - Das Tag-Verzeichnis wird an einer Stelle gelesen (online das ganze Konto, offline die lokale Replik).
 - Die Entscheidungen V1–V12 und W1–W23 sind in den Specs (§5.3, §5.4, §6.2) und ADR-045 aufgegangen; der Roadmap-Block P0 ist aus `todo.md` entfernt, die ausgeklammerten Punkte stehen unter „Später“.
-- Verifiziert: __VERIFIKATION__
+- Verifiziert: `npm run typecheck`, `npm test` 919/919 (1 übersprungen: Korpustest ohne lokalen Korpus), `npm run gate:push` grün (Initialgraph 244,3 KiB gzip); `npm run test:e2e:local` mit 230 bestandenen und 15 konfigurationsbedingt übersprungenen Playwright-Tests, RLS-Suite 20/20 und Datenbanktypen ohne Drift. `npm run performance:measure:local`: alle Startkontexte im Rahmen, nur der bekannte Hintergrund-/Preload-Task mit 51 ms über 50 ms (siehe `todo.md`). Visuelle Pflichtmatrix für Erstellen, Kartenverwaltung mit und ohne Filter, Sitzung samt Menü, Stapel- und Lerneinstellungen: 6 Viewports × hell/dunkel (84 Aufnahmen) ohne horizontalen Überlauf; neue Bedienelemente mit Touchzielen ≥ 44 px.
 
 ## 2026-10-30 — Karteneditor V2, PR B: Editor
 

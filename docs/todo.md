@@ -32,7 +32,8 @@ geglättet.
       als nicht umformulierbar meldet. Offen ist, wie die Route das meldet und
       ob die Karte danach aus Stapelläufen fällt; heute wählt jeder Lauf
       gescheiterte und gemeldete Karten erneut. Ein neuer Zustand erscheint als
-      weitere Zustandsmarke im Reiter `Varianten` des Editors V2 (P0, W17).
+      weitere Zustandsmarke im Reiter `Varianten` des Karteneditors
+      (ADR-045, `variantStateMarks`).
       Nachweis: Playtest-Ergebnis vor und nach der Prompt-Ergänzung,
       Routentests mit solchen Karteninhalten.
 
@@ -98,6 +99,9 @@ neuen Code.
       Sprachausgabe und 200-%-Browserzoom auf echten Smartphones; dazu die
       Mindmap-Gesten aus W4c (Doppeltippen, Langdrücken, Zwei-Finger-Zoom,
       Vollbild) auf iOS und Android.
+      Karteneditor V2: Tag-Eingabe mit Bildschirmtastatur (Android schickt
+      die Leertaste oft ohne Tastenereignis), Reiter und Flaggenraster bei
+      200 % Zoom.
 - [ ] **Korpus (Phase 5):** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel: mindestens
       95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
@@ -107,8 +111,8 @@ neuen Code.
 
 - [ ] **Preload-Gate:** `npm run performance:measure:local` meldet für den
       automatischen 4G-Preload einen längsten Task über 50 ms, schon auf
-      `main` (2026-10-30: max. 70 ms, mit Editor V2 PR A max. 83 ms, je mit
-      Läufen ganz ohne langen Task). Klären, welcher Task beim Vorladen
+      `main` (2026-10-30: max. 70 ms, mit Editor V2 PR A max. 83 ms, mit PR C
+      max. 51 ms, je mit Läufen ganz ohne langen Task). Klären, welcher Task beim Vorladen
       blockiert (Modulauswertung der Lazy-Chunks oder Repository-Arbeit), und
       ihn teilen oder das Gate begründet anpassen. Nachweis: zwei grüne Läufe.
 
