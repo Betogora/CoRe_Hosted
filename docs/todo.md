@@ -31,20 +31,6 @@ geglättet.
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
 
-## Betrieb
-
-- [ ] **Prüfungsplanung beschleunigen:** Seit FSRS-7 und den simulierten
-      Lernschritten dauert `createExamPortfolioForecast` für 200 Tage, 5.000
-      neue und 2.000 bekannte Karten im Median 2.680 statt 821 ms
-      (`npm run benchmark:exams`, 2026-10-29; gemeinsame Stapel 2.207 statt
-      398 ms); der längste Hauptthread-Block bleibt bei 66 ms. Die Bibliothek
-      braucht etwa 13 µs je Bewertung. Ansätze: weniger simulierte Kontakte
-      (Kohorten gröber bündeln, Lernschritte desselben Tages zusammenfassen,
-      Kontakte jenseits des Horizonts abschneiden), Schema-Prüfung von
-      `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem Bedarf.
-      Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark vorher/nachher,
-      `npm run performance:measure:local`.
-
 ## Später
 
 - Native App nach ADR-036.

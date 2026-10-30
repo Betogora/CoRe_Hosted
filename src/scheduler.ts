@@ -31,6 +31,11 @@ import type {
 
 type DateInput = string | number | Date;
 type ReviewStateInput = Partial<ReviewState>;
+/** The fields `ts-fsrs` reads from a review state; review chains keep their times as dates. */
+type FsrsCardSource = Pick<ReviewState, "state" | "reps" | "stability" | "stabilityFast" | "difficulty" | "lapses" | "intervalDays" | "learningStepIndex"> & {
+  dueAt: DateInput;
+  lastReviewedAt: DateInput | null;
+};
 
 interface IntervalInput {
   intervalMinutes?: number | null;
@@ -192,11 +197,11 @@ function formatIntervalLabel(input: number | IntervalInput = {}): string {
   return months === 1 ? "1 Monat" : `${months} Monate`;
 }
 
-function getStateReps(state: ReviewStateInput): number {
+function getStateReps(state: Pick<ReviewStateInput, "reps">): number {
   return Math.max(0, Math.round(Number(state.reps ?? 0) || 0));
 }
 
-function phaseForState(state: ReviewStateInput): ReviewSchedulerState {
+function phaseForState(state: Pick<ReviewStateInput, "state" | "reps">): ReviewSchedulerState {
   return state.state ?? (getStateReps(state) > 0 ? "review" : "new");
 }
 
@@ -214,7 +219,7 @@ type FsrsScheduler = ReturnType<typeof fsrs7Definition.create>;
 type FsrsCard = Parameters<FsrsScheduler["review"]>[0]["card"];
 const FSRS7_WEIGHTS = migrateFSRS7Parameters();
 
-function toFsrsCard(state: ReviewState, now: Date): FsrsCard {
+function toFsrsCard(state: FsrsCardSource, now: Date): FsrsCard {
   const phase = phaseForState(state);
   const reps = getStateReps(state);
   const isNew = phase === "new" && reps === 0;
@@ -267,16 +272,18 @@ function createFsrsScheduler(deckSettings: LearningSettingsInput | null | undefi
     });
     fsrsSchedulers.set(key, scheduler);
   }
-  return { scheduler, profile, requestRetention, learningSteps, relearningSteps };
+  return { key, scheduler, profile, requestRetention, learningSteps, relearningSteps };
 }
 
 export function calculateRetrievability(studyState: unknown, now: DateInput = new Date()): number {
   const state = createReviewState(studyState);
+  return retrievabilityAt(state, validDate(now, new Date()), createFsrsScheduler(null, state).scheduler);
+}
+
+function retrievabilityAt(state: FsrsCardSource, now: Date, scheduler: FsrsScheduler): number {
   if (phaseForState(state) === "new" || getStateReps(state) === 0 || Number(state.stability ?? 0) <= 0 || !state.lastReviewedAt) return 0;
-  const nowDate = validDate(now, new Date());
-  const { scheduler } = createFsrsScheduler(null, state);
-  const elapsedDays = Math.max(0, scheduler.chrono.difference(validDate(state.lastReviewedAt, nowDate), nowDate));
-  return round(scheduler.model.forgettingCurve(toFsrsCard(state, nowDate), elapsedDays), 4);
+  const elapsedDays = Math.max(0, scheduler.chrono.difference(validDate(state.lastReviewedAt, now), now));
+  return round(scheduler.model.forgettingCurve(toFsrsCard(state, now), elapsedDays), 4);
 }
 
 type MemoryStateInput = Pick<ReviewStateInput, "state" | "stability" | "stabilityFast" | "difficulty">;
@@ -335,14 +342,7 @@ function learningProgress(previousState: ReviewState, nextPhase: ReviewScheduler
   };
 }
 
-function projectFsrsResult(
-  previousState: ReviewState,
-  nextCard: FsrsCard,
-  rating: ReviewRating,
-  now: Date,
-  context: SchedulerContext,
-  schedulerMeta: ReturnType<typeof createFsrsScheduler>,
-): ReviewState {
+function resolveNextDue(previousState: FsrsCardSource, nextCard: Pick<FsrsCard, "state" | "scheduledDays" | "dueAt">, now: Date, context: SchedulerContext, maximumIntervalDays: number) {
   const nextPhase = FROM_FSRS_STATE[nextCard.state];
   // FSRS-7 schedules fractional days; intervals below one day are shown in minutes.
   const rawIntervalDays = nextCard.scheduledDays >= 1 ? round(nextCard.scheduledDays, 2) : 0;
@@ -359,14 +359,27 @@ function projectFsrsResult(
       ? selectEasyDayInterval({
         rawIntervalDays,
         elapsedDays: previousState.lastReviewedAt ? Math.max(0, (now.getTime() - validDate(previousState.lastReviewedAt, now).getTime()) / DAY_MS) : 0,
-        maximumIntervalDays: schedulerMeta.profile.maximumIntervalDays,
+        maximumIntervalDays,
         now,
         context: context.easyDaysContext,
       })
       : calendarDays;
-  const dueAt = (usesEasyDayCalendar
+  const dueAt = usesEasyDayCalendar
     ? addLearningDays(now, intervalDays, context.easyDaysContext ?? undefined) ?? nextCard.dueAt
-    : nextCard.dueAt).toISOString();
+    : nextCard.dueAt;
+  return { nextPhase, intervalDays, dueAt };
+}
+
+function projectFsrsResult(
+  previousState: ReviewState,
+  nextCard: FsrsCard,
+  rating: ReviewRating,
+  now: Date,
+  context: SchedulerContext,
+  schedulerMeta: ReturnType<typeof createFsrsScheduler>,
+): ReviewState {
+  const next = resolveNextDue(previousState, nextCard, now, context, schedulerMeta.profile.maximumIntervalDays);
+  const { nextPhase, intervalDays } = next, dueAt = next.dueAt.toISOString();
   const intervalMs = Math.max(0, new Date(dueAt).getTime() - now.getTime());
   const intervalMinutes = intervalDays === 0 ? Math.round(intervalMs / MINUTE_MS) : null;
   const progress = learningProgress(previousState, nextPhase, rating, nextCard.learningStep ?? 0, now, context);
@@ -484,6 +497,54 @@ export function scheduleWithFsrs(previousState: ReviewStateInput, rating: Review
     deckSettings: context.deckSettings,
     ...context,
   }).nextReviewState;
+}
+
+type ReviewResultInput = Pick<FsrsCard, "state" | "stability" | "stabilityFast" | "difficulty" | "learningStep" | "scheduledDays">;
+interface MemoizedReview extends ReviewResultInput { input: Float64Array; repsAdded: number; lapsesAdded: number }
+
+/** Review results shared by the chains of one forecast, per scheduler configuration; converging chains then skip the library call. */
+export function createReviewChainMemo() {
+  return new Map<string, Map<number, MemoizedReview[]>>();
+}
+
+const hashValues = new Float64Array(8), hashWords = new Int32Array(hashValues.buffer);
+/** Hashes the bit patterns of the eight review inputs; entries compare all inputs exactly. */
+function hashReviewInput(input: Float64Array): number {
+  hashValues.set(input);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < 16; i++) hash = Math.imul(hash ^ hashWords[i], 0x01000193);
+  return hash;
+}
+
+/** Hypothetical answers to one card for forecasts: the same scheduling as `scheduleWithFsrs`, without its per-answer bookkeeping. */
+export function createReviewChain(initial: ReviewStateInput, context: SchedulerContext = {}, memo?: ReturnType<typeof createReviewChainMemo>) {
+  const initialState = createReviewState(initial), schedulerMeta = createFsrsScheduler(context.deckSettings, initialState);
+  let state: FsrsCardSource = initialState, results = memo?.get(schedulerMeta.key);
+  if (memo && !results) memo.set(schedulerMeta.key, results = new Map());
+  return {
+    /** Answers at `now` and returns the next due time in milliseconds. */
+    review(rating: ReviewRating, now: Date): number {
+      const input = toFsrsCard(state, now);
+      // Everything `ts-fsrs` reads: memory state, phase, step, elapsed time and rating; it only counts reps and lapses up and adds the interval to `now`.
+      const elapsed = now.getTime() - (input.lastReviewAt ?? input.dueAt).getTime(), grade = FSRS_RATINGS[rating];
+      const key = results && Float64Array.of(input.state, input.learningStep ?? 0, input.stability, input.stabilityFast, input.difficulty, input.scheduledDays, elapsed, input.lastReviewAt ? grade : -grade);
+      const hash = key ? hashReviewInput(key) : 0, bucket = results?.get(hash);
+      let result = bucket?.find((entry) => entry.input.every((value, i) => value === key![i])), dueAt: Date;
+      if (result) dueAt = schedulerMeta.scheduler.chrono.add(now, result.scheduledDays);
+      else {
+        const { card } = schedulerMeta.scheduler.review({ card: input, grade, now });
+        result = { input: key ?? new Float64Array(), state: card.state, stability: card.stability, stabilityFast: card.stabilityFast, difficulty: card.difficulty, learningStep: card.learningStep,
+          scheduledDays: card.scheduledDays, repsAdded: card.reps - input.reps, lapsesAdded: card.lapses - input.lapses };
+        dueAt = card.dueAt;
+        if (key) { if (bucket) bucket.push(result); else results!.set(hash, [result]); }
+      }
+      const next = resolveNextDue(state, { state: result.state, scheduledDays: result.scheduledDays, dueAt }, now, context, schedulerMeta.profile.maximumIntervalDays);
+      state = { state: next.nextPhase, reps: input.reps + result.repsAdded, stability: result.stability, stabilityFast: result.stabilityFast, difficulty: result.difficulty,
+        lapses: input.lapses + result.lapsesAdded, intervalDays: next.intervalDays, learningStepIndex: result.learningStep ?? 0, dueAt: next.dueAt, lastReviewedAt: now };
+      return next.dueAt.getTime();
+    },
+    retrievability: (now: Date) => retrievabilityAt(state, now, schedulerMeta.scheduler),
+  };
 }
 
 export function listReviewableCards(deck: Deck): Card[] {
