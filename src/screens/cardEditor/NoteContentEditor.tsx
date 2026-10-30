@@ -125,7 +125,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
         {structureEditable && blocks.reverse !== null ? (
           <CoreSegmentedControl
             ariaLabel="Lernrichtung"
-            size="compact"
+            className="core-segmented-touch"
             options={[{ value: "standard", label: "Standard" }, { value: "both", label: "Beide Richtungen" }]}
             value={blocks.reverse ? "both" : "standard"}
             onValueChange={(next) => onStructureChange(setNoteReverse(structure, next === "both"))}
@@ -235,7 +235,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
         ) : <span />}
         <CoreSegmentedControl
           ariaLabel="Kartenseite in der Vorschau"
-          size="compact"
+          className="core-segmented-touch"
           options={SIDE_OPTIONS}
           value={side}
           onValueChange={(next) => {
@@ -254,7 +254,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
 
   return (
     <div className="grid min-w-0 gap-4">
-      <CoreSegmentedControl ariaLabel="Ansicht" options={MOBILE_OPTIONS} value={mobileView} onValueChange={setMobileView} className="w-full md:hidden" />
+      <CoreSegmentedControl ariaLabel="Ansicht" options={MOBILE_OPTIONS} value={mobileView} onValueChange={setMobileView} className="core-segmented-touch w-full md:hidden" />
       <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div className={mobileView === "edit" ? "min-w-0" : "hidden min-w-0 md:block"}>{fields}</div>
         <div className={`${mobileView === "preview" ? "min-w-0" : "hidden min-w-0 md:block"} md:sticky md:top-0 md:self-start`}>{previewColumn}</div>

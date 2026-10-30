@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-30 — Karteneditor V2, PR B: Editor
+
+- UI-Bausteine: `SuccessToast` mit Aktion `Rückgängig` (10 s, Pause bei Mauszeiger und Fokus, Ersetzen), `TagInput` (Chips mit letztem Pfadteil, Vorschläge aus dem Tag-Verzeichnis, eingeklappte Import-Gruppe, Trennung nach W10), `FlagPicker`/`FlagDot`, `RichTextEditor` mit Werkzeugleiste nur am aktiven Feld; Tokens `--core-flag-1` bis `--core-flag-7`, `--core-danger-text`, `--core-marked-surface` hell und dunkel mit Kontrasttest.
+- Editor als modaler Dialog über die ganze Fläche in `src/screens/cardEditor/` (ersetzt den `DeckCardEditor` und das Detail-`aside`): Reiter `Allgemein`, `Inhalt`, `Varianten`, `Lernen` mit `cardTab` in der URL, Einstieg nach W6, Tastenkürzel nach W11, Vor/Zurück durch die geladenen Treffer mit Nachladen am Seitenende, Markiert-Tönung, Statussymbole; `Varianten` und `Lernen` laden erst beim Öffnen.
+- `Allgemein` mit Flagge, Markierung, Planung (Schnellwahl, `Neu planen` erst nach Datumsänderung, Aussetzen, Zurückstellen), Lernbremse, Verschieben, Tags, Geschwisterkarten samt „Neu beim Speichern“, ähnlichen Inhalten und Details; Rückgängig nach W7/W20 mit Revisionsprüfung. `Inhalt` mit Live-Vorschau, Geändert-Punkten, Medienliste und Fußleiste; ein bearbeiteter Entwurf speichert auf seiner Basis, sodass eine per Sync eingetroffene Fassung in die Konfliktbehandlung läuft (W19). `Varianten` mit Original, Bearbeiten in der Zeile, Neu generieren, Abschalten, Löschen; `Lernen` mit neun Kennzahlen, Reifeband, Abrufverlauf (lokal sofort, Cloud online) und `Als neu lernen …`.
+- Behoben: Schnell aufeinanderfolgende Sofortaktionen (etwa `Strg+3`, dann `Strg+K`) überschrieben sich; sie laufen jetzt nacheinander. Die E2E-Hilfen lasen noch den alten Replik-Namensraum `v4`.
+- Verifiziert: `npm run typecheck`, `npm test` 911/911 (1 übersprungen: Korpustest ohne lokalen Korpus), W15-Korpustest mit 7 lokalen Decks je 400 Notizen grün; lokal gegen Supabase `card-lifecycle`, `navigation-context`, `core-stabilization`, `batch-resilience`, `zz-media-import`, `product-surfaces`. Visuelle Pflichtmatrix aus der echten App: 6 Viewports × hell/dunkel × 4 Reiter, je unmarkiert und markiert (192 Aufnahmen), ohne horizontalen Überlauf und mit Touchzielen ≥ 44 px unter 768 px. Nicht geprüft: Bildschirmtastatur auf echtem Gerät und 200 % Zoom.
+
 ## 2026-10-30 — Karteneditor V2, PR A: Fundament
 
 - Roadmap P0 in drei PRs gegliedert, Entscheidungen W1–W23 (ADR-045); Specs „Kartendetail und Editor“ nach dem Zielbild neu gefasst, Abschnitt „Tags, Flaggen und Lernbremse“ ergänzt.

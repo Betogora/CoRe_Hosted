@@ -123,7 +123,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
   }
 
   return (
-    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6" data-testid="card-study-tab">
+    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-study-tab">
       <section className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Lernstand">
         <ol className="grid grid-cols-4 gap-1" aria-label="Reifeband" data-testid="card-maturity-band">
           {BANDS.map((entry) => {

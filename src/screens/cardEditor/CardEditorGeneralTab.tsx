@@ -33,7 +33,7 @@ const formatInstant = (iso: string) => new Date(iso).toLocaleDateString("de-DE",
 function Section({ title, children, testId }: { title: string; children: React.ReactNode; testId?: string }) {
   const id = React.useId();
   return (
-    <section className="grid min-w-0 content-start gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby={id} data-testid={testId}>
+    <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby={id} data-testid={testId}>
       <h3 id={id} className="core-body font-semibold text-core-text">{title}</h3>
       {children}
     </section>
@@ -285,11 +285,11 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
       </div>
       <div className="grid min-w-0 gap-4">
         <Section title="Tags" testId="card-tags">
-          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} directory={directory} label="Tags bearbeiten" onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
+          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} directory={directory} label="Tags bearbeiten" labelHidden onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
         </Section>
         {siblings.length > 1 || pendingCards.length ? (
           <Section title="Karten aus diesem Inhalt" testId="card-siblings">
-            <ul className="grid gap-1">
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1">
               {siblings.map((sibling) => {
                 const content = (
                   <>
@@ -300,15 +300,15 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
                 return (
                   <li key={sibling.id}>
                     {sibling.id === card.id ? (
-                      <p className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-subtle px-3 core-body" aria-current="true">{content}</p>
+                      <p className="flex min-h-control min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-subtle px-3 core-body" aria-current="true">{content}</p>
                     ) : (
-                      <button type="button" onClick={() => onSelectCard(sibling.deckId, sibling.id)} className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-x-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle">{content}</button>
+                      <button type="button" onClick={() => onSelectCard(sibling.deckId, sibling.id)} className="flex min-h-control w-full min-w-0 flex-wrap items-center gap-x-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle">{content}</button>
                     )}
                   </li>
                 );
               })}
               {pendingCards.map((pending) => (
-                <li key={pending.promptKey} className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset border border-dashed border-core-border px-3 core-body" data-testid="card-sibling-pending">
+                <li key={pending.promptKey} className="flex min-h-control min-w-0 flex-wrap items-center gap-x-2 rounded-inset border border-dashed border-core-border px-3 core-body" data-testid="card-sibling-pending">
                   <span className="font-semibold text-core-text">{pending.label}</span>
                   <span className="text-core-muted">Neu beim Speichern</span>
                 </li>
@@ -316,20 +316,18 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
             </ul>
           </Section>
         ) : null}
-        {online && services.cloud ? (
+        {online && services.cloud && similar?.length ? (
           <Section title="Ähnliche Inhalte" testId="card-similar">
-            {similar === null ? <p className="core-body text-core-muted" role="status">Wird gesucht …</p> : similar.length ? (
-              <ul className="grid gap-1">
-                {similar.map((entry) => (
-                  <li key={entry.noteId}>
-                    <button type="button" onClick={() => onSelectCard(entry.deckId, entry.cardId)} className="flex min-h-10 w-full min-w-0 items-center gap-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle">
-                      <span className="min-w-0 flex-1 truncate text-core-text">{entry.preview || "Ohne Text"}</span>
-                      <span className="shrink-0 core-caption text-core-muted">{deckName(entry.deckId)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : <p className="core-body text-core-muted">Keine ähnlichen Inhalte.</p>}
+            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1">
+              {similar.map((entry) => (
+                <li key={entry.noteId}>
+                  <button type="button" onClick={() => onSelectCard(entry.deckId, entry.cardId)} className="flex min-h-control w-full min-w-0 items-center gap-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle">
+                    <span className="min-w-0 flex-1 truncate text-core-text">{entry.preview || "Ohne Text"}</span>
+                    <span className="shrink-0 core-caption text-core-muted">{deckName(entry.deckId)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </Section>
         ) : null}
         <Section title="Details" testId="card-details">

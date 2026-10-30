@@ -126,7 +126,7 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
   }
 
   return (
-    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6" data-testid="card-variant-tools">
+    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start" data-testid="card-variant-tools">
       <section className="grid min-w-0 gap-2 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Original">
         <span className="w-fit rounded-inset bg-core-subtle px-2 py-0.5 core-caption font-semibold text-core-text">Original</span>
         {original ? (

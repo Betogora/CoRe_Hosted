@@ -236,6 +236,7 @@ export function App() {
   const pomodoroTimerRef = React.useRef<PomodoroTimer | null>(null);
   const creationDraftFocusRef = React.useRef<(() => void) | null>(null);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
+  const studyStatePatchChainRef = React.useRef<Promise<unknown>>(Promise.resolve());
   const screenRegionRef = React.useRef<HTMLElement | null>(null);
   const apkgImportSessionRef = React.useRef(apkgImportSession);
   const apkgAccountIdRef = React.useRef<string | null>(null);
@@ -526,8 +527,8 @@ export function App() {
   }, []);
 
   // The editor keeps one services object per account; its actions read the latest app state when they run.
-  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView });
-  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView };
+  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow });
+  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow };
   const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
   const cardEditorServices = React.useMemo<CardEditorServices>(() => {
     const actions = () => cardEditorActionsRef.current;
@@ -539,10 +540,11 @@ export function App() {
     return {
       flagNames: flagNamesKey.split("\n"),
       moveCard: (cardId, deckId) => actions().moveDeckCard(cardId, deckId),
-      resetCards: (cardIds) => actions().applyManualStudyChanges((current) => current.resetCards(cardIds)),
-      setCardsLeech: (cardIds, leechedAt) => actions().applyManualStudyChanges((current) => current.setCardsLeech(cardIds, leechedAt)),
-      buryCards: (cardIds, buried) => actions().applyManualStudyChanges((current) => current.buryCards(cardIds, buried)),
-      restoreCardStudies: (studies) => actions().applyManualStudyChanges((current) => current.restoreCardStudies(studies)),
+      // Manual events carry the learning time, so burying follows a simulated learning day as well.
+      resetCards: (cardIds) => actions().applyManualStudyChanges((current) => current.resetCards(cardIds, actions().getLearningNow())),
+      setCardsLeech: (cardIds, leechedAt) => actions().applyManualStudyChanges((current) => current.setCardsLeech(cardIds, leechedAt, actions().getLearningNow())),
+      buryCards: (cardIds, buried) => actions().applyManualStudyChanges((current) => current.buryCards(cardIds, buried, actions().getLearningNow())),
+      restoreCardStudies: (studies) => actions().applyManualStudyChanges((current) => current.restoreCardStudies(studies, actions().getLearningNow())),
       editVariant: (cardId, variantId, text) => actions().editDeckCardVariant(cardId, variantId, text),
       removeNoteMedia: (graph, names) => actions().removeDeckNoteMedia(graph, names),
       loadCard: async (cardId) => repository().loadCardBody(cardId),
@@ -1322,8 +1324,17 @@ export function App() {
     };
   }
 
-  /** Mark and tags belong to the content (all siblings show them); suspension and flag belong to the card. */
-  async function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
+  /**
+   * Mark and tags belong to the content (all siblings show them); suspension and flag belong to the card. Patches run
+   * one after another, so quick changes (Strg+3, then Strg+K) each build on the stored result of the previous one.
+   */
+  function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
+    const run = studyStatePatchChainRef.current.then(() => writeCardStudyState(cardId, patch));
+    studyStatePatchChainRef.current = run.catch(() => undefined);
+    return run;
+  }
+
+  async function writeCardStudyState(cardId: string, patch: CardStudyStatePatch) {
     if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
     const body = await workspaceRepository.loadCardBody(cardId);
     if (!body) return null;

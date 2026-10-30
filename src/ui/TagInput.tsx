@@ -18,6 +18,8 @@ export interface TagInputProps {
   directory?: readonly TagDirectoryEntry[];
   onChange: (tags: string[], change: { added: string[]; removed: string[] }) => void;
   label?: string;
+  /** The label stays for assistive technology while a surrounding heading names the field. */
+  labelHidden?: boolean;
   disabled?: boolean;
 }
 
@@ -25,7 +27,7 @@ export interface TagInputProps {
  * Tag chips with suggestions from the account's directory. Space, Enter and Tab finish a tag, pasting splits only at
  * whitespace; `#`, `,` and `;` stay part of a tag (W10). A chip's text goes back into the field for editing.
  */
-export function TagInput({ tags, importedTags = [], directory = [], onChange, label = "Tags", disabled = false }: TagInputProps) {
+export function TagInput({ tags, importedTags = [], directory = [], onChange, label = "Tags", labelHidden = false, disabled = false }: TagInputProps) {
   const [text, setText] = React.useState("");
   const [importedOpen, setImportedOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(-1);
@@ -89,11 +91,11 @@ export function TagInput({ tags, importedTags = [], directory = [], onChange, la
     return (
       <li key={tag} className="flex min-w-0 max-w-full items-center rounded-inset bg-core-subtle core-body text-core-text">
         <CoreTooltip label={tag}>
-          <button type="button" disabled={disabled} className="min-h-8 min-w-0 truncate pl-2.5 pr-1 text-left font-semibold" aria-label={`Tag ${tag} bearbeiten`} onClick={() => edit(tag)}>
+          <button type="button" disabled={disabled} className="min-h-11 min-w-0 truncate pl-2.5 pr-1 text-left font-semibold md:min-h-8" aria-label={`Tag ${tag} bearbeiten`} onClick={() => edit(tag)}>
             {tagLeaf(tag)}
           </button>
         </CoreTooltip>
-        <button type="button" disabled={disabled} className="grid size-8 shrink-0 place-items-center rounded-inset text-core-muted hover:text-core-text" aria-label={`Tag ${tag} entfernen`} onClick={() => remove(tag)}>
+        <button type="button" disabled={disabled} className="grid size-11 shrink-0 place-items-center rounded-inset text-core-muted hover:text-core-text md:size-8" aria-label={`Tag ${tag} entfernen`} onClick={() => remove(tag)}>
           <X size={14} aria-hidden="true" />
         </button>
       </li>
@@ -102,9 +104,9 @@ export function TagInput({ tags, importedTags = [], directory = [], onChange, la
 
   return (
     <div className="grid min-w-0 gap-2" data-tag-input="true">
-      <label htmlFor={inputId} className="core-body font-semibold text-core-secondary">{label}</label>
+      <label htmlFor={inputId} className={labelHidden ? "sr-only" : "core-body font-semibold text-core-secondary"}>{label}</label>
       <div className="relative min-w-0">
-        <div className="flex min-h-control min-w-0 flex-wrap items-center gap-1.5 rounded-control border border-core-border bg-core-surface px-1.5 py-1 focus-within:border-core-action" onClick={(event) => { if (event.target === event.currentTarget) inputRef.current?.focus(); }}>
+        <div className="flex min-h-control min-w-0 flex-wrap items-center gap-1.5 rounded-control border border-core-border bg-core-surface px-1.5 py-1" onClick={(event) => { if (event.target === event.currentTarget) inputRef.current?.focus(); }}>
           {own.length ? <ul className="contents" aria-label="Eigene Tags">{own.map(chip)}</ul> : null}
           <input
             ref={inputRef}
@@ -118,11 +120,11 @@ export function TagInput({ tags, importedTags = [], directory = [], onChange, la
             value={text}
             autoComplete="off"
             spellCheck={false}
-            className="min-h-8 min-w-24 flex-1 bg-transparent px-1.5 core-body text-core-text outline-none focus-visible:outline-none"
+            className="min-h-11 min-w-24 flex-1 bg-transparent px-1.5 core-body text-core-text outline-none focus-visible:outline-none md:min-h-8"
             placeholder={tags.length ? "" : "Tag hinzufügen"}
             onChange={(event) => {
               const value = event.target.value;
-              if (/\s/.test(value.trim())) add(value);
+              if (/\s/.test(value.trimStart())) add(value);
               else {
                 setText(value.trimStart());
                 setActiveIndex(-1);

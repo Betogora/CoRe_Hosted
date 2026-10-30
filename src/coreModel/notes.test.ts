@@ -4,7 +4,7 @@ import type { Card, NoteContent, RevealPrompt } from "../coreTypes.ts";
 import { addCardVariant, createCardVariant, getActiveVariants, replaceOutdatedVariants } from "./cards.ts";
 import { createManualNoteContent } from "./creation.ts";
 import { notePromptLabel } from "./noteContent.ts";
-import { createBasicNote, createNote, planNoteContentChange, planNoteDeletion } from "./notes.ts";
+import { createBasicNote, createNote, planNoteContentChange, planNoteDeletion, removeUnusedNoteMedia } from "./notes.ts";
 
 const CREATED_AT = "2026-10-06T10:00:00.000Z";
 const CHANGED_AT = "2026-10-06T11:00:00.000Z";
@@ -335,4 +335,14 @@ test("Änderungsplanung lehnt gelöschte Inhalte und Karten ab", () => {
   assert.throws(() => planNoteContentChange(deleted, cloze("{{c1::eins}}"), CHANGED_AT), /Gelöschte/);
   const oneDeleted = [previous.cards[0], { ...previous.cards[1], deletedAt: CHANGED_AT }];
   assert.throws(() => planNoteContentChange({ note: previous.note, cards: oneDeleted }, cloze("{{c1::eins}}"), CHANGED_AT), /Gelöschte/);
+});
+
+test("only unreferenced media can be removed, without a content change", () => {
+  const graph = createBasicNote("deck", '<img src="herz.png">', "Antwort");
+  const note = { ...graph.note, media: { "herz.png": "a".repeat(40), "alt.png": "b".repeat(40) } };
+  const cleaned = removeUnusedNoteMedia(note, ["herz.png", "alt.png"], CHANGED_AT);
+  assert.deepEqual(cleaned.media, { "herz.png": "a".repeat(40) });
+  assert.equal(cleaned.revision, note.revision + 1);
+  assert.equal(cleaned.contentRevision, note.contentRevision);
+  assert.equal(removeUnusedNoteMedia(cleaned, ["herz.png"], CHANGED_AT), cleaned);
 });

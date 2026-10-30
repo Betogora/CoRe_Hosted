@@ -321,7 +321,7 @@
   --core-flag-6: #45c7d6;
   --core-flag-7: #b9a0fb;
   --core-danger-text: var(--core-palette-coral-glow);
-  --core-marked-surface: #2b2a23;
+  --core-marked-surface: #26221a;
   --core-marked-text-muted: var(--core-text-muted);
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #46546a;
@@ -531,9 +531,20 @@
 
   /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
   .core-card-editor-tabs {
+    height: calc(var(--core-control-height) + 0.5rem);
     display: grid;
     width: 100%;
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option {
+    padding-inline: 0.25rem;
+  }
+
+  @media (pointer: coarse), (max-width: 767px) {
+    .core-segmented-touch.core-segmented-control {
+      height: calc(var(--core-control-height) + 0.5rem);
+    }
   }
 
   .core-card-editor-tabs .core-segmented-control-option[aria-selected="true"] {
@@ -2404,4 +2415,11 @@ summary {
 @media (max-width: 639px) {
   .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
   .dashboard-widget-grid { gap: 1rem; }
+}
+
+/* Very narrow phones keep all four card editor tab names complete. */
+@media (max-width: 359px) {
+  .core-card-editor-tabs.core-control-label {
+    font-size: var(--core-type-caption);
+  }
 }

@@ -7,7 +7,7 @@ import { loadE2EEnvironment } from "./e2eEnvironment.ts";
 import { seedAccountState } from "../../support/seedAccountState.ts";
 
 const CORE_STORAGE_PREFIX = "core.";
-const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v4.";
+const ACCOUNT_DATABASE_PREFIX = "core.workspace.entities.v5.";
 const SYNC_DEVICE_STORAGE_KEY = "core.syncDevice.v2";
 
 function isSupabaseAuthStorageKey(key: string) {

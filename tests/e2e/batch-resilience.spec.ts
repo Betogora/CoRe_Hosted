@@ -310,11 +310,12 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   await expect(cardDialog.getByRole("button", { name: "Ja" }).locator("svg.lucide-check")).toBeVisible();
   await page.getByTestId("action-dialog-backdrop").click({ position: { x: 5, y: 5 } });
   await expect(cardDialog).toBeHidden();
-  await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+  await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toContainText("Bestehende Karte");
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toBeFocused();
 
   await page.getByTestId(`deck-card-${existingCardId}`).click();
+  await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
   await cardDialog.getByRole("button", { name: "Nein" }).click();
   await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
@@ -329,24 +330,24 @@ test("[Vertrag: Karten- und Stapellöschung] @beta-core Bestätigung, Undo und A
   const deletionToast = page.locator('[data-success-toast-region="true"]');
   await expect(deletionToast).toContainText("Karte wurde erfolgreich gelöscht.");
   await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
-  await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+  await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
   await expect.poll(() => contentRegion.evaluate((region) => region.scrollTop)).toBeGreaterThan(0);
   await expect.poll(() => scrollAnchor.evaluate((element) => element.getBoundingClientRect().top)).toBeCloseTo(anchorTopBeforeDelete, 0);
   await expect(page.getByRole("button", { name: "Rückgängig" })).toBeVisible();
   await deletionToast.getByRole("button", { name: "Erfolgsmeldung schließen" }).click();
   await expect(deletionToast).toHaveCount(0);
   await page.getByRole("button", { name: "Rückgängig" }).click();
-  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
+  await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Bestehende Karte");
   await expect.poll(async () => (await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
   await page.reload();
   if (await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).getAttribute("aria-expanded") !== "true") {
     await page.getByTestId(`deck-toggle-${DECK_IDS.target}`).click();
   }
-  if (await page.getByTestId("card-detail-aside").count() === 0) {
+  if (await page.getByTestId("card-detail-dialog").count() === 0) {
     await page.getByTestId(`deck-card-${existingCardId}`).click();
   }
-  await expect(page.getByRole("textbox", { name: "Feld Vorderseite" })).toContainText("Bestehende Karte");
-  await page.getByTestId("card-detail-backdrop").click({ position: { x: 5, y: 5 } });
+  await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Bestehende Karte");
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
 
   await page.getByTestId(`deck-options-${DECK_IDS.rootA}`).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.rootA}`).getByRole("button", { name: "Einstellungen", exact: true }).click();
@@ -382,7 +383,7 @@ test("[Vertrag: Offline-Kartenlöschung] lokal gelöschte Karten werden nach Rec
     await expect.poll(async () => !(await readActiveAccountState(page)).decks.some((deck: Deck) => deck.cards.some((card) => card.id === existingCardId))).toBe(true);
     await expect(page.locator('[data-success-toast-region="true"]')).toContainText("Karte wurde erfolgreich gelöscht.");
     await expect(page.getByTestId(`deck-card-${existingCardId}`)).toHaveCount(0);
-    await expect(page.getByTestId("card-detail-aside")).toHaveCount(0);
+    await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
     await expect(page.getByText(/„Bestehende Karte“ gelöscht/)).toBeVisible();
   } finally {
     await context.setOffline(false);

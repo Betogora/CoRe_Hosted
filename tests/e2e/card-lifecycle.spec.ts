@@ -128,6 +128,13 @@ async function openCreatedCardEditor(page: Page, deck: Deck) {
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
+  await openEditorTab(page, "Inhalt");
+}
+
+/** The table opens `Allgemein` (W6); content edits happen in `Inhalt`. */
+async function openEditorTab(page: Page, name: "Allgemein" | "Inhalt" | "Varianten" | "Lernen") {
+  await page.getByTestId("card-detail-dialog").getByRole("tab", { name, exact: true }).click();
+  await expect(page.getByTestId("card-detail-dialog").getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
 }
 
 async function finishApkgImport(page: Page) {
@@ -163,7 +170,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   expect("immutableOriginal" in savedCard.note).toBe(false);
   expect("versionLog" in savedCard.note).toBe(false);
   const sourceUrl = page.url();
-  await page.getByRole("button", { name: "Kopieren", exact: true }).click();
+  await page.getByTestId("card-detail-dialog").getByRole("button", { name: "Duplizieren", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt." })).toBeVisible();
   await expect(page).toHaveURL(sourceUrl);
   const copiedState = await readActiveAccountState(page);
@@ -315,34 +322,32 @@ test("[Vertrag: modale Kartenvorschau] @beta-core Erstellung und Editor zeigen d
   await page.getByRole("textbox", { name: "Feld Vorderseite", exact: true }).fill("Ungespeicherte Editorfrage");
   await page.getByRole("textbox", { name: "Feld Rückseite", exact: true }).fill("Ungespeicherte Editorantwort");
 
-  const editorPreviewButton = page.getByTestId("card-detail-aside").getByRole("button", { name: "Vorschau", exact: true });
-  await editorPreviewButton.click();
-  const editorFrontBody = dialog.frameLocator('iframe[title="Frage"]').locator("body");
+  // The editor has no preview dialog: the live preview beside the fields follows the draft (W9).
+  const livePreview = page.getByTestId("card-live-preview");
+  await expect(page.getByTestId("card-detail-dialog").getByRole("button", { name: "Vorschau", exact: true })).toHaveCount(0);
+  const editorFrontBody = livePreview.frameLocator('iframe[title="Frage"]').locator("body");
   await expect(editorFrontBody).toContainText("Ungespeicherte Editorfrage");
   await expect(editorFrontBody).not.toContainText("Ungespeicherte Editorantwort");
   expect((await editorFrontBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
-  await dialog.getByRole("button", { name: "Rückseite" }).click();
-  const editorRevealedBody = dialog.frameLocator('iframe[title="Aufgedeckte Karte"]').locator("body");
+  await livePreview.getByRole("button", { name: "Rückseite" }).click();
+  const editorRevealedBody = livePreview.frameLocator('iframe[title="Aufgedeckte Karte"]').locator("body");
   await expect(editorRevealedBody).toContainText("Ungespeicherte Editorantwort");
-  await expect(dialog.locator('iframe[title="Frage"]')).toHaveCount(0);
+  await expect(livePreview.locator('iframe[title="Frage"]')).toHaveCount(0);
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorfrage/g)).toHaveLength(1);
   expect((await editorRevealedBody.innerText()).match(/Ungespeicherte Editorantwort/g)).toHaveLength(1);
-  await page.getByRole("button", { name: "Kartenvorschau schließen" }).click();
-  await expect(editorPreviewButton).toBeFocused();
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await editorPreviewButton.click();
-  await dialog.evaluate(async (element) => {
-    await Promise.all(element.getAnimations().map((animation) => animation.finished));
-  });
-  const mobileBox = await dialog.boundingBox();
+  const editorDialog = page.getByTestId("card-detail-dialog");
+  const mobileBox = await editorDialog.boundingBox();
   expect(mobileBox).not.toBeNull();
-  expect(mobileBox!.x).toBeLessThanOrEqual(3);
-  expect(mobileBox!.y).toBeLessThanOrEqual(3);
-  expect(Math.abs(mobileBox!.width - 390)).toBeLessThanOrEqual(5);
-  expect(Math.abs(mobileBox!.height - 844)).toBeLessThanOrEqual(5);
+  expect(mobileBox!.x).toBeLessThanOrEqual(1);
+  expect(mobileBox!.y).toBeLessThanOrEqual(1);
+  expect(Math.abs(mobileBox!.width - 390)).toBeLessThanOrEqual(1);
+  expect(Math.abs(mobileBox!.height - 844)).toBeLessThanOrEqual(1);
+  await editorDialog.getByRole("group", { name: "Ansicht" }).getByRole("button", { name: "Vorschau" }).click();
+  await expect(livePreview).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Feld Vorderseite", exact: true })).toBeHidden();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
-  await page.keyboard.press("Escape");
   expect(consoleErrors.filter((message) => !/status of (?:400|409)/.test(message))).toEqual([]);
 });
 
@@ -374,11 +379,12 @@ test("[Vertrag: KI-Basic-Variante] @golden-e2e @beta-core @hosted-core abgefange
     });
   });
 
+  await openEditorTab(page, "Varianten");
   await expect(page.getByTestId("card-variant-tools")).toBeVisible();
   const generateButton = page.getByRole("button", { name: "Variante generieren" });
   await generateButton.click();
   await expect(generateButton).toBeDisabled();
-  await expect(page.getByText("Variante wird generiert …", { exact: true })).toBeVisible();
+  await expect(generateButton).toHaveAttribute("aria-busy", "true");
   releaseProvider();
   await expect(page.getByRole("status").filter({ hasText: "Variante wurde generiert." }).last()).toBeVisible();
 
@@ -605,7 +611,7 @@ test("[Vertrag: typgerechter Multiple-Choice-Lebenszyklus] @beta-core Optionen, 
   expect(fieldHtml(savedCard, "Erklärung")).toContain("Gamma neu ist nach der Bearbeitung richtig.");
   await page.reload();
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
-  const detail = page.getByTestId("card-detail-aside");
+  const detail = page.getByTestId("card-detail-dialog");
   if (!await detail.isVisible().catch(() => false)) await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await page.getByRole("button", { name: "Detailansicht schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
@@ -641,6 +647,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
+  await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "Feld Front", exact: true })).toContainText(importedQuestion);
   await page.getByRole("textbox", { name: "Feld Front", exact: true }).fill("Welches Hormon senkt lokal den Blutzucker?");
   await page.getByRole("button", { name: "Speichern", exact: true }).click();
