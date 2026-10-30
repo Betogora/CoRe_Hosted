@@ -1,4 +1,4 @@
-import type { LearningSettings } from "./coreTypes.ts";
+import type { LearningSettings, ReviewEvent } from "./coreTypes.ts";
 
 /** The three burying options of a deck (K7.1). */
 export type SiblingBuryMode = Pick<LearningSettings, "buryNewSiblings" | "buryReviewSiblings" | "buryInterdayLearningSiblings">;
@@ -11,6 +11,26 @@ const optionForKind: Record<SiblingKind, keyof SiblingBuryMode> = {
   review: "buryReviewSiblings",
   "interday-learning": "buryInterdayLearningSiblings",
 };
+
+/** Kinds of the manual events that bury a single card until the next learning day, or lift that again. */
+export const MANUAL_BURY_KIND = "manual_bury";
+export const MANUAL_UNBURY_KIND = "manual_unbury";
+
+/**
+ * Cards the learner buried today: like buried siblings this is derived from today's events, never stored on the card.
+ * The latest bury or unbury event of a card decides.
+ */
+export function manuallyBuriedCardIds(todayEvents: readonly Pick<ReviewEvent, "id" | "cardId" | "rating" | "answeredAt" | "flags">[]): Set<string> {
+  const latest = new Map<string, { at: string; id: string; buried: boolean }>();
+  for (const event of todayEvents) {
+    const kind = event.rating === "manual" ? (event.flags as { kind?: unknown } | null)?.kind : null;
+    if (kind !== MANUAL_BURY_KIND && kind !== MANUAL_UNBURY_KIND) continue;
+    const previous = latest.get(event.cardId);
+    if (previous && (previous.at > event.answeredAt || (previous.at === event.answeredAt && previous.id > event.id))) continue;
+    latest.set(event.cardId, { at: event.answeredAt, id: event.id, buried: kind === MANUAL_BURY_KIND });
+  }
+  return new Set([...latest].filter(([, entry]) => entry.buried).map(([cardId]) => cardId));
+}
 
 export function buriesSiblings(mode: SiblingBuryMode | null | undefined): boolean {
   return Boolean(mode && (mode.buryNewSiblings || mode.buryReviewSiblings || mode.buryInterdayLearningSiblings));

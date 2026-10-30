@@ -1,7 +1,7 @@
 import { sanitizeNoteHtml, stripSanitizedHtml } from "../htmlSafety.ts";
 import type { Card, CardVariant, VariantPerformance } from "../coreTypes.ts";
 import { VARIANT_STATUSES, makeId, stableContentHash } from "./coreValues.ts";
-import { createVariantPerformance } from "./reviewState.ts";
+import { createCardStudy, createVariantPerformance } from "./reviewState.ts";
 
 interface VariantPerformanceInput extends Partial<Omit<VariantPerformance, "id" | "attempts">> {
   id?: string | null;
@@ -98,6 +98,35 @@ export function setCardFlag(card: Card, flag: number, updatedAt = new Date().toI
   if (!Number.isInteger(flag) || flag < 0 || flag > 7) throw new Error("Die Flagge ist ungültig.");
   if (card.ankiFlag === flag) return card;
   return { ...card, ankiFlag: flag, updatedAt, revision: card.revision + 1 };
+}
+
+/** Moves a card to another deck; study state and siblings stay. */
+export function moveCardToDeck(card: Card, deckId: string, updatedAt = new Date().toISOString()): Card {
+  if (!deckId.trim()) throw new Error("Der Zielstapel fehlt.");
+  if (card.deckId === deckId) return card;
+  return { ...card, deckId, updatedAt, revision: card.revision + 1 };
+}
+
+/**
+ * "Als neu lernen": the card starts over as a new card with zero repetitions and lapses and without leech; its review
+ * history stays. New cards keep their creation order, so it returns to its original place among them.
+ */
+export function resetCardStudy(card: Card, occurredAt = new Date().toISOString()): Card {
+  const { study } = card;
+  if (study.state === "new" && study.reps === 0 && study.lapses === 0 && study.leechedAt === null) return card;
+  return { ...card, study: createCardStudy(occurredAt), studyRevision: card.studyRevision + 1, updatedAt: occurredAt };
+}
+
+/** Sets or lifts the leech state; part of the study state, so it travels like a review. */
+export function setCardLeech(card: Card, leechedAt: string | null, occurredAt = new Date().toISOString()): Card {
+  if (card.study.leechedAt === leechedAt) return card;
+  return { ...card, study: { ...card.study, leechedAt }, studyRevision: card.studyRevision + 1, updatedAt: occurredAt };
+}
+
+/** Puts back an earlier study state, e.g. to undo a manual change; the revision still counts forward. */
+export function restoreCardStudy(card: Card, study: Card["study"], occurredAt = new Date().toISOString()): Card {
+  if (JSON.stringify(card.study) === JSON.stringify(study)) return card;
+  return { ...card, study, studyRevision: card.studyRevision + 1, updatedAt: occurredAt };
 }
 
 /** Manual reschedule changes only the due date; phase and memory stay, suspension stays. */

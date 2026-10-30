@@ -525,3 +525,49 @@ test("Reimport führt Tags dreiseitig zusammen, auch bei lokal bearbeitetem Inha
   assert.deepEqual([tagsOnly?.note.contentRevision, tagsOnly?.note.importedContentRevision, tagsOnly?.note.revision], [1, 1, 2]);
   repository.close();
 });
+
+test("manuelle Lernstandsänderungen reisen als manuelle Ereignisse; Rückgängig stellt den Lernstand wieder her", async () => {
+  const repository = await openRepository(workspaceState(2));
+  const [leeched] = await repository.setCardsLeech(["card-0"], "2026-08-21T09:00:00.000Z", "2026-08-21T09:00:00.000Z");
+  await repository.buryCards(["card-1"], true, "2026-08-21T09:05:00.000Z");
+  const [reset] = await repository.resetCards(["card-0"], "2026-08-21T09:10:00.000Z");
+  assert.equal(reset.study.leechedAt, null);
+  assert.deepEqual(await repository.listCatalogPage("deck-idb", { query: "tag:leech" }).then((page) => page.items.map((entry) => entry.id)), []);
+  await repository.restoreCardStudies(new Map([["card-0", leeched.study]]), "2026-08-21T09:15:00.000Z");
+  assert.deepEqual(await repository.resetCards(["card-1"], "2026-08-21T09:20:00.000Z").then((cards) => cards.map((card) => card.studyRevision)), [1], "eine neue Karte bleibt unverändert");
+
+  assert.deepEqual((await repository.listCardReviewEvents("card-0")).map((event) => [event.rating, event.flags.kind]), [
+    ["manual", "manual_leech"], ["manual", "manual_reset"], ["manual", "manual_restore"],
+  ]);
+  assert.deepEqual((await repository.listCardReviewEvents("card-1")).map((event) => event.flags.kind), ["manual_bury"]);
+  assert.equal(repository.outbox.listPending().filter((mutation) => mutation.type === "review-atomic").length, 4);
+  assert.deepEqual(await repository.listCatalogPage("deck-idb", { query: "tag:leech" }).then((page) => page.items.map((entry) => entry.id)), ["card-0"]);
+  repository.close();
+});
+
+test("eine Lernbremse, die der Stapel aussetzt, synchronisiert die Aussetzung als Kartenänderung", async () => {
+  const graph = basicGraph("deck-leech", 0);
+  const card: Card = { ...graph.cards[0], study: { ...graph.cards[0].study, state: "review", reps: 5, stability: 20, difficulty: 6, lastReviewedAt: "2026-08-01T00:00:00.000Z" } };
+  const deck = createCoreDeck({ id: "deck-leech", name: "Lernbremse", source: "manual", cards: [card], deckSettings: { leechThreshold: 1, leechAction: "suspend" } });
+  const repository = await openRepository(state([deck], [graph.note]));
+  const result = answerVariant(deck, card.id, null, "again", { now: "2026-08-21T10:00:00.000Z" });
+  assert.equal(result.leechTriggered, true);
+  repository.recordReview(result);
+  await repository.flush();
+
+  const stored = (await repository.loadCardBody(card.id))!.card;
+  assert.deepEqual([stored.status, stored.study.leechedAt], ["suspended", "2026-08-21T10:00:00.000Z"]);
+  assert.deepEqual(pendingEntityMutations(repository).map((mutation) => [mutation.table, mutation.entityId, mutation.baseRevision, mutation.entity.status]), [
+    ["cards", card.id, card.revision, "suspended"],
+  ]);
+  repository.close();
+});
+
+test("das lokale Tag-Verzeichnis liest die Inhalte der Replik", async () => {
+  const graph = basicGraph("deck-tags", 0);
+  const note: Note = { ...graph.note, content: { ...graph.note.content, tags: ["#AK::Herz"] }, importedTags: ["#AK::Herz"] };
+  const repository = await openRepository(state([createCoreDeck({ id: "deck-tags", name: "Tags", source: "manual", cards: graph.cards })], [note]));
+  assert.deepEqual(await repository.listTagDirectory(), [{ tag: "#AK::Herz", noteCount: 1, importedCount: 1 }]);
+  assert.deepEqual(await repository.listCatalogPage("deck-tags", { query: "tag:#ak" }).then((page) => page.items.map((entry) => entry.id)), ["card-0"]);
+  repository.close();
+});

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { setCardFlag } from "./cards.ts";
+import { moveCardToDeck } from "../coreModel.ts";
+import { resetCardStudy, restoreCardStudy, setCardFlag, setCardLeech } from "./cards.ts";
 import { createBasicNote, planNoteContentChange, setNoteTags } from "./notes.ts";
 import { mergeImportedTags, normalizeTags, splitAnkiSystemTags, tagSearchKeys } from "./tags.ts";
 
@@ -46,4 +47,25 @@ test("Flaggen sind 0 bis 7 und erhöhen die Kartenrevision", () => {
   assert.deepEqual([flagged.ankiFlag, flagged.revision, flagged.studyRevision], [4, 2, 0]);
   assert.equal(setCardFlag(flagged, 4), flagged);
   assert.throws(() => setCardFlag(card, 8), /Flagge/);
+});
+
+test("Kartenaktionen: Als neu lernen, Lernbremse, Wiederherstellen und Verschieben", () => {
+  const [card] = createBasicNote("deck", "Frage", "Antwort").cards;
+  const learned = { ...card, study: { ...card.study, state: "review" as const, reps: 9, lapses: 8, leechedAt: "2026-10-01T00:00:00.000Z" }, studyRevision: 9 };
+
+  const reset = resetCardStudy(learned, "2026-10-30T12:00:00.000Z");
+  assert.deepEqual(
+    [reset.study.state, reset.study.reps, reset.study.lapses, reset.study.leechedAt, reset.study.dueAt, reset.studyRevision, reset.revision],
+    ["new", 0, 0, null, "2026-10-30T12:00:00.000Z", 10, card.revision],
+  );
+  assert.equal(resetCardStudy(reset), reset);
+
+  const lifted = setCardLeech(learned, null, "2026-10-30T12:00:00.000Z");
+  assert.deepEqual([lifted.study.leechedAt, lifted.study.lapses, lifted.studyRevision], [null, 8, 10]);
+  const restored = restoreCardStudy(lifted, learned.study, "2026-10-30T12:01:00.000Z");
+  assert.deepEqual([restored.study, restored.studyRevision], [learned.study, 11], "Rückgängig zählt die Revision weiter");
+
+  const moved = moveCardToDeck(card, "deck-b", "2026-10-30T12:00:00.000Z");
+  assert.deepEqual([moved.deckId, moved.revision, moved.studyRevision], ["deck-b", card.revision + 1, card.studyRevision]);
+  assert.equal(moveCardToDeck(moved, "deck-b"), moved);
 });

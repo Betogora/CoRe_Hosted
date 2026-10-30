@@ -245,3 +245,50 @@ test("begrabene Karten verbrauchen keine Tageslimits", () => {
   assert.deepEqual(plain.ids, ["n-new-1", "n-new-2"]);
   assert.equal(plain.queue.limitSummary.hiddenNewCount, 2);
 });
+
+function reviewCardWithLapses(id: string, lapses: number, leechedAt: string | null = null): Card {
+  return {
+    ...basicCard(id),
+    id,
+    study: cardStudyFromReviewState(createReviewState({ state: "review", dueAt: "2026-08-21T07:00:00.000Z", reps: 20, lapses, stability: 30, difficulty: 6, lastReviewedAt: "2026-07-21T07:00:00.000Z", leechedAt })),
+  };
+}
+
+test("Lernbremse: an der Schwelle und bei jeder halben Schwelle, nie rückwirkend, nur bei einem Lapse", () => {
+  const now = "2026-08-21T08:00:00.000Z";
+  const answer = (lapses: number, rating: "again" | "good" = "again", leechedAt: string | null = null, deckSettings = {}) => {
+    const deck = createCoreDeck({ id: "deck", cards: [reviewCardWithLapses("card", lapses, leechedAt)], deckSettings });
+    return answerVariant(deck, "card", null, rating, { now });
+  };
+  assert.equal(answer(6).leechTriggered, false);
+  const atThreshold = answer(7);
+  assert.deepEqual([atThreshold.leechTriggered, atThreshold.updatedCard.study.lapses, atThreshold.updatedCard.study.leechedAt, atThreshold.updatedCard.status], [true, 8, now, "active"]);
+  assert.equal(answer(8).leechTriggered, false, "9 Lapses: zwischen den Auslösungen");
+  assert.equal(answer(11).leechTriggered, true, "12 Lapses: halbe Schwelle nach 8");
+  assert.equal(answer(11, "again", "2026-08-01T00:00:00.000Z").updatedCard.study.leechedAt, "2026-08-01T00:00:00.000Z", "der erste Zeitpunkt bleibt");
+  assert.equal(answer(20, "good").leechTriggered, false, "ohne Lapse keine Auslösung, auch über der Schwelle");
+  assert.equal(answer(20, "good", "2026-08-01T00:00:00.000Z").updatedCard.study.leechedAt, "2026-08-01T00:00:00.000Z", "eine gute Bewertung hebt die Lernbremse nicht auf");
+
+  const suspending = answer(3, "again", null, { leechThreshold: 4, leechAction: "suspend" });
+  assert.deepEqual([suspending.leechTriggered, suspending.updatedCard.status, suspending.updatedCard.revision], [true, "suspended", 2]);
+  assert.equal(createDailyReviewQueue(suspending.deck, { now, timeZone: "UTC" }).items.length, 0);
+});
+
+test("zurückgestellte Karten warten bis zum nächsten Lerntag; das letzte manuelle Ereignis entscheidet", () => {
+  const cards = [cardInPhase("buried", "review", "2026-08-21T07:00:00.000Z"), cardInPhase("lifted", "review", "2026-08-21T07:00:00.000Z"), cardInPhase("free", "new", "2026-08-21T07:00:00.000Z")];
+  const manual = (id: string, cardId: string, kind: string, answeredAt: string) => ({
+    id, userId: "user", deckId: "deck", cardId, variantId: null, rating: "manual" as const, answeredAt, responseTimeMs: null,
+    schedulerBefore: null, schedulerAfter: null, flags: { kind }, createdAt: answeredAt,
+  });
+  const deck = { ...createCoreDeck({ id: "deck", cards }), reviewEvents: [
+    manual("m1", "buried", "manual_bury", "2026-08-21T07:30:00.000Z"),
+    manual("m2", "lifted", "manual_bury", "2026-08-21T07:30:00.000Z"),
+    manual("m3", "lifted", "manual_unbury", "2026-08-21T07:40:00.000Z"),
+  ] } as Deck;
+  const today = createDailyReviewQueue(deck, { now: "2026-08-21T08:00:00.000Z", timeZone: "UTC" });
+  assert.deepEqual(today.items.map((item) => item.cardId).sort(), ["free", "lifted"]);
+  assert.deepEqual(today.buriedKeys, ["deck:buried"]);
+  assert.equal(today.reviewsCompletedToday, 0, "manuelle Ereignisse zählen nicht als Wiederholung");
+  const tomorrow = createDailyReviewQueue(deck, { now: "2026-08-22T08:00:00.000Z", timeZone: "UTC" });
+  assert.ok(tomorrow.items.some((item) => item.cardId === "buried"));
+});

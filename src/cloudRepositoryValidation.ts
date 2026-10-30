@@ -1,7 +1,8 @@
 import * as v from "valibot";
 import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, normalizeTags, parseNoteContent } from "./coreModel.ts";
-import type { Card, CardStudyState, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardVariant, Deck, MediaFileReference, Note, ReviewEvent } from "./coreTypes.ts";
 import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
+import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type {
   AccountStatisticsSnapshot,
   AccountStudyOverview,
@@ -346,6 +347,44 @@ export function cardFromRow(row: AccountRow, variants: CardVariant[] = []): Card
     variants,
     ...syncMetadata(row),
   };
+}
+
+export function reviewEventFromRow(row: AccountRow): ReviewEvent {
+  return {
+    id: String(row.id),
+    userId: String(row.user_id),
+    deckId: String(row.deck_id),
+    cardId: String(row.card_id),
+    variantId: (row.variant_id as string | null) ?? null,
+    rating: row.rating as ReviewEvent["rating"],
+    answeredAt: String(row.answered_at),
+    responseTimeMs: (row.response_time_ms as number | null) ?? null,
+    schedulerBefore: row.scheduler_before ?? null,
+    schedulerAfter: row.scheduler_after ?? null,
+    flags: row.flags as Record<string, unknown>,
+    createdAt: String(row.created_at),
+  };
+}
+
+const accountTagRowSchema = v.object({ tag: v.string(), note_count: nonNegativeIntegerSchema, imported_count: nonNegativeIntegerSchema });
+const similarNoteRowSchema = v.object({ note_id: v.string(), card_id: v.string(), deck_id: v.string(), preview: v.string(), similarity: v.number() });
+
+export interface SimilarNote {
+  noteId: string;
+  cardId: string;
+  deckId: string;
+  preview: string;
+  similarity: number;
+}
+
+export function validateAccountTagRows(input: unknown): TagDirectoryEntry[] {
+  return parseRows(accountTagRowSchema, input, "Das Tag-Verzeichnis hatte ein ungültiges Format.")
+    .map((row) => ({ tag: row.tag, noteCount: row.note_count, importedCount: row.imported_count }));
+}
+
+export function validateSimilarNoteRows(input: unknown): SimilarNote[] {
+  return parseRows(similarNoteRowSchema, input, "Ähnliche Inhalte hatten ein ungültiges Format.")
+    .map((row) => ({ noteId: row.note_id, cardId: row.card_id, deckId: row.deck_id, preview: row.preview, similarity: row.similarity }));
 }
 
 export function variantFromRow(row: AccountRow): CardVariant {

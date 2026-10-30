@@ -24,7 +24,7 @@ import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
 import { addCardVariant, applyCardStudyStatePatch, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants } from "./coreModel.ts";
-import { cardVariantSource, deleteVariant, reactivateVariant } from "./coreVariantService.ts";
+import { cardVariantSource, deactivateVariant, deleteVariant, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -1417,7 +1417,7 @@ export function App() {
     return cards;
   }
 
-  /** `refresh` replaces all earlier variants of the card with the new one; otherwise it adds one and replaces outdated ones. */
+  /** `refresh` replaces the card's earlier variants except edited ones with the new one; otherwise it adds one and replaces outdated ones. */
   async function generateDeckCardVariant(_deckId: string, cardId: string, mode: CardVariantBatchMode = "missing") {
     if (!workspaceRepository) throw new AiCardVariantContractError("workspace_unavailable", "Die Kartenverwaltung ist noch nicht bereit.");
     const body = await workspaceRepository.loadCardBody(cardId);
@@ -1429,16 +1429,17 @@ export function App() {
     const draft = createAiGeneratedVariantDraft(source, current, generated);
     const input = { ...draft, meta: { ...draft.meta, reason: "KI-Umformulierung" } };
     const saved = await workspaceRepository.updateCard(cardId, (card) => mode === "refresh"
-      ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
+      ? addCardVariant(card.variants.filter((variant) => !variant.deletedAt && !isEditedVariant(variant)).reduce((next, variant) => deleteVariant(next, variant.id), card), input)
       : replaceOutdatedVariants(card, input));
     if (!saved) throw new AiCardVariantContractError("save_failed", "Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     return generated;
   }
 
-  async function updateDeckCardVariant(cardId: string, variantId: string, action: "reactivate" | "delete") {
+  async function updateDeckCardVariant(cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") {
     if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    const saved = await workspaceRepository.updateCard(cardId, (card) => action === "reactivate" ? reactivateVariant(card, variantId) : deleteVariant(card, variantId));
+    const apply = { reactivate: reactivateVariant, deactivate: deactivateVariant, delete: deleteVariant }[action];
+    const saved = await workspaceRepository.updateCard(cardId, (card) => apply(card, variantId));
     if (!saved) throw new Error("Die Variante konnte nicht gespeichert werden.");
     await reloadNoteGraph(saved.note.id);
     syncEngine?.requestSync();

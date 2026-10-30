@@ -1,4 +1,4 @@
-import { createDefaultDeckSettings, mergeImportedTags, normalizeCoreDeck, rescheduleCard } from "./coreModel.ts";
+import { createDefaultDeckSettings, mergeImportedTags, normalizeCoreDeck, rescheduleCard, resetCardStudy, restoreCardStudy, setCardLeech } from "./coreModel.ts";
 import { normalizeWorkspaceState } from "./coreRepository.ts";
 import type {
   Card,
@@ -20,6 +20,9 @@ import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgI
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
+import { isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
+import { createTagDirectoryBuilder } from "./tagDirectory.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
 import { requireCompleteProfile } from "./profileIntegrity.ts";
 import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance.ts";
@@ -289,6 +292,70 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   };
 
   /**
+   * Manual study changes (reschedule, reset, leech, bury, undo) travel as idempotent manual review events, so they
+   * never conflict with reviews or card edits on other devices; statistics and FSRS ignore them.
+   */
+  const applyManualStudyChanges = (cardIds: string[], kind: string, change: (card: Card) => Card, occurredAt: string) => {
+    const idsToUpdate = [...new Set(cardIds.filter(Boolean))];
+    if (!idsToUpdate.length) return Promise.resolve([] as Card[]);
+    return enqueueWrite(async () => {
+      const transaction = database.transaction([STORE.cards, STORE.variants, STORE.notes, STORE.reviewEvents, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.outbox, STORE.meta, STORE.syncMetadata], "readwrite");
+      const completed = transactionDone(transaction);
+      const cards = await readCardBodies(transaction, idsToUpdate);
+      if (cards.some((card) => !card || card.deletedAt)) {
+        transaction.abort();
+        await completed.catch(() => undefined);
+        throw new Error("Mindestens eine Karte wurde nicht gefunden.");
+      }
+      const notes = await readNotes(transaction, cards.map((card) => card!.noteId));
+      const changes = (cards as Card[]).flatMap((previous) => {
+        const card = change(previous);
+        if (card === previous) return [];
+        const event: ReviewEvent = {
+          id: `manual_${mutationId()}`,
+          userId,
+          deckId: card.deckId,
+          cardId: card.id,
+          variantId: null,
+          rating: "manual",
+          answeredAt: occurredAt,
+          responseTimeMs: null,
+          schedulerBefore: { card: { state: previous.study.state, dueAt: previous.study.dueAt, intervalDays: previous.study.intervalDays } },
+          schedulerAfter: { card: { state: card.study.state, dueAt: card.study.dueAt, intervalDays: card.study.intervalDays } },
+          flags: { kind },
+          createdAt: occurredAt,
+        };
+        return [{ previous, card, event }];
+      });
+      if (!changes.length) {
+        await completed;
+        return cards as Card[];
+      }
+      const mutationBatch = queueMutations(changes.map(({ card, event }) => ({
+        type: "review-atomic",
+        table: "review_events",
+        entityId: event.id,
+        payload: { event, card: { id: card.id, study: card.study, updatedAt: card.updatedAt }, variant: null },
+      })));
+      for (const { previous, card, event } of changes) {
+        const note = notes.get(card.noteId) ?? null;
+        const nextCatalog = catalogRecordFor(card, note);
+        const previousCatalog = await requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(card.id)) ?? catalogRecordFor(previous, note);
+        await applyReplicaCatalogChange(transaction, card.deckId, previousCatalog, nextCatalog, occurredAt);
+        transaction.objectStore(STORE.cards).put(cardRecord(card));
+        transaction.objectStore(STORE.reviewEvents).put(event);
+        transaction.objectStore(STORE.cardCatalog).put(nextCatalog);
+        transaction.objectStore(STORE.bodyResidency).put(residencyRecord(nextCatalog, "cached"));
+      }
+      writeOutbox(transaction, mutationBatch);
+      transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: occurredAt });
+      await completed;
+      shell = { ...shell!, updatedAt: occurredAt };
+      return changes.map((change) => change.card);
+    });
+  };
+
+  /**
    * Central local write of contents with their cards: stores, catalog, deck summaries and outbox in one
    * transaction. Deleted contents and cards leave the replica; their soft-delete travels through the outbox.
    */
@@ -451,7 +518,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     includeTotal = false,
   }: { cursor?: CatalogCursor | null; limit?: number; query?: string; sort?: CardTableSort; includeTotal?: boolean } = {}) => {
     await writeChain;
-    const normalizedQuery = String(query).trim().toLocaleLowerCase("de");
+    const search = parseCardSearchQuery(query);
+    const filtered = !isEmptyCardSearch(search);
     const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(limit))));
     const indexName = sort.field === "nextStudyDate" ? "deckDue" : sort.field === "variants" ? "deckVariants" : "deckSort";
     const sortValueOf = (row: StoredCardCatalog) => indexName === "deckDue" ? row.dueSort : indexName === "deckVariants" ? String(row.hasActiveVariants) : row.sortText;
@@ -464,7 +532,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     let boundary: IDBValidKey | null = cursor ? keyFor(cursor.sortValue, cursor.id) : null;
     let complete = false;
     let hasMore = false;
-    if (includeTotal && !normalizedQuery) {
+    if (includeTotal && !filtered) {
       const countTransaction = database.transaction(STORE.cardCatalog, "readonly");
       totalCount = await requestResult(countTransaction.objectStore(STORE.cardCatalog).index(indexName).count(IDBKeyRange.bound(lower, upper)));
       await transactionDone(countTransaction);
@@ -486,7 +554,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const row = entry.value as StoredCardCatalog;
           scanned += 1;
           boundary = entry.key;
-          if (!row.deletedAt && (!normalizedQuery || row.normalizedSearchText.includes(normalizedQuery))) rows.push(row);
+          if (!row.deletedAt && matchesCardSearch(catalogEntry(row), search)) rows.push(row);
           const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
           if (rows.length > pageLimit || scanned >= LOCAL_WRITE_CHUNK_SIZE || elapsed >= 25) { resolve(); return; }
           entry.continue();
@@ -499,11 +567,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       rows.length = pageLimit;
       hasMore = true;
     }
-    if (includeTotal && normalizedQuery) {
+    if (includeTotal && filtered) {
       let matches = 0;
       const countTransaction = database.transaction(STORE.cardCatalog, "readonly");
       await iterateCursor<StoredCardCatalog>(countTransaction.objectStore(STORE.cardCatalog).index("deckScan").openCursor(IDBKeyRange.bound([deckId, ""], [deckId, "￿"])), (row) => {
-        if (!row.deletedAt && row.normalizedSearchText.includes(normalizedQuery)) matches += 1;
+        if (!row.deletedAt && matchesCardSearch(catalogEntry(row), search)) matches += 1;
       });
       await transactionDone(countTransaction);
       totalCount = matches;
@@ -1140,65 +1208,42 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         downloaded: residency.filter((record) => record.state === "downloaded").length,
       };
     },
-    /** Manual reschedule: only the due date changes; it travels as an idempotent manual review event. */
+    /** All local answers of one card, oldest first, including manual events. */
+    async listCardReviewEvents(cardId: string) {
+      await writeChain;
+      const transaction = database.transaction(STORE.reviewEvents, "readonly");
+      const events = await requestResult<ReviewEvent[]>(transaction.objectStore(STORE.reviewEvents).index("cardAnswered").getAll(IDBKeyRange.bound([cardId, "", ""], [cardId, "￿", "￿"])));
+      await transactionDone(transaction);
+      return events;
+    },
+    /** Tags of the contents in the replica; offline counterpart of `list_account_tags`. */
+    async listTagDirectory() {
+      await writeChain;
+      const builder = createTagDirectoryBuilder();
+      const transaction = database.transaction(STORE.notes, "readonly");
+      await iterateCursor<Note>(transaction.objectStore(STORE.notes).openCursor(), (note) => builder.add(note));
+      await transactionDone(transaction);
+      return builder.entries();
+    },
+    /** Manual reschedule: only the due date changes; suspension stays. */
     rescheduleCards(cardIds: string[], dueAt: string, occurredAt = new Date().toISOString()) {
-      const idsToUpdate = [...new Set(cardIds.filter(Boolean))];
-      if (!idsToUpdate.length) return Promise.resolve([] as Card[]);
-      return enqueueWrite(async () => {
-        const transaction = database.transaction([STORE.cards, STORE.variants, STORE.notes, STORE.reviewEvents, STORE.cardCatalog, STORE.bodyResidency, STORE.deckStudySummaries, STORE.outbox, STORE.meta, STORE.syncMetadata], "readwrite");
-        const completed = transactionDone(transaction);
-        const cards = await readCardBodies(transaction, idsToUpdate);
-        if (cards.some((card) => !card || card.deletedAt)) {
-          transaction.abort();
-          await completed.catch(() => undefined);
-          throw new Error("Mindestens eine Karte wurde nicht gefunden.");
-        }
-        const notes = await readNotes(transaction, cards.map((card) => card!.noteId));
-        const changes = (cards as Card[]).flatMap((previous) => {
-          const card = rescheduleCard(previous, dueAt, occurredAt);
-          if (card === previous) return [];
-          const event: ReviewEvent = {
-            id: `manual_${mutationId()}`,
-            userId,
-            deckId: card.deckId,
-            cardId: card.id,
-            variantId: null,
-            rating: "manual",
-            answeredAt: occurredAt,
-            responseTimeMs: null,
-            schedulerBefore: { card: { state: previous.study.state, dueAt: previous.study.dueAt, intervalDays: previous.study.intervalDays } },
-            schedulerAfter: { card: { state: card.study.state, dueAt, intervalDays: card.study.intervalDays } },
-            flags: { kind: "manual_reschedule" },
-            createdAt: occurredAt,
-          };
-          return [{ previous, card, event }];
-        });
-        if (!changes.length) {
-          await completed;
-          return cards as Card[];
-        }
-        const mutationBatch = queueMutations(changes.map(({ card, event }) => ({
-          type: "review-atomic",
-          table: "review_events",
-          entityId: event.id,
-          payload: { event, card: { id: card.id, study: card.study, updatedAt: card.updatedAt }, variant: null },
-        })));
-        for (const { previous, card, event } of changes) {
-          const note = notes.get(card.noteId) ?? null;
-          const nextCatalog = catalogRecordFor(card, note);
-          const previousCatalog = await requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(card.id)) ?? catalogRecordFor(previous, note);
-          await applyReplicaCatalogChange(transaction, card.deckId, previousCatalog, nextCatalog, occurredAt);
-          transaction.objectStore(STORE.cards).put(cardRecord(card));
-          transaction.objectStore(STORE.reviewEvents).put(event);
-          transaction.objectStore(STORE.cardCatalog).put(nextCatalog);
-          transaction.objectStore(STORE.bodyResidency).put(residencyRecord(nextCatalog, "cached"));
-        }
-        writeOutbox(transaction, mutationBatch);
-        transaction.objectStore(STORE.meta).put({ key: "updatedAt", value: occurredAt });
-        await completed;
-        shell = { ...shell!, updatedAt: occurredAt };
-        return changes.map((change) => change.card);
-      });
+      return applyManualStudyChanges(cardIds, "manual_reschedule", (card) => rescheduleCard(card, dueAt, occurredAt), occurredAt);
+    },
+    /** "Als neu lernen": the cards start over as new cards; their review history stays. */
+    resetCards(cardIds: string[], occurredAt = new Date().toISOString()) {
+      return applyManualStudyChanges(cardIds, "manual_reset", (card) => resetCardStudy(card, occurredAt), occurredAt);
+    },
+    /** Lifts the leech state (`null`) or puts it back, e.g. to undo the reset. */
+    setCardsLeech(cardIds: string[], leechedAt: string | null, occurredAt = new Date().toISOString()) {
+      return applyManualStudyChanges(cardIds, "manual_leech", (card) => setCardLeech(card, leechedAt, occurredAt), occurredAt);
+    },
+    /** Puts back earlier study states, to undo a manual study change. */
+    restoreCardStudies(studies: ReadonlyMap<string, Card["study"]>, occurredAt = new Date().toISOString()) {
+      return applyManualStudyChanges([...studies.keys()], "manual_restore", (card) => restoreCardStudy(card, studies.get(card.id)!, occurredAt), occurredAt);
+    },
+    /** Buries the cards until the next learning day (or lifts that), the way answered siblings bury theirs. */
+    buryCards(cardIds: string[], buried: boolean, occurredAt = new Date().toISOString()) {
+      return applyManualStudyChanges(cardIds, buried ? MANUAL_BURY_KIND : MANUAL_UNBURY_KIND, (card) => ({ ...card, studyRevision: card.studyRevision + 1, updatedAt: occurredAt }), occurredAt);
     },
     recordReview(result: ReviewAnswerResult) {
       const { deck, event, updatedCard, variant } = result;
@@ -1246,6 +1291,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
             studyOverview = { ...studyOverview, [key]: { ...studyOverview[key], [deck.id]: (studyOverview[key][deck.id] ?? 0) + 1 }, generatedAt: event.answeredAt };
             transaction.objectStore(STORE.syncMetadata).put({ key: "accountStudyOverview", value: studyOverview });
           }
+        }
+        // A leech the deck suspends also changes the card itself; that edit syncs like any other card change.
+        const stored = await requestResult<StoredCard | undefined>(transaction.objectStore(STORE.cards).get(updatedCard.id));
+        if (stored && stored.status !== updatedCard.status) {
+          writeOutbox(transaction, queueMutations(planEntityMutations({ cards: [hydrateCard(stored)] }, { cards: [{ ...updatedCard, variants: [] }] })));
         }
         transaction.objectStore(STORE.cards).put(cardRecord(updatedCard));
         catalogStore.put(catalog);

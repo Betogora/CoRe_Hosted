@@ -1,7 +1,19 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, createBasicNote, createManualNoteContent, createNote } from "./coreModel.ts";
-import { cardVariantSource, classifyCardEligibility, deleteVariant, describeVariantReadiness, flagVariant, reactivateVariant, selectReviewVariant, variantPresentation } from "./coreVariantService.ts";
+import {
+  cardVariantSource,
+  classifyCardEligibility,
+  deactivateVariant,
+  deleteVariant,
+  describeVariantReadiness,
+  editVariantText,
+  flagVariant,
+  isEditedVariant,
+  reactivateVariant,
+  selectReviewVariant,
+  variantPresentation,
+} from "./coreVariantService.ts";
 import type { Card, NoteContent } from "./coreTypes.ts";
 
 const ON = { coreMode: "on", variantThresholdDays: 21, maxActiveVariantsPerCard: 2 } as const;
@@ -133,4 +145,21 @@ test("reactivating a reported variant returns it to rotation with its feedback; 
   const deleted = deleteVariant(card, variant.id, "2026-10-12T10:00:00.000Z").variants[0];
   assert.equal(deleted.deletedAt, "2026-10-12T10:00:00.000Z");
   assert.equal(deleted.isActive, false);
+});
+
+test("Variantentext bearbeiten: eigene Formulierung, nicht leer, nicht doppelt; Abschalten nimmt sie aus der Rotation", () => {
+  const { cards } = createBasicNote("deck", "Frage", "Antwort");
+  const withVariants = addCardVariant(addCardVariant(cards[0], { front: "Variante A", back: "Antwort" }), { front: "Variante B", back: "Antwort" });
+  const [first, second] = withVariants.variants;
+
+  const edited = editVariantText(withVariants, first.id, { front: "Eigene Frage", back: "Antwort" }, "2026-10-30T12:00:00.000Z");
+  const editedVariant = edited.variants.find((variant) => variant.id === first.id)!;
+  assert.deepEqual([editedVariant.front, editedVariant.revision, isEditedVariant(editedVariant), isEditedVariant(second)], ["Eigene Frage", first.revision + 1, true, false]);
+  assert.notEqual(editedVariant.contentHash, first.contentHash);
+  assert.equal(editVariantText(edited, first.id, { front: "Eigene Frage", back: "Antwort" }), edited, "unverändert bleibt dieselbe Karte");
+  assert.throws(() => editVariantText(withVariants, first.id, { front: " ", back: "Antwort" }), /nicht leer/);
+  assert.throws(() => editVariantText(withVariants, first.id, { front: "Variante B", back: "Antwort" }), /schon/);
+
+  const disabled = deactivateVariant(edited, second.id).variants.find((variant) => variant.id === second.id)!;
+  assert.deepEqual([disabled.isActive, disabled.qualityStatus], [false, "disabled"]);
 });

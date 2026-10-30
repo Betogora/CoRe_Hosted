@@ -19,8 +19,12 @@ export {
   createCardVariant,
   getActiveVariants,
   isCardReviewBlocked,
+  moveCardToDeck,
   replaceOutdatedVariants,
   rescheduleCard,
+  resetCardStudy,
+  restoreCardStudy,
+  setCardLeech,
   setCardSuspended,
 } from "./coreModel/cards.ts";
 export {
