@@ -80,7 +80,6 @@ function useIdleLoad<T>(load: ((signal: AbortSignal) => Promise<T>) | null, key:
 }
 
 export interface CardEditorGeneralTabProps {
-  deck: Deck;
   decks: readonly Deck[];
   graph: NoteGraph;
   card: Card;

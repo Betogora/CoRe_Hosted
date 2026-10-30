@@ -286,7 +286,6 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]" data-testid="card-editor-body">
         {panel("general", tab === "general" ? (
           <CardEditorGeneralTab
-            deck={props.deck}
             decks={props.decks}
             graph={graph}
             card={card}
