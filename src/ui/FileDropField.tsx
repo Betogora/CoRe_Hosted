@@ -1,6 +1,7 @@
 import React from "react";
 import { FileText, ImagePlus, Upload } from "lucide-react";
 import { READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL } from "../documentModel.ts";
+import { AI_SOURCE_ACCEPT, AI_SOURCE_FORMAT_LABEL } from "../aiSourceCreation.ts";
 import { ActionButton } from "./actionUi.tsx";
 
 const variants = {
@@ -15,6 +16,10 @@ const variants = {
   document: {
     icon: FileText, accept: READABLE_SOURCE_DOCUMENT_ACCEPT, aria: "Quelldatei auswählen oder ablegen",
     label: `Quelle (${READABLE_SOURCE_DOCUMENT_LABEL})`, prompt: "PDF-, Text-, Markdown-, CSV- oder TSV-Datei hier ablegen", action: ["Datei auswählen", "Andere Datei auswählen"],
+  },
+  "ai-source": {
+    icon: FileText, accept: AI_SOURCE_ACCEPT, aria: "Quelle für automatische Karten auswählen oder ablegen",
+    label: "Quelle", prompt: "Quelldatei hier ablegen", formats: AI_SOURCE_FORMAT_LABEL, action: ["Datei auswählen", "Ersetzen"],
   },
 } as const;
 
@@ -71,6 +76,7 @@ export function FileDropField({ kind, onFile, label, selected, disabled, busy, c
           <div className="min-w-0">
             <Icon className="mx-auto text-core-action" size={26} aria-hidden="true" />
             <p className="mt-2 core-body font-semibold text-core-text">{variant.prompt}</p>
+            {"formats" in variant ? <p className="mt-1 core-caption text-core-muted">{variant.formats}</p> : null}
             <ActionButton type="button" variant="secondary" icon={Upload} className="mt-3" disabled={inactive} onClick={() => inputRef.current?.click()}>
               {variant.action[selected ? 1 : 0]}
             </ActionButton>

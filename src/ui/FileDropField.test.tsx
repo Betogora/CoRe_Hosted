@@ -25,3 +25,11 @@ test("FileDropField owns variant copy, file semantics, shared tokens and details
   assert.match(imageMarkup, /accept="image\/\*".*disabled=""/);
   for (const pattern of [/lucide-image-plus/, />Bild ersetzen<\/span>/]) assert.match(imageMarkup, pattern);
 });
+
+test("automatic creation has a separate source whitelist without expanding manual sources", () => {
+  const source = renderToStaticMarkup(<FileDropField kind="ai-source" selected onFile={() => undefined} />);
+  const manual = renderToStaticMarkup(<FileDropField kind="document" selected={false} onFile={() => undefined} />);
+  assert.match(source, /\.docx,\.pptx/);
+  assert.match(source, />Ersetzen<\/span>/);
+  assert.doesNotMatch(manual, /\.docx|\.pptx/);
+});

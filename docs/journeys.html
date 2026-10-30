@@ -1992,6 +1992,9 @@ video {
      -moz-user-select: none;
           user-select: none;
 }
+.resize-y {
+  resize: vertical;
+}
 .\!resize {
   resize: both !important;
 }
@@ -5068,6 +5071,10 @@ summary {
     grid-column: span 1 / span 1;
   }
 
+  .sm\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
   .sm\:col-span-3 {
     grid-column: span 3 / span 3;
   }
@@ -5136,6 +5143,11 @@ summary {
     width: auto;
   }
 
+  .sm\:w-fit {
+    width: -moz-fit-content;
+    width: fit-content;
+  }
+
   .sm\:min-w-36 {
     min-width: 9rem;
   }
@@ -5174,6 +5186,10 @@ summary {
 
   .sm\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-\[10rem_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: 10rem minmax(0,1fr);
   }
 
   .sm\:grid-cols-\[2\.5rem_1fr\] {
@@ -5912,7 +5928,7 @@ N3[&quot;Import, manuelle Karte oder Lernen wählen&quot;]</pre><ol><li>Account 
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--51-account-öffnen-und-produktzustand-verstehen">Produktvertrag 5.1</a> · <a href="ui-elements.html#navigation">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
 <article id="journey-2" class="docs-document docs-journey"><h2 id="journey-2--52-stapel-importieren-oder-manuell-anlegen" class="core-heading-2" tabindex="-1">5.2 Stapel importieren oder manuell anlegen <a class="docs-anchor" href="#journey-2--52-stapel-importieren-oder-manuell-anlegen" aria-label="Link zu 5.2 Stapel importieren oder manuell anlegen">#</a></h2>
-<p>Nutzer wählen zwischen manueller Erstellung und APKG-Import. Beide Wege speichern zuerst lokal und synchronisieren danach.</p>
+<p>Nutzer wählen zwischen manueller Erstellung, APKG-Import und „Karten automatisch erstellen lassen“. Manuelle Erstellung und Import speichern zuerst lokal und synchronisieren danach; automatische Erstellung führt vorerst nur bis zur Auftragsprüfung.</p>
 <h3 id="journey-2--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
 N0[&quot;Erstellen öffnen&quot;] --&gt; N1
 N1[&quot;APKG analysieren oder Karte eingeben&quot;] --&gt; N2
@@ -5951,6 +5967,17 @@ N4[&quot;Synchronisierung oder Teilabschluss sehen&quot;]</pre><ol><li>Erstellen
 <li>Meldungen: Vollständiger Cloudabschluss meldet <code>Karte wurde erfolgreich gespeichert.</code>; ein erneut versuchbarer oder Offline-Teilabschluss <code>Karte und Bilder sind lokal gespeichert. Die Cloud-Synchronisierung wird automatisch fortgesetzt.</code>; ein nicht erneut versuchbarer Medienfehler nach lokaler Speicherung erscheint als unvollständiger Medienzustand.</li>
 <li>Zielauswahlen zeigen vollständige Stapelpfade. Erst <code>Fertig</code> öffnet den Abschluss mit Sitzungsanzahl, Zielpfad, <code>Jetzt lernen</code> und <code>Karten prüfen</code>. Bei nichtleerem Entwurf fragt <code>Fertig</code> zuvor <code>Ungespeicherten Entwurf verwerfen?</code>.</li>
 <li>Interne Navigation mit nichtleerem Entwurf verlangt eine Bestätigung: <code>Weiter bearbeiten</code> erhält Inhalt und Fokus, <code>Verwerfen und verlassen</code> verwirft nur den aktuellen Entwurf. Während eines Speicherversuchs bleibt die Navigation ohne Verwerfoption auf der Seite und fokussiert den Fortschritt.</li>
+</ul>
+<h4 id="journey-2-rules--automatische-erstellung-aus-einer-quelle" class="core-control-label" tabindex="-1">Automatische Erstellung aus einer Quelle <a class="docs-anchor" href="#journey-2-rules--automatische-erstellung-aus-einer-quelle" aria-label="Link zu Automatische Erstellung aus einer Quelle">#</a></h4>
+<ul>
+<li>Der dritte Einstieg „Karten automatisch erstellen lassen“ öffnet <code>/neue-karten?method=ai-source</code>. Desktop zeigt drei gleichwertige Aktionskarten, Mobilgeräte eine Spalte.</li>
+<li>Eine einzelne PDF-, TXT-, Markdown-, CSV-, TSV-, DOCX- oder PPTX-Datei wird per Auswahl oder Drag-and-drop temporär im Browser gehalten. Dateiname, Größe, Ersetzen und Entfernen sind sichtbar. Leere und nicht unterstützte Dateien werden mit Meldung abgelehnt, eine gültige vorherige Auswahl bleibt erhalten. Die erweiterten Formate gelten nur für diesen Weg.</li>
+<li>Direkt sichtbar sind Lernziel (Wissen abrufen, Zusammenhänge verstehen, Wissen anwenden, Gemischt), Stoffabdeckung (Überblick, Gründlich, Sehr genau), Antwortumfang (Knapp, Mit kurzer Erklärung, Ausführlicher erklärt) und die erlaubten Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice). Standards: Gemischt, Gründlich, Mit kurzer Erklärung und alle vier Formen. Mindestens eine Form ist erforderlich; ihre Auswahl erlaubt sie, erzwingt sie aber nicht.</li>
+<li>„Weitere Einstellungen“ enthält Vorwissen (Neu im Thema, Grundkenntnisse, Fortgeschritten; Standard Grundkenntnisse), optionalen Lernkontext und Wünsche sowie „Zusätzliche Erklärungen erlauben“ (standardmäßig an). Ergänzungen außerhalb der Quelle werden gesondert gekennzeichnet und dürfen die erwartete Antwort nicht erweitern. Ohne Ergänzungen müssen auch Erklärungen aus der Quelle stammen.</li>
+<li>Stoffabdeckung und Antwortumfang bleiben unabhängig: mehr Abdeckung bedeutet bei Bedarf mehr gezielte Karten; die erwartete Antwort bleibt kurz und Erklärungen stehen getrennt darunter. Es gibt keine Abfrage von Prozenten, Mischungsverhältnissen oder Kartenanzahl.</li>
+<li>Ein übergebenes Stapelziel wird vorausgewählt. Andernfalls ist ein neuer Stapel vorgesehen; sein bearbeitbarer Namensvorschlag stammt aus dem Dateinamen. Ein bestehender Stapel muss verfügbar und ein neuer Name nicht leer sein.</li>
+<li>„Auftrag prüfen“ validiert Datei, Kartenformen und Ziel und zeigt dann alle wirksamen Angaben. „Einstellungen bearbeiten“ erhält Datei und Einstellungen. Der vorhandene Entwurfsschutz gilt beim Verlassen, auch über Browser-Zurück/-Vorwärts; bestätigtes Verlassen und Reload verwerfen den Entwurf.</li>
+<li>Bereits das Formular meldet „Die automatische Erstellung ist noch nicht verfügbar.“ In der Zusammenfassung bleibt „Karten erstellen“ deaktiviert. Es werden keine Dateien ausgelesen oder übertragen und keine Karten oder Stapel angelegt; erfundene Kartenzahlen und Ergebnisse erscheinen nicht.</li>
 </ul>
 <h4 id="journey-2-rules--bildverdeckung" class="core-control-label" tabindex="-1">Bildverdeckung <a class="docs-anchor" href="#journey-2-rules--bildverdeckung" aria-label="Link zu Bildverdeckung">#</a></h4>
 <ul>

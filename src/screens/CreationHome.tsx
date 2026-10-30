@@ -1,6 +1,6 @@
 import { CreationActionCard, type CreationActionCardProps } from "../ui/CreationActionCard.tsx";
 import type { LucideIcon } from "lucide-react";
-import { FileSpreadsheet, PenLine } from "lucide-react";
+import { FileSpreadsheet, PenLine, Sparkles } from "lucide-react";
 import type { CreationMethod } from "../useAppNavigation.ts";
 
 type SelectableCreationMethod = Exclude<CreationMethod, "">;
@@ -29,11 +29,17 @@ export const creationMethods: CreationMethodDefinition[] = [
     icon: FileSpreadsheet,
     tone: "success",
   },
+  {
+    id: "ai-source",
+    title: "Karten automatisch erstellen lassen",
+    icon: Sparkles,
+    tone: "info",
+  },
 ];
 
 export function CreationHome({ onSelect }: CreationHomeProps) {
   return (
-    <section className="grid items-stretch gap-4 md:grid-cols-2" aria-label="Erstellungsart">
+    <section className="grid items-stretch gap-4 md:grid-cols-3" aria-label="Erstellungsart">
       {creationMethods.map((method) => (
         <CreationActionCard key={method.id} title={method.title} icon={method.icon} tone={method.tone} onSelect={() => onSelect(method.id)} />
       ))}

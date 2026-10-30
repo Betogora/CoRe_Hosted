@@ -19,7 +19,8 @@ test("core navigation exposes only the reliable product areas", async ({ page })
   await menu.getByRole("button", { name: "Erstellen" }).click();
   await expect(page.getByRole("button", { name: /Karten selbst erstellen/ })).toBeVisible();
   await expect(page.getByRole("button", { name: /^Import\b/ })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(2);
+  await expect(page.getByRole("button", { name: /Karten automatisch erstellen lassen/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Erstellungsart" }).getByRole("button")).toHaveCount(3);
   await expect(page.getByRole("button", { name: "Einstellungen öffnen" })).toBeVisible();
 });
 
@@ -804,7 +805,7 @@ test("creation choices stay compact in both desktop target viewports", async ({ 
   for (const viewport of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }]) {
     await page.setViewportSize(viewport);
     const cards = page.getByRole("region", { name: "Erstellungsart" }).getByRole("button");
-    await expect(cards).toHaveCount(2);
+    await expect(cards).toHaveCount(3);
     for (const card of await cards.all()) {
       const box = await card.boundingBox();
       expect(box).not.toBeNull();

@@ -7,6 +7,8 @@ Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`
 
 ## Gesamtbild
 
+Die automatische Kartenerstellung aus einer Quelldatei ist als dritter Erstellungsweg bis zur Auftragsprüfung bedienbar: Dateiauswahl einschließlich DOCX/PPTX, diskrete Lernwünsche, Zielstapel, Entwurfsschutz und deutsche Prompt-Zusammenstellung. Quellenverarbeitung und KI-Anbindung fehlen bewusst noch; es werden weder Dateien übertragen noch Karten oder Stapel angelegt.
+
 CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel und Supabase sind angebunden. Der technische Unterbau für Account, lokalen Import, Review, Varianten, Cloud-Sync, Konflikte und APKG-Medien ist vorhanden; die manuelle Produkt-, Accessibility- und Hosted-Betriebsabnahme ist noch nicht vollständig.
 
 ## Implementiert
