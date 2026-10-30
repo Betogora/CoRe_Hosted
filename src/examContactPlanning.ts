@@ -20,9 +20,11 @@ export async function balanceExamContacts(columns: readonly ContactColumn[], bas
   const sum = minutes.reduce((a, b) => a + b, 0);
   const weights = minutes.map((value) => sum ? value / sum : 0), introductionWeight = introductionDays.reduce((a, day) => a + weights[day], 0);
   let values = introductionDays.map((day) => total * weights[day] / introductionWeight), best = integerCounts(values, total);
+  // Cohort columns touch few days; skipping their zero entries leaves every sum unchanged.
+  const touched = columns.map((column) => column.contacts.reduce<number[]>((days, value, i) => { if (value) days.push(i); return days; }, []));
   const loads = (counts: readonly number[]) => {
     const load = Float64Array.from(baseline);
-    columns.forEach((column, j) => { if (counts[j]) column.contacts.forEach((value, i) => { load[i] += value * counts[j]; }); });
+    for (let j = 0; j < columns.length; j++) if (counts[j]) { const contacts = columns[j].contacts; for (const i of touched[j]) load[i] += contacts[i] * counts[j]; }
     return load;
   };
   const evaluate = (load: Float64Array, recall: number): number[] => {
@@ -44,7 +46,7 @@ export async function balanceExamContacts(columns: readonly ContactColumn[], bas
     const load = loads(values), normalized = Array.from(load, (value, i) => weights[i] > 0 ? value / weights[i] : 0), peak = Math.max(...normalized);
     const temperature = Math.max(1, peak * (.12 - .1 * iteration / 160));
     const probabilities = normalized.map((value, i) => weights[i] > 0 ? Math.exp((value - peak) / temperature) : 0), denominator = probabilities.reduce((a, b) => a + b, 0);
-    const gradient = columns.map((column) => column.contacts.reduce((value, contact, i) => value + (weights[i] > 0 ? contact * probabilities[i] / denominator / weights[i] : 0), 0));
+    const gradient = columns.map((column, j) => touched[j].reduce((value, i) => value + (weights[i] > 0 ? column.contacts[i] * probabilities[i] / denominator / weights[i] : 0), 0));
     const scale = Math.max(1, ...gradient), step = total / columns.length * 2 / Math.sqrt(iteration + 1);
     values = simplex(values.map((value, i) => value - step * gradient[i] / scale), total);
     const candidate = integerCounts(values, total), candidateScore = score(candidate);

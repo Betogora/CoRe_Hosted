@@ -1,9 +1,22 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-29
+**Stand:** 2026-10-30
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-30 — Prüfungsplanung: exakte Beschleunigung der Laufbahnsimulation
+
+- Kostenpfad (Profil, 200 Tage): 77.710 simulierte Kontakte, davon 68.789 für die 2.000 bekannten Karten und knapp die Hälfte Wiederlernschritte am selben Tag. `scheduleWithFsrs` trug rund zwei Drittel der Zeit; davon nur gut die Hälfte im `ts-fsrs`-Aufruf, der Rest in Buchführung je Antwort (Konfiguration normalisieren, Lernstand zweimal aufbauen, Reifeband mit eigener Modellrechnung, ISO-Zeitstempel, Intervalltexte).
+- `scheduler.ts` bietet `createReviewChain`: Konfiguration einmal je Laufbahn, je Antwort derselbe `ts-fsrs`-Aufruf und dieselbe Fälligkeit einschließlich Easy Days (gemeinsame Funktion mit `projectFsrsResult`), ohne Buchführung dazwischen. `examPlanning.ts` simuliert damit; `examContactPlanning.ts` summiert Kohortenspalten nur über belegte Tage.
+- Ergebnis-Speicher je Prognose (`createReviewChainMemo`): 47 % der Bibliotheksaufrufe hatten identische Eingaben, weil Ketten über die gemeinsame Bewertungsfolge in gleiche Zustände mit gleichen Abständen zusammenlaufen (200 Tage: 36.805 von 77.710). Schlüssel sind alle Eingaben, die `ts-fsrs` liest (Gedächtniszustand, Phase, Lernschritt, `scheduledDays`, vergangene Zeit, Bewertung), als Zahlen-Hash mit exaktem Vergleich; `reps` und `lapses` zählt die Bibliothek nur hoch, die Fälligkeit ist `now + scheduledDays`. Außerdem einmalige Serialisierung der Stapeleinstellungen je Prognose und Fensterschleife ohne Destrukturierung.
+- Die Prognose bleibt bitgleich, verglichen über das vollständige Ergebnis aller drei Benchmark-Szenarien gegen den Stand vor der Änderung.
+- Geprüft und ohne Gewinn: Kontakte jenseits des Prüfungstermins werden schon nicht simuliert; ein Worker oder Leerlauf-Häppchen verkürzen nur die gefühlte Blockade, die bereits bei 56–67 ms liegt.
+- Verworfen: gröber gebündelte Kohorten bekannter Karten. Bei ±5 bis ±20 % Stabilität, ±0,25 bis ±1 Schwierigkeit und ±1 bis ±5 % Abrufwahrscheinlichkeit sanken die Laufbahnen nur von 1.000 auf 928–874 je Prüfung ohne messbaren Zeitgewinn, verschoben aber 31–82 neue Karten.
+- `npm run benchmark:exams` nutzt für die drei Szenarien einen alltäglichen Bewertungsmix von 10/10/75/5 % (Wiederholen/Schwer/Gut/Leicht): Bei der Standard-Zielerinnerung 92 % scheitern etwa 8 % der Wiederholungen, 10 % ist also eher streng. Der bisherige Mix mit je 25 % trieb die Kosten (jede vierte Antwort ein Lapse mit Wiederlernschritt, die deterministische Folge begann für jede bekannte Karte mit Wiederholen) und bleibt als Stressfall über 200 Tage erhalten. Budgets: 1.000 ms je alltäglichem Szenario, 2.000 ms für den Stressfall; ein Median darüber beendet den Lauf mit Fehlercode.
+- Messung mit alltäglichem Mix (Median, drei Durchläufe nach der Änderung): 60 Tage vorher 835 ms (CPU 828 ms) → 203–465 ms, 200 Tage vorher 1.210 ms (CPU 1.079 ms) → 256–268 ms, gemeinsame Stapel vorher 705 ms (CPU 579 ms) → 171–218 ms; längster Block 54–73 ms. Stressfall 200 Tage: 1.083–1.620 ms (vor der Änderung im selben Szenario 2.569 ms im alten Benchmark).
+- Weitere Messung mit dem alten Mix unter Fremdlast von 75–100 % CPU, daher stark schwankend: `npm run benchmark:exams` 200 Tage vor der Änderung 2.569 ms, danach in drei Durchläufen 1.407, 1.413 und 2.386 ms (Median; einzelne Läufe 848–1.045 ms), längster Block 61–72 ms. Verlässlicher ist der verschränkte Vergleich im selben Prozess (je vier Läufe, CPU-Zeit): 60 Tage 1.578 → 610 ms, 200 Tage 4.750 → 1.953 ms, gemeinsame Stapel 2.265 → 1.063 ms, also 39–47 % der vorherigen Zeit. Mit einem Bewertungsmix von 10/10/75/5 % statt je 25 %: 200 Tage 1.079 → 500 ms CPU. Das Ziel unter 1 s für 200 Tage ist mit alltäglichem Mix erreicht; der Todo-Eintrag ist entfernt. Nicht umgesetzt, weil ohne gemessenen Bedarf: Ergebnis-Speicher über Neuberechnungen hinweg, Laufbahnen parallel in Workern.
+- Verifiziert: Prüfungs- und Scheduler-Tests (neu: Laufbahn plant über 40 Zufallsantworten aus neu, Wiederholung und Wiederlernen, mit und ohne Easy Days, auch mit geteiltem Ergebnis-Speicher, wie `scheduleWithFsrs`), `npm test` (861/861), `npm run typecheck`, `npm run benchmark:exams` dreimal innerhalb der Budgets.
 
 ## 2026-10-29 — Reife aus FSRS (P1 R7): Specs und Doku, Abschluss P1
 

@@ -6,7 +6,7 @@ import { EXAM_SESSION_DECK_ID, getExamPlanningKey } from "./examPlanSettings.ts"
 import { getLearningDayKey, getLearningDayStartForKey } from "./learningDay.ts";
 import { markLearningSettingsCustom } from "./learningProfiles.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
-import { calculateRetrievability, getDurabilityDays, getMaturityBand, scheduleWithFsrs } from "./scheduler.ts";
+import { createReviewChain, createReviewChainMemo, getDurabilityDays, getMaturityBand } from "./scheduler.ts";
 import { balanceExamContacts, type ContactColumn } from "./examContactPlanning.ts";
 
 type ExamStudyMethod = "new" | "review" | "relearning" | "variant";
@@ -104,7 +104,7 @@ function methodFor(card: CardStudySnapshot, settings: DeckSettings): ExamStudyMe
 /** Whole-horizon contact planning, including for today's start. Study states remain hypothetical. */
 export async function createExamPortfolioForecast(decks: readonly Deck[], cards: readonly CardStudySnapshot[], exams: readonly ExamPlan[], options: ExamForecastOptions): Promise<ExamPortfolioForecast> {
   const { now, preferences, timeZone, signal, capacity } = options, context = { dayStartHour: preferences.dayStartHour, timeZone };
-  const pause = createMainThreadBudget(), today = getLearningDayKey(now, context)!, civilToday = getLearningDayKey(now, { timeZone })!;
+  const pause = createMainThreadBudget(), nowMs = Date.parse(now), today = getLearningDayKey(now, context)!, civilToday = getLearningDayKey(now, { timeZone })!;
   const active = exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday && examDayDistance(civilToday, exam.examDate) <= 365);
   const last = active.map((exam) => exam.examDate).sort().at(-1);
   if (!last) return { days: [], exams: [] };
@@ -127,6 +127,7 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
     return "good";
   };
   let operations = 0;
+  const reviewMemo = createReviewChainMemo();
   const summaries: ExamForecastSummary[] = [];
   // Shared decks are planned once, by the exam whose new cards are due first; later exams see that load.
   const planningOrder = [...active].sort((a, b) => getExamLastNewDate(a).localeCompare(getExamLastNewDate(b)) || a.examDate.localeCompare(b.examDate) || a.id.localeCompare(b.id));
@@ -153,10 +154,10 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       const blocks = (capacity.timeBlocks ?? []).filter((block) => block.date === key && block.examId === exam.id);
       return blocks.length ? blocks.map((block) => [Math.max(dayStarts[i], clock(block.start)), Math.min(ends[i], clock(block.end))]).sort((a, b) => a[0] - b[0]) : [[Math.min(ends[i] - 1, dayStarts[i] + 8 * 3600000), ends[i]]];
     });
-    eligible = eligible.filter((i) => windows[i].some(([begin, end]) => Math.max(begin, i === 0 ? Date.parse(now) : begin) < Math.min(end, introductionEnd)));
+    eligible = eligible.filter((i) => windows[i].some(([begin, end]) => Math.max(begin, i === 0 ? nowMs : begin) < Math.min(end, introductionEnd)));
     if (frozen.length && eligible.some((i) => i > 0)) eligible = eligible.filter((i) => i > 0);
     const nextContact = (due: number, start: number) => {
-      for (let i = start; i < length; i++) for (const [begin, end] of windows[i]) { const at = Math.max(due, begin, i === 0 ? Date.parse(now) : begin); if (at < end) return { day: i, at }; }
+      for (let i = start; i < length; i++) for (let w = 0; w < windows[i].length; w++) { const [begin, end] = windows[i][w], at = Math.max(due, begin, i === 0 ? nowMs : begin); if (at < end) return { day: i, at }; }
       return null;
     };
     const dueCountsByDay = new Map<string, number>();
@@ -165,18 +166,20 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       if (key) dueCountsByDay.set(key, (dueCountsByDay.get(key) ?? 0) + 1);
     }
     const simulate = async (initial: ReviewState, settings: DeckSettings, start: number): Promise<ContactColumn> => {
-      const contacts = new Float64Array(length); let state = initial, after = start, due = Math.max(Date.parse(initial.dueAt), dayStarts[start]), answer = 0;
+      const contacts = new Float64Array(length), chain = createReviewChain(initial, { ...context, deckSettings: settings, easyDaysContext: { ...context, easyDays: preferences.easyDays, dueCountsByDay } }, reviewMemo);
+      let after = start, due = Math.max(Date.parse(initial.dueAt), dayStarts[start]), answer = 0;
       while (true) {
         if (++operations % 16 === 0) { signal?.throwIfAborted(); await pause(); }
         const next = nextContact(due, after); if (!next) break;
-        contacts[next.day]++; state = scheduleWithFsrs(state, ratingAt(answer++), { now: new Date(next.at).toISOString(), ...context, deckSettings: settings, easyDaysContext: { ...context, easyDays: preferences.easyDays, dueCountsByDay } });
-        after = next.day; due = Math.max(next.at + 1000, Date.parse(state.dueAt));
+        contacts[next.day]++;
+        after = next.day; due = Math.max(next.at + 1000, chain.review(ratingAt(answer++), new Date(next.at)));
       }
-      return { contacts, recall: calculateRetrievability(state, new Date(examStart).toISOString()) };
+      return { contacts, recall: chain.retrievability(new Date(examStart)) };
     };
     const baseline = new Float64Array(length), knownGroups = new Map<string, { card: CardStudySnapshot; count: number }>();
+    const settingsJson = new Map([...settingsByDeck].map(([id, settings]) => [id, JSON.stringify(settings)]));
     for (const card of planned.filter((entry) => !isNew(entry.study))) {
-      const signature = JSON.stringify([card.study, settingsByDeck.get(card.deckId)]), group = knownGroups.get(signature);
+      const signature = `[${JSON.stringify(card.study)},${settingsJson.get(card.deckId)}]`, group = knownGroups.get(signature);
       if (group) group.count++; else knownGroups.set(signature, { card, count: 1 });
       if (Date.parse(card.study.dueAt) < ends[0]) record(ownDays[0], card, methodFor(card, settingsByDeck.get(card.deckId)!));
     }
