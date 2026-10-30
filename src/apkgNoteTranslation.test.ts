@@ -175,7 +175,9 @@ test("Lernstand: klassischer Zustand ohne FSRS und Revlog, Fälligkeit aus dem S
   assert.deepEqual([classic.study.stability, classic.study.difficulty, classic.study.reps, classic.study.lapses], [10, 6, 3, 1]);
   assert.equal(classic.ankiFlag, 1);
   assert.equal(graph.notes[0].marked, true);
-  assert.deepEqual(graph.notes[0].content.tags, ["Leech"]);
+  assert.deepEqual(graph.notes[0].content.tags, []);
+  assert.equal(classic.study.leechedAt, IMPORTED_AT);
+  assert.equal(reset.study.leechedAt, null);
   assert.equal(reset.study.state, "new");
   assert.deepEqual(graph.reviewEvents.map((event) => event.cardId), [reset.id]);
   assert.deepEqual(graph.report.notetypes[0].study, { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 1, new: 1 });

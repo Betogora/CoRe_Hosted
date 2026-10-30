@@ -1,8 +1,10 @@
-import type { Card, Note, NoteContent } from "../coreTypes.ts";
+import type { Card, CardStudyStatePatch, Note, NoteContent } from "../coreTypes.ts";
 import { stripSanitizedHtml } from "../htmlSafety.ts";
+import { setCardFlag, setCardSuspended } from "./cards.ts";
 import { makeId } from "./coreValues.ts";
 import { noteContentMediaRefs, parseNoteContent } from "./noteContent.ts";
 import { createCardStudy } from "./reviewState.ts";
+import { normalizeTags } from "./tags.ts";
 
 const SHA1_NAME = /^[0-9a-f]{40}$/;
 const SEARCH_TEXT_LIMIT = 4_000;
@@ -68,6 +70,7 @@ export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] 
     marked: false,
     contentRevision: 1,
     importedContentRevision: input.source === "anki-apkg" ? 1 : null,
+    importedTags: input.source === "anki-apkg" ? parsed.value.tags : null,
     createdAt,
     updatedAt: createdAt,
     revision: 1,
@@ -129,12 +132,14 @@ export function planNoteContentChange(
   if (deckId === undefined) throw new Error("Dem Inhalt ist keine Karte zugeordnet.");
   const parsed = parseOrThrow(nextContent);
   const changed = JSON.stringify(parsed.value) !== JSON.stringify(previousParsed.value);
+  // Tags are no content change, like the mark: a tag edit keeps contentRevision so reimports still update the fields.
+  const contentChanged = changed && JSON.stringify({ ...parsed.value, tags: [] }) !== JSON.stringify({ ...previousParsed.value, tags: [] });
   const note: Note = changed
     ? {
       ...previous.note,
       content: parsed.value,
       media: noteMediaFor(parsed.value, previous.note.media),
-      contentRevision: previous.note.contentRevision + 1,
+      contentRevision: previous.note.contentRevision + (contentChanged ? 1 : 0),
       revision: previous.note.revision + 1,
       updatedAt,
     }
@@ -182,6 +187,22 @@ export function planNoteRestore(undo: { note: Note; cards: readonly Card[] }, de
 export function setNoteMarked(note: Note, marked: boolean, updatedAt = new Date().toISOString()): Note {
   if (note.marked === marked) return note;
   return { ...note, marked, updatedAt, revision: note.revision + 1 };
+}
+
+/** Sets the content's tags; like the mark this is no content change and keeps `contentRevision`. */
+export function setNoteTags(note: Note, tags: readonly string[], updatedAt = new Date().toISOString()): Note {
+  const normalized = normalizeTags(tags);
+  if (JSON.stringify(normalized) === JSON.stringify(note.content.tags)) return note;
+  return { ...note, content: { ...note.content, tags: normalized }, updatedAt, revision: note.revision + 1 };
+}
+
+/** Applies instant actions; unchanged parts keep their identity so callers can skip saving them. */
+export function applyCardStudyStatePatch(note: Note, card: Card, patch: CardStudyStatePatch, updatedAt = new Date().toISOString()): { note: Note; card: Card } {
+  let nextNote = patch.marked === undefined ? note : setNoteMarked(note, patch.marked, updatedAt);
+  if (patch.tags !== undefined) nextNote = setNoteTags(nextNote, patch.tags, updatedAt);
+  let nextCard = patch.suspended === undefined ? card : setCardSuspended(card, patch.suspended, updatedAt);
+  if (patch.flag !== undefined) nextCard = setCardFlag(nextCard, patch.flag, updatedAt);
+  return { note: nextNote, card: nextCard };
 }
 
 /** Copies a content as a new manual note with fresh cards in the decks of the original prompts. */

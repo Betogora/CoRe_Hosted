@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, parseNoteContent } from "./coreModel.ts";
+import { cardStudyFromReviewState, createCardVariant, createCoreDeck, createReviewState, normalizeTags, parseNoteContent } from "./coreModel.ts";
 import type { Card, CardStudyState, CardVariant, Deck, MediaFileReference, Note } from "./coreTypes.ts";
 import type { NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type {
@@ -93,6 +93,7 @@ const accountRowSchemas = {
     marked: v.boolean(),
     content_revision: positiveIntegerSchema,
     imported_content_revision: v.nullable(positiveIntegerSchema),
+    imported_tags: v.nullable(v.array(v.string())),
   }),
   note_sources: v.looseObject({
     ...syncRowSchema,
@@ -107,6 +108,7 @@ const accountRowSchemas = {
     anki_card_id: v.nullable(v.string()),
     ...cardStudyColumnsSchema,
     anki_flag: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(7)),
+    leeched_at: v.nullable(v.string()),
     study_extra: jsonObjectSchema,
     source_scheduler: v.optional(v.unknown()),
   }),
@@ -158,6 +160,9 @@ const cardCatalogRowSchema = v.looseObject({
   maturity_band: v.string(),
   reviewable: v.boolean(),
   marked: v.boolean(),
+  anki_flag: v.pipe(v.number(), v.safeInteger(), v.minValue(0), v.maxValue(7)),
+  leeched: v.boolean(),
+  tag_keys: v.array(v.string()),
   has_active_variants: v.boolean(),
   active_variant_count: nonNegativeIntegerSchema,
   active_variant_id: v.nullable(v.string()),
@@ -184,7 +189,7 @@ export interface CardStudySnapshot {
   deckId: string;
   noteId: string;
   status: Card["status"];
-  study: Omit<CardStudyState, "extra">;
+  study: Omit<CardStudyState, "extra" | "leechedAt">;
   studyRevision: number;
   activeVariantCount: number;
   createdAt: string;
@@ -307,6 +312,7 @@ export function noteFromRow(row: AccountRow): Note {
     marked: row.marked === true,
     contentRevision: Number(row.content_revision),
     importedContentRevision: row.imported_content_revision == null ? null : Number(row.imported_content_revision),
+    importedTags: Array.isArray(row.imported_tags) ? normalizeTags(row.imported_tags) : null,
     ...syncMetadata(row),
   };
 }
@@ -324,6 +330,7 @@ export function cardFromRow(row: AccountRow, variants: CardVariant[] = []): Card
     learningStepIndex: row.learning_step_index,
     lastReviewedAt: row.last_reviewed_at,
     lastRating: row.last_rating,
+    leechedAt: row.leeched_at ?? null,
     sourceSchedulerData: row.source_scheduler ?? null,
   }));
   return {
@@ -449,6 +456,9 @@ export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
     maturityBand: row.maturity_band,
     reviewable: row.reviewable,
     marked: row.marked,
+    ankiFlag: row.anki_flag,
+    leeched: row.leeched,
+    tagKeys: row.tag_keys,
     hasActiveVariants: row.has_active_variants,
     activeVariantCount: row.active_variant_count,
     activeVariantId: row.active_variant_id,

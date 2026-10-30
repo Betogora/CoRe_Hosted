@@ -37,6 +37,7 @@ begin
     ('notes', 'content_revision'),
     ('notes', 'imported_content_revision'),
     ('notes', 'marked'),
+    ('notes', 'imported_tags'),
     ('note_sources', 'fields'),
     ('note_type_sources', 'definition'),
     ('cards', 'note_id'),
@@ -48,6 +49,7 @@ begin
     ('cards', 'difficulty'),
     ('cards', 'study_extra'),
     ('cards', 'study_revision'),
+    ('cards', 'leeched_at'),
     ('card_variants', 'performance'),
     ('review_events', 'card_id'),
     ('review_events', 'statistics_day'),
@@ -55,6 +57,9 @@ begin
     ('media_files', 'storage_path'),
     ('card_catalog', 'note_id'),
     ('card_catalog', 'marked'),
+    ('card_catalog', 'anki_flag'),
+    ('card_catalog', 'leeched'),
+    ('card_catalog', 'tag_keys'),
     ('card_catalog', 'body_revision'),
     ('card_catalog', 'study_revision'),
     ('card_catalog', 'dependency_revision'),
@@ -230,8 +235,8 @@ begin
      or to_regprocedure('public.get_account_bootstrap(text,integer,integer)') is null
      or to_regprocedure('public.get_account_due_forecast()') is null
      or to_regprocedure('public.pull_account_catalog_delta(bigint,integer,integer)') is null
-     or to_regprocedure('public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean)') is null
-     or to_regprocedure('public.search_account_card_catalog(text[],text,text,text,integer)') is null
+     or to_regprocedure('public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean,jsonb)') is null
+     or to_regprocedure('public.search_account_card_catalog(text[],text,text,text,integer,jsonb)') is null
      or to_regprocedure('public.list_account_card_study_states(text[],text,integer)') is null
      or to_regprocedure('public.hydrate_account_cards(text[],text[])') is null
      or to_regprocedure('public.get_deck_offline_manifest(text,text,integer,boolean)') is null
@@ -239,7 +244,9 @@ begin
      or to_regprocedure('public.delete_account_deck_tree(text,timestamp with time zone,text)') is null
      or to_regprocedure('public.list_retranslation_candidates(jsonb,text,integer)') is null
      or to_regprocedure('public.list_releasable_media(integer)') is null
-     or to_regprocedure('public.load_reimport_targets(text[])') is null then
+     or to_regprocedure('public.load_reimport_targets(text[])') is null
+     or to_regprocedure('public.list_account_tags()') is null
+     or to_regprocedure('public.list_similar_notes(text,integer)') is null then
     raise exception 'Mindestens ein RPC-Vertrag des Kartenmodells fehlt.';
   end if;
   if to_regprocedure('public.get_account_bootstrap_v2(text,integer,integer)') is not null
@@ -253,8 +260,8 @@ begin
       'public.get_account_bootstrap(text,integer,integer)',
       'public.get_account_due_forecast()',
       'public.pull_account_catalog_delta(bigint,integer,integer)',
-      'public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean)',
-      'public.search_account_card_catalog(text[],text,text,text,integer)',
+      'public.list_account_card_catalog(text,text,text,text,jsonb,integer,boolean,jsonb)',
+      'public.search_account_card_catalog(text[],text,text,text,integer,jsonb)',
       'public.list_account_card_study_states(text[],text,integer)',
       'public.hydrate_account_cards(text[],text[])',
       'public.get_deck_offline_manifest(text,text,integer,boolean)',
@@ -262,7 +269,9 @@ begin
       'public.delete_account_deck_tree(text,timestamp with time zone,text)',
       'public.list_retranslation_candidates(jsonb,text,integer)',
       'public.list_releasable_media(integer)',
-      'public.load_reimport_targets(text[])'
+      'public.load_reimport_targets(text[])',
+      'public.list_account_tags()',
+      'public.list_similar_notes(text,integer)'
     ]) as signatures(signature)
     where not has_function_privilege('authenticated', signatures.signature, 'EXECUTE')
        or has_function_privilege('anon', signatures.signature, 'EXECUTE')
@@ -277,7 +286,8 @@ begin
       and procedure_row.proname in (
         'record_review_atomic', 'get_account_bootstrap', 'get_account_due_forecast', 'pull_account_catalog_delta',
         'list_account_card_catalog', 'search_account_card_catalog', 'list_account_card_study_states', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
-        'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets'
+        'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets',
+        'list_account_tags', 'list_similar_notes'
       )
       and procedure_row.prosecdef
   ) then
@@ -290,7 +300,8 @@ begin
     where (namespace_row.nspname = 'private' or (namespace_row.nspname = 'public' and procedure_row.proname in (
         'record_review_atomic', 'get_account_bootstrap', 'get_account_due_forecast', 'pull_account_catalog_delta',
         'list_account_card_catalog', 'search_account_card_catalog', 'list_account_card_study_states', 'hydrate_account_cards', 'get_deck_offline_manifest', 'get_account_statistics',
-        'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets'
+        'delete_account_deck_tree', 'list_retranslation_candidates', 'list_releasable_media', 'load_reimport_targets',
+        'list_account_tags', 'list_similar_notes'
       )))
       and not coalesce(procedure_row.proconfig, '{}'::text[]) @> array['search_path=""']::text[]
   ) then

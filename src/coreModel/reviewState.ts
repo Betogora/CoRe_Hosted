@@ -23,6 +23,7 @@ export function createReviewState(input: unknown = {}): ReviewState {
     maturityBand = "new",
     lastReviewedAt = null,
     lastRating = null,
+    leechedAt = null,
     intervalMinutes = null,
     learningStepIndex = 0,
     learningSuccessCount = 0,
@@ -48,6 +49,7 @@ export function createReviewState(input: unknown = {}): ReviewState {
     maturityBand: MATURITY_BANDS.includes(maturityBand as MaturityBand) ? maturityBand as MaturityBand : "new",
     lastReviewedAt,
     lastRating,
+    leechedAt,
     intervalMinutes: intervalMinutes == null ? null : Math.max(0, Math.round(Number(intervalMinutes) || 0)),
     learningStepIndex: Math.max(0, Math.round(Number(learningStepIndex) || 0)),
     learningSuccessCount: Math.max(0, Math.round(Number(learningSuccessCount) || 0)),
@@ -73,6 +75,7 @@ export function cardStudyFromReviewState(state: ReviewState): CardStudyState {
     learningStepIndex: state.learningStepIndex,
     lastReviewedAt: state.lastReviewedAt,
     lastRating: state.lastRating,
+    leechedAt: state.leechedAt,
     extra: {
       schedulerVersion: state.schedulerVersion,
       stabilityFast: state.stabilityFast,

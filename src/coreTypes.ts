@@ -9,6 +9,8 @@ export type VariantQualityStatus = "draft" | "active" | "rejected" | "flagged" |
 export type MaturityBand = "new" | "learning" | "young" | "mature";
 export type ReviewSchedulerState = "new" | "learning" | "review" | "relearning";
 export type CardStatus = "active" | "suspended";
+/** What a deck does when a card becomes a leech: only mark it, or also suspend it. */
+export type LeechAction = "tag" | "suspend";
 export type NewReviewOrder = "reviews-first" | "new-first" | "mixed";
 export type NewCardSortOrder = "oldest-first" | "random";
 export type ReviewCardSortOrder = "most-overdue" | "lowest-retrievability";
@@ -51,6 +53,8 @@ export interface UiPreferences {
   learnCollapsedDeckIds: string[];
   deckManagerExpandedDeckIds: string[];
   syncIntervalMinutes: SyncIntervalMinutes;
+  /** Own names of the flags 1–7; an empty name stands for the color name. */
+  flagNames: string[];
 }
 
 export type SyncIntervalMinutes = 0 | 1 | 5 | 15 | 30;
@@ -197,6 +201,9 @@ export interface DeckSettings {
   } | null;
   variantThresholdDays: number;
   maxActiveVariantsPerCard: number;
+  /** Lapses that make a card a leech; it is detected again every half threshold (Anki). */
+  leechThreshold: number;
+  leechAction: LeechAction;
   schedulerProfile: SchedulerProfile;
 }
 
@@ -283,6 +290,8 @@ export interface Note {
   contentRevision: number;
   /** contentRevision at the last APKG import; a higher contentRevision means local edits. Null for manual notes. */
   importedContentRevision: number | null;
+  /** Tags of the last APKG import, the base of the three-way tag merge on reimport. Null for manual notes. */
+  importedTags: string[] | null;
   createdAt: string;
   updatedAt: string;
   revision: number;
@@ -317,6 +326,8 @@ export interface CardStudyState {
   learningStepIndex: number;
   lastReviewedAt: string | null;
   lastRating: ReviewRating | null;
+  /** When the card became a leech (Anki tag `leech`); null otherwise. Study state, so reviews set it atomically. */
+  leechedAt: string | null;
   extra: CardStudyExtra;
 }
 
@@ -342,9 +353,12 @@ export interface Card {
   updatedByDeviceId: string | null;
 }
 
+/** Instant card actions: mark and tags belong to the content (all siblings), suspension and flag to the card. */
 export interface CardStudyStatePatch {
   marked?: boolean;
   suspended?: boolean;
+  flag?: number;
+  tags?: string[];
 }
 
 export interface VariantPerformance {

@@ -43,7 +43,7 @@ const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at"
 const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "due_at", "last_reviewed_at"]);
 const CARD_STUDY_FIELDS = [
   "state", "due_at", "stability", "difficulty", "reps", "lapses", "interval_days", "learning_step_index",
-  "last_reviewed_at", "last_rating", "study_extra", "source_scheduler", "study_revision",
+  "last_reviewed_at", "last_rating", "leeched_at", "study_extra", "source_scheduler", "study_revision",
 ];
 const TECHNICAL_CONTENT_FIELDS_BY_TABLE: Record<string, Set<string>> = {
   decks: new Set(["hierarchy_path"]),
@@ -70,6 +70,7 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
   "translator_version",
   "content_revision",
   "imported_content_revision",
+  "imported_tags",
   "parent_deck_id",
   "model_run_id",
   "hierarchy_path",
@@ -916,6 +917,7 @@ function noteToCloudRow(note: Note, userId: string) {
     marked: note.marked,
     content_revision: normalizeRevision(note.contentRevision),
     imported_content_revision: note.importedContentRevision,
+    imported_tags: note.importedTags,
     created_at: note.createdAt,
     updated_at: note.updatedAt,
     ...syncFields(note),
@@ -935,6 +937,7 @@ function studyToCloudColumns(study: Card["study"]) {
     learning_step_index: study.learningStepIndex,
     last_reviewed_at: study.lastReviewedAt,
     last_rating: study.lastRating,
+    leeched_at: study.leechedAt,
     study_extra: extra,
   };
 }

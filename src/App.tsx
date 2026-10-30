@@ -23,7 +23,7 @@ import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } fr
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
-import { addCardVariant, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants, setCardSuspended, setNoteMarked } from "./coreModel.ts";
+import { addCardVariant, applyCardStudyStatePatch, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants } from "./coreModel.ts";
 import { cardVariantSource, deleteVariant, reactivateVariant } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
@@ -1279,16 +1279,14 @@ export function App() {
     };
   }
 
-  /** Mark belongs to the content (all siblings show it); suspension belongs to the card. */
+  /** Mark and tags belong to the content (all siblings show them); suspension and flag belong to the card. */
   async function applyCardStudyState(cardId: string, patch: CardStudyStatePatch) {
     if (!workspaceRepository) throw new Error("Die lokale Kartenablage ist noch nicht bereit.");
     const body = await workspaceRepository.loadCardBody(cardId);
     if (!body) return null;
-    const updatedAt = new Date().toISOString();
-    const note = patch.marked === undefined ? body.note : setNoteMarked(body.note, patch.marked, updatedAt);
-    const card = patch.suspended === undefined ? body.card : setCardSuspended(body.card, patch.suspended, updatedAt);
+    const { note, card } = applyCardStudyStatePatch(body.note, body.card, patch);
     if (note === body.note && card === body.card) return { note, card };
-    // A changed mark also refreshes the catalog rows of locally known siblings.
+    // A changed mark or tags also refresh the catalog rows of locally known siblings.
     const siblings = note !== body.note ? (await workspaceRepository.loadNoteGraph(body.note.id))?.cards ?? [body.card] : [body.card];
     await workspaceRepository.saveNoteGraphs([{
       previous: { note: body.note, cards: siblings },
@@ -1309,8 +1307,7 @@ export function App() {
     const note = card ? study.notes.find((candidate) => candidate.id === card.noteId) : null;
     if (!deck || !card || !note) return null;
     const updatedAt = new Date().toISOString();
-    const nextNote = patch.marked === undefined ? note : setNoteMarked(note, patch.marked, updatedAt);
-    const nextCard = patch.suspended === undefined ? card : setCardSuspended(card, patch.suspended, updatedAt);
+    const { note: nextNote, card: nextCard } = applyCardStudyStatePatch(note, card, patch, updatedAt);
     const updated = { ...deck, updatedAt, cards: deck.cards.map((candidate) => candidate.id === cardId ? nextCard : candidate) };
     study.setDecks((current) => current?.map((candidate) => candidate.id === deckId ? updated : candidate) ?? current);
     study.setNotes((current) => current.map((candidate) => candidate.id === note.id ? nextNote : candidate));

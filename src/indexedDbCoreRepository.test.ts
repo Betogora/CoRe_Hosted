@@ -490,3 +490,38 @@ test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-I
   assert.equal((reviewMutation?.payload as any).entity.deckId, "deck-anki");
   repository.close();
 });
+
+test("Reimport führt Tags dreiseitig zusammen, auch bei lokal bearbeitetem Inhalt; Flagge und Lernbremse bleiben", async () => {
+  const edited = importedNote("note-tags", "guid-tags", "Lokal bearbeitet", { contentRevision: 2 });
+  edited.note = { ...edited.note, importedTags: ["#AK::Alt", "Entfällt", "Gelöscht"], content: { ...edited.note.content, tags: ["#AK::Alt", "Entfällt", "Eigen"] } };
+  edited.cards = edited.cards.map((card) => ({ ...card, id: "card-tags", ankiCardId: "anki-t1", ankiFlag: 3, study: { ...card.study, leechedAt: "2026-08-01T00:00:00.000Z" } }));
+  const unedited = importedNote("note-only-tags", "guid-only-tags", "Unverändert");
+  unedited.note = { ...unedited.note, importedTags: ["A"], content: { ...unedited.note.content, tags: ["A"] } };
+  unedited.cards = unedited.cards.map((card) => ({ ...card, id: "card-only-tags", ankiCardId: "anki-u1" }));
+  const deck = createCoreDeck({ id: "deck-anki", name: "Anki", source: "anki-apkg", ankiDeckId: "anki-deck-1", cards: [...edited.cards, ...unedited.cards] });
+  const repository = await openRepository(state([deck], [edited.note, unedited.note]));
+
+  const incoming = importedNote("incoming-tags", "guid-tags", "Paketfrage");
+  incoming.note = { ...incoming.note, importedTags: ["#ak::alt", "Gelöscht", "Neu"], content: { ...incoming.note.content, tags: ["#ak::alt", "Gelöscht", "Neu"] } };
+  const incomingUnedited = importedNote("incoming-only-tags", "guid-only-tags", "Unverändert");
+  incomingUnedited.note = { ...incomingUnedited.note, importedTags: ["A", "B"], content: { ...incomingUnedited.note.content, tags: ["A", "B"] } };
+  await repository.commitImportGraph(importGraph([
+    { kind: "decks", decks: [{ id: "import-deck", ankiDeckId: "anki-deck-1", name: "Anki", hierarchyPath: ["Anki"], parentDeckId: null }] },
+    { kind: "notes", notes: [incoming.note, incomingUnedited.note], noteSources: [], cards: [
+      { ...incoming.cards[0], id: "incoming-t1", deckId: "import-deck", ankiCardId: "anki-t1" },
+      { ...incomingUnedited.cards[0], id: "incoming-u1", deckId: "import-deck", ankiCardId: "anki-u1" },
+    ] },
+  ]), { deckSettings: {}, reimportTargets: { notes: [], cards: [], noteTypeSources: [] } });
+
+  const merged = await repository.loadNoteGraph("note-tags");
+  assert.deepEqual(merged?.note.content.tags, ["#AK::Alt", "Eigen", "Neu"], "lokal entfernt bleibt entfernt, im Paket entfallen geht, neu kommt dazu");
+  assert.deepEqual(merged?.note.importedTags, ["#ak::alt", "Gelöscht", "Neu"]);
+  assert.equal(merged?.note.content.fields[0].html, "Lokal bearbeitet");
+  assert.equal(merged?.note.contentRevision, 2);
+  assert.deepEqual([merged?.cards[0].ankiFlag, merged?.cards[0].study.leechedAt], [3, "2026-08-01T00:00:00.000Z"]);
+
+  const tagsOnly = await repository.loadNoteGraph("note-only-tags");
+  assert.deepEqual(tagsOnly?.note.content.tags, ["A", "B"]);
+  assert.deepEqual([tagsOnly?.note.contentRevision, tagsOnly?.note.importedContentRevision, tagsOnly?.note.revision], [1, 1, 2]);
+  repository.close();
+});

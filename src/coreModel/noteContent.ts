@@ -11,7 +11,7 @@ import type {
   RevealPrompt,
 } from "../coreTypes.ts";
 import { sanitizeNoteHtml, stripSanitizedHtml } from "../htmlSafety.ts";
-import { normalizeTags } from "./coreValues.ts";
+import { normalizeTags } from "./tags.ts";
 
 type NoteContentParseResult =
   | { ok: true; value: NoteContent; promptKeys: string[] }

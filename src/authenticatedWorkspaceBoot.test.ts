@@ -21,6 +21,7 @@ function completeProfile(userId: string) {
       learnCollapsedDeckIds: [],
       deckManagerExpandedDeckIds: [],
       syncIntervalMinutes: 5 as const,
+      flagNames: ["", "", "", "", "", "", ""],
     },
   };
 }

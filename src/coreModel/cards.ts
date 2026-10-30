@@ -93,6 +93,13 @@ export function setCardSuspended(card: Card, suspended: boolean, updatedAt = new
   return { ...card, status, updatedAt, revision: card.revision + 1 };
 }
 
+/** Anki flag 0–7 (0 removes it); a card edit that bumps the revision, like suspension. */
+export function setCardFlag(card: Card, flag: number, updatedAt = new Date().toISOString()): Card {
+  if (!Number.isInteger(flag) || flag < 0 || flag > 7) throw new Error("Die Flagge ist ungültig.");
+  if (card.ankiFlag === flag) return card;
+  return { ...card, ankiFlag: flag, updatedAt, revision: card.revision + 1 };
+}
+
 /** Manual reschedule changes only the due date; phase and memory stay, suspension stays. */
 export function rescheduleCard(card: Card, dueAt: string, occurredAt = new Date().toISOString()): Card {
   const dueTimestamp = Date.parse(dueAt);

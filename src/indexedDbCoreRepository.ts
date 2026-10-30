@@ -1,4 +1,4 @@
-import { createDefaultDeckSettings, normalizeCoreDeck, rescheduleCard } from "./coreModel.ts";
+import { createDefaultDeckSettings, mergeImportedTags, normalizeCoreDeck, rescheduleCard } from "./coreModel.ts";
 import { normalizeWorkspaceState } from "./coreRepository.ts";
 import type {
   Card,
@@ -777,24 +777,33 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
             for (const card of incomingCards) persistedCardIds.set(card.id, card.id);
             continue;
           }
-          // K5.7: local edits, study state, suspension, mark and deck placement stay; new prompts become new cards.
+          // K5.7: local edits, study state, suspension, flag, leech, mark and deck placement stay; new prompts become new
+          // cards. Tags are no content: they merge three-way against the tags of the last import, even after local edits.
           persistedNoteIds.set(incoming.id, existing.id);
           const locallyEdited = existing.importedContentRevision === null || existing.contentRevision > existing.importedContentRevision;
           if (locallyEdited) keptLocalEdits += 1;
-          const contentChanged = !locallyEdited && JSON.stringify(existing.content) !== JSON.stringify(incoming.content);
+          const importedTags = incoming.importedTags ?? incoming.content.tags;
+          const tags = mergeImportedTags(existing.content.tags, existing.importedTags, importedTags);
+          const contentChanged = !locallyEdited
+            && JSON.stringify({ ...existing.content, tags: [] }) !== JSON.stringify({ ...incoming.content, tags: [] });
+          const tagsChanged = JSON.stringify(tags) !== JSON.stringify(existing.content.tags)
+            || JSON.stringify(importedTags) !== JSON.stringify(existing.importedTags);
           const note: Note = contentChanged
             ? {
               ...existing,
-              content: incoming.content,
+              content: { ...incoming.content, tags },
               media: incoming.media,
               translator: incoming.translator,
               noteTypeSourceId,
               contentRevision: existing.contentRevision + 1,
               importedContentRevision: existing.contentRevision + 1,
+              importedTags,
               revision: existing.revision + 1,
               updatedAt: now,
             }
-            : existing;
+            : tagsChanged
+              ? { ...existing, content: { ...existing.content, tags }, importedTags, revision: existing.revision + 1, updatedAt: now }
+              : existing;
           const localCards = (await Promise.all((await requestResult<IDBValidKey[]>(read.objectStore(STORE.cards).index("noteId").getAllKeys(existing.id)))
             .map((id) => requestResult<StoredCard | undefined>(read.objectStore(STORE.cards).get(id)))))
             .filter((card): card is StoredCard => Boolean(card && !card.deletedAt));
@@ -1218,7 +1227,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const catalogStore = transaction.objectStore(STORE.cardCatalog);
         const previousCatalog = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(updatedCard.id)) ?? null;
         const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(updatedCard.noteId)) ?? null;
-        const catalog = note ? catalogRecordFor(updatedCard, note) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText } : {}) });
+        const catalog = note ? catalogRecordFor(updatedCard, note) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys } : {}) });
         await applyReplicaCatalogChange(transaction, deck.id, previousCatalog, catalog, event.answeredAt);
         const overviewContext = studyOverview ? studyOverviewContext(studyOverview) : null;
         const overviewDay = overviewContext ? getStudyHeatmapDayKey(event.answeredAt, overviewContext.timeZone, overviewContext.dayStartHour) : null;
