@@ -165,6 +165,8 @@ export interface CardEditorServices {
   /** Tags of the whole account online, of the local replica offline. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   listExamsForDeck: (deckId: string) => Promise<string[]>;
+  /** Loads a neighbouring card ahead so prev/next opens without waiting. */
+  prefetchCard: (cardId: string) => void;
   cloud: CardEditorCloudReads | null;
   openFlagNames: () => unknown;
   openSyncConflicts: () => unknown;
@@ -238,6 +240,8 @@ export interface DecksCardPage {
   query: string;
   sort: CardTableSort;
   selected?: (NoteGraph & { cardId: string }) | null;
+  /** The card the last answered request asked for; until it matches the selection, the editor shows its loading bar. */
+  requestedCardId?: string | null;
   loadError?: string | null;
   limitedToLocalCatalog?: boolean;
 }

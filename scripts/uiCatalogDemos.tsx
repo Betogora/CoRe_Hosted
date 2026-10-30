@@ -544,6 +544,7 @@ const catalogCardEditorServices: CardEditorServices = {
   listReviewEvents: async () => [],
   listTagDirectory: async () => [{ tag: "Geografie::Europa", noteCount: 12, importedCount: 0 }, { tag: "Geografie::Asien", noteCount: 8, importedCount: 0 }],
   listExamsForDeck: async () => [],
+  prefetchCard: () => undefined,
   cloud: null,
   openFlagNames: () => undefined,
   openSyncConflicts: () => undefined,

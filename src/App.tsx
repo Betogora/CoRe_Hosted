@@ -31,7 +31,7 @@ import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } fr
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getLearningDayRange, getLearningTimeZone, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
-import { createDeckLibraryModel } from "./libraryModel.ts";
+import { createDeckLibraryModel, sameCardTableSort } from "./libraryModel.ts";
 import { formatLimitSummary } from "./screens/screenConstants.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -210,6 +210,8 @@ export function App() {
   const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
   const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
   const cardPageRequestRef = React.useRef(new Map<string, { key: string; controller: AbortController }>());
+  const cardPagesRef = React.useRef(cardPages);
+  cardPagesRef.current = cardPages;
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
   const [lastSyncedAt, setLastSyncedAt] = React.useState<string | null>(null);
   const [storageStatus, setStorageStatus] = React.useState<WorkspaceStorageStatus | null>(null);
@@ -527,8 +529,9 @@ export function App() {
   }, []);
 
   // The editor keeps one services object per account; its actions read the latest app state when they run.
-  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow });
-  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow };
+  const prefetchCard = (cardId: string) => workspaceHydrationService?.prefetchCardGraph(cardId);
+  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow, prefetchCard });
+  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow, prefetchCard };
   const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
   const cardEditorServices = React.useMemo<CardEditorServices>(() => {
     const actions = () => cardEditorActionsRef.current;
@@ -554,6 +557,7 @@ export function App() {
         if (!cloud || (typeof navigator !== "undefined" && navigator.onLine === false)) return local();
         return (await import("./cloudRepository.ts")).listAccountTags(cloud).catch(local);
       },
+      prefetchCard: (cardId) => actions().prefetchCard(cardId),
       listExamsForDeck: async (deckId) => {
         const currentState = latestStateRef.current;
         if (!currentState) return [];
@@ -680,6 +684,8 @@ export function App() {
   function setAppState(nextState: WorkspaceState | null, { preserveCardPages = false }: StateRefreshOptions = {}) {
     latestStateRef.current = nextState;
     setState(nextState);
+    // Every local write and every sync ends here, so a prefetched card never shows an older version than the replica.
+    workspaceHydrationService?.forgetPreparedGraphs();
     if (workspaceRepository) setSyncConflictCardIds(workspaceRepository.getSyncConflictCardIds());
     if (preserveCardPages) return;
     for (const { controller } of cardPageRequestRef.current.values()) controller.abort();
@@ -696,11 +702,17 @@ export function App() {
     const controller = new AbortController();
     cardPageRequestRef.current.set(request.deckId, { key: requestKey, controller });
     const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(request.deckId)?.key === requestKey;
+    // Prev/next only changes the selected card: the loaded page stays and just the card (often prefetched) is read.
+    const shown = cardPagesRef.current[request.deckId];
+    const onlySelectionChanged = Boolean(workspaceHydrationService && request.selectedCardId && shown && !shown.loadError
+      && shown.page === request.page && shown.query === request.query && sameCardTableSort(shown.sort, request.sort));
     let page;
     try {
-      page = workspaceHydrationService
-        ? await workspaceHydrationService.queryCardPage({ ...request, signal: controller.signal })
-        : await workspaceRepository.listCardPage(request.deckId, request);
+      page = onlySelectionChanged
+        ? { ...shown!, selected: await workspaceHydrationService!.querySelectedCard(request.deckId, request.selectedCardId!) }
+        : workspaceHydrationService
+          ? await workspaceHydrationService.queryCardPage({ ...request, signal: controller.signal })
+          : await workspaceRepository.listCardPage(request.deckId, request);
     } catch (error) {
       if (!isCurrent() || controller.signal.aborted) return;
       setCardPages((current) => ({
@@ -715,6 +727,7 @@ export function App() {
             query: request.query,
             sort: request.sort,
           }),
+          requestedCardId: request.selectedCardId,
           loadError: error instanceof Error ? error.message : "Karten konnten nicht geladen werden.",
         },
       }));
@@ -723,7 +736,7 @@ export function App() {
     if (!isCurrent()) return;
     setCardPages((current) => ({
       ...current,
-      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort, loadError: null },
+      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort, requestedCardId: request.selectedCardId, loadError: null },
     }));
   }, [workspaceHydrationService, workspaceRepository]);
 

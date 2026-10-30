@@ -282,6 +282,8 @@ export function DecksScreen({
   const selectedGraph = selectedPage?.selected?.cardId === selectedCardId ? selectedPage?.selected ?? null : null;
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedGraph);
+  // Until the page answers for the selected card the editor shows the loading bar, never "Karte nicht gefunden".
+  const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
@@ -315,7 +317,7 @@ export function DecksScreen({
       const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
       const selectedCardForDeck = selectedDeckId === group.id ? selectedCardId : null;
       const current = cardPages?.[group.id];
-      const hasSelectedCard = !selectedCardForDeck || current?.selected?.cardId === selectedCardForDeck;
+      const hasSelectedCard = !selectedCardForDeck || current?.requestedCardId === selectedCardForDeck;
       if (current
         && current.page === page
         && current.query === deferredQuery
@@ -444,6 +446,12 @@ export function DecksScreen({
     };
     // requestDetailAction and onSelectDeck read the latest state when they run.
   }, [cardEditorTab, hitRows, selectedCardId]);
+  // The neighbouring hits load ahead once the open card is shown, so prev/next opens without waiting.
+  React.useEffect(() => {
+    const index = selectedGraph && hitRows ? hitRows.rows.findIndex((row) => row.cardId === selectedCardId) : -1;
+    if (index < 0) return;
+    for (const row of [hitRows!.rows[index + 1], hitRows!.rows[index - 1]]) if (row) cardEditor.prefetchCard(row.cardId);
+  }, [cardEditor, hitRows, selectedCardId, selectedGraph]);
   React.useEffect(() => {
     if (!pendingHit) return;
     const group = tableModel.groups.find((candidate) => candidate.id === pendingHit.deckId);
@@ -618,6 +626,15 @@ export function DecksScreen({
           onClose={() => requestDetailAction(closeDetail)}
           onDraftStateChange={handleEditorDraftStateChange}
         />
+      );
+    }
+    if (selectedCardLoading) {
+      return (
+        <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+          <div className="px-3 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-loading">
+            <div className="core-statistics-load-track" role="progressbar" aria-label="Karte wird geladen"><span aria-hidden="true" /></div>
+          </div>
+        </CardEditorSurface>
       );
     }
     return (

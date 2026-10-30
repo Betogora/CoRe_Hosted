@@ -59,6 +59,7 @@ const CARD_EDITOR_SERVICES: CardEditorServices = {
   listReviewEvents: async () => [],
   listTagDirectory: async () => [],
   listExamsForDeck: async () => [],
+  prefetchCard: () => undefined,
   cloud: null,
   openFlagNames: () => undefined,
   openSyncConflicts: () => undefined,
@@ -576,6 +577,21 @@ test("cards page shows safe deterministic fallbacks for unavailable URL targets"
   assert.match(failedMarkup, /Karte noch nicht geladen/);
   assert.match(failedMarkup, /Die Karte konnte nicht geladen werden\./);
   assert.match(failedMarkup, />Erneut laden</);
+});
+
+test("prev/next shows the loading bar until the page answers for the selected card", () => {
+  const deck = deckOf("deck-bio", "Biologie", [basicGraph("deck-bio", "ATP", "Energie")]);
+  const render = (requestedCardId: string) => renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: "next-card",
+    cardPages: { [deck.id]: { ...cardPage(deck.id, []), requestedCardId } },
+    onRequestCardPage: () => undefined,
+  });
+
+  const loading = render("previous-card");
+  assert.match(loading, /role="progressbar" aria-label="Karte wird geladen"/);
+  assert.doesNotMatch(loading, /Karte nicht gefunden/);
+  assert.match(render("next-card"), /Karte nicht gefunden/);
 });
 
 function renderEditorFor(graph: NoteGraph, cardEditorTab: DecksScreenProps["cardEditorTab"] = "content") {

@@ -1564,6 +1564,9 @@ video {
 .h-5 {
   height: 1.25rem;
 }
+.h-56 {
+  height: 14rem;
+}
 .h-6 {
   height: 1.5rem;
 }
@@ -1754,9 +1757,6 @@ video {
 .w-10 {
   width: 2.5rem;
 }
-.w-2\.5 {
-  width: 0.625rem;
-}
 .w-20 {
   width: 5rem;
 }
@@ -1842,6 +1842,9 @@ video {
 }
 .min-w-4 {
   min-width: 1rem;
+}
+.min-w-44 {
+  min-width: 11rem;
 }
 .min-w-5 {
   min-width: 1.25rem;
@@ -6270,7 +6273,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <h4 id="journey-3-rules--kartendetail-und-editor" class="core-control-label" tabindex="-1">Kartendetail und Editor <a class="docs-anchor" href="#journey-3-rules--kartendetail-und-editor" aria-label="Link zu Kartendetail und Editor">#</a></h4>
 <ul>
 <li>Ein Kartenklick öffnet den Editor als Dialog über die ganze Fläche, mobil im Vollbild. Deck, Karte und Reiter stehen in der URL; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach. X und Escape schließen; danach kehrt der Fokus zur Zeile zurück.</li>
-<li>Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (<code>12 / 48</code>; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie <code>Duplizieren</code>, <code>Löschen</code> und <code>Schließen</code>. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.</li>
+<li>Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (<code>12 / 48</code>; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv; die benachbarten Treffer werden vorgeladen, bis zur Antwort zeigt das Detail den Ladebalken der Statistik statt <code>Karte nicht gefunden</code>), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie <code>Duplizieren</code>, <code>Löschen</code> und <code>Schließen</code>. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.</li>
 <li>Vier gleich breite Reiter: <code>Allgemein</code>, <code>Inhalt</code>, <code>Varianten</code>, <code>Lernen</code>; mobil kompakt mit 44-px-Zielen. Aus der Tabelle öffnet <code>Allgemein</code>, aus einer Sitzung (<code>Karte bearbeiten</code>, mit allowlist-validiertem Rückkontext) <code>Inhalt</code>. <code>Varianten</code> und <code>Lernen</code> laden erst beim Öffnen.</li>
 <li>Tastenkürzel: <code>Strg+Enter</code> speichert den Entwurf, <code>Strg+1</code> bis <code>Strg+7</code> schaltet die Flagge, <code>Strg+K</code> die Markierung, <code>Alt+↑</code>/<code>Alt+↓</code> wechselt zur vorigen/nächsten Karte. Die Reiter folgen dem ARIA-Tabs-Muster; Tooltips nennen die Kürzel.</li>
 <li>Eine markierte Karte färbt Kopf, Reiter und Hintergrund leicht gelb; innere Karten bleiben weiß. Flagge und Aussetzung färben keine Fläche.</li>
@@ -6297,7 +6300,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <p><code>Lernen</code>:</p>
 <ul>
 <li>Kennzahlen aus Lernstand und FSRS-7, darunter Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen und Fehler, das Reifeband (<code>Neu</code>, <code>Lernen</code>, <code>Jung</code>, <code>Reif</code>) und eine Lernbremse mit Zeitpunkt.</li>
-<li>Abrufverlauf und vollständige Bewertungsliste laden erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.</li>
+<li>Links unter den Kennzahlen der <code>Abrufverlauf</code> als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor <code>Nochmal</code>; <code>Als neu lernen</code> beginnt die Kurve neu. Rechts die Liste <code>Bewertungen</code>. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.</li>
 <li><code>Als neu lernen …</code> setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.</li>
 </ul>
 <p><code>Duplizieren</code> legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig <code>(Kopie)</code>. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu. <code>Löschen</code> fragt wie in der Kartenverwaltung nach, schließt danach den Editor und bietet dort <code>Rückgängig</code>.</p>

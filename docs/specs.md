@@ -220,7 +220,7 @@ Akzeptanz:
 #### Kartendetail und Editor
 
 - Ein Kartenklick öffnet den Editor als Dialog über die ganze Fläche, mobil im Vollbild. Deck, Karte und Reiter stehen in der URL; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach. X und Escape schließen; danach kehrt der Fokus zur Zeile zurück.
-- Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (`12 / 48`; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie `Duplizieren`, `Löschen` und `Schließen`. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.
+- Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (`12 / 48`; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv; die benachbarten Treffer werden vorgeladen, bis zur Antwort zeigt das Detail den Ladebalken der Statistik statt `Karte nicht gefunden`), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie `Duplizieren`, `Löschen` und `Schließen`. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.
 - Vier gleich breite Reiter: `Allgemein`, `Inhalt`, `Varianten`, `Lernen`; mobil kompakt mit 44-px-Zielen. Aus der Tabelle öffnet `Allgemein`, aus einer Sitzung (`Karte bearbeiten`, mit allowlist-validiertem Rückkontext) `Inhalt`. `Varianten` und `Lernen` laden erst beim Öffnen.
 - Tastenkürzel: `Strg+Enter` speichert den Entwurf, `Strg+1` bis `Strg+7` schaltet die Flagge, `Strg+K` die Markierung, `Alt+↑`/`Alt+↓` wechselt zur vorigen/nächsten Karte. Die Reiter folgen dem ARIA-Tabs-Muster; Tooltips nennen die Kürzel.
 - Eine markierte Karte färbt Kopf, Reiter und Hintergrund leicht gelb; innere Karten bleiben weiß. Flagge und Aussetzung färben keine Fläche.
@@ -247,7 +247,7 @@ Akzeptanz:
 `Lernen`:
 
 - Kennzahlen aus Lernstand und FSRS-7, darunter Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen und Fehler, das Reifeband (`Neu`, `Lernen`, `Jung`, `Reif`) und eine Lernbremse mit Zeitpunkt.
-- Abrufverlauf und vollständige Bewertungsliste laden erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.
+- Links unter den Kennzahlen der `Abrufverlauf` als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor `Nochmal`; `Als neu lernen` beginnt die Kurve neu. Rechts die Liste `Bewertungen`. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.
 - `Als neu lernen …` setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.
 
 `Duplizieren` legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig `(Kopie)`. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu. `Löschen` fragt wie in der Kartenverwaltung nach, schließt danach den Editor und bietet dort `Rückgängig`.

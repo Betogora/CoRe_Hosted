@@ -110,7 +110,8 @@ export function createWorkspaceHydrationService({
     request.sort?.direction ?? "asc",
   ]);
 
-  const hydrateCards = async (cardIds: string[], residency: "cached" | "downloaded" = "cached") => {
+  /** With `allowMissing`, cards the cloud no longer has load as null instead of failing the batch. */
+  const hydrateCards = async (cardIds: string[], residency: "cached" | "downloaded" = "cached", { allowMissing = false } = {}) => {
     const ids = [...new Set(cardIds.filter(Boolean))];
     if (!ids.length) return [];
     const missing = await repository.missingCardBodyIds(ids);
@@ -122,7 +123,7 @@ export function createWorkspaceHydrationService({
         await Promise.all(group.map(async (batch) => {
           const result = await hydrateAccountCards(client, batch);
           const returnedIds = new Set(result.cards.map((card) => card.id));
-          if (batch.some((id) => !returnedIds.has(id))) throw new Error("Mindestens eine Karte ist in der Cloud nicht mehr verfügbar.");
+          if (!allowMissing && batch.some((id) => !returnedIds.has(id))) throw new Error("Mindestens eine Karte ist in der Cloud nicht mehr verfügbar.");
           await repository.applyHydratedBodies(result, residency);
         }));
       }
@@ -227,6 +228,31 @@ export function createWorkspaceHydrationService({
     return null;
   };
 
+  /**
+   * Graphs of the editor's neighbouring cards, loaded ahead so prev/next opens at once. A selection takes its graph out;
+   * any local write empties the store, so it never shows an older version than the replica.
+   */
+  const preparedGraphs = new Map<string, Promise<NoteGraph | null>>();
+  const PREPARED_GRAPH_LIMIT = 4;
+  const fetchCardGraph = async (cardId: string): Promise<NoteGraph | null> => {
+    // A linked card the cloud no longer has is "not found", not a load error.
+    const [body] = await hydrateCards([cardId], "cached", { allowMissing: true });
+    return body ? loadNoteGraph(body.note.id) : null;
+  };
+  const prefetchCardGraph = (cardId: string) => {
+    if (!cardId || preparedGraphs.has(cardId)) return;
+    preparedGraphs.set(cardId, fetchCardGraph(cardId).catch(() => null));
+    while (preparedGraphs.size > PREPARED_GRAPH_LIMIT) preparedGraphs.delete(preparedGraphs.keys().next().value!);
+  };
+  const forgetPreparedGraphs = () => preparedGraphs.clear();
+  /** The selected card with all its siblings when it belongs to the deck, else null. */
+  const querySelectedCard = async (deckId: string, cardId: string): Promise<(NoteGraph & { cardId: string }) | null> => {
+    const prepared = preparedGraphs.get(cardId);
+    preparedGraphs.delete(cardId);
+    const graph = (prepared ? await prepared : null) ?? await fetchCardGraph(cardId);
+    return graph?.cards.some((card) => card.id === cardId && card.deckId === deckId) ? { ...graph, cardId } : null;
+  };
+
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
     // A complete local catalog serves unfiltered pages itself; only searches keep using the cloud cursors.
@@ -247,12 +273,7 @@ export function createWorkspaceHydrationService({
     const entries = cloudPage?.items ?? local!.items;
     markReplicaStartupGate("catalogUsable", { itemCount: entries.length });
     if (entries.length === 0 && cloudError) throw cloudError;
-    const selectedId = request.selectedCardId ?? null;
-    let selected: (NoteGraph & { cardId: string }) | null = null;
-    if (selectedId) {
-      const [body] = await hydrateCards([selectedId]);
-      if (body && body.card.deckId === request.deckId) selected = { ...await loadNoteGraph(body.note.id), cardId: selectedId };
-    }
+    const selected = request.selectedCardId ? await querySelectedCard(request.deckId, request.selectedCardId) : null;
     return {
       items: entries,
       page: Math.max(0, Math.floor(request.page ?? 0)),
@@ -548,6 +569,9 @@ export function createWorkspaceHydrationService({
 
   return {
     queryCardPage,
+    querySelectedCard,
+    prefetchCardGraph,
+    forgetPreparedGraphs,
     openCard,
     openCards,
     listLocalCardIds,
