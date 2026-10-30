@@ -34,6 +34,15 @@ function noteMediaFor(content: NoteContent, media: Record<string, string> = {}):
   return result;
 }
 
+/** Drops media entries the content no longer references; referenced ones stay. No content change. */
+export function removeUnusedNoteMedia(note: Note, names: readonly string[], updatedAt = new Date().toISOString()): Note {
+  const used = new Set(noteContentMediaRefs(note.content));
+  const removed = names.filter((name) => name in note.media && !used.has(name));
+  if (!removed.length) return note;
+  const media = Object.fromEntries(Object.entries(note.media).filter(([name]) => !removed.includes(name)));
+  return { ...note, media, revision: note.revision + 1, updatedAt };
+}
+
 function createCard(note: Note, deckId: string, promptKey: string, createdAt: string): Card {
   return {
     id: makeId("card"),

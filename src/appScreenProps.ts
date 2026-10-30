@@ -1,10 +1,12 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { AppRoute, AppViewId, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { SimilarNote } from "./cloudRepositoryValidation.ts";
+import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -138,6 +140,34 @@ export interface DeckSettingsScreenProps {
   backLabel?: string;
 }
 
+/** Reads only the cloud offers; null without a signed-in client. Callers check online state themselves (W19). */
+interface CardEditorCloudReads {
+  listCardReviewEvents: (cardId: string, signal: AbortSignal) => Promise<ReviewEvent[]>;
+  listSimilarNotes: (noteId: string, signal: AbortSignal) => Promise<SimilarNote[]>;
+  listAccountTags: (signal: AbortSignal) => Promise<TagDirectoryEntry[]>;
+}
+
+/** Instant card actions and reads of the card editor beyond the content draft. */
+export interface CardEditorServices {
+  /** Own flag names of the account (`uiPreferences.flagNames`). */
+  flagNames: readonly string[];
+  moveCard: (cardId: string, deckId: string) => Promise<NoteGraph | null>;
+  resetCards: (cardIds: string[]) => Promise<Card[]>;
+  setCardsLeech: (cardIds: string[], leechedAt: string | null) => Promise<Card[]>;
+  buryCards: (cardIds: string[], buried: boolean) => Promise<Card[]>;
+  restoreCardStudies: (studies: ReadonlyMap<string, Card["study"]>) => Promise<Card[]>;
+  editVariant: (cardId: string, variantId: string, text: { front: string; back: string }) => Promise<void>;
+  removeNoteMedia: (graph: NoteGraph, names: string[]) => Promise<NoteGraph | null>;
+  /** The stored card and content, e.g. to check before an undo that nothing changed meanwhile. */
+  loadCard: (cardId: string) => Promise<{ card: Card; note: Note } | null>;
+  listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
+  listTagDirectory: () => Promise<TagDirectoryEntry[]>;
+  listExamsForDeck: (deckId: string) => Promise<string[]>;
+  cloud: CardEditorCloudReads | null;
+  openFlagNames: () => unknown;
+  openSyncConflicts: () => unknown;
+}
+
 export interface DecksScreenProps {
   decks: Deck[];
   summaryAccountId?: string;
@@ -169,7 +199,11 @@ export interface DecksScreenProps {
   onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;
   selectedCardId: string | null;
-  onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
+  cardEditorTab: CardEditorTab;
+  onCardEditorTabChange: (tab: CardEditorTab) => unknown;
+  cardEditor: CardEditorServices;
+  onSelectDeck: (deckId: string | null, cardId?: string | null, tab?: CardEditorTab) => unknown;
+  /** Present when the editor was opened from a session: closing returns there and there is no hit list (W6). */
   onCloseSelectedCard?: () => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
   onOpenCardSettings: () => unknown;

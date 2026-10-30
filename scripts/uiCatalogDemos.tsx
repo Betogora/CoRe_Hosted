@@ -5,7 +5,8 @@ import React, { useRef, useState } from "react";
 import { Ban, BookOpen, ChevronRight, Copy, Eye, Grid2x2, Home, Info, Layers, List, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
 import { addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SyncStatus } from "../src/coreTypes.ts";
-import type { DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
+import type { CardEditorServices, DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
+import type { CardEditorTab } from "../src/appNavigation.ts";
 import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePresentationTheme } from "../src/notePresentation.ts";
 import { catalogEntryFromCard } from "../src/workspaceReplica.ts";
 import { createDeckLibraryModel } from "../src/libraryModel.ts";
@@ -458,6 +459,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   const workspace = React.useMemo(() => ({ ...createCoreRepository().getState(), decks: sampleDecks }), []);
   const navigate = React.useCallback<React.ComponentProps<typeof DashboardScreen>["onNavigate"]>((id, fields) => createViewRoute(id ?? "uebersicht", fields), []);
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+  const [cardEditorTab, setCardEditorTab] = useState<CardEditorTab>("general");
   const [contentTab, setContentTab] = useState<DeckContentTab>("children");
   const [cardPages, setCardPages] = useState<Record<string, DecksCardPage>>({});
   // Local stand-in for the catalog query of the app: every deck shows its sample cards as one page.
@@ -518,7 +520,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(_surface, id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
     {["creation", "manual", "import", "ai-source"].includes(view) && <CreationScreen decks={sampleDecks} initialMethod={view === "manual" ? "manual" : view === "import" ? "import" : view === "ai-source" ? "ai-source" : ""} onMethodChange={(method) => setView(method || "creation")} />}
-    {["decks", "deck-content"].includes(view) && <DecksScreen summaryAccountId="catalog-summaries" onGenerateSummary={generateSummaryDemo} contentDeckId={view === "deck-content" ? focusedDemoDeckId ?? deck.id : null} contentTab={contentTab} onOpenDeckContent={(id, tab) => { setFocusedDemoDeckId(id); setContentTab(tab ?? "children"); }} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onSetDeckCoreMode={noop} cardPages={cardPages} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={async () => null} onDuplicateNote={async () => null} onDeleteNote={async () => null} onUndoDeleteNote={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} onSelectDeck={(_id, cardId) => setSelectedCardId(cardId ?? null)} onCloseSelectedCard={() => setSelectedCardId(null)} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
+    {["decks", "deck-content"].includes(view) && <DecksScreen summaryAccountId="catalog-summaries" onGenerateSummary={generateSummaryDemo} contentDeckId={view === "deck-content" ? focusedDemoDeckId ?? deck.id : null} contentTab={contentTab} onOpenDeckContent={(id, tab) => { setFocusedDemoDeckId(id); setContentTab(tab ?? "children"); }} decks={sampleDecks} now={selection.now} mediaStore={null} onStartDeck={(selectedDeck) => { setDemoStudyDeck(selectedDeck); setView("study"); }} onSetDeckCoreMode={noop} cardPages={cardPages} onRequestCardPage={requestCardPage} onSaveNote={async () => null} onSetCardStudyState={async () => null} onDuplicateNote={async () => null} onDeleteNote={async () => null} onUndoDeleteNote={async () => null} onRescheduleCards={async () => []} onGenerateVariant={async () => { throw new Error("Keine KI-Anfrage in der Vorschau."); }} onUpdateVariant={async () => undefined} selectedDeckId={view === "deck-content" || selectedCardId ? deck.id : null} selectedCardId={selectedCardId} cardEditorTab={cardEditorTab} onCardEditorTabChange={setCardEditorTab} cardEditor={catalogCardEditorServices} onSelectDeck={(_id, cardId, tab) => { setSelectedCardId(cardId ?? null); setCardEditorTab(tab ?? "general"); }} onOpenLearn={noop} onOpenCardSettings={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onDraftStateChange={noop} expandedDeckIds={[deck.id]} onSetDeckExpanded={noop} />}
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
     {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
     {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
@@ -526,6 +528,25 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
     </section>
   </div>}</>;
 }
+
+/** The editor's reads and instant actions stay inside the preview; nothing reaches a repository or the cloud. */
+const catalogCardEditorServices: CardEditorServices = {
+  flagNames: ["", "", "Wiederholen", "", "", "", ""],
+  moveCard: async () => null,
+  resetCards: async () => [],
+  setCardsLeech: async () => [],
+  buryCards: async () => [],
+  restoreCardStudies: async () => [],
+  editVariant: async () => undefined,
+  removeNoteMedia: async () => null,
+  loadCard: async () => null,
+  listReviewEvents: async () => [],
+  listTagDirectory: async () => [{ tag: "Geografie::Europa", noteCount: 12, importedCount: 0 }, { tag: "Geografie::Asien", noteCount: 8, importedCount: 0 }],
+  listExamsForDeck: async () => [],
+  cloud: null,
+  openFlagNames: () => undefined,
+  openSyncConflicts: () => undefined,
+};
 
 const ICON_ROLES: Array<[LucideIcon, string]> = [[Plus, "Hinzufügen"], [Save, "Speichern"], [Pencil, "Bearbeiten"], [Copy, "Kopieren"], [Trash2, "Löschen"], [X, "Schließen"], [Eye, "Vorschau"], [Star, "Markieren"], [Ban, "Aussetzen"], [RefreshCw, "Synchronisieren"], [Sparkles, "KI-Variante"], [Settings, "Einstellungen"]];
 

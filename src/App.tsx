@@ -10,6 +10,7 @@ import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgImportSession, resolveApkgCreationMethod, type ApkgImportSession } from "./apkgImportSession.ts";
 import type {
   CardDraftGuard,
+  CardEditorServices,
   DeckSettingsSaveScope,
   DecksCardPage,
   DecksCardPageRequest,
@@ -23,8 +24,8 @@ import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } fr
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
 import { createImportCloudSyncTask, type ImportCloudSyncTask } from "./importCloudSyncTask.ts";
-import { addCardVariant, applyCardStudyStatePatch, createDefaultDeckSettings, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, planNoteRestore, replaceOutdatedVariants } from "./coreModel.ts";
-import { cardVariantSource, deactivateVariant, deleteVariant, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
+import { addCardVariant, applyCardStudyStatePatch, createDefaultDeckSettings, createNote, duplicateNote, moveCardToDeck, planNoteContentChange, planNoteDeletion, planNoteRestore, removeUnusedNoteMedia, replaceOutdatedVariants } from "./coreModel.ts";
+import { cardVariantSource, deactivateVariant, deleteVariant, editVariantText, isEditedVariant, reactivateVariant } from "./coreVariantService.ts";
 import { collectDeckTreeIds, createWorkspaceDeck, updateDeckTreePlacement, type WorkspaceState } from "./coreWorkspace.ts";
 import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } from "./globalLearningDefaults.ts";
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
@@ -284,6 +285,7 @@ export function App() {
     settingsTarget,
     settingsReturnContext,
     cardEditorReturnContext,
+    cardEditorTab,
     navigateToRoute,
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
@@ -522,6 +524,47 @@ export function App() {
   const handleCardDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
     cardDraftGuardRef.current = guard;
   }, []);
+
+  // The editor keeps one services object per account; its actions read the latest app state when they run.
+  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView });
+  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView };
+  const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
+  const cardEditorServices = React.useMemo<CardEditorServices>(() => {
+    const actions = () => cardEditorActionsRef.current;
+    const repository = () => {
+      if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+      return workspaceRepository;
+    };
+    const cloud = supabase;
+    return {
+      flagNames: flagNamesKey.split("\n"),
+      moveCard: (cardId, deckId) => actions().moveDeckCard(cardId, deckId),
+      resetCards: (cardIds) => actions().applyManualStudyChanges((current) => current.resetCards(cardIds)),
+      setCardsLeech: (cardIds, leechedAt) => actions().applyManualStudyChanges((current) => current.setCardsLeech(cardIds, leechedAt)),
+      buryCards: (cardIds, buried) => actions().applyManualStudyChanges((current) => current.buryCards(cardIds, buried)),
+      restoreCardStudies: (studies) => actions().applyManualStudyChanges((current) => current.restoreCardStudies(studies)),
+      editVariant: (cardId, variantId, text) => actions().editDeckCardVariant(cardId, variantId, text),
+      removeNoteMedia: (graph, names) => actions().removeDeckNoteMedia(graph, names),
+      loadCard: async (cardId) => repository().loadCardBody(cardId),
+      listReviewEvents: async (cardId) => repository().listCardReviewEvents(cardId),
+      listTagDirectory: async () => repository().listTagDirectory(),
+      listExamsForDeck: async (deckId) => {
+        const currentState = latestStateRef.current;
+        if (!currentState) return [];
+        const { getExamDeckIds } = await import("./examPlanning.ts");
+        return getGlobalSchedulerPreferences(currentState.profile).examPlanning.exams
+          .filter((exam) => getExamDeckIds(currentState.decks, exam).has(deckId))
+          .map((exam) => exam.name);
+      },
+      cloud: cloud ? {
+        listCardReviewEvents: async (cardId, signal) => (await import("./cloudRepository.ts")).listCardReviewEvents(cloud, cardId, signal),
+        listSimilarNotes: async (noteId, signal) => (await import("./cloudRepository.ts")).listSimilarNotes(cloud, noteId, signal),
+        listAccountTags: async (signal) => (await import("./cloudRepository.ts")).listAccountTags(cloud, signal),
+      } : null,
+      openFlagNames: () => actions().navigateToView("karten-einstellungen", { settingsTarget: "flag-names" }),
+      openSyncConflicts: () => actions().navigateToView("einstellungen", { settingsTarget: "sync-conflicts" }),
+    };
+  }, [flagNamesKey, supabase, workspaceRepository]);
 
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
@@ -1404,9 +1447,10 @@ export function App() {
     return copy;
   }
 
-  async function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
+  /** Manual study changes (reschedule, reset, leech, bury, undo) refresh the open editor and the table. */
+  async function applyManualStudyChanges(change: (repository: IndexedDbCoreRepository) => Promise<Card[]>) {
     if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
-    const cards = await workspaceRepository.rescheduleCards(cardIds, dueAt, occurredAt);
+    const cards = await change(workspaceRepository);
     refresh({ preserveCardPages: true });
     const byId = new Map(cards.map((card) => [card.id, card]));
     setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => [deckId, page?.selected && page.selected.cards.some((card) => byId.has(card.id)) ? {
@@ -1415,6 +1459,36 @@ export function App() {
     } : page])));
     syncEngine?.requestSync();
     return cards;
+  }
+
+  function rescheduleDeckCards(cardIds: string[], dueAt: string, occurredAt: string) {
+    return applyManualStudyChanges((repository) => repository.rescheduleCards(cardIds, dueAt, occurredAt));
+  }
+
+  /** Moves one card of a content to another deck; its siblings, study state and variants stay. */
+  async function moveDeckCard(cardId: string, deckId: string) {
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const body = await workspaceRepository.loadCardBody(cardId);
+    const graph = body ? await workspaceRepository.loadNoteGraph(body.note.id) : null;
+    if (!graph) return null;
+    const next = { note: graph.note, cards: graph.cards.map((card) => card.id === cardId ? moveCardToDeck(card, deckId) : card) };
+    await workspaceRepository.saveNoteGraphs([{ previous: graph, next }]);
+    return reloadNoteGraph(graph.note.id, true);
+  }
+
+  async function editDeckCardVariant(cardId: string, variantId: string, text: { front: string; back: string }) {
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const saved = await workspaceRepository.updateCard(cardId, (card) => editVariantText(card, variantId, text));
+    if (!saved) throw new Error("Die Variante konnte nicht gespeichert werden.");
+    await reloadNoteGraph(saved.note.id);
+  }
+
+  async function removeDeckNoteMedia(graph: NoteGraph, names: string[]) {
+    if (!workspaceRepository) throw new Error("Die Kartenverwaltung ist noch nicht bereit.");
+    const note = removeUnusedNoteMedia(graph.note, names);
+    if (note === graph.note) return graph;
+    await workspaceRepository.saveNoteGraphs([{ previous: graph, next: { note, cards: graph.cards } }]);
+    return reloadNoteGraph(graph.note.id);
   }
 
   /** `refresh` replaces the card's earlier variants except edited ones with the new one; otherwise it adds one and replaces outdated ones. */
@@ -1765,12 +1839,27 @@ export function App() {
           onUpdateVariant={updateDeckCardVariant}
           selectedDeckId={focusedDeckId}
           selectedCardId={selectedCardId}
-          onSelectDeck={deckContent ? (deckId, cardId) => navigateToViewNow("kartenstapel", {
+          cardEditorTab={cardEditorTab}
+          onCardEditorTabChange={(tab) => navigateToViewNow("kartenstapel", {
+            focusedDeckId,
+            selectedCardId,
+            cardEditorTab: tab,
+            deckContent,
+            deckContentTab: "cards",
+            cardEditorReturnContext: cardEditorReturnContext ?? undefined,
+          }, { replace: true })}
+          cardEditor={cardEditorServices}
+          onSelectDeck={deckContent ? (_deckId, cardId, tab) => navigateToViewNow("kartenstapel", {
             focusedDeckId,
             selectedCardId: cardId,
+            cardEditorTab: tab,
             deckContent: true,
             deckContentTab: "cards",
-          }) : openDecks}
+          }) : (deckId, cardId, tab) => navigateToViewNow("kartenstapel", {
+            focusedDeckId: deckId || null,
+            selectedCardId: deckId && cardId ? cardId : null,
+            cardEditorTab: tab,
+          })}
           onCloseSelectedCard={cardEditorReturnContext ? () => navigateToRoute(createStudyRoute(
             cardEditorReturnContext.deckId,
             {

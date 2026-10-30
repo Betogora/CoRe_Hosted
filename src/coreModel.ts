@@ -36,9 +36,11 @@ export {
   planNoteContentChange,
   planNoteDeletion,
   planNoteRestore,
+  removeUnusedNoteMedia,
   setNoteMarked,
 } from "./coreModel/notes.ts";
 export {
+  noteContentMediaRefs,
   notePromptLabel,
   parseNoteContent,
 } from "./coreModel/noteContent.ts";

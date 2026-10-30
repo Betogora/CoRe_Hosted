@@ -529,6 +529,22 @@
     grid-auto-columns: var(--core-control-height);
   }
 
+  /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
+  .core-card-editor-tabs {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option[aria-selected="true"] {
+    color: var(--core-action-primary);
+  }
+
+  .core-card-editor-tabs:not([data-sliding="true"]) .core-segmented-control-option[aria-selected="true"] {
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
+  }
+
   .core-icon-segmented-control .core-segmented-control-option {
     padding-inline: 0;
   }
