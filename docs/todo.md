@@ -31,21 +31,6 @@ geglättet.
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
 
-## Betrieb
-
-- [ ] **Hosted-Smoke:** Der letzte `npm run test:beta:hosted` lief am
-      2026-10-10. Seitdem kamen die Migrationen für die Planungs-RPC (10-12),
-      Online-Zusammenfassungen und -Mindmaps (10-17) und Profilformat 2 und 3
-      (10-24, 10-25) hinzu; nach R5 gemeinsam mit dem Testaccount gegen
-      `https://core-hosted.vercel.app` wiederholen.
-- [ ] **Statistik-RPC am Gate:** `get_account_statistics` lag im lokalen
-      Benchmark (100k Karten, 1 Mio. Reviews) bei p95 1.031 und 1.063 ms
-      (Median 967 und 878 ms, 2026-10-29) und damit knapp über der Grenze von
-      1.000 ms, ohne dass sich Funktion oder Tabellen geändert hatten. Mit
-      `EXPLAIN (ANALYZE, BUFFERS)` klären, ob Rauschen oder echter Spielraum
-      fehlt; bei Bedarf Abfrage oder Rollup straffen. Nachweis:
-      `npm run benchmark:statistics` mehrfach unter der Grenze.
-
 ## Später
 
 - Native App nach ADR-036.
