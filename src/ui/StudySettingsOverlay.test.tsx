@@ -11,6 +11,8 @@ function renderOverlay(overrides: Partial<React.ComponentProps<typeof StudySetti
       canEditCard
       marked={false}
       suspended={false}
+      flag={0}
+      flagNames={[]}
       reviewOrder="reviews-first"
       pomodoroTimer={null}
       onOpenChange={() => undefined}
@@ -18,6 +20,7 @@ function renderOverlay(overrides: Partial<React.ComponentProps<typeof StudySetti
       onEditDeck={() => undefined}
       onMarkedChange={() => undefined}
       onSuspendedChange={() => undefined}
+      onFlagChange={() => undefined}
       onReviewOrderChange={() => undefined}
       onStartPomodoro={() => undefined}
       {...overrides}
@@ -34,7 +37,6 @@ test("StudySettingsOverlay renders one responsive dialog with the canonical sect
   assert.match(markup, />Sitzung</);
   assert.match(markup, /Karte bearbeiten/);
   assert.match(markup, /Stapel bearbeiten/);
-  assert.doesNotMatch(markup, /Flagge|Flaggenfarben/);
   assert.match(markup, /Markieren/);
   assert.match(markup, /Aussetzen/);
   assert.match(markup, /data-card-study-state-controls="true"/);
@@ -85,4 +87,10 @@ test("StudySettingsOverlay shows the persisted mixed card order", () => {
 
 test("StudySettingsOverlay renders nothing while closed", () => {
   assert.equal(renderOverlay({ open: false }), "");
+});
+
+test("the session menu sets the card's flag with named flags", () => {
+  const markup = renderOverlay({ flag: 4, flagNames: ["", "", "", "Nachschlagen", "", "", ""] });
+  assert.match(markup, /aria-pressed="true" aria-label="Flagge Nachschlagen"/);
+  assert.doesNotMatch(markup, /Namen bearbeiten/, "the session does not leave for the settings");
 });

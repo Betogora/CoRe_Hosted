@@ -567,6 +567,12 @@ export function App() {
       openSyncConflicts: () => actions().navigateToView("einstellungen", { settingsTarget: "sync-conflicts" }),
     };
   }, [flagNamesKey, supabase, workspaceRepository]);
+  /** Tag suggestions: the whole account online, the local replica offline or when the cloud fails. */
+  const listAccountTagDirectory = React.useCallback(async () => {
+    const cloud = typeof navigator !== "undefined" && navigator.onLine === false ? null : cardEditorServices.cloud;
+    if (!cloud) return cardEditorServices.listTagDirectory();
+    return cloud.listAccountTags(new AbortController().signal).catch(() => cardEditorServices.listTagDirectory());
+  }, [cardEditorServices]);
 
   const handleSettingsDraftStateChange = React.useCallback((guard: SettingsDraftGuard | null) => {
     settingsDraftGuardRef.current = guard;
@@ -1918,6 +1924,7 @@ export function App() {
             creationDeckId: deckId || null,
           })}
           onSaveManualNote={saveManualNote}
+          listTagDirectory={listAccountTagDirectory}
           onDraftStateChange={handleCreationDraftStateChange}
           onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {
             completedDeckId: completion.deckId,
@@ -2135,6 +2142,7 @@ export function App() {
               },
             },
           })}
+          flagNames={cardEditorServices.flagNames}
           onSetCardStudyState={setStudyCardStudyState}
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
           onCardUpdated={(_deckId, card) => {
