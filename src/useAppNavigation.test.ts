@@ -101,3 +101,8 @@ test("browser navigation cleanup removes the exact popstate listener", () => {
   cleanup();
   assert.equal(removed, activeListener);
 });
+test("source creation survives route projection", () => {
+  const projection = projectAppRoute(createViewRoute("neue-karten", { creationMethod: "ai-source", creationDeckId: "biology" }));
+  assert.equal(projection.creationMethod, "ai-source");
+  assert.equal(projection.creationDeckId, "biology");
+});

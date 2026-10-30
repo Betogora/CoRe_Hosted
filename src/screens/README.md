@@ -47,3 +47,5 @@ Each exported screen in this folder is a UI module with a small props interface.
 - `ExamWeekCalendar.tsx`: Stundenraster mit To-dos über der Zeitachse, Pointer-/Tastaturmarkierung und speicherbaren unzugeordneten Lernzeitblöcken; Fachzuordnung durch Ziehen, Auswählen/Antippen oder Auswahlfeld.
 
 `ExamDashboardWidget` zeigt getönte Prüfungskacheln ohne Zeitplanstatus und eine im Profil gespeicherte Tagescheckliste. `examDailyTasks.ts` hält die Zielkarten fest und leitet automatische Erledigung aus den tatsächlichen Lernständen ab. Quiz-To-dos bündeln Themen; „KI generieren“ bleibt bis zum Quizbereich deaktiviert.
+
+`AiSourceCreationPanel` führt von einer temporären Quelldatei und diskreten Lernwünschen zur Auftragsprüfung. Es liest oder überträgt keine Dateien und legt keine Karten oder Stapel an. Fachliche Einstellungen, Validierung und Prompt-Zusammenstellung gehören `aiSourceCreation.ts`.

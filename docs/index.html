@@ -1984,6 +1984,9 @@ video {
      -moz-user-select: none;
           user-select: none;
 }
+.resize-y {
+  resize: vertical;
+}
 .\!resize {
   resize: both !important;
 }
@@ -5026,6 +5029,10 @@ summary {
     grid-column: span 1 / span 1;
   }
 
+  .sm\:col-span-2 {
+    grid-column: span 2 / span 2;
+  }
+
   .sm\:col-span-3 {
     grid-column: span 3 / span 3;
   }
@@ -5094,6 +5101,11 @@ summary {
     width: auto;
   }
 
+  .sm\:w-fit {
+    width: -moz-fit-content;
+    width: fit-content;
+  }
+
   .sm\:min-w-36 {
     min-width: 9rem;
   }
@@ -5132,6 +5144,10 @@ summary {
 
   .sm\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .sm\:grid-cols-\[10rem_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: 10rem minmax(0,1fr);
   }
 
   .sm\:grid-cols-\[2\.5rem_1fr\] {

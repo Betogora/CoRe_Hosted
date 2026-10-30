@@ -5,7 +5,7 @@ Stand: 2026-10-30
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität: P0 vor P1. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität: P0 vor P1 vor P2. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig, „Später“ ist geparkt.
 
@@ -361,6 +361,57 @@ geglättet.
       ob die Karte danach aus Stapelläufen fällt; heute wählt jeder Lauf
       gescheiterte und gemeldete Karten erneut. Nachweis: Playtest-Ergebnis vor
       und nach der Prompt-Ergänzung, Routentests mit solchen Karteninhalten.
+
+## P2: Karten aus einer Quelle per KI erstellen
+
+Formular und Auftragsprüfung unter `/neue-karten?method=ai-source` stehen
+(`src/aiSourceCreation.ts`, `AiSourceCreationPanel.tsx`); „Karten erstellen“
+ist deaktiviert, nichts wird gelesen oder übertragen. Offen ist alles, was die
+Oberfläche danach verspricht. Setzt P1 und das KI-Kontingent pro Nutzer
+voraus.
+
+- [ ] **Entscheidungen vor dem Code (Ergänzung zu ADR-011):** ADR-011 erlaubt
+      genau zwei KI-Routen; eine dritte Route (etwa
+      `POST /api/ai/source-cards`, gleiches Modell, ZDR, Kostenlog) braucht die
+      Ergänzung. Festlegen: ob der Browser nur extrahierten Text oder die
+      Datei überträgt (ADR-011 schließt Bildübertragung aus, Scans und
+      Diagramme bleiben damit außen vor); Obergrenzen je Auftrag (Zeichen,
+      Seiten oder Folien, Karten) und wie große Quellen ohne Serverqueue in
+      Portionen im geöffneten Tab laufen; Hinweis, dass die Quelle an den
+      Anbieter geht.
+- [ ] **Quelle auslesen:** Das Formular nimmt PDF, Text, Markdown, CSV, TSV,
+      DOCX und PPTX an. `documentModel.ts` liest die ersten fünf bereits;
+      DOCX und PPTX fehlen (ZIP und XML, ohne neue Abhängigkeit über
+      `zipReader.ts` prüfen). Jede Textstelle trägt einen echten Beleg (Seite,
+      Folie oder Abschnitt), weil der Prompt einen Quellenverweis je Karte
+      verlangt. Leere, geschützte, nur gescannte oder zu große Dokumente
+      werden mit Meldung abgelehnt, nichts wird still abgeschnitten.
+- [ ] **Generierung und Vertrag:** Anfrage- und Antwortschema in einem eigenen
+      Vertragsmodul wie `aiCardVariantContract.ts`; die Route nutzt
+      `buildAiSourceCreationPrompt` und hält Quellmaterial von Anweisungen
+      getrennt. Je Karte getrennt: Frage oder Lückentext, kurze Lösung,
+      Auswahloptionen mit Richtigkeit, quellenbasierte Erklärung, externe
+      Ergänzung, Quellenverweis. Hinweise des Modells (Material trägt das
+      Lernziel nicht, widersprüchliche oder unlesbare Stellen) kommen als
+      eigene Meldungen zurück. Fortschritt, Abbruch und Fehler folgen den
+      Regeln der Variantengenerierung.
+- [ ] **Ergebnis prüfen und übernehmen:** Vor dem Speichern eine Liste der
+      vorgeschlagenen Karten mit Vorschau, Bearbeiten und Verwerfen je Karte;
+      gespeichert wird erst nach Bestätigung und nur über `coreModel.ts`
+      (Frage–Antwort, Lückentext, Single und Multiple Choice gibt es dort
+      schon). Feldzuordnung festlegen: kurze Antwort, quellenbasierte
+      Erklärung in `extra`, Quellenverweis in `source`; die externe Ergänzung
+      braucht eine sichtbar getrennte Kennzeichnung „Ergänzende Erklärung –
+      außerhalb der Quelle“ (eigene Feldrolle oder benanntes Feld). Neuer
+      Zielstapel entsteht erst bei der Übernahme. Der Entwurfsschutz gilt
+      auch für ungespeicherte Ergebnisse.
+- [ ] **Freigabe:** „Karten erstellen“ und den Hinweis „noch nicht verfügbar“
+      erst danach umstellen; ohne Verbindung bleibt die Aktion mit Meldung
+      gesperrt. Specs §6.4, `status.md` und `architecture.md` nachziehen.
+      Nachweis: Routen- und Vertragstests, E2E mit gemockter Route (Erfolg,
+      Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
+      Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
+      für Fortschritt und Ergebnisliste.
 
 ## Offene Nachweise
 
