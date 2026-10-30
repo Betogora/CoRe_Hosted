@@ -412,12 +412,13 @@ function ExamTopicOrderDemo() {
   return <Demo title="Prüfungen · Themenreihenfolge" wide><ExamTopicOrder topics={topics} onChange={(ids) => setTopics((current) => ids.map((id) => current.find((topic) => topic.id === id)!))} /></Demo>;
 }
 
-function ProductViewsDemo({ kind }: { kind: string }) {
+export function ProductViewsDemo({ kind }: { kind: string }) {
+  const [dashboardTimer, setDashboardTimer] = useState<PomodoroTimer | null>(null);
   const [focusedDemoDeckId, setFocusedDemoDeckId] = useState<string | null>(null);
   const [demoStudyDeck, setDemoStudyDeck] = useState(deck);
   const [demoContentTab, setDemoContentTab] = useState<DeckContentTab>("children");
   const [collapsedDemoDeckIds, setCollapsedDemoDeckIds] = useState<string[]>([]);
-  const [view, setView] = useState("");
+  const [view, setView] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === kind ? kind : "");
   const [offset, setOffset] = useState(0);
   const [message, setMessage] = useState("");
   const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
@@ -473,7 +474,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   }), [examDemoDecks, selection.now]);
   const views = [["auth", "AuthGateScreen · Anmeldung, Registrierung und Reset", "Anmeldung"], ["conflict", "SyncConflictPanel · Feldvergleich und Zusammenführung", "Konfliktauflösung"], ["statistics", "StatisticsScreenContent · alle Diagramme und Tabellen", "Statistik"], ["simulator", "SimulatorScreen · Lernuhr und Datumauswahl", "Simulator"], ["help", "HelpScreen · Lernmethoden und FSRS-Illustrationen", "Lernmethoden"]];
   views.push(
-    ["dashboard", "DashboardScreen · Tagesübersicht → Prüfungen → Heatmap → Stapel", "Tagesübersicht"],
+    ["dashboard", "DashboardScreen · Widgets mit Drag-and-drop, To-dos und Lerntimer", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
     ["exams", "ExamPlanningScreen · Fächer neben Heute · kompakte Woche · Lernzeit mit Löschkreuz und Ziehlasche · aufklappbare Prüfungskarten", "Prüfungen"],
     ["creation", "CreationScreen · Einstieg", "Erstellen"],
@@ -493,7 +494,7 @@ function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "statistics" && <StatisticsScreenContent dataset={{ decks: statisticsDecks, projection: projectStatistics(statisticsDecks, selection) }} now={selection.now} timeZone={selection.timeZone} onSelectionChange={(next) => setSelection((current) => ({ ...current, ...next }))} onNavigate={() => toast("Demostapel ausgewählt.")} />}
     {view === "simulator" && <SimulatorScreen systemNow={selection.now} offsetMinutes={offset} onOffsetChange={setOffset} />}
     {view === "help" && <HelpScreen />}
-    {view === "dashboard" && <DashboardScreen onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={async () => false} onSaveExamTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
+    {view === "dashboard" && <DashboardScreen pomodoroTimer={dashboardTimer} onStartPomodoro={(minutes) => setDashboardTimer(createPomodoroTimer(minutes))} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={async () => false} onSaveExamTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartExamUnit={async () => { examDemoDecks.flatMap((candidate) => candidate.cards).forEach((card) => completedDemoExamCards.current.add(card.id)); toast("Lernaufgabe in dieser lokalen Demo abgeschlossen."); }} state={examWorkspace} now={selection.now} onNavigate={navigate} onStartDeck={noop} onStartAdditionalCards={() => ({ ok: true })} onCreateDemo={async () => sampleDecks} onSetDeckCoreMode={noop} onMoveDeck={() => null} onOpenDeckSettings={noop} onSetDeckExpanded={noop} />}
     {view === "exams" && <ExamPlanningScreen state={examWorkspace} now={selection.now} onLoadSummaryAvailability={async () => false} onLoadPlanningData={loadExamPlanningData} onSavePlanning={async (next) => { setDemoPlanning(next); const previous = getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning; if (JSON.stringify([previous.exams, previous.capacity]) !== JSON.stringify([next.exams, next.capacity])) toast("Plan für diese lokale Vorschau übernommen."); }} onSaveTasks={async (dailyTasks) => setDemoPlanning(withExamDailyTasks(getGlobalSchedulerPreferences(examWorkspace.profile).examPlanning, dailyTasks))} onStartUnit={async () => toast("In der Vorschau startet keine Sitzung.")} />}
     {view === "learn" && <LearnScreen decks={sampleDecks} now={selection.now} onStartDeck={noop} onCreateDeck={() => deck} focusedDeckId={focusedDemoDeckId} initialParentDeckId="" onDeckCreationHandled={noop} onFocusDeck={setFocusedDemoDeckId} onOpenCardCreation={noop} onOpenDecks={(id) => { setFocusedDemoDeckId(id ?? null); setView("decks"); }} onOpenDeckContent={(id) => { setFocusedDemoDeckId(id); setContentTab("children"); setSelectedCardId(null); setView("deck-content"); }} onOpenCardSettings={noop} onOpenDeckSettings={noop} onSetDeckCoreMode={noop} onMoveDeck={() => null} collapsedDeckIds={collapsedDemoDeckIds} onSetDeckExpanded={(_surface, id, expanded) => setCollapsedDemoDeckIds((current) => expanded ? current.filter((value) => !(typeof id === "string" ? [id] : id).includes(value)) : [...new Set([...current, ...(typeof id === "string" ? [id] : id)])])} />}
     {view === "manual" && <p className="core-caption text-core-muted">Bausteine unter den Feldern: Antwort eintippen sowie Felder mit der Rolle Zusatzfrage, Hinweis, Zusatz oder Quelle. Ab zwei Zusatzfeldern erscheinen Verschiebepfeile.</p>}
