@@ -339,6 +339,46 @@ test("Reimport-Ziele werden nur online und nur für vorhandene GUIDs geladen", a
   repository.close();
 });
 
+test("vorgeladene Nachbarkarten öffnen ohne weitere Anfrage und verfallen nach einer Änderung", async () => {
+  const userId = randomUUID();
+  const graphs = ["eins", "zwei"].map((key) => graph("deck-prefetch", key, key, "2026-08-17T09:00:00.000Z"));
+  const deck = createCoreDeck({ id: "deck-prefetch", ownerId: userId, name: "Vorladen", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
+  const state = workspace(userId, [deck], graphs.map((entry) => entry.note));
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: state, indexedDb: new IDBFactory() });
+  await repository.evictCachedCardBodies(Number.MAX_SAFE_INTEGER);
+  const cloudRows = createCloudStateRows(state, userId);
+  let requests = 0;
+  const client = {
+    async rpc(name: string, payload: any) {
+      if (name !== "hydrate_account_cards") throw new Error(`Unerwartete RPC ${name}`);
+      requests += 1;
+      return { data: hydrateFrom(cloudRows, payload), error: null };
+    },
+  };
+  const service = createWorkspaceHydrationService({ client, repository, mediaStore: null });
+
+  // Waits until the background prefetch has made all its requests.
+  const settled = async () => { for (let last = -1; last !== requests;) { last = requests; await new Promise((resolve) => setTimeout(resolve, 20)); } };
+
+  await withNavigator({ onLine: true }, async () => {
+    service.prefetchCardGraph("card-zwei");
+    await settled();
+    const prepared = requests;
+    assert.equal((await service.querySelectedCard(deck.id, "card-zwei"))?.note.id, "note-zwei");
+    assert.equal(requests, prepared, "die Auswahl übernimmt den vorgeladenen Inhalt");
+
+    service.prefetchCardGraph("card-eins");
+    await settled();
+    service.forgetPreparedGraphs();
+    const afterForget = requests;
+    assert.equal((await service.querySelectedCard(deck.id, "card-eins"))?.cardId, "card-eins");
+    assert.ok(requests > afterForget, "nach einer Änderung wird der Inhalt neu gelesen");
+    assert.equal(await service.querySelectedCard("anderer-stapel", "card-eins"), null);
+    assert.equal(await service.querySelectedCard(deck.id, "card-geloescht"), null, "eine Karte, die die Cloud nicht kennt, ist nicht gefunden statt ein Ladefehler");
+  });
+  repository.close();
+});
+
 test("ein lokal erstellter, noch nicht hochgeladener Inhalt öffnet sich aus der Replica", async () => {
   const userId = randomUUID();
   const local = graph("deck-local", "local", "Lokal", "2026-08-17T09:00:00.000Z");

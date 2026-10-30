@@ -8,8 +8,11 @@ import { calculateRetrievability, getDurabilityDays, getMaturityBand } from "../
 import { ActionButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
-import { CoreTooltip } from "../../ui/tooltipUi.tsx";
+import { createRetrievabilityCurve } from "./retrievabilityCurve.ts";
 import { useOnline } from "./useOnline.ts";
+
+// The chart library loads only when a card with answers shows its curve.
+const RetrievabilityChart = React.lazy(() => import("./RetrievabilityChart.tsx").then((module) => ({ default: module.RetrievabilityChart })));
 
 const BANDS: Array<{ value: MaturityBand; label: string }> = [
   { value: "new", label: "Neu" },
@@ -95,7 +98,7 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
   const retrievability = calculateRetrievability(reviewStateFromCardStudy(study), now);
   const dueKey = study.dueAt ? getLearningDayKey(study.dueAt, { dayStartHour, timeZone }) : null;
   const reviewed = study.reps > 0;
-  const answers = (events ?? []).filter((event) => event.rating !== "manual");
+  const curve = React.useMemo(() => createRetrievabilityCurve(events ?? [], now), [events, now]);
   const figures: Array<{ label: string; value: string }> = [
     { label: "Fällig", value: card.status === "suspended" ? "Ausgesetzt" : !reviewed ? "Neu" : dueKey ? new Date(`${dueKey}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" }) : "–" },
     { label: "Zustand", value: STATES[study.state] },
@@ -124,69 +127,68 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
 
   return (
     <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-study-tab">
-      <section className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Lernstand">
-        <ol className="grid grid-cols-4 gap-1" aria-label="Reifeband" data-testid="card-maturity-band">
-          {BANDS.map((entry) => {
-            const current = entry.value === band;
-            return (
-              <li key={entry.value} aria-current={current ? "step" : undefined} className={`grid min-h-control place-items-center rounded-inset px-1 core-caption font-semibold ${current ? "bg-core-action text-core-on-accent" : "bg-core-subtle text-core-muted"}`}>
-                {entry.label}
-              </li>
-            );
-          })}
-        </ol>
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3" data-testid="card-study-figures">
-          {figures.map((figure) => (
-            <div key={figure.label} className="min-w-0">
-              <dt className="truncate core-caption text-core-muted">{figure.label}</dt>
-              <dd className="core-body-large font-semibold tabular-nums text-core-text">{figure.value}</dd>
-            </div>
-          ))}
-        </dl>
-        {study.leechedAt ? (
-          <p className="flex items-center gap-2 rounded-control bg-core-danger-soft px-3 py-2 core-body font-semibold text-core-text" data-testid="card-study-leech">
-            <Snail size={18} className="text-core-danger-text" aria-hidden="true" />Lernbremse seit {formatDateTime(study.leechedAt)}
-          </p>
-        ) : null}
-        <ActionButton variant="secondary" icon={RotateCcw} className="w-fit" disabled={!reviewed && !study.leechedAt} onClick={() => setConfirmReset(true)}>Als neu lernen …</ActionButton>
-        {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
-      </section>
+      <div className="grid min-w-0 content-start gap-4">
+        <section className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Lernstand">
+          <ol className="grid grid-cols-4 gap-1" aria-label="Reifeband" data-testid="card-maturity-band">
+            {BANDS.map((entry) => {
+              const current = entry.value === band;
+              return (
+                <li key={entry.value} aria-current={current ? "step" : undefined} className={`grid min-h-control place-items-center rounded-inset px-1 core-caption font-semibold ${current ? "bg-core-action text-core-on-accent" : "bg-core-subtle text-core-muted"}`}>
+                  {entry.label}
+                </li>
+              );
+            })}
+          </ol>
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3" data-testid="card-study-figures">
+            {figures.map((figure) => (
+              <div key={figure.label} className="min-w-0">
+                <dt className="truncate core-caption text-core-muted">{figure.label}</dt>
+                <dd className="core-body-large font-semibold tabular-nums text-core-text">{figure.value}</dd>
+              </div>
+            ))}
+          </dl>
+          {study.leechedAt ? (
+            <p className="flex items-center gap-2 rounded-control bg-core-danger-soft px-3 py-2 core-body font-semibold text-core-text" data-testid="card-study-leech">
+              <Snail size={18} className="text-core-danger-text" aria-hidden="true" />Lernbremse seit {formatDateTime(study.leechedAt)}
+            </p>
+          ) : null}
+          <ActionButton variant="secondary" icon={RotateCcw} className="w-fit" disabled={!reviewed && !study.leechedAt} onClick={() => setConfirmReset(true)}>Als neu lernen …</ActionButton>
+          {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
+        </section>
+        <section className="grid min-w-0 gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby="card-curve-heading" data-testid="card-review-curve">
+          <h3 id="card-curve-heading" className="core-body font-semibold text-core-text">Abrufverlauf</h3>
+          {events === null ? <p className="core-body text-core-muted" role="status">Wird geladen …</p> : curve.length ? (
+            <React.Suspense fallback={<div className="h-56" />}>
+              <RetrievabilityChart points={curve} targetPercent={study.extra.desiredRetention * 100} now={Date.parse(now)} />
+            </React.Suspense>
+          ) : <p className="core-body text-core-muted">Noch keine Bewertungen.</p>}
+        </section>
+      </div>
       <section className="grid min-w-0 gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby="card-history-heading" data-testid="card-review-history">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 id="card-history-heading" className="core-body font-semibold text-core-text">Abrufverlauf</h3>
+          <h3 id="card-history-heading" className="core-body font-semibold text-core-text">Bewertungen</h3>
           {cloudState === "loading" ? <span className="core-caption text-core-muted" role="status">Cloud wird geladen …</span> : cloudState === "failed" ? <span className="core-caption text-core-muted" role="status">Nur lokale Bewertungen</span> : !online ? <span className="core-caption text-core-muted">Offline: nur lokale Bewertungen</span> : null}
         </div>
         {events === null ? <p className="core-body text-core-muted" role="status">Wird geladen …</p> : events.length === 0 ? <p className="core-body text-core-muted">Noch keine Bewertungen.</p> : (
-          <>
-            {answers.length ? (
-              <div className="flex min-w-0 flex-wrap gap-1" role="img" aria-label={`${answers.length} Bewertungen, davon ${answers.filter((event) => event.rating === "again").length}-mal Nochmal`}>
-                {answers.map((event) => (
-                  <CoreTooltip key={event.id} label={`${formatDate(event.answeredAt)} · ${eventLabel(event)}`}>
-                    <span className="block h-5 w-2.5 rounded-marker" style={{ background: RATINGS[event.rating]?.tone ?? "var(--core-border)" }} />
-                  </CoreTooltip>
-                ))}
-              </div>
-            ) : null}
-            <table className="w-full table-fixed border-collapse core-body" data-testid="card-review-list">
-              <thead>
-                <tr className="border-b border-core-border text-left core-caption text-core-muted">
-                  <th scope="col" className="w-1/2 py-1.5 font-semibold">Zeitpunkt</th>
-                  <th scope="col" className="py-1.5 font-semibold">Bewertung</th>
+          <table className="w-full table-fixed border-collapse core-body" data-testid="card-review-list">
+            <thead>
+              <tr className="border-b border-core-border text-left core-caption text-core-muted">
+                <th scope="col" className="w-1/2 py-1.5 font-semibold">Zeitpunkt</th>
+                <th scope="col" className="py-1.5 font-semibold">Bewertung</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...events].reverse().map((event) => (
+                <tr key={event.id} className="border-b border-core-border last:border-0">
+                  <td className="truncate py-1.5 tabular-nums text-core-secondary">{formatDateTime(event.answeredAt)}</td>
+                  <td className="truncate py-1.5 text-core-text">
+                    {event.rating === "manual" ? null : <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-round align-middle" style={{ background: RATINGS[event.rating]?.tone }} />}
+                    <span className={event.rating === "manual" ? "text-core-muted" : ""}>{eventLabel(event)}</span>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {[...events].reverse().map((event) => (
-                  <tr key={event.id} className="border-b border-core-border last:border-0">
-                    <td className="truncate py-1.5 tabular-nums text-core-secondary">{formatDateTime(event.answeredAt)}</td>
-                    <td className="truncate py-1.5 text-core-text">
-                      {event.rating === "manual" ? null : <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-round align-middle" style={{ background: RATINGS[event.rating]?.tone }} />}
-                      <span className={event.rating === "manual" ? "text-core-muted" : ""}>{eventLabel(event)}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </>
+              ))}
+            </tbody>
+          </table>
         )}
       </section>
       <ActionDialog

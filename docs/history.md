@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-30 — Karteneditor: Lernkurve und vorgeladene Nachbarkarten
+
+- Reiter `Lernen`: Der `Abrufverlauf` ist eine Lernkurve im Diagrammstil der Statistik (Fläche, gestrichelte Ziel-Abrufwahrscheinlichkeit, rote Punkte vor `Nochmal`); die Kurve wird aus den Bewertungen mit FSRS-7 nachgerechnet (`retrievabilityCurve.ts`), `Als neu lernen` beginnt sie neu. Die Bewertungsliste steht daneben als `Bewertungen`. Das Diagramm lädt erst mit einer Kurve (größter Lazy-Graph 174,3 KiB gzip).
+- Vor/Zurück: Der Editor lädt die beiden Nachbartreffer vor (`prefetchCardGraph`, höchstens vier, verworfen bei jeder Zustandsänderung in `setAppState`); ein reiner Auswahlwechsel liest nur noch die Karte statt die ganze Seite. Bis zur Antwort zeigt das Detail den Ladebalken der Statistik statt `Karte nicht gefunden`; eine ausbleibende Antwort fordert die Seite nicht mehr in Schleife an. Ein Kartenlink, den die Cloud nicht kennt, endet als `Karte nicht gefunden` statt als Ladefehler (der E2E-Vertrag hatte bisher nur das kurze Aufblitzen vor der Antwort erfasst).
+- Gemessen gegen lokales Supabase mit 300 ms simulierter Latenz, je zehn Wechsel: `main` 417–792 ms, jedes Mal `Karte nicht gefunden`; neu 80–146 ms, Ladebalken in keinem gezeichneten Frame. Mit gedrosseltem Netz ist der Ladebalken bei einem direkten Kartenlink sichtbar.
+- Verifiziert: fokussierte Tests (Kurve, Vorladen, Ladezustand), `npm run gate:push` grün (133 Testdateien, Initialgraph 244,6 KiB gzip), betroffene E2E-Tests aus `card-lifecycle`, `navigation-context` und `core-stabilization` (45 grün; der Fallback-Vertrag für ungültige Kartenlinks nach der Korrektur erneut 7/7), `npm run performance:measure:local` mit allen Gates eingehalten. Visuelle Matrix des Reiters `Lernen`: 6 Viewports × hell/dunkel × unmarkiert/markiert (24 Aufnahmen) ohne Überlauf.
+
 ## 2026-10-30 — Karteneditor V2, PR C: Restliche Oberflächen und Gesamtabnahme
 
 - Erstellen nutzt die Tag-Eingabe (Entwurf hält Tags als Liste, Vorschläge aus dem Tag-Verzeichnis).
