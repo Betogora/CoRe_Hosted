@@ -388,3 +388,7 @@ $$;
 
 reset role;
 rollback;
+
+-- Der Rollback hinterlässt über eine Million tote Zeilen; ohne Aufräumen misst jeder Folgelauf langsamer.
+vacuum public.review_events, public.review_statistics_daily, public.card_catalog, public.cards, public.notes,
+  public.deck_study_summaries;

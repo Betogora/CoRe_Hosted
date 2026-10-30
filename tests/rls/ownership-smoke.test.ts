@@ -430,6 +430,8 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
 
       const statisticsA = assertNoError(await clientA.rpc("get_account_statistics", { p_deck_ids: [fixtureA.decks.id], p_from: null, p_to: null }), "Statistik für Nutzer A");
       assert.equal(statisticsA.cards.total, 1);
+      // Die Karte zählt selbst und mit ihren drei aktiven Varianten.
+      assert.equal(statisticsA.status.activeVariants, 4);
       const foreignTreeDelete = assertNoError(await clientB.rpc("delete_account_deck_tree", {
         p_deck_id: fixtureA.decks.id,
         p_deleted_at: new Date().toISOString(),

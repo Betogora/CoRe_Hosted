@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-29
+Stand: 2026-10-30
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -33,11 +33,6 @@ geglättet.
 
 ## Betrieb
 
-- [ ] **Hosted-Smoke:** Der letzte `npm run test:beta:hosted` lief am
-      2026-10-10. Seitdem kamen die Migrationen für die Planungs-RPC (10-12),
-      Online-Zusammenfassungen und -Mindmaps (10-17) und Profilformat 2 und 3
-      (10-24, 10-25) hinzu; nach R5 gemeinsam mit dem Testaccount gegen
-      `https://core-hosted.vercel.app` wiederholen.
 - [ ] **Prüfungsplanung beschleunigen:** Seit FSRS-7 und den simulierten
       Lernschritten dauert `createExamPortfolioForecast` für 200 Tage, 5.000
       neue und 2.000 bekannte Karten im Median 2.680 statt 821 ms
@@ -49,13 +44,6 @@ geglättet.
       `ts-fsrs` im Simulationspfad vermeiden, Worker erst bei gemessenem Bedarf.
       Ziel: wieder unter 1 s für 200 Tage. Nachweis: Benchmark vorher/nachher,
       `npm run performance:measure:local`.
-- [ ] **Statistik-RPC am Gate:** `get_account_statistics` lag im lokalen
-      Benchmark (100k Karten, 1 Mio. Reviews) bei p95 1.031 und 1.063 ms
-      (Median 967 und 878 ms, 2026-10-29) und damit knapp über der Grenze von
-      1.000 ms, ohne dass sich Funktion oder Tabellen geändert hatten. Mit
-      `EXPLAIN (ANALYZE, BUFFERS)` klären, ob Rauschen oder echter Spielraum
-      fehlt; bei Bedarf Abfrage oder Rollup straffen. Nachweis:
-      `npm run benchmark:statistics` mehrfach unter der Grenze.
 
 ## Später
 
