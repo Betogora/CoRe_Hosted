@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-30 — Statistik-RPC ohne Kartenzwischenstände
+
+- Migration `20261030103636_account_statistics_single_pass.sql`: `get_account_statistics` legt die Karten nicht mehr als Zwischenergebnis ab (bisher alle Karten, eine Kopie der aktiven Karten und eine der Abrufwahrscheinlichkeiten, bei 100.000 Karten auf Platte ausgelagert und neunmal gelesen). Drei Abfragen auf `cards` liefern alles: Übersicht je Konto und Stapel, Tageszählungen und Buckets in einem Durchlauf über `GROUPING SETS`, Intervall-Perzentile. Signatur, Rückgabe und Rechte bleiben gleich.
+- Erwartet war etwa die Hälfte, gemessen sind es 17 % im Median: Die Kosten liegen überwiegend in der Rechnung je Karte (Zeitzonenumrechnung für Fälligkeits- und Anlagetag je etwa 35–55 ms, Abrufformel etwa 50 ms), nicht im mehrfachen Lesen.
+- Verifiziert: alte und neue Fassung in derselben Transaktion bei fünf Parameterkombinationen (Stapelauswahl, Zeitraum, Zeitzonen, Tagesbeginn, leerer Stapel) auf den Benchmark-Daten und auf angereicherten Daten (gelöschte, ausgesetzte, lernende Karten, Reifebänder, Varianten, zweiter Stapel) identisch. A/B über 15 Runden: Median 538 → 446 ms, schnellster Lauf 373 → 280 ms, neu in 14 von 15 Runden schneller. `npm run benchmark:statistics` dreimal: p95 400, 587, 535 ms (p75 364, 548, 474 ms; vorher p95 581 bis 874 ms). `npm run db:types:check` ohne Drift, `npm run test:rls:local` 19/19, `verify_schema_v1.sql` lokal ohne Fehler.
+- Hosted: Migration am 2026-10-30 per `supabase db push --linked` auf `hirbiuiydczmnjqtoyqx` angewendet (Trockenlauf zeigte nur diese Migration), `verify_schema_v1.sql` remote ohne Fehler.
+
 ## 2026-10-30 — Prüfungsplanung: exakte Beschleunigung der Laufbahnsimulation
 
 - Kostenpfad (Profil, 200 Tage): 77.710 simulierte Kontakte, davon 68.789 für die 2.000 bekannten Karten und knapp die Hälfte Wiederlernschritte am selben Tag. `scheduleWithFsrs` trug rund zwei Drittel der Zeit; davon nur gut die Hälfte im `ts-fsrs`-Aufruf, der Rest in Buchführung je Antwort (Konfiguration normalisieren, Lernstand zweimal aufbauen, Reifeband mit eigener Modellrechnung, ISO-Zeitstempel, Intervalltexte).
