@@ -542,6 +542,13 @@ neuen Code.
 
 ## Vor dem ersten externen Release
 
+- [ ] **Preload-Gate:** `npm run performance:measure:local` meldet für den
+      automatischen 4G-Preload einen längsten Task über 50 ms, schon auf
+      `main` (2026-10-30: max. 70 ms, mit Editor V2 PR A max. 83 ms, je mit
+      Läufen ganz ohne langen Task). Klären, welcher Task beim Vorladen
+      blockiert (Modulauswertung der Lazy-Chunks oder Repository-Arbeit), und
+      ihn teilen oder das Gate begründet anpassen. Nachweis: zwei grüne Läufe.
+
 - [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
       OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
       Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
