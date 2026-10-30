@@ -305,7 +305,7 @@ function TagsAndFlagsDemo() {
     { tag: "Prüfung::Physiologie", noteCount: 9, importedCount: 0 },
   ];
   return <>
-    <Demo title="TagInput · Chips, Vorschläge und importierte Gruppe"><TagInput tags={tags} importedTags={["#AK_Step1::Herz", "AK::Kreislauf"]} directory={directory} onChange={setTags} /><p className="core-body text-core-muted">Leertaste, Enter oder Tab schließen ein Tag ab; <code>#</code>, <code>,</code> und <code>;</code> bleiben Teil des Tags.</p></Demo>
+    <Demo title="TagInput · Chips, Vorschläge und importierte Gruppe"><TagInput tags={tags} importedTags={["#AK_Step1::Herz", "AK::Kreislauf"]} loadDirectory={async () => directory} onChange={setTags} /><p className="core-body text-core-muted">Leertaste, Enter oder Tab schließen ein Tag ab; <code>#</code>, <code>,</code> und <code>;</code> bleiben Teil des Tags.</p></Demo>
     <Demo title="FlagPicker und FlagDot"><FlagPicker value={flag} onValueChange={setFlag} names={["", "", "Wiederholen", "", "", "", ""]} onEditNames={() => undefined} /><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagDot key={value} flag={value} />)}</div></Demo>
   </>;
 }

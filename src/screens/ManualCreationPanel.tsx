@@ -123,13 +123,11 @@ function PinFieldButton({ isPinned, label, onToggle }: PinFieldButtonProps) {
   );
 }
 
-const listNoTags = async (): Promise<TagDirectoryEntry[]> => [];
-
 export function ManualCreationPanel({
   decks,
   workflow,
   onSaveManualNote,
-  listTagDirectory = listNoTags,
+  listTagDirectory,
   initialTargetDeckId = "",
   onTargetDeckChange = () => undefined,
   onFinish = () => undefined,
@@ -139,12 +137,7 @@ export function ManualCreationPanel({
   const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
   const saveInFlightRef = React.useRef(false);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
-  const [tagDirectory, setTagDirectory] = React.useState<TagDirectoryEntry[]>([]);
-  React.useEffect(() => {
-    let active = true;
-    void listTagDirectory().then((entries) => { if (active) setTagDirectory(entries); }).catch(() => undefined);
-    return () => { active = false; };
-  }, [listTagDirectory]);
+
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
@@ -782,7 +775,7 @@ export function ManualCreationPanel({
       </div>
 
       <div className="grid gap-4">
-        <TagInput tags={tags} directory={tagDirectory} onChange={(next) => dispatchBatch({ type: "draft", patch: { tags: next } })} />
+        <TagInput tags={tags} loadDirectory={listTagDirectory} onChange={(next) => dispatchBatch({ type: "draft", patch: { tags: next } })} />
       </div>
       </div>
       {saveProgress ? (

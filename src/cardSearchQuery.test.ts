@@ -44,7 +44,7 @@ test("filters write and read the search terms and keep text and other terms", ()
   query = withCardSearchFilter(query, "leech", true);
   query = withCardSearchFilter(query, "tags", ["Kardio::Klappen", "#AK"]);
   assert.equal(query, "herz -flag:2 is:suspended flag:3 tag:leech tag:Kardio::Klappen tag:#AK");
-  assert.deepEqual(readCardSearchFilters(query), { flag: 3, leech: true, tags: ["kardio::klappen", "#ak"] });
+  assert.deepEqual(readCardSearchFilters(query), { flag: 3, leech: true, tags: ["Kardio::Klappen", "#AK"] });
   assert.equal(withCardSearchFilter(withCardSearchFilter(query, "flag", null), "tags", []), "herz -flag:2 is:suspended tag:leech");
   assert.equal(withCardSearchFilter("flag:1", "flag", 0), "flag:0");
   assert.deepEqual(readCardSearchFilters(withCardSearchFilter("", "leech", false)), { flag: null, leech: false, tags: [] });

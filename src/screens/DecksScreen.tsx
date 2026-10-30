@@ -20,7 +20,6 @@ import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { FlagDot, flagName } from "../ui/flagUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { TagInput } from "../ui/TagInput.tsx";
-import { canonicalTagSpelling, type TagDirectoryEntry } from "../tagDirectory.ts";
 import { readCardSearchFilters, withCardSearchFilter } from "../cardSearchQuery.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
@@ -224,12 +223,6 @@ export function DecksScreen({
     { value: "0", label: "Ohne Flagge" },
     ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ value: String(flag), label: `Flagge ${flagName(flag, cardEditor.flagNames)}` })),
   ], [cardEditor.flagNames]);
-  const [tagDirectory, setTagDirectory] = React.useState<TagDirectoryEntry[]>([]);
-  React.useEffect(() => {
-    let active = true;
-    void cardEditor.listTagDirectory().then((entries) => { if (active) setTagDirectory(entries); }).catch(() => undefined);
-    return () => { active = false; };
-  }, [cardEditor]);
   function changeQuery(next: string) {
     setQuery(next);
     setCardPageByDeckId({});
@@ -750,8 +743,8 @@ export function DecksScreen({
               </button>
               <div className="min-w-0 flex-1 basis-56">
                 <TagInput
-                  tags={searchFilters.tags.map((tag) => canonicalTagSpelling(tagDirectory, tag))}
-                  directory={tagDirectory}
+                  tags={searchFilters.tags}
+                  loadDirectory={cardEditor.listTagDirectory}
                   label="Nach Tags filtern"
                   labelHidden
                   placeholder="Nach Tag filtern"

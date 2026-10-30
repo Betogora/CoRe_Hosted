@@ -72,12 +72,14 @@ export interface CardSearchFilters {
 }
 
 export function readCardSearchFilters(query: string): CardSearchFilters {
-  const { terms } = parseCardSearchQuery(query);
-  const flag = terms.find((term) => term.kind === "flag" && !term.negated);
+  const tokens = String(query ?? "").trim().split(/\s+/).filter(Boolean);
+  const terms = tokens.map((token) => ({ token, term: parseTerm(token) }));
+  const flag = terms.find(({ term }) => term?.kind === "flag" && !term.negated)?.term;
   return {
     flag: flag?.kind === "flag" ? flag.value : null,
-    leech: terms.some((term) => term.kind === "leech" && !term.negated),
-    tags: terms.flatMap((term) => term.kind === "tag" && !term.negated ? [term.value] : []),
+    leech: terms.some(({ term }) => term?.kind === "leech" && !term.negated),
+    // Tags keep the spelling written into the query, as the filter chips show them.
+    tags: terms.flatMap(({ token, term }) => term?.kind === "tag" && !term.negated ? [token.slice(token.indexOf(":") + 1)] : []),
   };
 }
 
