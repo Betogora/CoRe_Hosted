@@ -8,7 +8,7 @@ import { AppNavigation } from "./AppNavigation.tsx";
 
 const navigationItems = createMenuModel().listNavigationItems();
 
-function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }) {
+function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0, pomodoroTimer: PomodoroTimer | null = null, syncStatus: SyncStatus = { status: "idle" }, manualSync = false) {
   return renderToStaticMarkup(
     <AppNavigation
       navigationItems={navigationItems}
@@ -17,16 +17,34 @@ function renderNavigation(activeView = "uebersicht", simulationOffsetMinutes = 0
       simulationDateLabel="Sonntag, 9. August 2026"
       pomodoroTimer={pomodoroTimer}
       syncStatus={syncStatus}
+      manualSync={manualSync}
       onSyncNow={() => undefined}
+      onOpenSyncSettings={() => undefined}
       onNavigate={() => undefined}
       onResetSimulation={() => undefined}
     />,
   );
 }
 
-test("sync action exposes the current state in both navigation layouts", () => {
-  const saved = renderNavigation("uebersicht", 0, null, { status: "saved", message: "Synchronisiert.", savedAt: "2026-08-14T16:00:00.000Z" });
-  assert.equal((saved.match(/aria-label="Synchronisiert – jetzt erneut synchronisieren"/g) ?? []).length, 2);
+test("automatic sync stays out of the header until something needs attention", () => {
+  for (const syncStatus of [
+    { status: "idle" },
+    { status: "saving", message: "Synchronisiert gerade." },
+    { status: "pending", message: "Ausstehend.", pendingCount: 2 },
+    { status: "saved", message: "Synchronisiert.", savedAt: "2026-08-14T16:00:00.000Z" },
+  ] satisfies SyncStatus[]) {
+    const markup = renderNavigation("uebersicht", 0, null, syncStatus);
+    assert.doesNotMatch(markup, /data-navigation-utility="sync"/);
+    assert.equal((markup.match(new RegExp(`data-navigation-utilities="true" data-sync-status="${syncStatus.status}"`, "g")) ?? []).length, 2);
+  }
+
+  const offline = renderNavigation("uebersicht", 0, null, { status: "offline", message: "Offline.", pendingCount: 1, nextRetryAt: null });
+  assert.equal((offline.match(/aria-label="Offline – Synchronisierung ansehen"/g) ?? []).length, 2);
+  assert.equal((offline.match(/lucide-cloud-off/g) ?? []).length, 2);
+
+  const failed = renderNavigation("uebersicht", 0, null, { status: "error", message: "Fehler." });
+  assert.equal((failed.match(/aria-label="Synchronisierung fehlgeschlagen – Details ansehen"/g) ?? []).length, 2);
+  assert.equal((failed.match(/bg-core-danger/g) ?? []).length, 2);
 
   const conflicted = renderNavigation("uebersicht", 0, null, { status: "conflict", message: "2 Änderungen brauchen deine Entscheidung.", conflictCount: 2 });
   assert.equal((conflicted.match(/aria-label="2 Synchronisierungskonflikte klären"/g) ?? []).length, 2);
@@ -34,6 +52,19 @@ test("sync action exposes the current state in both navigation layouts", () => {
 
   const singularConflict = renderNavigation("uebersicht", 0, null, { status: "conflict", message: "Eine Änderung braucht deine Entscheidung.", conflictCount: 1 });
   assert.equal((singularConflict.match(/aria-label="1 Synchronisierungskonflikt klären"/g) ?? []).length, 2);
+});
+
+test("manual sync keeps a direct sync action that marks pending changes", () => {
+  const saved = renderNavigation("uebersicht", 0, null, { status: "saved", message: "Synchronisiert.", savedAt: "2026-08-14T16:00:00.000Z" }, true);
+  assert.equal((saved.match(/aria-label="Jetzt synchronisieren"/g) ?? []).length, 2);
+  assert.doesNotMatch(saved, /bg-core-action" aria-hidden/);
+
+  const pending = renderNavigation("uebersicht", 0, null, { status: "pending", message: "Ausstehend.", pendingCount: 2 }, true);
+  assert.equal((pending.match(/aria-label="Ausstehende Änderungen synchronisieren"/g) ?? []).length, 2);
+  assert.equal((pending.match(/size-2 rounded-round bg-core-action/g) ?? []).length, 2);
+
+  const saving = renderNavigation("uebersicht", 0, null, { status: "saving", message: "Synchronisiert gerade." }, true);
+  assert.equal((saving.match(/<button[^>]*disabled=""[^>]*aria-label="Synchronisiert gerade"|<button[^>]*aria-label="Synchronisiert gerade"[^>]*disabled=""/g) ?? []).length, 2);
 });
 
 test("app navigation exposes five primary entries and marks learning active for the hidden cards route", () => {
@@ -107,7 +138,7 @@ test("help and general settings have separate utility states while card settings
 });
 
 test("responsive navigation shares compact settings, theme and help actions without a profile preview", () => {
-  const markup = renderNavigation();
+  const markup = renderNavigation("uebersicht", 0, null, { status: "idle" }, true);
   const topBarMarkup = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/header>/)?.[0] ?? "";
   const mobileHeaderMarkup = markup.match(/<header[^>]*data-navigation-layout="mobile-header"[\s\S]*?<\/header>/)?.[0] ?? "";
 
@@ -119,7 +150,7 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.doesNotMatch(topBarMarkup, /Content Repetition/);
   for (const layoutMarkup of [topBarMarkup, mobileHeaderMarkup]) {
-    assert.match(layoutMarkup, /class="flex shrink-0 items-center gap-1\.5" data-navigation-utilities="true"/);
+    assert.match(layoutMarkup, /class="flex shrink-0 items-center gap-1\.5" data-navigation-utilities="true" data-sync-status="idle"/);
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="theme"') < layoutMarkup.indexOf('data-navigation-utility="help"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));

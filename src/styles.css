@@ -928,7 +928,7 @@ button[aria-label] {
   min-width: var(--core-control-height);
 }
 
-.core-in-page-content > section[id] {
+.core-in-page-content section[id] {
   scroll-margin-top: var(--core-in-page-scroll-margin, 1.5rem);
 }
 

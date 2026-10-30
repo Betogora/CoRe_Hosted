@@ -8,13 +8,16 @@ const studyFallbackViewId: AppViewId = "lernen";
 const extraRoutableViewIds = ["stapel-einstellungen", "karten-einstellungen"] as const;
 const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 const settingsReturnViews = ["today", "learn", "decks", "review"] as const;
-const settingsTargets = ["new-cards-per-day"] as const;
+const settingsTargetsByView = {
+  "stapel-einstellungen": ["new-cards-per-day"],
+  einstellungen: ["sync", "sync-conflicts"],
+} as const;
 const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 type ReviewReturnView = typeof reviewReturnViews[number];
 type SettingsReturnView = typeof settingsReturnViews[number];
-export type SettingsTarget = typeof settingsTargets[number];
+export type SettingsTarget = typeof settingsTargetsByView[keyof typeof settingsTargetsByView][number];
 export type DeckContentTab = typeof deckContentTabs[number];
 
 export interface ReviewReturnContext {
@@ -142,7 +145,8 @@ function normalizeViewRoute(
   const completedDeckId = cleanIdentifier(route.completedDeckId);
   const completedCount = cleanCompletedCount(route.completedCount);
   const completionKind = route.completionKind === "import" || route.completionKind === "manual" ? route.completionKind : null;
-  const settingsTarget = settingsTargets.includes(String(route.settingsTarget) as SettingsTarget)
+  const viewSettingsTargets: readonly string[] = settingsTargetsByView[viewId as keyof typeof settingsTargetsByView] ?? [];
+  const settingsTarget = viewSettingsTargets.includes(String(route.settingsTarget))
     ? String(route.settingsTarget) as SettingsTarget
     : null;
   const settingsReturnView = settingsReturnViews.includes(String(route.settingsReturnContext?.view) as SettingsReturnView)
@@ -174,7 +178,7 @@ function normalizeViewRoute(
     ...(viewId === "neue-karten" && completedDeckId ? { completedDeckId } : {}),
     ...(viewId === "neue-karten" && completedDeckId && completedCount !== null ? { completedCount } : {}),
     ...(viewId === "neue-karten" && completedDeckId && completionKind ? { completionKind } : {}),
-    ...(viewId === "stapel-einstellungen" && settingsTarget ? { settingsTarget } : {}),
+    ...(settingsTarget ? { settingsTarget } : {}),
     ...(viewId === "stapel-einstellungen" && settingsReturnContext ? { settingsReturnContext } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId && cardEditorReturnContext
       ? { cardEditorReturnContext }
@@ -377,7 +381,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId) params.set("done", normalized.completedDeckId);
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId && normalized.completedCount != null) params.set("doneCount", String(normalized.completedCount));
   if (normalized.viewId === "neue-karten" && normalized.completedDeckId && normalized.completionKind) params.set("doneKind", normalized.completionKind);
-  if (normalized.viewId === "stapel-einstellungen" && normalized.settingsTarget) params.set("target", normalized.settingsTarget);
+  if (normalized.settingsTarget) params.set("target", normalized.settingsTarget);
   const settingsReturnContext = normalized.settingsReturnContext;
   if (normalized.viewId === "stapel-einstellungen" && settingsReturnContext) {
     params.set("returnView", settingsReturnContext.view);

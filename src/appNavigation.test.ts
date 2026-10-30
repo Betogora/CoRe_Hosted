@@ -161,6 +161,20 @@ test("roundtrips only the allowlisted deck-settings target", () => {
   );
 });
 
+test("roundtrips only sync targets on the general settings route", () => {
+  for (const settingsTarget of ["sync", "sync-conflicts"] as const) {
+    const route = parseAppRouteFromUrl(`/einstellungen?target=${settingsTarget}`);
+    assert.deepEqual(route, { mode: "view", viewId: "einstellungen", settingsTarget });
+    assert.equal(appRouteToUrl(route), `/einstellungen?target=${settingsTarget}`);
+  }
+  assert.deepEqual(parseAppRouteFromUrl("/einstellungen?target=new-cards-per-day"), { mode: "view", viewId: "einstellungen" });
+  assert.deepEqual(
+    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&target=sync"),
+    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
+  );
+  assert.equal(appRouteToUrl(createViewRoute("lernen", { settingsTarget: "sync" })), "/lernen");
+});
+
 test("roundtrips an allowlisted review return from the selected card editor", () => {
   const editorRoute = createViewRoute("kartenstapel", {
     focusedDeckId: "deck_child",

@@ -65,7 +65,7 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
   const desktopSettingsButton = desktopUtilities.locator('[data-navigation-utility="settings"]');
   const desktopHelpButton = desktopUtilities.locator('[data-navigation-utility="help"]');
   const desktopThemeButton = desktopUtilities.locator('[data-navigation-utility="theme"]');
-  await expect(desktopSyncButton).toBeVisible();
+  await expect(desktopSyncButton).toHaveCount(0);
   await expect(desktopSettingsButton).toBeVisible();
   await expect(desktopHelpButton).toBeVisible();
   await expect(desktopThemeButton).toBeVisible();
@@ -233,12 +233,9 @@ test("deck expansion preserves the complete profile across reload and an isolate
   const toggle = rootRow.getByRole("button", { name: /Unterstapel von Welt-Hauptstädte (?:anzeigen|ausblenden)/ });
 
   await toggle.click();
-  await expect(page.locator('[data-navigation-utility="sync"]:visible')).toHaveAttribute("aria-label", "Ausstehende Änderungen synchronisieren");
-  await expect(page.locator('[data-navigation-utility="sync"]:visible')).toHaveAttribute(
-    "aria-label",
-    "Synchronisiert – jetzt erneut synchronisieren",
-    { timeout: 20_000 },
-  );
+  const syncUtilities = page.locator('[data-navigation-utilities="true"]:visible');
+  await expect(syncUtilities).toHaveAttribute("data-sync-status", "pending");
+  await expect(syncUtilities).toHaveAttribute("data-sync-status", "saved", { timeout: 20_000 });
 
   const expected = {
     displayName: before.displayName,
@@ -267,7 +264,7 @@ test("deck expansion preserves the complete profile across reload and an isolate
     const isolatedPage = await isolatedContext.newPage();
     await isolatedPage.goto(new URL("/", page.url()).toString());
     await isolatedPage.locator('[data-app-navigation="true"]:visible').first().waitFor({ state: "visible" });
-    await isolatedPage.locator('[data-navigation-utility="sync"][aria-label="Synchronisiert – jetzt erneut synchronisieren"]:visible')
+    await isolatedPage.locator('[data-navigation-utilities="true"][data-sync-status="saved"]:visible')
       .waitFor({ state: "visible", timeout: 20_000 });
     await expectProfileSettings(isolatedPage);
   } finally {

@@ -16,6 +16,7 @@ import { formatStorageBytes } from "../workspaceStorage.ts";
 const sectionIds = {
   account: "settings-account",
   data: "settings-data-sync",
+  conflicts: "settings-sync-conflicts",
   about: "settings-about",
 } as const;
 
@@ -33,7 +34,7 @@ const syncIntervalOptions = [
   { value: "30", label: "Alle 30 Minuten" },
 ];
 
-export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, storageStatus = null, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
+export function SettingsScreen({ profile, syncStatus, settingsTarget = null, lastSyncedAt = null, storageStatus = null, onSaveSettings, onDraftStateChange, onSyncNow, onListConflicts, onResolveConflict, onSignOut, onNavigate }: SettingsScreenProps) {
   const persistedDraft = createGeneralSettingsDraft(profile);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GeneralSettingsDraft>(persistedDraft);
@@ -119,7 +120,7 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
         </CrossLinkButton>
       </div>
 
-      <InPageNavigation ariaLabel="Bereiche der allgemeinen Einstellungen" items={settingsSections}>
+      <InPageNavigation ariaLabel="Bereiche der allgemeinen Einstellungen" items={settingsSections} targetId={settingsTarget === "sync-conflicts" ? sectionIds.conflicts : settingsTarget === "sync" ? sectionIds.data : null}>
       <section id={sectionIds.account} className="grid gap-4" aria-labelledby="settings-account-heading">
         <h2 id="settings-account-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Konto</h2>
         <SoftPanel className="p-6">
@@ -177,7 +178,7 @@ export function SettingsScreen({ profile, syncStatus, lastSyncedAt = null, stora
             </div>
           ) : null}
         </SoftPanel>
-        <SyncConflictPanel onListConflicts={onListConflicts} onResolveConflict={onResolveConflict} />
+        <SyncConflictPanel id={sectionIds.conflicts} onListConflicts={onListConflicts} onResolveConflict={onResolveConflict} />
       </section>
 
       <section id={sectionIds.about} className="grid gap-4" aria-labelledby="settings-about-heading">
