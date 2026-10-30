@@ -1,4 +1,5 @@
 import React from "react";
+import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
 import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
@@ -236,7 +237,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds }: DashboardScreenProps) {
+export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
     () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries }),
@@ -310,38 +311,35 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
   }
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} />
-
-      <DailyLearningOverview
-        plan={dailyLearningPlan}
-        decks={state.decks}
-        onStartDeck={onStartDeck}
-        onStartAdditionalCards={onStartAdditionalCards}
-      />
-
-      {nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
+    <DashboardWidgets
+      key={state.profile.userId}
+      userId={state.profile.userId}
+      header={(action) => <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} action={action} />}
+      timer={pomodoroTimer}
+      onStartTimer={onStartPomodoro}
+      onOpenPlanner={() => onNavigate("pruefungen")}
+      planner={nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
         <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onLoadSummaryAvailability={onLoadExamSummaryAvailability} onLoadLocalCardIds={onLoadExamLocalCardIds} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
       ) : null}
-
-      <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />
-
-      <DeckTree
-        rows={library.rows}
-        mode="dashboard"
-        view={deckView}
-        onViewChange={setDeckView}
-        collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
-        onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
-        headerAction={(
-          <CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle ansehen</CrossLinkButton>
-        )}
-        onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
-        onStudy={(row) => onStartDeck(row.deck)}
-        onOpenSettings={onOpenDeckSettings}
-        onSetDeckCoreMode={onSetDeckCoreMode}
-        onMoveDeck={onMoveDeck}
-      />
-    </div>
+    >
+      {{
+        learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
+        heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
+        decks: <DeckTree
+          rows={library.rows}
+          mode="dashboard"
+          view={deckView}
+          onViewChange={setDeckView}
+          collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
+          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
+          headerAction={<CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle ansehen</CrossLinkButton>}
+          onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
+          onStudy={(row) => onStartDeck(row.deck)}
+          onOpenSettings={onOpenDeckSettings}
+          onSetDeckCoreMode={onSetDeckCoreMode}
+          onMoveDeck={onMoveDeck}
+        />,
+      }}
+    </DashboardWidgets>
   );
 }

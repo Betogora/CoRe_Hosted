@@ -131,7 +131,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });
 
-test("dashboard orders daily learning, exams, heatmap and decks", () => {
+test("dashboard includes five default widgets and keeps planner tasks inside todos", () => {
   const baseState = createCoreRepository().getState();
   const exam = { ...createExamPlan("2026-08-06", ["biologie"]), name: "Biologie" };
   const state = {
@@ -149,7 +149,11 @@ test("dashboard orders daily learning, exams, heatmap and decks", () => {
       onSaveExamTasks={async () => undefined}
     />,
   );
-  assert.match(markup, /data-testid="daily-learning-overview"[\s\S]*data-testid="dashboard-exam-unit"[\s\S]*data-testid="study-heatmap-grid"[\s\S]*data-testid="dashboard-deck-list-header"/);
+  assert.deepEqual([...markup.matchAll(/data-dashboard-widget="([^"]+)"/g)].map((match) => match[1]), ["learning", "timer", "decks", "todos", "heatmap"]);
+  assert.match(markup, /data-dashboard-widget="todos"[\s\S]*data-testid="dashboard-exam-unit"[\s\S]*data-dashboard-widget="heatmap"/);
+  assert.match(markup, /data-testid="daily-learning-overview"/);
+  assert.match(markup, /data-testid="study-heatmap-grid"/);
+  assert.match(markup, /data-testid="dashboard-deck-list-header"/);
 });
 
 test("dashboard projects future due cards through the supplied learning time", () => {
