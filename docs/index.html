@@ -1388,6 +1388,9 @@ video {
 .block {
   display: block;
 }
+.inline-block {
+  display: inline-block;
+}
 .inline {
   display: inline;
 }
@@ -1567,6 +1570,9 @@ video {
 .max-h-44 {
   max-height: 11rem;
 }
+.max-h-64 {
+  max-height: 16rem;
+}
 .max-h-80 {
   max-height: 20rem;
 }
@@ -1638,6 +1644,9 @@ video {
 }
 .min-h-72 {
   min-height: 18rem;
+}
+.min-h-8 {
+  min-height: 2rem;
 }
 .min-h-9 {
   min-height: 2.25rem;
@@ -1782,6 +1791,9 @@ video {
 }
 .min-w-16 {
   min-width: 4rem;
+}
+.min-w-24 {
+  min-width: 6rem;
 }
 .min-w-4 {
   min-width: 1rem;
@@ -2468,6 +2480,10 @@ video {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
 }
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -2559,6 +2575,9 @@ video {
 .pl-1 {
   padding-left: 0.25rem;
 }
+.pl-2\.5 {
+  padding-left: 0.625rem;
+}
 .pl-3 {
   padding-left: 0.75rem;
 }
@@ -2567,6 +2586,9 @@ video {
 }
 .pl-6 {
   padding-left: 1.5rem;
+}
+.pr-1 {
+  padding-right: 0.25rem;
 }
 .pr-12 {
   padding-right: 3rem;
@@ -3136,6 +3158,18 @@ video {
   --core-learning-status-due: var(--core-warning);
   --core-learning-progress-completed: #a7adb6;
   --core-learning-goal-achieved: #2f7d68;
+  /* Anki flags 1–7 (red to purple); graphic marks with at least 3:1 against surfaces, always named as well (W14). */
+  --core-flag-1: #d63b3b;
+  --core-flag-2: #c76a08;
+  --core-flag-3: #2c8a3e;
+  --core-flag-4: #2f6bd4;
+  --core-flag-5: #c23d8f;
+  --core-flag-6: #0b7f91;
+  --core-flag-7: #7448e0;
+  --core-danger-text: #a83c22;
+  /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
+  --core-marked-surface: #fdf6df;
+  --core-marked-text-muted: #5e6b86;
 
 }
 
@@ -3206,6 +3240,16 @@ video {
   --core-learning-status-due: var(--core-warning);
   --core-learning-progress-completed: #737b87;
   --core-learning-goal-achieved: #72d6b5;
+  --core-flag-1: #ff7a7a;
+  --core-flag-2: #ffa14a;
+  --core-flag-3: #5fd27a;
+  --core-flag-4: #62a8f5;
+  --core-flag-5: #f590bd;
+  --core-flag-6: #45c7d6;
+  --core-flag-7: #b9a0fb;
+  --core-danger-text: var(--core-palette-coral-glow);
+  --core-marked-surface: #2b2a23;
+  --core-marked-text-muted: var(--core-text-muted);
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #46546a;
   --core-help-stack-back: var(--core-group-depth-3);
@@ -3977,6 +4021,12 @@ summary {
 
 .core-success-toast {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
+}
+
+/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). */
+.core-success-toast:hover,
+.core-success-toast:focus-within {
+  animation-play-state: paused;
 }
 
 .core-success-toast[data-appearance="neutral"] {
@@ -4828,6 +4878,9 @@ summary {
 .last\:pb-0:last-child {
   padding-bottom: 0px;
 }
+.focus-within\:border-core-action:focus-within {
+  border-color: var(--core-action-primary);
+}
 .hover\:-translate-y-0\.5:hover {
   --tw-translate-y: -0.125rem;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -5051,6 +5104,18 @@ summary {
 }
 @media (min-width: 640px) {
 
+  .sm\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
   .sm\:static {
     position: static;
   }
@@ -5101,6 +5166,15 @@ summary {
 
   .sm\:flex {
     display: flex;
+  }
+
+  .sm\:hidden {
+    display: none;
+  }
+
+  .sm\:size-control {
+    width: var(--core-control-height);
+    height: var(--core-control-height);
   }
 
   .sm\:h-\[21rem\] {
@@ -5252,8 +5326,16 @@ summary {
     justify-content: flex-end;
   }
 
+  .sm\:justify-center {
+    justify-content: center;
+  }
+
   .sm\:justify-items-end {
     justify-items: end;
+  }
+
+  .sm\:gap-1 {
+    gap: 0.25rem;
   }
 
   .sm\:gap-2 {
@@ -5298,6 +5380,11 @@ summary {
 
   .sm\:p-9 {
     padding: 2.25rem;
+  }
+
+  .sm\:px-0 {
+    padding-left: 0px;
+    padding-right: 0px;
   }
 
   .sm\:px-3 {

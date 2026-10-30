@@ -167,9 +167,11 @@ interface RichTextEditorProps {
     groupId: number;
   };
   imageActions?: RichTextImageActions;
+  /** Shows the toolbar only while focus is in the field or its toolbar, e.g. for a column of several fields. */
+  toolbarOnFocus?: boolean;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const toolbarRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
@@ -177,6 +179,9 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const highlightColorButtonRef = React.useRef<HTMLButtonElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
   const isFocusedRef = React.useRef(false);
+  // Only input changes a field: focusing and leaving it keeps stored (also imported) HTML untouched (W15).
+  const editedSinceFocusRef = React.useRef(false);
+  const [focusWithin, setFocusWithin] = React.useState(false);
   const lastEmittedNormalizedHtmlRef = React.useRef("");
   const normalizedValue = React.useMemo(() => normalizeRichTextForEditor(value), [value]);
   const [textColors, updateTextColorSlot] = useStoredColorSlots(richTextColorStorageKeys.text, defaultTextColors);
@@ -368,6 +373,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const editor = editorRef.current;
     if (!editor) return;
     isFocusedRef.current = true;
+    editedSinceFocusRef.current = true;
     saveSelection();
     const sanitizedHtml = canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions));
     lastEmittedNormalizedHtmlRef.current = normalizeRichTextEditorHtml(sanitizedHtml);
@@ -544,6 +550,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     const selectionOffsets = captureTextSelection();
     saveSelection();
     isFocusedRef.current = false;
+    if (!editedSinceFocusRef.current) return;
+    editedSinceFocusRef.current = false;
     const normalizedHtml = normalizeRichTextEditorHtml(canonicalizeRichTextMedia(editor.innerHTML, Boolean(imageActions)));
     const hydratedHtml = hydrateRichTextMedia(normalizedHtml, imageActions?.mediaUrls ?? {});
     lastEmittedNormalizedHtmlRef.current = normalizedHtml;
@@ -623,12 +631,14 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     void insertImageFiles(files, dropRange);
   }
 
-  const fieldClass = `${minHeightClass} rich-text-field min-w-0 rounded-b-control border border-t-0 p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
-    isActive ? "border-core-action bg-core-surface shadow-selection" : "border-core-border bg-core-surface"
+  const toolbarShown = !toolbarOnFocus || focusWithin || openColorMenu !== null;
+  const active = isActive || (toolbarOnFocus && focusWithin);
+  const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarShown ? "rounded-b-control border-t-0" : "rounded-control"} border p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
+    active ? "border-core-action bg-core-surface shadow-selection" : "border-core-border bg-core-surface"
   }`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   const toolbar = (
-      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-control border bg-core-subtle p-1 ${isActive ? "border-core-action" : "border-core-border"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-control border bg-core-subtle p-1 ${active ? "border-core-action" : "border-core-border"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         {imageActions ? (
@@ -732,8 +742,15 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
       </div>
   );
   return (
-    <div className="min-w-0" aria-busy={isPreparingImages || undefined}>
-      {toolbarHost ? createPortal(toolbar, toolbarHost) : toolbar}
+    <div
+      className="min-w-0"
+      aria-busy={isPreparingImages || undefined}
+      onFocus={toolbarOnFocus ? () => setFocusWithin(true) : undefined}
+      onBlur={toolbarOnFocus ? (event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false);
+      } : undefined}
+    >
+      {!toolbarShown ? null : toolbarHost ? createPortal(toolbar, toolbarHost) : toolbar}
       <div
         ref={editorRef}
         className={fieldClass}

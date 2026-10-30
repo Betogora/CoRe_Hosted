@@ -18,6 +18,8 @@ import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
 import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
+import { FlagDot, FlagPicker } from "../src/ui/flagUi.tsx";
+import { TagInput } from "../src/ui/TagInput.tsx";
 import { ColorWheelPicker } from "../src/ui/ColorWheelPicker.tsx";
 import { ColorPopover, ColorToolButton } from "../src/ui/colorPicker.tsx";
 import { FileDropField } from "../src/ui/FileDropField.tsx";
@@ -166,7 +168,7 @@ function FeedbackDemo({ section }: { section: string }) {
   const progress = { total: 40, completedTodayCount: 16, newCount: 12, inProgressCount: 4, dueCount: 8 };
   return <>
     {section === "feedback" && <Demo title="StatusMessage · alle Töne">{(["info", "success", "warning", "error"] as const).map((tone) => <StatusMessage key={tone} tone={tone}>{({ info: "Die Synchronisierung steht noch aus.", success: "Karte wurde erfolgreich gespeichert.", warning: "Einige Medien fehlen.", error: "Der Import konnte nicht abgeschlossen werden." })[tone]}</StatusMessage>)}</Demo>}
-    {section === "feedback" && <Demo title="SuccessToast und SuccessToastProvider"><div className="catalog-row"><ActionButton variant="primary" onClick={() => toast("Karte wurde erfolgreich gespeichert.")}>Erfolg anzeigen</ActionButton><ActionButton variant="secondary" onClick={() => toast("Karte ausgesetzt. Der Lernstand bleibt erhalten.", { appearance: "neutral" })}>Neutralen Hinweis anzeigen</ActionButton></div></Demo>}
+    {section === "feedback" && <Demo title="SuccessToast und SuccessToastProvider"><div className="catalog-row"><ActionButton variant="primary" onClick={() => toast("Karte wurde erfolgreich gespeichert.")}>Erfolg anzeigen</ActionButton><ActionButton variant="secondary" onClick={() => toast("Karte ausgesetzt. Der Lernstand bleibt erhalten.", { appearance: "neutral" })}>Neutralen Hinweis anzeigen</ActionButton><ActionButton variant="secondary" onClick={() => toast("Karte nach „Europa“ verschoben.", { action: { label: "Rückgängig", onAction: () => toast("Verschieben rückgängig gemacht.") } })}>Mit Rückgängig anzeigen</ActionButton></div></Demo>}
     {section === "dialogs" && <Demo title="ActionDialog · Bestätigung, Verwerfen und Information"><ActionButton variant="destructive" onClick={() => setDialog(true)}>Löschdialog öffnen</ActionButton><ActionDialog open={dialog} title="Stapel löschen?" description="Diese Demo verändert ausschließlich ihren eigenen Zustand." confirmLabel="Löschen" cancelLabel="Abbrechen" discardLabel="Entwurf verwerfen" destructive onConfirm={() => { setDialog(false); toast("Beispiel bestätigt."); }} onCancel={() => setDialog(false)} onDiscard={() => setDialog(false)} /></Demo>}
     {section === "dialogs" && <Demo title="SettingsSaveBar · Speicherreichweiten"><CoreSelect ariaLabel="Speicherleisten-Modus" value={barMode} onValueChange={(value) => setBarMode(value as typeof barMode)} options={[{ value: "global", label: "Allgemeine Einstellungen" }, { value: "learning-global", label: "Globale Lernwerte" }, { value: "deck-tree", label: "Stapelbaum" }]} /><ActionButton variant="secondary" onClick={() => { setBarFailed(false); setBar(true); }}>Speicherleiste öffnen</ActionButton><ActionButton variant="secondary" onClick={() => { setBarFailed(true); setBar(true); }}>Fehlgeschlagenes Speichern zeigen</ActionButton><SettingsSaveBar open={bar} failed={barFailed} mode={barMode} onSave={() => { setBar(false); toast("Beispiel gespeichert."); }} onDiscard={() => setBar(false)} /></Demo>}
     {section === "progress" && <Demo title="DailyReviewProgress · offen, erreicht und leer"><DailyReviewProgress progress={progress} /><DailyReviewProgress progress={{ ...progress, completedTodayCount: 40, newCount: 0, inProgressCount: 0, dueCount: 0 }} achieved /><DailyReviewProgress progress={{ total: 0, completedTodayCount: 0, newCount: 0, inProgressCount: 0, dueCount: 0 }} achieved /></Demo>}
@@ -284,10 +286,26 @@ function ContentDemo({ section }: { section: string }) {
     {section === "inhalt" && <Demo title="CardPresentationSurface · Vorderseite, Rückseite und Ladezustand"><SurfaceDemo /></Demo>}
     {section === "inhalt" && <Demo title="NoteCardContent · Aufdecken und Auswahl" wide><StudyDemo /></Demo>}
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} card={fixture.card} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
-    {section === "editor" && <Demo title="RichTextEditor · Toolbar und zusätzliche Werkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Inhalt mit allen Werkzeugen" isActive showAllTools /><details><summary>Aktueller HTML-Inhalt</summary><pre>{text}</pre></details></Demo>}
+    {section === "editor" && <Demo title="RichTextEditor · Toolbar und zusätzliche Werkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Inhalt mit allen Werkzeugen" isActive showAllTools /><RichTextEditor value={text} onChange={setText} ariaLabel="Feld mit Werkzeugen nur bei Fokus" toolbarOnFocus minHeightClass="min-h-20" /><RichTextEditor value="<p>Zweites Feld derselben Spalte.</p>" ariaLabel="Zweites Feld mit Werkzeugen nur bei Fokus" toolbarOnFocus minHeightClass="min-h-20" /><details><summary>Aktueller HTML-Inhalt</summary><pre>{text}</pre></details></Demo>}
     {section === "colors" && <Demo title="ColorWheelPicker"><ColorWheelPicker value={color} onValueCommit={setColor} /><code>{color}</code><ColorWheelPicker value={color} disabled onValueCommit={setColor} /></Demo>}
     {section === "colors" && <Demo title="ColorToolButton und ColorPopover"><ColorToolButton label="Textfarbe" icon={Type} color={slots[slot]} isOpen={colorOpen} menuId="catalog-color-popover" onToggle={() => setColorOpen((value) => !value)} buttonRef={buttonRef} />{colorOpen && <ColorPopover id="catalog-color-popover" label="Textfarbe" icon={Type} colors={slots} paletteColors={["#181d25", "#667492", "#047857"]} selectedSlot={slot} onSelectSlot={setSlot} onApply={(value) => { setColor(value); setColorOpen(false); }} onChangeSlot={(index, value) => setSlots((current) => current.map((entry, position) => position === index ? value : entry))} />}</Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer · echte lokale PDF-Vorschau" wide><PdfDemo /></Demo>}
+  </>;
+}
+
+/** Tags save at once in the editor; here they change only the demo state. */
+function TagsAndFlagsDemo() {
+  const [tags, setTags] = useState(["Biologie::Zelle", "#AK_Step1::Herz", "AK::Kreislauf", "eigen"]);
+  const [flag, setFlag] = useState(3);
+  const directory = [
+    { tag: "Biologie::Zelle", noteCount: 18, importedCount: 0 },
+    { tag: "Biologie::Zelle::Mitochondrium", noteCount: 4, importedCount: 0 },
+    { tag: "#AK_Step1::Herz", noteCount: 120, importedCount: 120 },
+    { tag: "Prüfung::Physiologie", noteCount: 9, importedCount: 0 },
+  ];
+  return <>
+    <Demo title="TagInput · Chips, Vorschläge und importierte Gruppe"><TagInput tags={tags} importedTags={["#AK_Step1::Herz", "AK::Kreislauf"]} directory={directory} onChange={setTags} /><p className="core-body text-core-muted">Leertaste, Enter oder Tab schließen ein Tag ab; <code>#</code>, <code>,</code> und <code>;</code> bleiben Teil des Tags.</p></Demo>
+    <Demo title="FlagPicker und FlagDot"><FlagPicker value={flag} onValueChange={setFlag} names={["", "", "Wiederholen", "", "", "", ""]} onEditNames={() => undefined} /><div className="catalog-row">{[1, 2, 3, 4, 5, 6, 7].map((value) => <FlagDot key={value} flag={value} />)}</div></Demo>
   </>;
 }
 
@@ -551,6 +569,7 @@ export const DEMO_GROUPS = [
   { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
   { id: "dialogs", section: "primitive", title: "Dialog-Familie", description: "Bestätigungen, Kartenvorschau, Sitzungsdialog, Speicherentscheidung und Konfliktvergleich.", components: ["ActionDialog", "SettingsSaveBar", "CardPreviewDialog", "StudySettingsOverlay", "SyncConflictPanel"], render: () => <><FeedbackDemo section="dialogs" /><ContentDemo section="dialogs" /><LearningDemo section="dialogs" /><ProductViewsDemo kind="conflict" /></> },
+  { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe mit Hierarchie und Vorschlägen, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbkreis, Schnellfarben und Farb-Popover.", components: ["ColorWheelPicker", "ColorToolButton", "ColorPopover"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
   { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel und Titel mit Bereichssteuerung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },

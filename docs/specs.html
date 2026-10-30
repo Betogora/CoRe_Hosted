@@ -1388,6 +1388,9 @@ video {
 .block {
   display: block;
 }
+.inline-block {
+  display: inline-block;
+}
 .inline {
   display: inline;
 }
@@ -1567,6 +1570,9 @@ video {
 .max-h-44 {
   max-height: 11rem;
 }
+.max-h-64 {
+  max-height: 16rem;
+}
 .max-h-80 {
   max-height: 20rem;
 }
@@ -1638,6 +1644,9 @@ video {
 }
 .min-h-72 {
   min-height: 18rem;
+}
+.min-h-8 {
+  min-height: 2rem;
 }
 .min-h-9 {
   min-height: 2.25rem;
@@ -1782,6 +1791,9 @@ video {
 }
 .min-w-16 {
   min-width: 4rem;
+}
+.min-w-24 {
+  min-width: 6rem;
 }
 .min-w-4 {
   min-width: 1rem;
@@ -2468,6 +2480,10 @@ video {
   padding-left: 0.25rem;
   padding-right: 0.25rem;
 }
+.px-1\.5 {
+  padding-left: 0.375rem;
+  padding-right: 0.375rem;
+}
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -2559,6 +2575,9 @@ video {
 .pl-1 {
   padding-left: 0.25rem;
 }
+.pl-2\.5 {
+  padding-left: 0.625rem;
+}
 .pl-3 {
   padding-left: 0.75rem;
 }
@@ -2567,6 +2586,9 @@ video {
 }
 .pl-6 {
   padding-left: 1.5rem;
+}
+.pr-1 {
+  padding-right: 0.25rem;
 }
 .pr-12 {
   padding-right: 3rem;
@@ -3136,6 +3158,18 @@ video {
   --core-learning-status-due: var(--core-warning);
   --core-learning-progress-completed: #a7adb6;
   --core-learning-goal-achieved: #2f7d68;
+  /* Anki flags 1–7 (red to purple); graphic marks with at least 3:1 against surfaces, always named as well (W14). */
+  --core-flag-1: #d63b3b;
+  --core-flag-2: #c76a08;
+  --core-flag-3: #2c8a3e;
+  --core-flag-4: #2f6bd4;
+  --core-flag-5: #c23d8f;
+  --core-flag-6: #0b7f91;
+  --core-flag-7: #7448e0;
+  --core-danger-text: #a83c22;
+  /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
+  --core-marked-surface: #fdf6df;
+  --core-marked-text-muted: #5e6b86;
 
 }
 
@@ -3206,6 +3240,16 @@ video {
   --core-learning-status-due: var(--core-warning);
   --core-learning-progress-completed: #737b87;
   --core-learning-goal-achieved: #72d6b5;
+  --core-flag-1: #ff7a7a;
+  --core-flag-2: #ffa14a;
+  --core-flag-3: #5fd27a;
+  --core-flag-4: #62a8f5;
+  --core-flag-5: #f590bd;
+  --core-flag-6: #45c7d6;
+  --core-flag-7: #b9a0fb;
+  --core-danger-text: var(--core-palette-coral-glow);
+  --core-marked-surface: #2b2a23;
+  --core-marked-text-muted: var(--core-text-muted);
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #46546a;
   --core-help-stack-back: var(--core-group-depth-3);
@@ -3977,6 +4021,12 @@ summary {
 
 .core-success-toast {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
+}
+
+/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). */
+.core-success-toast:hover,
+.core-success-toast:focus-within {
+  animation-play-state: paused;
 }
 
 .core-success-toast[data-appearance="neutral"] {
@@ -4828,6 +4878,9 @@ summary {
 .last\:pb-0:last-child {
   padding-bottom: 0px;
 }
+.focus-within\:border-core-action:focus-within {
+  border-color: var(--core-action-primary);
+}
 .hover\:-translate-y-0\.5:hover {
   --tw-translate-y: -0.125rem;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -5051,6 +5104,18 @@ summary {
 }
 @media (min-width: 640px) {
 
+  .sm\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
   .sm\:static {
     position: static;
   }
@@ -5101,6 +5166,15 @@ summary {
 
   .sm\:flex {
     display: flex;
+  }
+
+  .sm\:hidden {
+    display: none;
+  }
+
+  .sm\:size-control {
+    width: var(--core-control-height);
+    height: var(--core-control-height);
   }
 
   .sm\:h-\[21rem\] {
@@ -5252,8 +5326,16 @@ summary {
     justify-content: flex-end;
   }
 
+  .sm\:justify-center {
+    justify-content: center;
+  }
+
   .sm\:justify-items-end {
     justify-items: end;
+  }
+
+  .sm\:gap-1 {
+    gap: 0.25rem;
   }
 
   .sm\:gap-2 {
@@ -5298,6 +5380,11 @@ summary {
 
   .sm\:p-9 {
     padding: 2.25rem;
+  }
+
+  .sm\:px-0 {
+    padding-left: 0px;
+    padding-right: 0px;
   }
 
   .sm\:px-3 {
@@ -6585,7 +6672,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.253</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">36.259</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">197</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 324 Zeilen, Lernen &amp; Karten: 2.800 Zeilen, Erstellen &amp; Import: 1.756 Zeilen, Prüfungen: 372 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.263122600968074 1.7435068951570258 L 23.73958711121416 7.028281214979993 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="324"></path><path d="M 25.263122600968074 1.7435068951570258 A 19 19 0 0 1 28.012132023647048 37.22805097611594 L 25.6928306483808 32.240983588292906 A 13.5 13.5 0 0 0 23.73958711121416 7.028281214979993 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2800"></path><path d="M 28.012132023647048 37.22805097611594 A 19 19 0 0 1 3.1903308865737294 28.856355023209204 L 8.056287735197124 26.292673305964435 A 13.5 13.5 0 0 0 25.6928306483808 32.240983588292906 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1756"></path><path d="M 3.1903308865737294 28.856355023209204 A 19 19 0 0 1 1.25075539215457 23.076658355290537 L 6.678168304951932 22.186046726127486 A 13.5 13.5 0 0 0 8.056287735197124 26.292673305964435 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="372"></path><path d="M 1.25075539215457 23.076658355290537 A 19 19 0 0 1 2.000351747699465 13.916196683533045 L 7.210776241786462 15.677297643562953 A 13.5 13.5 0 0 0 6.678168304951932 22.186046726127486 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 2.000351747699465 13.916196683533045 A 19 19 0 0 1 7.836138399326529 5.404094034296417 L 11.357256231100429 9.629224708579033 A 13.5 13.5 0 0 0 7.210776241786462 15.677297643562953 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.836138399326529 5.404094034296417 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.357256231100429 9.629224708579033 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">7.253 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>324</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.800</td><td>38,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.756</td><td>24,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>372</td><td>5,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>7,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>8,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,1 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.253</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">36.551</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">199</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 324 Zeilen, Lernen &amp; Karten: 2.800 Zeilen, Erstellen &amp; Import: 1.756 Zeilen, Prüfungen: 372 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.263122600968074 1.7435068951570258 L 23.73958711121416 7.028281214979993 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="324"></path><path d="M 25.263122600968074 1.7435068951570258 A 19 19 0 0 1 28.012132023647048 37.22805097611594 L 25.6928306483808 32.240983588292906 A 13.5 13.5 0 0 0 23.73958711121416 7.028281214979993 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2800"></path><path d="M 28.012132023647048 37.22805097611594 A 19 19 0 0 1 3.1903308865737294 28.856355023209204 L 8.056287735197124 26.292673305964435 A 13.5 13.5 0 0 0 25.6928306483808 32.240983588292906 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1756"></path><path d="M 3.1903308865737294 28.856355023209204 A 19 19 0 0 1 1.25075539215457 23.076658355290537 L 6.678168304951932 22.186046726127486 A 13.5 13.5 0 0 0 8.056287735197124 26.292673305964435 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="372"></path><path d="M 1.25075539215457 23.076658355290537 A 19 19 0 0 1 2.000351747699465 13.916196683533045 L 7.210776241786462 15.677297643562953 A 13.5 13.5 0 0 0 6.678168304951932 22.186046726127486 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 2.000351747699465 13.916196683533045 A 19 19 0 0 1 7.836138399326529 5.404094034296417 L 11.357256231100429 9.629224708579033 A 13.5 13.5 0 0 0 7.210776241786462 15.677297643562953 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.836138399326529 5.404094034296417 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.357256231100429 9.629224708579033 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">7.253 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>324</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.800</td><td>38,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.756</td><td>24,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>372</td><td>5,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>7,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>8,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,1 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);
