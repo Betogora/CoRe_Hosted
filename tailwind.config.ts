@@ -66,6 +66,8 @@ export default {
           "success-soft": "var(--core-success-surface)",
           "warning-soft": "var(--core-warning-surface)",
           "danger-soft": "var(--core-danger-surface)",
+          "danger-text": "var(--core-danger-text)",
+          "marked-soft": "var(--core-marked-surface)",
         },
       },
     },

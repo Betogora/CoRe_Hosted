@@ -298,97 +298,17 @@ liegen bereit, ohne Oberfläche:
 
 ### PR B: Editor
 
-Endet mit der visuellen Pflichtmatrix für den Editor, `npm run gate:push` und
-den betroffenen E2E-Tests.
+Erledigt am 2026-10-30 (Verlauf in [`history.md`](history.md)). Für PR C liegen
+bereit:
 
-#### B1 Gemeinsame UI-Bausteine und Tokens
-
-- [ ] `SuccessToast` und `useSuccessToast` (`src/ui/feedbackUi.tsx`) mit
-  optionaler Aktion: 10 s, Pause bei Mauszeiger und Fokus, Ersetzen durch den
-  nächsten Toast (W7).
-- [ ] Tag-Eingabe: Chips, Vorschläge, Hierarchie, Trennung nach W10;
-  importierte Gruppe eingeklappt, ausklappbar und bearbeitbar. Genutzt von
-  Editor und Erstellen.
-- [ ] Flaggenwähler: Punkte auf Desktop, 4×2-Raster mit Namen mobil, Namen in
-  Tooltip und `aria-label` (W14); Link `Namen bearbeiten` nach W23. Genutzt von Editor,
-  Lernmodus und Kartenverwaltung.
-- [ ] `RichTextEditor`: Werkzeugleiste nur am aktiven Feld.
-- [ ] Tokens hell und dunkel: `--flag-1` bis `--flag-7`, `--core-danger-text`,
-  `--core-marked-surface`; Theme-Vertragstest.
-- [ ] Katalog-Demos in `scripts/uiCatalogDemos.tsx`, `src/ui/README.md`.
-- Nachweis: Katalog im Browser geprüft, Kontraste hell/dunkel ≥ 4,5:1 für
-  Text.
-
-#### B2 Editor-Rahmen
-
-- [ ] `DeckCardEditor` aus `src/screens/DecksScreen.tsx` nach
-  `src/screens/cardEditor/` aufteilen.
-- [ ] Dialog über die ganze Fläche / Vollbild mobil, Kopf mit Vor/Zurück,
-  Duplizieren, Löschen (W8), Schließen.
-- [ ] Reiter als URL-Parameter nach W5; Einstieg nach W6; Reload und Zurück
-  bleiben deterministisch.
-- [ ] Fokusführung und die Rückfrage bei ungespeicherten Änderungen bleiben;
-  Tastenkürzel nach W11.
-- [ ] Fußleiste für den Entwurf, Markiert-Tönung, Statussymbole in der
-  Unterzeile.
-- [ ] Vor/Zurück: Die Tabelle gibt die Reihenfolge ihrer geladenen Zeilen
-  weiter. Am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv.
-- [ ] `Varianten` und `Lernen` werden erst beim Öffnen geladen.
-- Nachweis: Bundle-Budget eingehalten, Tastatur- und Fokus-Tests.
-
-#### B3 Reiter Allgemein
-
-- [ ] Flagge und Markiert; Planung mit Schnellwahl, `Neu planen` nach Änderung,
-  Aussetzen, Zurückstellen; Lernbremse mit `Zurücksetzen`.
-- [ ] Verschieben über den vorhandenen Dialog mit `DeckSelect`.
-- [ ] Tags (sofort speichernd).
-- [ ] Karten aus diesem Inhalt, inklusive Entwurfszeile „Neu beim Speichern“.
-- [ ] Ähnliche Inhalte, erst geladen, wenn der Browser frei ist; offline
-  ausgeblendet.
-- [ ] Details mit Quelle, Prüfung und kopierbaren IDs.
-- [ ] Rückgängig nach W7 und W20.
-
-#### B4 Reiter Inhalt
-
-- [ ] Zwei Spalten: Felder und Live-Vorschau über `renderCard` bzw.
-  `NoteCardContent`, mit kurzer Verzögerung von etwa 150 ms; Kartenauswahl,
-  Seitenumschalter und Bildverdeckung nach W9. Gerendertes HTML wird nie
-  gespeichert.
-- [ ] Arbeitet auf `NoteEditorValue`, ohne Bindung an eine gespeicherte Notiz
-  (W16).
-- [ ] Mobil `Bearbeiten | Vorschau`; Inhaltsform und Lernrichtung als eine
-  Zeile.
-- [ ] Geändert-Punkte je Feld nach W15, Schalter `Antwort eintippen`.
-- [ ] Medienliste aus `Note.media`: Größen nur, wenn bekannt; ungenutzte
-  Dateien entfernbar.
-- Nachweis: Korpustest mit AnKing-Notizen für W15.
-
-#### B5 Reiter Varianten
-
-- [ ] Original zum Vergleich; je Variante Bearbeiten (W12), Neu generieren,
-  Abschalten, Löschen; veraltete Varianten ersetzen; Link zu den
-  Stapeleinstellungen.
-- [ ] Freigabe zeigt die Variantenbereitschaft nach ADR-044 (Haltbarkeit
-  erreicht die Stapelschwelle) statt einer XP-Zahl.
-- [ ] Zustandsmarken erweiterbar (W17).
-
-#### B6 Reiter Lernen
-
-- [ ] 9 Kennzahlen aus Lernstand und `calculateRetrievability` (FSRS-7);
-  Reifeband nach W18 statt „Lernstufe XP“; Lernbremse mit Zeitpunkt.
-- [ ] Abrufverlauf und vollständige Bewertungsliste, erst beim Öffnen geladen,
-  Cloud-Teil nur online (W19).
-- [ ] `Als neu lernen …` mit Bestätigungsdialog nach W21.
-
-#### B7 Abnahme Editor
-
-- [ ] Tests anpassen: `DecksScreen.test.tsx`; E2E `card-lifecycle`,
-  `navigation-context`, `core-stabilization`, `batch-resilience`,
-  `zz-media-import`; Test für Sync-Fassung bei offenem Entwurf (W19).
-- [ ] Visuelle Pflichtmatrix aus [`operations.md`](operations.md) hell und
-  dunkel für alle vier Reiter, Desktop und mobil. Bewertungsrunden mit
-  Screenshots aus der echten App bis mindestens 9,5/10.
-- [ ] `src/ui/README.md` und Specs-Abweichungen nachziehen.
+- `TagInput` und `FlagPicker`/`FlagDot` (`src/ui/`) für Erstellen, Lernmodus und
+  Kartenverwaltung; `SuccessToast` mit Aktion `Rückgängig`.
+- Der Flaggenwähler verlinkt mit `Namen bearbeiten` bereits auf
+  `karten-einstellungen?target=flag-names`; der Abschnitt `Flaggen` dort fehlt
+  noch (C2).
+- `CardEditorServices` (`appScreenProps.ts`) bündelt die Sofortaktionen und
+  Lesewege des Editors; der Lernmodus öffnet über `Karte bearbeiten` den Reiter
+  `Inhalt`.
 
 ### PR C: Restliche Oberflächen und Gesamtabnahme
 
@@ -404,8 +324,8 @@ den betroffenen E2E-Tests.
   die Suchbegriffe aus PR A erzeugen (`cardSearchQuery.ts`).
 - [ ] Stapeleinstellungen: Schwelle und Aktion der Lernbremse
   (`Nur kennzeichnen`, `Aussetzen`).
-- [ ] Lerneinstellungen: Abschnitt `Flaggen` nach W23, Deep-Link-Ziel
-  `flag-names`.
+- [ ] Lerneinstellungen: Abschnitt `Flaggen` nach W23 für das schon
+  routbare Deep-Link-Ziel `flag-names`.
 
 #### C3 Gesamtabnahme
 

@@ -10,15 +10,18 @@ const reviewReturnViews = ["today", "learn", "decks", "exams"] as const;
 const settingsReturnViews = ["today", "learn", "decks", "review"] as const;
 const settingsTargetsByView = {
   "stapel-einstellungen": ["new-cards-per-day"],
+  "karten-einstellungen": ["flag-names"],
   einstellungen: ["sync", "sync-conflicts"],
 } as const;
 const deckContentTabs = ["children", "summary", "quiz", "mind-map", "cards", "source"] as const;
+const cardEditorTabs = ["general", "content", "variants", "study"] as const;
 
 export type AppViewId = MenuViewId | typeof extraRoutableViewIds[number];
 type ReviewReturnView = typeof reviewReturnViews[number];
 type SettingsReturnView = typeof settingsReturnViews[number];
 export type SettingsTarget = typeof settingsTargetsByView[keyof typeof settingsTargetsByView][number];
 export type DeckContentTab = typeof deckContentTabs[number];
+export type CardEditorTab = typeof cardEditorTabs[number];
 
 export interface ReviewReturnContext {
   view: ReviewReturnView;
@@ -40,6 +43,8 @@ export interface ViewRoute {
   viewId: AppViewId;
   focusedDeckId?: string;
   selectedCardId?: string;
+  /** Tab of the opened card editor; from the table it opens `general`, from a session `content` (W6). */
+  cardEditorTab?: CardEditorTab;
   deckContent?: boolean;
   deckContentTab?: DeckContentTab;
   deckCreationParentId?: string;
@@ -83,6 +88,7 @@ interface ViewRouteInput {
   viewId?: unknown;
   focusedDeckId?: unknown;
   selectedCardId?: unknown;
+  cardEditorTab?: unknown;
   deckContent?: unknown;
   deckContentTab?: unknown;
   deckCreationParentId?: unknown;
@@ -155,6 +161,9 @@ function normalizeViewRoute(
   const settingsReturnCardId = cleanIdentifier(route.settingsReturnContext?.cardId);
   const settingsReviewReturnContext = normalizeReviewResumeContext(route.settingsReturnContext?.reviewReturnContext);
   const cardEditorReturnContext = normalizeReviewResumeContext(route.cardEditorReturnContext);
+  const cardEditorTab = cardEditorTabs.includes(route.cardEditorTab as CardEditorTab)
+    ? route.cardEditorTab as CardEditorTab
+    : cardEditorReturnContext ? "content" : "general";
   const settingsReturnContext: SettingsReturnContext | null = settingsReturnView === "review"
     ? settingsReviewReturnContext
       ? { view: "review", reviewReturnContext: settingsReviewReturnContext }
@@ -169,7 +178,7 @@ function normalizeViewRoute(
     mode: "view",
     viewId,
     ...(["lernen", "kartenstapel", "stapel-einstellungen"].includes(viewId) && focusedDeckId ? { focusedDeckId } : {}),
-    ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId ? { selectedCardId } : {}),
+    ...(viewId === "kartenstapel" && focusedDeckId && selectedCardId ? { selectedCardId, cardEditorTab } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true ? { deckContent: true } : {}),
     ...(viewId === "kartenstapel" && focusedDeckId && route.deckContent === true && deckContentTab ? { deckContentTab: selectedCardId ? "cards" as const : deckContentTab } : {}),
     ...(viewId === "lernen" && deckCreationParentId ? { deckCreationParentId } : {}),
@@ -338,6 +347,7 @@ export function parseAppRouteFromUrl(input: string | URL = "/", options: RouteOp
     viewId: pathSegments[0],
     focusedDeckId: url.searchParams.get("deck") ?? undefined,
     selectedCardId: url.searchParams.get("card") ?? undefined,
+    cardEditorTab: url.searchParams.get("cardTab") ?? undefined,
     deckContent: url.searchParams.get("content") === "1",
     deckContentTab: url.searchParams.get("tab") ?? undefined,
     deckCreationParentId: url.searchParams.get("parent") ?? undefined,
@@ -373,6 +383,7 @@ export function appRouteToUrl(route: unknown, options: RouteOptions = {}): strin
     params.set("deck", normalized.focusedDeckId);
   }
   if (normalized.viewId === "kartenstapel" && normalized.selectedCardId) params.set("card", normalized.selectedCardId);
+  if (normalized.viewId === "kartenstapel" && normalized.selectedCardId && normalized.cardEditorTab) params.set("cardTab", normalized.cardEditorTab);
   if (normalized.deckContent) params.set("content", "1");
   if (normalized.deckContentTab) params.set("tab", normalized.deckContentTab);
   if (normalized.viewId === "lernen" && normalized.deckCreationParentId) params.set("parent", normalized.deckCreationParentId);

@@ -448,8 +448,8 @@ test("Pomodoro timer expiration clears the global indicator and shows the canoni
   await secondPage.getByRole("navigation", { name: /Hauptmen/ }).waitFor({ state: "visible" });
 
   const timerKey = await page.evaluate(async () => {
-    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v4."));
-    const userId = database?.name?.slice("core.workspace.entities.v4.".length);
+    const database = (await indexedDB.databases()).find(({ name }) => name?.startsWith("core.workspace.entities.v5."));
+    const userId = database?.name?.slice("core.workspace.entities.v5.".length);
     if (!userId) throw new Error("Accountgebundene E2E-Datenbank fehlt.");
     return `core.accountState.v2.${encodeURIComponent(userId)}.core.pomodoroTimer.v1`;
   });

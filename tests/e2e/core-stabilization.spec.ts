@@ -874,6 +874,7 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
+  await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Varianten", exact: true }).click();
   const variantTools = page.getByTestId("card-variant-tools");
   await expect(variantTools).toBeVisible();
   const variantsBefore = (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.variants?.length ?? 0;
@@ -938,15 +939,17 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
-  await expect(page.getByLabel("Feld Vorderseite")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Côte d'Ivoire?");
+  await expect(page.getByRole("tab", { name: "Allgemein", exact: true })).toHaveAttribute("aria-selected", "true");
   await expect(page.getByRole("heading", { name: "Details und Herkunft" })).toHaveCount(0);
   await expect(page.getByText("Änderungslogeinträge")).toHaveCount(0);
   await expect(page.getByRole("combobox", { name: "Version zum Wiederherstellen" })).toHaveCount(0);
 
   const dueDate = page.getByRole("button", { name: "Nächste Fälligkeit" });
   await expect(dueDate).toContainText(/\d{2}\.\d{2}\.\d{4}/);
-  await expect(page.getByRole("button", { name: "Neu planen" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Neu planen" })).toHaveCount(0);
   await page.getByRole("button", { name: "Aussetzen", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Aussetzen", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect.poll(async () => (await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ"))?.status).toBe("suspended");
   const before = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
   const reviewEventsBefore = (await readAppState(page)).decks
@@ -967,7 +970,9 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   await expect(dueDate).toContainText(`${selectedDay}.${selectedMonth}.${selectedYear}`);
   await expect(page.getByRole("button", { name: "Neu planen" })).toBeEnabled();
   await page.getByRole("button", { name: "Neu planen" }).click();
-  await expect(page.getByText("Die nächste Fälligkeit wurde erfolgreich neu geplant.")).toBeVisible();
+  const toast = page.locator('[data-success-toast-region="true"]');
+  await expect(toast).toContainText(`Nächste Fälligkeit auf ${selectedDay}.${selectedMonth}.${selectedYear} gelegt.`);
+  await expect(toast.getByRole("button", { name: "Rückgängig" })).toBeVisible();
 
   const scheduled = await storedCard(page, DECK_IDS.africa, "card_world_capitals_civ");
   expect(scheduled.study.dueAt).not.toBe(before.study.dueAt);
@@ -1055,6 +1060,7 @@ test("[Vertrag: manuell mit PDF bis Bearbeiten und Review] @golden-e2e @beta-cor
   expect(createdDeck?.id).toBeTruthy();
   await page.getByRole("button", { name: "Karten prüfen" }).click();
   await page.getByRole("button", { name: /Mitochondrien erzeugen ATP/ }).click();
+  await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   await page.getByLabel("Feld Vorderseite").fill("Warum erzeugen Mitochondrien ATP?");
   await page.getByRole("button", { name: "Speichern" }).click();
   await expect.poll(async () => frontHtml(await storedCard(page, createdDeck.id, createdCard.id))).toBe("<p>Warum erzeugen Mitochondrien ATP?</p>");

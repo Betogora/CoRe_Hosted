@@ -1,7 +1,7 @@
 import React from "react";
 import type { AuthPhase } from "./accountSession.ts";
 import { shouldShowAppShell } from "./accountSession.ts";
-import type { AppRoute, AppViewId, DeckContentTab, ReviewResumeContext, SettingsReturnContext, SettingsTarget, StudyRoute, ViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, ReviewResumeContext, SettingsReturnContext, SettingsTarget, StudyRoute, ViewRoute } from "./appNavigation.ts";
 import {
   appRouteToUrl,
   areAppRoutesEqual,
@@ -18,6 +18,7 @@ interface AppNavigationProjection {
   studyRequest: StudyRoute | null;
   focusedDeckId: string | null;
   selectedCardId: string | null;
+  cardEditorTab: CardEditorTab;
   deckContent: boolean;
   deckContentTab: DeckContentTab;
   deckCreationParentId: string;
@@ -69,6 +70,7 @@ export function projectAppRoute(route: AppRoute): AppNavigationProjection {
     studyRequest: route.mode === "study" ? route : null,
     focusedDeckId: focusedDeckViewIds.has(viewRoute.viewId) ? (viewRoute.focusedDeckId ?? null) : null,
     selectedCardId: viewRoute.viewId === "kartenstapel" ? (viewRoute.selectedCardId ?? null) : null,
+    cardEditorTab: viewRoute.cardEditorTab ?? "general",
     deckContent: viewRoute.deckContent === true,
     deckContentTab: viewRoute.selectedCardId ? "cards" : viewRoute.deckContentTab ?? "children",
     deckCreationParentId: viewRoute.viewId === "lernen" ? (viewRoute.deckCreationParentId ?? "") : "",

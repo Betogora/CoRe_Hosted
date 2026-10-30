@@ -202,3 +202,17 @@ test("alle zwanzig Prüfungsfarben sind eindeutig und tragen kontrastreiche Besc
   assert.equal(new Set(colors).size, 20);
   for (const color of colors) assert.ok(contrastRatio(color, tokenColor("exam-on-color", lightTokens)) >= 4.5);
 });
+
+test("flags, danger text and the marked surface keep their contrast in both themes", () => {
+  for (const tokens of [lightTokens, darkTokens]) {
+    const flags = Array.from({ length: 7 }, (_, index) => tokenColor(`flag-${index + 1}`, tokens));
+    assert.equal(new Set(flags).size, 7);
+    for (const surface of ["surface", "marked-surface"]) {
+      for (const flag of flags) assert.ok(contrastRatio(flag, tokenColor(surface, tokens)) >= 3, `flag on ${surface}`);
+      assert.ok(contrastRatio(tokenColor("danger-text", tokens), tokenColor(surface, tokens)) >= 4.5, `danger text on ${surface}`);
+    }
+    for (const text of ["text", "text-secondary", "marked-text-muted"]) {
+      assert.ok(contrastRatio(tokenColor(text, tokens), tokenColor("marked-surface", tokens)) >= 4.5, `${text} on marked surface`);
+    }
+  }
+});

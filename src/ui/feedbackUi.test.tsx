@@ -51,3 +51,12 @@ test("SuccessToast fades away after ten seconds with compositor-friendly propert
   assert.match(styles, /@keyframes core-success-toast-dismiss\s*{[\s\S]*?opacity: 0;[\s\S]*?transform: translateY\(-0\.375rem\);[\s\S]*?}/);
   assert.match(styles, /\.core-success-toast\s*{\s*animation: core-success-toast-dismiss 200ms ease-out 10s forwards;\s*}/);
 });
+
+test("SuccessToast offers an undo action and pauses while pointed at or focused", () => {
+  const markup = renderToStaticMarkup(<SuccessToast onDismiss={() => undefined} action={{ label: "Rückgängig", onAction: () => undefined }}>Karte verschoben.</SuccessToast>);
+  assert.match(markup, /core-action-secondary[^>]*><svg[\s\S]*?<span>Rückgängig<\/span>/);
+  assert.match(markup, /aria-label="Erfolgsmeldung schließen"/);
+
+  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(styles, /\.core-success-toast:hover,\s*\.core-success-toast:focus-within\s*{\s*animation-play-state: paused;\s*}/);
+});

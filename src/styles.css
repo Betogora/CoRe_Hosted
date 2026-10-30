@@ -231,6 +231,18 @@
   --core-learning-status-due: var(--core-warning);
   --core-learning-progress-completed: #a7adb6;
   --core-learning-goal-achieved: #2f7d68;
+  /* Anki flags 1–7 (red to purple); graphic marks with at least 3:1 against surfaces, always named as well (W14). */
+  --core-flag-1: #d63b3b;
+  --core-flag-2: #c76a08;
+  --core-flag-3: #2c8a3e;
+  --core-flag-4: #2f6bd4;
+  --core-flag-5: #c23d8f;
+  --core-flag-6: #0b7f91;
+  --core-flag-7: #7448e0;
+  --core-danger-text: #a83c22;
+  /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
+  --core-marked-surface: #fdf6df;
+  --core-marked-text-muted: #5e6b86;
 
 }
 
@@ -301,6 +313,16 @@
   --core-learning-status-due: var(--core-warning);
   --core-learning-progress-completed: #737b87;
   --core-learning-goal-achieved: #72d6b5;
+  --core-flag-1: #ff7a7a;
+  --core-flag-2: #ffa14a;
+  --core-flag-3: #5fd27a;
+  --core-flag-4: #62a8f5;
+  --core-flag-5: #f590bd;
+  --core-flag-6: #45c7d6;
+  --core-flag-7: #b9a0fb;
+  --core-danger-text: var(--core-palette-coral-glow);
+  --core-marked-surface: #26221a;
+  --core-marked-text-muted: var(--core-text-muted);
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #46546a;
   --core-help-stack-back: var(--core-group-depth-3);
@@ -505,6 +527,33 @@
 
   .core-icon-segmented-control {
     grid-auto-columns: var(--core-control-height);
+  }
+
+  /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
+  .core-card-editor-tabs {
+    height: calc(var(--core-control-height) + 0.5rem);
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option {
+    padding-inline: 0.25rem;
+  }
+
+  @media (pointer: coarse), (max-width: 767px) {
+    .core-segmented-touch.core-segmented-control {
+      height: calc(var(--core-control-height) + 0.5rem);
+    }
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option[aria-selected="true"] {
+    color: var(--core-action-primary);
+  }
+
+  .core-card-editor-tabs:not([data-sliding="true"]) .core-segmented-control-option[aria-selected="true"] {
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
   }
 
   .core-icon-segmented-control .core-segmented-control-option {
@@ -1570,6 +1619,12 @@ summary {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
+/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). */
+.core-success-toast:hover,
+.core-success-toast:focus-within {
+  animation-play-state: paused;
+}
+
 .core-success-toast[data-appearance="neutral"] {
   border-color: var(--core-border);
   background: var(--core-surface-raised);
@@ -2360,4 +2415,11 @@ summary {
 @media (max-width: 639px) {
   .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
   .dashboard-widget-grid { gap: 1rem; }
+}
+
+/* Very narrow phones keep all four card editor tab names complete. */
+@media (max-width: 359px) {
+  .core-card-editor-tabs.core-control-label {
+    font-size: var(--core-type-caption);
+  }
 }
