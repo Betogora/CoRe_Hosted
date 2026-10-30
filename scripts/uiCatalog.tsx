@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { Search } from "lucide-react";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
-import { DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
+import { DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, ProductViewsDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
 
 export interface CatalogData {
   components: { name: string; file: string; group: string; usage: number; usedIn: string[] }[];
@@ -197,4 +197,6 @@ function CardBlocks() {
   </CatalogFrame></SuccessToastProvider></CoreTooltipProvider>;
 }
 
-createRoot(document.getElementById("catalog-root")!).render(document.body.dataset.catalog === "cards" ? <CardBlocks /> : <Catalog />);
+createRoot(document.getElementById("catalog-root")!).render(new URLSearchParams(window.location.search).get("preview") === "dashboard"
+  ? <CoreTooltipProvider><SuccessToastProvider><ProductViewsDemo kind="dashboard" /></SuccessToastProvider></CoreTooltipProvider>
+  : document.body.dataset.catalog === "cards" ? <CardBlocks /> : <Catalog />);

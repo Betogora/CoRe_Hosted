@@ -68,6 +68,8 @@ export interface CreationScreenProps {
 }
 
 export interface DashboardScreenProps {
+  pomodoroTimer?: PomodoroTimer | null;
+  onStartPomodoro?: (minutes: number) => void;
   state: WorkspaceState;
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   studyHeatmap?: StudyHeatmapModel;
