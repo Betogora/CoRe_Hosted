@@ -1,9 +1,23 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-29
+**Stand:** 2026-10-30
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-10-30 — Statistik-RPC wieder unter dem Gate
+
+- Funktion: `get_account_statistics` zählte aktive Varianten mit einer Unterabfrage je Karte; bei 100.000 Karten lief sie 100.000-mal (`EXPLAIN (ANALYZE, BUFFERS)`: rund 600.000 Puffertreffer, etwa die Hälfte der Laufzeit). Migration `20261030004024_account_statistics_variant_counts.sql` gruppiert die Varianten einmal je Karte und hängt sie an; Signatur, Rückgabe und Rechte bleiben gleich. Im Vergleich in derselben Transaktion halbierte das die Laufzeit in allen sieben Runden bei identischem Ergebnis. Mehr `work_mem` gegen das Auslagern der Karten-CTE brachte keinen verlässlichen Gewinn und bleibt weg.
+- Benchmark-Setup: Die Fixture rollt zurück und hinterließ je Lauf rund 1,1 Mio. tote Zeilen (Reviews, Inhalte, Karten, Katalog). Folgeläufe wurden dadurch langsamer (Median 942 → 1.200 ms nach einem Lauf Altlast), und Autovacuum lief über GB-große Tabellen parallel zu späteren Messungen. `supabase/benchmark_replica_v2.sql` räumt diese Tabellen nach dem Rollback mit `vacuum` auf (lokal etwa 15 s).
+- Rechnerlast: p95 aus fünf Läufen ist faktisch der langsamste Lauf und schwankt stark; während `npm ci` im OneDrive-Ordner lag die unveränderte Funktion bei 650 bis 1.060 ms.
+- Der RLS-Test prüft zusätzlich `status.activeVariants` (Karte und drei aktive Varianten).
+- Verifiziert: `npm run benchmark:statistics` viermal hintereinander mit p95 581, 874, 755 und 650 ms (p75 497, 516, 718, 574 ms), danach keine toten Zeilen; Katalogsuche p95 142 bis 285 ms. `npm run db:types:check` ohne Drift, `npm run test:rls:local` 19/19, `verify_schema_v1.sql` lokal ohne Fehler, `npm run typecheck`. Nicht ausgeführt: `npm run test:e2e:local` (Rückgabe unverändert).
+- Hosted: Migration am 2026-10-30 per `supabase db push --linked` auf `hirbiuiydczmnjqtoyqx` angewendet (Trockenlauf zeigte nur diese Migration), `verify_schema_v1.sql` remote ohne Fehler.
+
+## 2026-10-30 — Hosted-Smoke nach P1
+
+- `npm run test:beta:hosted` gegen `https://core-hosted.vercel.app` mit dem Production-Deployment von `7663022` (PR #52, Abschluss P1) nach dem Datenbank-Cutover aus R5 und den Migrationen für Planungs-RPC, Online-Zusammenfassungen und -Mindmaps sowie Profilformat 2 und 3: 10 von 10 bestanden in 3,0 min.
+- Die lokalen Sicherungen der Lernstände aus der Neuberechnung (R5) sind danach gelöscht.
 
 ## 2026-10-29 — Reife aus FSRS (P1 R7): Specs und Doku, Abschluss P1
 
