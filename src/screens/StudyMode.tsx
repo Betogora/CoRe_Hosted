@@ -28,6 +28,7 @@ import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
+import { FlagDot } from "../ui/flagUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
 import type { Card, CardStudyState, CardStudyStatePatch, Deck, Note, ReviewRating } from "../coreTypes.ts";
@@ -53,7 +54,7 @@ function createEasyDaysContext(
   };
 }
 
-export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -289,6 +290,14 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
       responseTimeMs,
     });
     onReview(result);
+    if (result.leechTriggered) {
+      // Once per trigger: the learner may fix the content right away (W22).
+      const { deckId: leechDeckId, cardId: leechCardId } = current;
+      setSuccessToast(`Lernbremse: ${result.updatedCard.study.lapses}-mal vergessen`, {
+        appearance: "neutral",
+        action: { label: "Bearbeiten", onAction: () => onEditCard(leechDeckId, leechCardId) },
+      });
+    }
     finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`);
   }
 
@@ -372,6 +381,13 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   React.useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (showSettings) return;
+      // Strg+1–7 switches the flag like in Anki; the dot in the header shows it, without a toast (W20).
+      if ((event.ctrlKey || event.metaKey) && !event.altKey && !event.shiftKey && /^[1-7]$/.test(event.key) && current) {
+        event.preventDefault();
+        const flag = Number(event.key);
+        updateCurrentStudyState({ flag: current.card.ankiFlag === flag ? 0 : flag });
+        return;
+      }
       const action = resolveReviewShortcut(event, { hasCurrent: Boolean(current), showAnswer });
       if (!action) return;
 
@@ -397,8 +413,9 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
             <button type="button" onClick={onExit} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lernmodus verlassen">
               <X size={22} aria-hidden="true" />
             </button>
-            <div className="text-center">
-              <p className="core-body font-semibold text-core-muted">{rootDeck?.name ?? deck?.name}</p>
+            <div className="flex min-w-0 items-center justify-center gap-2 text-center">
+              <p className="min-w-0 truncate core-body font-semibold text-core-muted">{rootDeck?.name ?? deck?.name}</p>
+              {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
             </div>
             <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
               <SlidersHorizontal size={20} aria-hidden="true" />
@@ -425,6 +442,8 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
           canEditCard={Boolean(current?.deckId && current.cardId)}
           marked={currentNote?.marked === true}
           suspended={current?.card.status === "suspended"}
+          flag={current?.card.ankiFlag ?? 0}
+          flagNames={flagNames}
           reviewOrder={rootDeck?.deckSettings.newReviewOrder ?? "reviews-first"}
           pomodoroTimer={pomodoroTimer}
           returnFocusRef={settingsButtonRef}
@@ -437,6 +456,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
           }}
           onMarkedChange={(marked) => updateCurrentStudyState({ marked })}
           onSuspendedChange={(suspended) => updateCurrentStudyState({ suspended })}
+          onFlagChange={(flag) => updateCurrentStudyState({ flag })}
           onReviewOrderChange={updateReviewOrder}
           onStartPomodoro={onStartPomodoro}
         />

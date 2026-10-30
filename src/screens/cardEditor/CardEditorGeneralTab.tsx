@@ -6,7 +6,6 @@ import { notePromptLabel } from "../../coreModel.ts";
 import type { Card, CardStudyStatePatch, Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayRange, getLearningDayStartForKey } from "../../learningDay.ts";
 import { manuallyBuriedCardIds } from "../../siblingBurying.ts";
-import type { TagDirectoryEntry } from "../../tagDirectory.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
 import { ActionButton } from "../../ui/actionUi.tsx";
 import { ActionDialog, CardMarkButton } from "../../ui/coreUi.tsx";
@@ -115,7 +114,6 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   const [moveOpen, setMoveOpen] = React.useState(false);
   const [moveTarget, setMoveTarget] = React.useState(card.deckId);
   const [eventsVersion, setEventsVersion] = React.useState(0);
-  const [directory, setDirectory] = React.useState<TagDirectoryEntry[]>([]);
   React.useEffect(() => setDate(dueDateKey), [card.id, dueDateKey]);
   React.useEffect(() => { setError(""); setMoveOpen(false); }, [card.id]);
 
@@ -128,14 +126,6 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   }, [card.id, dayOptions, events, now]);
   const similar = useIdleLoad<SimilarNote[]>(online && services.cloud ? (signal) => services.cloud!.listSimilarNotes(note.id, signal) : null, `${note.id}:${online}`);
   const exams = useIdleLoad(() => services.listExamsForDeck(card.deckId), card.deckId);
-  React.useEffect(() => {
-    const controller = new AbortController();
-    const cloud = online ? services.cloud : null;
-    void (cloud ? cloud.listAccountTags(controller.signal).catch(() => services.listTagDirectory()) : services.listTagDirectory())
-      .then((entries) => { if (!controller.signal.aborted) setDirectory(entries); })
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [online, services]);
 
   /** Undo is a new, synced change and drops out with a note if the card changed meanwhile (W7). */
   function offerUndo(message: string, unchanged: (current: { card: Card; note: NoteGraph["note"] }) => boolean, undo: () => Promise<unknown>) {
@@ -284,7 +274,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
       </div>
       <div className="grid min-w-0 gap-4">
         <Section title="Tags" testId="card-tags">
-          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} directory={directory} label="Tags bearbeiten" labelHidden onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
+          <TagInput tags={note.content.tags} importedTags={note.importedTags ?? []} loadDirectory={services.listTagDirectory} label="Tags bearbeiten" labelHidden onChange={(tags, change) => void changeTags(tags, change)} disabled={busy === "tags"} />
         </Section>
         {siblings.length > 1 || pendingCards.length ? (
           <Section title="Karten aus diesem Inhalt" testId="card-siblings">

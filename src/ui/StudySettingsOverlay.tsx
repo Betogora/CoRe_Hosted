@@ -11,6 +11,7 @@ import type { NewReviewOrder } from "../coreTypes.ts";
 import type { PomodoroTimer } from "../pomodoroTimer.ts";
 import { IconButton } from "./actionUi.tsx";
 import { CardStudyStateControls } from "./CardStudyStateControls.tsx";
+import { FlagPicker } from "./flagUi.tsx";
 import { PomodoroTimerControl } from "./pomodoroTimerUi.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 import { useModalDialog } from "./useModalDialog.ts";
@@ -26,6 +27,8 @@ export interface StudySettingsOverlayProps {
   canEditCard: boolean;
   marked: boolean;
   suspended: boolean;
+  flag: number;
+  flagNames: readonly string[];
   reviewOrder: NewReviewOrder;
   pomodoroTimer: PomodoroTimer | null;
   returnFocusRef?: React.RefObject<HTMLElement | null>;
@@ -34,6 +37,7 @@ export interface StudySettingsOverlayProps {
   onEditDeck: () => void;
   onMarkedChange: (marked: boolean) => void;
   onSuspendedChange: (suspended: boolean) => void;
+  onFlagChange: (flag: number) => void;
   onReviewOrderChange: (order: NewReviewOrder) => void;
   onStartPomodoro: (minutes: number) => void;
 }
@@ -65,6 +69,8 @@ export function StudySettingsOverlay({
   canEditCard,
   marked,
   suspended,
+  flag,
+  flagNames,
   reviewOrder,
   pomodoroTimer,
   returnFocusRef,
@@ -73,6 +79,7 @@ export function StudySettingsOverlay({
   onEditDeck,
   onMarkedChange,
   onSuspendedChange,
+  onFlagChange,
   onReviewOrderChange,
   onStartPomodoro,
 }: StudySettingsOverlayProps) {
@@ -136,6 +143,7 @@ export function StudySettingsOverlay({
                 onMarkedChange={onMarkedChange}
                 onSuspendedChange={onSuspendedChange}
               />
+              <FlagPicker value={flag} names={flagNames} disabled={!canEditCard} onValueChange={onFlagChange} />
             </div>
           </section>
 

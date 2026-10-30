@@ -5,6 +5,16 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-30 — Karteneditor V2, PR C: Restliche Oberflächen und Gesamtabnahme
+
+- Erstellen nutzt die Tag-Eingabe (Entwurf hält Tags als Liste, Vorschläge aus dem Tag-Verzeichnis).
+- Lernmodus: Flagge im Sitzungsmenü und per `Strg+1`–`7`, Flaggenpunkt im Kopf ohne Toast (W14, W20); löst eine Bewertung die Lernbremse aus, erscheint einmal `Lernbremse: N-mal vergessen` mit `Bearbeiten`, das den Editor im Reiter `Inhalt` öffnet (W22).
+- Kartenverwaltung: Flaggenpunkt in der Zeile; Filter für Flagge, Lernbremse und Tags schreiben die Suchbegriffe aus PR A (`flag:`, `tag:leech`, `tag:x`) sichtbar in die Suche (`readCardSearchFilters`, `withCardSearchFilter`).
+- Stapeleinstellungen: Fehlerschwelle und Aktion der Lernbremse (`Nur kennzeichnen`, `Aussetzen`) als Stapelwert außerhalb der Lernprofile; Lerneinstellungen: Abschnitt `Flaggen` mit sieben Namensfeldern, Ziel `flag-names` (W23).
+- Das Tag-Verzeichnis wird an einer Stelle gelesen (online das ganze Konto, offline die lokale Replik).
+- Die Entscheidungen V1–V12 und W1–W23 sind in den Specs (§5.3, §5.4, §6.2) und ADR-045 aufgegangen; der Roadmap-Block P0 ist aus `todo.md` entfernt, die ausgeklammerten Punkte stehen unter „Später“.
+- Verifiziert: `npm run typecheck`, `npm test` 919/919 (1 übersprungen: Korpustest ohne lokalen Korpus), `npm run gate:push` grün (Initialgraph 244,3 KiB gzip); `npm run test:e2e:local` mit 230 bestandenen und 15 konfigurationsbedingt übersprungenen Playwright-Tests, RLS-Suite 20/20 und Datenbanktypen ohne Drift. `npm run performance:measure:local`: alle Startkontexte im Rahmen, nur der bekannte Hintergrund-/Preload-Task mit 51 ms über 50 ms (siehe `todo.md`). Visuelle Pflichtmatrix für Erstellen, Kartenverwaltung mit und ohne Filter, Sitzung samt Menü, Stapel- und Lerneinstellungen: 6 Viewports × hell/dunkel (84 Aufnahmen) ohne horizontalen Überlauf; neue Bedienelemente mit Touchzielen ≥ 44 px.
+
 ## 2026-10-30 — Karteneditor V2, PR B: Editor
 
 - UI-Bausteine: `SuccessToast` mit Aktion `Rückgängig` (10 s, Pause bei Mauszeiger und Fokus, Ersetzen), `TagInput` (Chips mit letztem Pfadteil, Vorschläge aus dem Tag-Verzeichnis, eingeklappte Import-Gruppe, Trennung nach W10), `FlagPicker`/`FlagDot`, `RichTextEditor` mit Werkzeugleiste nur am aktiven Feld; Tokens `--core-flag-1` bis `--core-flag-7`, `--core-danger-text`, `--core-marked-surface` hell und dunkel mit Kontrasttest.

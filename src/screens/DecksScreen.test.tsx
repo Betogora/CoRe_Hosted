@@ -672,3 +672,18 @@ test("der Karteneditor bietet für hinzugefügte Felder Rolle und Reihenfolge wi
   assert.match(editor, /aria-label="Zusatz nach oben"/);
   assert.doesNotMatch(editor, /aria-label="Hinweis nach oben"|aria-label="Zusatz nach unten"/, "Pfeile nur, wo ein Nachbar existiert");
 });
+
+test("rows show a named flag dot and the filters read their search terms", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const flagged = { ...graph, cards: [{ ...graph.cards[0], ankiFlag: 5 }] };
+  const deck = deckOf("deck-bio", "Biologie", [flagged]);
+  const markup = renderScreen([deck], {
+    expandedDeckIds: [deck.id],
+    cardEditor: { ...CARD_EDITOR_SERVICES, flagNames: ["", "", "", "", "Prüfung", "", ""] },
+    cardPages: { [deck.id]: cardPage(deck.id, [flagged]) },
+  });
+  assert.match(markup, /data-card-row="true"[\s\S]*?role="img" aria-label="Flagge Prüfung"/);
+  assert.match(markup, /aria-label="Nach Flagge filtern"[\s\S]*?Alle Flaggen/);
+  assert.match(markup, /aria-pressed="false"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Lernbremse/);
+  assert.match(markup, /Nach Tags filtern/);
+});

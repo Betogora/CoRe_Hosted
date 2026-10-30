@@ -16,7 +16,7 @@ test("manual batch session resets only unpinned fields and keeps the target deck
     patch: {
       front: pinnedFront,
       back: "<p>Einmalige Rückseite</p>",
-      tags: "prüfung",
+      tags: ["prüfung"],
     },
   });
   state = reduceManualBatchSession(state, { type: "toggle-pin", field: "front" });
@@ -26,7 +26,7 @@ test("manual batch session resets only unpinned fields and keeps the target deck
   assert.equal(saved.targetDeckId, "deck-a");
   assert.equal(saved.currentDraft.front, pinnedFront);
   assert.equal(saved.currentDraft.back, "");
-  assert.equal(saved.currentDraft.tags, "");
+  assert.deepEqual(saved.currentDraft.tags, []);
   assert.equal(nextManualFocusTarget(saved), "back");
 });
 

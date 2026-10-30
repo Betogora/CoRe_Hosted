@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, CalendarRange, Sparkles, Timer } from "lucide-react";
+import { CalendarClock, CalendarRange, Flag, Sparkles, Timer } from "lucide-react";
 import type { GlobalCardSettingsScreenProps, GlobalLearningSettingsSaveScope, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { normalizeLearnAheadMinutes } from "../deckSettings.ts";
 import { EASY_DAY_KEYS, normalizeEasyDays } from "../easyDays.ts";
@@ -8,6 +8,8 @@ import { normalizeDayStartHour } from "../learningDay.ts";
 import { formatSimulationDuration } from "../simulationClock.ts";
 import { createDeckLearningSettingsDraft, createGlobalCardSettingsDraft, settingsDraftsEqual, type GlobalCardSettingsDraft } from "../settingsDraft.ts";
 import { CrossLinkButton } from "../ui/actionUi.tsx";
+import { flagName } from "../ui/flagUi.tsx";
+import { normalizeFlagNames } from "../uiPreferences.ts";
 import { PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
@@ -19,6 +21,7 @@ const sectionIds = {
   planning: "card-settings-planning",
   dailyProfiles: "learning-settings-daily-profiles",
   schedulerCore: "learning-settings-scheduler-core",
+  flags: "card-settings-flags",
   focus: "card-settings-focus",
 } as const;
 
@@ -26,6 +29,7 @@ const settingsSections = [
   { id: sectionIds.planning, label: "Lerntag & Planung", icon: CalendarClock },
   { id: sectionIds.dailyProfiles, label: "Tagesrunde & Lernprofile", icon: CalendarRange },
   { id: sectionIds.schedulerCore, label: "Scheduler & CoRe", icon: Sparkles },
+  { id: sectionIds.flags, label: "Flaggen", icon: Flag },
   { id: sectionIds.focus, label: "Fokuswerkzeuge", icon: Timer },
 ] as const;
 
@@ -51,8 +55,8 @@ const easyDayToneClasses: Record<EasyDayLevel, string> = {
   minimum: "border-core-info bg-core-info-soft",
 };
 
-export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
-  const persistedDraft = createGlobalCardSettingsDraft(globalSchedulerPreferences);
+export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences, flagNames, settingsTarget = null, learningProfiles, onSaveLearningProfiles, onSaveSettings, onDraftStateChange, onNavigate, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onStartPomodoro }: GlobalCardSettingsScreenProps) {
+  const persistedDraft = createGlobalCardSettingsDraft(globalSchedulerPreferences, flagNames);
   const persistedDraftKey = JSON.stringify(persistedDraft);
   const [baseline, setBaseline] = React.useState<GlobalCardSettingsDraft>(persistedDraft);
   const [draft, setDraft] = React.useState<GlobalCardSettingsDraft>(persistedDraft);
@@ -71,6 +75,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
       learnAheadMinutes: normalizeLearnAheadMinutes(draft.learnAheadMinutes),
       easyDays: normalizeEasyDays(draft.easyDays),
       learning: createDeckLearningSettingsDraft(draft.learning),
+      flagNames: normalizeFlagNames(draft.flagNames),
     };
     try {
       const saved = await onSaveSettings(normalized, scope);
@@ -115,7 +120,7 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
         </CrossLinkButton>
       </div>
 
-      <InPageNavigation ariaLabel="Bereiche der Lerneinstellungen" items={settingsSections}>
+      <InPageNavigation ariaLabel="Bereiche der Lerneinstellungen" items={settingsSections} targetId={settingsTarget === "flag-names" ? sectionIds.flags : null}>
         <section id={sectionIds.planning} className="grid gap-4" aria-labelledby="card-settings-planning-heading">
           <h2 id="card-settings-planning-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Lerntag & Planung</h2>
           <SoftPanel className="p-6">
@@ -173,6 +178,29 @@ export function GlobalCardSettingsScreen({ timeZone, globalSchedulerPreferences,
             return true;
           }}
         />
+
+        <section id={sectionIds.flags} className="grid gap-4" aria-labelledby="card-settings-flags-heading">
+          <h2 id="card-settings-flags-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Flaggen</h2>
+          <SoftPanel className="grid gap-3 p-6 sm:grid-cols-2">
+            {draft.flagNames.map((name, index) => {
+              const colorName = flagName(index + 1);
+              return (
+                <label key={colorName} className="flex min-h-control min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface px-3">
+                  <span aria-hidden="true" className="size-4 shrink-0 rounded-round" style={{ background: `var(--core-flag-${index + 1})` }} />
+                  <input
+                    className="min-w-0 flex-1 self-stretch bg-transparent text-core-text outline-none"
+                    value={name}
+                    maxLength={40}
+                    placeholder={colorName}
+                    aria-label={`Name für Flagge ${colorName}`}
+                    data-testid={`card-settings-flag-${index + 1}`}
+                    onChange={(event) => setDraft((current) => ({ ...current, flagNames: current.flagNames.map((value, position) => position === index ? event.target.value : value) }))}
+                  />
+                </label>
+              );
+            })}
+          </SoftPanel>
+        </section>
 
         <section id={sectionIds.focus} className="grid gap-4" aria-labelledby="card-settings-focus-heading">
           <h2 id="card-settings-focus-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Fokuswerkzeuge</h2>

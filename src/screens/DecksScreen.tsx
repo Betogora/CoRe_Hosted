@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Sparkles, Star, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -17,6 +17,10 @@ import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { FlagDot, flagName } from "../ui/flagUi.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
+import { TagInput } from "../ui/TagInput.tsx";
+import { readCardSearchFilters, withCardSearchFilter } from "../cardSearchQuery.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
 import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
@@ -75,12 +79,14 @@ interface CardTableRowViewProps {
   nextStudyLabel: string;
   selected: boolean;
   marked: boolean;
+  flag: number;
+  flagNames: readonly string[];
   syncConflict: boolean;
   onSelect: (deckId: string, cardId: string) => void;
 }
 
 /** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
-const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, syncConflict, onSelect }: CardTableRowViewProps) {
+const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, onSelect }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
   return (
     <tr
@@ -114,6 +120,9 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
           {card.activeVariantCount > 0
             ? <span className="min-w-[1.125rem] text-center core-body font-semibold text-core-secondary" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
             : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
+          <span className="grid size-[1.125rem] place-items-center">
+            {flag ? <FlagDot flag={flag} names={flagNames} size={10} /> : null}
+          </span>
           <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
@@ -207,6 +216,17 @@ export function DecksScreen({
   const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
   const [deferredQuery, setDeferredQuery] = React.useState("");
+  // Flag, leech and tag filters are search terms in the query (Anki notation), so search and filters stay one state.
+  const searchFilters = React.useMemo(() => readCardSearchFilters(query), [query]);
+  const flagFilterOptions = React.useMemo(() => [
+    { value: "any", label: "Alle Flaggen" },
+    { value: "0", label: "Ohne Flagge" },
+    ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ value: String(flag), label: `Flagge ${flagName(flag, cardEditor.flagNames)}` })),
+  ], [cardEditor.flagNames]);
+  function changeQuery(next: string) {
+    setQuery(next);
+    setCardPageByDeckId({});
+  }
   React.useEffect(() => {
     if (query === deferredQuery) return;
     const timer = window.setTimeout(() => setDeferredQuery(query), CARD_SEARCH_DEBOUNCE_MS);
@@ -697,7 +717,7 @@ export function DecksScreen({
                 Karten durchsuchen
                 <span className="flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 font-normal text-core-muted transition">
                   <Search size={17} aria-hidden="true" />
-                  <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
+                  <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
                 </span>
               </label>
             <div className="flex flex-wrap items-center gap-3">
@@ -707,6 +727,30 @@ export function DecksScreen({
                 options={[{ value: "all", label: "Alle Karten" }, { value: "without", label: "Ohne Variante" }]}
                 onValueChange={(value) => { setWithoutVariants(value === "without"); setCardPageByDeckId({}); }}
               />
+              <CoreSelect
+                ariaLabel="Nach Flagge filtern"
+                value={searchFilters.flag === null ? "any" : String(searchFilters.flag)}
+                options={flagFilterOptions}
+                onValueChange={(value) => changeQuery(withCardSearchFilter(query, "flag", value === "any" ? null : Number(value)))}
+              />
+              <button
+                type="button"
+                aria-pressed={searchFilters.leech}
+                className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action"
+                onClick={() => changeQuery(withCardSearchFilter(query, "leech", !searchFilters.leech))}
+              >
+                <Snail size={16} aria-hidden="true" />Lernbremse
+              </button>
+              <div className="min-w-0 flex-1 basis-56">
+                <TagInput
+                  tags={searchFilters.tags}
+                  loadDirectory={cardEditor.listTagDirectory}
+                  label="Nach Tags filtern"
+                  labelHidden
+                  placeholder="Nach Tag filtern"
+                  onChange={(tags) => changeQuery(withCardSearchFilter(query, "tags", tags))}
+                />
+              </div>
               {withoutVariants && contentDeck && onGenerateDeckVariants ? (
                 <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateDeckVariants(contentDeck)}>
                   Für diese Karten Varianten generieren
@@ -797,6 +841,8 @@ export function DecksScreen({
                       nextStudyLabel={nextStudyLabel}
                       selected={selectedCardId === card.id}
                       marked={selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
+                      flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
+                      flagNames={cardEditor.flagNames}
                       syncConflict={Boolean(syncConflictCardIds?.has(card.id))}
                       onSelect={stableRequestCardSelection}
                     />

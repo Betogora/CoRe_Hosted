@@ -62,6 +62,8 @@ export interface CreationScreenProps {
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
+  /** Tags of the account for suggestions in the tag input. */
+  listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
   onStartDeck: (deck: Deck) => void;
@@ -144,7 +146,6 @@ export interface DeckSettingsScreenProps {
 interface CardEditorCloudReads {
   listCardReviewEvents: (cardId: string, signal: AbortSignal) => Promise<ReviewEvent[]>;
   listSimilarNotes: (noteId: string, signal: AbortSignal) => Promise<SimilarNote[]>;
-  listAccountTags: (signal: AbortSignal) => Promise<TagDirectoryEntry[]>;
 }
 
 /** Instant card actions and reads of the card editor beyond the content draft. */
@@ -161,6 +162,7 @@ export interface CardEditorServices {
   /** The stored card and content, e.g. to check before an undo that nothing changed meanwhile. */
   loadCard: (cardId: string) => Promise<{ card: Card; note: Note } | null>;
   listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
+  /** Tags of the whole account online, of the local replica offline. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   listExamsForDeck: (deckId: string) => Promise<string[]>;
   cloud: CardEditorCloudReads | null;
@@ -283,6 +285,8 @@ export interface SettingsScreenProps {
 export interface GlobalCardSettingsScreenProps {
   timeZone: string;
   globalSchedulerPreferences: GlobalSchedulerPreferences;
+  flagNames: readonly string[];
+  settingsTarget?: SettingsTarget | null;
   learningProfiles: LearningProfileTemplate[];
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
   onSaveSettings: (draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) => Profile | null | Promise<Profile | null>;
@@ -332,6 +336,8 @@ export interface StudyModeProps {
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;
   onEditDeck: (deckId: string) => unknown;
+  /** Own flag names of the account (`uiPreferences.flagNames`). */
+  flagNames: readonly string[];
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onCardUpdated: (deckId: string, card: Card) => unknown;

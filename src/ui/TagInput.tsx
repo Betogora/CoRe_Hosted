@@ -15,11 +15,13 @@ export interface TagInputProps {
   tags: readonly string[];
   /** Tags of the last import; those still present form the collapsed imported group (V4). */
   importedTags?: readonly string[];
-  directory?: readonly TagDirectoryEntry[];
+  /** Tags of the account for suggestions and spelling; read on the first focus, not for every opened view. */
+  loadDirectory?: () => Promise<TagDirectoryEntry[]>;
   onChange: (tags: string[], change: { added: string[]; removed: string[] }) => void;
   label?: string;
   /** The label stays for assistive technology while a surrounding heading names the field. */
   labelHidden?: boolean;
+  placeholder?: string;
   disabled?: boolean;
 }
 
@@ -27,8 +29,15 @@ export interface TagInputProps {
  * Tag chips with suggestions from the account's directory. Space, Enter and Tab finish a tag, pasting splits only at
  * whitespace; `#`, `,` and `;` stay part of a tag (W10). A chip's text goes back into the field for editing.
  */
-export function TagInput({ tags, importedTags = [], directory = [], onChange, label = "Tags", labelHidden = false, disabled = false }: TagInputProps) {
+export function TagInput({ tags, importedTags = [], loadDirectory, onChange, label = "Tags", labelHidden = false, placeholder = "Tag hinzufügen", disabled = false }: TagInputProps) {
   const [text, setText] = React.useState("");
+  const [directory, setDirectory] = React.useState<readonly TagDirectoryEntry[]>([]);
+  const directoryRequested = React.useRef(false);
+  function requestDirectory() {
+    if (directoryRequested.current || !loadDirectory) return;
+    directoryRequested.current = true;
+    void loadDirectory().then(setDirectory).catch(() => { directoryRequested.current = false; });
+  }
   const [importedOpen, setImportedOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(-1);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -121,7 +130,7 @@ export function TagInput({ tags, importedTags = [], directory = [], onChange, la
             autoComplete="off"
             spellCheck={false}
             className="min-h-11 min-w-24 flex-1 bg-transparent px-1.5 core-body text-core-text outline-none focus-visible:outline-none md:min-h-8"
-            placeholder={tags.length ? "" : "Tag hinzufügen"}
+            placeholder={tags.length ? "" : placeholder}
             onChange={(event) => {
               const value = event.target.value;
               if (/\s/.test(value.trimStart())) add(value);
@@ -137,6 +146,7 @@ export function TagInput({ tags, importedTags = [], directory = [], onChange, la
               add(`${text} ${pasted}`);
             }}
             onKeyDown={handleKeyDown}
+            onFocus={requestDirectory}
             onBlur={() => { if (text.trim()) add(text); }}
           />
         </div>

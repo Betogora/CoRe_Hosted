@@ -549,7 +549,11 @@ export function App() {
       removeNoteMedia: (graph, names) => actions().removeDeckNoteMedia(graph, names),
       loadCard: async (cardId) => repository().loadCardBody(cardId),
       listReviewEvents: async (cardId) => repository().listCardReviewEvents(cardId),
-      listTagDirectory: async () => repository().listTagDirectory(),
+      listTagDirectory: async () => {
+        const local = () => repository().listTagDirectory();
+        if (!cloud || (typeof navigator !== "undefined" && navigator.onLine === false)) return local();
+        return (await import("./cloudRepository.ts")).listAccountTags(cloud).catch(local);
+      },
       listExamsForDeck: async (deckId) => {
         const currentState = latestStateRef.current;
         if (!currentState) return [];
@@ -561,7 +565,6 @@ export function App() {
       cloud: cloud ? {
         listCardReviewEvents: async (cardId, signal) => (await import("./cloudRepository.ts")).listCardReviewEvents(cloud, cardId, signal),
         listSimilarNotes: async (noteId, signal) => (await import("./cloudRepository.ts")).listSimilarNotes(cloud, noteId, signal),
-        listAccountTags: async (signal) => (await import("./cloudRepository.ts")).listAccountTags(cloud, signal),
       } : null,
       openFlagNames: () => actions().navigateToView("karten-einstellungen", { settingsTarget: "flag-names" }),
       openSyncConflicts: () => actions().navigateToView("einstellungen", { settingsTarget: "sync-conflicts" }),
@@ -1307,6 +1310,7 @@ export function App() {
           ...learningDeck,
           deckSettings: createDefaultDeckSettings({
             ...learningDeck.deckSettings,
+            ...candidateDraft.leech,
             appearance: candidateDraft.appearance,
           }),
         };
@@ -1597,7 +1601,10 @@ export function App() {
   function saveGlobalCardSettings(draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) {
     const currentState = latestStateRef.current;
     if (!currentState) return null;
-    const nextProfile = withGlobalSchedulerPreferences(currentState.profile, {
+    const nextProfile = withGlobalSchedulerPreferences({
+      ...currentState.profile,
+      uiPreferences: { ...currentState.profile.uiPreferences, flagNames: draft.flagNames },
+    }, {
       dayStartHour: draft.dayStartHour,
       learnAheadMinutes: draft.learnAheadMinutes,
       easyDays: draft.easyDays,
@@ -1918,6 +1925,7 @@ export function App() {
             creationDeckId: deckId || null,
           })}
           onSaveManualNote={saveManualNote}
+          listTagDirectory={cardEditorServices.listTagDirectory}
           onDraftStateChange={handleCreationDraftStateChange}
           onSessionCompleted={(completion) => navigateToViewNow("neue-karten", {
             completedDeckId: completion.deckId,
@@ -2002,6 +2010,8 @@ export function App() {
         <GlobalCardSettingsScreen
           timeZone={learningTimeZone}
           globalSchedulerPreferences={globalSchedulerPreferences}
+          flagNames={state.profile.uiPreferences.flagNames}
+          settingsTarget={settingsTarget}
           learningProfiles={globalSchedulerPreferences.learningProfiles}
           onSaveLearningProfiles={saveLearningProfiles}
           onSaveSettings={saveGlobalCardSettings}
@@ -2135,6 +2145,7 @@ export function App() {
               },
             },
           })}
+          flagNames={cardEditorServices.flagNames}
           onSetCardStudyState={setStudyCardStudyState}
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
           onCardUpdated={(_deckId, card) => {

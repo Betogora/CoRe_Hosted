@@ -1,4 +1,6 @@
 import React from "react";
+import type { TagDirectoryEntry } from "../tagDirectory.ts";
+import { TagInput } from "../ui/TagInput.tsx";
 import { ArrowDown, ArrowUp, CircleAlert, Database, Eye, FileText, ImagePlus, PenLine, Pin, PinOff, Plus, X } from "lucide-react";
 import {
   createManualBatchSession,
@@ -67,6 +69,7 @@ export interface ManualCreationPanelProps {
   workflow: ManualCreationWorkflow;
   initialTargetDeckId?: string;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
+  listTagDirectory?: () => Promise<TagDirectoryEntry[]>;
   onTargetDeckChange?: (deckId: string) => unknown;
   onFinish?: (result: { createdCount: number; targetDeckId: string }) => void;
   onDraftStateChange?: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
@@ -124,6 +127,7 @@ export function ManualCreationPanel({
   decks,
   workflow,
   onSaveManualNote,
+  listTagDirectory,
   initialTargetDeckId = "",
   onTargetDeckChange = () => undefined,
   onFinish = () => undefined,
@@ -133,6 +137,7 @@ export function ManualCreationPanel({
   const saveProgressRef = React.useRef<HTMLDivElement | null>(null);
   const saveInFlightRef = React.useRef(false);
   const [useNewDeck, setUseNewDeck] = React.useState(decks.length === 0);
+
   const targetDeckMissing = Boolean(initialTargetDeckId && !decks.some((deck) => deck.id === initialTargetDeckId));
   const selectedDeckId = targetDeckMissing ? "" : initialTargetDeckId || decks[0]?.id || "";
   const [deckName, setDeckName] = React.useState("Manueller Kartenstapel");
@@ -770,10 +775,7 @@ export function ManualCreationPanel({
       </div>
 
       <div className="grid gap-4">
-        <label className="grid gap-2 core-body font-semibold text-core-secondary">
-          Tags
-          <input className="min-h-control rounded-control border border-core-border px-3" value={tags} onChange={(event) => dispatchBatch({ type: "draft", patch: { tags: event.target.value } })} placeholder="biologie zelle prüfung" />
-        </label>
+        <TagInput tags={tags} loadDirectory={listTagDirectory} onChange={(next) => dispatchBatch({ type: "draft", patch: { tags: next } })} />
       </div>
       </div>
       {saveProgress ? (
