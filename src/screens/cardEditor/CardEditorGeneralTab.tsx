@@ -129,12 +129,9 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
   const similar = useIdleLoad<SimilarNote[]>(online && services.cloud ? (signal) => services.cloud!.listSimilarNotes(note.id, signal) : null, `${note.id}:${online}`);
   const exams = useIdleLoad(() => services.listExamsForDeck(card.deckId), card.deckId);
   React.useEffect(() => {
-    const controller = new AbortController();
-    const cloud = online ? services.cloud : null;
-    void (cloud ? cloud.listAccountTags(controller.signal).catch(() => services.listTagDirectory()) : services.listTagDirectory())
-      .then((entries) => { if (!controller.signal.aborted) setDirectory(entries); })
-      .catch(() => undefined);
-    return () => controller.abort();
+    let active = true;
+    void services.listTagDirectory().then((entries) => { if (active) setDirectory(entries); }).catch(() => undefined);
+    return () => { active = false; };
   }, [online, services]);
 
   /** Undo is a new, synced change and drops out with a note if the card changed meanwhile (W7). */

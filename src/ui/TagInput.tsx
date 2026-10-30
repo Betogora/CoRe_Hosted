@@ -20,6 +20,7 @@ export interface TagInputProps {
   label?: string;
   /** The label stays for assistive technology while a surrounding heading names the field. */
   labelHidden?: boolean;
+  placeholder?: string;
   disabled?: boolean;
 }
 
@@ -27,7 +28,7 @@ export interface TagInputProps {
  * Tag chips with suggestions from the account's directory. Space, Enter and Tab finish a tag, pasting splits only at
  * whitespace; `#`, `,` and `;` stay part of a tag (W10). A chip's text goes back into the field for editing.
  */
-export function TagInput({ tags, importedTags = [], directory = [], onChange, label = "Tags", labelHidden = false, disabled = false }: TagInputProps) {
+export function TagInput({ tags, importedTags = [], directory = [], onChange, label = "Tags", labelHidden = false, placeholder = "Tag hinzufügen", disabled = false }: TagInputProps) {
   const [text, setText] = React.useState("");
   const [importedOpen, setImportedOpen] = React.useState(false);
   const [activeIndex, setActiveIndex] = React.useState(-1);
@@ -121,7 +122,7 @@ export function TagInput({ tags, importedTags = [], directory = [], onChange, la
             autoComplete="off"
             spellCheck={false}
             className="min-h-11 min-w-24 flex-1 bg-transparent px-1.5 core-body text-core-text outline-none focus-visible:outline-none md:min-h-8"
-            placeholder={tags.length ? "" : "Tag hinzufügen"}
+            placeholder={tags.length ? "" : placeholder}
             onChange={(event) => {
               const value = event.target.value;
               if (/\s/.test(value.trimStart())) add(value);

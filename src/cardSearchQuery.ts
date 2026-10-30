@@ -62,3 +62,37 @@ export function matchesCardSearch(entry: SearchableEntry, search: CardSearchQuer
 export function isEmptyCardSearch(search: CardSearchQuery): boolean {
   return !search.text && search.terms.length === 0;
 }
+
+/** Filters of the card management, read from and written to the search terms of the query. */
+export interface CardSearchFilters {
+  /** 0 for cards without a flag, null for any. */
+  flag: number | null;
+  leech: boolean;
+  tags: string[];
+}
+
+export function readCardSearchFilters(query: string): CardSearchFilters {
+  const { terms } = parseCardSearchQuery(query);
+  const flag = terms.find((term) => term.kind === "flag" && !term.negated);
+  return {
+    flag: flag?.kind === "flag" ? flag.value : null,
+    leech: terms.some((term) => term.kind === "leech" && !term.negated),
+    tags: terms.flatMap((term) => term.kind === "tag" && !term.negated ? [term.value] : []),
+  };
+}
+
+/** Replaces the positive terms of one filter and keeps the text and every other term in place. */
+export function withCardSearchFilter(query: string, filter: keyof CardSearchFilters, value: CardSearchFilters[keyof CardSearchFilters]): string {
+  const owned = (token: string) => {
+    const term = parseTerm(token);
+    if (!term || term.negated) return false;
+    return filter === "flag" ? term.kind === "flag" : filter === "leech" ? term.kind === "leech" : term.kind === "tag";
+  };
+  const kept = String(query ?? "").trim().split(/\s+/).filter((token) => token && !owned(token));
+  const added = filter === "flag"
+    ? (typeof value === "number" ? [`flag:${value}`] : [])
+    : filter === "leech"
+      ? (value === true ? ["tag:leech"] : [])
+      : (Array.isArray(value) ? value.map((tag) => `tag:${tag}`) : []);
+  return [...kept, ...added].join(" ");
+}

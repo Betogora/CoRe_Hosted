@@ -5,12 +5,13 @@ import { createViewRoute } from "../appNavigation.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import { GlobalCardSettingsScreen } from "./GlobalCardSettingsScreen.tsx";
 
-function renderSettings() {
+function renderSettings(flagNames: string[] = ["", "", "", "", "", "", ""]) {
   const preferences = getGlobalSchedulerPreferences({});
   return renderToStaticMarkup(
     <GlobalCardSettingsScreen
       timeZone="Europe/Berlin"
       globalSchedulerPreferences={preferences}
+      flagNames={flagNames}
       learningProfiles={preferences.learningProfiles}
       onSaveLearningProfiles={() => undefined}
       onSaveSettings={() => null}
@@ -27,7 +28,7 @@ function renderSettings() {
 test("global learning settings expose planning, profiles, scheduler, focus tools and deck-settings navigation", () => {
   const html = renderSettings();
   assert.match(html, />Lerneinstellungen</);
-  for (const heading of ["Lerntag &amp; Planung", "Tagesrunde &amp; Lernprofile", "Scheduler &amp; CoRe", "Fokuswerkzeuge"]) assert.match(html, new RegExp(`>${heading}<`));
+  for (const heading of ["Lerntag &amp; Planung", "Tagesrunde &amp; Lernprofile", "Scheduler &amp; CoRe", "Flaggen", "Fokuswerkzeuge"]) assert.match(html, new RegExp(`>${heading}<`));
   assert.match(html, /aria-label="Bereiche der Lerneinstellungen"/);
   assert.match(html, /href="#card-settings-planning"/);
   assert.match(html, /href="#learning-settings-daily-profiles"/);
@@ -53,4 +54,13 @@ test("global learning settings combine account-wide planning and reusable deck d
   assert.match(html, /Diese CoRe-Werte gelten als Standard/);
   assert.doesNotMatch(html, /Login-E-Mail|Automatisch synchronisieren|Impressum/);
   assert.doesNotMatch(html, /CoRe-Modus/);
+});
+
+test("the Flaggen section names seven flags; an empty field stands for the color name (W23)", () => {
+  const html = renderSettings(["", "", "", "Nachschlagen", "", "", ""]);
+  const flags = html.slice(html.indexOf('id="card-settings-flags"'), html.indexOf('id="card-settings-focus"'));
+  assert.equal([...flags.matchAll(/aria-label="Name für Flagge /g)].length, 7);
+  assert.match(flags, /placeholder="Rot" aria-label="Name für Flagge Rot"/);
+  assert.match(flags, /placeholder="Blau"[^>]*value="Nachschlagen"/);
+  assert.match(flags, /var\(--core-flag-7\)/);
 });

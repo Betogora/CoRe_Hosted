@@ -185,3 +185,10 @@ test("variant generation is offered only for decks with CoRe switched on and loc
   assert.match(idle, /Je eine Variante für bis zu 50 Karten/);
   assert.match(render(coreOn, true), /<button[^>]*disabled=""[^>]*>.*Varianten generieren/);
 });
+
+test("the Stack section sets the leech threshold and action (default: only mark)", () => {
+  const markup = renderScreen();
+  const leech = markup.slice(markup.indexOf('data-testid="deck-settings-leech"'));
+  assert.match(leech, /Lernbremse ab Fehlern<input type="number" min="1" max="99"[^>]*value="8"/);
+  assert.match(leech, /aria-label="Aktion der Lernbremse"[\s\S]*?aria-pressed="true"[^>]*>Nur kennzeichnen[\s\S]*?Aussetzen/);
+});

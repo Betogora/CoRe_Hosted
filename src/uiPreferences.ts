@@ -18,7 +18,7 @@ function normalizeSyncInterval(value: unknown): SyncIntervalMinutes {
 }
 
 /** Seven trimmed names of at most 40 characters; missing entries stay empty. */
-function normalizeFlagNames(value: unknown): string[] {
+export function normalizeFlagNames(value: unknown): string[] {
   const names = Array.isArray(value) ? value : [];
   return Array.from({ length: 7 }, (_, index) => typeof names[index] === "string" ? names[index].trim().slice(0, 40) : "");
 }
