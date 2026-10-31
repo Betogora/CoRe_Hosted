@@ -113,6 +113,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
   const dirty = editorDirty || Boolean(calendarDraft);
   React.useEffect(() => { onDraftStateChange?.(dirty); }, [dirty, onDraftStateChange]);
   React.useEffect(() => () => onDraftStateChange?.(false), [onDraftStateChange]);
+  const addDisabled = !state.decks.length || Boolean(calendarDraft) || saving;
   const sortedExams = exams.slice().sort((a, b) => Number(a.status !== "active") - Number(b.status !== "active") || a.examDate.localeCompare(b.examDate));
 
   async function save(next: typeof preferences.examPlanning) {
@@ -159,7 +160,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
       <PageHeader
         eyebrow="Planung"
         title="Prüfungen"
-        action={<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton>}
+        action={<ActionButton variant="primary" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton>}
       />
       {actionError ? <StatusMessage tone="error" announce="assertive">{actionError}</StatusMessage> : null}
       {error ? (
@@ -173,7 +174,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
       <div className="grid min-w-0 gap-4">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <h3 id="exam-list-title" className="core-heading-2 text-core-text">Deine Prüfungen</h3>
-        <div className="flex flex-wrap gap-2">{exams.length === 0 ? <IconButton label="Erste Prüfung planen" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")} /> : null}{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}</div>
+        <div className="flex flex-wrap gap-2">{exams.length === 0 ? <IconButton label="Erste Prüfung planen" icon={Plus} disabled={addDisabled} onClick={() => requestEditing("new")} /> : null}{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}</div>
       </div>
       {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {
         try {
@@ -218,7 +219,7 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
                   />
                 );
               })}
-              <ActionButton variant="secondary" icon={Plus} className="min-h-16 w-full justify-start rounded-panel border-dashed px-6 py-4" disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")}>Weitere Prüfung planen</ActionButton>
+              <ActionButton variant="secondary" icon={Plus} className="min-h-16 w-full justify-start rounded-panel border-dashed px-6 py-4" disabled={addDisabled} onClick={() => requestEditing("new")}>Weitere Prüfung planen</ActionButton>
             </div>
           </section>
         </>
