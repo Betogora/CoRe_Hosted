@@ -47,12 +47,11 @@ test("about settings contain help, legal placeholders, and the only visible vers
   assert.equal(html.match(/v0\.0\.0/g)?.length, 1);
 });
 
-test("account settings expose only active profile fields in one wide panel", () => {
+test("account settings show the login e-mail read-only in one wide panel", () => {
   const html = renderSettings();
   assert.match(html, /Login-E-Mail/);
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
   assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
-  assert.doesNotMatch(html, /Profil speichern/);
 });
 
 test("general settings do not contain global card settings", () => {

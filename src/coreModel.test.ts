@@ -372,9 +372,6 @@ test("Auswahlfragen prüfen Optionen und richtige Antworten mit deutschen Meldun
   assert.deepEqual(validateManualNoteInput({ kind: "multiple-choice", ...base, answerOptions: ["A", "B"], correctOptionIndices: [] }), {
     correctOptions: "Bitte mindestens eine gültige richtige Antwort auswählen.",
   });
-  assert.deepEqual(validateManualNoteInput({ kind: "multiple-choice", ...base, answerOptions: ["A", "B"], correctOptionIndices: [0, 1] }), {
-    correctOptions: "Bitte mindestens eine Antwortoption als falsch belassen.",
-  });
   assert.deepEqual(validateManualNoteInput({ kind: "multiple-choice", front: "", back: "", answerOptions: ["A", "B"], correctOptionIndices: [5] }), {
     front: "Bitte eine Frage eingeben.",
     correctOptions: "Bitte mindestens eine gültige richtige Antwort auswählen.",

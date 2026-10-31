@@ -3,7 +3,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { SimulatorScreen } from "./SimulatorScreen.tsx";
 
-test("simulator exposes bounded calendar controls without the retired test deck", () => {
+test("simulator exposes bounded calendar controls", () => {
   const markup = renderToStaticMarkup(
     <SimulatorScreen
       systemNow="2026-08-06T10:00:00.000Z"
