@@ -11,7 +11,7 @@ Stand: 7. Oktober 2026. Laufzeiten sind auf einem bereits eingerichteten lokalen
 - `heavy-release`: ressourcen- oder zeitintensive Core-Infrastruktur-, Medien- oder betriebliche Restore-Pfade. Sie laufen im gemeinsamen Nightly-/Release-Gate und bleiben dort blockierend.
 - `performance`: reproduzierbare Bundle-, Start-, Preload-, Statistik- und Skalierungsgrenzen. Sie laufen beim Build, wöchentlich und bei performancekritischen Änderungen zusätzlich manuell.
 
-Die ausführbare Zuordnung der TypeScript-Modultests liegt in `scripts/runModuleTests.ts`. Neue `src/**/*.test.ts(x)`-Dateien sind zunächst `unit`; API- und Screen-Tests sind `contract`. Abweichende Contract- und Integration-Suites werden dort ausdrücklich zugeordnet.
+Die ausführbare Zuordnung der TypeScript-Modultests liegt in `scripts/runModuleTests.ts`. Neue `src/**/*.test.ts(x)`-Dateien sind zunächst `unit`; API- und Screen-Tests sind `contract`. Abweichende Contract- und Integration-Suites werden dort ausdrücklich zugeordnet. Der Runner verteilt die Dateien auf einen Prozess je CPU-Kern und führt sie dort ohne Prozessisolation (`--test-isolation=none`) nacheinander aus; tsx und gemeinsame Module laden so einmal je Prozess statt einmal je Datei. Ein Test räumt deshalb jeden globalen Zustand, den er setzt (Mocks, Timer, `globalThis`, Fake-IndexedDB-Datenbanken), selbst wieder ab und setzt weder eine Dateireihenfolge noch einen frischen Prozess voraus.
 
 ## Inventur
 
@@ -52,8 +52,8 @@ Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup
 
 ## Gates und lokale Befehle
 
-- Manuelles Quality-Gate: `npm run gate:push`; kombiniert Typecheck und generierte Dokumente, alle Modulprüfungen aus Unit, Contract und Integration mit kompakter Ausgabe und den Production-Build mit Bundlebudgets. Pushes starten ohne lokalen Test-Hook; GitHub und Vercel führen denselben Vertrag unabhängig aus.
-- Nightly Core: `npm run gate:nightly`; führt einmal Quality und die vollständige RLS-/Browser-Suite aus, prüft zusätzlich nur das E-Mail-/Passwort-Beta-Artefakt im selben Supabase-Lebenszyklus und führt anschließend den APKG-Benchmark aus. Alle übrigen Beta-Journeys sind bereits in der vollständigen Suite enthalten. Der GitHub-Workflow läuft täglich um 02:17 UTC, bei veröffentlichten Releases und manuell als ein blockierender Job.
+- Manuelles Quality-Gate: `npm run gate:push`; `scripts/runQualityGate.ts` startet Typecheck, generierte Dokumente (`npm run check:docs`), alle Modulprüfungen aus Unit, Contract und Integration mit kompakter Ausgabe und den Production-Build mit Bundlebudgets gleichzeitig, gibt jede Ausgabe gesammelt mit Laufzeit aus und schlägt fehl, sobald ein Schritt fehlschlägt. Der Typecheck läuft inkrementell (`node_modules/.cache/tsc`). Pushes starten ohne lokalen Test-Hook; GitHub und Vercel führen denselben Vertrag unabhängig aus.
+- Nightly Core: `npm run gate:nightly`; führt die Modultests und die vollständige RLS-/Browser-Suite aus, prüft zusätzlich nur das E-Mail-/Passwort-Beta-Artefakt im selben Supabase-Lebenszyklus und führt anschließend den APKG-Benchmark aus. Alle übrigen Beta-Journeys sind bereits in der vollständigen Suite enthalten. Der GitHub-Workflow läuft täglich um 02:17 UTC, bei veröffentlichten Releases und manuell als ein blockierender Job. Typecheck, Dokumente und Build hat `quality` für denselben Commit bereits geprüft; die Modultests laufen wegen datums- und uhrzeitabhängiger Fälle täglich erneut.
 - Weekly Performance: `npm run performance:measure:local`; hält Supabase für Startmessung und Statistikbenchmark in einem Lebenszyklus und prüft danach das Performanceartefakt. Der GitHub-Workflow läuft montags um 04:17 UTC und manuell.
 - Fokussiertes lokales PR-Produktgate: `npm run test:pr:local`; startet einmal lokales Supabase und führt Kern-RLS plus die sechs mit `@golden-e2e` markierten Flows aus. Es ist kein eigener erwarteter GitHub-Check mehr.
 - Golden isoliert: `npm run test:e2e:golden:local`.
@@ -65,7 +65,7 @@ Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup
 
 Referenzmessung am 1. August 2026: Beta-Core umfasste 22 Browserjourneys. Die frühere erweiterte Core-Abnahme benötigte im erfolgreichen Wiederholungslauf 7:14 einschließlich Integration, lokalem Supabase-Start, Datenbanktypprüfung, vollständigem RLS/TUS/Zwei-Geräte-Gate, 51 Browserjourneys und lokalem 4.900-Karten-APKG-Benchmark. Externe Container-Registry-Rate-Limits sind Infrastrukturfehler und werden getrennt von Produktregressionen ausgewiesen.
 
-`.github/workflows/ci.yml` enthält für normale Pushes, Pull Requests und manuelle Läufe nur `quality`. Die zeitgesteuerten Workflows besitzen jeweils genau einen unabhängigen, blockierenden Job; es gibt keine Jobabhängigkeiten, kein `continue-on-error` und keine Abbruchkonkurrenz, die erwartbare `Skipped`- oder `Cancelled`-Checks erzeugt.
+`.github/workflows/ci.yml` enthält für normale Pushes, Pull Requests und manuelle Läufe nur `quality`. Ein neuer Push in einen Pull Request bricht dessen noch laufenden, damit überholten Lauf ab; `Cancelled` steht dann nur an Commits, die nicht mehr Kopf des Pull Requests sind. Läufe auf `main` brechen nie ab, jeder Merge wird vollständig geprüft. Die zeitgesteuerten Workflows besitzen jeweils genau einen unabhängigen, blockierenden Job; es gibt keine Jobabhängigkeiten, kein `continue-on-error` und keine Abbruchkonkurrenz, die erwartbare `Skipped`- oder `Cancelled`-Checks erzeugt.
 
 ## Prüfung vom 2. Oktober 2026
 
@@ -92,6 +92,8 @@ Noch offen, nach Risiko priorisiert:
 ## Pflegevertrag
 
 - Ein Test wird nur entfernt, wenn sein Produktvertrag in einer anderen Suite nachweisbar bleibt oder der Vertrag ausdrücklich aus dem Produkt entfernt wurde.
+- Ein Export, den außer Tests niemand nutzt, ist toter Code: Funktion und Test entfallen gemeinsam. Prüfungen, dass eine entfernte Funktion abwesend bleibt, gehören zur Entfernung selbst und bleiben nicht dauerhaft in der Suite.
+- Neue und geänderte Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen; reine Layout- und Darstellungsprüfungen kommen ohne Kontoreset aus. Neue Screenshot-Matrizen laufen nur auf Anforderung (`CORE_VISUAL_OUTPUT`), nicht in jedem Release-Lauf. Die Umstellung bestehender Flows steht in [`todo.md`](todo.md#testsuite-verschlanken).
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`, damit ein Fehler das betroffene Nutzerziel oder die Sicherheitsgrenze benennt.
 - Laufzeiten werden nach wesentlichen Infrastrukturänderungen als Bandbreite aktualisiert. Testanzahlen sind kein Abnahmekriterium.
 - Neue schwere Browser-, Storage-, Großdatei- oder Restore-Pfade werden `heavy-release`; nur ein enges, fachlich repräsentatives Golden- oder Security-Smoke darf ins PR-Gate.

@@ -11,6 +11,14 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Nicht übernommen: manuelle Kapitel- und Gruppenquizze samt Planformat (`quizChaptersPerTask`, `completedQuizDeckIds`, `kind: "quiz"`) und der eigene Lernmethoden-Schritt (ADR-042). Die Einrichtung bleibt bei vier Schritten; „Vor neuen Themen Zusammenfassung lesen“ steht wieder im Lernzeitschritt.
 - Neuer Code folgt ADR-046: Feldlabels, Überschriften, Sekundärtext, Panels, Kalenderfilter als Pills und die Stapelsuche im Muster der Kartensuche.
 
+## 2026-10-31 — Schnelleres Quality-Gate (Testsuite, Paket A)
+
+- `scripts/runModuleTests.ts` verteilt die Modultests auf einen Prozess je CPU-Kern ohne Prozessisolation; vorher startete jede der 133 Dateien einen eigenen node+tsx-Prozess (je rund 0,35–0,4 s Startkosten).
+- `npm run gate:push` startet Typecheck, Dokumentprüfung, Modultests und Build gleichzeitig (`scripts/runQualityGate.ts`); `npm run typecheck` enthält die Dokumentprüfung nicht mehr, der Typecheck läuft inkrementell.
+- CI bricht überholte Läufe eines Pull Requests ab; Nightly prüft Typecheck, Dokumente und Build nicht erneut, die Modultests weiterhin.
+- Gemessen im selben Worktree, abwechselnd je drei Läufe auf 8 Kernen unter wechselnder Fremdlast: Gate alt 83–108 s, neu 36–57 s; Modultests alt 40–45 s, neu 18–20 s. Ohne Fremdlast zuvor: Gate alt rund 104 s, Modultests 23 s gegen 8–15 s. Längster Schritt ist jetzt die Dokumentprüfung (Rollup-Bundle des UI-Katalogs).
+- Verifiziert: alle Modultests in jeder Messung grün, ein absichtlich roter Test lässt den Shard und das Gate fehlschlagen und erscheint mit Name und Stelle in der Ausgabe. Die CI-Laufzeit steht nach dem ersten Lauf dieses PRs fest. Offene Pakete B–D in [`todo.md`](todo.md#testsuite-verschlanken).
+
 ## 2026-10-30 — Karteneditor: Lernkurve und vorgeladene Nachbarkarten
 
 - Reiter `Lernen`: Der `Abrufverlauf` ist eine Lernkurve im Diagrammstil der Statistik (Fläche, gestrichelte Ziel-Abrufwahrscheinlichkeit, rote Punkte vor `Nochmal`); die Kurve wird aus den Bewertungen mit FSRS-7 nachgerechnet (`retrievabilityCurve.ts`), `Als neu lernen` beginnt sie neu. Die Bewertungsliste steht daneben als `Bewertungen`. Das Diagramm lädt erst mit einer Kurve (größter Lazy-Graph 174,3 KiB gzip).

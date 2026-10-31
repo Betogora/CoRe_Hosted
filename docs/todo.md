@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-30
+Stand: 2026-10-31
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -132,6 +132,52 @@ neuen Code.
       Mobilgeräten oft im falschen Browser landet. Google erst nach Entscheidung
       über den OAuth-Prüfprozess und den Datenschutztext; sonst Code und Flag
       entfernen.
+
+## Testsuite verschlanken
+
+Läuft unabhängig von P1/P2, je Paket ein eigener PR. Regeln im Pflegevertrag
+von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
+2026-10-31 im [Verlauf](history.md).
+
+- [ ] **B – Veraltetes und toter Code:** `libraryModel.test.ts` (Heatmap-Test)
+      nutzt `reviewedAt` statt `answeredAt` und prüft „künftige Reviews bleiben
+      unsichtbar“ dadurch nicht. Nur von Tests genutzte Exporte samt Tests
+      entfernen (`readAppRouteFromHistoryState`, `deleteLearningSummary`,
+      `applyLearningSettingsToDeckSettings`, `getView`/`listViews` mit
+      Ansichtsmetadaten, `accountStorageKeys`); `knip --production` zusätzlich
+      ins Gate, damit solche Exporte künftig auffallen.
+      `creationPipeline.test.ts` (kein gleichnamiges Modul) in
+      `coreModel/notes.test.ts` aufgehen lassen. Abwesenheitsprüfungen
+      entfernter Funktionen (Labs, KI-Assistent, alte Routen) in Modul- und
+      Browsertests streichen.
+- [ ] **C – Scope Creep:** In `themeContract.test.ts` Hex- und Wertesnapshots
+      streichen, die Lint-Regeln (Fokus, Kontrast, alte Palette) behalten.
+      Prüfungen exakter Tailwind-Klassen in den UI-Tests (`AppNavigation`,
+      `DeckTree`, `coreUi`, `StudyHeatmap`, `DeckSummaryRow`,
+      `ColorWheelPicker`, `LearningAreaHeader`) auf Rollen, Daten und Text
+      umstellen; `colorPicker.test.ts` sowie CSS-Regeln aus `styles.css` in
+      `feedbackUi`/`SettingsSaveBar` entfallen; `HelpScreen.test.tsx` auf
+      Überschriften und Anker kürzen. Doppelte Prüfungen zusammenlegen
+      (Decktiefe viermal, AI-Route-Middleware in beiden Routentests,
+      Fortschritt in StudyMode, Dashboard-Standardwidgets). Großfixtures
+      verkleinern (10.000 Karten in `libraryModel`, 300+ in `examPlanning`).
+- [ ] **D – Browserflows:** Etwa 80 Flows setzen das Cloud-Konto zurück,
+      auch reine Layoutprüfungen; `card-lifecycle` doppelt vor und nach jedem
+      Test. Screenshot-Matrizen (`note-presentation`, `learning-summaries`,
+      `deck-ui-restoration`) hinter `CORE_VISUAL_OUTPUT`. Katalogspecs ohne
+      Supabase in eine eigene parallele Playwright-Konfiguration, die auf PRs
+      in der CI läuft. Überschneidungen zusammenlegen (Speicherschutz der
+      Einstellungen dreifach, Pomodoro, Heatmap-Geometrie, Bewertung),
+      wirkungslose feste Wartezeiten und lange Breitenschleifen auf die
+      Breakpoints der visuellen Pflichtmatrix kürzen. Danach `--gate=affected`
+      in `runLocalE2E.ts`: geänderte Specs plus Zuordnung von `src/screens`,
+      `src/ui` und Sync-Modulen zu Specs. Nachweis: Laufzeit von
+      `npm run test:e2e:local` vorher und nachher.
+- [ ] **Dokumentationsprüfung beschleunigen:** `npm run check:docs` ist nach
+      dem parallelen Gate der längste Schritt; fast die ganze Zeit steckt im
+      Rollup-Bundle des UI-Katalogs. Prüfen, ob ein Inhaltshash der
+      Bundle-Eingaben den Neuaufbau bei unveränderten Quellen überspringen
+      kann, ohne veraltete HTML-Seiten durchzulassen.
 
 ## Später
 

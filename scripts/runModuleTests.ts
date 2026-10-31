@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { readdirSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -54,30 +55,49 @@ export function moduleTestsFor(categories: readonly TestCategory[]) {
   return files.filter((filePath) => requested.has(categoryFor(filePath)));
 }
 
-export async function runModuleTests(categories: readonly TestCategory[], { compact = false } = {}) {
-  if (categories.length === 0 || categories.some((category) => !CATEGORIES.includes(category))) {
-    throw new Error(`Testkategorie fehlt oder ist ungültig. Erlaubt: ${CATEGORIES.join(", ")}.`);
-  }
-  const files = moduleTestsFor(categories);
-  console.log(`Geschützte Testkategorien: ${categories.join(", ")} (${files.length} Dateien)`);
-  await new Promise<void>((resolve, reject) => {
+/** Verteilt die Dateien reihum auf Shards; jeder Shard lädt tsx nur einmal statt einmal je Datei. */
+function shardTests(files: readonly string[], shardCount: number) {
+  const shards = Array.from({ length: Math.min(shardCount, files.length) }, () => [] as string[]);
+  files.forEach((file, index) => shards[index % shards.length].push(file));
+  return shards;
+}
+
+function runShard(files: readonly string[], compact: boolean) {
+  return new Promise<{ code: number | null; signal: NodeJS.Signals | null; output: string }>((resolve, reject) => {
     const child = spawn(process.execPath, [
       TSX_CLI_PATH,
       "--test",
+      "--test-isolation=none",
       ...(compact ? ["--test-reporter=dot"] : []),
       ...files,
     ], {
       cwd: process.cwd(),
       env: process.env,
       shell: false,
-      stdio: "inherit",
+      stdio: ["ignore", "pipe", "pipe"],
     });
+    const chunks: Buffer[] = [];
+    child.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
+    child.stderr.on("data", (chunk: Buffer) => chunks.push(chunk));
     child.once("error", reject);
-    child.once("close", (code, signal) => {
-      if (code === 0) resolve();
-      else reject(new Error(`Modultests sind fehlgeschlagen (${signal ?? `Exit ${code}`}).`));
-    });
+    child.once("close", (code, signal) => resolve({ code, signal, output: Buffer.concat(chunks).toString("utf8") }));
   });
+}
+
+export async function runModuleTests(categories: readonly TestCategory[], { compact = false } = {}) {
+  if (categories.length === 0 || categories.some((category) => !CATEGORIES.includes(category))) {
+    throw new Error(`Testkategorie fehlt oder ist ungültig. Erlaubt: ${CATEGORIES.join(", ")}.`);
+  }
+  const files = moduleTestsFor(categories);
+  const shards = shardTests(files, availableParallelism());
+  console.log(`Geschützte Testkategorien: ${categories.join(", ")} (${files.length} Dateien in ${shards.length} Prozessen)`);
+  const failures: string[] = [];
+  await Promise.all(shards.map(async (shard, index) => {
+    const { code, signal, output } = await runShard(shard, compact);
+    process.stdout.write(output);
+    if (code !== 0) failures.push(`Prozess ${index + 1}/${shards.length} (${signal ?? `Exit ${code}`})`);
+  }));
+  if (failures.length) throw new Error(`Modultests sind fehlgeschlagen: ${failures.join(", ")}.`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
