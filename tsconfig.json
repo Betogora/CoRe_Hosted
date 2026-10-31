@@ -3,6 +3,7 @@
     "allowImportingTsExtensions": true,
     "allowJs": false,
     "forceConsistentCasingInFileNames": true,
+    "incremental": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
@@ -14,6 +15,7 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
+    "tsBuildInfoFile": "node_modules/.cache/tsc/tsconfig.tsbuildinfo",
     "types": ["node", "vite/client"],
     "verbatimModuleSyntax": true
   },

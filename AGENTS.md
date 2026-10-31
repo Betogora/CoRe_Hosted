@@ -186,6 +186,8 @@ Choose checks proportionate to the affected area.
 - Tests live beside the affected modules in `src/**/*.test.{ts,tsx}` unless the
   existing structure already establishes another location such as `api/` or
   `tests/rls/`.
+- Module tests share processes without isolation (`docs/test-portfolio.md`):
+  restore any global state a test sets and never rely on file order.
 
 ### Standard Gate
 
@@ -203,9 +205,9 @@ For ordinary implementation changes:
 3. run `npm run build` when production compilation or bundling could be
    affected.
 
-`npm run gate:push` is the canonical manual quality gate and combines type
-checking, all unit/contract/integration tests with compact output, the production build, and bundle
-budgets. Git pushes do not run it automatically because a mixed worktree may
+`npm run gate:push` is the canonical manual quality gate and runs type
+checking, the generated-docs check, all unit/contract/integration tests with
+compact output, and the production build with bundle budgets in parallel. Git pushes do not run it automatically because a mixed worktree may
 contain changes outside the commit being pushed.
 
 Changes to bootstrap, preload, sync, catalog, statistics, service workers,
