@@ -1,13 +1,13 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-28
+**Stand:** 2026-10-29
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
 ## Gesamtbild
 
-Die automatische Kartenerstellung aus einer Quelldatei ist als dritter Erstellungsweg bis zur Auftragsprüfung bedienbar: Dateiauswahl einschließlich DOCX/PPTX, diskrete Lernwünsche, Zielstapel, Entwurfsschutz und deutsche Prompt-Zusammenstellung. Quellenverarbeitung und KI-Anbindung fehlen bewusst noch; es werden weder Dateien übertragen noch Karten oder Stapel angelegt.
+Die automatische Kartenerstellung aus einer Datei oder eingefügtem Text ist als dritter Erstellungsweg bis zur Auftragsprüfung bedienbar. Drei Bereiche zeigen Quelle und Stapel, Lernwünsche sowie Kartenformate und Ergänzungen; ab 1280 px stehen sie nebeneinander, darunter werden sie schrittweise durchlaufen. Einfache Fragen ersetzen abstrakte Feldnamen. Die Lernzielauswahl entfällt; Sprache, Formulierung bis zur Fachsprache und optionale Freitextwünsche sind unabhängig wählbar. Ein einziges Stapelziel, Entwurfsschutz und Prompt-Zusammenstellung bleiben erhalten. Quellenverarbeitung und KI-Anbindung fehlen bewusst noch; es werden weder Dateien übertragen noch Karten oder Stapel angelegt.
 
 CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel und Supabase sind angebunden. Der technische Unterbau für Account, lokalen Import, Review, Varianten, Cloud-Sync, Konflikte und APKG-Medien ist vorhanden; die manuelle Produkt-, Accessibility- und Hosted-Betriebsabnahme ist noch nicht vollständig.
 

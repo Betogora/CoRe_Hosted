@@ -1630,6 +1630,9 @@ video {
 .min-h-4 {
   min-height: 1rem;
 }
+.min-h-40 {
+  min-height: 10rem;
+}
 .min-h-48 {
   min-height: 12rem;
 }
@@ -1837,6 +1840,9 @@ video {
 }
 .max-w-5xl {
   max-width: 64rem;
+}
+.max-w-7xl {
+  max-width: 80rem;
 }
 .max-w-\[14\.75rem\] {
   max-width: 14.75rem;
@@ -4781,6 +4787,119 @@ summary {
   .exam-month-entry { gap: 2px; padding-inline: 0; font-size: clamp(10px, 3vw, var(--core-type-caption)); }
 }
 
+/* Automatische Kartenerstellung */
+.core-ai-source-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--core-space-xl);
+  padding: var(--core-space-sm) var(--core-space-xs) var(--core-space-md);
+}
+.core-ai-source-illustration {
+  position: relative;
+  width: 8rem;
+  height: 7rem;
+  flex-shrink: 0;
+}
+.core-ai-source-illustration > span {
+  position: absolute;
+  inset: var(--core-space-md) var(--core-space-xl);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-control);
+  background: var(--core-warning-surface);
+  transform: translateX(-1rem) rotate(-16deg);
+}
+.core-ai-source-illustration > span:nth-child(2) {
+  background: var(--core-success-surface);
+  transform: translateX(0.25rem) rotate(10deg);
+}
+.core-ai-source-illustration > span:last-child {
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: var(--core-space-sm);
+  padding: var(--core-space-lg);
+  background: var(--core-surface);
+  color: var(--core-action-primary);
+  box-shadow: var(--core-shadow-soft);
+  transform: rotate(-4deg);
+}
+.core-ai-source-illustration i {
+  width: 100%;
+  height: var(--core-space-xs);
+  border-radius: var(--core-radius-round);
+  background: var(--core-info-surface);
+}
+.core-ai-source-illustration i:last-child { width: 60%; }
+.core-ai-source-column {
+  --core-ai-source-tint: var(--core-info-surface);
+  padding: var(--core-space-xl);
+  border: var(--core-border-width) solid var(--core-border);
+  border-radius: var(--core-radius-panel);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--core-ai-source-tint) 32%, var(--core-surface)), var(--core-surface) 8rem);
+  box-shadow: var(--core-shadow-soft);
+}
+.core-ai-source-column[data-tone="wishes"] { --core-ai-source-tint: var(--core-success-surface); }
+.core-ai-source-column[data-tone="cards"] { --core-ai-source-tint: var(--core-warning-surface); }
+.core-ai-source-section-heading { display: flex; align-items: center; gap: var(--core-space-md); margin-bottom: var(--core-space-xs); }
+.core-ai-source-section-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  border-radius: var(--core-radius-control);
+  background: var(--core-ai-source-tint);
+  color: var(--core-text-secondary);
+}
+.core-ai-source-column :is(.core-field, button[role="combobox"]) { box-shadow: none; }
+.core-ai-source-column .core-field-label { color: var(--core-text-secondary); }
+.core-ai-source-column [data-file-drop-field="true"] {
+  border-width: var(--core-border-width);
+  background: color-mix(in srgb, var(--core-info-surface) 28%, var(--core-surface));
+}
+.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] { display: flex; flex-direction: column; gap: var(--core-space-md); min-height: 0; border-style: solid; background: var(--core-surface); }
+.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid { min-height: 0; }
+.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .mt-4 { order: -1; margin-top: 0; }
+.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid > div > :is(svg, p) { display: none; }
+.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid button { margin-top: 0; }
+.core-ai-source-format {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: space-between;
+  gap: var(--core-space-md);
+  min-height: 5rem;
+  cursor: pointer;
+  border: var(--core-border-width) solid transparent;
+  border-radius: var(--core-radius-control);
+  padding: var(--core-space-md);
+  background: var(--core-surface-muted);
+}
+.core-ai-source-format:has(input:checked) {
+  border-color: var(--core-border-interactive);
+  background: color-mix(in srgb, var(--core-info-surface) 48%, var(--core-surface));
+}
+.core-ai-source-format:hover { border-color: var(--core-action-primary); }
+.core-ai-source-format input { justify-self: end; }
+.core-ai-source-radio + .core-ai-source-radio { border-top: var(--core-border-width) solid var(--core-border); }
+.core-ai-source-target {
+  display: flex;
+  align-items: center;
+  gap: var(--core-space-md);
+  border-radius: var(--core-radius-control);
+  padding: var(--core-space-sm) var(--core-space-md);
+  background: var(--core-surface-muted);
+}
+.core-ai-source-progress { display: flex; gap: var(--core-space-xs); }
+.core-ai-source-progress span { width: 1.5rem; height: var(--core-space-xs); border-radius: var(--core-radius-round); background: var(--core-border); }
+.core-ai-source-progress span[data-complete="true"] { background: var(--core-action-primary); }
+@media (max-width: 639px) {
+  .core-ai-source-intro { padding-block: 0; }
+  .core-ai-source-illustration { display: none; }
+  .core-ai-source-column { padding: var(--core-space-lg); }
+  .core-ai-source-intro h2 { font-size: var(--core-type-heading-2); line-height: var(--core-leading-heading-2); }
+}
+
 /* Modulare Heute-Seite */
 .dashboard-widget-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 8px; grid-auto-flow: row dense; gap: 0 1.75rem; align-items: start; }
 .dashboard-widget { min-width: 0; grid-column: span 12; border-radius: var(--core-radius-panel); }
@@ -5109,10 +5228,6 @@ summary {
     grid-column: span 1 / span 1;
   }
 
-  .sm\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .sm\:col-start-2 {
     grid-column-start: 2;
   }
@@ -5232,10 +5347,6 @@ summary {
 
   .sm\:grid-cols-7 {
     grid-template-columns: repeat(7, minmax(0, 1fr));
-  }
-
-  .sm\:grid-cols-\[10rem_minmax\(0\2c 1fr\)\] {
-    grid-template-columns: 10rem minmax(0,1fr);
   }
 
   .sm\:grid-cols-\[2\.5rem_1fr\] {
@@ -5590,6 +5701,14 @@ summary {
 
   .xl\:block {
     display: block;
+  }
+
+  .xl\:inline-flex {
+    display: inline-flex;
+  }
+
+  .xl\:grid {
+    display: grid;
   }
 
   .xl\:hidden {
@@ -6083,12 +6202,14 @@ html { scroll-behavior: smooth; }
 <h4 id="specs--automatische-erstellung-aus-einer-quelle" class="catalog-label" tabindex="-1">Automatische Erstellung aus einer Quelle</h4>
 <ul>
 <li>Der dritte Einstieg „Karten automatisch erstellen lassen“ öffnet <code>/neue-karten?method=ai-source</code>. Desktop zeigt drei gleichwertige Aktionskarten, Mobilgeräte eine Spalte.</li>
-<li>Eine einzelne PDF-, TXT-, Markdown-, CSV-, TSV-, DOCX- oder PPTX-Datei wird per Auswahl oder Drag-and-drop temporär im Browser gehalten. Dateiname, Größe, Ersetzen und Entfernen sind sichtbar. Leere und nicht unterstützte Dateien werden mit Meldung abgelehnt, eine gültige vorherige Auswahl bleibt erhalten. Die erweiterten Formate gelten nur für diesen Weg.</li>
-<li>Direkt sichtbar sind Lernziel (Wissen abrufen, Zusammenhänge verstehen, Wissen anwenden, Gemischt), Stoffabdeckung (Überblick, Gründlich, Sehr genau), Antwortumfang (Knapp, Mit kurzer Erklärung, Ausführlicher erklärt) und die erlaubten Kartenformen (Frage–Antwort, Lückentext, Single Choice, Multiple Choice). Standards: Gemischt, Gründlich, Mit kurzer Erklärung und alle vier Formen. Mindestens eine Form ist erforderlich; ihre Auswahl erlaubt sie, erzwingt sie aber nicht.</li>
-<li>„Weitere Einstellungen“ enthält Vorwissen (Neu im Thema, Grundkenntnisse, Fortgeschritten; Standard Grundkenntnisse), optionalen Lernkontext und Wünsche sowie „Zusätzliche Erklärungen erlauben“ (standardmäßig an). Ergänzungen außerhalb der Quelle werden gesondert gekennzeichnet und dürfen die erwartete Antwort nicht erweitern. Ohne Ergänzungen müssen auch Erklärungen aus der Quelle stammen.</li>
+<li>Das Formular zeigt drei nummerierte Bereiche: „Quelle &amp; Stapel“, „Deine Lernwünsche“ und „Deine Karten“. Ab 1280 px stehen sie nebeneinander; darunter führt „Weiter“ beziehungsweise „Zurück“ durch jeweils einen sichtbaren Schritt. Die Eingaben bleiben beim Schritt- und Layoutwechsel erhalten. Die Beschriftungen sind einfache Fragen und werden in der Auftragsprüfung wiederverwendet.</li>
+<li>„Woraus sollen die Karten entstehen?“ erlaubt eine Datei oder eingefügten Text. Eine einzelne PDF-, TXT-, Markdown-, CSV-, TSV-, DOCX- oder PPTX-Datei wird per Auswahl oder Drag-and-drop temporär im Browser gehalten. Dateiname, Größe, Ersetzen und Entfernen sind sichtbar. Leere und nicht unterstützte Dateien werden mit Meldung abgelehnt, eine gültige vorherige Auswahl bleibt erhalten. Text darf nicht nur aus Leerzeichen bestehen. Beim Wechsel der Quellenart bleiben beide Eingaben erhalten; validiert und geprüft wird nur die aktive Quelle. Die erweiterten Dateiformate gelten nur für diesen Weg.</li>
+<li>„Möchtest du einen neuen Stapel anlegen?“ fragt im ersten Bereich nach Ja/Nein. Bei Ja folgt der Name, bei Nein die Auswahl eines vorhandenen Stapels. Im dritten Bereich wird dasselbe Ziel angezeigt; „Stapel ändern“ führt zur ursprünglichen Auswahl, ohne ein zweites unabhängiges Stapelziel anzulegen.</li>
+<li>Die Lernwünsche enthalten Stoffabdeckung (Überblick, Gründlich, Sehr genau), Antwortumfang (Knapp, Mit kurzer Erklärung, Ausführlicher erklärt), Sprache (Deutsch, Englisch, Wie in der Quelle), Formulierung (Einfach verständlich, Fachbegriffe erklären, Fachsprache verwenden), Vorwissen (Neu im Thema, Grundkenntnisse, Fortgeschritten) und optionale Freitextwünsche. Standards: Gründlich, Mit kurzer Erklärung, Deutsch, Fachbegriffe erklären, Grundkenntnisse. Eine gesonderte Auswahl des Lernziels entfällt; passende Abruf-, Verständnis- und Anwendungsfragen werden ohne feste Quoten kombiniert.</li>
+<li>„Welche Kartenformate möchtest du?“ erlaubt Frage–Antwort, Lückentext, Single Choice und Multiple Choice; standardmäßig sind alle vier ausgewählt. Mindestens eine Form ist erforderlich; ihre Auswahl erlaubt sie, erzwingt sie aber nicht. „Dürfen Informationen ergänzt werden, die in deiner Quelle fehlen?“ bietet „Nur meine Quelle verwenden“ (Standard) oder „Ergänzungen erlauben und kennzeichnen“. Erlaubte Ergänzungen dürfen fachliche Lücken schließen und müssen auch in Fragen oder erwarteten Antworten als „Ergänzung – außerhalb der Quelle“ gekennzeichnet sein. Quellenbelege dürfen nicht erfunden werden. Ohne Ergänzungen müssen Fragen, Antworten und Erklärungen aus der Quelle stammen.</li>
 <li>Stoffabdeckung und Antwortumfang bleiben unabhängig: mehr Abdeckung bedeutet bei Bedarf mehr gezielte Karten; die erwartete Antwort bleibt kurz und Erklärungen stehen getrennt darunter. Es gibt keine Abfrage von Prozenten, Mischungsverhältnissen oder Kartenanzahl.</li>
 <li>Ein übergebenes Stapelziel wird vorausgewählt. Andernfalls ist ein neuer Stapel vorgesehen; sein bearbeitbarer Namensvorschlag stammt aus dem Dateinamen. Ein bestehender Stapel muss verfügbar und ein neuer Name nicht leer sein.</li>
-<li>„Auftrag prüfen“ validiert Datei, Kartenformen und Ziel und zeigt dann alle wirksamen Angaben. „Einstellungen bearbeiten“ erhält Datei und Einstellungen. Der vorhandene Entwurfsschutz gilt beim Verlassen, auch über Browser-Zurück/-Vorwärts; bestätigtes Verlassen und Reload verwerfen den Entwurf.</li>
+<li>„Auftrag prüfen“ validiert die aktive Quelle, Kartenformen und Ziel und zeigt dann alle wirksamen Angaben. Eingefügter Text lässt sich dort aufklappen. „Einstellungen bearbeiten“ erhält Quelle und Einstellungen. Der vorhandene Entwurfsschutz gilt beim Verlassen, auch über Browser-Zurück/-Vorwärts; bestätigtes Verlassen und Reload verwerfen den Entwurf.</li>
 <li>Bereits das Formular meldet „Die automatische Erstellung ist noch nicht verfügbar.“ In der Zusammenfassung bleibt „Karten erstellen“ deaktiviert. Es werden keine Dateien ausgelesen oder übertragen und keine Karten oder Stapel angelegt; erfundene Kartenzahlen und Ergebnisse erscheinen nicht.</li>
 </ul>
 <h4 id="specs--bildverdeckung" class="catalog-label" tabindex="-1">Bildverdeckung</h4>
@@ -6585,7 +6706,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.285</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">35.928</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">198</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 305 Zeilen, Lernen &amp; Karten: 2.799 Zeilen, Erstellen &amp; Import: 1.756 Zeilen, Prüfungen: 425 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 634 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 24.940641611699476 1.6536090615962422 L 23.510455881996997 6.964406438502593 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="305"></path><path d="M 24.940641611699476 1.6536090615962422 A 19 19 0 0 1 28.510637960482747 36.98732002128617 L 26.047032235079847 32.06993790986123 A 13.5 13.5 0 0 0 23.510455881996997 6.964406438502593 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2799"></path><path d="M 28.510637960482747 36.98732002128617 A 19 19 0 0 1 3.518273419096605 29.452655125008132 L 8.289299534621273 26.716360220400514 A 13.5 13.5 0 0 0 26.047032235079847 32.06993790986123 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1756"></path><path d="M 3.518273419096605 29.452655125008132 A 19 19 0 0 1 1.2253491724365801 22.91761654489965 L 6.6601165172575705 22.073043334533963 A 13.5 13.5 0 0 0 8.289299534621273 26.716360220400514 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="425"></path><path d="M 1.2253491724365801 22.91761654489965 A 19 19 0 0 1 2.039226416596936 13.802370430097433 L 7.238397717055719 15.596421095069228 A 13.5 13.5 0 0 0 6.6601165172575705 22.073043334533963 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 2.039226416596936 13.802370430097433 A 19 19 0 0 1 7.880738853776851 5.367040310666951 L 11.388946027683552 9.602897062842308 A 13.5 13.5 0 0 0 7.238397717055719 15.596421095069228 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="634"></path><path d="M 7.880738853776851 5.367040310666951 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 11.388946027683552 9.602897062842308 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">7.285 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>305</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.799</td><td>38,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.756</td><td>24,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>425</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>7,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>634</td><td>8,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 38 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">7.317</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">36.051</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft min-w-0"><dt class="core-caption !font-semibold text-core-muted"><span>Quelldateien</span></dt><dd class="core-heading-3 mt-auto pt-1 text-core-text">198</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 305 Zeilen, Lernen &amp; Karten: 2.799 Zeilen, Erstellen &amp; Import: 1.788 Zeilen, Prüfungen: 425 Zeilen, Statistik: 564 Zeilen, Konto &amp; Sync: 634 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 24.91953177408838 1.6479372515312392 L 23.49545678685227 6.960376468193248 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="305"></path><path d="M 24.91953177408838 1.6479372515312392 A 19 19 0 0 1 28.708940496815096 36.886514010385156 L 26.187931405631776 31.998312586326293 A 13.5 13.5 0 0 0 23.49545678685227 6.960376468193248 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2799"></path><path d="M 28.708940496815096 36.886514010385156 A 19 19 0 0 1 3.432500618228893 29.301503331989622 L 8.228355702425793 26.6089628937821 A 13.5 13.5 0 0 0 26.187931405631776 31.998312586326293 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1788"></path><path d="M 3.432500618228893 29.301503331989622 A 19 19 0 0 1 1.203873344831198 22.775900351751275 L 6.644857376590588 21.97235024992854 A 13.5 13.5 0 0 0 8.228355702425793 26.6089628937821 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="425"></path><path d="M 1.203873344831198 22.775900351751275 A 19 19 0 0 1 2.073059413072354 13.705176635300539 L 7.262436951393514 15.527362346134593 A 13.5 13.5 0 0 0 6.644857376590588 21.97235024992854 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="564"></path><path d="M 2.073059413072354 13.705176635300539 A 19 19 0 0 1 7.925060596547855 5.330445187294922 L 11.420437792284002 9.576895264656917 A 13.5 13.5 0 0 0 7.262436951393514 15.527362346134593 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="634"></path><path d="M 7.925060596547855 5.330445187294922 A 19 19 0 0 1 19.99999999999998 1 L 19.999999999999986 6.5 A 13.5 13.5 0 0 0 11.420437792284002 9.576895264656917 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">7.317 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>305</td><td>4,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.799</td><td>38,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>24,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>425</td><td>5,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>564</td><td>7,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>634</td><td>8,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 38 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);
