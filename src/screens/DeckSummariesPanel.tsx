@@ -152,7 +152,6 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     open(stored);
     if (replaced) setNotice(`Diese Fassung wurde auf einem anderen Gerät geändert. Deine Änderungen stehen in „${stored.title}“.`);
   }
-  /** Deletes on every device; offline the deletion waits locally and the list drops the version at once. */
   async function confirmDelete() {
     if (!deleting || operationRef.current) return;
     operationRef.current = true; setBusy(true); setError("");
