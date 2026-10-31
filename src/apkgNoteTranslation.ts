@@ -16,6 +16,7 @@ import type {
 import { makeId, stableContentHash } from "./coreModel/coreValues.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
 import { createNote } from "./coreModel/notes.ts";
+import { normalizeTags, splitAnkiSystemTags } from "./coreModel/tags.ts";
 import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
 import { compileSafeTemplate, type SafeTemplateAstNode } from "./safeTemplate.ts";
 import { scheduleWithFsrs } from "./scheduler.ts";
@@ -915,8 +916,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
     const entry = planFor(String(ankiNote.mid));
     const ankiCards = cardsByNote.get(String(ankiNote.id))!.sort((left, right) => Number(left.ord ?? 0) - Number(right.ord ?? 0));
     const values = String(ankiNote.flds ?? "").split("\u001f").map(media.rewrite);
-    const rawTags = String(ankiNote.tags ?? "").split(/\s+/).filter(Boolean);
-    const tags = rawTags.filter((tag) => tag.toLowerCase() !== "marked");
+    const { tags, marked, leech } = splitAnkiSystemTags(normalizeTags(String(ankiNote.tags ?? "")));
     const createdMs = Number(ankiNote.id);
     const input = {
       deckId: deckIdForAnkiDeck(homeDeck(ankiCards[0])),
@@ -942,7 +942,8 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         continue;
       }
     }
-    const note: Note = { ...created.note, marked: rawTags.length !== tags.length };
+    const note: Note = { ...created.note, marked };
+    const firstCardIndex = cards.length;
     const ankiCardByKey = new Map(ankiCards.map((card) => [keyOf(Number(card.ord ?? 0)), card]));
     droppedCards += ankiCards.filter((card) => !created.cards.some((candidate) => candidate.promptKey === keyOf(Number(card.ord ?? 0)))).length;
     for (const card of created.cards) {
@@ -962,6 +963,15 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         const event = reviewEvent(historyEntry, card.id);
         if (reviewEvents.has(event.id)) duplicateEvents += 1;
         else reviewEvents.set(event.id, event);
+      }
+    }
+    if (leech) {
+      // Anki tags the note; CoRe marks its lapsed cards as leeches, or all of them if none lapsed.
+      const anyLapse = cards.slice(firstCardIndex).some((card) => card.study.lapses > 0);
+      for (let index = firstCardIndex; index < cards.length; index += 1) {
+        const card = cards[index];
+        if (anyLapse && card.study.lapses === 0) continue;
+        cards[index] = { ...card, study: { ...card.study, leechedAt: card.study.lastReviewedAt ?? importedAt } };
       }
     }
     for (const name of noteContentMediaRefs(note.content)) {

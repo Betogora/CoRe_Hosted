@@ -114,12 +114,12 @@ test("Hinweis, Quelle und Eintippen werden als Rollen und Abfrage-Eigenschaft ge
   assert.equal(forward.typeInFieldId, "back");
 });
 
-test("Schlagwörter werden getrimmt, ohne leere Einträge und Duplikate übernommen", () => {
-  const fromList = createNote({ deckId: "deck", content: createManualNoteContent(manual({ kind: "basic", front: "F", back: "A", tags: ["Biologie", " Zelle ", "", "Zelle"] })) });
-  const fromText = createManualNoteContent(manual({ kind: "basic", front: "F", back: "A", tags: "Biologie, Zelle;#Zelle" }));
+test("Tags werden wie in Anki normalisiert: ohne Leerraum, ohne Duplikate gleich welcher Schreibweise", () => {
+  const fromList = createNote({ deckId: "deck", content: createManualNoteContent(manual({ kind: "basic", front: "F", back: "A", tags: ["Biologie", " Zelle ", "", "zelle"] })) });
+  const fromText = createManualNoteContent(manual({ kind: "basic", front: "F", back: "A", tags: "Biologie, Zelle;#Zelle  #AK_Step1_v12::#B&B" }));
 
   assert.deepEqual(fromList.note.content.tags, ["Biologie", "Zelle"]);
-  assert.deepEqual(fromText.tags, ["Biologie", "Zelle"]);
+  assert.deepEqual(fromText.tags, ["Biologie,", "Zelle;#Zelle", "#AK_Step1_v12::#B&B"]);
 });
 
 test("Auswahlfragen prüfen Optionen und richtige Antworten mit deutschen Meldungen", () => {

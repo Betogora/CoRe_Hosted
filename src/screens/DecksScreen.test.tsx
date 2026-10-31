@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { DecksScreenProps } from "../appScreenProps.ts";
+import type { CardEditorServices, DecksScreenProps } from "../appScreenProps.ts";
 import { addCardVariant, addNoteField, createBasicNote, createCoreDeck, createManualNoteContent, createNote, setCardSuspended, setNoteMarked, type ManualNoteInput } from "../coreModel.ts";
 import type { Deck } from "../coreTypes.ts";
 import type { DeckLibrarySummary } from "../libraryModel.ts";
@@ -46,6 +46,25 @@ function summaryWithTotal(deck: Deck, totalCards: number): DeckLibrarySummary {
   };
 }
 
+const CARD_EDITOR_SERVICES: CardEditorServices = {
+  flagNames: [],
+  moveCard: async () => null,
+  resetCards: async () => [],
+  setCardsLeech: async () => [],
+  buryCards: async () => [],
+  restoreCardStudies: async () => [],
+  editVariant: async () => undefined,
+  removeNoteMedia: async () => null,
+  loadCard: async () => null,
+  listReviewEvents: async () => [],
+  listTagDirectory: async () => [],
+  listExamsForDeck: async () => [],
+  prefetchCard: () => undefined,
+  cloud: null,
+  openFlagNames: () => undefined,
+  openSyncConflicts: () => undefined,
+};
+
 function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) {
   const props: DecksScreenProps = {
     decks,
@@ -55,6 +74,9 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     mediaStore: null,
     selectedDeckId: null,
     selectedCardId: null,
+    cardEditorTab: "general",
+    onCardEditorTabChange: () => undefined,
+    cardEditor: CARD_EDITOR_SERVICES,
     onSelectDeck: () => undefined,
     onSetDeckCoreMode: () => undefined,
     onSaveNote: async () => null,
@@ -112,8 +134,8 @@ test("deck content shows only its own cards without deck headings and uses the e
     selectedCardId: atp.cards[0].id,
     cardPages: { ...cardPages, [deck.id]: cardPage(deck.id, [atp], { selected: selectedOf(atp) }) },
   });
-  assert.match(editor, /data-testid="card-detail-aside"/);
-  assert.match(editor, /Karte bearbeiten/);
+  assert.match(editor, /data-testid="card-detail-dialog"/);
+  assert.match(editor, /aria-label="Bereiche der Karte"/);
   assert.match(editor, /Speichern|Vorschau|Kopieren|Löschen|Varianten/);
 });
 
@@ -196,8 +218,8 @@ test("deck content includes its complete subtree without its parent or other bra
     selectedCardId: grandchildGraph.cards[0].id,
     cardPages: { ...cardPages, grandchild: cardPage("grandchild", [grandchildGraph], { selected: selectedOf(grandchildGraph) }) },
   });
-  assert.match(editor, /data-testid="card-detail-aside"/);
-  assert.match(editor, /Karte bearbeiten/);
+  assert.match(editor, /data-testid="card-detail-dialog"/);
+  assert.match(editor, /aria-label="Bereiche der Karte"/);
   assert.doesNotMatch(editor, /Karte nicht gefunden/);
 });
 
@@ -216,8 +238,8 @@ test("deck content renders paged subdecks and resolves a direct card link to its
   });
   assert.match(markup, /Katalog-Unterkarte/);
   assert.match(markup, /Seite 1 von 2/);
-  assert.match(markup, /data-testid="card-detail-aside"/);
-  assert.match(markup, /Karte bearbeiten/);
+  assert.match(markup, /data-testid="card-detail-dialog"/);
+  assert.match(markup, /aria-label="Bereiche der Karte"/);
 
   const edited = {
     ...graph,
@@ -235,7 +257,7 @@ test("deck content renders paged subdecks and resolves a direct card link to its
       [child.id]: cardPage(child.id, [edited], { totalCount: 60, selected: selectedOf(edited) }),
     },
   });
-  const detailMarkup = updatedMarkup.slice(updatedMarkup.indexOf('data-testid="card-detail-aside"'));
+  const detailMarkup = updatedMarkup.slice(updatedMarkup.indexOf('data-testid="card-detail-dialog"'));
   assert.match(updatedMarkup, /Aktualisierte Unterkarte/);
   assert.match(detailMarkup, /aria-label="Markierung entfernen"/);
 });
@@ -390,12 +412,13 @@ test("cards page keeps logical chevrons while capping visual depth at level six"
   }
 });
 
-test("card selection opens a non-modal detail aside with editor, copy and visible tools", () => {
+test("card selection opens the full-surface editor dialog with header, tabs and the general tab", () => {
   const graph = basicGraph("deck-bio", "Welche Funktion hat ATP?", "Ein Energieträger.");
-  const card = { ...graph.cards[0], study: { ...graph.cards[0].study, dueAt: "2026-08-05T04:00:00.000Z" } };
+  const card = { ...graph.cards[0], study: { ...graph.cards[0].study, state: "review" as const, reps: 3, dueAt: "2026-08-05T04:00:00.000Z" } };
   const selected = { ...graph, cards: [card] };
   const deck = deckOf("deck-bio", "Biologie", [selected]);
   const markup = renderScreen([deck], {
+    expandedDeckIds: [deck.id],
     selectedDeckId: deck.id,
     selectedCardId: card.id,
     dayStartHour: 4,
@@ -403,40 +426,64 @@ test("card selection opens a non-modal detail aside with editor, copy and visibl
     cardPages: { [deck.id]: cardPage(deck.id, [selected], { selected: selectedOf(selected) }) },
   });
 
-  assert.match(markup, /<aside[^>]*aria-label="Kartendetail"/);
+  assert.match(markup, /role="dialog" aria-modal="true" aria-labelledby="[^"]+-title"[^>]*data-testid="card-detail-dialog"/);
   assert.match(markup, /data-testid="card-detail-backdrop"/);
-  assert.match(markup, /lg:w-1\/2/);
-  assert.match(markup, /Karte bearbeiten/);
-  assert.match(markup, />Frage und Antwort</);
-  assert.doesNotMatch(markup, /Karten aus diesem Inhalt/);
+  assert.doesNotMatch(markup, /<aside|lg:w-1\/2/);
+  assert.match(markup, /<h2[^>]*>Welche Funktion hat ATP\?<\/h2>/);
+  assert.match(markup, /data-testid="card-sibling-position">Frage und Antwort</);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Vorige Karte"/);
+  assert.match(markup, /aria-label="Karte 1 von 1">1 \/ 1</);
+  for (const label of ["Duplizieren", "Löschen", "Detailansicht schließen"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
+  const tabs = markup.match(/<div role="tablist"[\s\S]*?<\/div>/)?.[0] ?? "";
+  assert.deepEqual([...tabs.matchAll(/role="tab"[^>]*><span[^>]*>([^<]+)/g)].map((match) => match[1]), ["Allgemein", "Inhalt", "Varianten", "Lernen"]);
+  assert.match(tabs, /aria-selected="true"[^>]*><span[^>]*>Allgemein/);
+  assert.match(markup, /data-testid="card-general-tab"/);
+  assert.match(markup, /aria-label="Flagge Rot"/);
   assert.match(markup, /aria-label="Karte markieren"/);
-  assert.match(markup, /class="mb-3" data-card-study-state-controls="true"/);
-  assert.match(markup, /aria-label="Aussetzstatus der Karte"/);
-  assert.match(markup, />Nicht aussetzen</);
-  assert.doesNotMatch(markup, /role="switch"/);
-  assert.doesNotMatch(markup, /Aussetzen pausiert alle Varianten/);
-  assert.match(markup, /aria-label="Feld Vorderseite"/);
-  assert.match(markup, /aria-label="Feld Rückseite"/);
-  assert.match(markup, /Vorschau<\/span><\/button>/);
-  assert.match(markup, />Kopieren<\/button>/);
-  assert.doesNotMatch(markup, /Sichere Karten-Vorschau/);
-  assert.match(markup, /Nächste Fälligkeit/);
+  assert.match(markup, /data-testid="card-plan-state">Fällig am 05\.08\.2026</);
   assert.match(markup, /data-core-date-picker="trigger"/);
-  assert.match(markup, />05\.08\.2026</);
-  assert.doesNotMatch(markup, /type="date"/);
-  assert.match(markup, />Neu planen<\/span><\/button>/);
-  assert.doesNotMatch(markup, /Details und Herkunft|Version zum Wiederherstellen|Frühere Version wiederherstellen|Änderungslogeinträge|Details, Herkunft und Versionen/);
-  assert.match(markup, /<section[^>]*data-testid="card-variant-tools"/);
-  assert.doesNotMatch(markup, /<details|<summary/);
-  assert.match(markup, /Variante generieren/);
-  assert.match(markup, /Sendet nur Frage und Antwort an GPT-6 Luna/);
-  assert.match(markup, /Detailansicht schließen/);
+  assert.doesNotMatch(markup, />Neu planen</, "Neu planen erscheint erst nach einer Datumsänderung");
+  assert.match(markup, /aria-pressed="false"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Aussetzen/);
+  assert.match(markup, />Zurückstellen</);
+  assert.match(markup, />Verschieben</);
+  assert.match(markup, /Tags bearbeiten/);
+  assert.match(markup, /data-testid="card-details"/);
+  assert.match(markup, /aria-label="Karten-ID kopieren"/);
+  assert.doesNotMatch(markup, /Ähnliche Inhalte/, "ohne Cloud entfällt der Bereich");
+  assert.doesNotMatch(markup, /aria-label="Feld Vorderseite"|data-testid="card-variant-tools"/, "nur der geöffnete Reiter wird geladen");
   assert.doesNotMatch(markup, /Karten entfernen\?|Karte löschen\?|Synchronisierung klären/);
 });
 
-test("cards page shows suspended rows and marked stars beside the fixed-width variant icon", () => {
+test("from a session the editor opens without a hit list", () => {
   const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
-  const marked = { note: setNoteMarked(graph.note, true), cards: [setCardSuspended(graph.cards[0], true)] };
+  const deck = deckOf("deck-bio", "Biologie", [graph]);
+  const markup = renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: graph.cards[0].id,
+    cardEditorTab: "content",
+    onCloseSelectedCard: () => undefined,
+    cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
+  });
+  assert.doesNotMatch(markup, /data-testid="card-hit-navigation"/);
+  assert.match(markup, /aria-selected="true"[^>]*><span[^>]*>Inhalt/);
+  assert.match(markup, /data-testid="card-content-tab"/);
+});
+
+test("prev and next walk the loaded hits and load the neighbouring page at a page end", () => {
+  const graphs = ["Erste", "Zweite", "Dritte"].map((front) => basicGraph("deck-bio", front, "Antwort"));
+  const deck = deckOf("deck-bio", "Biologie", graphs);
+  const page = (selected: NoteGraph) => ({ [deck.id]: cardPage(deck.id, graphs, { totalCount: 53, selected: selectedOf(selected) }) });
+  const middle = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[1].cards[0].id, cardPages: page(graphs[1]) });
+  assert.match(middle, /aria-label="Karte 2 von 53">2 \/ 53</);
+  assert.doesNotMatch(middle, /<button[^>]*disabled=""[^>]*aria-label="(Vorige|Nächste) Karte"/);
+  const last = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: page(graphs[2]) });
+  assert.doesNotMatch(last, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/, "am Seitenende lädt Weiter die nächste Seite");
+  const only = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: { [deck.id]: cardPage(deck.id, graphs, { selected: selectedOf(graphs[2]) }) } });
+  assert.match(only, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/);
+});
+test("cards page shows suspended rows and marked stars; the editor tints only a marked card", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const marked = { note: setNoteMarked(graph.note, true), cards: [setCardSuspended({ ...graph.cards[0], ankiFlag: 2 }, true)] };
   const deck = deckOf("deck-bio", "Biologie", [marked]);
   const markup = renderScreen([deck], {
     expandedDeckIds: [deck.id],
@@ -447,16 +494,19 @@ test("cards page shows suspended rows and marked stars beside the fixed-width va
 
   assert.match(markup, /data-suspended="true"/);
   assert.match(markup, /sr-only[^>]*> · Ausgesetzt</);
-  assert.match(markup, /bg-core-warning-soft/);
-  assert.match(markup, /data-testid="card-detail-aside"[^>]*\[scrollbar-gutter:stable\]/);
-  const editorSurface = markup.match(/<section[^>]*data-testid="card-detail-editor"[^>]*>/)?.[0] ?? "";
-  assert.match(editorSurface, /style="background-color:var\(--core-warning-surface\)"/);
   assert.match(markup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/);
+  const dialog = markup.match(/<div[^>]*data-testid="card-detail-dialog"[^>]*>/)?.[0] ?? "";
+  assert.match(dialog, /data-marked="true"/);
+  assert.match(dialog, /bg-core-marked-soft/);
+  assert.match(dialog, /--core-text-muted:var\(--core-marked-text-muted\)/);
+  assert.doesNotMatch(dialog, /warning-surface/, "Aussetzen färbt keine Fläche");
+  const icons = markup.slice(markup.indexOf('data-testid="card-status-icons"'), markup.indexOf('role="tablist"'));
+  for (const label of ["Markiert", "Flagge Orange", "Ausgesetzt"]) assert.match(icons, new RegExp(`aria-label="${label}"`));
   assert.match(markup, /aria-label="Markierung entfernen"/);
-  const suspendControl = markup.match(/<div[^>]*aria-label="Aussetzstatus der Karte"[\s\S]*?<\/div>/)?.[0] ?? "";
-  assert.match(suspendControl, /aria-pressed="true"[^>]*>Aussetzen/);
+  assert.match(markup, /aria-pressed="true"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Aussetzen/);
+  assert.match(markup, /aria-pressed="true" aria-label="Flagge Orange"/);
+  assert.match(markup, /data-testid="card-plan-state">Ausgesetzt</);
 });
-
 test("the mark belongs to the content and is shown on every card of the selected content", () => {
   const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.", { reverse: true });
   const [forward, reverse] = graph.cards;
@@ -474,8 +524,7 @@ test("the mark belongs to the content and is shown on every card of the selected
     });
     assert.match(markup, /aria-label="1 aktive Variante">1<\/span>/);
     assert.match(markup, /width="16" height="16"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Variante"/);
-    assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
-    assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
+    assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"><svg[^>]*aria-label="Markiert"/g)].length, 2);
     assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
     assert.match(markup, /aria-label="Markierung entfernen"/);
   }
@@ -488,7 +537,6 @@ test("the mark belongs to the content and is shown on every card of the selected
   assert.doesNotMatch(unmarkedMarkup, /aria-label="Markiert"/);
   assert.match(unmarkedMarkup, /aria-label="Karte markieren"/);
 });
-
 test("the editor names the card's position and lists its siblings with deck and learning state", () => {
   const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.", { reverse: true });
   const deck = deckOf("deck-bio", "Biologie", [graph]);
@@ -499,7 +547,6 @@ test("the editor names the card's position and lists its siblings with deck and 
   });
 
   assert.match(markup, />Frage und Antwort mit Rückrichtung · Rückwärts · 2 Karten aus diesem Inhalt</);
-  assert.equal([...markup.matchAll(/aria-label="Feld (Vorderseite|Rückseite)"/g)].length, 2);
   const siblings = markup.slice(markup.indexOf('data-testid="card-siblings"'));
   assert.match(siblings, /<button[^>]*>.*?Vorwärts.*?Biologie · neu, ohne Lernstand/);
   assert.match(siblings, /aria-current="true">.*?Rückwärts/);
@@ -512,34 +559,8 @@ test("the editor names the card's position and lists its siblings with deck and 
     cardPages: { [clozeDeck.id]: cardPage(clozeDeck.id, [cloze], { selected: selectedOf(cloze, cloze.cards[1].id) }) },
   });
   assert.match(clozeMarkup, />Lückentext · Lücke 2 von 3</);
+  assert.match(clozeMarkup, /<h2[^>]*>ATP ist ein Energieträger der Zelle\.<\/h2>/);
 });
-
-test("outdated AI rephrasings are labelled and offer a targeted regeneration", () => {
-  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
-  const card = addCardVariant(graph.cards[0], { front: "Wofür steht ATP?", back: "Energie", variantLevel: 2, qualityStatus: "active", isActive: true, meta: { generationSource: "ai_generated" } });
-  const outdated = { ...card, variants: card.variants.map((variant) => ({ ...variant, isActive: false, meta: { ...variant.meta, outdated: true } })) };
-  const stale = { ...graph, cards: [outdated] };
-  const markup = renderEditorFor(stale);
-  assert.match(markup, />veraltet</);
-  assert.match(markup, />Variante neu generieren</);
-});
-
-test("reported or switched-off variants can be reactivated; every variant can be deleted", () => {
-  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
-  const card = addCardVariant(graph.cards[0], { front: "Wofür steht ATP?", back: "Energie", qualityStatus: "active", isActive: true });
-  const reported = { ...card, variants: card.variants.map((variant) => ({ ...variant, isActive: false, qualityStatus: "flagged" as const, feedback: [{ id: "f", type: "unklar_formuliert" as const, note: "", createdAt: NOW }] })) };
-  const markup = renderEditorFor({ ...graph, cards: [reported] });
-  assert.match(markup, />gemeldet: unklar formuliert</);
-  assert.match(markup, /data-testid="variant-active-count"[^>]*>0 von \d+ aktiv</);
-  assert.match(markup, /data-testid="variant-readiness"[^>]*>Haltbarkeit 0 von \d+ Tagen · /);
-  assert.match(markup, /aria-label="Variante 1 reaktivieren"/);
-  assert.match(markup, /aria-label="Variante 1 löschen"/);
-
-  const active = renderEditorFor({ ...graph, cards: [card] });
-  assert.doesNotMatch(active, /reaktivieren/, "aktive Varianten bieten nur Löschen an");
-  assert.match(active, /aria-label="Variante 1 löschen"/);
-});
-
 test("cards page shows safe deterministic fallbacks for unavailable URL targets", () => {
   const deck = deckOf("deck-bio", "Biologie", [basicGraph("deck-bio", "ATP", "Energie")]);
   const missingDeckMarkup = renderScreen([deck], { selectedDeckId: "missing-deck" });
@@ -559,11 +580,27 @@ test("cards page shows safe deterministic fallbacks for unavailable URL targets"
   assert.match(failedMarkup, />Erneut laden</);
 });
 
-function renderEditorFor(graph: NoteGraph) {
+test("prev/next shows the loading bar until the page answers for the selected card", () => {
+  const deck = deckOf("deck-bio", "Biologie", [basicGraph("deck-bio", "ATP", "Energie")]);
+  const render = (requestedCardId: string) => renderScreen([deck], {
+    selectedDeckId: deck.id,
+    selectedCardId: "next-card",
+    cardPages: { [deck.id]: { ...cardPage(deck.id, []), requestedCardId } },
+    onRequestCardPage: () => undefined,
+  });
+
+  const loading = render("previous-card");
+  assert.match(loading, /role="progressbar" aria-label="Karte wird geladen"/);
+  assert.doesNotMatch(loading, /Karte nicht gefunden/);
+  assert.match(render("next-card"), /Karte nicht gefunden/);
+});
+
+function renderEditorFor(graph: NoteGraph, cardEditorTab: DecksScreenProps["cardEditorTab"] = "content") {
   const deck = deckOf("deck-editor", "Editor", [graph]);
   return renderScreen([deck], {
     selectedDeckId: deck.id,
     selectedCardId: graph.cards[0].id,
+    cardEditorTab,
     cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
   });
 }
@@ -574,7 +611,13 @@ test("detail editor renders one rich-text editor per content field plus choice o
   assert.match(imageMarkup, /aria-label="Feld Vorderseite"/);
   assert.match(imageMarkup, /aria-label="Feld Rückseite"/);
   assert.match(imageMarkup, /aria-label="Feld Quelle"/);
-  assert.match(imageMarkup, /Tags<\/span><input[^>]*value="bio atp"/);
+  assert.doesNotMatch(imageMarkup, /Tags bearbeiten/, "Tags gehören nicht zum Entwurf");
+  assert.match(imageMarkup, /data-testid="card-live-preview"/);
+  assert.match(imageMarkup, /aria-label="Kartenseite in der Vorschau"/);
+  assert.match(imageMarkup, /aria-label="Ansicht"[\s\S]*?Bearbeiten[\s\S]*?Vorschau/);
+  assert.doesNotMatch(imageMarkup, /role="toolbar"/, "die Werkzeugleiste erscheint erst am aktiven Feld");
+  assert.match(imageMarkup, /data-testid="card-draft-footer"[\s\S]*?Verwerfen[\s\S]*?Speichern/);
+  assert.doesNotMatch(imageMarkup, /data-testid="field-changed"/);
   assert.doesNotMatch(imageMarkup, /Antwortoptionen/);
 
   const clozeMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "Energie", tags: [] }));
@@ -582,7 +625,6 @@ test("detail editor renders one rich-text editor per content field plus choice o
   assert.match(clozeMarkup, /aria-label="Feld Text"/);
   assert.match(clozeMarkup, /aria-label="Feld Zusatzinfo"/);
   assert.match(clozeMarkup, /Lücken mit <code>\{\{c1::Begriff\}\}<\/code> markieren/);
-  assert.match(clozeMarkup, /Varianten gibt es nur für Karten mit Frage und Antwort\./);
 
   const scMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "single-choice", front: "Welche?", back: "Darum", answerOptions: ["A", "B"], correctOptionIndices: [1], tags: [] }));
   assert.match(scMarkup, />Single Choice</);
@@ -610,25 +652,24 @@ test("sync conflicts are named in the row and in the editor", () => {
     cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
   });
   assert.equal([...markup.matchAll(/Synchronisierung klären/g)].length, 2);
-  assert.match(markup, /Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange\./);
+  assert.match(markup, /Konflikt öffnen/);
 });
-
 test("the editor offers direction and building blocks where the content structure allows them", () => {
   const basic = renderEditorFor(basicGraph("deck-editor", "Was ist ATP?", "Energieträger"));
   assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-label="Lernrichtung"/);
+  assert.match(basic, /data-testid="note-direction"[\s\S]*?aria-pressed="false"[^>]*>.*?Antwort eintippen/);
   const basicBlocks = basic.slice(basic.indexOf('data-testid="note-blocks"'));
-  assert.match(basicBlocks, /aria-pressed="false"[^>]*>.*?Antwort eintippen/);
   for (const label of ["Zusatzfrage", "Hinweis", "Zusatz", "Quelle"]) assert.match(basicBlocks, new RegExp(`${label}</button>`));
 
   const cloze = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "" }));
-  assert.doesNotMatch(cloze, /data-testid="note-direction"/);
+  assert.doesNotMatch(cloze, /aria-label="Lernrichtung"|Antwort eintippen/);
   const clozeBlocks = cloze.slice(cloze.indexOf('data-testid="note-blocks"'));
   assert.doesNotMatch(clozeBlocks, /Antwort eintippen/);
   assert.match(clozeBlocks, /Hinweis<\/button>/);
 
   const importedGraph = basicGraph("deck-editor", "Was ist ATP?", "Energieträger");
   const imported = renderEditorFor({ ...importedGraph, note: { ...importedGraph.note, importedContentRevision: importedGraph.note.contentRevision } });
-  assert.doesNotMatch(imported, /data-testid="note-direction"|data-testid="note-blocks"| entfernen"/);
+  assert.doesNotMatch(imported, /aria-label="Lernrichtung"|data-testid="note-blocks"| entfernen"/);
 });
 
 test("der Karteneditor bietet für hinzugefügte Felder Rolle und Reihenfolge wie die Erstellung", () => {
@@ -639,6 +680,7 @@ test("der Karteneditor bietet für hinzugefügte Felder Rolle und Reihenfolge wi
   const editor = renderScreen([deck], {
     selectedDeckId: deck.id,
     selectedCardId: graph.cards[0].id,
+    cardEditorTab: "content",
     cardPages: { [deck.id]: cardPage(deck.id, [graph], { selected: selectedOf(graph) }) },
   });
   assert.match(editor, /aria-label="Rolle von Hinweis"/);
@@ -646,4 +688,19 @@ test("der Karteneditor bietet für hinzugefügte Felder Rolle und Reihenfolge wi
   assert.match(editor, /aria-label="Hinweis nach unten"/);
   assert.match(editor, /aria-label="Zusatz nach oben"/);
   assert.doesNotMatch(editor, /aria-label="Hinweis nach oben"|aria-label="Zusatz nach unten"/, "Pfeile nur, wo ein Nachbar existiert");
+});
+
+test("rows show a named flag dot and the filters read their search terms", () => {
+  const graph = basicGraph("deck-bio", "Was ist ATP?", "Ein Energieträger.");
+  const flagged = { ...graph, cards: [{ ...graph.cards[0], ankiFlag: 5 }] };
+  const deck = deckOf("deck-bio", "Biologie", [flagged]);
+  const markup = renderScreen([deck], {
+    expandedDeckIds: [deck.id],
+    cardEditor: { ...CARD_EDITOR_SERVICES, flagNames: ["", "", "", "", "Prüfung", "", ""] },
+    cardPages: { [deck.id]: cardPage(deck.id, [flagged]) },
+  });
+  assert.match(markup, /data-card-row="true"[\s\S]*?role="img" aria-label="Flagge Prüfung"/);
+  assert.match(markup, /aria-label="Nach Flagge filtern"[\s\S]*?Alle Flaggen/);
+  assert.match(markup, /aria-pressed="false"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Lernbremse/);
+  assert.match(markup, /Nach Tags filtern/);
 });

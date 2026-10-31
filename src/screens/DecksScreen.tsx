@@ -1,45 +1,31 @@
 import React from "react";
-import { createPortal } from "react-dom";
-import { ArrowDown, ArrowLeft, ArrowUp, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Copy, Eye, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, PlusSquare, RotateCcw, Save, Search, Sparkles, Star, Trash2, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, X } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
-import { addNoteField, canRemoveNoteField, isMovableNoteField, moveNoteField, noteBlocks, noteEditorValue, notePromptLabel, noteTextIndex, planNoteContentChange, removeNoteField, renameNoteField, setNoteFieldRole, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../coreModel.ts";
-import { classifyCardEligibility, describeVariantReadiness } from "../coreVariantService.ts";
-import type { AiCardVariantSuccess } from "../aiCardVariantContract.ts";
+import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { getVisibleDeckDepth } from "../deckHierarchy.ts";
-import { stripHtml } from "../htmlSafety.ts";
-import { addLearningDays, getLearningDayKey, getLearningDayStartForKey } from "../learningDay.ts";
-import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createCardTableRow, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
-import { catalogEntryFromCard, type CardCatalogEntry, type NoteGraph } from "../workspaceReplica.ts";
+import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useStableCallback } from "../ui/useStableCallback.ts";
-import { CardPreviewDialog } from "../ui/CardPreviewDialog.tsx";
-import { CardStudyStateControls } from "../ui/CardStudyStateControls.tsx";
-import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
-import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../ui/NoteBlockControls.tsx";
-import { RichTextEditor, type RichTextImageActions } from "../ui/RichTextEditor.tsx";
-import type { ManualImageAttachment } from "../creationWorkflow.ts";
-import type { AccountMediaStore } from "../mediaStore.ts";
-import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+import { FlagDot, flagName } from "../ui/flagUi.tsx";
+import { CoreSelect } from "../ui/selectUi.tsx";
+import { TagInput } from "../ui/TagInput.tsx";
+import { readCardSearchFilters, withCardSearchFilter } from "../cardSearchQuery.ts";
+import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
 import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
 import { DeckSubstacksPanel } from "./DeckSubstacksPanel.tsx";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
-import type { Card, CardStudyStatePatch, CardVariant, Deck, Note, NoteContent } from "../coreTypes.ts";
-
-// Only own image occlusions need the mask editor; it stays out of the card management bundle until then.
-const OcclusionEditor = React.lazy(() => import("../ui/OcclusionEditor.tsx").then((module) => ({ default: module.OcclusionEditor })));
-/** Image preparation and local storage of the creation workflow, loaded only when an image is inserted or saved. */
-const loadImageWorkflow = async (mediaStore: AccountMediaStore) => (await import("../creationWorkflow.ts")).createCreationWorkflow({ mediaStore });
 
 interface PendingDetailAction {
   run: () => void;
@@ -84,736 +70,6 @@ function SortHeader({ field, label, sort, onChange }: {
   );
 }
 
-function FieldError({ errors, field }: { errors: NoteEditorErrors; field: string }) {
-  const message = errors[field];
-  return message ? <p className="core-caption font-medium text-core-danger" role="alert">{message}</p> : null;
-}
-
-function noteKindLabel(note: Note) {
-  const interaction = note.content.interaction;
-  if (interaction.kind === "cloze") return "Lückentext";
-  if (interaction.kind === "image-occlusion") return "Bildverdeckung";
-  if (interaction.kind === "choice") return interaction.mode === "single" ? "Single Choice" : interaction.mode === "multiple" ? "Multiple Choice" : "Kprim";
-  return interaction.prompts.length > 1 ? "Frage und Antwort mit Rückrichtung" : "Frage und Antwort";
-}
-
-function removedCardsDescription(count: number) {
-  return count === 1
-    ? "Durch diese Änderung entfällt diese Karte samt ihrem Lernstand:"
-    : `Durch diese Änderung entfallen ${count} Karten samt ihrem Lernstand:`;
-}
-
-type CardLabelOptions = { dayStartHour?: number; timeZone?: string };
-
-const FIELD_ROLE_NAMES: Record<Note["content"]["fields"][number]["role"], string> = { ...NOTE_FIELD_ROLE_LABELS, prompt: "Frage", answer: "Antwort", note: "Notiz" };
-
-/** Learning state of a card in the words of the card list: new, suspended or reviewed with its next due date. */
-function cardStateLabel(card: Card, note: Note, options: CardLabelOptions) {
-  if (card.status === "suspended") return "ausgesetzt";
-  if (card.study.reps === 0) return "neu, ohne Lernstand";
-  const { nextStudyLabel } = createCardTableRow(catalogEntryFromCard(card, note), options);
-  return `${card.study.reps === 1 ? "1 Wiederholung" : `${card.study.reps} Wiederholungen`} · fällig ${nextStudyLabel}`;
-}
-
-/** Kind of the content and, with siblings, the card's position, e.g. „Lückentext · Lücke 2 von 3“. */
-function cardHeaderLabel(note: Note, card: Card, count: number) {
-  if (count < 2) return noteKindLabel(note);
-  const label = notePromptLabel(note.content, card.promptKey);
-  const position = /^(cloze|io):\d+$/.test(card.promptKey) ? `${label} von ${count}` : `${label} · ${count} Karten aus diesem Inhalt`;
-  return `${noteKindLabel(note)} · ${position}`;
-}
-
-/** What saving the draft would do to the content's cards, or null when nothing beyond the text changes. */
-function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
-  const parts: string[] = [];
-  const labels = (cards: Card[], content: NoteContent) => cards.map((card) => notePromptLabel(content, card.promptKey)).join(", ");
-  if (plan.newCards.length) parts.push(`${plan.newCards.length === 1 ? "1 neue Karte" : `${plan.newCards.length} neue Karten`} (${labels(plan.newCards, plan.note.content)})`);
-  if (plan.removedCards.length) parts.push(`${plan.removedCards.length === 1 ? "1 Karte entfällt" : `${plan.removedCards.length} Karten entfallen`} (${labels(plan.removedCards, graph.note.content)})`);
-  const outdated = outdatedVariantCount(graph, plan);
-  if (outdated) parts.push(outdated === 1 ? "1 Variante wird veraltet" : `${outdated} Varianten werden veraltet`);
-  return parts.length ? `Beim Speichern: ${parts.join(" · ")}.` : null;
-}
-
-const VARIANT_STATE_TONE = {
-  active: "bg-core-success-soft text-core-success",
-  off: "bg-core-subtle text-core-secondary",
-  reported: "bg-core-danger-soft text-core-danger",
-  outdated: "bg-core-warning-soft text-core-warning",
-} as const;
-
-/** One clearly toned state per variant; a report names its reason, only switched-off or reported ones can return. */
-function variantState(variant: CardVariant): { label: string; tone: keyof typeof VARIANT_STATE_TONE; reactivatable: boolean } {
-  if (variant.meta.outdated === true) return { label: "veraltet", tone: "outdated", reactivatable: false };
-  if (variant.qualityStatus === "flagged") {
-    return { label: variant.feedback.at(-1)?.type === "unklar_formuliert" ? "gemeldet: unklar formuliert" : "gemeldet: inhaltlich falsch", tone: "reported", reactivatable: true };
-  }
-  return variant.isActive && variant.qualityStatus === "active"
-    ? { label: "aktiv", tone: "active", reactivatable: false }
-    : { label: "abgeschaltet", tone: "off", reactivatable: true };
-}
-
-function variantReadinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boolean): string {
-  if (coreMode === "off") return "CoRe-Modus aus";
-  return ready ? "Varianten werden abgefragt" : "Varianten noch nicht im Review";
-}
-
-function outdatedVariantCount(graph: NoteGraph, plan: ReturnType<typeof planNoteContentChange>) {
-  const activeBefore = new Set(graph.cards.flatMap((card) => card.variants.filter((variant) => variant.isActive && !variant.deletedAt).map((variant) => variant.id)));
-  return plan.keptCards.flatMap((card) => card.variants).filter((variant) => variant.meta.outdated === true && activeBefore.has(variant.id)).length;
-}
-
-interface DeckCardEditorProps {
-  deck: Deck;
-  graph: NoteGraph;
-  cardId: string;
-  now: string;
-  dayStartHour?: number;
-  timeZone?: string;
-  mediaUrls?: Record<string, string>;
-  mediaStore: AccountMediaStore | null;
-  onSaveNote: (graph: NoteGraph, content: NoteContent) => Promise<unknown>;
-  onSetStudyState: (cardId: string, patch: CardStudyStatePatch) => unknown;
-  onDuplicateNote: () => Promise<NoteGraph | null>;
-  onDeleteNote: () => void;
-  onRescheduleCards: DecksScreenProps["onRescheduleCards"];
-  onGenerateVariant: (cardId: string) => Promise<AiCardVariantSuccess>;
-  onUpdateVariant: DecksScreenProps["onUpdateVariant"];
-  onSelectCard: (deckId: string, cardId: string) => void;
-  deckName: (deckId: string) => string;
-  onClose: () => void;
-  onDraftStateChange: (guard: CardDraftGuard | null) => void;
-  syncConflict: boolean;
-}
-
-function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, timeZone, mediaUrls = {}, mediaStore, onSaveNote, onSetStudyState, onDuplicateNote, onDeleteNote, onRescheduleCards, onGenerateVariant, onUpdateVariant, onSelectCard, deckName, onClose, onDraftStateChange }: DeckCardEditorProps) {
-  const { note } = graph;
-  const card = graph.cards.find((candidate) => candidate.id === cardId) ?? null;
-  const [initialValue, contentKey] = React.useMemo(() => {
-    const value = noteEditorValue(note);
-    return [value, JSON.stringify([value, note.content.fields.map(({ id, name, role }) => [id, name, role]), note.content.interaction])] as const;
-  }, [note]);
-  const [form, setForm] = React.useState<NoteEditorValue>(initialValue);
-  // Building blocks change the structure; field text stays in the form until both are saved together.
-  const [structure, setStructure] = React.useState(note.content);
-  const [savedForm, setSavedForm] = React.useState(contentKey);
-  const [fieldErrors, setFieldErrors] = React.useState<NoteEditorErrors>({});
-  const [saveStatus, setSaveStatus] = React.useState("");
-  const [saveError, setSaveError] = React.useState(false);
-  const [pendingRemoval, setPendingRemoval] = React.useState<{ content: NoteContent; cards: Card[]; outdated: number } | null>(null);
-  const [previewOpen, setPreviewOpen] = React.useState(false);
-  const previewButtonRef = React.useRef<HTMLButtonElement | null>(null);
-  const setSuccessToast = useSuccessToast();
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [isDuplicating, setIsDuplicating] = React.useState(false);
-  const [duplicateStatus, setDuplicateStatus] = React.useState("");
-  const [duplicateError, setDuplicateError] = React.useState(false);
-  const [variantStatus, setVariantStatus] = React.useState("");
-  const [variantStatusWarning, setVariantStatusWarning] = React.useState(false);
-  const [isGeneratingVariant, setIsGeneratingVariant] = React.useState(false);
-  const [updatingVariantId, setUpdatingVariantId] = React.useState<string | null>(null);
-  const [pendingVariantDeletion, setPendingVariantDeletion] = React.useState<CardVariant | null>(null);
-  const learningDayOptions = React.useMemo(() => ({ dayStartHour, timeZone }), [dayStartHour, timeZone]);
-  const dueDateKey = card?.study.dueAt ? getLearningDayKey(card.study.dueAt, learningDayOptions) ?? "" : "";
-  const todayDateKey = getLearningDayKey(now, learningDayOptions) ?? "";
-  const minimumDateKey = getLearningDayKey(addLearningDays(now, 1, learningDayOptions) ?? "", learningDayOptions) ?? "";
-  const [rescheduleDate, setRescheduleDate] = React.useState(dueDateKey);
-  const [rescheduleError, setRescheduleError] = React.useState("");
-  const [isRescheduling, setIsRescheduling] = React.useState(false);
-  const editorHeadingRef = React.useRef<HTMLHeadingElement | null>(null);
-  const saveDraftRef = React.useRef<() => Promise<boolean>>(async () => false);
-  const serializedForm = React.useMemo(
-    () => JSON.stringify([form, structure.fields.map(({ id, name, role }) => [id, name, role]), structure.interaction]),
-    [form, structure],
-  );
-  const draftNote = React.useMemo(() => ({ ...note, content: structure }), [note, structure]);
-  const blocks = noteBlocks(structure);
-  const movableFieldIds = structure.fields.filter(isMovableNoteField).map((field) => field.id);
-  // Imported contents keep their Anki field schema; only own contents change structure.
-  const structureEditable = note.importedContentRevision === null;
-  const draftDirty = serializedForm !== savedForm;
-  const focusDraft = React.useCallback(() => editorHeadingRef.current?.focus(), []);
-  // Images inserted in this editor; stored locally and queued for upload only when the content is saved.
-  const imageDraftsRef = React.useRef(new Map<string, { attachment: ManualImageAttachment; previewUrl: string }>());
-  const [imageDraftVersion, setImageDraftVersion] = React.useState(0);
-  React.useEffect(() => () => {
-    for (const draft of imageDraftsRef.current.values()) URL.revokeObjectURL(draft.previewUrl);
-  }, []);
-  const imageActions = React.useMemo<RichTextImageActions | undefined>(() => mediaStore ? {
-    mediaUrls: { ...mediaUrls, ...Object.fromEntries([...imageDraftsRef.current].map(([sha1, draft]) => [sha1, draft.previewUrl])) },
-    async prepare(file) {
-      const attachment = await (await loadImageWorkflow(mediaStore)).prepareManualImage(file);
-      const existing = imageDraftsRef.current.get(attachment.sha1);
-      const previewUrl = existing?.previewUrl ?? URL.createObjectURL(attachment.blob);
-      if (!existing) {
-        imageDraftsRef.current.set(attachment.sha1, { attachment, previewUrl });
-        setImageDraftVersion((version) => version + 1);
-      }
-      return { reference: attachment.sha1, previewUrl, alt: attachment.originalName };
-    },
-  } : undefined, [imageDraftVersion, mediaStore, mediaUrls]);
-  const variantReadiness = React.useMemo(() => card ? describeVariantReadiness(card, deck.deckSettings) : null, [card, deck.deckSettings]);
-  const eligibility = React.useMemo(() => card ? classifyCardEligibility(note, card, deck.deckSettings) : null, [card, deck.deckSettings, note]);
-  const draftPlan = React.useMemo(() => {
-    if (!draftDirty) return null;
-    const validation = validateNoteEditorValue(draftNote, form);
-    if (!validation.ok) return null;
-    try {
-      return planNoteContentChange(graph, validation.content);
-    } catch {
-      return null;
-    }
-  }, [draftDirty, draftNote, form, graph]);
-  const draftSummary = draftPlan ? draftChangeSummary(graph, draftPlan) : null;
-  // The preview shows the current draft; an invalid draft falls back to the saved content.
-  const previewNote = React.useMemo(() => {
-    const validation = validateNoteEditorValue(draftNote, form);
-    return validation.ok ? { ...note, content: validation.content, contentRevision: note.contentRevision + (draftDirty ? 1 : 0) } : note;
-  }, [draftDirty, draftNote, form, note]);
-
-  React.useLayoutEffect(() => {
-    setForm(initialValue);
-    setStructure(note.content);
-    setSavedForm(contentKey);
-    setFieldErrors({});
-    setSaveError(false);
-    setVariantStatus("");
-    setVariantStatusWarning(false);
-  }, [note.id, contentKey]);
-
-  React.useEffect(() => {
-    setPreviewOpen(false);
-    setSaveStatus("");
-    setSaveError(false);
-    setDuplicateStatus("");
-    setDuplicateError(false);
-    setRescheduleError("");
-  }, [cardId]);
-
-  React.useEffect(() => {
-    setRescheduleDate(dueDateKey);
-    setRescheduleError("");
-  }, [cardId, dueDateKey]);
-
-  React.useEffect(() => {
-    onDraftStateChange(draftDirty ? { focus: focusDraft, save: () => saveDraftRef.current() } : null);
-  }, [draftDirty, focusDraft, onDraftStateChange]);
-
-  React.useEffect(() => () => onDraftStateChange(null), [onDraftStateChange]);
-
-  if (!card) return null;
-
-  const variants = (card.variants ?? []).filter((variant) => !variant.deletedAt);
-  const hasOutdatedVariants = variants.some((variant) => variant.meta.outdated === true);
-  const reactivationBlocked = Boolean(variantReadiness && variantReadiness.activeCount >= variantReadiness.maxActive);
-  const labelOptions = { dayStartHour, timeZone };
-  const siblings = graph.cards.filter((candidate) => candidate.deletedAt === null);
-  const interaction = note.content.interaction;
-  const choiceMode = interaction.kind === "choice" ? interaction.mode : null;
-  const options = form.options ?? [];
-  const correctCount = options.filter((option) => option.correct).length;
-  const canReschedule = Boolean(
-    rescheduleDate
-    && minimumDateKey
-    && rescheduleDate >= minimumDateKey
-    && rescheduleDate !== dueDateKey
-  );
-
-  function clearStatus() {
-    setSaveStatus("");
-    setSaveError(false);
-    setSuccessToast("");
-  }
-
-  function changeStructure(next: NoteContent, addedFieldId?: string) {
-    setStructure(next);
-    if (addedFieldId) setForm((current) => ({ ...current, fields: { ...current.fields, [addedFieldId]: "" } }));
-    clearStatus();
-  }
-
-  function addField(role: AddableFieldRole) {
-    const added = addNoteField(structure, role);
-    changeStructure(added.content, added.fieldId);
-  }
-
-  function removeField(fieldId: string) {
-    changeStructure(removeNoteField(structure, fieldId));
-    setForm((current) => ({ ...current, fields: Object.fromEntries(Object.entries(current.fields).filter(([id]) => id !== fieldId)) }));
-  }
-
-  function updateField(fieldId: string, html: string) {
-    setForm((current) => ({ ...current, fields: { ...current.fields, [fieldId]: html } }));
-    setFieldErrors((current) => ({ ...current, [fieldId]: "", form: "" }));
-    clearStatus();
-  }
-
-  function updateOptions(next: NoteEditorValue["options"]) {
-    setForm((current) => ({ ...current, options: next }));
-    setFieldErrors((current) => ({ ...current, options: "", form: "" }));
-    clearStatus();
-  }
-
-  function addOption() {
-    const ids = new Set(options.map((option) => option.id));
-    let index = options.length + 1;
-    while (ids.has(`option-${index}`)) index += 1;
-    updateOptions([...options, { id: `option-${index}`, text: "", correct: false }]);
-  }
-
-  function correctnessLocked(index: number) {
-    if (choiceMode !== "multiple") return false;
-    const isCorrect = options[index].correct;
-    return (isCorrect && correctCount === 1) || (!isCorrect && correctCount === options.length - 1);
-  }
-
-  function removeOption(index: number) {
-    if (options.length <= 2 || correctnessLocked(index)) return;
-    const next = options.filter((_, optionIndex) => optionIndex !== index);
-    if (choiceMode === "single" && options[index].correct) next[0] = { ...next[0], correct: true };
-    updateOptions(next);
-  }
-
-  function toggleCorrect(index: number) {
-    if (choiceMode === "single") {
-      updateOptions(options.map((option, optionIndex) => ({ ...option, correct: optionIndex === index })));
-      return;
-    }
-    if (correctnessLocked(index)) return;
-    updateOptions(options.map((option, optionIndex) => optionIndex === index ? { ...option, correct: !option.correct } : option));
-  }
-
-  async function persist(content: NoteContent, outdated = 0): Promise<boolean> {
-    setIsSaving(true);
-    setSaveError(false);
-    setSaveStatus("Karte wird gespeichert …");
-    try {
-      const html = content.fields.map((field) => field.html).join(" ");
-      const newImages = [...imageDraftsRef.current].filter(([sha1]) => html.includes(sha1) && !graph.note.media[sha1]).map(([, draft]) => draft.attachment);
-      if (newImages.length && mediaStore) await (await loadImageWorkflow(mediaStore)).prepareManualMedia(newImages);
-      await onSaveNote(graph, content);
-      setSavedForm(serializedForm);
-      onDraftStateChange(null);
-      setFieldErrors({});
-      setSaveStatus("");
-      setSuccessToast(outdated === 0
-        ? "Karte wurde erfolgreich gespeichert."
-        : `Karte wurde erfolgreich gespeichert. ${outdated === 1 ? "1 Variante ist veraltet und wird nicht mehr abgefragt." : `${outdated} Varianten sind veraltet und werden nicht mehr abgefragt.`}`);
-      return true;
-    } catch {
-      setSaveError(true);
-      setSaveStatus("Die Karte konnte nicht gespeichert werden. Deine Eingaben bleiben im Editor – bitte erneut versuchen.");
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function saveEditorValue(): Promise<boolean> {
-    const validation = validateNoteEditorValue(draftNote, form);
-    if (!validation.ok) {
-      setFieldErrors(validation.errors);
-      setSaveError(true);
-      setSaveStatus(validation.errors.form ?? "Bitte die markierten Felder prüfen.");
-      return false;
-    }
-    const plan = planNoteContentChange(graph, validation.content);
-    if (!plan.changed) {
-      setSavedForm(serializedForm);
-      onDraftStateChange(null);
-      setFieldErrors({});
-      setSaveStatus("");
-      return true;
-    }
-    const outdated = outdatedVariantCount(graph, plan);
-    if (plan.removedCards.length > 0) {
-      setPendingRemoval({ content: validation.content, cards: plan.removedCards, outdated });
-      return false;
-    }
-    return persist(validation.content, outdated);
-  }
-
-  async function duplicateCard() {
-    setIsDuplicating(true);
-    setDuplicateStatus("Kopie wird erstellt …");
-    setDuplicateError(false);
-    try {
-      const result = await onDuplicateNote();
-      if (result) {
-        setDuplicateStatus("");
-        setSuccessToast("Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt.");
-      } else {
-        setDuplicateError(true);
-        setDuplicateStatus("Die Karte konnte nicht kopiert werden.");
-      }
-    } catch {
-      setDuplicateError(true);
-      setDuplicateStatus("Die Kopie ist lokal erstellt; die Cloud-Synchronisierung steht noch aus.");
-    } finally {
-      setIsDuplicating(false);
-    }
-  }
-
-  async function generateVariant() {
-    if (!card || !eligibility?.eligible || isGeneratingVariant) return;
-    setSuccessToast("");
-    setIsGeneratingVariant(true);
-    setVariantStatusWarning(false);
-    setVariantStatus("Variante wird generiert …");
-    try {
-      await onGenerateVariant(card.id);
-      setVariantStatus("");
-      setSuccessToast(hasOutdatedVariants ? "Veraltete Variante wurde ersetzt." : "Variante wurde generiert.");
-    } catch (error) {
-      setVariantStatusWarning(true);
-      setVariantStatus(error instanceof Error ? error.message : "Die Variante konnte nicht generiert werden.");
-    } finally {
-      setIsGeneratingVariant(false);
-    }
-  }
-
-  async function updateVariant(variant: CardVariant, action: "reactivate" | "delete") {
-    setUpdatingVariantId(variant.id);
-    setVariantStatusWarning(false);
-    setVariantStatus("");
-    try {
-      await onUpdateVariant(card!.id, variant.id, action);
-      setSuccessToast(action === "reactivate" ? "Die Variante wird wieder abgefragt." : "Die Variante wurde gelöscht.");
-    } catch (error) {
-      setVariantStatusWarning(true);
-      setVariantStatus(error instanceof Error ? error.message : "Die Variante konnte nicht geändert werden.");
-    } finally {
-      setUpdatingVariantId(null);
-    }
-  }
-
-  async function rescheduleCard() {
-    const dueAt = getLearningDayStartForKey(rescheduleDate, learningDayOptions);
-    if (!card || !dueAt || rescheduleDate < minimumDateKey || rescheduleDate === dueDateKey || isRescheduling) return;
-    setRescheduleError("");
-    setSuccessToast("");
-    setIsRescheduling(true);
-    let result: unknown = null;
-    try {
-      result = await onRescheduleCards([card.id], dueAt.toISOString(), new Date(now).toISOString());
-    } catch {
-      result = null;
-    } finally {
-      setIsRescheduling(false);
-    }
-    if (!Array.isArray(result) || result.length !== 1) {
-      setRescheduleError("Die nächste Fälligkeit konnte nicht neu geplant werden.");
-      return;
-    }
-    setSuccessToast("Die nächste Fälligkeit wurde erfolgreich neu geplant.");
-  }
-
-  saveDraftRef.current = saveEditorValue;
-
-  return (
-    <SoftPanel
-      data-testid="card-detail-editor"
-      className="min-h-full rounded-none border-0 p-6 shadow-none sm:p-6"
-      style={card.status === "suspended" ? { backgroundColor: "var(--core-warning-surface)" } : undefined}
-    >
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-2 text-core-text outline-none">Karte bearbeiten</h2>
-          <p className="mt-1 core-body text-core-secondary" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
-          <button type="button" onClick={() => void saveEditorValue()} disabled={isSaving} className="core-action-primary">
-            <Save size={16} aria-hidden="true" />
-            {isSaving ? "Speichert …" : "Speichern"}
-          </button>
-          <ActionButton
-            ref={previewButtonRef}
-            type="button"
-            variant="secondary"
-            icon={Eye}
-            onClick={() => setPreviewOpen(true)}
-          >
-            Vorschau
-          </ActionButton>
-          <button
-            type="button"
-            onClick={() => void duplicateCard()}
-            disabled={isDuplicating}
-            title="Eigenständige Kopie direkt unter dieser Karte erstellen"
-            className="core-action-secondary"
-          >
-            <Copy size={16} aria-hidden="true" />
-            {isDuplicating ? "Kopiert …" : "Kopieren"}
-          </button>
-          <button
-            type="button"
-            onClick={onDeleteNote}
-            className="core-action-destructive"
-          >
-            <Trash2 size={16} aria-hidden="true" />
-            Löschen
-          </button>
-        </div>
-      </div>
-      {syncConflict ? (
-        <div className="mb-6 rounded-panel border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
-          <p className="font-semibold">Synchronisierung klären</p>
-          <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
-        </div>
-      ) : null}
-      {siblings.length > 1 ? (
-        <section className="mb-6 min-w-0 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft" aria-labelledby={`card-siblings-${card.id}`} data-testid="card-siblings">
-          <h3 id={`card-siblings-${card.id}`} className="core-heading-3 text-core-text">Karten aus diesem Inhalt</h3>
-          <ul className="mt-2 grid gap-1">
-            {siblings.map((sibling) => {
-              const current = sibling.id === card.id;
-              const content = (
-                <>
-                  <span className="font-medium text-core-text">{notePromptLabel(note.content, sibling.promptKey)}</span>
-                  <span className="min-w-0 truncate text-core-muted">{deckName(sibling.deckId)} · {cardStateLabel(sibling, note, labelOptions)}</span>
-                </>
-              );
-              return (
-                <li key={sibling.id}>
-                  {current ? (
-                    <p className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-info-soft px-3 core-body" aria-current="true">{content}</p>
-                  ) : (
-                    <button type="button" onClick={() => onSelectCard(sibling.deckId, sibling.id)} className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-x-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus">{content}</button>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ) : null}
-      <CardStudyStateControls
-        className="mb-3"
-        marked={note.marked}
-        suspended={card.status === "suspended"}
-        onMarkedChange={(marked) => onSetStudyState(card.id, { marked })}
-        onSuspendedChange={(suspended) => onSetStudyState(card.id, { suspended })}
-      />
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft">
-        <div className="core-field-group min-w-0 flex-1">
-          <span className="core-field-label inline-flex items-center gap-2"><CalendarDays className="text-core-muted" size={16} aria-hidden="true" />Nächste Fälligkeit</span>
-          <CoreDatePicker
-            id={`card-due-date-${card.id}`}
-            ariaLabel="Nächste Fälligkeit"
-            value={rescheduleDate}
-            min={minimumDateKey}
-            today={todayDateKey}
-            onValueChange={(value) => {
-              setRescheduleDate(value);
-              setRescheduleError("");
-            }}
-            className="sm:max-w-64"
-          />
-        </div>
-        <ActionButton type="button" variant="secondary" disabled={!canReschedule || isRescheduling} onClick={() => void rescheduleCard()}>
-          {isRescheduling ? "Plant neu …" : "Neu planen"}
-        </ActionButton>
-        {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
-      </div>
-      {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-secondary" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
-      {structureEditable && structure.interaction.kind === "image-occlusion" && mediaUrls[structure.interaction.image] ? (
-        <div className="mb-4 grid min-w-0 gap-2" data-testid="note-occlusion">
-          <span className="core-field-label">Bild und Masken</span>
-          <React.Suspense fallback={<p className="core-body text-core-muted" role="status">Masken-Editor wird geladen …</p>}>
-          <OcclusionEditor
-            imageUrl={mediaUrls[structure.interaction.image]}
-            imageAlt="Bild der Bildverdeckung"
-            masks={structure.interaction.masks}
-            mode={structure.interaction.mode}
-            disabled={isSaving}
-            onMasksChange={(masks) => structure.interaction.kind === "image-occlusion" && changeStructure({ ...structure, interaction: { ...structure.interaction, masks } })}
-            onModeChange={(mode) => structure.interaction.kind === "image-occlusion" && changeStructure({ ...structure, interaction: { ...structure.interaction, mode } })}
-          />
-          </React.Suspense>
-        </div>
-      ) : null}
-      {structureEditable && blocks.reverse !== null ? (
-        <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3" data-testid="note-direction">
-            <span className="core-field-label">Lernrichtung</span>
-            <CoreSegmentedControl
-              ariaLabel="Lernrichtung"
-              options={[{ value: "standard", label: "Standard" }, { value: "both", label: "Beide Richtungen" }]}
-              value={blocks.reverse ? "both" : "standard"}
-              onValueChange={(value) => changeStructure(setNoteReverse(structure, value === "both"))}
-            />
-        </div>
-      ) : null}
-      <div className="grid min-w-0 gap-4">
-        {structure.fields.map((field) => (
-          <div key={field.id} className="grid min-w-0 gap-2">
-            {structureEditable && canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
-              <div className="flex min-w-0 flex-wrap items-end gap-2">
-                <label className="grid min-w-0 flex-1 basis-48 gap-2">
-                  <span className="core-field-label">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
-                  <input className="core-field min-w-0" value={field.name} onChange={(event) => changeStructure(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
-                </label>
-                {isMovableNoteField(field) ? (
-                  <>
-                    <label className="grid gap-2">
-                      <span className="core-field-label">Rolle</span>
-                      <CoreSelect
-                        ariaLabel={`Rolle von ${field.name}`}
-                        value={field.role}
-                        options={blocks.fieldRoles.map((role) => ({ value: role, label: NOTE_FIELD_ROLE_LABELS[role] }))}
-                        onValueChange={(role) => changeStructure(setNoteFieldRole(structure, field.id, role as AddableFieldRole))}
-                      />
-                    </label>
-                    {movableFieldIds[0] !== field.id ? <IconButton icon={ArrowUp} label={`${field.name} nach oben`} onClick={() => changeStructure(moveNoteField(structure, field.id, -1))} /> : null}
-                    {movableFieldIds.at(-1) !== field.id ? <IconButton icon={ArrowDown} label={`${field.name} nach unten`} onClick={() => changeStructure(moveNoteField(structure, field.id, 1))} /> : null}
-                  </>
-                ) : null}
-                <IconButton label={`${field.name} entfernen`} icon={X} onClick={() => removeField(field.id)} />
-              </div>
-            ) : (
-              <span className="core-field-label">{field.name}</span>
-            )}
-            <RichTextEditor
-              value={form.fields[field.id] ?? ""}
-              onChange={(value) => updateField(field.id, value)}
-              ariaLabel={`Feld ${field.name}`}
-              ariaInvalid={Boolean(fieldErrors[field.id])}
-              imageActions={imageActions}
-              minHeightClass={field.role === "prompt" || field.role === "answer" ? "min-h-32" : "min-h-28"}
-            />
-            {interaction.kind === "cloze" && field.role === "prompt" ? (
-              <p className="core-caption text-core-muted">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Karte.</p>
-            ) : null}
-            <FieldError errors={fieldErrors} field={field.id} />
-          </div>
-        ))}
-        {choiceMode ? (
-          <fieldset className="grid gap-3 rounded-panel border border-core-border bg-core-surface p-4">
-            <legend className="px-1 core-field-label">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
-            {options.map((option, index) => (
-              <div key={option.id} className="flex min-w-0 items-center gap-2">
-                <input className="size-4 shrink-0 accent-core-action" type={choiceMode === "single" ? "radio" : "checkbox"} name={choiceMode === "single" ? `correct-option-${note.id}` : undefined} checked={option.correct} disabled={correctnessLocked(index)} onChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
-                <input className="core-field min-w-0 flex-1" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                <IconButton variant="ghost" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} />
-              </div>
-            ))}
-            {choiceMode !== "kprim" ? <ActionButton type="button" variant="secondary" icon={PlusSquare} onClick={addOption} className="w-fit">Option hinzufügen</ActionButton> : null}
-            <FieldError errors={fieldErrors} field="options" />
-          </fieldset>
-        ) : null}
-        {structureEditable ? (
-          <NoteBlockControls
-            typeIn={blocks.typeIn}
-            fieldRoles={blocks.fieldRoles}
-            onTypeInChange={(enabled) => changeStructure(setNoteTypeIn(structure, enabled))}
-            onAddField={addField}
-          />
-        ) : null}
-        <label className="grid gap-2">
-          <span className="core-field-label">Tags</span>
-          <input className="core-field min-w-0" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />
-        </label>
-        {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
-        {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
-      </div>
-      <section className="mt-6 min-w-0 rounded-panel border border-core-border bg-core-surface p-5 shadow-soft" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h3 id={`card-variants-${card.id}`} className="core-heading-3 text-core-text">Varianten</h3>
-          <p className="inline-flex min-h-5 items-center rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary" data-testid="variant-active-count">{variantReadiness!.activeCount} von {variantReadiness!.maxActive} aktiv</p>
-        </div>
-        <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Haltbarkeit {variantReadiness!.durabilityDays} von {variantReadiness!.thresholdDays} Tagen · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
-        {variants.length > 0 ? (
-          <ul className="mt-3 grid divide-y divide-core-border border-y border-core-border">
-            {variants.map((variant: CardVariant, index) => {
-              const state = variantState(variant);
-              return (
-                <li key={variant.id} className="flex min-w-0 items-start gap-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <span className={`inline-flex min-h-5 items-center rounded-round px-2 core-caption font-semibold ${VARIANT_STATE_TONE[state.tone]}`}>{state.label}</span>
-                    <p className="mt-1.5 break-words core-body font-medium text-core-text">{stripHtml(variant.front)}</p>
-                    <p className="break-words core-body text-core-secondary">{stripHtml(variant.back)}</p>
-                    {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-caption text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
-                    {state.reactivatable && reactivationBlocked ? <p className="mt-1 core-caption text-core-muted">Reaktivieren erst unter der Höchstzahl aktiver Varianten.</p> : null}
-                  </div>
-                  <div className="flex shrink-0 gap-1">
-                    {state.reactivatable ? (
-                      <CoreTooltip label="Reaktivieren">
-                        <IconButton icon={RotateCcw} label={`Variante ${index + 1} reaktivieren`} disabled={updatingVariantId !== null || reactivationBlocked} onClick={() => void updateVariant(variant, "reactivate")} />
-                      </CoreTooltip>
-                    ) : null}
-                    <CoreTooltip label="Löschen">
-                      <IconButton icon={Trash2} label={`Variante ${index + 1} löschen`} disabled={updatingVariantId !== null} onClick={() => setPendingVariantDeletion(variant)} />
-                    </CoreTooltip>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        ) : null}
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <ActionButton
-            type="button"
-            variant="secondary"
-            icon={Sparkles}
-            loading={isGeneratingVariant}
-            disabled={!eligibility?.eligible || isGeneratingVariant}
-            onClick={() => void generateVariant()}
-          >
-            {hasOutdatedVariants ? "Variante neu generieren" : variants.length ? "Weitere Variante generieren" : "Variante generieren"}
-          </ActionButton>
-          <p className="min-w-0 flex-1 basis-56 core-caption text-core-muted">
-            {eligibility?.eligible
-              ? "Sendet nur Frage und Antwort an GPT-6 Luna; der Anbieter speichert nichts."
-              : eligibility?.reasons[0] ?? "Varianten sind für diese Karte nicht verfügbar."}
-          </p>
-        </div>
-        {variantStatus ? <p className={`mt-2 core-body ${variantStatusWarning ? "text-core-warning" : "text-core-muted"}`} role="status" aria-live="polite">{variantStatus}</p> : null}
-      </section>
-      <ActionDialog
-        open={Boolean(pendingVariantDeletion)}
-        title="Variante löschen?"
-        description="Die Variante wird auf allen Geräten entfernt. Grundkarte und Lernstand bleiben unverändert."
-        confirmLabel="Variante löschen"
-        cancelLabel="Behalten"
-        destructive
-        onCancel={() => setPendingVariantDeletion(null)}
-        onConfirm={() => {
-          const variant = pendingVariantDeletion;
-          setPendingVariantDeletion(null);
-          if (variant) void updateVariant(variant, "delete");
-        }}
-      />
-      <CardPreviewDialog
-        open={previewOpen}
-        note={previewNote}
-        card={card}
-        mediaUrls={mediaUrls}
-        onOpenChange={setPreviewOpen}
-        returnFocusRef={previewButtonRef}
-      />
-      <ActionDialog
-        open={Boolean(pendingRemoval)}
-        title="Karten entfernen?"
-        description={pendingRemoval ? (
-          <>
-            <p>{removedCardsDescription(pendingRemoval.cards.length)}</p>
-            <ul className="mt-3 grid gap-1.5" data-testid="removed-cards">
-              {pendingRemoval.cards.map((removed) => (
-                <li key={removed.id} className="core-body"><span className="font-semibold text-core-text">{notePromptLabel(note.content, removed.promptKey)}</span> · {deckName(removed.deckId)} · {cardStateLabel(removed, note, labelOptions)}</li>
-              ))}
-            </ul>
-          </>
-        ) : null}
-        confirmLabel="Speichern"
-        cancelLabel="Weiter bearbeiten"
-        confirmLoading={isSaving}
-        onCancel={() => setPendingRemoval(null)}
-        onConfirm={() => {
-          const removal = pendingRemoval;
-          if (!removal) return;
-          void persist(removal.content, removal.outdated).then(() => setPendingRemoval(null));
-        }}
-      />
-    </SoftPanel>
-  );
-}
 
 const VARIANT_FILTER_SORT: CardTableSort = { field: "variants", direction: "asc" };
 
@@ -824,12 +80,14 @@ interface CardTableRowViewProps {
   nextStudyLabel: string;
   selected: boolean;
   marked: boolean;
+  flag: number;
+  flagNames: readonly string[];
   syncConflict: boolean;
   onSelect: (deckId: string, cardId: string) => void;
 }
 
 /** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
-const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, syncConflict, onSelect }: CardTableRowViewProps) {
+const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, onSelect }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
   return (
     <tr
@@ -864,6 +122,9 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
             ? <span className="min-w-[1.125rem] text-center core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
             : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
           <span className="grid size-[1.125rem] place-items-center">
+            {flag ? <FlagDot flag={flag} names={flagNames} size={10} /> : null}
+          </span>
+          <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
         </span>
@@ -889,6 +150,9 @@ export function DecksScreen({
   mediaStore,
   selectedDeckId: focusedDeckId = null,
   selectedCardId = null,
+  cardEditorTab,
+  onCardEditorTabChange,
+  cardEditor,
   onSelectDeck,
   onCloseSelectedCard,
   onSetDeckCoreMode,
@@ -953,6 +217,17 @@ export function DecksScreen({
   const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
   const [deferredQuery, setDeferredQuery] = React.useState("");
+  // Flag, leech and tag filters are search terms in the query (Anki notation), so search and filters stay one state.
+  const searchFilters = React.useMemo(() => readCardSearchFilters(query), [query]);
+  const flagFilterOptions = React.useMemo(() => [
+    { value: "any", label: "Alle Flaggen" },
+    { value: "0", label: "Ohne Flagge" },
+    ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ value: String(flag), label: `Flagge ${flagName(flag, cardEditor.flagNames)}` })),
+  ], [cardEditor.flagNames]);
+  function changeQuery(next: string) {
+    setQuery(next);
+    setCardPageByDeckId({});
+  }
   React.useEffect(() => {
     if (query === deferredQuery) return;
     const timer = window.setTimeout(() => setDeferredQuery(query), CARD_SEARCH_DEBOUNCE_MS);
@@ -974,7 +249,8 @@ export function DecksScreen({
   const [pendingDetailAction, setPendingDetailAction] = React.useState<PendingDetailAction | null>(null);
   const [savingPendingDraft, setSavingPendingDraft] = React.useState(false);
   const cardDraftGuardRef = React.useRef<CardDraftGuard | null>(null);
-  const detailRef = React.useRef<HTMLElement | null>(null);
+  const detailRef = React.useRef<HTMLDivElement | null>(null);
+  const [pendingHit, setPendingHit] = React.useState<{ deckId: string; page: number; edge: "first" | "last" } | null>(null);
   const previouslySelectedCardId = React.useRef<string | null>(null);
   const autoExpandedSelectedDeckIdRef = React.useRef<string | null>(null);
   const usesCardPages = cardPages !== undefined || Boolean(onRequestCardPage);
@@ -1007,6 +283,8 @@ export function DecksScreen({
   const selectedGraph = selectedPage?.selected?.cardId === selectedCardId ? selectedPage?.selected ?? null : null;
   const selectedDeckMissing = Boolean(selectedDeckId && !selectedDeck);
   const selectedCardMissing = Boolean(selectedDeck && selectedCardId && !selectedGraph);
+  // Until the page answers for the selected card the editor shows the loading bar, never "Karte nicht gefunden".
+  const selectedCardLoading = selectedCardMissing && Boolean(onRequestCardPage) && !selectedPage?.loadError && selectedPage?.requestedCardId !== selectedCardId;
   const detailOpen = Boolean(selectedGraph || selectedDeckMissing || selectedCardMissing);
   const { urls: selectedNoteMediaUrls } = useNoteMediaUrls(selectedGraph?.note.media, mediaStore);
   const handleEditorDraftStateChange = React.useCallback((guard: CardDraftGuard | null) => {
@@ -1040,7 +318,7 @@ export function DecksScreen({
       const page = Math.max(0, cardPageByDeckId[group.id] ?? cardPages?.[group.id]?.page ?? 0);
       const selectedCardForDeck = selectedDeckId === group.id ? selectedCardId : null;
       const current = cardPages?.[group.id];
-      const hasSelectedCard = !selectedCardForDeck || current?.selected?.cardId === selectedCardForDeck;
+      const hasSelectedCard = !selectedCardForDeck || current?.requestedCardId === selectedCardForDeck;
       if (current
         && current.page === page
         && current.query === deferredQuery
@@ -1071,37 +349,29 @@ export function DecksScreen({
   React.useEffect(() => {
     if (!detailOpen) return;
     previouslySelectedCardId.current = selectedCardId;
-    const frame = window.requestAnimationFrame(() => detailRef.current?.focus());
+    const frame = window.requestAnimationFrame(() => detailRef.current?.querySelector<HTMLElement>("[data-card-editor-heading]")?.focus() ?? detailRef.current?.focus());
     return () => window.cancelAnimationFrame(frame);
   }, [detailOpen, selectedCardId]);
 
   React.useEffect(() => {
     if (!detailOpen) return;
 
+    // Nested dialogs and popovers handle their own Escape first (they prevent the default).
     function handleEscape(event: KeyboardEvent) {
-      if (event.key !== "Escape" || pendingDetailAction || pendingCardDelete) return;
+      if (event.key !== "Escape" || event.defaultPrevented || pendingDetailAction || pendingCardDelete) return;
+      if (document.querySelector('[data-radix-popper-content-wrapper], [data-card-preview-overlay="true"]')) return;
       event.preventDefault();
       requestDetailAction(closeDetail);
     }
 
+    // A click beside the delete question cancels it and also closes the editor (specs §5.3).
     function handleOutsidePointer(event: PointerEvent) {
       const target = event.target;
-      if (!(target instanceof Element) || detailRef.current?.contains(target)) return;
-      if (target.closest('[data-card-preview-overlay="true"]')) return;
-      if (pendingCardDelete && target.matches('[data-testid="action-dialog-backdrop"]')) {
-        if (deletingCard) {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-        setPendingCardDelete(null);
-      }
-      if (target.closest('[role="dialog"], [data-radix-popper-content-wrapper]')) return;
-      if (target.closest('[data-app-navigation="true"]')) return;
-      if (target.closest('[data-deck-content-navigation="true"]')) return;
-      if (target.closest('[data-card-row="true"]')) return;
+      if (!pendingCardDelete || !(target instanceof Element) || !target.matches('[data-testid="action-dialog-backdrop"]')) return;
       event.preventDefault();
       event.stopPropagation();
+      if (deletingCard) return;
+      setPendingCardDelete(null);
       requestDetailAction(closeDetail);
     }
 
@@ -1145,6 +415,52 @@ export function DecksScreen({
     });
   }
   const stableRequestCardSelection = useStableCallback(requestCardSelection);
+
+  // Prev/next walks the loaded rows of the expanded groups; at a page end it loads the neighbouring page (B2).
+  const hitRows = React.useMemo(() => {
+    if (onCloseSelectedCard || !selectedCardId) return null;
+    const rows: Array<{ deckId: string; cardId: string; position: number; index: number; group: (typeof tableModel.groups)[number] }> = [];
+    let offset = 0;
+    for (const group of tableModel.groups) {
+      const expanded = searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(group.id) : expandedDeckIdSet.has(group.id));
+      if (!expanded) continue;
+      group.cardRows.forEach((row, index) => rows.push({ deckId: group.id, cardId: row.entry.id, position: offset + group.page * group.pageSize + index + 1, index, group }));
+      offset += group.totalCardCount;
+    }
+    return { rows, total: offset };
+  }, [collapsedContentDeckIds, contentDeckId, expandedDeckIdSet, onCloseSelectedCard, searchExpandsGroups, selectedCardId, tableModel.groups]);
+  const hits = React.useMemo<CardEditorHitNavigation | null>(() => {
+    const index = hitRows?.rows.findIndex((row) => row.cardId === selectedCardId) ?? -1;
+    if (!hitRows || index < 0) return null;
+    const current = hitRows.rows[index];
+    const select = (row: { deckId: string; cardId: string } | undefined) => row ? () => requestDetailAction(() => onSelectDeck(row.deckId, row.cardId, cardEditorTab)) : null;
+    const loadPage = (page: number, edge: "first" | "last") => () => requestDetailAction(() => {
+      setPendingHit({ deckId: current.deckId, page, edge });
+      setCardPageByDeckId((pages) => ({ ...pages, [current.deckId]: page }));
+    });
+    const lastOnPage = current.index === current.group.cardRows.length - 1;
+    return {
+      position: current.position,
+      total: hitRows.total,
+      onPrevious: current.index === 0 && current.group.page > 0 ? loadPage(current.group.page - 1, "last") : select(hitRows.rows[index - 1]),
+      onNext: lastOnPage && current.group.page + 1 < current.group.pageCount ? loadPage(current.group.page + 1, "first") : select(hitRows.rows[index + 1]),
+    };
+    // requestDetailAction and onSelectDeck read the latest state when they run.
+  }, [cardEditorTab, hitRows, selectedCardId]);
+  // The neighbouring hits load ahead once the open card is shown, so prev/next opens without waiting.
+  React.useEffect(() => {
+    const index = selectedGraph && hitRows ? hitRows.rows.findIndex((row) => row.cardId === selectedCardId) : -1;
+    if (index < 0) return;
+    for (const row of [hitRows!.rows[index + 1], hitRows!.rows[index - 1]]) if (row) cardEditor.prefetchCard(row.cardId);
+  }, [cardEditor, hitRows, selectedCardId, selectedGraph]);
+  React.useEffect(() => {
+    if (!pendingHit) return;
+    const group = tableModel.groups.find((candidate) => candidate.id === pendingHit.deckId);
+    if (!group || group.page !== pendingHit.page || !group.cardRows.length || cardPages?.[group.id]?.page !== pendingHit.page) return;
+    setPendingHit(null);
+    const row = pendingHit.edge === "first" ? group.cardRows[0] : group.cardRows.at(-1)!;
+    onSelectDeck(group.id, row.entry.id, cardEditorTab);
+  }, [cardEditorTab, cardPages, onSelectDeck, pendingHit, tableModel.groups]);
 
   async function savePendingDetailDraft() {
     const guard = cardDraftGuardRef.current;
@@ -1264,28 +580,75 @@ export function DecksScreen({
     }
   }
 
+  function selectFromEditor(deckId: string, cardId: string) {
+    requestDetailAction(() => onSelectDeck(deckId, cardId, cardEditorTab));
+  }
+
+  /** A moved card stays open unless it left the opened deck tree; then the editor closes. */
+  function handleCardMoved(deckId: string, cardId: string) {
+    if (contentDeckId && !libraryDecks.some((deck) => deck.id === deckId)) {
+      closeDetail();
+      return;
+    }
+    onSelectDeck(deckId, cardId, cardEditorTab);
+  }
+
   function renderDetailLayer() {
+    if (selectedDeck && selectedGraph) {
+      return (
+        <CardEditorDialog
+          key={selectedGraph.note.id}
+          deck={selectedDeck}
+          decks={decks}
+          graph={selectedGraph}
+          cardId={selectedGraph.cardId}
+          tab={cardEditorTab}
+          onTabChange={onCardEditorTabChange}
+          hits={hits}
+          syncConflict={syncConflictCardIds?.has(selectedGraph.cardId) ?? false}
+          now={now}
+          dayStartHour={dayStartHour}
+          timeZone={timeZone}
+          mediaUrls={selectedNoteMediaUrls}
+          mediaStore={mediaStore}
+          services={cardEditor}
+          surfaceRef={detailRef}
+          onSaveNote={onSaveNote}
+          onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
+          onDuplicateNote={() => onDuplicateNote(selectedGraph)}
+          onDeleteNote={requestCardDelete}
+          onRescheduleCards={onRescheduleCards}
+          onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
+          onUpdateVariant={onUpdateVariant}
+          onSelectCard={selectFromEditor}
+          onCardMoved={handleCardMoved}
+          onOpenDeckSettings={onOpenDeckSettings}
+          deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
+          onClose={() => requestDetailAction(closeDetail)}
+          onDraftStateChange={handleEditorDraftStateChange}
+        />
+      );
+    }
+    if (selectedCardLoading) {
+      return (
+        <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+          <div className="px-3 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-loading">
+            <div className="core-statistics-load-track" role="progressbar" aria-label="Karte wird geladen"><span aria-hidden="true" /></div>
+          </div>
+        </CardEditorSurface>
+      );
+    }
     return (
-      <>
-        {!pendingDetailAction && !pendingCardDelete ? <div className="fixed inset-0 z-40 bg-[var(--core-backdrop)]" aria-hidden="true" data-testid="card-detail-backdrop" /> : null}
-        <aside
-          ref={detailRef}
-          tabIndex={-1}
-          aria-label="Kartendetail"
-          data-testid="card-detail-aside"
-          className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto border-l border-core-border bg-core-surface shadow-raised [scrollbar-gutter:stable] focus:outline-none lg:w-1/2"
-        >
-        {selectedDeckMissing ? (
-          <div className="grid min-h-full place-items-center p-6">
+      <CardEditorSurface label="Kartendetail" surfaceRef={detailRef}>
+        <div className="grid min-h-full place-items-center p-6">
+          {selectedDeckMissing ? (
             <EmptyState
               icon={Layers}
               title="Stapel nicht gefunden"
               body="Der verlinkte Stapel ist nicht mehr verfügbar."
               action={<div className="flex flex-wrap justify-center gap-2"><ActionButton type="button" variant="primary" onClick={() => onOpenLearn(null)}>Zu Lernen</ActionButton><ActionButton type="button" variant="secondary" onClick={() => onSelectDeck(null)}>Alle Karten</ActionButton></div>}
             />
-          </div>
-        ) : selectedCardMissing ? (
-          <div className="grid min-h-full place-items-center p-6">
+          ) : (
             <EmptyState
               icon={Layers}
               title={selectedPage?.loadError ? "Karte noch nicht geladen" : "Karte nicht gefunden"}
@@ -1304,33 +667,9 @@ export function DecksScreen({
                 <ActionButton type="button" variant="secondary" onClick={closeDetail}>Zur Kartenliste</ActionButton>
               </div>}
             />
-          </div>
-        ) : selectedDeck && selectedGraph ? (
-          <DeckCardEditor
-            deck={selectedDeck}
-            graph={selectedGraph}
-            cardId={selectedGraph.cardId}
-            syncConflict={syncConflictCardIds?.has(selectedGraph.cardId) ?? false}
-            now={now}
-            dayStartHour={dayStartHour}
-            timeZone={timeZone}
-            mediaUrls={selectedNoteMediaUrls}
-            mediaStore={mediaStore}
-            onSaveNote={onSaveNote}
-            onSetStudyState={(cardId, patch) => onSetCardStudyState(selectedDeck.id, cardId, patch)}
-            onDuplicateNote={() => onDuplicateNote(selectedGraph)}
-            onDeleteNote={requestCardDelete}
-            onRescheduleCards={onRescheduleCards}
-            onGenerateVariant={(cardId) => onGenerateVariant(selectedDeck.id, cardId)}
-            onUpdateVariant={onUpdateVariant}
-            onSelectCard={requestCardSelection}
-            deckName={(deckId) => deckNameById.get(deckId) ?? "Unbekannter Stapel"}
-            onClose={() => requestDetailAction(closeDetail)}
-            onDraftStateChange={handleEditorDraftStateChange}
-          />
-        ) : null}
-        </aside>
-      </>
+          )}
+        </div>
+      </CardEditorSurface>
     );
   }
 
@@ -1396,7 +735,7 @@ export function DecksScreen({
                 <span className="core-field-label">Karten durchsuchen</span>
                 <span className="relative flex min-w-0">
                   <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={16} aria-hidden="true" />
-                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
+                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
                 </span>
               </label>
             <div className="flex flex-wrap items-center gap-3">
@@ -1406,6 +745,30 @@ export function DecksScreen({
                 options={[{ value: "all", label: "Alle Karten" }, { value: "without", label: "Ohne Variante" }]}
                 onValueChange={(value) => { setWithoutVariants(value === "without"); setCardPageByDeckId({}); }}
               />
+              <CoreSelect
+                ariaLabel="Nach Flagge filtern"
+                value={searchFilters.flag === null ? "any" : String(searchFilters.flag)}
+                options={flagFilterOptions}
+                onValueChange={(value) => changeQuery(withCardSearchFilter(query, "flag", value === "any" ? null : Number(value)))}
+              />
+              <button
+                type="button"
+                aria-pressed={searchFilters.leech}
+                className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action"
+                onClick={() => changeQuery(withCardSearchFilter(query, "leech", !searchFilters.leech))}
+              >
+                <Snail size={16} aria-hidden="true" />Lernbremse
+              </button>
+              <div className="min-w-0 flex-1 basis-56">
+                <TagInput
+                  tags={searchFilters.tags}
+                  loadDirectory={cardEditor.listTagDirectory}
+                  label="Nach Tags filtern"
+                  labelHidden
+                  placeholder="Nach Tag filtern"
+                  onChange={(tags) => changeQuery(withCardSearchFilter(query, "tags", tags))}
+                />
+              </div>
               {withoutVariants && contentDeck && onGenerateDeckVariants ? (
                 <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateDeckVariants(contentDeck)}>
                   Für diese Karten Varianten generieren
@@ -1496,6 +859,8 @@ export function DecksScreen({
                       nextStudyLabel={nextStudyLabel}
                       selected={selectedCardId === card.id}
                       marked={selectedGraph?.note.id === card.noteId ? selectedGraph.note.marked : card.marked}
+                      flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
+                      flagNames={cardEditor.flagNames}
                       syncConflict={Boolean(syncConflictCardIds?.has(card.id))}
                       onSelect={stableRequestCardSelection}
                     />
@@ -1531,7 +896,7 @@ export function DecksScreen({
           )}
         </div>
       </SoftPanel>}
-      {detailOpen ? (typeof document === "undefined" ? renderDetailLayer() : createPortal(renderDetailLayer(), document.body)) : null}
+      {detailOpen ? renderDetailLayer() : null}
 
       <ActionDialog
         open={Boolean(pendingDetailAction)}

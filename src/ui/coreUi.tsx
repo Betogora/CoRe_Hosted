@@ -374,7 +374,7 @@ export function useSlidingSelection<T extends HTMLElement>(value: string, option
     const container = containerRef.current;
     if (!container) return;
     const synchronize = () => {
-      const selected = container.querySelector<HTMLButtonElement>('[aria-pressed="true"], [aria-current="page"]');
+      const selected = container.querySelector<HTMLButtonElement>('[aria-pressed="true"], [aria-current="page"], [aria-selected="true"]');
       const next = selected ? { x: selected.offsetLeft, y: selected.offsetTop, width: selected.offsetWidth, height: selected.offsetHeight } : null;
       setIndicator(current => current?.x === next?.x && current?.y === next?.y && current?.width === next?.width && current?.height === next?.height ? current : next);
     };

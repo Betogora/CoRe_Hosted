@@ -1,4 +1,4 @@
-import { createDefaultDeckSettings, getActiveVariants, stableContentHash } from "./coreModel.ts";
+import { createCardVariant, createDefaultDeckSettings, getActiveVariants, stableContentHash } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
@@ -87,6 +87,27 @@ export function describeVariantReadiness(card: Card, deckSettings: DeckSettingsI
 export function deactivateVariant(card: Card, variantId: string, _reason = "Nutzer hat die Variante deaktiviert."): Card {
   const updatedAt = new Date().toISOString();
   return { ...card, variants: card.variants.map((variant) => variant.id === variantId ? { ...variant, isActive: false, qualityStatus: "disabled", updatedAt, revision: variant.revision + 1 } : variant), updatedAt };
+}
+
+/**
+ * Replaces a variant's wording. An edited variant counts as the learner's own: regenerating the deck's variants keeps
+ * it, a content change still makes it outdated.
+ */
+export function editVariantText(card: Card, variantId: string, text: { front: string; back: string }, updatedAt = new Date().toISOString()): Card {
+  const variant = card.variants.find((candidate) => candidate.id === variantId && !candidate.deletedAt);
+  if (!variant) throw new Error("Die Variante wurde nicht gefunden.");
+  const edited = createCardVariant({ ...variant, front: text.front, back: text.back, meta: { ...variant.meta, editedAt: updatedAt }, updatedAt, revision: variant.revision + 1 });
+  if (!stripSanitizedHtml(edited.front).trim() || !stripSanitizedHtml(edited.back).trim()) throw new Error("Frage und Antwort der Variante dürfen nicht leer sein.");
+  if (edited.contentHash === variant.contentHash) return card;
+  if (card.variants.some((candidate) => candidate.id !== variantId && !candidate.deletedAt && candidate.contentHash === edited.contentHash)) {
+    throw new Error("Diese Formulierung gibt es für die Karte schon.");
+  }
+  return { ...card, variants: card.variants.map((candidate) => candidate.id === variantId ? edited : candidate), updatedAt };
+}
+
+/** Whether the learner edited the variant's wording (`editVariantText`). */
+export function isEditedVariant(variant: CardVariant): boolean {
+  return typeof variant.meta.editedAt === "string";
 }
 
 /** Takes a disabled or reported variant back into rotation; outdated or deleted ones stay out. Feedback history stays. */

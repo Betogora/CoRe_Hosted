@@ -1,6 +1,6 @@
 import { AI_CARD_VARIANT_PROMPT_VERSION, AiCardVariantContractError } from "./aiCardVariantContract.ts";
 import { getActiveVariants } from "./coreModel.ts";
-import { classifyCardEligibility } from "./coreVariantService.ts";
+import { classifyCardEligibility, isEditedVariant } from "./coreVariantService.ts";
 import type { Card, DeckSettings, Note } from "./coreTypes.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
@@ -22,12 +22,13 @@ const STOPPING_ERROR_CODES = new Set([
 /**
  * `missing` gives cards without an active variant their first one; `refresh` replaces the variants of cards
  * whose active variants come from an older prompt version, so a further action continues instead of re-rolling.
+ * Variants the learner edited are their own and never count as older.
  */
 export type CardVariantBatchMode = "missing" | "refresh";
 
 function needsVariant(card: Card, mode: CardVariantBatchMode) {
   const active = getActiveVariants(card);
-  return mode === "missing" ? active.length === 0 : active.some((variant) => variant.meta.promptVersion !== AI_CARD_VARIANT_PROMPT_VERSION);
+  return mode === "missing" ? active.length === 0 : active.some((variant) => !isEditedVariant(variant) && variant.meta.promptVersion !== AI_CARD_VARIANT_PROMPT_VERSION);
 }
 
 export interface CardVariantBatchSource {

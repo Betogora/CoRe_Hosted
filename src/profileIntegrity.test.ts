@@ -16,6 +16,7 @@ const cloudProfile: Profile = {
     learnCollapsedDeckIds: [],
     deckManagerExpandedDeckIds: [],
     syncIntervalMinutes: 5,
+    flagNames: ["", "", "", "", "", "", ""],
   },
 };
 

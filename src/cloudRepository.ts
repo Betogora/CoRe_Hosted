@@ -1,5 +1,6 @@
 import { createCloudProfile, saveCloudProfile } from "./cloudAuth.ts";
 import { noteTextIndex } from "./coreModel.ts";
+import { parseCardSearchQuery } from "./cardSearchQuery.ts";
 import type { Card, CardVariant, Deck, ImportVerificationRepairScope, ImportVerificationScope, Note, ReviewEvent } from "./coreTypes.ts";
 import {
   cardFromRow,
@@ -7,7 +8,9 @@ import {
   noteFromRow,
   noteSourceFromRow,
   noteTypeSourceFromRow,
+  reviewEventFromRow,
   validateAccountRows,
+  validateAccountTagRows,
   validateAccountStatistics,
   validateAccountStudyOverview,
   validateCardCatalogRows,
@@ -18,6 +21,7 @@ import {
   validateOfflineManifestRows,
   requireJsonRecord,
   validateProfileRows,
+  validateSimilarNoteRows,
   variantFromRow,
   type AccountTable,
   type CardStudySnapshot,
@@ -43,7 +47,7 @@ const ROW_IDENTITY_FIELDS = new Set(["id", "user_id", "created_at", "updated_at"
 const COMPARABLE_TIMESTAMP_FIELDS = new Set(["answered_at", "deleted_at", "due_at", "last_reviewed_at"]);
 const CARD_STUDY_FIELDS = [
   "state", "due_at", "stability", "difficulty", "reps", "lapses", "interval_days", "learning_step_index",
-  "last_reviewed_at", "last_rating", "study_extra", "source_scheduler", "study_revision",
+  "last_reviewed_at", "last_rating", "leeched_at", "study_extra", "source_scheduler", "study_revision",
 ];
 const TECHNICAL_CONTENT_FIELDS_BY_TABLE: Record<string, Set<string>> = {
   decks: new Set(["hierarchy_path"]),
@@ -70,6 +74,7 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
   "translator_version",
   "content_revision",
   "imported_content_revision",
+  "imported_tags",
   "parent_deck_id",
   "model_run_id",
   "hierarchy_path",
@@ -607,9 +612,11 @@ function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage 
 }
 
 export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
+  const search = parseCardSearchQuery(request.query);
   const call = client.rpc("list_account_card_catalog", {
     p_deck_id: request.deckId,
-    p_query: request.query ?? "",
+    p_query: search.text,
+    p_terms: search.terms,
     p_sort_field: request.sort?.field ?? "sortField",
     p_sort_direction: request.sort?.direction ?? "asc",
     p_cursor: request.cursor ?? null,
@@ -626,9 +633,11 @@ export async function searchAccountCardCatalog(
   client: any,
   request: { deckIds: string[]; query: string; sort?: CatalogPageRequest["sort"]; limit?: number },
 ): Promise<Map<string, CatalogPage>> {
+  const search = parseCardSearchQuery(request.query);
   const { data, error } = await client.rpc("search_account_card_catalog", {
     p_deck_ids: request.deckIds,
-    p_query: request.query,
+    p_query: search.text,
+    p_terms: search.terms,
     p_sort_field: request.sort?.field ?? "sortField",
     p_sort_direction: request.sort?.direction ?? "asc",
     p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
@@ -781,6 +790,30 @@ export async function listReleasableMedia(client: any, limit = 100): Promise<Arr
   return data;
 }
 
+/** All answers of one card, oldest first, including manual events (`review_events_user_card_answered_idx`). */
+export async function listCardReviewEvents(client: any, cardId: string, signal?: AbortSignal): Promise<ReviewEvent[]> {
+  const call = client.from("review_events").select("*").eq("card_id", cardId).order("answered_at").order("id").limit(2000);
+  const { data, error } = await (signal ? call.abortSignal(signal) : call);
+  if (error) throw error;
+  return validateAccountRows("review_events", data ?? []).map(reviewEventFromRow);
+}
+
+/** Up to three contents with similar text, each with a card to open. */
+export async function listSimilarNotes(client: any, noteId: string, signal?: AbortSignal) {
+  const call = client.rpc("list_similar_notes", { p_note_id: noteId, p_limit: 3 });
+  const { data, error } = await (signal ? call.abortSignal(signal) : call);
+  if (error) throw error;
+  return validateSimilarNoteRows(data ?? []);
+}
+
+/** Account-wide tags with the number of contents and how many of them carry the tag from an import. */
+export async function listAccountTags(client: any, signal?: AbortSignal) {
+  const call = client.rpc("list_account_tags");
+  const { data, error } = await (signal ? call.abortSignal(signal) : call);
+  if (error) throw error;
+  return validateAccountTagRows(data ?? []);
+}
+
 async function selectProfileRows(client: any, userId: any) {
   const { data, error } = await client.from("profiles").select("*").eq("id", userId);
   if (error) throw error;
@@ -916,6 +949,7 @@ function noteToCloudRow(note: Note, userId: string) {
     marked: note.marked,
     content_revision: normalizeRevision(note.contentRevision),
     imported_content_revision: note.importedContentRevision,
+    imported_tags: note.importedTags,
     created_at: note.createdAt,
     updated_at: note.updatedAt,
     ...syncFields(note),
@@ -935,6 +969,7 @@ function studyToCloudColumns(study: Card["study"]) {
     learning_step_index: study.learningStepIndex,
     last_reviewed_at: study.lastReviewedAt,
     last_rating: study.lastRating,
+    leeched_at: study.leechedAt,
     study_extra: extra,
   };
 }

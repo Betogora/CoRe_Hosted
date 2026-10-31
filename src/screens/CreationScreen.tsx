@@ -29,6 +29,7 @@ export function CreationScreen({
   onMethodChange = () => undefined,
   onTargetDeckChange = () => undefined,
   onSaveManualNote = async () => null,
+  listTagDirectory,
   onDraftStateChange = () => undefined,
   onSessionCompleted = () => undefined,
   onStartDeck = () => undefined,
@@ -95,6 +96,7 @@ export function CreationScreen({
           initialTargetDeckId={initialTargetDeckId}
           onTargetDeckChange={onTargetDeckChange}
           onSaveManualNote={onSaveManualNote}
+          listTagDirectory={listTagDirectory}
           onFinish={({ createdCount, targetDeckId }) => completeSession(targetDeckId, createdCount, "manual")}
           onDraftStateChange={onDraftStateChange}
         />

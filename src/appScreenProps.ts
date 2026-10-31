@@ -1,10 +1,12 @@
 import type { Dispatch, SetStateAction } from "react";
-import type { AppRoute, AppViewId, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
+import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { SimilarNote } from "./cloudRepositoryValidation.ts";
+import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";
@@ -60,6 +62,8 @@ export interface CreationScreenProps {
   onMethodChange: (method: CreationMethod) => unknown;
   onTargetDeckChange: (deckId: string) => unknown;
   onSaveManualNote: (input: ManualNoteSaveInput) => Promise<{ deck: Deck; cardIds: string[] } | null>;
+  /** Tags of the account for suggestions in the tag input. */
+  listTagDirectory: () => Promise<TagDirectoryEntry[]>;
   onDraftStateChange: (dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => void;
   onSessionCompleted: (completion: { deckId: string; createdCount: number; kind: "import" | "manual" }) => void;
   onStartDeck: (deck: Deck) => void;
@@ -138,6 +142,36 @@ export interface DeckSettingsScreenProps {
   backLabel?: string;
 }
 
+/** Reads only the cloud offers; null without a signed-in client. Callers check online state themselves (W19). */
+interface CardEditorCloudReads {
+  listCardReviewEvents: (cardId: string, signal: AbortSignal) => Promise<ReviewEvent[]>;
+  listSimilarNotes: (noteId: string, signal: AbortSignal) => Promise<SimilarNote[]>;
+}
+
+/** Instant card actions and reads of the card editor beyond the content draft. */
+export interface CardEditorServices {
+  /** Own flag names of the account (`uiPreferences.flagNames`). */
+  flagNames: readonly string[];
+  moveCard: (cardId: string, deckId: string) => Promise<NoteGraph | null>;
+  resetCards: (cardIds: string[]) => Promise<Card[]>;
+  setCardsLeech: (cardIds: string[], leechedAt: string | null) => Promise<Card[]>;
+  buryCards: (cardIds: string[], buried: boolean) => Promise<Card[]>;
+  restoreCardStudies: (studies: ReadonlyMap<string, Card["study"]>) => Promise<Card[]>;
+  editVariant: (cardId: string, variantId: string, text: { front: string; back: string }) => Promise<void>;
+  removeNoteMedia: (graph: NoteGraph, names: string[]) => Promise<NoteGraph | null>;
+  /** The stored card and content, e.g. to check before an undo that nothing changed meanwhile. */
+  loadCard: (cardId: string) => Promise<{ card: Card; note: Note } | null>;
+  listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
+  /** Tags of the whole account online, of the local replica offline. */
+  listTagDirectory: () => Promise<TagDirectoryEntry[]>;
+  listExamsForDeck: (deckId: string) => Promise<string[]>;
+  /** Loads a neighbouring card ahead so prev/next opens without waiting. */
+  prefetchCard: (cardId: string) => void;
+  cloud: CardEditorCloudReads | null;
+  openFlagNames: () => unknown;
+  openSyncConflicts: () => unknown;
+}
+
 export interface DecksScreenProps {
   decks: Deck[];
   summaryAccountId?: string;
@@ -166,10 +200,14 @@ export interface DecksScreenProps {
   /** Starts variants for the opened deck's cards without one; absent while generation is unavailable. */
   onGenerateDeckVariants?: (deck: Deck) => unknown;
   variantGenerationRunning?: boolean;
-  onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "delete") => Promise<void>;
+  onUpdateVariant: (cardId: string, variantId: string, action: "reactivate" | "deactivate" | "delete") => Promise<void>;
   selectedDeckId: string | null;
   selectedCardId: string | null;
-  onSelectDeck: (deckId: string | null, cardId?: string | null) => unknown;
+  cardEditorTab: CardEditorTab;
+  onCardEditorTabChange: (tab: CardEditorTab) => unknown;
+  cardEditor: CardEditorServices;
+  onSelectDeck: (deckId: string | null, cardId?: string | null, tab?: CardEditorTab) => unknown;
+  /** Present when the editor was opened from a session: closing returns there and there is no hit list (W6). */
   onCloseSelectedCard?: () => unknown;
   onOpenLearn: (deckId?: string | null) => unknown;
   onOpenCardSettings: () => unknown;
@@ -202,6 +240,8 @@ export interface DecksCardPage {
   query: string;
   sort: CardTableSort;
   selected?: (NoteGraph & { cardId: string }) | null;
+  /** The card the last answered request asked for; until it matches the selection, the editor shows its loading bar. */
+  requestedCardId?: string | null;
   loadError?: string | null;
   limitedToLocalCatalog?: boolean;
 }
@@ -249,6 +289,8 @@ export interface SettingsScreenProps {
 export interface GlobalCardSettingsScreenProps {
   timeZone: string;
   globalSchedulerPreferences: GlobalSchedulerPreferences;
+  flagNames: readonly string[];
+  settingsTarget?: SettingsTarget | null;
   learningProfiles: LearningProfileTemplate[];
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
   onSaveSettings: (draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) => Profile | null | Promise<Profile | null>;
@@ -298,6 +340,8 @@ export interface StudyModeProps {
   onReturnToLearn: () => void;
   onEditCard: (deckId: string, cardId: string) => unknown;
   onEditDeck: (deckId: string) => unknown;
+  /** Own flag names of the account (`uiPreferences.flagNames`). */
+  flagNames: readonly string[];
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
   onCardUpdated: (deckId: string, card: Card) => unknown;

@@ -5,337 +5,9 @@ Stand: 2026-10-30
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität: P0 vor P1 vor P2. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität: P1 vor P2. Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig, „Später“ ist geparkt.
-
-## P0: Karteneditor V2 mit Tags, Flaggen und Lernbremse
-
-Roadmap für den Karteneditor V2 samt Tag-, Flaggen- und Lernbremsen-System.
-Erledigte Pakete wandern datiert nach [`history.md`](history.md).
-
-Die Startbedingung ist erfüllt: P1 R2–R7 (FSRS-7, Reifemodell ohne XP,
-Datenbank-Cutover) liegt seit PR #52 auf `main`. Diese Pakete haben Scheduler,
-`record_review_atomic`-Pfad, Kartenspalten, `card_catalog`, das Kartendetail
-in `DecksScreen.tsx` und die Variantenfreigabe geändert. Der Editor-PR zweigt
-vom aktuellen `main` ab.
-
-Kein Scope Creep: Neues nur, wenn eine Entscheidung unten es verlangt.
-Listenbasierte Funktionen gehören in die Kartenverwaltung V2 (siehe unten),
-nicht in den Editor.
-
-### Zielbild
-
-Grundlage sind die Ist/Soll-Vergleichsseiten vom 2026-10-29 (Runde 3, Soll B,
-mit dem Nutzerfeedback zu Runde 2).
-
-- Desktop: Dialog über die ganze Fläche, keine Leiste rechts. Kopf mit
-  Vor/Zurück durch die Trefferliste (`12 / 48`), Titel, Unterzeile mit
-  Statussymbolen (Stern, Flagge, Pause), Duplizieren, Löschen, Schließen.
-- Vier Reiter in dieser Reihenfolge: `Allgemein`, `Inhalt`, `Varianten`,
-  `Lernen`. Mobil Vollbild mit denselben Reitern, gleich breit und kompakt
-  (Stil Runde 1); 44-px-Ziele.
-- `Allgemein` wirkt sofort und bietet bei jeder Sofortaktion Rückgängig. Links:
-  Flagge mit Markiert, Planung, Stapel. Rechts: Tags, Karten aus diesem Inhalt,
-  Ähnliche Inhalte, Details. Mobil: Flaggen als 4×2-Raster mit Namen.
-- `Inhalt` ist der Entwurf: Felder links, Live-Vorschau rechts (kein
-  Vorschau-Dialog); mobil Umschalter `Bearbeiten | Vorschau`. Werkzeugleiste
-  nur am aktiven Feld, Geändert-Punkt je Feld. Die Fußleiste nennt zuerst die
-  Wirkung, dann `Verwerfen` und `Speichern`.
-- `Varianten` und `Lernen` übernehmen die Gestaltung aus Runde 2, ohne Leiste.
-- Eine markierte Karte färbt Kopf, Reiter und Hintergrund leicht gelb (neuer
-  Token `--core-marked-surface`); innere Karten bleiben weiß. Eine Flagge färbt
-  nichts. Eine ausgesetzte Karte bekommt keine Flächentönung mehr.
-- Sofortaktionen bestätigen sich über den App-Baustein `SuccessToast`, ergänzt
-  um die Aktion `Rückgängig`.
-
-### Entscheidungen vom 2026-10-29
-
-- V1 Tags und Flaggen werden genau wie in Anki gespeichert, auf CoRe-Begriffe
-  abgebildet und in der Oberfläche vereinfacht (Konzept unten).
-- V2 Tag-Identität wie in Anki: NFC, Groß-/Kleinschreibung egal, die
-  gespeicherte Schreibweise gewinnt, `::` bildet die Hierarchie (F1).
-- V3 Das Anki-Tag `leech` wird zur Lernbremse. Das Datenfeld entsteht im
-  Cutover dieses Projekts; sichtbar wird die Funktion erst mit Paket 12 (F2).
-- V4 Importierte Tags erscheinen eingeklappt mit Anzahl und lassen sich
-  ausklappen und bearbeiten; eigene Tags sind sichtbar (F3).
-- V5 Eigene Flaggennamen werden kontoweit vergeben, Standard sind die
-  Farbnamen (F4).
-- V6 Tags in `Allgemein` speichern sofort, mit Rückgängig (F5).
-- V7 Flaggenpunkt, Filter und `tag:`/`flag:`-Suche in der Kartenverwaltung
-  gehören zu diesem Projekt, als eigenes Paket nach dem Editor (F6).
-- V8 Ausgesetzt wird ohne Flächenfärbung dargestellt: Umschalter, Zustand in der
-  Planung, Zeile der Geschwisterkarte, Pause-Symbol in der Kopfzeile (F7).
-- V9 `Zurückstellen` ist eine einmalige Aktion bis zum nächsten Lerntag und
-  nutzt denselben Mechanismus wie das Zurückstellen von Geschwisterkarten.
-- V10 `Neu planen` erscheint erst nach einer Datumsänderung und lässt eine
-  Aussetzung bestehen.
-- V11 Kein Export einzelner Karten. Mehrfachbearbeitung gehört in die
-  Kartenverwaltung V2.
-- V12 Cutover ohne Kompatibilitätscode in der App: vorhandene Daten rechnet
-  einmalig eine Datenbank-Migration um.
-
-### Konzept: Tags, Flaggen und Lernbremse
-
-Analog zur Inhaltsform, auf die alle Anki-Notiztypen abgebildet werden, gibt es
-drei Schichten.
-
-1. Gespeichert wird genau wie in Anki. `Note.tags` behält die exakten
-   Anki-Texte einschließlich `#`, `^`, `&`, `(`, `/` und `::`.
-   `Card.ankiFlag` behält 0–7. Ein späterer Stapel-Export bleibt so ohne
-   Verlust möglich.
-2. Abgebildet wird auf CoRe-Begriffe. `marked` wird zum Stern (wie heute),
-   `leech` zur Lernbremse `Card.leechedAt`. Woher ein Tag stammt, entscheidet
-   `Note.importedTags`, der Tag-Stand des letzten Imports: eigene oder
-   importierte Tags.
-3. Die Oberfläche vereinfacht. Tags erscheinen als Chips mit dem letzten
-   Pfadteil; der volle Pfad steht im Tooltip. Importierte Tags sind
-   eingeklappt. Flaggen sind 7 Farbpunkte, auf Wunsch mit Namen.
-
-Regeln:
-
-- Eine Tag-Änderung ist keine Inhaltsänderung. Wie die Markierung erhöht sie
-  `contentRevision` nicht, sodass ein Reimport die Felder weiter aktualisiert.
-- Beim Reimport werden die Tags pro Notiz zusammengeführt:
-  `lokal ∪ (neu − Basis) − (Basis − neu)`. `Basis` ist `importedTags`.
-  Danach gilt `importedTags := neu`.
-- Lokal gesetzte Flaggen, Markierung und Lernbremse bleiben beim Reimport
-  erhalten. Neue Karten übernehmen die importierte Flagge.
-- Normalisierung wie in Anki: NFC, Steuerzeichen und Leerzeichen sind
-  unzulässig, `::`-Teile werden getrimmt, ein leerer Teil wird `blank`.
-  Duplikate pro Notiz werden ohne Rücksicht auf Groß-/Kleinschreibung
-  entfernt. Getrennt wird nie an `#`, `,` oder `;`.
-- Lernbremse ist ein Kartenzustand (`Card.leechedAt`, Zeitpunkt oder `null`),
-  getrennt von `status`. Beim Import erhalten die Karten einer Notiz mit
-  `leech`-Tag die Lernbremse: alle Karten mit mindestens einem Lapse, hat keine
-  einen, alle Karten. Das Tag wird dann nicht als Chip geführt.
-- Eigene Flaggennamen liegen kontoweit im Profil. Aus `.apkg` sind sie nicht
-  übernehmbar, weil Anki sie nur in `.colpkg` mitgibt.
-
-Anki-Grundlagen, öffentlich belegt:
-
-- Tags stehen in `notes.tags` als `" a b c "`. Die Identität ist `unicase`,
-  `::` bildet die Hierarchie, `.apkg` enthält keine Tags-Tabelle und keinen
-  Einklappzustand
-  ([register.rs](https://github.com/ankitects/anki/blob/main/rslib/src/tags/register.rs),
-  [insert.rs](https://github.com/ankitects/anki/blob/main/rslib/src/import_export/insert.rs)).
-- Systemtags: `marked` ist die Markierung. `leech` gilt ab Schwelle 8;
-  Standardaktion ist, nur das Tag zu setzen
-  ([deckconfig](https://github.com/ankitects/anki/blob/main/rslib/src/deckconfig/mod.rs),
-  [Leeches](https://docs.ankiweb.net/leeches.html)). Der deutsche Anki-Begriff
-  ist „Lernbremse“
-  ([de/deck-config.ftl](https://raw.githubusercontent.com/ankitects/anki-core-i18n/main/core/de/deck-config.ftl)).
-- Flaggen sind `cards.flags & 7`, 1 Rot bis 7 Lila, Strg+1–7. Namen stehen in
-  der Konfiguration `flagLabels`, die nur `.colpkg` mitgibt
-  ([flags.py](https://github.com/ankitects/anki/blob/main/qt/aqt/flags.py)).
-- Ein Export ohne Lernstand setzt die Flaggen auf 0 und entfernt `marked` und
-  `leech`; Ankis Reimport ersetzt Tags, statt sie zusammenzuführen
-  ([gather.rs](https://github.com/ankitects/anki/blob/main/rslib/src/import_export/gather.rs)).
-- Suche: `flag:n`, `tag:x` (findet auch Kinder, ohne Rücksicht auf
-  Groß-/Kleinschreibung), `tag:none`
-  ([sqlwriter.rs](https://github.com/ankitects/anki/blob/main/rslib/src/search/sqlwriter.rs)).
-
-### Arbeitspakete
-
-Reihenfolge: 0, dann 1–4 weitgehend parallel, dann 5, dann 6–9, dann 10–12.
-Paket 13 begleitet alle Pakete. Jedes Paket endet mit fokussierten Tests,
-`npm run typecheck` und bei Bedarf `npm run build`.
-
-#### 0 Entscheidungen und Specs
-
-- [ ] `docs/specs.md`: „Kartendetail und Editor“ neu fassen (Dialog, vier
-  Reiter, sofort gegen Entwurf, Markiert-Tönung, Ausgesetzt ohne Tönung,
-  Rückgängig). Den Flaggen-Satz („Anki-Flaggen werden appweit weder angeboten
-  noch dargestellt“) ersetzen. Begraben und Zurückstellen sowie Rückgängig
-  ergänzen. Abschnitt „Tags und Flaggen“ mit Normalisierung, Herkunft und
-  Reimport-Regel; Lernbremse als vorhandener, noch unsichtbarer Zustand.
-- [ ] `docs/decisions.md`: ADR „Tags, Flaggen und Lernbremse ankitreu speichern
-  und auf CoRe-Begriffe abbilden“ mit V1–V12.
-- [ ] `docs/architecture.md`: neue persistierte Begriffe (`importedTags`,
-  `leechedAt`, Flaggennamen) und neue öffentliche `coreModel`-Bausteine.
-- [ ] `docs/specs.html` und weitere Ansichten neu erzeugen
-  (`npm run docs:build`, `npm run check:docs`).
-- Nachweis: `check:docs` grün; Abschnitte verlinkt.
-
-#### 1 Datenmodell-Cutover: Tags, Flaggen, Lernbremse
-
-- [ ] `Note.importedTags: string[] | null` und `Card.leechedAt: string | null`
-  in `src/coreTypes.ts`, IndexedDB, Cloud-Zeilen, Sync-Planer und
-  `src/cloudRepositoryValidation.ts`.
-- [ ] Migration: neue Spalten. Einmalige Umrechnung vorhandener Daten:
-  - `importedTags` aus den heutigen Tags importierter Notizen,
-  - `leech`-Tag zu `leechedAt` nach der Regel oben, Tag entfernen.
-- [ ] `normalizeTags` nach den Anki-Regeln, ohne Trennung an `#`, `,` und `;`.
-  Behebt das Zerlegen von Tags wie `#AK_Step1_v12::#B&B`.
-- [ ] Neuer `coreModel`-Baustein `setNoteTags`: erhöht die Revision, nicht
-  `contentRevision`. Behebt „Tag-Änderung blockiert spätere Import-Updates“.
-- [ ] Reimport (`indexedDbCoreRepository.ts`, Abschnitt K5.7): Tags nach der
-  Drei-Wege-Regel zusammenführen; Flagge, Markierung und Lernbremse bleiben.
-- [ ] APKG-Import: `leech` setzt `leechedAt`, `importedTags` wird gesetzt.
-- [ ] `npm run db:types:generate`, `db:types:check`, `test:rls:local`.
-- Nachweis: Tests mit einem Stapel im AnKing-Stil (tiefe `#`-Pfade,
-  Groß-/Kleinschreibung, `leech`, `marked`). Reimport mit lokal ergänzten und
-  im Stapel entfernten Tags. Eine reine Tag-Änderung blockiert kein
-  Feld-Update.
-
-#### 2 Tag-Verzeichnis und Flaggen-Bausteine
-
-- [ ] Kontoweites Tag-Verzeichnis: lokal aus den Notizen abgeleitet, online per
-  Cloud-Abfrage mit Anzahl und Herkunft (eigen/importiert); Vorschläge
-  hierarchisch.
-- [ ] `coreModel`-Baustein `setCardFlag` (Kartenrevision, Sync, Konfliktanzeige
-  „Flagge“ vorhanden).
-- [ ] Eigene Flaggennamen im Profil, synchronisiert, Standard: Farbnamen.
-- Nachweis: Tests für Vorschläge mit Groß-/Kleinschreibung und Hierarchie,
-  Flagge über zwei Geräte.
-
-#### 3 Lern- und Kartenaktionen
-
-- [ ] Karten verschieben (eine Karte oder alle Karten eines Inhalts) als
-  `coreModel`-Baustein.
-- [ ] `Als neu lernen`: Lernstand zurücksetzen über `record_review_atomic`
-  (normale Kartenupdates übernehmen Lernfelder in der Cloud nicht).
-- [ ] Einzelne Karte zurückstellen über `src/siblingBurying.ts`.
-- [ ] Bewertungen einer Karte: lokal über den Index `cardAnswered`, sonst aus
-  der Cloud über `review_events_user_card_answered_idx`.
-- [ ] Ähnliche Inhalte: Server-Abfrage über Textähnlichkeit (pg_trgm),
-  höchstens 3 Treffer, lazy und abbrechbar.
-- [ ] Varianten pausieren (`deactivateVariant` freigeben) und Variantentext
-  bearbeiten.
-- Nachweis: Tests je Baustein; RLS-Tests für neue Abfragen.
-
-#### 4 Gemeinsame UI-Bausteine und Tokens
-
-- [ ] `SuccessToast` und `useSuccessToast` mit optionaler Aktion
-  (`Rückgängig`).
-- [ ] Tag-Eingabe: Chips, Vorschläge, Hierarchie; importierte Gruppe
-  eingeklappt, ausklappbar und bearbeitbar. Genutzt von Editor und Erstellen.
-- [ ] Flaggenwähler: Punkte auf Desktop, 4×2-Raster mit Namen mobil. Genutzt von
-  Editor, Lernmodus und Kartenverwaltung.
-- [ ] `RichTextEditor`: Werkzeugleiste nur am aktiven Feld.
-- [ ] Tokens hell und dunkel: `--flag-1` bis `--flag-7`, `--core-danger-text`,
-  `--core-marked-surface`; Theme-Vertragstest.
-- [ ] Katalog-Demos in `scripts/uiCatalogDemos.tsx`, `src/ui/README.md`.
-- Nachweis: Katalog im Browser geprüft, Kontraste hell/dunkel ≥ 4,5:1 für
-  Text.
-
-#### 5 Editor-Rahmen
-
-- [ ] `DeckCardEditor` aus `src/screens/DecksScreen.tsx` nach
-  `src/screens/cardEditor/` aufteilen.
-- [ ] Dialog über die ganze Fläche / Vollbild mobil, Kopf mit Vor/Zurück,
-  Duplizieren, Löschen, Schließen.
-- [ ] Reiter als URL-Parameter mit fester Liste erlaubter Werte; Reload und
-  Zurück bleiben deterministisch.
-- [ ] Fokusführung und die Rückfrage bei ungespeicherten Änderungen bleiben.
-- [ ] Fußleiste für den Entwurf, Markiert-Tönung, Statussymbole in der
-  Unterzeile.
-- [ ] Vor/Zurück: Die Tabelle gibt die Reihenfolge ihrer geladenen Zeilen
-  weiter. Am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv.
-- [ ] `Varianten` und `Lernen` werden erst beim Öffnen geladen.
-- Nachweis: Bundle-Budget eingehalten, Tastatur- und Fokus-Tests.
-
-#### 6 Reiter Allgemein
-
-- [ ] Flagge und Markiert; Planung mit Schnellwahl, `Neu planen` nach Änderung,
-  Aussetzen, Zurückstellen.
-- [ ] Verschieben über den vorhandenen Dialog mit `DeckSelect`.
-- [ ] Tags (sofort speichernd).
-- [ ] Karten aus diesem Inhalt, inklusive Entwurfszeile „Neu beim Speichern“.
-- [ ] Ähnliche Inhalte, erst geladen, wenn der Browser frei ist.
-- [ ] Details mit Quelle, Prüfung und kopierbaren IDs.
-- [ ] Jede Sofortaktion zeigt einen Toast mit Rückgängig.
-
-#### 7 Reiter Inhalt
-
-- [ ] Zwei Spalten: Felder und Live-Vorschau über `renderCard` bzw.
-  `NoteCardContent`, mit kurzer Verzögerung von etwa 150 ms. Gerendertes HTML
-  wird nie gespeichert.
-- [ ] Mobil `Bearbeiten | Vorschau`; Inhaltsform und Lernrichtung als eine
-  Zeile.
-- [ ] Geändert-Punkte, Schalter `Antwort eintippen`.
-- [ ] Medienliste aus `Note.media`: Größen nur, wenn bekannt; ungenutzte
-  Dateien entfernbar.
-
-#### 8 Reiter Varianten
-
-- [ ] Original zum Vergleich; je Variante Bearbeiten, Neu generieren, Pausieren,
-  Löschen; veraltete Varianten ersetzen; Link zu den Stapeleinstellungen.
-- [ ] Freigabe zeigt die Variantenbereitschaft aus P1 (ER3: Stabilität erreicht
-  die Stapelschwelle) statt einer XP-Zahl.
-
-#### 9 Reiter Lernen
-
-- [ ] 9 Kennzahlen aus Lernstand und `calculateRetrievability` (FSRS-7);
-  statt „Lernstufe XP“ das Reifeband aus P1 (ER2: Neu, Lernen, Jung, Reif,
-  Gefestigt).
-- [ ] Abrufverlauf und vollständige Bewertungsliste, erst beim Öffnen geladen.
-- [ ] `Als neu lernen …` mit Bestätigungsdialog.
-
-#### 10 Erstellen und Lernmodus
-
-- [ ] Erstellen nutzt die Tag-Eingabe aus Paket 4.
-- [ ] Lernmodus: Flagge setzen über Menü und Strg+1–7; Toast mit Rückgängig.
-
-#### 11 Kartenverwaltung: Flaggen und Tags
-
-- [ ] Flaggenpunkt in der Tabelle; `card_catalog` und `CardCatalogEntry` um die
-  Flagge erweitern (Migration und Trigger).
-- [ ] Filter und Suche in Anki-Schreibweise: `flag:n`, `tag:x` (inklusive
-  Kindern), `tag:none`, Verneinung mit `-`.
-- Nachweis: Server- und Offline-Suche liefern dieselben Treffer.
-
-#### 12 Lernbremse sichtbar machen
-
-- [ ] Erkennung im FSRS-7-Scheduler aus P1: Schwelle (Standard 8 Lapses) und Aktion
-  (`Nur kennzeichnen`, `Aussetzen`) in den Stapeleinstellungen. Gesetzt wird
-  über `record_review_atomic`.
-- [ ] Anzeige im Editor (Allgemein, Lernen), Filter in der Kartenverwaltung,
-  Zurücksetzen der Lernbremse.
-- Nachweis: Tests für Schwelle, Wiederholung bei halber Schwelle und keine
-  rückwirkende Auslösung.
-
-#### 13 Abnahme und Nachbessern
-
-- [ ] Betroffene Tests anpassen: `DecksScreen.test.tsx`;
-  e2e `card-lifecycle`, `navigation-context`, `core-stabilization`,
-  `batch-resilience`, `zz-media-import`.
-- [ ] Visuelle Pflichtmatrix aus [`operations.md`](operations.md) hell und
-  dunkel. Bewertungsrunden mit Screenshots aus der echten App bis mindestens
-  9,5/10.
-- [ ] `npm run gate:push`, `npm run performance:measure:local`,
-  `npm run test:rls:local`, `npm run test:e2e:local`.
-- [ ] `status.md`, `history.md`, `src/ui/README.md` nachziehen.
-
-### Für Kartenverwaltung V2 vorgemerkt
-
-Gehört nicht in den Editor:
-
-- Tag-Verwaltung für das ganze Konto: umbenennen, zusammenführen, löschen,
-  Herkunft anzeigen.
-- Mehrfachbearbeitung: Flagge, Tags, Stapel, Aussetzen, Neu planen,
-  Zurücksetzen für viele Karten.
-- Suchen und Ersetzen in Feldern.
-- Duplikate kontoweit finden, etwa „Felder gleich“.
-- Gespeicherte Suchen und Spaltenauswahl.
-- Position neuer Karten (Ankis „Reposition“).
-- Lernen nach Tag oder Flagge (Ankis gefilterte Stapel), sinnvoll gemeinsam mit
-  dem Lernbereich. Prüfungsthemen über Tags als Antwort auf die offene
-  Themenzuordnung in ungegliederten Stapeln.
-
-### Später
-
-Nicht Teil dieses Projekts:
-
-- Stapel-Export als `.apkg`. Dabei `marked`, `leech` und Flaggen
-  zurückschreiben, `importedTags` und Anki-Rohtexte nutzen.
-- Import aus `.colpkg` (bringt Flaggennamen und Einklappzustand der Tags mit).
-- AnkiHub-Schutz-Tags (`AnkiHub_Protect::Feld`) als Feldschutz beim Reimport
-  auswerten.
-- Inhaltsform importierter Inhalte wechseln, als Umwandlung in einen eigenen
-  Inhalt.
-- Feldeigenschaften aus Notiztypen: Schreibrichtung rechts nach links,
-  Schriftart, Ausschluss von der Suche.
 
 ## P1: KI-Varianten (Proof of Concept) abschließen
 
@@ -359,8 +31,11 @@ geglättet.
       danach eine Prompt-Ergänzung mit Ausweg, über den das Modell eine Karte
       als nicht umformulierbar meldet. Offen ist, wie die Route das meldet und
       ob die Karte danach aus Stapelläufen fällt; heute wählt jeder Lauf
-      gescheiterte und gemeldete Karten erneut. Nachweis: Playtest-Ergebnis vor
-      und nach der Prompt-Ergänzung, Routentests mit solchen Karteninhalten.
+      gescheiterte und gemeldete Karten erneut. Ein neuer Zustand erscheint als
+      weitere Zustandsmarke im Reiter `Varianten` des Karteneditors
+      (ADR-045, `variantStateMarks`).
+      Nachweis: Playtest-Ergebnis vor und nach der Prompt-Ergänzung,
+      Routentests mit solchen Karteninhalten.
 
 ## P2: Karten aus einer Quelle per KI erstellen
 
@@ -397,6 +72,8 @@ voraus.
       Regeln der Variantengenerierung.
 - [ ] **Ergebnis prüfen und übernehmen:** Vor dem Speichern eine Liste der
       vorgeschlagenen Karten mit Vorschau, Bearbeiten und Verwerfen je Karte;
+      Bearbeiten und Vorschau nutzen den Reiter `Inhalt` des Editors V2 (P0,
+      W16), kein zweiter Editor;
       gespeichert wird erst nach Bestätigung und nur über `coreModel.ts`
       (Frage–Antwort, Lückentext, Single und Multiple Choice gibt es dort
       schon). Feldzuordnung festlegen: kurze Antwort, quellenbasierte
@@ -422,6 +99,9 @@ neuen Code.
       Sprachausgabe und 200-%-Browserzoom auf echten Smartphones; dazu die
       Mindmap-Gesten aus W4c (Doppeltippen, Langdrücken, Zwei-Finger-Zoom,
       Vollbild) auf iOS und Android.
+      Karteneditor V2: Tag-Eingabe mit Bildschirmtastatur (Android schickt
+      die Leertaste oft ohne Tastenereignis), Reiter und Flaggenraster bei
+      200 % Zoom.
 - [ ] **Korpus (Phase 5):** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel: mindestens
       95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:
@@ -429,17 +109,13 @@ neuen Code.
 
 ## Vor dem ersten externen Release
 
-- [ ] **Neue Schemabaseline:** Die Migrationen ab
-      `20261008101057_kartenmodell_baseline.sql` (Stand 2026-10-30: 12 Dateien,
-      3.224 Zeilen, davon rund 550 überschriebene Fassungen von
-      `get_account_bootstrap`, `get_account_statistics` und
-      `list_account_card_study_states`) zu einer Baseline zusammenfassen, damit
-      jede Funktion an genau einer Stelle steht. Kein Laufzeitgewinn, nur
-      Übersicht; Aufwand etwa 1–2 h. Hosted per `supabase migration repair`
-      umstellen, Daten bleiben unberührt. Nachweis: `supabase db diff --linked`
-      leer, `verify_schema_v1.sql` lokal und remote grün. Verweise in
-      `README.md`, `operations.md` und `status.md` anpassen, offene Branches mit
-      Migrationen nachziehen.
+- [ ] **Preload-Gate:** `npm run performance:measure:local` meldet für den
+      automatischen 4G-Preload einen längsten Task über 50 ms, schon auf
+      `main` (2026-10-30: max. 70 ms, mit Editor V2 PR A max. 83 ms, mit PR C
+      max. 51 ms, je mit Läufen ganz ohne langen Task). Klären, welcher Task beim Vorladen
+      blockiert (Modulauswertung der Lazy-Chunks oder Repository-Arbeit), und
+      ihn teilen oder das Gate begründet anpassen. Nachweis: zwei grüne Läufe.
+
 - [ ] **KI-Kontingent pro Nutzer:** Alle Nutzer teilen das Ausgabenlimit des
       OpenRouter-Schlüssels; ein Tageslimit je Account (atomare Zählung in
       Supabase) verhindert, dass ein Nutzer es allein aufbraucht. Braucht eine
@@ -458,6 +134,36 @@ neuen Code.
       entfernen.
 
 ## Später
+
+### Kartenverwaltung V2
+
+Aus dem Karteneditor V2 (ADR-045) ausgeklammert:
+
+- Tag-Verwaltung für das ganze Konto: umbenennen, zusammenführen, löschen,
+  Herkunft anzeigen.
+- Mehrfachbearbeitung: Flagge, Tags, Stapel, Aussetzen, Neu planen,
+  Zurücksetzen für viele Karten.
+- Suchen und Ersetzen in Feldern.
+- Duplikate kontoweit finden, etwa „Felder gleich“.
+- Gespeicherte Suchen und Spaltenauswahl.
+- Position neuer Karten (Ankis „Reposition“).
+- Lernen nach Tag oder Flagge (Ankis gefilterte Stapel), sinnvoll gemeinsam mit
+  dem Lernbereich. Prüfungsthemen über Tags als Antwort auf die offene
+  Themenzuordnung in ungegliederten Stapeln.
+
+### Anki-Austausch nach dem Karteneditor V2
+
+- Stapel-Export als `.apkg`. Dabei `marked`, `leech` und Flaggen
+  zurückschreiben, `importedTags` und Anki-Rohtexte nutzen.
+- Import aus `.colpkg` (bringt Flaggennamen und Einklappzustand der Tags mit).
+- AnkiHub-Schutz-Tags (`AnkiHub_Protect::Feld`) als Feldschutz beim Reimport
+  auswerten.
+- Inhaltsform importierter Inhalte wechseln, als Umwandlung in einen eigenen
+  Inhalt.
+- Feldeigenschaften aus Notiztypen: Schreibrichtung rechts nach links,
+  Schriftart, Ausschluss von der Suche.
+
+### Weitere
 
 - Native App nach ADR-036.
 - AMBOSS-Tooltips nur über eine offizielle Kooperation oder API.

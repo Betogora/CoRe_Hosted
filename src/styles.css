@@ -229,6 +229,18 @@
   --core-learning-status-due: var(--core-success);
   --core-learning-progress-completed: #9ca3af;
   --core-learning-goal-achieved: #079455;
+  /* Anki flags 1–7 (red to purple); graphic marks with at least 3:1 against surfaces, always named as well (W14). */
+  --core-flag-1: #d63b3b;
+  --core-flag-2: #c76a08;
+  --core-flag-3: #2c8a3e;
+  --core-flag-4: #2f6bd4;
+  --core-flag-5: #c23d8f;
+  --core-flag-6: #0b7f91;
+  --core-flag-7: #7448e0;
+  --core-danger-text: #a83c22;
+  /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
+  --core-marked-surface: #fdf6df;
+  --core-marked-text-muted: var(--core-text-secondary);
 
 }
 
@@ -307,6 +319,16 @@
   --core-learning-status-due: var(--core-success);
   --core-learning-progress-completed: #5b6672;
   --core-learning-goal-achieved: #3cc27a;
+  --core-flag-1: #ff7a7a;
+  --core-flag-2: #ffa14a;
+  --core-flag-3: #5fd27a;
+  --core-flag-4: #62a8f5;
+  --core-flag-5: #f590bd;
+  --core-flag-6: #45c7d6;
+  --core-flag-7: #b9a0fb;
+  --core-danger-text: #f0a07e;
+  --core-marked-surface: #26221a;
+  --core-marked-text-muted: var(--core-text-muted);
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #182b3b;
   --core-help-stack-back: var(--core-brand-secondary);
@@ -511,6 +533,33 @@
 
   .core-icon-segmented-control {
     grid-auto-columns: var(--core-control-height);
+  }
+
+  /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
+  .core-card-editor-tabs {
+    height: calc(var(--core-control-height) + 0.5rem);
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option {
+    padding-inline: 0.25rem;
+  }
+
+  @media (pointer: coarse), (max-width: 767px) {
+    .core-segmented-touch.core-segmented-control {
+      height: calc(var(--core-control-height) + 0.5rem);
+    }
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option[aria-selected="true"] {
+    color: var(--core-action-primary);
+  }
+
+  .core-card-editor-tabs:not([data-sliding="true"]) .core-segmented-control-option[aria-selected="true"] {
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
   }
 
   .core-icon-segmented-control .core-segmented-control-option {
@@ -1674,6 +1723,12 @@ summary {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
 }
 
+/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). */
+.core-success-toast:hover,
+.core-success-toast:focus-within {
+  animation-play-state: paused;
+}
+
 .core-success-toast,
 .core-success-toast[data-appearance="neutral"] {
   border-color: var(--core-border);
@@ -2574,11 +2629,11 @@ summary {
 .dashboard-widget-content > :first-child { height: 100%; }
 .dashboard-widget[data-editing="true"] { outline: 1px dashed var(--core-border-interactive); outline-offset: 6px; }
 .dashboard-widget[data-dragging="true"] { opacity: .55; }
-.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 6px; background: var(--core-action-soft); }
+.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action-primary); outline-offset: 6px; background: var(--core-action-soft); }
 .dashboard-widget-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; margin-bottom: .5rem; padding: .25rem; border: 1px solid var(--core-border); border-radius: var(--core-radius-panel); background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface)); color: var(--core-text-secondary); }
 .dashboard-widget-grip { touch-action: none; user-select: none; cursor: grab; justify-content: flex-start; }
 .dashboard-widget-grip:active { cursor: grabbing; }
-.dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
+.dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action-primary); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
 .dashboard-timer-digits { font-size: clamp(3rem, 4.5vw, 4.5rem); line-height: 1; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
@@ -2596,4 +2651,11 @@ summary {
 @media (max-width: 639px) {
   .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
   .dashboard-widget-grid { gap: 1rem; }
+}
+
+/* Very narrow phones keep all four card editor tab names complete. */
+@media (max-width: 359px) {
+  .core-card-editor-tabs.core-control-label {
+    font-size: var(--core-type-caption);
+  }
 }

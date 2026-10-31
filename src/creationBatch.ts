@@ -9,7 +9,7 @@ interface ManualCreationDraft {
   back: string;
   answerOptions: string[];
   correctOptionIndices: number[];
-  tags: string;
+  tags: string[];
 }
 
 interface ManualBatchSessionState {
@@ -32,7 +32,7 @@ function createManualDraft(kind: ManualContentKind = "basic"): ManualCreationDra
     back: "",
     answerOptions: ["", ""],
     correctOptionIndices: [0],
-    tags: "",
+    tags: [],
   };
 }
 
@@ -57,7 +57,7 @@ function resetManualDraft(
     back: pinnedFields.back ? draft.back : "",
     answerOptions: ["", ""],
     correctOptionIndices: [0],
-    tags: "",
+    tags: [],
   };
 }
 

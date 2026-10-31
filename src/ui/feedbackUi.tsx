@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useState, type AnimationEvent, type HTMLAttributes, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { CircleAlert, CircleCheck, Info, TriangleAlert, X, type LucideIcon } from "lucide-react";
-import { IconButton } from "./actionUi.tsx";
+import { CircleAlert, CircleCheck, Info, RotateCcw, TriangleAlert, X, type LucideIcon } from "lucide-react";
+import { ActionButton, IconButton } from "./actionUi.tsx";
 
 export interface StatusMessageProps extends HTMLAttributes<HTMLDivElement> {
   tone: "info" | "success" | "warning" | "error";
@@ -39,16 +39,24 @@ export function StatusMessage({
   );
 }
 
+/** An optional undo-like action; the toast then stays while pointer or focus rest on it (W7). */
+export interface SuccessToastAction {
+  label: string;
+  onAction: () => void;
+}
+
 export interface SuccessToastProps extends Omit<HTMLAttributes<HTMLDivElement>, "role"> {
   onDismiss: () => void;
   dismissLabel?: string;
   appearance?: "success" | "neutral";
+  action?: SuccessToastAction;
 }
 
 export function SuccessToast({
   onDismiss,
   dismissLabel = "Erfolgsmeldung schließen",
   appearance = "success",
+  action,
   onAnimationEnd,
   className = "",
   children,
@@ -71,6 +79,12 @@ export function SuccessToast({
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="min-w-0 flex-1 break-words core-body font-medium">{children}</div>
+        {action ? (
+          <ActionButton variant="secondary" icon={RotateCcw} className="shrink-0" onClick={() => {
+            onDismiss();
+            action.onAction();
+          }}>{action.label}</ActionButton>
+        ) : null}
         <IconButton label={dismissLabel} icon={X} variant="ghost" className="shrink-0" onClick={onDismiss} />
       </div>
     </StatusMessage>
@@ -81,6 +95,7 @@ export function SuccessToast({
 
 interface SuccessToastOptions {
   appearance?: SuccessToastProps["appearance"];
+  action?: SuccessToastAction;
 }
 
 type SuccessToastSetter = (message: string, options?: SuccessToastOptions) => void;
@@ -89,12 +104,13 @@ const SuccessToastContext = createContext<SuccessToastSetter>(() => {
 });
 
 export function SuccessToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{ id: number; message: string; appearance: NonNullable<SuccessToastProps["appearance"]> } | null>(null);
+  const [toast, setToast] = useState<{ id: number; message: string; appearance: NonNullable<SuccessToastProps["appearance"]>; action?: SuccessToastAction } | null>(null);
   const setMessage = useCallback((message: string, options?: SuccessToastOptions) => {
     setToast((current) => message ? {
       id: (current?.id ?? 0) + 1,
       message,
       appearance: options?.appearance ?? "success",
+      action: options?.action,
     } : null);
   }, []);
 
@@ -105,6 +121,7 @@ export function SuccessToastProvider({ children }: { children: ReactNode }) {
         <SuccessToast
           key={toast.id}
           appearance={toast.appearance}
+          action={toast.action}
           onDismiss={() => setToast((current) => current?.id === toast.id ? null : current)}
         >
           {toast.message}

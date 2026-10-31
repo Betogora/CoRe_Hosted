@@ -10,7 +10,7 @@ import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
-import { ActionDialog, CoreModeControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreModeControl, CoreSegmentedControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { InPageNavigation } from "../ui/InPageNavigation.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
@@ -50,6 +50,12 @@ function DeckIconPicker({ value, color, onChange }: { value: string; color: stri
     </Popover.Root>
   );
 }
+
+
+const LEECH_ACTION_OPTIONS = [
+  { value: "tag", label: "Nur kennzeichnen" },
+  { value: "suspend", label: "Aussetzen" },
+] as const;
 
 export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
@@ -224,6 +230,20 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
             <label className="grid gap-2 core-field-label">Farbe<ColorWheelPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
           </div>
           {feedback ? <p className="core-status-error mt-3 core-body" role="alert">{feedback}</p> : null}
+          <div className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,12rem)_auto] sm:items-end" data-testid="deck-settings-leech">
+            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">
+              Lernbremse ab Fehlern
+              <input type="number" min={1} max={99} className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={activeDraft.leech.leechThreshold}
+                onChange={(event) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechThreshold: Number(event.target.value) } } : current)} />
+            </label>
+            <CoreSegmentedControl
+              ariaLabel="Aktion der Lernbremse"
+              className="core-segmented-touch"
+              options={LEECH_ACTION_OPTIONS}
+              value={activeDraft.leech.leechAction}
+              onValueChange={(leechAction) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechAction } } : current)}
+            />
+          </div>
           <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-end" data-testid="deck-settings-primary-controls">
             <ActionButton type="button" variant="secondary" icon={FolderPlus} className="justify-self-start" onClick={() => onRequestContextAction(() => onCreateSubdeck(deck.id))}>Unterstapel anlegen</ActionButton>
             <div className="grid gap-2">

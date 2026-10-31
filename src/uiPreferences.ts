@@ -7,6 +7,7 @@ export const DEFAULT_UI_PREFERENCES: UiPreferences = {
   learnCollapsedDeckIds: [],
   deckManagerExpandedDeckIds: [],
   syncIntervalMinutes: 5,
+  flagNames: ["", "", "", "", "", "", ""],
 };
 
 const SYNC_INTERVALS = new Set<SyncIntervalMinutes>([0, 1, 5, 15, 30]);
@@ -14,6 +15,12 @@ const SYNC_INTERVALS = new Set<SyncIntervalMinutes>([0, 1, 5, 15, 30]);
 function normalizeSyncInterval(value: unknown): SyncIntervalMinutes {
   const interval = Number(value) as SyncIntervalMinutes;
   return SYNC_INTERVALS.has(interval) ? interval : DEFAULT_UI_PREFERENCES.syncIntervalMinutes;
+}
+
+/** Seven trimmed names of at most 40 characters; missing entries stay empty. */
+export function normalizeFlagNames(value: unknown): string[] {
+  const names = Array.isArray(value) ? value : [];
+  return Array.from({ length: 7 }, (_, index) => typeof names[index] === "string" ? names[index].trim().slice(0, 40) : "");
 }
 
 function normalizeDeckIds(value: unknown): string[] {
@@ -28,6 +35,7 @@ export function normalizeUiPreferences(value: unknown): UiPreferences {
     learnCollapsedDeckIds: normalizeDeckIds(preferences.learnCollapsedDeckIds),
     deckManagerExpandedDeckIds: normalizeDeckIds(preferences.deckManagerExpandedDeckIds),
     syncIntervalMinutes: normalizeSyncInterval(preferences.syncIntervalMinutes),
+    flagNames: normalizeFlagNames(preferences.flagNames),
   };
 }
 

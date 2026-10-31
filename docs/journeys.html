@@ -752,6 +752,33 @@ video {
     grid-auto-columns: var(--core-control-height);
   }
 
+  /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
+  .core-card-editor-tabs {
+    height: calc(var(--core-control-height) + 0.5rem);
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option {
+    padding-inline: 0.25rem;
+  }
+
+  @media (pointer: coarse), (max-width: 767px) {
+    .core-segmented-touch.core-segmented-control {
+      height: calc(var(--core-control-height) + 0.5rem);
+    }
+  }
+
+  .core-card-editor-tabs .core-segmented-control-option[aria-selected="true"] {
+    color: var(--core-action-primary);
+  }
+
+  .core-card-editor-tabs:not([data-sliding="true"]) .core-segmented-control-option[aria-selected="true"] {
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
+  }
+
   .core-icon-segmented-control .core-segmented-control-option {
     padding-inline: 0;
   }
@@ -1367,6 +1394,9 @@ video {
 .col-span-2 {
   grid-column: span 2 / span 2;
 }
+.col-span-3 {
+  grid-column: span 3 / span 3;
+}
 .col-span-full {
   grid-column: 1 / -1;
 }
@@ -1375,6 +1405,9 @@ video {
 }
 .col-start-2 {
   grid-column-start: 2;
+}
+.col-start-3 {
+  grid-column-start: 3;
 }
 .row-start-1 {
   grid-row-start: 1;
@@ -1449,6 +1482,9 @@ video {
 .ml-auto {
   margin-left: auto;
 }
+.mr-2 {
+  margin-right: 0.5rem;
+}
 .mr-auto {
   margin-right: auto;
 }
@@ -1485,11 +1521,20 @@ video {
 .mt-auto {
   margin-top: auto;
 }
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
 .\!block {
   display: block !important;
 }
 .block {
   display: block;
+}
+.inline-block {
+  display: inline-block;
 }
 .inline {
   display: inline;
@@ -1628,6 +1673,9 @@ video {
 .h-5 {
   height: 1.25rem;
 }
+.h-56 {
+  height: 14rem;
+}
 .h-6 {
   height: 1.5rem;
 }
@@ -1679,6 +1727,9 @@ video {
 .max-h-44 {
   max-height: 11rem;
 }
+.max-h-64 {
+  max-height: 16rem;
+}
 .max-h-80 {
   max-height: 20rem;
 }
@@ -1712,6 +1763,9 @@ video {
 .min-h-10 {
   min-height: 2.5rem;
 }
+.min-h-11 {
+  min-height: 2.75rem;
+}
 .min-h-12 {
   min-height: 3rem;
 }
@@ -1726,9 +1780,6 @@ video {
 }
 .min-h-24 {
   min-height: 6rem;
-}
-.min-h-28 {
-  min-height: 7rem;
 }
 .min-h-32 {
   min-height: 8rem;
@@ -1814,6 +1865,9 @@ video {
 .\!w-fit {
   width: -moz-fit-content !important;
   width: fit-content !important;
+}
+.w-1\/2 {
+  width: 50%;
 }
 .w-10 {
   width: 2.5rem;
@@ -1901,8 +1955,14 @@ video {
 .min-w-16 {
   min-width: 4rem;
 }
+.min-w-24 {
+  min-width: 6rem;
+}
 .min-w-4 {
   min-width: 1rem;
+}
+.min-w-44 {
+  min-width: 11rem;
 }
 .min-w-5 {
   min-width: 1.25rem;
@@ -1927,6 +1987,9 @@ video {
 }
 .min-w-button {
   min-width: var(--core-button-height);
+}
+.min-w-control {
+  min-width: var(--core-control-height);
 }
 .min-w-max {
   min-width: -moz-max-content;
@@ -2003,6 +2066,9 @@ video {
 }
 .basis-56 {
   flex-basis: 14rem;
+}
+.basis-64 {
+  flex-basis: 16rem;
 }
 .basis-\[calc\(50\%-0\.5rem\)\] {
   flex-basis: calc(50% - 0.5rem);
@@ -2296,6 +2362,9 @@ video {
 .gap-y-2 {
   row-gap: 0.5rem;
 }
+.gap-y-3 {
+  row-gap: 0.75rem;
+}
 .space-y-1 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
   margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
@@ -2319,6 +2388,9 @@ video {
 }
 .self-end {
   align-self: flex-end;
+}
+.self-stretch {
+  align-self: stretch;
 }
 .justify-self-start {
   justify-self: start;
@@ -2378,9 +2450,6 @@ video {
 }
 .rounded-marker {
   border-radius: var(--core-radius-marker);
-}
-.rounded-none {
-  border-radius: 0px;
 }
 .rounded-overlay {
   border-radius: var(--core-radius-overlay);
@@ -2512,6 +2581,9 @@ video {
 }
 .bg-core-info-soft {
   background-color: var(--core-info-surface);
+}
+.bg-core-marked-soft {
+  background-color: var(--core-marked-surface);
 }
 .bg-core-raised {
   background-color: var(--core-surface-raised);
@@ -2684,6 +2756,9 @@ video {
 .pl-2 {
   padding-left: 0.5rem;
 }
+.pl-2\.5 {
+  padding-left: 0.625rem;
+}
 .pl-3 {
   padding-left: 0.75rem;
 }
@@ -2698,6 +2773,9 @@ video {
 }
 .pl-9 {
   padding-left: 2.25rem;
+}
+.pr-1 {
+  padding-right: 0.25rem;
 }
 .pr-1\.5 {
   padding-right: 0.375rem;
@@ -2815,6 +2893,9 @@ video {
 .text-core-danger {
   color: var(--core-danger);
 }
+.text-core-danger-text {
+  color: var(--core-danger-text);
+}
 .text-core-info {
   color: var(--core-info);
 }
@@ -2854,8 +2935,8 @@ video {
 .underline-offset-4 {
   text-underline-offset: 4px;
 }
-.accent-\[var\(--core-action\)\] {
-  accent-color: var(--core-action);
+.accent-\[var\(--core-action-primary\)\] {
+  accent-color: var(--core-action-primary);
 }
 .accent-core-action {
   accent-color: var(--core-action-primary);
@@ -3251,6 +3332,18 @@ video {
   --core-learning-status-due: var(--core-success);
   --core-learning-progress-completed: #9ca3af;
   --core-learning-goal-achieved: #079455;
+  /* Anki flags 1–7 (red to purple); graphic marks with at least 3:1 against surfaces, always named as well (W14). */
+  --core-flag-1: #d63b3b;
+  --core-flag-2: #c76a08;
+  --core-flag-3: #2c8a3e;
+  --core-flag-4: #2f6bd4;
+  --core-flag-5: #c23d8f;
+  --core-flag-6: #0b7f91;
+  --core-flag-7: #7448e0;
+  --core-danger-text: #a83c22;
+  /* A marked card tints header, tabs and background; muted text there stays at 4.5:1. */
+  --core-marked-surface: #fdf6df;
+  --core-marked-text-muted: var(--core-text-secondary);
 
 }
 
@@ -3329,6 +3422,16 @@ video {
   --core-learning-status-due: var(--core-success);
   --core-learning-progress-completed: #5b6672;
   --core-learning-goal-achieved: #3cc27a;
+  --core-flag-1: #ff7a7a;
+  --core-flag-2: #ffa14a;
+  --core-flag-3: #5fd27a;
+  --core-flag-4: #62a8f5;
+  --core-flag-5: #f590bd;
+  --core-flag-6: #45c7d6;
+  --core-flag-7: #b9a0fb;
+  --core-danger-text: #f0a07e;
+  --core-marked-surface: #26221a;
+  --core-marked-text-muted: var(--core-text-muted);
   --core-help-stack-front: var(--core-surface-raised);
   --core-help-stack-middle: #182b3b;
   --core-help-stack-back: var(--core-brand-secondary);
@@ -4107,6 +4210,12 @@ summary {
 
 .core-success-toast {
   animation: core-success-toast-dismiss 200ms ease-out 10s forwards;
+}
+
+/* A toast waits while it is pointed at or focused, so its action stays reachable (W7). */
+.core-success-toast:hover,
+.core-success-toast:focus-within {
+  animation-play-state: paused;
 }
 
 .core-success-toast,
@@ -5020,11 +5129,11 @@ summary {
 .dashboard-widget-content > :first-child { height: 100%; }
 .dashboard-widget[data-editing="true"] { outline: 1px dashed var(--core-border-interactive); outline-offset: 6px; }
 .dashboard-widget[data-dragging="true"] { opacity: .55; }
-.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action); outline-offset: 6px; background: var(--core-action-soft); }
+.dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action-primary); outline-offset: 6px; background: var(--core-action-soft); }
 .dashboard-widget-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; margin-bottom: .5rem; padding: .25rem; border: 1px solid var(--core-border); border-radius: var(--core-radius-panel); background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface)); color: var(--core-text-secondary); }
 .dashboard-widget-grip { touch-action: none; -webkit-user-select: none; -moz-user-select: none; user-select: none; cursor: grab; justify-content: flex-start; }
 .dashboard-widget-grip:active { cursor: grabbing; }
-.dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
+.dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action-primary); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
 .dashboard-timer-digits { font-size: clamp(3rem, 4.5vw, 4.5rem); line-height: 1; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
@@ -5042,6 +5151,13 @@ summary {
 @media (max-width: 639px) {
   .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
   .dashboard-widget-grid { gap: 1rem; }
+}
+
+/* Very narrow phones keep all four card editor tab names complete. */
+@media (max-width: 359px) {
+  .core-card-editor-tabs.core-control-label {
+    font-size: var(--core-type-caption);
+  }
 }
 .placeholder\:text-core-muted::-moz-placeholder {
   color: var(--core-text-muted);
@@ -5343,6 +5459,18 @@ summary {
 }
 @media (min-width: 640px) {
 
+  .sm\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
   .sm\:static {
     position: static;
   }
@@ -5387,12 +5515,28 @@ summary {
     margin-top: 0.25rem;
   }
 
+  .sm\:line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
   .sm\:inline {
     display: inline;
   }
 
   .sm\:flex {
     display: flex;
+  }
+
+  .sm\:hidden {
+    display: none;
+  }
+
+  .sm\:size-control {
+    width: var(--core-control-height);
+    height: var(--core-control-height);
   }
 
   .sm\:h-\[21rem\] {
@@ -5409,6 +5553,10 @@ summary {
 
   .sm\:max-h-\[92dvh\] {
     max-height: 92dvh;
+  }
+
+  .sm\:min-h-0 {
+    min-height: 0px;
   }
 
   .sm\:min-h-\[calc\(100vh-4rem\)\] {
@@ -5448,10 +5596,6 @@ summary {
     min-width: 9rem;
   }
 
-  .sm\:max-w-64 {
-    max-width: 16rem;
-  }
-
   .sm\:max-w-6xl {
     max-width: 72rem;
   }
@@ -5480,6 +5624,10 @@ summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .sm\:grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .sm\:grid-cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -5502,6 +5650,10 @@ summary {
 
   .sm\:grid-cols-\[max-content_minmax\(0\2c 1fr\)\] {
     grid-template-columns: max-content minmax(0,1fr);
+  }
+
+  .sm\:grid-cols-\[minmax\(0\2c 12rem\)_auto\] {
+    grid-template-columns: minmax(0,12rem) auto;
   }
 
   .sm\:grid-cols-\[minmax\(0\2c 18rem\)_auto\] {
@@ -5564,6 +5716,11 @@ summary {
     gap: 1rem;
   }
 
+  .sm\:gap-x-3 {
+    -moz-column-gap: 0.75rem;
+         column-gap: 0.75rem;
+  }
+
   .sm\:rounded-overlay {
     border-radius: var(--core-radius-overlay);
   }
@@ -5594,6 +5751,11 @@ summary {
 
   .sm\:p-9 {
     padding: 2.25rem;
+  }
+
+  .sm\:px-0 {
+    padding-left: 0px;
+    padding-right: 0px;
   }
 
   .sm\:px-3 {
@@ -5637,8 +5799,24 @@ summary {
   .sm\:pr-3 {
     padding-right: 0.75rem;
   }
+
+  .sm\:pt-1\.5 {
+    padding-top: 0.375rem;
+  }
+
+  .sm\:pt-4 {
+    padding-top: 1rem;
+  }
 }
 @media (min-width: 768px) {
+
+  .md\:sticky {
+    position: sticky;
+  }
+
+  .md\:top-0 {
+    top: 0px;
+  }
 
   .md\:col-span-1 {
     grid-column: span 1 / span 1;
@@ -5646,6 +5824,10 @@ summary {
 
   .md\:col-span-2 {
     grid-column: span 2 / span 2;
+  }
+
+  .md\:block {
+    display: block;
   }
 
   .md\:flex {
@@ -5656,8 +5838,17 @@ summary {
     display: none;
   }
 
+  .md\:size-8 {
+    width: 2rem;
+    height: 2rem;
+  }
+
   .md\:min-h-40 {
     min-height: 10rem;
+  }
+
+  .md\:min-h-8 {
+    min-height: 2rem;
   }
 
   .md\:w-auto {
@@ -5700,12 +5891,24 @@ summary {
     grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
   }
 
+  .md\:grid-cols-\[minmax\(0\2c 1fr\)_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  }
+
+  .md\:grid-cols-\[minmax\(0\2c 2fr\)_minmax\(0\2c 3fr\)\] {
+    grid-template-columns: minmax(0,2fr) minmax(0,3fr);
+  }
+
   .md\:flex-wrap {
     flex-wrap: wrap;
   }
 
   .md\:content-between {
     align-content: space-between;
+  }
+
+  .md\:items-start {
+    align-items: flex-start;
   }
 
   .md\:items-end {
@@ -5719,6 +5922,10 @@ summary {
   .md\:gap-x-6 {
     -moz-column-gap: 1.5rem;
          column-gap: 1.5rem;
+  }
+
+  .md\:self-start {
+    align-self: flex-start;
   }
 
   .md\:justify-self-end {
@@ -5750,10 +5957,6 @@ summary {
 
   .lg\:col-span-2 {
     grid-column: span 2 / span 2;
-  }
-
-  .lg\:w-1\/2 {
-    width: 50%;
   }
 
   .lg\:w-full {
@@ -5809,9 +6012,31 @@ summary {
          column-gap: 2rem;
   }
 
+  .lg\:rounded-overlay {
+    border-radius: var(--core-radius-overlay);
+  }
+
+  .lg\:border {
+    border-width: var(--core-border-width);
+  }
+
+  .lg\:border-core-border {
+    border-color: var(--core-border);
+  }
+
+  .lg\:p-4 {
+    padding: 1rem;
+  }
+
   .lg\:px-6 {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
+  }
+
+  .lg\:shadow-raised {
+    --tw-shadow: var(--core-shadow-raised);
+    --tw-shadow-colored: var(--core-shadow-raised);
+    box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
   }
 }
 @media (min-width: 1280px) {
@@ -6168,7 +6393,6 @@ body:has(.catalog-shell-preview) > .core-mobile-bottom-navigation { z-index: 71;
 body:has(.catalog-shell-preview, .catalog-product-preview) > .core-tooltip { z-index: 80; }
 body:has(.catalog-shell-preview, .catalog-product-preview) { overflow: hidden; }
 body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-index: 79; }
-body:has(.catalog-product-preview) > [data-testid="card-detail-aside"] { z-index: 80; }
 .catalog-product-preview { position: fixed; inset: 0; z-index: 50; overflow-y: auto; overflow-x: hidden; background: var(--core-canvas); }
 .catalog-product-bar { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding: 12px 10px; background: var(--core-canvas); }
 .catalog-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
@@ -6349,10 +6573,12 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <li>Die Tabelle zeigt je Karte nur <code>Sortierfeld</code> (bereinigte Vorderseite), <code>Datum</code> (<code>Neu</code> oder <code>TT.MM.JJJJ</code>) und <code>Variante</code> (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist <code>Sortierfeld</code> A–Z, einheitlich für alle Sektionen und nicht persistiert. Leere aufgeklappte Stapel zeigen <code>Keine Karten</code>.</li>
 <li>Unter der Suche wählt <code>Alle Karten</code>/<code>Ohne Variante</code>, ob nur Karten ohne aktive Variante erscheinen; ein Klick auf eine Spaltensortierung hebt den Filter auf. In geöffneten Stapelinhalten bietet der aktive Filter <code>Für diese Karten Varianten generieren</code> und startet dieselbe Stapelgenerierung wie die Stapeleinstellungen.</li>
 <li>Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung <code>Ausgesetzt</code>. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.</li>
+<li>Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen; Filter wählen Flagge, Lernbremse und Tags.</li>
 <li>Stapelköpfe der Kartenverwaltung haben keine Trennlinie; nur Kartenzeilen trennt eine dünne Linie. Ein Klick auf die Kopffläche klappt die Karten auf oder zu, Hover füllt sie neutral wie in <code>Aktive Stapel</code>, und die Hierarchie ist an Einrückung und Tiefenfläche erkennbar, die ab der sechsten Ebene gleich bleiben.</li>
 <li>Lange Sortierfelder erhalten Ellipsen. Kartenverwaltung und <code>Aktive Stapel</code> erzeugen keinen horizontalen Überlauf; <code>Datum</code> und <code>Variante</code> bleiben ungekürzt.</li>
 <li>Bei mehreren Seiten zeigt die Seitennavigation <code>Seite X von Y</code>; an den Enden ist der jeweilige Pfeil deaktiviert.</li>
 <li>Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags, startet 250 ms nach der letzten Eingabe, bricht veraltete Anfragen ab und öffnet passende Sektionen nur während der Suche. Einen Modusfilter gibt es nicht.</li>
+<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code> und <code>is:suspended</code>; ein vorangestelltes <code>-</code> verneint einen Begriff. Alle Begriffe müssen zutreffen, der übrige Text sucht wie bisher. Online- und Offline-Suche liefern dieselben Treffer.</li>
 </ul>
 <h4 id="journey-3-rules--stapeloptionen-verschieben-und-löschen" class="core-control-label" tabindex="-1">Stapeloptionen, Verschieben und Löschen <a class="docs-anchor" href="#journey-3-rules--stapeloptionen-verschieben-und-löschen" aria-label="Link zu Stapeloptionen, Verschieben und Löschen">#</a></h4>
 <ul>
@@ -6368,21 +6594,41 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 </ul>
 <h4 id="journey-3-rules--kartendetail-und-editor" class="core-control-label" tabindex="-1">Kartendetail und Editor <a class="docs-anchor" href="#journey-3-rules--kartendetail-und-editor" aria-label="Link zu Kartendetail und Editor">#</a></h4>
 <ul>
-<li>Ein Kartenklick setzt Deck- und Karten-ID in die URL und öffnet ein nicht-modales, eigenständig scrollendes <code>aside</code>. X, Escape und Außenklick schließen es; ein Klick auf eine andere Kartenzeile wechselt dorthin. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch; danach kehrt der Fokus zur Zeile zurück.</li>
-<li>Aus einer Review-Sitzung über <code>Karte bearbeiten</code> geöffnet, trägt die URL einen allowlist-validierten Rückkontext; Schließen führt in die Sitzung zurück.</li>
-<li>Das Detail zeigt den Inhaltseditor mit <code>Speichern</code>, <code>Vorschau</code>, <code>Kopieren</code> und <code>Löschen</code>. Es nennt Inhaltsform, Abfrage der Karte (<code>Lückentext · Lücke 2 von 3</code>, <code>Rückwärts</code>, <code>Maske 1</code>) und bei mehreren Karten deren Zahl. <code>Karten aus diesem Inhalt</code> listet alle Geschwister mit Abfrage, Stapel und Lernzustand; die geöffnete ist hervorgehoben.</li>
-<li>Der Editor zeigt je Feld einen Rich-Text-Editor mit den gespeicherten Bildern, bei Auswahlfragen Antwortoptionen samt richtiger Antwort, und die Tags. Neue Bilder werden wie bei der Erstellung eingefügt und erst beim Speichern lokal gesichert; vorhandene Bilder, auch importierte Anki-Dateien, bleiben erhalten. Lückentexte erklären <code>{{c1::Begriff}}</code>. Bei eigenen Inhalten mit Frage und Antwort bietet er <code>Lernrichtung</code> (<code>Standard</code>, <code>Beide Richtungen</code>) und dieselben Bausteine wie bei der Erstellung. Hinzugefügte Felder lassen sich wie dort umbenennen, in der Rolle ändern und mit Pfeilen umsortieren; Vorder- und Rückseite bleiben vorn, der Lernstand bleibt. Die Felder mit der letzten Frage oder Antwort einer Abfrage lassen sich nicht entfernen.</li>
-<li>Eigene Bildverdeckungen zeigen den Masken-Editor; Gruppennummern bleiben beim Löschen erhalten, sodass verbleibende Karten ihren Lernstand behalten. Das Bild lässt sich dort nicht austauschen. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung, Bausteine und Masken-Editor erscheinen dort nicht.</li>
-<li>Eine Live-Zeile nennt vor dem Speichern die Wirkung (<code>Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 Variante wird veraltet.</code>). Entfallen Karten, listet <code>Karten entfernen?</code> jede mit Abfrage, Stapel und Lernzustand; ihr Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden neue Karten im Stapel des Inhalts.</li>
-<li>Ungespeicherte Änderungen an Feldern, Antwortoptionen und Tags lösen beim Schließen, Kartenwechsel oder interner Navigation einen Dialog mit <code>Speichern</code>, <code>Verwerfen</code> und <code>Weiter bearbeiten</code> aus. Varianteneingaben und Terminwahl sind davon ausgenommen.</li>
-<li><code>Markieren</code> (gehört zum Inhalt, alle Geschwister zeigen den Stern) und <code>Aussetzen</code> (gehört zur einzelnen Karte) sind sofort gespeicherte Aktionen ohne Übernahme ungespeicherter Inhaltsänderungen.</li>
-<li><code>Nächste Fälligkeit</code> zeigt den gemeinsamen Datumspicker (deutsche Wochentage, Monats- und Jahresnavigation). <code>Neu planen</code> wird erst für einen anderen, mindestens nächsten Lerntag aktiv, setzt <code>dueAt</code> DST-sicher auf den Lerntagesbeginn in Profilzeitzone, lässt eine Aussetzung bestehen und bestätigt den Erfolg separat. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.</li>
-<li><code>Kopieren</code> legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig <code>(Kopie)</code>. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu.</li>
-<li>Einen Herkunfts-, Versions-, Vergleichs- oder Restore-Abschnitt gibt es nicht.</li>
+<li>Ein Kartenklick öffnet den Editor als Dialog über die ganze Fläche, mobil im Vollbild. Deck, Karte und Reiter stehen in der URL; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach. X und Escape schließen; danach kehrt der Fokus zur Zeile zurück.</li>
+<li>Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (<code>12 / 48</code>; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv; die benachbarten Treffer werden vorgeladen, bis zur Antwort zeigt das Detail den Ladebalken der Statistik statt <code>Karte nicht gefunden</code>), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie <code>Duplizieren</code>, <code>Löschen</code> und <code>Schließen</code>. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.</li>
+<li>Vier gleich breite Reiter: <code>Allgemein</code>, <code>Inhalt</code>, <code>Varianten</code>, <code>Lernen</code>; mobil kompakt mit 44-px-Zielen. Aus der Tabelle öffnet <code>Allgemein</code>, aus einer Sitzung (<code>Karte bearbeiten</code>, mit allowlist-validiertem Rückkontext) <code>Inhalt</code>. <code>Varianten</code> und <code>Lernen</code> laden erst beim Öffnen.</li>
+<li>Tastenkürzel: <code>Strg+Enter</code> speichert den Entwurf, <code>Strg+1</code> bis <code>Strg+7</code> schaltet die Flagge, <code>Strg+K</code> die Markierung, <code>Alt+↑</code>/<code>Alt+↓</code> wechselt zur vorigen/nächsten Karte. Die Reiter folgen dem ARIA-Tabs-Muster; Tooltips nennen die Kürzel.</li>
+<li>Eine markierte Karte färbt Kopf, Reiter und Hintergrund leicht gelb; innere Karten bleiben weiß. Flagge und Aussetzung färben keine Fläche.</li>
 </ul>
+<p><code>Allgemein</code> wirkt sofort und übernimmt keine ungespeicherten Inhaltsänderungen:</p>
+<ul>
+<li>Links Flagge mit Markiert (mobil ein 4×2-Raster mit Namen), Planung und Stapel. Die Planung bietet Schnellwahl und den gemeinsamen Datumspicker; <code>Neu planen</code> erscheint erst nach einer Datumsänderung, setzt <code>dueAt</code> DST-sicher auf den Beginn des gewählten Lerntags und lässt eine Aussetzung bestehen. Dazu <code>Aussetzen</code> und <code>Zurückstellen</code> (bis zum nächsten Lerntag). <code>Verschieben</code> wählt den Zielstapel im Stapeldialog. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.</li>
+<li>Rechts Tags, <code>Karten aus diesem Inhalt</code>, <code>Ähnliche Inhalte</code> und <code>Details</code>. Tags erscheinen als Chips mit dem letzten Pfadteil und dem vollen Pfad im Tooltip; importierte Tags sind eingeklappt mit Anzahl, lassen sich aufklappen und bearbeiten; Vorschläge kommen aus dem Tag-Verzeichnis des Kontos. <code>Karten aus diesem Inhalt</code> listet alle Geschwister mit Abfrage, Stapel und Lernzustand, hebt die geöffnete hervor und zeigt Abfragen, die erst beim Speichern entstehen, als „Neu beim Speichern“. <code>Ähnliche Inhalte</code> zeigt bis zu drei Inhalte mit ähnlichem Text und lädt erst, wenn der Browser frei ist; offline entfällt der Bereich. <code>Details</code> nennt Quelle, Prüfung und kopierbare IDs.</li>
+<li>Verschieben, Zurückstellen, Neu planen, Lernbremse zurücksetzen und Tag entfernen bestätigen sich mit einem Toast samt <code>Rückgängig</code>. Er bleibt 10 Sekunden, pausiert bei Mauszeiger und Fokus und wird von einem neuen Toast ersetzt. Flagge, Markiert, Aussetzen und Tag hinzufügen zeigen keinen Toast; ihr Bedienelement zeigt den Zustand und setzt ihn zurück. Rückgängig ist eine neue, synchronisierte Änderung und entfällt mit Meldung, wenn sich die Karte inzwischen geändert hat.</li>
+</ul>
+<p><code>Inhalt</code> ist der Entwurf:</p>
+<ul>
+<li>Felder links, Live-Vorschau rechts, etwa 150 ms nach der letzten Eingabe; mobil <code>Bearbeiten | Vorschau</code>. Die Vorschau zeigt die geöffnete Karte, wechselt zu Geschwistern einschließlich neuer Abfragen und schaltet <code>Vorderseite | Rückseite</code>; Auswahlfragen werden wie beim Erstellen nur transient simuliert. Gerendertes HTML wird nie gespeichert.</li>
+<li>Je Feld ein Rich-Text-Editor mit den gespeicherten Bildern; die Werkzeugleiste erscheint nur am aktiven Feld, ein Punkt markiert geänderte Felder. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem HTML; die Änderung eines Felds schreibt die anderen nicht um. Auswahlfragen zeigen Antwortoptionen samt richtiger Antwort. Neue Bilder werden wie bei der Erstellung eingefügt und erst beim Speichern lokal gesichert; vorhandene Bilder, auch importierte Anki-Dateien, bleiben erhalten. Lückentexte erklären <code>{{c1::Begriff}}</code>.</li>
+<li>Inhaltsform und Lernrichtung stehen in einer Zeile; der Schalter <code>Antwort eintippen</code> gilt für die Abfrage. Eigene Inhalte mit Frage und Antwort bieten <code>Lernrichtung</code> (<code>Standard</code>, <code>Beide Richtungen</code>) und dieselben Bausteine wie bei der Erstellung. Hinzugefügte Felder lassen sich umbenennen, in der Rolle ändern und mit Pfeilen umsortieren; Vorder- und Rückseite bleiben vorn, der Lernstand bleibt. Die Felder mit der letzten Frage oder Antwort einer Abfrage lassen sich nicht entfernen. Die Medienliste nennt die Dateien des Inhalts, ihre Größe nur, wenn bekannt; ungenutzte lassen sich entfernen.</li>
+<li>Eigene Bildverdeckungen zeigen den Masken-Editor an der Stelle der Vorschau; Gruppennummern bleiben beim Löschen erhalten, sodass verbleibende Karten ihren Lernstand behalten. Das Bild lässt sich nicht austauschen. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung, Bausteine und Masken-Editor erscheinen dort nicht.</li>
+<li>Die Fußleiste nennt zuerst die Wirkung (<code>Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 Variante wird veraltet.</code>), dann <code>Verwerfen</code> und <code>Speichern</code>. Entfallen Karten, listet <code>Karten entfernen?</code> jede mit Abfrage, Stapel und Lernzustand; ihr Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden neue Karten im Stapel des Inhalts.</li>
+<li>Ungespeicherte Änderungen an Feldern und Antwortoptionen lösen beim Schließen, Kartenwechsel oder interner Navigation einen Dialog mit <code>Speichern</code>, <code>Verwerfen</code> und <code>Weiter bearbeiten</code> aus; über Reiterwechsel bleibt der Entwurf erhalten. Tags, Sofortaktionen und Variantenbearbeitung gehören nicht zum Entwurf.</li>
+</ul>
+<p><code>Varianten</code>:</p>
+<ul>
+<li>Das Original steht zum Vergleich oben. Jede Variante trägt ihre Zustandsmarke und bietet <code>Bearbeiten</code>, <code>Neu generieren</code>, <code>Abschalten</code> bzw. <code>Reaktivieren</code> und <code>Löschen</code>; veraltete Varianten lassen sich ersetzen, ein Link führt zu den Stapeleinstellungen. Bearbeitet wird in der Zeile der Variante und sofort gespeichert; eine bearbeitete Variante gilt als eigene, <code>Varianten neu generieren</code> ersetzt sie nicht, eine Inhaltsänderung macht sie wie alle veraltet. Die Freigabe zeigt die Variantenbereitschaft nach Haltbarkeit (siehe KI-Umformulierungen).</li>
+</ul>
+<p><code>Lernen</code>:</p>
+<ul>
+<li>Kennzahlen aus Lernstand und FSRS-7, darunter Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen und Fehler, das Reifeband (<code>Neu</code>, <code>Lernen</code>, <code>Jung</code>, <code>Reif</code>) und eine Lernbremse mit Zeitpunkt.</li>
+<li>Links unter den Kennzahlen der <code>Abrufverlauf</code> als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor <code>Nochmal</code>; <code>Als neu lernen</code> beginnt die Kurve neu. Rechts die Liste <code>Bewertungen</code>. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.</li>
+<li><code>Als neu lernen …</code> setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.</li>
+</ul>
+<p><code>Duplizieren</code> legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig <code>(Kopie)</code>. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu. <code>Löschen</code> fragt wie in der Kartenverwaltung nach, schließt danach den Editor und bietet dort <code>Rückgängig</code>.</p>
 <h4 id="journey-3-rules--vorschau-und-darstellung" class="core-control-label" tabindex="-1">Vorschau und Darstellung <a class="docs-anchor" href="#journey-3-rules--vorschau-und-darstellung" aria-label="Link zu Vorschau und Darstellung">#</a></h4>
 <ul>
-<li>Der modale Vorschau-Dialog zeigt zunächst nur die unbeantwortete Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Zustand aus Frage, einmaliger Trennlinie und Antwort. <code>Antwort anzeigen</code> und Bewertungen erscheinen dort nicht.</li>
+<li>Beim Erstellen zeigt ein modaler Vorschau-Dialog zunächst nur die unbeantwortete Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Zustand aus Frage, einmaliger Trennlinie und Antwort. <code>Antwort anzeigen</code> und Bewertungen erscheinen dort nicht.</li>
 <li>Auswahl samt Feedback wird nur transient simuliert: Single Choice deckt nach einer Auswahl auf, Multiple Choice und Kprim über <code>Antwort prüfen</code>; die Rückkehr zur Vorderseite setzt die Auswahl zurück. Der Dialog folgt dem Theme und besitzt Fokusfalle, Escape, Außenklick und Fokuswiederherstellung.</li>
 <li>Kartenrenderer erhalten Rich-Text-HTML mit Absätzen, Fettung, Listen und Medien; wörtliche Markdown-Syntax wird nicht interpretiert. Die Kartenfläche folgt dem aktiven Theme; Anki-CSS wird nicht übernommen.</li>
 <li>Vorschau und Review verwenden dieselbe Komposition, sodass die sichtbare Frage außerhalb der Antwort bleibt.</li>
@@ -6398,6 +6644,16 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <li>Importierte Inhalte zeigen Felder in ursprünglicher Reihenfolge und mit ursprünglichen Namen; Werte sind editierbar, Feldschema und Anki-Vorlage bleiben. Nach einem Übersetzer-Update übersetzt CoRe unbearbeitete Importe automatisch einmal neu, ohne Karten mit Lernstand zu verlieren, und meldet <code>N Inhalte mit verbesserter Darstellung aktualisiert.</code></li>
 <li>APKG-Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Karten-ID zu. Unbearbeitete Inhalte übernehmen den Paketinhalt, lokal bearbeitete bleiben unverändert. Lernstand, Markierung, Aussetzung und Stapelordnung bleiben; neue Abfragen werden neue Karten, im Paket fehlende Karten bleiben und werden gezählt.</li>
 <li>Der kanonische Vertrag besteht aus <code>Note</code> (Felder mit Rollen, Interaktion, Tags, Medienzuordnung Name → SHA-1) und den abgeleiteten <code>Card</code>-Abfragen. Quelldokumente, Quellsnapshots und Inhaltsversionen werden nicht gespeichert. Strukturierte Felder überstehen den Cloud-Roundtrip; einen CoRe-JSON-Export oder -Import gibt es nicht.</li>
+</ul>
+<h4 id="journey-3-rules--tags-flaggen-und-lernbremse" class="core-control-label" tabindex="-1">Tags, Flaggen und Lernbremse <a class="docs-anchor" href="#journey-3-rules--tags-flaggen-und-lernbremse" aria-label="Link zu Tags, Flaggen und Lernbremse">#</a></h4>
+<ul>
+<li>Tags werden wie in Anki gespeichert: <code>#</code>, <code>,</code>, <code>;</code>, <code>^</code>, <code>&amp;</code>, <code>/</code>, Klammern und <code>::</code> bleiben Teil des Tags, <code>::</code> bildet die Hierarchie. Leerraum und Steuerzeichen sind unzulässig, ein leerer <code>::</code>-Teil wird <code>blank</code>, Schreibweisen werden NFC-normalisiert. Tags, die sich nur in Groß-/Kleinschreibung unterscheiden, sind ein Tag; die zuerst gespeicherte Schreibweise gewinnt. Die Eingabe schließt ein Tag mit Leertaste, Enter oder Tab ab; Einfügen trennt nur an Leerraum.</li>
+<li>Eine Tag-Änderung ist keine Inhaltsänderung: Sie wirkt sofort und hält spätere Import-Updates der Felder nicht auf.</li>
+<li>Ein importierter Inhalt merkt sich die Tags seines letzten Imports; diese erscheinen eingeklappt, eigene Tags sichtbar. Ein Reimport führt die Tags auch bei lokal bearbeitetem Inhalt zusammen: Lokal ergänzte bleiben, lokal entfernte bleiben entfernt, im Paket neue kommen dazu, im Paket entfallene gehen.</li>
+<li>Flaggen sind die sieben Anki-Farben je Karte (1 Rot bis 7 Lila). Eigene Namen gelten kontoweit und werden in den Lerneinstellungen im Abschnitt <code>Flaggen</code> vergeben; ein leerer Name steht für den Farbnamen. Flaggen sind nie nur an der Farbe erkennbar.</li>
+<li>Das Anki-Tag <code>marked</code> wird zur Markierung des Inhalts, <code>leech</code> zur Lernbremse: Karten des Inhalts mit mindestens einem Fehler erhalten sie, hat keine einen, alle. Beide erscheinen danach nicht als Tag. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil <code>.apkg</code> sie nicht enthält.</li>
+<li>Beim Lernen erhält eine Karte die Lernbremse, wenn ein <code>Nochmal</code> in der Wiederholung die Fehlerschwelle des Stapels erreicht (Standard 8) und danach bei jeder halben Schwelle erneut; frühere Fehler lösen nicht rückwirkend aus. Der Stapel wählt <code>Nur kennzeichnen</code> (Standard) oder <code>Aussetzen</code>. Die Lernbremse lässt sich im Editor zurücksetzen; <code>Als neu lernen</code> hebt sie auf.</li>
+<li>Lokal gesetzte Flaggen, Markierung und Lernbremse bleiben beim Reimport; neue Karten übernehmen die importierte Flagge.</li>
 </ul>
 <h4 id="journey-3-rules--ki-umformulierungen" class="core-control-label" tabindex="-1">KI-Umformulierungen <a class="docs-anchor" href="#journey-3-rules--ki-umformulierungen" aria-label="Link zu KI-Umformulierungen">#</a></h4>
 <ul>
@@ -6439,7 +6695,9 @@ N4[&quot;Nächste Karte, Lernschritt oder Abschluss&quot;]</pre><ol><li>Frage se
 <h4 id="journey-4-rules--sitzungs-overlay" class="core-control-label" tabindex="-1">Sitzungs-Overlay <a class="docs-anchor" href="#journey-4-rules--sitzungs-overlay" aria-label="Link zu Sitzungs-Overlay">#</a></h4>
 <ul>
 <li>Die Lerneinstellungen der Sitzung erscheinen als Dialog mit den Abschnitten <code>Karte</code> und <code>Sitzung</code>. Escape und Außenklick schließen; der Fokus bleibt im Dialog und kehrt danach zurück.</li>
-<li><code>Karte bearbeiten</code> öffnet den Einzelkarten-Editor. <code>Stapel bearbeiten</code> öffnet die Einstellungen des Sitzungsstapels und kehrt auch nach Reload in dieselbe Sitzung zurück. Anki-Flaggen werden appweit weder angeboten noch dargestellt.</li>
+<li><code>Karte bearbeiten</code> öffnet den Editor im Reiter <code>Inhalt</code>. <code>Stapel bearbeiten</code> öffnet die Einstellungen des Sitzungsstapels und kehrt auch nach Reload in dieselbe Sitzung zurück.</li>
+<li><code>Flagge</code> setzt oder entfernt die Flagge der Karte, auch mit <code>Strg+1</code> bis <code>Strg+7</code>; eine gesetzte Flagge zeigt die Kopfzeile der Karte als Farbpunkt, ohne Toast.</li>
+<li>Löst eine Bewertung die Lernbremse aus, erscheint einmal der Hinweis <code>Lernbremse: N-mal vergessen</code> mit <code>Bearbeiten</code>, das den Editor im Reiter <code>Inhalt</code> öffnet.</li>
 <li><code>Markieren</code> ist ein Umschalter mit <code>aria-pressed</code> und verändert die Queue nicht.</li>
 <li><code>Aussetzen</code> ist ein Segment <code>Nicht aussetzen</code> / <code>Aussetzen</code>. Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen und Fortschritt. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, das Overlay schließt, die nächste Karte erhält den Fokus und der Toast lautet <code>Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.</code> Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.</li>
 <li><code>Kartenreihenfolge</code> bietet <code>Fällige Karten zuerst</code>, <code>Neue und fällige mischen</code> und <code>Neue Karten zuerst</code>. Die Wahl wird im gestarteten Wurzelstapel gespeichert und sortiert nur noch unbeantwortete Initialkarten neu.</li>

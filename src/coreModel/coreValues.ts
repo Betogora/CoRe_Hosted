@@ -6,6 +6,8 @@ interface DeckSettingsInput extends LearningSettingsInput {
   newCardsTodayOverride?: { date?: unknown; limit?: unknown } | null;
   variantThresholdDays?: number;
   maxActiveVariantsPerCard?: number;
+  leechThreshold?: number;
+  leechAction?: string;
 }
 export const CORE_DECK_SOURCES = ["anki-apkg", "manual"] as const satisfies readonly DeckSource[];
 
@@ -69,23 +71,6 @@ export function stableContentHash(value: unknown, prefix = "hash"): string {
   return `${prefix}_${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
-function unique<T>(values: readonly T[]): T[] {
-  return [...new Set(values.filter((value): value is T => Boolean(value)))];
-}
-
-export function normalizeTags(tags: unknown): string[] {
-  if (Array.isArray(tags)) {
-    return unique(tags.map((tag) => String(tag).trim()).filter(Boolean));
-  }
-
-  return unique(
-    String(tags ?? "")
-      .split(/[\s,;#]+/)
-      .map((tag) => tag.trim())
-      .filter(Boolean),
-  );
-}
-
 const deckIconColorPattern = /^#[0-9a-f]{6}$/i;
 
 export function normalizeDeckAppearance(appearance: Partial<DeckAppearance> = {}): DeckAppearance {
@@ -126,5 +111,7 @@ export function createDefaultDeckSettings(settings: DeckSettingsInput = {}): Dec
     newCardsTodayOverride,
     variantThresholdDays: typeof settings.variantThresholdDays === "number" && Number.isFinite(settings.variantThresholdDays) ? settings.variantThresholdDays : 21,
     maxActiveVariantsPerCard: typeof settings.maxActiveVariantsPerCard === "number" && Number.isFinite(settings.maxActiveVariantsPerCard) ? settings.maxActiveVariantsPerCard : 2,
+    leechThreshold: typeof settings.leechThreshold === "number" && Number.isFinite(settings.leechThreshold) ? Math.min(99, Math.max(1, Math.round(settings.leechThreshold))) : 8,
+    leechAction: settings.leechAction === "suspend" ? "suspend" : "tag",
   };
 }

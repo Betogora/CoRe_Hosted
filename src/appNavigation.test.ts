@@ -15,7 +15,7 @@ import {
 
 test("deck content retains its scope and editor selection through URL and history", () => {
   const route = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", deckContent: true });
-  assert.equal(appRouteToUrl(route), "/kartenstapel?deck=deck-1&card=card-1&content=1");
+  assert.equal(appRouteToUrl(route), "/kartenstapel?deck=deck-1&card=card-1&cardTab=general&content=1");
   assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
   assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
   assert.deepEqual(createViewRoute("kartenstapel", { deckContent: true }), createViewRoute("kartenstapel"));
@@ -81,6 +81,7 @@ test("roundtrips deck, card and creation context without validating navigational
     viewId: "kartenstapel",
     focusedDeckId: "deck_a",
     selectedCardId: "card_b",
+    cardEditorTab: "general",
   });
   assert.deepEqual(deckSettingsRoute, { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" });
   assert.deepEqual(creationRoute, {
@@ -93,7 +94,7 @@ test("roundtrips deck, card and creation context without validating navigational
     completionKind: "import",
   });
   assert.equal(appRouteToUrl(learnRoute), "/lernen?deck=deck_deep&parent=deck_parent");
-  assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a&card=card_b");
+  assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a&card=card_b&cardTab=general");
   assert.equal(appRouteToUrl(deckSettingsRoute), "/stapel-einstellungen?deck=deck_b");
   assert.equal(appRouteToUrl(creationRoute), "/neue-karten?method=manual&deck=deck_b&done=deck_new&doneCount=46&doneKind=import");
 });
@@ -186,11 +187,11 @@ test("roundtrips an allowlisted review return from the selected card editor", ()
   });
   const url = appRouteToUrl(editorRoute);
 
-  assert.match(url, /^\/kartenstapel\?deck=deck_child&card=card_current&reviewReturn=/);
+  assert.match(url, /^\/kartenstapel\?deck=deck_child&card=card_current&cardTab=content&reviewReturn=/);
   assert.deepEqual(parseAppRouteFromUrl(url), editorRoute);
   assert.deepEqual(
     parseAppRouteFromUrl("/kartenstapel?deck=deck_child&card=card_current&reviewReturn=https%3A%2F%2Fevil.example"),
-    { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current" },
+    { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current", cardEditorTab: "general" },
   );
   assert.deepEqual(
     normalizeAppRoute({
@@ -200,7 +201,7 @@ test("roundtrips an allowlisted review return from the selected card editor", ()
       selectedCardId: "card_current",
       cardEditorReturnContext: { deckId: "deck_child" },
     }),
-    { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current" },
+    { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current", cardEditorTab: "general" },
   );
 });
 
@@ -346,4 +347,22 @@ test("source creation route round-trips with its explicit target", () => {
   assert.equal(appRouteToUrl(route), "/neue-karten?method=ai-source&deck=biology");
   assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
   assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
+});
+
+test("card editor tabs come from a fixed list and open by entry (W5, W6)", () => {
+  const fromTable = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1" });
+  const fromSession = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", cardEditorReturnContext: { deckId: "deck-1", returnContext: { view: "learn" } } });
+  assert.equal(fromTable.cardEditorTab, "general");
+  assert.equal(fromSession.cardEditorTab, "content");
+  for (const tab of ["general", "content", "variants", "study"] as const) {
+    const route = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", cardEditorTab: tab });
+    assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
+  }
+  assert.deepEqual(parseAppRouteFromUrl("/kartenstapel?deck=deck-1&card=card-1&cardTab=media"), fromTable);
+  assert.equal("cardEditorTab" in createViewRoute("kartenstapel", { focusedDeckId: "deck-1", cardEditorTab: "study" }), false);
+});
+
+test("the learning settings accept only the flag-names target", () => {
+  assert.equal(appRouteToUrl(createViewRoute("karten-einstellungen", { settingsTarget: "flag-names" })), "/karten-einstellungen?target=flag-names");
+  assert.deepEqual(parseAppRouteFromUrl("/karten-einstellungen?target=sync"), createViewRoute("karten-einstellungen"));
 });

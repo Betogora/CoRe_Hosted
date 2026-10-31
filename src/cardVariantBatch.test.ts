@@ -141,16 +141,18 @@ test("refresh replaces only variants from an older prompt version and ignores th
   const current = basic(2);
   current.card = addCardVariant(current.card, { front: "Neu", back: "Antwort 2", meta: { promptVersion: AI_CARD_VARIANT_PROMPT_VERSION } });
   const withoutVariant = basic(3);
+  const edited = basic(4);
+  edited.card = addCardVariant(edited.card, { front: "Eigene", back: "Antwort 4", meta: { promptVersion: "card-variant-v2", editedAt: "2026-10-30T12:00:00.000Z" } });
   const generated: string[] = [];
 
   const result = await runCardVariantBatch({
-    source: deck([outdated, current, withoutVariant], 3, { "card-1": { hasActiveVariants: true }, "card-2": { hasActiveVariants: true } }).source,
+    source: deck([outdated, current, withoutVariant, edited], 4, { "card-1": { hasActiveVariants: true }, "card-2": { hasActiveVariants: true }, "card-4": { hasActiveVariants: true } }).source,
     deckSettings: coreOn,
     mode: "refresh",
     generate: async (id) => { generated.push(id); },
   });
 
-  assert.deepEqual(generated, ["card-1"]);
+  assert.deepEqual(generated, ["card-1"], "eine bearbeitete Variante gilt nie als veraltet");
   assert.deepEqual(summarizeCardVariantBatch(result, "refresh"), { kind: "toast", message: "1 Variante neu generiert." });
   assert.deepEqual(summarizeCardVariantBatch({ ...result, created: 0 }, "refresh"), { kind: "toast", message: "Alle Varianten stammen bereits aus der aktuellen Version." });
 });

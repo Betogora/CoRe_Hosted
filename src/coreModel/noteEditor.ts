@@ -1,7 +1,7 @@
 import type { ChoiceOption, Note, NoteContent, NoteField, NoteFieldRole, RevealPrompt } from "../coreTypes.ts";
 import { stripSanitizedHtml } from "../htmlSafety.ts";
 import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
-import { normalizeTags } from "./coreValues.ts";
+import { normalizeTags } from "./tags.ts";
 import { parseNoteContent } from "./noteContent.ts";
 
 /** Editable parts of a content: field HTML, choice options and tags; structure and prompts stay as they are. */

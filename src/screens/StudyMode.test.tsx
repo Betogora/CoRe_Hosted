@@ -26,6 +26,7 @@ function studyCallbacks(deck: Deck, notes: Note[]) {
     onReturnToLearn: () => undefined,
     onEditCard: () => undefined,
     onEditDeck: () => undefined,
+    flagNames: [],
     onSetCardStudyState: () => ({ deck, note: notes[0] }),
     onSetDeckReviewOrder: () => deck,
     onCardUpdated: () => undefined,
@@ -332,4 +333,13 @@ test("StudyMode explains when every due card is hidden by the daily limit", () =
   assert.match(markup, /Tageslimit erreicht/);
   assert.match(markup, /1 fällige Karte bleibt wegen deiner Tageslimits/);
   assert.doesNotMatch(markup, /Keine fälligen Karten/);
+});
+
+test("a set flag shows as a named dot in the session header (W14)", () => {
+  const base = basicItem("deck_flag", "Welche Hauptstadt hat Peru?", "Lima", { review: { state: "review", repetitions: 4, maturityBand: "mature", dueAt: "2026-07-01T08:00:00.000Z" } });
+  const deck = createCoreDeck({ id: "deck_flag", name: "Geografie", source: "manual", cards: [{ ...base.card, ankiFlag: 4 }], reviewEvents: [] });
+  const markup = renderToStaticMarkup(
+    <StudyMode deck={deck} decks={[deck]} notes={[base.note]} deckId={deck.id} getNow={() => "2026-07-06T10:00:00.000Z"} simulationOffsetMinutes={0} {...studyCallbacks(deck, [base.note])} flagNames={["", "", "", "Nachschlagen", "", "", ""]} />,
+  );
+  assert.match(markup, /<header[\s\S]*?role="img" aria-label="Flagge Nachschlagen"[\s\S]*?<\/header>/);
 });

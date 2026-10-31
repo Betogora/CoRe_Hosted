@@ -13,7 +13,7 @@ import {
 // ADR-034: a fresh database without upgrade path.
 const DATABASE_VERSION = 1;
 
-const DATABASE_PREFIX = "core.workspace.entities.v4.";
+const DATABASE_PREFIX = "core.workspace.entities.v5.";
 
 export const STORE = Object.freeze({
   meta: "meta",

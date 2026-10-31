@@ -19,11 +19,16 @@ export {
   createCardVariant,
   getActiveVariants,
   isCardReviewBlocked,
+  moveCardToDeck,
   replaceOutdatedVariants,
   rescheduleCard,
+  resetCardStudy,
+  restoreCardStudy,
+  setCardLeech,
   setCardSuspended,
 } from "./coreModel/cards.ts";
 export {
+  applyCardStudyStatePatch,
   createBasicNote,
   createNote,
   duplicateNote,
@@ -31,9 +36,11 @@ export {
   planNoteContentChange,
   planNoteDeletion,
   planNoteRestore,
+  removeUnusedNoteMedia,
   setNoteMarked,
 } from "./coreModel/notes.ts";
 export {
+  noteContentMediaRefs,
   notePromptLabel,
   parseNoteContent,
 } from "./coreModel/noteContent.ts";
@@ -72,3 +79,4 @@ export {
 } from "./coreModel/occlusion.ts";
 export type { DrawnOcclusionShape, OcclusionMode } from "./coreModel/occlusion.ts";
 export { createCoreDeck, normalizeCoreDeck } from "./coreModel/decks.ts";
+export { mergeImportedTags, normalizeTags, tagSearchKeys } from "./coreModel/tags.ts";

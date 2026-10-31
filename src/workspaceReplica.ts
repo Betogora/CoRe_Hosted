@@ -1,5 +1,5 @@
 import type { Card, Note } from "./coreTypes.ts";
-import { getActiveVariants, isCardReviewBlocked, noteTextIndex } from "./coreModel.ts";
+import { getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 
 export type AccountBaselineState = "uninitialized" | "nonempty" | "confirmed-empty";
@@ -29,6 +29,10 @@ export interface CardCatalogEntry {
   reviewable: boolean;
   /** The mark of the card's content; all siblings show it. */
   marked: boolean;
+  ankiFlag: number;
+  leeched: boolean;
+  /** Lower-case tags of the content with all `::` parents, for `tag:` search (`tagSearchKeys`). */
+  tagKeys: string[];
   hasActiveVariants: boolean;
   activeVariantCount: number;
   activeVariantId: string | null;
@@ -216,6 +220,9 @@ export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalog
     maturityBand: card.study.extra.maturityBand,
     reviewable: !isCardReviewBlocked(card),
     marked: note?.marked ?? false,
+    ankiFlag: card.ankiFlag,
+    leeched: card.study.leechedAt !== null,
+    tagKeys: note ? tagSearchKeys(note.content.tags) : [],
     hasActiveVariants: activeVariants.length > 0,
     activeVariantCount: activeVariants.length,
     activeVariantId: activeVariants[0]?.id ?? null,

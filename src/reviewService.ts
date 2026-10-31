@@ -23,7 +23,7 @@ import type {
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
 import type { EasyDaysSchedulingContext } from "./easyDays.ts";
-import { createSiblingBurying } from "./siblingBurying.ts";
+import { createSiblingBurying, manuallyBuriedCardIds } from "./siblingBurying.ts";
 
 type DateInput = string | number | Date;
 
@@ -314,18 +314,22 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
   const byDeckId = new Map<string, { introduced: number; reviewed: number }>();
   const reviewedTodayKeys = new Set<string>();
   const answeredToday: Array<{ deck: Deck; cardId: string }> = [];
+  const manualToday: ReviewEvent[] = [];
   let introducedTotal = 0;
   let reviewedTotal = 0;
   for (const deck of scopeDecks) {
     const introduced = new Set<string>();
     const reviewed = new Set<string>();
     for (const event of (deck.reviewEvents ?? []) as ReviewEventInput[]) {
-      if (event.rating === "manual") continue;
       const eventDate = reviewEventDate(event) ?? now;
       const eventTime = new Date(eventDate).getTime();
       if (dayRange
         ? !Number.isFinite(eventTime) || eventTime < dayRange.start || eventTime >= dayRange.end
         : learningDayKey(eventDate, options) !== dateKey) continue;
+      if (event.rating === "manual") {
+        manualToday.push(event as ReviewEvent);
+        continue;
+      }
       const key = reviewKey(deck.id, event.cardId);
       if (event.cardId) {
         reviewedTodayKeys.add(key);
@@ -340,7 +344,7 @@ function summarizeDailyCardConsumption(scopeDecks: Deck[], now: DateInput, optio
     introducedTotal += consumption.introduced;
     reviewedTotal += consumption.reviewed;
   }
-  return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys, answeredToday };
+  return { byDeckId, introducedTotal, reviewedTotal, reviewedTodayKeys, answeredToday, manuallyBuried: manuallyBuriedCardIds(manualToday) };
 }
 
 function isIntradayLearning(card: Card, now: DateInput, options: ReviewServiceOptions): boolean {
@@ -508,6 +512,11 @@ function studySnapshot(state: ReviewState) {
   };
 }
 
+/** Anki's leech rule: at the threshold and again every half threshold of lapses. */
+function isLeechLapse(lapses: number, threshold: number): boolean {
+  return lapses >= threshold && (lapses - threshold) % Math.max(1, Math.floor(threshold / 2)) === 0;
+}
+
 function createReviewEvent({ deck, card, variant, rating, responseTimeMs, now, previousState, nextState, flags }: CreateReviewEventInput): ReviewEvent {
   return {
     id: makeId("review"),
@@ -556,7 +565,13 @@ export function answerVariant(
     easyDaysContext: options.easyDaysContext,
     isVariant: Boolean(variant),
   });
-  const nextState = outcome.nextReviewState;
+  // A lapse that reaches the leech rule marks the card (once, the first time stays) and, if the deck says so, suspends it.
+  const leechTriggered = outcome.nextReviewState.lapses > previousState.lapses
+    && isLeechLapse(outcome.nextReviewState.lapses, deck.deckSettings.leechThreshold);
+  const nextState = leechTriggered
+    ? { ...outcome.nextReviewState, leechedAt: previousState.leechedAt ?? now }
+    : outcome.nextReviewState;
+  const suspendsLeech = leechTriggered && deck.deckSettings.leechAction === "suspend";
   const variants = variant
     ? card.variants.map((candidate) => candidate.id === variant.id ? {
         ...candidate,
@@ -575,6 +590,7 @@ export function answerVariant(
     study: cardStudyFromReviewState(nextState),
     studyRevision: card.studyRevision + 1,
     updatedAt: now,
+    ...(suspendsLeech ? { status: "suspended" as const, revision: card.revision + 1 } : {}),
   };
   const event = createReviewEvent({ deck, card, variant, rating, responseTimeMs, now, previousState, nextState, flags: options.flags });
 
@@ -588,6 +604,7 @@ export function answerVariant(
     event,
     updatedCard,
     variant: updatedCard.variants.find((candidate) => candidate.id === event.variantId) ?? null,
+    leechTriggered,
   };
 }
 
@@ -752,6 +769,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   const reviewEntries: QueueEntry[] = [];
   const newEntries: QueueEntry[] = [];
   const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
+  const manuallyBuriedKeys = new Set<string>();
 
   for (const deck of scopeDecks) {
     for (const card of activeCards(deck)) {
@@ -759,6 +777,10 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
       const entry = { deck, card, key };
       if (dailyConsumption.reviewedTodayKeys.has(key)) reviewedEntries.set(key, entry);
       if (excludeKeys.has(key)) continue;
+      if (dailyConsumption.manuallyBuried.has(card.id)) {
+        manuallyBuriedKeys.add(key);
+        continue;
+      }
 
       if (isNewCard(card)) {
         if (isReviewDueByLearningDay(card.study, now, options)) newEntries.push(entry);
@@ -831,7 +853,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   for (const deck of scopeDecks) for (const card of deck.cards ?? []) noteIdByCardId.set(card.id, card.noteId);
   // A sibling answered in a deck outside the studied scope follows the options of the studied deck.
   const burying = createSiblingBurying((deckId) => settingsByDeckId.get(deckId) ?? rootSettings);
-  const buriedKeys = new Set<string>();
+  const buriedKeys = new Set<string>(manuallyBuriedKeys);
   for (const { deck, cardId } of dailyConsumption.answeredToday) {
     const noteId = noteIdByCardId.get(cardId);
     if (noteId) burying.answered(cardId, noteId, deck.id);
@@ -887,7 +909,7 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
       hiddenNewCount: availableNewCount - selectedNewEntries.length,
       reached: availableReviewCount > selectedReviewEntries.length || availableNewCount > selectedNewEntries.length,
     },
-    /** Siblings waiting until the next learning day; derived from today's answers, never persisted. */
+    /** Cards waiting until the next learning day (buried siblings and manually buried cards); derived from today's events, never persisted. */
     buriedKeys: [...buriedKeys],
     dateKey: getLocalReviewDateKey(now, options),
   };

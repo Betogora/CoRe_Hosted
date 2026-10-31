@@ -1,7 +1,7 @@
 import type { ChoiceOption, NoteContent, NoteField, RevealPrompt } from "../coreTypes.ts";
 import type { AddableFieldRole } from "./noteEditor.ts";
 import { escapeCardHtmlText, hasCardRichTextContent } from "../richText.ts";
-import { normalizeTags } from "./coreValues.ts";
+import { normalizeTags } from "./tags.ts";
 import { clozeOrdinals } from "./noteContent.ts";
 
 /** What the manual editor offers today; it only shapes the universal content, it is no persisted type. */

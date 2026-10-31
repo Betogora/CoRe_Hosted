@@ -68,3 +68,9 @@ test("renders the optional inline-image action and hidden multi-file picker", ()
   assert.match(markup, /accept="image\/\*"/);
   assert.match(markup, /multiple=""/);
 });
+
+test("a field of a column shows its toolbar only while focused", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Feld Vorderseite" toolbarOnFocus />);
+  assert.doesNotMatch(markup, /role="toolbar"/);
+  assert.match(markup, /rich-text-field min-w-0 rounded-control border/);
+});

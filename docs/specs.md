@@ -63,13 +63,17 @@ Abweichende Code- und Tabellennamen erklärt [`architecture.md`](architecture.md
 | --- | --- |
 | Deck / Stapel | Hierarchisch organisierte Sammlung von Karten und Lernoptionen |
 | Inhalt (Note) | Einmal gespeicherte Felder mit Rollen, Tags, Medien und Markierung; erzeugt eine oder mehrere Karten |
+| Tag | Schlagwort eines Inhalts im Anki-Format; `::` bildet die Hierarchie, Groß-/Kleinschreibung spielt keine Rolle |
+| Flagge | Farbige Kennzeichnung einer Karte (1–7 wie in Anki), auf Wunsch mit eigenem Namen |
+| Lernbremse | Zustand einer Karte, die wiederholt vergessen wurde (Anki „Leech“); getrennt von der Aussetzung |
+| Zurückstellen | Eine Karte bis zum nächsten Lerntag aus der Runde nehmen, wie begrabene Geschwister |
 | Karte (Card) | Eigenständig planbare Abfrage eines Inhalts mit Stapel, eigenem Lernstand, Aussetzung und Varianten |
 | Variante (Card Variant) | KI-Umformulierung einer Karte ohne eigenen Lernstand oder Termin |
 | CoRe-Modus | Stapeleinstellung `An` oder `Aus` für Content Repetition |
 | Haltbarkeit | Tage, bis die Erinnerung an eine Karte auf 90 % fällt; aus dem FSRS-7-Gedächtniszustand berechnet und unabhängig von der Zielerinnerung |
 | Reife | Aus dem Lernstand abgeleitete Stufe einer Karte: `Neu`, `Lernen` (Lern- und Wiederlernphase), `Jung` und `Reif` (Wiederholung ab 21 Tagen Haltbarkeit); nie gesammelt oder gezählt |
 | Review State | Persönlicher Schedulingzustand einer Karte |
-| Review Event | Unveränderliches Bewertungs- oder manuelles Neuplanungsereignis |
+| Review Event | Unveränderliches Bewertungsereignis oder manuelles Ereignis (Neu planen, Als neu lernen, Lernbremse, Zurückstellen, Rückgängig) |
 
 ## 5. Kernjourneys
 
@@ -194,10 +198,12 @@ Akzeptanz:
 - Die Tabelle zeigt je Karte nur `Sortierfeld` (bereinigte Vorderseite), `Datum` (`Neu` oder `TT.MM.JJJJ`) und `Variante` (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist `Sortierfeld` A–Z, einheitlich für alle Sektionen und nicht persistiert. Leere aufgeklappte Stapel zeigen `Keine Karten`.
 - Unter der Suche wählt `Alle Karten`/`Ohne Variante`, ob nur Karten ohne aktive Variante erscheinen; ein Klick auf eine Spaltensortierung hebt den Filter auf. In geöffneten Stapelinhalten bietet der aktive Filter `Für diese Karten Varianten generieren` und startet dieselbe Stapelgenerierung wie die Stapeleinstellungen.
 - Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung `Ausgesetzt`. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.
+- Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen; Filter wählen Flagge, Lernbremse und Tags.
 - Stapelköpfe der Kartenverwaltung haben keine Trennlinie; nur Kartenzeilen trennt eine dünne Linie. Ein Klick auf die Kopffläche klappt die Karten auf oder zu, Hover füllt sie neutral wie in `Aktive Stapel`, und die Hierarchie ist an Einrückung und Tiefenfläche erkennbar, die ab der sechsten Ebene gleich bleiben.
 - Lange Sortierfelder erhalten Ellipsen. Kartenverwaltung und `Aktive Stapel` erzeugen keinen horizontalen Überlauf; `Datum` und `Variante` bleiben ungekürzt.
 - Bei mehreren Seiten zeigt die Seitennavigation `Seite X von Y`; an den Enden ist der jeweilige Pfeil deaktiviert.
 - Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags, startet 250 ms nach der letzten Eingabe, bricht veraltete Anfragen ab und öffnet passende Sektionen nur während der Suche. Einen Modusfilter gibt es nicht.
+- Die Suche versteht Begriffe in Anki-Schreibweise: `flag:1` bis `flag:7` (`flag:0` ohne Flagge), `tag:x` (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), `tag:none`, `tag:leech` (Lernbremse), `tag:marked` und `is:suspended`; ein vorangestelltes `-` verneint einen Begriff. Alle Begriffe müssen zutreffen, der übrige Text sucht wie bisher. Online- und Offline-Suche liefern dieselben Treffer.
 
 #### Stapeloptionen, Verschieben und Löschen
 
@@ -213,21 +219,41 @@ Akzeptanz:
 
 #### Kartendetail und Editor
 
-- Ein Kartenklick setzt Deck- und Karten-ID in die URL und öffnet ein nicht-modales, eigenständig scrollendes `aside`. X, Escape und Außenklick schließen es; ein Klick auf eine andere Kartenzeile wechselt dorthin. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch; danach kehrt der Fokus zur Zeile zurück.
-- Aus einer Review-Sitzung über `Karte bearbeiten` geöffnet, trägt die URL einen allowlist-validierten Rückkontext; Schließen führt in die Sitzung zurück.
-- Das Detail zeigt den Inhaltseditor mit `Speichern`, `Vorschau`, `Kopieren` und `Löschen`. Es nennt Inhaltsform, Abfrage der Karte (`Lückentext · Lücke 2 von 3`, `Rückwärts`, `Maske 1`) und bei mehreren Karten deren Zahl. `Karten aus diesem Inhalt` listet alle Geschwister mit Abfrage, Stapel und Lernzustand; die geöffnete ist hervorgehoben.
-- Der Editor zeigt je Feld einen Rich-Text-Editor mit den gespeicherten Bildern, bei Auswahlfragen Antwortoptionen samt richtiger Antwort, und die Tags. Neue Bilder werden wie bei der Erstellung eingefügt und erst beim Speichern lokal gesichert; vorhandene Bilder, auch importierte Anki-Dateien, bleiben erhalten. Lückentexte erklären `{{c1::Begriff}}`. Bei eigenen Inhalten mit Frage und Antwort bietet er `Lernrichtung` (`Standard`, `Beide Richtungen`) und dieselben Bausteine wie bei der Erstellung. Hinzugefügte Felder lassen sich wie dort umbenennen, in der Rolle ändern und mit Pfeilen umsortieren; Vorder- und Rückseite bleiben vorn, der Lernstand bleibt. Die Felder mit der letzten Frage oder Antwort einer Abfrage lassen sich nicht entfernen.
-- Eigene Bildverdeckungen zeigen den Masken-Editor; Gruppennummern bleiben beim Löschen erhalten, sodass verbleibende Karten ihren Lernstand behalten. Das Bild lässt sich dort nicht austauschen. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung, Bausteine und Masken-Editor erscheinen dort nicht.
-- Eine Live-Zeile nennt vor dem Speichern die Wirkung (`Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 Variante wird veraltet.`). Entfallen Karten, listet `Karten entfernen?` jede mit Abfrage, Stapel und Lernzustand; ihr Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden neue Karten im Stapel des Inhalts.
-- Ungespeicherte Änderungen an Feldern, Antwortoptionen und Tags lösen beim Schließen, Kartenwechsel oder interner Navigation einen Dialog mit `Speichern`, `Verwerfen` und `Weiter bearbeiten` aus. Varianteneingaben und Terminwahl sind davon ausgenommen.
-- `Markieren` (gehört zum Inhalt, alle Geschwister zeigen den Stern) und `Aussetzen` (gehört zur einzelnen Karte) sind sofort gespeicherte Aktionen ohne Übernahme ungespeicherter Inhaltsänderungen.
-- `Nächste Fälligkeit` zeigt den gemeinsamen Datumspicker (deutsche Wochentage, Monats- und Jahresnavigation). `Neu planen` wird erst für einen anderen, mindestens nächsten Lerntag aktiv, setzt `dueAt` DST-sicher auf den Lerntagesbeginn in Profilzeitzone, lässt eine Aussetzung bestehen und bestätigt den Erfolg separat. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.
-- `Kopieren` legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig `(Kopie)`. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu.
-- Einen Herkunfts-, Versions-, Vergleichs- oder Restore-Abschnitt gibt es nicht.
+- Ein Kartenklick öffnet den Editor als Dialog über die ganze Fläche, mobil im Vollbild. Deck, Karte und Reiter stehen in der URL; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach. X und Escape schließen; danach kehrt der Fokus zur Zeile zurück.
+- Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (`12 / 48`; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv; die benachbarten Treffer werden vorgeladen, bis zur Antwort zeigt das Detail den Ladebalken der Statistik statt `Karte nicht gefunden`), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie `Duplizieren`, `Löschen` und `Schließen`. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.
+- Vier gleich breite Reiter: `Allgemein`, `Inhalt`, `Varianten`, `Lernen`; mobil kompakt mit 44-px-Zielen. Aus der Tabelle öffnet `Allgemein`, aus einer Sitzung (`Karte bearbeiten`, mit allowlist-validiertem Rückkontext) `Inhalt`. `Varianten` und `Lernen` laden erst beim Öffnen.
+- Tastenkürzel: `Strg+Enter` speichert den Entwurf, `Strg+1` bis `Strg+7` schaltet die Flagge, `Strg+K` die Markierung, `Alt+↑`/`Alt+↓` wechselt zur vorigen/nächsten Karte. Die Reiter folgen dem ARIA-Tabs-Muster; Tooltips nennen die Kürzel.
+- Eine markierte Karte färbt Kopf, Reiter und Hintergrund leicht gelb; innere Karten bleiben weiß. Flagge und Aussetzung färben keine Fläche.
 
+`Allgemein` wirkt sofort und übernimmt keine ungespeicherten Inhaltsänderungen:
+
+- Links Flagge mit Markiert (mobil ein 4×2-Raster mit Namen), Planung und Stapel. Die Planung bietet Schnellwahl und den gemeinsamen Datumspicker; `Neu planen` erscheint erst nach einer Datumsänderung, setzt `dueAt` DST-sicher auf den Beginn des gewählten Lerntags und lässt eine Aussetzung bestehen. Dazu `Aussetzen` und `Zurückstellen` (bis zum nächsten Lerntag). `Verschieben` wählt den Zielstapel im Stapeldialog. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.
+- Rechts Tags, `Karten aus diesem Inhalt`, `Ähnliche Inhalte` und `Details`. Tags erscheinen als Chips mit dem letzten Pfadteil und dem vollen Pfad im Tooltip; importierte Tags sind eingeklappt mit Anzahl, lassen sich aufklappen und bearbeiten; Vorschläge kommen aus dem Tag-Verzeichnis des Kontos. `Karten aus diesem Inhalt` listet alle Geschwister mit Abfrage, Stapel und Lernzustand, hebt die geöffnete hervor und zeigt Abfragen, die erst beim Speichern entstehen, als „Neu beim Speichern“. `Ähnliche Inhalte` zeigt bis zu drei Inhalte mit ähnlichem Text und lädt erst, wenn der Browser frei ist; offline entfällt der Bereich. `Details` nennt Quelle, Prüfung und kopierbare IDs.
+- Verschieben, Zurückstellen, Neu planen, Lernbremse zurücksetzen und Tag entfernen bestätigen sich mit einem Toast samt `Rückgängig`. Er bleibt 10 Sekunden, pausiert bei Mauszeiger und Fokus und wird von einem neuen Toast ersetzt. Flagge, Markiert, Aussetzen und Tag hinzufügen zeigen keinen Toast; ihr Bedienelement zeigt den Zustand und setzt ihn zurück. Rückgängig ist eine neue, synchronisierte Änderung und entfällt mit Meldung, wenn sich die Karte inzwischen geändert hat.
+
+`Inhalt` ist der Entwurf:
+
+- Felder links, Live-Vorschau rechts, etwa 150 ms nach der letzten Eingabe; mobil `Bearbeiten | Vorschau`. Die Vorschau zeigt die geöffnete Karte, wechselt zu Geschwistern einschließlich neuer Abfragen und schaltet `Vorderseite | Rückseite`; Auswahlfragen werden wie beim Erstellen nur transient simuliert. Gerendertes HTML wird nie gespeichert.
+- Je Feld ein Rich-Text-Editor mit den gespeicherten Bildern; die Werkzeugleiste erscheint nur am aktiven Feld, ein Punkt markiert geänderte Felder. Öffnen und Schließen ohne Eingabe ändert nichts, auch nicht an importiertem HTML; die Änderung eines Felds schreibt die anderen nicht um. Auswahlfragen zeigen Antwortoptionen samt richtiger Antwort. Neue Bilder werden wie bei der Erstellung eingefügt und erst beim Speichern lokal gesichert; vorhandene Bilder, auch importierte Anki-Dateien, bleiben erhalten. Lückentexte erklären `{{c1::Begriff}}`.
+- Inhaltsform und Lernrichtung stehen in einer Zeile; der Schalter `Antwort eintippen` gilt für die Abfrage. Eigene Inhalte mit Frage und Antwort bieten `Lernrichtung` (`Standard`, `Beide Richtungen`) und dieselben Bausteine wie bei der Erstellung. Hinzugefügte Felder lassen sich umbenennen, in der Rolle ändern und mit Pfeilen umsortieren; Vorder- und Rückseite bleiben vorn, der Lernstand bleibt. Die Felder mit der letzten Frage oder Antwort einer Abfrage lassen sich nicht entfernen. Die Medienliste nennt die Dateien des Inhalts, ihre Größe nur, wenn bekannt; ungenutzte lassen sich entfernen.
+- Eigene Bildverdeckungen zeigen den Masken-Editor an der Stelle der Vorschau; Gruppennummern bleiben beim Löschen erhalten, sodass verbleibende Karten ihren Lernstand behalten. Das Bild lässt sich nicht austauschen. Importierte Inhalte behalten Feldschema und Abfragen; Lernrichtung, Bausteine und Masken-Editor erscheinen dort nicht.
+- Die Fußleiste nennt zuerst die Wirkung (`Beim Speichern: 1 neue Karte (Rückwärts) · 1 Karte entfällt (Lücke 2) · 1 Variante wird veraltet.`), dann `Verwerfen` und `Speichern`. Entfallen Karten, listet `Karten entfernen?` jede mit Abfrage, Stapel und Lernzustand; ihr Lernstand wird erst nach Bestätigung gelöscht. Neue Abfragen werden neue Karten im Stapel des Inhalts.
+- Ungespeicherte Änderungen an Feldern und Antwortoptionen lösen beim Schließen, Kartenwechsel oder interner Navigation einen Dialog mit `Speichern`, `Verwerfen` und `Weiter bearbeiten` aus; über Reiterwechsel bleibt der Entwurf erhalten. Tags, Sofortaktionen und Variantenbearbeitung gehören nicht zum Entwurf.
+
+`Varianten`:
+
+- Das Original steht zum Vergleich oben. Jede Variante trägt ihre Zustandsmarke und bietet `Bearbeiten`, `Neu generieren`, `Abschalten` bzw. `Reaktivieren` und `Löschen`; veraltete Varianten lassen sich ersetzen, ein Link führt zu den Stapeleinstellungen. Bearbeitet wird in der Zeile der Variante und sofort gespeichert; eine bearbeitete Variante gilt als eigene, `Varianten neu generieren` ersetzt sie nicht, eine Inhaltsänderung macht sie wie alle veraltet. Die Freigabe zeigt die Variantenbereitschaft nach Haltbarkeit (siehe KI-Umformulierungen).
+
+`Lernen`:
+
+- Kennzahlen aus Lernstand und FSRS-7, darunter Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen und Fehler, das Reifeband (`Neu`, `Lernen`, `Jung`, `Reif`) und eine Lernbremse mit Zeitpunkt.
+- Links unter den Kennzahlen der `Abrufverlauf` als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor `Nochmal`; `Als neu lernen` beginnt die Kurve neu. Rechts die Liste `Bewertungen`. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.
+- `Als neu lernen …` setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.
+
+`Duplizieren` legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig `(Kopie)`. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu. `Löschen` fragt wie in der Kartenverwaltung nach, schließt danach den Editor und bietet dort `Rückgängig`.
 #### Vorschau und Darstellung
 
-- Der modale Vorschau-Dialog zeigt zunächst nur die unbeantwortete Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Zustand aus Frage, einmaliger Trennlinie und Antwort. `Antwort anzeigen` und Bewertungen erscheinen dort nicht.
+- Beim Erstellen zeigt ein modaler Vorschau-Dialog zunächst nur die unbeantwortete Vorderseite und wechselt über eine segmentierte Seitenauswahl zum aufgedeckten Zustand aus Frage, einmaliger Trennlinie und Antwort. `Antwort anzeigen` und Bewertungen erscheinen dort nicht.
 - Auswahl samt Feedback wird nur transient simuliert: Single Choice deckt nach einer Auswahl auf, Multiple Choice und Kprim über `Antwort prüfen`; die Rückkehr zur Vorderseite setzt die Auswahl zurück. Der Dialog folgt dem Theme und besitzt Fokusfalle, Escape, Außenklick und Fokuswiederherstellung.
 - Kartenrenderer erhalten Rich-Text-HTML mit Absätzen, Fettung, Listen und Medien; wörtliche Markdown-Syntax wird nicht interpretiert. Die Kartenfläche folgt dem aktiven Theme; Anki-CSS wird nicht übernommen.
 - Vorschau und Review verwenden dieselbe Komposition, sodass die sichtbare Frage außerhalb der Antwort bleibt.
@@ -243,6 +269,16 @@ Akzeptanz:
 - Importierte Inhalte zeigen Felder in ursprünglicher Reihenfolge und mit ursprünglichen Namen; Werte sind editierbar, Feldschema und Anki-Vorlage bleiben. Nach einem Übersetzer-Update übersetzt CoRe unbearbeitete Importe automatisch einmal neu, ohne Karten mit Lernstand zu verlieren, und meldet `N Inhalte mit verbesserter Darstellung aktualisiert.`
 - APKG-Reimport ordnet Inhalte über die Anki-GUID und Karten über die Anki-Karten-ID zu. Unbearbeitete Inhalte übernehmen den Paketinhalt, lokal bearbeitete bleiben unverändert. Lernstand, Markierung, Aussetzung und Stapelordnung bleiben; neue Abfragen werden neue Karten, im Paket fehlende Karten bleiben und werden gezählt.
 - Der kanonische Vertrag besteht aus `Note` (Felder mit Rollen, Interaktion, Tags, Medienzuordnung Name → SHA-1) und den abgeleiteten `Card`-Abfragen. Quelldokumente, Quellsnapshots und Inhaltsversionen werden nicht gespeichert. Strukturierte Felder überstehen den Cloud-Roundtrip; einen CoRe-JSON-Export oder -Import gibt es nicht.
+
+#### Tags, Flaggen und Lernbremse
+
+- Tags werden wie in Anki gespeichert: `#`, `,`, `;`, `^`, `&`, `/`, Klammern und `::` bleiben Teil des Tags, `::` bildet die Hierarchie. Leerraum und Steuerzeichen sind unzulässig, ein leerer `::`-Teil wird `blank`, Schreibweisen werden NFC-normalisiert. Tags, die sich nur in Groß-/Kleinschreibung unterscheiden, sind ein Tag; die zuerst gespeicherte Schreibweise gewinnt. Die Eingabe schließt ein Tag mit Leertaste, Enter oder Tab ab; Einfügen trennt nur an Leerraum.
+- Eine Tag-Änderung ist keine Inhaltsänderung: Sie wirkt sofort und hält spätere Import-Updates der Felder nicht auf.
+- Ein importierter Inhalt merkt sich die Tags seines letzten Imports; diese erscheinen eingeklappt, eigene Tags sichtbar. Ein Reimport führt die Tags auch bei lokal bearbeitetem Inhalt zusammen: Lokal ergänzte bleiben, lokal entfernte bleiben entfernt, im Paket neue kommen dazu, im Paket entfallene gehen.
+- Flaggen sind die sieben Anki-Farben je Karte (1 Rot bis 7 Lila). Eigene Namen gelten kontoweit und werden in den Lerneinstellungen im Abschnitt `Flaggen` vergeben; ein leerer Name steht für den Farbnamen. Flaggen sind nie nur an der Farbe erkennbar.
+- Das Anki-Tag `marked` wird zur Markierung des Inhalts, `leech` zur Lernbremse: Karten des Inhalts mit mindestens einem Fehler erhalten sie, hat keine einen, alle. Beide erscheinen danach nicht als Tag. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil `.apkg` sie nicht enthält.
+- Beim Lernen erhält eine Karte die Lernbremse, wenn ein `Nochmal` in der Wiederholung die Fehlerschwelle des Stapels erreicht (Standard 8) und danach bei jeder halben Schwelle erneut; frühere Fehler lösen nicht rückwirkend aus. Der Stapel wählt `Nur kennzeichnen` (Standard) oder `Aussetzen`. Die Lernbremse lässt sich im Editor zurücksetzen; `Als neu lernen` hebt sie auf.
+- Lokal gesetzte Flaggen, Markierung und Lernbremse bleiben beim Reimport; neue Karten übernehmen die importierte Flagge.
 
 #### KI-Umformulierungen
 
@@ -281,7 +317,9 @@ Akzeptanz:
 #### Sitzungs-Overlay
 
 - Die Lerneinstellungen der Sitzung erscheinen als Dialog mit den Abschnitten `Karte` und `Sitzung`. Escape und Außenklick schließen; der Fokus bleibt im Dialog und kehrt danach zurück.
-- `Karte bearbeiten` öffnet den Einzelkarten-Editor. `Stapel bearbeiten` öffnet die Einstellungen des Sitzungsstapels und kehrt auch nach Reload in dieselbe Sitzung zurück. Anki-Flaggen werden appweit weder angeboten noch dargestellt.
+- `Karte bearbeiten` öffnet den Editor im Reiter `Inhalt`. `Stapel bearbeiten` öffnet die Einstellungen des Sitzungsstapels und kehrt auch nach Reload in dieselbe Sitzung zurück.
+- `Flagge` setzt oder entfernt die Flagge der Karte, auch mit `Strg+1` bis `Strg+7`; eine gesetzte Flagge zeigt die Kopfzeile der Karte als Farbpunkt, ohne Toast.
+- Löst eine Bewertung die Lernbremse aus, erscheint einmal der Hinweis `Lernbremse: N-mal vergessen` mit `Bearbeiten`, das den Editor im Reiter `Inhalt` öffnet.
 - `Markieren` ist ein Umschalter mit `aria-pressed` und verändert die Queue nicht.
 - `Aussetzen` ist ein Segment `Nicht aussetzen` / `Aussetzen`. Aussetzen pausiert die Karte samt Varianten, ohne Lernzustand, Schritt, Fälligkeit, FSRS-Werte oder Historie zu ändern; ausgesetzte Karten fehlen in Queue, Tageszahlen und Fortschritt. Die aktuelle Karte verschwindet ohne Bewertung aus allen offenen Positionen, das Overlay schließt, die nächste Karte erhält den Fokus und der Toast lautet `Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.` Reaktivieren lässt den Review State unverändert; ein vergangener Termin ist sofort relevant.
 - `Kartenreihenfolge` bietet `Fällige Karten zuerst`, `Neue und fällige mischen` und `Neue Karten zuerst`. Die Wahl wird im gestarteten Wurzelstapel gespeichert und sortiert nur noch unbeantwortete Initialkarten neu.
@@ -380,6 +418,7 @@ Akzeptanz:
 - Reichweiten: allgemeine Einstellungen eine Speicheraktion, Lerneinstellungen `Auf alle Stapel anwenden` und `Auf alle neuen Stapel anwenden`, Stapeleinstellungen Stapel oder Stapelbaum. Erfolg schließt die Leiste und meldet die Reichweite einmal; Fehler lassen sie offen und erscheinen beim betroffenen Bereich.
 - Bei ungespeicherten Einstellungen werden App-Navigation, Querlinks, Zurück, Stapelwechsel, Abmelden und Browser-Zurück/-Vorwärts abgebrochen. Lernprofil-Aktionen, `Auf diesen Stapel anwenden`, manueller Sync und die Lerneinstellungen einer Sitzung wirken unmittelbar.
 - Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile und der globale Stapelstandard sind accountweite Scheduler-Präferenzen im Profil-Sync.
+- Eigene Flaggennamen sind eine accountweite Oberflächeneinstellung im Profil-Sync; die Lerneinstellungen bieten dafür den Abschnitt `Flaggen`, der Flaggenwähler verlinkt mit `Namen bearbeiten` dorthin.
 - Sicherheitskritische Aktionen sind von Profil- und Lernoptionen getrennt.
 
 ### 6.2 Deck-Hierarchie und Stapeleinstellungen
@@ -389,7 +428,7 @@ Akzeptanz:
 - Lernen und Kartenverwaltung sind getrennte, lazy geladene Bereiche derselben Hauptseite mit gemeinsamem Deckkontext ohne parallele lokale Deckidentität. Lernen-, Kartenverwaltungs- und Erstelllinks erhalten Deck und Karte über Reload und Direktlink; gleichnamige Unterstapel unterscheidet der vollständige Pfad.
 - Direktes Drag-and-drop ist eine Desktop-Interaktion in Dashboard und Lernen für Maus und Trackpad und markiert keinen Zeilentext; sonst gilt der bestätigte Verschiebeablauf.
 - Stapelbezogene Auswahlfelder zeigen geschlossen Icon und vollständigen Pfad. Geöffnet sind sie eine je Ebene alphabetisch sortierte Baumliste mit Icon und Namen. Ab fünf auswählbaren Stapeln erscheint eine Pfadsuche; Sonderziele zählen nicht mit. Die Auswahl ist nicht nur durch Farbe erkennbar.
-- Stapelname, Icon, Farbe, Tagespensum, `Kartenreihenfolge`, `Neue Karten sortieren`, `Fällige Karten sortieren`, die drei Begraben-Optionen, Schedulerwerte (Lernschritte, Wiederlernschritt, gewünschte Erinnerungsrate, maximales Intervall), CoRe-Modus, `Varianten einsetzen ab Haltbarkeit` (7, 21, 60 Tage) und `Aktive Varianten pro Karte` (1, 2, 3) bilden einen gemeinsamen Entwurf und werden atomar über die Speicherleiste übernommen. Die Reviewpriorität heißt `Wahrscheinlich vergessen zuerst`; der Text zum Reviewlimit erklärt, dass es fällige, tagesübergreifende Lern- und neue Karten umfasst und Wiederholungen Vorrang haben.
+- Stapelname, Icon, Farbe, Tagespensum, `Kartenreihenfolge`, `Neue Karten sortieren`, `Fällige Karten sortieren`, die drei Begraben-Optionen, Schedulerwerte (Lernschritte, Wiederlernschritt, gewünschte Erinnerungsrate, maximales Intervall), CoRe-Modus, `Varianten einsetzen ab Haltbarkeit` (7, 21, 60 Tage), `Aktive Varianten pro Karte` (1, 2, 3) und die Lernbremse (Fehlerschwelle, Aktion `Nur kennzeichnen`/`Aussetzen`) bilden einen gemeinsamen Entwurf und werden atomar über die Speicherleiste übernommen. Die Reviewpriorität heißt `Wahrscheinlich vergessen zuerst`; der Text zum Reviewlimit erklärt, dass es fällige, tagesübergreifende Lern- und neue Karten umfasst und Wiederholungen Vorrang haben.
 - CoRe-Modus und Variantenwerte gehören nicht zu Lernprofilen und bleiben bei einem Profilwechsel unverändert. Normales und variantenfokussiertes Lernen wird nicht angeboten.
 - Die Speicherleiste bezeichnet ihre Aktion ausdrücklich. Mit Unterstapeln ist `Stapel und Unterstapel speichern` die Hauptaktion vor `Nur diesen Stapel speichern`; sie überträgt rekursiv nur die geänderten Darstellungs-, Lern-, Scheduler- und CoRe-Werte. Ohne Unterstapel gibt es nur `Stapeleinstellungen speichern`. Beide speichern lokal persistent in einer Mutation, bleiben auf der Seite und bestätigen den Geltungsbereich. `Änderungen verwerfen` verwirft den Entwurf.
 - Stapeloptionen merken sich ihren URL-reproduzierbaren Ursprung (Dashboard, Lernen, Stapel, optional Karte); Direktlinks ohne Ursprung fallen auf Lernen zurück. Ohne gewählten Stapel zeigt die Route eine suchbare Stapelauswahl. Titel, Zurück und Quernavigation bleiben bei 390 px sichtbar.
@@ -405,6 +444,7 @@ Akzeptanz:
 - Warnungen werden zusammengefasst und vollständig aufklappbar angeboten; Notetype-IDs, SHA-1-Listen und Importidentitäten erscheinen nicht.
 - Pakete bis 2 GiB werden lokal in einem Worker verarbeitet; Medien werden erst beim Übernehmen einzeln gelesen und gegen ihre SHA-1 geprüft. Größere Dateien enden sofort mit verständlicher Meldung und `Andere Datei auswählen`; einen Serverjob oder Upload-Fallback gibt es nicht.
 - Reimport erkennt Inhalte ausschließlich über stabile Anki-Identitäten (GUID, Karten-ID), auch wenn sie nur in der Cloud vorliegen.
+- Tags, `marked`, `leech` und Flaggen folgen dem Abschnitt „Tags, Flaggen und Lernbremse“.
 - APKG-`revlog` wird als append-only Analysehistorie übernommen, soweit eine Anki-Karte eindeutig einer CoRe-Karte zugeordnet werden kann, und beim Reimport dedupliziert. Der initiale Review State folgt der Reihenfolge chronologisches FSRS-7-Replay einer vollständigen Historie ab neuer Karte, gültiger Anki-FSRS-Memory-State (bei abgeschnittener oder fehlender Historie), klassischer Kartenstatus, neue Karte; nach dem ersten CoRe-Review gilt ausschließlich FSRS-7.
 - Medienreferenzen werden sicher aufgelöst; fehlende Medien nennt der Bericht.
 
@@ -423,6 +463,7 @@ Akzeptanz:
 - `Gut` geht genau einen Lernschritt weiter und wechselt erst am letzten Schritt in den Reviewzustand. `Leicht` beendet die Lernphase sofort mit dem unveränderten `ts-fsrs`-Intervall; `Nochmal` und `Schwer` folgen der Standard-Lernschrittstrategie von `ts-fsrs`. Konfigurierte Lernschritte haben Vorrang vor einem längeren Modellintervall. Die Wirkung jeder Bewertung je Lage der Karte zeigt [6.11](specs.md#611-lernverlauf-einer-karte).
 - Eine Sitzung arbeitet zuerst ihre eindeutigen Karten ab und zeigt danach berechtigte Learning-/Relearning-Wiederholungen. Das accountweite Vorziehfenster gilt einheitlich für alle Stapel einer Sitzung. Ein Termin darf nur am selben (auch simulierten) Lerntag und strikt weniger als das Fenster vorgezogen werden; Reviewkarten nie. Ein früherer, noch nicht berechtigter Eintrag blockiert keine spätere berechtigte Wiederholung.
 - Reviewkarten werden tageweise freigegeben; Learning und Relearning behalten minutengenaue Termine, ihr Vorziehen überschreitet den Lerntag nicht. Eine manuell auf einen künftigen Lerntag gesetzte Karte bleibt bis dahin in jeder Phase zurückgestellt.
+- `Zurückstellen` nimmt eine einzelne Karte bis zum nächsten Lerntag aus Runde und Tageszahlen, wie begrabene Geschwister; Termin und Lernstand bleiben. Wie das Begraben folgt es aus den Ereignissen des Lerntags und wird nicht an der Karte gespeichert.
 - Intraday-Schritte umgehen Tageslimits; tagesübergreifende Lernschritte verbrauchen Reviewbudget. In einer Baumrunde brauchen Kartenstapel und alle aktiven Vorfahren Budget; direkte Unterstapelstarts ignorieren äußere Vorfahren. Reviews belegen das gemeinsame Budget vor neuen Karten. Sind Karten nur durch Limits verborgen, nennt Start oder Abschluss `Tageslimit erreicht` und weist die Anzahl fälliger und neuer Karten aus.
 - Der gestartete Stapel bestimmt für die Runde die Sortierung neuer Karten (Alter oder stabiler Lerntagszufall) und fälliger Karten (Überfälligkeit oder Abrufwahrscheinlichkeit).
 - Easy Days verändert nur neu berechnete Review-Intervalle von 3 bis 90 Tagen: Innerhalb des FSRS-Fuzz-Fensters wählt der Scheduler anhand der accountweiten 90-Tage-Last und der Tagesstufe (`Normal` 1, `Weniger` 0,5, `Minimal` 0,0001); bei Gleichstand gewinnt die geringste Abweichung, dann der frühere Termin. Die Last ist die lokal gepflegte Kontoprognose bei Sitzungsbeginn; in der Sitzung neu geplante Karten wechseln darin sofort ihren Tag. Fehlt eine Prognose für den aktuellen Lerntag, zählen nur die Sitzungskarten. Nur `dueAt` und das Intervall ändern sich; Vorschau und Commit verwenden dieselbe Lastmomentaufnahme und DST-sichere Kalenderaddition.
@@ -436,6 +477,8 @@ Akzeptanz:
 
 - Karteninhalte sind direkt prüfbar; einen wiederherstellbaren Versionsverlauf gibt es nicht.
 - Manuelle Neuplanung ändert nur `dueAt` und die technische Aktualisierungszeit; Phase, Lernschritt, Intervalle, Wiederholungen, Difficulty, Stability, letzter Reviewzeitpunkt, FSRS-Werte, Reife sowie Inhaltsrevisionen bleiben. Genau ein `ReviewEvent` mit `rating: "manual"` hält alten und neuen Termin fest und zählt nicht als Lernen, Fortschritt oder FSRS-Bewertung.
+- Dasselbe gilt für `Als neu lernen`, das Setzen und Zurücksetzen der Lernbremse, `Zurückstellen` und das Rückgängigmachen dieser Aktionen: Jede ist genau ein manuelles `ReviewEvent` mit ihrer Art und kollidiert nie mit Bewertungen oder Inhaltsänderungen auf anderen Geräten.
+- Rückgängig nach einer Sofortaktion ist eine neue Änderung mit neuer Revision; hat sich die Karte inzwischen geändert, entfällt es mit Meldung.
 - Ein Karten-Undo nimmt den Soft-Delete-Tombstone revisionsgeprüft zurück, ohne neue Karte oder zweiten Review State.
 - Importfehler führen nicht zum Verlust des letzten verlässlichen Inhalts.
 
