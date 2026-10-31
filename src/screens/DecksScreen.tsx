@@ -86,7 +86,7 @@ function SortHeader({ field, label, sort, onChange }: {
 
 function FieldError({ errors, field }: { errors: NoteEditorErrors; field: string }) {
   const message = errors[field];
-  return message ? <p className="core-body font-medium text-core-text" role="alert">{message}</p> : null;
+  return message ? <p className="core-caption font-medium text-core-danger" role="alert">{message}</p> : null;
 }
 
 function noteKindLabel(note: Note) {
@@ -135,10 +135,10 @@ function draftChangeSummary(graph: NoteGraph, plan: ReturnType<typeof planNoteCo
 }
 
 const VARIANT_STATE_TONE = {
-  active: "bg-core-success-soft",
-  off: "bg-core-subtle",
-  reported: "bg-core-danger-soft",
-  outdated: "bg-core-warning-soft",
+  active: "bg-core-success-soft text-core-success",
+  off: "bg-core-subtle text-core-secondary",
+  reported: "bg-core-danger-soft text-core-danger",
+  outdated: "bg-core-warning-soft text-core-warning",
 } as const;
 
 /** One clearly toned state per variant; a report names its reason, only switched-off or reported ones can return. */
@@ -516,8 +516,8 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
     >
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-3 font-semibold text-core-text outline-none">Karte bearbeiten</h2>
-          <p className="mt-1 core-caption text-core-muted" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</p>
+          <h2 ref={editorHeadingRef} tabIndex={-1} className="break-words core-heading-2 text-core-text outline-none">Karte bearbeiten</h2>
+          <p className="mt-1 core-body text-core-secondary" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <IconButton label="Detailansicht schließen" icon={X} onClick={onClose} />
@@ -555,27 +555,27 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         </div>
       </div>
       {syncConflict ? (
-        <div className="mb-6 rounded-control border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
+        <div className="mb-6 rounded-panel border border-core-warning bg-core-warning-soft p-4 core-body text-core-text" role="status">
           <p className="font-semibold">Synchronisierung klären</p>
           <p className="mt-1">Diese Karte bleibt bis zur Konfliktentscheidung aus der Lernwarteschlange. Andere Karten sind nicht betroffen.</p>
         </div>
       ) : null}
       {siblings.length > 1 ? (
-        <section className="mb-6 min-w-0 rounded-control border border-core-border bg-core-surface p-3" aria-labelledby={`card-siblings-${card.id}`} data-testid="card-siblings">
-          <h3 id={`card-siblings-${card.id}`} className="core-body font-semibold text-core-text">Karten aus diesem Inhalt</h3>
+        <section className="mb-6 min-w-0 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft" aria-labelledby={`card-siblings-${card.id}`} data-testid="card-siblings">
+          <h3 id={`card-siblings-${card.id}`} className="core-heading-3 text-core-text">Karten aus diesem Inhalt</h3>
           <ul className="mt-2 grid gap-1">
             {siblings.map((sibling) => {
               const current = sibling.id === card.id;
               const content = (
                 <>
-                  <span className="font-semibold text-core-text">{notePromptLabel(note.content, sibling.promptKey)}</span>
+                  <span className="font-medium text-core-text">{notePromptLabel(note.content, sibling.promptKey)}</span>
                   <span className="min-w-0 truncate text-core-muted">{deckName(sibling.deckId)} · {cardStateLabel(sibling, note, labelOptions)}</span>
                 </>
               );
               return (
                 <li key={sibling.id}>
                   {current ? (
-                    <p className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-subtle px-3 core-body" aria-current="true">{content}</p>
+                    <p className="flex min-h-10 min-w-0 flex-wrap items-center gap-x-2 rounded-inset bg-core-info-soft px-3 core-body" aria-current="true">{content}</p>
                   ) : (
                     <button type="button" onClick={() => onSelectCard(sibling.deckId, sibling.id)} className="flex min-h-10 w-full min-w-0 flex-wrap items-center gap-x-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus">{content}</button>
                   )}
@@ -592,9 +592,9 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         onMarkedChange={(marked) => onSetStudyState(card.id, { marked })}
         onSuspendedChange={(suspended) => onSetStudyState(card.id, { suspended })}
       />
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-3 rounded-control border border-core-border bg-core-surface p-3">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft">
         <div className="core-field-group min-w-0 flex-1">
-          <span className="core-field-label inline-flex items-center gap-2 font-semibold"><CalendarDays size={17} aria-hidden="true" />Nächste Fälligkeit</span>
+          <span className="core-field-label inline-flex items-center gap-2"><CalendarDays className="text-core-muted" size={16} aria-hidden="true" />Nächste Fälligkeit</span>
           <CoreDatePicker
             id={`card-due-date-${card.id}`}
             ariaLabel="Nächste Fälligkeit"
@@ -613,10 +613,10 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
         </ActionButton>
         {rescheduleError ? <p className="core-status-error w-full core-body font-semibold" role="alert">{rescheduleError}</p> : null}
       </div>
-      {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-text" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
+      {draftSummary ? <p className="mb-4 rounded-control border border-core-border bg-core-subtle px-3 py-2 core-body text-core-secondary" role="status" aria-live="polite" data-testid="draft-change-summary">{draftSummary}</p> : null}
       {structureEditable && structure.interaction.kind === "image-occlusion" && mediaUrls[structure.interaction.image] ? (
         <div className="mb-4 grid min-w-0 gap-2" data-testid="note-occlusion">
-          <span className="core-body font-semibold text-core-text">Bild und Masken</span>
+          <span className="core-field-label">Bild und Masken</span>
           <React.Suspense fallback={<p className="core-body text-core-muted" role="status">Masken-Editor wird geladen …</p>}>
           <OcclusionEditor
             imageUrl={mediaUrls[structure.interaction.image]}
@@ -632,7 +632,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       ) : null}
       {structureEditable && blocks.reverse !== null ? (
         <div className="mb-4 grid min-w-0 gap-2 sm:grid-cols-[max-content_max-content] sm:items-center sm:gap-3" data-testid="note-direction">
-            <span className="core-body font-semibold text-core-text">Lernrichtung</span>
+            <span className="core-field-label">Lernrichtung</span>
             <CoreSegmentedControl
               ariaLabel="Lernrichtung"
               options={[{ value: "standard", label: "Standard" }, { value: "both", label: "Beide Richtungen" }]}
@@ -643,17 +643,17 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
       ) : null}
       <div className="grid min-w-0 gap-4">
         {structure.fields.map((field) => (
-          <div key={field.id} className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
+          <div key={field.id} className="grid min-w-0 gap-2">
             {structureEditable && canRemoveNoteField(structure, field.id) && field.id !== "front" && field.id !== "back" ? (
               <div className="flex min-w-0 flex-wrap items-end gap-2">
-                <label className="grid min-w-0 flex-1 basis-48 gap-1">
-                  <span className="core-caption font-semibold text-core-muted">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
-                  <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={field.name} onChange={(event) => changeStructure(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
+                <label className="grid min-w-0 flex-1 basis-48 gap-2">
+                  <span className="core-field-label">{FIELD_ROLE_NAMES[field.role]} · Feldname</span>
+                  <input className="core-field min-w-0" value={field.name} onChange={(event) => changeStructure(renameNoteField(structure, field.id, event.target.value))} aria-label={`Name von ${field.name}`} />
                 </label>
                 {isMovableNoteField(field) ? (
                   <>
-                    <label className="grid gap-1">
-                      <span className="core-caption font-semibold text-core-muted">Rolle</span>
+                    <label className="grid gap-2">
+                      <span className="core-field-label">Rolle</span>
                       <CoreSelect
                         ariaLabel={`Rolle von ${field.name}`}
                         value={field.role}
@@ -668,7 +668,7 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
                 <IconButton label={`${field.name} entfernen`} icon={X} onClick={() => removeField(field.id)} />
               </div>
             ) : (
-              <span>{field.name}</span>
+              <span className="core-field-label">{field.name}</span>
             )}
             <RichTextEditor
               value={form.fields[field.id] ?? ""}
@@ -679,22 +679,22 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               minHeightClass={field.role === "prompt" || field.role === "answer" ? "min-h-32" : "min-h-28"}
             />
             {interaction.kind === "cloze" && field.role === "prompt" ? (
-              <p className="core-body font-normal text-core-muted">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Karte.</p>
+              <p className="core-caption text-core-muted">Lücken mit <code>{"{{c1::Begriff}}"}</code> markieren. Gleiche Nummern gehören zu einer Karte.</p>
             ) : null}
             <FieldError errors={fieldErrors} field={field.id} />
           </div>
         ))}
         {choiceMode ? (
-          <fieldset className="grid gap-3 rounded-control border border-core-border p-4">
-            <legend className="px-1 core-body font-semibold text-core-secondary">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
+          <fieldset className="grid gap-3 rounded-panel border border-core-border bg-core-surface p-4">
+            <legend className="px-1 core-field-label">Antwortoptionen und {choiceMode === "single" ? "richtige Antwort" : "richtige Antworten"}</legend>
             {options.map((option, index) => (
               <div key={option.id} className="flex min-w-0 items-center gap-2">
-                <input type={choiceMode === "single" ? "radio" : "checkbox"} name={choiceMode === "single" ? `correct-option-${note.id}` : undefined} checked={option.correct} disabled={correctnessLocked(index)} onChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
-                <input className="min-h-control min-w-0 flex-1 rounded-control border border-core-border px-3" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
-                <button type="button" onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} className="grid size-control place-items-center rounded-control border border-core-border text-core-muted disabled:opacity-40" aria-label={`Antwortoption ${index + 1} entfernen`}><X size={16} aria-hidden="true" /></button>
+                <input className="size-4 shrink-0 accent-core-action" type={choiceMode === "single" ? "radio" : "checkbox"} name={choiceMode === "single" ? `correct-option-${note.id}` : undefined} checked={option.correct} disabled={correctnessLocked(index)} onChange={() => toggleCorrect(index)} aria-label={`Option ${index + 1} als richtig markieren`} />
+                <input className="core-field min-w-0 flex-1" value={option.text} onChange={(event) => updateOptions(options.map((candidate, optionIndex) => optionIndex === index ? { ...candidate, text: event.target.value } : candidate))} aria-label={`Antwortoption ${index + 1}`} aria-invalid={Boolean(fieldErrors.options)} />
+                <IconButton variant="ghost" icon={X} label={`Antwortoption ${index + 1} entfernen`} onClick={() => removeOption(index)} disabled={options.length <= 2 || correctnessLocked(index)} />
               </div>
             ))}
-            {choiceMode !== "kprim" ? <button type="button" onClick={addOption} className="inline-flex min-h-control w-fit items-center gap-2 rounded-control border border-core-border px-3 core-body font-semibold text-core-action"><PlusSquare size={16} aria-hidden="true" />Option hinzufügen</button> : null}
+            {choiceMode !== "kprim" ? <ActionButton type="button" variant="secondary" icon={PlusSquare} onClick={addOption} className="w-fit">Option hinzufügen</ActionButton> : null}
             <FieldError errors={fieldErrors} field="options" />
           </fieldset>
         ) : null}
@@ -706,17 +706,17 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
             onAddField={addField}
           />
         ) : null}
-        <label className="grid gap-2 core-body font-semibold text-core-secondary">
-          Tags
-          <input className="min-h-control min-w-0 rounded-control border border-core-border px-3" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />
+        <label className="grid gap-2">
+          <span className="core-field-label">Tags</span>
+          <input className="core-field min-w-0" value={form.tags.join(" ")} onChange={(event) => { setForm((current) => ({ ...current, tags: event.target.value.split(/\s+/).filter(Boolean) })); clearStatus(); }} />
         </label>
         {saveStatus ? <p className={saveError ? "core-status-error" : "core-status-info"} role={saveError ? "alert" : "status"}>{saveStatus}</p> : null}
         {duplicateStatus ? <p className={duplicateError ? "core-status-error" : "core-status-info"} role={duplicateError ? "alert" : "status"}>{duplicateStatus}</p> : null}
       </div>
-      <section className="mt-6 min-w-0 rounded-control border border-core-border bg-core-surface p-4" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
+      <section className="mt-6 min-w-0 rounded-panel border border-core-border bg-core-surface p-5 shadow-soft" aria-labelledby={`card-variants-${card.id}`} data-testid="card-variant-tools">
         <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h3 id={`card-variants-${card.id}`} className="core-body-large font-semibold text-core-text">Varianten</h3>
-          <p className="core-caption font-semibold text-core-muted" data-testid="variant-active-count">{variantReadiness!.activeCount} von {variantReadiness!.maxActive} aktiv</p>
+          <h3 id={`card-variants-${card.id}`} className="core-heading-3 text-core-text">Varianten</h3>
+          <p className="inline-flex min-h-5 items-center rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary" data-testid="variant-active-count">{variantReadiness!.activeCount} von {variantReadiness!.maxActive} aktiv</p>
         </div>
         <p className="mt-1 core-caption text-core-muted" data-testid="variant-readiness">Haltbarkeit {variantReadiness!.durabilityDays} von {variantReadiness!.thresholdDays} Tagen · {variantReadinessLabel(deck.deckSettings.coreMode, variantReadiness!.ready)}</p>
         {variants.length > 0 ? (
@@ -726,9 +726,9 @@ function DeckCardEditor({ deck, graph, cardId, syncConflict, now, dayStartHour, 
               return (
                 <li key={variant.id} className="flex min-w-0 items-start gap-3 py-3">
                   <div className="min-w-0 flex-1">
-                    <span className={`inline-flex rounded-inset px-2 py-0.5 core-caption font-semibold text-core-text ${VARIANT_STATE_TONE[state.tone]}`}>{state.label}</span>
-                    <p className="mt-1.5 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
-                    <p className="break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
+                    <span className={`inline-flex min-h-5 items-center rounded-round px-2 core-caption font-semibold ${VARIANT_STATE_TONE[state.tone]}`}>{state.label}</span>
+                    <p className="mt-1.5 break-words core-body font-medium text-core-text">{stripHtml(variant.front)}</p>
+                    <p className="break-words core-body text-core-secondary">{stripHtml(variant.back)}</p>
                     {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-caption text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
                     {state.reactivatable && reactivationBlocked ? <p className="mt-1 core-caption text-core-muted">Reaktivieren erst unter der Höchstzahl aktiver Varianten.</p> : null}
                   </div>
@@ -834,35 +834,35 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
   return (
     <tr
       onClick={() => onSelect(deckId, card.id)}
-      className={`cursor-pointer border-b border-core-border transition ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft hover:bg-core-subtle" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
+      className={`cursor-pointer border-b border-core-border transition-colors ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
       data-selected={selected ? "true" : undefined}
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
+      <td className="min-w-0 px-2 py-2.5 align-middle sm:px-3 md:px-4">
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
           aria-pressed={selected}
-          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          className="block !min-h-0 w-full truncate text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
           onClick={(event) => {
             event.stopPropagation();
             onSelect(deckId, card.id);
           }}
         >
           {frontPreview}
-          {syncConflict ? <span className="ml-2 rounded-inset bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
+          {syncConflict ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-caption font-semibold text-core-warning">Synchronisierung klären</span> : null}
         </button>
       </td>
-      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
+      <td className="min-w-0 whitespace-nowrap px-1 py-2.5 text-right align-middle core-body tabular-nums text-core-secondary">
         {nextStudyLabel}
         {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
       </td>
-      <td className="min-w-0 px-1 py-1 text-right align-middle">
+      <td className="min-w-0 px-1 py-2.5 text-right align-middle sm:pr-3">
         <span className="inline-flex items-center justify-end gap-1 align-middle">
           {card.activeVariantCount > 0
-            ? <span className="min-w-[1.125rem] text-center core-body font-semibold text-core-secondary" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
-            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
+            ? <span className="min-w-[1.125rem] text-center core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
+            : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
           <span className="grid size-[1.125rem] place-items-center">
             {marked ? <Star size={18} fill="currentColor" className="text-core-warning" role="img" aria-label="Markiert" /> : null}
           </span>
@@ -1345,10 +1345,10 @@ export function DecksScreen({
               {row.id === contentDeckId ? <span aria-current="page">{row.name}</span> : <button type="button" onClick={() => requestDetailAction(() => onOpenDeckContent(row.id, "children"))}>{row.name}</button>}
             </React.Fragment>)}
           </nav>
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3" data-testid="deck-content-heading">
+          <div className="flex min-w-0 items-center justify-between gap-3" data-testid="deck-content-heading">
             <div className="flex min-w-0 items-center gap-3">
-              {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={24} /> : null}
-              <h2 className="min-w-0 break-words core-heading-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
+              {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={22} /> : null}
+              <h2 className="min-w-0 break-words core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
             </div>
             <CoreTooltip label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"}>
               <IconButton label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"} icon={ArrowLeft}
@@ -1384,19 +1384,19 @@ export function DecksScreen({
       ) : contentDeckId && contentTab !== "cards" ? (
         <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">
           <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
-            <span className="grid size-14 place-items-center rounded-panel bg-core-subtle text-core-muted"><ContentIcon size={28} strokeWidth={2} aria-hidden="true" /></span>
-            <p className="core-body-large text-core-muted">Demnächst verfügbar</p>
+            <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action"><ContentIcon size={22} aria-hidden="true" /></span>
+            <p className="core-heading-3 text-core-text">Demnächst verfügbar</p>
           </div>
         </SoftPanel>
-      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
+      ) : <SoftPanel className="min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
-          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3> : null}
-          <div className="grid gap-3">
-            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-                Karten durchsuchen
-                <span className="flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 font-normal text-core-muted transition">
-                  <Search size={17} aria-hidden="true" />
-                  <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
+          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-2 text-core-text">Aktive Stapel</h3> : null}
+          <div className="grid gap-4">
+            <label className="grid min-w-0 gap-2">
+                <span className="core-field-label">Karten durchsuchen</span>
+                <span className="relative flex min-w-0">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={16} aria-hidden="true" />
+                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => { setQuery(event.target.value); setCardPageByDeckId({}); }} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
                 </span>
               </label>
             <div className="flex flex-wrap items-center gap-3">
@@ -1414,7 +1414,7 @@ export function DecksScreen({
             </div>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-control border border-core-border bg-core-subtle p-3">
+              <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
                 <p className="min-w-0 flex-1 truncate core-body text-core-text">„{deletedCardUndo.description}“ gelöscht.</p>
                 <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
               </div>
@@ -1422,7 +1422,7 @@ export function DecksScreen({
           </div>
 
           {tableModel.groups.length ? (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border">
+            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border bg-core-surface">
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
@@ -1430,7 +1430,7 @@ export function DecksScreen({
                 <col className="w-20" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
-                <tr className="core-table-header-row border-b border-core-border">
+                <tr className="core-table-header-row h-10 border-b border-core-border">
                   <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
@@ -1482,7 +1482,7 @@ export function DecksScreen({
                   </tr> : null}
                   {expanded && cardPages?.[group.id]?.limitedToLocalCatalog ? (
                     <tr className="border-b border-core-border bg-core-warning-soft">
-                      <td colSpan={3} className="px-4 py-2 core-caption text-core-secondary">
+                      <td colSpan={3} className="px-3 py-2.5 core-caption text-core-secondary sm:px-4">
                         Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
                       </td>
                     </tr>
@@ -1504,22 +1504,18 @@ export function DecksScreen({
                       <td colSpan={3} className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">
                           <CoreTooltip label="Vorherige Seite anzeigen">
-                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
-                              <ChevronLeft size={16} aria-hidden="true" />
-                            </button>
+                            <IconButton label="Vorherige Seite anzeigen" icon={ChevronLeft} className="shrink-0" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))} />
                           </CoreTooltip>
-                          <span className="core-body text-core-muted">Seite {group.page + 1} von {group.pageCount}</span>
+                          <span className="core-body tabular-nums text-core-secondary">Seite {group.page + 1} von {group.pageCount}</span>
                           <CoreTooltip label="Nächste Seite anzeigen">
-                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
-                              <ChevronRight size={16} aria-hidden="true" />
-                            </button>
+                            <IconButton label="Nächste Seite anzeigen" icon={ChevronRight} className="shrink-0" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))} />
                           </CoreTooltip>
                         </div>
                       </td>
                     </tr>
                   ) : null}</> : expanded ? (
                     <tr className="border-b border-core-border bg-core-surface">
-                      <td colSpan={3} className="px-4 py-1 core-body text-core-muted">Keine Karten</td>
+                      <td colSpan={3} className="px-3 py-2.5 core-body text-core-muted sm:px-4">Keine Karten</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -1527,9 +1523,10 @@ export function DecksScreen({
           </table>
             </div>
           ) : (
-            <div className="rounded-panel border border-core-border p-6 sm:p-8" role="status">
+            <div className="grid justify-items-center gap-3 rounded-panel border border-core-border p-6 text-center sm:p-8" role="status">
+              <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action" aria-hidden="true"><Search size={22} /></span>
               <h4 className="core-heading-3 text-core-text">Keine Karten gefunden</h4>
-              <p className="mt-1 core-body-large text-core-muted">Passe die Suche an.</p>
+              <p className="core-body text-core-secondary">Passe die Suche an.</p>
             </div>
           )}
         </div>

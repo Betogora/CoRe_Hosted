@@ -80,7 +80,7 @@ function importStatusLabel(status: ImportUiState["status"]): string {
 }
 
 function ApkgPreviewBadge({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-control bg-core-success-soft px-3 py-1 core-caption !font-semibold text-core-text">{children}</span>;
+  return <span className="inline-flex min-h-5 items-center rounded-round bg-core-info-soft px-2 core-caption font-semibold text-core-action">{children}</span>;
 }
 
 /** Object URLs for the sample media of the preview; they are revoked with the preview. */
@@ -101,10 +101,10 @@ function ApkgCardSample({ note, card, notetypeName, urlsBySha1 }: { note: Note; 
     [note.media, urlsBySha1],
   );
   return (
-    <article className="core-surface-raised rounded-panel p-6">
+    <article className="core-surface-raised rounded-panel p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <ApkgPreviewBadge>Originalkarte</ApkgPreviewBadge>
-        <span className="core-caption font-medium text-core-muted">{notetypeName}</span>
+        <span className="core-caption text-core-muted">{notetypeName}</span>
       </div>
       <NoteCardContent note={note} card={card} surface="preview" revealed onReveal={() => undefined} mediaUrls={mediaUrls} />
     </article>
@@ -118,14 +118,14 @@ function studyLabel(study: ApkgTranslationReport["notetypes"][number]["study"]) 
 
 function NotetypeReport({ report }: { report: ApkgTranslationReport }) {
   return (
-    <section className="rounded-control border border-core-border bg-core-surface p-4" aria-labelledby="apkg-notetypes-heading">
-      <h4 id="apkg-notetypes-heading" className="font-semibold text-core-text">Notiztypen</h4>
-      <ul className="mt-3 grid gap-3 core-body text-core-muted">
+    <section className="overflow-hidden rounded-panel border border-core-border bg-core-surface shadow-soft" aria-labelledby="apkg-notetypes-heading">
+      <h4 id="apkg-notetypes-heading" className="border-b border-core-border bg-core-subtle px-4 py-2.5 core-caption font-semibold text-core-muted">Notiztypen</h4>
+      <ul className="grid core-body text-core-secondary">
         {report.notetypes.map((notetype) => (
-          <li key={notetype.ankiNotetypeId} data-testid="apkg-notetype-report" className="grid gap-1 border-b border-core-subtle pb-3 last:border-0 last:pb-0">
+          <li key={notetype.ankiNotetypeId} data-testid="apkg-notetype-report" className="grid gap-1 border-b border-core-border px-4 py-3 last:border-0">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-medium text-core-secondary">{notetype.name}</span>
-              <span>{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</span>
+              <span className="font-semibold text-core-text">{notetype.name}</span>
+              <span className="inline-flex min-h-5 items-center rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary">{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</span>
             </div>
             <p>
               {notetype.notes} {notetype.notes === 1 ? "Inhalt" : "Inhalte"} · {notetype.cards} {notetype.cards === 1 ? "Karte" : "Karten"} · {studyLabel(notetype.study)}
@@ -387,8 +387,8 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
     <div className="grid gap-4">
       <SoftPanel className="p-6">
         <div className="mb-6 flex items-center gap-3">
-          <OrbIcon icon={FileArchive} className="bg-core-success-soft text-core-text" />
-          <h2 className="core-heading-2 font-semibold text-core-text">Anki-Dateien importieren</h2>
+          <OrbIcon icon={FileArchive} />
+          <h2 className="core-heading-2 text-core-text">Anki-Dateien importieren</h2>
         </div>
 
         <FileDropField
@@ -401,7 +401,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
 
         {selectedFile ? (
           <div
-            className="relative mt-4 overflow-hidden rounded-control border border-core-border bg-core-surface p-4"
+            className="relative mt-4 overflow-hidden rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft"
             data-testid="apkg-file-progress"
             role={activeProgressPhase ? "progressbar" : undefined}
             aria-label={activeProgressPhase ? `Importfortschritt für ${selectedFile.name}` : undefined}
@@ -414,14 +414,14 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
             {activeProgressPhase ? (
               <span
                 data-testid="apkg-progress-fill"
-                className="pointer-events-none absolute inset-y-0 left-0 bg-core-subtle transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                className="core-creation-progress-fill pointer-events-none absolute inset-y-0 left-0 transition-[width] duration-500 ease-out motion-reduce:transition-none"
                 style={{ width: `${activeProgressPercent}%` }}
                 aria-hidden="true"
               />
             ) : null}
             <div className="relative grid min-w-0 grid-cols-2 items-center gap-x-3 gap-y-1 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
               <p className="col-span-2 min-w-0 truncate core-body font-semibold text-core-text sm:col-span-1">{selectedFile.name}</p>
-              <p className={`core-body font-semibold ${activeProgressPhase ? "text-core-text" : "text-core-muted"}`}>
+              <p className={`core-body font-semibold tabular-nums ${activeProgressPhase ? "text-core-action" : "text-core-secondary"}`}>
                 {activeProgressPhase ? `${activeProgressPercent} %` : importStatusLabel(uiState.status)}
               </p>
               <p className="justify-self-end whitespace-nowrap core-body text-core-muted">{formatBytes(selectedFile.size)}</p>
@@ -440,9 +440,9 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
             const isFailure = uiState.status === "failed_terminal" || uiState.status === "cancelled";
             const label = step.id === "complete" && currentStepIndex === 5 ? importStatusLabel(uiState.status) : step.label;
             return (
-              <li key={step.id} className={`flex items-center gap-2 rounded-control border px-3 py-2 ${isActive ? isFailure ? "border-core-danger bg-core-danger-soft" : uiState.status === "partial" ? "border-core-warning bg-core-warning-soft" : "border-core-success bg-core-success-soft" : "border-core-border"}`}>
-                {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin text-core-text motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0 text-core-text" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-round border border-core-border" />}
-                <span className="core-caption font-semibold text-core-secondary">{label}</span>
+              <li key={step.id} data-step-state={isActive ? isFailure ? "failed" : uiState.status === "partial" ? "partial" : "active" : isDone ? "done" : "pending"} className="core-apkg-step flex min-h-control items-center gap-2 rounded-control border px-3 py-2">
+                {isActive && progressRunning ? <Loader2 className="shrink-0 animate-spin motion-reduce:animate-none" size={16} aria-hidden="true" /> : isDone ? <CheckCircle2 className="shrink-0" size={16} aria-hidden="true" /> : isActive && isFailure ? <AlertCircle className="shrink-0" size={16} aria-hidden="true" /> : <span className="size-4 shrink-0 rounded-round border border-core-border-strong" />}
+                <span className="core-caption font-semibold">{label}</span>
               </li>
             );
           })}
@@ -499,14 +499,14 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
             <SoftPanel className="p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <p className="core-body font-semibold text-core-text">Importvorschau</p>
-                  <h3 className="mt-1 core-heading-2 font-semibold text-core-text">{preview.rootDeckName}</h3>
+                  <p className="core-caption font-medium text-core-muted">Importvorschau</p>
+                  <h3 className="mt-1 core-heading-2 text-core-text">{preview.rootDeckName}</h3>
                 </div>
                 {uiState.status === "preview" ? (
                   <ActionButton type="button" variant="primary" icon={Database} loading={isParsing} disabled={previewErrors.length > 0} onClick={() => void handleCommit()}>Import übernehmen</ActionButton>
                 ) : null}
               </div>
-              <div className="mt-4 rounded-control border border-core-border bg-core-surface px-4 py-3 core-body text-core-muted">
+              <div className="mt-4 rounded-control border border-core-border bg-core-subtle px-4 py-3 core-body text-core-muted">
                 <span className="font-semibold text-core-text">{job?.fileName ?? selectedFile?.name ?? "APKG-Datei"}</span>
                 <span> · {formatBytes(job?.fileSize ?? selectedFile?.size ?? 0)}</span>
               </div>
@@ -524,13 +524,13 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
                 <div className="mt-6 grid gap-4">
                   <NotetypeReport report={report} />
                   {report.missingMedia.length > 0 ? (
-                    <div className="flex gap-2 rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text">
+                    <div className="core-status-warning flex gap-3">
                       <AlertCircle className="mt-0.5 shrink-0" size={16} aria-hidden="true" />
                       <span>{report.missingMedia.length === 1 ? "1 referenziertes Medium fehlt" : `${report.missingMedia.length} referenzierte Medien fehlen`} im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.</span>
                     </div>
                   ) : null}
                   {previewWarnings.length > 0 ? (
-                    <section className="rounded-control bg-core-warning-soft px-3 py-2 core-body text-core-text" aria-labelledby="apkg-warnings-heading">
+                    <section className="core-status-warning !py-1" aria-labelledby="apkg-warnings-heading">
                       <details>
                         <summary id="apkg-warnings-heading" className="flex min-h-control cursor-pointer items-center gap-2 font-semibold">
                           <AlertCircle className="shrink-0" size={16} aria-hidden="true" />
@@ -555,7 +555,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
 
             {preview.samples.length > 0 ? (
               <section className="core-surface-raised rounded-panel p-6" aria-labelledby="apkg-card-examples-heading">
-                <h3 id="apkg-card-examples-heading" className="font-semibold text-core-text">Kartenbeispiele</h3>
+                <h3 id="apkg-card-examples-heading" className="core-heading-2 text-core-text">Kartenbeispiele</h3>
                 <div className="mt-4 grid gap-4">
                   {preview.samples.slice(0, APKG_SAMPLE_CARD_LIMIT).map(({ note, card, notetypeName }) => <ApkgCardSample key={card.id} note={note} card={card} notetypeName={notetypeName} urlsBySha1={sampleUrlsBySha1} />)}
                 </div>

@@ -108,14 +108,14 @@ export function CreationScreen({
       <PageHeader eyebrow="Erstellen" title={completedDeck && resolvedCompletionKind === "import" ? "Import abgeschlossen" : "Neue Karte"} />
       {completedDeck ? (
         <SoftPanel className="mx-auto w-full max-w-3xl p-6 text-center sm:p-10">
-          <span className="mx-auto grid size-12 place-items-center rounded-control bg-core-success-soft text-core-text">
-            <CheckCircle2 size={34} aria-hidden="true" />
+          <span className="mx-auto grid size-12 place-items-center rounded-control bg-core-success-soft text-core-success">
+            <CheckCircle2 size={24} aria-hidden="true" />
           </span>
-          <p className="mt-6 core-body font-semibold text-core-text">Gespeichert</p>
-          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-2 core-heading-2 font-semibold text-core-text outline-none">
+          <p className="mt-5 core-caption font-medium text-core-muted">Gespeichert</p>
+          <h2 ref={completionHeadingRef} tabIndex={-1} className="mt-1 core-heading-2 text-core-text outline-none">
             {resolvedCompletionKind !== "import" ? "Deine Karten sind bereit" : importResult?.partial ? "Import lokal abgeschlossen" : "Import erfolgreich"}
           </h2>
-          <p className="mx-auto mt-3 max-w-xl core-body-large leading-7 text-core-muted">
+          <p className="mx-auto mt-3 max-w-xl core-body text-core-secondary">
             {resolvedCompletedCount} {resolvedCompletedCount === 1 ? "Karte wurde" : "Karten wurden"} {resolvedCompletionKind === "import" ? "aus" : "in"} „{(completedDeck.hierarchyPath.length ? completedDeck.hierarchyPath : [completedDeck.name]).join(" / ")}“ {resolvedCompletionKind === "import" && !importResult?.partial ? "vollständig gespeichert." : "gespeichert."}
           </p>
           {importResult?.partial ? <p className="mx-auto mt-2 max-w-xl core-body text-core-muted">Die Karten sind nutzbar. Cloud- und Mediensynchronisierung laufen im Hintergrund weiter.</p> : null}
@@ -138,7 +138,7 @@ export function CreationScreen({
         </SoftPanel>
       ) : selectedMethod ? (
         <section className="grid min-w-0 min-h-[calc(100vh-16rem)] content-start gap-4" aria-label={selectedMethodMeta?.title ?? "Kartenerstellung"}>
-          <button type="button" onClick={() => onMethodChange("")} className="inline-flex min-h-control w-fit items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action hover:bg-core-surface">
+          <button type="button" onClick={() => onMethodChange("")} className="core-action-secondary w-fit">
             <ArrowLeft size={16} aria-hidden="true" />
             Erstellen
           </button>

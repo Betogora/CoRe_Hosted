@@ -2,6 +2,7 @@ import React from "react";
 import { ChevronRight, FolderPlus, Layers } from "lucide-react";
 import type { LearnScreenProps } from "../appScreenProps.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
+import { ActionButton } from "../ui/actionUi.tsx";
 import { EmptyState } from "../ui/coreUi.tsx";
 import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -78,10 +79,10 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
       className="core-deck-create-form grid min-w-0 gap-3"
       data-testid="learn-deck-create-form"
     >
-      <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
+      <label className="grid min-w-0 gap-2 core-field-label">
         Stapelname
         <input
-          className="min-h-control min-w-0 rounded-control border border-core-border bg-core-surface px-3 core-body font-medium text-core-text outline-none focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring-soft)]"
+          className="core-field min-w-0"
           ref={deckNameRef}
           value={deckDraft.name}
           onChange={(event) => updateDeckDraft("name", event.target.value)}
@@ -91,11 +92,11 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           data-testid="learn-deck-name-input"
         />
       </label>
-      <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
+      <label className="grid min-w-0 gap-2 core-field-label">
         Ebene
         <DeckSelect
           ariaLabel="Ebene"
-          className="w-full font-medium"
+          className="w-full"
           value={deckDraft.parentDeckId}
           decks={decks}
           selectableDeckIds={eligibleParentDeckIds}
@@ -104,10 +105,9 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           testId="learn-deck-parent-select"
         />
       </label>
-      <button type="submit" className="inline-flex min-h-control items-center justify-center gap-2 self-end rounded-control bg-core-subtle px-4 core-body font-semibold text-core-action transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2">
-        <FolderPlus size={17} aria-hidden="true" />
+      <ActionButton type="submit" variant="secondary" icon={FolderPlus} className="min-h-control self-end">
         Anlegen
-      </button>
+      </ActionButton>
       {deckStatus ? <p id="learn-deck-create-status" className={`col-span-full core-body font-semibold ${deckStatusType === "alert" ? "core-status-error" : "core-status-info"}`} role={deckStatusType}>{deckStatus}</p> : null}
     </form>
   );
@@ -140,12 +140,12 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           body="Der verlinkte Stapel wurde gelöscht oder steht in diesem Account nicht zur Verfügung."
           action={
             <div className="flex flex-wrap justify-center gap-3">
-              <button type="button" onClick={() => onFocusDeck(null)} className="inline-flex min-h-control items-center rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
+              <ActionButton type="button" variant="primary" onClick={() => onFocusDeck(null)}>
                 Zu Lernen
-              </button>
-              <button type="button" onClick={() => onOpenDecks(null)} className="inline-flex min-h-control items-center rounded-control border border-core-border bg-core-surface px-6 core-body font-semibold text-core-action">
+              </ActionButton>
+              <ActionButton type="button" variant="secondary" onClick={() => onOpenDecks(null)}>
                 Zur Kartenverwaltung
-              </button>
+              </ActionButton>
             </div>
           }
         />
@@ -155,9 +155,9 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
           title="Keine Karten"
           body="Erstelle oder importiere zuerst einen Stapel."
           action={
-            <button type="button" onClick={onOpenCardCreation} className="inline-flex min-h-control items-center gap-2 rounded-control bg-core-subtle px-6 core-body font-semibold text-core-action">
-              Erstellen <ChevronRight size={16} aria-hidden="true" />
-            </button>
+            <ActionButton type="button" variant="primary" onClick={onOpenCardCreation}>
+              Erstellen <ChevronRight className="inline align-[-3px]" size={16} aria-hidden="true" />
+            </ActionButton>
           }
         />
       ) : null}

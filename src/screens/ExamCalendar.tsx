@@ -13,8 +13,8 @@ import { getExamCalendarWork, isExamCalendarDayLocked } from "../examCalendarMod
 import { ExamMonthCalendar } from "./ExamMonthCalendar.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
 
-const FIELD = "min-h-control w-full min-w-0 rounded-control border border-core-border bg-core-surface px-3 text-core-text";
-const LABEL = "grid min-w-0 gap-2 core-body font-semibold text-core-muted";
+const FIELD = "core-field min-w-0";
+const LABEL = "core-field-label grid min-w-0 gap-2";
 function parseClock(value: string) { const [hours, minutes] = value.split(":").map(Number); return hours * 60 + minutes; }
 
 interface ExamCalendarProps {
@@ -93,7 +93,7 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
 
   return <section className="grid min-w-0 gap-4" aria-label="Lernkalender" data-testid="exam-calendar" aria-busy={busy}>
     <div className="flex min-w-0 flex-wrap items-end justify-between gap-3">
-      <h3 className="core-heading-3 font-semibold text-core-text">Dein Lernkalender</h3>
+      <h3 className="core-heading-2 text-core-text">Dein Lernkalender</h3>
       <div className="w-full sm:w-64"><CoreSelect className="w-full" ariaLabel="Prüfung im Kalender" value={filter} options={[{ value: "all", label: "Alle Prüfungen" }, ...exams.map((exam) => ({ value: exam.id, label: exam.name }))]} onValueChange={(id) => { setFilter(id); setSwap(""); if (id !== "all") setBlockExam(id); }} /></div>
     </div>
     <div className="flex flex-wrap items-center gap-3">
@@ -102,8 +102,8 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
     {view === "month" ? <ExamMonthCalendar exams={exams} shown={shown} forecast={forecast} today={today} date={date} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = true) => { setDate(key); setDetailsOpen(open); }} /> : <ExamWeekCalendar exams={exams} shown={shown} capacity={capacity} forecast={forecast} decks={decks} today={today} date={date} busy={busy} color={(exam) => examColor(exams.indexOf(exam), exam)} onSelect={(key, open = false) => { setDate(key); setDetailsOpen(open); }} onChange={(next) => change(exams, next)} />}
     {error ? <StatusMessage tone="error" announce="assertive">{error}</StatusMessage> : null}
     {detailsOpen ? <>
-    <SoftPanel className="grid min-w-0 gap-5 p-4 sm:p-6" data-testid="exam-day-editor">
-      <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 font-semibold text-core-text">{formatExamDate(date)}</h4><p className="core-body text-core-muted">{hasSelectedForecast ? formatExamCount(selectedWork.newCards, "neue Karte", "neue Karten") : "Karten: –"} · {formatExamMinutes(dayMinutes)} Lernzeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
+    <SoftPanel className="grid min-w-0 gap-5 p-5 sm:p-6" data-testid="exam-day-editor">
+      <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 text-core-text">{formatExamDate(date)}</h4><p className="mt-0.5 core-body text-core-secondary">{hasSelectedForecast ? formatExamCount(selectedWork.newCards, "neue Karte", "neue Karten") : "Karten: –"} · {formatExamMinutes(dayMinutes)} Lernzeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
       {isExamDayOverloaded(selectedWork.newCards, dayMinutes) ? <StatusMessage tone="warning">Mehr als {EXAM_NEW_CARDS_PER_MINUTE_LIMIT} neue Karten pro Minute Lernzeit</StatusMessage> : null}
       {shown.filter((exam) => exam.examDate === date).map((exam) => <StatusMessage key={exam.id} tone="info">Prüfungstag: {exam.name}</StatusMessage>)}
       <fieldset disabled={busy || locked} className="grid min-w-0 gap-5">
@@ -115,14 +115,14 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
             {subjectTopics.map(({ deckId, count }) => <p key={deckId} className="break-words core-caption text-core-muted">{deckName(deckId)} · {formatExamCount(count, "Karte", "Karten")}</p>)}
             {summaries.map((entry) => <p key={entry.deckId} className="break-words core-caption text-core-muted">Zusammenfassung lesen · {deckName(entry.deckId)}</p>)}
           </div>
-          <div className="flex items-end gap-2"><label className="grid min-w-0 gap-1 core-caption font-semibold text-core-muted">{ownBlocks ? "Aus Lernblöcken · Min." : "Lernzeit · Min."}<input className={`${FIELD} w-28 disabled:bg-core-subtle disabled:text-core-muted`} type="number" inputMode="numeric" min={0} max={1440} step={15} disabled={ownBlocks} value={getExamStudyMinutes(date, exam, exams, capacity)} onChange={(event) => setDayMinutes(exam, Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))))} /></label>
+          <div className="flex items-end gap-2"><label className="core-field-label grid min-w-0 gap-2">{ownBlocks ? "Aus Lernblöcken · Min." : "Lernzeit · Min."}<input className={`${FIELD} w-28`} type="number" inputMode="numeric" min={0} max={1440} step={15} disabled={ownBlocks} value={getExamStudyMinutes(date, exam, exams, capacity)} onChange={(event) => setDayMinutes(exam, Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))))} /></label>
             {exam.studyTime.dateOverrides.some((day) => day.date === date) && !ownBlocks ? <IconButton label={`${exam.name}: Wochenrhythmus verwenden`} icon={RotateCcw} onClick={() => setDayMinutes(exam, null)} /> : null}</div>
         </li>;
       })}</ul> : null}
       <div className="grid min-w-0 gap-5 md:grid-cols-2">
-        {selectedBlocks.length ? <ul className="grid content-start gap-2" aria-label="Lernblöcke an diesem Tag">{selectedBlocks.map((block) => <li key={block.id} className="flex min-w-0 items-center gap-2 rounded-control bg-core-subtle p-3"><span className="min-w-0 flex-1 break-words core-body text-core-text">{clock(block.start)}–{clock(block.end)} · {block.examId === null ? "Lernzeit ohne Fach" : exams.find((exam) => exam.id === block.examId)?.name}</span><IconButton label={`Lernblock ${clock(block.start)} löschen`} icon={Trash2} onClick={() => change(exams, { ...capacity, timeBlocks: capacity.timeBlocks?.filter((entry) => entry.id !== block.id) })} /></li>)}</ul> : null}
+        {selectedBlocks.length ? <ul className="grid content-start gap-2" aria-label="Lernblöcke an diesem Tag">{selectedBlocks.map((block) => <li key={block.id} className="flex min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface py-1.5 pl-3 pr-1.5"><span className="min-w-0 flex-1 break-words core-body tabular-nums text-core-text">{clock(block.start)}–{clock(block.end)} · {block.examId === null ? "Lernzeit ohne Fach" : exams.find((exam) => exam.id === block.examId)?.name}</span><IconButton label={`Lernblock ${clock(block.start)} löschen`} icon={Trash2} variant="ghost" onClick={() => change(exams, { ...capacity, timeBlocks: capacity.timeBlocks?.filter((entry) => entry.id !== block.id) })} /></li>)}</ul> : null}
         <form className={`grid min-w-0 content-start gap-3 ${selectedBlocks.length ? "" : "md:col-span-2 md:max-w-md"}`} onSubmit={(event) => { event.preventDefault(); change(exams, { ...capacity, timeBlocks: [...(capacity.timeBlocks ?? []), { id: `time_${crypto.randomUUID()}`, date, start: parseClock(start), end: parseClock(end), examId: blockTarget }] }); }}>
-          <h5 className="core-body font-semibold text-core-text">Lernblock reservieren</h5>
+          <h5 className="core-control-label font-semibold text-core-text">Lernblock reservieren</h5>
           <CoreSelect className="w-full" ariaLabel="Prüfung für Lernblock" value={blockTarget ?? ""} options={[...blockSubjects.map((exam) => ({ value: exam.id, label: exam.name })), { value: "", label: "Ohne Fach" }]} onValueChange={setBlockExam} />
           <div className="grid min-w-0 grid-cols-2 gap-3"><label className={LABEL}>Von<input type="time" step={900} required className={FIELD} value={start} onChange={(event) => setStart(event.target.value)} /></label><label className={LABEL}>Bis<input type="time" step={900} required className={FIELD} value={end} onChange={(event) => setEnd(event.target.value)} /></label></div>
           <ActionButton type="submit" variant="secondary" icon={Plus} disabled={busy || start >= end}>Lernblock hinzufügen</ActionButton>
@@ -130,9 +130,9 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
       </div>
       </fieldset>
     </SoftPanel>
-    {selectedExam ? <SoftPanel className="grid min-w-0 gap-4 p-4 sm:p-6">
-      <h4 className="core-heading-3 font-semibold text-core-text">Themen verschieben oder tauschen</h4>
-      {!topics.length ? <p className="core-body text-core-muted">Für diese Prüfung ist kein neuer Stoff offen.</p> : <ul className="grid gap-3">{topics.map((id) => <li key={id} className="grid min-w-0 items-center gap-3 rounded-control bg-core-subtle p-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+    {selectedExam ? <SoftPanel className="grid min-w-0 gap-4 p-5 sm:p-6">
+      <h4 className="core-heading-3 text-core-text">Themen verschieben oder tauschen</h4>
+      {!topics.length ? <p className="core-body text-core-muted">Für diese Prüfung ist kein neuer Stoff offen.</p> : <ul className="grid gap-3">{topics.map((id) => <li key={id} className="grid min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface p-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
         <div><p className="break-words core-body font-semibold text-core-text">{deckName(id)}</p><p className="core-caption text-core-muted">{formatExamCount(topicSummary?.decks.find((deck) => deck.deckId === id)?.total ?? 0, "Karte", "Karten")} · {topicDate(id) ? `Ab ${formatExamDate(topicDate(id)!, "short")}` : "Noch nicht eingeplant"}</p></div>
         <CoreDatePicker value={topicDate(id) ?? date} min={earliestStart(id)} max={getExamLastNewDate(selectedExam)} today={today} ariaLabel={`Starttag für ${deckName(id)}`} onValueChange={(key) => moveTopic(id, key)} />
         <div className="flex flex-wrap gap-2"><ActionButton variant="secondary" disabled={!topicDate(id)} aria-expanded={swap === id} onClick={() => setSwap(swap === id ? "" : id)}>Mit Thema tauschen</ActionButton>{selectedExam.topicDates?.some((topic) => topic.deckId === id) ? <ActionButton variant="secondary" onClick={() => change(exams.map((exam) => exam.id === selectedExam.id ? { ...exam, topicDates: exam.topicDates?.filter((topic) => topic.deckId !== id) } : exam), capacity)}>Automatisch planen</ActionButton> : null}</div>

@@ -147,17 +147,17 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
     drag.current = null; setDragging(null);
   }
 
-  return <SoftPanel className="grid min-w-0 gap-4 p-4 sm:p-6" data-testid="exam-week-calendar">
+  return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
     <div className="flex min-w-0 flex-wrap items-center gap-2">
-      <h4 className="mr-auto core-heading-3 font-semibold text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h4>
-      <div aria-label="Fächer im Kalender" className="order-last flex min-w-0 basis-full flex-wrap gap-2 core-caption sm:order-none sm:basis-auto sm:justify-end">{shown.map((exam) => <span key={exam.id} className="min-w-0 break-words rounded-inset px-3 py-2 font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>{exam.name}</span>)}</div>
+      <h4 className="mr-auto core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h4>
+      <div aria-label="Fächer im Kalender" className="order-last flex min-w-0 basis-full flex-wrap gap-2 core-caption sm:order-none sm:basis-auto sm:justify-end">{shown.map((exam) => <span key={exam.id} className="inline-flex min-h-5 min-w-0 items-center break-words rounded-round px-2.5 py-0.5 font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>{exam.name}</span>)}</div>
       <div className="flex shrink-0 gap-2"><ActionButton variant="secondary" onClick={() => { setWeek(createExamWeekDays(today)[0]); setSelectedId(""); onSelect(today, false); }}>Heute</ActionButton><IconButton label="Vorherige Woche" icon={ChevronLeft} onClick={() => { setWeek(shiftExamDay(week, -7)); setSelection(null); setSelectedId(""); }} /><IconButton label="Nächste Woche" icon={ChevronRight} onClick={() => { setWeek(shiftExamDay(week, 7)); setSelection(null); setSelectedId(""); }} /></div>
     </div>
     {activeSubject ? <p role="status" className="core-body text-core-text">{activeSubject.name} · Karten ausgewählt · Tippe einen Lernblock an, um die Aufgabe zuzuordnen.</p> : null}
     <div ref={scroller} className="relative max-h-[40rem] overflow-auto rounded-control border border-core-border" role="region" aria-label="Wochenkalender mit Stundenraster, horizontal und vertikal scrollbar" tabIndex={0}>
       <div className="min-w-[56rem]">
-        <div data-week-todos className="sticky top-0 z-20 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-core-border bg-core-surface shadow-soft">
-          <span className="sticky left-0 z-30 bg-core-surface px-2 py-3 core-caption text-core-muted">To-dos</span>
+        <div data-week-todos className="sticky top-0 z-20 grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-core-border bg-core-surface">
+          <span className="sticky left-0 z-30 bg-core-surface px-2 py-3 core-caption font-semibold text-core-muted">To-dos</span>
           {days.map((key) => {
             const day = forecastDays.get(key);
             const tasks = shown.flatMap((exam) => {
@@ -165,7 +165,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
               return count > 0 ? [{ exam, label: formatExamCount(count, "neue Karte", "neue Karten") }] : [];
             });
             return <div key={key} className="grid min-w-0 content-start gap-2 border-l border-core-border p-2">
-              <button type="button" data-week-header={key} className={`min-h-control rounded-inset px-1 text-left core-body font-semibold ${key === today ? "bg-core-info-soft text-core-text" : "text-core-secondary"}`} onClick={() => { onSelect(key, false); setManualDate(key); }}>{formatExamDate(key, "short")}{key === today ? " · Heute" : ""}</button>
+              <button type="button" data-week-header={key} className={`min-h-control rounded-inset px-2 text-left core-control-label font-semibold transition-colors ${key === today ? "bg-core-info-soft text-core-action" : "text-core-text hover:bg-core-subtle"}`} onClick={() => { onSelect(key, false); setManualDate(key); }}>{formatExamDate(key, "short")}{key === today ? " · Heute" : ""}</button>
               {shown.filter((exam) => exam.examDate === key).map((exam) => <span key={exam.id} className="break-words rounded-inset p-2 core-caption font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>Klausur · {exam.name}</span>)}
               <div className="grid max-h-44 auto-rows-max content-start gap-2 overflow-y-auto" aria-label={`To-dos am ${formatExamDate(key)}`}>
                 {tasks.map(({ exam, label }) => <button key={exam.id} type="button" data-week-task={exam.id} aria-label={`${exam.name}: ${label}. Aufgabe auswählen oder in einen Zeitblock ziehen`} aria-pressed={task?.examId === exam.id} disabled={busy || exam.status !== "active"} className="flex min-h-control min-w-0 touch-none select-none items-start gap-1 rounded-inset border-strong p-2 text-left" style={{ borderColor: color(exam), background: `color-mix(in srgb, ${color(exam)} ${task?.examId === exam.id ? 30 : 16}%, var(--core-surface))` }}

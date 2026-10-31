@@ -18,8 +18,8 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
 }) {
   const pages = React.useMemo(() => value.pages ?? [{ id: value.id, html: value.html, strokes: [] }], [value.pages, value.id, value.html]);
   const [tool, setTool] = React.useState<Tool>("text");
-  const [pen, setPen] = React.useState({ color: "#657494", width: 3 });
-  const [marker, setMarker] = React.useState({ color: "#e4bf63", width: 12 });
+  const [pen, setPen] = React.useState({ color: "#236492", width: 3 });
+  const [marker, setMarker] = React.useState({ color: "#f6d36b", width: 12 });
   const [expanded, setExpanded] = React.useState(false);
   const [toolbarContainer, setToolbarContainer] = React.useState<HTMLDivElement | null>(null);
   const [liveStroke, setLiveStroke] = React.useState<SummaryStroke | null>(null);
@@ -118,7 +118,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
     }}>
     <div className="core-summary-tools core-surface-raised" style={{ top: headerHeight, scrollMarginTop: headerHeight + 12 }} inert={busy}>
       <div className="core-summary-tool-modes" role="group" aria-label="Schreiben und Zeichnen">
-        {([{ value: "text", label: "Schreiben", icon: Keyboard }, { value: "pen", label: "Stift", icon: PenLine }, { value: "marker", label: "Zeichenmarker", icon: Highlighter }, { value: "eraser", label: "Radierer", icon: Eraser }] as const).map((item) => <CoreTooltip key={item.value} label={item.label}><IconButton label={item.label} icon={item.icon} aria-pressed={tool === item.value} onClick={() => setTool(item.value)}/></CoreTooltip>)}
+        {([{ value: "text", label: "Schreiben", icon: Keyboard }, { value: "pen", label: "Stift", icon: PenLine }, { value: "marker", label: "Zeichenmarker", icon: Highlighter }, { value: "eraser", label: "Radierer", icon: Eraser }] as const).map((item) => <CoreTooltip key={item.value} label={item.label}><IconButton variant="ghost" label={item.label} icon={item.icon} aria-pressed={tool === item.value} onClick={() => setTool(item.value)}/></CoreTooltip>)}
       </div>
       <div className="core-summary-tool-actions"><CoreTooltip label={expanded ? "Arbeitsfläche verkleinern" : "Arbeitsfläche vergrößern"}><IconButton ref={expandRef} label={expanded ? "Arbeitsfläche verkleinern" : "Arbeitsfläche vergrößern"} icon={expanded ? Minimize2 : Maximize2} onClick={() => setExpanded(!expanded)}/></CoreTooltip></div>
       {tool === "text" && <div className="core-summary-font-tools" role="group" aria-label="Schrift">
@@ -132,7 +132,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
         <svg className="core-summary-ink-preview" width="48" height="28" aria-hidden="true"><path d="M14 14 L34 14" fill="none" stroke={ink.color} strokeWidth={ink.width} strokeOpacity={tool === "marker" ? 0.3 : 1} strokeLinecap="round"/></svg>
       </div>}
       {tool !== "text" && <div className="core-summary-drawing-history" role="group" aria-label="Zeichnung bearbeiten">
-        <CoreTooltip label="Zeichnung rückgängig"><IconButton label="Zeichnung rückgängig" icon={Undo2} disabled={!history.current.undo.length} onClick={() => undoDrawing(false)}/></CoreTooltip><CoreTooltip label="Zeichnung wiederholen"><IconButton label="Zeichnung wiederholen" icon={Redo2} disabled={!history.current.redo.length} onClick={() => undoDrawing(true)}/></CoreTooltip>
+        <CoreTooltip label="Zeichnung rückgängig"><IconButton variant="ghost" label="Zeichnung rückgängig" icon={Undo2} disabled={!history.current.undo.length} onClick={() => undoDrawing(false)}/></CoreTooltip><CoreTooltip label="Zeichnung wiederholen"><IconButton variant="ghost" label="Zeichnung wiederholen" icon={Redo2} disabled={!history.current.redo.length} onClick={() => undoDrawing(true)}/></CoreTooltip>
         {tool === "eraser" && <span className="core-caption text-core-muted">Strich zum Entfernen antippen</span>}
       </div>}
       <span className="sr-only" id={`${fieldId}-hint`}>Eine durchgehende Seite. Der Text und die Zeichenfläche wachsen nach unten.</span>

@@ -74,8 +74,8 @@ test("app navigation exposes five primary entries and marks learning active for 
   assert.match(markup, /data-navigation-layout="top-bar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
-  assert.match(markup, /hidden min-w-0 px-2 pt-2 xl:block/);
-  assert.match(markup, /grid h-16 grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-5 shadow-floating/);
+  assert.match(markup, /hidden min-w-0 px-4 pt-2 xl:block/);
+  assert.match(markup, /mx-auto grid h-16 max-w-7xl grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-6 shadow-floating/);
   assert.match(markup, /xl:hidden/);
   assert.doesNotMatch(markup, /md:block|md:hidden/);
   for (const label of expectedTabOrder) assert.match(markup, new RegExp(`>${label}<`));
@@ -105,7 +105,7 @@ test("CoRe brand links both navigation layouts to today", () => {
   const markup = renderNavigation("neue-karten");
 
   assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-navigation-brand="true"[^>]*><img src="\/core-socrates\.svg" alt="" class="h-10 w-auto shrink-0 xl:h-12"[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/button>/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-brand="true"[^>]*><img src="\/core-socrates\.svg" alt="" class="h-9 w-auto shrink-0 xl:h-10"[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/button>/g) ?? []).length, 2);
 });
 
 test("bottom navigation keeps every icon above its visible label and exactly one current page", () => {
@@ -156,7 +156,7 @@ test("responsive navigation shares compact settings, theme and help actions with
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));
   }
   assert.ok(topBarMarkup.indexOf("</nav>") < topBarMarkup.indexOf('data-navigation-utilities="true"'));
-  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-ghost[^"]*size-control/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-ghost[^"]*size-button/g) ?? []).length, 2);
   assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-secondary/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);

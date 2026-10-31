@@ -129,14 +129,14 @@ export function SettingsScreen({ profile, syncStatus, settingsTarget = null, las
             <h3 className="core-heading-3 font-semibold text-core-text">Profil</h3>
           </div>
           <div className="grid min-w-0 gap-4 md:grid-cols-2">
-            <label className="grid gap-2 core-body font-semibold text-core-muted">
+            <label className="grid content-start gap-2 core-field-label">
               Anzeigename
-              <input className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
+              <input className="core-field min-w-0" value={draft.displayName} onChange={(event) => setDraft((current) => ({ ...current, displayName: event.target.value }))} />
             </label>
-            <label className="grid gap-2 core-body font-semibold text-core-muted">
+            <label className="grid content-start gap-2 core-field-label">
               Login-E-Mail
-              <input className="min-h-control min-w-0 rounded-control border border-core-border bg-core-subtle px-3 text-core-muted" value={profile.email} readOnly aria-describedby="login-email-help" />
-              <span id="login-email-help" className="font-normal leading-5">Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.</span>
+              <input className="core-field min-w-0 bg-core-subtle text-core-muted shadow-none" value={profile.email} readOnly aria-describedby="login-email-help" />
+              <span id="login-email-help" className="core-caption text-core-muted">Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.</span>
             </label>
           </div>
           <div className="mt-6 flex flex-wrap gap-2">
@@ -152,14 +152,14 @@ export function SettingsScreen({ profile, syncStatus, settingsTarget = null, las
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h3 className="core-heading-3 font-semibold text-core-text">Synchronisierung</h3>
-              <p className="mt-2 core-body text-core-muted">{formatSyncStatusText(syncStatus)}</p>
+              <p className="mt-1 core-body text-core-secondary">{formatSyncStatusText(syncStatus)}</p>
               {lastSyncedAt ? <p className="mt-1 core-caption text-core-muted">Zuletzt erfolgreich: {new Date(lastSyncedAt).toLocaleString("de-DE")}</p> : null}
               {(syncStatus.status === "pending" || syncStatus.status === "offline") && syncStatus.pendingCount ? <p className="mt-1 core-caption text-core-muted">Ausstehende Änderungen: {syncStatus.pendingCount}</p> : null}
             </div>
             <ActionButton type="button" variant="primary" icon={RefreshCw} onClick={() => void syncNow()} loading={syncStatus.status === "saving"} disabled={accountBusy}>Jetzt synchronisieren</ActionButton>
           </div>
           <div className="mt-6 grid gap-3 border-t border-core-border pt-6 sm:grid-cols-[minmax(0,18rem)_auto] sm:items-end">
-            <label className="grid gap-2 core-body font-semibold text-core-text">
+            <label className="grid gap-2 core-field-label">
               Automatisch synchronisieren
               <CoreSelect
                 ariaLabel="Intervall der automatischen Synchronisierung"
@@ -170,10 +170,10 @@ export function SettingsScreen({ profile, syncStatus, settingsTarget = null, las
               />
             </label>
           </div>
-          <p className="mt-3 core-caption leading-5 text-core-muted">Lokale Änderungen bleiben sicher in diesem Browser gespeichert. Beim nächsten vollständigen Abgleich werden nur Änderungen übertragen und neue Cloud-Daten geladen.</p>
+          <p className="mt-2 core-caption text-core-muted">Lokale Änderungen bleiben sicher in diesem Browser gespeichert. Beim nächsten vollständigen Abgleich werden nur Änderungen übertragen und neue Cloud-Daten geladen.</p>
           {storageStatus ? (
-            <div className="mt-4 rounded-control border border-core-border bg-core-subtle px-4 py-3 core-caption leading-5 text-core-muted" data-testid="workspace-storage-status">
-              <p className="font-semibold text-core-text">Lokaler Gerätespeicher: {storageStatus.persisted ? "dauerhaft freigegeben" : storageStatus.supported ? "Best Effort" : "nicht unterstützt"}</p>
+            <div className="mt-4 grid gap-1 rounded-control border border-core-border bg-core-subtle px-4 py-3 core-caption text-core-muted" data-testid="workspace-storage-status">
+              <p className="core-field-label">Lokaler Gerätespeicher: {storageStatus.persisted ? "dauerhaft freigegeben" : storageStatus.supported ? "Best Effort" : "nicht unterstützt"}</p>
               <p>Belegt: {formatStorageBytes(storageStatus.usage)} von {formatStorageBytes(storageStatus.quota)}. Medien werden im Browser weiterhin selektiv offline gehalten.</p>
             </div>
           ) : null}
@@ -186,10 +186,10 @@ export function SettingsScreen({ profile, syncStatus, settingsTarget = null, las
         <SoftPanel className="p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex min-w-0 items-start gap-3">
-              <OrbIcon icon={CircleHelp} className="bg-core-info-soft text-core-text" />
+              <OrbIcon icon={CircleHelp} />
               <div className="min-w-0">
                 <h3 className="core-heading-3 font-semibold text-core-text">Über CoRe</h3>
-                <p className="mt-2 core-body text-core-muted">Erfahre, wie CoRe nachhaltiges Lernen mit Active Recall, FSRS und Kartenvarianten unterstützt.</p>
+                <p className="mt-1 core-body text-core-secondary">Erfahre, wie CoRe nachhaltiges Lernen mit Active Recall, FSRS und Kartenvarianten unterstützt.</p>
               </div>
             </div>
             <CrossLinkButton onSelect={() => onNavigate("hilfe")}>Info-Seite öffnen</CrossLinkButton>
@@ -200,8 +200,8 @@ export function SettingsScreen({ profile, syncStatus, settingsTarget = null, las
             <dl className="mt-4 grid gap-3 sm:grid-cols-2">
               {["Impressum", "Datenschutzerklärung"].map((label) => (
                 <div key={label} className="rounded-control border border-core-border bg-core-subtle px-4 py-3">
-                  <dt className="flex items-center gap-2 core-body font-semibold text-core-text"><FileText size={18} aria-hidden="true" />{label}</dt>
-                  <dd className="mt-1 core-caption text-core-muted">In Vorbereitung</dd>
+                  <dt className="flex items-center gap-2 core-control-label text-core-text"><FileText className="text-core-muted" size={16} aria-hidden="true" />{label}</dt>
+                  <dd className="mt-1 pl-6 core-caption text-core-muted">In Vorbereitung</dd>
                 </div>
               ))}
             </dl>
@@ -209,8 +209,8 @@ export function SettingsScreen({ profile, syncStatus, settingsTarget = null, las
 
           <dl className="mt-6 border-t border-core-border pt-6">
             <div className="flex items-center justify-between gap-4">
-              <dt className="core-body font-semibold text-core-text">Version</dt>
-              <dd className="core-body font-semibold text-core-muted" aria-label="Aktuelle Version">{`v${APP_RUNTIME_INFO.version}`}</dd>
+              <dt className="core-field-label">Version</dt>
+              <dd className="core-body tabular-nums text-core-muted" aria-label="Aktuelle Version">{`v${APP_RUNTIME_INFO.version}`}</dd>
             </div>
           </dl>
         </SoftPanel>

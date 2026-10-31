@@ -165,10 +165,9 @@ export function DeckAppearanceIcon({ deck, appearance, className = "size-10", ic
   return (
     <span
       {...props}
-      className={`grid shrink-0 place-items-center rounded-control border ${className}`}
+      className={`grid shrink-0 place-items-center rounded-control ${className}`}
       style={{
         color: normalizedAppearance.iconColor,
-        borderColor: normalizedAppearance.iconColor,
         backgroundColor: `var(--core-deck-icon-background, ${normalizedAppearance.iconColor}1f)`,
         ...(props.style ?? {}),
       }}

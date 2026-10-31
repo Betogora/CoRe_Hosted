@@ -23,8 +23,8 @@ const TYPE_IN = { label: "Antwort eintippen", icon: Keyboard, description: "Die 
 /** Building blocks shared by manual creation and the card editor: answer typing and fields with a role. */
 export function NoteBlockControls({ typeIn, fieldRoles, onTypeInChange, onAddField }: NoteBlockControlsProps) {
   return (
-    <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-center sm:gap-3" data-testid="note-blocks">
-      <span className="core-body font-semibold text-core-text">Bausteine</span>
+    <div className="grid min-w-0 gap-2 sm:grid-cols-[max-content_minmax(0,1fr)] sm:items-start sm:gap-3" data-testid="note-blocks">
+      <span className="core-field-label sm:flex sm:min-h-button sm:items-center">Bausteine</span>
       <div className="flex min-w-0 flex-wrap items-center gap-2" role="group" aria-label="Bausteine">
         {typeIn !== null ? (
           <button

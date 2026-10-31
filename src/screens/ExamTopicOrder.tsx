@@ -82,25 +82,25 @@ export function ExamTopicOrder({ topics, disabled = false, onChange }: {
   }
 
   if (!topics.length) return null;
-  return <details className="group min-w-0" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
-    <summary data-exam-topic-order-toggle className="flex min-h-control cursor-pointer list-none items-center gap-2 rounded-control border border-core-border px-3 py-2 core-body font-semibold text-core-text">
-      <ChevronDown size={16} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" />
-      <span className="min-w-0 break-words">Themenreihenfolge ändern</span><span className="ml-auto shrink-0 core-caption text-core-muted">{topics.length}</span>
+  return <details className="group min-w-0 rounded-control border border-core-border bg-core-surface shadow-soft" onToggle={(event) => { if (!event.currentTarget.open) cancel(); }}>
+    <summary data-exam-topic-order-toggle className="flex min-h-control cursor-pointer list-none items-center gap-3 rounded-control px-4 py-2 core-control-label font-semibold text-core-text [&::-webkit-details-marker]:hidden">
+      <ChevronDown size={16} aria-hidden="true" className="order-last shrink-0 text-core-muted transition-transform group-open:rotate-180" />
+      <span className="min-w-0 break-words">Themenreihenfolge ändern</span><span className="ml-auto inline-flex min-h-5 shrink-0 items-center rounded-round border border-core-border px-2 core-caption font-semibold tabular-nums text-core-secondary">{topics.length}</span>
     </summary>
     <p id={helpId} className="sr-only">Am Griff ziehen, um Themen zu verschieben. Alternativ die Pfeilschaltflächen oder am Griff die Pfeiltasten verwenden. Escape bricht das Ziehen ab.</p>
-    <ol ref={list} aria-label="Themenreihenfolge" className="mt-3 grid max-h-[28rem] gap-2 overflow-y-auto p-1"
+    <ol ref={list} aria-label="Themenreihenfolge" className="grid max-h-[28rem] gap-2 overflow-y-auto border-t border-core-border p-3"
       onPointerMove={(event) => { const gesture = drag.current; if (!gesture) return; gesture.x = event.clientX; gesture.y = event.clientY; if (!gesture.moved && Math.hypot(gesture.x - gesture.startX, gesture.y - gesture.startY) > 6) { gesture.moved = true; animate(); } }}
       onPointerUp={finish} onPointerCancel={cancel} onLostPointerCapture={cancel}
       onKeyDownCapture={(event) => { if (event.key === "Escape" && drag.current) { event.preventDefault(); event.stopPropagation(); cancel(); } }}>
-      {order.map((id, index) => <li key={id} data-topic-id={id} className={`flex min-w-0 items-center gap-2 rounded-control bg-core-subtle p-2 ${preview?.id === id ? "opacity-40" : ""}`}>
+      {order.map((id, index) => <li key={id} data-topic-id={id} className={`flex min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface p-1.5 ${preview?.id === id ? "opacity-40" : ""}`}>
         <IconButton icon={GripVertical} variant="ghost" label={`${names.get(id)} verschieben`} aria-describedby={helpId} disabled={disabled || topics.length < 2} className="shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
           onPointerDown={(event) => { if (event.button !== 0 || disabled || !list.current) return; event.preventDefault(); event.currentTarget.focus({ preventScroll: true }); const rect = event.currentTarget.closest("li")!.getBoundingClientRect(); drag.current = { id, order: [...order], startX: event.clientX, startY: event.clientY, x: event.clientX, y: event.clientY, offsetX: event.clientX - rect.left, offsetY: event.clientY - rect.top, width: rect.width, moved: false, handle: event.currentTarget, scroller: scrollParent(list.current) }; list.current.setPointerCapture(event.pointerId); }}
           onKeyDown={(event) => { if (!drag.current && ["ArrowUp", "ArrowDown"].includes(event.key)) { event.preventDefault(); move(id, event.key === "ArrowUp" ? -1 : 1, event.currentTarget); } }} />
         <span className="min-w-0 flex-1 break-words core-body text-core-text">{names.get(id)}</span>
-        <div className="flex shrink-0 gap-2">{[-1, 1].map((direction) => <IconButton key={direction} icon={direction < 0 ? ArrowUp : ArrowDown} label={`${names.get(id)} ${direction < 0 ? "nach oben" : "nach unten"}`} disabled={disabled || index + direction < 0 || index + direction >= order.length} onClick={(event) => move(id, direction, event.currentTarget)} />)}</div>
+        <div className="flex shrink-0 gap-1">{[-1, 1].map((direction) => <IconButton key={direction} variant="ghost" icon={direction < 0 ? ArrowUp : ArrowDown} label={`${names.get(id)} ${direction < 0 ? "nach oben" : "nach unten"}`} disabled={disabled || index + direction < 0 || index + direction >= order.length} onClick={(event) => move(id, direction, event.currentTarget)} />)}</div>
       </li>)}
     </ol>
     <p role="status" aria-live="polite" className="sr-only">{announcement}</p>
-    {preview ? createPortal(<div aria-hidden="true" className="pointer-events-none fixed z-[75] flex min-h-control items-center gap-3 rounded-control border border-core-action bg-core-surface p-3 core-body text-core-text shadow-raised" style={{ left: preview.x, top: preview.y, width: preview.width }}><GripVertical size={20} className="shrink-0" /><span className="min-w-0 break-words">{names.get(preview.id)}</span></div>, document.body) : null}
+    {preview ? createPortal(<div aria-hidden="true" className="pointer-events-none fixed z-[75] flex min-h-control items-center gap-3 rounded-control border border-core-action bg-core-surface p-3 core-body text-core-text shadow-floating" style={{ left: preview.x, top: preview.y, width: preview.width }}><GripVertical size={16} className="shrink-0 text-core-muted" /><span className="min-w-0 break-words">{names.get(preview.id)}</span></div>, document.body) : null}
   </details>;
 }

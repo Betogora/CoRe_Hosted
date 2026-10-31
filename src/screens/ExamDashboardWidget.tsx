@@ -100,12 +100,12 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
       const listId = `${taskListId}-${exam.id}`;
       const color = examColor(exams.indexOf(exam), exam);
       const openCount = own.filter((task) => !task.completed).length;
-      return <section key={exam.id} className="grid min-w-0 content-start gap-3 rounded-panel border border-core-border p-3 min-[360px]:p-4" aria-label={exam.name} style={{ background: `color-mix(in srgb, ${color} 10%, var(--core-surface))` }}>
-        <div><h3 className="break-words core-heading-3 font-semibold text-core-text">{exam.name}</h3><p className="core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
+      return <section key={exam.id} className="grid min-w-0 content-start gap-3 rounded-panel border border-core-border bg-core-subtle p-3 min-[360px]:p-4" aria-label={exam.name}>
+        <div><h3 className="flex min-w-0 items-center gap-2 break-words core-heading-3 font-semibold text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} />{exam.name}</h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
         <ul id={listId} className="grid gap-2">{(expanded ? own : own.slice(0, 3)).map((task) => {
           const title = task.deckIds.map(deckName).join(" · ");
           const checked = (pending?.find((entry) => entry.id === task.id) ?? task).completed !== null, local = localCount(task);
-          return <li key={task.id} data-exam-todo={task.id} data-exam-block={task.kind} className="flex min-w-0 flex-wrap items-center gap-2 rounded-control bg-core-surface p-2">
+          return <li key={task.id} data-exam-todo={task.id} data-exam-block={task.kind} className="flex min-w-0 flex-wrap items-center gap-2 rounded-control border border-core-border bg-core-surface p-2 shadow-soft">
             <label className="flex min-h-control min-w-0 flex-1 cursor-pointer items-center gap-3 px-1">
               <input type="checkbox" checked={checked} disabled={!ready || busy || saving || starting || task.completed === "automatic"} aria-label={`${task.kind === "summary" ? "Zusammenfassung lesen: " : ""}${title} als erledigt markieren`} onChange={(event) => void persist(setExamDailyTaskChecked(tasks, task.id, event.target.checked))} className="size-5 shrink-0" style={{ accentColor: color }}/>
               <span className="min-w-0"><strong className={`block break-words hyphens-auto core-body text-core-text ${checked ? "line-through" : ""}`}>{task.kind === "summary" ? "Zusammenfassung lesen" : title}</strong>

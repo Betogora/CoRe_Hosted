@@ -116,7 +116,7 @@ test("Wochenansicht zeigt To-dos über 7–24 Uhr und erhält neutrale Lernzeitb
 });
 
 
-test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und ohne Quiz", () => {
+test("Heute zeigt Checklisten mit Prüfungsfarbpunkt ohne Zeitplanstatus und ohne Quiz", () => {
   const state = createCoreRepository().getState();
   const date = "2026-10-20", exam = { ...createExamPlan(date, ["deck"]), id: "anatomy", name: "Anatomie", examDate: "2026-10-27", colorIndex: 4 };
   state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [
@@ -124,7 +124,7 @@ test("Heute zeigt getönte Checklisten ohne Zeitplanstatus und ohne Quiz", () =>
   ] } });
   const html = renderToStaticMarkup(<ExamDashboardWidget state={state} now={date + "T12:00:00.000Z"} onLoad={async () => { throw new Error("Not called in SSR"); }} onSaveTasks={async () => undefined} onStart={async () => undefined} onOpen={() => undefined} />);
   assert.doesNotMatch(html, /Gut im Zeitplan|Im Zeitplan|exam-pace|Std\.|Min\./);
-  assert.match(html, /background:color-mix\(in srgb, var\(--core-exam-color-5\) 10%/);
+  assert.match(html, /background-color:var\(--core-exam-color-5\)/);
   assert.match(html, /type="checkbox"[^>]*checked=""/);
   assert.match(html, /Automatisch erledigt/);
   assert.doesNotMatch(html, /Quiz/);

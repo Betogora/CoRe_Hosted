@@ -250,7 +250,7 @@ test("deck content preserves the paged catalog path without requiring group expa
   });
   assert.match(markup, /Katalogkarte/);
   assert.match(markup, /Seite 1 von 2/);
-  assert.match(markup, /aria-label="Vorherige Seite anzeigen"[^>]*disabled=""/);
+  assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Vorherige Seite anzeigen"/);
   assert.match(markup, /aria-label="Nächste Seite anzeigen"/);
   assert.match(markup, /class="core-body [^"]*">Seite 1 von 2/);
   assert.doesNotMatch(markup, /deck-toggle-|Aktive Stapel/);
@@ -473,7 +473,7 @@ test("the mark belongs to the content and is shown on every card of the selected
       cardPages: { [deck.id]: cardPage(deck.id, [marked], { selected: selectedOf(marked, forward.id) }) },
     });
     assert.match(markup, /aria-label="1 aktive Variante">1<\/span>/);
-    assert.match(markup, /width="18" height="18"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Variante"/);
+    assert.match(markup, /width="16" height="16"[^>]*class="lucide lucide-minus[^>]*aria-label="Keine Variante"/);
     assert.equal([...markup.matchAll(/aria-label="Markiert"/g)].length, 2);
     assert.equal([...markup.matchAll(/class="grid size-\[1\.125rem\] place-items-center"/g)].length, 2);
     assert.doesNotMatch(markup, /inline-block whitespace-nowrap rounded-round/);
@@ -574,7 +574,7 @@ test("detail editor renders one rich-text editor per content field plus choice o
   assert.match(imageMarkup, /aria-label="Feld Vorderseite"/);
   assert.match(imageMarkup, /aria-label="Feld Rückseite"/);
   assert.match(imageMarkup, /aria-label="Feld Quelle"/);
-  assert.match(imageMarkup, /Tags<input[^>]*value="bio atp"/);
+  assert.match(imageMarkup, /Tags<\/span><input[^>]*value="bio atp"/);
   assert.doesNotMatch(imageMarkup, /Antwortoptionen/);
 
   const clozeMarkup = renderEditorFor(manualGraph("deck-editor", { kind: "cloze", front: "{{c1::ATP}} speichert Energie.", back: "Energie", tags: [] }));

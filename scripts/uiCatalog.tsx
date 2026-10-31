@@ -43,7 +43,7 @@ interface CatalogCard { id: string; section: CatalogSectionId; title: string; se
 
 const NEUTRAL_ROLES = [["canvas", "--core-canvas"], ["surface", "--core-surface"], ["muted", "--core-surface-muted"], ["hover", "--core-surface-hover"], ["border", "--core-border"], ["border-strong", "--core-border-interactive"], ["muted-fg", "--core-text-muted"], ["secondary-fg", "--core-text-secondary"], ["foreground", "--core-text"]];
 const ACCENT_ROLES = [["primary", "--core-action-primary", "--core-action-soft"], ["info", "--core-info", "--core-info-surface"], ["success", "--core-success", "--core-success-surface"], ["warning", "--core-warning", "--core-warning-surface"], ["danger", "--core-danger", "--core-danger-surface"], ["selection", "--core-selection", "--core-selection-track"]];
-const PALETTE = data.tokens.filter((token) => token.name.startsWith("--core-palette-") && !token.name.endsWith("-glow"));
+const PALETTE = data.tokens.filter((token) => token.name.startsWith("--core-brand-"));
 
 function Usage({ count, files }: { count: number; files: string[] }) {
   return <details><summary>{count} Verwendung{count === 1 ? "" : "en"} · {files.length} Datei{files.length === 1 ? "" : "en"}</summary><ul>{files.map((file) => <li key={file}><code>{file}</code></li>)}</ul></details>;
@@ -66,8 +66,8 @@ function ColorRoles() {
     <div className="catalog-scale">{NEUTRAL_ROLES.map(([, token]) => <span key={token} style={{ background: `var(${token})` }} title={token} />)}</div>
     <div className="catalog-scale-labels">{NEUTRAL_ROLES.map(([label]) => <span key={label}>{label}</span>)}</div>
     <div className="catalog-accents">{ACCENT_ROLES.map(([label, token, soft]) => <div key={token}><i style={{ background: `var(${token})` }} /><strong>{label}</strong><span className="catalog-meta"><code>{token}</code> · <code>{soft}</code></span></div>)}</div>
-    <p className="catalog-label">CoRe-Palette</p>
-    <div className="catalog-accents">{PALETTE.map((token) => <div key={token.name}><i style={{ background: `var(${token.name})` }} /><strong>{token.name.replace("--core-palette-", "")}</strong><span className="catalog-meta">{token.light}</span></div>)}</div>
+    <p className="catalog-label">ToolBox-Markenpalette</p>
+    <div className="catalog-accents">{PALETTE.map((token) => <div key={token.name}><i style={{ background: `var(${token.name})` }} /><strong>{token.name.replace("--core-brand-", "")}</strong><span className="catalog-meta">{token.light}</span></div>)}</div>
   </>;
 }
 

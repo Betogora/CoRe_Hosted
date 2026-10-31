@@ -44,14 +44,14 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
   const progressDescriptionId = React.useId();
   const open = expanded || Boolean(editor);
   return (
-    <SoftPanel className={`grid min-w-0 content-start p-4 sm:p-6 ${editor ? "lg:col-span-2" : ""}`} data-testid={`exam-card-${exam.id}`} data-status={status}>
+    <SoftPanel className={`grid min-w-0 content-start p-5 sm:p-6 ${editor ? "lg:col-span-2" : ""}`} data-testid={`exam-card-${exam.id}`} data-status={status}>
       <h4>
         <button type="button" disabled={busy} aria-expanded={open} aria-controls={detailsId} aria-label={`${exam.name}: ${open ? "Details schließen" : "Details öffnen"}`} onClick={() => editor ? onCloseEditor() : setExpanded(!expanded)} className="flex min-h-control w-full min-w-0 items-center gap-3 text-left">
           <span className="grow min-w-0">
             <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="size-2 shrink-0 rounded-round border border-core-border" style={{ backgroundColor: color }} aria-hidden="true" />
-              <span className="min-w-0 break-words core-heading-3 font-semibold text-core-text">{exam.name}</span>
-              {status !== "active" ? <span className={`rounded-round px-2 py-1 core-caption font-medium text-core-text ${status === "paused" ? "bg-core-warning-soft" : "bg-core-success-soft"}`}>{STATUS_LABELS[status]}</span> : null}
+              <span className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color, boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--core-text) 12%, transparent)" }} aria-hidden="true" />
+              <span className="min-w-0 break-words core-heading-3 text-core-text">{exam.name}</span>
+              {status !== "active" ? <span className={`inline-flex min-h-5 items-center rounded-round px-2 core-caption font-semibold ${status === "paused" ? "bg-core-warning-soft text-core-warning" : "bg-core-success-soft text-core-success"}`}>{STATUS_LABELS[status]}</span> : null}
             </span>
             <span className="mt-1 block core-caption font-normal text-core-muted">{formatExamDate(exam.examDate)} · {past ? "Termin erreicht" : formatExamDistance(daysLeft)}</span>
           </span>
@@ -62,8 +62,8 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
         {editor ?? <>
           {readiness ? <>
             <dl className="grid grid-cols-2 gap-4">
-              <div><dt className="core-caption text-core-muted">Mindestens einmal gelernt</dt><dd className="mt-1 core-heading-3 font-semibold text-core-text">{known ?? "–"}<span className="core-body font-normal text-core-muted"> / {total ?? "–"}</span></dd></div>
-              <div><dt className="core-caption text-core-muted">Noch ungesehen</dt><dd className="mt-1 core-heading-3 font-semibold text-core-text">{remaining ?? "–"}</dd></div>
+              <div><dt className="core-caption font-medium text-core-muted">Mindestens einmal gelernt</dt><dd className="mt-1 core-metric text-core-text">{known ?? "–"}<span className="core-body font-normal text-core-muted"> / {total ?? "–"}</span></dd></div>
+              <div><dt className="core-caption font-medium text-core-muted">Noch ungesehen</dt><dd className="mt-1 core-metric text-core-text">{remaining ?? "–"}</dd></div>
             </dl>
             <div className="grid gap-2">
               <div role="progressbar" aria-label={`${exam.name}: Lernfortschritt`} aria-describedby={progressDescriptionId} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(readiness.coverage * 100)} aria-valuetext={`${formatExamPercent(readiness.coverage)} gesehen, davon ${formatExamPercent(readiness.consolidated)} aller Karten gefestigt`} className="relative h-1.5 overflow-hidden rounded-round bg-core-subtle">
@@ -78,7 +78,7 @@ function ExamCard({ exam, color, summary, progress, civilToday, busy, editor, on
             </div>
           </> : <p className="core-body text-core-muted">Der Lernstand ist noch nicht verfügbar.</p>}
           {summary?.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}
-          {summary?.decks.length ? <details className="group min-w-0"><summary className="flex min-h-control cursor-pointer list-none items-center gap-2 core-body font-semibold text-core-text"><ChevronDown size={16} aria-hidden="true" className="transition-transform group-open:rotate-180" />Stapel · {summary.decks.length}</summary><ul className="mt-2 grid gap-2">{summary.decks.map((deck) => <li key={deck.deckId} className="flex min-w-0 justify-between gap-3 core-body"><span className="min-w-0 break-words text-core-text">{deck.name}</span><span className="shrink-0 text-core-muted">{deck.known} / {deck.total}</span></li>)}</ul></details> : null}
+          {summary?.decks.length ? <details className="group min-w-0"><summary className="flex min-h-control cursor-pointer list-none items-center justify-between gap-2 core-control-label font-semibold text-core-text [&::-webkit-details-marker]:hidden"><ChevronDown size={16} aria-hidden="true" className="order-last shrink-0 text-core-muted transition-transform group-open:rotate-180" />Stapel · {summary.decks.length}</summary><ul className="mt-1 grid">{summary.decks.map((deck) => <li key={deck.deckId} className="flex min-w-0 justify-between gap-3 border-t border-core-border py-2 core-body"><span className="min-w-0 break-words text-core-text">{deck.name}</span><span className="shrink-0 tabular-nums text-core-muted">{deck.known} / {deck.total}</span></li>)}</ul></details> : null}
           <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-2 sm:flex sm:flex-wrap [&_svg]:shrink-0">
             <ActionButton variant="secondary" icon={Pencil} disabled={busy} onClick={onEdit}>Bearbeiten</ActionButton>
             <ActionButton variant="secondary" icon={status === "active" ? Pause : Play} disabled={busy || (status !== "active" && past)} onClick={() => onStatus(status === "active" ? "paused" : "active")}>{status === "active" ? "Pausieren" : status === "completed" ? "Wieder öffnen" : "Fortsetzen"}</ActionButton>
@@ -163,13 +163,13 @@ export function ExamPlanningScreen({ state, deckSummaries, now, onLoadPlanningDa
       {actionError ? <StatusMessage tone="error" announce="assertive">{actionError}</StatusMessage> : null}
       {error ? (
         <StatusMessage tone="error" announce="assertive">
-          {error} <button type="button" className="underline" onClick={reload}>Erneut laden</button>
+          {error} <button type="button" className="font-semibold underline underline-offset-4" onClick={reload}>Erneut laden</button>
         </StatusMessage>
       ) : null}
       <ExamCalendar exams={exams} capacity={capacity} forecast={current ? forecast : null} decks={state.decks} today={civilToday} busy={busy || saving || Boolean(editing)} onChange={(nextExams, nextCapacity) => setCalendarDraft({ ...preferences.examPlanning, exams: nextExams, capacity: nextCapacity })} />
-      {calendarDraft ? <SoftPanel className="grid gap-3 p-4"><p className="core-body font-semibold text-core-text">Ungespeicherte Kalenderänderungen</p><div className="flex flex-wrap gap-3"><ActionButton variant="primary" loading={saving} disabled={saving} onClick={async () => { if (await save(calendarDraft)) setCalendarDraft(null); }}>Speichern</ActionButton><ActionButton variant="secondary" disabled={saving} onClick={() => setCalendarDraft(null)}>Verwerfen</ActionButton></div></SoftPanel> : null}
+      {calendarDraft ? <SoftPanel className="grid gap-3 p-5"><p className="core-heading-3 text-core-text">Ungespeicherte Kalenderänderungen</p><div className="flex flex-wrap gap-3"><ActionButton variant="primary" loading={saving} disabled={saving} onClick={async () => { if (await save(calendarDraft)) setCalendarDraft(null); }}>Speichern</ActionButton><ActionButton variant="secondary" disabled={saving} onClick={() => setCalendarDraft(null)}>Verwerfen</ActionButton></div></SoftPanel> : null}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-        <h3 id="exam-list-title" className="core-heading-3 font-semibold text-core-text">Deine Prüfungen</h3>
+        <h3 id="exam-list-title" className="core-heading-2 text-core-text">Deine Prüfungen</h3>
         <div className="flex flex-wrap gap-2">{forecast ? <IconButton label="Plan neu berechnen" icon={RefreshCcw} variant="ghost" disabled={busy} onClick={reload} /> : null}<ActionButton variant="primary" icon={Plus} disabled={!state.decks.length || Boolean(calendarDraft) || saving} onClick={() => requestEditing("new")}>Prüfung hinzufügen</ActionButton></div>
       </div>
       {deletedPlan ? <StatusMessage tone="success" announce="polite"><div className="flex flex-wrap items-center gap-3"><span>{deletedPlan.exam.name} wurde gelöscht.</span><ActionButton variant="secondary" icon={RotateCcw} loading={saving} onClick={async () => {

@@ -38,46 +38,52 @@ function productionFiles(directory: string): string[] {
   });
 }
 
-test("theme declares all twelve palette primitives and a complete dark semantic override", () => {
-  for (const color of ["#6f7e9e", "#a9b5c7", "#dde3ec", "#e28b68", "#d6a3d2", "#e4bf63", "#181d25", "#262e3a", "#8fa0bf", "#f0a07e", "#e4b5e1", "#f0cc77"]) {
-    assert.match(styles, new RegExp(color, "i"));
+test("theme declares the ToolBox brand primitives and a complete dark semantic override", () => {
+  for (const [role, light, dark] of [
+    ["primary", "#236492", "#4f93c4"],
+    ["secondary", "#c3d9e8", "#2b4a5e"],
+    ["accent", "#b55b43", "#d7765c"],
+    ["surface", "#fcf1d7", "#4a3e25"],
+    ["fog", "#dce3e7", "#2a333d"],
+    ["ink", "#1b2d3b", "#dbe4ea"],
+  ]) {
+    assert.match(lightTokens, new RegExp(`--core-brand-${role}:\\s*${light}`, "i"));
+    assert.match(darkTokens, new RegExp(`--core-brand-${role}:\\s*${dark}`, "i"));
   }
+  assert.doesNotMatch(styles, /--core-palette-/);
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "group-depth-5", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
     assert.match(dark, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
   }
   assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
   assert.match(dark, /color-scheme:\s*dark/);
-  assert.match(styles, /--core-border:\s*#e4e7ec/);
-  assert.match(dark, /--core-border:\s*#2b323d/);
+  assert.match(styles, /--core-border:\s*#e5e7eb/);
+  assert.match(dark, /--core-border:\s*#2a333d/);
   assert.equal((styles.match(/--core-group-depth-0:\s*var\(--core-surface\)/g) ?? []).length, 2);
-  assert.match(styles, /--core-danger-hover:\s*var\(--core-palette-coral-glow\)/);
-  assert.match(dark, /--core-danger-hover:\s*var\(--core-palette-coral\)/);
+  assert.match(styles, /--core-danger:\s*#d92d20/);
+  assert.match(dark, /--core-danger:\s*#e5534b/);
   for (const [status, role] of [
     ["learned", "info"],
-    ["new", "success"],
-    ["in-progress", "danger"],
-    ["due", "warning"],
+    ["new", "accent"],
+    ["in-progress", "warning"],
+    ["due", "success"],
   ]) {
     assert.equal((styles.match(new RegExp(`--core-learning-status-${status}:\\s*var\\(--core-${role}\\)`, "g")) ?? []).length, 2);
   }
-  assert.match(styles, /--core-learning-goal-achieved:\s*#2f7d68/);
-  assert.match(dark, /--core-learning-goal-achieved:\s*#72d6b5/);
-  assert.match(styles, /--core-learning-progress-completed:\s*#a7adb6/);
-  assert.match(dark, /--core-learning-progress-completed:\s*#737b87/);
+  assert.match(styles, /--core-learning-goal-achieved:\s*#079455/);
+  assert.match(dark, /--core-learning-goal-achieved:\s*#3cc27a/);
+  assert.match(styles, /--core-learning-progress-completed:\s*#9ca3af/);
+  assert.match(dark, /--core-learning-progress-completed:\s*#5b6672/);
 });
 
-test("heatmap keeps historical lilac and uses a theme-adaptive gray forecast scale", () => {
-  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+test("heatmap uses the ToolBox primary scale and a theme-adaptive gray forecast scale", () => {
   const heatmapRules = styles.match(/\.core-heatmap-level-0,[\s\S]*?\.core-surface\s*\{/)?.[0] ?? "";
 
   assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-surface\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-1,\s*var\(--core-success-surface\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-2,\s*color-mix\(in srgb, var\(--core-success-surface\) 55%, var\(--core-success\)\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-3,\s*var\(--core-palette-lilac\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-4,\s*var\(--core-deck-new-text\)\)/);
-  assert.match(dark, /--core-deck-new-text:\s*var\(--core-palette-lilac-glow\)/);
-  assert.doesNotMatch(heatmapRules, /core-info/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-1,\s*var\(--core-info-surface\)\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-2,\s*color-mix\(in srgb, var\(--core-info-surface\) 55%, var\(--core-info\)\)\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-3,\s*color-mix\(in srgb, var\(--core-info\) 70%, var\(--core-info-surface\)\)\)/);
+  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-4,\s*var\(--core-info\)\)/);
   assert.match(heatmapRules, /--core-heatmap-forecast-tone:\s*var\(--core-surface\)/);
   for (const surfacePercent of [90, 82, 72, 60]) {
     assert.match(heatmapRules, new RegExp(`color-mix\\(in srgb, var\\(--core-surface\\) ${surfacePercent}%, var\\(--core-text\\)\\)`));
@@ -92,17 +98,14 @@ test("only individually overflowing deck names use at most two lines", () => {
 
 test("six group depths retain endpoints and darken in light mode / lighten in dark mode", () => {
   const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  // Soft Minimal keeps the first levels close to the surface; the steps grow towards the deepest level.
-  const lightDepths = ["ffffff", "fafbfc", "f5f6f9", "f0f2f6", "eaedf2", "dde3ec"];
-  const darkDepths = ["1b2029", "1e242d", "212832", "252c37", "29313c", "2d3541"];
+  // The ToolBox neutral ramp keeps the first levels close to the surface; the steps grow towards the deepest level.
+  const lightDepths = ["ffffff", "f9fafb", "f6f7f8", "f3f4f6", "eceef1", "e5e7eb"];
+  const darkDepths = ["161d25", "1a2129", "1f2730", "222b34", "2a343f", "303b47"];
 
-  for (let depth = 1; depth <= 4; depth += 1) {
-    assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
-  }
   for (let depth = 1; depth <= 5; depth += 1) {
+    assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
     assert.match(dark, new RegExp(`--core-group-depth-${depth}:\\s*#${darkDepths[depth]}`));
   }
-  assert.match(styles, /--core-group-depth-5:\s*var\(--core-palette-cloud\)/);
   for (const colors of [lightDepths, darkDepths]) {
     const tokens = colors === lightDepths ? lightTokens : darkTokens;
     const actualColors = colors.map((_, depth) => tokenColor(`group-depth-${depth}`, tokens));
@@ -120,11 +123,12 @@ test("six group depths retain endpoints and darken in light mode / lighten in da
   }
 });
 
-test("theme exposes the six canonical typography levels and AA primary contrast", () => {
+test("theme exposes the ToolBox typography levels and AA primary contrast", () => {
   for (const [role, size, leading, weight, family] of [
     ["heading-1", "1.875rem", "2.25rem", "heading"],
-    ["heading-2", "1.375rem", "1.75rem", "heading"],
-    ["heading-3", "1.125rem", "1.5rem", "emphasis"],
+    ["heading-2", "1.125rem", "1.5rem", "heading"],
+    ["heading-3", "1rem", "1.5rem", "emphasis"],
+    ["metric", "1.375rem", "1.75rem", "heading"],
     ["body-large", "1rem", "1.5rem", "body"],
     ["body", "0.875rem", "1.25rem", "body"],
     ["caption", "0.75rem", "1rem", "body"],

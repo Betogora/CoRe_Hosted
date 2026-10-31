@@ -58,17 +58,17 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
         Das Verschieben der Zeit verändert keine Karten. Bewertungen an einem simulierten Zukunftstag sind echte Reviews und werden dauerhaft gespeichert und synchronisiert. „Heute“ setzt nur die simulierte Uhr zurück, nicht bereits gespeicherte Reviews.
       </StatusMessage>
 
-      <SoftPanel className="p-6">
+      <SoftPanel className="p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-info-soft text-core-action">
-              <CalendarClock size={21} aria-hidden="true" />
+            <span className="grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action">
+              <CalendarClock size={20} aria-hidden="true" />
             </span>
             <div className="min-w-0">
               <p className="core-heading-3 font-semibold text-core-text">
                 {offsetMinutes === 0 ? "Heute" : formatSimulationHeading(offsetMinutes)}
               </p>
-              <p className="core-body text-core-muted">{formatSimulationDate(simulatedNow)} · {formatSimulationTime(simulatedNow)} Uhr</p>
+              <p className="core-body text-core-secondary">{formatSimulationDate(simulatedNow)} · {formatSimulationTime(simulatedNow)} Uhr</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -88,7 +88,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
         </div>
 
         <fieldset className="mt-6">
-          <legend className="core-control-label font-semibold text-core-secondary">Schnellauswahl</legend>
+          <legend className="core-field-label">Schnellauswahl</legend>
           <div className="mt-2 flex flex-wrap gap-2">
             {quickOffsets.map((option) => (
               <button
@@ -96,7 +96,7 @@ export function SimulatorScreen({ systemNow, offsetMinutes, onOffsetChange }: Si
                 type="button"
                 aria-pressed={offsetMinutes === option.minutes}
                 onClick={() => selectOffset(option.minutes)}
-                className={`min-h-control rounded-control px-4 core-body font-semibold transition ${offsetMinutes === option.minutes ? "bg-core-action text-core-on-accent" : "border border-core-border bg-core-surface text-core-secondary hover:border-core-border-strong hover:bg-core-subtle"}`}
+                className={`min-h-button rounded-control border px-3 core-control-label font-semibold tabular-nums transition active:translate-y-px ${offsetMinutes === option.minutes ? "border-core-action bg-[var(--core-action-soft)] text-core-action" : "border-core-border bg-core-surface text-core-text shadow-soft hover:bg-core-subtle"}`}
               >
                 {option.label}
               </button>

@@ -56,7 +56,7 @@ export function FileDropField({ kind, onFile, label, selected, disabled, busy, c
 
   return (
     <div className="grid gap-2">
-      {fieldLabel ? <span className="core-body font-semibold text-core-secondary">{fieldLabel}</span> : null}
+      {fieldLabel ? <span className="core-field-label">{fieldLabel}</span> : null}
       <div
         role="group"
         aria-label={kind === "image" && label ? `${label}: ${variant.aria}` : variant.aria}
@@ -69,15 +69,18 @@ export function FileDropField({ kind, onFile, label, selected, disabled, busy, c
         onDragLeave={(event) => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
         onDrop={(event) => { event.preventDefault(); setDragging(false); take(event.dataTransfer.files); }}
         data-file-drop-field="true"
-        className={`min-h-32 rounded-control border-strong border-dashed bg-core-subtle p-4 text-center outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring)] focus-visible:ring-offset-2 ${inactive ? "cursor-not-allowed border-core-border opacity-70" : dragging ? "border-core-action bg-core-info-soft" : "border-core-border-strong hover:border-core-action"}`}
+        data-drop-state={inactive ? "inactive" : dragging ? "dragging" : "idle"}
+        className="core-file-drop min-h-32 rounded-panel border border-dashed border-core-border-strong bg-core-subtle p-5 text-center outline-none transition focus-visible:ring-2 focus-visible:ring-[var(--core-focus-ring)] focus-visible:ring-offset-2"
       >
         <input ref={inputRef} className="sr-only" type="file" accept={variant.accept} disabled={inactive} tabIndex={-1} onChange={(event) => { take(event.currentTarget.files); event.currentTarget.value = ""; }} />
         <div className="grid min-h-24 place-items-center">
           <div className="min-w-0">
-            <Icon className="mx-auto text-core-action" size={26} aria-hidden="true" />
-            <p className="mt-2 core-body font-semibold text-core-text">{variant.prompt}</p>
+            <span className="mx-auto grid size-10 place-items-center rounded-control border border-core-border bg-core-surface text-core-action shadow-soft">
+              <Icon size={20} aria-hidden="true" />
+            </span>
+            <p className="mt-3 core-body font-semibold text-core-text">{variant.prompt}</p>
             {"formats" in variant ? <p className="mt-1 core-caption text-core-muted">{variant.formats}</p> : null}
-            <ActionButton type="button" variant="secondary" icon={Upload} className="mt-3" disabled={inactive} onClick={() => inputRef.current?.click()}>
+            <ActionButton type="button" variant="secondary" icon={Upload} className="mt-4" disabled={inactive} onClick={() => inputRef.current?.click()}>
               {variant.action[selected ? 1 : 0]}
             </ActionButton>
           </div>

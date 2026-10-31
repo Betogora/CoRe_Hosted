@@ -20,7 +20,6 @@ export function LearningAreaHeader({ area, onAreaChange, onOpenCardSettings }: {
             ariaLabel="Bereich in Lernen"
             options={learnAreaOptions}
             value={area}
-            typography="control"
             onValueChange={onAreaChange}
             className="core-learning-area-control"
           />
