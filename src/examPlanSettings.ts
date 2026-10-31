@@ -33,6 +33,7 @@ const planSchema = v.pipe(v.strictObject({
   deckIds: v.pipe(v.array(identifier), v.minLength(1), v.maxLength(EXAM_PLANNING_LIMITS.decksPerExam)),
   excludedDeckIds: v.optional(v.pipe(v.array(identifier), v.maxLength(EXAM_PLANNING_LIMITS.decksPerExam))),
   examDate: daySchema,
+  studyStartDate: v.optional(daySchema),
   desiredRetention: v.pipe(v.number(), v.minValue(0.8), v.maxValue(0.97)),
   variants: v.boolean(),
   bufferDays: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(365)),
@@ -45,6 +46,7 @@ const planSchema = v.pipe(v.strictObject({
   updatedAt: v.pipe(v.string(), v.isoTimestamp()),
 }), v.check((plan) => [plan.deckIds, plan.excludedDeckIds, plan.topicOrder, plan.completedSummaryDeckIds].every((ids) => !ids || new Set(ids).size === ids.length)),
   v.check((plan) => !plan.excludedDeckIds?.some((id) => plan.deckIds.includes(id))),
+  v.check((plan) => !plan.studyStartDate || plan.studyStartDate < plan.examDate),
   v.check((plan) => !plan.topicDates || (new Set(plan.topicDates.map((topic) => topic.deckId)).size === plan.topicDates.length && plan.topicDates.every((topic) => topic.date < plan.examDate))));
 const dailyTaskSchema = v.pipe(v.strictObject({
   id: v.pipe(v.string(), v.minLength(1), v.maxLength(800)), date: daySchema, examId: identifier,
@@ -59,7 +61,7 @@ const dailyTasksSchema = v.pipe(v.array(dailyTaskSchema), v.maxLength(EXAM_PLANN
   v.check((tasks) => new Set(tasks.map((task) => task.id)).size === tasks.length && tasks.reduce((sum, task) => sum + task.cardIds.length, 0) <= EXAM_PLANNING_LIMITS.dailyCardRefs
     && new Set(tasks.map((task) => task.date)).size <= 1));
 function validDailyTasks(settings: ExamPlanningSettings) {
-  return (settings.dailyTasks ?? []).every((task) => task.id === `${task.kind === "study" ? "topic" : "summary"}:${encodeURIComponent(task.examId)}:${encodeURIComponent(task.deckIds[0])}` && settings.exams.some((exam) => exam.id === task.examId && task.date < exam.examDate));
+  return (settings.dailyTasks ?? []).every((task) => task.id === `${task.kind === "study" ? "topic" : "summary"}:${encodeURIComponent(task.examId)}:${encodeURIComponent(task.deckIds[0])}` && settings.exams.some((exam) => exam.id === task.examId && task.date < exam.examDate && (!exam.studyStartDate || task.date >= exam.studyStartDate)));
 }
 const settingsSchema = v.pipe(v.strictObject({
   version: v.literal(3),
@@ -70,7 +72,7 @@ const settingsSchema = v.pipe(v.strictObject({
 
 type TimeBlock = NonNullable<StudyTimeCapacity["timeBlocks"]>[number];
 function validTimeBlock(block: TimeBlock, exams: readonly ExamPlan[], earlier: readonly TimeBlock[]) {
-  return block.start < block.end && (block.examId === null || exams.some((exam) => exam.id === block.examId && block.date < exam.examDate))
+  return block.start < block.end && (block.examId === null || exams.some((exam) => exam.id === block.examId && block.date < exam.examDate && (!exam.studyStartDate || block.date >= exam.studyStartDate)))
     && !earlier.some((other) => other.id === block.id || (other.date === block.date && other.start < block.end && block.start < other.end));
 }
 function validTimeBlocks(settings: ExamPlanningSettings) {
@@ -133,7 +135,7 @@ export function isValidExamCalendar(exams: ExamPlan[], capacity: StudyTimeCapaci
 /** Open daily targets of an exam stay valid only while everything that shapes its plan is unchanged. */
 export function getExamPlanningKey(exam: ExamPlan, capacity: StudyTimeCapacity) {
   return stableContentHash([exam.deckIds, exam.excludedDeckIds, exam.examDate, exam.bufferDays, exam.studyTime, exam.topicOrder, exam.topicDates, exam.desiredRetention, exam.variants, exam.readSummaryBeforeTopics,
-    (capacity.timeBlocks ?? []).filter((block) => block.examId === exam.id)], "exam-plan");
+    (capacity.timeBlocks ?? []).filter((block) => block.examId === exam.id), ...(exam.studyStartDate ? [exam.studyStartDate] : [])], "exam-plan");
 }
 
 export function upsertExamPlan(settings: ExamPlanningSettings, plan: ExamPlan): ExamPlanningSettings {
@@ -156,7 +158,7 @@ export function createExamPlan(today: string, deckIds: string[] = []): ExamPlan 
   const timestamp = new Date().toISOString();
   return {
     id: `exam_${crypto.randomUUID()}`, name: "", status: "active", deckIds,
-    examDate: date.toISOString().slice(0, 10), desiredRetention: 0.9, variants: true, bufferDays: 4,
+    examDate: date.toISOString().slice(0, 10), studyStartDate: today, desiredRetention: 0.9, variants: true, bufferDays: 4,
     studyTime: { dailyMinutes: 120, weekdays: [true, true, true, true, true, false, false], dateOverrides: [] },
     readSummaryBeforeTopics: false, completedSummaryDeckIds: [],
     createdAt: timestamp, updatedAt: timestamp,

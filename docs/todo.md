@@ -217,9 +217,8 @@ Aus dem Karteneditor V2 (ADR-045) ausgeklammert:
 - KI-Umformulierungen für Lückentext und andere Bausteine.
 - Quiz als eigenes Feature (ADR-042): Stapel-Tab `Quiz` ist Platzhalter.
   Danach Quizplanung im Prüfungsplaner; einen Entwurf mit manuellen
-  Kapitel- und Gruppenquizzen im gespeicherten Planformat enthält
-  `codex/klausurplaner-design`, ohne Quizplanung ist der Branch sonst
-  übernehmbar.
+  Kapitel- und Gruppenquizzen und einem eigenen Lernmethoden-Schritt enthält
+  Commit `71a7892` (`codex/klausurplaner-design`).
 - KI-Varianten vorausschauend erzeugen: Heute erzeugt die Stapelaktion des
   Proof of Concept beim Einschalten Varianten für bis zu 50 Karten auf einmal,
   auch für Karten, die noch lange keine Variante zeigen. Künftig erzeugt CoRe

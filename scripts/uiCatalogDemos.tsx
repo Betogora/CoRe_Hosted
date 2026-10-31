@@ -441,7 +441,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   const [view, setView] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === kind ? kind : "");
   const [offset, setOffset] = useState(0);
   const [message, setMessage] = useState("");
-  const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
+  const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: kind === "exams" ? "2026-10-14T12:00:00Z" : "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
   const conflict = { id: "catalog-conflict", status: "open", entityTable: "cards", entityLabel: "Karte", title: "Hauptstadt von Portugal", localPresent: true, remotePresent: true, remoteRevision: 2, createdAt: selection.now, allowedActions: ["merge-fields"], fields: [{ key: "front", label: "Frage", localText: "Hauptstadt von Portugal?", remoteText: "Wie heißt Portugals Hauptstadt?" }, { key: "back", label: "Antwort", localText: "Lissabon", remoteText: "Lissabon (Lisboa)" }] };
   const conflicts = React.useRef([conflict]);
   const listConflicts = React.useCallback(async () => conflicts.current, []);
@@ -497,7 +497,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   views.push(
     ["dashboard", "DashboardScreen · Widgets mit Drag-and-drop, To-dos und Lerntimer", "Tagesübersicht"],
     ["learn", "LearnScreen · Stapel und Schnellformular", "Lernen"],
-    ["exams", "ExamPlanningScreen · Fächer neben Heute · kompakte Woche · Lernzeit mit Löschkreuz und Ziehlasche · aufklappbare Prüfungskarten", "Prüfungen"],
+    ["exams", "ExamPlanningScreen · lokaler Plus-Einstieg bei leerer Prüfungsliste und durchgehendes Plus-Feld Weitere Prüfung planen unter bestehenden Prüfungen · einzeln umschaltbare Prüfungsfarben im Kalenderkopf statt globalem Dropdown, ausgefüllt oder hell umrandet · gemeinsame Monatskachel je Fach für Karten und Lesen, auch ohne neue Karten · Kalender ab aktueller Woche mit Rücknavigation · vier Schritte mit Rücksprüngen und genau einem Schritt vorwärts über die Leiste, Lernstart mit Vorgabe heute und sichtbarem Prüfungsziel auf der ersten Seite · durchsuchbare Stapelzweige mit Plusauswahl ohne Teilmarkierung · alternative Zeitangaben mit Durchschnitt oder direkt editierbaren Wochentagszeiten, freie Tage mit 0 Minuten · Vorschau mit Lerntagen, auf Kalenderhöhe begrenzter ausklappbarer Themenfolge, dauerhaftem Prüfungstermin und erreichbarer Planbestätigung · nichtmodale Tagesdetails", "Prüfungen"],
     ["creation", "CreationScreen · Drei Erstellungswege", "Erstellen"],
     ["ai-source", "AiSourceCreationPanel · Quelle, Lernwünsche und Auftrag", "Automatische Erstellung"],
     ["manual", "ManualCreationPanel · Formular und Bausteine", "Manuelle Erstellung"],
