@@ -1207,6 +1207,9 @@ video {
 .pointer-events-auto {
   pointer-events: auto;
 }
+.\!visible {
+  visibility: visible !important;
+}
 .visible {
   visibility: visible;
 }
@@ -1277,6 +1280,9 @@ video {
 .left-0 {
   left: 0px;
 }
+.left-0\.5 {
+  left: 0.125rem;
+}
 .left-1\/2 {
   left: 50%;
 }
@@ -1318,6 +1324,9 @@ video {
 }
 .top-0 {
   top: 0px;
+}
+.top-0\.5 {
+  top: 0.125rem;
 }
 .top-1\.5 {
   top: 0.375rem;
@@ -1929,6 +1938,9 @@ video {
 .w-auto {
   width: auto;
 }
+.w-button {
+  width: var(--core-button-height);
+}
 .w-control {
   width: var(--core-control-height);
 }
@@ -2194,6 +2206,11 @@ video {
 .list-none {
   list-style-type: none;
 }
+.appearance-none {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+}
 .auto-rows-max {
   grid-auto-rows: max-content;
 }
@@ -2292,6 +2309,9 @@ video {
 }
 .items-stretch {
   align-items: stretch;
+}
+.justify-start {
+  justify-content: flex-start;
 }
 .justify-end {
   justify-content: flex-end;
@@ -2726,6 +2746,9 @@ video {
 .\!pl-10 {
   padding-left: 2.5rem !important;
 }
+.\!pr-12 {
+  padding-right: 3rem !important;
+}
 .pb-1\.5 {
   padding-bottom: 0.375rem;
 }
@@ -2743,6 +2766,9 @@ video {
 }
 .pb-32 {
   padding-bottom: 8rem;
+}
+.pb-4 {
+  padding-bottom: 1rem;
 }
 .pb-\[max\(\.75rem\2c env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: max(.75rem, env(safe-area-inset-bottom));
@@ -2949,9 +2975,6 @@ video {
 }
 .opacity-40 {
   opacity: 0.4;
-}
-.opacity-50 {
-  opacity: 0.5;
 }
 .opacity-60 {
   opacity: 0.6;
@@ -5114,6 +5137,21 @@ summary {
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
 
+.exam-plan-actions { bottom: calc(env(safe-area-inset-bottom) + 6rem); }
+@media (min-width: 1280px) { .exam-plan-actions { bottom: 0; } }
+.exam-calendar-layout { container-type: inline-size; }
+.exam-topic-panel { container-type: inline-size; container-name: exam-topics; }
+@container exam-topics (min-width: 40rem) {
+  .exam-topic-row { grid-template-columns: minmax(0, 1fr) 12rem auto; }
+}
+.exam-topic-order[open] > summary > svg { transform: rotate(180deg); }
+.exam-today-layout { container-type: inline-size; }
+@container (min-width: 48rem) {
+  .exam-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 56rem) {
+  .exam-calendar-body[data-show-day="true"] { grid-template-columns: minmax(0, 1fr) 22rem; }
+}
 .exam-month-days { --exam-month-day-height: 112px; }
 .exam-month-days > button { min-width: 0; }
 .exam-month-entry { min-height: 20px; overflow-wrap: anywhere; font-size: var(--core-type-caption); line-height: 16px; }
@@ -5200,6 +5238,12 @@ summary {
 }
 .last\:pb-0:last-child {
   padding-bottom: 0px;
+}
+.checked\:border-core-action:checked {
+  border-color: var(--core-action-primary);
+}
+.checked\:bg-core-action:checked {
+  background-color: var(--core-action-primary);
 }
 .hover\:-translate-y-0\.5:hover {
   --tw-translate-y: -0.125rem;
@@ -5496,10 +5540,6 @@ summary {
     grid-column: span 2 / span 2;
   }
 
-  .sm\:col-span-3 {
-    grid-column: span 3 / span 3;
-  }
-
   .sm\:col-start-2 {
     grid-column-start: 2;
   }
@@ -5568,12 +5608,12 @@ summary {
     min-height: var(--core-button-height);
   }
 
-  .sm\:w-52 {
-    width: 13rem;
+  .sm\:w-24 {
+    width: 6rem;
   }
 
-  .sm\:w-64 {
-    width: 16rem;
+  .sm\:w-52 {
+    width: 13rem;
   }
 
   .sm\:w-\[5\.75rem\] {
@@ -5633,6 +5673,10 @@ summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .sm\:grid-cols-7 {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
   .sm\:grid-cols-\[11rem_minmax\(0\2c 1fr\)\] {
     grid-template-columns: 11rem minmax(0,1fr);
   }
@@ -5659,10 +5703,6 @@ summary {
 
   .sm\:grid-cols-\[minmax\(0\2c 18rem\)_auto\] {
     grid-template-columns: minmax(0,18rem) auto;
-  }
-
-  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
-    grid-template-columns: minmax(0,1fr) 12rem auto;
   }
 
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
@@ -5732,6 +5772,10 @@ summary {
 
   .sm\:p-10 {
     padding: 2.5rem;
+  }
+
+  .sm\:p-3 {
+    padding: 0.75rem;
   }
 
   .sm\:p-4 {
@@ -5823,10 +5867,6 @@ summary {
     grid-column: span 1 / span 1;
   }
 
-  .md\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .md\:block {
     display: block;
   }
@@ -5854,10 +5894,6 @@ summary {
 
   .md\:w-auto {
     width: auto;
-  }
-
-  .md\:max-w-md {
-    max-width: 28rem;
   }
 
   .md\:max-w-xl {
@@ -5956,10 +5992,6 @@ summary {
 }
 @media (min-width: 1024px) {
 
-  .lg\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .lg\:w-full {
     width: 100%;
   }
@@ -6054,6 +6086,10 @@ summary {
     bottom: 1rem;
   }
 
+  .xl\:top-24 {
+    top: 6rem;
+  }
+
   .xl\:top-6 {
     top: 1.5rem;
   }
@@ -6118,6 +6154,10 @@ summary {
     grid-template-columns: minmax(0,0.9fr) minmax(20rem,1.1fr);
   }
 
+  .xl\:grid-cols-\[minmax\(0\2c 1fr\)_17rem\] {
+    grid-template-columns: minmax(0,1fr) 17rem;
+  }
+
   .xl\:grid-cols-\[minmax\(19rem\2c 0\.65fr\)_minmax\(38rem\2c 1\.35fr\)\] {
     grid-template-columns: minmax(19rem,0.65fr) minmax(38rem,1.35fr);
   }
@@ -6176,6 +6216,12 @@ summary {
 }
 .\[\&\>svg\]\:text-core-muted>svg {
   color: var(--core-text-muted);
+}
+.\[\&_span\]\:min-w-0 span {
+  min-width: 0px;
+}
+.\[\&_span\]\:break-words span {
+  overflow-wrap: break-word;
 }
 .\[\&_svg\]\:size-\[18px\] svg {
   width: 18px;
@@ -6929,16 +6975,16 @@ html { scroll-behavior: smooth; }
 <li>Nach lokaler Bereitschaft dürfen Stapelübersicht und Kartenverwaltung vorsichtig vorbereitet werden; Save-Data, 2G, unsichtbarer Tab oder Interaktion stoppen das. Andere Ziele lädt CoRe nur bei Hover, Fokus oder Touchstart vor, APKG, PDF, Statistik, Simulator und große Medien nie pauschal.</li>
 <li>Die Einstellungen zeigen persistenten Speicher sowie belegten und verfügbaren Platz. Die PWA cached die App-Shell; Browsermedien bleiben selektiv, Eviction ist ohne persistente Freigabe möglich.</li>
 </ul></div></article><article id="specs--69-prüfungsplanung" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>6.9 Prüfungsplanung</h3></div><div class="catalog-preview specs-prose"><ul>
-<li>Prüfungen (/pruefungen) zeigt alle Prüfungen eines Kontos gemeinsam (ADR-042). Vier Einrichtungsschritte führen durch Prüfung, Lernstoff mit Einführungsstichtag und Themenreihenfolge, Lernzeit je Klausur und Vorschau. Ein Oberstapel wählt rekursiv seine Unterstapel; einzelne Unterstapel lassen sich abwählen. Neue Unterstapel eines gewählten Stapels gehören automatisch dazu; abgewählte bleiben samt ihren Unterstapeln draußen. Konkrete Lernblöcke sind bereits im Lernzeitschritt aufklappbar erreichbar.</li>
-<li>„Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?“ bestimmt den kalendarischen Einführungsstichtag. Bei Prüfung am 20. und Eingabe 4 gilt spätestens der 16.; freie Tage verschieben die Einführung früher. Die kleinste Eingabe 1 erlaubt neue Karten bis zum Vortag. Abrufziel (85, 90, 95 oder 97 Prozent) und Varianten bleiben unter weiteren Lerneinstellungen erreichbar; das Abrufziel ist keine Bestehenswahrscheinlichkeit.</li>
-<li>Die Lernzeit wird je Klausur als Minuten pro Lerntag und ausgewählte Wochentage angegeben. Eingaben in Einrichtung und Kalender verwenden ganze Minuten; Anzeigen nennen Stunden und Minuten ohne Kommawerte. Sie gewichtet ausschließlich das Verhältnis der Tage; proportional skalierte Vorgaben ergeben dieselbe Verteilung. Tagesausnahmen gelten je Klausur und übersteuern deren Rhythmus. Konkrete zugeordnete Kartenlernblöcke ersetzen die Vorgabe nur für ihr Fach und Datum; andere Tage und Fächer behalten ihre Vorgaben. Blöcke ohne Fach sind Kalendernotizen und verändern die Verteilung nicht. Prüfungstage bleiben frei.</li>
+<li>Prüfungen (/pruefungen) zeigt alle Prüfungen eines Kontos gemeinsam (ADR-042). Ohne geplante Prüfung öffnet ein Plus neben „Deine Prüfungen“ direkt die Einrichtung der ersten Klausur; derselbe Einstieg bleibt im Seitenkopf verfügbar. Unter einer vorhandenen Prüfungsliste öffnet ein durchgehendes Plus-Feld „Weitere Prüfung planen“ dieselbe Einrichtung. Es ist während des Speicherns, bei ungespeicherten Kalenderänderungen oder ohne vorhandenen Stapel deaktiviert. Ohne vorhandenen Stapel sind beide Einstiege deaktiviert und der Leerhinweis verweist auf das Erstellen oder Importieren eines Stapels. Die erste Seite fragt zusätzlich den Lernstart ab, standardmäßig heute und auf einen Tag vor der Prüfung begrenzt. Das Datum bleibt mit der Prüfung gespeichert und kann beim Bearbeiten geändert werden; alte Pläne ohne Startdatum planen weiterhin ab heute. Vor dem Lernstart entstehen keine Lernaufgaben, geplanten Minuten oder Lerntage. Spätere Änderungen verwerfen frühere zugeordnete Lernblöcke und passen offene Tagesziele an. Vier Einrichtungsschritte führen durch Prüfung, Lernstoff mit Einführungsstichtag und Themenreihenfolge, Lernzeit je Klausur und Vorschau. Die Schrittleiste erlaubt den direkten Wechsel zu vorherigen Schritten und genau einen Schritt nach vorn; dafür gelten dieselben Eingabeprüfungen wie für die Weiter-Aktion. Auch bereits besuchte Schritte lassen sich vorwärts nicht überspringen. Im Lernzeitschritt lässt sich „Vor neuen Themen Zusammenfassung lesen“ wählen; bestehende Prüfungen bearbeiten die Option unter „Lernzeit und weitere Einstellungen“. Ein Oberstapel wählt rekursiv seine Unterstapel; einzelne Unterstapel lassen sich abwählen. Neue Unterstapel eines gewählten Stapels gehören automatisch dazu; abgewählte bleiben samt ihren Unterstapeln draußen. Der Lernzeitschritt bietet zwei alternative Eingabewege und einen Hinweis auf konkrete Lernzeiten im Kalender der Planerübersicht; ein Kalender zur Blockeingabe steht hier nicht mehr. Die Einrichtung zeigt neben den Eingaben die mitwachsende Prüfungszusammenfassung, auf schmalen Flächen darunter. Die Stapelauswahl beginnt mit geschlossenen Teilbäumen; eine Suche findet auch verborgene Unterstapel mit ihrem Hierarchiekontext. Auf- und Zuklappen verändert die Auswahl nicht. Ausgewählte Stapel tragen ein Plus; Überstapel erhalten durch ausgewählte Unterstapel keine zusätzliche Markierung. Das Datum der letzten neuen Karten steht neben dem Pufferfeld. „4. Dein Plan“ zeigt die Themenfolge neben dem Kalender, auf schmalen Ansichten darunter. Jeder Eintrag nennt den geplanten Lernbeginn oder seinen Einführungsstatus. Führt eine andere Prüfung ein gemeinsames Thema ein, nennt der Eintrag sie („Mit Anatomie ab …“). Lange Listen werden zunächst auf vollständig passende Einträge gekürzt und lassen sich über „Alle … Themen anzeigen“ innerhalb der begrenzten Fläche öffnen und wieder einklappen. Die Themenleiste bleibt höchstens so hoch wie der Kalender und passt sich auf dem Desktop zusätzlich an den sichtbaren Platz oberhalb der Bestätigung an; mobil ist sie zusätzlich auf 320 Pixel begrenzt. Prüfung und Datum bleiben unter der Liste sichtbar. Die Bestätigung bleibt am unteren Rand oberhalb der mobilen Navigation erreichbar, ohne wegen der Themenliste scrollen zu müssen. Die ersten drei Schritte behalten ihre mitwachsende Prüfungsübersicht.</li>
+<li>„Wie viele Tage vor der Klausur möchtest du die letzte neue Karte lernen?“ bestimmt den kalendarischen Einführungsstichtag. Bei Prüfung am 20. und Eingabe 4 gilt spätestens der 16.; freie Tage verschieben die Einführung früher. Die kleinste Eingabe 1 erlaubt neue Karten bis zum Vortag. Die erste Seite fragt neben Name und Termin „Was ist dein Ziel für die Prüfung?“. „Bestehen“, „Gute Note“, „Sehr gute Note“ und „Bestmöglich abschneiden“ setzen im Hintergrund das bestehende FSRS-Abrufziel auf 85, 90, 95 beziehungsweise 97 Prozent; Standard bleibt „Gute Note“ (90 Prozent). Ein kurzer Hinweis erklärt häufigere Wiederholungen bei höherem Ziel. Die Auswahl steht auch beim Bearbeiten direkt bei den Rahmendaten; im Lernzeitschritt entfällt die Prozent-Auswahl. Die Ziele sind Lernabsichten, keine Noten- oder Bestehensgarantie. Varianten bleiben unter weiteren Lerneinstellungen erreichbar.</li>
+<li>Die Lernzeit wird je Klausur über zwei gegenseitig aufklappbare Eingabewege festgelegt. Standard ist die Auswahl der Lerntage mit durchschnittlichen Minuten pro Lerntag. Beim Wechsel zur genauen Wochentagseingabe werden gewählte Tage mit diesem Durchschnitt und freie Tage mit 0 Minuten vorbelegt; der Durchschnittsbereich klappt zu. Alle sieben Zeitfelder sind direkt editierbar: ein positiver Wert aktiviert den Tag, 0 Minuten setzt ihn frei. Diese Einzelwerte bestimmen die Planung, ohne dass Tage zuvor im Durchschnittsbereich aktiviert werden müssen. Beim Zurückwechseln wird der gerundete Durchschnitt der positiven Tageswerte übernommen; die gewählten Tage bleiben erhalten. Erneuter Wechsel zur genauen Eingabe übernimmt die dann aktuellen Durchschnittsangaben. Datums-Ausnahmen und gespeicherte konkrete Blöcke bleiben erhalten. Eingaben in Einrichtung und Kalender verwenden ganze Minuten; Anzeigen nennen Stunden und Minuten ohne Kommawerte. Sie gewichtet ausschließlich das Verhältnis der Tage; proportional skalierte Vorgaben ergeben dieselbe Verteilung. Tagesausnahmen gelten je Klausur und übersteuern deren Rhythmus. Konkrete zugeordnete Kartenlernblöcke ersetzen die Vorgabe nur für ihr Fach und Datum; andere Tage und Fächer behalten ihre Vorgaben. Blöcke ohne Fach sind Kalendernotizen und verändern die Verteilung nicht. Prüfungstage bleiben frei.</li>
 <li>Die begrenzte deterministische Kontaktplanung verteilt alle noch ungesehenen aktiven Karten gemeinsam auf die verbleibenden Einführungstage. Teilen sich Prüfungen Stapel, wird jede Karte genau einmal eingeführt, spätestens zum frühesten Einführungsstichtag ihrer Prüfungen, und erscheint nur in deren Tagesaufgaben; später geplante Prüfungen berücksichtigen diese Last beim Ausgleich. FSRS-7 simuliert Erstkontakte, Lern-, Wiederlern- und Wiederholungskontakte ohne Antwortzeiten oder Bearbeitungsminuten pro Karte. Karten mit identischem Lernstand und Profil werden als Kohorte gerechnet. Tatsächliche Bewertungsverteilungen liefern Szenarioannahmen, ohne ausreichende Historie gilt die vereinfachte Normal-Laufbahn. Zuerst wird die höchste relative Tageslast minimiert, danach deren Schwankungen und danach die prognostizierte Gesamterinnerung berücksichtigt. Die Suche behauptet kein globales Optimum. Eine feste Abnahmekurve entfällt. Neue Karten kommen dadurch im Regelfall früher häufiger; Einzelmengen dürfen wieder steigen. Hohe Tagesmengen verhindern das Speichern nicht; mehr als zwei neue Karten pro Minute eingeplanter Lernzeit nennen Vorschau und Tagesdetails als Hinweis. Ohne verfügbaren Einführungstag bleiben Entwurf und Erklärung sichtbar.</li>
 <li>Unterstapel bilden die Themen; ihre anfängliche Baumreihenfolge ist je Klausur im standardmäßig geschlossenen Bereich „Themenreihenfolge ändern“ anpassbar. Geöffnet lassen sich Themen am Griff per Maus oder Touch ziehen; Pfeilschaltflächen und Pfeiltasten am Griff bieten dieselbe Änderung ohne Ziehen. Lange Listen und der scrollende Seitenbereich, ab 1280 px der Inhaltsbereich, scrollen beim Ziehen. Erst Loslassen innerhalb der Liste übernimmt die neue Reihenfolge; Escape, Zeigerabbruch oder Loslassen außerhalb verwerfen die Ziehvorschau. Innerhalb eines Themas gilt die Erstellreihenfolge. Neue Karten werden zusammenhängend zugeteilt, ohne spätere Themen vorzuziehen. Ganze Themen und danach Halbierungen werden innerhalb von 25 Prozent des rechnerischen Tagesziels bevorzugt; große Themen werden fortlaufend geteilt, Rundungsreste auf Folgetage verteilt. Ein Themenstarttag bedeutet „frühestens ab“ und kann spätere Themen mitverschieben; die Themenliste zeigt immer den tatsächlich geplanten Start, und der Datumswähler bietet keinen Tag vor dem Start des vorherigen Themas. Nicht zuordenbarer neuer Stoff bleibt ausdrücklich offen.</li>
 <li>Mit Name, künftigem Termin und mindestens einem Stapel ist Speichern immer möglich, auch ohne Verbindung oder fertige Vorschau; nicht mehr einplanbare neue Karten erscheinen als offen.</li>
-<li>Die Vorschau zeigt Karten, verbleibende neue Karten, Einführungstage und die Summe der selbst eingeplanten Lernzeit. Benötigte Zeit, Machbarkeit, Gefährdungsaktivierung und Zeitplanstatus entfallen. Die Prüfungsübersicht beginnt auch ohne angelegte Prüfungen mit einem Monatskalender (Montag–Sonntag, Monatsnavigation und Heute). Klausuren tragen eine deutlich hervorgehobene farbige Terminfläche mit Flagge, Klausur-Label und Namen; die Lernaufgaben bleiben visuell nachgeordnet. Der gesamte Monat bleibt ohne internes Scrollen sichtbar, auch mit sechs Wochenzeilen. Vollständig vergangene Wochen schrumpfen auf ihre Datumszeile. Im laufenden Monat folgen Wochen des Folgemonats, bis vier Wochen ab der aktuellen Woche sichtbar sind; dessen Erster trägt das Monatskürzel. Die Tagesfelder sind nach unten großzügiger und lassen ausgeschriebene Aufgaben auch auf schmalen Ansichten umbrechen. Pro künftigem Tag erscheinen bis zu zwei Fächer (bei sechs Wochenzeilen ein Fach) mit farbigen Klammern für „x neue Karten“. Die Fachfarbe ordnet die Lernaufgabe der Fachlegende im weißen Kalenderkasten direkt links neben „Heute“ zu; wiederholte Fachnamen und die zusätzliche Zeichenerklärung unter dem Kalender entfallen. Weitere Einträge werden mit +Anzahl angekündigt. Ein Tagesklick zeigt sämtliche Klausuren und Lernaufgaben mit ausgeschriebenen Fachnamen und Kartenmengen. Die Monatsübersicht zeigt keine Minuten, Uhrzeiten oder Wiederholungszähler. Monat und Woche sind umschaltbar. Die Wochenansicht zeigt Montag–Sonntag mit To-dos oberhalb eines scrollbaren, kompakten 07–24-Uhr-Rasters mit 32 Pixeln je Stunde; Linien markieren nur volle Stunden. Lernzeit wird durch Ziehen in 30-Minuten-Schritten markiert und zunächst ohne Fachzuordnung geblockt; per Touch blockt Antippen eine Stunde, Wischen scrollt das Raster; anschließendes Ziehen einer Kartenaufgabe aus den To-dos in einen Block ordnet das Fach zu. Alternativ kann eine Aufgabe ausgewählt und ein Block angetippt oder das Fach ausgewählt werden. Pfeiltasten, Umschalt und Enter erlauben Zeitauswahl mit der Tastatur; Datum und Von-/Bis-Felder sind zusätzlich erreichbar. Blöcke ohne Fach bleiben als Notiz speicherbar; zugeordnete Blöcke setzen die Lernzeit ihres Fachs an diesem Tag. Überlappungen werden abgelehnt, unzugeordnete wie zugeordnete Blöcke lassen sich direkt über ein Kreuz an der rechten Ecke des ausgewählten Blocks löschen. Sehr kurze Blöcke bleiben maßstabsgetreu; die Auswahlzeile nennt ihre vollständige Uhrzeit und Fachzuordnung, ein Tooltip ergänzt diese Angaben beim Darüberfahren oder Fokussieren. Eine Lasche am unteren Rand verlängert oder verkürzt den Block durch Ziehen in 30-Minuten-Schritten; Pfeiltasten bieten dieselbe Änderung per Tastatur. Der Beginn bleibt erhalten, die Mindestdauer beträgt 30 Minuten und das Ende liegt spätestens bei 24 Uhr. Ziehen am oberen, linken oder rechten Rand verschiebt den ganzen Block mit gleicher Dauer in 30-Minuten-Schritten zwischen 7 und 24 Uhr; der obere Rand ist zusätzlich per Pfeiltasten bedienbar. Die Ziehvorschau wird erst beim Loslassen übernommen; Escape oder ein abgebrochener Zeigerkontakt verwirft sie. Überlappungen bleiben ausgeschlossen. Kalenderentwürfe lassen sich verwerfen. Beim Anlegen oder Bearbeiten bietet Farbe denselben freien Farbkreis wie die Icon-Farbe in den Stapeleinstellungen, ohne vorgegebene Farbfelder. Der gewählte Farbwert wird mit dem Plan gespeichert; bestehende Farben bleiben beim Öffnen erhalten. Beschriftungen auf Vollflächen wechseln für ausreichenden Kontrast zwischen Schwarz und Weiß. Die Farbe verwenden Legende, To-dos, Klausurtermine, Prüfungsübersichten und zugeordnete Zeitblöcke konsistent. Gemeinsame Karten erscheinen nur unter der Prüfung, die sie einführt. Fehlende Prognosen zeigen einen Strich. Unter dem Kalender stehen Prüfung hinzufügen und die bestehenden Prüfungen. Auch die Prüfungskacheln und der Heute-Bereich zeigen Kartenmengen statt geschätzter Dauer. Ein ausgewählter Tag zeigt je Fach die neuen Karten mit Themen und Leseaufgaben sowie die eigene Tageslernzeit in Minuten; nur eigene Lernblöcke dieses Fachs ersetzen und sperren diese Eingabe. Dazu kommen Zeitreservierungen mit oder ohne Fach und, bei einer gewählten Prüfung, Themenverschiebung und -tausch. Tag und Woche teilen einen Bearbeitungshorizont: ab heute ein Jahr, Prüfungstage bleiben frei. Die Monatsansicht passt sich auch schmalen Flächen ohne internes Scrollen an. Die Wochenansicht scrollt lokal horizontal; ihre Stundenleiste bleibt dabei sichtbar. Änderungen am bestehenden Kalender werden mit neu berechneter Vorschau ausdrücklich gespeichert oder verworfen; Speichern wartet nicht auf die Vorschau.</li>
-<li>Die Übersicht zeigt Kalender, heutige Aufgaben und Prüfungsfortschritt. Die Prüfungsansichten verzichten auf Erklärtexte; Hinweise erscheinen nur als Status oder Warnung. Die Prüfungskarten der Planungsübersicht sind zunächst geschlossen und zeigen auf einer neutralen Fläche Name, Termin und Resttage („in 26 Tagen“) mit einem kleinen Punkt in der Prüfungsfarbe; „Pausiert“ und „Abgeschlossen“ erscheinen als Status, aktive Prüfungen tragen keine Statusmarke. Die Kopfzeile klappt Kennzahlen und Aktionen auf. Die bisherigen Kennzahlen „Mindestens einmal gelernt“ (mit Gesamtzahl) und „Noch ungesehen“ bleiben erhalten. Ein einzelner Fortschrittsbalken zeigt den gesehenen Anteil; die zweite Farbe überlagert darin den gefestigten Anteil. Beide Anteile beziehen sich auf alle ausgewählten Karten und werden nicht addiert; auch pausierte, abgeschlossene und vergangene Prüfungen zeigen ihren tatsächlichen Lernstand. Eine kompakte Legende nennt „Gesehen“ und „Gefestigt“ mit Prozenten; ein kurzer Text erklärt die zweite Farbe. Gefestigt sind aktive Karten mit der Reife <code>Reif</code>, also in der Wiederholungsphase mit mindestens 21 Tagen Haltbarkeit; nach <code>Nochmal</code> zählt eine Karte nicht mehr. Variantenantworten tragen zur gemeinsamen Kartenreife bei. Lern- und Wiederlernschritte zählen nicht als gefestigt. Der bisherige Hinweis zur sicheren Beherrschung und die geschätzte Abrufsicherheit entfallen in der Prüfungskarte. Bearbeiten öffnet das Formular direkt in der Karte: Name, Prüfungsfarbe und Termin stehen zuerst, Stapelauswahl sowie Ziel-, Zeit- und Planungseinstellungen sind zusätzlich erreichbar. Neue Prüfungen behalten die vier geführten Einrichtungsschritte. Ungespeicherte Änderungen werden beim Abbrechen, Schließen oder Wechseln der Bearbeitung bestätigt verworfen; das gilt ebenso für Kalenderentwürfe und beim Wechsel über die Hauptnavigation. Der zusätzliche Zeitplanstatus mit „Gut im Zeitplan“, „Im Zeitplan“ oder „Mehr Lernzeit nötig“ samt zugehörigem Prognosebereich entfällt in diesen Kacheln. Prüfungen lassen sich bearbeiten sowie nach Bestätigung pausieren, fortsetzen, abschließen und löschen. Ab dem Tag nach ihrem Termin gilt eine Prüfung automatisch als abgeschlossen. Abgeschlossene Prüfungen lassen sich vor ihrem Termin wieder öffnen; nach dem Termin muss zuerst das Datum angepasst werden. Löschen entfernt ihre Zeitreservierungen und Tagesaufgaben, Karten und Lernstände bleiben erhalten. Innerhalb der Ansicht stellt Rückgängig die zuletzt gelöschte Prüfung einschließlich dieser Zuordnungen wieder her.</li>
-<li>Heute enthält ein Prüfungswidget mit dezent in der jeweiligen Prüfungsfarbe getönten Kacheln für alle aktiven Prüfungen. Der zusätzliche Zeitplanstatus entfällt auch hier. Je Prüfung sind standardmäßig höchstens drei Aufgaben sichtbar, offene Aufgaben zuerst. Bei mehr als drei Aufgaben blendet „Alle … Aufgaben anzeigen“ die vollständige Liste ein; „Weniger anzeigen“ klappt sie wieder ein. Die Auswahl gilt unabhängig je Prüfung und bleibt auf die aktuelle Ansicht beschränkt. Pro Thema gibt es eine abhakbare Lernaufgabe mit eindeutiger Kartenmenge und Startaktion, ohne Dauerschätzung; auch abgehakte Aufgaben lassen sich starten. Die Zielkarten der Checkliste bleiben für den aktuellen Lerntag im Profil gespeichert, höchstens 5.000 je Lerntag; weitere neue Karten plant CoRe auf Folgetage; explizite Planänderungen dürfen offene Ziele ersetzen. Manuelle Häkchen sind widerrufbar und ändern keinen Kartenlernstand. Automatisch wird eine Lernaufgabe abgehakt, wenn alle Zielkarten seit ihrem Einplanen bewertet wurden, im Wiederholungszustand sind und erst nach diesem Lerntag wieder fällig werden. Fehlende Karten, offene Lernschritte und heutige Fälligkeiten gelten nicht als erledigt; Rückgängigmachen im Lernstand öffnet ein automatisches Häkchen wieder. Der nächste Lerntag beginnt eine neue Checkliste. Eine Themenaufgabe startet die Vereinigung ihrer neuen Karten und Wiederholungen, die Gesamtaktion die heutige Einheit. Prüfungssitzungen verwenden die Zielsicherheit ohne normale Tageslimits und ändern keine gespeicherten Stapeleinstellungen.</li>
-<li>Ohne Verbindung zeigen Heute und Prüfungen die zuletzt gespeicherten Tagesziele mit dem Hinweis „Offline: zuletzt geplante Aufgaben“ und den Kalender ohne Kartenmengen. Häkchen und Start bleiben nutzbar; die Einheit startet mit den Zielkarten, die auf dem Gerät liegen, je Aufgabe nennt CoRe den Rest als „erst online verfügbar“. Ohne gespeicherte Tagesziele meldet der Planer den Verbindungsbedarf. Neu geplant wird erst wieder online, automatisch beim Wiederverbinden. Erwartete zukünftige Kontakte dienen nur intern zur Verteilung; sichtbar sind heute ausschließlich tatsächliche Fälligkeiten und Lernschritte, ohne errechnete Zeitgrenze. Quiz, Altfragen und Prüfungssimulation gehören nicht zum Prüfungsplaner.</li>
+<li>Die Vorschau zeigt Karten, verbleibende neue Karten, Lerntage und die Summe der selbst eingeplanten Lernzeit. Lerntage zählen alle Tage mit positiver eingeplanter Lernzeit ab dem späteren Datum aus heute und Lernstart bis vor die Prüfung, einschließlich der Wiederholungsphase nach dem Stichtag für neue Karten. Freie Tage und Prüfungstage zählen nicht; Tagesausnahmen und zugeordnete Lernblöcke werden berücksichtigt. Benötigte Zeit, Machbarkeit, Gefährdungsaktivierung und Zeitplanstatus entfallen. Die Prüfungsübersicht beginnt auch ohne angelegte Prüfungen mit einem Monatskalender (Montag–Sonntag, Monatsnavigation und Heute). Klausuren tragen eine deutlich hervorgehobene farbige Terminfläche mit Flagge, Klausur-Label und Namen; die Lernaufgaben bleiben visuell nachgeordnet. Die Standardansicht und „Heute“ beginnen mit der aktuellen Montag–Sonntag-Woche; vollständig vergangene Wochen werden ausgeblendet. Falls nötig folgen Wochen des Folgemonats, bis mindestens vier Wochen sichtbar sind; dessen Erster trägt das Monatskürzel. Zurück blendet zuerst die früheren Wochen des laufenden Monats ein, danach frühere Monate. Manuell gewählte Monate erscheinen vollständig, alle Wochen mit gleicher Tageshöhe und ohne internes Scrollen, auch bei sechs Wochenzeilen. Die Tagesfelder sind nach unten großzügiger und lassen ausgeschriebene Aufgaben auch auf schmalen Ansichten umbrechen. Pro künftigem Tag erscheinen bis zu zwei Fächer (bei sechs Wochenzeilen ein Fach) als gemeinsame Kachel je Fach. Neue Karten und Lesen stehen innerhalb derselben farbigen Fläche untereinander, auch an reinen Lesetagen. Der Überlauf zählt zusätzliche Fachkacheln oder Klausurtermine statt einzelner Aufgaben. Die Prüfungsnamen im Kalenderkopf ersetzen das globale Dropdown: Antippen schaltet jede Prüfung unabhängig ein oder aus, auch mehrere oder keine. Eingeblendete Prüfungen sind farbig ausgefüllt, ausgeblendete innen hell und farbig umrandet. Die Auswahl gilt gemeinsam für Monat, Woche und Tagesdetails einschließlich zugeordneter Lernblöcke; unzugeordnete Blöcke bleiben sichtbar. Sie ändert keine gespeicherte Planung. Standardmäßig sind alle Prüfungen eingeblendet, in der Einrichtung zunächst die aktuelle Prüfung. Die Fachfarbe ordnet die Lernaufgabe der anklickbaren Fachlegende im weißen Kalenderkasten direkt links neben „Heute“ zu; wiederholte Fachnamen und die zusätzliche Zeichenerklärung unter dem Kalender entfallen. Weitere Einträge werden mit +Anzahl angekündigt. Ein Tagesklick zeigt sämtliche Klausuren und Lernaufgaben mit ausgeschriebenen Fachnamen und Kartenmengen. Die Monatsübersicht zeigt keine Minuten, Uhrzeiten oder Wiederholungszähler. Monat und Woche sind umschaltbar. Die Wochenansicht zeigt Montag–Sonntag mit To-dos oberhalb eines scrollbaren, kompakten 07–24-Uhr-Rasters mit 32 Pixeln je Stunde; Linien markieren nur volle Stunden. Lernzeit wird durch Ziehen in 30-Minuten-Schritten markiert und zunächst ohne Fachzuordnung geblockt; per Touch blockt Antippen eine Stunde, Wischen scrollt das Raster; anschließendes Ziehen einer Kartenaufgabe aus den To-dos in einen Block ordnet das Fach zu. Alternativ kann eine Aufgabe ausgewählt und ein Block angetippt oder das Fach ausgewählt werden. Pfeiltasten, Umschalt und Enter erlauben Zeitauswahl mit der Tastatur; Datum und Von-/Bis-Felder sind zusätzlich erreichbar. Blöcke ohne Fach bleiben als Notiz speicherbar; zugeordnete Blöcke setzen die Lernzeit ihres Fachs an diesem Tag. Überlappungen werden abgelehnt, unzugeordnete wie zugeordnete Blöcke lassen sich direkt über ein Kreuz an der rechten Ecke des ausgewählten Blocks löschen. Sehr kurze Blöcke bleiben maßstabsgetreu; die Auswahlzeile nennt ihre vollständige Uhrzeit und Fachzuordnung, ein Tooltip ergänzt diese Angaben beim Darüberfahren oder Fokussieren. Eine Lasche am unteren Rand verlängert oder verkürzt den Block durch Ziehen in 30-Minuten-Schritten; Pfeiltasten bieten dieselbe Änderung per Tastatur. Der Beginn bleibt erhalten, die Mindestdauer beträgt 30 Minuten und das Ende liegt spätestens bei 24 Uhr. Ziehen am oberen, linken oder rechten Rand verschiebt den ganzen Block mit gleicher Dauer in 30-Minuten-Schritten zwischen 7 und 24 Uhr; der obere Rand ist zusätzlich per Pfeiltasten bedienbar. Die Ziehvorschau wird erst beim Loslassen übernommen; Escape oder ein abgebrochener Zeigerkontakt verwirft sie. Überlappungen bleiben ausgeschlossen. Kalenderentwürfe lassen sich verwerfen. Beim Anlegen oder Bearbeiten bietet Farbe denselben freien Farbkreis wie die Icon-Farbe in den Stapeleinstellungen, ohne vorgegebene Farbfelder. Der gewählte Farbwert wird mit dem Plan gespeichert; bestehende Farben bleiben beim Öffnen erhalten. Beschriftungen auf Vollflächen wechseln für ausreichenden Kontrast zwischen Schwarz und Weiß. Die Farbe verwenden Legende, To-dos, Klausurtermine, Prüfungsübersichten und zugeordnete Zeitblöcke konsistent. Gemeinsame Karten erscheinen nur unter der Prüfung, die sie einführt. Fehlende Prognosen zeigen einen Strich. Prüfung hinzufügen steht im Seitenkopf. Unter dem Kalender stehen die bestehenden Prüfungen und die heutigen Aufgaben nebeneinander, auf schmalen Flächen untereinander. Prüfungskarten öffnen und bearbeiten sich weiterhin direkt an Ort und Stelle. Auch die Prüfungskacheln und der Heute-Bereich zeigen Kartenmengen statt geschätzter Dauer. Ein ausgewählter Tag bleibt als nichtmodale Tagesansicht direkt am Kalender sichtbar; bei mindestens 56 rem Kalenderbreite rechts daneben, sonst darunter. Er zeigt je Fach die neuen Karten mit Themen und Leseaufgaben sowie die eigene Tageslernzeit in Minuten; nur eigene Lernblöcke dieses Fachs ersetzen und sperren diese Eingabe. Dazu kommen Zeitreservierungen mit oder ohne Fach und, bei einer gewählten Prüfung, Themenverschiebung und -tausch. Tag und Woche teilen einen Bearbeitungshorizont: ab heute ein Jahr, Prüfungstage bleiben frei. Die Monatsansicht passt sich auch schmalen Flächen ohne internes Scrollen an. Die Wochenansicht scrollt lokal horizontal; ihre Stundenleiste bleibt dabei sichtbar. Änderungen am bestehenden Kalender werden mit neu berechneter Vorschau ausdrücklich gespeichert oder verworfen; Speichern wartet nicht auf die Vorschau.</li>
+<li>Die Übersicht zeigt Kalender, heutige Aufgaben und Prüfungsfortschritt. Die Prüfungsansichten verzichten auf Erklärtexte; Hinweise erscheinen nur als Status oder Warnung. Die Prüfungskarten der Planungsübersicht sind zunächst geschlossen und zeigen auf einer neutralen Fläche Name, Termin und Resttage („in 26 Tagen“) mit einem kleinen Punkt in der Prüfungsfarbe; „Pausiert“ und „Abgeschlossen“ erscheinen als Status, aktive Prüfungen tragen keine Statusmarke. Die Kopfzeile klappt Kennzahlen und Aktionen auf. Die bisherigen Kennzahlen „Mindestens einmal gelernt“ (mit Gesamtzahl) und „Noch ungesehen“ bleiben erhalten. Ein einzelner Fortschrittsbalken zeigt den gesehenen Anteil; die zweite Farbe überlagert darin den gefestigten Anteil. Beide Anteile beziehen sich auf alle ausgewählten Karten und werden nicht addiert; auch pausierte, abgeschlossene und vergangene Prüfungen zeigen ihren tatsächlichen Lernstand. Eine kompakte Legende nennt „Gesehen“ und „Gefestigt“ mit Prozenten; ein kurzer Text erklärt die zweite Farbe. Gefestigt sind aktive Karten mit der Reife <code>Reif</code>, also in der Wiederholungsphase mit mindestens 21 Tagen Haltbarkeit; nach <code>Nochmal</code> zählt eine Karte nicht mehr. Variantenantworten tragen zur gemeinsamen Kartenreife bei. Lern- und Wiederlernschritte zählen nicht als gefestigt. Der bisherige Hinweis zur sicheren Beherrschung und die geschätzte Abrufsicherheit entfallen in der Prüfungskarte. Bearbeiten öffnet das Formular direkt in der Karte: Name, Prüfungsfarbe und Termin stehen zuerst, Stapelauswahl sowie Ziel-, Zeit- und Planungseinstellungen sind zusätzlich erreichbar. Neue Prüfungen verwenden die vier geführten Einrichtungsschritte. Ungespeicherte Änderungen werden beim Abbrechen, Schließen oder Wechseln der Bearbeitung bestätigt verworfen; das gilt ebenso für Kalenderentwürfe und beim Wechsel über die Hauptnavigation. Der zusätzliche Zeitplanstatus mit „Gut im Zeitplan“, „Im Zeitplan“ oder „Mehr Lernzeit nötig“ samt zugehörigem Prognosebereich entfällt in diesen Kacheln. Prüfungen lassen sich bearbeiten sowie nach Bestätigung pausieren, fortsetzen, abschließen und löschen. Ab dem Tag nach ihrem Termin gilt eine Prüfung automatisch als abgeschlossen. Abgeschlossene Prüfungen lassen sich vor ihrem Termin wieder öffnen; nach dem Termin muss zuerst das Datum angepasst werden. Löschen entfernt ihre Zeitreservierungen und Tagesaufgaben, Karten und Lernstände bleiben erhalten. Innerhalb der Ansicht stellt Rückgängig die zuletzt gelöschte Prüfung einschließlich dieser Zuordnungen wieder her.</li>
+<li>Die heutige Einheit lässt sich oberhalb der Fachkacheln gemeinsam starten; einzelne Themen bleiben direkt startbar. Heute enthält ein Prüfungswidget mit dezent in der jeweiligen Prüfungsfarbe getönten Kacheln für alle aktiven Prüfungen. Der zusätzliche Zeitplanstatus entfällt auch hier. Je Prüfung sind standardmäßig höchstens drei Aufgaben sichtbar, offene Aufgaben zuerst. Bei mehr als drei Aufgaben blendet „Alle … Aufgaben anzeigen“ die vollständige Liste ein; „Weniger anzeigen“ klappt sie wieder ein. Die Auswahl gilt unabhängig je Prüfung und bleibt auf die aktuelle Ansicht beschränkt. Pro Thema gibt es eine abhakbare Lernaufgabe mit eindeutiger Kartenmenge und Startaktion, ohne Dauerschätzung; auch abgehakte Aufgaben lassen sich starten. Die Zielkarten der Checkliste bleiben für den aktuellen Lerntag im Profil gespeichert, höchstens 5.000 je Lerntag; weitere neue Karten plant CoRe auf Folgetage; explizite Planänderungen dürfen offene Ziele ersetzen. Manuelle Häkchen sind widerrufbar und ändern keinen Kartenlernstand. Automatisch wird eine Lernaufgabe abgehakt, wenn alle Zielkarten seit ihrem Einplanen bewertet wurden, im Wiederholungszustand sind und erst nach diesem Lerntag wieder fällig werden. Fehlende Karten, offene Lernschritte und heutige Fälligkeiten gelten nicht als erledigt; Rückgängigmachen im Lernstand öffnet ein automatisches Häkchen wieder. Der nächste Lerntag beginnt eine neue Checkliste. Eine Themenaufgabe startet die Vereinigung ihrer neuen Karten und Wiederholungen, die Gesamtaktion die heutige Einheit. Prüfungssitzungen verwenden die Zielsicherheit ohne normale Tageslimits und ändern keine gespeicherten Stapeleinstellungen.</li>
+<li>Ohne Verbindung zeigen Heute und Prüfungen die zuletzt gespeicherten Tagesziele mit dem Hinweis „Offline: zuletzt geplante Aufgaben“ und den Kalender ohne Kartenmengen. Häkchen und Start bleiben nutzbar; die Einheit startet mit den Zielkarten, die auf dem Gerät liegen, je Aufgabe nennt CoRe den Rest als „erst online verfügbar“. Ohne gespeicherte Tagesziele meldet der Planer den Verbindungsbedarf. Neu geplant wird erst wieder online, automatisch beim Wiederverbinden. Erwartete zukünftige Kontakte dienen nur intern zur Verteilung; sichtbar sind heute ausschließlich tatsächliche Fälligkeiten und Lernschritte, ohne errechnete Zeitgrenze. Quiz, Altfragen und Prüfungssimulation gehören nicht zum Prüfungsplaner; Quizplanung kommt erst mit einem eigenen Quiz-Feature.</li>
 <li>Optional ergänzt „Vor neuen Themen Zusammenfassung lesen“ am ersten Einführungstag eines Themas eine manuell abhakbare Leseaufgabe vor den Karten; hat das Thema schon begonnen, steht sie auf Heute, bis sie abgehakt ist oder alle Karten des Themas eingeführt sind. Sie öffnet vorhandene Zusammenfassungen des Stapels; fehlende oder nicht prüfbare Inhalte werden angezeigt. Sie blockiert den Lernstart nicht, generiert keine Inhalte und erhält keine Lesezeitschätzung. Erledigung bleibt je Klausur und Thema über Tageswechsel erhalten. Die Kalender zeigen die Leseaufgabe ebenfalls, die Woche mit Themenname.</li>
 <li>Nach tatsächlichen Antworten wird nur noch ungesehener Stoff neu verteilt; manuelle Häkchen verändern keinen Lernstand. Heutige gespeicherte Zielkarten bleiben beim Neuberechnen stabil, tatsächliche Fälligkeiten werden ergänzt. Explizite Planänderungen ersetzen offene Ziele, erledigte Aufgaben bleiben erhalten. Nach verstrichenem Einführungsstichtag bleibt neuer Stoff offen und wird nicht stillschweigend in den Puffer verschoben. Vorschau, Checkliste und Sitzung nutzen dieselben Ziele; Prüfungssitzungen erhalten die Themenreihenfolge und begrenzen den Plan nicht durch normale Tageslimits.</li>
 </ul></div></article><article id="specs--610-zusammenfassungen-und-mindmaps" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>6.10 Zusammenfassungen und Mindmaps</h3></div><div class="catalog-preview specs-prose"><h4 id="specs--zusammenfassungen-in-den-stapelinhalten" class="catalog-label" tabindex="-1">Zusammenfassungen in den Stapelinhalten</h4>
@@ -7128,7 +7174,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.722</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">38.864</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">209</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 324 Zeilen, Lernen &amp; Karten: 2.260 Zeilen, Erstellen &amp; Import: 1.758 Zeilen, Prüfungen: 375 Zeilen, Statistik: 568 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.666577252565826 1.864678049709081 L 24.02625225840203 7.114376509003822 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="324"></path><path d="M 25.666577252565826 1.864678049709081 A 19 19 0 0 1 32.61772606535532 34.20538591308427 L 28.965226414857728 30.09330051719145 A 13.5 13.5 0 0 0 24.02625225840203 7.114376509003822 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2260"></path><path d="M 32.61772606535532 34.20538591308427 A 19 19 0 0 1 4.9186317612329695 31.5564844155439 L 9.284290988244479 28.211186295254876 A 13.5 13.5 0 0 0 28.965226414857728 30.09330051719145 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1758"></path><path d="M 4.9186317612329695 31.5564844155439 A 19 19 0 0 1 1.8673283606954278 25.6750523540457 L 7.116259624704647 24.032274041032473 A 13.5 13.5 0 0 0 9.284290988244479 28.211186295254876 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="375"></path><path d="M 1.8673283606954278 25.6750523540457 A 19 19 0 0 1 1.490014136160621 15.712760407853754 L 6.848167938850967 16.953803447685562 A 13.5 13.5 0 0 0 7.116259624704647 24.032274041032473 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="568"></path><path d="M 1.490014136160621 15.712760407853754 A 19 19 0 0 1 7.053797700478473 6.093316498177451 L 10.801382576655758 10.118935406599768 A 13.5 13.5 0 0 0 6.848167938850967 16.953803447685562 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.053797700478473 6.093316498177451 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.801382576655758 10.118935406599768 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">6.722 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>324</td><td>4,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.260</td><td>33,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.758</td><td>26,2 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>375</td><td>5,6 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>568</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,9 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.777</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.016</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">212</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 324 Zeilen, Lernen &amp; Karten: 2.260 Zeilen, Erstellen &amp; Import: 1.758 Zeilen, Prüfungen: 430 Zeilen, Statistik: 568 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.62198667079126 1.8508053657071208 L 23.994569476614842 7.1045196019497965 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="324"></path><path d="M 25.62198667079126 1.8508053657071208 A 19 19 0 0 1 32.89373735234669 33.95534080876206 L 29.16133969772002 29.915636890436197 A 13.5 13.5 0 0 0 23.994569476614842 7.1045196019497965 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2260"></path><path d="M 32.89373735234669 33.95534080876206 A 19 19 0 0 1 5.307389889068769 32.04687545084456 L 9.560513868548862 28.55962203086324 A 13.5 13.5 0 0 0 29.16133969772002 29.915636890436197 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1758"></path><path d="M 5.307389889068769 32.04687545084456 A 19 19 0 0 1 1.783113109572831 25.398613898157812 L 7.056422472591221 23.83585724342792 A 13.5 13.5 0 0 0 9.560513868548862 28.55962203086324 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="430"></path><path d="M 1.783113109572831 25.398613898157812 A 19 19 0 0 1 1.537847847097126 15.511243169533042 L 6.882155049253221 16.810620146773477 A 13.5 13.5 0 0 0 7.056422472591221 23.83585724342792 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="568"></path><path d="M 1.537847847097126 15.511243169533042 A 19 19 0 0 1 7.138643421590123 6.014811157406813 L 10.86166769428772 10.063155296052209 A 13.5 13.5 0 0 0 6.882155049253221 16.810620146773477 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.138643421590123 6.014811157406813 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.86166769428772 10.063155296052209 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">6.777 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>324</td><td>4,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.260</td><td>33,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.758</td><td>25,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>568</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);

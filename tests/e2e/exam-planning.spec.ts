@@ -20,7 +20,7 @@ async function planExam(page: Page, name: string) {
   await inspector.getByRole("button", { name: "Lernplan ansehen" }).click();
   const feasibility = page.getByTestId("exam-plan-preview");
   await expect(feasibility.getByText("Karten", { exact: true })).toBeVisible({ timeout: 20_000 });
-  await inspector.getByRole("button", { name: "Plan aktivieren" }).click();
+  await page.getByTestId("exam-plan-editor").getByRole("button", { name: "Plan aktivieren" }).click();
 }
 
 test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Lernsitzung", async ({ page }) => {

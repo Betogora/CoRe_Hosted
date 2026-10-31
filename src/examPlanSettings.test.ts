@@ -121,3 +121,29 @@ test("Kalenderänderungen im aktuellen Format gelten, Überschneidungen und Blö
   assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("one", "2026-10-13", 480, 600), block("two", "2026-10-13", 540, 660)] }), false);
   assert.equal(isValidExamCalendar([exam], { timeBlocks: [block("late", "2026-10-20", 480, 540)] }), false);
 });
+
+
+test("Lernstart ist heute vorbelegt, bleibt im Profil und lässt alte Pläne ohne Startdatum gültig", () => {
+  const plan = exam("start");
+  assert.equal(plan.studyStartDate, "2026-10-08");
+  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...plan, studyStartDate: "2026-10-15" });
+  assert.deepEqual(getGlobalSchedulerPreferences(withGlobalSchedulerPreferences({}, { examPlanning: settings })).examPlanning, settings);
+  const { studyStartDate: _start, ...legacy } = plan;
+  assert.deepEqual(validateExamPlanningSettings({ ...settings, exams: [legacy] }).exams, [legacy]);
+  for (const studyStartDate of [plan.examDate, "2026-12-01", "2026-02-30", ""]) {
+    assert.throws(() => validateExamPlanningSettings({ ...settings, exams: [{ ...plan, studyStartDate }] }), /ungültig/);
+  }
+});
+
+test("geänderter Lernstart ersetzt Tagesziele und verbietet frühere zugeordnete Blöcke", () => {
+  const plan = exam("start"), capacity = createStudyTimeCapacity();
+  const task = { id: "topic:start:deck-a", date: "2026-10-12", examId: plan.id, kind: "study" as const, deckIds: ["deck-a"], cardIds: ["card"], capturedAt: "2026-10-12T08:00:00.000Z", completed: null };
+  const settings = validateExamPlanningSettings({ version: 3, exams: [plan], capacity, dailyTasks: [task] });
+  const changed = { ...plan, studyStartDate: "2026-10-13" };
+  assert.notEqual(getExamPlanningKey(plan, capacity), getExamPlanningKey(changed, capacity));
+  assert.deepEqual(upsertExamPlan(settings, changed).dailyTasks, []);
+  const block = { id: "early", date: "2026-10-12", start: 480, end: 540, examId: plan.id };
+  assert.equal(isValidExamCalendar([changed], { timeBlocks: [block] }), false);
+  assert.equal(isValidExamCalendar([changed], { timeBlocks: [{ ...block, examId: null }] }), true);
+  assert.deepEqual(normalizeExamPlanningSettings({ ...settings, exams: [changed], capacity: { timeBlocks: [block] } }).capacity.timeBlocks, []);
+});

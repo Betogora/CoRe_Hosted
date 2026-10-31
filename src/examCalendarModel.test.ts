@@ -51,10 +51,14 @@ test("Tag und Woche teilen einen Bearbeitungshorizont: ab heute ein Jahr, Prüfu
     [true, false, true, false, false, false, true]);
 });
 
-test("der laufende Monat zeigt mindestens vier Wochen ab heute, andere Monate bleiben unverändert", () => {
+test("der laufende Monat beginnt mit der aktuellen Woche und zeigt mindestens vier Wochen", () => {
   const extended = createExamMonthDays("2026-10", "2026-10-25");
-  assert.equal(extended.length, 49);
+  assert.equal(extended.length, 28);
+  assert.equal(extended[0], "2026-10-19");
   assert.equal(extended.at(-1), "2026-11-15");
+  assert.equal(createExamMonthDays("2026-10", "2026-10-28")[0], "2026-10-26");
+  assert.equal(createExamMonthDays("2026-10", "2026-10-28").at(-1), "2026-11-22");
+  assert.equal(createExamMonthDays("2027-01", "2027-01-01")[0], "2026-12-28");
   assert.deepEqual(createExamMonthDays("2026-10", "2026-10-03"), createExamMonthDays("2026-10"));
   assert.deepEqual(createExamMonthDays("2026-11", "2026-10-25"), createExamMonthDays("2026-11"));
 });

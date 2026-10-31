@@ -11,7 +11,7 @@ export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: r
   const day = forecast.days.find((entry) => entry.key === date);
   if (!day) return settings.dailyTasks ?? [];
   const civilToday = getLearningDayKey(now, { timeZone })!;
-  const active = settings.exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday);
+  const active = settings.exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday && (!exam.studyStartDate || date >= exam.studyStartDate));
   const byId = new Map(cards.map((card) => [card.cardId, card]));
   const tasks = (settings.dailyTasks ?? []).filter((task) => task.date === date && active.some((exam) => exam.id === task.examId && (task.completed !== null || !task.planningKey || task.planningKey === getExamPlanningKey(exam, settings.capacity)) && (task.kind !== "summary" || exam.readSummaryBeforeTopics) && getExamDeckIds(decks, exam).has(task.deckIds[0]))).map((task) => {
     const cutoff = getExamLastNewDate(active.find((exam) => exam.id === task.examId)!);

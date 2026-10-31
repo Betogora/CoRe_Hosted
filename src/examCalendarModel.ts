@@ -1,7 +1,7 @@
 import type { ExamPlan } from "./coreTypes.ts";
 import { examDayDistance, shiftExamDay, type ExamPlanDay } from "./examPlanning.ts";
 
-/** The month's Monday–Sunday grid; with `today` in it, following weeks fill up to four weeks from today's week. */
+/** The month's Monday–Sunday grid; with `today` in it, start at today's week and show at least four weeks. */
 export function createExamMonthDays(month: string, today?: string): string[] {
   const first = `${month.slice(0, 7)}-01`;
   const next = new Date(`${first}T12:00:00Z`);
@@ -10,8 +10,10 @@ export function createExamMonthDays(month: string, today?: string): string[] {
   const length = Math.ceil((offset + examDayDistance(first, next.toISOString().slice(0, 10))) / 7) * 7;
   const days = Array.from({ length }, (_, index) => shiftExamDay(first, index - offset));
   if (today?.slice(0, 7) !== month.slice(0, 7)) return days;
-  while (days.filter((key, index) => index % 7 === 6 && key >= today).length < 4) days.push(...Array.from({ length: 7 }, (_, index) => shiftExamDay(days.at(-1)!, index + 1)));
-  return days;
+  const weekStart = createExamWeekDays(today)[0];
+  const upcoming = days.filter((key) => key >= weekStart);
+  while (upcoming.length < 28) upcoming.push(...Array.from({ length: 7 }, (_, index) => shiftExamDay(upcoming.at(-1)!, index + 1)));
+  return upcoming;
 }
 
 export function shiftExamMonth(month: string, offset: number): string {

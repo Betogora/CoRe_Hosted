@@ -1,4 +1,5 @@
 import React from "react";
+import { ExamCalendarFilters } from "./ExamCalendarFilters.tsx";
 import { ChevronLeft, ChevronRight, GripVertical, Plus, Trash2, X } from "lucide-react";
 import type { Deck, ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
 import type { ExamPortfolioForecast } from "../examPlanning.ts";
@@ -22,8 +23,8 @@ const gridOffset = (minute: number) => (Math.max(minute, EXAM_DAY_START) - EXAM_
 const gridPercent = (minute: number) => gridOffset(minute) / GRID_HEIGHT * 100 + "%";
 const FIELD = "core-field w-full min-w-0";
 
-export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, today, date, busy, color, onSelect, onChange }: {
-  exams: ExamPlan[]; shown: ExamPlan[]; capacity: StudyTimeCapacity; forecast: ExamPortfolioForecast | null; decks: Deck[];
+export function ExamWeekCalendar({ exams, shown, onToggleExam, capacity, forecast, decks, today, date, busy, color, onSelect, onChange }: {
+  exams: ExamPlan[]; shown: ExamPlan[]; onToggleExam: (id: string) => void; capacity: StudyTimeCapacity; forecast: ExamPortfolioForecast | null; decks: Deck[];
   today: string; date: string; busy: boolean; color: (exam: ExamPlan) => string;
   onSelect: (date: string, openDetails?: boolean) => void; onChange: (capacity: StudyTimeCapacity) => boolean;
 }) {
@@ -46,9 +47,9 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
   const [end, setEnd] = React.useState("15:00");
   const days = createExamWeekDays(week);
   const forecastDays = new Map(forecast?.days.map((day) => [day.key, day]));
-  const selected = capacity.timeBlocks?.find((block) => block.id === selectedId);
-  const activeSubject = exams.find((exam) => exam.id === task?.examId && exam.status === "active");
-  const weekBlocks = (capacity.timeBlocks ?? []).filter((block) => days.includes(block.date));
+  const activeSubject = shown.find((exam) => exam.id === task?.examId && exam.status === "active");
+  const weekBlocks = (capacity.timeBlocks ?? []).filter((block) => days.includes(block.date) && (block.examId === null || shown.some((exam) => exam.id === block.examId)));
+  const selected = weekBlocks.find((block) => block.id === selectedId);
   const unavailable = (key: string) => isExamCalendarDayLocked(key, today, exams);
   const blockName = (block: TimeBlock) => {
     const exam = exams.find((exam) => exam.id === block.examId);
@@ -86,7 +87,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
   }
   function assign(blockId: string, examId: string | null) {
     const block = capacity.timeBlocks?.find((entry) => entry.id === blockId);
-    if (!block || busy || unavailable(block.date) || (examId !== null && !exams.some((exam) => exam.id === examId && exam.status === "active" && block.date < exam.examDate))) return;
+    if (!block || busy || unavailable(block.date) || (examId !== null && !shown.some((exam) => exam.id === examId && exam.status === "active" && block.date < exam.examDate && (!exam.studyStartDate || block.date >= exam.studyStartDate)))) return;
     if (onChange({ ...capacity, timeBlocks: capacity.timeBlocks?.map((entry) => entry.id === blockId ? { ...entry, examId } : entry) })) setSelectedId(blockId);
   }
   function removeBlock(block: TimeBlock) {
@@ -150,7 +151,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
   return <SoftPanel className="grid min-w-0 gap-4 p-3 sm:p-5" data-testid="exam-week-calendar">
     <div className="flex min-w-0 flex-wrap items-center gap-2">
       <h4 className="mr-auto core-heading-3 text-core-text">{formatExamDate(days[0], "short")} – {formatExamDate(days[6], "short")}</h4>
-      <div aria-label="Fächer im Kalender" className="order-last flex min-w-0 basis-full flex-wrap gap-2 core-caption sm:order-none sm:basis-auto sm:justify-end">{shown.map((exam) => <span key={exam.id} className="inline-flex min-h-5 min-w-0 items-center break-words rounded-round px-2.5 py-0.5 font-semibold" style={{ background: color(exam), color: examTextColor(exam) }}>{exam.name}</span>)}</div>
+      <ExamCalendarFilters exams={exams} shown={shown} color={color} onToggle={onToggleExam} />
       <div className="flex shrink-0 gap-2"><ActionButton variant="secondary" onClick={() => { setWeek(createExamWeekDays(today)[0]); setSelectedId(""); onSelect(today, false); }}>Heute</ActionButton><IconButton label="Vorherige Woche" icon={ChevronLeft} onClick={() => { setWeek(shiftExamDay(week, -7)); setSelection(null); setSelectedId(""); }} /><IconButton label="Nächste Woche" icon={ChevronRight} onClick={() => { setWeek(shiftExamDay(week, 7)); setSelection(null); setSelectedId(""); }} /></div>
     </div>
     {activeSubject ? <p role="status" className="core-body text-core-text">{activeSubject.name} · Karten ausgewählt · Tippe einen Lernblock an, um die Aufgabe zuzuordnen.</p> : null}
@@ -194,16 +195,15 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
             </div>
             {focusedDay === key ? <span className="pointer-events-none absolute inset-x-0 z-10 border-t-2 border-core-action" style={{ top: gridPercent(cursor.date === key ? cursor.minute : 480) }}><span className="rounded-inset bg-core-action px-1 core-caption text-core-on-accent">{formatExamClock(cursor.date === key ? cursor.minute : 480)}</span></span> : null}
             {selection?.date === key ? <span className="pointer-events-none absolute inset-x-1 z-10 overflow-hidden rounded-inset border-strong border-dashed border-core-action bg-core-info-soft p-1 core-caption text-core-text" style={{ top: gridPercent(examSelectionRange(selection.first, selection.last).start), height: (examSelectionRange(selection.first, selection.last).end - examSelectionRange(selection.first, selection.last).start) / EXAM_DAY_MINUTES * 100 + "%" }}>{formatExamClock(examSelectionRange(selection.first, selection.last).start)}–{formatExamClock(examSelectionRange(selection.first, selection.last).end)}</span> : null}
-            {(capacity.timeBlocks ?? []).filter((block) => block.date === key).map((block) => {
+            {weekBlocks.filter((block) => block.date === key).map((block) => {
               const exam = exams.find((entry) => entry.id === block.examId);
-              const muted = Boolean(exam && !shown.some((entry) => entry.id === exam.id));
               const { start, end } = editing?.id === block.id ? editing : block;
               const isSelected = selectedId === block.id;
               const editable = !busy && !unavailable(key);
               const edge = `absolute touch-none select-none ${editable ? "cursor-move" : ""}`;
               const gestures = (move: boolean) => ({ onPointerDown: (event: React.PointerEvent<HTMLElement>) => beginEdit(event, block, move), onPointerMove: (event: React.PointerEvent<HTMLElement>) => updateEdit(event, block), onPointerUp: () => finishEdit(block), onPointerCancel: cancelEdit, onLostPointerCapture: cancelEdit });
               return <div key={block.id} data-week-block-container={block.id} className={`absolute inset-x-1 min-w-0 ${isSelected ? "z-[15]" : "z-10"}`} style={{ top: gridPercent(start), height: (end - start) / EXAM_DAY_MINUTES * 100 + "%" }}>
-                <CoreTooltip label={`${formatExamClock(start)}–${formatExamClock(end)} · ${blockName(block)}`}><button type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(start)} bis ${formatExamClock(end)}. ${blockName(block)}. ${task ? "Ausgewählte Aufgabe zuordnen" : "Zeitblock auswählen"}`} aria-pressed={isSelected} className={`absolute inset-0 grid min-h-0 w-full min-w-0 content-start gap-1 overflow-hidden rounded-inset border-strong px-1 text-left ${end - start >= 60 ? "py-1" : ""} ${isSelected ? "shadow-selection" : ""} ${muted ? "opacity-50" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : undefined} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
+                <CoreTooltip label={`${formatExamClock(start)}–${formatExamClock(end)} · ${blockName(block)}`}><button type="button" data-week-block={block.id} aria-label={`${formatExamDate(key)}, ${formatExamClock(start)} bis ${formatExamClock(end)}. ${blockName(block)}. ${activeSubject ? "Ausgewählte Aufgabe zuordnen" : "Zeitblock auswählen"}`} aria-pressed={isSelected} className={`absolute inset-0 grid min-h-0 w-full min-w-0 content-start gap-1 overflow-hidden rounded-inset border-strong px-1 text-left ${end - start >= 60 ? "py-1" : ""} ${isSelected ? "shadow-selection" : ""} ${exam ? "" : "border-dashed border-core-border-strong bg-core-subtle text-core-text"}`} style={exam ? { background: color(exam), borderColor: color(exam), color: examTextColor(exam) } : undefined} onClick={() => { if (activeSubject) assign(block.id, activeSubject.id); else setSelectedId(block.id); }}>
                   {end - start >= 30 ? <strong className="min-w-0 whitespace-nowrap core-caption">{formatExamClock(start)}–{formatExamClock(end)}</strong> : null}{end - start >= 90 ? <span className="min-w-0 truncate core-caption">{blockName(block)}</span> : null}
                 </button></CoreTooltip>
                 {isSelected ? <>
@@ -225,7 +225,7 @@ export function ExamWeekCalendar({ exams, shown, capacity, forecast, decks, toda
     {selected ? <p role="status" className="break-words core-body text-core-text">{formatExamDate(selected.date)} · {formatExamClock(editing?.id === selected.id ? editing.start : selected.start)}–{formatExamClock(editing?.id === selected.id ? editing.end : selected.end)} · {blockName(selected)}</p> : null}
     {weekBlocks.length ? <div className="grid min-w-0 gap-3 sm:grid-cols-2">
       <label className="core-field-group"><span className="core-field-label">Zeitblock auswählen</span><CoreSelect className="w-full" ariaLabel="Zeitblock auswählen" value={selected?.id ?? ""} options={[{ value: "", label: "Zeitblock im Kalender wählen" }, ...weekBlocks.map((block) => ({ value: block.id, label: `${formatExamDate(block.date, "short")} · ${formatExamClock(block.start)}–${formatExamClock(block.end)} · ${blockName(block)}` }))]} onValueChange={setSelectedId} /></label>
-      {selected ? <div className="flex min-w-0 items-end gap-2"><fieldset disabled={busy || unavailable(selected.date)} className="core-field-group min-w-0 flex-1"><span className="core-field-label">Fach im Zeitblock</span><CoreSelect className="w-full" ariaLabel="Fach im Zeitblock" value={selected.examId ?? ""} options={[{ value: "", label: "Ohne Fach" }, ...exams.filter((exam) => exam.status === "active" && selected.date < exam.examDate).map((exam) => ({ value: exam.id, label: exam.name }))]} onValueChange={(id) => assign(selected.id, id || null)} /></fieldset><IconButton label="Ausgewählten Zeitblock löschen" icon={Trash2} disabled={busy || unavailable(selected.date)} onClick={() => removeBlock(selected)} /></div> : null}
+      {selected ? <div className="flex min-w-0 items-end gap-2"><fieldset disabled={busy || unavailable(selected.date)} className="core-field-group min-w-0 flex-1"><span className="core-field-label">Fach im Zeitblock</span><CoreSelect className="w-full" ariaLabel="Fach im Zeitblock" value={selected.examId ?? ""} options={[{ value: "", label: "Ohne Fach" }, ...shown.filter((exam) => exam.status === "active" && selected.date < exam.examDate && (!exam.studyStartDate || selected.date >= exam.studyStartDate)).map((exam) => ({ value: exam.id, label: exam.name }))]} onValueChange={(id) => assign(selected.id, id || null)} /></fieldset><IconButton label="Ausgewählten Zeitblock löschen" icon={Trash2} disabled={busy || unavailable(selected.date)} onClick={() => removeBlock(selected)} /></div> : null}
     </div> : null}
     <div><ActionButton variant="secondary" icon={Plus} onClick={() => setManual(!manual)} aria-expanded={manual}>Zeitblock per Eingabe</ActionButton></div>
     {manual ? <form className="grid min-w-0 gap-3 sm:grid-cols-2 lg:grid-cols-4" onSubmit={(event) => { event.preventDefault(); if (unavailable(manualDate)) return; const parse = (value: string) => { const [hours, minutes] = value.split(":").map(Number); return hours * 60 + minutes; }; if (parse(start) >= parse(end)) return; createBlock(manualDate, parse(start), parse(end)); }}><label className="core-field-group"><span className="core-field-label">Tag</span><CoreDatePicker ariaLabel="Tag für Zeitblock" value={manualDate} min={today} max={shiftExamDay(today, 365)} today={today} onValueChange={setManualDate}/></label><label className="core-field-group"><span className="core-field-label">Von</span><input className={FIELD} type="time" step={1800} min="07:00" required value={start} onChange={(event) => setStart(event.target.value)}/></label><label className="core-field-group"><span className="core-field-label">Bis</span><input className={FIELD} type="time" step={1800} required value={end} min={start} onChange={(event) => setEnd(event.target.value)}/></label><ActionButton type="submit" variant="secondary" disabled={busy || unavailable(manualDate) || start >= end}>Lernzeit blocken</ActionButton></form> : null}
