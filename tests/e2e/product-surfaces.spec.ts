@@ -12,9 +12,6 @@ test("core navigation exposes only the reliable product areas", async ({ page })
 
   const menu = mainMenu(page);
   await expect(menu.getByRole("button")).toHaveText(["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"]);
-  for (const retired of ["Graph", "Community", "Assistent", "KI-Jobs", "Lernplan"]) {
-    await expect(page.getByRole("button", { name: new RegExp(retired, "i") })).toHaveCount(0);
-  }
 
   await menu.getByRole("button", { name: "Erstellen" }).click();
   await expect(page.getByRole("button", { name: /Karten selbst erstellen/ })).toBeVisible();

@@ -92,7 +92,8 @@ Noch offen, nach Risiko priorisiert:
 ## Pflegevertrag
 
 - Ein Test wird nur entfernt, wenn sein Produktvertrag in einer anderen Suite nachweisbar bleibt oder der Vertrag ausdrücklich aus dem Produkt entfernt wurde.
-- Ein Export, den außer Tests niemand nutzt, ist toter Code: Funktion und Test entfallen gemeinsam. Prüfungen, dass eine entfernte Funktion abwesend bleibt, gehören zur Entfernung selbst und bleiben nicht dauerhaft in der Suite.
+- Ein Export, den außer Tests niemand nutzt, ist toter Code: Funktion und Test entfallen gemeinsam. `npm run check:unused` meldet solche Exporte zusätzlich im Produktionsmodus von knip. Ausnahmen sind gekennzeichnet: `/** @internal */` für Hilfen, die ein öffentlicher Seam wie `coreModel.ts` bewusst nur für Tests anbietet, `/** @public */` für eine fertige Schnittstelle, deren Aufrufer noch aussteht.
+- Prüfungen, dass eine entfernte Funktion abwesend bleibt, gehören zur Entfernung selbst und bleiben nicht dauerhaft in der Suite. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#9-beta-abnahme) (keine Labs-Navigation und -Route); sie weisen das am ausgelieferten Artefakt nach, auch hosted.
 - Neue und geänderte Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen; reine Layout- und Darstellungsprüfungen kommen ohne Kontoreset aus. Neue Screenshot-Matrizen laufen nur auf Anforderung (`CORE_VISUAL_OUTPUT`), nicht in jedem Release-Lauf. Die Umstellung bestehender Flows steht in [`todo.md`](todo.md#testsuite-verschlanken).
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`, damit ein Fehler das betroffene Nutzerziel oder die Sicherheitsgrenze benennt.
 - Laufzeiten werden nach wesentlichen Infrastrukturänderungen als Bandbreite aktualisiert. Testanzahlen sind kein Abnahmekriterium.

@@ -90,7 +90,10 @@ export function describeAiSourceSettings(settings: AiSourceSettings): string {
   return `${coverage} mit ${goal} und ${length}.`;
 }
 
-/** Instructions only. Source material is supplied separately by the future server integration. */
+/**
+ * Instructions only. Source material is supplied separately by the future server integration.
+ * @public
+ */
 export function buildAiSourceCreationPrompt(settings: AiSourceSettings): string {
   if (!settings.cardForms.length) throw new Error("Wähle mindestens eine Kartenform aus.");
   return [

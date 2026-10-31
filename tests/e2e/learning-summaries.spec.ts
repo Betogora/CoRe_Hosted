@@ -242,7 +242,7 @@ test("Zusammenfassungsliste: Reihenfolge, Aktionsflächen und KI-Popover", async
   await expect(ai.locator("button")).toHaveCount(0);
   await expect(panel).not.toContainText("Auf diesem Gerät gespeichert");
   await search.fill("Lissabon");
-  await expect(list.getByRole("button")).toHaveCount(1);
+  await expect(list.getByRole("button", { name: /öffnen$/ })).toHaveCount(1);
   await search.fill("nicht vorhanden");
   await expect(panel).toContainText("Keine passende Zusammenfassung gefunden.");
   await expect(ai).toBeVisible();
@@ -265,6 +265,27 @@ test("Zusammenfassungsliste: Reihenfolge, Aktionsflächen und KI-Popover", async
   await panel.getByRole("button", { name: "Zusammenfassung schreiben", exact: true }).click();
   await expect(panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten", exact: true })).toBeEmpty();
   await expect(panel).toContainText("Ungespeicherte Änderungen");
+});
+
+test("Löschen fragt nach, entfernt nur die gewählte Fassung und bleibt nach Reload", async ({ page }) => {
+  const panel = await openSummaries(page);
+  const list = panel.getByTestId("summary-list");
+  const versions = list.getByRole("button", { name: /öffnen$/ });
+  const before = await versions.count();
+  const title = (await versions.first().getAttribute("aria-label"))!.match(/„(.+)“/)![1];
+  const remove = list.getByRole("button", { name: `Zusammenfassung „${title}“ löschen`, exact: true });
+  const dialog = page.getByRole("dialog", { name: "Zusammenfassung löschen?", exact: true });
+  await remove.click();
+  await expect(dialog).toContainText(`„${title}“ wird auf allen Geräten gelöscht.`);
+  await dialog.getByRole("button", { name: "Abbrechen", exact: true }).click();
+  await expect(versions).toHaveCount(before);
+  await remove.click();
+  await dialog.getByRole("button", { name: "Löschen", exact: true }).click();
+  await expect(versions).toHaveCount(before - 1);
+  await expect(list.getByRole("button", { name: `Zusammenfassung „${title}“ öffnen`, exact: true })).toHaveCount(0);
+  await page.reload();
+  await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
+  await expect(versions).toHaveCount(before - 1);
 });
 
 test("Zusammenfassungsliste und KI-Popover: visuelle Pflichtmatrix", async ({ page }, testInfo) => {

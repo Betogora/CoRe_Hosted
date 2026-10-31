@@ -9,7 +9,7 @@ export {
 } from "./coreModel/coreValues.ts";
 export {
   cardStudyFromReviewState,
-  createCardStudy,
+  /** @internal */ createCardStudy,
   createReviewState,
   reviewStateFromCardStudy,
   updateVariantPerformance,
@@ -25,7 +25,7 @@ export {
   resetCardStudy,
   restoreCardStudy,
   setCardLeech,
-  setCardSuspended,
+  /** @internal */ setCardSuspended,
 } from "./coreModel/cards.ts";
 export {
   applyCardStudyStatePatch,
@@ -37,7 +37,7 @@ export {
   planNoteDeletion,
   planNoteRestore,
   removeUnusedNoteMedia,
-  setNoteMarked,
+  /** @internal */ setNoteMarked,
 } from "./coreModel/notes.ts";
 export {
   noteContentMediaRefs,
@@ -46,7 +46,7 @@ export {
 } from "./coreModel/noteContent.ts";
 export {
   addNoteField,
-  applyNoteEditorValue,
+  /** @internal */ applyNoteEditorValue,
   canRemoveNoteField,
   isMovableNoteField,
   moveNoteField,
