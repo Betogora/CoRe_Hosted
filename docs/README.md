@@ -35,7 +35,7 @@ Zum Teilen den ganzen `docs`-Ordner mitnehmen. Die Seiten lassen sich direkt
    lokale Screen-Muster zusätzlich ihre kuratierten Beispiele.
 3. `npm run docs:build` erzeugt die fünf Leseseiten. `npm run check:docs` prüft
    Quellenstand, Dokumentverweise, Journey-Regeln und die vollständige Zuordnung
-   exportierter UI-Komponenten zu Gruppen und Demos. `npm run typecheck` führt
+   exportierter UI-Komponenten zu Gruppen und Demos. `npm run gate:push` führt
    diesen Check ebenfalls aus. HTML-Ausgaben nie direkt bearbeiten.
 4. Betroffene Demos, Zustände und App-Ansichten gemäß der
    [visuellen Pflichtmatrix](operations.md#visuelle-pflichtmatrix) ansehen.

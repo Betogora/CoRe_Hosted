@@ -26,7 +26,9 @@ npm run gate:push
 
 Das Gate kombiniert Typecheck, die Prüfung auf Ungenutztes (`npm run check:unused`, knip: keine Exporte,
 Dateien oder Abhängigkeiten ohne Nutzer in App, Skripten oder Tests) und generierte Dokumente, alle Unit-/Contract-/Integrations-
-Tests mit kompakter Ausgabe sowie den Production-Build einschließlich harter Bundlebudgets. Commits
+Tests mit kompakter Ausgabe sowie den Production-Build einschließlich harter Bundlebudgets. Typecheck
+samt knip, Dokumente, Modultests und Build laufen gleichzeitig; das Gate meldet jeden Schritt mit Laufzeit und
+schlägt fehl, wenn einer davon fehlschlägt. Commits
 und Pushes führen es nicht automatisch aus, weil ein gemischter Worktree auch
 Änderungen außerhalb des zu pushenden Commits enthalten kann. GitHub Actions
 führt auf `main`, in Pull Requests und manuell denselben einzelnen Quality-Job
@@ -94,7 +96,7 @@ Schwere Gates sind vom normalen Push entkoppelt:
 
 | Gate | Zeitplan | Befehl | Verantwortung |
 | --- | --- | --- | --- |
-| Nightly Core | täglich 02:17 UTC, veröffentlichte Releases, manuell | `npm run gate:nightly` | Quality einschließlich Integration, vollständiges Release-E2E sowie zusätzlicher Beta-Auth-Smoke im selben Supabase-Lauf und APKG-Benchmark; jeder Fehler blockiert den Lauf |
+| Nightly Core | täglich 02:17 UTC, veröffentlichte Releases, manuell | `npm run gate:nightly` | Modultests einschließlich Integration, vollständiges Release-E2E sowie zusätzlicher Beta-Auth-Smoke im selben Supabase-Lauf und APKG-Benchmark; jeder Fehler blockiert den Lauf |
 | Weekly Performance | montags 04:17 UTC, manuell | `npm run performance:measure:local` | gedrosselte Startmessung, Performanceartefakt und lokaler 100k-/1m-Statistikbenchmark; jeder Grenzwert bleibt blockierend |
 
 Bei Änderungen an Bootstrap, Preload, Sync, Katalog, Statistik, Service Worker,
