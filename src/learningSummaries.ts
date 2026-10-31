@@ -175,10 +175,7 @@ export async function saveLearningSummary(account: LearningContentAccount, value
   return await pushSummary({ ...account, cloud }, record).catch(() => null) ?? { saved: summary, unsynced: true, replaced: null };
 }
 
-/**
- * Deletes on every device; offline the deletion waits as a local mark.
- * @public
- */
+/** Deletes on every device; offline the deletion waits as a local mark. */
 export async function deleteLearningSummary(account: LearningContentAccount, id: string): Promise<void> {
   const { userId, cloud } = account, existing = await getStored(userId, id);
   if (!existing) return;

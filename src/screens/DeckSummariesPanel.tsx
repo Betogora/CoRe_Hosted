@@ -1,13 +1,13 @@
 import React from "react";
 import * as Popover from "@radix-ui/react-popover";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ArrowLeft, ChevronRight, PenLine, Search, SlidersHorizontal, Sparkles } from "lucide-react";
+import { ArrowLeft, ChevronRight, PenLine, Search, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
 import type { SummaryGenerationInput, SummaryGenerationResult } from "../aiLearningSummary.ts";
 import type { TransientSourceDocument } from "../documentModel.ts";
 import type { CardDraftGuard } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { createLearningSummary, createSummarySettings, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
-import { ActionButton } from "../ui/actionUi.tsx";
+import { createLearningSummary, createSummarySettings, deleteLearningSummary, loadLearningSummaries, saveLearningSummary, summaryChoices, summaryDescription, summaryPlainText, type LearningSummary, type SavedLearningSummary, type SummarySettings } from "../learningSummaries.ts";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl } from "../ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../ui/feedbackUi.tsx";
 import { SummaryDocumentEditor } from "./SummaryDocumentEditor.tsx";
@@ -43,6 +43,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
   const generationRef = React.useRef<AbortController | null>(null);
   const [error, setError] = React.useState("");
   const [pending, setPending] = React.useState<(() => void) | null>(null);
+  const [deleting, setDeleting] = React.useState<LearningSummary | null>(null);
   const titleRef = React.useRef<HTMLInputElement>(null);
   const aiTriggerRef = React.useRef<HTMLButtonElement>(null);
   const panelRef = React.useRef<HTMLElement>(null);
@@ -151,6 +152,20 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     open(stored);
     if (replaced) setNotice(`Diese Fassung wurde auf einem anderen Gerät geändert. Deine Änderungen stehen in „${stored.title}“.`);
   }
+  /** Deletes on every device; offline the deletion waits locally and the list drops the version at once. */
+  async function confirmDelete() {
+    if (!deleting || operationRef.current) return;
+    operationRef.current = true; setBusy(true); setError("");
+    try {
+      await deleteLearningSummary(account, deleting.id);
+      setSummaries((items) => items.filter((item) => item.id !== deleting.id));
+      setUnsynced((ids) => new Set([...ids].filter((id) => id !== deleting.id)));
+      setDeleting(null);
+      toast("Zusammenfassung gelöscht.");
+    } catch (cause: unknown) {
+      setError(cause instanceof Error ? cause.message : "Die Zusammenfassung konnte nicht gelöscht werden.");
+    } finally { operationRef.current = false; setBusy(false); }
+  }
   function changeSetting<K extends keyof SummarySettings>(key: K, value: SummarySettings[K]) { setSettings((current) => ({ ...current, [key]: value })); }
   const filtered = summaries.filter((item) => `${item.title} ${summaryPlainText(item.html)}`.toLocaleLowerCase("de").includes(query.trim().toLocaleLowerCase("de")));
 
@@ -160,10 +175,10 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
       {loading ? <StatusMessage tone="info" announce="polite">Zusammenfassungen werden geladen …</StatusMessage>
         : loadError ? <><StatusMessage tone="error" announce="assertive">{loadError}</StatusMessage><ActionButton variant="secondary" onClick={() => setRetry((value) => value + 1)}>Erneut laden</ActionButton></>
         : summaries.length ? <>
-          <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <button key={summary.id} type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
+          <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <div key={summary.id} className="core-summary-row"><button type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
             <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html)}</div></div>
             <span className="core-summary-preview-action inline-flex min-h-button items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
-          </button>)}</div>
+          </button><IconButton variant="ghost" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>)}</div>
           {!filtered.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}
         </> : null}
       <div className="core-summary-create-actions grid min-w-0 gap-3" data-open={view === "create"}>
@@ -211,6 +226,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
     </> : null}
     {view !== "create" && progress && <StatusMessage tone="info" announce="polite">{progress}</StatusMessage>}
     {view !== "create" && generationRef.current && <div><ActionButton variant="secondary" onClick={() => { generationRef.current?.abort(); setProgress("Erstellung wird abgebrochen …"); }}>KI-Erstellung abbrechen</ActionButton></div>}
+    <ActionDialog open={Boolean(deleting)} destructive title="Zusammenfassung löschen?" description={error || `„${deleting?.title ?? ""}“ wird auf allen Geräten gelöscht.`} confirmLabel="Löschen" cancelLabel="Abbrechen" confirmLoading={busy} onCancel={() => { setDeleting(null); setError(""); }} onConfirm={() => void confirmDelete()}/>
     <ActionDialog open={Boolean(pending)} title="Änderungen übernehmen?" description={error || "Du hast ungespeicherte Änderungen an dieser Zusammenfassung. Speichere oder verwirf sie, bevor du den Bereich verlässt."} confirmLabel="Speichern" cancelLabel="Weiter bearbeiten" discardLabel="Verwerfen" confirmLoading={busy} onCancel={() => setPending(null)} onDiscard={() => { const run = pending; setPending(null); run?.(); }} onConfirm={() => { void persist().then((success) => { if (success) { const run = pending; setPending(null); run?.(); } }); }} restoreFocus={(reason) => { if (reason === "cancel") titleRef.current?.focus(); }}/>
   </section>;
 }
