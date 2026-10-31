@@ -23,33 +23,6 @@ function card(index: number, deckId = "root", known = false): CardStudySnapshot 
 const cards = (count: number, deckId = "root") => Array.from({ length: count }, (_, i) => card(i, deckId));
 const forecast = (input = cards(1000), exam = plan(), extra = {}) => createExamPortfolioForecast(decks, input, [exam], { ...options, ...extra });
 
-test("Quizze folgen der letzten neuen Karte je Kapitel oder Kapitelgruppe, ohne Kartenlast zu verändern", async () => {
-  const input = [...cards(8, "a"), ...cards(6, "b").map((card) => ({ ...card, cardId: `b-${card.cardId}` }))];
-  const exam = plan({ topicOrder: ["a", "b"] });
-  const normal = await forecast(input, exam);
-  const each = await forecast(input, { ...exam, quizChaptersPerTask: 1 });
-  assert.deepEqual(each.days.map((day) => day.newCardIds), normal.days.map((day) => day.newCardIds));
-  const quizzes = each.days.flatMap((day) => (day.quizzes ?? []).map((quiz) => ({ ...quiz, date: day.key })));
-  assert.equal(quizzes.length, 2);
-  for (const quiz of quizzes) {
-    const lastNew = each.days.filter((day) => day.blocks.some((block) => block.method === "new" && block.deckId === quiz.deckIds[0])).at(-1)!.key;
-    assert.ok(quiz.date >= lastNew);
-    assert.ok(quiz.date < exam.examDate);
-  }
-  const bundled = await forecast(input, { ...exam, quizChaptersPerTask: 3 });
-  assert.deepEqual(bundled.days.flatMap((day) => day.quizzes ?? []).map((quiz) => quiz.deckIds), [["a", "b"]]);
-  assert.deepEqual((await forecast(input, { ...exam, quizChaptersPerTask: 1, completedQuizDeckIds: ["a"] })).days.flatMap((day) => day.quizzes ?? []).map((quiz) => quiz.deckIds), [["b"]]);
-});
-
-test("Quizze zu bereits gelerntem Stoff warten auf einen Lerntag, unplanbarer neuer Stoff bekommt kein verfrühtes Quiz", async () => {
-  const exam = plan({ quizChaptersPerTask: 1, studyTime: { dailyMinutes: 20, weekdays: Array(7).fill(true), dateOverrides: [{ date, minutes: 0 }] } });
-  const known = await forecast([card(0, "a", true)], exam);
-  assert.equal(known.days[0].quizzes?.length ?? 0, 0);
-  assert.deepEqual(known.days[1].quizzes, [{ examId: exam.id, deckIds: ["a"] }]);
-  const blocked = await forecast([card(0, "a")], { ...exam, studyTime: { ...exam.studyTime, weekdays: Array(7).fill(false), dateOverrides: [] } });
-  assert.equal(blocked.days.flatMap((day) => day.quizzes ?? []).length, 0);
-});
-
 test("1000 neue Karten werden vollständig und ohne Zeitkapazität bis zum Stichtag verteilt", async () => {
   const input = cards(1000), original = JSON.stringify(input), exam = plan({ examDate: shiftExamDay(date, 90) });
   const result = await forecast(input, exam);
@@ -242,15 +215,14 @@ test("ab zehn Bewertungen bestimmt die Bewertungshistorie das Planungsszenario, 
 
 
 test("vor dem Lernstart entstehen weder Lernaufgaben noch Lernzeit oder Lerntage", async () => {
-  const exam = plan({ studyStartDate: "2026-10-23", readSummaryBeforeTopics: true, quizChaptersPerTask: 1 });
+  const exam = plan({ studyStartDate: "2026-10-23", readSummaryBeforeTopics: true });
   const input = [...cards(20), card(100, "root", true)];
   const dailyTasks = [{ id: "topic:exam:root", date, examId: exam.id, kind: "study" as const, deckIds: ["root"], cardIds: [input[0].cardId], capturedAt: now, completed: null }];
   const result = await forecast(input, exam, { dailyTasks });
   const early = result.days.filter((day) => day.key < exam.studyStartDate!);
-  assert.ok(early.every((day) => day.budgetMinutes === 0 && !day.blocks.length && !day.summaries.length && !day.quizzes?.length));
+  assert.ok(early.every((day) => day.budgetMinutes === 0 && !day.blocks.length && !day.summaries.length));
   assert.equal(result.days.flatMap((day) => day.newCardIds).length, 20);
   assert.equal(result.days.find((day) => day.summaries.length)!.key, exam.studyStartDate);
-  assert.ok(result.days.filter((day) => day.quizzes?.length).every((day) => day.key >= exam.studyStartDate!));
   assert.equal(result.exams[0].studyDays, 17);
   assert.equal(result.exams[0].availableMinutes, 340);
   const started = await forecast(input, exam, { now: "2026-10-23T08:00:00.000Z" });

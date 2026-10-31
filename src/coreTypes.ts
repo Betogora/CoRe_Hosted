@@ -153,9 +153,6 @@ export interface ExamPlan {
   topicOrder?: string[];
   readSummaryBeforeTopics?: boolean;
   completedSummaryDeckIds?: string[];
-  /** Manual quiz after this many chapters; 1 means after each chapter. */
-  quizChaptersPerTask?: number;
-  completedQuizDeckIds?: string[];
   /** Earliest introduction of a topic; repetitions continue to follow the scheduler. */
   topicDates?: Array<{ deckId: string; date: string }>;
   createdAt: string;
@@ -172,7 +169,7 @@ export interface ExamDailyTask {
   id: string;
   date: string;
   examId: string;
-  kind: "study" | "summary" | "quiz";
+  kind: "study" | "summary";
   deckIds: string[];
   cardIds: string[];
   capturedAt: string;

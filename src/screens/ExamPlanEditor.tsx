@@ -15,11 +15,10 @@ import { ExamCalendar } from "./ExamCalendar.tsx";
 import { ExamTopicPreview } from "./ExamTopicPreview.tsx";
 import { ExamTopicOrder } from "./ExamTopicOrder.tsx";
 import { ExamDeckSelection } from "./ExamDeckSelection.tsx";
-import { ExamLearningMethods } from "./ExamLearningMethods.tsx";
 import { formatExamCount, formatExamDate, formatExamMinutes } from "./examPlanningUi.ts";
 import { useExamForecast } from "./useExamForecast.ts";
 
-const STEPS = ["Prüfung", "Lernstoff", "Lernmethoden", "Lernzeit", "Dein Plan"];
+const STEPS = ["Prüfung", "Lernstoff", "Lernzeit", "Dein Plan"];
 const EXAM_GOALS = EXAM_RETENTION_LEVELS.map((retention, index) => ({ retention, label: ["Bestehen", "Gute Note", "Sehr gute Note", "Bestmöglich abschneiden"][index] }));
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
@@ -78,7 +77,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   const valid = validBasics && selected.size > 0;
   const canAdvance = step === 0 ? validBasics : step === 1 ? plan.deckIds.length > 0 : true;
   const candidate = { ...plan, status: "active" as const, name: plan.name.trim() || "Neue Prüfung" };
-  const plannedExams = (embedded || step >= 3) && valid ? exams.some((exam) => exam.id === plan.id) ? exams.map((exam) => exam.id === plan.id ? candidate : exam) : [...exams, candidate] : [];
+  const plannedExams = (embedded || step >= 2) && valid ? exams.some((exam) => exam.id === plan.id) ? exams.map((exam) => exam.id === plan.id ? candidate : exam) : [...exams, candidate] : [];
   const { forecast, current, busy, error } = useExamForecast({ decks, exams: plannedExams, capacity, preferences, timeZone, now, onLoadPlanningData, delayMs: 250 });
   const summary = current ? forecast?.exams.find((exam) => exam.examId === plan.id) ?? null : null;
   const time = plan.studyTime;
@@ -90,17 +89,17 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   function toggleDeck(deckId: string, on: boolean) {
     const next = toggleExamDeckSelection(decks, plan, deckId, on), scope = getExamDeckIds(decks, next);
     if (next.deckIds.length > EXAM_PLANNING_LIMITS.decksPerExam || (next.excludedDeckIds?.length ?? 0) > EXAM_PLANNING_LIMITS.decksPerExam) { setSelectionError("Bitte wähle höchstens 200 Stapel aus."); return; }
-    setSelectionError(""); patch({ ...next, topicOrder: topicOrder.filter((id) => scope.has(id)), completedSummaryDeckIds: plan.completedSummaryDeckIds?.filter((id) => scope.has(id)), completedQuizDeckIds: plan.completedQuizDeckIds?.filter((id) => scope.has(id)), ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => scope.has(topic.deckId)) } : {}) });
+    setSelectionError(""); patch({ ...next, topicOrder: topicOrder.filter((id) => scope.has(id)), completedSummaryDeckIds: plan.completedSummaryDeckIds?.filter((id) => scope.has(id)), ...(plan.topicDates ? { topicDates: plan.topicDates.filter((topic) => scope.has(topic.deckId)) } : {}) });
   }
   return <div className="grid w-full min-w-0 gap-6" data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
     {!embedded ? <>
     <PageHeader eyebrow="Prüfungen" title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} action={<ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={cancel}>Zurück</ActionButton>} />
-    <ol className="grid grid-cols-5 gap-1.5 sm:gap-2" aria-label="Schritte der Prüfungsplanung">{STEPS.map((name, index) => <li key={name} className="min-w-0"><button type="button" disabled={saving || index > step + 1 || (index === step + 1 && !canAdvance)} aria-current={step === index ? "step" : undefined} aria-label={`${index + 1}. ${name}`} onClick={() => go(index)} className={`grid min-h-control w-full min-w-0 gap-0.5 rounded-control border px-2 py-2.5 text-left transition-colors sm:px-3 ${step === index ? "border-core-action bg-core-info-soft" : index < step ? "border-core-border bg-core-surface shadow-soft hover:bg-core-subtle" : "border-transparent bg-core-subtle"}`}><span className={`core-caption font-semibold tabular-nums ${step === index ? "text-core-action" : "text-core-muted"}`}>{index + 1}</span><span className={`break-words core-control-label font-semibold ${step === index ? "text-core-action" : index < step ? "text-core-text" : "text-core-secondary"}`}><span className="sm:hidden">{name === "Lernmethoden" ? "Methoden" : name}</span><span className="hidden sm:inline">{name}</span></span></button></li>)}</ol>
+    <ol className="grid grid-cols-4 gap-1.5 sm:gap-2" aria-label="Schritte der Prüfungsplanung">{STEPS.map((name, index) => <li key={name} className="min-w-0"><button type="button" disabled={saving || index > step + 1 || (index === step + 1 && !canAdvance)} aria-current={step === index ? "step" : undefined} aria-label={`${index + 1}. ${name}`} onClick={() => go(index)} className={`grid min-h-control w-full min-w-0 gap-0.5 rounded-control border px-2 py-2.5 text-left transition-colors sm:px-3 ${step === index ? "border-core-action bg-core-info-soft" : index < step ? "border-core-border bg-core-surface shadow-soft hover:bg-core-subtle" : "border-transparent bg-core-subtle"}`}><span className={`core-caption font-semibold tabular-nums ${step === index ? "text-core-action" : "text-core-muted"}`}>{index + 1}</span><span className={`break-words core-control-label font-semibold ${step === index ? "text-core-action" : index < step ? "text-core-text" : "text-core-secondary"}`}>{name}</span></button></li>)}</ol>
     </> : null}
-    <div className={!embedded && step !== 4 ? "grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]" : "min-w-0"}>
+    <div className={!embedded && step !== 3 ? "grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]" : "min-w-0"}>
     <div className="grid min-w-0 gap-6">
     <fieldset disabled={saving} className={embedded ? "grid min-w-0 gap-5" : "core-surface-raised grid min-w-0 gap-6 rounded-panel p-5 sm:p-6"} data-testid="exam-plan-inspector">
-      {!embedded ? <h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Wie möchtest du zusätzlich lernen?", "Dein Lernrhythmus", "So sieht dein Lernplan aus"][step]}</h2> : null}
+      {!embedded ? <h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Dein Lernrhythmus", "So sieht dein Lernplan aus"][step]}</h2> : null}
       {embedded || step === 0 ? <div className="grid max-w-2xl gap-5">
         <label className={LABEL}>Name<input autoComplete="off" aria-invalid={showErrors && !plan.name.trim()} placeholder="Zum Beispiel Anatomie" className={FIELD} maxLength={120} value={plan.name} onChange={(event) => patch({ name: event.target.value })} /></label>
         {showErrors && !plan.name.trim() ? <p role="alert" className="core-field-error">Bitte gib der Prüfung einen Namen.</p> : null}
@@ -126,14 +125,13 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         <div className="grid min-w-0 gap-2"><label htmlFor={`${plan.id}-buffer`} className="core-body font-semibold text-core-muted">Puffer vor der Prüfung · Tage</label><div className="flex min-w-0 items-center gap-3"><div className="w-20 shrink-0 sm:w-24"><input id={`${plan.id}-buffer`} type="number" inputMode="numeric" className={FIELD} min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></div><p className="min-w-0 core-caption text-core-muted">Letzte neue Karten am {formatExamDate(getExamLastNewDate(plan), "short")}</p></div></div>
         <ExamTopicOrder topics={topicOrder.map((id) => ({ id, name: decks.find((deck) => deck.id === id)!.name }))} disabled={saving} onChange={(topicOrder) => patch({ topicOrder })} />
       </div></details> : null}
-      {embedded ? <details className="group min-w-0"><Summary>Lernmethoden</Summary><div className="mt-4"><ExamLearningMethods plan={plan} onChange={patch} /></div></details> : step === 2 ? <ExamLearningMethods plan={plan} onChange={patch} /> : null}
       {embedded ? <details className="group min-w-0"><Summary>Lernzeit und weitere Einstellungen</Summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
-      {!embedded && step === 3 ? renderPlanningOptions() : null}
-      {valid && (embedded || step === 4) ? renderPreview() : null}
+      {!embedded && step === 2 ? renderPlanningOptions() : null}
+      {valid && (embedded || step === 3) ? renderPreview() : null}
       {saveError ? <StatusMessage tone="error" announce="assertive">{saveError}</StatusMessage> : null}
-      {embedded ? <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end"><ActionButton variant="secondary" disabled={saving} onClick={cancel}>Abbrechen</ActionButton><ActionButton variant="primary" icon={Save} loading={saving} onClick={() => { if (!valid) setShowErrors(true); else void onSave({ ...plan, name: plan.name.trim(), updatedAt: new Date().toISOString() }, capacity); }}>Speichern</ActionButton></div> : step < 4 ? renderStepActions() : null}
+      {embedded ? <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end"><ActionButton variant="secondary" disabled={saving} onClick={cancel}>Abbrechen</ActionButton><ActionButton variant="primary" icon={Save} loading={saving} onClick={() => { if (!valid) setShowErrors(true); else void onSave({ ...plan, name: plan.name.trim(), updatedAt: new Date().toISOString() }, capacity); }}>Speichern</ActionButton></div> : step < 3 ? renderStepActions() : null}
     </fieldset>
-    {!embedded && step === 4 ? <>
+    {!embedded && step === 3 ? <>
       <div className="grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]" data-testid="exam-preview-layout">
         <div ref={previewCalendar} className="min-w-0">{renderCalendar()}</div>
         <ExamTopicPreview calendarRef={previewCalendar} actionsRef={previewActions} examDate={plan.examDate} color={plan.color} topics={topicOrder.map((id) => {
@@ -145,7 +143,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       <div ref={previewActions} className="exam-plan-actions sticky z-30 rounded-panel border border-core-border bg-core-surface p-2 sm:p-3" data-testid="exam-plan-actions">{renderStepActions()}</div>
     </> : null}
     </div>
-    {!embedded && step !== 4 ? renderContext() : null}
+    {!embedded && step !== 3 ? renderContext() : null}
     </div>
     <ActionDialog open={discarding} title="Änderungen verwerfen?" description="Deine Änderungen an dieser Prüfung wurden noch nicht gespeichert." cancelLabel="Weiter bearbeiten" confirmLabel="Verwerfen" onCancel={() => setDiscarding(false)} onConfirm={onCancel} />
   </div>;
@@ -173,6 +171,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         }} /></label>)}</div> : null}
       </div>
     </div>
+    <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.readSummaryBeforeTopics ?? false} onChange={(event) => patch({ readSummaryBeforeTopics: event.target.checked })} />Vor neuen Themen Zusammenfassung lesen</label>
     <div className="flex min-w-0 items-start gap-3 rounded-panel border border-core-border bg-core-subtle p-4 core-body text-core-muted"><CalendarClock size={20} aria-hidden="true" className="mt-0.5 shrink-0" /><p>Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.</p></div>
     <details className="group min-w-0"><Summary>Weitere Lerneinstellungen</Summary><div className="mt-3 grid gap-4">
       <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.variants} onChange={(event) => patch({ variants: event.target.checked })} />Varianten einbeziehen</label>
@@ -181,7 +180,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   function renderContext() { return <aside className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-subtle p-4 sm:p-6" aria-label="Deine Prüfung" data-testid="exam-setup-context">
     <div className="grid gap-3 border-l-strong pl-3" style={{ borderColor: plan.color }}><h3 className="break-words core-heading-3 font-semibold text-core-text">{plan.name.trim() || "Neue Prüfung"}</h3><p className="core-body text-core-muted">{formatExamDate(plan.examDate)}</p></div>
     <dl className="grid gap-4 core-caption"><div className="grid gap-1"><dt className="text-core-muted">Lernstart</dt><dd className="text-core-text">{formatExamDate(studyStartDate, "short")}</dd></div><div className="grid gap-1"><dt className="text-core-muted">Lernstoff</dt><dd className="text-core-text">{selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"}</dd></div>{step > 0 ? <div className="grid gap-1"><dt className="text-core-muted">Letzte neue Karten</dt><dd className="text-core-text">{formatExamDate(getExamLastNewDate(plan), "short")}</dd></div> : null}
-    {step >= 3 ? <div className="grid gap-2"><dt className="text-core-muted">Deine Woche</dt><dd className="grid gap-2">{WEEKDAYS.map((day, index) => <div key={day} className="flex justify-between gap-2"><span className="text-core-muted">{day}</span><span className="text-core-text">{time.weekdays[index] ? formatExamMinutes(time.weeklyMinutes?.[index] ?? time.dailyMinutes) : "Frei"}</span></div>)}</dd></div> : null}</dl>
+    {step >= 2 ? <div className="grid gap-2"><dt className="text-core-muted">Deine Woche</dt><dd className="grid gap-2">{WEEKDAYS.map((day, index) => <div key={day} className="flex justify-between gap-2"><span className="text-core-muted">{day}</span><span className="text-core-text">{time.weekdays[index] ? formatExamMinutes(time.weeklyMinutes?.[index] ?? time.dailyMinutes) : "Frei"}</span></div>)}</dd></div> : null}</dl>
   </aside>; }
   function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
     {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
@@ -190,5 +189,5 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       {summary.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}</> : null}
   </div>; }
   function renderCalendar() { return <ExamCalendar exams={plannedExams} capacity={capacity} forecast={current ? forecast : null} decks={decks} today={today} initialExamId={plan.id} busy={busy} onChange={(nextExams, nextCapacity) => { const changed = nextExams.find((exam) => exam.id === plan.id); if (changed) patch(changed); setCapacity(nextCapacity); }} />; }
-  function renderStepActions() { return <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} aria-label="Vorheriger Schritt" disabled={saving} onClick={() => go(step - 1)}>{step === 4 ? <><span className="sm:hidden">Zurück</span><span className="hidden sm:inline">Vorheriger Schritt</span></> : "Vorheriger Schritt"}</ActionButton> : <span />}{step < 4 ? <ActionButton variant="primary" icon={ArrowRight} disabled={saving || !canAdvance} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zu den Lernmethoden", "Weiter zur Lernzeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!valid} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>; }
+  function renderStepActions() { return <div className="flex flex-wrap justify-between gap-3">{step > 0 ? <ActionButton variant="secondary" icon={ArrowLeft} aria-label="Vorheriger Schritt" disabled={saving} onClick={() => go(step - 1)}>{step === 3 ? <><span className="sm:hidden">Zurück</span><span className="hidden sm:inline">Vorheriger Schritt</span></> : "Vorheriger Schritt"}</ActionButton> : <span />}{step < 3 ? <ActionButton variant="primary" icon={ArrowRight} disabled={saving || !canAdvance} onClick={() => go(step + 1)}>{["Weiter zum Lernstoff", "Weiter zur Lernzeit", "Lernplan ansehen"][step]}</ActionButton> : <ActionButton variant="primary" icon={Save} loading={saving} disabled={!valid} onClick={() => void onSave({ ...plan, name: plan.name.trim(), status: initialPlan?.status ?? "active", updatedAt: new Date().toISOString() }, capacity)}>{initialPlan ? "Speichern" : "Plan aktivieren"}</ActionButton>}</div>; }
 }

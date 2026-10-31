@@ -1,26 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, getExamQuizPlanningKey, getExamQuizTaskId, isValidExamCalendar, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
+import { EXAM_PLANNING_LIMITS, createExamPlan, createStudyTimeCapacity, getExamPlanningKey, isValidExamCalendar, normalizeExamPlanningSettings, removeExamPlan, upsertExamPlan, validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from "./learningProfiles.ts";
 
 const exam = (id: string) => ({ ...createExamPlan("2026-10-08", ["deck-a"]), id, name: `Prüfung ${id}` });
-
-test("manuelle Quizaufgaben behalten Kapitelgruppen und verbieten Karten oder automatische Erledigung", () => {
-  const plan = { ...exam("a"), quizChaptersPerTask: 3, completedQuizDeckIds: ["deck-a"] };
-  const settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), plan);
-  const task = { id: getExamQuizTaskId("a", ["deck-a", "deck-b"]), date: "2026-10-12", examId: "a", kind: "quiz", deckIds: ["deck-a", "deck-b"], cardIds: [], capturedAt: "2026-10-12T08:00:00.000Z", completed: "manual" };
-  assert.deepEqual(validateExamPlanningSettings({ ...settings, dailyTasks: [task] }).dailyTasks, [task]);
-  assert.deepEqual(normalizeExamPlanningSettings(settings), settings);
-  for (const quizChaptersPerTask of [0, 1.5, 201]) assert.throws(() => upsertExamPlan(settings, { ...plan, quizChaptersPerTask }), /ungültig/);
-  for (const change of [{ cardIds: ["card"] }, { completed: "automatic" }, { deckIds: ["deck-a", "deck-a"] }, { kind: "summary" }]) {
-    assert.throws(() => validateExamPlanningSettings({ ...settings, dailyTasks: [{ ...task, ...change }] }), /ungültig/);
-  }
-  assert.equal(getExamPlanningKey(plan, settings.capacity), getExamPlanningKey({ ...plan, quizChaptersPerTask: 1 }, settings.capacity));
-  assert.notEqual(getExamQuizPlanningKey(plan, settings.capacity), getExamQuizPlanningKey({ ...plan, quizChaptersPerTask: 1 }, settings.capacity));
-  const study = { ...task, id: "topic:a:deck-a", kind: "study" as const, deckIds: ["deck-a"], cardIds: ["card"], completed: null };
-  const stored = validateExamPlanningSettings({ ...settings, dailyTasks: [study, { ...task, completed: null }] });
-  assert.deepEqual(upsertExamPlan(stored, { ...plan, quizChaptersPerTask: 1 }).dailyTasks, [study]);
-});
 
 test("Themenfolge, Tagesausnahmen und erledigte Leseaufgaben bleiben validiert", () => {
   const original = exam("a"), settings = upsertExamPlan(normalizeExamPlanningSettings(undefined), { ...original, topicOrder: ["deck-a"], readSummaryBeforeTopics: true, completedSummaryDeckIds: ["deck-a"] });

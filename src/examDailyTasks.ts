@@ -1,7 +1,7 @@
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import type { Deck, ExamDailyTask, ExamPlanningSettings } from "./coreTypes.ts";
 import { getExamDeckIds, getExamLastNewDate, getExamSessionCardIds, getExamTopicTasks, type ExamPlanDay, type ExamPortfolioForecast } from "./examPlanning.ts";
-import { EXAM_PLANNING_LIMITS, getExamPlanningKey, getExamQuizPlanningKey, getExamQuizTaskId } from "./examPlanSettings.ts";
+import { EXAM_PLANNING_LIMITS, getExamPlanningKey } from "./examPlanSettings.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
 /** Freeze today's targets. Only real answers and finished learning steps can automatically check them. */
@@ -13,7 +13,7 @@ export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: r
   const civilToday = getLearningDayKey(now, { timeZone })!;
   const active = settings.exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday && (!exam.studyStartDate || date >= exam.studyStartDate));
   const byId = new Map(cards.map((card) => [card.cardId, card]));
-  const tasks = (settings.dailyTasks ?? []).filter((task) => task.date === date && active.some((exam) => exam.id === task.examId && (task.completed !== null || !task.planningKey || task.planningKey === (task.kind === "quiz" ? getExamQuizPlanningKey(exam, settings.capacity) : getExamPlanningKey(exam, settings.capacity))) && (task.kind !== "summary" || exam.readSummaryBeforeTopics) && (task.kind !== "quiz" || exam.quizChaptersPerTask) && task.deckIds.every((id) => getExamDeckIds(decks, exam).has(id)))).map((task) => {
+  const tasks = (settings.dailyTasks ?? []).filter((task) => task.date === date && active.some((exam) => exam.id === task.examId && (task.completed !== null || !task.planningKey || task.planningKey === getExamPlanningKey(exam, settings.capacity)) && (task.kind !== "summary" || exam.readSummaryBeforeTopics) && getExamDeckIds(decks, exam).has(task.deckIds[0]))).map((task) => {
     const cutoff = getExamLastNewDate(active.find((exam) => exam.id === task.examId)!);
     return { ...task, cardIds: task.cardIds.filter((id) => civilToday <= cutoff || byId.get(id)?.study.state !== "new" || byId.get(id)?.study.reps !== 0) };
   }).filter((task) => task.kind !== "study" || task.cardIds.length > 0);
@@ -33,10 +33,6 @@ export function reconcileExamDailyTasks(settings: ExamPlanningSettings, decks: r
     for (const summary of day.summaries.filter((entry) => entry.examId === exam.id)) {
       const id = `summary:${encodeURIComponent(exam.id)}:${encodeURIComponent(summary.deckId)}`;
       if (!ids.has(id)) { tasks.push({ id, date, examId: exam.id, kind: "summary", deckIds: [summary.deckId], cardIds: [], capturedAt: now, completed: null }); ids.add(id); }
-    }
-    for (const quiz of day.quizzes?.filter((entry) => entry.examId === exam.id) ?? []) {
-      const id = getExamQuizTaskId(exam.id, quiz.deckIds);
-      if (!ids.has(id)) { tasks.push({ id, date, examId: exam.id, kind: "quiz", deckIds: quiz.deckIds, cardIds: [], capturedAt: now, completed: null, planningKey: getExamQuizPlanningKey(exam, settings.capacity) }); ids.add(id); }
     }
   }
   // Frozen targets stay within the profile limit; cards beyond it remain in the plan without being stored for today.
@@ -78,17 +74,13 @@ export function setExamDailyTaskChecked(tasks: readonly ExamDailyTask[], id: str
   return tasks.map((task) => task.id === id && task.completed !== "automatic" ? { ...task, completed: checked ? "manual" : null } : task);
 }
 
-/** Manual reading and quiz completion belong to the exam and survive the daily checklist rollover. */
+/** Reading completion belongs to the exam and survives the daily checklist rollover. */
 export function withExamDailyTasks(settings: ExamPlanningSettings, dailyTasks: ExamDailyTask[]): ExamPlanningSettings {
   return { ...settings, dailyTasks, exams: settings.exams.map((exam) => {
     const completed = new Set(exam.completedSummaryDeckIds);
     for (const task of dailyTasks.filter((entry) => entry.examId === exam.id && entry.kind === "summary")) {
       if (task.completed) completed.add(task.deckIds[0]); else completed.delete(task.deckIds[0]);
     }
-    const quizzes = new Set(exam.completedQuizDeckIds);
-    const quizTasks = dailyTasks.filter((entry) => entry.examId === exam.id && entry.kind === "quiz");
-    for (const task of quizTasks) for (const id of task.deckIds) quizzes.delete(id);
-    for (const task of quizTasks) if (task.completed) for (const id of task.deckIds) quizzes.add(id);
-    return { ...exam, completedSummaryDeckIds: [...completed], ...(exam.quizChaptersPerTask || exam.completedQuizDeckIds ? { completedQuizDeckIds: [...quizzes] } : {}) };
+    return { ...exam, completedSummaryDeckIds: [...completed] };
   }) };
 }

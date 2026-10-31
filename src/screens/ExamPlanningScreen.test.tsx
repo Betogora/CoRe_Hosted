@@ -10,7 +10,7 @@ import { getGlobalSchedulerPreferences, withGlobalSchedulerPreferences } from ".
 import { createCoreDeck } from "../coreModel.ts";
 import { ExamPlanEditor } from "./ExamPlanEditor.tsx";
 import { ExamWeekCalendar } from "./ExamWeekCalendar.tsx";
-import { createExamPlan, createStudyTimeCapacity, getExamQuizTaskId } from "../examPlanSettings.ts";
+import { createExamPlan, createStudyTimeCapacity } from "../examPlanSettings.ts";
 import { type ExamPortfolioForecast, type StudyPlanBlock } from "../examPlanning.ts";
 import { examColor, examTextColor } from "./examPlanningUi.ts";
 import { colorContrast } from "../ui/colorMath.ts";
@@ -137,22 +137,6 @@ test("Heute zeigt Checklisten mit Prüfungsfarbpunkt ohne Zeitplanstatus und ohn
   assert.doesNotMatch(html, /Quiz/);
 });
 
-test("Quizaufgaben erscheinen in Kalender und Heute ohne Lernstart oder Erzeugungsaktion", () => {
-  const date = "2026-10-20", exam = { ...createExamPlan(date, ["a", "b"]), id: "exam", name: "Anatomie", quizChaptersPerTask: 2 };
-  const projection: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 120, newCardIds: [], reviewCardIds: [], blocks: [], summaries: [], quizzes: [{ examId: exam.id, deckIds: ["a", "b"] }] }], exams: [] };
-  const month = renderToStaticMarkup(<ExamMonthCalendar onToggleExam={() => undefined} exams={[exam]} shown={[exam]} forecast={projection} today={date} date={date} color={() => "var(--core-info)"} onSelect={() => undefined} />);
-  assert.match(month, /data-exam-task="quiz"/);
-  const week = renderToStaticMarkup(<ExamWeekCalendar onToggleExam={() => undefined} exams={[exam]} shown={[exam]} forecast={projection} decks={[]} capacity={createStudyTimeCapacity()} today={date} date={date} color={() => "var(--core-info)"} onSelect={() => undefined} onChange={() => true} busy={false} />);
-  assert.match(week, /data-exam-task="quiz"/);
-  const state = createCoreRepository().getState();
-  state.decks = [createCoreDeck({ id: "a", name: "Herz" }), createCoreDeck({ id: "b", name: "Lunge" })];
-  state.profile = withGlobalSchedulerPreferences(state.profile, { examPlanning: { version: 3, exams: [exam], capacity: createStudyTimeCapacity(), dailyTasks: [{ id: getExamQuizTaskId("exam", ["a", "b"]), date, examId: exam.id, kind: "quiz", deckIds: ["a", "b"], cardIds: [], capturedAt: date + "T08:00:00Z", completed: null }] } });
-  const today = renderToStaticMarkup(<ExamDashboardWidget state={state} now={date + "T12:00:00Z"} onLoad={async () => { throw new Error("Not called in SSR"); }} onSaveTasks={async () => undefined} onStart={async () => undefined} />);
-  assert.match(today, /Quiz durchführen/);
-  assert.match(today, /Quiz: Herz · Lunge als erledigt markieren/);
-  assert.doesNotMatch(today, /aria-label="Herz · Lunge lernen"|Quiz erstellen|KI generieren|0 Karten/);
-});
-
 test("Bearbeiten lässt gültige Angaben ohne fertige Planung speichern", () => {
   const state = createCoreRepository().getState();
   const deck = createCoreDeck({ id: "deck", name: "Anatomie" });
@@ -209,18 +193,15 @@ test("Monatsansicht bündelt alle Aufgaben je Fach und zählt nur weitere Fachka
   const first = { ...createExamPlan(date, ["a"]), id: "anatomy", name: "Anatomie" };
   const second = { ...first, id: "physiology", name: "Physiologie" };
   const third = { ...first, id: "biochem", name: "Biochemie" };
-  const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 120, newCardIds: ["c"], reviewCardIds: [], blocks: [{ id: "new", date, examIds: [first.id], deckId: "a", method: "new", expectedItems: 1, cardIds: ["c"] }], summaries: [{ examId: first.id, deckId: "a" }, { examId: second.id, deckId: "b" }], quizzes: [{ examId: first.id, deckIds: ["a"] }, { examId: first.id, deckIds: ["b"] }, { examId: second.id, deckIds: ["b"] }, { examId: third.id, deckIds: ["c"] }] }], exams: [] };
+  const forecast: ExamPortfolioForecast = { days: [{ key: date, budgetMinutes: 120, newCardIds: ["c"], reviewCardIds: [], blocks: [{ id: "new", date, examIds: [first.id], deckId: "a", method: "new", expectedItems: 1, cardIds: ["c"] }], summaries: [{ examId: first.id, deckId: "a" }, { examId: second.id, deckId: "b" }, { examId: third.id, deckId: "c" }] }], exams: [] };
   const render = (shown = [first, second, third]) => renderToStaticMarkup(<ExamMonthCalendar exams={[first, second, third]} shown={shown} onToggleExam={() => undefined} forecast={forecast} today={date} date={date} color={() => "#1749e5"} onSelect={() => undefined} />).split(`data-date="${date}"`)[1].split("</button>")[0];
   const html = render();
   assert.equal((html.match(/data-exam-subject="anatomy"/g) ?? []).length, 1);
   assert.equal((html.match(/data-exam-subject="physiology"/g) ?? []).length, 1);
-  assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study">1 neue Karte<\/span><span data-exam-task="summary">Lesen<\/span><span data-exam-task="quiz">2 Quizze<\/span><\/span>/);
-  assert.match(html, /data-exam-subject="physiology"[^]*?data-exam-task="summary">Lesen<\/span><span data-exam-task="quiz">Quiz<\/span><\/span>/);
+  assert.match(html, /data-exam-subject="anatomy"[^]*?data-exam-task="study">1 neue Karte<\/span><span data-exam-task="summary">Lesen<\/span><\/span>/);
+  assert.match(html, /data-exam-subject="physiology"[^]*?data-exam-task="summary">Lesen<\/span><\/span>/);
   assert.match(html, /title="1 weiterer Eintrag in den Tagesdetails">\+1/);
-  const quizOnly = render([third]);
-  assert.match(quizOnly, /data-exam-subject="biochem"[^]*?data-exam-task="quiz">Quiz/);
-  assert.doesNotMatch(quizOnly, /data-exam-task="study"|exam-month-more/);
-  forecast.days[0].quizzes = [];
-  const readOnly = render([second]);
-  assert.match(readOnly, /data-exam-subject="physiology"[^]*?data-exam-task="summary">Lesen/);
+  const readOnly = render([third]);
+  assert.match(readOnly, /data-exam-subject="biochem"[^]*?data-exam-task="summary">Lesen/);
+  assert.doesNotMatch(readOnly, /data-exam-task="study"|exam-month-more/);
 });

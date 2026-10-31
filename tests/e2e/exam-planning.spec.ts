@@ -16,7 +16,6 @@ async function planExam(page: Page, name: string) {
   await inspector.getByRole("textbox", { name: "Name" }).fill(name);
   await inspector.getByRole("button", { name: "Weiter zum Lernstoff" }).click();
   await inspector.getByRole("checkbox", { name: /^Europa/ }).check();
-  await inspector.getByRole("button", { name: "Weiter zu den Lernmethoden" }).click();
   await inspector.getByRole("button", { name: "Weiter zur Lernzeit" }).click();
   await inspector.getByRole("button", { name: "Lernplan ansehen" }).click();
   const feasibility = page.getByTestId("exam-plan-preview");

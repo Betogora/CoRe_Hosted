@@ -2,7 +2,7 @@ import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
 import { createCoreDeck, createReviewState } from "./coreModel.ts";
 import type { Card, Deck, DeckSettings, ExamDailyTask, ExamPlan, GlobalSchedulerPreferences, ReviewRating, ReviewState, StudyTimeCapacity } from "./coreTypes.ts";
 import { buildSortedDeckChildren } from "./deckOrdering.ts";
-import { EXAM_SESSION_DECK_ID, getExamPlanningKey, getExamQuizPlanningKey, getExamQuizTaskId } from "./examPlanSettings.ts";
+import { EXAM_SESSION_DECK_ID, getExamPlanningKey } from "./examPlanSettings.ts";
 import { getLearningDayKey, getLearningDayStartForKey } from "./learningDay.ts";
 import { markLearningSettingsCustom } from "./learningProfiles.ts";
 import { createMainThreadBudget } from "./mainThreadBudget.ts";
@@ -17,7 +17,6 @@ export interface StudyPlanBlock {
 export interface ExamPlanDay {
   key: string; budgetMinutes: number; newCardIds: string[]; reviewCardIds: string[]; blocks: StudyPlanBlock[];
   summaries: Array<{ examId: string; deckId: string }>;
-  quizzes?: Array<{ examId: string; deckIds: string[] }>;
 }
 export interface ExamReadiness { coverage: number; consolidated: number }
 export interface ExamForecastSummary {
@@ -238,25 +237,6 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       const day = topic.some((card) => !isNew(card.study)) ? (started ? ownDays[0] : ownDays.find((_, index) => minutes[index] > 0)) : ownDays.find((entry) => entry.blocks.some((block) => block.deckId === id && block.method === "new"));
       day?.summaries.push({ examId: exam.id, deckId: id });
     }
-    let unplannedQuizzes = 0;
-    if (exam.quizChaptersPerTask) {
-      const quizPlanningKey = getExamQuizPlanningKey(exam, capacity);
-      const chapters = order.filter((id) => (cardsByDeck.get(id)?.length ?? 0) > 0);
-      for (let index = 0; index < chapters.length; index += exam.quizChaptersPerTask) {
-        signal?.throwIfAborted(); await pause();
-        const deckIds = chapters.slice(index, index + exam.quizChaptersPerTask);
-        if (deckIds.every((id) => exam.completedQuizDeckIds?.includes(id))) continue;
-        const id = getExamQuizTaskId(exam.id, deckIds);
-        const frozen = options.dailyTasks?.some((task) => task.id === id && task.date === today && (!task.planningKey || task.planningKey === quizPlanningKey));
-        const newCards = deckIds.flatMap((id) => cardsByDeck.get(id) ?? []).filter((card) => isNew(card.study));
-        const introductions = ownDays.flatMap((day) => day.blocks.filter((block) => block.method === "new" && deckIds.includes(block.deckId)).map((block) => ({ date: day.key, cardIds: block.cardIds })));
-        const introduced = new Set(introductions.flatMap((entry) => entry.cardIds));
-        if (!frozen && newCards.some((card) => !introduced.has(card.cardId))) { unplannedQuizzes++; continue; }
-        const after = frozen ? today : introductions.at(-1)?.date ?? today;
-        const day = ownDays.find((day, index) => day.key >= after && minutes[index] > 0);
-        if (day) (day.quizzes ??= []).push({ examId: exam.id, deckIds }); else unplannedQuizzes++;
-      }
-    }
     // The concrete assignment, including rounding and differing learning profiles, is the load later exams see.
     const projectedContacts = Float64Array.from(baseline);
     for (let start = 0; start < ownDays.length; start++) for (const block of ownDays[start].blocks.filter((entry) => entry.method === "new" && entry.examIds.includes(exam.id))) {
@@ -270,7 +250,6 @@ export async function createExamPortfolioForecast(decks: readonly Deck[], cards:
       ...(exam.deckIds.some((id) => !deckById.has(id)) ? ["Ausgewählte Stapel wurden gelöscht."] : []), ...(!own.length ? ["Keine lernbaren Karten ausgewählt."] : []),
       ...(fresh.length && !eligible.length ? [cutoff < civilToday ? `${fresh.length} neue Karten sind nach dem Einführungsstichtag noch offen.` : "Wähle mindestens einen Lerntag vor dem Einführungsstichtag."] : []),
       ...(cursor < fresh.length && eligible.length ? [`${fresh.length - cursor} neue Karten sind wegen ihrer gewünschten Themenstarttage noch offen.`] : []),
-      ...(unplannedQuizzes ? [`${unplannedQuizzes} ${unplannedQuizzes === 1 ? "Quizaufgabe ist" : "Quizaufgaben sind"} noch nicht eingeplant.`] : []),
       ...overloadIssue(ownDays.filter((day, i) => isExamDayOverloaded(day.blocks.filter((block) => block.method === "new" && block.examIds.includes(exam.id)).reduce((sum, block) => sum + block.cardIds.length, 0), minutes[i])).length),
     ], decks: order.map((id) => { const selected = cardsByDeck.get(id) ?? []; return { deckId: id, name: deckById.get(id)!.name, total: selected.length, known: selected.filter((card) => !isNew(card.study)).length }; }) });
     projectedContacts.forEach((value, i) => { plannedContacts[i] += value; });

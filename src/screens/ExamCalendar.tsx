@@ -1,5 +1,5 @@
 import React from "react";
-import { ClipboardCheck, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { Plus, RotateCcw, Trash2, X } from "lucide-react";
 import type { Deck, ExamPlan, StudyTimeCapacity } from "../coreTypes.ts";
 import { isValidExamCalendar } from "../examPlanSettings.ts";
 import { EXAM_NEW_CARDS_PER_MINUTE_LIMIT, getExamLastNewDate, getExamStudyMinutes, isExamDayOverloaded, getExamTopicOrder, type ExamPortfolioForecast } from "../examPlanning.ts";
@@ -117,7 +117,6 @@ export function ExamCalendar({ exams, capacity, forecast, decks, today, busy, in
       <div className="flex justify-between gap-3"><div><h4 className="core-heading-3 text-core-text">{formatExamDate(date)}</h4><p className="mt-0.5 core-body text-core-secondary">{hasSelectedForecast ? formatExamCount(selectedWork.newCards, "neue Karte", "neue Karten") : "Karten: –"} · {formatExamMinutes(dayMinutes)} Lernzeit</p></div><IconButton label="Tagesdetails schließen" icon={X} onClick={() => setDetailsOpen(false)} /></div>
       {isExamDayOverloaded(selectedWork.newCards, dayMinutes) ? <StatusMessage tone="warning">Mehr als {EXAM_NEW_CARDS_PER_MINUTE_LIMIT} neue Karten pro Minute Lernzeit</StatusMessage> : null}
       {shown.filter((exam) => exam.examDate === date).map((exam) => <StatusMessage key={exam.id} tone="info">Prüfungstag: {exam.name}</StatusMessage>)}
-      {selectedDay?.quizzes?.some((quiz) => shown.some((exam) => exam.id === quiz.examId)) ? <ul className="grid min-w-0 gap-3" aria-label="Quizaufgaben an diesem Tag">{selectedDay.quizzes.filter((quiz) => shown.some((exam) => exam.id === quiz.examId)).map((quiz) => <li key={`${quiz.examId}:${quiz.deckIds[0]}`} className="flex min-w-0 items-start gap-3 rounded-control bg-core-subtle p-3"><ClipboardCheck size={20} aria-hidden="true" className="shrink-0 text-core-muted" /><div className="grid min-w-0 gap-1"><strong className="break-words core-body text-core-text">Quiz · {exams.find((exam) => exam.id === quiz.examId)?.name}</strong><p className="break-words core-caption text-core-muted">{quiz.deckIds.map(deckName).join(" · ")}</p></div></li>)}</ul> : null}
       <fieldset disabled={busy || locked} className="grid min-w-0 gap-5">
       {selectedSubjects.length ? <ul className="grid gap-3" aria-label="Lernaufgaben an diesem Tag">{selectedSubjects.map(({ exam, newCards, topics: subjectTopics, summaries }) => {
         const color = examColor(exams.indexOf(exam), exam), ownBlocks = selectedBlocks.some((block) => block.examId === exam.id);

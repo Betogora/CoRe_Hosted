@@ -41,35 +41,27 @@ const planSchema = v.pipe(v.strictObject({
   topicOrder: v.optional(v.pipe(v.array(identifier), v.maxLength(200))),
   readSummaryBeforeTopics: v.optional(v.boolean()),
   completedSummaryDeckIds: v.optional(v.pipe(v.array(identifier), v.maxLength(200))),
-  quizChaptersPerTask: v.optional(v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(200))),
-  completedQuizDeckIds: v.optional(v.pipe(v.array(identifier), v.maxLength(200))),
   topicDates: v.optional(v.pipe(v.array(v.strictObject({ deckId: identifier, date: daySchema })), v.maxLength(200))),
   createdAt: v.pipe(v.string(), v.isoTimestamp()),
   updatedAt: v.pipe(v.string(), v.isoTimestamp()),
-}), v.check((plan) => [plan.deckIds, plan.excludedDeckIds, plan.topicOrder, plan.completedSummaryDeckIds, plan.completedQuizDeckIds].every((ids) => !ids || new Set(ids).size === ids.length)),
+}), v.check((plan) => [plan.deckIds, plan.excludedDeckIds, plan.topicOrder, plan.completedSummaryDeckIds].every((ids) => !ids || new Set(ids).size === ids.length)),
   v.check((plan) => !plan.excludedDeckIds?.some((id) => plan.deckIds.includes(id))),
   v.check((plan) => !plan.studyStartDate || plan.studyStartDate < plan.examDate),
   v.check((plan) => !plan.topicDates || (new Set(plan.topicDates.map((topic) => topic.deckId)).size === plan.topicDates.length && plan.topicDates.every((topic) => topic.date < plan.examDate))));
 const dailyTaskSchema = v.pipe(v.strictObject({
   id: v.pipe(v.string(), v.minLength(1), v.maxLength(800)), date: daySchema, examId: identifier,
-  kind: v.picklist(["study", "summary", "quiz"]),
-  deckIds: v.pipe(v.array(identifier), v.minLength(1), v.maxLength(200)),
+  kind: v.picklist(["study", "summary"]),
+  deckIds: v.pipe(v.array(identifier), v.length(1)),
   cardIds: v.pipe(v.array(identifier), v.maxLength(EXAM_PLANNING_LIMITS.dailyCardRefs)),
   capturedAt: v.pipe(v.string(), v.isoTimestamp()), completed: v.nullable(v.picklist(["manual", "automatic"])),
   planningKey: v.optional(identifier),
-}), v.check((task) => new Set(task.cardIds).size === task.cardIds.length && new Set(task.deckIds).size === task.deckIds.length
-  && (task.kind === "quiz" || task.deckIds.length === 1)
-  && (task.kind !== "study" ? !task.cardIds.length && task.completed !== "automatic" : task.cardIds.length > 0)));
+}), v.check((task) => new Set(task.cardIds).size === task.cardIds.length && (task.kind === "summary" ? !task.cardIds.length && task.completed !== "automatic" : task.cardIds.length > 0)));
 /** One learning day's checklist with at most `dailyCardRefs` card references in total, so the synced profile stays small. */
 const dailyTasksSchema = v.pipe(v.array(dailyTaskSchema), v.maxLength(EXAM_PLANNING_LIMITS.dailyTasks),
   v.check((tasks) => new Set(tasks.map((task) => task.id)).size === tasks.length && tasks.reduce((sum, task) => sum + task.cardIds.length, 0) <= EXAM_PLANNING_LIMITS.dailyCardRefs
     && new Set(tasks.map((task) => task.date)).size <= 1));
-export function getExamQuizTaskId(examId: string, deckIds: readonly string[]) {
-  return `quiz:${encodeURIComponent(examId)}:${stableContentHash(deckIds, "chapters")}`;
-}
-
 function validDailyTasks(settings: ExamPlanningSettings) {
-  return (settings.dailyTasks ?? []).every((task) => task.id === (task.kind === "quiz" ? getExamQuizTaskId(task.examId, task.deckIds) : `${task.kind === "study" ? "topic" : task.kind}:${encodeURIComponent(task.examId)}:${encodeURIComponent(task.deckIds[0])}`) && settings.exams.some((exam) => exam.id === task.examId && task.date < exam.examDate && (!exam.studyStartDate || task.date >= exam.studyStartDate)));
+  return (settings.dailyTasks ?? []).every((task) => task.id === `${task.kind === "study" ? "topic" : "summary"}:${encodeURIComponent(task.examId)}:${encodeURIComponent(task.deckIds[0])}` && settings.exams.some((exam) => exam.id === task.examId && task.date < exam.examDate && (!exam.studyStartDate || task.date >= exam.studyStartDate)));
 }
 const settingsSchema = v.pipe(v.strictObject({
   version: v.literal(3),
@@ -146,18 +138,12 @@ export function getExamPlanningKey(exam: ExamPlan, capacity: StudyTimeCapacity) 
     (capacity.timeBlocks ?? []).filter((block) => block.examId === exam.id), ...(exam.studyStartDate ? [exam.studyStartDate] : [])], "exam-plan");
 }
 
-/** Quiz grouping can change without discarding today's frozen card targets. */
-export function getExamQuizPlanningKey(exam: ExamPlan, capacity: StudyTimeCapacity) {
-  return stableContentHash([getExamPlanningKey(exam, capacity), exam.quizChaptersPerTask], "exam-quiz");
-}
-
 export function upsertExamPlan(settings: ExamPlanningSettings, plan: ExamPlan): ExamPlanningSettings {
   const exists = settings.exams.some((exam) => exam.id === plan.id);
   if (!exists && settings.exams.length >= EXAM_PLANNING_LIMITS.exams) throw new Error(`Höchstens ${EXAM_PLANNING_LIMITS.exams} Prüfungen sind möglich.`);
   const previous = settings.exams.find((exam) => exam.id === plan.id);
   const next = { ...settings, exams: exists ? settings.exams.map((exam) => exam.id === plan.id ? plan : exam) : [...settings.exams, plan] };
   if (previous && getExamPlanningKey(previous, settings.capacity) !== getExamPlanningKey(plan, settings.capacity)) next.dailyTasks = next.dailyTasks?.filter((task) => task.examId !== plan.id || task.completed !== null);
-  if (previous && previous.quizChaptersPerTask !== plan.quizChaptersPerTask) next.dailyTasks = next.dailyTasks?.filter((task) => task.examId !== plan.id || task.kind !== "quiz" || task.completed !== null);
   if (next.dailyTasks) next.dailyTasks = next.dailyTasks.filter((task) => validDailyTasks({ ...next, dailyTasks: [task] }));
   return validateExamPlanningSettings(next);
 }
