@@ -40,5 +40,3 @@ export function getOrCreateSyncDeviceId(storage: any = null) {
   resolvedStorage.setItem(SYNC_DEVICE_KEY, id);
   return id;
 }
-
-export const accountStorageKeys = { ACCOUNT_STORAGE_PREFIX, SYNC_DEVICE_KEY };

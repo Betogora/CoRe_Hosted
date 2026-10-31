@@ -10,9 +10,8 @@ import {
   createDeckLibraryModel,
   createPagedCardTableModel,
   createStudyHeatmapModel,
-  createStudyHeatmapWindow,
 } from "./libraryModel.ts";
-import { createStudyHeatmapModelFromCounts } from "./studyHeatmapModel.ts";
+import { createStudyHeatmapModelFromCounts, createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
 
 const notesById = new Map<string, Note>();
 
@@ -473,9 +472,9 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
 // @ts-expect-error -- Eine manuelle Neuplanung darf nicht als Lernfortschritt zählen.
       { id: "review_manual", rating: "manual", answeredAt: "2026-07-07T10:00:00.000Z", cardId: "card_4" },
 // @ts-expect-error -- Eine fehlende Bewertung darf nicht als Lernfortschritt zählen.
-      { id: "review_unrated", reviewedAt: "2026-07-04T10:00:00.000Z", cardId: "card_unrated" },
+      { id: "review_unrated", answeredAt: "2026-07-04T10:00:00.000Z", cardId: "card_unrated" },
 // @ts-expect-error -- Ein zukünftiges Review bleibt relativ zur simulierten Uhr unsichtbar.
-      { id: "review_future", rating: "good", reviewedAt: "2026-07-08T10:00:00.000Z", cardId: "card_future" },
+      { id: "review_future", rating: "good", answeredAt: "2026-07-08T10:00:00.000Z", cardId: "card_future" },
     ],
   });
 
@@ -488,9 +487,6 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
   assert.equal([...heatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 4);
   assert.equal(heatmap.firstActivityKey, "2026-07-05");
   assert.equal(heatmap.currentStreak, 3);
-  assert.equal("activeDays" in heatmap, false);
-  assert.equal("averagePerActiveDay" in heatmap, false);
-  assert.equal("longestStreak" in heatmap, false);
   assert.equal(window.days.find((day) => day.key === "2026-07-07")?.count, 2);
   assert.equal(window.days.find((day) => day.key === "2026-07-07")?.level, 4);
   assert.equal(heatmap.countsByDay.has("2026-07-08"), false);

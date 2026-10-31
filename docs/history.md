@@ -5,6 +5,16 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-31 — Testsuite, Paket B: Veraltetes und toter Code
+
+- Testbug: Das Heatmap-Fixture in `libraryModel.test.ts` nutzte `reviewedAt` statt `answeredAt`; „künftige Reviews bleiben unsichtbar“ bestand dadurch ohne Prüfung und wirkt jetzt.
+- Nur von Tests genutzt und samt Tests entfernt: `readAppRouteFromHistoryState`, `applyLearningSettingsToDeckSettings`, `applyLearningPreset` (die Presetwerte prüft der Test jetzt über `normalizeLearningSettings`), `accountStorageKeys`, der Re-Export `createStudyHeatmapWindow` aus `libraryModel.ts` und der Typ-Re-Export `LearningSettings` aus `deckSettings.ts`.
+- `npm run check:unused` prüft zusätzlich im Produktionsmodus von knip; bewusst testseitige Seam-Hilfen tragen `@internal`, `buildAiSourceCreationPrompt` (P2) `@public`.
+- Zusammenfassungen löschen: `deleteLearningSummary` war seit dem Editor-Umbau ohne Bedienelement, obwohl ADR-043 das geräteübergreifende Löschen vorsieht und Konflikte sowie neue KI-Fassungen die Liste sonst unbegrenzt wachsen lassen. Jede Fassung der Liste trägt jetzt einen Papierkorb mit Rückfrage; offline verschwindet sie sofort und die Löschung wird beim nächsten Öffnen hochgeladen. Nachweis: neuer Katalog-E2E (Abbrechen, Löschen, Reload) und die Listen-Sichtmatrix (320–1440 px, hell/dunkel) grün.
+- `creationPipeline.test.ts` aufgelöst: manuelle Inhalte in `coreModel.test.ts`, Erstellungsablauf und Bildverdeckung in `creationWorkflow.test.ts`; Basic mit Rückseite, Multiple Choice und die Varianten-Lernstatusprüfung (durch Typen und `coreModel.test.ts` abgedeckt) entfallen.
+- Abwesenheitsprüfungen entfernter Funktionen gestrichen (Profilfelder, Build-Infos, JSON-Portabilität, Simulatorverlauf, KI-/Assistent-Navigation, Labs-Routen im Modultest, Labs-Schleife im Navigationsflow). Die Browserprüfungen für Beta-Abnahme Punkt 4 bleiben.
+- Verifiziert: fokussierte Modultests, `npm run gate:push`; die Playwright-Auswahl von `product-surfaces.spec.ts` per `--list`, der Flow selbst nicht ausgeführt.
+
 ## 2026-10-31 — Schnelleres Quality-Gate (Testsuite, Paket A)
 
 - `scripts/runModuleTests.ts` verteilt die Modultests auf einen Prozess je CPU-Kern ohne Prozessisolation; vorher startete jede der 133 Dateien einen eigenen node+tsx-Prozess (je rund 0,35–0,4 s Startkosten).

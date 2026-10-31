@@ -25,7 +25,7 @@ npm run gate:push
 ```
 
 Das Gate kombiniert Typecheck, die Prüfung auf Ungenutztes (`npm run check:unused`, knip: keine Exporte,
-Dateien oder Abhängigkeiten ohne Nutzer in App, Skripten oder Tests) und generierte Dokumente, alle Unit-/Contract-/Integrations-
+Dateien oder Abhängigkeiten ohne Nutzer in App, Skripten oder Tests, dazu keine Exporte, die nur Tests nutzen) und generierte Dokumente, alle Unit-/Contract-/Integrations-
 Tests mit kompakter Ausgabe sowie den Production-Build einschließlich harter Bundlebudgets. Typecheck
 samt knip, Dokumente, Modultests und Build laufen gleichzeitig; das Gate meldet jeden Schritt mit Laufzeit und
 schlägt fehl, wenn einer davon fehlschlägt. Commits
