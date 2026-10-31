@@ -432,21 +432,21 @@ test("card table sorts all columns and projects next-study labels and variant st
   }
 });
 
-test("card table pages large libraries and finds late cards deterministically", () => {
-  const cards = Array.from({ length: 10_000 }, (_, index) => libraryCard("large-card-" + index, {
+test("card table pages beyond the first page and finds the last card deterministically", () => {
+  const cards = Array.from({ length: 101 }, (_, index) => libraryCard("large-card-" + index, {
     front: "Frage " + index,
     back: "Antwort " + index,
   }));
   const deck = createCoreDeck({ id: "large-deck", name: "Groß", source: "manual", cards });
   const model = createCardTableModel([deck], { notesById });
 
-  assert.equal(model.cardCount, 10_000);
+  assert.equal(model.cardCount, 101);
   assert.equal(model.groups[0].cardRows.length, 50);
-  assert.equal(model.groups[0].pageCount, 200);
+  assert.equal(model.groups[0].pageCount, 3);
 
-  const lateMatch = createCardTableModel([deck], { query: "Frage 9999", notesById });
+  const lateMatch = createCardTableModel([deck], { query: "Frage 100", notesById });
   assert.equal(lateMatch.cardCount, 1);
-  assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-9999"]);
+  assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-100"]);
 
   const secondPage = createCardTableModel([deck], { notesById, cardPageByDeckId: { [deck.id]: 1 } });
   assert.equal(secondPage.groups[0].page, 1);

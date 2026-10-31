@@ -38,109 +38,29 @@ function productionFiles(directory: string): string[] {
   });
 }
 
-test("theme declares the ToolBox brand primitives and a complete dark semantic override", () => {
-  for (const [role, light, dark] of [
-    ["primary", "#236492", "#4f93c4"],
-    ["secondary", "#c3d9e8", "#2b4a5e"],
-    ["accent", "#b55b43", "#d7765c"],
-    ["surface", "#fcf1d7", "#4a3e25"],
-    ["fog", "#dce3e7", "#2a333d"],
-    ["ink", "#1b2d3b", "#dbe4ea"],
-  ]) {
-    assert.match(lightTokens, new RegExp(`--core-brand-${role}:\\s*${light}`, "i"));
-    assert.match(darkTokens, new RegExp(`--core-brand-${role}:\\s*${dark}`, "i"));
-  }
-  assert.doesNotMatch(styles, /--core-palette-/);
-  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+test("dark theme overrides every semantic role and both themes declare their color scheme", () => {
   for (const role of ["canvas", "surface", "surface-raised", "surface-muted", "group-depth-0", "group-depth-1", "group-depth-2", "group-depth-3", "group-depth-4", "group-depth-5", "text", "text-secondary", "text-muted", "border", "border-interactive", "focus", "action-primary", "action-primary-hover", "action-primary-active", "info", "success", "warning", "danger", "danger-hover", "info-surface", "success-surface", "warning-surface", "danger-surface"]) {
-    assert.match(dark, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
+    assert.match(darkTokens, new RegExp(`--core-${role}:`), `missing dark role ${role}`);
   }
-  assert.match(styles, /:root\s*\{[\s\S]*?color-scheme:\s*light/);
-  assert.match(dark, /color-scheme:\s*dark/);
-  assert.match(styles, /--core-border:\s*#e5e7eb/);
-  assert.match(dark, /--core-border:\s*#2a333d/);
-  assert.equal((styles.match(/--core-group-depth-0:\s*var\(--core-surface\)/g) ?? []).length, 2);
-  assert.match(styles, /--core-danger:\s*#d92d20/);
-  assert.match(dark, /--core-danger:\s*#e5534b/);
-  for (const [status, role] of [
-    ["learned", "info"],
-    ["new", "accent"],
-    ["in-progress", "warning"],
-    ["due", "success"],
-  ]) {
-    assert.equal((styles.match(new RegExp(`--core-learning-status-${status}:\\s*var\\(--core-${role}\\)`, "g")) ?? []).length, 2);
-  }
-  assert.match(styles, /--core-learning-goal-achieved:\s*#079455/);
-  assert.match(dark, /--core-learning-goal-achieved:\s*#3cc27a/);
-  assert.match(styles, /--core-learning-progress-completed:\s*#9ca3af/);
-  assert.match(dark, /--core-learning-progress-completed:\s*#5b6672/);
+  assert.match(lightTokens, /color-scheme:\s*light/);
+  assert.match(darkTokens, /color-scheme:\s*dark/);
 });
 
-test("heatmap uses the ToolBox primary scale and a theme-adaptive gray forecast scale", () => {
-  const heatmapRules = styles.match(/\.core-heatmap-level-0,[\s\S]*?\.core-surface\s*\{/)?.[0] ?? "";
-
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-surface\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-1,\s*var\(--core-info-surface\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-2,\s*color-mix\(in srgb, var\(--core-info-surface\) 55%, var\(--core-info\)\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-3,\s*color-mix\(in srgb, var\(--core-info\) 70%, var\(--core-info-surface\)\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-tone:\s*var\(--core-heatmap-history-level-4,\s*var\(--core-info\)\)/);
-  assert.match(heatmapRules, /--core-heatmap-forecast-tone:\s*var\(--core-surface\)/);
-  for (const surfacePercent of [90, 82, 72, 60]) {
-    assert.match(heatmapRules, new RegExp(`color-mix\\(in srgb, var\\(--core-surface\\) ${surfacePercent}%, var\\(--core-text\\)\\)`));
-  }
-  assert.doesNotMatch(heatmapRules.match(/\.core-heatmap-forecast-level-0,[\s\S]*$/)?.[0] ?? "", /lilac|success|info/);
-});
-
-test("only individually overflowing deck names use at most two lines", () => {
-  assert.match(styles, /\.core-deck-summary-name\s*\{[\s\S]*?text-overflow:\s*ellipsis;[\s\S]*?white-space:\s*nowrap;/);
-  assert.match(styles, /\.core-deck-summary-name\[data-deck-name-wrap="true"\]\s*\{[\s\S]*?-webkit-line-clamp:\s*2;[\s\S]*?white-space:\s*normal;/);
-});
-
-test("six group depths retain endpoints and darken in light mode / lighten in dark mode", () => {
-  const dark = styles.match(/\[data-core-theme="dark"\]\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  // The ToolBox neutral ramp keeps the first levels close to the surface; the steps grow towards the deepest level.
-  const lightDepths = ["ffffff", "f9fafb", "f6f7f8", "f3f4f6", "eceef1", "e5e7eb"];
-  const darkDepths = ["161d25", "1a2129", "1f2730", "222b34", "2a343f", "303b47"];
-
-  for (let depth = 1; depth <= 5; depth += 1) {
-    assert.match(styles, new RegExp(`--core-group-depth-${depth}:\\s*#${lightDepths[depth]}`));
-    assert.match(dark, new RegExp(`--core-group-depth-${depth}:\\s*#${darkDepths[depth]}`));
-  }
-  for (const colors of [lightDepths, darkDepths]) {
-    const tokens = colors === lightDepths ? lightTokens : darkTokens;
-    const actualColors = colors.map((_, depth) => tokenColor(`group-depth-${depth}`, tokens));
-    const channels = actualColors.map((color) => color.match(/../g)!.map((channel) => Number.parseInt(channel, 16)));
-    const direction = colors === lightDepths ? -1 : 1;
+test("six group depths darken in light mode, lighten in dark mode and color their deck rows", () => {
+  for (const [tokens, direction] of [[lightTokens, -1], [darkTokens, 1]] as const) {
+    const channels = Array.from({ length: 6 }, (_, depth) => tokenColor(`group-depth-${depth}`, tokens).match(/../g)!.map((channel) => Number.parseInt(channel, 16)));
     for (let depth = 1; depth < 6; depth += 1) {
       for (let channel = 0; channel < 3; channel += 1) {
         assert.ok(Math.sign(channels[depth][channel] - channels[depth - 1][channel]) === direction, `depth ${depth} channel ${channel}`);
       }
     }
   }
-  assert.doesNotMatch(styles, /--core-group-depth-[67]/);
   for (let depth = 0; depth <= 5; depth += 1) {
     assert.match(styles, new RegExp(`\\.core-deck-summary-row\\[data-deck-depth="${depth}"\\]\\s*\\{\\s*background-color:\\s*var\\(--core-group-depth-${depth}\\)`));
   }
 });
 
-test("theme exposes the ToolBox typography levels and AA primary contrast", () => {
-  for (const [role, size, leading, weight, family] of [
-    ["heading-1", "1.875rem", "2.25rem", "heading"],
-    ["heading-2", "1.125rem", "1.5rem", "heading"],
-    ["heading-3", "1rem", "1.5rem", "emphasis"],
-    ["metric", "1.375rem", "1.75rem", "heading"],
-    ["body-large", "1rem", "1.5rem", "body"],
-    ["body", "0.875rem", "1.25rem", "body"],
-    ["caption", "0.75rem", "1rem", "body"],
-  ]) {
-    assert.ok(lightTokens.includes(`--core-type-${role}: ${size};`));
-    assert.ok(lightTokens.includes(`--core-leading-${role}: ${leading};`));
-    assert.ok(styles.includes(`font: var(--core-weight-${weight}) var(--core-type-${role})/var(--core-leading-${role}) var(--core-font-sans);`));
-  }
-  assert.match(lightTokens, /--core-font-sans: "Manrope Variable", Manrope,/);
-  for (const [role, weight] of [["body", 400], ["control", 600], ["emphasis", 650], ["heading", 650]]) {
-    assert.ok(lightTokens.includes(`--core-weight-${role}: ${weight};`));
-  }
+test("primary actions keep AA text contrast in both themes", () => {
   for (const tokens of [lightTokens, darkTokens]) {
     assert.ok(contrastRatio(tokenColor("action-primary", tokens), tokenColor("text-on-accent", tokens)) >= 4.5);
   }
@@ -155,9 +75,7 @@ test("product UI consumes the shared geometry scale instead of independent utili
     assert.doesNotMatch(source, /\bborder-(?:[248]|\[\d)/, file);
     assert.doesNotMatch(source, /\bborder-(?:black|white)(?:\/|\b)/, file);
   }
-  assert.equal((lightTokens.match(/--core-radius-/g) ?? []).length, 6);
   assert.doesNotMatch(styles, /border-radius:\s*(?:\d|\.)/);
-  assert.doesNotMatch(styles, /--core-status-(?:info|success|warning|error)-(?:border|bg|text)/);
 });
 
 test("productive TSX does not reintroduce the replaced palette or named status utilities", () => {
@@ -167,6 +85,7 @@ test("productive TSX does not reintroduce the replaced palette or named status u
     .join("\n");
   assert.doesNotMatch(source, /#(?:17214f|66709a|4f5eb1|dfe4f5|4e5b8c|eef1fb|f8f9fe)/i);
   assert.doesNotMatch(source, /(?:bg|text|border|from|via|to|ring)-(?:red|green|amber|yellow|orange|teal|emerald|sky|blue|indigo|violet|purple|pink|rose)-\d+/);
+  assert.doesNotMatch(styles, /--core-palette-|--core-status-(?:info|success|warning|error)-(?:border|bg|text)/);
 });
 
 test("pointer focus stays frameless while keyboard focus shows one outline", () => {
@@ -180,26 +99,12 @@ test("pointer focus stays frameless while keyboard focus shows one outline", () 
   assert.doesNotMatch(source, /focus(?:-visible)?:(?:border|shadow)/);
 });
 
-test("autofilled email inputs keep the themed field surface", () => {
-  const autofillRule = styles.match(/input\[type="email"\]:autofill\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  assert.match(autofillRule, /-webkit-text-fill-color:\s*var\(--core-text\)/);
-  assert.match(autofillRule, /box-shadow:\s*inset 0 0 0 1000px var\(--core-surface\)/);
-});
-
-test("dragged deck rows lift without a list-only brightness filter", () => {
-  const activeDragRule = styles.match(/\.core-deck-summary-row\[data-drag-state="active"\]\s*\{([\s\S]*?)\n\s*\}/)?.[1] ?? "";
-  assert.match(activeDragRule, /transform:\s*translateY\(-2px\) scaleY\(1\.03\)/);
-  assert.doesNotMatch(activeDragRule, /\bscale\(/);
-  assert.doesNotMatch(styles, /core-deck-tree-rows:has\([^)]*data-drag-state="active"[^)]*\)/);
-});
-
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
   for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "SegmentedDonut", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });
-
 
 test("alle zwanzig Prüfungsfarben sind eindeutig und tragen kontrastreiche Beschriftungen", () => {
   const colors = Array.from({ length: 20 }, (_, index) => tokenColor(`exam-color-${index + 1}`, lightTokens));

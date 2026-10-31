@@ -178,7 +178,7 @@ test("StudyMode exposes labeled learning without an idle Pomodoro progress", () 
   assert.doesNotMatch(markup, /Neue Karten heute|heute eingeführt|\+10/);
 });
 
-test("StudyMode renders the four daily progress segments in the canonical order and colors", () => {
+test("StudyMode counts learned, new, open and due cards of the day into its progress", () => {
   const deckId = "deck_segmented_progress";
   const learned = basicItem(deckId, "Gelernt", "Antwort", {
     id: "learned_today",
@@ -223,24 +223,6 @@ test("StudyMode renders the four daily progress segments in the canonical order 
 
   assert.match(markup, />1 \/ 10 Karten</);
   assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, Offen: 1 Karte, Fällig: 5 Karten"/);
-  assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-progress-completed\)[^>]*flex-grow:1/);
-  assert.match(markup, /data-study-progress-segment="new"[^>]*background-color:var\(--core-learning-status-new\)[^>]*flex-grow:3/);
-  assert.match(markup, /data-study-progress-segment="in-progress"[^>]*background-color:var\(--core-learning-status-in-progress\)[^>]*flex-grow:1/);
-  assert.match(markup, /data-study-progress-segment="due"[^>]*background-color:var\(--core-learning-status-due\)[^>]*flex-grow:5/);
-  for (const [label, color, value] of [
-    ["Gelernt", "progress-completed", "1 Karte"],
-    ["Neu", "new", "3 Karten"],
-    ["Offen", "in-progress", "1 Karte"],
-    ["Fällig", "due", "5 Karten"],
-  ]) {
-    assert.match(markup, new RegExp(`data-core-tooltip="${label}"`));
-    const token = color === "progress-completed" ? "--core-learning-progress-completed" : `--core-learning-status-${color}`;
-    assert.match(markup, new RegExp(`data-core-tooltip-swatch="var\\(${token}\\)"`));
-    assert.match(markup, new RegExp(`data-core-tooltip-value="${value}"`));
-  }
-  assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
-  assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));
-  assert.ok(markup.indexOf('data-study-progress-segment="in-progress"') < markup.indexOf('data-study-progress-segment="due"'));
 });
 
 test("StudyMode uses the complete catalog projection before every card body is buffered", () => {

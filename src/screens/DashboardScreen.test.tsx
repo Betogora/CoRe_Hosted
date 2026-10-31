@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import { createCoreRepository } from "../coreRepository.ts";
 import { createViewRoute } from "../appNavigation.ts";
+import { DASHBOARD_WIDGETS } from "../dashboardWidgets.ts";
 import { createExamPlan } from "../examPlanSettings.ts";
 import { withGlobalSchedulerPreferences } from "../learningProfiles.ts";
 import { DashboardScreen } from "./DashboardScreen.tsx";
@@ -131,7 +132,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });
 
-test("dashboard includes five default widgets and keeps planner tasks inside todos", () => {
+test("dashboard renders the default widget layout and keeps planner tasks inside todos", () => {
   const baseState = createCoreRepository().getState();
   const exam = { ...createExamPlan("2026-08-06", ["biologie"]), name: "Biologie" };
   const state = {
@@ -149,11 +150,8 @@ test("dashboard includes five default widgets and keeps planner tasks inside tod
       onSaveExamTasks={async () => undefined}
     />,
   );
-  assert.deepEqual([...markup.matchAll(/data-dashboard-widget="([^"]+)"/g)].map((match) => match[1]), ["learning", "timer", "decks", "todos", "heatmap"]);
+  assert.deepEqual([...markup.matchAll(/data-dashboard-widget="([^"]+)"/g)].map((match) => match[1]), DASHBOARD_WIDGETS.map((widget) => widget.id));
   assert.match(markup, /data-dashboard-widget="todos"[\s\S]*data-testid="dashboard-exam-unit"[\s\S]*data-dashboard-widget="heatmap"/);
-  assert.match(markup, /data-testid="daily-learning-overview"/);
-  assert.match(markup, /data-testid="study-heatmap-grid"/);
-  assert.match(markup, /data-testid="dashboard-deck-list-header"/);
 });
 
 test("dashboard projects future due cards through the supplied learning time", () => {

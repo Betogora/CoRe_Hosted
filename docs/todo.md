@@ -139,17 +139,6 @@ Läuft unabhängig von P1/P2, je Paket ein eigener PR. Regeln im Pflegevertrag
 von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
 2026-10-31 im [Verlauf](history.md).
 
-- [ ] **C – Scope Creep:** In `themeContract.test.ts` Hex- und Wertesnapshots
-      streichen, die Lint-Regeln (Fokus, Kontrast, alte Palette) behalten.
-      Prüfungen exakter Tailwind-Klassen in den UI-Tests (`AppNavigation`,
-      `DeckTree`, `coreUi`, `StudyHeatmap`, `DeckSummaryRow`,
-      `ColorWheelPicker`, `LearningAreaHeader`) auf Rollen, Daten und Text
-      umstellen; `colorPicker.test.ts` sowie CSS-Regeln aus `styles.css` in
-      `feedbackUi`/`SettingsSaveBar` entfallen; `HelpScreen.test.tsx` auf
-      Überschriften und Anker kürzen. Doppelte Prüfungen zusammenlegen
-      (Decktiefe viermal, AI-Route-Middleware in beiden Routentests,
-      Fortschritt in StudyMode, Dashboard-Standardwidgets). Großfixtures
-      verkleinern (10.000 Karten in `libraryModel`, 300+ in `examPlanning`).
 - [ ] **D – Browserflows:** Etwa 80 Flows setzen das Cloud-Konto zurück,
       auch reine Layoutprüfungen; `card-lifecycle` doppelt vor und nach jedem
       Test. Screenshot-Matrizen (`note-presentation`, `learning-summaries`,

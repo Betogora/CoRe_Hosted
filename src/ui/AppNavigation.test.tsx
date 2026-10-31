@@ -44,7 +44,7 @@ test("automatic sync stays out of the header until something needs attention", (
 
   const failed = renderNavigation("uebersicht", 0, null, { status: "error", message: "Fehler." });
   assert.equal((failed.match(/aria-label="Synchronisierung fehlgeschlagen – Details ansehen"/g) ?? []).length, 2);
-  assert.equal((failed.match(/bg-core-danger/g) ?? []).length, 2);
+  assert.equal((failed.match(/data-sync-status="error"/g) ?? []).length, 2);
 
   const conflicted = renderNavigation("uebersicht", 0, null, { status: "conflict", message: "2 Änderungen brauchen deine Entscheidung.", conflictCount: 2 });
   assert.equal((conflicted.match(/aria-label="2 Synchronisierungskonflikte klären"/g) ?? []).length, 2);
@@ -57,11 +57,11 @@ test("automatic sync stays out of the header until something needs attention", (
 test("manual sync keeps a direct sync action that marks pending changes", () => {
   const saved = renderNavigation("uebersicht", 0, null, { status: "saved", message: "Synchronisiert.", savedAt: "2026-08-14T16:00:00.000Z" }, true);
   assert.equal((saved.match(/aria-label="Jetzt synchronisieren"/g) ?? []).length, 2);
-  assert.doesNotMatch(saved, /bg-core-action" aria-hidden/);
+  assert.doesNotMatch(saved, /<\/button><span[^>]*aria-hidden="true"><\/span>/);
 
   const pending = renderNavigation("uebersicht", 0, null, { status: "pending", message: "Ausstehend.", pendingCount: 2 }, true);
   assert.equal((pending.match(/aria-label="Ausstehende Änderungen synchronisieren"/g) ?? []).length, 2);
-  assert.equal((pending.match(/size-2 rounded-round bg-core-action/g) ?? []).length, 2);
+  assert.equal((pending.match(/aria-label="Ausstehende Änderungen synchronisieren"[^>]*>[\s\S]*?<\/button><span[^>]*aria-hidden="true"><\/span>/g) ?? []).length, 2);
 
   const saving = renderNavigation("uebersicht", 0, null, { status: "saving", message: "Synchronisiert gerade." }, true);
   assert.equal((saving.match(/<button[^>]*disabled=""[^>]*aria-label="Synchronisiert gerade"|<button[^>]*aria-label="Synchronisiert gerade"[^>]*disabled=""/g) ?? []).length, 2);
@@ -74,10 +74,6 @@ test("app navigation exposes five primary entries and marks learning active for 
   assert.match(markup, /data-navigation-layout="top-bar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
-  assert.match(markup, /hidden min-w-0 px-4 pt-2 xl:block/);
-  assert.match(markup, /mx-auto grid h-16 max-w-7xl grid-cols-\[minmax\(0,1fr\)_auto_minmax\(0,1fr\)\] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-6 shadow-floating/);
-  assert.match(markup, /xl:hidden/);
-  assert.doesNotMatch(markup, /md:block|md:hidden/);
   for (const label of expectedTabOrder) assert.match(markup, new RegExp(`>${label}<`));
   const topBarNavigation = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
@@ -88,32 +84,31 @@ test("app navigation exposes five primary entries and marks learning active for 
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
     assert.ok(bottomBarMarkup.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < bottomBarMarkup.indexOf(`>${expectedTabOrder[index]}</span>`));
   }
-  assert.match(bottomBarMarkup, /grid-cols-5/);
+  assert.equal((bottomBarMarkup.match(/<button/g) ?? []).length, 5);
   assert.doesNotMatch(bottomBarMarkup, /lucide-layers/);
   assert.doesNotMatch(bottomBarMarkup, />Karten<\/span>/);
   assert.doesNotMatch(bottomBarMarkup, />Mehr<\/span>/);
   assert.equal((markup.match(/aria-current="page"/g) ?? []).length, 2);
   assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
-  assert.match(markup, /left-\[50dvw\]/);
-  assert.match(markup, /w-\[calc\(100dvw-2rem\)\]/);
-  assert.match(markup, /sm:w-\[calc\(100dvw-6rem\)\]/);
-  assert.match(markup, /bg-\[var\(--core-selection-track\)\]/);
   assert.match(markup, /bottom:max\(0\.75rem, env\(safe-area-inset-bottom\)\)/);
 });
 
 test("CoRe brand links both navigation layouts to today", () => {
   const markup = renderNavigation("neue-karten");
 
-  assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-navigation-brand="true"[^>]*><img src="\/core-socrates\.svg" alt="" class="h-9 w-auto shrink-0 xl:h-10"[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/button>/g) ?? []).length, 2);
+  const brandButtons = markup.match(/<button[^>]*data-navigation-brand="true"[\s\S]*?<\/button>/g) ?? [];
+  assert.equal(brandButtons.length, 2);
+  for (const brand of brandButtons) {
+    assert.match(brand, /<img src="\/core-socrates\.svg" alt=""/);
+    assert.equal(brand.replace(/<[^>]+>/g, ""), "CoRe");
+  }
 });
 
-test("bottom navigation keeps every icon above its visible label and exactly one current page", () => {
+test("bottom navigation keeps every icon before its visible label and exactly one current page", () => {
   for (const activeView of ["uebersicht", "lernen", "neue-karten", "statistik"]) {
     const markup = renderNavigation(activeView);
     const bottomBar = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
     assert.equal((bottomBar.match(/aria-current="page"/g) ?? []).length, 1);
-    assert.equal((bottomBar.match(/flex-col/g) ?? []).length, 5);
     assert.equal((bottomBar.match(/aria-hidden="true"/g) ?? []).length, 5);
     assert.doesNotMatch(bottomBar, /sr-only/);
     for (const label of ["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"]) assert.match(bottomBar, new RegExp(`</svg><span[^>]*>${label}</span>`));
@@ -150,13 +145,13 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.doesNotMatch(topBarMarkup, /Content Repetition/);
   for (const layoutMarkup of [topBarMarkup, mobileHeaderMarkup]) {
-    assert.match(layoutMarkup, /class="flex shrink-0 items-center gap-1\.5" data-navigation-utilities="true" data-sync-status="idle"/);
+    assert.match(layoutMarkup, /data-navigation-utilities="true" data-sync-status="idle"/);
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="theme"') < layoutMarkup.indexOf('data-navigation-utility="help"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));
   }
   assert.ok(topBarMarkup.indexOf("</nav>") < topBarMarkup.indexOf('data-navigation-utilities="true"'));
-  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="core-action-ghost[^"]*size-button/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-utility="theme"[^>]*class="[^"]*core-action-ghost/g) ?? []).length, 2);
   assert.equal((markup.match(/data-navigation-utility="theme"[^>]*core-action-secondary/g) ?? []).length, 0);
   assert.doesNotMatch(markup, /role="switch"|aria-checked=/);
   assert.doesNotMatch(markup, />Ada<|>AD</);

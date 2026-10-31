@@ -3,80 +3,23 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { HelpScreen } from "./HelpScreen.tsx";
 
-test("renders scroll stories for active recall and spaced repetition", () => {
+test("help sections carry labelled headings and the method links jump to them", () => {
   const markup = renderToStaticMarkup(<HelpScreen />);
 
-  assert.match(markup, /Wie CoRe dein Lernen stärkt/);
-  assert.match(markup, /Wir wollen Lernen verbessern/);
-  assert.match(markup, /data-testid="help-exam-session"[^]*So läuft eine Prüfungssitzung[^]*Abrufziel der Prüfung[^]*Ohne Verbindung startet die Einheit/);
-  assert.equal((markup.match(/class="core-help-keyword"/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-testid="help-intro-card-layer"/g) ?? []).length, 2);
-  assert.match(markup, /data-testid="help-intro-card-front"/);
-  assert.match(markup, /data-testid="help-intro-card-divider"/);
-  assert.equal((markup.match(/data-help-example-stack="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-help-example-stack-template="medium"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-help-example-stack-layer="back"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-help-example-stack-layer="middle"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-help-example-stack-front="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/core-help-stack-card/g) ?? []).length, 6);
-  assert.match(markup, /Active Recall <span class="text-core-warning">→<\/span> Smarter Recall/);
-  assert.match(markup, /Spaced Repetition <span class="text-core-warning">→<\/span> Content Repetition/);
-  assert.match(markup, /href="#active-recall-heading"/);
-  assert.match(markup, /href="#spaced-repetition-heading"/);
-  assert.match(markup, /<a(?=[^>]*href="#active-recall-heading")(?=[^>]*data-help-method-navigation="animated")/);
-  assert.match(markup, /<a(?=[^>]*href="#spaced-repetition-heading")(?=[^>]*data-help-method-navigation="animated")/);
-  assert.doesNotMatch(markup, /data-help-scroll-skip/);
-  assert.equal((markup.match(/core-help-method-link/g) ?? []).length, 2);
-  assert.match(markup, /id="active-recall-heading"[^>]*>Active Recall<\/h2>/);
-  assert.doesNotMatch(markup, /Active Recall hält den Fokus auf dem Inhalt/);
-  assert.doesNotMatch(markup, /Eine Antwort, wechselnde Abrufreize/);
-  assert.match(markup, /data-active-recall-card="stack"/);
-  assert.match(markup, /Welcher Teil des autonomen<\/span> <span data-recall-question-body="true">Nervensystems ist in erster Linie dafür verantwortlich/);
-  assert.match(markup, /data-testid="active-recall-question"/);
-  assert.match(markup, /data-testid="active-recall-question-suffix"/);
-  assert.match(markup, /data-testid="active-recall-divider"/);
-  assert.match(markup, /Je vertrauter die Kartenform wird, desto schwächer wird der aktive Abruf des Inhalts/);
-  assert.match(markup, /CoRe verändert die Frage, nicht das Wissen/);
-  assert.match(markup, /jedes Mal erneut aktiv abrufst – Smarter Recall/);
-  assert.match(markup, /Spaced Repetition findet den passenden Zeitpunkt/);
-  assert.match(markup, /Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken\. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst\./);
-  assert.doesNotMatch(markup, /Scrolle durch die Schritte|Das Diagramm bleibt stehen/);
-  assert.match(markup, /So arbeitet ein Spaced-Repetition-Scheduler/);
-  assert.match(markup, /alle Reviews einschließlich mehrerer Abrufe am selben Tag/);
-  assert.match(markup, /FSRS-7 mit den offiziellen Standardparametern/);
-  assert.match(markup, /persönliche Optimierung der Parameter[^.]+noch nicht aktiviert/);
-  assert.match(markup, /zweiten Kontakt nach 10 Minuten/);
-  assert.match(markup, /höhere Zielerinnerung bedeutet kürzere Intervalle und mehr Reviews pro Tag/);
-  assert.match(markup, /erst ab der Haltbarkeit des Stapels/);
-  assert.match(markup, /Nach einem Fehler fragt CoRe wieder die Originalkarte ab/);
-  assert.match(markup, /keine garantierte Reviewnummer/);
-  assert.match(markup, /Abrufwahrscheinlichkeit/);
-  assert.match(markup, /Stabilität/);
-  assert.match(markup, /Schwierigkeit/);
-  assert.match(markup, /Zielerinnerung/);
-  assert.doesNotMatch(markup, />Ausschnitt 90–100 %</);
-  assert.match(markup, /data-testid="memory-variant-star"/);
-  assert.match(markup, /Zwei diagonale Striche/);
-  assert.doesNotMatch(markup, /Vereinfachtes Beispiel/);
-  assert.match(markup, /1 · Erste Wiederholung/);
-  assert.match(markup, /x\. Wiederholung · Variante/);
-  assert.match(markup, /„Nochmal“, „Schwer“, „Gut“ und „Leicht“ führen gemeinsam betrachtet/);
-  assert.match(markup, /Erst dann kommt eine Variante als neuer Punkt hinzu/);
-  assert.match(markup, /01 · Grundidee[\s\S]*02 · Erste Wiederholung[\s\S]*03 · Bewertung[\s\S]*04 · Ausreichende Haltbarkeit[\s\S]*05 · D[\s\S]*06 · R[\s\S]*07 · S/);
-  assert.doesNotMatch(markup, /Nochmal · S sehr kurz|Schwer · S kurz|Gut · S länger|Leicht · S am längsten/);
-  assert.match(markup, /keine garantierte Produktionsschwelle/);
+  for (const [id, heading] of [
+    ["help-intro-heading", "Wir wollen Lernen verbessern."],
+    ["active-recall-heading", "Active Recall"],
+    ["spaced-repetition-heading", "Spaced Repetition findet den passenden Zeitpunkt"],
+    ["reference-heading", "Das Wichtigste auf einen Blick"],
+  ]) {
+    assert.match(markup, new RegExp(`<section[^>]*aria-labelledby="${id}"`));
+    assert.match(markup, new RegExp(`<h2 id="${id}"[^>]*>${heading.replace(".", "\\.")}</h2>`));
+  }
+  for (const target of ["active-recall-heading", "spaced-repetition-heading"]) {
+    assert.match(markup, new RegExp(`<a(?=[^>]*href="#${target}")(?=[^>]*data-help-method-navigation="animated")`));
+  }
+  for (const heading of ["So arbeitet ein Spaced-Repetition-Scheduler", "Transparenz zum aktuellen Scheduler", "So läuft eine Prüfungssitzung", "Was bei Varianten geschützt bleibt", "Mehr über FSRS"]) {
+    assert.match(markup, new RegExp(`<h3[^>]*>${heading}</h3>`));
+  }
   assert.match(markup, /href="https:\/\/github\.com\/open-spaced-repetition\/awesome-fsrs\/wiki\/ABC-of-FSRS"/);
-  assert.equal((markup.match(/data-testid="active-recall-step-/g) ?? []).length, 3);
-  assert.equal((markup.match(/data-testid="spaced-repetition-step-/g) ?? []).length, 7);
-  assert.equal((markup.match(/data-story-step=/g) ?? []).length, 10);
-  assert.equal((markup.match(/data-testid="memory-parameter-/g) ?? []).length, 3);
-  assert.match(markup, /<button(?=[^>]*data-testid="memory-parameter-r")(?=[^>]*aria-pressed="false")[^>]*>R · Abrufwahrscheinlichkeit<\/button>/);
-  assert.equal((markup.match(/data-testid="memory-review-point-/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-testid="memory-rating-path-/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-testid="memory-stability-arrow-/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-arrowheads="right"/g) ?? []).length, 4);
-  assert.equal((markup.match(/data-arrowheads="left"|data-arrowheads="both"/g) ?? []).length, 0);
-  assert.match(markup, />S1<\/text>[\s\S]*>S2<\/text>[\s\S]*>S3<\/text>[\s\S]*>S4<\/text>/);
-  assert.match(markup, /data-testid="memory-review-point-variant"[\s\S]*<span aria-hidden="true">…<\/span>/);
-  assert.equal((markup.match(/data-testid="memory-y-axis-break"/g) ?? []).length, 1);
 });
