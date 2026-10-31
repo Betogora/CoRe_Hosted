@@ -315,12 +315,12 @@ function StoryStepCard<TSelection extends string>({
   return (
     <li id={elementId} className="flex min-w-0 min-h-[58svh] items-center py-8 xl:min-h-[68svh]" data-story-step={index} data-testid={testId}>
       <article
-        className={`min-w-0 w-full border-l-4 py-4 pl-6 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-70"}`}
+        className={`min-w-0 w-full border-l-strong py-4 pl-6 transition-[border-color,opacity,transform] duration-300 motion-reduce:transition-none ${active ? "translate-x-0 border-core-action opacity-100" : "translate-x-2 border-core-border opacity-70"}`}
         tabIndex={0}
         onFocus={onFocus}
         aria-current={active ? "step" : undefined}
       >
-        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">{step.eyebrow}</p>
+        <p className="core-caption font-medium text-core-muted">{step.eyebrow}</p>
         <h3 className="core-heading-2 mt-3 font-semibold text-core-text">{step.title}</h3>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">{step.text}</p>
         {step.note ? <p className="mt-4 core-caption leading-5 text-core-secondary">{step.note}</p> : null}
@@ -457,7 +457,7 @@ function IntroSection() {
   return (
     <section className="grid min-w-0 min-h-[72svh] items-center gap-12 lg:grid-cols-[0.9fr_1.1fr]" aria-labelledby="help-intro-heading">
       <div className="max-w-2xl">
-        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Lernen, das wirklich bleibt</p>
+        <p className="core-caption font-medium text-core-muted">Lernen, das wirklich bleibt</p>
         <h2 id="help-intro-heading" className="core-heading-1 mt-4 font-semibold text-core-text">Wir wollen Lernen verbessern.</h2>
         <p className="mt-6 core-body-large leading-8 text-core-secondary">
           CoRe hilft dir, Wissen nicht nur für den nächsten Test, sondern langfristig abrufbar zu machen. Dafür verbinden wir zwei etablierte Methoden und entwickeln sie weiter.
@@ -564,7 +564,7 @@ function ActiveRecallStory() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="active-recall-heading">
       <div className="max-w-3xl">
-        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Methode 1</p>
+        <p className="core-caption font-medium text-core-muted">Methode 1</p>
         <h2 id="active-recall-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Active Recall</h2>
       </div>
       <div ref={containerRef} className="grid min-w-0 gap-8 xl:grid-cols-[minmax(0,0.9fr)_minmax(20rem,1.1fr)] xl:gap-12">
@@ -748,7 +748,7 @@ function SpacedRepetitionStory() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="spaced-repetition-heading">
       <div className="max-w-3xl">
-        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Methode 2</p>
+        <p className="core-caption font-medium text-core-muted">Methode 2</p>
         <h2 id="spaced-repetition-heading" className="core-heading-1 mt-3 scroll-mt-6 font-semibold text-core-text">Spaced Repetition findet den passenden Zeitpunkt</h2>
         <p className="mt-4 core-body-large leading-7 text-core-secondary">Bei Spaced Repetition werden Fragen in gezielt gewählten Abständen wiederholt, um dem Vergessen entgegenzuwirken. CoRe nutzt dafür den FSRS-Algorithmus, der anhand verschiedener Parameter berechnet, wie wahrscheinlich du dich noch an eine Karte erinnerst.</p>
       </div>
@@ -770,7 +770,7 @@ function ReferenceSection() {
   return (
     <section className="grid min-w-0 gap-8" aria-labelledby="reference-heading">
       <div>
-        <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">Zum Nachlesen</p>
+        <p className="core-caption font-medium text-core-muted">Zum Nachlesen</p>
         <h2 id="reference-heading" className="core-heading-1 mt-3 font-semibold text-core-text">Das Wichtigste auf einen Blick</h2>
       </div>
 
@@ -783,7 +783,7 @@ function ReferenceSection() {
           <ol className="mt-6 border-t border-core-border">
             {SCHEDULING_STEPS.map((step, index) => (
               <li key={step.label} className="grid gap-2 border-b border-core-border py-4 sm:grid-cols-[2.5rem_1fr]">
-                <span className="core-caption font-semibold tabular-nums text-core-action">0{index + 1}</span>
+                <span className="core-caption font-semibold tabular-nums text-core-muted">0{index + 1}</span>
                 <div>
                   <p className="core-body font-semibold text-core-text">{step.label}</p>
                   <p className="mt-1 core-caption leading-5 text-core-secondary">{step.text}</p>
@@ -795,7 +795,7 @@ function ReferenceSection() {
 
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
-            <OrbIcon icon={ShieldCheck} className="bg-core-warning-soft text-core-text" />
+            <OrbIcon icon={ShieldCheck} />
             <h3 className="core-heading-2 font-semibold text-core-text">Transparenz zum aktuellen Scheduler</h3>
           </div>
           <p className="mt-6 core-body leading-6 text-core-secondary">
@@ -832,7 +832,7 @@ function ReferenceSection() {
       <div className="grid gap-6 lg:grid-cols-[1fr_0.8fr]" aria-label="Sichere Varianten und weiterführende Informationen">
         <SoftPanel className="p-6">
           <div className="flex items-center gap-3">
-            <OrbIcon icon={RotateCcw} className="bg-core-danger-soft text-core-text" />
+            <OrbIcon icon={RotateCcw} />
             <h3 className="core-heading-2 font-semibold text-core-text">Was bei Varianten geschützt bleibt</h3>
           </div>
           <ul className="mt-4 grid gap-3 core-body leading-6 text-core-secondary">
@@ -846,7 +846,7 @@ function ReferenceSection() {
 
         <div className="border-y border-core-border py-6">
           <div className="flex items-center gap-3">
-            <Brain className="text-core-action" size={24} aria-hidden="true" />
+            <OrbIcon icon={Brain} />
             <h3 className="core-heading-2 font-semibold text-core-text">Mehr über FSRS</h3>
           </div>
           <p className="mt-4 core-body leading-6 text-core-secondary">Die offizielle Einführung erklärt das vollständige FSRS-Modell, seine Modellparameter und die Zielerinnerung.</p>

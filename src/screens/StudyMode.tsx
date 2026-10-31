@@ -28,6 +28,7 @@ import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
+import { IconButton } from "../ui/actionUi.tsx";
 import { FlagDot } from "../ui/flagUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
@@ -407,29 +408,25 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
 
   return (
     <main className="min-h-screen bg-core-canvas p-4 text-core-text sm:p-8">
-      <div className="flex min-h-[calc(100vh-2rem)] w-full flex-col sm:min-h-[calc(100vh-4rem)]">
+      <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col sm:min-h-[calc(100vh-4rem)]">
         <header className="grid gap-4">
           <div className="flex items-center justify-between gap-4">
-            <button type="button" onClick={onExit} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lernmodus verlassen">
-              <X size={22} aria-hidden="true" />
-            </button>
+            <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
             <div className="flex min-w-0 items-center justify-center gap-2 text-center">
-              <p className="min-w-0 truncate core-body font-semibold text-core-muted">{rootDeck?.name ?? deck?.name}</p>
+              <p className="min-w-0 truncate core-heading-3 text-core-text">{rootDeck?.name ?? deck?.name}</p>
               {current?.card.ankiFlag ? <FlagDot flag={current.card.ankiFlag} names={flagNames} /> : null}
             </div>
-            <button ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} className="core-surface grid size-10 place-items-center rounded-control text-core-text" aria-label="Lerneinstellungen" aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay">
-              <SlidersHorizontal size={20} aria-hidden="true" />
-            </button>
+            <IconButton ref={settingsButtonRef} type="button" onClick={() => setShowSettings((value) => !value)} label="Lerneinstellungen" icon={SlidersHorizontal} aria-haspopup="dialog" aria-expanded={showSettings} aria-controls="study-settings-overlay" />
           </div>
           {simulationOffsetMinutes > 0 ? (
-            <p className="rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 text-center core-body font-semibold text-core-text" role="status">
+            <p className="core-status-warning text-center font-semibold" role="status">
               Simulation aktiv · {formatSimulationDate(getNow())} · +{formatSimulationDuration(simulationOffsetMinutes)}
             </p>
           ) : null}
           <div className="grid gap-2">
-            <div className="flex items-center justify-between gap-3 core-status-label text-core-muted">
+            <div className="flex items-center justify-between gap-3 core-caption font-medium text-core-muted">
               <span>Lernfortschritt</span>
-              <span>{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
+              <span className="tabular-nums">{sessionDailyProgress.completedTodayCount} / {sessionDailyProgress.total} Karten</span>
             </div>
             <DailyReviewProgress progress={sessionDailyProgress} />
           </div>
@@ -467,7 +464,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
               <>
                 <div className="w-full">
                   {current.sessionInfo?.isRepeat ? (
-                    <p className="mb-4 core-body font-semibold text-[var(--core-action-secondary)]" role="status">
+                    <p className="mb-4 inline-flex min-h-5 items-center rounded-round bg-core-info-soft px-2 core-caption font-semibold text-core-action" role="status">
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
                     </p>
                   ) : null}
@@ -481,44 +478,44 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
                   {showAnswer ? (
                     <>
                       {hasAnswerTools ? (
-                        <div className="mt-8 rounded-panel border border-core-border bg-core-subtle p-4" data-testid="review-answer-tools">
+                        <div className="mt-8 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft sm:p-5" data-testid="review-answer-tools">
                           <div className="flex flex-wrap items-center gap-2">
                             {isCurrentVariant ? (
-                              <span className="inline-flex min-h-control items-center gap-2 rounded-control bg-core-surface px-3 core-body font-semibold text-core-secondary" data-testid="review-variant-badge">
-                                <Shuffle size={16} aria-hidden="true" />
+                              <span className="inline-flex min-h-5 items-center gap-1.5 rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary" data-testid="review-variant-badge">
+                                <Shuffle size={14} aria-hidden="true" />
                                 Kartenvariante
                               </span>
                             ) : null}
                             {isCurrentVariant ? (
-                              <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-semibold text-core-action">
+                              <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="core-action-secondary">
                                 <Anchor size={16} aria-hidden="true" />
                                 {showAnchor ? "Grundkarte ausblenden" : "Grundkarte anzeigen"}
                               </button>
                             ) : null}
                             {isCurrentVariant ? (
-                              <button type="button" onClick={() => updateVariant("disable")} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-warning bg-core-warning-soft px-3 core-body font-semibold text-core-text">
-                                <Ban size={16} aria-hidden="true" />
+                              <button type="button" onClick={() => updateVariant("disable")} className="core-action-secondary">
+                                <Ban className="text-core-warning" size={16} aria-hidden="true" />
                                 Nicht mehr zeigen
                               </button>
                             ) : null}
                           </div>
                           {isCurrentVariant ? (
-                            <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Problem melden">
-                              <span className="core-body font-semibold text-core-muted">Problem melden:</span>
-                              <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
-                                <CircleAlert size={16} aria-hidden="true" />
+                            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-core-border pt-4" aria-label="Problem melden">
+                              <span className="core-field-label">Problem melden:</span>
+                              <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="core-action-secondary">
+                                <CircleAlert className="text-core-danger" size={16} aria-hidden="true" />
                                 Inhaltlich falsch
                               </button>
-                              <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-danger bg-core-danger-soft px-3 core-body font-semibold text-core-text">
-                                <CircleAlert size={16} aria-hidden="true" />
+                              <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="core-action-secondary">
+                                <CircleAlert className="text-core-danger" size={16} aria-hidden="true" />
                                 Unklar formuliert
                               </button>
                             </div>
                           ) : null}
-                          {feedbackStatus ? <p className="mt-3 core-body font-semibold text-core-secondary" role="status">{feedbackStatus}</p> : null}
+                          {feedbackStatus ? <p className="mt-3 core-body text-core-secondary" role="status">{feedbackStatus}</p> : null}
                           {isCurrentVariant && showAnchor && currentNote ? (
                             <div className="mt-4 border-t border-core-border pt-4" data-testid="base-card-reference">
-                              <p className="mb-3 core-body font-semibold text-core-muted">Grundkarte</p>
+                              <p className="mb-3 core-field-label">Grundkarte</p>
                               <NoteCardContent note={currentNote} card={current.card} surface="preview" mediaUrls={studyMediaUrls} revealed onReveal={() => undefined} />
                             </div>
                           ) : null}
@@ -527,7 +524,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
                     </>
                   ) : (
                     <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 core-action-primary">
-                      <RotateCcw size={17} aria-hidden="true" />
+                      <RotateCcw size={16} aria-hidden="true" />
                       Antwort anzeigen
                     </button>
                   )}
@@ -535,74 +532,75 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
               </>
             ) : loadMoreError && pausedOffline ? (
               <div className="text-center" role="status">
-                <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Lernen pausiert – du bist offline</h1>
-                <p className="mt-3 text-core-muted">Die nächsten fälligen Karten liegen nicht auf diesem Gerät. Deine Bewertungen sind gespeichert; sobald die Verbindung zurück ist, geht es automatisch weiter.</p>
-                <p className="mt-2 text-core-muted">Stapel, die du ohne Verbindung lernen willst, machst du vorher mit „Offline verfügbar machen“ verfügbar.</p>
+                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-warning" aria-hidden="true"><CircleAlert size={24} /></span>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Lernen pausiert – du bist offline</h1>
+                <p className="mt-2 core-body text-core-secondary">Die nächsten fälligen Karten liegen nicht auf diesem Gerät. Deine Bewertungen sind gespeichert; sobald die Verbindung zurück ist, geht es automatisch weiter.</p>
+                <p className="mt-2 core-body text-core-secondary">Stapel, die du ohne Verbindung lernen willst, machst du vorher mit „Offline verfügbar machen“ verfügbar.</p>
               </div>
             ) : loadMoreError ? (
               <div className="text-center">
-                <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Weitere Karten konnten nicht geladen werden</h1>
-                <p className="mt-3 text-core-muted">{loadMoreError}</p>
-                <button type="button" onClick={() => setLoadMoreError("")} className="mt-8 core-action-primary">
+                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-warning" aria-hidden="true"><CircleAlert size={24} /></span>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Weitere Karten konnten nicht geladen werden</h1>
+                <p className="mt-2 core-body text-core-secondary">{loadMoreError}</p>
+                <button type="button" onClick={() => setLoadMoreError("")} className="mt-6 core-action-primary">
                   Erneut versuchen
                 </button>
               </div>
             ) : loadingMoreCards || moreCardsAvailable ? (
               <div className="text-center" role="status">
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="core-heading-2 font-semibold outline-none">Weitere Karten werden geladen</h1>
-                <p className="mt-3 text-core-muted">Deine bisherige Sitzung bleibt erhalten.</p>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="core-heading-2 text-core-text outline-none">Weitere Karten werden geladen</h1>
+                <p className="mt-2 core-body text-core-secondary">Deine bisherige Sitzung bleibt erhalten.</p>
               </div>
             ) : limitReachedAtStart ? (
               <div className="text-center">
-                <CircleAlert className="mx-auto text-core-warning" size={44} aria-hidden="true" />
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Tageslimit erreicht</h1>
-                <p className="mt-3 text-core-muted">{limitSummaryText}</p>
-                <button type="button" onClick={onReturnToLearn} className="mt-8 core-action-primary">
+                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-warning" aria-hidden="true"><CircleAlert size={24} /></span>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Tageslimit erreicht</h1>
+                <p className="mt-2 core-body text-core-secondary">{limitSummaryText}</p>
+                <button type="button" onClick={onReturnToLearn} className="mt-6 core-action-primary">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>
             ) : hasWaitingLearningCards ? (
               <div className="text-center">
-                <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Für jetzt geschafft</h1>
-                <p className="mt-3 text-core-muted">Die restlichen Lernkarten sind vorgemerkt und bleiben „Offen“.</p>
-                {queue.limitSummary.reached ? <p className="mt-3 rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 core-body text-core-text" role="status">{limitSummaryText}</p> : null}
-                <button type="button" onClick={onReturnToLearn} className="mt-8 core-action-primary">
+                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-success" aria-hidden="true"><CheckCircle2 size={24} /></span>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Für jetzt geschafft</h1>
+                <p className="mt-2 core-body text-core-secondary">Die restlichen Lernkarten sind vorgemerkt und bleiben „Offen“.</p>
+                {queue.limitSummary.reached ? <p className="mt-4 core-status-warning" role="status">{limitSummaryText}</p> : null}
+                <button type="button" onClick={onReturnToLearn} className="mt-6 core-action-primary">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>
             ) : answeredCount > 0 ? (
               <div className="text-center">
-                <CheckCircle2 className="mx-auto text-core-text" size={44} aria-hidden="true" />
-                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 font-semibold outline-none">Sitzung abgeschlossen</h1>
-                <p className="mt-3 text-core-muted">
+                <span className="core-surface mx-auto grid size-12 place-items-center rounded-control text-core-success" aria-hidden="true"><CheckCircle2 size={24} /></span>
+                <h1 ref={completionHeadingRef} tabIndex={-1} className="mt-4 core-heading-2 text-core-text outline-none">Sitzung abgeschlossen</h1>
+                <p className="mt-2 core-body text-core-secondary">
                   {completedInitialCount} {completedInitialCount === 1 ? "Karte" : "Karten"} · {repeatCount} {repeatCount === 1 ? "Wiederholung" : "Wiederholungen"}
                 </p>
-                {queue.limitSummary.reached ? <p className="mt-3 rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 core-body text-core-text" role="status">{limitSummaryText}</p> : null}
-                <button type="button" onClick={onReturnToLearn} className="mt-8 core-action-primary">
+                {queue.limitSummary.reached ? <p className="mt-4 core-status-warning" role="status">{limitSummaryText}</p> : null}
+                <button type="button" onClick={onReturnToLearn} className="mt-6 core-action-primary">
                   Zurück zum Ausgangspunkt
                 </button>
               </div>
             ) : (
               <div className="text-center">
-                <h1 className="core-heading-2 font-semibold">Keine fälligen Karten</h1>
-                <p className="mt-3 text-core-muted">Dieser Stapel hat für heute keine Karten in der Lern-Queue.</p>
+                <h1 className="core-heading-2 text-core-text">Keine fälligen Karten</h1>
+                <p className="mt-2 core-body text-core-secondary">Dieser Stapel hat für heute keine Karten in der Lern-Queue.</p>
               </div>
             )}
           </div>
         </section>
 
         {showAnswer ? (
-          <footer className="grid gap-2 sm:grid-cols-4">
+          <footer className="grid gap-2 sm:grid-cols-4 sm:gap-3">
             {ratingButtons.map((rating) => {
               const ratingKey = rating.key as ReviewRating;
               const intervalLabel = formatReviewIntervalLabel(current?.ratingButtonOptions?.[ratingKey]?.intervalLabel ?? "");
               return <CoreTooltip key={rating.key} label={`Taste ${rating.shortcutKey}`}>
-                <button type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`min-h-14 rounded-control border px-3 py-1.5 text-center shadow-soft transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${rating.className}`}>
-                  <span className="block core-body-large font-semibold leading-5">{rating.label}</span>
-                  <span className="mt-0.5 block core-caption font-medium opacity-80">{intervalLabel}</span>
+                <button type="button" onClick={() => grade(ratingKey)} disabled={!current} aria-label={`Bewertung ${rating.label}${intervalLabel ? `: ${intervalLabel}` : ""}`} className={`core-rating-button ${rating.className}`}>
+                  <span className="core-rating-dot" aria-hidden="true" />
+                  <span className="core-control-label">{rating.label}</span>
+                  {intervalLabel ? <span className="core-caption font-medium tabular-nums text-core-secondary">{intervalLabel}</span> : null}
                 </button>
               </CoreTooltip>
             })}

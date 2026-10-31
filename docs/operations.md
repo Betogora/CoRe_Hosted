@@ -57,7 +57,7 @@ gehören zur Matrix, auch wenn die Änderung nur in einem Modus entwickelt wurde
 
 Prüfkriterien sind lesbare lange Inhalte, vollständige Beschriftungen,
 Überlagerungen, Umbrüche, gewöhnliche Touchziele in Bedienhöhe (unter 768 px
-und auf Touchgeräten mindestens 44 × 44 px, sonst 40 px),
+und auf Touchgeräten mindestens 44 × 44 px, sonst 36 px für Buttons und 40 px für Felder),
 Scrollbarkeit und die Erreichbarkeit der letzten Aktion oberhalb fester
 Navigation und Speicherleisten. Horizontales Hauptscrolling ist unzulässig;
 dokumentierte lokale Scrollbereiche werden auf Bedienbarkeit und erkennbare

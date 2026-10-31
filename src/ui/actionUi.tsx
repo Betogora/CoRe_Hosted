@@ -27,9 +27,9 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
       className={`${ACTION_VARIANT_CLASS[variant]} ${className}`}
     >
       {loading ? (
-        <LoaderCircle className="animate-spin" size={18} aria-hidden="true" />
+        <LoaderCircle className="animate-spin" size={16} aria-hidden="true" />
       ) : Icon ? (
-        <Icon size={18} aria-hidden="true" />
+        <Icon size={16} aria-hidden="true" />
       ) : null}
       <span>{children}</span>
     </button>
@@ -53,9 +53,9 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       ref={ref}
       aria-label={label}
       style={variant === "destructive" ? style : { ...style, color: "var(--core-text)" }}
-      className={`${ACTION_VARIANT_CLASS[variant]} min-w-control p-2 ${className}`}
+      className={`${ACTION_VARIANT_CLASS[variant]} min-w-button p-2 ${className}`}
     >
-      <Icon size={20} aria-hidden="true" />
+      <Icon size={16} aria-hidden="true" />
     </button>
   );
 });
@@ -70,7 +70,7 @@ export type CrossLinkButtonProps = CrossLinkBaseProps & (
   | { href?: never; onSelect: () => void }
 );
 
-const CROSS_LINK_CLASS = "inline-flex min-h-control items-center gap-2 whitespace-nowrap rounded-control bg-core-subtle px-4 core-control-label text-core-action transition hover:bg-core-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2";
+const CROSS_LINK_CLASS = "inline-flex min-h-button items-center gap-2 whitespace-nowrap rounded-control bg-core-subtle px-4 core-control-label font-semibold text-core-text transition hover:bg-core-hover hover:text-core-action";
 
 export function CrossLinkButton({ children, className = "", ...action }: CrossLinkButtonProps) {
   const content = (

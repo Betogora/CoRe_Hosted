@@ -258,10 +258,10 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
   const pageCount = pages.length;
 
   return (
-    <div className="min-h-[40rem] overflow-hidden rounded-panel border border-core-border bg-core-subtle" data-testid="pdf-document-viewer">
-      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-core-border bg-core-subtle px-4 py-3">
+    <div className="min-h-[40rem] overflow-hidden rounded-panel border border-core-border bg-core-subtle shadow-soft" data-testid="pdf-document-viewer">
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-core-border bg-core-surface px-4 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-9 shrink-0 place-items-center rounded-control bg-core-info-soft text-core-text">
+          <span className="grid size-9 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action">
             <FileText size={18} aria-hidden="true" />
           </span>
           <div className="min-w-0">
@@ -297,7 +297,7 @@ export function PdfDocumentViewer({ document, src, onSelection }: PdfDocumentVie
       {status === "error" ? (
         <div className="grid min-h-[37rem] place-items-center px-6 text-center" role="alert">
           <div className="max-w-md">
-            <AlertCircle className="mx-auto text-core-text" size={28} aria-hidden="true" />
+            <AlertCircle className="mx-auto text-core-danger" size={28} aria-hidden="true" />
             <p className="mt-3 font-semibold text-core-text">{errorMessage}</p>
             <p className="mt-1 core-body text-core-muted">Du kannst die extrahierte Textquelle weiterhin für Karten verwenden.</p>
           </div>

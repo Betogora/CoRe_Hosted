@@ -120,11 +120,11 @@ export function ColorWheelPicker({
           type="button"
           aria-label={ariaLabel}
           disabled={disabled}
-          className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
+          className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
         >
           <span
             aria-hidden="true"
-            className="block size-full rounded-inset border border-core-border shadow-inset"
+            className="block size-full rounded-marker border border-core-border shadow-inset"
             style={{ backgroundColor: isOpen ? previewColor : normalizedValue }}
           />
         </button>
@@ -137,7 +137,7 @@ export function ColorWheelPicker({
           collisionPadding={12}
           aria-label={ariaLabel}
           data-testid="color-wheel-popover"
-          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-control p-3 outline-none"
+          className="core-overlay z-50 w-[min(15rem,calc(100vw-1.5rem))] rounded-panel p-3.5 outline-none"
         >
           <div
             ref={wheelRef}
@@ -148,7 +148,7 @@ export function ColorWheelPicker({
             aria-valuemax={360}
             aria-valuenow={Math.round(position.hue)}
             aria-valuetext={`${previewColor}, ${Math.round(position.intensity * 100)} %`}
-            className="relative mx-auto aspect-square w-full max-w-[14.75rem] touch-none rounded-round border-strong border-core-border-strong shadow-inset outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
+            className="relative mx-auto aspect-square w-full max-w-48 touch-none rounded-round border border-core-border shadow-inset outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
             style={{
               backgroundImage: "radial-gradient(circle, #fff 0%, rgb(255 255 255 / 0) 100%), conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
             }}

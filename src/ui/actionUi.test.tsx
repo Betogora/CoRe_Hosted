@@ -22,7 +22,7 @@ test("IconButton exposes its required accessible name, semantic variant and squa
   const markup = renderToStaticMarkup(<IconButton label="Löschen" icon={Trash2} variant="destructive" />);
   assert.match(markup, /aria-label="Löschen"/);
   assert.match(markup, /core-action-destructive/);
-  assert.match(markup, /min-w-control/);
+  assert.match(markup, /min-w-button/);
 });
 
 test("IconButton uses the outlined secondary action by default", () => {
@@ -34,7 +34,7 @@ test("IconButton uses the outlined secondary action by default", () => {
 test("IconButton offers a borderless ghost action with the same square target", () => {
   const markup = renderToStaticMarkup(<IconButton label="Optionen" icon={Save} variant="ghost" />);
   assert.match(markup, /core-action-ghost/);
-  assert.match(markup, /min-w-control/);
+  assert.match(markup, /min-w-button/);
 });
 
 test("CrossLinkButton centralizes the compact cross-link style for buttons and anchors", () => {
@@ -45,7 +45,7 @@ test("CrossLinkButton centralizes the compact cross-link style for buttons and a
     </>,
   );
 
-  assert.match(markup, /<button type="button"[^>]*min-h-control[^>]*>Alle ansehen/);
-  assert.match(markup, /<a href="#global"[^>]*min-h-control[^>]*>Globale Einstellungen/);
+  assert.match(markup, /<button type="button"[^>]*min-h-button[^>]*>Alle ansehen/);
+  assert.match(markup, /<a href="#global"[^>]*min-h-button[^>]*>Globale Einstellungen/);
   assert.equal(markup.match(/lucide-chevron-right/g)?.length, 2);
 });

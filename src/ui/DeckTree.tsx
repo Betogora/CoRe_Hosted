@@ -192,11 +192,11 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
     <button
       type="button"
       onClick={() => onToggle(row.id)}
-      className="pointer-events-auto relative -me-2 grid size-control shrink-0 place-items-center rounded-inset text-core-action before:pointer-events-none before:absolute before:inset-x-1.5 before:inset-y-1 before:rounded-inset before:transition-colors before:content-[''] hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
+      className="pointer-events-auto relative -me-2 grid size-control shrink-0 place-items-center rounded-inset text-core-muted transition-colors before:pointer-events-none before:absolute before:inset-1 before:rounded-inset before:transition-colors before:content-[''] hover:text-core-text hover:before:bg-core-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-core-focus [&>svg]:relative [&>svg]:z-[1]"
       aria-label={isCollapsed ? `Unterstapel von ${row.path} anzeigen` : `Unterstapel von ${row.path} ausblenden`}
       aria-expanded={!isCollapsed}
     >
-      {isCollapsed ? <ChevronRight size={18} aria-hidden="true" /> : <ChevronDown size={18} aria-hidden="true" />}
+      {isCollapsed ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
     </button>
   ) : <span className="-me-2 size-control shrink-0" aria-hidden="true" />;
   const studyAction = (
@@ -225,7 +225,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
         aria-label={activationLabel}
         data-deck-drag-source="true"
         data-deck-row-activation="true"
-        className={`absolute inset-0 z-0 text-left transition-colors hover:bg-[var(--core-focus-ring-soft)] ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`absolute inset-0 z-0 text-left transition-colors hover:bg-core-subtle ${isDragged ? "cursor-grabbing" : "cursor-grab"}`}
       >
         <span className="sr-only">{activationLabel}</span>
       </button>
@@ -526,8 +526,8 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
             topDropActive && dropIntent?.error
               ? "border-core-danger bg-core-danger-soft text-core-danger"
               : topDropActive
-                ? "border-core-warning bg-core-warning-soft text-core-text"
-                : "border-core-border bg-core-raised text-core-muted"
+                ? "border-core-action bg-core-info-soft text-core-action"
+                : "border-core-border-strong bg-core-raised text-core-muted"
           }`}
           style={{
             position: "fixed",
@@ -658,7 +658,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
               </div>
             </div>
           ) : null}
-          {rows.length > 0 && contentAfterRows ? <div className={view === "list" ? "core-deck-tree-create" : undefined}>{contentAfterRows}</div> : null}
+          {rows.length > 0 && contentAfterRows ? <div className="core-deck-tree-create">{contentAfterRows}</div> : null}
         </div>
       </section>
       {portalContent}

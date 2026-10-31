@@ -81,20 +81,24 @@ const STATISTICS_SECTIONS_WITH_COMPARISON = [
   ...STATISTICS_SECTIONS,
   { id: STATISTICS_SECTION_IDS.comparison, label: "Stapelvergleich", icon: Layers },
 ] as const;
+// Review categories follow the learning-status roles; young intervals are a lighter tint of learned.
 const CATEGORY_COLORS = {
-  learning: "var(--core-action-primary)",
-  relearning: "var(--core-danger)",
-  young: "var(--core-success)",
-  mature: "var(--core-warning)",
+  learning: "var(--core-learning-status-in-progress)",
+  relearning: "var(--core-learning-status-new)",
+  young: "color-mix(in srgb, var(--core-learning-status-learned) 50%, var(--core-surface))",
+  mature: "var(--core-learning-status-learned)",
 };
 const RATING_BUTTONS = [["again", "Nochmal"], ["hard", "Schwer"], ["good", "Gut"], ["easy", "Leicht"]] as const;
 const STATUS_COLORS: Record<MaturityBand, string> = {
-  new: "var(--core-border-interactive)",
+  new: "var(--core-learning-status-new)",
   learning: CATEGORY_COLORS.learning,
   young: CATEGORY_COLORS.young,
   mature: CATEGORY_COLORS.mature,
 };
-const axisTick = { fill: "var(--core-text-muted)", fontSize: 11 };
+const axisProps = { tick: { fill: "var(--core-text-muted)", fontSize: 12 }, axisLine: false, tickLine: false, tickMargin: 8 } as const;
+const SERIES_PRIMARY = "var(--core-action-primary)";
+const SERIES_ACCENT = "var(--core-accent)";
+const SERIES_NEUTRAL = "var(--core-text-secondary)";
 const NUMBER_FORMATTERS = [
   new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }),
   new Intl.NumberFormat("de-DE", { maximumFractionDigits: 1 }),
@@ -160,8 +164,8 @@ function StatisticsTooltip({
   const datum = payload[0]?.payload ?? {};
   const heading = String(datum.rangeLabel ?? datum.label ?? label ?? "Details");
   return (
-    <div role="tooltip" className="core-overlay min-w-52 rounded-control border border-core-border bg-core-surface p-3 shadow-raised">
-      <p className="core-body font-semibold text-core-text">{heading}</p>
+    <div role="tooltip" className="core-overlay min-w-52 rounded-control px-3 py-2.5">
+      <p className="core-caption font-semibold text-core-text">{heading}</p>
       <div className="mt-2 grid gap-1.5">
         {typeof datum.total === "number" ? (
           <div className="flex items-center justify-between gap-4 border-b border-core-border pb-1.5 core-caption">
@@ -172,10 +176,10 @@ function StatisticsTooltip({
         {payload.filter((entry) => entry.value != null).map((entry) => (
           <div key={`${entry.dataKey}-${entry.name}`} className="flex items-center justify-between gap-4 core-caption">
             <span className="flex items-center gap-2 text-core-secondary">
-              <span className="size-2.5 rounded-marker" style={{ backgroundColor: entry.color ?? entry.fill }} aria-hidden="true" />
+              <span className="size-2 rounded-round" style={{ backgroundColor: entry.color ?? entry.fill }} aria-hidden="true" />
               {entry.name}
             </span>
-            <span className="font-semibold text-core-text">{valueFormatter(Number(entry.value), entry)}</span>
+            <span className="font-semibold tabular-nums text-core-text">{valueFormatter(Number(entry.value), entry)}</span>
           </div>
         ))}
       </div>
@@ -190,9 +194,9 @@ function StatisticsTooltip({
 
 function PanelHeader({ title, titleId, snapshot = false }: { title: string; titleId?: string; snapshot?: boolean }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="flex flex-wrap items-center justify-between gap-3">
       <h3 id={titleId} tabIndex={titleId ? -1 : undefined} className={`core-heading-3 text-core-text ${titleId ? "rounded-inset focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-4" : ""}`.trim()}>{title}</h3>
-      {snapshot ? <span className="core-status-label rounded-inset bg-core-subtle px-3 py-1.5 text-core-secondary">Stand heute</span> : null}
+      {snapshot ? <span className="inline-flex min-h-5 items-center rounded-round border border-core-border bg-core-surface px-2 core-caption font-semibold text-core-secondary">Stand heute</span> : null}
     </div>
   );
 }
@@ -211,9 +215,9 @@ function ChartPanel({
   className?: string;
 }) {
   return (
-    <SoftPanel className={`p-6 ${className}`}>
+    <SoftPanel className={`p-5 sm:p-6 ${className}`}>
       <PanelHeader title={title} titleId={titleId} snapshot={snapshot} />
-      <div className="mt-6 min-w-0">{children}</div>
+      <div className="mt-5 min-w-0">{children}</div>
     </SoftPanel>
   );
 }
@@ -224,14 +228,15 @@ function StatisticsSectionHeading({ id, children }: { id: string; children: Reac
 
 function NoChartData({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid min-h-56 place-items-center rounded-control bg-core-subtle p-6 text-center core-body text-core-muted">
+    <div className="grid min-h-56 place-items-center rounded-control border border-dashed border-core-border-strong p-6 text-center core-body text-core-muted">
       <p className="max-w-md">{children}</p>
     </div>
   );
 }
 
+
 function RechartsLegend() {
-  return <Legend iconType="square" wrapperStyle={{ color: "var(--core-text-secondary)", fontSize: 12, paddingTop: 14 }} />;
+  return <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12, paddingTop: 12 }} formatter={(value) => <span className="text-core-secondary">{value}</span>} />;
 }
 
 function CartesianStatisticsChart({
@@ -257,12 +262,12 @@ function CartesianStatisticsChart({
     <div className={className} aria-label={ariaLabel}>
       <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} accessibilityLayer margin={{ top: 8, right: 10, left: -20, bottom: 10 }}>
-          <CartesianGrid stroke="var(--core-border)" strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="label" tick={axisTick} minTickGap={minTickGap} interval={interval} />
-          <YAxis tick={axisTick} allowDecimals={false} />
-          {rightAxis === "cumulative" ? <YAxis yAxisId="cumulative" orientation="right" tick={axisTick} allowDecimals={false} /> : null}
-          {rightAxis === "percent" ? <YAxis yAxisId="percent" orientation="right" tick={axisTick} domain={[0, 100]} unit=" %" /> : null}
-          <Tooltip content={tooltip} />
+          <CartesianGrid stroke="var(--core-border-interactive)" strokeDasharray="1 5" strokeLinecap="round" vertical={false} />
+          <XAxis dataKey="label" {...axisProps} minTickGap={minTickGap} interval={interval} />
+          <YAxis {...axisProps} allowDecimals={false} />
+          {rightAxis === "cumulative" ? <YAxis yAxisId="cumulative" orientation="right" {...axisProps} allowDecimals={false} /> : null}
+          {rightAxis === "percent" ? <YAxis yAxisId="percent" orientation="right" {...axisProps} domain={[0, 100]} unit=" %" /> : null}
+          <Tooltip content={tooltip} cursor={{ fill: "var(--core-surface-muted)" }} />
           <RechartsLegend />
           {children}
         </ComposedChart>
@@ -303,7 +308,7 @@ function ActivityChart({ points, duration = false }: { points: StatisticsProject
       <Bar dataKey="relearning" name="Wiederlernen" stackId="reviews" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
       <Bar dataKey="young" name="Intervall unter 21 Tagen" stackId="reviews" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
       <Bar dataKey="mature" name="Intervall ab 21 Tagen" stackId="reviews" fill={CATEGORY_COLORS.mature} radius={[3, 3, 0, 0]} isAnimationActive={false} />
-      <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke="var(--core-text-muted)" fill="var(--core-action-primary)" fillOpacity={0.08} isAnimationActive={false} />
+      <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke={SERIES_NEUTRAL} strokeWidth={1.5} fill="none" isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
 }
@@ -312,8 +317,8 @@ function AddedCardsChart({ points }: { points: StatisticsProjection["addedCards"
   if (!points.some((point) => point.count > 0)) return <NoChartData>Im gewählten Zeitraum wurden keine Karten hinzugefügt.</NoChartData>;
   return (
     <CartesianStatisticsChart data={points} ariaLabel="Diagramm zu hinzugefügten Karten" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
-      <Bar dataKey="count" name="Neu hinzugefügt" fill="var(--core-action-primary)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
-      <Line yAxisId="cumulative" dataKey="cumulative" name="Bestand" stroke="var(--core-warning)" strokeWidth={2} dot={false} isAnimationActive={false} />
+      <Bar dataKey="count" name="Neu hinzugefügt" fill={SERIES_PRIMARY} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+      <Line yAxisId="cumulative" dataKey="cumulative" name="Bestand" stroke={SERIES_ACCENT} strokeWidth={2} dot={false} isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
 }
@@ -329,7 +334,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
           { label: "Im Horizont", value: planning.dueInHorizon },
           { label: "Arbeitspensum/Tag", value: planning.dailyWorkload },
         ].map(({ label, value }) => (
-          <StatTile key={label} size="compact" label={label} value={formatNumber(value, 1)} />
+          <StatTile size="compact" key={label} label={label} value={formatNumber(value, 1)} />
         ))}
       </div>
       <CartesianStatisticsChart data={planning.points} ariaLabel="Diagramm zu geplanten Wiederholungen" className="mt-6 h-72 w-full" minTickGap={28} rightAxis="cumulative" tooltip={<StatisticsTooltip />}>
@@ -337,7 +342,7 @@ function PlanningChart({ planning }: { planning: StatisticsProjection["planning"
         <Bar dataKey="relearning" name="Wiederlernen/Rückstand" stackId="due" fill={CATEGORY_COLORS.relearning} isAnimationActive={false} />
         <Bar dataKey="young" name="Intervall unter 21 Tagen" stackId="due" fill={CATEGORY_COLORS.young} isAnimationActive={false} />
         <Bar dataKey="mature" name="Intervall ab 21 Tagen" stackId="due" fill={CATEGORY_COLORS.mature} isAnimationActive={false} />
-        <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke="var(--core-text-muted)" fill="var(--core-action-primary)" fillOpacity={0.08} isAnimationActive={false} />
+        <Area yAxisId="cumulative" dataKey="cumulative" name="Kumuliert" stroke={SERIES_NEUTRAL} strokeWidth={1.5} fill="none" isAnimationActive={false} />
       </CartesianStatisticsChart>
     </>
   );
@@ -350,21 +355,21 @@ function StatusChart({ status }: { status: StatisticsProjection["status"] }) {
       <div className="h-64" aria-label="Diagramm zum aktuellen Kartenstatus">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart accessibilityLayer>
-            <Pie data={status.rows} dataKey="count" nameKey="label" innerRadius="53%" outerRadius="82%" paddingAngle={2} isAnimationActive={false}>
+            <Pie data={status.rows} dataKey="count" nameKey="label" innerRadius="58%" outerRadius="82%" paddingAngle={2} stroke="var(--core-surface)" strokeWidth={2} isAnimationActive={false}>
               {status.rows.map((row) => <Cell key={row.key} fill={STATUS_COLORS[row.key]} />)}
             </Pie>
             <Tooltip content={<StatisticsTooltip valueFormatter={(value) => `${formatNumber(value)} Karten`} />} />
           </PieChart>
         </ResponsiveContainer>
       </div>
-      <div className="grid gap-2">
+      <div className="grid">
         {status.rows.map((row) => (
-          <div key={row.key} className="flex items-center justify-between gap-4 rounded-inset bg-core-subtle px-3 py-2 core-body">
-            <span className="flex items-center gap-2 text-core-secondary"><span className="size-3 rounded-marker" style={{ backgroundColor: STATUS_COLORS[row.key] }} />{row.label}</span>
-            <strong className="text-core-text">{formatNumber(row.count)} · {formatPercent(row.percent)}</strong>
+          <div key={row.key} className="flex min-h-10 items-center justify-between gap-4 border-b border-core-border px-1 core-body">
+            <span className="flex items-center gap-2 text-core-secondary"><span className="size-2.5 rounded-round" style={{ backgroundColor: STATUS_COLORS[row.key] }} />{row.label}</span>
+            <strong className="tabular-nums text-core-text">{formatNumber(row.count)} · {formatPercent(row.percent)}</strong>
           </div>
         ))}
-        <p className="core-caption mt-2 text-core-muted">
+        <p className="core-caption mt-3 text-core-muted">
           {formatNumber(status.cards)} Karten · {formatNumber(status.suspendedCards)} ausgesetzt · {formatNumber(status.deletedCards)} gelöscht
         </p>
       </div>
@@ -382,8 +387,8 @@ function DistributionChart({
   if (!points.some((point) => point.count > 0)) return <NoChartData>Für diese Verteilung liegen noch keine geeigneten Werte vor.</NoChartData>;
   return (
     <CartesianStatisticsChart data={points} ariaLabel={`Diagramm zur Verteilung: ${countLabel}`} minTickGap={24} rightAxis="percent" tooltip={<StatisticsTooltip valueFormatter={(value, entry) => entry.dataKey === "cumulativePercent" ? formatPercent(value) : `${formatNumber(value)} ${countLabel}`} />}>
-      <Bar dataKey="count" name={countLabel} fill="var(--core-action-primary)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-      <Line yAxisId="percent" dataKey="cumulativePercent" name="Kumuliert" stroke="var(--core-warning)" strokeWidth={2} dot={false} isAnimationActive={false} />
+      <Bar dataKey="count" name={countLabel} fill={SERIES_PRIMARY} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+      <Line yAxisId="percent" dataKey="cumulativePercent" name="Kumuliert" stroke={SERIES_ACCENT} strokeWidth={2} dot={false} isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
 }
@@ -392,8 +397,8 @@ function HourlyChart({ points }: { points: StatisticsProjection["hourly"] }) {
   if (!points.some((point) => point.reviews > 0)) return <NoChartData>Im gewählten Zeitraum liegen keine Wiederholungen vor.</NoChartData>;
   return (
     <CartesianStatisticsChart data={points} ariaLabel="Diagramm zu Wiederholungen nach Uhrzeit" interval={2} rightAxis="percent" tooltip={<StatisticsTooltip valueFormatter={(value, entry) => entry.dataKey === "successPercent" ? formatPercent(value) : `${formatNumber(value)} Reviews`} />}>
-      <Bar dataKey="reviews" name="Wiederholungen" fill="var(--core-action-primary)" radius={[3, 3, 0, 0]} isAnimationActive={false} />
-      <Line yAxisId="percent" dataKey="successPercent" name="Erfolgsquote" stroke="var(--core-warning)" strokeWidth={2} dot={false} isAnimationActive={false} />
+      <Bar dataKey="reviews" name="Wiederholungen" fill={SERIES_PRIMARY} radius={[3, 3, 0, 0]} isAnimationActive={false} />
+      <Line yAxisId="percent" dataKey="successPercent" name="Erfolgsquote" stroke={SERIES_ACCENT} strokeWidth={2} dot={false} isAnimationActive={false} />
     </CartesianStatisticsChart>
   );
 }
@@ -404,7 +409,7 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
   const buttons = RATING_BUTTONS.map(([rating, label]) => ({ label, ...Object.fromEntries(points.map((point) => [point.category, point[rating]])) }));
   return (
     <CartesianStatisticsChart data={buttons} ariaLabel="Diagramm zu verwendeten Antwortknöpfen" tooltip={<StatisticsTooltip valueFormatter={(value) => formatNumber(value)} />}>
-      {points.map((point) => <Bar key={point.category} dataKey={point.category} name={point.label} fill={CATEGORY_COLORS[point.category]} isAnimationActive={false} />)}
+      {points.map((point) => <Bar key={point.category} dataKey={point.category} name={point.label} fill={CATEGORY_COLORS[point.category]} radius={[3, 3, 0, 0]} isAnimationActive={false} />)}
     </CartesianStatisticsChart>
   );
 }
@@ -412,9 +417,9 @@ function RatingChart({ points }: { points: StatisticsProjection["ratings"] }) {
 function RetentionTable({ rows }: { rows: StatisticsProjection["retention"] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[38rem] border-collapse text-left core-body">
-        <thead><tr className="border-b border-core-border text-core-muted"><th className="px-3 py-3">Zeitraum</th><th className="px-3 py-3">Intervall unter 21 Tagen</th><th className="px-3 py-3">Intervall ab 21 Tagen</th><th className="px-3 py-3">Gesamt</th><th className="px-3 py-3 text-right">Stichprobe</th></tr></thead>
-        <tbody>{rows.map((row) => <tr key={row.key} className="border-b border-core-border last:border-0"><th className="px-3 py-3 font-semibold text-core-text">{row.label}</th><td className="px-3 py-3 text-core-secondary">{formatPercent(row.young.percent)}</td><td className="px-3 py-3 text-core-secondary">{formatPercent(row.mature.percent)}</td><td className="px-3 py-3 font-semibold text-core-text">{formatPercent(row.total.percent)}</td><td className="px-3 py-3 text-right text-core-muted">{formatNumber(row.total.total)}</td></tr>)}</tbody>
+      <table className="w-full min-w-[38rem] border-collapse text-left core-body tabular-nums">
+        <thead><tr className="core-caption text-core-muted"><th className="px-3 py-2.5 font-semibold">Zeitraum</th><th className="px-3 py-2.5 font-semibold">Intervall unter 21 Tagen</th><th className="px-3 py-2.5 font-semibold">Intervall ab 21 Tagen</th><th className="px-3 py-2.5 font-semibold">Gesamt</th><th className="px-3 py-2.5 text-right font-semibold">Stichprobe</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.key} className="border-t border-core-border transition-colors hover:bg-core-subtle"><th className="p-3 font-semibold text-core-text">{row.label}</th><td className="p-3 text-core-secondary">{formatPercent(row.young.percent)}</td><td className="p-3 text-core-secondary">{formatPercent(row.mature.percent)}</td><td className="p-3 font-semibold text-core-text">{formatPercent(row.total.percent)}</td><td className="p-3 text-right text-core-muted">{formatNumber(row.total.total)}</td></tr>)}</tbody>
       </table>
     </div>
   );
@@ -449,10 +454,10 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         <p className="core-body text-core-muted">{statistics.dateRangeLabel}</p>
       </div>
 
-      <SoftPanel className="core-statistics-filters p-4 shadow-soft sm:p-6">
+      <SoftPanel className="core-statistics-filters p-5 sm:p-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div ref={periodRef} className="min-w-0 max-w-full shrink-0">
-            <p className="core-control-label text-core-muted">Globaler Zeitraum</p>
+            <p className="core-field-label">Globaler Zeitraum</p>
             <CoreSegmentedControl
               ariaLabel="Statistikzeitraum"
               options={PERIOD_OPTIONS}
@@ -463,7 +468,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
             />
           </div>
           <div className="min-w-0 max-w-full flex-1 basis-52 sm:max-w-72">
-            <p className="core-control-label text-core-muted">Stapel</p>
+            <p className="core-field-label">Stapel</p>
             <div className="mt-2"><DeckMultiSelect decks={decks} value={deckSelection} onValueChange={changeDecks} /></div>
           </div>
         </div>
@@ -511,7 +516,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
         <ChartPanel title="Status" snapshot><StatusChart status={statistics.status} /></ChartPanel>
         <ChartPanel title="Wiederholungsintervalle" snapshot>
           <DistributionChart points={statistics.intervals.points} countLabel="Karten" />
-          <div className="mt-4 grid grid-cols-3 gap-3 text-center core-caption text-core-muted"><span>Mittelwert<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.averageDays, 1)} Tage</strong></span><span>Median<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.medianDays)} Tage</strong></span><span>95. Perzentil<br /><strong className="core-body text-core-text">{formatNumber(statistics.intervals.percentile95Days)} Tage</strong></span></div>
+          <div className="mt-4 grid grid-cols-3 gap-3 border-t border-core-border pt-4 text-center core-caption text-core-muted"><span>Mittelwert<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.averageDays, 1)} Tage</strong></span><span>Median<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.medianDays)} Tage</strong></span><span>95. Perzentil<br /><strong className="core-heading-3 tabular-nums text-core-text">{formatNumber(statistics.intervals.percentile95Days)} Tage</strong></span></div>
         </ChartPanel>
       </section>
 
@@ -536,7 +541,7 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
             <tbody>{statistics.deckRows.map((row) => (
               <tr key={row.id}>
                 <th scope="row">
-                  <button type="button" className="min-h-control w-full text-left font-semibold [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelinhalte öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
+                  <button type="button" className="min-h-control w-full text-left font-semibold text-core-text [overflow-wrap:anywhere] hover:text-core-action" aria-label={`Stapelinhalte öffnen: ${row.name}`} onClick={() => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}>{row.name}</button>
                 </th>
                 <td><StatTile size="compact" label="Reviews" value={formatNumber(row.reviewCount)} /></td>
                 <td><StatTile size="compact" label="Erfolg" value={formatPercent(row.successPercent)} /></td>

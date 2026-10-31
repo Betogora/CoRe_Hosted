@@ -626,7 +626,7 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor un
 ### Stapeldarstellung
 
 - Stapelkarten in Dashboard und Lernen zeigen nur die disjunkten, budgetbegrenzten Kennzahlen `Neu`, `Offen` (Learning und Relearning heute, auch noch nicht vorziehbar) und `Fällig`; eine Gesamtzahl erscheint nicht.
-- Tageslernfläche, Tagesfortschritt und Stapelkennzahlen verwenden für `Neu`, `Offen`, `Fällig` und `Gelernt` die Farbrollen der Bewertungen `Nochmal` (Lilac), `Schwer` (Orange), `Gut` (Gelb) und `Leicht` (Slate). Stapelzeilen und Kacheln zeigen keinen Fortschrittsring; der frei werdende Platz gehört dem Stapelnamen.
+- Tageslernfläche, Tagesfortschritt und Stapelkennzahlen verwenden für `Neu`, `Offen`, `Fällig` und `Gelernt` die Farbrollen der Bewertungen `Nochmal` (Terrakotta), `Schwer` (Amber), `Gut` (Grün) und `Leicht` (Blau). Stapelzeilen und Kacheln zeigen keinen Fortschrittsring; der frei werdende Platz gehört dem Stapelnamen.
 - Stapel-Icons zeigen Symbol und gewählte Farbe. Die Stapeleinstellungen zeigen im Titel Icon und gespeicherten Namen; der Bereich `Stapel` enthält Namensfeld, Icon- und Farbauswahl, alle im gemeinsamen Seitenentwurf.
 
 ### Typografie

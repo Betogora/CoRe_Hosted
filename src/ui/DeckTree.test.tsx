@@ -183,5 +183,5 @@ test("deck tree fills hovered rows without separating deck headers", () => {
 
   assert.doesNotMatch(markup, /class="core-deck-summary-row[^"]*border-b/);
   assert.doesNotMatch(markup, /data-testid="learn-deck-row-[^"]+"[^>]*class="[^"]*border-t-2/);
-  assert.match(markup, /data-deck-row-activation="true"[^>]*class="[^"]*hover:bg-\[var\(--core-focus-ring-soft\)\]/);
+  assert.match(markup, /data-deck-row-activation="true"[^>]*class="[^"]*hover:bg-core-subtle/);
 });

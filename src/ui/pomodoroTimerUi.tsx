@@ -89,20 +89,20 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
         type="button"
         className={isSettings
           ? "flex min-h-[4.75rem] w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-core-hover sm:px-6"
-          : "flex min-h-12 w-full items-center justify-between gap-3 py-2 text-left core-body font-semibold text-core-secondary transition hover:text-core-text"}
+          : "flex min-h-control w-full items-center justify-between gap-3 py-1 text-left"}
         aria-expanded={open}
         aria-controls={regionId}
         onClick={() => setOpen((current) => !current)}
       >
-        <span className="flex min-w-0 flex-1 items-center gap-3">
+        <span className={isSettings ? "flex min-w-0 flex-1 items-center gap-3" : "core-field-label flex min-w-0 flex-1 items-center gap-2"}>
           <span className={isSettings
-            ? "grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-[var(--core-action-secondary)]"
+            ? "grid size-10 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action"
             : "contents"}
           >
-            <TomatoIcon className="shrink-0 text-core-text" size={isSettings ? 20 : 18} />
+            <TomatoIcon className={isSettings ? "shrink-0" : "shrink-0 text-core-muted"} size={isSettings ? 18 : 16} />
           </span>
           <span className="min-w-0 flex-1">
-            <span className={isSettings ? "block core-body-large font-semibold text-core-text" : "block"}>Pomodoro-Timer</span>
+            <span className={isSettings ? "block core-heading-3 text-core-text" : "block"}>Pomodoro-Timer</span>
             {isSettings ? (
               <span className="block truncate core-caption font-normal text-core-muted">
                 {snapshot.running ? `Aktiv · noch ${snapshot.remainingMinutes} Min.` : "Dauer festlegen und global starten"}
@@ -112,7 +112,7 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
         </span>
         <span className="flex shrink-0 items-center gap-2 core-body font-normal text-core-muted">
           {value}
-          <ChevronRight className={`text-core-text transition-transform ${open ? "rotate-90" : ""}`} size={17} aria-hidden="true" />
+          <ChevronRight className={`${isSettings ? "text-core-text" : "text-core-muted"} transition-transform ${open ? "rotate-90" : ""}`} size={isSettings ? 17 : 16} aria-hidden="true" />
         </span>
       </button>
 
@@ -185,12 +185,12 @@ export function PomodoroProgress({ timer, variant }: PomodoroProgressProps) {
 
   return (
     <div
-      className={isHeader ? "min-w-0 flex-1" : "grid gap-2"}
+      className={isHeader ? "flex min-w-0 flex-1 flex-col gap-1" : "grid gap-2"}
       data-pomodoro-progress={variant}
     >
-      <div className={`flex items-center justify-between gap-2 ${isHeader ? "core-caption" : "core-status-label"} text-core-muted`}>
-        <span className="min-w-0 truncate">Pomodoro-Timer</span>
-        <span className="shrink-0">{valueText}</span>
+      <div className="flex items-center justify-between gap-2 core-caption">
+        <span className={`min-w-0 truncate ${isHeader ? "text-core-muted max-sm:sr-only" : "font-medium text-core-secondary"}`}>Pomodoro-Timer</span>
+        <span className="shrink-0 font-semibold tabular-nums text-core-text">{valueText}</span>
       </div>
       <div
         className={`${isStudy ? "h-2" : "h-1.5"} overflow-hidden rounded-round bg-core-subtle`}

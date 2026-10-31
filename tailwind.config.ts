@@ -9,6 +9,7 @@ export default {
     extend: {
       spacing: {
         control: "var(--core-control-height)",
+        button: "var(--core-button-height)",
       },
       borderRadius: {
         marker: "var(--core-radius-marker)",
@@ -58,10 +59,12 @@ export default {
           "action-hover": "var(--core-action-primary-hover)",
           "action-active": "var(--core-action-primary-active)",
           focus: "var(--core-focus)",
+          accent: "var(--core-accent)",
           info: "var(--core-info)",
           success: "var(--core-success)",
           warning: "var(--core-warning)",
           danger: "var(--core-danger)",
+          "accent-soft": "var(--core-accent-surface)",
           "info-soft": "var(--core-info-surface)",
           "success-soft": "var(--core-success-surface)",
           "warning-soft": "var(--core-warning-surface)",

@@ -79,9 +79,9 @@ function CalendarNavigationButton({ label, icon: Icon, disabled, onClick }: { la
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid size-9 shrink-0 place-items-center rounded-inset text-core-text transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:text-core-muted disabled:opacity-40"
+      className="grid size-9 shrink-0 place-items-center rounded-control text-core-secondary transition-colors hover:bg-core-subtle hover:text-core-text disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
     >
-      <Icon size={18} aria-hidden="true" />
+      <Icon size={16} aria-hidden="true" />
     </button>
   );
 }
@@ -159,10 +159,10 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
           aria-label={ariaLabel}
           aria-describedby={ariaDescribedBy}
           data-core-date-picker="trigger"
-          className={`core-field inline-flex items-center justify-between gap-3 text-left transition hover:border-core-action ${className}`}
+          className={`core-field inline-flex items-center justify-between gap-3 text-left tabular-nums hover:border-core-border-strong ${className}`}
         >
           <span>{displayValue}</span>
-          <CalendarDays size={17} className="shrink-0 text-core-action" aria-hidden="true" />
+          <CalendarDays size={16} className="shrink-0 text-core-muted" aria-hidden="true" />
         </button>
       </Popover.Trigger>
       <Popover.Portal>
@@ -174,7 +174,7 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
           role="dialog"
           aria-label={`${ariaLabel}: Datum auswählen`}
           data-core-date-picker="calendar"
-          className="core-overlay z-[100] w-[min(20rem,calc(100vw-1.5rem))] rounded-panel p-3 outline-none"
+          className="core-overlay z-[100] w-[min(19rem,calc(100vw-1.5rem))] rounded-panel p-3 outline-none"
           onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <div className="grid grid-cols-[auto_1fr_auto] items-center gap-1">
@@ -182,19 +182,19 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
               <CalendarNavigationButton label="Ein Jahr zurück" icon={ChevronsLeft} disabled={!monthHasEnabledDay(previousYear, min, max)} onClick={() => showMonth(-12)} />
               <CalendarNavigationButton label="Vorherigen Monat anzeigen" icon={ChevronLeft} disabled={!monthHasEnabledDay(previousMonth, min, max)} onClick={() => showMonth(-1)} />
             </div>
-            <p className="whitespace-nowrap text-center core-body font-semibold capitalize text-core-text" aria-live="polite">{monthLabel}</p>
+            <p className="whitespace-nowrap text-center core-control-label font-semibold capitalize text-core-text" aria-live="polite">{monthLabel}</p>
             <div className="flex">
               <CalendarNavigationButton label="Nächsten Monat anzeigen" icon={ChevronRight} disabled={!monthHasEnabledDay(nextMonth, min, max)} onClick={() => showMonth(1)} />
               <CalendarNavigationButton label="Ein Jahr weiter" icon={ChevronsRight} disabled={!monthHasEnabledDay(nextYear, min, max)} onClick={() => showMonth(12)} />
             </div>
           </div>
-          <div className="mt-2 grid grid-cols-7 gap-1" aria-hidden="true">
-            {WEEKDAY_LABELS.map((label) => <span key={label} className="py-1 text-center core-caption font-semibold text-core-muted">{label}</span>)}
+          <div className="mt-3 mb-1 grid grid-cols-7 gap-0.5" aria-hidden="true">
+            {WEEKDAY_LABELS.map((label) => <span key={label} className="py-2 text-center core-caption text-core-muted">{label}</span>)}
           </div>
-          <div className="grid grid-cols-7 gap-1" role="group" aria-label={`Kalendertage für ${monthLabel}`}>
+          <div className="grid grid-cols-7 gap-0.5" role="group" aria-label={`Kalendertage für ${monthLabel}`}>
             {days.map((day) => {
-              const selectedClass = day.selected ? "bg-core-action text-core-on-accent shadow-soft" : day.today ? "ring-1 ring-inset ring-core-action text-core-text" : day.outsideMonth ? "text-core-muted opacity-65" : "text-core-text";
-              const hoverClass = day.selected ? "hover:bg-core-action-hover" : "hover:bg-core-hover";
+              const selectedClass = day.selected ? "bg-core-action font-semibold text-core-on-accent" : day.today ? "font-semibold text-core-action underline underline-offset-4" : day.outsideMonth ? "text-core-muted" : "text-core-text";
+              const hoverClass = day.selected ? "hover:bg-core-action-hover" : "hover:bg-core-subtle";
               return (
                 <button
                   key={day.key}
@@ -205,7 +205,7 @@ export function CoreDatePicker({ value, min, max, today, ariaLabel, ariaDescribe
                   aria-current={day.today ? "date" : undefined}
                   disabled={day.disabled}
                   tabIndex={day.key === focusKey ? 0 : -1}
-                  className={`aspect-square min-h-9 rounded-inset core-body font-semibold transition ${selectedClass} ${hoverClass} disabled:cursor-not-allowed disabled:bg-transparent disabled:text-[var(--core-action-disabled-text)] disabled:opacity-35`}
+                  className={`h-9 w-full rounded-control core-body tabular-nums transition-colors ${selectedClass} ${hoverClass} disabled:cursor-not-allowed disabled:bg-transparent disabled:no-underline disabled:opacity-35`}
                   onKeyDown={(event) => handleDayKeyDown(event, day.key)}
                   onClick={() => {
                     onValueChange(day.key);

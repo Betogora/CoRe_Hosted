@@ -70,6 +70,7 @@ function SortHeader({ field, label, sort, onChange }: {
   );
 }
 
+
 const VARIANT_FILTER_SORT: CardTableSort = { field: "variants", direction: "asc" };
 
 interface CardTableRowViewProps {
@@ -91,35 +92,35 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
   return (
     <tr
       onClick={() => onSelect(deckId, card.id)}
-      className={`cursor-pointer border-b border-core-border transition ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft hover:bg-core-subtle" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
+      className={`cursor-pointer border-b border-core-border transition-colors ${suspended ? "bg-core-warning-soft hover:bg-core-warning-soft" : selected ? "bg-core-info-soft" : "bg-core-surface hover:bg-core-subtle"} ${selected ? "core-card-row-selected" : ""}`}
       data-selected={selected ? "true" : undefined}
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 px-2 py-1 align-middle sm:px-3 md:px-4">
+      <td className="min-w-0 px-2 py-2.5 align-middle sm:px-3 md:px-4">
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
           aria-pressed={selected}
-          className="block !min-h-0 w-full truncate text-left core-body font-semibold text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
+          className="block !min-h-0 w-full truncate text-left core-body font-medium text-core-text focus-visible:rounded-inset focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--core-border-interactive)]"
           onClick={(event) => {
             event.stopPropagation();
             onSelect(deckId, card.id);
           }}
         >
           {frontPreview}
-          {syncConflict ? <span className="ml-2 rounded-inset bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span> : null}
+          {syncConflict ? <span className="ml-2 inline-flex min-h-5 items-center rounded-round bg-core-warning-soft px-2 core-caption font-semibold text-core-warning">Synchronisierung klären</span> : null}
         </button>
       </td>
-      <td className="min-w-0 whitespace-nowrap px-1 py-1 text-right align-middle core-body text-core-secondary">
+      <td className="min-w-0 whitespace-nowrap px-1 py-2.5 text-right align-middle core-body tabular-nums text-core-secondary">
         {nextStudyLabel}
         {suspended ? <span className="sr-only"> · Ausgesetzt</span> : null}
       </td>
-      <td className="min-w-0 px-1 py-1 text-right align-middle">
+      <td className="min-w-0 px-1 py-2.5 text-right align-middle sm:pr-3">
         <span className="inline-flex items-center justify-end gap-1 align-middle">
           {card.activeVariantCount > 0
-            ? <span className="min-w-[1.125rem] text-center core-body font-semibold text-core-secondary" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
-            : <Minus size={18} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
+            ? <span className="min-w-[1.125rem] text-center core-body font-semibold tabular-nums text-core-text" aria-label={card.activeVariantCount === 1 ? "1 aktive Variante" : `${card.activeVariantCount} aktive Varianten`}>{card.activeVariantCount}</span>
+            : <Minus size={16} className="shrink-0 text-core-muted" role="img" aria-label="Keine Variante" />}
           <span className="grid size-[1.125rem] place-items-center">
             {flag ? <FlagDot flag={flag} names={flagNames} size={10} /> : null}
           </span>
@@ -683,10 +684,10 @@ export function DecksScreen({
               {row.id === contentDeckId ? <span aria-current="page">{row.name}</span> : <button type="button" onClick={() => requestDetailAction(() => onOpenDeckContent(row.id, "children"))}>{row.name}</button>}
             </React.Fragment>)}
           </nav>
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3" data-testid="deck-content-heading">
+          <div className="flex min-w-0 items-center justify-between gap-3" data-testid="deck-content-heading">
             <div className="flex min-w-0 items-center gap-3">
-              {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={24} /> : null}
-              <h2 className="min-w-0 break-words core-heading-2 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
+              {contentDeck ? <DeckAppearanceIcon deck={contentDeck} className="size-11 shrink-0 rounded-control bg-core-subtle" iconSize={22} /> : null}
+              <h2 className="min-w-0 break-words core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{contentDeck?.name ?? "Stapelinhalte"}</h2>
             </div>
             <CoreTooltip label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"}>
               <IconButton label={contentRow?.parentDeckId ? "Eine Ebene zurück" : "Zur Stapelübersicht"} icon={ArrowLeft}
@@ -722,19 +723,19 @@ export function DecksScreen({
       ) : contentDeckId && contentTab !== "cards" ? (
         <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">
           <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
-            <span className="grid size-14 place-items-center rounded-panel bg-core-subtle text-core-muted"><ContentIcon size={28} strokeWidth={2} aria-hidden="true" /></span>
-            <p className="core-body-large text-core-muted">Demnächst verfügbar</p>
+            <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action"><ContentIcon size={22} aria-hidden="true" /></span>
+            <p className="core-heading-3 text-core-text">Demnächst verfügbar</p>
           </div>
         </SoftPanel>
-      ) : <SoftPanel className="min-w-0 overflow-hidden p-4 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
+      ) : <SoftPanel className="min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
-          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-3 font-semibold text-core-text">Aktive Stapel</h3> : null}
-          <div className="grid gap-3">
-            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-secondary">
-                Karten durchsuchen
-                <span className="flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 font-normal text-core-muted transition">
-                  <Search size={17} aria-hidden="true" />
-                  <input className="min-w-0 flex-1 bg-transparent outline-none focus-visible:outline-none" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
+          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-2 text-core-text">Aktive Stapel</h3> : null}
+          <div className="grid gap-4">
+            <label className="grid min-w-0 gap-2">
+                <span className="core-field-label">Karten durchsuchen</span>
+                <span className="relative flex min-w-0">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={16} aria-hidden="true" />
+                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
                 </span>
               </label>
             <div className="flex flex-wrap items-center gap-3">
@@ -776,7 +777,7 @@ export function DecksScreen({
             </div>
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
-              <div className="flex flex-wrap items-center gap-3 rounded-control border border-core-border bg-core-subtle p-3">
+              <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">
                 <p className="min-w-0 flex-1 truncate core-body text-core-text">„{deletedCardUndo.description}“ gelöscht.</p>
                 <ActionButton type="button" variant="secondary" icon={RotateCcw} onClick={() => void undoCardDelete()}>Rückgängig</ActionButton>
               </div>
@@ -784,7 +785,7 @@ export function DecksScreen({
           </div>
 
           {tableModel.groups.length ? (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border">
+            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border bg-core-surface">
           <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
               <colgroup>
                 <col />
@@ -792,7 +793,7 @@ export function DecksScreen({
                 <col className="w-20" />
               </colgroup>
               <thead className="sticky top-0 z-10 bg-core-surface">
-                <tr className="core-table-header-row border-b border-core-border">
+                <tr className="core-table-header-row h-10 border-b border-core-border">
                   <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
@@ -844,7 +845,7 @@ export function DecksScreen({
                   </tr> : null}
                   {expanded && cardPages?.[group.id]?.limitedToLocalCatalog ? (
                     <tr className="border-b border-core-border bg-core-warning-soft">
-                      <td colSpan={3} className="px-4 py-2 core-caption text-core-secondary">
+                      <td colSpan={3} className="px-3 py-2.5 core-caption text-core-secondary sm:px-4">
                         Offline werden nur bereits lokal indexierte Karten durchsucht und sortiert.
                       </td>
                     </tr>
@@ -868,22 +869,18 @@ export function DecksScreen({
                       <td colSpan={3} className="px-3 py-2">
                         <div className="flex items-center justify-end gap-2">
                           <CoreTooltip label="Vorherige Seite anzeigen">
-                            <button type="button" aria-label="Vorherige Seite anzeigen" className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))}>
-                              <ChevronLeft size={16} aria-hidden="true" />
-                            </button>
+                            <IconButton label="Vorherige Seite anzeigen" icon={ChevronLeft} className="shrink-0" disabled={group.page === 0} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.max(0, group.page - 1) }))} />
                           </CoreTooltip>
-                          <span className="core-body text-core-muted">Seite {group.page + 1} von {group.pageCount}</span>
+                          <span className="core-body tabular-nums text-core-secondary">Seite {group.page + 1} von {group.pageCount}</span>
                           <CoreTooltip label="Nächste Seite anzeigen">
-                            <button type="button" aria-label="Nächste Seite anzeigen" className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))}>
-                              <ChevronRight size={16} aria-hidden="true" />
-                            </button>
+                            <IconButton label="Nächste Seite anzeigen" icon={ChevronRight} className="shrink-0" disabled={group.page + 1 >= group.pageCount} onClick={() => setCardPageByDeckId((pages) => ({ ...pages, [group.id]: Math.min(group.pageCount - 1, group.page + 1) }))} />
                           </CoreTooltip>
                         </div>
                       </td>
                     </tr>
                   ) : null}</> : expanded ? (
                     <tr className="border-b border-core-border bg-core-surface">
-                      <td colSpan={3} className="px-4 py-1 core-body text-core-muted">Keine Karten</td>
+                      <td colSpan={3} className="px-3 py-2.5 core-body text-core-muted sm:px-4">Keine Karten</td>
                     </tr>
                   ) : null}
                 </tbody>
@@ -891,9 +888,10 @@ export function DecksScreen({
           </table>
             </div>
           ) : (
-            <div className="rounded-panel border border-core-border p-6 sm:p-8" role="status">
+            <div className="grid justify-items-center gap-3 rounded-panel border border-core-border p-6 text-center sm:p-8" role="status">
+              <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action" aria-hidden="true"><Search size={22} /></span>
               <h4 className="core-heading-3 text-core-text">Keine Karten gefunden</h4>
-              <p className="mt-1 core-body-large text-core-muted">Passe die Suche an.</p>
+              <p className="core-body text-core-secondary">Passe die Suche an.</p>
             </div>
           )}
         </div>

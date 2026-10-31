@@ -7,7 +7,7 @@ import {
   type AiSourceSettings,
 } from "../aiSourceCreation.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
-import { CoreSegmentedControl, SoftPanel } from "../ui/coreUi.tsx";
+import { CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { CoreSelect, DeckSelect } from "../ui/selectUi.tsx";
@@ -73,22 +73,25 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
 
   return (
     <SoftPanel className="mx-auto grid w-full min-w-0 max-w-3xl gap-6 p-6" data-testid="ai-source-creation">
-      <h2 ref={headingRef} tabIndex={-1} className="scroll-mt-24 core-heading-2 text-core-text outline-none">
-        {review ? "Auftrag prüfen" : "Karten automatisch erstellen lassen"}
-      </h2>
+      <div className="flex min-w-0 items-center gap-3">
+        <OrbIcon icon={Sparkles} />
+        <h2 ref={headingRef} tabIndex={-1} className="min-w-0 scroll-mt-24 core-heading-2 text-core-text outline-none">
+          {review ? "Auftrag prüfen" : "Karten automatisch erstellen lassen"}
+        </h2>
+      </div>
       <StatusMessage tone="info">Die automatische Erstellung ist noch nicht verfügbar.</StatusMessage>
       {review ? (
         <div className="grid min-w-0 gap-6" data-testid="ai-source-summary">
           <p className="core-body-large text-core-text">{describeAiSourceSettings(settings)}</p>
-          <dl className="grid min-w-0 gap-4">
+          <dl className="grid min-w-0 overflow-hidden rounded-panel border border-core-border">
             {[
               ["Quelle", draft.file ? `${draft.file.name} · ${formatBytes(draft.file.size)}` : "Keine Quelle ausgewählt"],
               ["Zielstapel", targetLabel],
               ...settingsRows,
             ].map(([label, value]) => (
-              <div key={label} className="grid min-w-0 gap-1 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4">
-                <dt className="core-body font-semibold text-core-secondary">{label}</dt>
-                <dd className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] core-body text-core-text">{value}</dd>
+              <div key={label} className="grid min-w-0 gap-1 border-b border-core-border px-4 py-3 last:border-0 sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-4">
+                <dt className="core-body text-core-muted">{label}</dt>
+                <dd className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere] core-body font-medium text-core-text">{value}</dd>
               </div>
             ))}
           </dl>
@@ -107,7 +110,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
           <div className="grid min-w-0 gap-2">
             <FileDropField kind="ai-source" selected={Boolean(draft.file)} onFile={selectFile}>
               {draft.file ? (
-                <div className="flex min-w-0 items-center gap-3 rounded-control bg-core-surface p-3">
+                <div className="flex min-w-0 items-center gap-3 rounded-control border border-core-border bg-core-surface py-2 pl-3 pr-2 shadow-soft">
                   <div className="min-w-0 flex-1">
                     <p className="[overflow-wrap:anywhere] core-body font-semibold text-core-text" data-testid="ai-source-file-name">{draft.file.name}</p>
                     <p className="core-caption text-core-muted">{formatBytes(draft.file.size)}</p>
@@ -144,7 +147,7 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
               <legend className="mb-2 core-field-label">Erlaubte Kartenformen</legend>
               <div className="grid gap-2 sm:grid-cols-2">
                 {AI_SOURCE_CARD_FORMS.map(({ value, label }) => (
-                  <label key={value} className="flex min-h-control cursor-pointer items-center gap-3 rounded-control border border-core-border px-3 py-2 core-body text-core-text">
+                  <label key={value} className="core-ai-card-form flex min-h-control cursor-pointer items-center gap-3 rounded-control border border-core-border bg-core-surface px-3 py-2 core-body font-medium text-core-text shadow-soft">
                     <input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={settings.cardForms.includes(value)} onChange={(event) => {
                       const selected = event.target.checked ? [...settings.cardForms, value] : settings.cardForms.filter((form) => form !== value);
                       changeSetting("cardForms", AI_SOURCE_CARD_FORMS.filter((form) => selected.includes(form.value)).map((form) => form.value));
@@ -158,11 +161,11 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
             </fieldset>
           </div>
 
-          <details className="group min-w-0 border-y border-core-border py-2">
-            <summary className="flex min-h-control cursor-pointer list-none items-center justify-between gap-3 core-body font-semibold text-core-text [&::-webkit-details-marker]:hidden">
-              Weitere Einstellungen <ChevronDown size={18} className="shrink-0 group-open:rotate-180" aria-hidden="true" />
+          <details className="group min-w-0 overflow-hidden rounded-panel border border-core-border bg-core-surface shadow-soft">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 core-body font-semibold text-core-text hover:bg-core-subtle [&::-webkit-details-marker]:hidden">
+              Weitere Einstellungen <ChevronDown size={16} className="shrink-0 text-core-muted transition-transform group-open:rotate-180" aria-hidden="true" />
             </summary>
-            <div className="grid min-w-0 gap-4 pb-3 pt-4">
+            <div className="grid min-w-0 gap-4 border-t border-core-border p-4">
               <div className="core-field-group min-w-0">
                 <label className="core-field-label" htmlFor="ai-source-knowledge">Vorwissen</label>
                 <CoreSelect id="ai-source-knowledge" ariaLabel="Vorwissen" value={settings.priorKnowledge} options={AI_SOURCE_PRIOR_KNOWLEDGE} onValueChange={(value) => changeSetting("priorKnowledge", value as AiSourceSettings["priorKnowledge"])} />

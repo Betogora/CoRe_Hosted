@@ -22,7 +22,7 @@ type OptionTone = "idle" | "selected" | "correct" | "wrong" | "muted";
 
 const OPTION_TONE: Record<OptionTone, string> = {
   idle: "border-core-border bg-core-surface",
-  selected: "border-core-action bg-core-subtle",
+  selected: "border-core-action bg-[var(--core-action-soft)]",
   correct: "core-mcq-option-correct border-core-success bg-core-success-soft",
   wrong: "core-mcq-option-wrong border-core-danger bg-core-danger-soft",
   muted: "border-core-border bg-core-surface text-core-muted",

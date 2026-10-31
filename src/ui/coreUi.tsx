@@ -142,11 +142,11 @@ export function ActionDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description == null ? undefined : descriptionId}
-        className={`core-surface-raised w-full max-w-lg rounded-panel shadow-raised ${compact ? "flex flex-wrap items-center gap-3 p-3 sm:gap-4 sm:p-6" : "p-6"}`}
+        className={`w-full max-w-lg rounded-overlay bg-core-raised shadow-raised ${compact ? "flex flex-wrap items-center gap-3 p-3 sm:gap-4 sm:p-6" : "p-6"}`}
       >
         <h2 id={titleId} className={`core-heading-2 text-core-text ${compact ? "min-w-0 flex-1 whitespace-nowrap core-dialog-title-compact" : ""}`}>{title}</h2>
-        {description == null ? null : <div id={descriptionId} className="core-body-large mt-3 text-core-secondary">{description}</div>}
-        <div className={`${compact ? "shrink-0 gap-2 sm:gap-3" : "mt-6 gap-3"} flex flex-wrap justify-end`}>
+        {description == null ? null : <div id={descriptionId} className="core-body mt-2 text-core-secondary">{description}</div>}
+        <div className={`${compact ? "shrink-0 gap-2" : "mt-6 gap-2"} flex flex-wrap justify-end`}>
           <ActionButton ref={cancelRef} type="button" variant="secondary" icon={actionIcons?.cancel} disabled={confirmLoading} onClick={cancelDialog}>
             {cancelLabel}
           </ActionButton>
@@ -303,13 +303,13 @@ export function StatTile({
     <dl
       {...props}
       data-size={size}
-      className={`${compact ? "flex flex-col rounded-control border border-core-border bg-core-surface p-3 shadow-soft" : "core-surface-raised rounded-panel p-5"} min-w-0 ${className}`.trim()}
+      className={`${compact ? "flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft" : "core-surface-raised rounded-panel p-5"} min-w-0 ${className}`.trim()}
     >
-      <dt className={`${compact ? "core-caption !font-semibold" : "core-status-label"} text-core-muted`}>
+      <dt className={`${compact ? "core-caption font-medium" : "core-status-label"} text-core-muted`}>
         {Icon ? <OrbIcon icon={Icon} className={`bg-core-subtle ${accent}`} /> : null}
         <span className={Icon ? "mt-6 block" : undefined}>{label}</span>
       </dt>
-      <dd className={`${compact ? "core-heading-3 mt-auto pt-1" : "core-heading-2 mt-2"} text-core-text`}>{value}</dd>
+      <dd className={`core-metric ${compact ? "mt-auto pt-1" : "mt-2"} text-core-text`}>{value}</dd>
       {hint ? <dd className="core-body mt-1 text-core-muted">{hint}</dd> : null}
     </dl>
   );
@@ -319,7 +319,7 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
   return (
     <header className={action ? "core-page-header-with-action flex min-w-0 items-end justify-between gap-3" : "min-w-0"}>
       <div className="min-w-0 space-y-1">
-        {eyebrow ? <p className="core-caption font-semibold uppercase tracking-[0.06em] text-core-muted">{eyebrow}</p> : null}
+        {eyebrow ? <p className="core-caption font-medium text-core-muted">{eyebrow}</p> : null}
         <h2 className="core-heading-1 text-core-text outline-none" data-screen-heading tabIndex={-1}>{title}</h2>
       </div>
       {action ? <div className="core-page-header-action min-w-0 shrink-0">{action}</div> : null}
@@ -329,18 +329,18 @@ export function PageHeader({ eyebrow, title, action }: { eyebrow?: ReactNode; ti
 
 export function EmptyState({ icon: Icon, title, body, action }: { icon: LucideIcon; title: ReactNode; body?: ReactNode; action?: ReactNode }) {
   return (
-    <SoftPanel className="p-8">
+    <section className="min-w-0 rounded-panel border border-dashed border-core-border-strong p-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <OrbIcon icon={Icon} />
+          <span className="grid size-11 shrink-0 place-items-center rounded-round bg-core-subtle text-core-secondary"><Icon size={20} aria-hidden="true" /></span>
           <div>
             <h3 className="core-heading-3 text-core-text">{title}</h3>
-            {body ? <p className="core-body-large mt-1 text-core-muted">{body}</p> : null}
+            {body ? <p className="core-body mt-1 text-core-secondary">{body}</p> : null}
           </div>
         </div>
         {action}
       </div>
-    </SoftPanel>
+    </section>
   );
 }
 
@@ -358,7 +358,6 @@ export interface CoreSegmentedControlProps<T extends string> {
   size?: "regular" | "compact";
   disabled?: boolean;
   className?: string;
-  typography?: "status" | "control";
   labels?: "visible" | "active" | "hidden";
 }
 
@@ -396,7 +395,6 @@ export function CoreSegmentedControl<T extends string>({
   size = "regular",
   disabled = false,
   className = "",
-  typography = "status",
   labels = "visible",
 }: CoreSegmentedControlProps<T>) {
   const { containerRef, indicator } = useSlidingSelection<HTMLDivElement>(value, options);
@@ -407,7 +405,7 @@ export function CoreSegmentedControl<T extends string>({
       aria-label={ariaLabel}
       data-size={size}
       data-sliding={indicator ? "true" : undefined}
-      className={`core-segmented-control ${labels === "active" ? "core-sliding-tabs" : labels === "hidden" ? "core-icon-segmented-control" : ""} ${typography === "control" ? "core-control-label" : "core-status-label"} ${className}`}
+      className={`core-segmented-control ${labels === "active" ? "core-sliding-tabs" : labels === "hidden" ? "core-icon-segmented-control" : ""} core-control-label ${className}`}
     >
       {indicator ? <span aria-hidden="true" className="core-segmented-control-indicator" style={{ transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.width, height: indicator.height }} /> : null}
       {options.map((option) => {
@@ -430,13 +428,13 @@ export function CoreSegmentedControl<T extends string>({
   );
 }
 
-export function CoreSlidingTabs<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "labels" | "options" | "typography"> & {
+export function CoreSlidingTabs<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "labels" | "options"> & {
   options: ReadonlyArray<CoreSegmentedControlOption<T> & { icon: LucideIcon }>;
 }) {
-  return <CoreSegmentedControl {...props} labels="active" typography="control" />;
+  return <CoreSegmentedControl {...props} labels="active" />;
 }
 
-export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "labels" | "options" | "size" | "typography"> & {
+export function CoreIconSegmentedControl<T extends string>(props: Omit<CoreSegmentedControlProps<T>, "labels" | "options" | "size"> & {
   options: ReadonlyArray<CoreSegmentedControlOption<T> & { icon: LucideIcon }>;
 }) {
   return <CoreSegmentedControl {...props} labels="hidden" />;

@@ -24,7 +24,7 @@ export function VariantGenerationBar({ deck, title = "Varianten generieren", don
     <aside
       aria-label={`Varianten für ${deck.name}`}
       data-testid="variant-generation-bar"
-      className="core-overlay fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-[50dvw] z-40 grid w-[min(42rem,calc(100dvw-2rem))] -translate-x-1/2 gap-2 rounded-panel px-3 py-2.5 xl:bottom-4 xl:left-[calc(50dvw+7.5rem)] xl:w-[min(42rem,calc(100dvw-19rem))]"
+      className="core-overlay fixed bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] left-[50dvw] z-40 grid w-[min(42rem,calc(100dvw-2rem))] -translate-x-1/2 gap-2 rounded-panel px-3 py-2.5 xl:bottom-4"
     >
       <div className="flex min-w-0 items-center gap-3">
         <DeckAppearanceIcon deck={deck} className="size-8" iconSize={16} aria-hidden="true" />

@@ -138,7 +138,7 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: 
     <CoreTooltip label={label}>
       <button
         type="button"
-        className="grid size-control place-items-center rounded-inset border border-core-border bg-core-surface text-core-action transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-60"
+        className="core-rich-text-tool"
         aria-label={label}
         disabled={disabled}
         onMouseDown={(event) => {
@@ -146,7 +146,7 @@ function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: 
         }}
         onClick={onRun}
       >
-        <Icon size={17} aria-hidden="true" />
+        <Icon size={16} aria-hidden="true" />
       </button>
     </CoreTooltip>
   );
@@ -633,12 +633,12 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
 
   const toolbarShown = !toolbarOnFocus || focusWithin || openColorMenu !== null;
   const active = isActive || (toolbarOnFocus && focusWithin);
-  const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarShown ? "rounded-b-control border-t-0" : "rounded-control"} border p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
-    active ? "border-core-action bg-core-surface shadow-selection" : "border-core-border bg-core-surface"
-  }`;
+  const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarShown ? "rounded-b-control border-t-0" : "rounded-control"} border bg-core-surface p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
+    active ? "border-core-action" : "border-core-border"
+  } ${active && toolbarHost ? "shadow-selection" : ""}`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   const toolbar = (
-      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`flex max-w-full min-w-0 flex-wrap items-center gap-1 rounded-t-control border bg-core-subtle p-1 ${active ? "border-core-action" : "border-core-border"}`}>
+      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         {imageActions ? (
@@ -671,8 +671,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
         <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
         {!showAllTools && <CoreTooltip label="Weitere Textwerkzeuge">
-          <button type="button" className="grid size-control shrink-0 place-items-center rounded-inset border border-core-border bg-core-surface text-core-action" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
-            <MoreHorizontal size={17} aria-hidden="true" />
+          <button type="button" className="core-rich-text-tool" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
+            <MoreHorizontal size={16} aria-hidden="true" />
           </button>
         </CoreTooltip>}
         <div id={moreToolsId} hidden={!showAllTools && !moreToolsOpen} style={showAllTools ? { display: "contents" } : undefined} className={showAllTools ? "core-rich-text-extra-tools" : "core-rich-text-extra-tools w-full flex-wrap items-center gap-1 border-t border-core-border pt-2"}>
@@ -750,6 +750,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusWithin(false);
       } : undefined}
     >
+      <div className={`min-w-0 rounded-control ${active && !toolbarHost ? "shadow-selection" : "shadow-soft"}`}>
       {!toolbarShown ? null : toolbarHost ? createPortal(toolbar, toolbarHost) : toolbar}
       <div
         ref={editorRef}
@@ -791,6 +792,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         }}
         onDrop={handleDrop}
       />
+      </div>
       {clozeActions && clozeStatus ? (
         <p id={clozeStatusId} role="status" className="mt-2 core-caption font-medium text-core-muted">
           {clozeStatus}

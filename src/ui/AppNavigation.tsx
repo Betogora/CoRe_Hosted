@@ -58,9 +58,9 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
       type="button"
       data-navigation-brand="true"
       onClick={() => onNavigate("uebersicht")}
-      className="flex items-center gap-3.5 rounded-inset text-left outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2"
+      className="flex items-center gap-3 rounded-inset text-left outline-none"
     >
-      <img src="/core-socrates.svg" alt="" className="h-10 w-auto shrink-0 xl:h-12" draggable={false} />
+      <img src="/core-socrates.svg" alt="" className="h-9 w-auto shrink-0 xl:h-10" draggable={false} />
       <CoreWordmark />
     </button>
   );
@@ -97,7 +97,7 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
           onPointerEnter={preloadSettings}
           onFocus={preloadSettings}
           onTouchStart={preloadSettings}
-          className="size-control shrink-0 rounded-control"
+          className="size-button shrink-0 rounded-control"
         />
         {syncStatus.status === "conflict" ? <span className="absolute -right-1 -top-1 grid min-h-5 min-w-5 place-items-center rounded-round bg-core-warning px-1 core-caption font-bold text-core-text" aria-hidden="true">{syncStatus.conflictCount}</span> : null}
         {syncStatus.status === "error" ? <span className="absolute right-1.5 top-1.5 size-2 rounded-round bg-core-danger" aria-hidden="true" /> : null}
@@ -117,7 +117,7 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
         icon={RefreshCw}
         onClick={onSyncNow}
         disabled={syncStatus.status === "saving"}
-        className={`size-control shrink-0 rounded-control ${syncStatus.status === "saving" ? "[&_svg]:animate-spin" : ""}`}
+        className={`size-button shrink-0 rounded-control ${syncStatus.status === "saving" ? "[&_svg]:animate-spin" : ""}`}
       />
       {pending ? <span className="absolute right-1.5 top-1.5 size-2 rounded-round bg-core-action" aria-hidden="true" /> : null}
     </span>
@@ -141,7 +141,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       onPointerEnter={() => onPreloadView?.("einstellungen")}
       onFocus={() => onPreloadView?.("einstellungen")}
       onTouchStart={() => onPreloadView?.("einstellungen")}
-      className={`size-control shrink-0 rounded-control ${settingsActive ? "!bg-[var(--core-action-soft)] !text-core-action" : ""}`}
+      className={`size-button shrink-0 rounded-control ${settingsActive ? "!bg-core-subtle !text-core-action" : ""}`}
       aria-current={settingsActive ? "page" : undefined}
     />
   );
@@ -153,7 +153,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       label={darkModeActive ? "Light Mode einschalten" : "Dark Mode einschalten"}
       icon={ThemeIcon}
       onClick={onToggleTheme}
-      className="size-control shrink-0 rounded-control"
+      className="size-button shrink-0 rounded-control"
     />
   );
   const helpButton = (
@@ -168,7 +168,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       onPointerEnter={() => onPreloadView?.("hilfe")}
       onFocus={() => onPreloadView?.("hilfe")}
       onTouchStart={() => onPreloadView?.("hilfe")}
-      className={`size-control shrink-0 rounded-control ${helpActive ? "!bg-[var(--core-action-soft)] !text-core-action" : ""}`}
+      className={`size-button shrink-0 rounded-control ${helpActive ? "!bg-core-subtle !text-core-action" : ""}`}
       aria-current={helpActive ? "page" : undefined}
     />
   );
@@ -195,9 +195,9 @@ function SimulationStatus({ simulationDateLabel, simulationOffsetMinutes, onRese
 
 function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings }: ResponsiveNavigationProps) {
   return (
-    <header className="hidden min-w-0 px-2 pt-2 xl:block" data-navigation-layout="top-bar">
-      <div className="grid h-16 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-5 shadow-floating">
-        <h1 className="core-heading-3 leading-none">
+    <header className="hidden min-w-0 px-4 pt-2 xl:block" data-navigation-layout="top-bar">
+      <div className="mx-auto grid h-16 max-w-7xl grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 rounded-panel border border-core-border bg-core-surface px-6 shadow-floating">
+        <h1 className="core-brand text-core-text">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
 
@@ -214,8 +214,8 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
                 onPointerEnter={() => onPreloadView?.(view.id)}
                 onFocus={() => onPreloadView?.(view.id)}
                 onTouchStart={() => onPreloadView?.(view.id)}
-                className={`core-body flex min-h-control items-center gap-2 whitespace-nowrap rounded-control px-3 !font-semibold transition-colors ${
-                  isActive ? "bg-[var(--core-action-soft)] text-core-action" : "text-core-secondary hover:bg-core-subtle hover:text-core-action"
+                className={`core-body flex h-11 items-center gap-2 whitespace-nowrap rounded-control px-4 font-semibold transition-colors ${
+                  isActive ? "bg-core-subtle text-core-action" : "text-core-text hover:bg-core-subtle hover:text-core-action"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -239,8 +239,8 @@ function DesktopTopBar({ navigationItems, activeView, simulationOffsetMinutes, s
 function MobileHeader({ activeView, simulationOffsetMinutes, simulationDateLabel, pomodoroTimer, onNavigate, onPreloadView, onResetSimulation, theme, onToggleTheme, syncStatus, manualSync, onSyncNow, onOpenSyncSettings }: ResponsiveNavigationProps) {
   return (
     <header className="core-mobile-header sticky top-0 z-30 min-w-0 px-2 py-2 xl:hidden" data-navigation-layout="mobile-header">
-      <div className="flex h-14 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
-        <h1 className="core-mobile-brand shrink-0 core-heading-3 leading-none">
+      <div className="flex h-16 min-w-0 items-center justify-between gap-3 rounded-panel border border-core-border bg-core-surface px-3 shadow-floating">
+        <h1 className="core-mobile-brand core-brand shrink-0 text-core-text">
           <NavigationBrand onNavigate={onNavigate} />
         </h1>
         <PomodoroProgress timer={pomodoroTimer} variant="header" />

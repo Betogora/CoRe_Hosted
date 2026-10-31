@@ -2202,8 +2202,10 @@ export function App() {
           onResetSimulation={() => changeSimulationOffset(0)}
         />
 
-        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-2.5 pb-32 pt-8 outline-none sm:px-4 lg:px-6 xl:relative xl:overflow-x-hidden xl:overflow-y-auto xl:py-12" tabIndex={-1} aria-label="Seiteninhalt">
-          <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
+        <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-4 pb-32 pt-8 outline-none sm:px-6 xl:relative xl:overflow-x-hidden xl:overflow-y-auto xl:py-10" tabIndex={-1} aria-label="Seiteninhalt">
+          <div className="mx-auto w-full min-w-0 max-w-7xl">
+            <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
+          </div>
         </section>
       </div>
       <SettingsSaveBar

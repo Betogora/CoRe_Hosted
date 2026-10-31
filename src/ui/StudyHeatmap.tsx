@@ -100,7 +100,7 @@ function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: s
         </button>
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Heatmap-Farbe ändern" className="core-overlay z-50 w-fit rounded-control p-3 outline-none">
+        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Heatmap-Farbe ändern" className="core-overlay z-50 w-fit rounded-panel p-2 outline-none">
           <div className="grid grid-cols-2 gap-1" role="group" aria-label="CoRe-Farben" data-testid="heatmap-color-grid">
             {HEATMAP_HISTORY_COLOR_OPTIONS.map((option) => {
               const selected = option.color === selectedOption.color;
@@ -167,7 +167,7 @@ function formatStudyHeatmapTitle(currentStreak: number) {
 
 function HeatmapLegend() {
   return (
-    <div className="flex items-center gap-2 core-body text-core-muted">
+    <div className="flex items-center gap-2 core-caption text-core-muted">
       <span>Weniger</span>
       {[0, 1, 2, 3, 4].map((level) => (
         <span key={level} className={`block size-3 rounded-marker border ${heatmapToneByLevel[level]}`} />
@@ -216,7 +216,7 @@ function WeekHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; f
     >
       {window.days.map((day) => (
         <div key={day.key} className="grid min-w-0 justify-items-center gap-1.5">
-          <span className="core-caption text-center font-semibold text-core-muted">
+          <span className="core-caption text-center font-medium text-core-muted">
             <span className="block">{compactWeekLabel(day.key)}</span>
             <span className="block whitespace-nowrap">{compactDate(day.key)}</span>
           </span>
@@ -237,12 +237,12 @@ function MonthHeatmap({ window, formatDayLabel }: { window: StudyHeatmapWindow; 
       aria-label={`Lern-Heatmap für ${formatRangeLabel(window)}`}
     >
       <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2" aria-hidden="true">
-        {window.weekdayLabels.map((label) => <span key={label} className="text-center core-caption font-semibold text-core-muted">{label}</span>)}
+        {window.weekdayLabels.map((label) => <span key={label} className="text-center core-caption font-medium text-core-muted">{label}</span>)}
       </div>
       <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
         {window.days.map((day) => (
           <HeatmapDayCell key={day.key} day={day} label={heatmapDayLabel(day, formatDayLabel)} className="h-14 w-full rounded-inset">
-            <span className="core-caption font-semibold text-core-text">{day.dayOfMonth}</span>
+            <span className="core-caption font-medium tabular-nums text-core-text">{day.dayOfMonth}</span>
           </HeatmapDayCell>
         ))}
       </div>
@@ -280,7 +280,7 @@ function YearHeatmap({
         {window.monthLabels.map((label, index) => (
           <span
             key={`${label}-${index}`}
-            className="h-5 whitespace-nowrap text-left core-caption font-semibold text-core-muted"
+            className="h-5 whitespace-nowrap text-left core-caption font-medium text-core-muted"
             data-month-label={label || undefined}
           >
             {label}
@@ -288,7 +288,7 @@ function YearHeatmap({
         ))}
         {window.weekdayLabels.map((label, dayIndex) => (
           <React.Fragment key={label}>
-            <span className="flex min-h-4 items-center core-caption font-semibold text-core-muted">{label}</span>
+            <span className="flex min-h-4 items-center core-caption font-medium text-core-muted">{label}</span>
             {window.weeks.map((week) => {
               const day = week[dayIndex];
               return (
@@ -364,7 +364,7 @@ export function StudyHeatmap({
     >
       <div className="core-study-heatmap-header grid items-center gap-4" data-testid="study-heatmap-header">
         <div className="flex min-w-0 items-center gap-4">
-          <OrbIcon icon={Activity} className="bg-core-success-soft text-core-text" />
+          <OrbIcon icon={Activity} />
           <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
         </div>
         <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap" data-testid="study-heatmap-controls">
@@ -384,7 +384,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.previousAnchorKey)}
               disabled={!visibleHeatmap.canShowPrevious}
-              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-text shadow-soft transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               aria-label={navigationLabels.previous}
             >
               <ChevronLeft size={16} aria-hidden="true" />
@@ -395,7 +395,7 @@ export function StudyHeatmap({
               type="button"
               onClick={() => setAnchorKey(visibleHeatmap.nextAnchorKey)}
               disabled={!visibleHeatmap.canShowNext}
-              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-action transition hover:bg-core-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex size-control shrink-0 items-center justify-center rounded-control border border-core-border bg-core-surface text-core-text shadow-soft transition hover:bg-core-subtle disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
               aria-label={navigationLabels.next}
             >
               <ChevronRight size={16} aria-hidden="true" />
@@ -404,7 +404,7 @@ export function StudyHeatmap({
         </div>
       </div>
 
-      <p className="mt-4 text-center core-caption font-semibold text-core-muted" data-testid="study-heatmap-range-label">
+      <p className="mt-4 text-center core-caption font-medium text-core-secondary" data-testid="study-heatmap-range-label">
         {formatRangeLabel(visibleHeatmap)}
       </p>
       <div className="mt-3 min-w-0">

@@ -4,14 +4,14 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { normalizeDeckAppearance } from "../coreModel.ts";
 import { DECK_ICON_PICKER_KEYS, DeckAppearanceIcon, deckIconOptions } from "./deckAppearance.tsx";
 
-test("deck appearance uses the selected color for icon, border and translucent round surface", () => {
+test("deck appearance uses the selected color for icon and a borderless translucent tile surface", () => {
   const markup = renderToStaticMarkup(
     <DeckAppearanceIcon appearance={{ iconKey: "brain", iconColor: "#047857" }} className="size-control" />,
   );
 
-  assert.match(markup, /rounded-control border size-control/);
+  assert.match(markup, /rounded-control size-control/);
+  assert.doesNotMatch(markup, /border/);
   assert.match(markup, /color:#047857/);
-  assert.match(markup, /border-color:#047857/);
   assert.match(markup, /background-color:var\(--core-deck-icon-background, #0478571f\)/);
 });
 

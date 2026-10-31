@@ -218,7 +218,7 @@ export function InPageNavigation({ ariaLabel, items, targetId = null, children }
             href={`#${item.id}`}
             aria-current={active && compact !== desktop ? "location" : undefined}
             data-in-page-navigation-link={item.id}
-            className={`-ml-px flex min-h-control min-w-0 items-center gap-3 rounded-r-control border-l-strong px-3 py-2 core-body no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus ${active ? "border-core-action bg-core-subtle font-semibold text-core-text" : "border-transparent font-medium text-core-secondary hover:bg-core-subtle hover:text-core-text"}`}
+            className={`-ml-px flex min-h-control min-w-0 items-center gap-3 rounded-r-control border-l-strong px-3 py-2 core-body no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-core-focus ${active ? "border-core-action bg-core-subtle font-semibold text-core-action" : "border-transparent font-medium text-core-secondary hover:bg-core-subtle hover:text-core-text"}`}
             onClick={(event) => selectSection(event, item, compact)}
           >
             <Icon className="size-[1.125rem] shrink-0" aria-hidden="true" />
@@ -261,9 +261,9 @@ export function InPageNavigation({ ariaLabel, items, targetId = null, children }
             className="grid min-h-[3.75rem] cursor-pointer list-none grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-panel border border-core-border bg-core-raised px-4 py-3 text-core-text shadow-soft outline-none focus-visible:ring-2 focus-visible:ring-core-focus focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden"
             data-in-page-navigation-summary="true"
           >
-            <CurrentIcon className="size-[1.125rem] shrink-0 text-core-action" aria-hidden="true" />
+            <span className="grid size-8 shrink-0 place-items-center rounded-control bg-core-subtle text-core-action"><CurrentIcon className="size-4" aria-hidden="true" /></span>
             <span className="min-w-0 truncate core-body font-semibold">{currentItem.label}</span>
-            <ChevronDown className={`size-[1.125rem] shrink-0 text-core-action transition-transform ${compactOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+            <ChevronDown className={`size-4 shrink-0 text-core-muted transition-transform ${compactOpen ? "rotate-180" : ""}`} aria-hidden="true" />
           </summary>
           <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] max-h-[min(26rem,calc(100dvh-10rem))] overflow-y-auto rounded-panel border border-core-border bg-core-raised p-3 shadow-raised" data-in-page-navigation-panel="true">
             <ul className="grid gap-1 sm:grid-cols-2">{links(true)}</ul>

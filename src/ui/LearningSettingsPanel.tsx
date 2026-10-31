@@ -88,7 +88,7 @@ function NumberField({ label, value, min, max, testId, onChange }: { label: stri
   }
 
   return (
-    <label className="grid gap-2 core-body font-semibold text-core-muted">
+    <label className="grid content-start gap-2 core-field-label">
       {label}
       <input
         id={testId}
@@ -98,7 +98,7 @@ function NumberField({ label, value, min, max, testId, onChange }: { label: stri
         step="1"
         value={inputValue}
         data-testid={testId}
-        className="min-h-control rounded-control border border-core-border px-3 text-core-text"
+        className="core-field"
         onChange={(event) => updateInput(event.target.value)}
         onBlur={commitInput}
         onKeyDown={(event) => {
@@ -111,7 +111,7 @@ function NumberField({ label, value, min, max, testId, onChange }: { label: stri
 
 function SelectField({ label, value, options, testId, onChange }: { label: string; value: string | number; options: Array<{ value: string; label: string }>; testId: string; onChange: (value: string) => void }) {
   return (
-    <label className="grid gap-2 core-body font-semibold text-core-muted">
+    <label className="grid content-start gap-2 core-field-label">
       {label}
       <CoreSelect ariaLabel={label} value={String(value)} options={options} testId={testId} onValueChange={onChange} />
     </label>
@@ -213,19 +213,19 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
             <SelectField label="Lernprofil-Vorlage" value={selectedProfileId} options={profileOptions} testId="learning-profile-select" onChange={(value) => { setSelectedProfileId(value); setProfileName(profiles.find((profile) => profile.id === value)?.name ?? defaultProfileName); }} />
             <ActionButton type="button" variant="primary" icon={CopyCheck} disabled={!selectedProfile} onClick={applySelectedProfile}>{context === "global" ? "Als Standardprofil verwenden" : "Auf diesen Stapel anwenden"}</ActionButton>
           </div>
-          <p className="mt-3 core-caption leading-5 text-core-muted">
+          <p className="mt-2 core-caption text-core-muted">
             {context === "global"
               ? "Das Standardprofil gilt für neue Stapel. Vorhandene Stapel ändern sich erst über die globale Speicheraktion."
               : "Das Anwenden kopiert die Werte nur in diesen Stapel. Spätere Änderungen an der Vorlage wirken nicht automatisch weiter."}
           </p>
           {draft.learningProfileSource ? (
-            <p className={`mt-3 rounded-control border px-4 py-3 core-body ${appliedProfileIsStale ? "border-core-warning bg-core-warning-soft" : "border-core-info bg-core-info-soft"}`} role={appliedProfileIsStale ? "status" : undefined}>
+            <p className={`mt-4 rounded-control border px-4 py-3 core-body text-core-text ${appliedProfileIsStale ? "border-core-warning bg-core-warning-soft" : "border-transparent bg-core-info-soft"}`} role={appliedProfileIsStale ? "status" : undefined}>
               Herkunft: {appliedProfile?.name ?? "Gelöschtes Lernprofil"} · Version {draft.learningProfileSource.contentVersion}{appliedProfileIsStale ? " · Neuere Vorlage verfügbar" : ""}
             </p>
           ) : null}
 
           <div className="mt-6 grid min-w-0 gap-3 border-t border-core-border pt-6 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:items-end">
-            <label className="grid gap-2 core-body font-semibold text-core-muted">Name des eigenen Lernprofils<input className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
+            <label className="grid gap-2 core-field-label">Name des eigenen Lernprofils<input className="core-field min-w-0" value={profileName} onChange={(event) => setProfileName(event.target.value)} /></label>
             <ActionButton type="button" variant="secondary" icon={Plus} onClick={createProfile}>Anlegen</ActionButton>
             <ActionButton type="button" variant="secondary" icon={Pencil} disabled={!selectedCustomProfile} onClick={renameProfile}>Umbenennen</ActionButton>
             <ActionButton type="button" variant="destructive" icon={Trash2} disabled={!selectedCustomProfile} onClick={() => setDeleteProfileId(selectedCustomProfile?.id ?? null)}>Löschen</ActionButton>
@@ -233,27 +233,27 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
           <ActionButton type="button" variant="secondary" icon={Save} className="mt-3 w-full whitespace-normal md:w-auto" disabled={!selectedCustomProfile} onClick={updateProfile}>Vorlage mit aktuellen Werten aktualisieren</ActionButton>
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
-            <legend className="mb-1 core-body-large font-semibold text-core-text">Tagespensum und Reihenfolge</legend>
+            <legend className="float-left w-full core-heading-3 text-core-text">Tagespensum und Reihenfolge</legend>
             <div className="grid gap-4 md:grid-cols-2">
               <NumberField label="Neue Karten pro Tag" value={draft.newCardsPerDay} min={0} max={500} testId="learning-settings-new-cards" onChange={(value) => editLearning({ newCardsPerDay: value })} />
               <NumberField label="Wiederholungen pro Tag" value={draft.maximumReviewsPerDay} min={0} max={2000} testId="learning-settings-max-reviews" onChange={(value) => editLearning({ maximumReviewsPerDay: value })} />
             </div>
-            <p className="core-caption leading-5 text-core-muted">Umfasst fällige, tagesübergreifende Lern- und neue Karten. Wiederholungen haben Vorrang.</p>
+            <p className="-mt-2 core-caption text-core-muted">Umfasst fällige, tagesübergreifende Lern- und neue Karten. Wiederholungen haben Vorrang.</p>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               <SelectField label="Kartenreihenfolge" value={draft.newReviewOrder} options={reviewOrderOptions} testId="learning-settings-order" onChange={(value) => editLearning({ newReviewOrder: value })} />
               <SelectField label="Neue Karten sortieren" value={draft.newCardSortOrder} options={newCardSortOptions} testId="learning-settings-new-sort" onChange={(value) => editLearning({ newCardSortOrder: value })} />
               <SelectField label="Fällige Karten sortieren" value={draft.reviewCardSortOrder} options={reviewCardSortOptions} testId="learning-settings-review-sort" onChange={(value) => editLearning({ reviewCardSortOrder: value })} />
             </div>
-            {draft.reviewCardSortOrder === "lowest-retrievability" ? <p className="core-caption leading-5 text-core-muted">Zeigt zuerst Karten, die du wahrscheinlich eher vergessen hast.</p> : null}
+            {draft.reviewCardSortOrder === "lowest-retrievability" ? <p className="-mt-2 core-caption text-core-muted">Zeigt zuerst Karten, die du wahrscheinlich eher vergessen hast.</p> : null}
           </fieldset>
 
-          <fieldset className="mt-6 grid gap-3 border-t border-core-border pt-6">
-            <legend className="mb-1 core-body-large font-semibold text-core-text">Geschwisterkarten begraben</legend>
-            <p className="core-caption leading-5 text-core-muted">Karten aus demselben Inhalt warten nach einer Antwort bis zum nächsten Lerntag. Lernstand und Fälligkeit bleiben unverändert.</p>
-            <div className="grid gap-1">
+          <fieldset className="mt-6 grid gap-1 border-t border-core-border pt-6">
+            <legend className="float-left w-full core-heading-3 text-core-text">Geschwisterkarten begraben</legend>
+            <p className="core-caption text-core-muted">Karten aus demselben Inhalt warten nach einer Antwort bis zum nächsten Lerntag. Lernstand und Fälligkeit bleiben unverändert.</p>
+            <div className="mt-2 grid">
               {buryOptions.map((option) => (
-                <label key={option.key} className="flex min-h-control items-center gap-3 core-body text-core-text">
-                  <input type="checkbox" className="size-5 shrink-0 accent-core-action" checked={draft[option.key]} data-testid={option.testId} onChange={(event) => editLearning({ [option.key]: event.target.checked })} />
+                <label key={option.key} className="flex min-h-control cursor-pointer items-center gap-3 core-body text-core-text">
+                  <input type="checkbox" className="size-4 shrink-0 cursor-pointer accent-core-action" checked={draft[option.key]} data-testid={option.testId} onChange={(event) => editLearning({ [option.key]: event.target.checked })} />
                   {option.label}
                 </label>
               ))}
@@ -266,7 +266,7 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
         <h2 id={schedulerHeadingId} tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Scheduler & CoRe</h2>
         <SoftPanel className="p-6">
           <fieldset className="grid gap-4">
-            <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Brain size={19} aria-hidden="true" />Lernablauf</legend>
+            <legend className="float-left flex w-full items-center gap-2 core-heading-3 text-core-text"><Brain className="text-core-muted" size={16} aria-hidden="true" />Lernablauf</legend>
             <div className="grid gap-4 md:grid-cols-2">
               <SelectField label="Lernschritte" value={draft.schedulerProfile.learningStepsMinutes.join(",")} options={withCurrentOption(learningStepOptions, draft.schedulerProfile.learningStepsMinutes.join(","), `Eigene · ${draft.schedulerProfile.learningStepsMinutes.map((minutes) => `${minutes} Min.`).join(" → ")}`)} testId="learning-settings-steps" onChange={(value) => editLearning({ schedulerProfile: { learningStepsMinutes: value.split(",").map(Number) } })} />
               <SelectField label="Nach einem Fehler erneut zeigen" value={draft.schedulerProfile.relearningStepMinutes} options={withCurrentOption(relearningStepOptions, String(draft.schedulerProfile.relearningStepMinutes), `${draft.schedulerProfile.relearningStepMinutes} Min.`)} testId="learning-settings-relearning" onChange={(value) => editLearning({ schedulerProfile: { relearningStepMinutes: Number(value) } })} />
@@ -274,17 +274,17 @@ export function LearningSettingsPanel({ draft, profiles, defaultProfileName, con
           </fieldset>
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
-            <legend className="mb-1 core-body-large font-semibold text-core-text">Erinnerungsziel</legend>
+            <legend className="float-left w-full core-heading-3 text-core-text">Erinnerungsziel</legend>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2 core-body font-semibold text-core-muted">Gewünschte Erinnerungsrate<span className="flex items-center gap-3"><input type="range" min="70" max="99" value={Math.round(draft.schedulerProfile.desiredRetention * 100)} data-testid="learning-settings-retention" className="min-w-0 flex-1" onChange={(event) => editLearning({ schedulerProfile: { desiredRetention: Number(event.target.value) / 100 } })} /><output>{Math.round(draft.schedulerProfile.desiredRetention * 100)} %</output></span></label>
+              <label className="grid content-start gap-2 core-field-label">Gewünschte Erinnerungsrate<span className="flex min-h-control items-center gap-3"><input type="range" min="70" max="99" value={Math.round(draft.schedulerProfile.desiredRetention * 100)} data-testid="learning-settings-retention" className="min-w-0 flex-1 cursor-pointer accent-core-action" onChange={(event) => editLearning({ schedulerProfile: { desiredRetention: Number(event.target.value) / 100 } })} /><output className="min-w-12 text-right core-body tabular-nums text-core-text">{Math.round(draft.schedulerProfile.desiredRetention * 100)} %</output></span></label>
               <NumberField label="Maximales Intervall in Tagen" value={draft.schedulerProfile.maximumIntervalDays} min={30} max={36500} testId="learning-settings-maximum-interval" onChange={(value) => editLearning({ schedulerProfile: { maximumIntervalDays: value } })} />
             </div>
-            {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="rounded-control border border-core-warning bg-core-warning-soft px-4 py-3 core-body" role="alert">Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
+            {draft.schedulerProfile.desiredRetention > 0.97 ? <p className="core-status-warning" role="alert">Über 97 % steigt die tägliche Belastung meist sehr stark.</p> : null}
           </fieldset>
 
           <fieldset className="mt-6 grid gap-4 border-t border-core-border pt-6">
-            <legend className="mb-1 flex items-center gap-2 core-body-large font-semibold text-core-text"><Sparkles size={19} aria-hidden="true" />Content Repetition</legend>
-            <p className="core-caption leading-5 text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."} Varianten wechseln sich erst ab der gewählten Haltbarkeit mit der Karte ab; die Höchstzahl begrenzt Erzeugen und Abfragen.</p>
+            <legend className="float-left flex w-full items-center gap-2 core-heading-3 text-core-text"><Sparkles className="text-core-muted" size={16} aria-hidden="true" />Content Repetition</legend>
+            <p className="-mt-2 core-caption text-core-muted">{context === "global" ? "Diese CoRe-Werte gelten als Standard für Stapel und werden von Lernprofilen nicht verändert." : "Diese Werte gehören direkt zum Stapel und werden von Lernprofilen nicht verändert."} Varianten wechseln sich erst ab der gewählten Haltbarkeit mit der Karte ab; die Höchstzahl begrenzt Erzeugen und Abfragen.</p>
             <div className="grid gap-4 md:grid-cols-2">
               <SelectField label="Varianten einsetzen ab Haltbarkeit" value={draft.variantThresholdDays} options={variantThresholdOptions} testId="learning-settings-variant-threshold" onChange={(value) => editCore({ variantThresholdDays: Number(value) })} />
               <SelectField label="Aktive Varianten pro Karte" value={draft.maxActiveVariantsPerCard} options={activeVariantOptions} testId="learning-settings-active-variants" onChange={(value) => editCore({ maxActiveVariantsPerCard: Number(value) })} />

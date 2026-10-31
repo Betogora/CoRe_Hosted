@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import type { DeckLibraryRow } from "../libraryModel.ts";
 import { DeckAppearanceIcon } from "./deckAppearance.tsx";
@@ -79,7 +79,7 @@ export function DeckSummaryHeader() {
           ))}
         </div>
         <span className="core-deck-summary-actions flex items-center justify-end gap-0.5">
-          <span className="h-0 w-[5.5rem] shrink-0" />
+          <span className="core-deck-summary-actions-spacer h-0 shrink-0" />
         </span>
       </div>
     </div>
@@ -137,17 +137,20 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
 
         {learningStatus ? (
           <dl className={`core-deck-summary-counts grid grid-cols-3 ${compactAtBase ? "items-center gap-1" : "min-w-[15rem] gap-3"} ${responsive ? "core-deck-summary-metrics" : ""}`} aria-label={`Lernstand für ${row.path}`}>
-            {DECK_COUNT_DEFINITIONS.map((count) => (
-              <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
-                <dt className={labelClass}>{count.label}</dt>
-                <dd className={`core-deck-summary-count-value ${folder ? "core-heading-3 tabular-nums" : compactAtBase ? "core-caption tabular-nums" : "core-body-large"} font-semibold`} style={{ color: count.color }}>{learningStatus.summary[count.valueKey]}</dd>
-              </div>
-            ))}
+            {DECK_COUNT_DEFINITIONS.map((count) => {
+              const value = learningStatus.summary[count.valueKey];
+              return (
+                <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
+                  <dt className={labelClass}>{count.label}</dt>
+                  <dd className="core-deck-summary-count-value core-deck-count-badge" data-count-empty={value === 0 ? "true" : undefined} style={{ "--core-deck-count-color": count.color } as CSSProperties}>{value}</dd>
+                </div>
+              );
+            })}
           </dl>
         ) : null}
 
         <div className={`core-deck-summary-actions flex items-center justify-end ${compactAtBase ? "gap-0.5" : "gap-2"}`}>
-          <span className="inline-flex items-center gap-0">
+          <span className="inline-flex items-center gap-1">
             {studyAction}
             {actions}
           </span>

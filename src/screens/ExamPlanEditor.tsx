@@ -10,7 +10,7 @@ import { createDeckLibraryModel, type DeckLibrarySummary } from "../libraryModel
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
 import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
-import { ActionDialog, PageHeader, StatTile } from "../ui/coreUi.tsx";
+import { ActionDialog, PageHeader } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
@@ -21,11 +21,15 @@ import { useExamForecast } from "./useExamForecast.ts";
 const STEPS = ["Prüfung", "Lernstoff", "Lernzeit", "Dein Plan"];
 const WEEKDAYS = ["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"];
 
-const FIELD = "min-h-control w-full min-w-0 rounded-control border border-core-border bg-core-surface px-3 text-core-text";
-const LABEL = "grid min-w-0 gap-2 core-body font-semibold text-core-muted";
+const FIELD = "core-field min-w-0";
+const LABEL = "core-field-label grid min-w-0 gap-2";
 
 function Summary({ children }: { children: React.ReactNode }) {
-  return <summary className="flex min-h-control cursor-pointer list-none items-center gap-2 py-2 core-body font-semibold text-core-text"><ChevronDown size={16} aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180 motion-reduce:transition-none" />{children}</summary>;
+  return <summary className="flex min-h-control cursor-pointer list-none items-center justify-between gap-3 rounded-inset py-2 core-control-label font-semibold text-core-text [&::-webkit-details-marker]:hidden"><ChevronDown size={16} aria-hidden="true" className="order-last shrink-0 text-core-muted transition-transform group-open:rotate-180 motion-reduce:transition-none" />{children}</summary>;
+}
+
+function PlanMetric({ label, value }: { label: string; value: string }) {
+  return <dl className="flex min-w-0 flex-col rounded-control border border-core-border bg-core-surface px-4 py-3"><dt className="core-caption font-medium text-core-muted">{label}</dt><dd className="mt-auto pt-1 core-metric text-core-text">{value}</dd></dl>;
 }
 
 interface ExamPlanEditorProps {
@@ -85,10 +89,10 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   return <div className={`grid w-full min-w-0 gap-6 ${embedded ? "" : "mx-auto max-w-5xl"}`} data-testid="exam-plan-editor" data-embedded={embedded || undefined}>
     {!embedded ? <>
     <PageHeader eyebrow="Prüfungen" title={initialPlan ? "Prüfung bearbeiten" : "Prüfung planen"} action={<ActionButton variant="secondary" icon={ArrowLeft} disabled={saving} onClick={cancel}>Zurück</ActionButton>} />
-    <ol className="grid grid-cols-4 gap-2" aria-label="Schritte der Prüfungsplanung">{STEPS.map((name, index) => <li key={name}><button type="button" disabled={saving || index > step} aria-current={step === index ? "step" : undefined} onClick={() => go(index)} className={`grid min-h-control w-full gap-1 rounded-control border px-2 py-3 text-left ${step === index ? "border-core-action bg-core-surface" : "border-transparent bg-core-subtle"}`}><span className="core-caption text-core-muted">{index + 1}</span><span className="break-words core-caption font-semibold text-core-text">{name}</span></button></li>)}</ol>
+    <ol className="grid grid-cols-4 gap-2" aria-label="Schritte der Prüfungsplanung">{STEPS.map((name, index) => <li key={name}><button type="button" disabled={saving || index > step} aria-current={step === index ? "step" : undefined} onClick={() => go(index)} className={`grid min-h-control w-full gap-0.5 rounded-control border px-3 py-2.5 text-left transition-colors ${step === index ? "border-core-action bg-core-info-soft" : index < step ? "border-core-border bg-core-surface shadow-soft hover:bg-core-subtle" : "border-transparent bg-core-subtle"}`}><span className={`core-caption font-semibold tabular-nums ${step === index ? "text-core-action" : "text-core-muted"}`}>{index + 1}</span><span className={`break-words core-control-label font-semibold ${step === index ? "text-core-action" : index < step ? "text-core-text" : "text-core-secondary"}`}>{name}</span></button></li>)}</ol>
     </> : null}
-    <fieldset disabled={saving} className={embedded ? "grid min-w-0 gap-5" : "core-surface-raised grid min-w-0 gap-6 rounded-panel p-4 sm:p-6"} data-testid="exam-plan-inspector">
-      {!embedded ? <div><p className="core-caption text-core-muted">Schritt {step + 1} von 4</p><h2 ref={heading} tabIndex={-1} className="scroll-mt-24 core-heading-2 font-semibold text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Deine Lernzeit", "So sieht dein Lernplan aus"][step]}</h2></div> : null}
+    <fieldset disabled={saving} className={embedded ? "grid min-w-0 gap-5" : "core-surface-raised grid min-w-0 gap-6 rounded-panel p-5 sm:p-6"} data-testid="exam-plan-inspector">
+      {!embedded ? <div><p className="core-caption text-core-muted">Schritt {step + 1} von 4</p><h2 ref={heading} tabIndex={-1} className="mt-1 scroll-mt-24 core-heading-2 text-core-text">{["Welche Prüfung steht an?", "Was möchtest du lernen?", "Deine Lernzeit", "So sieht dein Lernplan aus"][step]}</h2></div> : null}
       {embedded || step === 0 ? <div className="grid max-w-2xl gap-5">
         <label className={LABEL}>Name<input autoComplete="off" aria-invalid={showErrors && !plan.name.trim()} placeholder="Zum Beispiel Anatomie" className={FIELD} maxLength={120} value={plan.name} onChange={(event) => patch({ name: event.target.value })} /></label>
         <label className={LABEL}>Farbe<ColorWheelPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
@@ -98,10 +102,10 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       </div> : null}
       {embedded || step === 1 ? <details className="group min-w-0" open={embedded ? (showErrors && !selected.size) || undefined : true}>
         {embedded ? <Summary>Lernstoff · {formatExamCount(selected.size, "Stapel", "Stapel")}</Summary> : <summary className="hidden" />}<div className="grid min-w-0 gap-4">
-        <fieldset className="grid min-w-0 gap-3"><legend className="core-body font-semibold text-core-muted">{formatExamCount(selected.size, "Stapel", "Stapel")} · {formatExamCount(selectedCards, "Karte", "Karten")}</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
+        <fieldset className="grid min-w-0 gap-3"><legend className="core-field-label">{formatExamCount(selected.size, "Stapel", "Stapel")} · {formatExamCount(selectedCards, "Karte", "Karten")}</legend><div className="mt-3 grid max-h-[28rem] gap-1 overflow-y-auto">{rows.map((row) => {
           const branch = row.childrenCount ? [...collectDeckTreeIds(decks, row.id)] : [row.id];
           const checked = selected.has(row.id), partial = branch.some((id) => selected.has(id) !== checked);
-          return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-control px-3 py-2 hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={checked} onChange={(event) => toggleDeck(row.id, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption text-core-muted">{row.summary?.totalCards ?? row.directInventory.totalCards}</span></label>;
+          return <label key={row.id} className="flex min-h-control min-w-0 cursor-pointer items-center gap-3 rounded-inset px-3 py-2 transition-colors hover:bg-core-subtle" style={{ marginInlineStart: `${Math.min(row.depth, 4) * 0.75}rem` }}><input type="checkbox" aria-label={`${row.name}${row.childrenCount ? ", mit Unterstapeln" : ""}`} ref={(element) => { if (element) element.indeterminate = partial; }} className="size-5 shrink-0 accent-core-action" checked={checked} onChange={(event) => toggleDeck(row.id, event.target.checked)} /><span className="min-w-0 flex-1 break-words core-body text-core-text">{row.name}</span><span className="shrink-0 core-caption tabular-nums text-core-muted">{row.summary?.totalCards ?? row.directInventory.totalCards}</span></label>;
         })}</div></fieldset>
         {showErrors && !selected.size ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
@@ -135,7 +139,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
   function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
     {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
     {!summary && !error ? <p role="status" className="core-body text-core-muted">Dein Plan wird berechnet …</p> : null}
-    {summary ? <><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><StatTile size="compact" label="Karten" value={String(summary.totalCards)} /><StatTile size="compact" label="Noch neu" value={String(summary.remainingNewCount)} /><StatTile size="compact" label="Einführungstage" value={String(summary.usableDays)} /><StatTile size="compact" label="Eingeplante Lernzeit" value={formatExamMinutes(summary.availableMinutes)} /></div>
+    {summary ? <><div className="grid grid-cols-2 gap-3 sm:grid-cols-4"><PlanMetric label="Karten" value={String(summary.totalCards)} /><PlanMetric label="Noch neu" value={String(summary.remainingNewCount)} /><PlanMetric label="Einführungstage" value={String(summary.usableDays)} /><PlanMetric label="Eingeplante Lernzeit" value={formatExamMinutes(summary.availableMinutes)} /></div>
       {summary.issues.map((issue) => <StatusMessage key={issue} tone="info">{issue}</StatusMessage>)}</> : null}
   </div>; }
   function renderCalendar() { return <ExamCalendar exams={plannedExams} capacity={capacity} forecast={current ? forecast : null} decks={decks} today={today} initialExamId={plan.id} busy={busy} onChange={(nextExams, nextCapacity) => { const changed = nextExams.find((exam) => exam.id === plan.id); if (changed) patch(changed); setCapacity(nextCapacity); }} />; }

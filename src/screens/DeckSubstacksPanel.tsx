@@ -33,7 +33,7 @@ export function DeckSubstacksPanel({ rows, current, decks, hasStudyCards, onOpen
             <div key={row.id} className="core-deck-summary-row relative min-w-0" data-testid={`content-substack-${row.id}`}>
               <button
                 type="button"
-                className="absolute inset-0 z-0 rounded-control text-left hover:bg-[var(--core-focus-ring-soft)]"
+                className="absolute inset-0 z-0 rounded-control text-left transition-colors hover:bg-core-subtle"
                 aria-label={`Unterstapel ${row.path} öffnen`}
                 onClick={() => onOpenSubstack(row.id)}
               />

@@ -65,7 +65,7 @@ export function AuthGateScreen({
   }
 
   return (
-    <main className="core-centered-viewport grid min-h-dvh min-w-0 grid-cols-[minmax(0,1fr)] place-items-center bg-core-surface px-6 py-10 text-core-text">
+    <main className="core-centered-viewport grid min-h-dvh min-w-0 grid-cols-[minmax(0,1fr)] place-items-center bg-core-canvas px-6 py-10 text-core-text">
       <div className="min-w-0 w-full max-w-md">
           <div className="mb-8 text-center">
             <img src="/core-socrates.svg" alt="" className="mx-auto mb-5 h-28 w-auto" />
@@ -75,8 +75,8 @@ export function AuthGateScreen({
 
           <SoftPanel className="core-auth-panel p-6">
             <div className="core-auth-heading mb-6 flex min-w-0 items-center gap-3">
-              <OrbIcon icon={Lock} className="core-auth-heading-icon" />
-              <h2 className="core-heading-2 min-w-0 break-words font-semibold text-core-text">{title}</h2>
+              <OrbIcon icon={Lock} className="core-auth-heading-icon bg-core-subtle text-core-action" />
+              <h2 className="core-heading-2 min-w-0 break-words text-core-text">{title}</h2>
             </div>
 
             {!configured ? (
@@ -87,27 +87,27 @@ export function AuthGateScreen({
 
             <form ref={formRef} className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4" onSubmit={submit} aria-busy={busy}>
               {isSignUp ? (
-                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-field-label">
                   Anzeigename
-                  <input className="min-h-control min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
+                  <input className="core-field min-w-0 max-w-full" value={displayName} onChange={(event) => setDisplayName(event.target.value)} autoComplete="name" />
                 </label>
               ) : null}
 
               {needsEmail ? (
-                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-field-label">
                   E-Mail
-                  <span className="flex min-h-control min-w-0 items-center gap-2 rounded-control border border-core-border bg-core-surface px-3">
-                    <Mail size={17} className="text-core-muted" aria-hidden="true" />
-                    <input className="min-w-0 flex-1 bg-transparent text-core-text outline-none" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
+                  <span className="relative flex min-w-0 items-center">
+                    <Mail size={16} className="pointer-events-none absolute left-3 text-core-muted" aria-hidden="true" />
+                    <input className="core-field min-w-0 pl-9" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required />
                   </span>
                 </label>
               ) : null}
 
               {needsPassword ? (
-                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-field-label">
                   {isRecovery ? "Neues Passwort" : "Passwort"}
                   <input
-                    className="min-h-control min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text"
+                    className="core-field min-w-0 max-w-full"
                     type="password"
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
@@ -119,10 +119,10 @@ export function AuthGateScreen({
               ) : null}
 
               {isRecovery ? (
-                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-body font-semibold text-core-secondary">
+                <label className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2 core-field-label">
                   Passwort wiederholen
                   <input
-                    className="min-h-control min-w-0 w-full max-w-full rounded-control border border-core-border bg-core-surface px-3 text-core-text"
+                    className="core-field min-w-0 max-w-full"
                     type="password"
                     value={passwordRepeat}
                     onChange={(event) => setPasswordRepeat(event.target.value)}
@@ -134,7 +134,7 @@ export function AuthGateScreen({
               ) : null}
 
               <button type="submit" disabled={!configured || busy} className="core-action-primary">
-                <PrimaryIcon size={17} aria-hidden="true" />
+                <PrimaryIcon size={16} aria-hidden="true" />
                 {busy ? `${primaryLabel} läuft` : primaryLabel}
               </button>
             </form>
@@ -144,9 +144,9 @@ export function AuthGateScreen({
                 type="button"
                 onClick={onGoogleSignIn}
                 disabled={!configured || busy}
-                className="mt-3 inline-flex min-h-control w-full items-center justify-center gap-2 rounded-control border border-core-border px-4 core-body font-semibold text-core-text disabled:text-[var(--core-action-disabled-text)]"
+                className="core-action-secondary mt-3 w-full"
               >
-                <Chrome size={17} aria-hidden="true" />
+                <Chrome size={16} aria-hidden="true" />
                 Mit Google anmelden
               </button>
             ) : null}
@@ -154,19 +154,19 @@ export function AuthGateScreen({
             {!isRecovery ? (
               <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {mode !== "sign-in" ? (
-                  <button type="button" onClick={() => setMode("sign-in")} className="core-body font-semibold text-core-action" aria-pressed={false}>
+                  <button type="button" onClick={() => setMode("sign-in")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={false}>
                     Anmelden
                   </button>
                 ) : null}
                 {showMagicLink ? (
-                  <button type="button" onClick={() => setMode("magic-link")} className="core-body font-semibold text-core-action" aria-pressed={isMagicLink}>
+                  <button type="button" onClick={() => setMode("magic-link")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isMagicLink}>
                     Magic Link
                   </button>
                 ) : null}
-                <button type="button" onClick={() => setMode("sign-up")} className="core-body font-semibold text-core-action" aria-pressed={isSignUp}>
+                <button type="button" onClick={() => setMode("sign-up")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isSignUp}>
                   Account erstellen
                 </button>
-                <button type="button" onClick={() => setMode("reset")} className="core-body font-semibold text-core-action" aria-pressed={isReset}>
+                <button type="button" onClick={() => setMode("reset")} className="rounded-control px-2 core-body font-semibold text-core-action transition-colors hover:bg-core-subtle" aria-pressed={isReset}>
                   Passwort vergessen
                 </button>
               </div>

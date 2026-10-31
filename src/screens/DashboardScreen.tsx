@@ -191,9 +191,9 @@ function DailyLearningOverview({
           </div>
 
           <div className="mt-6 grid gap-2">
-            <div className="flex items-center justify-between gap-3 core-status-label text-core-muted">
-              <span>Tagesziel</span>
-              <span data-testid="daily-learning-total">{plan.progress.completedTodayCount} / {plan.progress.total} Karten</span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="core-field-label">Tagesziel</span>
+              <span className="core-caption font-medium tabular-nums text-core-muted" data-testid="daily-learning-total">{plan.progress.completedTodayCount} / {plan.progress.total} Karten</span>
             </div>
             <DailyReviewProgress
               progress={plan.progress}
@@ -215,9 +215,9 @@ function DailyLearningOverview({
                   >
                     <MetricIcon size={18} aria-hidden="true" />
                   </span>
-                  <div className="flex items-baseline gap-1.5 whitespace-nowrap core-body-large text-core-text">
-                    <dt className="order-2">{segment.label}</dt>
-                    <dd className="order-1">{plan.progress[segment.countKey]}</dd>
+                  <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+                    <dt className="order-2 core-body text-core-secondary">{segment.label}</dt>
+                    <dd className="order-1 core-metric text-core-text">{plan.progress[segment.countKey]}</dd>
                   </div>
                 </div>
               );
@@ -258,7 +258,7 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
   const demoBusyRef = React.useRef(false);
   const displayName = state.profile?.displayName?.trim();
   const welcomeTitle = displayName ? <><span className="sr-only">Willkommen zurück, </span><span className="core-dashboard-name">{displayName}!</span></> : "Willkommen bei CoRe";
-  const welcomeEyebrow = displayName ? <span aria-hidden="true" className="normal-case tracking-normal core-body text-core-muted">Willkommen zurück,</span> : undefined;
+  const welcomeEyebrow = displayName ? <span aria-hidden="true">Willkommen zurück,</span> : undefined;
 
   async function createDemo() {
     // A ref, not state: a fast double click must not start a second commit before the re-render.
@@ -282,25 +282,25 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
 
         <SoftPanel className="overflow-hidden p-6 sm:p-9">
           <div className="max-w-3xl">
-            <p className="core-body font-semibold text-[var(--core-action-secondary)]">Dein erster Lernerfolg</p>
-            <h2 className="mt-2 core-heading-2 font-semibold text-core-text">Womit möchtest du starten?</h2>
-            <p className="mt-3 max-w-2xl core-body-large leading-7 text-core-muted">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
+            <p className="core-caption font-semibold text-core-action">Dein erster Lernerfolg</p>
+            <h2 className="mt-1 core-heading-2 font-semibold text-core-text">Womit möchtest du starten?</h2>
+            <p className="mt-2 max-w-2xl core-body text-core-secondary">Lege eigenes Lernmaterial an oder probiere CoRe bewusst mit Beispieldaten aus.</p>
           </div>
 
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
-            <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} tone="info" onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
-            <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={FileArchive} tone="success" onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
-            <CreationActionCard title="Demo ausprobieren" description={demoStatus === "busy" ? "Beispielstapel wird angelegt …" : "Beispielstapel mit neuen Karten nur auf deinen Klick anlegen."} icon={Sparkles} tone="info" onSelect={() => void createDemo()} />
+            <CreationActionCard title="Erste Karte erstellen" description="Frage und Antwort direkt eingeben." icon={PenLine} onSelect={() => onNavigate("neue-karten", { creationMethod: "manual" })} />
+            <CreationActionCard title="Anki-Stapel importieren" description="Eine vorhandene APKG-Datei übernehmen." icon={FileArchive} onSelect={() => onNavigate("neue-karten", { creationMethod: "import" })} />
+            <CreationActionCard title="Demo ausprobieren" description={demoStatus === "busy" ? "Beispielstapel wird angelegt …" : "Beispielstapel mit neuen Karten nur auf deinen Klick anlegen."} icon={Sparkles} onSelect={() => void createDemo()} />
           </div>
           {demoStatus === "error" ? <StatusMessage className="mt-4" tone="error" announce="assertive">Die Demo konnte nicht angelegt werden. Bitte versuche es erneut.</StatusMessage> : null}
         </SoftPanel>
 
         <SoftPanel className="p-6">
           <h2 className="core-heading-3 font-semibold text-core-text">Das macht CoRe</h2>
-          <ul className="mt-6 grid gap-3 md:grid-cols-3">
+          <ul className="mt-4 grid gap-3 md:grid-cols-3">
             {["Zeitlich passend wiederholen.", "Später anders formuliert prüfen.", "Die Originalkarte bleibt erhalten."].map((point) => (
-              <li key={point} className="flex gap-3 core-body leading-6 text-core-secondary">
-                <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-core-text" aria-hidden="true" />
+              <li key={point} className="flex gap-3 core-body text-core-secondary">
+                <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-core-action" aria-hidden="true" />
                 {point}
               </li>
             ))}

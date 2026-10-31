@@ -41,7 +41,7 @@ const MODE_OPTIONS = [
   { value: "hide-one-guess-one", label: "Nur eine" },
 ] as const;
 
-const GROUP_COLORS = ["var(--core-palette-coral)", "var(--core-palette-lilac)", "var(--core-palette-marigold)", "var(--core-palette-slate)", "var(--core-palette-mist)"];
+const GROUP_COLORS = ["var(--core-brand-accent)", "var(--core-brand-primary)", "var(--core-warning)", "var(--core-success)", "var(--core-brand-secondary)"];
 const SHAPE_NAMES: Record<OcclusionMask["shape"]["kind"], string> = { rect: "Rechteck", ellipse: "Ellipse", polygon: "Polygon", text: "Text", overlay: "Maskenbild" };
 
 function groupColor(mask: OcclusionMask) {
@@ -212,7 +212,7 @@ export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange
     const common = {
       fill: color,
       fillOpacity: mask?.ordinal === 0 ? 0.55 : 0.45,
-      stroke: "var(--core-palette-midnight)",
+      stroke: "var(--core-brand-ink)",
       strokeOpacity: isSelected ? 1 : 0.6,
       strokeWidth: isSelected ? 2.5 : 1.5,
       strokeDasharray: isSelected ? "6 4" : undefined,
@@ -253,27 +253,27 @@ export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange
   );
 
   const labelField = selectedText && selectedText.shape.kind === "text" ? (
-    <label className="grid min-w-0 gap-1 core-caption font-semibold text-core-muted">
+    <label className="grid min-w-0 gap-2 core-field-label">
       Beschriftung
-      <input ref={labelInputRef} className="min-h-control min-w-0 rounded-control border border-core-border bg-core-surface px-3 core-body text-core-text" value={selectedText.shape.text} disabled={disabled}
+      <input ref={labelInputRef} className="core-field min-w-0" value={selectedText.shape.text} disabled={disabled}
         onChange={(event) => onMasksChange(updateOcclusionMaskShape(masks, selectedText.id, { ...(selectedText.shape as Extract<DrawnOcclusionShape, { kind: "text" }>), text: event.target.value || " " }))} />
     </label>
   ) : null;
 
   const modeControl = (
     <div className="grid min-w-0 gap-2">
-      <span className="core-body font-semibold text-core-text">Verdecken</span>
+      <span className="core-field-label">Verdecken</span>
       <CoreSegmentedControl ariaLabel="Verdeckungsmodus" options={MODE_OPTIONS} value={mode} onValueChange={onModeChange} disabled={disabled} />
     </div>
   );
 
   const cardList = (
     <div className="grid min-w-0 gap-2">
-      <span className="core-body font-semibold text-core-text">{groups.length === 1 ? "1 Karte" : `${groups.length} Karten`}</span>
+      <span className="core-field-label">{groups.length === 1 ? "1 Karte" : `${groups.length} Karten`}</span>
       <ul className="flex min-w-0 flex-wrap gap-2" data-testid="occlusion-groups">
         {groups.map((group) => (
           <li key={group.ordinal}>
-            <button type="button" disabled={disabled} onClick={() => setSelected(group.masks.map((mask) => mask.id))} className="inline-flex min-h-control items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body text-core-text transition-colors hover:bg-core-subtle">
+            <button type="button" disabled={disabled} onClick={() => setSelected(group.masks.map((mask) => mask.id))} className="inline-flex min-h-button items-center gap-2 rounded-control border border-core-border bg-core-surface px-3 core-body font-medium text-core-text shadow-soft transition-colors hover:bg-core-subtle">
               <span className="size-3 rounded-round" style={{ background: groupColor(group.masks[0]) }} aria-hidden="true" />
               Karte {group.ordinal}{group.masks.length > 1 ? ` · ${group.masks.length} Masken` : ""}
             </button>
@@ -285,7 +285,7 @@ export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange
   );
 
   const canvas = (
-    <div className="relative min-w-0 overflow-hidden rounded-control border border-core-border bg-core-surface-muted" data-testid="occlusion-canvas">
+    <div className="relative min-w-0 overflow-hidden rounded-panel border border-core-border bg-core-subtle" data-testid="occlusion-canvas">
       <img src={imageUrl} alt={imageAlt} className="block h-auto w-full select-none" draggable={false} onLoad={(event) => setSize({ width: event.currentTarget.naturalWidth, height: event.currentTarget.naturalHeight })} />
       {size ? (
         <svg
@@ -324,9 +324,9 @@ export function OcclusionEditor({ imageUrl, imageAlt, masks, mode, onMasksChange
   return (
     <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start" data-testid="occlusion-editor" onKeyDown={onEditorKeyDown}>
       <div className="grid min-w-0 gap-2">{canvas}{hint}</div>
-      <aside className="grid min-w-0 gap-4 rounded-control border border-core-border bg-core-surface p-3" aria-label="Maskenwerkzeuge">
-        <div className="grid gap-1"><span className="core-caption font-semibold text-core-muted">Werkzeuge</span>{toolButtons}</div>
-        <div className="grid gap-1"><span className="core-caption font-semibold text-core-muted">Auswahl</span>{selectionActions}</div>
+      <aside className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft" aria-label="Maskenwerkzeuge">
+        <div className="grid gap-2"><span className="core-field-label">Werkzeuge</span>{toolButtons}</div>
+        <div className="grid gap-2"><span className="core-field-label">Auswahl</span>{selectionActions}</div>
         {labelField}
         {modeControl}
         {cardList}
