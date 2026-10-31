@@ -68,6 +68,9 @@ export interface CreationScreenProps {
 }
 
 export interface DashboardScreenProps {
+  onPausePomodoro?: () => void;
+  onResumePomodoro?: () => void;
+  onResetPomodoro?: () => void;
   pomodoroTimer?: PomodoroTimer | null;
   onStartPomodoro?: (minutes: number) => void;
   state: WorkspaceState;

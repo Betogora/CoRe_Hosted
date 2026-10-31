@@ -1,6 +1,6 @@
 # CoRe-Architektur und Invarianten
 
-**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-28.
+**Rolle:** aktuelle technische Grenzen und Invarianten. **Stand:** 2026-10-29.
 Produktverhalten: [Specs](specs.md). Ist-Stand: [Status](status.md). Gates: [Betrieb](operations.md). Offene Änderungen: [TODO](todo.md). Formatdetails: [Anki-Referenz](anki-format-analysis.md).
 
 ## Systemkontext
@@ -37,8 +37,9 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
 | `mediaStore.ts`, `cloudMediaStore.ts` | öffentliche Cache-/Queue-/URL-Grenze; private Storage-, Signed-URL- und TUS-Details |
 | `aiCardVariantContract.ts`, `aiCardVariant.ts`, `api/ai/card-variant.ts` | validierter Textvertrag, Browseraufruf und serverseitiger Providerzugriff |
-| `dashboardWidgets.ts`, `screens/DashboardWidgets.tsx` | validierte kontogebundene Browserablage für Widgetlayout und eigene To-dos; lokale Dashboard-Komposition, Reihenfolge und Größen. Planeraufgaben bleiben bei `ExamDashboardWidget`, Timerbesitz bei `App`/`pomodoroTimer.ts` |
-| `pomodoroTimer.ts` | einziger accountgebundener Timer, Validierung und Endzeitprojektion |
+| `dashboardWidgets.ts`, `screens/DashboardWidgets.tsx` | validierte kontogebundene Browserablage für Widgetlayout und eigene To-dos; lokale Dashboard-Komposition, Reihenfolge und Größen. Planeraufgaben bleiben bei `ExamDashboardWidget`; dessen optionale Dashboard-Vorschau erhält ein gemeinsames Aufgabenlimit und meldet die offene Gesamtzahl zurück. Timerbesitz inklusive Reset bleibt bei `App`/`pomodoroTimer.ts`, der Dashboard-Ring verwendet den bestehenden Snapshot |
+| `brainMascots.ts`, `ui/BrainMascot.tsx`, `brainMascotInteraction.ts` | Register der 37 SVG-Motive, gemeinsame Zeichnung und begrenzte Zeiger-/Aktivierungsinteraktion; `scripts/generateMascots.tsx` erzeugt daraus autarke HTML-Dateien unter `public/mascots/`. `dailyMotivation.ts` wählt aus 60 lokalen Impulsen anhand des Lerntages eine feste Text-/Motivkombination; `screens/DailyMotivationWidget.tsx` aktualisiert sie am Tagesbeginn und bei Rückkehr zur Seite. Keine Cloud-Persistenz oder externen Anfragen. |
+| `pomodoroTimer.ts` | einziger accountgebundener Timer, Validierung und Endzeitprojektion; sekundengenaue Dauer sowie persistierter Pausezeitpunkt, Fortsetzen verschiebt Start- und Endzeit um die Pausendauer |
 
 Die Pfade in der Tabelle liegen unter `src/`, soweit kein anderer Pfad angegeben ist. Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert. Es gibt keine zentrale Sammelvalidierung oder allgemeine Anbieter-Adapterebene.
 

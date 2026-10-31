@@ -1,7 +1,7 @@
 # CoRe-Status
 
 **Rolle:** einzige kanonische Quelle für den aktuellen, verifizierten Implementierungsstand.
-**Stand:** 2026-10-28
+**Stand:** 2026-10-29
 
 Diese Datei beschreibt, was heute vorhanden ist. Produktversprechen stehen in [`specs.md`](specs.md), offene Arbeit in [`todo.md`](todo.md) und datierte Abnahmen in [`history.md`](history.md).
 
@@ -12,6 +12,8 @@ Die automatische Kartenerstellung aus einer Quelldatei ist als dritter Erstellun
 CoRe ist ein auf den freigegebenen Kartenlern-Kern reduzierter Web-MVP. Vercel und Supabase sind angebunden. Der technische Unterbau für Account, lokalen Import, Review, Varianten, Cloud-Sync, Konflikte und APKG-Medien ist vorhanden; die manuelle Produkt-, Accessibility- und Hosted-Betriebsabnahme ist noch nicht vollständig.
 
 ## Implementiert
+
+- Heute enthält ein anpassbares Motivationswidget mit 60 lokalen deutschen Lernimpulsen, Wechsel zum eingestellten Lerntagesbeginn und passenden interaktiven Gehirn-Motiven. Die 37 SVG-Nachzeichnungen liegen zusätzlich als autarke Einzel-HTMLs mit Übersicht unter `public/mascots/`; App, Katalog und Vorrat teilen Zeichnungen und Interaktion. Produktregeln stehen in den [Specs](specs.md), Prüfnachweise im [Verlauf](history.md).
 
 - Prüfungsplaner als Hauptbereich `Prüfungen` (ADR-042 mit Ergänzungen): geführte Einrichtung, eigene relative Lernzeit je Klausur, kalendarischer Einführungsstichtag, sortierbare Themen mit „frühestens ab“-Starttagen, Monats-/Wochenkalender und heutige Einheit als reguläre Lernsitzung mit Prüfungsretention über normale Tageslimits hinaus. Die begrenzte deterministische FSRS-6-Kontaktsuche verteilt alle ungesehenen Karten ohne Bearbeitungszeit pro Karte oder Machbarkeitssperre; gemeinsame Stapel plant die Prüfung mit dem frühesten Stichtag einmal. Blöcke mit Fach setzen dessen Tageszeit, Blöcke ohne Fach sind Notizen. Optionale Leseaufgaben bleiben bis zum Abhaken; Heute und Prüfungen teilen Checkliste und Sitzungsziele. Lernstände kommen über `list_account_card_study_states`. Offline bleiben die gespeicherten Tagesziele nutzbar und starten mit den Karten auf dem Gerät; neu geplant wird online. Profilformat 3 ist das einzige Format. E2E gegen die echte App mit lokalem Supabase deckt zwei Geräte, Offline-Start und Navigationsschutz ab. Echte Smartphone-Tastatur und Geräteabnahme bleiben offen.
 - Kartenmodell `Note`/`Card` (ADR-032, ADR-034 bis ADR-036) in App, Import, Persistenz

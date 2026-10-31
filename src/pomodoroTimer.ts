@@ -16,6 +16,7 @@ export interface PomodoroTimer {
   durationMinutes: number;
   startedAt: number;
   endsAt: number;
+  pausedAt?: number;
 }
 
 interface PomodoroTimerSnapshot {
@@ -42,19 +43,21 @@ export function normalizePomodoroMinutes(value: unknown): number | null {
 export function normalizePomodoroTimer(value: unknown): PomodoroTimer | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const candidate = value as Record<string, unknown>;
-  const durationMinutes = normalizePomodoroMinutes(candidate.durationMinutes);
+  const durationMinutes = Number(candidate.durationMinutes);
+  const durationMilliseconds = Math.round(durationMinutes * MILLISECONDS_PER_MINUTE);
   const startedAt = Number(candidate.startedAt);
   const endsAt = Number(candidate.endsAt);
   if (
     typeof candidate.id !== "string"
     || !candidate.id.trim()
-    || durationMinutes == null
+    || !Number.isFinite(durationMinutes) || durationMilliseconds <= 0 || !Number.isSafeInteger(durationMilliseconds)
     || !Number.isSafeInteger(startedAt)
     || !Number.isSafeInteger(endsAt)
-    || endsAt !== startedAt + durationMinutes * MILLISECONDS_PER_MINUTE
+    || endsAt !== startedAt + durationMilliseconds
+    || (candidate.pausedAt !== undefined && (!Number.isSafeInteger(candidate.pausedAt) || Number(candidate.pausedAt) < startedAt || Number(candidate.pausedAt) >= endsAt))
   ) return null;
 
-  return { id: candidate.id, durationMinutes, startedAt, endsAt };
+  return { id: candidate.id, durationMinutes, startedAt, endsAt, ...(candidate.pausedAt !== undefined ? { pausedAt: Number(candidate.pausedAt) } : {}) };
 }
 
 export function createPomodoroTimer(
@@ -78,14 +81,31 @@ export function getPomodoroTimerSnapshot(
     return { running: false, remainingMilliseconds: 0, remainingMinutes: 0, progress: 0 };
   }
 
-  const totalMilliseconds = timer.durationMinutes * MILLISECONDS_PER_MINUTE;
-  const remainingMilliseconds = Math.min(totalMilliseconds, Math.max(0, timer.endsAt - now));
+  const totalMilliseconds = Math.round(timer.durationMinutes * MILLISECONDS_PER_MINUTE);
+  const remainingMilliseconds = Math.min(totalMilliseconds, Math.max(0, timer.endsAt - (timer.pausedAt ?? now)));
   return {
-    running: remainingMilliseconds > 0,
+    running: timer.pausedAt === undefined && remainingMilliseconds > 0,
     remainingMilliseconds,
     remainingMinutes: Math.ceil(remainingMilliseconds / MILLISECONDS_PER_MINUTE),
     progress: Math.min(1, remainingMilliseconds / totalMilliseconds),
   };
+}
+
+export function createPomodoroTimerFromSeconds(seconds: number, now = Date.now(), id = createTimerId(now)): PomodoroTimer | null {
+  if (!Number.isSafeInteger(seconds) || seconds <= 0) return null;
+  return normalizePomodoroTimer({ id, durationMinutes: seconds / 60, startedAt: Math.round(now), endsAt: Math.round(now) + seconds * 1000 });
+}
+
+export function pausePomodoroTimer(timer: PomodoroTimer | null, now = Date.now()): PomodoroTimer | null {
+  if (!timer || timer.pausedAt !== undefined || timer.endsAt <= now) return timer;
+  return { ...timer, pausedAt: Math.max(timer.startedAt, Math.round(now)) };
+}
+
+export function resumePomodoroTimer(timer: PomodoroTimer | null, now = Date.now()): PomodoroTimer | null {
+  if (!timer || timer.pausedAt === undefined) return timer;
+  const elapsed = Math.max(0, Math.round(now) - timer.pausedAt);
+  const { pausedAt: _pausedAt, ...running } = timer;
+  return { ...running, startedAt: timer.startedAt + elapsed, endsAt: timer.endsAt + elapsed };
 }
 
 export function getPomodoroTimerStorageKey(userId: string, storage?: StorageLike) {

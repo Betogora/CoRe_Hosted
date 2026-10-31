@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-29 — Gehirn-Vorrat und täglicher Motivationsimpuls
+
+- Abschließende Typprüfung einschließlich Knip, zwölf Dokumentationstests und Driftprüfung aller erzeugten HTML-Dateien grün.
+
+- 37 SVG-Nachzeichnungen der beiden Vorlagen mit autarken Einzel-HTMLs und Übersicht unter `public/mascots/`; gemeinsame Zeichenquelle und Interaktion für App, Katalog und Vorrat. Das Motivationswidget kombiniert 60 eigene deutsche Impulse mit freundlichen Motiven und wechselt zum konfigurierten Lerntagesbeginn. Die einmalige Layout-Ergänzung respektiert anschließendes Entfernen.
+- Verifiziert: 29 fokussierte Modul-/Rendering-/Theme-Tests sowie 29 unterschiedliche Browserfälle über gezielte Läufe und erfolgreiche Nachläufe. Die Browserfälle decken alle sechs Pflichtviewports in Hell/Dunkel, drei Widgetgrößen, Entfernen und Hinzufügen, Lerntageswechsel, Maus/Tastatur, reduzierte Bewegung, emulierte Touch-Eingabe, alle 37 offline geöffneten Einzeldateien sowie Widget-Drag, Abbruch, Menüband, Pfeile und Layout ab. Die Drag-Vorbereitung wurde für das auf schmalen Displays zunächst außerhalb des Viewports liegende Ziel angepasst. Der Produktionsbuild einschließlich Chunk-Budgets ist grün (Initialgraph 240,1 KiB gzip).
+- Screenshots: `test-results/motivation-verified/`, `test-results/motivation-regression/` und `test-results/motivation-drag-final/`; Gesamtübersicht und erste Dashboardansicht zusätzlich im Sitzungsscratchpad `C:/Users/noemi/.codex/visualizations/2026/10/29/01a18869-295a-7971-9326-06f2643803b1/`. Die Pflichtmatrix und die Motivübersicht wurden visuell angesehen. Die angemeldete lokale App zeigt das ergänzte Widget und bestätigt die Begrüßung nach Aktivierung. Nativer 200-%-Browserzoom und physische Touchgeräte wurden nicht geprüft. Kein Commit, Push oder Release.
+
 ## 2026-10-29 — Gemeinsamer lokaler Stand: Klausurplaner, Widgets und KI-Quellenformular
 
 - `codex/gesamtstand` vereint `main` bis `3f4c119`, den Klausurplaner aus `71a7892`, die Dashboard-Widgets aus `198c54a` einschließlich der zuvor ungespeicherten Weiterentwicklung (gesichert in `69528bd`) und die KI-Quellenerstellung aus `28f1871`. Die neuesten Widget- und KI-Komponenten bleiben unverändert; die Planung behält die aktuellen FSRS-7-Verträge aus main. Konflikte in Dokumentation und Katalog wurden zusammengeführt, HTML wurde ausschließlich neu generiert.

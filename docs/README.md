@@ -72,6 +72,13 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
 
 ## Ergänzende Analysen und Nachweise
 
+Der [Maskottchen-Vorrat](../public/mascots/index.html) enthält 37 SVG-Motive mit
+einzelnen, offline nutzbaren HTML-Dateien. In der laufenden App ist die Übersicht
+unter `/mascots/index.html` erreichbar. Quellen sind das Motivregister und die
+gemeinsame `BrainMascot`-Komponente; `npm run mascots:build` erzeugt die Ablage,
+`npm run mascots:check` prüft ihren Stand. Beide Schritte sind auch in
+`docs:build` beziehungsweise `check:docs` enthalten.
+
 Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 
 - [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.

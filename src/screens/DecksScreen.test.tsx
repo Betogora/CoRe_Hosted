@@ -129,6 +129,7 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(markup, /aria-pressed="true"[^>]*aria-label="Unterstapel"|aria-label="Unterstapel"[^>]*aria-pressed="true"/);
   assert.match(markup, /data-testid="deck-content-substacks"/);
   assert.match(markup, /data-testid="content-substack-grandchild"/);
+  assert.match(markup, /aria-label="Stapel Hauptstapel \/ Kapitel \/ Abschnitt öffnen"/);
   assert.match(markup, />Alle Karten dieses Zweigs</);
   assert.match(markup, />Diesen Zweig lernen</);
   assert.doesNotMatch(markup, /data-testid="card-library-panel"|Einschließlich|direkte Unterstapel|data-donut-/);
@@ -141,6 +142,19 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(top, /data-testid="deck-summaries-panel"/);
   const mindMap = renderScreen([root, child], { contentDeckId: root.id, contentTab: "mind-map" });
   assert.match(mindMap, /Mindmap wird geladen/);
+});
+
+test("substack tree starts collapsed and keeps other branches outside the opened deck", () => {
+  const root = deckOf("root", "Hauptstapel", []);
+  const child = deckOf("child", "Kapitel", [], { parentDeckId: root.id, hierarchyPath: ["Hauptstapel", "Kapitel"] });
+  const grandchild = deckOf("grandchild", "Abschnitt", [], { parentDeckId: child.id, hierarchyPath: ["Hauptstapel", "Kapitel", "Abschnitt"] });
+  const other = deckOf("other", "Anderer Stapel", []);
+  const markup = renderScreen([root, child, grandchild, other], { contentDeckId: root.id, contentTab: "children" });
+  assert.match(markup, /data-testid="content-substack-child"/);
+  assert.doesNotMatch(markup, /data-testid="content-substack-(grandchild|other|root)"/);
+  assert.match(markup, /aria-label="Stapel Hauptstapel \/ Kapitel aufklappen" aria-expanded="false"/);
+  assert.match(markup, /aria-label="Unterstapel von Hauptstapel \/ Kapitel anzeigen"/);
+  assert.match(markup, /aria-label="Karten von Hauptstapel \/ Kapitel öffnen"/);
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {
