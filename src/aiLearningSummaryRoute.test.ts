@@ -1,9 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Readable } from "node:stream";
 import { createSummarySettings } from "./learningSummarySettings.ts";
 import { createSummaryHandler, buildSummaryToolPayload, extractGeneratedSummary } from "../api/ai/summary.ts";
-import { HttpError, OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL, readJsonBody } from "../server/aiRoute.ts";
+import { HttpError, OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
 import { MAX_SUMMARY_REQUEST_BYTES, parseAiLearningSummaryRequest } from "./aiLearningSummaryContract.ts";
 
 const input = parseAiLearningSummaryRequest({ title: "ATP", settings: createSummarySettings(), decks: [{ id: "d1", name: "Biologie" }], units: [{ id: "m1", kind: "card", deck: "d1", text: "F: Was ist ATP?\nA: Ein Energieträger." }] });
@@ -56,7 +55,6 @@ test("Route lehnt fremde Origin, fehlende Sitzung, ungültige Auswahl und überg
     [req(input, { authorization: "" }), 401],
     [req({ ...input, settings: { ...input.settings, material: "source" } }), 400],
     [req("x".repeat(MAX_SUMMARY_REQUEST_BYTES + 1)), 413],
-    [req("{invalid"), 400],
     [{ ...req(), method: "GET" }, 405],
   ] as const) { const result = res(); await handler(request, result); assert.equal(result.statusCode, status); }
   assert.equal(providerCalls, 0);
@@ -67,7 +65,6 @@ test("Route lehnt fremde Origin, fehlende Sitzung, ungültige Auswahl und überg
 test("Providerfehler bleiben sichtbar, werden nicht wiederholt und falsche Materialverweise nicht versteckt", async () => {
   for (const [reply, status, code] of [
     [response({}, 429), 429, "rate_limited"],
-    [response({}, 404), 503, "no_provider_endpoint"],
     [response(completion({ ...summary, sections: [{ ...summary.sections[0], references: ["m9"] }] })), 502, "invalid_references"],
   ] as const) {
     let calls = 0;
@@ -75,11 +72,4 @@ test("Providerfehler bleiben sichtbar, werden nicht wiederholt und falsche Mater
     const result = res(); await handler(req(), result);
     assert.equal(result.statusCode, status); assert.equal(JSON.parse(result.body).error.code, code); assert.equal(calls, 1);
   }
-});
-
-test("JSON-Leser zählt UTF-8-Bytes und erhält Umlaute über Chunkgrenzen", async () => {
-  const raw = Buffer.from('{"text":"äöü"}', "utf8");
-  const stream = Object.assign(Readable.from([raw.subarray(0, 10), raw.subarray(10)]), { headers: {} });
-  assert.deepEqual(await readJsonBody(stream, 100), { text: "äöü" });
-  await assert.rejects(readJsonBody(Object.assign(Readable.from([raw]), { headers: {} }), 8), /zu groß/);
 });

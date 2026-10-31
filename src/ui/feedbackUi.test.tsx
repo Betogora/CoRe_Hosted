@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { StatusMessage, SuccessToast } from "./feedbackUi.tsx";
@@ -28,8 +27,6 @@ test("SuccessToast renders a success announcement with a dismiss action", () => 
 
   assert.match(markup, /data-success-toast-region="true"/);
   assert.match(markup, /data-appearance="success"/);
-  assert.match(markup, /fixed right-4 top-4/);
-  assert.match(markup, /max-w-\[calc\(100vw-2rem\)\]/);
   assert.match(markup, /core-status-success/);
   assert.match(markup, /role="status"/);
   assert.match(markup, /aria-label="Erfolgsmeldung schließen"/);
@@ -44,19 +41,8 @@ test("SuccessToast can keep a completed settings save visually neutral", () => {
   assert.match(markup, /role="status"/);
 });
 
-test("SuccessToast fades away after ten seconds with compositor-friendly properties", () => {
-  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-  assert.match(styles, /\.core-success-toast\[data-appearance="neutral"\][\s\S]*?background: var\(--core-surface-raised\)/);
-
-  assert.match(styles, /@keyframes core-success-toast-dismiss\s*{[\s\S]*?opacity: 0;[\s\S]*?transform: translateY\(-0\.375rem\);[\s\S]*?}/);
-  assert.match(styles, /\.core-success-toast\s*{\s*animation: core-success-toast-dismiss 200ms ease-out 10s forwards;\s*}/);
-});
-
-test("SuccessToast offers an undo action and pauses while pointed at or focused", () => {
+test("SuccessToast offers an undo action next to the dismiss control", () => {
   const markup = renderToStaticMarkup(<SuccessToast onDismiss={() => undefined} action={{ label: "Rückgängig", onAction: () => undefined }}>Karte verschoben.</SuccessToast>);
   assert.match(markup, /core-action-secondary[^>]*><svg[\s\S]*?<span>Rückgängig<\/span>/);
   assert.match(markup, /aria-label="Erfolgsmeldung schließen"/);
-
-  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-  assert.match(styles, /\.core-success-toast:hover,\s*\.core-success-toast:focus-within\s*{\s*animation-play-state: paused;\s*}/);
 });

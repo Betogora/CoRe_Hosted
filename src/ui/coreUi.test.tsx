@@ -9,11 +9,12 @@ test("sliding tabs keep every icon and accessible label but show only the select
     { value: "cards", label: "Karteikarten", icon: FileText },
     { value: "notes", label: "Notizen", icon: NotebookPen },
   ]} value="notes" onValueChange={() => undefined} />);
-  assert.match(markup, /core-sliding-tabs/);
+  assert.match(markup, /role="group" aria-label="Stapelinhalte"/);
   assert.match(markup, /aria-pressed="false" aria-label="Karteikarten"/);
   assert.match(markup, /<span class="sr-only">Karteikarten<\/span>/);
   assert.match(markup, /aria-pressed="true" aria-label="Notizen"/);
-  assert.match(markup, /<span class="truncate">Notizen<\/span>/);
+  assert.match(markup, />Notizen<\/span>/);
+  assert.doesNotMatch(markup, /<span class="sr-only">Notizen<\/span>/);
   assert.equal((markup.match(/<svg/g) ?? []).length, 2);
   assert.doesNotMatch(markup, /disabled=/);
 });
@@ -23,7 +24,7 @@ test("icon segmented control names every option without visible labels and adds 
     { value: "tiles", label: "Als Kacheln anzeigen", icon: FileText },
     { value: "list", label: "Als Liste anzeigen", icon: NotebookPen },
   ]} value="list" onValueChange={() => undefined} />);
-  assert.match(markup, /core-icon-segmented-control/);
+  assert.match(markup, /role="group" aria-label="Stapelansicht"/);
   assert.match(markup, /aria-pressed="false" aria-label="Als Kacheln anzeigen"/);
   assert.match(markup, /aria-pressed="true" aria-label="Als Liste anzeigen"/);
   assert.match(markup, /data-core-tooltip="Als Kacheln anzeigen"/);
@@ -31,14 +32,15 @@ test("icon segmented control names every option without visible labels and adds 
   assert.equal((markup.match(/<svg/g) ?? []).length, 2);
 });
 
-test("page header keeps an optional action beside its title block", () => {
+test("page header keeps an optional action inside the header after its title", () => {
   const markup = renderToStaticMarkup(
     <PageHeader eyebrow="Review" title="Lernen" action={<button type="button">Bereich</button>} />,
   );
 
-  assert.match(markup, /core-page-header-with-action/);
-  assert.match(markup, /core-page-header-action/);
-  assert.ok(markup.indexOf("Lernen") < markup.indexOf("Bereich"));
+  const header = markup.match(/<header[\s\S]*<\/header>/)?.[0] ?? "";
+  assert.match(header, /<h2[^>]*data-screen-heading[^>]*>Lernen<\/h2>/);
+  assert.match(header, /<button type="button">Bereich<\/button>/);
+  assert.ok(header.indexOf("Lernen") < header.indexOf("Bereich"));
 });
 
 test("action dialog exposes its accessible three-action contract", () => {
@@ -63,7 +65,7 @@ test("action dialog exposes its accessible three-action contract", () => {
   assert.match(markup, /Weiter bearbeiten/);
 });
 
-test("action dialog presents a prompt without description in one compact row", () => {
+test("action dialog presents a prompt without description with two equal secondary actions", () => {
   const markup = renderToStaticMarkup(
     <ActionDialog
       open
@@ -76,7 +78,7 @@ test("action dialog presents a prompt without description in one compact row", (
     />,
   );
 
-  assert.match(markup, /flex flex-wrap items-center gap-3/);
+  assert.doesNotMatch(markup, /aria-describedby=/);
   assert.equal(markup.match(/core-action-secondary/g)?.length, 2);
 });
 
@@ -101,7 +103,6 @@ test("shared card mark control exposes pressed semantics", () => {
 
   assert.match(markup, /aria-pressed="true"/);
   assert.match(markup, /aria-label="Markierung entfernen"/);
-  assert.match(markup, /text-core-warning/);
   assert.match(markup, /fill="currentColor"/);
 });
 
@@ -124,10 +125,10 @@ test("segmented controls expose one icon-free pressed brick in both densities", 
   );
 
   assert.equal((markup.match(/role="group"/g) ?? []).length, 2);
-  assert.match(markup, /aria-label="Zeitraum"[^>]*data-size="compact"[^>]*core-segmented-control/);
-  assert.match(markup, /aria-label="CoRe-Modus"[^>]*data-size="regular"[^>]*core-segmented-control/);
+  assert.match(markup, /aria-label="Zeitraum" data-size="compact"/);
+  assert.match(markup, /aria-label="CoRe-Modus" data-size="regular"/);
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/core-segmented-control-option/g) ?? []).length, 5);
+  assert.equal((markup.match(/aria-pressed="(true|false)"/g) ?? []).length, 5);
   assert.doesNotMatch(markup, /<svg/);
 });
 
@@ -159,7 +160,6 @@ test("segmented donut renders exact ordered values with a transparent framed cen
     />,
   );
 
-  assert.match(markup, /core-donut-responsive/);
   assert.match(markup, /role="img" aria-label="Gesamtfortschritt: 97 von 100 Karten gelernt\."/);
   assert.ok(markup.indexOf('data-donut-segment="new"') < markup.indexOf('data-donut-segment="in-progress"'));
   assert.ok(markup.indexOf('data-donut-segment="in-progress"') < markup.indexOf('data-donut-segment="learned"'));
@@ -168,8 +168,7 @@ test("segmented donut renders exact ordered values with a transparent framed cen
   assert.match(markup, /data-donut-segment="learned" data-donut-value="97"/);
   assert.doesNotMatch(markup, /data-donut-segment="due"/);
   assert.match(markup, /stroke="var\(--core-border\)" stroke-width="1"/);
-  assert.doesNotMatch(markup, /bg-core-surface|core-donut-responsive-center|conic-gradient/);
-  assert.doesNotMatch(markup, /md:size-/);
+  assert.equal((markup.match(/<path/g) ?? []).length, 3);
 });
 
 test("segmented donut renders full and empty distributions without inventing segments", () => {
@@ -186,5 +185,4 @@ test("segmented donut renders full and empty distributions without inventing seg
   assert.match(empty, /data-donut-empty="true"/);
   assert.match(empty, /fill="var\(--core-surface-muted\)"/);
   assert.match(empty, /aria-label="Keine aktiven Karten"/);
-  assert.match(empty, /size-8/);
 });

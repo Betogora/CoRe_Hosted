@@ -185,11 +185,11 @@ test("abgebrochene Planung endet sichtbar", async () => {
 });
 
 test("ab zehn Bewertungen bestimmt die Bewertungshistorie das Planungsszenario, darunter gilt Gut", async () => {
-  const withHistory = (count: number, rating: "again" | "good") => [...cards(300), ...Array.from({ length: count }, (_, i) => {
+  const withHistory = (count: number, rating: "again" | "good") => [...cards(3), ...Array.from({ length: count }, (_, i) => {
     const known = card(10_000 + i, "root", true);
     return { ...known, study: { ...known.study, dueAt: "2026-12-01T08:00:00.000Z", lastRating: rating } };
   })];
-  const newPerDay = async (input: CardStudySnapshot[]) => (await forecast(input, plan({ examDate: shiftExamDay(date, 30) }))).days.map((day) => day.newCardIds.length).join(",");
+  const newPerDay = async (input: CardStudySnapshot[]) => (await forecast(input, plan({ examDate: shiftExamDay(date, 7) }))).days.map((day) => day.newCardIds.length).join(",");
   assert.equal(await newPerDay(withHistory(9, "again")), await newPerDay(withHistory(9, "good")));
   assert.notEqual(await newPerDay(withHistory(10, "again")), await newPerDay(withHistory(10, "good")));
 });

@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-31 — Testsuite, Paket C: Scope Creep
+
+- `themeContract.test.ts` ohne Hex-, Typografie- und Einzelregel-Snapshots; es bleiben Vollständigkeit des dunklen Themes, Monotonie der Gruppentiefen, Kontrast, Geometrie-Skala, Verbot der alten Palette und Fokus.
+- UI-Tests (`AppNavigation`, `DeckTree`, `coreUi`, `StudyHeatmap`, `DeckSummaryRow`, `ColorWheelPicker`, `LearningAreaHeader`) prüfen Rollen, `data-*`, aria und Text statt exakter Tailwind-Klassen; dokumentierte Varianten- und Zustandsklassen bleiben.
+- `colorPicker.test.ts` (nur Literale) entfällt, ebenso die CSS-Textprüfungen in `feedbackUi` und `SettingsSaveBar`; `HelpScreen.test.tsx` prüft nur Überschriften, Anker und Links. Der dadurch tote Export `richTextColorStorageKeys` ist dateilokal.
+- Doppelte Prüfungen beim Besitzer zusammengelegt: gemeinsame KI-Routenhelfer in `aiRoute.test.ts` statt in beiden Routentests, Fortschrittssegmente in `DailyReviewProgress`, Dashboard-Standardwidgets in `dashboardWidgets`, Decktiefe in `deckHierarchy` mit je einer Integrationsprüfung in `DeckTree`, `DeckSummaryRow` und `DecksScreen`.
+- Fixtures verkleinert: Paging in `libraryModel` 10.000 → 101 Karten (370–490 ms → 8 ms), Szenario aus Bewertungshistorie in `examPlanning` 300 → 3 Karten und 7 statt 30 Tage (330–440 ms → 40 ms). Skalierungs- und Rekursionstests bleiben groß.
+
 ## 2026-10-31 — Testsuite, Paket B: Veraltetes und toter Code
 
 - Testbug: Das Heatmap-Fixture in `libraryModel.test.ts` nutzte `reviewedAt` statt `answeredAt`; „künftige Reviews bleiben unsichtbar“ bestand dadurch ohne Prüfung und wirkt jetzt.

@@ -16,7 +16,7 @@ import {
   useStoredColorSlots,
 } from "./colorPicker.tsx";
 
-export const richTextColorStorageKeys = {
+const richTextColorStorageKeys = {
   text: "core.richText.textColors.v2",
   highlight: "core.richText.highlightColors.v2",
 };

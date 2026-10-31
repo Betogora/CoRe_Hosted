@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -56,15 +55,6 @@ test("settings save bar politely announces a blocked navigation", () => {
   const html = renderBar({ navigationBlocked: true });
   assert.match(html, /role="status" aria-live="polite"/);
   assert.match(html, /Zum Verlassen zuerst speichern\./);
-});
-
-test("settings save bar uses a subtle accent without a colored glow", () => {
-  const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
-  const saveBarRule = styles.match(/\.core-settings-save-bar\s*\{([\s\S]*?)\n\s*}/)?.[1] ?? "";
-
-  assert.match(saveBarRule, /border: var\(--core-border-width\) solid var\(--core-settings-save-border\)/);
-  assert.match(saveBarRule, /background: var\(--core-settings-save-surface\)/);
-  assert.doesNotMatch(saveBarRule, /box-shadow|linear-gradient/);
 });
 
 test("a failed save is announced in the bar itself", () => {

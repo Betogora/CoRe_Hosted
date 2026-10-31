@@ -17,9 +17,14 @@ test("daily progress shares the canonical segment order, colors and accessible s
   assert.match(markup, /aria-valuenow="1"/);
   assert.match(markup, /aria-valuemax="10"/);
   assert.match(markup, /aria-valuetext="Gelernt: 1 Karte, Neu: 3 Karten, Offen: 1 Karte, Fällig: 5 Karten"/);
-  assert.match(markup, /data-study-progress-segment="learned"[^>]*background-color:var\(--core-learning-progress-completed\)/);
-  for (const key of ["new", "in-progress", "due"]) {
-    assert.match(markup, new RegExp(`data-study-progress-segment="${key}"[^>]*background-color:var\\(--core-learning-status-${key}\\)`));
+  for (const [key, label, color, count, value] of [
+    ["learned", "Gelernt", "--core-learning-progress-completed", 1, "1 Karte"],
+    ["new", "Neu", "--core-learning-status-new", 3, "3 Karten"],
+    ["in-progress", "Offen", "--core-learning-status-in-progress", 1, "1 Karte"],
+    ["due", "Fällig", "--core-learning-status-due", 5, "5 Karten"],
+  ] as const) {
+    assert.match(markup, new RegExp(`data-study-progress-segment="${key}"[^>]*background-color:var\\(${color}\\)[^>]*flex-grow:${count}`));
+    assert.match(markup, new RegExp(`data-core-tooltip="${label}"[^>]*data-core-tooltip-swatch="var\\(${color}\\)"[^>]*data-core-tooltip-value="${value}"`));
   }
   assert.ok(markup.indexOf('data-study-progress-segment="learned"') < markup.indexOf('data-study-progress-segment="new"'));
   assert.ok(markup.indexOf('data-study-progress-segment="new"') < markup.indexOf('data-study-progress-segment="in-progress"'));

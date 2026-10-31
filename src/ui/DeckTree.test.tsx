@@ -26,7 +26,7 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"/);
   assert.match(markup, /lucide-play/);
-  assert.doesNotMatch(markup, /data-donut-|core-donut|Gesamtfortschritt/);
+  assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
   assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(markup, />Bereich \/ Grundlagen</);
   assert.equal((markup.match(/data-deck-count="new"/g) ?? []).length, 2);
@@ -36,31 +36,19 @@ test("deck tree keeps one visual header and all three accessibly labelled metric
   assert.equal((markup.match(/data-testid="deck-summary-header"/g) ?? []).length, 1);
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"[\s\S]*>Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.equal((markup.match(/data-deck-summary-row-content="responsive"/g) ?? []).length, 2);
-  assert.equal((markup.match(/core-deck-summary-container/g) ?? []).length, 3);
   assert.equal((markup.match(/data-testid="deck-options-/g) ?? []).length, 2);
-  assert.match(markup, /data-deck-count="new"><dt class="sr-only">Neu<\/dt>/);
-  assert.match(markup, /data-deck-count="in-progress"><dt class="sr-only">Offen<\/dt>/);
-  assert.match(markup, /data-deck-count="due"><dt class="sr-only">Fällig<\/dt>/);
-  assert.doesNotMatch(markup, /core-deck-summary-count-label/);
-  assert.doesNotMatch(markup, /hidden md:block/);
-  assert.doesNotMatch(markup, /md:not-sr-only|md:size-10|md:text-base/);
+  assert.equal((markup.match(/data-deck-count="new"><dt class="sr-only">Neu<\/dt>/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-deck-count="in-progress"><dt class="sr-only">Offen<\/dt>/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-deck-count="due"><dt class="sr-only">Fällig<\/dt>/g) ?? []).length, 2);
   assert.match(markup, /var\(--core-learning-status-new\)/);
   assert.match(markup, /var\(--core-learning-status-in-progress\)/);
   assert.match(markup, /var\(--core-learning-status-due\)/);
-  assert.match(markup, /data-deck-drag-source="true"/);
-  assert.match(markup, /data-deck-depth="0"[^>]*class="core-deck-summary-row/);
-  assert.match(markup, /data-deck-depth="1"[^>]*class="core-deck-summary-row/);
-  assert.match(markup, /select-none/);
-  assert.match(markup, /grid-cols-\[minmax\(0,1fr\)_auto_auto\]/);
-  assert.doesNotMatch(markup, /min-w-\[46rem\]|overflow-x-auto/);
-  assert.match(markup, /core-deck-tree-rows min-w-0/);
-  assert.match(markup, /core-deck-tree-container/);
-  assert.match(markup, /core-deck-tree-header/);
-  assert.doesNotMatch(markup, /pointer-events-auto flex items-center justify-end/);
+  assert.match(markup, /data-testid="learn-deck-list"/);
+  assert.match(markup, /data-testid="learn-deck-list-header"/);
   assert.ok(markup.indexOf("Unterstapel von Bereich ausblenden") < markup.indexOf('data-deck-icon="true"'));
-  assert.match(markup, /<button[^>]*class="[^"]*-me-2[^"]*"[^>]*aria-label="Unterstapel von Bereich ausblenden"/);
-  assert.match(markup, /<span class="-me-2 size-control shrink-0" aria-hidden="true"><\/span>/);
-  assert.match(markup, /<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/);
+  assert.match(markup, /<button[^>]*aria-label="Unterstapel von Bereich ausblenden" aria-expanded="true"/);
+  assert.doesNotMatch(markup, /Unterstapel von Bereich \/ Grundlagen/);
+  assert.equal((markup.match(/<button[^>]*data-deck-drag-source="true"[^>]*data-deck-row-activation="true"/g) ?? []).length, 2);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Bereich"/);
   assert.match(markup, /<button(?=[^>]*aria-label="Stapeloptionen für Bereich \/ Grundlagen")(?=[^>]*data-core-tooltip="Stapeloptionen für Grundlagen")(?=[^>]*data-core-tooltip-deck-icon-key="[^"]+")(?=[^>]*data-core-tooltip-deck-icon-color="#[0-9A-Fa-f]{6}")/);
@@ -79,7 +67,7 @@ test("deck tree places caller content below the collection and omits an empty ro
   assert.ok(populated.indexOf('data-testid="deck-summary-header"') < populated.indexOf('data-testid="panel-content"'));
   assert.ok(populated.indexOf('data-testid="learn-deck-row-child"') < populated.indexOf('data-testid="panel-content"'));
   assert.match(empty, /data-testid="panel-content"/);
-  assert.doesNotMatch(empty, /core-deck-tree-rows|data-testid="deck-summary-header"/);
+  assert.doesNotMatch(empty, /data-testid="deck-summary-header"|data-deck-group=/);
 });
 
 test("deck tree maps six visible levels to group depths and clamps anything deeper", () => {
@@ -141,7 +129,7 @@ test("deck tree groups every main deck with its subdecks in one tinted group", (
     <DeckTree rows={createDeckLibraryModel(groupedDecks).rows} mode="learn" collapsedDeckIds={["root"]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.equal((markup.match(/class="core-deck-tree-group"/g) ?? []).length, 2);
+  assert.equal((markup.match(/aria-label="Stapelgruppe [^"]+" data-deck-group=/g) ?? []).length, 2);
   assert.match(markup, /aria-label="Stapelgruppe Bereich"[^>]*data-deck-group="root"[^>]*style="--core-deck-group-accent:#[0-9A-Fa-f]{6}"/);
   assert.match(markup, />Alle aufklappen</);
   assert.doesNotMatch(markup, /Hauptstapel<|Unterstapel<\/span>/);
@@ -154,12 +142,12 @@ test("deck tree tiles show main decks as tiles with content, study and options a
 
   assert.match(markup, /data-deck-view="tiles"/);
   assert.match(markup, /data-testid="learn-deck-tiles"/);
-  assert.match(markup, /class="core-deck-summary-row relative min-w-0 select-none core-deck-folder-card"/);
+  assert.ok(markup.indexOf('data-testid="learn-deck-tiles"') < markup.indexOf('data-testid="learn-deck-row-root"'));
   assert.match(markup, /aria-label="Unterstapel von Bereich öffnen"/);
   assert.match(markup, /aria-label="Inhalte von Bereich öffnen"[^>]*>.*Inhalte</);
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /Stapeloptionen für Bereich/);
-  assert.match(markup, /<dt class="core-caption text-core-muted">Neu<\/dt>/);
+  for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="(?![^"]*sr-only)[^"]*">${label}</dt>`));
   assert.doesNotMatch(markup, /learn-deck-row-child|deck-summary-header|Alle einklappen|learn-deck-folder-panel/);
 });
 
@@ -172,16 +160,10 @@ test("deck tree projects a persisted collapsed parent", () => {
   assert.doesNotMatch(markup, /dashboard-deck-row-child/);
 });
 
-test("deck tree fills hovered rows without separating deck headers", () => {
-  const boundaryDecks = [
-    ...decks,
-    createCoreDeck({ id: "second-root", name: "Zweiter Bereich", hierarchyPath: ["Zweiter Bereich"], source: "manual", cards: [] }),
-  ];
+test("deck tree fills every hovered row neutrally across its activation surface", () => {
   const markup = renderToStaticMarkup(
-    <DeckTree rows={createDeckLibraryModel(boundaryDecks).rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={rows} mode="learn" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
-  assert.doesNotMatch(markup, /class="core-deck-summary-row[^"]*border-b/);
-  assert.doesNotMatch(markup, /data-testid="learn-deck-row-[^"]+"[^>]*class="[^"]*border-t-2/);
-  assert.match(markup, /data-deck-row-activation="true"[^>]*class="[^"]*hover:bg-core-subtle/);
+  assert.equal((markup.match(/data-deck-row-activation="true"[^>]*class="[^"]*hover:bg-core-subtle/g) ?? []).length, 2);
 });
