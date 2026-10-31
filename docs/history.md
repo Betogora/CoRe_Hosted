@@ -1,7 +1,7 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-30
+**Stand:** 2026-10-31
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
@@ -14,6 +14,12 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - `creationPipeline.test.ts` aufgelöst: manuelle Inhalte in `coreModel.test.ts`, Erstellungsablauf und Bildverdeckung in `creationWorkflow.test.ts`; Basic mit Rückseite, Multiple Choice und die Varianten-Lernstatusprüfung (durch Typen und `coreModel.test.ts` abgedeckt) entfallen.
 - Abwesenheitsprüfungen entfernter Funktionen gestrichen (Profilfelder, Build-Infos, JSON-Portabilität, Simulatorverlauf, KI-/Assistent-Navigation, Labs-Routen im Modultest, Labs-Schleife im Navigationsflow). Die Browserprüfungen für Beta-Abnahme Punkt 4 bleiben.
 - Verifiziert: fokussierte Modultests, `npm run gate:push`; die Playwright-Auswahl von `product-surfaces.spec.ts` per `--list`, der Flow selbst nicht ausgeführt.
+
+## 2026-10-31 — Übernahme aus `codex/klausurplaner-design` ohne Quizplanung
+
+- Merge von `71a7892`: Lernstart und Prüfungsziel auf der ersten Seite, durchsuchbare Stapelzweige, Lernzeit als Durchschnitt oder je Wochentag, Vorschau mit Lerntagen und begrenzter Themenfolge, mitwachsende Prüfungsübersicht, Prüfungsfarben als Kalenderfilter, Kalender ab der aktuellen Woche und Einstiege „Erste Prüfung planen“ und „Weitere Prüfung planen“.
+- Nicht übernommen: manuelle Kapitel- und Gruppenquizze samt Planformat (`quizChaptersPerTask`, `completedQuizDeckIds`, `kind: "quiz"`) und der eigene Lernmethoden-Schritt (ADR-042). Die Einrichtung bleibt bei vier Schritten; „Vor neuen Themen Zusammenfassung lesen“ steht wieder im Lernzeitschritt.
+- Neuer Code folgt ADR-046: Feldlabels, Überschriften, Sekundärtext, Panels, Kalenderfilter als Pills und die Stapelsuche im Muster der Kartensuche.
 
 ## 2026-10-31 — Schnelleres Quality-Gate (Testsuite, Paket A)
 

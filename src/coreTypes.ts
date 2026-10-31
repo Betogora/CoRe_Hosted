@@ -145,6 +145,7 @@ export interface ExamPlan {
   /** Subdecks deselected below a selected deck; later subdecks of a selected deck join automatically. */
   excludedDeckIds?: string[];
   examDate: string;
+  studyStartDate?: string;
   desiredRetention: number;
   variants: boolean;
   bufferDays: number;
