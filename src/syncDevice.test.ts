@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accountStorageKeys } from "./accountStorage.ts";
 import { createBrowserSyncDevice } from "./syncDevice.ts";
 
 function createMemoryStorage() {
@@ -98,5 +97,5 @@ test("persists only the stable device ID", () => {
   const second = createBrowserSyncDevice({ storage, navigatorObject });
 
   assert.equal(second.id, first.id);
-  assert.deepEqual(storage.entries(), [[accountStorageKeys.SYNC_DEVICE_KEY, first.id]]);
+  assert.deepEqual(storage.entries(), [["core.syncDevice.v2", first.id]]);
 });

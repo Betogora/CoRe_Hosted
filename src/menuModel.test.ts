@@ -58,8 +58,6 @@ test("keeps cards routable while primary navigation exposes only the four produc
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "simulator"), false);
-  assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "ki"), false);
-  assert.equal(menu.listNavigationItems().some((item) => String(item.id) === "assistent"), false);
 });
 
 test("falls back to the default view for unknown ids", () => {

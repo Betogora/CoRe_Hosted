@@ -421,12 +421,6 @@ export function createAppHistoryState(route: unknown, options: RouteOptions = {}
   return { ...currentState, [APP_HISTORY_STATE_KEY]: normalizeAppRoute(route, options) };
 }
 
-export function readAppRouteFromHistoryState(historyState: unknown, options: RouteOptions = {}): AppRoute | null {
-  if (!historyState || typeof historyState !== "object") return null;
-  const route = (historyState as Record<string, unknown>)[APP_HISTORY_STATE_KEY];
-  return route ? normalizeAppRoute(route, options) : null;
-}
-
 export function areAppRoutesEqual(left: unknown, right: unknown, options: RouteOptions = {}): boolean {
   return JSON.stringify(normalizeAppRoute(left, options)) === JSON.stringify(normalizeAppRoute(right, options));
 }

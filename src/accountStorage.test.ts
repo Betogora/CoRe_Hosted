@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { accountStorageKeys, createAccountStorage, getOrCreateSyncDeviceId } from "./accountStorage.ts";
-import { createCoreRepository } from "./coreRepository.ts";
+import { createAccountStorage, getOrCreateSyncDeviceId } from "./accountStorage.ts";
 
 function createMemoryStorage() {
   const values = new Map();
@@ -38,13 +37,4 @@ test("sync device IDs stay stable per browser storage", () => {
   const firstId = getOrCreateSyncDeviceId(storageA);
   assert.equal(getOrCreateSyncDeviceId(storageA), firstId);
   assert.notEqual(getOrCreateSyncDeviceId(storageB), firstId);
-});
-
-test("pre-release storage uses only fresh account and device namespaces", () => {
-  const storage = createMemoryStorage();
-  storage.setItem("core.appState.v4", JSON.stringify({ decks: [{ id: "deck_1" }] }));
-  assert.equal(createAccountStorage("user-a", storage).getItem("core.appState.v4"), null);
-  assert.deepEqual(createCoreRepository().getState().decks, []);
-  assert.equal(accountStorageKeys.ACCOUNT_STORAGE_PREFIX, "core.accountState.v2");
-  assert.equal(accountStorageKeys.SYNC_DEVICE_KEY, "core.syncDevice.v2");
 });

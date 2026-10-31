@@ -220,13 +220,6 @@ export function normalizeLearningSettings(settings: LearningSettingsInput = {}):
   };
 }
 
-export function applyLearningPreset(_settings: LearningSettingsInput = {}, presetId: string = "standard"): LearningSettings {
-  const preset = presetId in presetDefinitions
-    ? presetDefinitions[presetId as keyof typeof presetDefinitions]
-    : presetDefinitions.standard;
-  return normalizeLearningSettings({ schedulerProfile: { presetId: preset.id } });
-}
-
 export function markLearningSettingsCustom(settings: LearningSettingsInput = {}): LearningSettings {
   return normalizeLearningSettings({
     ...settings,

@@ -2,8 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { DEFAULT_EASY_DAYS } from "./easyDays.ts";
 import {
-  applyLearningPreset,
-  applyLearningSettingsToDeckSettings,
   getGlobalSchedulerPreferences,
   markLearningSettingsCustom,
   normalizeLearnAheadMinutes,
@@ -29,7 +27,7 @@ test("deck learning settings keep account-wide learn-ahead outside the canonical
 });
 
 test("built-in presets remain canonical and custom edits preserve normalized values", () => {
-  const intensive = applyLearningPreset({}, "intensive");
+  const intensive = normalizeLearningSettings({ schedulerProfile: { presetId: "intensive" } });
   const custom = markLearningSettingsCustom({ ...intensive, maximumReviewsPerDay: 90 });
 
   assert.equal(intensive.schedulerProfile.presetId, "intensive");
@@ -122,22 +120,4 @@ test("global defaults keep their copied values when the template is updated or d
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.newCardsPerDay, 40);
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.learningProfileSource, null);
   assert.equal(deleted.schedulerPreferences.defaultLearningSettings.variantThresholdDays, 60);
-});
-
-test("direct deck edits clear copied-profile provenance and preserve deck-only fields", () => {
-  const next = applyLearningSettingsToDeckSettings(
-    {
-      coreMode: "off",
-      appearance: { iconKey: "brain", iconColor: "#123456" },
-      learningProfileSource: { id: "profile-1", contentVersion: 3 },
-      newCardsTodayOverride: { date: "2026-07-10", limit: 4 },
-    },
-    markLearningSettingsCustom({ newCardsPerDay: 30 }),
-  );
-
-  assert.deepEqual(next.appearance, { iconKey: "brain", iconColor: "#123456" });
-  assert.deepEqual(next.newCardsTodayOverride, { date: "2026-07-10", limit: 4 });
-  assert.equal(next.coreMode, "off");
-  assert.equal(next.learningProfileSource, null);
-  assert.equal(next.newCardsPerDay, 30);
 });

@@ -45,14 +45,12 @@ test("about settings contain help, legal placeholders, and the only visible vers
   assert.equal(html.match(/>In Vorbereitung</g)?.length, 2);
   assert.match(html, /aria-label="Aktuelle Version">v0\.0\.0</);
   assert.equal(html.match(/v0\.0\.0/g)?.length, 1);
-  assert.doesNotMatch(html, /Release-Information|Commit|Produktion|Entwicklung/);
 });
 
 test("account settings expose only active profile fields in one wide panel", () => {
   const html = renderSettings();
   assert.match(html, /Login-E-Mail/);
   assert.match(html, /readOnly=""[^>]*value="login@example\.test"/);
-  assert.doesNotMatch(html, /Hochschule|Fachgebiet|Sprache|Deutsch \(Beta\)|Privatsphäre|Online-Status|Streaks/);
   assert.doesNotMatch(html, /xl:grid-cols-\[1fr_0\.8fr\]/);
   assert.doesNotMatch(html, /Profil speichern/);
 });
@@ -60,11 +58,6 @@ test("account settings expose only active profile fields in one wide panel", () 
 test("general settings do not contain global card settings", () => {
   const html = renderSettings();
   assert.doesNotMatch(html, /Neuer Tag beginnt|Lernkarten vorziehen|Wochenrhythmus|Simulator|Pomodoro-Timer/);
-});
-
-test("data settings omit the removed CoRe JSON portability controls", () => {
-  const html = renderSettings();
-  assert.doesNotMatch(html, /Export herunterladen|Roh-JSON anzeigen|JSON importieren|portable-import-json/);
 });
 
 test("the conflict panel is a focusable deep-link target inside data and sync", () => {

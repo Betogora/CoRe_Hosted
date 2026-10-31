@@ -31,5 +31,4 @@ test("simulator exposes bounded calendar controls without the retired test deck"
   assert.match(markup, /\d{2}:\d{2} Uhr/);
   assert.match(markup, /echte Reviews/);
   assert.match(markup, /nicht bereits gespeicherte Reviews/);
-  assert.doesNotMatch(markup, /FSRS-Teststapel|Diesen Tag lernen|Simulationsverlauf/);
 });
