@@ -94,8 +94,8 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
     {offline ? <StatusMessage tone="info">{tasks.length ? "Offline: zuletzt geplante Aufgaben" : "Die Prüfungsplanung braucht eine Verbindung."}</StatusMessage> : null}
     {error || startError ? <StatusMessage tone="error">{startError || error}</StatusMessage> : null}
     {saveError ? <StatusMessage tone="error">{saveError} <button type="button" className="underline" disabled={saving} onClick={() => void persist(tasks)}>Erneut speichern</button></StatusMessage> : null}
-    <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-3">
-      <h3 className="core-body font-semibold text-core-text">Deine heutige Einheit</h3>
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-surface p-3">
+      <h3 className="core-heading-3 text-core-text">Deine heutige Einheit</h3>
     <ActionButton variant="primary" icon={Play} loading={starting} disabled={starting || saving || Boolean(saveError) || taskKey !== storedKey || (current ? !day?.blocks.length : !offline || !tasks.some((task) => task.kind === "study" && localCount(task) !== 0))} onClick={() => void start(null)}>Heutige Einheit lernen</ActionButton>
     </div>
     <div className="exam-today-grid grid min-w-0 items-start gap-4">{exams.filter((exam) => exam.status === "active" && exam.examDate > civilToday).sort((a, b) => a.examDate.localeCompare(b.examDate)).map((exam) => {
@@ -105,7 +105,7 @@ export function ExamDashboardWidget({ state, now, onLoad, onStart, onSaveTasks, 
       const color = examColor(exams.indexOf(exam), exam);
       const openCount = own.filter((task) => !task.completed).length;
       return <section key={exam.id} className="grid min-w-0 content-start gap-3 rounded-panel border border-core-border bg-core-subtle p-3 min-[360px]:p-4" aria-label={exam.name}>
-        <div><h3 className="flex min-w-0 items-center gap-2 core-heading-3 font-semibold text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} /><span className="min-w-0 break-words">{exam.name}</span></h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
+        <div><h3 className="flex min-w-0 items-center gap-2 core-heading-3 text-core-text"><span aria-hidden="true" className="size-2.5 shrink-0 rounded-round" style={{ backgroundColor: color }} /><span className="min-w-0 break-words">{exam.name}</span></h3><p className="mt-0.5 core-caption text-core-muted">Prüfung {formatExamDistance(examDayDistance(civilToday, exam.examDate))} · {ready ? formatExamCount(openCount, "offene Aufgabe", "offene Aufgaben") : "Aufgaben werden berechnet …"}</p></div>
         <ul id={listId} className="grid gap-2">{(expanded ? own : own.slice(0, 3)).map((task) => {
           const title = task.deckIds.map(deckName).join(" · ");
           const checked = (pending?.find((entry) => entry.id === task.id) ?? task).completed !== null, local = localCount(task);

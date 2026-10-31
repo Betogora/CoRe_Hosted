@@ -37,8 +37,8 @@ export function ExamTopicPreview({ topics, examDate, color, calendarRef, actions
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
   }, [calendarRef, actionsRef, topics, fit.overflow]);
 
-  return <aside ref={panel} className="grid min-w-0 gap-4 xl:sticky xl:top-24 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Themenvorschau" data-testid="exam-topic-preview">
-    <h3 ref={heading} className="core-heading-3 font-semibold text-core-text">Deine Themenfolge</h3>
+  return <aside ref={panel} className="core-surface-raised grid min-w-0 gap-4 rounded-panel p-5 xl:sticky xl:top-24" aria-label="Themenvorschau" data-testid="exam-topic-preview">
+    <h3 ref={heading} className="core-heading-3 text-core-text">Deine Themenfolge</h3>
     <div ref={viewport} id={topicsId} className={expanded && fit.overflow ? "min-w-0 overflow-y-auto" : "min-w-0 overflow-hidden"} style={fit.overflow ? { height: expanded ? fit.available : fit.height } : undefined} role={expanded && fit.overflow ? "region" : undefined} aria-label={expanded && fit.overflow ? "Alle Themen" : undefined} tabIndex={expanded && fit.overflow ? 0 : undefined}>
       <ol ref={list} className="relative grid gap-4" aria-label="Geplante Themenfolge">{topics.map((topic, index) => {
         const hidden = fit.overflow && !expanded && index >= fit.count;

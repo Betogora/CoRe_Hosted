@@ -109,11 +109,11 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         </div>
         {showErrors && (plan.examDate <= today || plan.examDate > shiftExamDay(today, 365)) ? <p role="alert" className="core-field-error">Wähle einen zukünftigen Termin innerhalb der nächsten 365 Tage.</p> : null}
         <fieldset className="grid min-w-0 gap-3" aria-describedby={`${plan.id}-goal-hint`}>
-          <legend className="mb-3 core-body font-semibold text-core-text">Was ist dein Ziel für die Prüfung?</legend>
+          <legend className="mb-3 core-field-label">Was ist dein Ziel für die Prüfung?</legend>
           <div className="grid min-w-0 gap-2 sm:grid-cols-2">{EXAM_GOALS.map(({ retention, label }) => <label key={retention} className={`flex min-h-control min-w-0 cursor-pointer items-center justify-between gap-3 rounded-control border px-4 py-3 core-body ${plan.desiredRetention === retention ? "border-core-action bg-core-info-soft text-core-text" : "border-core-border bg-core-surface text-core-text"}`}>
             <span className="min-w-0 break-words">{label}</span><input type="radio" name={`${plan.id}-goal`} value={retention} className="size-5 shrink-0 accent-core-action" checked={plan.desiredRetention === retention} onChange={() => patch({ desiredRetention: retention })} />
           </label>)}</div>
-          <p id={`${plan.id}-goal-hint`} className="core-caption text-core-muted">Ein höheres Ziel plant häufigere Wiederholungen ein.</p>
+          <p id={`${plan.id}-goal-hint`} className="core-field-hint">Ein höheres Ziel plant häufigere Wiederholungen ein.</p>
         </fieldset>
         <label className={LABEL}>Farbe<ColorWheelPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
       </div> : null}
@@ -122,7 +122,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         <fieldset className="grid min-w-0 gap-3"><legend className="mb-3 core-field-label">{formatExamCount(selected.size, "Stapel", "Stapel")} · {formatExamCount(selectedCards, "Karte", "Karten")}</legend><ExamDeckSelection rows={rows} selected={selected} onToggle={toggleDeck} /></fieldset>
         {showErrors && !selected.size ? <p role="alert" className="core-field-error">Wähle mindestens einen Stapel.</p> : null}
         {selectionError ? <StatusMessage tone="error">{selectionError}</StatusMessage> : null}
-        <div className="grid min-w-0 gap-2"><label htmlFor={`${plan.id}-buffer`} className="core-body font-semibold text-core-muted">Puffer vor der Prüfung · Tage</label><div className="flex min-w-0 items-center gap-3"><div className="w-20 shrink-0 sm:w-24"><input id={`${plan.id}-buffer`} type="number" inputMode="numeric" className={FIELD} min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></div><p className="min-w-0 core-caption text-core-muted">Letzte neue Karten am {formatExamDate(getExamLastNewDate(plan), "short")}</p></div></div>
+        <div className="grid min-w-0 gap-2"><label htmlFor={`${plan.id}-buffer`} className="core-field-label">Puffer vor der Prüfung · Tage</label><div className="flex min-w-0 items-center gap-3"><div className="w-20 shrink-0 sm:w-24"><input id={`${plan.id}-buffer`} type="number" inputMode="numeric" className={FIELD} min={1} max={365} value={plan.bufferDays} onChange={(event) => patch({ bufferDays: Math.min(365, Math.max(1, Math.round(Number(event.target.value) || 1))) })} /></div><p className="min-w-0 core-caption text-core-secondary">Letzte neue Karten am {formatExamDate(getExamLastNewDate(plan), "short")}</p></div></div>
         <ExamTopicOrder topics={topicOrder.map((id) => ({ id, name: decks.find((deck) => deck.id === id)!.name }))} disabled={saving} onChange={(topicOrder) => patch({ topicOrder })} />
       </div></details> : null}
       {embedded ? <details className="group min-w-0"><Summary>Lernzeit und weitere Einstellungen</Summary><div className="mt-4 grid gap-6">{renderPlanningOptions()}</div></details> : null}
@@ -136,8 +136,10 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
         <div ref={previewCalendar} className="min-w-0">{renderCalendar()}</div>
         <ExamTopicPreview calendarRef={previewCalendar} actionsRef={previewActions} examDate={plan.examDate} color={plan.color} topics={topicOrder.map((id) => {
           const deck = summary?.decks.find((deck) => deck.deckId === id);
-          const first = current ? forecast?.days.find((day) => day.blocks.some((block) => block.deckId === id && block.method === "new"))?.key : undefined;
-          return { id, name: decks.find((deck) => deck.id === id)!.name, detail: first ? `Ab ${formatExamDate(first, "short")}` : !current ? "Wird berechnet …" : deck && deck.known >= deck.total ? "Bereits eingeführt" : "Noch nicht eingeplant" };
+          // Shared decks are introduced once by the exam with the earliest cutoff; name it instead of claiming the start.
+          const first = current ? forecast?.days.flatMap((day) => day.blocks.filter((block) => block.deckId === id && block.method === "new").map((block) => ({ key: day.key, own: block.examIds.includes(plan.id), examIds: block.examIds }))).sort((a, b) => Number(b.own) - Number(a.own))[0] : undefined;
+          const owner = first && !first.own ? plannedExams.find((exam) => first.examIds.includes(exam.id))?.name : undefined;
+          return { id, name: decks.find((deck) => deck.id === id)!.name, detail: first ? `${owner ? `Mit ${owner} ab` : "Ab"} ${formatExamDate(first.key, "short")}` : !current ? "Wird berechnet …" : deck && deck.known >= deck.total ? "Bereits eingeführt" : "Noch nicht eingeplant" };
         })} />
       </div>
       <div ref={previewActions} className="exam-plan-actions sticky z-30 rounded-panel border border-core-border bg-core-surface p-2 sm:p-3" data-testid="exam-plan-actions">{renderStepActions()}</div>
@@ -150,21 +152,21 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
 
   function renderPlanningOptions() { return <>
     <div className="grid min-w-0 gap-3" aria-label="Lernzeit festlegen">
-      <div className="min-w-0 rounded-panel border border-core-border">
+      <div className="min-w-0 rounded-panel border border-core-border bg-core-surface">
         <button type="button" aria-expanded={!time.weeklyMinutes} aria-controls={`${plan.id}-average-time`} onClick={() => {
           if (!time.weeklyMinutes) return;
           const minutes = time.weeklyMinutes.filter((value, index) => time.weekdays[index] && value > 0);
           patch({ studyTime: { ...time, dailyMinutes: minutes.length ? Math.round(minutes.reduce((sum, value) => sum + value, 0) / minutes.length) : 0, weekdays: time.weekdays.map((selected, index) => selected && time.weeklyMinutes![index] > 0), weeklyMinutes: undefined } });
-        }} className="flex min-h-control w-full items-center gap-3 p-4 text-left core-body font-semibold text-core-text"><ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform motion-reduce:transition-none ${!time.weeklyMinutes ? "rotate-180" : ""}`} /><span>Lerntage und durchschnittliche Lernzeit</span></button>
+        }} className="flex min-h-control w-full items-center justify-between gap-3 px-4 py-3 text-left core-control-label font-semibold text-core-text"><span>Lerntage und durchschnittliche Lernzeit</span><ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${!time.weeklyMinutes ? "rotate-180" : ""}`} /></button>
         {!time.weeklyMinutes ? <div id={`${plan.id}-average-time`} className="grid min-w-0 gap-4 px-4 pb-4">
           <div className="grid grid-cols-4 gap-1 sm:grid-cols-7 sm:gap-2" role="group" aria-label="Lerntage">{WEEKDAYS.map((name, index) => <label key={name} className={`flex min-h-control cursor-pointer flex-col items-center justify-center gap-2 rounded-control border px-1 py-3 core-caption font-semibold ${time.weekdays[index] ? "border-core-action bg-core-info-soft text-core-text" : "border-core-border text-core-muted"}`}><input type="checkbox" aria-label={name} className="size-4 accent-core-action" checked={time.weekdays[index]} onChange={(event) => patch({ studyTime: { ...time, weekdays: time.weekdays.map((value, i) => i === index ? event.target.checked : value) } })} /><span aria-hidden="true">{name.slice(0, 2)}</span></label>)}</div>
           <label className={`${LABEL} sm:max-w-xs`}>Lernzeit pro Lerntag · Min.<input className={FIELD} type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.dailyMinutes} onChange={(event) => patch({ studyTime: { ...time, dailyMinutes: Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0))) } })} /></label>
         </div> : null}
       </div>
-      <div className="min-w-0 rounded-panel border border-core-border">
+      <div className="min-w-0 rounded-panel border border-core-border bg-core-surface">
         <button type="button" aria-expanded={Boolean(time.weeklyMinutes)} aria-controls={`${plan.id}-weekday-time`} onClick={() => {
           if (!time.weeklyMinutes) patch({ studyTime: { ...time, weeklyMinutes: time.weekdays.map((selected) => selected ? time.dailyMinutes : 0) } });
-        }} className="flex min-h-control w-full items-center gap-3 p-4 text-left core-body font-semibold text-core-text"><ChevronDown size={18} aria-hidden="true" className={`shrink-0 transition-transform motion-reduce:transition-none ${time.weeklyMinutes ? "rotate-180" : ""}`} /><span>Lernzeit je Wochentag festlegen</span></button>
+        }} className="flex min-h-control w-full items-center justify-between gap-3 px-4 py-3 text-left core-control-label font-semibold text-core-text"><span>Lernzeit je Wochentag festlegen</span><ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${time.weeklyMinutes ? "rotate-180" : ""}`} /></button>
         {time.weeklyMinutes ? <div id={`${plan.id}-weekday-time`} className="grid min-w-0 grid-cols-2 gap-3 px-4 pb-4 sm:grid-cols-3" role="group" aria-label="Lernzeit je Wochentag">{WEEKDAYS.map((name, index) => <label key={name} className={LABEL}>{name} · Min.<input className={`${FIELD} self-end`} type="number" inputMode="numeric" min={0} max={1440} step={15} value={time.weekdays[index] ? time.weeklyMinutes![index] : 0} onChange={(event) => {
           const minutes = Math.min(1440, Math.max(0, Math.round(Number(event.target.value) || 0)));
           patch({ studyTime: { ...time, weekdays: time.weekdays.map((selected, i) => i === index ? minutes > 0 : selected), weeklyMinutes: time.weeklyMinutes!.map((value, i) => i === index ? minutes : time.weekdays[i] ? value : 0) } });
@@ -172,14 +174,14 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
       </div>
     </div>
     <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.readSummaryBeforeTopics ?? false} onChange={(event) => patch({ readSummaryBeforeTopics: event.target.checked })} />Vor neuen Themen Zusammenfassung lesen</label>
-    <div className="flex min-w-0 items-start gap-3 rounded-panel border border-core-border bg-core-subtle p-4 core-body text-core-muted"><CalendarClock size={20} aria-hidden="true" className="mt-0.5 shrink-0" /><p>Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.</p></div>
+    <div className="flex min-w-0 items-start gap-3 rounded-control bg-core-subtle px-4 py-3 core-body text-core-secondary"><CalendarClock size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-core-muted" /><p>Konkrete Lernzeiten kannst du später im Kalender der Planerübersicht festlegen.</p></div>
     <details className="group min-w-0"><Summary>Weitere Lerneinstellungen</Summary><div className="mt-3 grid gap-4">
       <label className="flex min-h-control items-center gap-3 core-body text-core-text"><input type="checkbox" className="size-5 accent-core-action" checked={plan.variants} onChange={(event) => patch({ variants: event.target.checked })} />Varianten einbeziehen</label>
     </div></details>
   </>; }
-  function renderContext() { return <aside className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-subtle p-4 sm:p-6" aria-label="Deine Prüfung" data-testid="exam-setup-context">
-    <div className="grid gap-3 border-l-strong pl-3" style={{ borderColor: plan.color }}><h3 className="break-words core-heading-3 font-semibold text-core-text">{plan.name.trim() || "Neue Prüfung"}</h3><p className="core-body text-core-muted">{formatExamDate(plan.examDate)}</p></div>
-    <dl className="grid gap-4 core-caption"><div className="grid gap-1"><dt className="text-core-muted">Lernstart</dt><dd className="text-core-text">{formatExamDate(studyStartDate, "short")}</dd></div><div className="grid gap-1"><dt className="text-core-muted">Lernstoff</dt><dd className="text-core-text">{selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"}</dd></div>{step > 0 ? <div className="grid gap-1"><dt className="text-core-muted">Letzte neue Karten</dt><dd className="text-core-text">{formatExamDate(getExamLastNewDate(plan), "short")}</dd></div> : null}
+  function renderContext() { return <aside className="core-surface-raised grid min-w-0 gap-4 rounded-panel p-5" aria-label="Deine Prüfung" data-testid="exam-setup-context">
+    <div className="grid gap-3 border-l-strong pl-3" style={{ borderColor: plan.color }}><h3 className="break-words core-heading-3 text-core-text">{plan.name.trim() || "Neue Prüfung"}</h3><p className="core-body text-core-secondary">{formatExamDate(plan.examDate)}</p></div>
+    <dl className="grid gap-4 core-caption"><div className="grid gap-1"><dt className="text-core-muted">Lernstart</dt><dd className="tabular-nums text-core-text">{formatExamDate(studyStartDate, "short")}</dd></div><div className="grid gap-1"><dt className="text-core-muted">Lernstoff</dt><dd className="text-core-text">{selected.size ? `${formatExamCount(selected.size, "Stapel", "Stapel")} · ${formatExamCount(selectedCards, "Karte", "Karten")}` : "Noch auswählen"}</dd></div>{step > 0 ? <div className="grid gap-1"><dt className="text-core-muted">Letzte neue Karten</dt><dd className="text-core-text">{formatExamDate(getExamLastNewDate(plan), "short")}</dd></div> : null}
     {step >= 2 ? <div className="grid gap-2"><dt className="text-core-muted">Deine Woche</dt><dd className="grid gap-2">{WEEKDAYS.map((day, index) => <div key={day} className="flex justify-between gap-2"><span className="text-core-muted">{day}</span><span className="text-core-text">{time.weekdays[index] ? formatExamMinutes(time.weeklyMinutes?.[index] ?? time.dailyMinutes) : "Frei"}</span></div>)}</dd></div> : null}</dl>
   </aside>; }
   function renderPreview() { return <div className="grid gap-4" data-testid="exam-plan-preview" aria-busy={busy}>
