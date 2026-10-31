@@ -23,6 +23,33 @@ function card(index: number, deckId = "root", known = false): CardStudySnapshot 
 const cards = (count: number, deckId = "root") => Array.from({ length: count }, (_, i) => card(i, deckId));
 const forecast = (input = cards(1000), exam = plan(), extra = {}) => createExamPortfolioForecast(decks, input, [exam], { ...options, ...extra });
 
+test("Quizze folgen der letzten neuen Karte je Kapitel oder Kapitelgruppe, ohne Kartenlast zu verändern", async () => {
+  const input = [...cards(8, "a"), ...cards(6, "b").map((card) => ({ ...card, cardId: `b-${card.cardId}` }))];
+  const exam = plan({ topicOrder: ["a", "b"] });
+  const normal = await forecast(input, exam);
+  const each = await forecast(input, { ...exam, quizChaptersPerTask: 1 });
+  assert.deepEqual(each.days.map((day) => day.newCardIds), normal.days.map((day) => day.newCardIds));
+  const quizzes = each.days.flatMap((day) => (day.quizzes ?? []).map((quiz) => ({ ...quiz, date: day.key })));
+  assert.equal(quizzes.length, 2);
+  for (const quiz of quizzes) {
+    const lastNew = each.days.filter((day) => day.blocks.some((block) => block.method === "new" && block.deckId === quiz.deckIds[0])).at(-1)!.key;
+    assert.ok(quiz.date >= lastNew);
+    assert.ok(quiz.date < exam.examDate);
+  }
+  const bundled = await forecast(input, { ...exam, quizChaptersPerTask: 3 });
+  assert.deepEqual(bundled.days.flatMap((day) => day.quizzes ?? []).map((quiz) => quiz.deckIds), [["a", "b"]]);
+  assert.deepEqual((await forecast(input, { ...exam, quizChaptersPerTask: 1, completedQuizDeckIds: ["a"] })).days.flatMap((day) => day.quizzes ?? []).map((quiz) => quiz.deckIds), [["b"]]);
+});
+
+test("Quizze zu bereits gelerntem Stoff warten auf einen Lerntag, unplanbarer neuer Stoff bekommt kein verfrühtes Quiz", async () => {
+  const exam = plan({ quizChaptersPerTask: 1, studyTime: { dailyMinutes: 20, weekdays: Array(7).fill(true), dateOverrides: [{ date, minutes: 0 }] } });
+  const known = await forecast([card(0, "a", true)], exam);
+  assert.equal(known.days[0].quizzes?.length ?? 0, 0);
+  assert.deepEqual(known.days[1].quizzes, [{ examId: exam.id, deckIds: ["a"] }]);
+  const blocked = await forecast([card(0, "a")], { ...exam, studyTime: { ...exam.studyTime, weekdays: Array(7).fill(false), dateOverrides: [] } });
+  assert.equal(blocked.days.flatMap((day) => day.quizzes ?? []).length, 0);
+});
+
 test("1000 neue Karten werden vollständig und ohne Zeitkapazität bis zum Stichtag verteilt", async () => {
   const input = cards(1000), original = JSON.stringify(input), exam = plan({ examDate: shiftExamDay(date, 90) });
   const result = await forecast(input, exam);
@@ -78,10 +105,29 @@ test("freie Tage, Ausnahmen und Puffer werden kalendarisch respektiert", async (
   assert.ok(result.days.filter((day) => [0, 6].includes(new Date(`${day.key}T12:00Z`).getUTCDay()) || day.key === "2026-10-22").every((day) => !day.newCardIds.length));
   assert.equal(getExamLastNewDate(plan({ examDate: "2026-11-20", bufferDays: 4 })), "2026-11-16");
 });
+test("Lerntage zählen den gesamten Zeitraum vor der Prüfung einschließlich der Wiederholungstage", async () => {
+  const exam = plan({ examDate: "2026-10-27", bufferDays: 5, studyTime: {
+    dailyMinutes: 20, weekdays: [true, true, true, true, true, false, false],
+    dateOverrides: [{ date: "2026-10-21", minutes: 0 }, { date: "2026-10-24", minutes: 45 }],
+  } });
+  const time = { ...capacity, timeBlocks: [
+    { id: "weekend", examId: exam.id, date: "2026-10-25", start: 480, end: 540 },
+    { id: "note", examId: null, date: "2026-10-21", start: 480, end: 540 },
+  ] };
+  const result = await forecast(cards(20), exam, { capacity: time });
+  assert.equal(result.exams[0].studyDays, 6, "freie Tage bleiben draußen; Ausnahme und zugeordneter Wochenendblock zählen mit");
+  assert.equal(result.days.filter((day) => day.newCardIds.length).length, 2, "nur zwei dieser Lerntage führen neue Karten ein");
+  assert.equal((await forecast(cards(20), { ...exam, bufferDays: 1 }, { capacity: time })).exams[0].studyDays, 6, "der Stichtag verändert die Zahl der Lerntage nicht");
+  const other = plan({ id: "other", deckIds: [], examDate: "2026-10-23" });
+  const portfolio = await createExamPortfolioForecast(decks, cards(20), [exam, other], { ...options, capacity: time });
+  assert.equal(portfolio.exams.find((entry) => entry.examId === exam.id)!.studyDays, 5, "auch andere Prüfungstage bleiben lernfrei");
+});
+
 test("fehlende Einführungstage und verstrichene Stichtage bleiben ausdrücklich offen", async () => {
   const exam = plan({ studyTime: { dailyMinutes: 0, weekdays: Array(7).fill(false), dateOverrides: [] } });
   const result = await forecast(cards(100), exam);
   assert.equal(result.exams[0].unscheduledNewCount, 100); assert.match(result.exams[0].issues.join(" "), /Lerntag/);
+  assert.equal(result.exams[0].studyDays, 0);
   const late = await forecast(cards(100), plan({ bufferDays: 30 }));
   assert.equal(late.exams[0].unscheduledNewCount, 100); assert.match(late.exams[0].issues.join(" "), /stichtag/i);
 });
@@ -192,4 +238,21 @@ test("ab zehn Bewertungen bestimmt die Bewertungshistorie das Planungsszenario, 
   const newPerDay = async (input: CardStudySnapshot[]) => (await forecast(input, plan({ examDate: shiftExamDay(date, 30) }))).days.map((day) => day.newCardIds.length).join(",");
   assert.equal(await newPerDay(withHistory(9, "again")), await newPerDay(withHistory(9, "good")));
   assert.notEqual(await newPerDay(withHistory(10, "again")), await newPerDay(withHistory(10, "good")));
+});
+
+
+test("vor dem Lernstart entstehen weder Lernaufgaben noch Lernzeit oder Lerntage", async () => {
+  const exam = plan({ studyStartDate: "2026-10-23", readSummaryBeforeTopics: true, quizChaptersPerTask: 1 });
+  const input = [...cards(20), card(100, "root", true)];
+  const dailyTasks = [{ id: "topic:exam:root", date, examId: exam.id, kind: "study" as const, deckIds: ["root"], cardIds: [input[0].cardId], capturedAt: now, completed: null }];
+  const result = await forecast(input, exam, { dailyTasks });
+  const early = result.days.filter((day) => day.key < exam.studyStartDate!);
+  assert.ok(early.every((day) => day.budgetMinutes === 0 && !day.blocks.length && !day.summaries.length && !day.quizzes?.length));
+  assert.equal(result.days.flatMap((day) => day.newCardIds).length, 20);
+  assert.equal(result.days.find((day) => day.summaries.length)!.key, exam.studyStartDate);
+  assert.ok(result.days.filter((day) => day.quizzes?.length).every((day) => day.key >= exam.studyStartDate!));
+  assert.equal(result.exams[0].studyDays, 17);
+  assert.equal(result.exams[0].availableMinutes, 340);
+  const started = await forecast(input, exam, { now: "2026-10-23T08:00:00.000Z" });
+  assert.ok(started.days[0].reviewCardIds.includes(input.at(-1)!.cardId), "fällige Wiederholungen werden am Lernstart wieder angeboten");
 });
