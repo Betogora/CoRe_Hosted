@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
 import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, specsCatalog } from "./generateDocs.ts";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
@@ -19,6 +19,7 @@ test("Eingebettete Bibliothekszeichen bleiben gültiges HTML und behalten ihre J
   const scope: { value?: string } = {};
   runInNewContext(script, scope);
   assert.equal(scope.value, "\u000e\uffff</script>");
+  assert.equal(inlineScript(script), script, "die wiederverwendete Katalog-Runtime darf beim erneuten Einbetten nicht doppelt maskiert werden");
 });
 
 test("Markdown-Anker erhalten Unicode, doppelte Überschriften und direkte Abschnittslinks", () => {

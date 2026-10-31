@@ -17,7 +17,7 @@ import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
 import { SegmentedDonut, StatTile } from "../src/ui/coreUi.tsx";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
-import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 
 const root = process.cwd();
 const docs = path.join(root, "docs");
@@ -264,17 +264,46 @@ export function journeyProjection(specs: string) {
   }).join("\n");
 }
 
-export async function synchronizeDocs(mode: "write" | "check") {
-  const data = createCatalogData();
-  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
-  let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
-  const fonts = new Map(readdirSync(path.join(root, "public/fonts"), { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".woff2"))
-    .map((file) => [`/fonts/${file.replaceAll("\\", "/")}`, `data:font/woff2;base64,${readFileSync(path.join(root, "public/fonts", file)).toString("base64")}`]));
-  for (const [file, url] of fonts) styles = styles.replaceAll(file, url);
-  const images = new Map([["/core-socrates.svg", `data:image/svg+xml;base64,${Buffer.from(text("public/core-socrates.svg")).toString("base64")}`]]);
-  const css = `${styles}\n${text("docs/tooling/site.css")}\n${text("scripts/uiCatalog.css")}`;
-  const viewer = ts.transpileModule(text("docs/tooling/viewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+const RUNTIME_END = "/*catalog-runtime-end*/";
+const BINARY_INPUT = /\.(?:woff2?|png|jpe?g|gif|ico|webp|wasm)$/;
+
+function inputFiles(directory: string): string[] {
+  return readdirSync(path.join(root, directory), { withFileTypes: true }).flatMap((entry) => {
+    const file = `${directory}/${entry.name}`;
+    return entry.isDirectory() ? inputFiles(file) : /\.test\./.test(file) ? [] : [file];
+  });
+}
+
+/** Hashes every catalog bundle input: product sources, files they import from outside src, catalog entry, generator, assets, lockfile and tsconfig. */
+function catalogInputHash() {
+  const sources = inputFiles("src");
+  const imported = sources.filter((file) => /\.tsx?$/.test(file)).flatMap((file) => [...text(file).matchAll(/(?:from|import\()\s*"(\.{1,2}\/[^"?]+)/g)]
+    .map(([, specifier]) => path.relative(root, path.resolve(root, path.dirname(file), specifier)).replaceAll("\\", "/"))
+    .filter((target) => !target.startsWith("src/") && existsSync(path.join(root, target))));
+  const hash = createHash("sha256");
+  for (const file of [...new Set([...sources, ...imported, ...inputFiles("public"), "scripts/uiCatalog.tsx", "scripts/uiCatalogDemos.tsx", "scripts/generateDocs.ts", "scripts/docsSite.ts", "package-lock.json", "tsconfig.json"])].sort()) {
+    hash.update(`${file}\n`).update(BINARY_INPUT.test(file) ? readFileSync(path.join(root, file)) : text(file)).update("\n");
+  }
+  return hash.digest("hex");
+}
+
+/** Reuses the escaped runtime of the current catalog page when it was built from the same inputs and is unchanged since. */
+function currentRuntime(inputs: string) {
+  const page = existsSync(path.join(docs, "ui-elements.html")) ? text("docs/ui-elements.html") : "";
+  const start = page.indexOf(`/*catalog-runtime ${inputs} `);
+  const end = page.indexOf(RUNTIME_END, start);
+  if (start < 0 || end < 0) return null;
+  const header = page.slice(start, page.indexOf("*/", start) + 2);
+  const runtime = page.slice(start + header.length, end);
+  return header === runtimeHeader(inputs, runtime) ? runtime : null;
+}
+
+/** The input hash only decides reuse; a page whose content still matches a fresh build stays current. */
+function withoutInputHash(page: string) { return page.replace(/\/\*catalog-runtime [0-9a-f]{64} /g, "/*catalog-runtime "); }
+
+function runtimeHeader(inputs: string, runtime: string) { return `/*catalog-runtime ${inputs} ${createHash("sha256").update(runtime).digest("hex")}*/`; }
+
+async function buildCatalogRuntime(fonts: Map<string, string>, images: Map<string, string>) {
   const pdfWorker = (await transformWithEsbuild(readFileSync(path.join(root, "node_modules/pdfjs-dist/build/pdf.worker.mjs"), "utf8"), "pdf.worker.js", { minify: true, target: "es2022" })).code;
   const bundle = await build({ configFile: false, logLevel: "error", publicDir: false, define: { "process.env.NODE_ENV": '"production"' }, esbuild: { supported: { "template-literal": false } },
     worker: { format: "es", rollupOptions: { output: { inlineDynamicImports: true } } },
@@ -289,7 +318,22 @@ export async function synchronizeDocs(mode: "write" | "check") {
     } }],
     build: { write: false, emptyOutDir: false, target: "es2022", minify: "esbuild", lib: { entry: path.join(root, "scripts/uiCatalog.tsx"), formats: ["iife"], name: "CoReCatalog" }, rollupOptions: { output: { inlineDynamicImports: true } } },
   }) as Rollup.RollupOutput | Rollup.RollupOutput[];
-  const runtime = (Array.isArray(bundle) ? bundle : [bundle]).flatMap((output) => output.output).filter((entry): entry is Rollup.OutputChunk => entry.type === "chunk").map((entry) => entry.code).join("\n").replace(/^[ \t]+$/gm, "");
+  return (Array.isArray(bundle) ? bundle : [bundle]).flatMap((output) => output.output).filter((entry): entry is Rollup.OutputChunk => entry.type === "chunk").map((entry) => entry.code).join("\n").replace(/^[ \t]+$/gm, "");
+}
+
+export async function synchronizeDocs(mode: "write" | "check") {
+  const data = createCatalogData();
+  const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
+  let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
+  const fonts = new Map(readdirSync(path.join(root, "public/fonts"), { recursive: true, encoding: "utf8" })
+    .filter((file) => file.endsWith(".woff2"))
+    .map((file) => [`/fonts/${file.replaceAll("\\", "/")}`, `data:font/woff2;base64,${readFileSync(path.join(root, "public/fonts", file)).toString("base64")}`]));
+  for (const [file, url] of fonts) styles = styles.replaceAll(file, url);
+  const images = new Map([["/core-socrates.svg", `data:image/svg+xml;base64,${Buffer.from(text("public/core-socrates.svg")).toString("base64")}`]]);
+  const css = `${styles}\n${text("docs/tooling/site.css")}\n${text("scripts/uiCatalog.css")}`;
+  const viewer = ts.transpileModule(text("docs/tooling/viewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+  const inputs = catalogInputHash();
+  const runtime = currentRuntime(inputs) ?? inlineScript(await buildCatalogRuntime(fonts, images));
   const results = new Map<string, string>();
   function reader(file: string, title: string, contents: string) {
     const content = `<button id="docs-nav-toggle" class="docs-mobile-nav core-action-secondary" type="button" aria-expanded="false" aria-controls="docs-rail"><span id="docs-current-section">Inhaltsverzeichnis</span>${renderToStaticMarkup(React.createElement(lucide.ChevronDown, { size: 18, "aria-hidden": true }))}</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1 class="core-heading-3">${title}</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search core-field" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count core-caption" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content">${contents}</main></div>`;
@@ -303,15 +347,14 @@ export async function synchronizeDocs(mode: "write" | "check") {
   results.set("journeys.html", results.get("journeys.html")!.replace("</body>", '<script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body>'));
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
-    results.set(file, htmlPage(file, content, css, `${viewer}\n${runtime}`).replace("<body>", `<body data-catalog="${catalog}">`));
+    results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));
   }
   const failures: string[] = [];
   for (const [file, generated] of results) {
     const current = await readFile(path.join(docs, file), "utf8").catch(() => "");
-    if (current.replace(/\r\n?/g, "\n") !== generated) {
-      if (mode === "write") await writeFile(path.join(docs, file), generated, "utf8");
-      else failures.push(`${file} ist veraltet`);
-    }
+    const normalized = current.replace(/\r\n?/g, "\n");
+    if (mode === "write" && normalized !== generated) await writeFile(path.join(docs, file), generated, "utf8");
+    else if (mode === "check" && withoutInputHash(normalized) !== withoutInputHash(generated)) failures.push(`${file} ist veraltet`);
   }
   const uiAnchors = new Set([...[...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", (?:nav|section): /g)].map((match) => match[1]), ...DEMO_GROUPS.map((group) => group.id)]);
   const cardAnchors = new Set([...text("scripts/uiCatalog.tsx").matchAll(/\{ id: "([a-z-]+)", label: /g)].map((match) => match[1]));
