@@ -1207,6 +1207,9 @@ video {
 .pointer-events-auto {
   pointer-events: auto;
 }
+.\!visible {
+  visibility: visible !important;
+}
 .visible {
   visibility: visible;
 }
@@ -1277,6 +1280,9 @@ video {
 .left-0 {
   left: 0px;
 }
+.left-0\.5 {
+  left: 0.125rem;
+}
 .left-1\/2 {
   left: 50%;
 }
@@ -1318,6 +1324,9 @@ video {
 }
 .top-0 {
   top: 0px;
+}
+.top-0\.5 {
+  top: 0.125rem;
 }
 .top-1\.5 {
   top: 0.375rem;
@@ -1929,6 +1938,9 @@ video {
 .w-auto {
   width: auto;
 }
+.w-button {
+  width: var(--core-button-height);
+}
 .w-control {
   width: var(--core-control-height);
 }
@@ -2194,6 +2206,11 @@ video {
 .list-none {
   list-style-type: none;
 }
+.appearance-none {
+  -webkit-appearance: none;
+     -moz-appearance: none;
+          appearance: none;
+}
 .auto-rows-max {
   grid-auto-rows: max-content;
 }
@@ -2292,6 +2309,9 @@ video {
 }
 .items-stretch {
   align-items: stretch;
+}
+.justify-start {
+  justify-content: flex-start;
 }
 .justify-end {
   justify-content: flex-end;
@@ -2726,6 +2746,9 @@ video {
 .\!pl-10 {
   padding-left: 2.5rem !important;
 }
+.\!pr-12 {
+  padding-right: 3rem !important;
+}
 .pb-1\.5 {
   padding-bottom: 0.375rem;
 }
@@ -2743,6 +2766,9 @@ video {
 }
 .pb-32 {
   padding-bottom: 8rem;
+}
+.pb-4 {
+  padding-bottom: 1rem;
 }
 .pb-\[max\(\.75rem\2c env\(safe-area-inset-bottom\)\)\] {
   padding-bottom: max(.75rem, env(safe-area-inset-bottom));
@@ -2949,9 +2975,6 @@ video {
 }
 .opacity-40 {
   opacity: 0.4;
-}
-.opacity-50 {
-  opacity: 0.5;
 }
 .opacity-60 {
   opacity: 0.6;
@@ -5114,6 +5137,21 @@ summary {
 .core-mindmap-summary:hover .core-mindmap-summary-select, .core-mindmap-summary.is-selected .core-mindmap-summary-select, .core-mindmap-summary-select:focus-visible { opacity: 1; }
 @media (pointer: coarse) { .core-mindmap-summary-select { opacity: 1; } }
 
+.exam-plan-actions { bottom: calc(env(safe-area-inset-bottom) + 6rem); }
+@media (min-width: 1280px) { .exam-plan-actions { bottom: 0; } }
+.exam-calendar-layout { container-type: inline-size; }
+.exam-topic-panel { container-type: inline-size; container-name: exam-topics; }
+@container exam-topics (min-width: 40rem) {
+  .exam-topic-row { grid-template-columns: minmax(0, 1fr) 12rem auto; }
+}
+.exam-topic-order[open] > summary > svg { transform: rotate(180deg); }
+.exam-today-layout { container-type: inline-size; }
+@container (min-width: 48rem) {
+  .exam-today-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 56rem) {
+  .exam-calendar-body[data-show-day="true"] { grid-template-columns: minmax(0, 1fr) 22rem; }
+}
 .exam-month-days { --exam-month-day-height: 112px; }
 .exam-month-days > button { min-width: 0; }
 .exam-month-entry { min-height: 20px; overflow-wrap: anywhere; font-size: var(--core-type-caption); line-height: 16px; }
@@ -5200,6 +5238,12 @@ summary {
 }
 .last\:pb-0:last-child {
   padding-bottom: 0px;
+}
+.checked\:border-core-action:checked {
+  border-color: var(--core-action-primary);
+}
+.checked\:bg-core-action:checked {
+  background-color: var(--core-action-primary);
 }
 .hover\:-translate-y-0\.5:hover {
   --tw-translate-y: -0.125rem;
@@ -5496,10 +5540,6 @@ summary {
     grid-column: span 2 / span 2;
   }
 
-  .sm\:col-span-3 {
-    grid-column: span 3 / span 3;
-  }
-
   .sm\:col-start-2 {
     grid-column-start: 2;
   }
@@ -5568,12 +5608,12 @@ summary {
     min-height: var(--core-button-height);
   }
 
-  .sm\:w-52 {
-    width: 13rem;
+  .sm\:w-24 {
+    width: 6rem;
   }
 
-  .sm\:w-64 {
-    width: 16rem;
+  .sm\:w-52 {
+    width: 13rem;
   }
 
   .sm\:w-\[5\.75rem\] {
@@ -5633,6 +5673,10 @@ summary {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
+  .sm\:grid-cols-7 {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
   .sm\:grid-cols-\[11rem_minmax\(0\2c 1fr\)\] {
     grid-template-columns: 11rem minmax(0,1fr);
   }
@@ -5659,10 +5703,6 @@ summary {
 
   .sm\:grid-cols-\[minmax\(0\2c 18rem\)_auto\] {
     grid-template-columns: minmax(0,18rem) auto;
-  }
-
-  .sm\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
-    grid-template-columns: minmax(0,1fr) 12rem auto;
   }
 
   .sm\:grid-cols-\[minmax\(0\2c 1fr\)_auto\] {
@@ -5732,6 +5772,10 @@ summary {
 
   .sm\:p-10 {
     padding: 2.5rem;
+  }
+
+  .sm\:p-3 {
+    padding: 0.75rem;
   }
 
   .sm\:p-4 {
@@ -5823,10 +5867,6 @@ summary {
     grid-column: span 1 / span 1;
   }
 
-  .md\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .md\:block {
     display: block;
   }
@@ -5854,10 +5894,6 @@ summary {
 
   .md\:w-auto {
     width: auto;
-  }
-
-  .md\:max-w-md {
-    max-width: 28rem;
   }
 
   .md\:max-w-xl {
@@ -5956,10 +5992,6 @@ summary {
 }
 @media (min-width: 1024px) {
 
-  .lg\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-
   .lg\:w-full {
     width: 100%;
   }
@@ -6054,6 +6086,10 @@ summary {
     bottom: 1rem;
   }
 
+  .xl\:top-24 {
+    top: 6rem;
+  }
+
   .xl\:top-6 {
     top: 1.5rem;
   }
@@ -6118,6 +6154,10 @@ summary {
     grid-template-columns: minmax(0,0.9fr) minmax(20rem,1.1fr);
   }
 
+  .xl\:grid-cols-\[minmax\(0\2c 1fr\)_17rem\] {
+    grid-template-columns: minmax(0,1fr) 17rem;
+  }
+
   .xl\:grid-cols-\[minmax\(19rem\2c 0\.65fr\)_minmax\(38rem\2c 1\.35fr\)\] {
     grid-template-columns: minmax(19rem,0.65fr) minmax(38rem,1.35fr);
   }
@@ -6176,6 +6216,12 @@ summary {
 }
 .\[\&\>svg\]\:text-core-muted>svg {
   color: var(--core-text-muted);
+}
+.\[\&_span\]\:min-w-0 span {
+  min-width: 0px;
+}
+.\[\&_span\]\:break-words span {
+  overflow-wrap: break-word;
 }
 .\[\&_svg\]\:size-\[18px\] svg {
   width: 18px;
