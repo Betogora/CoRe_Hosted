@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-01 — Docs-Leseseiten: Seitenleiste statt Kopfleiste
+
+- Die sticky Kopfleiste aller fünf HTML-Seiten entfällt, weil sie beim Scrollen Inhalt verdeckte. Eine gemeinsame Seitenleiste (`siteSidebar` in `scripts/docsSite.ts`) stapelt drei gleich breite Boxen im bisherigen Design der Inhaltsnavigation: Seitenwechsel mit Theme-Schalter, Suche, Inhaltsnavigation.
+- Docs und Journeys nutzen dieselbe Leiste statt eigener Seitenspalte und Mobilmenü; Kartenbausteine erhält eine Suche. UI-Elements und Kartenbausteine portieren ihre Kapitel in die Leiste und lesen die gemeinsame Suche.
+- Prüfung: `check:docs` grün; Sichtprüfung aller fünf Seiten bei 1440 px hell und dunkel sowie bei 390 und 320 px ohne waagerechten Überlauf.
+
 ## 2026-11-01 — Übernahme aus `wip/ai-source-three-steps-20261031`: KI-Quellenformular in drei Bereichen
 
 - Merge von `8870293` (letzter Stand von `codex/ai-source-three-steps`): drei Bereiche „Quelle & Stapel“, „Deine Lernwünsche“ und „Deine Karten“, ab 1280 px nebeneinander, darunter Weiter/Zurück; eingefügter Text als zweite Quelle; Stapelziel als Ja/Nein-Frage mit „Stapel ändern“; Lernziel entfällt, Sprache und Formulierung kommen hinzu; „Ergänzungen“ standardmäßig aus und gekennzeichnet.

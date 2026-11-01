@@ -21,6 +21,18 @@ test("Eingebettete Bibliothekszeichen bleiben gültiges HTML und behalten ihre J
   assert.equal(scope.value, "\u000e\uffff</script>");
 });
 
+test("Jede Leseseite führt Seitenwechsel, Suche und Inhalt untereinander in der Seitenleiste statt einer Kopfleiste", () => {
+  const html = htmlPage("specs.html", "<p>Inhalt</p>", "", "", { toc: '<a href="#specs--1-begriffe">1. Begriffe</a>' });
+  assert.doesNotMatch(html, /<header/);
+  const sidebar = html.match(/<body><div class="docs-frame"><aside class="docs-sidebar">([\s\S]*?)<\/aside><main class="docs-main"><p>Inhalt<\/p><\/main>/)![1];
+  const panels = [...sidebar.matchAll(/<(?:nav|div) class="docs-panel ([a-z-]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(panels, ["docs-pages", "docs-search-panel", "docs-toc"]);
+  assert.match(sidebar, /<a href="specs.html" aria-current="page">Specs<\/a>/);
+  assert.match(sidebar, /id="docs-theme" aria-label="Dark Mode einschalten"/);
+  assert.match(sidebar, /<span class="catalog-search-label">Specs durchsuchen<\/span><svg[\s\S]*?<input id="docs-search" type="search"/);
+  assert.match(sidebar, /<div id="docs-toc" class="docs-panel-links"><a href="#specs--1-begriffe">1\. Begriffe<\/a><\/div>/);
+});
+
 test("Markdown-Anker erhalten Unicode, doppelte Überschriften und direkte Abschnittslinks", () => {
   const html = renderMarkdown("# Übersicht\n## Größe & Maß\n[Abschnitt](#größe--maß)\n## Größe & Maß\n", "specs.md");
   assert.equal(markdownAnchor("Größe & Maß"), "größe--maß");
@@ -57,7 +69,7 @@ test("Journey-Projektion erhält sämtliche Akzeptanzregeln der sieben Kernjourn
 });
 
 test("Specs-Leseansicht bildet Titel, Kapitel und Unterabschnitte auf Hero, Kapitel und Karten ab", () => {
-  const html = specsCatalog([
+  const { html, toc } = specsCatalog([
     "# Vertrag", "", "**Status:** Entwurf", "**Stand:** 2026-01-01", "", "Einleitung mit [Docs](README.md).", "", "---", "",
     "## 1. Begriffe", "", "| A | B |", "| --- | --- |", "| 1 | 2 |", "",
     "## 2. Abläufe", "", "Einführung.", "", "- Vorab", "",
@@ -66,24 +78,22 @@ test("Specs-Leseansicht bildet Titel, Kapitel und Unterabschnitte auf Hero, Kapi
   ].join("\n"));
   assert.match(html, /<header class="catalog-hero">[\s\S]*<h1 id="specs--vertrag">Vertrag<\/h1><p class="catalog-lede">Einleitung mit <a href="index.html#readme--document">/);
   assert.match(html, /<ul class="specs-meta"><li class="core-status-label"><span>Status<\/span> Entwurf<\/li><li class="core-status-label"><span>Stand<\/span> 2026-01-01<\/li><\/ul>/);
-  assert.deepEqual([...html.matchAll(/<nav class="catalog-nav"[\s\S]*?<\/nav>/g)][0][0].match(/href="#[^"]+"/g), ['href="#specs--1-begriffe"', 'href="#specs--2-abläufe"']);
+  assert.deepEqual(toc.match(/href="#[^"]+"/g), ['href="#specs--1-begriffe"', 'href="#specs--2-abläufe"']);
   assert.match(html, /<section id="specs--1-begriffe" class="catalog-section"><div class="catalog-section-heading"><h2>1\. Begriffe<\/h2><\/div><div class="catalog-grid"><article id="specs--1-begriffe--inhalt" class="catalog-card catalog-card-wide"><div class="catalog-preview specs-prose"><div class="docs-table-scroll"/);
   assert.match(html, /<h2>2\. Abläufe<\/h2><p>Einführung\.<\/p>\n*<\/div>/);
   assert.match(html, /id="specs--2-abläufe--überblick" class="catalog-card"><div class="catalog-card-header"><h3>Überblick<\/h3>/);
   assert.match(html, /id="specs--21-kurz" class="catalog-card"><div class="catalog-card-header"><h3>2\.1 Kurz<\/h3>[\s\S]*<p class="catalog-label">Akzeptanz<\/p>[\s\S]*<h4 id="specs--detail" class="catalog-label" tabindex="-1">Detail<\/h4>/);
   assert.match(html, /id="specs--22-lang" class="catalog-card catalog-card-wide"/);
-  assert.match(html, /<div class="catalog-toolbar"[^>]*><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen<\/span><svg[\s\S]*?<input id="specs-search" type="search"/);
   assert.match(html, /<p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche\.<\/p>/);
 });
 
 test("Specs-Leseansicht enthält je Kapitel einen Navigationseintrag, je Unterabschnitt eine Karte und gültige Anker", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
-  const html = specsCatalog(specs);
+  const { html, toc } = specsCatalog(specs);
   const ids = new Set([...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1]));
   const outline = specs.replace(/^```[\s\S]*?^```/gm, "");
   const chapters = [...outline.matchAll(/^## (.+)$/gm)].map((match) => `specs--${markdownAnchor(match[1])}`);
-  const nav = html.match(/<nav class="catalog-nav"[\s\S]*?<\/nav>/)![0];
-  assert.deepEqual([...nav.matchAll(/href="#([^"]+)"/g)].map((match) => match[1]), chapters);
+  assert.deepEqual([...toc.matchAll(/href="#([^"]+)"/g)].map((match) => match[1]), chapters);
   for (const id of chapters) assert.match(html, new RegExp(`<section id="${id}" class="catalog-section">`));
   for (const [, title] of outline.matchAll(/^### (.+)$/gm)) assert.match(html, new RegExp(`<article id="specs--${markdownAnchor(title)}" class="catalog-card`), title);
   for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Anker #${anchor} fehlt`);
@@ -93,7 +103,7 @@ test("Specs-Leseansicht enthält je Kapitel einen Navigationseintrag, je Unterab
 
 test("Lernverlauf: erzeugte Karten folgen §6.11 und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
-  const html = specsCatalog(specs, undefined, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
+  const { html } = specsCatalog(specs, undefined, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
   const order = [...html.matchAll(/<article id="(specs--611-lernverlauf-einer-karte|specs--lernverlauf-[a-z]+)"/g)].map((match) => match[1]);
   assert.deepEqual(order, ["specs--611-lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
   const contacts = EXAMPLE_CHAINS.reduce((sum, chain) => sum + chain.ratings.length, 0);

@@ -167,11 +167,11 @@ export function specsCatalog(markdown: string, appendix?: { section: SpecsSectio
     if (entries?.every(Boolean)) meta.push(...entries.map((entry) => `<li class="core-status-label"><span>${entry![1]}</span> ${entry![2]}</li>`));
     else lede.push(block.replace(/^<p>/, '<p class="catalog-lede">'));
   }
-  const navigation = sections.map((section) => `<a href="#${section.id}">${plainText(section === appendix?.section ? appendix.label : section.title)}</a>`).join("");
-  const search = renderToStaticMarkup(React.createElement(lucide.Search, { "aria-hidden": true }));
+  const toc = sections.map((section) => `<a href="#${section.id}">${plainText(section === appendix?.section ? appendix.label : section.title)}</a>`).join("");
   const cards = sections.reduce((sum, section) => sum + section.cards.length, 0);
   const body = sections.map((section) => `<section id="${section.id}" class="catalog-section"><div class="catalog-section-heading"><h2>${section.title}</h2>${section.intro}</div><div class="catalog-grid">${section.cards.map(specsCard).join("")}</div></section>`).join("");
-  return `<div id="specs--document" class="catalog" data-specs-catalog><header class="catalog-hero"><div class="catalog-hero-inner"><h1 id="${title.id}">${title.html}</h1>${lede.join("")}${meta.length ? `<ul class="specs-meta">${meta.join("")}</ul>` : ""}</div></header><div class="catalog-shell"><nav class="catalog-nav" aria-label="Specs-Kapitel"><strong>Inhalt</strong>${navigation}</nav><main class="catalog-main"><div class="catalog-toolbar" aria-label="Specs-Suche"><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen</span>${search}<input id="specs-search" type="search" placeholder="Anforderung, Journey oder Begriff suchen …" autocomplete="off"></label></div><p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche.</p>${body}</main></div><footer class="catalog-footer">CoRe Specs · ${sections.length} Kapitel · ${cards} Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div>`;
+  const html = `<div id="specs--document" class="catalog" data-specs-catalog><header class="catalog-hero"><h1 id="${title.id}">${title.html}</h1>${lede.join("")}${meta.length ? `<ul class="specs-meta">${meta.join("")}</ul>` : ""}</header><p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche.</p>${body}<footer class="catalog-footer">CoRe Specs · ${sections.length} Kapitel · ${cards} Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div>`;
+  return { html, toc };
 }
 
 export function createCatalogData(): CatalogData {
@@ -293,15 +293,15 @@ export async function synchronizeDocs(mode: "write" | "check") {
   }) as Rollup.RollupOutput | Rollup.RollupOutput[];
   const runtime = (Array.isArray(bundle) ? bundle : [bundle]).flatMap((output) => output.output).filter((entry): entry is Rollup.OutputChunk => entry.type === "chunk").map((entry) => entry.code).join("\n").replace(/^[ \t]+$/gm, "");
   const results = new Map<string, string>();
-  function reader(file: string, title: string, contents: string) {
-    const content = `<button id="docs-nav-toggle" class="docs-mobile-nav core-action-secondary" type="button" aria-expanded="false" aria-controls="docs-rail"><span id="docs-current-section">Inhaltsverzeichnis</span>${renderToStaticMarkup(React.createElement(lucide.ChevronDown, { size: 18, "aria-hidden": true }))}</button><div class="docs-layout"><aside id="docs-rail" class="docs-rail"><h1 class="core-heading-3">${title}</h1><label><span class="sr-only">Abschnitte durchsuchen</span><input id="docs-search" class="docs-search core-field" type="search" placeholder="Abschnitte durchsuchen"></label><p id="docs-search-count" class="docs-count core-caption" role="status"></p><nav id="docs-toc" class="docs-toc" aria-label="Abschnitte"></nav></aside><main class="docs-content">${contents}</main></div>`;
-    results.set(file, htmlPage(file, content, css, viewer, file === "journeys.html" ? '<script src="vendor/mermaid.min.js"></script>' : ""));
+  function reader(file: string, contents: string) {
+    results.set(file, htmlPage(file, contents, css, viewer, { extraHead: file === "journeys.html" ? '<script src="vendor/mermaid.min.js"></script>' : "" }));
   }
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
-  reader("index.html", "Docs", document("README.md"));
+  reader("index.html", document("README.md"));
   const footprint = { id: "specs--codeumfang", title: "Codeumfang der Produktbereiche", intro: "<p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>", cards: [{ id: "specs--codeumfang-bereiche", title: "Bildschirmcode je Produktbereich", html: codeFootprintMarkup(), wide: true }] };
-  results.set("specs.html", htmlPage("specs.html", specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() }), css, viewer));
-  reader("journeys.html", "Journeys", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
+  const specs = specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
+  results.set("specs.html", htmlPage("specs.html", specs.html, css, viewer, { toc: specs.toc }));
+  reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
   results.set("journeys.html", results.get("journeys.html")!.replace("</body>", '<script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body>'));
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
