@@ -2,10 +2,11 @@ import { createAccountStorage } from "./accountStorage.ts";
 
 export const DASHBOARD_WIDGETS = [
   { id: "learning", title: "Dein Lernen heute", description: "Tagesziel und Fortschritt auf einen Blick.", width: "wide" },
+  { id: "motivation", title: "Dein Motivationsimpuls", description: "Ein täglicher Lernimpuls mit deinem Gehirn-Maskottchen.", width: "small" },
   { id: "timer", title: "Lerntimer", description: "Zeit für Fokus. Und für eine kleine Pause.", width: "small" },
   { id: "decks", title: "Aktive Stapel", description: "Deine Stapel mit direktem Lernstart.", width: "wide" },
   { id: "todos", title: "To-dos", description: "Aufgaben aus dem Planer und eigene Vorhaben.", width: "small" },
-  { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "full" },
+  { id: "heatmap", title: "Lernaktivität", description: "Deine Heatmap mit Rückblick und Ausblick.", width: "wide" },
 ] as const;
 export type DashboardWidgetId = typeof DASHBOARD_WIDGETS[number]["id"];
 type DashboardWidgetWidth = "small" | "wide" | "full";
@@ -50,10 +51,18 @@ export function moveDashboardWidget(widgets: DashboardWidget[], from: DashboardW
 
 const STORAGE_KEY = "core.dashboard.widgets.v1";
 export function readDashboardPreferences(userId: string): DashboardPreferences {
-  try { return normalizeDashboardPreferences(JSON.parse(createAccountStorage(userId).getItem(STORAGE_KEY) ?? "null")); }
+  try {
+    const stored: unknown = JSON.parse(createAccountStorage(userId).getItem(STORAGE_KEY) ?? "null");
+    const preferences = normalizeDashboardPreferences(stored);
+    if (stored && typeof stored === "object" && !("motivationIntroduced" in stored && stored.motivationIntroduced === true)) {
+      if (!preferences.widgets.some((widget) => widget.id === "motivation")) preferences.widgets.push({ id: "motivation", width: "small" });
+      writeDashboardPreferences(userId, preferences);
+    }
+    return preferences;
+  }
   catch { return normalizeDashboardPreferences(null); }
 }
 export function writeDashboardPreferences(userId: string, preferences: DashboardPreferences): boolean {
-  try { createAccountStorage(userId).setItem(STORAGE_KEY, JSON.stringify(preferences)); return true; }
+  try { createAccountStorage(userId).setItem(STORAGE_KEY, JSON.stringify({ ...preferences, motivationIntroduced: true })); return true; }
   catch { return false; }
 }

@@ -1,5 +1,42 @@
 import { expect, test } from "@playwright/test";
 
+test("Unterstapelbaum klappt mehrere Ebenen vor dem direkten Öffnen auf", async ({ page }) => {
+  await page.goto("/docs/ui-elements.html#screens");
+  await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
+  await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
+  const product = page.locator(".catalog-product-preview");
+  const tree = product.getByTestId("deck-content-substacks");
+  const heading = product.getByTestId("deck-content-heading");
+  const europe = tree.getByTestId("content-substack-catalog-europe");
+  const south = tree.getByTestId("content-substack-catalog-substack-0");
+  const portugal = tree.getByTestId("content-substack-catalog-substack-1");
+  const lisbon = tree.getByTestId("content-substack-catalog-substack-2");
+  await expect(south).toHaveCount(0);
+  await europe.getByRole("button", { name: /^Stapel .* aufklappen$/ }).click();
+  await expect(heading).toContainText("Welt-Hauptstädte");
+  await expect(south).toBeVisible();
+  await expect(portugal).toHaveCount(0);
+  await south.getByRole("button", { name: /^Unterstapel von .* anzeigen$/ }).press("Enter");
+  await portugal.getByRole("button", { name: /^Stapel .* aufklappen$/ }).press("Space");
+  await expect(lisbon).toBeVisible();
+  await europe.getByRole("button", { name: /^Unterstapel von .* ausblenden$/ }).click();
+  await expect(lisbon).toHaveCount(0);
+  await expect(south).toHaveCount(0);
+  await europe.getByRole("button", { name: /^Stapel .* aufklappen$/ }).click();
+  await expect(lisbon).toBeVisible();
+  await expect(heading).toContainText("Welt-Hauptstädte");
+  await portugal.getByRole("button", { name: /^Karten von .* öffnen$/ }).click();
+  await expect(heading.getByRole("heading", { name: "Portugal", exact: true })).toBeVisible();
+  const tabs = product.getByRole("group", { name: "Stapelinhalte", exact: true });
+  await expect(tabs.getByRole("button", { name: "Karten", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await tabs.getByRole("button", { name: "Unterstapel", exact: true }).click();
+  await expect(europe).toHaveCount(0);
+  await lisbon.getByRole("button", { name: /^Stapel .* öffnen$/ }).click();
+  await expect(heading.getByRole("heading", { name: "Lissabon", exact: true })).toBeVisible();
+  await tabs.getByRole("button", { name: "Unterstapel", exact: true }).click();
+  await expect(product).toContainText("Keine weiteren Unterstapel");
+});
+
 test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/docs/ui-elements.html#screens");
@@ -137,7 +174,7 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
       await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
       await close.press("Control+End");
       await expect(product.getByRole("heading", { name: "Aktive Stapel", exact: true })).toBeVisible();
-      const lastDeckRow = product.getByTestId("dashboard-deck-list").locator('[data-deck-row="true"]').last();
+      const lastDeckRow = product.locator("[data-dashboard-deck]").last();
       await lastDeckRow.scrollIntoViewIfNeeded();
       await expect(lastDeckRow).toBeInViewport({ ratio: 1 });
       await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-dashboard-decks.png`) });

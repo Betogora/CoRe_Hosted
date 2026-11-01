@@ -68,7 +68,7 @@ export function AuthGateScreen({
     <main className="core-centered-viewport grid min-h-dvh min-w-0 grid-cols-[minmax(0,1fr)] place-items-center bg-core-canvas px-6 py-10 text-core-text">
       <div className="min-w-0 w-full max-w-md">
           <div className="mb-8 text-center">
-            <img src="/core-socrates.svg" alt="" className="mx-auto mb-5 h-28 w-auto" />
+            <img src="/core-brain.svg" alt="" className="mx-auto mb-5 h-28 w-auto" />
             <h1 className="core-heading-1 tracking-normal"><CoreWordmark /></h1>
             <p className="mt-2 core-body-large text-core-muted">Content Repetition</p>
           </div>

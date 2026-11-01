@@ -1451,10 +1451,6 @@ video {
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
-.my-6 {
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
-}
 .-me-2 {
   margin-inline-end: -0.5rem;
 }
@@ -1881,6 +1877,9 @@ video {
 .w-10 {
   width: 2.5rem;
 }
+.w-16 {
+  width: 4rem;
+}
 .w-20 {
   width: 5rem;
 }
@@ -2289,6 +2288,9 @@ video {
 .place-items-center {
   place-items: center;
 }
+.content-center {
+  align-content: center;
+}
 .content-start {
   align-content: flex-start;
 }
@@ -2324,6 +2326,9 @@ video {
 }
 .justify-items-center {
   justify-items: center;
+}
+.gap-0 {
+  gap: 0px;
 }
 .gap-0\.5 {
   gap: 0.125rem;
@@ -2779,9 +2784,6 @@ video {
 .pl-1 {
   padding-left: 0.25rem;
 }
-.pl-2 {
-  padding-left: 0.5rem;
-}
 .pl-2\.5 {
   padding-left: 0.625rem;
 }
@@ -2859,6 +2861,10 @@ video {
 }
 .font-sans {
   font-family: Manrope Variable, Manrope, ui-sans-serif, system-ui, sans-serif;
+}
+.text-3xl {
+  font-size: 1.875rem;
+  line-height: 2.25rem;
 }
 .font-bold {
   font-weight: var(--core-weight-heading);
@@ -3870,11 +3876,12 @@ button[aria-label] {
   border-color: var(--core-action-primary);
   box-shadow: var(--core-shadow-selection);
 }
-.core-deck-substack-list { display: grid; gap: 0; container: core-deck-substack-list / inline-size; }
+.core-deck-substack-list { display: grid; gap: 0; container: core-deck-substack-list / inline-size; --core-deck-depth-indent: 12px; }
 .core-deck-substack-list > .core-deck-summary-row + .core-deck-summary-row { border-top: var(--core-border-width) solid var(--core-border); }
 .core-deck-substack-list .core-deck-summary-name { font-size: var(--core-type-body); line-height: var(--core-leading-body); }
 @container core-deck-substack-list (min-width: 42rem) {
   .core-deck-substack-list .core-deck-summary-responsive {
+    --core-deck-depth-indent: 18px;
     grid-template-columns: minmax(0, 1fr) 10rem auto;
     padding: var(--core-space-md);
     -moz-column-gap: var(--core-space-xl);
@@ -4987,7 +4994,7 @@ summary {
 .core-mindmap-panel { container: core-mindmap / inline-size; }
 .core-mindmap-heading { min-width: 0; }
 .core-mindmap-primary-tools { display: flex; align-items: center; flex-wrap: wrap; gap: var(--core-space-sm); min-width: 0; }
-.core-mindmap-primary-tools > [role="group"] { min-width: 0; width: 24rem; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
+.core-mindmap-primary-tools > [role="group"] { min-width: 0; width: -moz-fit-content; width: fit-content; max-width: 100%; flex: 0 1 auto; height: auto; overflow-x: auto; scrollbar-width: none; }
 .core-mindmap-primary-tools > [role="group"]::-webkit-scrollbar { display: none; }
 .core-mindmap-primary-tools .core-segmented-control-option { min-height: var(--core-control-height); flex-basis: var(--core-control-height); }
 .core-mindmap-primary-tools .core-segmented-control-option[aria-pressed="true"] { flex: 1 0 auto; }
@@ -5013,6 +5020,8 @@ summary {
 .core-mindmap-node.is-link-source { border-color: var(--core-info); box-shadow: var(--core-shadow-selection); }
 .core-mindmap-node-label { font-weight: 700; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .core-mindmap-source-action { margin-left: auto; }
+.core-mindmap-scope { display: flex; align-items: center; gap: var(--core-space-sm); min-height: var(--core-control-height); cursor: pointer; }
+.core-mindmap-scope input { width: 1.25rem; height: 1.25rem; flex-shrink: 0; accent-color: var(--core-action-primary); }
 .core-mindmap-node.is-keyword:not(.is-expanded) { justify-content: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-label, .core-mindmap-node.is-keyword .core-mindmap-inline-title { text-align: center; }
 .core-mindmap-node.is-keyword .core-mindmap-node-icons { justify-content: center; }
@@ -5162,18 +5171,56 @@ summary {
 }
 
 /* Modulare Heute-Seite */
-.dashboard-widget-grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 1.5rem; align-items: stretch; }
-.dashboard-widget { min-width: 0; grid-column: span 12; display: flex; flex-direction: column; border-radius: var(--core-radius-panel, 1.5rem); }
-.dashboard-widget-content { min-width: 0; flex: 1; }
-.dashboard-widget-content > :first-child { height: 100%; }
+.dashboard-widget-grid { display: grid; min-height: 120px; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-auto-rows: 8px; grid-auto-flow: row dense; gap: 0 1.75rem; align-items: start; }
+.dashboard-widget { min-width: 0; grid-column: span 12; border-radius: var(--core-radius-panel); }
+.dashboard-widget-body, .dashboard-widget-content { min-width: 0; }
 .dashboard-widget[data-editing="true"] { outline: 1px dashed var(--core-border-interactive); outline-offset: 6px; }
-.dashboard-widget[data-dragging="true"] { opacity: .55; }
+.dashboard-widget[data-dragging="true"] { outline: 2px dashed var(--core-action-primary); outline-offset: 4px; background: var(--core-action-soft); }
+.dashboard-widget[data-dragging="true"] .dashboard-widget-body { opacity: .3; }
 .dashboard-widget[data-drop-target="true"] { outline: 2px solid var(--core-action-primary); outline-offset: 6px; background: var(--core-action-soft); }
 .dashboard-widget-tools { display: flex; align-items: center; flex-wrap: wrap; gap: .25rem; margin-bottom: .5rem; padding: .25rem; border: 1px solid var(--core-border); border-radius: var(--core-radius-panel); background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface)); color: var(--core-text-secondary); }
 .dashboard-widget-grip { touch-action: none; -webkit-user-select: none; -moz-user-select: none; user-select: none; cursor: grab; justify-content: flex-start; }
 .dashboard-widget-grip:active { cursor: grabbing; }
+.dashboard-widget-tools .dashboard-widget-grip { flex-basis: 100%; }
+.dashboard-widget-placeholder { border: 2px dashed var(--core-action-primary); background: var(--core-surface-muted); }
+.dashboard-customize { min-width: 0; }
+.dashboard-widget-library { display: flex; min-width: 0; max-width: 100%; gap: 12px; overflow-x: auto; padding: 6px 4px 14px; }
+.dashboard-widget-miniature { display: grid; gap: 8px; flex: 0 0 172px; padding: 12px; text-align: left; border: 1px solid var(--core-border); border-radius: var(--core-radius-panel); color: var(--core-text); background: var(--core-surface); touch-action: none; cursor: grab; }
+.dashboard-widget-miniature:disabled { opacity: .48; cursor: default; }
+.dashboard-widget-miniature:focus-visible { outline: 2px solid var(--core-action-primary); outline-offset: 2px; }
+.dashboard-mini-content { display: flex; flex-direction: column; justify-content: center; gap: 10px; height: 78px; padding: 10px; background: var(--core-surface-muted); border-radius: var(--core-radius-control); font-size: 10px; }
+.dashboard-mini-timer { align-items: center; }
+.dashboard-mini-line { display: block; height: 5px; width: 75%; background: var(--core-border); border-radius: var(--core-radius-marker); }
+.dashboard-mini-bar { display: flex; height: 12px; overflow: hidden; border-radius: var(--core-radius-marker); }
+.dashboard-mini-bar i { flex: 1; background: var(--core-learning-status-new); }
+.dashboard-mini-bar i:first-child { background: var(--core-learning-progress-completed); }
+.dashboard-mini-bar i:nth-child(3) { background: var(--core-learning-status-in-progress); }
+.dashboard-mini-bar i:nth-child(4) { background: var(--core-learning-status-due); }
+.dashboard-mini-cells { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; width: 100%; }
+.dashboard-mini-cells i { height: 8px; border-radius: var(--core-radius-marker); background: var(--core-learning-status-new); }
+.dashboard-learning-metrics { display: flex; flex-wrap: wrap; gap: 16px 20px; }
+.dashboard-timer-clock { position: relative; width: min(100%, 208px); aspect-ratio: 1; align-self: center; display: grid; place-items: center; }
+.dashboard-timer-ring { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: none; stroke-width: 3; transform: rotate(-90deg); }
+.dashboard-timer-track { stroke: var(--core-border); }
+.dashboard-timer-remaining { stroke: var(--core-action-primary); stroke-linecap: round; transition: stroke-dashoffset 250ms linear; }
+.dashboard-timer-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; align-items: center; gap: 4px; }
+.dashboard-timer-actions > .core-action-primary, .dashboard-timer-actions > .core-action-secondary { padding-inline: 8px; gap: 4px; }
+.dashboard-timer-dial { display: flex; justify-content: center; align-items: center; width: 85%; font-size: var(--core-type-heading-1); line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--core-text); }
+.dashboard-timer-dial input { min-width: 0; width: 2.4ch; padding: 4px 0; border: 0; border-radius: var(--core-radius-control); background: transparent; text-align: center; font: inherit; color: inherit; }
+.dashboard-timer-dial input:first-child { width: 3ch; }
+@media (prefers-reduced-motion: reduce) { .dashboard-timer-remaining { transition: none; } }
+.dashboard-timer-dial input:focus-visible { outline: 2px solid var(--core-action-primary); background: var(--core-surface-muted); }
+.dashboard-deck-mini-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+.dashboard-deck-teaser .core-deck-subfolder-summary { padding: 4px; gap: 10px; }
+.dashboard-deck-teaser .core-deck-summary-name { font-size: var(--core-type-body); }
+.dashboard-deck-teaser .core-deck-summary-count-value { font-size: var(--core-type-body); }
+.dashboard-deck-teaser .core-deck-summary-actions { z-index: 2; }
+.dashboard-deck-teaser .core-deck-subfolder-summary .core-deck-summary-actions { margin: 0; padding: 0; border: 0; background: transparent; }
+.dashboard-deck-teaser .core-deck-subfolder-summary .core-deck-summary-actions > span { display: flex; justify-content: flex-end; }
+.dashboard-deck-teaser [data-deck-study-header] .core-deck-summary-actions > span { width: var(--core-control-height, 44px); }
 .dashboard-widget-drag-preview { position: fixed; z-index: 90; display: flex; align-items: center; gap: var(--core-space-md); padding: var(--core-space-lg); pointer-events: none; border: 1px solid var(--core-action-primary); border-radius: var(--core-radius-panel); background: var(--core-surface); color: var(--core-text); box-shadow: var(--core-shadow-floating); }
-.dashboard-timer-digits { font-size: clamp(3rem, 4.5vw, 4.5rem); line-height: 1; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.dashboard-disclosure > summary { min-height: var(--core-control-height, 44px); display: list-item; align-content: center; cursor: pointer; color: var(--core-text-muted); font-size: var(--core-type-caption); }
+.dashboard-disclosure > summary:focus-visible { outline: 2px solid var(--core-action-primary); outline-offset: 3px; border-radius: var(--core-radius-control); }
 .dashboard-todos [data-testid="dashboard-exam-unit"] { padding: 1rem 0 0; border: 0; background: none; box-shadow: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > div:first-child { display: none; }
 .dashboard-todos [data-testid="dashboard-exam-unit"] > .grid { grid-template-columns: minmax(0, 1fr); }
@@ -5189,7 +5236,7 @@ summary {
 }
 @media (max-width: 639px) {
   .dashboard-modules .core-page-header-with-action { flex-wrap: wrap; align-items: center; }
-  .dashboard-widget-grid { gap: 1rem; }
+  .dashboard-widget-grid { -moz-column-gap: 1rem; column-gap: 1rem; }
 }
 
 /* Very narrow phones keep all four card editor tab names complete. */
@@ -5316,6 +5363,9 @@ summary {
 }
 .focus-visible\:outline-\[var\(--core-border-interactive\)\]:focus-visible {
   outline-color: var(--core-border-interactive);
+}
+.focus-visible\:outline-core-focus:focus-visible {
+  outline-color: var(--core-focus);
 }
 .focus-visible\:ring-2:focus-visible {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
@@ -5496,6 +5546,14 @@ summary {
 
   .min-\[360px\]\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .min-\[360px\]\:gap-1\.5 {
+    gap: 0.375rem;
+  }
+
+  .min-\[360px\]\:gap-3 {
+    gap: 0.75rem;
   }
 
   .min-\[360px\]\:p-4 {
@@ -6114,7 +6172,8 @@ summary {
     display: none;
   }
 
-  .xl\:h-10 {
+  .xl\:size-10 {
+    width: 2.5rem;
     height: 2.5rem;
   }
 
@@ -6238,6 +6297,23 @@ summary {
 }
 .\[\&_svg\]\:animate-spin svg {
   animation: spin 1s linear infinite;
+}
+
+.brain-mascot { position: relative; min-width: 0; width: 100%; max-width: 400px; margin-inline: auto; text-align: center; }
+.brain-mascot-drawing { display: block; width: 100%; transform-origin: 50% 80%; }
+.brain-mascot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.brain-mascot-button { display: block; width: 100%; min-width: 44px; min-height: 44px; border: 0; border-radius: var(--core-radius-control, 12px); background: transparent; padding: 0; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.brain-mascot-hint { display: block; color: var(--core-text-muted, #6b7280); font-size: var(--core-type-caption, 12px); }
+.brain-mascot-feedback { display: block; min-height: 2.6em; margin-top: 4px; color: var(--core-text-secondary, #4b5563); font-size: var(--core-type-caption, 12px); line-height: 1.3; }
+.motivation-widget { container-type: inline-size; }
+.motivation-widget-layout { display: grid; align-items: center; gap: 12px; margin-top: 16px; }
+.motivation-widget-quote { margin-top: 8px; overflow-wrap: anywhere; }
+.motivation-widget .brain-mascot { max-width: 200px; }
+@container (min-width: 25rem) {
+  .motivation-widget-layout { grid-template-columns: minmax(0, 1fr) 180px; gap: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .brain-mascot-drawing { animation: none; transition: none; }
 }
 
 /* Gemeinsamer Dokumentationsrahmen mit den produktiven CoRe-Tokens. */
@@ -6595,8 +6671,9 @@ html { scroll-behavior: smooth; }
 </ul>
 <h4 id="specs--tageslernfläche" class="catalog-label" tabindex="-1">Tageslernfläche</h4>
 <ul>
-<li>Die befüllte Heute-Seite ist ein modulares Dashboard. Vorausgewählt sind <code>Dein Lernen heute</code>, <code>Lerntimer</code>, <code>Aktive Stapel</code>, <code>To-dos</code> und die Lern-Heatmap. <code>Seite anpassen</code> aktiviert die Bearbeitung innerhalb derselben Seite: Module hinzufügen oder entfernen, per Titelleiste (Maus/Touch) oder Pfeilen verschieben und zwischen kompakter, breiter und voller Breite wechseln. Beim Ziehen folgt eine Widget-Vorschau dem Zeiger, das Ablageziel wird hervorgehoben und der tatsächliche Inhaltsbereich scrollt am Rand mit. Loslassen über dem Raster übernimmt die Reihenfolge; Escape, Zeigerabbruch oder Loslassen außerhalb verwerfen die Geste. <code>Fertig</code> beendet den Modus; <code>Standardlayout</code> stellt die Vorauswahl wieder her. Auf schmalen Displays stehen die Module untereinander.</li>
-<li>Layout und eigene To-dos werden pro Konto auf diesem Browser gespeichert. Eigene Aufgaben lassen sich hinzufügen, abhaken und löschen. Der To-do-Bereich übernimmt zusätzlich die vorhandenen Tagesaufgaben aus dem Prüfungsplaner samt seinen Lernaktionen; ohne Plan verweist er auf den Planer. Das Entfernen des Widgets löscht keine Aufgaben. Der Lerntimer bietet Fokusphasen von 25/45 Minuten und eine 5-Minuten-Pause; sein Start verwendet denselben globalen Timer wie Navigation und Review.</li>
+<li>Die befüllte Heute-Seite ist ein modulares Dashboard. Vorausgewählt sind <code>Dein Lernen heute</code>, <code>Dein Motivationsimpuls</code>, <code>Lerntimer</code>, <code>Aktive Stapel</code>, <code>To-dos</code> und die Lern-Heatmap. Widgets behalten ihre natürliche Höhe; das responsive Raster füllt freie Plätze, statt ganze Zeilen auf die Höhe des größten Moduls zu strecken. <code>Seite anpassen</code> aktiviert die Bearbeitung innerhalb derselben Seite. <code>Widget hinzufügen</code> öffnet ein horizontales Menüband mit Miniaturvorschauen direkt darunter. Ein Klick hängt ein fehlendes Widget hinten an; Ziehen aus dem Band platziert es am gewählten Platz. Bereits vorhandene Widgets sind deaktiviert. Beim Ziehen an der Titelleiste rücken die anderen Module bereits als Vorschau nach. Erst Loslassen speichert die Reihenfolge; Escape, Zeigerabbruch und Ablegen außerhalb stellen den vorherigen Stand wieder her. Der Inhaltsbereich scrollt am Rand mit. Größenwahl, Pfeile und Entfernen stehen wieder direkt am Widget; Pfeiltasten am Griff bleiben verfügbar. <code>Fertig</code> beendet den Modus, <code>Standardlayout</code> stellt die Vorauswahl wieder her. Auf schmalen Displays stehen die Module untereinander. Bewegungsreduktion des Betriebssystems wird beachtet.</li>
+<li><code>Dein Motivationsimpuls</code> zeigt einen von 60 eigenen deutschen Lernimpulsen ohne Autorenzuschreibung und ein dazu fest zugeordnetes freundliches Gehirn-Motiv. Die Kombination bleibt innerhalb des eingestellten Lerntags stabil, funktioniert offline und wechselt zum kontoweiten Tagesbeginn in der Profilzeitzone (ersatzweise Browserzeitzone), auch nach Rückkehr zu einem inaktiven Tab. Die Datumssimulation gilt ebenfalls. Nach 60 Lerntagen beginnt der Vorrat erneut. Geöffnete Augen folgen begrenzt dem Mauszeiger innerhalb des Widgets und kehren beim Verlassen zur Mitte zurück. Klick, Touch oder Enter/Leertaste auf das Gehirn lösen einen kurzen Hüpfer mit einer freundlichen Textreaktion aus; der Spruch bleibt erhalten. Bei reduzierter Bewegung entfällt die Bewegung. Bestehende gespeicherte Layouts erhalten das Widget einmal am Ende; anschließendes Entfernen bleibt dauerhaft erhalten. Neue Standardlayouts platzieren es nach der Tageslernfläche. Der Erststart ohne Stapel behält seine Einrichtungsaktionen.</li>
+<li>Layout und eigene To-dos werden pro Konto auf diesem Browser gespeichert. Das Plus sitzt in der Aufgabenliste, bei leerer Liste an der ersten Aufgabenposition. Eigene Aufgaben lassen sich hinzufügen, abhaken und löschen. Die To-do-Vorschau zeigt insgesamt höchstens drei offene Aufgaben: eine eigene und zwei aus dem Prüfungsplaner; freie Plätze füllt die andere Gruppe. Eigene Aufgaben behalten ihre Reihenfolge, Planeraufgaben folgen Prüfungstermin und Aufgabentyp. Ein gemeinsames <code>Alle … Aufgaben anzeigen</code> öffnet die vollständige Liste inline; <code>Weniger anzeigen</code> verkürzt sie wieder. Erledigte Aufgaben bleiben separat aufklappbar. Lange Aufgabentexte erscheinen zunächst höchstens zweizeilig und lassen sich unabhängig vom Abhaken vollständig öffnen. Lernaktionen und der Eck-Link <code>Planer öffnen</code> bleiben erreichbar. Das Entfernen des Widgets löscht keine Aufgaben. Der Lerntimer zeigt direkt editierbare Minuten und Sekunden. Im Stillstand lassen sie sich eintippen, mit Pfeiltasten oder durch Zwei-Finger-Scrollen beziehungsweise Mausrad direkt über den Ziffern verstellen, ohne vorherigen Fokus. Kleine Scrollimpulse werden gebündelt. Außerhalb der Ziffern und während des Laufs scrollt die Seite normal; Zoomgesten bleiben frei. Es gibt keine Voreinstellungen und keine ausklappbare Dauerwahl. <code>Start</code> setzt eine unveränderte Pause fort oder übernimmt eine neu eingegebene Dauer; <code>Pause</code> hält an. <code>Timer zurücksetzen</code> bricht den aktiven oder pausierten Durchlauf ab und stellt seine ursprüngliche Startdauer wieder her, ohne neu zu starten. Ein dünner Kreis um die Zeit nimmt vom vollen Ring ab zwölf Uhr im Uhrzeigersinn ab, hält bei Pause an und ist nach Reset wieder voll. Alle Anzeigen nutzen denselben kontogebundenen globalen Timer. Der Tagesbalken zeigt vier Werte mit Statusicons ohne zusätzliche Legende <code>Geschafft</code>. Aktive Stapel zeigt höchstens drei Hauptstapel, nach aktuell startbaren Karten priorisiert, als Liste oder kompakte Kacheln ohne ausklappbaren Baum. Der Eck-Link öffnet die vollständige Stapelübersicht.</li>
 <li>Das Widget <code>Dein Lernen heute</code> zeigt eine Tageslernfläche statt eines Fälligkeitszählers. Sie aggregiert die alphabetisch sortierten Hauptstapel-Sessions samt Unterstapeln ohne Doppelzählung.</li>
 <li>Vier beschriftete Segmente <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> zeigen den Tagesstand. <code>X / Y Karten</code> zählt eindeutige heute relevante Karten. Fünftes Segment, Untertitel, Zeitprognose und Konfetti entfallen.</li>
 <li>Zustände: <code>Dein Lernen heute</code>, deaktiviertes <code>Später weiterlernen</code> bei noch nicht verfügbaren heutigen Lernschritten oder der Abschluss <code>Tagesziel erreicht</code> (auch bei <code>0 / 0 Karten</code>).</li>
@@ -6660,7 +6737,7 @@ html { scroll-behavior: smooth; }
 <p class="catalog-label">Akzeptanz</p>
 <h4 id="specs--navigation-und-seitenkopf" class="catalog-label" tabindex="-1">Navigation und Seitenkopf</h4>
 <ul>
-<li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht. Der Schriftzug <code>CoRe</code> samt Büste navigiert zu <code>Heute</code>.</li>
+<li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht. Der Schriftzug <code>CoRe</code> samt Gehirn-Logo navigiert zu <code>Heute</code>.</li>
 <li>Beide Lernen-Bereiche zeigen <code>REVIEW</code> und <code>Lernen</code> im Seitenkopf; Bereichsauswahl und <code>Lerneinstellungen</code> sind in beiden erreichbar.</li>
 <li>Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.</li>
 </ul>
@@ -6681,7 +6758,7 @@ html { scroll-behavior: smooth; }
 <ul>
 <li>Der Kopf der Inhaltsansicht zeigt den klickbaren Stapelpfad <code>Alle Stapel › … › Stapel</code>, Stapel-Icon und Namen sowie <code>Eine Ebene zurück</code> beziehungsweise auf Hauptebene <code>Zur Stapelübersicht</code>. <code>Aktive Stapel</code> und der Bereichsumschalter entfallen.</li>
 <li>Die Tabs lauten <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code>, <code>Quelle</code>; initial ist <code>Unterstapel</code> aktiv. Der Tab steht in der URL (<code>tab=</code>) und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor erzwingt <code>Karten</code>. Wechsel zwischen Inhaltsreitern und über Breadcrumbs schützen ungespeicherte Entwürfe mit demselben Speichern-/Verwerfen-Dialog. Auf schmalen Flächen scrollt die Leiste lokal. <code>Quiz</code> und <code>Quelle</code> bleiben bis zu ihrer Umsetzung Platzhalter; Zusammenfassungen und Mindmaps behalten ihre aktuellen Funktionen.</li>
-<li><code>Unterstapel</code> listet die direkten Unterstapel mit beschrifteten Kennzahlen, <code>Inhalte</code>, Lernaktion und Stapeloptionen; ein Klick öffnet die Stapelinhalte des Unterstapels. Darunter stehen <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; ohne Unterstapel erscheinen <code>Keine weiteren Unterstapel</code> und <code>Karten öffnen</code>.</li>
+<li><code>Unterstapel</code> zeigt einen aufklappbaren Baum mit beschrifteten Kennzahlen, <code>Inhalte</code>, Lernaktion und Stapeloptionen. Anfangs sind nur die direkten Unterstapel sichtbar. Ein Klick auf die Zeile oder den Pfeil eines Elternstapels klappt dessen Unterstapel an derselben Stelle auf oder zu; der geöffnete Stapel und sein Pfad bleiben dabei unverändert. Beliebig tiefe Ebenen lassen sich so erreichen; die Einrückung ist wie im übrigen Stapelbaum begrenzt. <code>Inhalte</code> öffnet auf jeder sichtbaren Ebene direkt die Karten des gewählten Zweigs; bei einem Blatt führt auch die Zeile dorthin. Darunter stehen <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; ohne Unterstapel erscheinen <code>Keine weiteren Unterstapel</code> und <code>Karten öffnen</code>.</li>
 <li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet der Tab die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Kopf.</li>
 <li>Sie nutzt dieselben Kartenzeilen, denselben Editor und dieselben Mutationen wie die Gesamtverwaltung; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
 <li>Direkt neben den Inhaltsreitern steht die primäre Aktion <code>Karten lernen</code>; auf schmalen Flächen steht sie darunter. Sie bleibt in allen Inhaltsbereichen erreichbar und startet die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>
@@ -6818,7 +6895,7 @@ html { scroll-behavior: smooth; }
 <ul>
 <li>Derselbe ausklappbare Start steht unter <code>Lerneinstellungen → Fokuswerkzeuge</code>. Jeder Start ersetzt einen laufenden Countdown.</li>
 <li>Es gibt accountbezogen genau einen browserlokalen Timer mit realer Endzeit. Er übersteht Navigation, Hintergrund, Reload und weitere Tabs, nutzt aber weder Cloud, Deckdaten noch simulierte Lernzeit.</li>
-<li>Während des Laufs erscheint der Fortschritt im Review und in der App-Navigation. Beim Ablauf verschwinden die Anzeigen und ein schließbarer Toast meldet <code>Timer abgelaufen.</code> Pause, Stopp, Töne und Pausenzyklen gibt es nicht.</li>
+<li>Während des Laufs erscheint der Fortschritt im Review und in der App-Navigation. Beim Ablauf verschwinden die Anzeigen und ein schließbarer Toast meldet <code>Timer abgelaufen.</code> Im Dashboard hält <code>Pause</code> die verbleibende Zeit an; sie übersteht Reload und Kontowechsel. <code>Start</code> setzt sie fort. Während der Pause sind die laufenden Fortschrittsanzeigen ausgeblendet. <code>Timer zurücksetzen</code> im Dashboard beendet den Durchlauf auch in Navigation, Review und weiteren Tabs; es löst keine Ablaufmeldung aus. Töne und automatische Pausenzyklen gibt es nicht.</li>
 </ul>
 <h4 id="specs--tagesgrenzen-lerntag-und-lernprofile" class="catalog-label" tabindex="-1">Tagesgrenzen, Lerntag und Lernprofile</h4>
 <ul>
@@ -7018,10 +7095,10 @@ html { scroll-behavior: smooth; }
 </ul>
 <h4 id="specs--mindmaps-in-den-stapelinhalten" class="catalog-label" tabindex="-1">Mindmaps in den Stapelinhalten</h4>
 <ul>
-<li><code>Mind Map</code> öffnet unmittelbar genau eine unendliche verschiebbare Infinity Map je Stapel. Auf derselben Fläche können mehrere getrennte Mindmaps entstehen. <code>Aus Zusammenfassung</code> erzeugt aus einer gespeicherten Fassung desselben Stapels lokal ohne KI einen Kartenbaum auf der vorhandenen Fläche; bei mehreren Fassungen ist die zuletzt bearbeitete vorgewählt. Überschriften werden Äste, fette Stichworte und kurze Absätze oder Listenpunkte werden Karten; längere Absätze bleiben vollständig als Text ihrer Abschnittskarte, nur Absätze ohne Überschrift erhalten eine eigene Karte mit gekürztem Titel. Erzeugte Karten enthalten die zugehörige Zusammenfassungspassage im normalen bearbeitbaren Textfeld. Die letzte Karte jedes Zweigs ist eine Textkarte mit direkt sichtbarem Text, alle übergeordneten Karten sind Stichwortkarten mit eingeklapptem Text; diese Vorgabe gilt bei der Erzeugung und kann danach manuell geändert werden. Ein zusätzlicher Aufklappbereich für die Passage entfällt. Der Abschnitt <code>Hinweise zum Material</code> und Belegzeilen erzeugen keine Karten. Hauptäste verteilen sich wie bei manuell angelegten Karten links und rechts der Wurzel; von der KI belegte Querbezüge zwischen Stichworten werden Querverbindungen. Besteht bereits ein Baum aus dieser Fassung, ersetzt <code>Neu erzeugen</code> ihn an seiner Stelle; wurde er seit dem Erzeugen bearbeitet, fragt ein Dialog <code>Überschreiben</code> / <code>Daneben neu anlegen</code> / <code>Abbrechen</code>. Andere Karten der Fläche bleiben erhalten. Hat der Stapel noch keine Zusammenfassung und ist die Fläche leer, bietet der Tab direkt <code>Zusammenfassung und Mindmap erzeugen</code> mit der Wahl <code>Nur dieser Stapel</code> / <code>Mit Unterstapeln</code>; es entsteht keine Mindmap ohne gespeicherte Zusammenfassung.</li>
+<li><code>Mind Map</code> öffnet unmittelbar genau eine unendliche verschiebbare Infinity Map je Stapel. Auf derselben Fläche können mehrere getrennte Mindmaps entstehen. <code>Aus Zusammenfassung</code> erzeugt aus einer gespeicherten Fassung desselben Stapels lokal ohne KI einen Kartenbaum auf der vorhandenen Fläche; bei mehreren Fassungen ist die zuletzt bearbeitete vorgewählt. Überschriften werden Äste, fette Stichworte und kurze Absätze oder Listenpunkte werden Karten; längere Absätze bleiben vollständig als Text ihrer Abschnittskarte, nur Absätze ohne Überschrift erhalten eine eigene Karte mit gekürztem Titel. Erzeugte Karten enthalten die zugehörige Zusammenfassungspassage im normalen bearbeitbaren Textfeld. Die letzte Karte jedes Zweigs ist eine Textkarte mit direkt sichtbarem Text, alle übergeordneten Karten sind Stichwortkarten mit eingeklapptem Text; diese Vorgabe gilt bei der Erzeugung und kann danach manuell geändert werden. Ein zusätzlicher Aufklappbereich für die Passage entfällt. Der Abschnitt <code>Hinweise zum Material</code> und Belegzeilen erzeugen keine Karten. Hauptäste verteilen sich wie bei manuell angelegten Karten links und rechts der Wurzel; von der KI belegte Querbezüge zwischen Stichworten werden Querverbindungen. Besteht bereits ein Baum aus dieser Fassung, ersetzt <code>Neu erzeugen</code> ihn an seiner Stelle; wurde er seit dem Erzeugen bearbeitet, fragt ein Dialog <code>Überschreiben</code> / <code>Daneben neu anlegen</code> / <code>Abbrechen</code>. Andere Karten der Fläche bleiben erhalten. Hat der Stapel noch keine Zusammenfassung und ist die Fläche leer, bietet der Tab direkt <code>Zusammenfassung und Mindmap erzeugen</code> mit der standardmäßig aktivierten kompakten Checkbox <code>Unterstapel einbeziehen</code> direkt neben der Aktion; es entsteht keine Mindmap ohne gespeicherte Zusammenfassung.</li>
 <li><strong>Karten und Bearbeitung:</strong> Titel erscheinen fett, Notiztext normal, sofern nicht ausdrücklich formatiert. Stichwortkarten zeigen ihren Titel und bei vorhandenem Text oder Bild ein Inhaltssymbol; Text und Bilder erscheinen in der aufgeklappten Karte. Textkarten zeigen Text und Bilder direkt auf der Fläche. Doppelklick beziehungsweise Enter/F2 öffnet die direkte Titel- und Rich-Text-Bearbeitung; alle Textwerkzeuge stehen dabei ohne Zusatzmenü in der oberen Leiste, und das Werkzeugmenü wechselt zu <code>Karte bearbeiten</code>. Neue Textkarten heißen <code>Neue Notiz</code>; Antippen des Standardtitels markiert ihn zur Ersetzung. Generierte Karten behalten ihre Textstelle als unveränderliche Quelle; beim Bearbeiten oder Aufklappen einer Karte bleibt die gespeicherte Zusammenfassungsfassung über <code>Quelle</code> erreichbar; spätere Änderungen der Zusammenfassung überschreiben sie nicht. Je Karte sind bis zu vier PNG-, JPEG-, WebP- oder GIF-Bilder möglich, je Map höchstens zehn verschiedene; danach ist <code>Bild hinzufügen</code> gesperrt. Gewählte Dateien dürfen bis 20 MB groß sein; JPEG, PNG und WebP werden auf höchstens 1600 px verkleinert und als WebP gespeichert, jedes gespeicherte Bild höchstens 2 MB. Kopierte Karten teilen ihre Bilder mit dem Original. Kasten-, Stift-, Rahmen- und Hintergrundfarben bieten die fünf CoRe-Vorgaben und eine freie Farbwahl. Sind mehrere Karten gewählt, gelten Kastenfarbe und Kastenart für alle; Bilder bleiben eine Aktion für einzelne Karten. <code>Duplizieren</code> kopiert die gewählten Karten samt Unterbäumen, internen Querverbindungen, Umrandungen und Klammern versetzt neben das Original.</li>
 <li><strong>Struktur:</strong> Eine ausgewählte Karte bietet Plus-Aktionen für ein Geschwister und einen Unterknoten. Neue Hauptäste verteilen sich um das zentrale Thema; bestehende Karten behalten ihre Positionen. Jeder Hauptast erhält eine CoRe-Farbe, die nach außen kräftiger wird. Die Hierarchie ist zyklenfrei und von Querverbindungen unterscheidbar; Querverbindungen dürfen Zyklen bilden, erneutes Verbinden desselben Paars löst sie. <code>Verknüpfen</code> hängt lose Karten als Unterknoten an einen Ast, der dessen Farbfamilie übernimmt, und verbindet bereits angegliederte Karten quer; Linien erscheinen wahlweise grau oder in Kastenfarbe, die Wahl wird gespeichert. Umhängen oder Entfernen eines Elternknotens erhält andere Karten und ihre Positionen.</li>
-<li><strong>Werkzeuge:</strong> Die obere Leiste bietet <code>Stichwort</code>, <code>Textfeld</code>, die Modi <code>Verknüpfen</code>, <code>Karte bearbeiten</code>, <code>Gestalten</code> und <code>Hinzufügen</code>, Rückgängig/Wiederholen sowie <code>Aus Zusammenfassung</code>. <code>Hinzufügen</code> bietet Mehrfachauswahl (Schalter mit Antippen oder Umschalt beziehungsweise Strg/⌘ + Klick), Zusammenfassungsklammer und Umrandung; Kontextmenüs führen zu denselben Werkzeugen.</li>
+<li><strong>Werkzeuge:</strong> Die obere Leiste bietet <code>Stichwort</code>, <code>Textfeld</code>, die Modi <code>Verknüpfen</code>, <code>Karte bearbeiten</code>, <code>Gestalten</code> und <code>Hinzufügen</code>, Rückgängig/Wiederholen sowie bei vorhandener gespeicherter Zusammenfassung <code>Aus Zusammenfassung</code>. Erstellen, Werkzeugmodi und Verlauf bleiben in zusammenhängenden Gruppen; die Erstellungsoptionen stehen kompakt in einer Zeile und brechen bei Platzmangel um. Ohne Zusammenfassung erscheint nach dem Schließen der Erstellungsoptionen stattdessen <code>Zusammenfassung und Mindmap erzeugen</code> zum erneuten Öffnen. <code>Hinzufügen</code> bietet Mehrfachauswahl (Schalter mit Antippen oder Umschalt beziehungsweise Strg/⌘ + Klick), Zusammenfassungsklammer und Umrandung; Kontextmenüs führen zu denselben Werkzeugen.</li>
 <li><strong>Zusammenfassungsklammer:</strong> Sie umfasst benachbarte gleichrangige Karten eines Astes mit einer seitlichen Klammer und einer eigenen, neutralen, frei bearbeitbaren Zusammenfassungskarte, die Unterknoten haben kann. Ziehpunkte ändern den erfassten Bereich, die Klammer folgt ihren Karten und Unterbäumen. Entfernen erhält die Karten. Es erfolgt keine KI-Anfrage.</li>
 <li><strong>Umrandung:</strong> Sie gruppiert ausgewählte Karten visuell hinter den Karten. Rechteck, abgerundeter Rahmen und Ellipse, Beschriftung, Rahmen- und Hintergrundfarbe, Transparenz und drei Rahmenstärken sind einstellbar. Die Fläche folgt ihrem Inhalt; Verschieben bewegt die Karten mit, Entfernen erhält Karten und Hierarchie.</li>
 <li><strong>Bewegen und Ansicht:</strong> Ein Klick wählt eine Karte; eine ausgewählte Karte lässt sich ziehen oder mit Alt+Pfeiltaste verschieben, ein Doppelklick bearbeitet sie. Die Fläche verschiebt sich durch Ziehen, Mausrad oder, ohne Auswahl, mit Pfeiltasten; Strg/⌘ plus Mausrad und die Zoom-Buttons zoomen um einen festen Punkt. <code>Alles anzeigen</code> umfasst Karten, Umrandungen samt Beschriftung und Zeichnungen. Neue Karten werden kollisionsarm platziert; wächst eine Karte, rücken automatisch platzierte Karten bei Überlagerung nach unten nach, gezogene oder manuell platzierte Karten bleiben unverändert.</li>
@@ -7054,8 +7131,8 @@ html { scroll-behavior: smooth; }
 <li>Bedeutung ist immer zusätzlich durch Text, Icon oder Zahl erkennbar.</li>
 <li>Bestehendes Karten-HTML und persistierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate.</li>
 </ul></div></article><article id="specs--app-shell-und-navigation" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>App-Shell und Navigation</h3></div><div class="catalog-preview specs-prose"><ul>
-<li>Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code> und <code>Statistik</code>. Ein kompakter Kopf bietet <code>CoRe</code> mit Sokrates-Büste (zu <code>Heute</code>), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.</li>
-<li>Ab 1280 px bietet eine schwebende Top-Bar links <code>CoRe</code> mit Sokrates-Büste (zu <code>Heute</code>), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. <code>Hilfe öffnen</code> hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren <code>Einstellungen öffnen</code>, Karten- und Simulatorrouten markieren <code>Lernen</code>. Eine Profilvorschau erscheint nicht.</li>
+<li>Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code> und <code>Statistik</code>. Ein kompakter Kopf bietet <code>CoRe</code> mit Gehirn-Logo (zu <code>Heute</code>), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.</li>
+<li>Ab 1280 px bietet eine schwebende Top-Bar links <code>CoRe</code> mit Gehirn-Logo (zu <code>Heute</code>), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. <code>Hilfe öffnen</code> hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren <code>Einstellungen öffnen</code>, Karten- und Simulatorrouten markieren <code>Lernen</code>. Eine Profilvorschau erscheint nicht.</li>
 <li>Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.</li>
 </ul></div></article><article id="specs--bedienelemente" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bedienelemente</h3></div><div class="catalog-preview specs-prose"><ul>
 <li>Buttons, Icon-Aktionen, Eingaben und Auswahlfelder haben ohne feinen Zeiger oder unter 768 px Zielflächen von mindestens 44 × 44 px.</li>
@@ -7174,7 +7251,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.777</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.016</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">212</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 324 Zeilen, Lernen &amp; Karten: 2.260 Zeilen, Erstellen &amp; Import: 1.758 Zeilen, Prüfungen: 430 Zeilen, Statistik: 568 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.62198667079126 1.8508053657071208 L 23.994569476614842 7.1045196019497965 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="324"></path><path d="M 25.62198667079126 1.8508053657071208 A 19 19 0 0 1 32.89373735234669 33.95534080876206 L 29.16133969772002 29.915636890436197 A 13.5 13.5 0 0 0 23.994569476614842 7.1045196019497965 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2260"></path><path d="M 32.89373735234669 33.95534080876206 A 19 19 0 0 1 5.307389889068769 32.04687545084456 L 9.560513868548862 28.55962203086324 A 13.5 13.5 0 0 0 29.16133969772002 29.915636890436197 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1758"></path><path d="M 5.307389889068769 32.04687545084456 A 19 19 0 0 1 1.783113109572831 25.398613898157812 L 7.056422472591221 23.83585724342792 A 13.5 13.5 0 0 0 9.560513868548862 28.55962203086324 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="430"></path><path d="M 1.783113109572831 25.398613898157812 A 19 19 0 0 1 1.537847847097126 15.511243169533042 L 6.882155049253221 16.810620146773477 A 13.5 13.5 0 0 0 7.056422472591221 23.83585724342792 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="568"></path><path d="M 1.537847847097126 15.511243169533042 A 19 19 0 0 1 7.138643421590123 6.014811157406813 L 10.86166769428772 10.063155296052209 A 13.5 13.5 0 0 0 6.882155049253221 16.810620146773477 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.138643421590123 6.014811157406813 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.86166769428772 10.063155296052209 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">6.777 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>324</td><td>4,8 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.260</td><td>33,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.758</td><td>25,9 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>568</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.756</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.707</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">220</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 303 Zeilen, Lernen &amp; Karten: 2.260 Zeilen, Erstellen &amp; Import: 1.758 Zeilen, Prüfungen: 430 Zeilen, Statistik: 568 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.2835205850063 1.749399729657803 L 23.754080415662372 7.032468228967387 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="303"></path><path d="M 25.2835205850063 1.749399729657803 A 19 19 0 0 1 33.06142290155925 33.798522811758644 L 29.280484693213147 29.80421357677588 A 13.5 13.5 0 0 0 23.754080415662372 7.032468228967387 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2260"></path><path d="M 33.06142290155925 33.798522811758644 A 19 19 0 0 1 5.392287671466125 32.149680675919 L 9.620835977094352 28.632667848679286 A 13.5 13.5 0 0 0 29.280484693213147 29.80421357677588 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1758"></path><path d="M 5.392287671466125 32.149680675919 A 19 19 0 0 1 1.814610864180672 25.50378251558184 L 7.078802456128372 23.910582313702886 A 13.5 13.5 0 0 0 9.620835977094352 28.632667848679286 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="430"></path><path d="M 1.814610864180672 25.50378251558184 A 19 19 0 0 1 1.519417259538308 15.587737363557167 L 6.869059631777219 16.864971284632723 A 13.5 13.5 0 0 0 7.078802456128372 23.910582313702886 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="568"></path><path d="M 1.519417259538308 15.587737363557167 A 19 19 0 0 1 7.1063545730997575 6.044574259257642 L 10.838725617728775 10.084302763156746 A 13.5 13.5 0 0 0 6.869059631777219 16.864971284632723 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.1063545730997575 6.044574259257642 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.838725617728775 10.084302763156746 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">6.756 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>303</td><td>4,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.260</td><td>33,5 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.758</td><td>26 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>568</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,9 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section></main></div><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div><script>function initializeDocsViewer() {
     const header = document.querySelector(".docs-site-nav");
     const resize = new ResizeObserver(() => {
         document.documentElement.style.setProperty("--docs-nav-height", `${header.getBoundingClientRect().height}px`);

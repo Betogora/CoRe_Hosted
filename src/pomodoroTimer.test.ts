@@ -4,6 +4,9 @@ import {
   POMODORO_TIMER_STORAGE_KEY,
   clearPomodoroTimer,
   createPomodoroTimer,
+  createPomodoroTimerFromSeconds,
+  pausePomodoroTimer,
+  resumePomodoroTimer,
   getPomodoroTimerSnapshot,
   getPomodoroTimerStorageKey,
   normalizePomodoroMinutes,
@@ -26,6 +29,29 @@ function createMemoryStorage() {
     },
   };
 }
+
+test("second-precision timer pauses across reload and resumes without losing remaining time", () => {
+  const storage = createMemoryStorage();
+  const timer = createPomodoroTimerFromSeconds(91, 1000, "seconds");
+  assert.ok(timer);
+  assert.equal(timer.endsAt, 92000);
+  const paused = pausePomodoroTimer(timer, 1500)!;
+  assert.equal(getPomodoroTimerSnapshot(paused, 500000).remainingMilliseconds, 90500);
+  assert.equal(getPomodoroTimerSnapshot(paused, 500000).running, false);
+  writePomodoroTimer("pause-user", paused, storage);
+  const restored = readPomodoroTimer("pause-user", storage);
+  assert.deepEqual(restored, paused);
+  const resumed = resumePomodoroTimer(restored, 500000)!;
+  assert.equal(getPomodoroTimerSnapshot(resumed, 500000).remainingMilliseconds, 90500);
+  assert.equal(getPomodoroTimerSnapshot(resumed, 590500).running, false);
+  assert.deepEqual(normalizePomodoroTimer(resumed), resumed);
+  assert.equal(normalizePomodoroTimer({ ...timer, pausedAt: timer.endsAt }), null);
+  assert.equal(normalizePomodoroTimer({ ...timer, pausedAt: 0 }), null);
+  assert.equal(createPomodoroTimerFromSeconds(0), null);
+  assert.equal(createPomodoroTimerFromSeconds(1.5), null);
+  assert.equal(pausePomodoroTimer(paused, 500000), paused);
+  assert.equal(resumePomodoroTimer(timer, 500000), timer);
+});
 
 test("pomodoro duration accepts only positive whole minutes", () => {
   assert.equal(normalizePomodoroMinutes(25), 25);

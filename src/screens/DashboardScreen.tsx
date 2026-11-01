@@ -1,23 +1,26 @@
 import React from "react";
 import { DashboardWidgets } from "./DashboardWidgets.tsx";
+import { DailyMotivationWidget } from "./DailyMotivationWidget.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { Activity, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
+import { CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
 import type { Deck } from "../coreTypes.ts";
-import { getLearningDayKey } from "../learningDay.ts";
+import { getLearningDayKey, getLearningTimeZone } from "../learningDay.ts";
 import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
-import { ActionButton, CrossLinkButton, IconButton } from "../ui/actionUi.tsx";
-import { ActionDialog, CoreSegmentedControl, OrbIcon, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { ActionDialog, CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
-import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
+import { DashboardDecks } from "./DashboardDecks.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { StudyHeatmap } from "../ui/StudyHeatmap.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
+
+const DAILY_METRIC_ICONS = { learned: CheckCircle2, new: Sparkles, "in-progress": RefreshCcw, due: CalendarDays } as const;
 
 function formatHeatmapDate(key: string) {
   const [year, month, date] = key.split("-");
@@ -30,13 +33,6 @@ function heatmapDayLabel(day: StudyHeatmapDay) {
   if (day.count === 0) return `${date}: keine Karten gelernt`;
   return `${date}: ${formatLearningCardCount(day.count)} gelernt`;
 }
-
-const DAILY_METRIC_ICONS = {
-  learned: CheckCircle2,
-  new: Sparkles,
-  "in-progress": RefreshCcw,
-  due: CalendarDays,
-} as const;
 
 function createAdditionalCardAmounts(availableCount: number) {
   return [...new Set([5, 10, 20]
@@ -153,7 +149,6 @@ function DailyLearningOverview({
   const firstStartableDeck = decks.find((deck) => deck.id === plan.firstStartableDeckId) ?? null;
   const additionalSessions = plan.sessions.filter((session) => session.additionalNewCount > 0);
   const title = achieved ? "Tagesziel erreicht" : "Dein Lernen heute";
-  const Icon = achieved ? CheckCircle2 : Activity;
   const primaryLabel = achieved ? "Zusätzliche Karten lernen" : plan.status === "waiting" ? "Später weiterlernen" : "Jetzt lernen";
   const primaryDisabled = achieved ? additionalSessions.length === 0 : plan.status === "waiting" || !firstStartableDeck;
 
@@ -170,12 +165,6 @@ function DailyLearningOverview({
       <SoftPanel className="overflow-hidden" data-testid="daily-learning-overview" data-status={plan.status}>
         <div className="min-w-0 p-6">
           <div className="flex items-center gap-3 sm:gap-4">
-            <OrbIcon
-              icon={Icon}
-              className={achieved
-                ? "bg-core-subtle text-[var(--core-learning-goal-achieved)]"
-                : "bg-core-subtle text-core-action"}
-            />
             <h2 className={`min-w-0 flex-1 core-heading-3 font-semibold ${achieved ? "text-[var(--core-learning-goal-achieved)]" : "text-core-text"}`}>{title}</h2>
             <CoreTooltip label={primaryLabel}>
               <IconButton
@@ -203,7 +192,7 @@ function DailyLearningOverview({
             />
           </div>
 
-          <dl className="mt-6 flex flex-wrap gap-4">
+          <dl className="dashboard-learning-metrics mt-5">
             {DAILY_REVIEW_PROGRESS_SEGMENTS.map((segment) => {
               const MetricIcon = DAILY_METRIC_ICONS[segment.key];
               const color = achieved && segment.key === "learned" ? "var(--core-learning-goal-achieved)" : segment.color;
@@ -237,7 +226,7 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined }: DashboardScreenProps) {
+export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
     () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries }),
@@ -253,7 +242,6 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
     () => loadedHeatmap ?? createStudyHeatmapModel(state.decks, { now, timeZone, dayStartHour: globalSettings.dayStartHour }),
     [globalSettings.dayStartHour, loadedHeatmap, now, state.decks, timeZone],
   );
-  const [deckView, setDeckView] = useStoredDeckTreeView("core.dashboard.deckView.v1");
   const [demoStatus, setDemoStatus] = React.useState<"idle" | "busy" | "error">("idle");
   const demoBusyRef = React.useRef(false);
   const displayName = state.profile?.displayName?.trim();
@@ -317,28 +305,19 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
       header={(action) => <PageHeader eyebrow={welcomeEyebrow} title={welcomeTitle} action={action} />}
       timer={pomodoroTimer}
       onStartTimer={onStartPomodoro}
+      onPauseTimer={onPausePomodoro}
+      onResumeTimer={onResumePomodoro}
+      onResetTimer={onResetPomodoro}
       onOpenPlanner={() => onNavigate("pruefungen")}
-      planner={nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (
-        <ExamDashboardWidget state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onLoadSummaryAvailability={onLoadExamSummaryAvailability} onLoadLocalCardIds={onLoadExamLocalCardIds} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
+      planner={nextExam && onStartExamUnit && onLoadExamPlanningData && onSaveExamTasks ? (preview) => (
+        <ExamDashboardWidget preview={preview} state={state} now={now} onStart={onStartExamUnit} onLoad={onLoadExamPlanningData} onLoadSummaryAvailability={onLoadExamSummaryAvailability} onLoadLocalCardIds={onLoadExamLocalCardIds} onSaveTasks={onSaveExamTasks} onOpen={() => onNavigate("pruefungen")} />
       ) : null}
     >
       {{
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
+        motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
         heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
-        decks: <DeckTree
-          rows={library.rows}
-          mode="dashboard"
-          view={deckView}
-          onViewChange={setDeckView}
-          collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
-          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
-          headerAction={<CrossLinkButton onSelect={() => onNavigate("lernen")}>Alle ansehen</CrossLinkButton>}
-          onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
-          onStudy={(row) => onStartDeck(row.deck)}
-          onOpenSettings={onOpenDeckSettings}
-          onSetDeckCoreMode={onSetDeckCoreMode}
-          onMoveDeck={onMoveDeck}
-        />,
+        decks: <DashboardDecks rows={library.rows} onOpen={() => onNavigate("lernen")} onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })} onStudy={(row) => onStartDeck(row.deck)} />,
       }}
     </DashboardWidgets>
   );

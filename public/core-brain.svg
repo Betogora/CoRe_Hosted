@@ -1,0 +1,19 @@
+<svg class="brain-icon" xmlns="http://www.w3.org/2000/svg" viewBox="80 80 840 840" role="img" aria-labelledby="title desc">
+<title id="title">Gehirn beim Lernen</title><desc id="desc">Ein korallfarbenes Gehirn mit Augen liest eine Karteikarte neben einem bunten Bücherstapel.</desc>
+<style>
+svg{--brain:#eb9d88;--fold:#e0806a;--ink:#1b2d3b;--purple:#6f9fc4;--yellow:#ffd05b}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 6s infinite}
+@keyframes blink{0%,43%,47%,100%{transform:scaleY(1)}45%{transform:scaleY(.08)}}
+@media(prefers-reduced-motion:reduce){.eye{animation:none}}
+</style>
+<defs><linearGradient id="brain" x2=".8" y2="1"><stop stop-color="#f2a590"/><stop offset="1" stop-color="var(--brain)"/></linearGradient><linearGradient id="feet" x2="1" y2="1"><stop stop-color="#2c4558"/><stop offset="1" stop-color="var(--ink)"/></linearGradient></defs>
+<path d="M245 675C185 676 155 631 172 582C120 526 147 440 220 405C225 337 293 288 363 302C408 231 513 231 566 306C621 298 665 336 668 388C735 417 738 497 692 541L641 652L423 719C346 742 274 726 245 675Z" fill="url(#brain)"/>
+<g fill="none" stroke="var(--fold)" stroke-width="28" stroke-linecap="round"><path d="M378 327C424 316 453 340 458 375"/><path d="M530 328C561 328 582 349 583 382"/><path d="M338 401C253 402 246 528 321 532"/><path d="M228 498C196 498 184 531 196 554"/><path d="M260 593C247 631 267 656 293 661"/></g>
+<g class="eye"><ellipse cx="471" cy="523" rx="45" ry="59" fill="#fff"/><ellipse cx="489" cy="535" rx="28" ry="43" fill="var(--ink)"/><ellipse cx="615" cy="499" rx="41" ry="58" fill="#fff"/><ellipse cx="627" cy="512" rx="28" ry="42" fill="var(--ink)"/></g>
+<g stroke-linejoin="round"><path d="M638 715L749 688L860 709Q869 711 869 720V739Q869 748 858 750L761 776L646 754Q637 752 637 744Z" fill="#fff7ed"/><path d="M638 675L749 649L860 671Q869 673 869 681V704Q869 713 858 716L761 741L646 718Q637 716 637 707Z" fill="var(--yellow)"/><path d="M762 704L867 677V708L762 739Z" fill="#f3ba3f"/><path d="M648 637L749 615L859 631Q869 633 869 641V662Q869 669 857 672L762 695L646 674Q637 672 637 664V647Z" fill="var(--purple)"/><path d="M762 663L868 636V665L762 695L644 674V643Z" fill="#4f86b0"/></g>
+<path d="M413 722C392 719 381 691 360 694C330 698 331 728 346 746L396 782C431 807 457 765 454 741C451 718 433 717 413 722Z" fill="url(#feet)"/><path d="M470 723L557 775C589 799 617 757 624 723C640 682 609 675 591 697L573 729L534 704Z" fill="url(#feet)"/>
+<path d="M466 581L683 546Q709 541 701 565L646 688Q641 700 625 704L428 737Q413 741 421 719L455 597Q457 585 466 581Z" fill="#fff8ef"/>
+<path d="M513 626L633 606" stroke="#b6cfe3" stroke-width="22" stroke-linecap="round"/><path d="M505 664L598 648" stroke="#ffc75e" stroke-width="21" stroke-linecap="round"/>
+<path d="M356 625C363 664 392 691 435 687" fill="none" stroke="#c9654f" stroke-width="42" stroke-linecap="round"/><ellipse cx="450" cy="682" rx="35" ry="33" fill="#d47460" transform="rotate(-25 450 682)"/><ellipse cx="658" cy="660" rx="26" ry="38" fill="#d47460" transform="rotate(38 658 660)"/>
+<g fill="#ffba49"><path d="M673 291L695 223C711 186 754 212 735 243L698 302C686 318 667 310 673 291Z"/><path d="M727 332L776 286C803 263 828 299 803 319L743 357C724 369 713 346 727 332Z"/></g>
+</svg>

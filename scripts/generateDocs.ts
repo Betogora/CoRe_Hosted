@@ -14,6 +14,7 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import tailwindConfig from "../tailwind.config.ts";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
+import { synchronizeMascots } from "./generateMascots.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
 import { SegmentedDonut, StatTile } from "../src/ui/coreUi.tsx";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
@@ -265,6 +266,7 @@ export function journeyProjection(specs: string) {
 }
 
 export async function synchronizeDocs(mode: "write" | "check") {
+  await synchronizeMascots(mode);
   const data = createCatalogData();
   const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
   let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
@@ -272,8 +274,8 @@ export async function synchronizeDocs(mode: "write" | "check") {
     .filter((file) => file.endsWith(".woff2"))
     .map((file) => [`/fonts/${file.replaceAll("\\", "/")}`, `data:font/woff2;base64,${readFileSync(path.join(root, "public/fonts", file)).toString("base64")}`]));
   for (const [file, url] of fonts) styles = styles.replaceAll(file, url);
-  const images = new Map([["/core-socrates.svg", `data:image/svg+xml;base64,${Buffer.from(text("public/core-socrates.svg")).toString("base64")}`]]);
-  const css = `${styles}\n${text("docs/tooling/site.css")}\n${text("scripts/uiCatalog.css")}`;
+  const images = new Map([["/core-brain.svg", `data:image/svg+xml;base64,${Buffer.from(text("public/core-brain.svg")).toString("base64")}`]]);
+  const css = `${styles}\n${text("src/ui/brainMascot.css")}\n${text("docs/tooling/site.css")}\n${text("scripts/uiCatalog.css")}`;
   const viewer = ts.transpileModule(text("docs/tooling/viewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
   const pdfWorker = (await transformWithEsbuild(readFileSync(path.join(root, "node_modules/pdfjs-dist/build/pdf.worker.mjs"), "utf8"), "pdf.worker.js", { minify: true, target: "es2022" })).code;
   const bundle = await build({ configFile: false, logLevel: "error", publicDir: false, define: { "process.env.NODE_ENV": '"production"' }, esbuild: { supported: { "template-literal": false } },
