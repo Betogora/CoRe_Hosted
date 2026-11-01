@@ -5,6 +5,11 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-01 — Übernahme aus `wip/ai-source-three-steps-20261031`: KI-Quellenformular in drei Bereichen
+
+- Merge von `8870293` (letzter Stand von `codex/ai-source-three-steps`): drei Bereiche „Quelle & Stapel“, „Deine Lernwünsche“ und „Deine Karten“, ab 1280 px nebeneinander, darunter Weiter/Zurück; eingefügter Text als zweite Quelle; Stapelziel als Ja/Nein-Frage mit „Stapel ändern“; Lernziel entfällt, Sprache und Formulierung kommen hinzu; „Ergänzungen“ standardmäßig aus und gekennzeichnet.
+- ToolBox-Nachzug (ADR-046): neutrale Bereichsflächen statt Tönung in Blau, Flieder und Sand, Formatkacheln im Auswahlmuster des Prüfungsplaners; Kopf wie bisher mit Titel „Karten automatisch erstellen lassen“ und Statusmeldung statt Kartenillustration und Untertitel; die Hinweise zu Antwortumfang und Mehrfachauswahl entfallen, Datenschutz- und Ergänzungshinweis bleiben.
+
 ## 2026-11-01 — Maskottchen aufgeräumt, Vorrat lokal, Logo ohne Blinzeln
 
 - Maskottchen-Vorrat (37 Einzel-HTMLs, 1,9 MB, davon rund 1,3 MB eingebettete Schrift) aus Repository und Deployment genommen; `npm run mascots:build` erzeugt ihn lokal unter `output/mascots/`, `mascots:check` und die Synchronisierung in `docs:build` entfallen.
