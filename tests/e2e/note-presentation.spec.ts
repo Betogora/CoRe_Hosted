@@ -134,8 +134,6 @@ test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen
   page.on("pageerror", (error) => failures.push(error.message));
   await page.reload();
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenbausteine");
-  // Keep only the documentation chrome from covering component screenshots.
-  await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   const sizes = [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }];
   for (const size of sizes) {
     await page.setViewportSize(size);
@@ -172,7 +170,6 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   const output = path.resolve("test-results/note-presentation/existing-frames");
   await mkdir(output, { recursive: true });
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
-  await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   for (const size of [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }]) {
     await page.setViewportSize(size);
     for (const theme of ["light", "dark"]) {
@@ -204,7 +201,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
 
 test("Kartenbausteine: Eintippen und Aufdecken bei 200 Prozent CSS-Zoom", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.addStyleTag({ content: "body{zoom:2}.docs-site-nav,.docs-mobile-nav{position:static!important}" });
+  await page.addStyleTag({ content: "body{zoom:2}" });
   await page.evaluate(() => document.documentElement.dataset.coreTheme = "dark");
   const demo = page.locator('[data-note-demo="typed"]');
   await demo.getByLabel("Antwort eingeben").fill("Her");

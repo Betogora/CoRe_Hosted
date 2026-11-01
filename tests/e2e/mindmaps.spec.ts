@@ -432,7 +432,7 @@ test("Mindmap-Werkzeuge und Erstellungsoptionen: visuelle Pflichtmatrix", async 
         await page.evaluate((mode) => { document.documentElement.dataset.coreTheme = mode; }, theme);
         await panel.scrollIntoViewIfNeeded();
         expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-        await panel.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-${empty ? "empty" : "summary"}.png`), animations: "disabled", style: ".docs-site-nav, .catalog-toolbar { visibility: hidden !important; }" });
+        await panel.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-${empty ? "empty" : "summary"}.png`), animations: "disabled" });
       }
     }
   }

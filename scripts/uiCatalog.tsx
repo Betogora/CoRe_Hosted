@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
-import { Search } from "lucide-react";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
 import { DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, ProductViewsDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
@@ -130,7 +130,7 @@ function useActiveSection(ids: string[]) {
     let frame = 0;
     const update = () => {
       frame = 0;
-      const passed = ids.filter((id) => (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) < 160);
+      const passed = ids.filter((id) => (document.getElementById(id)?.getBoundingClientRect().top ?? Infinity) < 64);
       setActive(passed.at(-1) ?? ids[0]);
     };
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
@@ -142,28 +142,37 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
-function CatalogFrame({ title, lede, navigation, toolbar, footer, children }: { title: string; lede: string; navigation: { id: string; label: string }[]; toolbar?: React.ReactNode; footer: React.ReactNode; children: React.ReactNode }) {
+/** Normalized query of the search field in the shared docs sidebar. */
+function useDocsSearch() {
+  const [query, setQuery] = useState("");
+  useEffect(() => {
+    const input = document.getElementById("docs-search") as HTMLInputElement;
+    const update = () => setQuery(input.value.trim().toLocaleLowerCase("de"));
+    update();
+    input.addEventListener("input", update);
+    return () => input.removeEventListener("input", update);
+  }, []);
+  return query;
+}
+
+function CatalogFrame({ title, lede, navigation, footer, children }: { title: string; lede: string; navigation: { id: string; label: string }[]; footer: React.ReactNode; children: React.ReactNode }) {
   const ids = React.useMemo(() => navigation.map((item) => item.id), [navigation]);
   const active = useActiveSection(ids);
   return <div className="catalog">
-    <header className="catalog-hero"><div className="catalog-hero-inner"><h1>{title}</h1><p className="catalog-lede">{lede}</p></div></header>
-    <div className="catalog-shell">
-      <nav className="catalog-nav" aria-label="Katalogbereiche"><strong>Inhalt</strong>{navigation.map((item) => <a key={item.id} href={`#${item.id}`} aria-current={item.id === active ? "location" : undefined}>{item.label}</a>)}</nav>
-      <main className="catalog-main">{toolbar}{children}</main>
-    </div>
+    {createPortal(navigation.map((item) => <a key={item.id} href={`#${item.id}`} aria-current={item.id === active ? "location" : undefined}>{item.label}</a>), document.getElementById("docs-toc")!)}
+    <header className="catalog-hero"><h1>{title}</h1><p className="catalog-lede">{lede}</p></header>
+    {children}
     <footer className="catalog-footer">{footer}</footer>
   </div>;
 }
 
 function Catalog() {
-  const [query, setQuery] = useState("");
-  const normalized = query.trim().toLocaleLowerCase("de");
-  const visible = CARDS.filter((card) => !normalized || `${card.title} ${card.search}`.toLocaleLowerCase("de").includes(normalized));
+  const query = useDocsSearch();
+  const visible = CARDS.filter((card) => !query || `${card.title} ${card.search}`.toLocaleLowerCase("de").includes(query));
   return <CoreTooltipProvider><SuccessToastProvider><CatalogFrame
     title="UI-Elemente-Katalog"
     lede="Gemeinsame Controls ausprobieren und die Oberflächen von CoRe entdecken."
     navigation={CATALOG_SECTIONS.map((section) => ({ id: section.id, label: section.nav }))}
-    toolbar={<div className="catalog-toolbar" aria-label="Katalogsuche"><label className="catalog-search"><span className="catalog-search-label">Katalog durchsuchen</span><Search aria-hidden="true" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Komponente oder Zustand suchen …" autoComplete="off" /></label></div>}
     footer={<>CoRe UI-Elemente-Katalog · {data.components.length} Komponenten · {data.tokens.length} Tokens · {data.icons.length} Icons · Quellenstand <code>{data.sourceHash}</code></>}
   >
     {visible.length === 0 ? <p className="catalog-empty" role="status">Keine Katalogeinträge passen zur Suche.</p> : null}
@@ -182,13 +191,16 @@ function Catalog() {
 }
 
 function CardBlocks() {
+  const query = useDocsSearch();
+  const visible = CARD_BLOCKS.filter((block) => !query || [block.label, block.description, block.creation, ...block.demos.map((demo) => "case" in demo ? NOTE_CASE_TITLES[demo.case] : demo.title)].join(" ").toLocaleLowerCase("de").includes(query));
   return <CoreTooltipProvider><SuccessToastProvider><CatalogFrame
     title="Kartenbausteine"
     lede="Jede Karte entsteht aus einem Inhalt und seinen Bausteinen. Alle Beispiele nutzen den Renderer der App; Aufdecken, Auswahl und Eintippen sind interaktiv."
     navigation={CARD_BLOCKS.map((block) => ({ id: block.id, label: block.label }))}
     footer={<>Alle Komponenten der Oberfläche zeigt der <a href="ui-elements.html">UI-Elemente-Katalog</a>.</>}
   >
-    {CARD_BLOCKS.map((block) => <section key={block.id} id={block.id} className="catalog-section">
+    {visible.length === 0 ? <p className="catalog-empty" role="status">Keine Kartenbausteine passen zur Suche.</p> : null}
+    {visible.map((block) => <section key={block.id} id={block.id} className="catalog-section">
       <div className="catalog-section-heading"><h2>{block.label}</h2><p>{block.description} {block.creation}</p></div>
       <div className="catalog-grid">{block.demos.map((demo) => "case" in demo
         ? <article key={demo.case} className="catalog-card catalog-card-wide"><div className="catalog-card-header"><h3>{NOTE_CASE_TITLES[demo.case]}</h3></div><div className="catalog-preview"><NoteCaseDemo id={demo.case} /></div></article>

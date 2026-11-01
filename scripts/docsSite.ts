@@ -2,14 +2,14 @@ import path from "node:path";
 import { Marked } from "../docs/vendor/marked.esm.js";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { SunMoon } from "lucide-react";
+import { Search, SunMoon } from "lucide-react";
 
 export const DOC_PAGES = [
-  { file: "index.html", label: "Docs" },
-  { file: "specs.html", label: "Specs" },
-  { file: "journeys.html", label: "Journeys" },
-  { file: "ui-elements.html", label: "UI-Elements" },
-  { file: "card-types.html", label: "Kartenbausteine" },
+  { file: "index.html", label: "Docs", search: "Docs durchsuchen", placeholder: "Abschnitt, Begriff …" },
+  { file: "specs.html", label: "Specs", search: "Specs durchsuchen", placeholder: "Anforderung, Begriff …" },
+  { file: "journeys.html", label: "Journeys", search: "Journeys durchsuchen", placeholder: "Ablauf, Regel …" },
+  { file: "ui-elements.html", label: "UI-Elements", search: "Katalog durchsuchen", placeholder: "Komponente, Zustand …" },
+  { file: "card-types.html", label: "Kartenbausteine", search: "Kartenbausteine durchsuchen", placeholder: "Baustein, Beispiel …" },
 ] as const;
 
 export const DOCUMENT_PAGES: Record<string, string> = {
@@ -56,13 +56,17 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
   });
 }
 
-export function siteNavigation(currentFile: string) {
-  const icon = renderToStaticMarkup(React.createElement(SunMoon, { size: 20, "aria-hidden": true }));
-  return `<header class="docs-site-nav"><a class="docs-brand core-heading-3" href="index.html">CoRe <span class="core-caption">Docs</span></a><nav aria-label="Doku-Seiten">${DOC_PAGES.map((page) => `<a class="core-control-label" href="${page.file}"${currentFile === page.file ? ' aria-current="page"' : ""}>${page.label}</a>`).join("")}</nav><button class="core-action-secondary" type="button" id="docs-theme" aria-label="Dark Mode einschalten">${icon}</button></header>`;
+/** Seitenleiste jeder Leseseite: Seitenwechsel, Suche und Inhaltsnavigation untereinander, ohne Kopfleiste. */
+export function siteSidebar(currentFile: string, toc: string) {
+  const page = DOC_PAGES.find((candidate) => candidate.file === currentFile)!;
+  const theme = renderToStaticMarkup(React.createElement(SunMoon, { size: 18, "aria-hidden": true }));
+  const search = renderToStaticMarkup(React.createElement(Search, { "aria-hidden": true }));
+  const pages = DOC_PAGES.map((candidate) => `<a href="${candidate.file}"${candidate === page ? ' aria-current="page"' : ""}>${candidate.label}</a>`).join("");
+  return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button class="core-action-secondary" type="button" id="docs-theme" aria-label="Dark Mode einschalten">${theme}</button></div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links">${toc}</div></nav></aside>`;
 }
 
-export function htmlPage(file: string, content: string, css: string, script: string, extraHead = "", title?: string) {
-  const label = title ?? DOC_PAGES.find((candidate) => candidate.file === file)!.label;
+export function htmlPage(file: string, content: string, css: string, script: string, { toc = "", extraHead = "" } = {}) {
+  const label = DOC_PAGES.find((candidate) => candidate.file === file)!.label;
   const inlineScript = script.replace(/<\/script/gi, "<\\/script").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufdd0-\ufdef\ufffe\uffff]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
-  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body>${siteNavigation(file)}${content}<script>${inlineScript}</script></body></html>\n`;
+  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body><div class="docs-frame">${siteSidebar(file, toc)}<main class="docs-main">${content}</main></div><script>${inlineScript}</script></body></html>\n`;
 }
