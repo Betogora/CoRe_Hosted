@@ -165,7 +165,9 @@ Zeichenvergleich aus `compareTypedAnswer`.
 Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
 externen Ressourcen. `CardPresentationSurface` zeigt ein fertiges Renderergebnis
 im Sandbox-Iframe, erlaubt isolierte externe Popups und meldet Textauswahl an den
-Host.
+Host. Im Review wächst der Iframe mit seinem Inhalt, `vh` bezöge sich dort also auf
+den Rahmen; der Host setzt deshalb `--core-media-max-height` (50 % der
+Fensterhöhe), an der der Rahmen Bilder und Videos begrenzt.
 
 `ui/NoteCardContent.tsx` besitzt ausschließlich transienten Eingabe-, Auswahl-
 und Darstellungszustand. Das Eingabefeld steht bis zum Aufdecken im Host; danach
@@ -242,8 +244,11 @@ notes, cards, mediaFiles, reviewEvents, noteTypeSources, noteSources, report }`:
   Zusatz; Lückentypen führen alle Rückseitenfelder als Zusatz. Metadaten (`Note ID`, `ankihub_id`, `Date Stamp`,
   GUID) bleiben unabhängig von ihrer Position Notiz; `Source`/`Quelle` und
   AMBOSS-, Link- oder URL-Felder werden Quelle. Ein Feld in `href="…{{Feld}}…"`
-  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Statischer Text
-  auf der Zeile eines Fragefelds (ohne Buttons und Links) wird Anweisung mit
+  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Felder in anderen
+  Attributen (`data-*`, `class`, `alt` …) gelten nicht als angezeigt; nur
+  `src="{{Feld}}"` zeigt das Feld vorerst weiter. Statischer Text
+  auf der Zeile eines Fragefelds (ohne Buttons, Links und Tag-Inhalt, ohne
+  führende Trennzeichen wie `·`) wird Anweisung mit
   `…`, ersatzweise eine mit `?` oder `:` endende Zeile direkt darüber, eine vollständig umschließende Bedingung `requires`, `type:` Eintippen,
   `tts` Vorlesen und `furigana:`/`kana:`/`kanji:` Ruby-Text. Die
   AnKing-/Ankizin-Familie nutzt dieselbe Positionsanalyse.

@@ -143,7 +143,7 @@ const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 2 };
 const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
 const ANKING = { id: "anking", version: 1 };
-const GENERIC = { id: "generic", version: 1 };
+const GENERIC = { id: "generic", version: 2 };
 const FIELD_LIST = { id: "field-list", version: 1 };
 const DAY_MS = 86_400_000;
 
@@ -252,9 +252,28 @@ function staticText(html: string) {
   return plainText(decodeHtmlEntities(html.replace(/<(button|a)\b[\s\S]*?<\/\1>/gi, " "))).replace(/\u200b/g, "").trim();
 }
 
+const LEADING_SEPARATOR = /^[\s·•|/,;–—-]+/;
+
 function analyzeTemplate(source: string, model: AnkiModel) {
   const fields = model.fields.map((name, ordinal) => ({ id: fieldId(ordinal), name }));
   const { ast } = compileSafeTemplate(withoutScripts(source), fields);
+  // Text outside of tags and the fields inside one, so attribute values such as `data-x="{{Field}}"` never count as card text.
+  const visibleText = new Map<SafeTemplateAstNode, string>();
+  const inTag = new Set<SafeTemplateAstNode>();
+  let insideTag = false;
+  const scan = (nodes: SafeTemplateAstNode[]) => nodes.forEach((node) => {
+    if (node.kind === "conditional") scan(node.children);
+    else if (node.kind === "field" && insideTag) inTag.add(node);
+    else if (node.kind === "text") {
+      const end = insideTag ? node.value.indexOf(">") : -1;
+      if (insideTag && end < 0) { visibleText.set(node, ""); return; }
+      const rest = node.value.slice(end + 1);
+      const open = rest.search(/<[^>]*$/);
+      insideTag = open >= 0;
+      visibleText.set(node, insideTag ? rest.slice(0, open) : rest);
+    }
+  });
+  scan(ast.nodes);
   const refs: TemplateRef[] = [];
   let answerSide = false;
   const visit = (nodes: SafeTemplateAstNode[], conditions: number[], behindButton: boolean) => {
@@ -273,6 +292,10 @@ function analyzeTemplate(source: string, model: AnkiModel) {
         const previous = nodes[index - 1]?.kind === "text" ? (nodes[index - 1] as { value: string }).value : "";
         const next = nodes[index + 1]?.kind === "text" ? (nodes[index + 1] as { value: string }).value : "";
         const href = previous.match(/\shref\s*=\s*(["'])([^"']*)$/i);
+        // Other attributes only style the card; `src` keeps showing the field until image sources are translated.
+        if (inTag.has(node) && !href && !/\ssrc\s*=\s*["']?[^"'<>]*$/i.test(previous)) return;
+        const before = visibleText.get(nodes[index - 1]) ?? "";
+        const after = visibleText.get(nodes[index + 1]) ?? "";
         refs.push({
           ordinal,
           filters: node.filters,
@@ -281,9 +304,9 @@ function analyzeTemplate(source: string, model: AnkiModel) {
           behindButton,
           hidden: /<[a-z][^>]*display\s*:\s*none/i.test(previous.slice(previous.lastIndexOf("</") + 1)),
           line: {
-            before: staticText(previous.split(BLOCK_BREAK).at(-1)!),
-            after: staticText(next.split(BLOCK_BREAK)[0]),
-            previous: previous.split(BLOCK_BREAK).slice(0, -1).map(staticText).filter(Boolean).at(-1) ?? "",
+            before: staticText(before.split(BLOCK_BREAK).at(-1)!).replace(LEADING_SEPARATOR, ""),
+            after: staticText(after.split(BLOCK_BREAK)[0]),
+            previous: before.split(BLOCK_BREAK).slice(0, -1).map(staticText).filter(Boolean).at(-1) ?? "",
           },
           href: href ? { prefix: href[2], suffix: next.slice(0, Math.max(0, next.indexOf(href[1]))) } : null,
         });
