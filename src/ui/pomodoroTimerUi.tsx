@@ -150,7 +150,6 @@ export function PomodoroTimerControl({ timer, variant, onStart }: PomodoroTimerC
                 ariaLabel="Pomodoro-Dauer"
                 options={POMODORO_PRESET_OPTIONS}
                 value={selectedPreset}
-                size="regular"
                 className="w-full"
                 onValueChange={(nextMinutes) => {
                   if (!nextMinutes) return;

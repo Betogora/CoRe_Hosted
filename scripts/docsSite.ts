@@ -2,7 +2,8 @@ import path from "node:path";
 import { Marked } from "../docs/vendor/marked.esm.js";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Search, SunMoon } from "lucide-react";
+import { Moon, Search, Sun } from "lucide-react";
+import { IconButton } from "../src/ui/actionUi.tsx";
 
 export const DOC_PAGES = [
   { file: "index.html", label: "Docs", search: "Docs durchsuchen", placeholder: "Abschnitt, Begriff …" },
@@ -59,10 +60,12 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
 /** Seitenleiste jeder Leseseite: Seitenwechsel, Suche und Inhaltsnavigation untereinander, ohne Kopfleiste. */
 export function siteSidebar(currentFile: string, toc: string) {
   const page = DOC_PAGES.find((candidate) => candidate.file === currentFile)!;
-  const theme = renderToStaticMarkup(React.createElement(SunMoon, { size: 18, "aria-hidden": true }));
+  // Theme-Schalter wie in der App-Navigation; die Sonne zeigt Light, der Mond Dark.
+  const moon = renderToStaticMarkup(React.createElement(Moon, { size: 16, "aria-hidden": true }));
+  const theme = renderToStaticMarkup(React.createElement(IconButton, { type: "button", variant: "ghost", id: "docs-theme", label: "Dark Mode einschalten", icon: Sun, className: "size-button shrink-0 rounded-control" })).replace("</svg>", `</svg>${moon}`);
   const search = renderToStaticMarkup(React.createElement(Search, { "aria-hidden": true }));
   const pages = DOC_PAGES.map((candidate) => `<a href="${candidate.file}"${candidate === page ? ' aria-current="page"' : ""}>${candidate.label}</a>`).join("");
-  return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button class="core-action-secondary" type="button" id="docs-theme" aria-label="Dark Mode einschalten">${theme}</button></div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links">${toc}</div></nav></aside>`;
+  return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a>${theme}</div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links">${toc}</div></nav></aside>`;
 }
 
 export function htmlPage(file: string, content: string, css: string, script: string, { toc = "", extraHead = "" } = {}) {

@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-01 — Einheitliche Radien für Auswahl-Controls
+
+- Wie in der BengtsToolBox gilt eine Geometrie: Auswahl-Schienen `--core-radius-panel` (14 px), Indikator und Optionen `--core-radius-control` (10 px) statt `calc(panel - 0.25rem)`.
+- Die kompakte Dichte von `CoreSegmentedControl` (8/6 px, 36 px hoch) entfällt; das Aussetz-Segment in `CardStudyStateControls` nutzt die reguläre Schiene.
+- Einzelne Auswahl-Elemente haben 10 px: Icon-Auswahl der Stapeleinstellungen, Prüfungsfilter im Kalender (vorher rund), Aufgaben, Zeitblöcke und Zielvorschau im Wochenkalender (vorher 8 px).
+- Docs: UI-Elements ragt nicht mehr über den Rand (Importschritte brechen in der Katalogspalte um); der Theme-Schalter der Doku ist der Ghost-`IconButton` der App-Navigation.
+
 ## 2026-11-01 — Docs-Leseseiten: Seitenleiste statt Kopfleiste
 
 - Die sticky Kopfleiste aller fünf HTML-Seiten entfällt, weil sie beim Scrollen Inhalt verdeckte. Eine gemeinsame Seitenleiste (`siteSidebar` in `scripts/docsSite.ts`) stapelt drei gleich breite Boxen im bisherigen Design der Inhaltsnavigation: Seitenwechsel mit Theme-Schalter, Suche, Inhaltsnavigation.

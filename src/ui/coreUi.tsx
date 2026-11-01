@@ -360,7 +360,6 @@ export interface CoreSegmentedControlProps<T extends string> {
   options: ReadonlyArray<CoreSegmentedControlOption<T>>;
   value: T;
   onValueChange: (value: T) => void;
-  size?: "regular" | "compact";
   disabled?: boolean;
   className?: string;
   labels?: "visible" | "active" | "hidden";
@@ -397,7 +396,6 @@ export function CoreSegmentedControl<T extends string>({
   options,
   value,
   onValueChange,
-  size = "regular",
   disabled = false,
   className = "",
   labels = "visible",
@@ -408,7 +406,6 @@ export function CoreSegmentedControl<T extends string>({
       ref={containerRef}
       role="group"
       aria-label={ariaLabel}
-      data-size={size}
       data-sliding={indicator ? "true" : undefined}
       className={`core-segmented-control ${labels === "active" ? "core-sliding-tabs" : labels === "hidden" ? "core-icon-segmented-control" : ""} core-control-label ${className}`}
     >
@@ -452,7 +449,6 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
       options={CORE_MODE_OPTIONS}
       value={value}
       onValueChange={onChange}
-      size="regular"
     />
   );
 }

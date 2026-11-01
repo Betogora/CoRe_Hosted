@@ -29,6 +29,8 @@
 #primitive .catalog-card { overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; }
 #primitive .catalog-card-header { padding: .25rem 0 .5rem; }
 #primitive .catalog-preview { min-height: 0; overflow: visible; padding: .375rem; border: 0; background: none; }
+/* Die sechs Importschritte stehen in der schmalen Rasterspalte umbrechend statt in sechs festen Spalten; sonst ragen sie über die Seite und Mobilbrowser zoomen heraus. */
+#progress [aria-label="Importstatus"] { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
 
 .catalog-demo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .catalog-card:not(.catalog-card-wide) .catalog-demo-grid { grid-template-columns: 1fr; }

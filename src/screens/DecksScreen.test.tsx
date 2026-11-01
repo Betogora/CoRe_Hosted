@@ -337,7 +337,7 @@ test("cards page renders sortable collapsed deck sections without learning metri
   const markup = renderScreen(decks, { cardPages });
 
   assert.match(markup, /<h2[^>]*>Lernen<\/h2>/);
-  assert.match(markup, /aria-label="Bereich in Lernen"[^>]*data-size="regular"/);
+  assert.match(markup, /aria-label="Bereich in Lernen"/);
   assert.match(markup, /aria-pressed="false"[^>]*>Stapelübersicht<\/button>/);
   assert.match(markup, /aria-pressed="true"[^>]*>Kartenverwaltung<\/button>/);
   assert.match(markup, /<h3[^>]*>Aktive Stapel<\/h3>/);

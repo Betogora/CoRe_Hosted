@@ -175,7 +175,7 @@ function ControlsDemo({ section }: { section: string }) {
   const [suspended, setSuspended] = useState(false);
   const options = [{ value: "front", label: "Vorderseite", icon: BookOpen }, { value: "back", label: "Rückseite", icon: Layers }];
   return <>
-    {section === "segments" && <Demo title="CoreSegmentedControl · regulär und kompakt"><CoreSegmentedControl ariaLabel="Kartenseite" value={tab} options={options} onValueChange={setTab} /><CoreSegmentedControl ariaLabel="Kompakte Kartenseite" size="compact" value={tab} options={options} onValueChange={setTab} /><CoreSegmentedControl ariaLabel="Deaktivierte Kartenseite" value={tab} options={options} onValueChange={setTab} disabled /></Demo>}
+    {section === "segments" && <Demo title="CoreSegmentedControl · aktiv und deaktiviert"><CoreSegmentedControl ariaLabel="Kartenseite" value={tab} options={options} onValueChange={setTab} /><CoreSegmentedControl ariaLabel="Deaktivierte Kartenseite" value={tab} options={options} onValueChange={setTab} disabled /></Demo>}
     {section === "segments" && <Demo title="CoreIconSegmentedControl"><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={iconView} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setIconView} /></Demo>}
     {section === "segments" && <Demo title="CoreSlidingTabs"><CoreSlidingTabs ariaLabel="Vorschautabs" value={tab} options={options} onValueChange={setTab} /></Demo>}
     {section === "segments" && <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>}

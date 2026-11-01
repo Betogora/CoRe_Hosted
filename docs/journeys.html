@@ -622,12 +622,6 @@ video {
     isolation: isolate;
   }
 
-  .core-segmented-control[data-size="compact"] {
-    height: 2.25rem;
-    padding: 0.125rem;
-    border-radius: var(--core-radius-inset);
-  }
-
   .core-segmented-control-option {
     display: flex;
     align-items: center;
@@ -637,7 +631,7 @@ video {
     z-index: 1;
     min-height: 0;
     min-width: 0;
-    border-radius: calc(var(--core-radius-panel) - 0.25rem);
+    border-radius: var(--core-radius-control);
     padding-inline: 0.75rem;
     color: var(--core-text-secondary);
     font-weight: var(--core-weight-emphasis);
@@ -647,11 +641,6 @@ video {
 
   .core-segmented-control-option svg {
     flex-shrink: 0;
-  }
-
-  .core-segmented-control[data-size="compact"] .core-segmented-control-option {
-    border-radius: var(--core-radius-marker);
-    padding-inline: 0.125rem;
   }
 
   .core-segmented-control-option[aria-pressed="true"] {
@@ -674,19 +663,11 @@ video {
     top: 0;
     left: 0;
     z-index: 0;
-    border-radius: calc(var(--core-radius-panel) - 0.25rem);
+    border-radius: var(--core-radius-control);
     background: var(--core-surface);
     box-shadow: var(--core-selection-indicator-shadow);
     pointer-events: none;
     transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1), width 120ms cubic-bezier(0.22, 1, 0.36, 1), height 120ms ease;
-  }
-
-  .core-segmented-control[data-size="compact"] .core-segmented-control-indicator {
-    border-radius: var(--core-radius-marker);
-  }
-
-  .core-mobile-bottom-navigation .core-segmented-control-indicator {
-    border-radius: var(--core-radius-control);
   }
 
   .core-mobile-bottom-navigation[data-sliding="true"] button[aria-current="page"] {
@@ -6422,7 +6403,8 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--core-space-sm); padding: 0 0 var(--core-space-sm) var(--core-space-sm); }
 .docs-brand { color: var(--core-text); font: var(--core-weight-heading) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); text-decoration: none; }
 .docs-brand span { color: var(--core-text-muted); font-weight: var(--core-weight-body); }
-.docs-panel-head button { flex: none; min-width: var(--core-control-height); border-radius: var(--core-radius-round); padding: var(--core-space-sm); }
+#docs-theme svg + svg, [data-core-theme="dark"] #docs-theme svg:first-child { display: none; }
+[data-core-theme="dark"] #docs-theme svg + svg { display: block; }
 .docs-toc { flex: 0 1 auto; min-height: 0; overflow: auto; }
 .docs-toc strong { display: block; padding: var(--core-space-xs) var(--core-space-sm) var(--core-space-sm); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); }
 .docs-panel-links a { display: block; padding: var(--core-space-sm); border-radius: var(--core-radius-inset); color: var(--core-text-muted); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); text-decoration: none; overflow-wrap: anywhere; }
@@ -6546,6 +6528,8 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 #primitive .catalog-card { overflow: visible; border: 0; border-radius: 0; background: none; box-shadow: none; }
 #primitive .catalog-card-header { padding: .25rem 0 .5rem; }
 #primitive .catalog-preview { min-height: 0; overflow: visible; padding: .375rem; border: 0; background: none; }
+/* Die sechs Importschritte stehen in der schmalen Rasterspalte umbrechend statt in sechs festen Spalten; sonst ragen sie über die Seite und Mobilbrowser zoomen heraus. */
+#progress [aria-label="Importstatus"] { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
 
 .catalog-demo-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 .catalog-card:not(.catalog-card-wide) .catalog-demo-grid { grid-template-columns: 1fr; }
@@ -6641,7 +6625,7 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-in
 }
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-</style><script src="vendor/mermaid.min.js"></script></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button class="core-action-secondary" type="button" id="docs-theme" aria-label="Dark Mode einschalten"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun-moon" aria-hidden="true"><path d="M12 8a2.83 2.83 0 0 0 4 4 4 4 0 1 1-4-4"></path><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.9 4.9 1.4 1.4"></path><path d="m17.7 17.7 1.4 1.4"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.3 17.7-1.4 1.4"></path><path d="m19.1 4.9-1.4 1.4"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html">Specs</a><a href="journeys.html" aria-current="page">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Journeys durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Ablauf, Regel …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article><article id="journey-1" class="docs-document docs-journey"><h2 id="journey-1--51-account-öffnen-und-produktzustand-verstehen" class="core-heading-2" tabindex="-1">5.1 Account öffnen und Produktzustand verstehen <a class="docs-anchor" href="#journey-1--51-account-öffnen-und-produktzustand-verstehen" aria-label="Link zu 5.1 Account öffnen und Produktzustand verstehen">#</a></h2>
+</style><script src="vendor/mermaid.min.js"></script></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html">Specs</a><a href="journeys.html" aria-current="page">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Journeys durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Ablauf, Regel …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article><article id="journey-1" class="docs-document docs-journey"><h2 id="journey-1--51-account-öffnen-und-produktzustand-verstehen" class="core-heading-2" tabindex="-1">5.1 Account öffnen und Produktzustand verstehen <a class="docs-anchor" href="#journey-1--51-account-öffnen-und-produktzustand-verstehen" aria-label="Link zu 5.1 Account öffnen und Produktzustand verstehen">#</a></h2>
 <p>Neue Accounts starten ohne erfundene Profildaten, Demo-Stapel oder fremde Lernhistorie. Das Dashboard erklärt den Kernnutzen und führt zu Import, manueller Karte oder bewusst gewählter Demo.</p>
 <h3 id="journey-1--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
 N0[&quot;Account öffnen&quot;] --&gt; N1
