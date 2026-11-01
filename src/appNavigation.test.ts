@@ -9,7 +9,6 @@ import {
   createViewRoute,
   normalizeAppRoute,
   parseAppRouteFromUrl,
-  readAppRouteFromHistoryState,
   reviewReturnContextToViewRoute,
 } from "./appNavigation.ts";
 
@@ -17,7 +16,6 @@ test("deck content retains its scope and editor selection through URL and histor
   const route = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", deckContent: true });
   assert.equal(appRouteToUrl(route), "/kartenstapel?deck=deck-1&card=card-1&cardTab=general&content=1");
   assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
-  assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
   assert.deepEqual(createViewRoute("kartenstapel", { deckContent: true }), createViewRoute("kartenstapel"));
   assert.deepEqual(parseAppRouteFromUrl("/lernen?deck=deck-1&content=1"), createViewRoute("lernen", { focusedDeckId: "deck-1" }));
 });
@@ -26,7 +24,6 @@ test("content tabs roundtrip with the selected deck and review return context", 
   for (const tab of ["children", "summary", "quiz", "mind-map", "cards", "source"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "child", deckContent: true, deckContentTab: tab });
     assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
-    assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
     const review = createStudyRoute("child", { returnContext: createReviewReturnContext(route) });
     if (review.mode !== "study") throw new Error("Missing review route");
     assert.deepEqual(reviewReturnContextToViewRoute(review.returnContext), route);
@@ -240,12 +237,6 @@ test("falls back to today for unknown paths and ignores unsupported query values
   assert.deepEqual(parseAppRouteFromUrl("/neue-karten?method=provider&card=ignored"), { mode: "view", viewId: "neue-karten" });
 });
 
-test("falls back to today for retired labs and test-mode routes", () => {
-  for (const path of ["/graph", "/community", "/assistent", "/ki-jobs", "/testmodus"]) {
-    assert.deepEqual(parseAppRouteFromUrl(path), { mode: "view", viewId: "uebersicht" });
-  }
-});
-
 test("roundtrips review deck and allowlisted return context through the URL", () => {
   const route = parseAppRouteFromUrl(
     "/decks/deck%2Fspecial/review?returnView=decks&returnDeck=deck%2Fspecial&returnCard=card%2Ftwo",
@@ -319,12 +310,11 @@ test("review return preserves deck content through URL reloads", () => {
   assert.equal(learning.returnContext.deckContent, undefined);
 });
 
-test("stores and reads app routes from browser history state without losing external state", () => {
+test("stores app routes in browser history state without losing external state", () => {
   const route = createViewRoute("lernen");
   const state = createAppHistoryState(route, { currentState: { external: "kept" } });
 
   assert.equal(state.external, "kept");
-  assert.deepEqual(readAppRouteFromHistoryState(state), route);
   assert.equal(areAppRoutesEqual(state.coreAppRoute, route), true);
 });
 
@@ -346,7 +336,6 @@ test("source creation route round-trips with its explicit target", () => {
   const route = createViewRoute("neue-karten", { creationMethod: "ai-source", creationDeckId: "biology" });
   assert.equal(appRouteToUrl(route), "/neue-karten?method=ai-source&deck=biology");
   assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);
-  assert.deepEqual(readAppRouteFromHistoryState(createAppHistoryState(route)), route);
 });
 
 test("card editor tabs come from a fixed list and open by entry (W5, W6)", () => {

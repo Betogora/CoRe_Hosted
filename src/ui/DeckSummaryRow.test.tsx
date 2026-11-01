@@ -21,19 +21,16 @@ test("deck summary row keeps responsive identity and accessible metrics without 
   );
 
   assert.match(markup, /data-deck-summary-row-content="compact"/);
-  assert.match(markup, /core-deck-summary-name/);
-  assert.match(markup, /data-deck-name-wrap="false"/);
-  assert.match(markup, /core-deck-summary-name-measure/);
-  assert.doesNotMatch(markup, /truncate whitespace-nowrap/);
+  assert.match(markup, /data-deck-name-wrap="false">Ein sehr langer Unterstapelname<\/span>/);
+  assert.match(markup, /aria-hidden="true">Ein sehr langer Unterstapelname<\/span>/);
   assert.doesNotMatch(markup, />Herkunft \/ Ein sehr langer Unterstapelname</);
   for (const metric of ["new", "in-progress", "due"]) assert.match(markup, new RegExp(`data-deck-count="${metric}"`));
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="sr-only">${label}</dt>`));
   assert.doesNotMatch(markup, /data-deck-count="total"|>Gesamt</);
-  assert.match(markup, /size-8/);
+  assert.match(markup, /data-deck-icon="true"/);
   assert.match(markup, /padding-inline-start:calc\(1 \* var\(--core-deck-depth-indent, 8px\)\)/);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt|Keine aktiven Karten/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
-  assert.doesNotMatch(markup, /rounded-round|uppercase tracking-wide/);
 });
 
 test("deck summary row caps visual indentation at level six", () => {
@@ -70,7 +67,6 @@ test("deck summary row omits the complete learning status block for management r
     />,
   );
 
-  assert.match(markup, /grid-cols-\[minmax\(0,1fr\)_auto\]/);
   assert.doesNotMatch(markup, /data-deck-count=|Lernstand für|Gesamtfortschritt für|data-donut-/);
   assert.match(markup, /aria-label="Stapeloptionen"/);
 });
@@ -87,8 +83,7 @@ test("deck summary row projects a tile with visible metric labels and no indenta
     />,
   );
 
-  assert.match(markup, /core-deck-folder-summary/);
-  assert.doesNotMatch(markup, /core-deck-summary-responsive|padding-inline-start:calc/);
-  assert.match(markup, /core-heading-3/);
-  for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="core-caption text-core-muted">${label}</dt>`));
+  assert.match(markup, /padding-inline-start:0/);
+  assert.doesNotMatch(markup, /padding-inline-start:calc/);
+  for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="(?![^"]*sr-only)[^"]*">${label}</dt>`));
 });

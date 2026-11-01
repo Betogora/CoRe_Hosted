@@ -10,9 +10,8 @@ import {
   createDeckLibraryModel,
   createPagedCardTableModel,
   createStudyHeatmapModel,
-  createStudyHeatmapWindow,
 } from "./libraryModel.ts";
-import { createStudyHeatmapModelFromCounts } from "./studyHeatmapModel.ts";
+import { createStudyHeatmapModelFromCounts, createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
 
 const notesById = new Map<string, Note>();
 
@@ -433,21 +432,21 @@ test("card table sorts all columns and projects next-study labels and variant st
   }
 });
 
-test("card table pages large libraries and finds late cards deterministically", () => {
-  const cards = Array.from({ length: 10_000 }, (_, index) => libraryCard("large-card-" + index, {
+test("card table pages beyond the first page and finds the last card deterministically", () => {
+  const cards = Array.from({ length: 101 }, (_, index) => libraryCard("large-card-" + index, {
     front: "Frage " + index,
     back: "Antwort " + index,
   }));
   const deck = createCoreDeck({ id: "large-deck", name: "Groß", source: "manual", cards });
   const model = createCardTableModel([deck], { notesById });
 
-  assert.equal(model.cardCount, 10_000);
+  assert.equal(model.cardCount, 101);
   assert.equal(model.groups[0].cardRows.length, 50);
-  assert.equal(model.groups[0].pageCount, 200);
+  assert.equal(model.groups[0].pageCount, 3);
 
-  const lateMatch = createCardTableModel([deck], { query: "Frage 9999", notesById });
+  const lateMatch = createCardTableModel([deck], { query: "Frage 100", notesById });
   assert.equal(lateMatch.cardCount, 1);
-  assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-9999"]);
+  assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-100"]);
 
   const secondPage = createCardTableModel([deck], { notesById, cardPageByDeckId: { [deck.id]: 1 } });
   assert.equal(secondPage.groups[0].page, 1);
@@ -473,9 +472,9 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
 // @ts-expect-error -- Eine manuelle Neuplanung darf nicht als Lernfortschritt zählen.
       { id: "review_manual", rating: "manual", answeredAt: "2026-07-07T10:00:00.000Z", cardId: "card_4" },
 // @ts-expect-error -- Eine fehlende Bewertung darf nicht als Lernfortschritt zählen.
-      { id: "review_unrated", reviewedAt: "2026-07-04T10:00:00.000Z", cardId: "card_unrated" },
+      { id: "review_unrated", answeredAt: "2026-07-04T10:00:00.000Z", cardId: "card_unrated" },
 // @ts-expect-error -- Ein zukünftiges Review bleibt relativ zur simulierten Uhr unsichtbar.
-      { id: "review_future", rating: "good", reviewedAt: "2026-07-08T10:00:00.000Z", cardId: "card_future" },
+      { id: "review_future", rating: "good", answeredAt: "2026-07-08T10:00:00.000Z", cardId: "card_future" },
     ],
   });
 
@@ -488,9 +487,6 @@ test("study heatmap counts only rated reviews by profile day and derives the cur
   assert.equal([...heatmap.countsByDay.values()].reduce((sum, count) => sum + count, 0), 4);
   assert.equal(heatmap.firstActivityKey, "2026-07-05");
   assert.equal(heatmap.currentStreak, 3);
-  assert.equal("activeDays" in heatmap, false);
-  assert.equal("averagePerActiveDay" in heatmap, false);
-  assert.equal("longestStreak" in heatmap, false);
   assert.equal(window.days.find((day) => day.key === "2026-07-07")?.count, 2);
   assert.equal(window.days.find((day) => day.key === "2026-07-07")?.level, 4);
   assert.equal(heatmap.countsByDay.has("2026-07-08"), false);

@@ -32,7 +32,7 @@
     "docs:build": "tsx scripts/generateDocs.ts --write",
     "mascots:build": "tsx scripts/generateMascots.tsx --write",
     "mascots:check": "tsx scripts/generateMascots.tsx --check",
-    "check:unused": "knip --no-config-hints",
+    "check:unused": "knip --no-config-hints && knip --production --include exports,types,nsExports,nsTypes --no-config-hints",
     "check:docs": "tsx --test scripts/docsSite.test.ts && tsx scripts/generateDocs.ts --check",
     "build": "vite build",
     "benchmark:apkg": "python scripts/create_world_capitals_apkg.py --benchmark-output test-results/apkg/core-local-benchmark.apkg --benchmark-repeat 5000 --benchmark-item-count 5 --benchmark-media-count 1000 && tsx scripts/benchmarkApkgImport.ts test-results/apkg/core-local-benchmark.apkg",

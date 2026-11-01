@@ -60,23 +60,19 @@ test("shared study heatmap defaults to seven days with the streak title and shar
   );
 
   assert.match(markup, /1 Tag Streak/);
-  assert.match(markup, /core-study-heatmap-container/);
-  assert.match(markup, /core-study-heatmap-header/);
-  assert.match(markup, /core-study-heatmap-controls/);
-  assert.match(markup, /data-testid="study-heatmap-controls"><button[^>]*aria-label="Heatmap-Farbe ändern"[^>]*border-core-border/);
+  assert.match(markup, /data-testid="study-heatmap-header"[\s\S]*1 Tag Streak[\s\S]*data-testid="study-heatmap-controls"/);
+  assert.match(markup, /data-testid="study-heatmap-controls"><button[^>]*aria-label="Heatmap-Farbe ändern"/);
   assert.match(markup, /data-testid="study-heatmap-controls">[\s\S]*aria-label="Heatmap-Farbe ändern"[\s\S]*aria-label="Heatmap-Zeitraum"/);
   assert.match(markup, /data-heatmap-history-color="#d6a3d2"/);
-  assert.doesNotMatch(markup, /aria-label="Heatmap-Farbe ändern"[^>]*border-\[var\(--core-border-interactive\)\]/);
   assert.match(markup, /background-color:var\(--core-learning-status-new\)/);
   assert.match(markup, /role="combobox"[\s\S]*aria-label="Heatmap-Zeitraum"/);
-  assert.equal((markup.match(/inline-flex size-control shrink-0/g) ?? []).length, 2);
-  assert.doesNotMatch(markup, /core-segmented-control-option/);
+  assert.doesNotMatch(markup, /aria-pressed=/);
   assert.match(markup, />Woche</);
   assert.match(markup, /Frühere sieben Tage anzeigen/);
   assert.match(markup, /Spätere sieben Tage anzeigen/);
   assert.match(markup, /data-testid="study-heatmap-grid"[^>]*data-heatmap-period="week"/);
   assert.equal((markup.match(/data-heatmap-day=/g) ?? []).length, 7);
-  assert.match(markup, /<span class="block">Di<\/span><span class="block whitespace-nowrap">07\.07\.<\/span>/);
+  assert.match(markup, />Di<\/span><span[^>]*>07\.07\.<\/span>/);
   assert.match(markup, /2026-07-07: 3 Wiederholungen/);
   assert.match(markup, /data-testid="study-heatmap-legend"[\s\S]*Weniger[\s\S]*Mehr/);
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));

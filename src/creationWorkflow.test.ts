@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { ANKI_PACKAGE_MAX_BYTES, type ImportCommitGraph, type ImportGraphChunk } from "./apkgImport.ts";
-import { createCoreDeck } from "./coreModel.ts";
+import { createCoreDeck, createNote } from "./coreModel.ts";
 import { createCreationWorkflow, createImportCloudSyncTask, type CommitImport, type ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { MediaSyncProgress, MediaSyncTask } from "./mediaStore.ts";
 
@@ -497,4 +497,43 @@ test("die Import-Cloud-Aufgabe bleibt bei wiederholbaren Ergebnissen ausstehend"
   await task.ready;
   assert.equal(ready, true);
   assert.deepEqual(statuses, ["syncing", "syncing", "local-pending", "syncing", "cloud-ready"]);
+});
+
+const CREATED_AT = "2026-10-08T08:00:00.000Z";
+
+test("der Erstellungsablauf liefert Inhalt und Bildzuordnung, aus denen die Karten entstehen", async () => {
+  const workflow = createCreationWorkflow();
+  const image = await workflow.prepareManualImage(Object.assign(new Blob([new Uint8Array([9, 9])], { type: "image/png" }), { name: "zelle.png" }));
+  const validation = workflow.validateManualCard({
+    kind: "cloze",
+    front: `<p>Die {{c1::Mitochondrien}} <img src="${image.sha1}"></p>`,
+    back: "Zellorganellen",
+    mediaAttachments: [image],
+  });
+  assert.equal(validation.ok, true);
+  const { note, cards } = createNote({ deckId: "deck", content: validation.content, media: validation.media! });
+
+  assert.deepEqual(cards.map((card) => card.promptKey), ["cloze:1"]);
+  assert.deepEqual(note.media, { [image.sha1]: image.sha1 });
+  assert.equal(note.source, "manual");
+  assert.equal(note.importedContentRevision, null);
+});
+
+test("Bildverdeckung braucht Bild und abgefragte Maske; das Bild wird über seine SHA-1 gespeichert", () => {
+  const workflow = createCreationWorkflow();
+  const image = "b".repeat(40);
+  const mask = { id: "mask-1", ordinal: 1, shape: { kind: "rect" as const, left: 0.1, top: 0.1, width: 0.2, height: 0.2, angle: 0 }, alwaysOccluded: false };
+  assert.deepEqual(workflow.validateManualCard({ occlusion: { image: "", mode: "hide-all-guess-one", masks: [mask] } }).errors, { occlusion: "Bitte ein Bild wählen." });
+  assert.deepEqual(workflow.validateManualCard({ occlusion: { image, mode: "hide-all-guess-one", masks: [] } }).errors, { occlusion: "Bitte mindestens eine Maske zeichnen, die abgefragt wird." });
+  const validation = workflow.validateManualCard({
+    front: "Herz",
+    back: "<p>Vier Kammern</p>",
+    additionalFields: [{ name: "Quelle", value: "Lehrbuch", role: "source" }],
+    occlusion: { image, mode: "hide-one-guess-one", masks: [mask] },
+  });
+  assert.equal(validation.ok, true);
+  assert.deepEqual(validation.media, { [image]: image });
+  assert.equal(validation.content?.interaction.kind, "image-occlusion");
+  assert.deepEqual(validation.content?.fields.map((field) => [field.name, field.role]), [["Überschrift", "prompt"], ["Zusatz", "extra"], ["Quelle", "source"]]);
+  assert.deepEqual(createNote({ deckId: "deck", content: validation.content!, media: validation.media!, createdAt: CREATED_AT }).cards.map((card) => card.promptKey), ["io:1"]);
 });

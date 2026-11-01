@@ -2447,6 +2447,7 @@ summary {
 .core-summary-create-popover .core-summary-actions > button { flex: 1; }
 .core-summary-create-popover .core-segmented-control { width: 100%; }
 .core-summary-create-popover .core-segmented-control-option { white-space: normal; flex: 1; }
+.core-summary-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xs); align-items: start; }
 .core-summary-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--core-space-xl); align-items: center; }
 .core-summary-preview:hover { border-color: var(--core-border-interactive); background-color: var(--core-surface-hover); }
 .core-summary-excerpt { max-height: 6rem; overflow: hidden; overflow-wrap: anywhere; white-space: pre-line; mask-image: linear-gradient(#000 45%, transparent); }

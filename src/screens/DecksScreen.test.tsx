@@ -408,8 +408,8 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(expandedMarkup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
 });
 
-test("cards page keeps logical chevrons while capping visual depth at level six", () => {
-  const deepDecks = Array.from({ length: 12 }, (_, index) => createCoreDeck({
+test("cards page caps visual depth at level six and keeps deeper decks expandable", () => {
+  const deepDecks = Array.from({ length: 7 }, (_, index) => createCoreDeck({
     id: `cards-depth-${index + 1}`,
     name: `Ebene ${index + 1}`,
     parentDeckId: index === 0 ? null : `cards-depth-${index}`,
@@ -419,11 +419,8 @@ test("cards page keeps logical chevrons while capping visual depth at level six"
   }));
   const markup = renderScreen(deepDecks);
 
-  assert.match(markup, /data-testid="deck-header-cards-depth-6"[^>]*data-deck-depth="5"/);
-  assert.match(markup, /data-testid="deck-header-cards-depth-12"[^>]*data-deck-depth="5"/);
-  for (let level = 1; level < 12; level += 1) {
-    assert.match(markup, new RegExp(`aria-label="Karten von [^"]*Ebene ${level} aufklappen"`));
-  }
+  assert.match(markup, /data-testid="deck-header-cards-depth-7"[^>]*data-deck-depth="5"/);
+  assert.match(markup, /aria-label="Karten von [^"]*Ebene 6 aufklappen"/);
 });
 
 test("card selection opens the full-surface editor dialog with header, tabs and the general tab", () => {

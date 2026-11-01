@@ -11,6 +11,24 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - ToolBox-Nachzug (ADR-046): Maskottchenpalette auf Akzent, Primärblau und Markentinte, Logo in derselben Palette, Stock-Seiten mit den ToolBox-Neutraltönen; Widget-Paddings, Zählpille, Prüfungskacheln, Logo-Größe und Hover der Unterstapel wie im übrigen Redesign. Die entfallenen Tokens `--core-action` und `--core-subtle` aus dem Branch zeigen auf `--core-action-primary` und `--core-surface-muted`.
 - Nicht übernommen: Quizreste im Prüfungs-Widget (ADR-042) und der Untertitel „Ein Gedanke für deinen Lerntag“; Planeraufgaben stehen in der To-do-Vorschau ohne Kasten wie eigene Aufgaben.
 
+## 2026-10-31 — Testsuite, Paket C: Scope Creep
+
+- `themeContract.test.ts` ohne Hex-, Typografie- und Einzelregel-Snapshots; es bleiben Vollständigkeit des dunklen Themes, Monotonie der Gruppentiefen, Kontrast, Geometrie-Skala, Verbot der alten Palette und Fokus.
+- UI-Tests (`AppNavigation`, `DeckTree`, `coreUi`, `StudyHeatmap`, `DeckSummaryRow`, `ColorWheelPicker`, `LearningAreaHeader`) prüfen Rollen, `data-*`, aria und Text statt exakter Tailwind-Klassen; dokumentierte Varianten- und Zustandsklassen bleiben.
+- `colorPicker.test.ts` (nur Literale) entfällt, ebenso die CSS-Textprüfungen in `feedbackUi` und `SettingsSaveBar`; `HelpScreen.test.tsx` prüft nur Überschriften, Anker und Links. Der dadurch tote Export `richTextColorStorageKeys` ist dateilokal.
+- Doppelte Prüfungen beim Besitzer zusammengelegt: gemeinsame KI-Routenhelfer in `aiRoute.test.ts` statt in beiden Routentests, Fortschrittssegmente in `DailyReviewProgress`, Dashboard-Standardwidgets in `dashboardWidgets`, Decktiefe in `deckHierarchy` mit je einer Integrationsprüfung in `DeckTree`, `DeckSummaryRow` und `DecksScreen`.
+- Fixtures verkleinert: Paging in `libraryModel` 10.000 → 101 Karten (370–490 ms → 8 ms), Szenario aus Bewertungshistorie in `examPlanning` 300 → 3 Karten und 7 statt 30 Tage (330–440 ms → 40 ms). Skalierungs- und Rekursionstests bleiben groß.
+
+## 2026-10-31 — Testsuite, Paket B: Veraltetes und toter Code
+
+- Testbug: Das Heatmap-Fixture in `libraryModel.test.ts` nutzte `reviewedAt` statt `answeredAt`; „künftige Reviews bleiben unsichtbar“ bestand dadurch ohne Prüfung und wirkt jetzt.
+- Nur von Tests genutzt und samt Tests entfernt: `readAppRouteFromHistoryState`, `applyLearningSettingsToDeckSettings`, `applyLearningPreset` (die Presetwerte prüft der Test jetzt über `normalizeLearningSettings`), `accountStorageKeys`, der Re-Export `createStudyHeatmapWindow` aus `libraryModel.ts` und der Typ-Re-Export `LearningSettings` aus `deckSettings.ts`.
+- `npm run check:unused` prüft zusätzlich im Produktionsmodus von knip; bewusst testseitige Seam-Hilfen tragen `@internal`, `buildAiSourceCreationPrompt` (P2) `@public`.
+- Zusammenfassungen löschen: `deleteLearningSummary` war seit dem Editor-Umbau ohne Bedienelement, obwohl ADR-043 das geräteübergreifende Löschen vorsieht und Konflikte sowie neue KI-Fassungen die Liste sonst unbegrenzt wachsen lassen. Jede Fassung der Liste trägt jetzt einen Papierkorb mit Rückfrage; offline verschwindet sie sofort und die Löschung wird beim nächsten Öffnen hochgeladen. Nachweis: neuer Katalog-E2E (Abbrechen, Löschen, Reload) und die Listen-Sichtmatrix (320–1440 px, hell/dunkel) grün.
+- `creationPipeline.test.ts` aufgelöst: manuelle Inhalte in `coreModel.test.ts`, Erstellungsablauf und Bildverdeckung in `creationWorkflow.test.ts`; Basic mit Rückseite, Multiple Choice und die Varianten-Lernstatusprüfung (durch Typen und `coreModel.test.ts` abgedeckt) entfallen.
+- Abwesenheitsprüfungen entfernter Funktionen gestrichen (Profilfelder, Build-Infos, JSON-Portabilität, Simulatorverlauf, KI-/Assistent-Navigation, Labs-Routen im Modultest, Labs-Schleife im Navigationsflow). Die Browserprüfungen für Beta-Abnahme Punkt 4 bleiben.
+- Verifiziert: fokussierte Modultests, `npm run gate:push`; die Playwright-Auswahl von `product-surfaces.spec.ts` per `--list`, der Flow selbst nicht ausgeführt.
+
 ## 2026-10-31 — Übernahme aus `codex/klausurplaner-design` ohne Quizplanung
 
 - Merge von `71a7892`: Lernstart und Prüfungsziel auf der ersten Seite, durchsuchbare Stapelzweige, Lernzeit als Durchschnitt oder je Wochentag, Vorschau mit Lerntagen und begrenzter Themenfolge, mitwachsende Prüfungsübersicht, Prüfungsfarben als Kalenderfilter, Kalender ab der aktuellen Woche und Einstiege „Erste Prüfung planen“ und „Weitere Prüfung planen“.

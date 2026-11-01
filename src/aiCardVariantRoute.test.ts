@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { buildOpenRouterPayload, createCardVariantHandler, extractGeneratedVariant } from "../api/ai/card-variant.ts";
-import { classifyProviderError, OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
+import { OPENROUTER_CHAT_ENDPOINT, OPENROUTER_MODEL } from "../server/aiRoute.ts";
 
 const input = { source: { front: "Was ist ATP?", back: "Ein Energieträger." } };
 const texts = { rateLimited: "zu viele", unavailable: "nicht verfügbar", rejected: "abgelehnt", failed: "fehlgeschlagen", invalid: "ungültig", tool: "Werkzeug", fields: "Felder" };
@@ -56,15 +56,6 @@ test("OpenRouter payload forces one compact tool call on the fixed model with ZD
   assert.match(withAvoid.messages[0].content, /nicht mit denselben ersten Wörtern/);
 });
 
-test("provider errors map to stable codes without exposing configuration", () => {
-  assert.equal(classifyProviderError(429, { error: { code: 429, message: "Rate limit exceeded" } }, texts).code, "rate_limited");
-  assert.equal(classifyProviderError(402, null, texts).code, "provider_budget_exhausted");
-  assert.equal(classifyProviderError(403, { error: { code: 403, message: "Key limit exceeded", metadata: { limit_source: "openrouter_key_limit" } } }, texts).code, "provider_budget_exhausted");
-  assert.equal(classifyProviderError(403, { error: { code: 403, message: "Forbidden" } }, texts).code, "openrouter_auth_failed");
-  assert.equal(classifyProviderError(401, null, texts).message.includes("OPENROUTER_API_KEY"), false);
-  assert.equal(classifyProviderError(200, { error: { code: 502, message: "Provider returned error" } }, texts).code, "provider_error");
-});
-
 test("provider extraction requires exactly one changed create_card_variant call", () => {
   const { result, costUsd } = extractGeneratedVariant(completion(), input);
   assert.equal(result.variant.front, "Wofür steht ATP?");
@@ -115,95 +106,44 @@ test("route authenticates and creates a variant with one provider call and a con
   assert.doesNotMatch(JSON.stringify(logs), /ATP|session-token|openrouter-secret/);
 });
 
-test("route rejects unauthenticated, cross-origin and unconfigured requests", async () => {
-  const handler = createCardVariantHandler({ env: {}, authenticate: async () => "user-id", fetchImpl: async () => response({}), log: silent });
-
-  const unauthenticated = resultResponse();
-  await handler(request({ headers: { host: "core.example", origin: "https://core.example" } }), unauthenticated);
-  assert.equal(unauthenticated.statusCode, 401);
-
-  const missingOrigin = resultResponse();
-  await handler(request({ headers: { authorization: "Bearer session-token", host: "core.example" } }), missingOrigin);
-  assert.equal(missingOrigin.statusCode, 403);
-
-  const crossOrigin = resultResponse();
-  await handler(request({ headers: { authorization: "Bearer session-token", host: "core.example", origin: "https://evil.example" } }), crossOrigin);
-  assert.equal(crossOrigin.statusCode, 403);
-
-  const unconfigured = resultResponse();
-  await handler(request(), unconfigured);
-  assert.equal(unconfigured.statusCode, 503);
-  assert.equal(JSON.parse(unconfigured.body).error.code, "missing_openrouter_api_key");
-});
-
-test("route enforces method and request-size limits", async () => {
-  const handler = createCardVariantHandler({ env: { OPENROUTER_API_KEY: "secret" }, authenticate: async () => "user-id", log: silent });
+test("route rejects wrong method, foreign origin, missing session and oversized or unconfigured requests before the provider", async () => {
+  let providerCalls = 0;
+  const handler = createCardVariantHandler({ env: { OPENROUTER_API_KEY: "secret" }, authenticate: async () => "user-id", fetchImpl: async () => { providerCalls += 1; return response({}); }, log: silent });
+  const unconfiguredHandler = createCardVariantHandler({ env: {}, authenticate: async () => "user-id", fetchImpl: async () => { providerCalls += 1; return response({}); }, log: silent });
 
   const wrongMethod = resultResponse();
   await handler(request({ method: "GET" }), wrongMethod);
   assert.equal(wrongMethod.statusCode, 405);
   assert.equal(wrongMethod.headers.get("allow"), "POST");
 
-  const oversized = resultResponse();
-  await handler(request({
-    headers: { authorization: "Bearer session-token", host: "core.example", origin: "https://core.example", "content-length": "9000" },
-  }), oversized);
-  assert.equal(oversized.statusCode, 413);
+  for (const [headers, status] of [
+    [{ authorization: "Bearer session-token", host: "core.example", origin: "https://evil.example" }, 403],
+    [{ host: "core.example", origin: "https://core.example" }, 401],
+    [{ authorization: "Bearer session-token", host: "core.example", origin: "https://core.example", "content-length": "9000" }, 413],
+  ] as const) {
+    const res = resultResponse();
+    await handler(request({ headers }), res);
+    assert.equal(res.statusCode, status);
+  }
+  const unconfigured = resultResponse();
+  await unconfiguredHandler(request(), unconfigured);
+  assert.equal(unconfigured.statusCode, 503);
+  assert.equal(JSON.parse(unconfigured.body).error.code, "missing_openrouter_api_key");
+  assert.equal(providerCalls, 0);
 });
 
-test("route decodes a streamed body whose multibyte character spans two chunks", async () => {
-  const bodies: string[] = [];
+test("route reports a provider error once without retrying or leaking details", async () => {
+  let chatCalls = 0;
   const handler = createCardVariantHandler({
     env: { OPENROUTER_API_KEY: "secret" },
     authenticate: async () => "user-id",
     log: silent,
-    fetchImpl: async (_url, init) => { bodies.push(String(init?.body)); return response(completion()); },
+    fetchImpl: async () => { chatCalls += 1; return response({ error: "provider details stay private" }, 429); },
   });
-  const bytes = Buffer.from(JSON.stringify({ source: { front: "Was regelt Übergewicht?", back: "Ein Energieträger." } }));
-  const cut = bytes.indexOf(0xc3) + 1;
-  const streamed = Object.assign(request({ body: undefined }), {
-    async *[Symbol.asyncIterator]() { yield bytes.subarray(0, cut); yield bytes.subarray(cut); },
-  });
-  const res = resultResponse();
-  await handler(streamed, res);
-
-  assert.equal(res.statusCode, 200);
-  assert.equal(JSON.parse(JSON.parse(bodies[0]).messages[1].content).source.front, "Was regelt Übergewicht?");
-});
-
-test("route reports provider errors and timeouts without retrying or leaking details", async () => {
-  let chatCalls = 0;
-  const timeoutHandler = createCardVariantHandler({
-    env: { OPENROUTER_API_KEY: "secret" },
-    authenticate: async () => "user-id",
-    log: silent,
-    fetchImpl: async () => {
-      chatCalls += 1;
-      throw Object.assign(new Error("timeout"), { name: "TimeoutError" });
-    },
-  });
-  const timedOut = resultResponse();
-  await timeoutHandler(request(), timedOut);
-  assert.equal(timedOut.statusCode, 502);
-  assert.equal(JSON.parse(timedOut.body).error.code, "provider_timeout");
+  const providerError = resultResponse();
+  await handler(request(), providerError);
+  assert.equal(providerError.statusCode, 429);
+  assert.equal(JSON.parse(providerError.body).error.code, "rate_limited");
+  assert.doesNotMatch(providerError.body, /provider details/);
   assert.equal(chatCalls, 1);
-
-  for (const [providerStatus, expectedStatus, expectedCode] of [
-    [400, 502, "provider_request_rejected"],
-    [401, 503, "openrouter_auth_failed"],
-    [404, 503, "no_provider_endpoint"],
-    [429, 429, "rate_limited"],
-  ] as const) {
-    const providerErrorHandler = createCardVariantHandler({
-      env: { OPENROUTER_API_KEY: "secret" },
-      authenticate: async () => "user-id",
-      log: silent,
-      fetchImpl: async () => response({ error: "provider details stay private" }, providerStatus),
-    });
-    const providerError = resultResponse();
-    await providerErrorHandler(request(), providerError);
-    assert.equal(providerError.statusCode, expectedStatus);
-    assert.equal(JSON.parse(providerError.body).error.code, expectedCode);
-    assert.doesNotMatch(providerError.body, /provider details/);
-  }
 });

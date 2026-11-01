@@ -11,8 +11,6 @@ import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.
 import { getLearningDayRange } from "./learningDay.ts";
 import { isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
 
-export { createStudyHeatmapWindow } from "./studyHeatmapModel.ts";
-
 type DateInput = string | number | Date;
 
 interface LibraryOptions {
