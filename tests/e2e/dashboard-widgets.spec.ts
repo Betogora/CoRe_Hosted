@@ -250,7 +250,7 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) test
   await openEditor(page, theme === "dark");
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
   await page.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
-  await page.locator(".dashboard-deck-teaser").scrollIntoViewIfNeeded();
+  await page.getByTestId("dashboard-deck-list").scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   await page.getByRole("button", { name: "Seite anpassen", exact: true }).click();

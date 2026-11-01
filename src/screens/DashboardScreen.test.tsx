@@ -111,7 +111,6 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
   assert.match(markup, /data-deck-view="list"/);
   assert.match(markup, /aria-label="Alle Stapel öffnen"/);
-  assert.match(markup, /core-action-ghost/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
   assert.match(markup, /data-deck-count="new"/);
@@ -243,11 +242,11 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
 });
 
-test("dashboard limits deck teasers to three roots and has no duplicate completed legend", () => {
+test("dashboard limits the shared deck tree to three roots and has no duplicate completed legend", () => {
   const baseState = createCoreRepository().getState();
   const decks = Array.from({ length: 7 }, (_, index) => createCoreDeck({ id: `preview-${index}`, name: `Stapel ${index}`, source: "manual", cards: [] }));
   const markup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
-  assert.equal((markup.match(/data-dashboard-deck=/g) ?? []).length, 3);
+  assert.equal((markup.match(/data-testid="dashboard-deck-row-/g) ?? []).length, 3);
   assert.match(markup, /Alle 7 Hauptstapel ansehen/);
   assert.match(markup, /Alle Stapel öffnen/);
   assert.doesNotMatch(markup, /Geschafft|Grauer Balken: für heute abgeschlossen/);

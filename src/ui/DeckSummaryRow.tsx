@@ -142,7 +142,7 @@ export function DeckSummaryRow({ row, learningStatus, leadingControl, actions, s
               return (
                 <div key={count.metric} className={`core-deck-summary-count ${compactAtBase ? "min-w-4 text-center" : "grid min-w-0 gap-0.5 text-right"}`} data-deck-count={count.metric}>
                   <dt className={labelClass}>{count.label}</dt>
-                  <dd className="core-deck-summary-count-value core-deck-count-badge" data-count-empty={value === 0 ? "true" : undefined} style={{ "--core-deck-count-color": count.color } as CSSProperties}>{value}</dd>
+                  <dd className="core-deck-summary-count-value" data-count-empty={value === 0 ? "true" : undefined} style={{ "--core-deck-count-color": count.color } as CSSProperties}>{value}</dd>
                 </div>
               );
             })}

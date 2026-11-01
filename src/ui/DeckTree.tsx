@@ -45,6 +45,8 @@ export function useStoredDeckTreeView(storageKey: string) {
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
+  /** Shows only these main decks with their subtrees, in this order; menus and placement still see every row. */
+  rootDeckIds?: readonly string[];
   mode: "dashboard" | "learn";
   /** `list` groups every main deck in its own card; `tiles` shows main decks as tiles with an inline branch panel. */
   view?: DeckTreeView;
@@ -247,7 +249,7 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
   );
 });
 
-export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
+export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange, headerAction, contentAfterRows, onActivate, onStudy, onOpenSettings, onSetDeckCoreMode, onMoveDeck, collapsedDeckIds, onDeckExpansionChange }: DeckTreeProps) {
   const [draggedDeckId, setDraggedDeckId] = React.useState<string | null>(null);
   const [dropIntent, setDropIntent] = React.useState<DropIntent | null>(null);
   const [dragFocusLayout, setDragFocusLayout] = React.useState<DragFocusLayout | null>(null);
@@ -256,8 +258,18 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
   const suppressedClickDeckIdRef = React.useRef<string | null>(null);
   const dragMaskId = React.useId().replaceAll(":", "");
   const decks = React.useMemo(() => rows.map((row) => row.deck), [rows]);
+  const shownRows = React.useMemo(() => {
+    if (!rootDeckIds) return rows;
+    const groups = new Map(rootDeckIds.map((deckId) => [deckId, [] as DeckLibraryRow[]]));
+    let group: DeckLibraryRow[] | null = null;
+    for (const row of rows) {
+      if (row.depth === 0) group = groups.get(row.id) ?? null;
+      group?.push(row);
+    }
+    return [...groups.values()].flat();
+  }, [rootDeckIds, rows]);
   const [collapsedDeckIdSet, setCollapsedDeckIdSet] = React.useState(() => new Set(collapsedDeckIds));
-  const visibleRows = React.useMemo(() => getVisibleRows(rows, collapsedDeckIdSet), [collapsedDeckIdSet, rows]);
+  const visibleRows = React.useMemo(() => getVisibleRows(shownRows, collapsedDeckIdSet), [collapsedDeckIdSet, shownRows]);
   const rowGroups = React.useMemo(() => {
     const groups: { root: DeckLibraryRow; rows: DeckLibraryRow[] }[] = [];
     for (const row of visibleRows) {
@@ -266,7 +278,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
     }
     return groups;
   }, [visibleRows]);
-  const parentDeckIds = React.useMemo(() => rows.filter((row) => row.hasChildren).map((row) => row.id), [rows]);
+  const parentDeckIds = React.useMemo(() => shownRows.filter((row) => row.hasChildren).map((row) => row.id), [shownRows]);
   const anyCollapsed = parentDeckIds.some((deckId) => collapsedDeckIdSet.has(deckId));
 
   // Tile view: the opened folder and the column count that decides where its branch panel is inserted.
@@ -282,7 +294,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
     for (let current = folderRow; current; current = rowById.get(current.parentDeckId ?? "") ?? null) trail.unshift(current);
     return trail;
   }, [folderRow, rowById]);
-  const rootRows = React.useMemo(() => rows.filter((row) => row.depth === 0), [rows]);
+  const rootRows = React.useMemo(() => shownRows.filter((row) => row.depth === 0), [shownRows]);
   const selectedRootId = folderTrail[0]?.id;
   const selectedRootIndex = rootRows.findIndex((row) => row.id === selectedRootId);
   const panelAfterIndex = Math.min(rootRows.length - 1, (Math.floor(selectedRootIndex / folderColumns) + 1) * folderColumns - 1);
@@ -597,7 +609,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
       </div>
     </section>
   ) : null;
-  const showExpandAll = mode === "learn" && view === "list" && parentDeckIds.length > 0;
+  const showExpandAll = view === "list" && parentDeckIds.length > 0;
   const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
@@ -612,7 +624,7 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid">
-          <div className={`core-deck-tree-header grid min-h-control items-center gap-3${mode === "learn" && showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
               <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
             </div>
@@ -623,10 +635,10 @@ export function DeckTree({ rows, mode, view = "list", onViewChange, headerAction
                     {anyCollapsed ? "Alle aufklappen" : "Alle einklappen"}
                   </ActionButton>
                 ) : null}
-                {headerAction}
                 {showViewControl && onViewChange ? (
                   <CoreIconSegmentedControl ariaLabel="Stapelansicht" options={DECK_TREE_VIEW_OPTIONS} value={view} onValueChange={onViewChange} />
                 ) : null}
+                {headerAction}
               </div>
             ) : null}
           </div>

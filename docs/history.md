@@ -1,9 +1,15 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-31
+**Stand:** 2026-11-02
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-11-02 — Aktive Stapel: Zahlen ohne Pille, Dashboard mit gemeinsamer Ansicht
+
+- `Neu`, `Offen` und `Fällig` erscheinen in Liste und Kacheln als Zahlen in Statusfarbe ohne Hintergrundfläche und in Größe des Stapelnamens; Nullwerte bleiben neutral.
+- Das Dashboard-Widget nutzt statt der eigenen Teaser-Ansicht wieder `DeckTree` wie `Lernen` (Gruppen, Auf-/Zuklappen, Kachel-Panel, Optionsmenü, Ziehen) im Widgetrahmen. `rootDeckIds` beschränkt es auf die drei Hauptstapel mit den meisten startbaren Karten; Verschiebeziele umfassen weiterhin alle Stapel. Der Eck-Link `Alle Stapel öffnen` steht nach der Ansichtsauswahl.
+- Prüfung: fokussierte Tests, `typecheck`, `check:docs`; Sichtprüfung Heute und Lernen in Liste und Kacheln bei 320, 390, 1280 und 1440 px hell ohne waagerechten Überlauf. Dark Mode und E2E nicht geprüft.
 
 ## 2026-11-01 — Einheitliche Radien für Auswahl-Controls
 

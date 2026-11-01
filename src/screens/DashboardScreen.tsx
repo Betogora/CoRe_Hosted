@@ -3,7 +3,7 @@ import { DashboardWidgets } from "./DashboardWidgets.tsx";
 import { DailyMotivationWidget } from "./DailyMotivationWidget.tsx";
 import { ExamDashboardWidget } from "./ExamDashboardWidget.tsx";
 import { CreationActionCard } from "../ui/CreationActionCard.tsx";
-import { CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
+import { ArrowUpRight, CalendarDays, CheckCircle2, FileArchive, PenLine, Play, RefreshCcw, Sparkles } from "lucide-react";
 import { createDeckLibraryModel, createStudyHeatmapModel, type DailyLearningPlan, type DailyLearningSession } from "../libraryModel.ts";
 import { getGlobalSchedulerPreferences } from "../deckSettings.ts";
 import type { DashboardScreenProps } from "../appScreenProps.ts";
@@ -13,7 +13,7 @@ import type { StudyHeatmapDay } from "../studyHeatmapModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
 import { DailyReviewProgress, DAILY_REVIEW_PROGRESS_SEGMENTS } from "../ui/DailyReviewProgress.tsx";
-import { DashboardDecks } from "./DashboardDecks.tsx";
+import { DeckTree, useStoredDeckTreeView } from "../ui/DeckTree.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { formatLearningCardCount } from "../ui/learningStatusUi.ts";
 import { DeckSelect } from "../ui/selectUi.tsx";
@@ -226,13 +226,16 @@ function DailyLearningOverview({
   );
 }
 
-export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
+export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeatmap, now, onNavigate, onStartDeck, onStartAdditionalCards, onCreateDemo, onSetDeckCoreMode, onMoveDeck, onOpenDeckSettings, onSetDeckExpanded, onStartExamUnit, onLoadExamPlanningData, onSaveExamTasks, onLoadExamSummaryAvailability, onLoadExamLocalCardIds, pomodoroTimer = null, onStartPomodoro = () => undefined, onPausePomodoro = () => undefined, onResumePomodoro = () => undefined, onResetPomodoro = () => undefined }: DashboardScreenProps) {
   const globalSettings = getGlobalSchedulerPreferences(state.profile);
   const library = React.useMemo(
     () => createDeckLibraryModel(state.decks, { now, timeZone: state.profile.timezone || undefined, dayStartHour: globalSettings.dayStartHour, learnAheadMinutes: globalSettings.learnAheadMinutes, deckSummaries }),
     [deckSummaries, globalSettings.dayStartHour, globalSettings.learnAheadMinutes, now, state.decks, state.profile.timezone],
   );
   const { dailyLearningPlan } = library;
+  const [deckView, setDeckView] = useStoredDeckTreeView("core.dashboard.deckView.v1");
+  const deckRoots = React.useMemo(() => library.rows.filter((row) => row.depth === 0), [library.rows]);
+  const teaserRootIds = React.useMemo(() => [...deckRoots].sort((a, b) => b.dailyLearningSession.startableCount - a.dailyLearningSession.startableCount).slice(0, 3).map((row) => row.id), [deckRoots]);
   const timeZone = state.profile.timezone || undefined;
   const civilToday = getLearningDayKey(now, { timeZone }) ?? now.slice(0, 10);
   const nextExam = globalSettings.examPlanning.exams
@@ -317,7 +320,21 @@ export function DashboardScreen({ state, deckSummaries, studyHeatmap: loadedHeat
         learning: <DailyLearningOverview plan={dailyLearningPlan} decks={state.decks} onStartDeck={onStartDeck} onStartAdditionalCards={onStartAdditionalCards} />,
         motivation: <DailyMotivationWidget now={now} timeZone={getLearningTimeZone(state.profile)} dayStartHour={globalSettings.dayStartHour} />,
         heatmap: <StudyHeatmap heatmap={studyHeatmap} formatDayLabel={heatmapDayLabel} />,
-        decks: <DashboardDecks rows={library.rows} onOpen={() => onNavigate("lernen")} onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })} onStudy={(row) => onStartDeck(row.deck)} />,
+        decks: <SoftPanel className="min-w-0 p-5 sm:p-6"><DeckTree
+          rows={library.rows}
+          rootDeckIds={teaserRootIds}
+          mode="dashboard"
+          view={deckView}
+          onViewChange={setDeckView}
+          headerAction={<IconButton icon={ArrowUpRight} variant="ghost" label="Alle Stapel öffnen" onClick={() => onNavigate("lernen")} />}
+          collapsedDeckIds={state.profile.uiPreferences.dashboardCollapsedDeckIds}
+          onDeckExpansionChange={(deckId, expanded) => onSetDeckExpanded("dashboard", deckId, expanded)}
+          onActivate={(row) => onNavigate("kartenstapel", { focusedDeckId: row.id, deckContent: true })}
+          onStudy={(row) => onStartDeck(row.deck)}
+          onOpenSettings={onOpenDeckSettings}
+          onSetDeckCoreMode={onSetDeckCoreMode}
+          onMoveDeck={onMoveDeck}
+        />{deckRoots.length > 3 ? <button type="button" className="core-action-ghost mt-3" onClick={() => onNavigate("lernen")}>Alle {deckRoots.length} Hauptstapel ansehen</button> : null}</SoftPanel>,
       }}
     </DashboardWidgets>
   );

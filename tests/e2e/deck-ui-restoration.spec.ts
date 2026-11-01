@@ -174,7 +174,7 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
       await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
       await close.press("Control+End");
       await expect(product.getByRole("heading", { name: "Aktive Stapel", exact: true })).toBeVisible();
-      const lastDeckRow = product.locator("[data-dashboard-deck]").last();
+      const lastDeckRow = product.locator("[data-testid^=\"dashboard-deck-row-\"]").last();
       await lastDeckRow.scrollIntoViewIfNeeded();
       await expect(lastDeckRow).toBeInViewport({ ratio: 1 });
       await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-dashboard-decks.png`) });
