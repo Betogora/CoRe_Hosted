@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-01 — Maskottchen aufgeräumt, Vorrat lokal, Logo ohne Blinzeln
+
+- Maskottchen-Vorrat (37 Einzel-HTMLs, 1,9 MB, davon rund 1,3 MB eingebettete Schrift) aus Repository und Deployment genommen; `npm run mascots:build` erzeugt ihn lokal unter `output/mascots/`, `mascots:check` und die Synchronisierung in `docs:build` entfallen.
+- `public/core-brain.svg` wird aus einer TSX-Fassung im Generator erzeugt und teilt mit den Motiven `src/brainMascotPalette.ts`; das endlose Blinzeln des Logos ist entfernt.
+- Augenfolgen misst die Zeichnung einmal pro Frame statt bei jedem Zeigerereignis; quadratische Motive per Registerfeld `tile` statt Listenposition; wirkungslose CSS-Regel für reduzierte Bewegung entfernt; veraltete Farbbezeichnungen nach der Umfärbung korrigiert.
+
 ## 2026-10-31 — Übernahme aus `codex/gesamtstand`: Maskottchen, Motivationsimpuls und Dashboard
 
 - Merge von `f215101` samt gemeinsamer Basis `ebbc214` (Widget-Anordnung; das KI-Quellenformular darin war schon auf `main`) auf den Stand nach PR #70: Gehirn-Logo statt Sokrates-Büste, Widget `Dein Motivationsimpuls` mit 37 Motiven und Einzel-HTMLs unter `public/mascots/`, nachrückendes Widget-Raster mit Miniatur-Menüband, Lerntimer mit Ring und direkt einstellbaren Ziffern, kompakte To-dos mit Planeraufgaben, aufklappbare Unterstapel.

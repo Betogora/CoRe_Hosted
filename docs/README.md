@@ -72,12 +72,12 @@ der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
 
 ## Ergänzende Analysen und Nachweise
 
-Der [Maskottchen-Vorrat](../public/mascots/index.html) enthält 37 SVG-Motive mit
-einzelnen, offline nutzbaren HTML-Dateien. In der laufenden App ist die Übersicht
-unter `/mascots/index.html` erreichbar. Quellen sind das Motivregister und die
-gemeinsame `BrainMascot`-Komponente; `npm run mascots:build` erzeugt die Ablage,
-`npm run mascots:check` prüft ihren Stand. Beide Schritte sind auch in
-`docs:build` beziehungsweise `check:docs` enthalten.
+Der Maskottchen-Vorrat mit 37 SVG-Motiven als einzelne, offline nutzbare
+HTML-Dateien ist ein lokales Gestaltungswerkzeug und nicht Teil von Repository
+oder Deployment: `npm run mascots:build` erzeugt ihn aus dem Motivregister und
+der gemeinsamen `BrainMascot`-Komponente unter `output/mascots/`. Das App-Logo
+`public/core-brain.svg` entsteht in `docs:build` aus derselben Palette;
+`check:docs` prüft seinen Stand.
 
 Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 

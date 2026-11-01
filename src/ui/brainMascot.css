@@ -11,6 +11,3 @@
 @container (min-width: 25rem) {
   .motivation-widget-layout { grid-template-columns: minmax(0, 1fr) 180px; gap: 24px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .brain-mascot-drawing { animation: none; transition: none; }
-}
