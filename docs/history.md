@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-10-31 — Übernahme aus `codex/gesamtstand`: Maskottchen, Motivationsimpuls und Dashboard
+
+- Merge von `f215101` samt gemeinsamer Basis `ebbc214` (Widget-Anordnung; das KI-Quellenformular darin war schon auf `main`) auf den Stand nach PR #70: Gehirn-Logo statt Sokrates-Büste, Widget `Dein Motivationsimpuls` mit 37 Motiven und Einzel-HTMLs unter `public/mascots/`, nachrückendes Widget-Raster mit Miniatur-Menüband, Lerntimer mit Ring und direkt einstellbaren Ziffern, kompakte To-dos mit Planeraufgaben, aufklappbare Unterstapel.
+- ToolBox-Nachzug (ADR-046): Maskottchenpalette auf Akzent, Primärblau und Markentinte, Logo in derselben Palette, Stock-Seiten mit den ToolBox-Neutraltönen; Widget-Paddings, Zählpille, Prüfungskacheln, Logo-Größe und Hover der Unterstapel wie im übrigen Redesign. Die entfallenen Tokens `--core-action` und `--core-subtle` aus dem Branch zeigen auf `--core-action-primary` und `--core-surface-muted`.
+- Nicht übernommen: Quizreste im Prüfungs-Widget (ADR-042) und der Untertitel „Ein Gedanke für deinen Lerntag“; Planeraufgaben stehen in der To-do-Vorschau ohne Kasten wie eigene Aufgaben.
+
 ## 2026-10-31 — Übernahme aus `codex/klausurplaner-design` ohne Quizplanung
 
 - Merge von `71a7892`: Lernstart und Prüfungsziel auf der ersten Seite, durchsuchbare Stapelzweige, Lernzeit als Durchschnitt oder je Wochentag, Vorschau mit Lerntagen und begrenzter Themenfolge, mitwachsende Prüfungsübersicht, Prüfungsfarben als Kalenderfilter, Kalender ab der aktuellen Woche und Einstiege „Erste Prüfung planen“ und „Weitere Prüfung planen“.
@@ -98,6 +104,13 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 
 - `npm run test:beta:hosted` gegen `https://core-hosted.vercel.app` mit dem Production-Deployment von `7663022` (PR #52, Abschluss P1) nach dem Datenbank-Cutover aus R5 und den Migrationen für Planungs-RPC, Online-Zusammenfassungen und -Mindmaps sowie Profilformat 2 und 3: 10 von 10 bestanden in 3,0 min.
 - Die lokalen Sicherungen der Lernstände aus der Neuberechnung (R5) sind danach gelöscht.
+
+## 2026-10-29 — Gehirn-Vorrat und täglicher Motivationsimpuls
+
+- Abschließende Typprüfung einschließlich Knip, zwölf Dokumentationstests und Driftprüfung aller erzeugten HTML-Dateien grün.
+- 37 SVG-Nachzeichnungen der beiden Vorlagen mit autarken Einzel-HTMLs und Übersicht unter `public/mascots/`; gemeinsame Zeichenquelle und Interaktion für App, Katalog und Vorrat. Das Motivationswidget kombiniert 60 eigene deutsche Impulse mit freundlichen Motiven und wechselt zum konfigurierten Lerntagesbeginn. Die einmalige Layout-Ergänzung respektiert anschließendes Entfernen.
+- Verifiziert: 29 fokussierte Modul-/Rendering-/Theme-Tests sowie 29 unterschiedliche Browserfälle über gezielte Läufe und erfolgreiche Nachläufe. Die Browserfälle decken alle sechs Pflichtviewports in Hell/Dunkel, drei Widgetgrößen, Entfernen und Hinzufügen, Lerntageswechsel, Maus/Tastatur, reduzierte Bewegung, emulierte Touch-Eingabe, alle 37 offline geöffneten Einzeldateien sowie Widget-Drag, Abbruch, Menüband, Pfeile und Layout ab. Die Drag-Vorbereitung wurde für das auf schmalen Displays zunächst außerhalb des Viewports liegende Ziel angepasst. Der Produktionsbuild einschließlich Chunk-Budgets ist grün (Initialgraph 240,1 KiB gzip).
+- Screenshots: `test-results/motivation-verified/`, `test-results/motivation-regression/` und `test-results/motivation-drag-final/`; Gesamtübersicht und erste Dashboardansicht zusätzlich im Sitzungsscratchpad `C:/Users/noemi/.codex/visualizations/2026/10/29/01a18869-295a-7971-9326-06f2643803b1/`. Die Pflichtmatrix und die Motivübersicht wurden visuell angesehen. Die angemeldete lokale App zeigt das ergänzte Widget und bestätigt die Begrüßung nach Aktivierung. Nativer 200-%-Browserzoom und physische Touchgeräte wurden nicht geprüft. Kein Commit, Push oder Release.
 
 ## 2026-10-29 — Reife aus FSRS (P1 R7): Specs und Doku, Abschluss P1
 

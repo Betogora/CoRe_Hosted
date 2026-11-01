@@ -31,7 +31,7 @@ test("exam checklist shows at most three tasks per exam, prioritizes open tasks 
   const date = "2026-10-18";
   const exam = { ...createExamPlan(date, Array.from({ length: 7 }, (_, index) => `topic-${index}`)), id: "exam", name: "Patho", examDate: "2026-11-20" };
   const tasks: ExamDailyTask[] = Array.from({ length: 7 }, (_, index) => ({ id: `topic:exam:topic-${index}`, date, examId: exam.id, kind: "study", deckIds: [`topic-${index}`], cardIds: [`card-${index}`], capturedAt: `${date}T08:00:00Z`, completed: index < 4 ? "manual" : null }));
-  const render = (dailyTasks: ExamDailyTask[]) => renderToStaticMarkup(<ExamDashboardWidget state={{ ...base, profile: withGlobalSchedulerPreferences(base.profile, { examPlanning: { exams: [exam], dailyTasks } }) }} now={`${date}T12:00:00Z`} onLoad={async () => ({ cards: [] })} onStart={async () => undefined} onSaveTasks={async () => undefined} onOpen={() => undefined} />);
+  const render = (dailyTasks: ExamDailyTask[], preview?: React.ComponentProps<typeof ExamDashboardWidget>["preview"]) => renderToStaticMarkup(<ExamDashboardWidget preview={preview} state={{ ...base, profile: withGlobalSchedulerPreferences(base.profile, { examPlanning: { exams: [exam], dailyTasks } }) }} now={`${date}T12:00:00Z`} onLoad={async () => ({ cards: [] })} onStart={async () => undefined} onSaveTasks={async () => undefined} onOpen={() => undefined} />);
   const markup = render(tasks);
   assert.equal((markup.match(/data-exam-todo=/g) ?? []).length, 3);
   for (const index of [4, 5, 6]) assert.match(markup, new RegExp(`data-exam-todo="topic:exam:topic-${index}"`));
@@ -42,6 +42,12 @@ test("exam checklist shows at most three tasks per exam, prioritizes open tasks 
     const short = render(tasks.slice(0, count));
     assert.equal((short.match(/data-exam-todo=/g) ?? []).length, count);
     assert.doesNotMatch(short, /aria-expanded|Aufgaben anzeigen/);
+  }
+  for (const taskLimit of [0, 1, 2, 3, null]) {
+    const compact = render(tasks, { taskLimit, onOpenTaskCountChange: () => undefined });
+    assert.equal((compact.split("<details")[0].match(/data-exam-todo=/g) ?? []).length, taskLimit ?? 3);
+    assert.match(compact, /Erledigt im Planer \(4\)/);
+    assert.doesNotMatch(compact, /Alle 7 Aufgaben anzeigen/);
   }
 });
 
@@ -101,11 +107,9 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /data-testid="deck-summary-header"[^>]*aria-hidden="true"/);
   assert.match(markup, />Stapel<[\s\S]*>Neu<[\s\S]*>Offen<[\s\S]*>Fällig</);
   assert.doesNotMatch(markup, /Originalkarten/);
-  assert.match(markup, /Alle ansehen/);
-  assert.match(markup, /whitespace-nowrap[^\"]*rounded-control[^>]*>Alle ansehen/);
   assert.match(markup, /data-testid="dashboard-deck-list-header"/);
-  assert.match(markup, /Alle ansehen[\s\S]*aria-label="Stapelansicht"[^>]*core-icon-segmented-control/);
   assert.match(markup, /data-deck-view="list"/);
+  assert.match(markup, /aria-label="Alle Stapel öffnen"/);
   assert.match(markup, /core-action-ghost/);
   assert.match(markup, /<button[^>]*aria-label="Biologie lernen"/);
   assert.doesNotMatch(markup, />Lernen <svg/);
@@ -113,10 +117,6 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   assert.match(markup, /data-deck-count="in-progress"/);
   assert.match(markup, /data-deck-count="due"/);
   assert.doesNotMatch(markup, /data-deck-count="total"/);
-  assert.match(markup, /data-deck-drag-source="true"/);
-  assert.match(markup, /Stapeloptionen für Biologie/);
-  assert.match(markup, /data-core-tooltip="Stapeloptionen für Biologie"/);
-  assert.match(markup, /lucide-ellipsis/);
   const dailyOverview = markup.match(/<section[^>]*data-testid="daily-learning-overview"[\s\S]*?<\/section>/)?.[0];
   assert.ok(dailyOverview);
   assert.doesNotMatch(markup, /data-donut-|Gesamtfortschritt/);
@@ -131,7 +131,7 @@ test("populated dashboard shows the aggregated open daily learning overview", ()
   for (let level = 0; level <= 4; level += 1) assert.match(markup, new RegExp(`core-heatmap-level-${level}`));
 });
 
-test("dashboard includes five default widgets and keeps planner tasks inside todos", () => {
+test("dashboard includes six default widgets and keeps planner tasks inside todos", () => {
   const baseState = createCoreRepository().getState();
   const exam = { ...createExamPlan("2026-08-06", ["biologie"]), name: "Biologie" };
   const state = {
@@ -149,7 +149,7 @@ test("dashboard includes five default widgets and keeps planner tasks inside tod
       onSaveExamTasks={async () => undefined}
     />,
   );
-  assert.deepEqual([...markup.matchAll(/data-dashboard-widget="([^"]+)"/g)].map((match) => match[1]), ["learning", "timer", "decks", "todos", "heatmap"]);
+  assert.deepEqual([...markup.matchAll(/data-dashboard-widget="([^"]+)"/g)].map((match) => match[1]), ["learning", "motivation", "timer", "decks", "todos", "heatmap"]);
   assert.match(markup, /data-dashboard-widget="todos"[\s\S]*data-testid="dashboard-exam-unit"[\s\S]*data-dashboard-widget="heatmap"/);
   assert.match(markup, /data-testid="daily-learning-overview"/);
   assert.match(markup, /data-testid="study-heatmap-grid"/);
@@ -243,6 +243,18 @@ test("dashboard keeps later same-day learning steps in a disabled waiting state"
   assert.match(markup, /Offen: 1 Karte/);
   assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Später weiterlernen"/);
   assert.doesNotMatch(markup, /Tagesziel erreicht/);
+});
+
+test("dashboard limits deck teasers to three roots and has no duplicate completed legend", () => {
+  const baseState = createCoreRepository().getState();
+  const decks = Array.from({ length: 7 }, (_, index) => createCoreDeck({ id: `preview-${index}`, name: `Stapel ${index}`, source: "manual", cards: [] }));
+  const markup = renderToStaticMarkup(<DashboardScreen state={{ ...baseState, decks }} now="2026-08-06T10:00:00.000Z" {...dashboardCallbacks} />);
+  assert.equal((markup.match(/data-dashboard-deck=/g) ?? []).length, 3);
+  assert.match(markup, /Alle 7 Hauptstapel ansehen/);
+  assert.match(markup, /Alle Stapel öffnen/);
+  assert.doesNotMatch(markup, /Geschafft|Grauer Balken: für heute abgeschlossen/);
+  assert.equal((markup.match(/data-daily-learning-metric=/g) ?? []).length, 4);
+  assert.match(markup, /Timer zurücksetzen/);
 });
 
 test("achieved dashboard offers additional new cards only when stock remains beyond the daily limit", () => {

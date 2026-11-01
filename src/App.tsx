@@ -42,7 +42,7 @@ import { createWorkspaceHydrationService } from "./workspaceHydrationService.ts"
 import { catalogEntryFromCard, type NoteGraph, type OfflineDeckRecord } from "./workspaceReplica.ts";
 import type { ImportedDeckPersistence } from "./creationWorkflow.ts";
 import type { ManualNoteSaveInput } from "./screens/ManualCreationPanel.tsx";
-import { clearPomodoroTimer, createPomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
+import { clearPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, getPomodoroTimerStorageKey, readPomodoroTimer, writePomodoroTimer, type PomodoroTimer } from "./pomodoroTimer.ts";
 import { createDailyReviewQueue, updateDeckNewCardLimitForDate, type ReviewAnswerResult } from "./reviewService.ts";
 import { EXAM_SESSION_DECK_ID, validateExamPlanningSettings } from "./examPlanSettings.ts";
 import { useStudySession, type StudyPreparation } from "./useStudySession.ts";
@@ -408,11 +408,28 @@ export function App() {
 
   const startPomodoro = React.useCallback((minutes: number) => {
     if (!cloudUser?.id) return;
-    const timer = createPomodoroTimer(minutes);
+    const timer = createPomodoroTimerFromSeconds(Math.round(minutes * 60));
     if (!timer) return;
     pomodoroTimerRef.current = timer;
     setPomodoroTimer(timer);
     writePomodoroTimer(cloudUser.id, timer);
+  }, [cloudUser?.id]);
+
+  const changePomodoroPause = React.useCallback((paused: boolean) => {
+    if (!cloudUser?.id) return;
+    const timer = paused ? pausePomodoroTimer(pomodoroTimerRef.current) : resumePomodoroTimer(pomodoroTimerRef.current);
+    if (!timer) return;
+    pomodoroTimerRef.current = timer;
+    setPomodoroTimer(timer);
+    writePomodoroTimer(cloudUser.id, timer);
+  }, [cloudUser?.id]);
+
+  const resetPomodoro = React.useCallback(() => {
+    const timer = pomodoroTimerRef.current;
+    if (!cloudUser?.id || !timer) return;
+    pomodoroTimerRef.current = null;
+    setPomodoroTimer(null);
+    clearPomodoroTimer(cloudUser.id, timer.id);
   }, [cloudUser?.id]);
 
   React.useEffect(() => {
@@ -424,7 +441,7 @@ export function App() {
     }
 
     const storedTimer = readPomodoroTimer(userId);
-    if (storedTimer && storedTimer.endsAt <= Date.now()) {
+    if (storedTimer && storedTimer.pausedAt === undefined && storedTimer.endsAt <= Date.now()) {
       const removed = clearPomodoroTimer(userId, storedTimer.id);
       pomodoroTimerRef.current = null;
       setPomodoroTimer(null);
@@ -449,7 +466,7 @@ export function App() {
     function handleStorage(event: StorageEvent) {
       if (event.key !== storageKey) return;
       const nextTimer = readPomodoroTimer(accountUserId);
-      if (nextTimer && nextTimer.endsAt <= Date.now()) {
+      if (nextTimer && nextTimer.pausedAt === undefined && nextTimer.endsAt <= Date.now()) {
         const removed = clearPomodoroTimer(accountUserId, nextTimer.id);
         pomodoroTimerRef.current = null;
         setPomodoroTimer(null);
@@ -467,14 +484,14 @@ export function App() {
   React.useEffect(() => {
     const userId = cloudUser?.id;
     const timer = pomodoroTimer;
-    if (!userId || !timer) return undefined;
+    if (!userId || !timer || timer.pausedAt !== undefined) return undefined;
     const accountUserId = userId;
     const activeTimer = timer;
     let timeoutId = 0;
     let cancelled = false;
 
     function checkExpiry() {
-      if (cancelled || pomodoroTimerRef.current?.id !== activeTimer.id) return;
+      if (cancelled || pomodoroTimerRef.current !== activeTimer) return;
       const remainingMilliseconds = activeTimer.endsAt - Date.now();
       if (remainingMilliseconds > 0) {
         timeoutId = window.setTimeout(checkExpiry, Math.min(remainingMilliseconds, 60_000));
@@ -2059,7 +2076,7 @@ export function App() {
         />
       );
     }
-    return <DashboardScreen pomodoroTimer={pomodoroTimer} onStartPomodoro={startPomodoro} state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
+    return <DashboardScreen onResetPomodoro={resetPomodoro} onPausePomodoro={() => changePomodoroPause(true)} onResumePomodoro={() => changePomodoroPause(false)} pomodoroTimer={pomodoroTimer} onStartPomodoro={startPomodoro} state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
   }
 
   if (authPhase === "checking-session") {

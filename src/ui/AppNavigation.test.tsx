@@ -105,7 +105,7 @@ test("CoRe brand links both navigation layouts to today", () => {
   const markup = renderNavigation("neue-karten");
 
   assert.equal((markup.match(/<button[^>]*data-navigation-brand="true"/g) ?? []).length, 2);
-  assert.equal((markup.match(/data-navigation-brand="true"[^>]*><img src="\/core-socrates\.svg" alt="" class="h-9 w-auto shrink-0 xl:h-10"[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/button>/g) ?? []).length, 2);
+  assert.equal((markup.match(/data-navigation-brand="true"[^>]*><img src="\/core-brain\.svg" alt="" class="size-9 shrink-0 xl:size-10"[^>]*><span class="font-bold text-core-text">Co<span class="text-core-action">Re<\/span><\/span><\/button>/g) ?? []).length, 2);
 });
 
 test("bottom navigation keeps every icon above its visible label and exactly one current page", () => {
@@ -150,7 +150,7 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.doesNotMatch(topBarMarkup, /Content Repetition/);
   for (const layoutMarkup of [topBarMarkup, mobileHeaderMarkup]) {
-    assert.match(layoutMarkup, /class="flex shrink-0 items-center gap-1\.5" data-navigation-utilities="true" data-sync-status="idle"/);
+    assert.match(layoutMarkup, /class="flex shrink-0 items-center gap-0 min-\[360px\]:gap-1\.5" data-navigation-utilities="true" data-sync-status="idle"/);
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="theme"') < layoutMarkup.indexOf('data-navigation-utility="help"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));

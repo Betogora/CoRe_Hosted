@@ -708,8 +708,8 @@ export function DecksScreen({
       }} />}
 
       {contentDeckId && contentTab === "children" ? (
-        contentRow && contentLibrary ? <DeckSubstacksPanel rows={contentLibrary.rows} current={contentRow} decks={decks} hasStudyCards={hasStudyCards}
-          onOpenSubstack={(id) => onOpenDeckContent(id, "children")} onOpenCards={(id) => onOpenDeckContent(id, "cards")}
+        contentRow && contentLibrary ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow} decks={decks} hasStudyCards={hasStudyCards}
+          onOpenCards={(id) => onOpenDeckContent(id, "cards")}
           onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
           : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "summary" ? (
