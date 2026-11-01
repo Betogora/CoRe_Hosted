@@ -405,12 +405,6 @@
     isolation: isolate;
   }
 
-  .core-segmented-control[data-size="compact"] {
-    height: 2.25rem;
-    padding: 0.125rem;
-    border-radius: var(--core-radius-inset);
-  }
-
   .core-segmented-control-option {
     display: flex;
     align-items: center;
@@ -420,7 +414,7 @@
     z-index: 1;
     min-height: 0;
     min-width: 0;
-    border-radius: calc(var(--core-radius-panel) - 0.25rem);
+    border-radius: var(--core-radius-control);
     padding-inline: 0.75rem;
     color: var(--core-text-secondary);
     font-weight: var(--core-weight-emphasis);
@@ -430,11 +424,6 @@
 
   .core-segmented-control-option svg {
     flex-shrink: 0;
-  }
-
-  .core-segmented-control[data-size="compact"] .core-segmented-control-option {
-    border-radius: var(--core-radius-marker);
-    padding-inline: 0.125rem;
   }
 
   .core-segmented-control-option[aria-pressed="true"] {
@@ -457,19 +446,11 @@
     top: 0;
     left: 0;
     z-index: 0;
-    border-radius: calc(var(--core-radius-panel) - 0.25rem);
+    border-radius: var(--core-radius-control);
     background: var(--core-surface);
     box-shadow: var(--core-selection-indicator-shadow);
     pointer-events: none;
     transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1), width 120ms cubic-bezier(0.22, 1, 0.36, 1), height 120ms ease;
-  }
-
-  .core-segmented-control[data-size="compact"] .core-segmented-control-indicator {
-    border-radius: var(--core-radius-marker);
-  }
-
-  .core-mobile-bottom-navigation .core-segmented-control-indicator {
-    border-radius: var(--core-radius-control);
   }
 
   .core-mobile-bottom-navigation[data-sliding="true"] button[aria-current="page"] {
