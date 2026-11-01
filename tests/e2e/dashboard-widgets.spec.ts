@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
 
@@ -300,56 +301,62 @@ test("Motivation wechselt ohne Neuladen auch nach einem inaktiven Tab", async ({
   await expect(widget.locator(".motivation-widget-quote")).not.toHaveText(quote!);
 });
 
-test("Maskottchen folgen begrenzt dem Zeiger und begrüßen Tastatur; reduzierte Bewegung bleibt ruhig", async ({ page }) => {
-  await page.goto("/mascots/pastell-lernen.html");
-  const host = page.locator("[data-brain-mascot]");
-  const pupil = page.locator("[data-brain-pupil]").first();
-  const bounds = await host.boundingBox();
-  await page.mouse.move(bounds!.x + bounds!.width - 5, bounds!.y + 10);
-  await expect(pupil).toHaveAttribute("transform", /translate\((?!0 0)/);
-  expect(await pupil.evaluate((element) => { const [x, y] = element.getAttribute("transform")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number); return Math.hypot(x, y); })).toBeLessThanOrEqual(5.01);
-  await page.mouse.move(0, 0);
-  await expect(pupil).toHaveAttribute("transform", "translate(0 0)");
-  const button = page.getByRole("button", { name: "Gehirn begrüßen" });
-  await button.focus(); await page.keyboard.press("Enter");
-  await expect(page.getByRole("status")).toHaveText("Schön, dass du da bist!");
-  await page.emulateMedia({ reducedMotion: "reduce" });
-  await button.focus(); await page.keyboard.press("Space");
-  await page.mouse.move(bounds!.x + bounds!.width - 5, bounds!.y + 10);
-  await expect(pupil).toHaveAttribute("transform", "translate(0 0)");
-  expect(await page.locator(".brain-mascot-drawing").evaluate((element) => element.getAnimations().length)).toBe(0);
-});
+test.describe("Maskottchen-Vorrat", () => {
+  // The stock is a local design aid outside the deployment; build it once for these checks.
+  const stock = (file: string) => pathToFileURL(path.resolve("output/mascots", file)).href;
+  test.beforeAll(() => { execFileSync(process.execPath, [path.resolve("node_modules/tsx/dist/cli.mjs"), "scripts/generateMascots.tsx"]); });
 
-test("Maskottchen reagieren auf echtes Touch-Tippen", async ({ browser }) => {
-  const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
-  try {
-    const page = await context.newPage();
-    await page.goto("http://127.0.0.1:5190/mascots/pastell-lernen.html");
-    await page.getByRole("button", { name: "Gehirn begrüßen" }).tap();
+  test("Maskottchen folgen begrenzt dem Zeiger und begrüßen Tastatur; reduzierte Bewegung bleibt ruhig", async ({ page }) => {
+    await page.goto(stock("pastell-lernen.html"));
+    const host = page.locator("[data-brain-mascot]");
+    const pupil = page.locator("[data-brain-pupil]").first();
+    const bounds = await host.boundingBox();
+    await page.mouse.move(bounds!.x + bounds!.width - 5, bounds!.y + 10);
+    await expect(pupil).toHaveAttribute("transform", /translate\((?!0 0)/);
+    expect(await pupil.evaluate((element) => { const [x, y] = element.getAttribute("transform")!.match(/-?\d+(?:\.\d+)?/g)!.map(Number); return Math.hypot(x, y); })).toBeLessThanOrEqual(5.01);
+    await page.mouse.move(0, 0);
+    await expect(pupil).toHaveAttribute("transform", "translate(0 0)");
+    const button = page.getByRole("button", { name: "Gehirn begrüßen" });
+    await button.focus(); await page.keyboard.press("Enter");
     await expect(page.getByRole("status")).toHaveText("Schön, dass du da bist!");
-    await expect(page.locator("[data-brain-pupil]").first()).toHaveAttribute("transform", "translate(0 0)");
-  } finally { await context.close(); }
-});
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await button.focus(); await page.keyboard.press("Space");
+    await page.mouse.move(bounds!.x + bounds!.width - 5, bounds!.y + 10);
+    await expect(pupil).toHaveAttribute("transform", "translate(0 0)");
+    expect(await page.locator(".brain-mascot-drawing").evaluate((element) => element.getAnimations().length)).toBe(0);
+  });
 
-test("Maskottchen-Vorrat: alle 37 Einzel-HTMLs funktionieren offline und ohne SVG-ID-Kollisionen", async ({ page, context }, info) => {
-  test.setTimeout(60_000);
-  const errors: string[] = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.goto("/mascots/index.html");
-  const files = await page.locator(".stock-card .links a:first-child").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
-  expect(files).toHaveLength(37);
-  const ids = await page.locator("[id]").evaluateAll((elements) => elements.map((element) => element.id));
-  expect(new Set(ids).size).toBe(ids.length);
-  await page.screenshot({ path: info.outputPath("maskottchen-vorrat.png"), fullPage: true });
-  await context.setOffline(true);
-  for (const file of files) {
-    await page.goto(pathToFileURL(path.resolve("public/mascots", file)).href);
-    await expect(page.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
-    await page.getByRole("button", { name: "Gehirn begrüßen" }).click();
-    await expect(page.getByRole("status")).toHaveText("Schön, dass du da bist!");
-    await page.screenshot({ path: info.outputPath(file.replace(".html", ".png")), fullPage: true });
-  }
-  expect(errors).toEqual([]);
+  test("Maskottchen reagieren auf echtes Touch-Tippen", async ({ browser }) => {
+    const context = await browser.newContext({ hasTouch: true, viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      await page.goto(stock("pastell-lernen.html"));
+      await page.getByRole("button", { name: "Gehirn begrüßen" }).tap();
+      await expect(page.getByRole("status")).toHaveText("Schön, dass du da bist!");
+      await expect(page.locator("[data-brain-pupil]").first()).toHaveAttribute("transform", "translate(0 0)");
+    } finally { await context.close(); }
+  });
+
+  test("Maskottchen-Vorrat: alle 37 Einzel-HTMLs funktionieren offline und ohne SVG-ID-Kollisionen", async ({ page, context }, info) => {
+    test.setTimeout(60_000);
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto(stock("index.html"));
+    const files = await page.locator(".stock-card .links a:first-child").evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
+    expect(files).toHaveLength(37);
+    const ids = await page.locator("[id]").evaluateAll((elements) => elements.map((element) => element.id));
+    expect(new Set(ids).size).toBe(ids.length);
+    await page.screenshot({ path: info.outputPath("maskottchen-vorrat.png"), fullPage: true });
+    await context.setOffline(true);
+    for (const file of files) {
+      await page.goto(stock(file));
+      await expect(page.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
+      await page.getByRole("button", { name: "Gehirn begrüßen" }).click();
+      await expect(page.getByRole("status")).toHaveText("Schön, dass du da bist!");
+      await page.screenshot({ path: info.outputPath(file.replace(".html", ".png")), fullPage: true });
+    }
+    expect(errors).toEqual([]);
+  });
 });
 
 

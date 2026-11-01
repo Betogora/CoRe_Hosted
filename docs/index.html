@@ -6312,9 +6312,6 @@ summary {
 @container (min-width: 25rem) {
   .motivation-widget-layout { grid-template-columns: minmax(0, 1fr) 180px; gap: 24px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .brain-mascot-drawing { animation: none; transition: none; }
-}
 
 /* Gemeinsamer Dokumentationsrahmen mit den produktiven CoRe-Tokens. */
 body { margin: 0; color: var(--core-text); background: var(--core-canvas); font: var(--core-weight-body) var(--core-type-body-large)/var(--core-leading-body-large) var(--core-font-sans); }
@@ -6697,12 +6694,12 @@ ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
 werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
 der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</p>
 <h2 id="readme--ergänzende-analysen-und-nachweise" class="core-heading-2" tabindex="-1">Ergänzende Analysen und Nachweise <a class="docs-anchor" href="#readme--ergänzende-analysen-und-nachweise" aria-label="Link zu Ergänzende Analysen und Nachweise">#</a></h2>
-<p>Der <a href="../public/mascots/index.html">Maskottchen-Vorrat</a> enthält 37 SVG-Motive mit
-einzelnen, offline nutzbaren HTML-Dateien. In der laufenden App ist die Übersicht
-unter <code>/mascots/index.html</code> erreichbar. Quellen sind das Motivregister und die
-gemeinsame <code>BrainMascot</code>-Komponente; <code>npm run mascots:build</code> erzeugt die Ablage,
-<code>npm run mascots:check</code> prüft ihren Stand. Beide Schritte sind auch in
-<code>docs:build</code> beziehungsweise <code>check:docs</code> enthalten.</p>
+<p>Der Maskottchen-Vorrat mit 37 SVG-Motiven als einzelne, offline nutzbare
+HTML-Dateien ist ein lokales Gestaltungswerkzeug und nicht Teil von Repository
+oder Deployment: <code>npm run mascots:build</code> erzeugt ihn aus dem Motivregister und
+der gemeinsamen <code>BrainMascot</code>-Komponente unter <code>output/mascots/</code>. Das App-Logo
+<code>public/core-brain.svg</code> entsteht in <code>docs:build</code> aus derselben Palette;
+<code>check:docs</code> prüft seinen Stand.</p>
 <p>Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:</p>
 <ul>
 <li><a href="test-portfolio.md"><code>test-portfolio.md</code></a>: ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.</li>

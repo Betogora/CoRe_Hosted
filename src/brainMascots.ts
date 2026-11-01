@@ -6,6 +6,8 @@ interface BrainMascotDefinition {
   collection: "adventure" | "pastel";
   scene: MascotScene;
   description: string;
+  /** Drawn on a rounded square background like an icon tile. */
+  tile?: true;
 }
 
 /** Source order follows each supplied sheet, left to right and top to bottom. */
@@ -22,7 +24,7 @@ export const BRAIN_MASCOTS = [
   { id: "abenteuer-schreiben", title: "Etwas aufschreiben", collection: "adventure", scene: "write", description: "Schreibt mit einem Bleistift auf eine Karte." },
   { id: "abenteuer-durchatmen", title: "Kurz durchatmen", collection: "adventure", scene: "meditate", description: "Sitzt entspannt im Schneidersitz mit geschlossenen Augen." },
   { id: "abenteuer-geschafft", title: "Geschafft!", collection: "adventure", scene: "celebrate", description: "Jubelt neben einem grünen Häkchen und Karteikarten." },
-  { id: "pastell-app", title: "App-Icon", collection: "pastel", scene: "cards", description: "Das lernende Gehirn auf einer lavendelfarbenen Iconfläche." },
+  { id: "pastell-app", title: "App-Icon", collection: "pastel", scene: "cards", description: "Das lernende Gehirn auf einer hellblauen Iconfläche.", tile: true },
   { id: "pastell-lernen", title: "Lernen", collection: "pastel", scene: "cards", description: "Liest aufmerksam eine Karteikarte." },
   { id: "pastell-nicht-sicher", title: "Nicht sicher", collection: "pastel", scene: "question", description: "Hebt fragend die Hand unter einem Fragezeichen." },
   { id: "pastell-richtig", title: "Richtig", collection: "pastel", scene: "correct", description: "Freut sich über eine gelöste Karte." },
@@ -39,14 +41,14 @@ export const BRAIN_MASCOTS = [
   { id: "pastell-erstellen", title: "Karte erstellen", collection: "pastel", scene: "wink", description: "Zwinkert mit einem Stift in der Hand." },
   { id: "pastell-planen", title: "Planen", collection: "pastel", scene: "plan", description: "Überlegt unter einer Gedankenblase mit drei Punkten." },
   { id: "pastell-pause", title: "Pause", collection: "pastel", scene: "meditate", description: "Ruht mit geschlossenen Augen zwischen kleinen Sternen." },
-  { id: "pastell-lernmodus", title: "Lernmodus", collection: "pastel", scene: "graduate", description: "Trägt einen dunkelblauen Absolventenhut." },
-  { id: "pastell-lesen", title: "Lesen", collection: "pastel", scene: "read", description: "Liest mit runder Brille in einem offenen Buch." },
-  { id: "pastell-aha", title: "Idee / Aha", collection: "pastel", scene: "idea", description: "Hat eine Idee auf einer warmen gelben Iconfläche." },
-  { id: "pastell-schnelllernen", title: "Schnelllernen", collection: "pastel", scene: "run", description: "Läuft fröhlich mit kleinen Bewegungslinien hinter sich." },
-  { id: "pastell-notizen", title: "Notizen", collection: "pastel", scene: "notes", description: "Hält einen großen Bleistift bereit." },
-  { id: "pastell-erholen", title: "Schlafen / Erholen", collection: "pastel", scene: "sleep", description: "Schläft friedlich unter drei kleinen Zs." },
-  { id: "pastell-langzeitwissen", title: "Langzeitwissen", collection: "pastel", scene: "shield", description: "Hält einen blauen Schild mit einem goldenen Stern." },
-  { id: "pastell-erfolg", title: "Erfolg", collection: "pastel", scene: "trophy", description: "Hebt stolz einen goldenen Pokal." },
+  { id: "pastell-lernmodus", title: "Lernmodus", collection: "pastel", scene: "graduate", description: "Trägt einen dunkelblauen Absolventenhut.", tile: true },
+  { id: "pastell-lesen", title: "Lesen", collection: "pastel", scene: "read", description: "Liest mit runder Brille in einem offenen Buch.", tile: true },
+  { id: "pastell-aha", title: "Idee / Aha", collection: "pastel", scene: "idea", description: "Hat eine Idee auf einer warmen gelben Iconfläche.", tile: true },
+  { id: "pastell-schnelllernen", title: "Schnelllernen", collection: "pastel", scene: "run", description: "Läuft fröhlich mit kleinen Bewegungslinien hinter sich.", tile: true },
+  { id: "pastell-notizen", title: "Notizen", collection: "pastel", scene: "notes", description: "Hält einen großen Bleistift bereit.", tile: true },
+  { id: "pastell-erholen", title: "Schlafen / Erholen", collection: "pastel", scene: "sleep", description: "Schläft friedlich unter drei kleinen Zs.", tile: true },
+  { id: "pastell-langzeitwissen", title: "Langzeitwissen", collection: "pastel", scene: "shield", description: "Hält einen blauen Schild mit einem goldenen Stern.", tile: true },
+  { id: "pastell-erfolg", title: "Erfolg", collection: "pastel", scene: "trophy", description: "Hebt stolz einen goldenen Pokal.", tile: true },
 ] as const satisfies readonly BrainMascotDefinition[];
 
 export type BrainMascotId = typeof BRAIN_MASCOTS[number]["id"];

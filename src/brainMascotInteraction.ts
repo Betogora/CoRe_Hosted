@@ -10,22 +10,27 @@ export function attachBrainMascotInteraction(host: HTMLElement, zone: HTMLElemen
   let timer = 0;
   let animation: Animation | undefined;
   let x = 0, y = 0;
+  let pointer: { x: number; y: number } | null = null;
   function paint() {
     frame = 0;
+    if (pointer) {
+      // One layout read per frame, however often the pointer reports.
+      const rect = drawing.getBoundingClientRect();
+      const dx = (pointer.x - rect.left - rect.width / 2) / Math.max(rect.width / 2, 1);
+      const dy = (pointer.y - rect.top - rect.height / 2) / Math.max(rect.height / 2, 1);
+      const distance = Math.max(1, Math.hypot(dx, dy));
+      x = dx / distance * 5; y = dy / distance * 5;
+    }
     for (const pupil of pupils) pupil.setAttribute("transform", `translate(${x} ${y})`);
   }
   function reset() {
-    x = 0; y = 0;
+    x = 0; y = 0; pointer = null;
     if (frame) window.cancelAnimationFrame(frame);
     paint();
   }
   function follow(event: PointerEvent) {
     if (event.pointerType === "touch" || reduced.matches) return;
-    const rect = drawing.getBoundingClientRect();
-    const dx = (event.clientX - rect.left - rect.width / 2) / Math.max(rect.width / 2, 1);
-    const dy = (event.clientY - rect.top - rect.height / 2) / Math.max(rect.height / 2, 1);
-    const distance = Math.max(1, Math.hypot(dx, dy));
-    x = dx / distance * 5; y = dy / distance * 5;
+    pointer = { x: event.clientX, y: event.clientY };
     if (!frame) frame = window.requestAnimationFrame(paint);
   }
   function react() {

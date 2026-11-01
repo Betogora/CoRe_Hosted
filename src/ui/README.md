@@ -200,8 +200,10 @@ Die feste Illustrationspalette gehört zum Motiv und leitet sich aus den
 ToolBox-Markenfarben ab (Gehirn aus dem Akzent, Requisiten aus dem Primärblau,
 Linien aus der Markentinte); die umgebende Oberfläche und Hinweise verwenden
 die semantischen Theme-Tokens. Die CSS-Quelle ist
-`src/ui/brainMascot.css`; die App, der Katalog und die generierten Einzel-HTMLs
-verwenden dieselben Zeichnungen und dieselbe Interaktion.
+`src/ui/brainMascot.css`; die App, der Katalog und die lokal erzeugten
+Einzel-HTMLs verwenden dieselben Zeichnungen und dieselbe Interaktion. Die
+Farben stehen in `src/brainMascotPalette.ts`, die auch das generierte Logo
+`public/core-brain.svg` nutzt. Quadratische Motive tragen `tile` im Register.
 
 1. Ist es eine normale Aktion, Icon-Aktion, Oberfläche, Statusmeldung oder ein vorhandenes Spezialmodul? Dann zuerst den passenden Eintrag oben prüfen.
 2. Passt dessen Semantik und Accessibility-Verhalten vollständig? Dann direkt importieren.

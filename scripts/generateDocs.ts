@@ -14,7 +14,7 @@ import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import tailwindConfig from "../tailwind.config.ts";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
-import { synchronizeMascots } from "./generateMascots.tsx";
+import { synchronizeBrainLogo } from "./generateMascots.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
 import { SegmentedDonut, StatTile } from "../src/ui/coreUi.tsx";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
@@ -266,7 +266,7 @@ export function journeyProjection(specs: string) {
 }
 
 export async function synchronizeDocs(mode: "write" | "check") {
-  await synchronizeMascots(mode);
+  await synchronizeBrainLogo(mode);
   const data = createCatalogData();
   const raw = sourceFiles("src").map(text).join("\n") + text("scripts/uiCatalog.tsx") + text("scripts/uiCatalogDemos.tsx") + text("scripts/generateDocs.ts") + text("scripts/docsSite.ts") + Object.values(data.patterns).join("\n");
   let styles = (await postcss([tailwindcss({ ...tailwindConfig, content: [{ raw, extension: "tsx" }] }), autoprefixer]).process(text("src/styles.css"), { from: path.join(root, "src/styles.css") })).css;
