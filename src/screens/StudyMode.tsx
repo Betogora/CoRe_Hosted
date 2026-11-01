@@ -391,7 +391,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   return (
     <main className="min-h-screen bg-core-canvas p-4 text-core-text sm:p-8">
       <div className="mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-7xl flex-col sm:min-h-[calc(100vh-4rem)]">
-        <header className="grid gap-4">
+        <header className="grid grid-cols-1 gap-4">
           <div className="flex items-center justify-between gap-4">
             <IconButton type="button" onClick={onExit} label="Lernmodus verlassen" icon={X} />
             <div className="flex min-w-0 items-center justify-center gap-2 text-center">

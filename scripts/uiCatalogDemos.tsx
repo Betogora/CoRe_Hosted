@@ -101,7 +101,7 @@ const substackDemoDecks = [...sampleDecks];
 const variantStudyGraph = createBasicNote("catalog-variant", "Was ist die Hauptstadt von Portugal?", "Lissabon", { createdAt: `${today}T08:00:00Z` });
 // Mature, due and with an odd review count, so the session asks the variant instead of the card.
 const variantStudyCard = addCardVariant({ ...variantStudyGraph.cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", reps: 5, stability: 90, intervalDays: 60, maturityBand: "mature", dueAt: `${today}T06:00:00Z`, lastReviewedAt: "2026-08-03T08:00:00Z", lastRating: "good" })) }, { front: "Welche Stadt ist die Hauptstadt Portugals?", back: "Lissabon" }, `${today}T07:00:00Z`);
-const variantStudyDeck = createCoreDeck({ id: "catalog-variant", name: "Welt-Hauptstädte · Varianten", source: "manual", cards: [variantStudyCard] });
+const variantStudyDeck = createCoreDeck({ id: "catalog-variant", name: "10.1 🩶 🧮 Mathematik, Logik und Informatik", source: "manual", cards: [variantStudyCard] });
 // Generated variants are text only; an image reaches them through the card's extra field.
 const imageVariantGraph = createNote({ deckId: "catalog-variant-image", createdAt: `${today}T08:00:00Z`, media: { [imageReference]: imageReference }, content: {
   schemaVersion: 1,
