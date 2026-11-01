@@ -722,7 +722,7 @@ test("review flow records a rating through accessible controls", async ({ page }
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);
+  await expect(page.getByTestId("review-variant-badge")).toHaveCount(0);
   await expect(page.getByTestId("base-card-reference")).toHaveCount(0);
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
@@ -856,7 +856,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   expect(runtimeErrors).toEqual([]);
 });
 
-test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-core @hosted-core Variantenfeedback bleibt kontrolliert und reviewbar", async ({ page }: any) => {
+test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @golden-e2e @beta-core @hosted-core Variante zeigt Originalkarte und öffnet die Verwaltung", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   const variantEventsBefore = await variantReviewEventCount(page, DECK_IDS.africa);
 
@@ -897,30 +897,24 @@ test("[Vertrag: KI-Variante, Reveal, Grundkarte und Feedback] @golden-e2e @beta-
   await page.goto(`/decks/${DECK_IDS.africa}/review?returnView=decks&returnDeck=${DECK_IDS.africa}`);
   await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
   expect(await findOriginLeakBeforeReveal(page)).toBeNull();
-  await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(0);
+  await expect(page.getByTestId("base-card-reference")).toHaveCount(0);
   await expect(page.getByTestId("review-variant-badge")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
-  await expect(page.getByTestId("review-variant-badge")).toHaveText("Kartenvariante");
+  await expect(page.getByTestId("review-variant-badge")).toHaveText("Variante");
   await expect(page.frameLocator('iframe[title="Frage"]').getByText("Welche Stadt ist der Regierungssitz von Côte d'Ivoire?", { exact: true })).toBeVisible();
   await expect(page.frameLocator('iframe[title="Antwort"]').locator("body")).toContainText("Yamoussoukro");
-  await expect(page.getByRole("button", { name: "Grundkarte anzeigen" })).toHaveCount(1);
-  await page.getByRole("button", { name: "Grundkarte anzeigen" }).click();
-  await expect(page.getByTestId("base-card-reference")).toHaveCount(1);
+  const originalToggle = page.getByTestId("base-card-reference").getByRole("button", { name: "Originalkarte" });
+  await expect(originalToggle).toHaveAttribute("aria-expanded", "false");
+  await originalToggle.click();
+  await expect(originalToggle).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByTestId("base-card-reference").frameLocator('iframe[title="Aufgedeckte Karte"]').locator("body")).toContainText("Was ist die Hauptstadt von Côte d'Ivoire?");
-  await page.getByRole("button", { name: "Unklar formuliert" }).click();
-  await expect(page.getByRole("status")).toContainText("Der ausgewählte Grund wurde gespeichert.");
-  await expect.poll(async () => {
-    const flaggedState = await readAppState(page);
-    const flaggedVariant = flaggedState.decks
-      .find((deck: { id: string }) => deck.id === DECK_IDS.africa)
-      ?.cards.flatMap((card: { variants?: any[] }) => card.variants ?? [])
-      .find((variant: { front: string }) => variant.front === "Welche Stadt ist der Regierungssitz von Côte d'Ivoire?");
-    return {
-      qualityStatus: flaggedVariant?.qualityStatus,
-      feedbackType: flaggedVariant?.feedback.at(-1)?.type,
-    };
-  }).toEqual({ qualityStatus: "flagged", feedbackType: "unklar_formuliert" });
+  await page.getByRole("button", { name: "Varianten verwalten" }).click();
+  await expect(page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Varianten", exact: true })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByTestId("card-variant-tools")).toBeVisible();
+  await page.getByRole("button", { name: "Detailansicht schließen" }).click();
+  await expect(page.getByRole("button", { name: "Antwort anzeigen" })).toBeVisible();
+  await page.getByRole("button", { name: "Antwort anzeigen" }).click();
   await page.getByRole("button", { name: /Bewertung Gut/ }).click();
 
   await expect.poll(() => variantReviewEventCount(page, DECK_IDS.africa)).toBe(variantEventsBefore + 1);

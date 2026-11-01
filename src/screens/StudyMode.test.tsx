@@ -29,7 +29,6 @@ function studyCallbacks(deck: Deck, notes: Note[]) {
     flagNames: [],
     onSetCardStudyState: () => ({ deck, note: notes[0] }),
     onSetDeckReviewOrder: () => deck,
-    onCardUpdated: () => undefined,
     onReview: () => undefined,
   };
 }

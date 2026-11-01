@@ -175,6 +175,11 @@ export function ActionDialog({
   return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
+/** Short label in the shared tag shape; `neutral` is gray, `info` CoRe blue. Colors live in `.core-tag-*`. */
+export function CoreTag({ tone, className = "", ...props }: { tone: "neutral" | "info" } & HTMLAttributes<HTMLSpanElement>) {
+  return <span {...props} className={`core-tag core-tag-${tone} ${className}`.trim()} />;
+}
+
 export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
   return (
     <div className={`grid size-10 shrink-0 place-items-center rounded-control [&_svg]:size-[18px] ${className}`}>

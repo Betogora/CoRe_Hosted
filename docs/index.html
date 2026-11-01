@@ -2327,6 +2327,9 @@ video {
 .justify-between {
   justify-content: space-between;
 }
+.justify-items-end {
+  justify-items: end;
+}
 .justify-items-center {
   justify-items: center;
 }
@@ -4229,6 +4232,29 @@ summary {
   color: var(--core-status-tone);
 }
 
+/* Shared tag: one shape, the tone only swaps the two color roles. */
+.core-tag {
+  display: inline-flex;
+  width: -moz-fit-content;
+  width: fit-content;
+  align-items: center;
+  border-radius: var(--core-radius-control);
+  padding: var(--core-space-xs) var(--core-space-md);
+  background: var(--core-tag-surface);
+  color: var(--core-tag-text);
+  font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
+}
+
+.core-tag-neutral {
+  --core-tag-surface: var(--core-surface-muted);
+  --core-tag-text: var(--core-text-secondary);
+}
+
+.core-tag-info {
+  --core-tag-surface: var(--core-info-surface);
+  --core-tag-text: var(--core-action-primary);
+}
+
 @keyframes core-success-toast-dismiss {
   from {
     opacity: 1;
@@ -5927,6 +5953,11 @@ summary {
   .sm\:px-4 {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .sm\:px-5 {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
   }
 
   .sm\:px-6 {

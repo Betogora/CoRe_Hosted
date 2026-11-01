@@ -2157,9 +2157,10 @@ export function App() {
             refresh();
             navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
           }}
-          onEditCard={(currentDeckId, cardId) => navigateToViewNow("kartenstapel", {
+          onEditCard={(currentDeckId, cardId, tab) => navigateToViewNow("kartenstapel", {
             focusedDeckId: currentDeckId,
             selectedCardId: cardId,
+            cardEditorTab: tab,
             cardEditorReturnContext: {
               deckId: studyRequest.deckId,
               returnContext: studyRequest.returnContext,
@@ -2178,12 +2179,6 @@ export function App() {
           flagNames={cardEditorServices.flagNames}
           onSetCardStudyState={setStudyCardStudyState}
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
-          onCardUpdated={(_deckId, card) => {
-            void workspaceRepository.updateCard(card.id, (current) => ({ ...current, variants: card.variants, updatedAt: card.updatedAt })).then(() => {
-              refresh({ preserveCardPages: true });
-              syncEngine?.requestSync();
-            });
-          }}
           onReview={recordReview}
           sessionPlan={studySessionProjection ? {
             progress: studySessionProjection.progress,

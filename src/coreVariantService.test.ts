@@ -8,7 +8,6 @@ import {
   deleteVariant,
   describeVariantReadiness,
   editVariantText,
-  flagVariant,
   isEditedVariant,
   reactivateVariant,
   selectReviewVariant,
@@ -132,7 +131,7 @@ test("reactivating a reported variant returns it to rotation with its feedback; 
   const base = createBasicNote("deck", "Was ist ATP?", "Energieträger").cards[0];
   const card = addCardVariant(base, { front: "Wofür steht ATP?", back: "Energie" });
   const [variant] = card.variants;
-  const reported = flagVariant(card, variant.id, "fachlich_falsch");
+  const reported = { ...card, variants: [{ ...variant, isActive: false, qualityStatus: "flagged" as const, feedback: [{ id: "feedback-1", type: "fachlich_falsch" as const, note: "", createdAt: "2026-10-12T09:00:00.000Z" }], revision: variant.revision + 1 }] };
   const reactivated = reactivateVariant(reported, variant.id).variants[0];
   assert.equal(reactivated.isActive, true);
   assert.equal(reactivated.qualityStatus, "active");

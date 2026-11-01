@@ -1,8 +1,8 @@
-import { createCardVariant, createDefaultDeckSettings, getActiveVariants, stableContentHash } from "./coreModel.ts";
+import { createCardVariant, createDefaultDeckSettings, getActiveVariants } from "./coreModel.ts";
 import { stripSanitizedHtml } from "./htmlSafety.ts";
 import { isCardReadyForVariants } from "./coreVariantService/variantSelection.ts";
 import { getDurabilityDays } from "./scheduler.ts";
-import type { Card, CardVariant, Note, VariantFeedbackType } from "./coreTypes.ts";
+import type { Card, CardVariant, Note } from "./coreTypes.ts";
 
 type DeckSettingsInput = Parameters<typeof createDefaultDeckSettings>[0];
 
@@ -132,18 +132,3 @@ export function deleteVariant(card: Card, variantId: string, updatedAt = new Dat
   };
 }
 
-export function flagVariant(card: Card, variantId: string, type: VariantFeedbackType, note = ""): Card {
-  const updatedAt = new Date().toISOString();
-  return {
-    ...card,
-    variants: card.variants.map((variant) => variant.id === variantId ? {
-      ...variant,
-      isActive: false,
-      qualityStatus: "flagged",
-      feedback: [...variant.feedback, { id: stableContentHash({ variantId, type, note, updatedAt }, "feedback"), type, note, createdAt: updatedAt }],
-      updatedAt,
-      revision: variant.revision + 1,
-    } : variant),
-    updatedAt,
-  };
-}

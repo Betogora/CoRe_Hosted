@@ -1,5 +1,5 @@
 import React from "react";
-import { Anchor, Ban, CheckCircle2, CircleAlert, RotateCcw, Shuffle, SlidersHorizontal, X } from "lucide-react";
+import { CheckCircle2, ChevronDown, CircleAlert, RotateCcw, Shuffle, SlidersHorizontal, X } from "lucide-react";
 import type { StudyModeProps } from "../appScreenProps.ts";
 import { DEFAULT_EASY_DAYS, createEasyDaysDueCounts, shiftEasyDaysDueCounts } from "../easyDays.ts";
 import { getLearningDayKey } from "../learningDay.ts";
@@ -18,7 +18,6 @@ import {
   moveDailyReviewProgress,
   reconcileDailyReviewSessionState,
   removeDailyReviewSessionItem,
-  recordVariantFeedback,
   type DailyReviewSessionState,
   updateDailyReviewSessionIndex,
 } from "../reviewService.ts";
@@ -28,7 +27,8 @@ import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
-import { IconButton } from "../ui/actionUi.tsx";
+import { ActionButton, IconButton } from "../ui/actionUi.tsx";
+import { CoreTag } from "../ui/coreUi.tsx";
 import { FlagDot } from "../ui/flagUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { formatLimitSummary, formatReviewIntervalLabel, ratingButtons } from "./screenConstants.ts";
@@ -55,7 +55,7 @@ function createEasyDaysContext(
   };
 }
 
-export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onCardUpdated, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
+export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
   const [sessionNotes, setSessionNotes] = React.useState(() => new Map(notes.map((note) => [note.id, note])));
   const sessionIndexRef = React.useRef<ReturnType<typeof createDailyReviewSessionIndex> | null>(null);
@@ -69,9 +69,8 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   } | null>(null);
   const [reviewSession, setReviewSession] = React.useState<DailyReviewSessionState | null>(null);
   const [showAnswer, setShowAnswer] = React.useState(false);
-  const [showAnchor, setShowAnchor] = React.useState(false);
+  const [showOriginal, setShowOriginal] = React.useState(false);
   const [showSettings, setShowSettings] = React.useState(false);
-  const [feedbackStatus, setFeedbackStatus] = React.useState("");
   const [moreCardsAvailable, setMoreCardsAvailable] = React.useState(hasMoreCards);
   const [activeBufferSize, setActiveBufferSize] = React.useState(Math.max(1, bufferSize));
   const [loadingMoreCards, setLoadingMoreCards] = React.useState(false);
@@ -82,7 +81,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   const questionContentRef = React.useRef<HTMLDivElement>(null);
   const completionHeadingRef = React.useRef<HTMLHeadingElement>(null);
   const settingsButtonRef = React.useRef<HTMLButtonElement>(null);
-  const feedbackDeckRef = React.useRef<Deck | null>(null);
   const effectiveLearningDayKey = learningDayKey || getLearningDayKey(getNow(), { dayStartHour, timeZone }) || "";
   const previousLearningDayKeyRef = React.useRef(effectiveLearningDayKey);
   const setSuccessToast = useSuccessToast();
@@ -139,7 +137,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     [current, currentNote],
   );
   const isCurrentVariant = Boolean(current?.variant);
-  const hasAnswerTools = isCurrentVariant;
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useNoteMediaUrls(currentNote?.media, mediaStore);
 
   React.useEffect(() => {
@@ -154,10 +151,8 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     setLoadMoreError("");
     setPausedOffline(false);
     setShowAnswer(false);
-    setShowAnchor(false);
+    setShowOriginal(false);
     setShowSettings(false);
-    setFeedbackStatus("");
-    feedbackDeckRef.current = null;
   }, [deckId, decks.length]);
 
   React.useEffect(() => {
@@ -265,9 +260,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
       ? advanceDailyReviewSession(session, { key: reviewedKey, rating, nextReviewState: nextStudy })
       : session);
     setShowAnswer(false);
-    setShowAnchor(false);
-    setFeedbackStatus("");
-    feedbackDeckRef.current = null;
+    setShowOriginal(false);
   }
 
   function revealAnswer() {
@@ -278,10 +271,9 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   function grade(rating: ReviewRating) {
     if (!current || !currentDeck) return;
     const responseTimeMs = responseTimer.stop();
-    const feedbackCard = feedbackDeckRef.current?.cards.find((card) => card.id === current.cardId);
     const result = answerVariant({
-      ...(feedbackDeckRef.current ?? currentDeck),
-      cards: [feedbackCard ?? current.card],
+      ...currentDeck,
+      cards: [current.card],
       reviewEvents: [],
     }, current.cardId, current.variant?.id ?? null, rating, {
       now: getNow(),
@@ -300,14 +292,6 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
       });
     }
     finishOrNext(result.deck, result.updatedCard, rating, current.card.study, result.updatedCard.study, current.sessionInfo?.key ?? `${current.deckId}:${current.cardId}`);
-  }
-
-  function updateVariant(action: "disable" | "flag", feedbackType?: "fachlich_falsch" | "unklar_formuliert") {
-    if (!isCurrentVariant || !currentDeck || !current) return;
-    const result = recordVariantFeedback(feedbackDeckRef.current ?? currentDeck, { cardId: current.cardId, variantId: current.variantId }, { action, feedbackType });
-    feedbackDeckRef.current = result.deck;
-    if (result.updatedCard) onCardUpdated(result.deck.id, result.updatedCard);
-    setFeedbackStatus(action === "disable" ? "Diese Abfrage wird künftig nicht mehr gezeigt." : "Danke. Der ausgewählte Grund wurde gespeichert.");
   }
 
   function updateCurrentStudyState(patch: CardStudyStatePatch) {
@@ -331,9 +315,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
     setShowSettings(false);
     setReviewSession((session) => removeDailyReviewSessionItem(session ?? effectiveReviewSession, currentKey));
     setShowAnswer(false);
-    setShowAnchor(false);
-    setFeedbackStatus("");
-    feedbackDeckRef.current = null;
+    setShowOriginal(false);
     setSuccessToast("Karte ausgesetzt. Der Lernstand bleibt erhalten. Reaktivieren unter Karte bearbeiten.");
   }
 
@@ -468,6 +450,9 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
                       {current.sessionInfo.isEarlyRepeat ? "Vorgezogene Wiederholung" : "Wiederholung"}
                     </p>
                   ) : null}
+                  {showAnswer && isCurrentVariant ? (
+                    <CoreTag tone="info" className="mb-4" data-testid="review-variant-badge">Variante</CoreTag>
+                  ) : null}
                   <div ref={showAnswer ? answerContentRef : questionContentRef} tabIndex={-1} role="group" aria-label={showAnswer ? "Antwort" : "Frage"} className="min-w-0 outline-none" data-testid="study-card-content">
                     {presented ? (
                       <NoteCardContent note={presented.note} card={presented.card} mediaUrls={studyMediaUrls} revealed={showAnswer} onReveal={revealAnswer} />
@@ -476,52 +461,24 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
                     )}
                   </div>
                   {showAnswer ? (
-                    <>
-                      {hasAnswerTools ? (
-                        <div className="mt-8 rounded-panel border border-core-border bg-core-surface p-4 shadow-soft sm:p-5" data-testid="review-answer-tools">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {isCurrentVariant ? (
-                              <span className="inline-flex min-h-5 items-center gap-1.5 rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary" data-testid="review-variant-badge">
-                                <Shuffle size={14} aria-hidden="true" />
-                                Kartenvariante
-                              </span>
-                            ) : null}
-                            {isCurrentVariant ? (
-                              <button type="button" onClick={() => setShowAnchor((value) => !value)} aria-expanded={showAnchor} className="core-action-secondary">
-                                <Anchor size={16} aria-hidden="true" />
-                                {showAnchor ? "Grundkarte ausblenden" : "Grundkarte anzeigen"}
-                              </button>
-                            ) : null}
-                            {isCurrentVariant ? (
-                              <button type="button" onClick={() => updateVariant("disable")} className="core-action-secondary">
-                                <Ban className="text-core-warning" size={16} aria-hidden="true" />
-                                Nicht mehr zeigen
-                              </button>
-                            ) : null}
-                          </div>
-                          {isCurrentVariant ? (
-                            <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-core-border pt-4" aria-label="Problem melden">
-                              <span className="core-field-label">Problem melden:</span>
-                              <button type="button" onClick={() => updateVariant("flag", "fachlich_falsch")} className="core-action-secondary">
-                                <CircleAlert className="text-core-danger" size={16} aria-hidden="true" />
-                                Inhaltlich falsch
-                              </button>
-                              <button type="button" onClick={() => updateVariant("flag", "unklar_formuliert")} className="core-action-secondary">
-                                <CircleAlert className="text-core-danger" size={16} aria-hidden="true" />
-                                Unklar formuliert
-                              </button>
-                            </div>
-                          ) : null}
-                          {feedbackStatus ? <p className="mt-3 core-body text-core-secondary" role="status">{feedbackStatus}</p> : null}
-                          {isCurrentVariant && showAnchor && currentNote ? (
-                            <div className="mt-4 border-t border-core-border pt-4" data-testid="base-card-reference">
-                              <p className="mb-3 core-field-label">Grundkarte</p>
+                    isCurrentVariant && currentNote ? (
+                      <div className="mt-8 grid justify-items-end gap-4" data-testid="review-answer-tools">
+                        <section className="w-full rounded-panel border border-core-border bg-core-surface shadow-soft" data-testid="base-card-reference">
+                          <button type="button" onClick={() => setShowOriginal((value) => !value)} aria-expanded={showOriginal} aria-controls="study-original-card" className="flex min-h-control w-full items-center justify-between gap-3 p-4 text-left sm:px-5">
+                            <CoreTag tone="neutral">Originalkarte</CoreTag>
+                            <ChevronDown size={18} aria-hidden="true" className={`shrink-0 text-core-muted transition-transform motion-reduce:transition-none ${showOriginal ? "rotate-180" : ""}`} />
+                          </button>
+                          {showOriginal ? (
+                            <div id="study-original-card" className="border-t border-core-border p-4 sm:p-5">
                               <NoteCardContent note={currentNote} card={current.card} surface="preview" mediaUrls={studyMediaUrls} revealed onReveal={() => undefined} />
                             </div>
                           ) : null}
-                        </div>
-                      ) : null}
-                    </>
+                        </section>
+                        <ActionButton variant="secondary" icon={Shuffle} onClick={() => onEditCard(current.deckId, current.cardId, "variants")}>
+                          Varianten verwalten
+                        </ActionButton>
+                      </div>
+                    ) : null
                   ) : (
                     <button type="button" onClick={() => setShowAnswer(true)} className="mx-auto mt-12 core-action-primary">
                       <RotateCcw size={16} aria-hidden="true" />

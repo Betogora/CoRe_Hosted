@@ -5,7 +5,7 @@ import { BrainMascot } from "../src/ui/BrainMascot.tsx";
 import { DailyMotivationWidget } from "../src/screens/DailyMotivationWidget.tsx";
 import React, { useRef, useState } from "react";
 import { Ban, BookOpen, ChevronRight, Copy, Eye, Grid2x2, Home, Info, Layers, List, Pencil, Plus, RefreshCw, Save, Settings, Sparkles, Star, Trash2, Type, X, type LucideIcon } from "lucide-react";
-import { addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
+import { addCardVariant, addNoteField, cardStudyFromReviewState, type OcclusionMode, createBasicNote, createCoreDeck, createManualNoteContent, createNote, createReviewState, noteBlocks, setNoteTypeIn, type ManualContentKind } from "../src/coreModel.ts";
 import type { ExamPlanningSettings, CoreMode, NewReviewOrder, NoteContent, NoteField, OcclusionMask, SyncStatus } from "../src/coreTypes.ts";
 import type { CardEditorServices, DecksCardPage, DecksCardPageRequest } from "../src/appScreenProps.ts";
 import type { CardEditorTab } from "../src/appNavigation.ts";
@@ -16,8 +16,9 @@ import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../src/ui/actionUi.tsx";
-import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, EmptyState, OrbIcon, PageHeader, SegmentedDonut, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreTag, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, EmptyState, OrbIcon, PageHeader, SegmentedDonut, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
+import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaStore.ts";
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
 import { CoreTooltip } from "../src/ui/tooltipUi.tsx";
 import { CoreDatePicker } from "../src/ui/CoreDatePicker.tsx";
@@ -97,6 +98,37 @@ const childName = "Europa – ein sehr langer Name für schmale Ansichten";
 const child = createCoreDeck({ id: "catalog-europe", name: childName, source: "manual", parentDeckId: deck.id, hierarchyPath: [deck.name, childName], cards: sampleGraphs[2].cards });
 const sampleDecks = [deck, child, ...["Biologie", "Medizin", "Sprachen", "Geschichte"].map((name, index) => ({ ...deck, id: `catalog-${index}`, parentDeckId: null, name, hierarchyPath: [name], cards: [] }))];
 const substackDemoDecks = [...sampleDecks];
+const variantStudyGraph = createBasicNote("catalog-variant", "Was ist die Hauptstadt von Portugal?", "Lissabon", { createdAt: `${today}T08:00:00Z` });
+// Mature, due and with an odd review count, so the session asks the variant instead of the card.
+const variantStudyCard = addCardVariant({ ...variantStudyGraph.cards[0], study: cardStudyFromReviewState(createReviewState({ state: "review", reps: 5, stability: 90, intervalDays: 60, maturityBand: "mature", dueAt: `${today}T06:00:00Z`, lastReviewedAt: "2026-08-03T08:00:00Z", lastRating: "good" })) }, { front: "Welche Stadt ist die Hauptstadt Portugals?", back: "Lissabon" }, `${today}T07:00:00Z`);
+const variantStudyDeck = createCoreDeck({ id: "catalog-variant", name: "Welt-Hauptstädte · Varianten", source: "manual", cards: [variantStudyCard] });
+// Generated variants are text only; an image reaches them through the card's extra field.
+const imageVariantGraph = createNote({ deckId: "catalog-variant-image", createdAt: `${today}T08:00:00Z`, media: { [imageReference]: imageReference }, content: {
+  schemaVersion: 1,
+  fields: [
+    { id: "front", name: "Vorderseite", role: "prompt", html: "Was ist die Hauptstadt von Portugal?" },
+    { id: "back", name: "Rückseite", role: "answer", html: "Lissabon" },
+    { id: "extra", name: "Zusatz", role: "extra", html: `<img src="${imageReference}" alt="Beispielansicht von Lissabon">` },
+  ],
+  interaction: { kind: "reveal", prompts: [{ key: "forward", name: "Vorwärts", instruction: "", questionFieldIds: ["front"], answerFieldIds: ["back"], requires: null, typeInFieldId: null }] },
+  speech: [],
+  tags: [],
+} });
+const imageVariantDeck = createCoreDeck({ id: "catalog-variant-image", name: "Bildvariante", source: "manual", cards: [addCardVariant({ ...imageVariantGraph.cards[0], study: variantStudyCard.study }, { front: "Welche Stadt ist die Hauptstadt Portugals?", back: "Lissabon" }, `${today}T07:00:00Z`)] });
+
+/** A real, cloud-free account media store holding the sample image, so the session resolves it like in the app. */
+function useCatalogMediaStore(enabled: boolean) {
+  const [store, setStore] = useState<AccountMediaStore | null>(null);
+  React.useEffect(() => {
+    if (!enabled || store) return;
+    const candidate = createAccountMediaStore({ client: null, supabaseUrl: "", userId: "catalog-media", indexedDB: null });
+    void fetch(sampleMedia[imageReference]).then((response) => response.blob()).then(async (blob) => {
+      await candidate.cacheMedia([{ sha1: imageReference, name: "lissabon.svg", size: blob.size, mimeType: blob.type, blob }], { queueUpload: false });
+      setStore(candidate);
+    });
+  }, [enabled, store]);
+  return store;
+}
 for (const [index, name] of ["Südeuropa", "Portugal", "Lissabon"].entries()) {
   const parent = index === 0 ? child : substackDemoDecks.at(-1)!;
   substackDemoDecks.push(createCoreDeck({ id: `catalog-substack-${index}`, name, source: "manual", parentDeckId: parent.id, hierarchyPath: [...parent.hierarchyPath, name], cards: [] }));
@@ -121,7 +153,7 @@ function ActionsDemo({ section }: { section: string }) {
 }
 
 function BadgesDemo() {
-  return <Demo title="Lokale Badges und Kennzeichnungen"><p className="catalog-pattern-source">APKG-Vorschau und Kartensynchronisierung: <code>src/screens/ApkgImportPanel.tsx</code>, <code>src/screens/DecksScreen.tsx</code>.</p><div className="catalog-row"><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Originalkarte</span><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Vorderseite</span><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Rückseite</span><span className="rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span></div><p className="core-caption text-core-muted">Variantenstatus verwendet ausschließlich Haken und Strich in der Tabellenfamilie.</p></Demo>;
+  return <><Demo title="CoreTag · neutral und CoRe-Blau"><div className="catalog-row"><CoreTag tone="info">Variante</CoreTag><CoreTag tone="neutral">Originalkarte</CoreTag></div><p className="core-caption text-core-muted">Gemeinsame Form; die Töne liegen zentral in <code>.core-tag-neutral</code> und <code>.core-tag-info</code>.</p></Demo><Demo title="Lokale Badges und Kennzeichnungen"><p className="catalog-pattern-source">APKG-Vorschau und Kartensynchronisierung: <code>src/screens/ApkgImportPanel.tsx</code>, <code>src/screens/DecksScreen.tsx</code>.</p><div className="catalog-row"><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Originalkarte</span><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Vorderseite</span><span className="rounded-control bg-core-success-soft px-3 py-1 core-caption font-semibold text-core-text">Rückseite</span><span className="rounded-round bg-core-warning-soft px-2 py-0.5 core-caption text-core-text">Synchronisierung klären</span></div><p className="core-caption text-core-muted">Variantenstatus verwendet ausschließlich Haken und Strich in der Tabellenfamilie.</p></Demo></>;
 }
 
 function FoundationsDemo({ section }: { section: string }) {
@@ -448,6 +480,7 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
   const [demoContentTab, setDemoContentTab] = useState<DeckContentTab>("children");
   const [collapsedDemoDeckIds, setCollapsedDemoDeckIds] = useState<string[]>([]);
   const [view, setView] = useState(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === kind ? kind : "");
+  const catalogMediaStore = useCatalogMediaStore(view === "study-variant-image");
   const [offset, setOffset] = useState(0);
   const [message, setMessage] = useState("");
   const [selection, setSelection] = useState<StatisticsSelection>({ period: "30d", deckIds: "all", now: kind === "exams" ? "2026-10-14T12:00:00Z" : "2026-10-02T12:00:00Z", timeZone: "Europe/Berlin" });
@@ -517,6 +550,8 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
     ["global", "GlobalCardSettingsScreen · globale Lernwerte", "Globale Lernwerte"],
     ["deck-settings", "DeckSettingsScreen · Darstellung und Lernwerte", "Stapeleinstellungen"],
     ["study", "StudyMode · Frage, Antwort und Bewertungen", "Lernsitzung"],
+    ["study-variant", "StudyMode · Kartenvariante mit einklappbarer Originalkarte", "Lernsitzung mit Variante"],
+    ["study-variant-image", "StudyMode · Kartenvariante mit Bild aus dem Zusatzfeld", "Lernsitzung mit Bildvariante"],
   );
   return <>{views.filter(([id]) => id === kind).map(([id, title, label]) => <Demo key={id} title={title}><ActionButton variant="secondary" onClick={() => { conflicts.current = [conflict]; setMessage(""); setView(id); }}>{label} öffnen</ActionButton></Demo>)}{view && <div className="catalog-product-preview core-screen-region" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) setView(""); }}><div className="catalog-product-bar"><p className="core-caption">Echte Produktansicht · lokale Demodaten</p><ActionButton variant="secondary" autoFocus onClick={() => setView("")}>Produktansicht schließen</ActionButton></div>
     <section className="min-w-0 overflow-x-clip px-2.5 pb-32 pt-8 sm:px-4 lg:px-6">
@@ -535,7 +570,9 @@ export function ProductViewsDemo({ kind }: { kind: string }) {
     {view === "settings" && <SettingsScreen profile={workspace.profile} syncStatus={{ status: "saved", message: "Synchronisiert", savedAt: selection.now }} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onSyncNow={async () => undefined} onListConflicts={async () => []} onResolveConflict={async () => undefined} onSignOut={async () => undefined} onNavigate={navigate} />}
     {view === "global" && <GlobalCardSettingsScreen timeZone="Europe/Berlin" globalSchedulerPreferences={getGlobalSchedulerPreferences(workspace.profile)} flagNames={workspace.profile.uiPreferences.flagNames} learningProfiles={[]} onSaveLearningProfiles={noop} onSaveSettings={() => workspace.profile} onDraftStateChange={noop} onNavigate={navigate} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onStartPomodoro={noop} />}
     {view === "deck-settings" && <DeckSettingsScreen deck={deck} decks={sampleDecks} learningProfiles={[]} onSaveSettings={() => null} onApplyLearningProfile={() => deck} onSaveLearningProfiles={noop} onDraftStateChange={noop} onRequestContextAction={(action) => action()} onCreateSubdeck={noop} onDeleteDeck={async () => null} onSelectDeck={noop} onOpenGlobalSettings={noop} onBack={noop} />}
-    {view === "study" && <StudyMode deck={demoStudyDeck} decks={sampleDecks} notes={sampleNotes} deckId={demoStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => deck} onCardUpdated={noop} onReview={noop} />}
+    {view === "study" && <StudyMode deck={demoStudyDeck} decks={sampleDecks} notes={sampleNotes} deckId={demoStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("learn")} onEditCard={noop} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => deck} onReview={noop} />}
+    {view === "study-variant" && <StudyMode deck={variantStudyDeck} decks={[variantStudyDeck]} notes={[variantStudyGraph.note]} deckId={variantStudyDeck.id} mediaStore={null} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("")} onEditCard={(_deckId, _cardId, tab) => toast(`Karteneditor öffnet sich im Tab ${tab === "variants" ? "Varianten" : "Inhalt"}.`)} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => variantStudyDeck} onReview={noop} />}
+    {view === "study-variant-image" && catalogMediaStore && <StudyMode deck={imageVariantDeck} decks={[imageVariantDeck]} notes={[imageVariantGraph.note]} deckId={imageVariantDeck.id} mediaStore={catalogMediaStore} getNow={() => selection.now} simulationOffsetMinutes={0} pomodoroTimer={null} onStartPomodoro={noop} onExit={() => setView("")} onReturnToLearn={() => setView("")} onEditCard={(_deckId, _cardId, tab) => toast(`Karteneditor öffnet sich im Tab ${tab === "variants" ? "Varianten" : "Inhalt"}.`)} onEditDeck={noop} flagNames={[]} onSetCardStudyState={() => null} onSetDeckReviewOrder={() => imageVariantDeck} onReview={noop} />}
     </section>
   </div>}</>;
 }
@@ -597,7 +634,7 @@ export const DEMO_GROUPS = [
   { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
   { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Reguläre und kompakte Segmente, gleitende Tabs, reine Icon-Auswahl und CoRe-Modus.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl"], render: () => <ControlsDemo section="segments" /> },
   { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei und zusammengesetzte Einstellungsformulare.", components: ["CoreSelect", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel", "AuthGateScreen", "SimulatorScreen"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /><ProductViewsDemo kind="auth" /><ProductViewsDemo kind="simulator" /></> },
-  { id: "badges", section: "primitive", title: "Badge", description: "Bestehende lokale Beschriftungen für Original, Kartenseite und Synchronisierung.", components: [], render: BadgesDemo },
+  { id: "badges", section: "primitive", title: "Tag und Badge", description: "Gemeinsames Tag in neutral und CoRe-Blau sowie bestehende lokale Beschriftungen für Original, Kartenseite und Synchronisierung.", components: ["CoreTag"], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },
   { id: "feedback", section: "primitive", title: "Toaster / StatusMessage", description: "Info, Erfolg, Warnung, Fehler und schließbare Toasts.", components: ["StatusMessage", "SuccessToast", "SuccessToastProvider"], render: () => <FeedbackDemo section="feedback" /> },
   { id: "progress", section: "primitive", title: "Fortschritt", description: "Tagesfortschritt, Zeitfortschritt sowie bestimmte und unbestimmte Prozessanzeigen.", components: ["DailyReviewProgress", "PomodoroProgress", "VariantGenerationBar"], render: () => <><FeedbackDemo section="progress" /><LearningDemo section="progress" /></> },
@@ -614,7 +651,7 @@ export const DEMO_GROUPS = [
   { id: "editor", section: "fachmuster", title: "Texteditor und Inhaltsbausteine", description: "Rich-Text-Toolbar, Lückentext, Formeln, Bilder, Zusatzwerkzeuge und Inhaltsbausteine.", components: ["RichTextEditor", "NoteBlockControls"], wide: true, render: () => <><ContentDemo section="editor" /><NoteBlocksDemo /></> },
   { id: "bildverdeckung-editor", section: "fachmuster", title: "Bildverdeckungs-Editor", description: "Masken als Rechteck, Ellipse, Polygon oder Text zeichnen, zu Karten gruppieren und den Verdeckungsmodus wählen; per Maus, Touch und Tastatur.", components: ["OcclusionEditor"], wide: true, render: OcclusionEditorDemo },
   { id: "media", section: "fachmuster", title: "PDF-Vorschau", description: "PDF-Vorschau mit Textauswahl.", components: ["PdfDocumentViewer"], wide: true, render: () => <ContentDemo section="media" /> },
-  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "ai-source", "decks", "deck-content", "settings", "global", "deck-settings", "study"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}<ExamTopicOrderDemo /><SummaryContentDemo /><MindMapContentDemo /></> },
+  { id: "screens", section: "fachmuster", title: "Produktansichten", description: "Echte Screens mit lokalen Beispieldaten für vollständige Designvergleiche. Aktionen bleiben in der Vorschau.", components: ["DashboardScreen", "LearnScreen", "ExamPlanningScreen", "CreationScreen", "DecksScreen", "SettingsScreen", "GlobalCardSettingsScreen", "DeckSettingsScreen", "StudyMode"], wide: true, render: () => <>{["dashboard", "learn", "exams", "creation", "manual", "import", "ai-source", "decks", "deck-content", "settings", "global", "deck-settings", "study", "study-variant", "study-variant-image"].map((kind) => <ProductViewsDemo key={kind} kind={kind} />)}<ExamTopicOrderDemo /><SummaryContentDemo /><MindMapContentDemo /></> },
   { id: "symbols", section: "icons", title: "Iconflächen und Illustrationen", description: "Iconflächen, Stapelidentität und interaktive Lernmethoden-Illustrationen.", components: ["OrbIcon", "DeckAppearanceIcon", "HelpScreen"], render: () => <><FoundationsDemo section="symbols" /><ProductViewsDemo kind="help" /></> },
   { id: "icon-rollen", section: "icons", title: "Häufige Icon-Rollen", description: "Wiederkehrende Aktionen und ihre Lucide-Icons.", components: [], render: IconRolesDemo },
   { id: "brain-mascots", section: "icons", title: "Gehirn-Maskottchen und Motivation", description: "37 SVG-Motive mit interaktiven Augen und einem täglichen Lernimpuls. Die Grafik bleibt in Light und Dark gleich; die Oberfläche nutzt das aktuelle Theme.", components: ["BrainMascot", "DailyMotivationWidget"], wide: true, render: () => <><Demo title="Begrüße dein Gehirn"><div className="grid gap-6 sm:grid-cols-3">{(["pastell-lernen", "pastell-fokus", "abenteuer-geschafft"] as const).map((id) => <BrainMascot key={id} id={id} interactive />)}</div></Demo><Demo title="Dein Motivationsimpuls"><DailyMotivationWidget now="2026-10-29T12:00:00Z" timeZone="Europe/Berlin" dayStartHour={3} /></Demo></> },

@@ -224,7 +224,7 @@ Bypass ausschließlich am ersten Hostaufruf als Vercel-Query übergeben und als
 Host-Cookie gespeichert. Er darf nicht als globaler Playwright-Header gesetzt
 werden, weil dieser auch an Supabase-Fetches gelangen könnte.
 
-Der Lauf deckt fünf automatisierte Testabläufe ab; die sieben Produktjourneys stehen in [Specs](specs.md#5-kernjourneys): Login und Cloud-Laden; kleinen APKG-Import; transiente PDF-Hilfe bei Erstellung und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; KI-Variante mit Reveal, Grundkarte und Feedback. Zusätzlich prüft er APKG-Medien in DB und privatem Storage sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MB.
+Der Lauf deckt fünf automatisierte Testabläufe ab; die sieben Produktjourneys stehen in [Specs](specs.md#5-kernjourneys): Login und Cloud-Laden; kleinen APKG-Import; transiente PDF-Hilfe bei Erstellung und Bearbeitung; Review mit Offline-Pending, Reconnect, Save und Reload; KI-Variante mit Reveal, Originalkarte und Variantenverwaltung. Zusätzlich prüft er APKG-Medien in DB und privatem Storage sowie einen accountgebundenen Konfliktstatus. Er prüft weder Google/Magic Link noch Dateien über 250 MB.
 
 Der Smoke läuft zuerst gegen die Preview-URL und danach gegen die mit `--skip-domain` bereitgestellte staged Production. Ein fehlgeschlagener Core-Schritt stoppt die Freigabe. Nach einer Korrektur beginnt die Abnahme mit einem neuen Deployment wieder bei Preview.
 

@@ -2327,6 +2327,9 @@ video {
 .justify-between {
   justify-content: space-between;
 }
+.justify-items-end {
+  justify-items: end;
+}
 .justify-items-center {
   justify-items: center;
 }
@@ -4229,6 +4232,29 @@ summary {
   color: var(--core-status-tone);
 }
 
+/* Shared tag: one shape, the tone only swaps the two color roles. */
+.core-tag {
+  display: inline-flex;
+  width: -moz-fit-content;
+  width: fit-content;
+  align-items: center;
+  border-radius: var(--core-radius-control);
+  padding: var(--core-space-xs) var(--core-space-md);
+  background: var(--core-tag-surface);
+  color: var(--core-tag-text);
+  font: var(--core-weight-control) var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans);
+}
+
+.core-tag-neutral {
+  --core-tag-surface: var(--core-surface-muted);
+  --core-tag-text: var(--core-text-secondary);
+}
+
+.core-tag-info {
+  --core-tag-surface: var(--core-info-surface);
+  --core-tag-text: var(--core-action-primary);
+}
+
 @keyframes core-success-toast-dismiss {
   from {
     opacity: 1;
@@ -5929,6 +5955,11 @@ summary {
     padding-right: 1rem;
   }
 
+  .sm\:px-5 {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+
   .sm\:px-6 {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
@@ -6836,7 +6867,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <li>Beim Einschalten über das Stapelmenü erklärt ein Dialog Wirkung, Haltbarkeitsschwelle und Datenschutz; die vorausgewählte Option <code>Jetzt Varianten für bis zu 50 Karten generieren</code> startet nach <code>Einschalten</code> die Stapelgenerierung. <code>Abbrechen</code> lässt den CoRe-Modus aus. Läuft bereits eine Generierung, ist die Option gesperrt.</li>
 <li>Bei eingeschaltetem CoRe-Modus bieten die Stapeleinstellungen <code>Varianten generieren</code> und <code>Varianten neu generieren</code>. <code>Varianten neu generieren</code> ersetzt nach Rückfrage die Varianten von Karten, deren aktive Varianten aus einer älteren Version der Generierung stammen, durch je eine neue und löscht dabei deren bisherige Varianten; Lernstand und Karten bleiben. Eine Generierung erzeugt je Karte genau eine Variante und bearbeitet nacheinander die ersten höchstens 50 passenden Karten in Stapelreihenfolge; <code>Varianten generieren</code> nimmt Karten ohne aktive Variante; Karten ohne Frage-/Antwort-Abfrage werden übersprungen. Jede Variante wird sofort gespeichert; ein weiterer Start bearbeitet die nächsten Karten. App-weit läuft höchstens eine Generierung, solange CoRe geöffnet ist.</li>
 <li>Eine zweizeilige Leiste über der Navigation zeigt Stapel-Icon, <code>Varianten generieren X von Y</code> und <code>Abbrechen</code>, darunter den Fortschrittsbalken. Abbrechen behält Erzeugtes. Ein vollständiger Erfolg, ein Abbruch oder kein Fund endet mit einem Toast; einzelne Fehlschläge oder ein Stopp bei Fehlern, die jede Karte träfen (Anmeldung, Verbindung, Budget, Anfragelimit), bleiben mit Zahl und Grund in der Leiste, bis sie geschlossen wird.</li>
-<li>Jede Variante im Detail trägt eine farbig unterschiedene Zustandsmarke (<code>aktiv</code>, <code>abgeschaltet</code>, <code>gemeldet: inhaltlich falsch</code>, <code>gemeldet: unklar formuliert</code>, <code>veraltet</code>). Abgeschaltete und gemeldete Varianten lassen sich <code>Reaktivieren</code>, solange die Höchstzahl aktiver Varianten nicht erreicht ist; der Meldeverlauf bleibt. Veraltete nicht. <code>Löschen</code> entfernt eine Variante nach Rückfrage auf allen Geräten; Grundkarte und Lernstand bleiben.</li>
+<li>Jede Variante im Detail trägt eine farbig unterschiedene Zustandsmarke (<code>aktiv</code>, <code>abgeschaltet</code>, <code>gemeldet: inhaltlich falsch</code>, <code>gemeldet: unklar formuliert</code>, <code>veraltet</code>). Abgeschaltete und früher gemeldete Varianten lassen sich <code>Reaktivieren</code>, solange die Höchstzahl aktiver Varianten nicht erreicht ist; der Meldeverlauf bleibt. Veraltete nicht. <code>Löschen</code> entfernt eine Variante nach Rückfrage auf allen Geräten; Grundkarte und Lernstand bleiben.</li>
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--53-karten-bearbeiten-und-eine-sitzung-starten">Produktvertrag 5.3</a> · <a href="ui-elements.html#stapel">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
 <article id="journey-4" class="docs-document docs-journey"><h2 id="journey-4--54-karte-bewerten-neu-laden-und-fortfahren" class="core-heading-2" tabindex="-1">5.4 Karte bewerten, neu laden und fortfahren <a class="docs-anchor" href="#journey-4--54-karte-bewerten-neu-laden-und-fortfahren" aria-label="Link zu 5.4 Karte bewerten, neu laden und fortfahren">#</a></h2>
@@ -6912,8 +6943,8 @@ N3[&quot;Ursprung prüfen und Feedback geben&quot;]</pre><ol><li>Geeignete Karte
 <li>Eine reife Karte wechselt reihum zwischen sich selbst und ihren aktiven Varianten; die Originalkarte bleibt Teil des Wechsels. Abgefragt werden höchstens so viele Varianten, wie <code>Aktive Varianten pro Karte</code> (1, 2 oder 3) erlaubt, die ältesten zuerst.</li>
 <li>Nach einem Fehler fragt CoRe die Originalkarte ab, bis sie wieder richtig beantwortet ist.</li>
 <li>Jede Variante ist an genau eine Karte gebunden und teilt deren Lernstand und Termin. Bei fehlender oder fehlerhafter Variante bleibt die Karte sicher lernbar.</li>
-<li>Nach der Antwort einer Variante steht vor den Werkzeugen die Marke <code>Kartenvariante</code>; vorher deutet nichts auf eine Variante hin. <code>Grundkarte anzeigen</code> blendet die zugrunde liegende Karte kompakt ein.</li>
-<li>Eine Variante lässt sich nach der Antwort mit <code>Nicht mehr zeigen</code> deaktivieren oder als <code>Inhaltlich falsch</code> oder <code>Unklar formuliert</code> melden; beides deaktiviert sie. Persönliche Reviewdaten gelangen nicht in Feedbackobjekte.</li>
+<li>Erst nach der Antwort steht über dem Inhalt das blaue Tag <code>Variante</code>; vorher deutet nichts auf eine Variante hin. Darunter liegt eine eingeklappte Fläche mit dem grauen Tag <code>Originalkarte</code> und dem Einklapppfeil rechts oben; ein Klick auf die ganze Kopfzeile klappt die aufgedeckte Originalkarte auf und wieder zu.</li>
+<li>Unter der Fläche öffnet <code>Varianten verwalten</code> den Karteneditor dieser Karte als Dialog direkt im Tab <code>Varianten</code>; Schließen führt zurück in die Sitzung. Bearbeiten, neu Generieren, Abschalten und Löschen liegen dort; eine Meldung aus der Sitzung gibt es nicht. Persönliche Reviewdaten gelangen nicht in Variantenobjekte.</li>
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--55-core-variante-lernen-und-ursprung-prüfen">Produktvertrag 5.5</a> · <a href="ui-elements.html#inhalt">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
 <article id="journey-6" class="docs-document docs-journey"><h2 id="journey-6--56-lernlogik-verstehen" class="core-heading-2" tabindex="-1">5.6 Lernlogik verstehen <a class="docs-anchor" href="#journey-6--56-lernlogik-verstehen" aria-label="Link zu 5.6 Lernlogik verstehen">#</a></h2>
