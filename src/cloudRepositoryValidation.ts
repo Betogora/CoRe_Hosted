@@ -434,6 +434,15 @@ export function noteTypeSourceForTranslation(source: StoredNoteTypeSource): Note
   return parsed.success ? { id: source.id, ankiNotetypeId: source.ankiNotetypeId, name: source.name, ...parsed.output } : null;
 }
 
+export type ReplicatedNoteTypeSource = NoteTypeSource & { revision: number; updatedAt: string; deletedAt: string | null };
+
+/** A template from the catalog delta, kept on every device for the original layout (ADR-047); null when malformed. */
+export function replicatedNoteTypeSourceFromRow(row: AccountRow): ReplicatedNoteTypeSource | null {
+  const stored = noteTypeSourceFromRow(row);
+  const source = noteTypeSourceForTranslation(stored);
+  return source && { ...source, revision: stored.revision, updatedAt: stored.updatedAt, deletedAt: stored.deletedAt };
+}
+
 export function noteSourceForTranslation(source: StoredNoteSource): NoteSource | null {
   return Array.isArray(source.fields) && source.fields.every((field) => typeof field === "string")
     ? { noteId: source.id, noteTypeSourceId: source.noteTypeSourceId, fields: source.fields }

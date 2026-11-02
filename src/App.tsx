@@ -59,6 +59,7 @@ import { ActionDialog, EmptyState, OrbIcon, SoftPanel } from "./ui/coreUi.tsx";
 import { ActionButton } from "./ui/actionUi.tsx";
 import { CoreWordmark } from "./ui/CoreWordmark.tsx";
 import { useSuccessToast } from "./ui/feedbackUi.tsx";
+import { NoteLayoutContext, type NoteLayoutSource } from "./ui/noteLayoutContext.ts";
 import { VariantGenerationBar } from "./ui/VariantGenerationBar.tsx";
 import { useCardVariantBatch } from "./useCardVariantBatch.ts";
 import { CARD_VARIANT_BATCH_LIMIT, type CardVariantBatchMode } from "./cardVariantBatch.ts";
@@ -311,6 +312,11 @@ export function App() {
       ? createWorkspaceHydrationService({ client: supabase, repository: workspaceRepository, mediaStore })
       : null
   ), [mediaStore, supabase, workspaceRepository]);
+  // Stable across state changes, so cards do not render again; deck names come from the latest state.
+  const noteLayout = React.useMemo<NoteLayoutSource>(() => ({
+    loadNoteTypeSource: async (id) => workspaceRepository?.loadNoteTypeSource(id) ?? null,
+    deckName: (deckId) => latestStateRef.current?.decks.find((deck) => deck.id === deckId)?.hierarchyPath.join("::") ?? "",
+  }), [workspaceRepository]);
   const variantBatch = useCardVariantBatch({ cards: workspaceHydrationService, generate: generateDeckCardVariant, onToast: setSuccessToast });
   const [coreEnableDeckId, setCoreEnableDeckId] = React.useState<string | null>(null);
   const [generateOnCoreEnable, setGenerateOnCoreEnable] = React.useState(true);
@@ -2131,7 +2137,7 @@ export function App() {
   if (studyRequest && !study.decks) return <LoadingScreen message="Lernsitzung wird vorbereitet." />;
   if (studyRequest && studyDeck) {
     return (
-      <React.Suspense fallback={<LoadingScreen message="Lernmodus wird geladen." />}>
+      <NoteLayoutContext.Provider value={noteLayout}><React.Suspense fallback={<LoadingScreen message="Lernmodus wird geladen." />}>
         <StudyMode
           deck={studyDeck}
           decks={study.decks ?? [studyDeck]}
@@ -2188,7 +2194,7 @@ export function App() {
           hasMoreCards={study.hasMoreCards}
           onLoadMoreCards={loadMoreStudyCards}
         />
-      </React.Suspense>
+      </React.Suspense></NoteLayoutContext.Provider>
     );
   }
 
@@ -2216,7 +2222,7 @@ export function App() {
 
         <section ref={screenRegionRef} className="core-screen-region min-w-0 overflow-x-clip px-4 pb-32 pt-8 outline-none sm:px-6 xl:relative xl:overflow-x-hidden xl:overflow-y-auto xl:py-10" tabIndex={-1} aria-label="Seiteninhalt">
           <div className="mx-auto w-full min-w-0 max-w-7xl">
-            <React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense>
+            <NoteLayoutContext.Provider value={noteLayout}><React.Suspense fallback={<ScreenLoadingFallback />}>{renderActiveView()}</React.Suspense></NoteLayoutContext.Provider>
           </div>
         </section>
       </div>

@@ -5,9 +5,10 @@ import type { ApkgCloudProgress, ApkgImportJob, ApkgImportSession, ApkgProgressP
 import type { Card, Deck, Note } from "../coreTypes.ts";
 import { projectImportUiState, type ImportUiState } from "../importUiState.ts";
 import type { MediaSyncProgress, MediaSyncResult, MediaSyncStatus, MediaSyncTask } from "../mediaStore.ts";
-import { ANKI_PACKAGE_MAX_BYTES, type ApkgTranslationReport, type ImportMediaFile } from "../apkgImport.ts";
+import { ANKI_PACKAGE_MAX_BYTES, type ApkgTranslationReport, type ImportMediaFile, type ImportSample } from "../apkgImport.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { NoteCardContent } from "../ui/NoteCardContent.tsx";
+import { NoteLayoutContext, type NoteLayoutSource } from "../ui/noteLayoutContext.ts";
 import { OrbIcon, SoftPanel, StatTile } from "../ui/coreUi.tsx";
 import { FileDropField } from "../ui/FileDropField.tsx";
 import { formatBytes, importSteps } from "./screenConstants.ts";
@@ -95,18 +96,22 @@ function useSampleMediaUrls(files: ImportMediaFile[]) {
   return urlsBySha1;
 }
 
-function ApkgCardSample({ note, card, notetypeName, urlsBySha1 }: { note: Note; card: Card; notetypeName: string; urlsBySha1: Record<string, string> }) {
+function ApkgCardSample({ note, card, notetypeName, noteTypeSource, urlsBySha1 }: ImportSample & { urlsBySha1: Record<string, string> }) {
   const mediaUrls = React.useMemo(
     () => Object.fromEntries(Object.entries(note.media).flatMap(([name, sha1]) => urlsBySha1[sha1] ? [[name, urlsBySha1[sha1]]] : [])),
     [note.media, urlsBySha1],
   );
+  // The package is not saved yet, so the preview reads its template from the translation.
+  const layout = React.useMemo<NoteLayoutSource>(() => ({ loadNoteTypeSource: async () => noteTypeSource, deckName: () => "" }), [noteTypeSource]);
   return (
     <article className="core-surface-raised rounded-panel p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <ApkgPreviewBadge>Originalkarte</ApkgPreviewBadge>
         <span className="core-caption text-core-muted">{notetypeName}</span>
       </div>
-      <NoteCardContent note={note} card={card} surface="preview" revealed onReveal={() => undefined} mediaUrls={mediaUrls} />
+      <NoteLayoutContext.Provider value={layout}>
+        <NoteCardContent note={note} card={card} surface="preview" revealed onReveal={() => undefined} mediaUrls={mediaUrls} />
+      </NoteLayoutContext.Provider>
     </article>
   );
 }
@@ -128,7 +133,7 @@ function NotetypeReport({ report }: { report: ApkgTranslationReport }) {
               <span className="inline-flex min-h-5 items-center rounded-round bg-core-subtle px-2 core-caption font-semibold text-core-secondary">{TRANSLATOR_LABELS[notetype.translator.id] ?? notetype.translator.id}</span>
             </div>
             <p>
-              {notetype.notes} {notetype.notes === 1 ? "Inhalt" : "Inhalte"} · {notetype.cards} {notetype.cards === 1 ? "Karte" : "Karten"} · {studyLabel(notetype.study)}
+              {notetype.notes} {notetype.notes === 1 ? "Inhalt" : "Inhalte"} · {notetype.cards} {notetype.cards === 1 ? "Karte" : "Karten"} · {studyLabel(notetype.study)} · {notetype.layout === "original" ? "Originallayout" : "CoRe-Design"}
             </p>
             {notetype.fallbackNotes > 0 ? <p className="text-core-text">{notetype.fallbackNotes} {notetype.fallbackNotes === 1 ? "Inhalt wird" : "Inhalte werden"} generisch als Feldliste übernommen.</p> : null}
             {notetype.untranslatableNotes > 0 ? <p className="text-core-text">{notetype.untranslatableNotes} {notetype.untranslatableNotes === 1 ? "Inhalt ohne darstellbares Feld wird" : "Inhalte ohne darstellbares Feld werden"} übersprungen.</p> : null}
@@ -557,7 +562,7 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
               <section className="core-surface-raised rounded-panel p-6" aria-labelledby="apkg-card-examples-heading">
                 <h3 id="apkg-card-examples-heading" className="core-heading-2 text-core-text">Kartenbeispiele</h3>
                 <div className="mt-4 grid gap-4">
-                  {preview.samples.slice(0, APKG_SAMPLE_CARD_LIMIT).map(({ note, card, notetypeName }) => <ApkgCardSample key={card.id} note={note} card={card} notetypeName={notetypeName} urlsBySha1={sampleUrlsBySha1} />)}
+                  {preview.samples.slice(0, APKG_SAMPLE_CARD_LIMIT).map((sample) => <ApkgCardSample key={sample.card.id} {...sample} urlsBySha1={sampleUrlsBySha1} />)}
                 </div>
               </section>
             ) : null}

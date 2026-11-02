@@ -15,6 +15,7 @@ import type {
 } from "./coreTypes.ts";
 import { makeId, stableContentHash } from "./coreModel/coreValues.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
+import { cssMediaNames, hasOwnDesign, needsScript } from "./originalLayout.ts";
 import { createNote } from "./coreModel/notes.ts";
 import { normalizeTags, splitAnkiSystemTags } from "./coreModel/tags.ts";
 import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
@@ -85,6 +86,8 @@ export interface ApkgNotetypeReport {
   unmappedFields: string[];
   missingMedia: string[];
   study: Record<StudyMigration, number>;
+  /** Whether its cards show the template's own layout (ADR-047) or the CoRe design. */
+  layout: "original" | "core";
 }
 
 export interface ApkgTranslationReport {
@@ -142,8 +145,8 @@ const CLOZE = { id: "anki-cloze", version: 1 };
 const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 2 };
 const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
-const ANKING = { id: "anking", version: 1 };
-const GENERIC = { id: "generic", version: 2 };
+const ANKING = { id: "anking", version: 2 };
+const GENERIC = { id: "generic", version: 3 };
 const FIELD_LIST = { id: "field-list", version: 1 };
 const DAY_MS = 86_400_000;
 
@@ -174,6 +177,13 @@ function escapeAttribute(value: string): string {
 function firstImageSource(html: string): string {
   const match = html.match(/<img\b[^>]*?\ssrc\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
   return match ? decodeHtmlEntities(match[1] ?? match[2] ?? match[3] ?? "").trim() : "";
+}
+
+/** Template media of a note type: `_`-prefixed files, by Anki convention, that its CSS or static template HTML names. */
+function layoutMediaNames(model: AnkiModel): string[] {
+  const css = cssMediaNames(model.css);
+  const html = model.templates.flatMap((template) => [...`${template.front}${template.back}`.matchAll(/\ssrc\s*=\s*["']([^"'{}]+)["']/gi)].map((match) => match[1]));
+  return [...new Set([...css, ...html].map((name) => name.trim()).filter((name) => name.startsWith("_")))];
 }
 
 /** Anki's `{{furigana:…}}`: `漢字[かんじ]` becomes ruby text. */
@@ -233,8 +243,8 @@ interface TemplateRef {
   hidden: boolean;
   /** Static text on the same line before and after the field, and the line above it. */
   line: { before: string; after: string; previous: string };
-  /** `href="prefix{{Field}}suffix"`: the field holds a link target. */
-  href: { prefix: string; suffix: string } | null;
+  /** `href="…{{Field}}…"`: the field holds a link target. */
+  href: boolean;
 }
 
 const BLOCK_BREAK = /<(?:br|p|hr|li|tr|table|h[1-6])\b[^>]*>|<\/(?:p|li|tr|table|h[1-6])>/i;
@@ -290,8 +300,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
         const ordinal = model.fields.indexOf(node.sourceName);
         if (ordinal < 0) return;
         const previous = nodes[index - 1]?.kind === "text" ? (nodes[index - 1] as { value: string }).value : "";
-        const next = nodes[index + 1]?.kind === "text" ? (nodes[index + 1] as { value: string }).value : "";
-        const href = previous.match(/\shref\s*=\s*(["'])([^"']*)$/i);
+        const href = /\shref\s*=\s*["'][^"']*$/i.test(previous);
         // Other attributes only style the card; `src` keeps showing the field until image sources are translated.
         if (inTag.has(node) && !href && !/\ssrc\s*=\s*["']?[^"'<>]*$/i.test(previous)) return;
         const before = visibleText.get(nodes[index - 1]) ?? "";
@@ -308,7 +317,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
             after: staticText(after.split(BLOCK_BREAK)[0]),
             previous: before.split(BLOCK_BREAK).slice(0, -1).map(staticText).filter(Boolean).at(-1) ?? "",
           },
-          href: href ? { prefix: href[2], suffix: next.slice(0, Math.max(0, next.indexOf(href[1]))) } : null,
+          href,
         });
       }
     });
@@ -320,13 +329,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
 const isHint = (ref: TemplateRef) => ref.filters.includes("hint");
 const isTypeIn = (ref: TemplateRef) => ref.filters.includes("type");
 const ttsLanguage = (ref: TemplateRef) => ref.filters.find((filter) => filter.startsWith("tts "))?.split(/\s+/)[1] ?? null;
-const isDisplayed = (ref: TemplateRef) => !isHint(ref) && !isTypeIn(ref) && ttsLanguage(ref) === null && ref.href === null && !ref.behindButton;
-
-/** A link target becomes a link labelled with the field name, so it renders as a source chip. */
-function linkField(name: string, html: string, href: { prefix: string; suffix: string }) {
-  const url = `${href.prefix}${plainText(html)}${href.suffix}`;
-  return /<a\b/i.test(html) || !/^https?:\/\/\S+$/.test(url) ? html : `<a href="${escapeAttribute(url)}">${escapeAttribute(name)}</a>`;
-}
+const isDisplayed = (ref: TemplateRef) => !isHint(ref) && !isTypeIn(ref) && ttsLanguage(ref) === null && !ref.href && !ref.behindButton;
 
 function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ordinal: number) => string): NotetypePlan {
   const cloze = model.kind === 1;
@@ -335,7 +338,6 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
   const prompts: RevealPrompt[] = [];
   const speech = new Map<number, string>();
   const rubyModes = new Map<number, "furigana" | "kana" | "kanji">();
-  const links = new Map<number, { prefix: string; suffix: string }>();
   model.fields.forEach((name, ordinal) => {
     if (METADATA_FIELD.test(name.trim())) assign(ordinal, "note");
     else if (SOURCE_FIELD.test(name.trim())) assign(ordinal, "source");
@@ -351,7 +353,6 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
       if (language) speech.set(ref.ordinal, language);
       const ruby = ref.filters.find((filter): filter is "furigana" | "kana" | "kanji" => filter === "furigana" || filter === "kana" || filter === "kanji");
       if (ruby) rubyModes.set(ref.ordinal, ruby);
-      if (ref.href && !links.has(ref.ordinal)) links.set(ref.ordinal, ref.href);
       if (isHint(ref)) assign(ref.ordinal, "hint");
       if (ref.href) assign(ref.ordinal, "source");
     }
@@ -360,7 +361,7 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
     const displayed = front.refs.filter((ref) => isDisplayed(ref) && asksWith(ref.ordinal));
     const question = [...new Set(displayed.map((ref) => ref.ordinal))];
     const typeIn = front.refs.find(isTypeIn)?.ordinal ?? null;
-    const answerRefs = back.refs.filter((ref) => !isHint(ref) && ttsLanguage(ref) === null && ref.href === null
+    const answerRefs = back.refs.filter((ref) => !isHint(ref) && ttsLanguage(ref) === null && !ref.href
       && (back.hasAnswerMarker ? ref.answerSide : !frontOrdinals.has(ref.ordinal)));
     for (const ordinal of question) assign(ordinal, "prompt");
     // Back fields shown directly answer; fields revealed on demand are supplements.
@@ -388,8 +389,7 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
   for (const name of model.fields) roles[name] ??= "note";
   const transform = (ordinal: number, html: string) => {
     const ruby = rubyModes.get(ordinal);
-    const link = links.get(ordinal);
-    return link && roles[model.fields[ordinal]] === "source" ? linkField(model.fields[ordinal], html, link) : ruby ? furigana(html, ruby) : html;
+    return ruby ? furigana(html, ruby) : html;
   };
   return {
     translator,
@@ -876,15 +876,22 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
   const media = mediaResolver(pkg.media.files);
   // Field text references canonical names after `media.rewrite`; each note keeps the SHA-1 of the names it uses.
   const mediaSha1ByName = Object.fromEntries([...media.canonical].map((file) => [file.name, file.sha1]));
-  const plans = new Map<string, { model: AnkiModel; plan: NotetypePlan; source: NoteTypeSource; report: ApkgNotetypeReport }>();
+  const plans = new Map<string, { model: AnkiModel; plan: NotetypePlan; source: NoteTypeSource; report: ApkgNotetypeReport; layoutMedia: Record<string, string> }>();
   const planFor = (notetypeId: string) => {
     const known = plans.get(notetypeId);
     if (known) return known;
     const model = normalizeModel(pkg.models[notetypeId]);
     const plan = planNotetype(model);
+    // Only note types that show their original layout (ADR-047) bring their template media along.
+    const layout = plan.translator.id === GENERIC.id && hasOwnDesign(model.css) && model.templates.some((template) => !needsScript(template)) ? "original" as const : "core" as const;
+    const layoutNames = layout === "original" ? layoutMediaNames(model) : [];
     const entry = {
       model,
       plan,
+      layoutMedia: Object.fromEntries(layoutNames.flatMap((name) => {
+        const file = media.byName.get(name);
+        return file ? [[file.name, file.sha1]] : [];
+      })),
       source: {
         id: makeId("note_type_source"),
         ankiNotetypeId: notetypeId,
@@ -907,8 +914,9 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         untranslatableNotes: 0,
         fieldRoles: plan.fieldRoles,
         unmappedFields: Object.entries(plan.fieldRoles).filter(([, role]) => role === "note").map(([name]) => name),
-        missingMedia: [] as string[],
+        missingMedia: layoutNames.filter((name) => !media.byName.has(name)),
         study: { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 0, new: 0 },
+        layout,
       },
     };
     plans.set(notetypeId, entry);
@@ -954,7 +962,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
     try {
       const content = entry.plan.content(values, maskSvgs);
       if (!content) throw new Error("Der Inhalt passt nicht zum Übersetzer.");
-      created = createNote({ ...input, content: { ...content, tags }, translator: entry.plan.translator });
+      created = createNote({ ...input, content: { ...content, tags }, translator: entry.plan.translator, layoutMedia: entry.layoutMedia });
     } catch {
       try {
         created = createNote({ ...input, content: { ...fieldListContent(entry.model, values, ankiCards.map((card) => Number(card.ord ?? 0))), tags }, translator: FIELD_LIST });
@@ -1001,6 +1009,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
       if (media.byName.has(name)) usedMedia.add(media.byName.get(name)!.name);
       else if (!entry.report.missingMedia.includes(name)) entry.report.missingMedia.push(name);
     }
+    for (const name of Object.keys(note.media)) if (name in entry.layoutMedia) usedMedia.add(name);
     entry.report.notes += 1;
     entry.report.cards += created.cards.length;
     notes.push(note);
@@ -1050,14 +1059,18 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
 const NOTE_CHUNK_SIZE = 250;
 const REVIEW_CHUNK_SIZE = 500;
 
+/** A preview card with its template, so the preview shows the original layout like the review. */
+export interface ImportSample { note: Note; card: Card; notetypeName: string; noteTypeSource: NoteTypeSource | null }
+
 /** Preview of a translated package: report, five sample cards and the counts the commit will stream. */
 export function describeImportGraph(graph: ApkgImportGraph) {
   const notesById = new Map(graph.notes.map((note) => [note.id, note]));
-  const notetypeNames = new Map(graph.noteTypeSources.map((source) => [source.id, source.name]));
-  const samples: Array<{ note: Note; card: Card; notetypeName: string }> = [];
+  const sourcesById = new Map(graph.noteTypeSources.map((source) => [source.id, source]));
+  const samples: ImportSample[] = [];
   for (const card of graph.cards) {
     const note = notesById.get(card.noteId);
-    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card, notetypeName: notetypeNames.get(note.noteTypeSourceId ?? "") ?? "Anki-Notiztyp" });
+    const noteTypeSource = sourcesById.get(note?.noteTypeSourceId ?? "") ?? null;
+    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card, notetypeName: noteTypeSource?.name ?? "Anki-Notiztyp", noteTypeSource });
     if (samples.length >= 5) break;
   }
   return {

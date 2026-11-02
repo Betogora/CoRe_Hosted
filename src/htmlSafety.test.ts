@@ -40,10 +40,10 @@ test("trusted sanitized card HTML can be projected to text without changing its 
   assert.equal(sanitized, "<b>ATP</b>");
 });
 
-test("note HTML keeps semantic formatting and drops fonts, layout and classes", () => {
+test("note HTML keeps semantic formatting and classes and drops fonts and layout", () => {
   assert.equal(
     sanitizeNoteHtml('<p class="anking" id="x" style="font-family:Arial;font-size:24px;color:#c00;position:absolute;float:right;width:300px">A</p>'),
-    '<p style="color:#c00">A</p>',
+    '<p class="anking" style="color:#c00">A</p>',
   );
   assert.equal(
     sanitizeNoteHtml('<span style="font-size:1.2em;background-color:yellow;font-weight:bold">B</span><font color="red" face="Comic" size="7">C</font>'),
@@ -68,7 +68,7 @@ test("note HTML allows only absolute web links and local or embedded media", () 
   assert.equal(sanitizeNoteHtml('<video src="v.mp4" controls autoplay></video>'), '<video src="v.mp4" controls></video>');
   assert.equal(
     sanitizeNoteHtml('<div data-x="1" aria-label="Hinweis">E</div><iframe src="x"></iframe><input value="1"><script>1</script><style>p{}</style>'),
-    '<div aria-label="Hinweis">E</div>',
+    '<div data-x="1" aria-label="Hinweis">E</div>',
   );
 });
 

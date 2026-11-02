@@ -105,9 +105,10 @@ Basic optional reversed, Basic typing, Cloze und Image Occlusion.
 
 CoRe-Folgerung: Ein versionierter Übersetzer überführt jede Notiz anhand ihres
 Notiztyps in das universelle CoRe-Inhaltsformat; die Darstellung übernimmt
-CoRes eigener sicherer Renderer. Script, externe Ressourcen, Template-CSS und
-Add-on-Filter werden nicht ausgeführt. Notiztyp-Vorlage und rohe Feldwerte
-bleiben unsichtbar für spätere Neuübersetzungen gespeichert.
+CoRes eigener sicherer Renderer. Eigene Designs generisch übersetzter Notiztypen
+erscheinen als Originallayout aus Template-HTML und -CSS (ADR-047); Script,
+externe Ressourcen und Add-on-Filter werden nie ausgeführt. Notiztyp-Vorlage und
+rohe Feldwerte bleiben unsichtbar für spätere Neuübersetzungen gespeichert.
 
 ### Review und Revlog
 

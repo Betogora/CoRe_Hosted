@@ -77,6 +77,8 @@ class NoteSpec:
     speech: dict[str, str] = field(default_factory=dict)
     choice: dict[str, Any] | None = None
     occlusion: list[dict[str, Any]] | None = None
+    # "original" when the cards show the template's own layout (ADR-047), otherwise the CoRe design.
+    layout: str = "core"
 
 
 def ensure_anki() -> None:
@@ -139,7 +141,8 @@ def note_manifest(spec: NoteSpec, cards: list[dict[str, Any]], states: dict[int,
     for card in cards:
         card_spec = spec.cards[card["ord"]]
         back_excludes = list(card_spec.back_excludes)
-        if spec.interaction == "reveal":
+        # The CoRe review does not repeat the question; an original layout shows it again through `{{FrontSide}}`.
+        if spec.interaction == "reveal" and spec.layout == "core":
             back_excludes += [text for text in card_spec.front_includes if text not in back_excludes]
         entry = {
             "ankiCardId": card["ankiCardId"],
@@ -163,6 +166,7 @@ def note_manifest(spec: NoteSpec, cards: list[dict[str, Any]], states: dict[int,
         "speech": spec.speech,
         "choice": spec.choice,
         "occlusion": spec.occlusion,
+        "layout": spec.layout,
         "tags": spec.tags,
         "marked": "marked" in [tag.lower() for tag in spec.tags],
         "media": spec.media,
@@ -319,6 +323,18 @@ def build_special_notetypes(col: Any) -> None:
         '{{#Header}}<div>{{Header}}</div>{{/Header}}<div id="io-wrapper"><div id="io-overlay">{{Question Mask}}</div><div id="io-original">{{Image}}</div></div>',
         '{{#Header}}<div>{{Header}}</div>{{/Header}}<div id="io-wrapper"><div id="io-overlay">{{Answer Mask}}</div><div id="io-original">{{Image}}</div></div>{{#Remarks}}<div>{{Remarks}}</div>{{/Remarks}}',
     )], css="#io-wrapper{position:relative}#io-overlay{position:absolute;top:0;width:100%;z-index:3}")
+    # A deck author's own design: a line of several fields, a field inside an attribute and type badges from CSS.
+    add_custom_notetype(col, "CoRe-Matrix Originallayout", ["Name", "Nummer", "Generation", "Artwork", "Typen"], [(
+        "Bilderkennung",
+        '<div class="karte"><div class="meta"><span class="dex" data-generation="{{Generation}}">{{Nummer}}</span> · Generation {{Generation}}</div>'
+        '<div class="bild">{{Artwork}}</div></div>',
+        '{{FrontSide}}<hr id=answer><div class="name">{{Name}}</div><div class="typen">{{Typen}}</div>',
+    )], css=".card{font-family:Georgia,serif;text-align:center;background:#f4f0e8;color:#252525}"
+            ".nightMode .card{background:#202124;color:#f1f0ed}"
+            ".karte{max-width:30rem;margin:0 auto;padding:1rem;border:1px solid #e8e2d8;border-radius:1rem;background:#fffdf8}"
+            ".nightMode .karte{background:#292a2c;border-color:#484640}.meta{color:#77736d}.nightMode .meta{color:#b7b2a9}"
+            '.dex:not([data-generation="X"])::before{content:"#"}.bild img{max-height:12rem}.name{font-size:1.5em;font-weight:650}'
+            '.typ{display:inline-block;padding:.1em .5em;border-radius:.5em;color:#fff;font-weight:700}.typ[data-typ="Wasser"]{background:#2c9be3}')
 
 
 def mc_note(guid: str, qtype: str, options: list[str], answers: str, mode: str, question: str, extra: str) -> NoteSpec:
@@ -400,6 +416,13 @@ def special_notes() -> list[NoteSpec]:
                  {0: CardSpec("anki-0", ["Blickdiagnose?"], ["Morbus Perthes", "Lauenstein", "IMPP", "1568383637298"],
                               ["Morbus Perthes", "Aufnahme nach Lauenstein", "IMPP"], ["1568383637298"])},
                  media=["blick.png", "blick-overlay.png"], instruction={"anki-0": "Blickdiagnose?"}),
+        NoteSpec("matrix-originallayout", "CoRe-Matrix Originallayout", f"{root}::Originallayout",
+                 {"Name": "Karpador", "Nummer": "???", "Generation": "X", "Artwork": '<img src="blick.png">',
+                  "Typen": '<span class="typ" data-typ="Wasser">Wasser</span>'},
+                 {"Name": "answer", "Nummer": "prompt", "Generation": "prompt", "Artwork": "prompt", "Typen": "answer"},
+                 "reveal",
+                 {0: CardSpec("anki-0", ["??? · Generation X"], ["Karpador", "Wasser"], ["??? · Generation X", "Karpador", "Wasser"])},
+                 media=["blick.png"], instruction={"anki-0": "Generation …"}, layout="original"),
         NoteSpec("matrix-media-rich", "Basic", f"{root}::Medien und Tabellen",
                  {"Front": 'Herzton hören: [sound:herz.mp3] Video: [sound:klappe.mp4] <span style="color:#c00">wichtig</span>',
                   "Back": '<table style="border-collapse:collapse"><tr><td style="border:1px solid #999">Systole</td><td>Diastole</td></tr></table>'},

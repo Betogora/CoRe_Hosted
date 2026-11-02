@@ -71,7 +71,7 @@ for (const name of files) {
   for (const notetype of result.notetypes) {
     const { full, generic, fieldList, notDisplayable } = notetype.quotas;
     const unmapped = notetype.unmappedFields.length ? ` [nicht zugeordnet: ${notetype.unmappedFields.join(", ")}]` : "";
-    console.log(`  - ${notetype.name} (${notetype.translator.id} v${notetype.translator.version}): ${notetype.notes} Inhalte – voll ${full} %, generisch ${generic} %, Feldliste ${fieldList} %, nicht darstellbar ${notDisplayable} %${unmapped}`);
+    console.log(`  - ${notetype.name} (${notetype.translator.id} v${notetype.translator.version}): ${notetype.notes} Inhalte – voll ${full} %, generisch ${generic} %, Feldliste ${fieldList} %, nicht darstellbar ${notDisplayable} %${notetype.layout === "original" ? " · Originallayout" : ""}${unmapped}`);
   }
 }
 

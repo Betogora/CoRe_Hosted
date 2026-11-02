@@ -1,6 +1,6 @@
 # CoRe TODO
 
-Stand: 2026-10-31
+Stand: 2026-11-02
 
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
@@ -102,6 +102,12 @@ neuen Code.
       Karteneditor V2: Tag-Eingabe mit Bildschirmtastatur (Android schickt
       die Leertaste oft ohne Tastenereignis), Reiter und Flaggenraster bei
       200 % Zoom.
+- [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
+      (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
+      importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,
+      Editor-Vorschau und Importvorschau in Light und Dark bei 390 und 1440 px.
+      Renderer, Sync und Katalog sind automatisiert und visuell belegt, die
+      eingeloggte App nicht.
 - [ ] **Korpus (Phase 5):** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel: mindestens
       95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:

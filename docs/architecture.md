@@ -131,9 +131,9 @@ nicht die Planung.
 ### Kartendarstellung
 
 `notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron über
-`renderCard({ note, card, side, surface, theme, typedAnswer? })`. Das Ergebnis enthält
-`srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions` und
-`diagnostics`; HTML wird weder persistiert noch aus Anki-Templates erzeugt.
+`renderCard({ note, card, side, surface, theme, typedAnswer?, noteTypeSource? })`. Das Ergebnis enthält
+`srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions`, `diagnostics`
+und `layout` (`core` oder `original`); HTML wird nie persistiert.
 Der Theme-Snapshot enthält die aktuellen semantischen Farben. Feld-HTML
 durchläuft `sanitizeNoteHtml`. Farbige Marker (`background-color`) ändern ihre
 Helligkeit, bis die Kartenschrift des Themes darauf 4,5 : 1 erreicht; graue,
@@ -159,7 +159,34 @@ Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
 enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
 Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
 Kartenende. Mit `typedAnswer` ersetzt die Antwortseite das Eingabefeld durch den
-Zeichenvergleich aus `compareTypedAnswer`.
+Zeichenvergleich aus `compareTypedAnswer`. Eine Quelle, die nur eine Webadresse
+enthält, wird zum Link mit dem Feldnamen.
+
+Originallayout (ADR-047): Mit der Herkunftsvorlage (`noteTypeSource`) rendert
+`renderCard` deren Template samt CSS statt des CoRe-Designs, wenn der Inhalt vom
+generischen Übersetzer stammt, die Vorlage CSS über Ankis Standardblock `.card`
+hinaus mitbringt und weder Script, Event-Handler noch Button enthält. Das Template
+wird aus den CoRe-Feldern über ihre Anki-Position (`fN`) befüllt: Bedingungen,
+`{{FrontSide}}`, `Tags`, `Type`, `Card`, `CardFlag` sowie die Filter `text`,
+`cloze` (Ankis `<span class="cloze">`), `hint` (natives `<details>`), `type`
+(Zeichenvergleich auf der Rückseite), `furigana`/`kana`/`kanji` und `tts` (Vorlesen
+über die App); unbekannte Filter lassen das Feld unverändert. Ein Feld in einem
+Tag wird als escapter Text eingesetzt. `sanitizeLayoutHtml` behält Klassen, IDs,
+`data-*` und Inline-Layout ohne nachladbare Werte; aus dem CSS entfallen
+`@import`, externe `url()` und `</style`. Der Rahmen trägt `card cardN` und im
+Dark Mode `nightMode night_mode`; ohne eigene Nachtregeln erhält `.card` Ankis
+dunkle Grundfarben. Die Kontrastanpassung entfällt. Bleibt die Vorderseite ohne
+sichtbaren Inhalt, rendert die Karte im CoRe-Design mit der Diagnose
+„Originallayout nicht darstellbar.“ Designprüfung, aufbereitetes CSS und
+zerlegte Templates werden je Vorlage zwischengespeichert; die Regel selbst (`hasOwnDesign`,
+`needsScript`) liegt in `originalLayout.ts`, das auch der Importbericht nutzt
+(`ApkgNotetypeReport.layout`). `NoteCardContent` liest Vorlage und Stapelpfad
+(`{{Deck}}`, `{{Subdeck}}`) über `NoteLayoutContext` aus `ui/noteLayoutContext.ts`:
+die App bindet ihn an `loadNoteTypeSource` der Replica, die ein unverändertes
+Template als dasselbe Objekt liefert, die Importvorschau an die Vorlage der
+Vorschaukarte. Nur Inhalte des generischen Übersetzers lesen eine Vorlage. Im
+Originallayout zeigt der Host einen Rahmen, der beim Aufdecken zur Rückseite
+wechselt; `CardPresentationSurface` scrollt dann `#answer` in den Blick.
 
 `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
 Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
@@ -190,9 +217,9 @@ Erstellung und Importvorschau verwenden denselben Host; Medien-URLs löst
 - Die Outbox hält je Entität höchstens eine ausstehende Mutation. Ersetzt eine Änderung einen noch nicht bestätigten Insert, bleibt sie ein Insert ohne Basisrevision. Existiert die Zeile in der Cloud bereits und hat sie zuletzt dasselbe Gerät geschrieben, war nur die Antwort verloren; die Mutation wird dann als Update auf diese Revision angewandt. Fremde oder gelöschte Zeilen bleiben Konflikte. Löschungen laufen nach Inserts und Updates in umgekehrter Fremdschlüsselreihenfolge. Gleichzeitige Sync-Anforderungen teilen sich einen laufenden Durchlauf; wurde während eines Durchlaufs ein weiterer angefordert und enthält die Outbox danach noch Mutationen, folgt unmittelbar ein zweiter.
 - Konfliktmetadaten bleiben lokal erhalten. Betroffene Karten – bei einem Inhaltskonflikt alle Geschwister – fehlen im Review-Scope und bleiben in der Verwaltung sichtbar. Auflösung betrifft ausschließlich geprüfte Konflikte und bewahrt konfliktfreie Inhalte, Reviews und Medien.
 - Der Katalog führt neben Vorschau, Lernstand und Markierung die Flagge (`anki_flag`), die Lernbremse (`leeched`) und `tag_keys` (jedes Tag mit allen `::`-Elternpfaden in Kleinschreibung, `private.tag_search_keys` bzw. `tagSearchKeys`). `list_account_card_catalog` und `search_account_card_catalog` nehmen neben dem Suchtext eine Begriffsliste `p_terms` aus `parseCardSearchQuery`; der lokale Katalog wertet dieselbe Liste mit `matchesCardSearch` aus. `list_account_tags()` liefert das Tag-Verzeichnis, `list_similar_notes(note_id)` bis zu drei Inhalte mit Trigramm-Ähnlichkeit ab 0,5; den Bewertungsverlauf einer Karte liest der Client direkt aus `review_events` (`review_events_user_card_answered_idx`).
-- `card_catalog` und `deck_study_summaries` sind die Cloudprojektionen mit Account-RLS und Keyset-/Deck-/Sortier-/Reviewindizes; nur Stapel, Katalog und Summaries tragen `sync_change_id`. Anweisungsbezogene Trigger mit Übergangstabellen pflegen sie mengenbasiert ohne fachliche Revisionsänderung; der Katalog übernimmt Vorschau, Sortiertext und Markierung aus dem Inhalt. Die Suche läuft per Trigramm-Index über `notes.search_text`. Fälligkeit wird für den Lerntag indexgestützt ermittelt.
+- `card_catalog` und `deck_study_summaries` sind die Cloudprojektionen mit Account-RLS und Keyset-/Deck-/Sortier-/Reviewindizes; nur Stapel, Katalog, Summaries und Anki-Vorlagen (`note_type_sources`) tragen `sync_change_id`. Vorlagen laufen mit dem Katalog-Delta auf jedes Gerät und liegen dort vollständig in der Replica, damit das Originallayout (ADR-047) auch offline gilt; ein Reimport ersetzt sie per Upsert und erhält so einen neuen Cursor. Anweisungsbezogene Trigger mit Übergangstabellen pflegen sie mengenbasiert ohne fachliche Revisionsänderung; der Katalog übernimmt Vorschau, Sortiertext und Markierung aus dem Inhalt. Die Suche läuft per Trigramm-Index über `notes.search_text`. Fälligkeit wird für den Lerntag indexgestützt ermittelt.
 - `get_account_bootstrap()` liefert Stapel, Summaries und Tagesübersicht, `get_account_due_forecast()` die Prognose nachgelagert (das lokale Repository schreibt sie bei Katalogänderungen fort; Easy Days liest sie zum Lernstart über `loadDueForecast`), `list_account_card_catalog()` eine Keyset-Seite (Gesamtzahl nur auf Anfrage), `search_account_card_catalog()` die erste Suchseite vieler Stapel in einer Abfrage (danach blättert jeder Stapel mit seinem eigenen Cursor über `list_account_card_catalog()`), `list_account_card_study_states()` den Lernstand aller Karten gewählter Stapel samt Erstellzeit und schneller FSRS-7-Spur (`stability_fast` aus `study_extra`, ohne Wert 0) ohne Körper in Seiten von höchstens 5.000 Karten nach Karten-ID (Client: `listAccountCardStudyStates`, Validierung in `cloudRepositoryValidation.ts`; nicht in die Replica übernommen), `get_deck_offline_manifest()` Revisionen/Größen/Medienhashes, `get_account_statistics()` begrenzte Aggregate, `load_reimport_targets()` bestehende Inhalte je Anki-GUID und `list_retranslation_candidates()` unbearbeitete Importe älterer Übersetzerversionen.
-- Medien liegen privat unter `<userId>/<sha1>` im Bucket `core-media`; `media_files` registriert jede Datei einmal je Account, `note_media` wird per Trigger aus `notes.media` gepflegt. Inhalte persistieren nur Namen und SHA-1, keine Bytes, Tokens oder Signed URLs. Die lokale Mediendatenbank `core-media-store.v3` hält Dateien und eine persistente SHA-1-Upload-Queue; Upload wartet auf bestätigte Cloud-Eltern. Nicht mehr referenzierte Dateien gibt `list_releasable_media()` nach einem Tag (gelöschte Inhalte nach sieben Tagen) frei.
+- Medien liegen privat unter `<userId>/<sha1>` im Bucket `core-media`; `media_files` registriert jede Datei einmal je Account, `note_media` wird per Trigger aus `notes.media` gepflegt. Vorlagenmedien (nach Ankis Konvention mit `_` beginnend), die CSS oder statisches Template-HTML eines Notiztyps im Originallayout nennen, übernimmt der Import in `notes.media` jedes Inhalts dieses Typs; Bearbeiten, Duplizieren und `removeUnusedNoteMedia` behalten `_`-Einträge, damit Schriften und Bilder des Originallayouts (ADR-047) verknüpft, offline verfügbar und vor der Freigabe geschützt bleiben. Inhalte persistieren nur Namen und SHA-1, keine Bytes, Tokens oder Signed URLs. Die lokale Mediendatenbank `core-media-store.v3` hält Dateien und eine persistente SHA-1-Upload-Queue; Upload wartet auf bestätigte Cloud-Eltern. Nicht mehr referenzierte Dateien gibt `list_releasable_media()` nach einem Tag (gelöschte Inhalte nach sieben Tagen) frei.
 - Start (ADR-038): `startAuthenticatedWorkspaceSessionLifecycle` liest online die gespeicherte Sitzung und ruft `onBoot` sofort auf; `getUser()` bestätigt parallel, eine Ablehnung ruft `onSessionRejected`, das den Lauf über `bootRunRef` verwirft und seine Bootstrap-Wiederholungen beendet. Der Build lädt den Supabase-Client-Chunk per `modulepreload` mit dem Einstieg (`vite.config.ts`), damit die Sitzungsprüfung nicht erst nach dem ersten Render nachlädt.
 - App-Shell: Vercel revalidiert HTML und Service Worker; fehlende Assets und API-Pfade sind vom SPA-Rewrite ausgenommen. `public/sw.js` akzeptiert für JavaScript ausschließlich erfolgreiche Antworten mit JavaScript-MIME-Typ und umgeht falsch befüllte Cacheeinträge. Die Cacheversion bleibt erhalten, damit gültige Offline-Dateien weiter verfügbar sind; falsch befüllte JavaScript-Einträge werden beim nächsten erfolgreichen Abruf ersetzt. `pwa.ts` übersetzt Vite-Modulladefehler in einen deutschen Verbindung-/Neuladehinweis; Fehler bleiben sichtbar. Ein automatischer Reload findet nicht statt, damit offene Entwürfe erhalten bleiben.
 - Profilpatches enthalten das vollständige Profil. Nur erfolgreicher Cloud-Bootstrap darf unvollständige alte Profilpatches ersetzen und gültige UI-Präferenzen retten; vollständige Offlinepatches und andere Outbox-Mutationen bleiben erhalten.
@@ -244,7 +271,7 @@ notes, cards, mediaFiles, reviewEvents, noteTypeSources, noteSources, report }`:
   Zusatz; Lückentypen führen alle Rückseitenfelder als Zusatz. Metadaten (`Note ID`, `ankihub_id`, `Date Stamp`,
   GUID) bleiben unabhängig von ihrer Position Notiz; `Source`/`Quelle` und
   AMBOSS-, Link- oder URL-Felder werden Quelle. Ein Feld in `href="…{{Feld}}…"`
-  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Felder in anderen
+  wird Quelle und bleibt roh; den Link baut die Darstellung. Felder in anderen
   Attributen (`data-*`, `class`, `alt` …) gelten nicht als angezeigt; nur
   `src="{{Feld}}"` zeigt das Feld vorerst weiter. Statischer Text
   auf der Zeile eines Fragefelds (ohne Buttons, Links und Tag-Inhalt, ohne
