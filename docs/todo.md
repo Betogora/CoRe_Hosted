@@ -94,9 +94,10 @@ voraus.
 
 Importierte Inhalte zeigen, wo nötig, das Layout ihres Stapelautors: Template-
 HTML und CSS der Herkunftsvorlage, ohne JavaScript, im bestehenden
-Sandbox-Rahmen (ADR-047). Renderer und Regeln (Paket A) stehen, siehe
-[`history.md`](history.md); die App reicht die Vorlage noch nicht an
-`renderCard` weiter, deshalb ist das Originallayout noch nirgends sichtbar. Die Oberfläche um die Karte bleibt CoRe; es gibt
+Sandbox-Rahmen (ADR-047). Renderer und Regeln (Paket A) sowie
+Vorlagen-Sync und Vorlagenmedien (Paket B) stehen, siehe [`history.md`](history.md);
+die App reicht die Vorlage noch nicht an `renderCard` weiter, deshalb ist das
+Originallayout noch nirgends sichtbar. Die Oberfläche um die Karte bleibt CoRe; es gibt
 keine wählbaren Notiz- oder Kartentypen und keinen Schalter. Anlass: eigene
 Stapel wie `Pokemon_Gen_I_Auszug.apkg` verlieren im CoRe-Design Zeilen aus
 mehreren Feldern („??? · Generation X“) und ihr Styling.
@@ -116,10 +117,11 @@ Entscheidungen O1–O24 (2026-11-02):
   Link-Umbau wandert in die CoRe-Darstellung; Furigana bleibt beim Übersetzer,
   weil das Originallayout dieselbe Ausgabe erzeugt.
 - O7 `class` und `data-*` bleiben in Feldern erhalten.
-- O8 Vorlagen (Template und CSS) werden mit den Inhalten hydriert und offline
-  gepinnt, rohe Felder nicht. O9 Reimport aktualisiert Vorlagen.
-- O10 CSS vollständig außer `@import` und externen `url()`. O11 Im CSS genannte
-  Medien zählen zu den Medien der Karte.
+- O8 Vorlagen (Template und CSS) laufen mit dem Katalog-Delta auf jedes Gerät
+  und liegen vollständig in der Replica, rohe Felder nicht. O9 Reimport
+  aktualisiert Vorlagen.
+- O10 CSS vollständig außer `@import` und externen `url()`. O11 Vorlagenmedien
+  (`_`-Dateien aus CSS und Template) zählen zu den Medien jedes Inhalts.
 - O12 Ohne sichtbaren Inhalt CoRe-Design mit Hinweis „Originallayout nicht
   darstellbar“.
 - O13 Hintergrund aus `.card` mit CoRe-Radius, keine Kontrastanpassung. O14
@@ -141,11 +143,6 @@ Vorlagen werden je Notiztyp, nicht je Karte übertragen. Gemessen wird mit
 `scripts/benchmarkApkgImport.ts` (Import) und `performance:measure:local`
 (Start, Lernen) jeweils vorher und nachher.
 
-- [ ] **B Vorlagen auf allen Geräten:** `note_type_sources` mit den Inhalten
-      hydrieren, in der Replica halten und offline pinnen (O8); Reimport
-      aktualisiert Vorlagen (O9); im CSS genannte Medien beim Import übernehmen
-      und verknüpfen (O11). Migration, RLS, generierte Typen.
-      Nachweis: `db:types:check`, `test:rls:local`, Sync- und Repository-Tests.
 - [ ] **C App-Einbindung:** Review mit einem Rahmen und Scroll zu `#answer`
       (O16), Eintippen (O18), Editor-Vorschau (O21), sichtbarer
       Rückfallhinweis (O12), Importbericht (O22); Stapelname für die

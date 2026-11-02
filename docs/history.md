@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-02 — Originallayout importierter Karten: Vorlagen-Sync und Vorlagenmedien (P3, Paket B)
+
+- Migration `20261102102620_originallayout_vorlagen_sync`: `note_type_sources` trägt `sync_change_id` mit Stempel-Trigger und Index; `pull_account_catalog_delta` liefert Vorlagen mit, `get_account_bootstrap` zählt sie im Server-Cursor. Vorlagen liegen damit auf jedem Gerät vollständig in der Replica (`loadNoteTypeSource`), auch offline; ein Reimport ersetzt sie per Upsert und erreicht über den neuen Cursor alle Geräte. Lokal noch nicht gesendete Vorlagen überschreibt das Delta nicht.
+- Vorlagenmedien: `_`-Dateien, die CSS oder statisches Template-HTML eines generisch übersetzten Notiztyps nennen, kommen beim Import in `notes.media` jedes Inhalts und damit in `note_media`, Offline-Download und Freigabeschutz; fehlende stehen im Importbericht. Bearbeiten, Duplizieren und Bereinigen behalten `_`-Einträge.
+- Prüfung: `test:rls:local` (20/20, darunter Vorlagen im Delta vor und nach einer Änderung), Verify-SQL um Spalte, Index und Trigger ergänzt, `db:types:generate`; Repository-, Kernmodell- und Importtests; `typecheck`.
+
 ## 2026-11-02 — Originallayout importierter Karten: Renderer und Regeln (P3, Paket A)
 
 - ADR-047 löst für generisch übersetzte Inhalte mit eigenem Design die reine CoRe-Darstellung aus ADR-032 ab. `renderCard` nimmt optional die Herkunftsvorlage (`noteTypeSource`) und rendert dann deren Template samt CSS; Ergebnisfeld `layout` (`core`/`original`). Die App reicht die Vorlage noch nicht weiter (Paket B und C).

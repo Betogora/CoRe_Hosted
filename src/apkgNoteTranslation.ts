@@ -176,6 +176,13 @@ function firstImageSource(html: string): string {
   return match ? decodeHtmlEntities(match[1] ?? match[2] ?? match[3] ?? "").trim() : "";
 }
 
+/** Template media of a note type: `_`-prefixed files, by Anki convention, that its CSS or static template HTML names. */
+function layoutMediaNames(model: AnkiModel): string[] {
+  const css = [...model.css.matchAll(/url\(\s*['"]?([^'")]+?)['"]?\s*\)/gi)].map((match) => match[1]);
+  const html = model.templates.flatMap((template) => [...`${template.front}${template.back}`.matchAll(/\ssrc\s*=\s*["']([^"'{}]+)["']/gi)].map((match) => match[1]));
+  return [...new Set([...css, ...html].map((name) => name.trim()).filter((name) => name.startsWith("_")))];
+}
+
 /** Anki's `{{furigana:…}}`: `漢字[かんじ]` becomes ruby text. */
 function furigana(html: string, mode: "furigana" | "kana" | "kanji"): string {
   return html.replace(/ ?([^ >[\]]+?)\[([^\]]+?)\]/g, (_match, base: string, reading: string) =>
@@ -866,15 +873,21 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
   const media = mediaResolver(pkg.media.files);
   // Field text references canonical names after `media.rewrite`; each note keeps the SHA-1 of the names it uses.
   const mediaSha1ByName = Object.fromEntries([...media.canonical].map((file) => [file.name, file.sha1]));
-  const plans = new Map<string, { model: AnkiModel; plan: NotetypePlan; source: NoteTypeSource; report: ApkgNotetypeReport }>();
+  const plans = new Map<string, { model: AnkiModel; plan: NotetypePlan; source: NoteTypeSource; report: ApkgNotetypeReport; layoutMedia: Record<string, string> }>();
   const planFor = (notetypeId: string) => {
     const known = plans.get(notetypeId);
     if (known) return known;
     const model = normalizeModel(pkg.models[notetypeId]);
     const plan = planNotetype(model);
+    // Only generic note types can show their original layout (ADR-047), so only they bring their template media along.
+    const layoutNames = plan.translator.id === GENERIC.id ? layoutMediaNames(model) : [];
     const entry = {
       model,
       plan,
+      layoutMedia: Object.fromEntries(layoutNames.flatMap((name) => {
+        const file = media.byName.get(name);
+        return file ? [[file.name, file.sha1]] : [];
+      })),
       source: {
         id: makeId("note_type_source"),
         ankiNotetypeId: notetypeId,
@@ -897,7 +910,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         untranslatableNotes: 0,
         fieldRoles: plan.fieldRoles,
         unmappedFields: Object.entries(plan.fieldRoles).filter(([, role]) => role === "note").map(([name]) => name),
-        missingMedia: [] as string[],
+        missingMedia: layoutNames.filter((name) => !media.byName.has(name)),
         study: { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 0, new: 0 },
       },
     };
@@ -944,7 +957,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
     try {
       const content = entry.plan.content(values, maskSvgs);
       if (!content) throw new Error("Der Inhalt passt nicht zum Übersetzer.");
-      created = createNote({ ...input, content: { ...content, tags }, translator: entry.plan.translator });
+      created = createNote({ ...input, content: { ...content, tags }, translator: entry.plan.translator, layoutMedia: entry.layoutMedia });
     } catch {
       try {
         created = createNote({ ...input, content: { ...fieldListContent(entry.model, values, ankiCards.map((card) => Number(card.ord ?? 0))), tags }, translator: FIELD_LIST });
@@ -991,6 +1004,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
       if (media.byName.has(name)) usedMedia.add(media.byName.get(name)!.name);
       else if (!entry.report.missingMedia.includes(name)) entry.report.missingMedia.push(name);
     }
+    for (const name of Object.keys(note.media)) if (name in entry.layoutMedia) usedMedia.add(name);
     entry.report.notes += 1;
     entry.report.cards += created.cards.length;
     notes.push(note);
