@@ -1,5 +1,5 @@
 import { SCHEDULER_VERSION, calculateRetrievability, getReviewButtonOptions, simulateRatingOutcome } from "./scheduler.ts";
-import { deactivateVariant, flagVariant, selectReviewVariant } from "./coreVariantService.ts";
+import { selectReviewVariant } from "./coreVariantService.ts";
 import {
   cardStudyFromReviewState,
   createDefaultDeckSettings,
@@ -18,7 +18,6 @@ import type {
   ReviewRating,
   ReviewEvent,
   ReviewState,
-  VariantFeedbackType,
 } from "./coreTypes.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { normalizeLearnAheadMinutes } from "./learningProfiles.ts";
@@ -42,10 +41,6 @@ interface ReviewServiceOptions {
   flags?: Record<string, unknown>;
   selectedBy?: string;
   queueKind?: string | null;
-  action?: "disable" | "flag";
-  reason?: string;
-  feedbackType?: VariantFeedbackType;
-  note?: string;
   easyDaysContext?: EasyDaysSchedulingContext | null;
   sessionIndex?: DailyReviewSessionIndex;
   /** Cards answered today that may not be loaded, so their siblings stay buried for the whole learning day. */
@@ -915,19 +910,3 @@ export function createDailyReviewQueue(decksOrDeck: Deck | Deck[], options: Revi
   };
 }
 
-export function recordVariantFeedback(
-  deck: Deck,
-  reviewable: { cardId: string; variantId: string },
-  options: ReviewServiceOptions = {},
-): { deck: Deck; updatedCard: Card | null } {
-  const now = new Date(options.now ?? new Date()).toISOString();
-  const card = (deck.cards ?? []).find((candidate) => candidate.id === reviewable.cardId);
-  if (!card || !card.variants.some((variant) => variant.id === reviewable.variantId)) return { deck, updatedCard: null };
-  const updatedCard = options.action === "disable"
-    ? deactivateVariant(card, reviewable.variantId, options.reason ?? "Nutzer hat die Variante deaktiviert.")
-    : flagVariant(card, reviewable.variantId, options.feedbackType ?? "fachlich_falsch", options.note ?? "");
-  return {
-    deck: { ...deck, cards: deck.cards.map((candidate) => candidate.id === card.id ? updatedCard : candidate), updatedAt: now },
-    updatedCard,
-  };
-}

@@ -8,7 +8,7 @@ test("learning areas use the shared regular area switch and keep settings before
     const markup = renderToStaticMarkup(<LearningAreaHeader area={area} onAreaChange={() => undefined} onOpenCardSettings={() => undefined} />);
     assert.ok(markup.indexOf("Lerneinstellungen") < markup.indexOf('aria-label="Bereich in Lernen"'));
     assert.match(markup, /lucide-settings2/);
-    assert.match(markup, /role="group" aria-label="Bereich in Lernen" data-size="regular"/);
+    assert.match(markup, /role="group" aria-label="Bereich in Lernen"/);
     assert.match(markup, new RegExp(`aria-pressed="true"[^>]*>${area === "overview" ? "Stapelübersicht" : "Kartenverwaltung"}`));
   }
 });

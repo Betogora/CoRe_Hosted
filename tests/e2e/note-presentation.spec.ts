@@ -136,8 +136,6 @@ test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen
   page.on("pageerror", (error) => failures.push(error.message));
   await page.reload();
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenbausteine");
-  // Keep only the documentation chrome from covering component screenshots.
-  await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   for (const size of VISUAL_MATRIX_VIEWPORTS) {
     await page.setViewportSize(size);
     for (const theme of ["light", "dark"] as const) {
@@ -173,7 +171,6 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   const output = path.resolve("test-results/note-presentation/existing-frames");
   await mkdir(output, { recursive: true });
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
-  await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
   for (const size of matrixViewports()) {
     await page.setViewportSize(size);
     for (const theme of ["light", "dark"]) {
@@ -205,7 +202,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
 
 test("Kartenbausteine: Eintippen und Aufdecken bei 200 Prozent CSS-Zoom", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.addStyleTag({ content: "body{zoom:2}.docs-site-nav,.docs-mobile-nav{position:static!important}" });
+  await page.addStyleTag({ content: "body{zoom:2}" });
   await page.evaluate(() => document.documentElement.dataset.coreTheme = "dark");
   const demo = page.locator('[data-note-demo="typed"]');
   await demo.getByLabel("Antwort eingeben").fill("Her");

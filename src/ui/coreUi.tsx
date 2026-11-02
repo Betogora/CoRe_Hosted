@@ -175,6 +175,11 @@ export function ActionDialog({
   return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }
 
+/** Short label in the shared tag shape; `neutral` is gray, `info` CoRe blue. Colors live in `.core-tag-*`. */
+export function CoreTag({ tone, className = "", ...props }: { tone: "neutral" | "info" } & HTMLAttributes<HTMLSpanElement>) {
+  return <span {...props} className={`core-tag core-tag-${tone} ${className}`.trim()} />;
+}
+
 export function OrbIcon({ icon: Icon, className = "bg-core-subtle text-core-action" }: { icon: LucideIcon; className?: string }) {
   return (
     <div className={`grid size-10 shrink-0 place-items-center rounded-control [&_svg]:size-[18px] ${className}`}>
@@ -355,7 +360,6 @@ export interface CoreSegmentedControlProps<T extends string> {
   options: ReadonlyArray<CoreSegmentedControlOption<T>>;
   value: T;
   onValueChange: (value: T) => void;
-  size?: "regular" | "compact";
   disabled?: boolean;
   className?: string;
   labels?: "visible" | "active" | "hidden";
@@ -392,7 +396,6 @@ export function CoreSegmentedControl<T extends string>({
   options,
   value,
   onValueChange,
-  size = "regular",
   disabled = false,
   className = "",
   labels = "visible",
@@ -403,7 +406,6 @@ export function CoreSegmentedControl<T extends string>({
       ref={containerRef}
       role="group"
       aria-label={ariaLabel}
-      data-size={size}
       data-sliding={indicator ? "true" : undefined}
       className={`core-segmented-control ${labels === "active" ? "core-sliding-tabs" : labels === "hidden" ? "core-icon-segmented-control" : ""} core-control-label ${className}`}
     >
@@ -447,7 +449,6 @@ export function CoreModeControl({ value, onChange }: { value: CoreMode; onChange
       options={CORE_MODE_OPTIONS}
       value={value}
       onValueChange={onChange}
-      size="regular"
     />
   );
 }

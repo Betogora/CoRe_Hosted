@@ -103,7 +103,6 @@ export function CardPreviewDialog({
               if (next === "question") setRound((current) => current + 1);
               setSide(next);
             }}
-            size="regular"
             className="w-full max-w-sm"
           />
         </footer>

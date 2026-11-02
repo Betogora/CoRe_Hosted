@@ -39,8 +39,9 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `accountStorage.ts`, `profileIntegrity.ts` | kleine Accountnamespaces und vollständige Profilpatches |
 | `mediaStore.ts`, `cloudMediaStore.ts` | öffentliche Cache-/Queue-/URL-Grenze; private Storage-, Signed-URL- und TUS-Details |
 | `aiCardVariantContract.ts`, `aiCardVariant.ts`, `api/ai/card-variant.ts` | validierter Textvertrag, Browseraufruf und serverseitiger Providerzugriff |
-| `dashboardWidgets.ts`, `screens/DashboardWidgets.tsx` | validierte kontogebundene Browserablage für Widgetlayout und eigene To-dos; lokale Dashboard-Komposition, Reihenfolge und Größen. Planeraufgaben bleiben bei `ExamDashboardWidget`, Timerbesitz bei `App`/`pomodoroTimer.ts` |
-| `pomodoroTimer.ts` | einziger accountgebundener Timer, Validierung und Endzeitprojektion |
+| `dashboardWidgets.ts`, `screens/DashboardWidgets.tsx` | validierte kontogebundene Browserablage für Widgetlayout und eigene To-dos; lokale Dashboard-Komposition, Reihenfolge und Größen. Planeraufgaben bleiben bei `ExamDashboardWidget`; dessen optionale Dashboard-Vorschau erhält ein gemeinsames Aufgabenlimit und meldet die offene Gesamtzahl zurück. Timerbesitz inklusive Reset bleibt bei `App`/`pomodoroTimer.ts`, der Dashboard-Ring verwendet den bestehenden Snapshot |
+| `brainMascots.ts`, `ui/BrainMascot.tsx`, `brainMascotInteraction.ts` | Register der 37 SVG-Motive, gemeinsame Zeichnung und begrenzte Zeiger-/Aktivierungsinteraktion; `brainMascotPalette.ts` hält die gemeinsame Illustrationspalette; `scripts/generateMascots.tsx` erzeugt daraus das statische App-Logo `public/core-brain.svg` (über `docs:build`) und lokal auf Anfrage den Vorrat autarker HTML-Dateien unter `output/mascots/`. `dailyMotivation.ts` wählt aus 60 lokalen Impulsen anhand des Lerntages eine feste Text-/Motivkombination; `screens/DailyMotivationWidget.tsx` aktualisiert sie am Tagesbeginn und bei Rückkehr zur Seite. Keine Cloud-Persistenz oder externen Anfragen. |
+| `pomodoroTimer.ts` | einziger accountgebundener Timer, Validierung und Endzeitprojektion; sekundengenaue Dauer sowie persistierter Pausezeitpunkt, Fortsetzen verschiebt Start- und Endzeit um die Pausendauer |
 
 Die Pfade in der Tabelle liegen unter `src/`, soweit kein anderer Pfad angegeben ist. Fremdpayloads bleiben `unknown`, bis das besitzende Modul sie validiert. Es gibt keine zentrale Sammelvalidierung oder allgemeine Anbieter-Adapterebene.
 
@@ -164,7 +165,9 @@ Zeichenvergleich aus `compareTypedAnswer`.
 Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
 externen Ressourcen. `CardPresentationSurface` zeigt ein fertiges Renderergebnis
 im Sandbox-Iframe, erlaubt isolierte externe Popups und meldet Textauswahl an den
-Host.
+Host. Im Review wächst der Iframe mit seinem Inhalt, `vh` bezöge sich dort also auf
+den Rahmen; der Host setzt deshalb `--core-media-max-height` (50 % der
+Fensterhöhe), an der der Rahmen Bilder und Videos begrenzt.
 
 `ui/NoteCardContent.tsx` besitzt ausschließlich transienten Eingabe-, Auswahl-
 und Darstellungszustand. Das Eingabefeld steht bis zum Aufdecken im Host; danach
@@ -241,8 +244,11 @@ notes, cards, mediaFiles, reviewEvents, noteTypeSources, noteSources, report }`:
   Zusatz; Lückentypen führen alle Rückseitenfelder als Zusatz. Metadaten (`Note ID`, `ankihub_id`, `Date Stamp`,
   GUID) bleiben unabhängig von ihrer Position Notiz; `Source`/`Quelle` und
   AMBOSS-, Link- oder URL-Felder werden Quelle. Ein Feld in `href="…{{Feld}}…"`
-  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Statischer Text
-  auf der Zeile eines Fragefelds (ohne Buttons und Links) wird Anweisung mit
+  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Felder in anderen
+  Attributen (`data-*`, `class`, `alt` …) gelten nicht als angezeigt; nur
+  `src="{{Feld}}"` zeigt das Feld vorerst weiter. Statischer Text
+  auf der Zeile eines Fragefelds (ohne Buttons, Links und Tag-Inhalt, ohne
+  führende Trennzeichen wie `·`) wird Anweisung mit
   `…`, ersatzweise eine mit `?` oder `:` endende Zeile direkt darüber, eine vollständig umschließende Bedingung `requires`, `type:` Eintippen,
   `tts` Vorlesen und `furigana:`/`kana:`/`kanji:` Ruby-Text. Die
   AnKing-/Ankizin-Familie nutzt dieselbe Positionsanalyse.
@@ -288,7 +294,7 @@ Nur geänderte Inhalte werden geschrieben, mit `importedContentRevision` =
 
 ## Automatische Kartenerstellung
 
-`CreationMethod` und die URL-Projektion akzeptieren `ai-source`. `AiSourceCreationPanel` hält genau eine `File`-Referenz, das Stapelziel und `AiSourceSettings` ausschließlich im React-Entwurf. `aiSourceCreation.ts` besitzt Defaults, Auswahlbedeutungen, Validierung und `buildAiSourceCreationPrompt`; die Promptfunktion erzeugt ausschließlich Anweisungen und liest keine Quelldaten. Der spätere Serverpfad muss Material separat validieren und übergeben. Quellenbasierte Lösungen und Erklärungen, optionale externe Ergänzungen und Quellenverweise bleiben fachlich getrennt. Der Browser-Navigationsguard erhält Zielroute und Herkunft (`app` oder `browser`), damit ausstehende Erstellungsentwürfe auch bei History-Navigation bestätigt verworfen werden. Neue Note-/Card-Persistenz, API-Routen und Dokumentparser gehören nicht zu diesem vorbereiteten Ablauf.
+`CreationMethod` und die URL-Projektion akzeptieren `ai-source`. `AiSourceCreationPanel` hält eine `File`-Referenz, alternativ aktiven Quelltext, ein einziges Stapelziel und `AiSourceSettings` ausschließlich im React-Entwurf. Drei Bereiche stehen ab 1280 px nebeneinander; darunter hält der Screen den aktiven Schritt lokal und validiert Quelle und Ziel vor dem Weitergehen. Die Zielanzeige im dritten Bereich wird aus demselben Entwurf abgeleitet. `aiSourceCreation.ts` besitzt Defaults, Auswahlbedeutungen, Validierung der aktiven Quelle und `buildAiSourceCreationPrompt`; die Promptfunktion erzeugt ausschließlich Anweisungen und liest keine Quelldaten. Sprache und Formulierungsstil sind unabhängig vom Vorwissen; eine Lernzielauswahl gibt es nicht. Der spätere Serverpfad muss Material separat validieren und übergeben. Quellenbasierte Aussagen und optionale, ausdrücklich gekennzeichnete externe Ergänzungen bleiben fachlich getrennt; nur eine explizite Freigabe erlaubt Ergänzungen zum Schließen von Lücken. Der Browser-Navigationsguard erhält Zielroute und Herkunft (`app` oder `browser`), damit ausstehende Erstellungsentwürfe auch bei History-Navigation bestätigt verworfen werden. Neue Note-/Card-Persistenz, API-Routen und Dokumentparser gehören nicht zu diesem vorbereiteten Ablauf.
 
 ## Zusammenfassungen und Mindmaps
 

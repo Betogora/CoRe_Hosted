@@ -116,6 +116,23 @@ test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Z
   assert.equal(content.fields.find((field) => field.name === "Note ID")?.html, "1565424901299");
 });
 
+test("Felder in Attributen wie data-* zählen weder als sichtbares Feld noch als Anweisungstext", async () => {
+  const front = '<div class="meta"><span class="dex" data-generation="{{Generation}}">{{Nummer}}</span> · Generation {{Generation}}</div>'
+    + '<div class="art" data-typ="{{Typ}}">{{Bild}}</div>';
+  const pokemon = model("7", ["Name", "Nummer", "Generation", "Typ", "Bild"], [[front, `${front}<hr id=answer>{{Name}}`]]);
+  const graph = await translateAnkiPackage(ankiPackage({
+    models: { 7: pokemon },
+    notes: [note("100", "7", ["Karpador", "0129", "I", "Wasser", '<img src="pk0129.png">'])],
+    cards: [card("200", "100")],
+  }), { importedAt: IMPORTED_AT });
+
+  assert.deepEqual(graph.report.notetypes[0].fieldRoles, { Name: "answer", Nummer: "prompt", Generation: "prompt", Typ: "note", Bild: "prompt" });
+  const interaction = graph.notes[0].content.interaction;
+  const prompt = interaction.kind === "reveal" ? interaction.prompts[0] : null;
+  assert.equal(prompt?.instruction, "Generation …");
+  assert.deepEqual(prompt?.questionFieldIds, ["f1", "f2", "f4"]);
+});
+
 test("Native Bildverdeckung liest Radien, maskierte Doppelpunkte, Drehung, Schriftgröße und dauerhaft verdeckte Formen", async () => {
   const masks = parseImageOcclusionField(
     "{{c1::image-occlusion:ellipse:left=.2:top=.3:rx=.1:ry=.05:angle=15:oi=1}}"

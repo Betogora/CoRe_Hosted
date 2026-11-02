@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import { getSimulatedNow } from "./simulationClock.ts";
-import { answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, moveDailyReviewProgress, recordVariantFeedback } from "./reviewService.ts";
+import { answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, moveDailyReviewProgress } from "./reviewService.ts";
 import type { Card, Deck, ReviewSchedulerState } from "./coreTypes.ts";
 
 function basicCard(front = "Q", back = "A"): Card {
@@ -112,25 +112,6 @@ test("Bewertungen unbekannter Karten oder Varianten werden abgewiesen", () => {
   const deck = createCoreDeck({ id: "deck", cards: [card] });
   assert.throws(() => answerVariant(deck, "missing", null, "good"), /Karte nicht gefunden/);
   assert.throws(() => answerVariant(deck, card.id, "missing-variant", "good"), /Variante nicht gefunden/);
-});
-
-test("Variantenfeedback markiert oder deaktiviert nur die betroffene Variante", () => {
-  const card = addCardVariant(addCardVariant(basicCard(), { id: "v1", front: "Q2", back: "A2" }), { id: "v2", front: "Q3", back: "A3" });
-  const deck = createCoreDeck({ id: "deck", cards: [card] });
-  const flagged = recordVariantFeedback(deck, { cardId: card.id, variantId: "v1" }, { feedbackType: "unklar_formuliert", note: "zu lang", now: "2026-08-20T08:00:00.000Z" });
-  const flaggedVariant = flagged.updatedCard?.variants.find((variant) => variant.id === "v1");
-  assert.equal(flaggedVariant?.qualityStatus, "flagged");
-  assert.equal(flaggedVariant?.isActive, false);
-  assert.deepEqual(flaggedVariant?.feedback.map((entry) => [entry.type, entry.note]), [["unklar_formuliert", "zu lang"]]);
-  assert.equal(flagged.updatedCard?.variants.find((variant) => variant.id === "v2")?.qualityStatus, "active");
-  assert.deepEqual(flagged.updatedCard?.study, card.study);
-
-  const disabled = recordVariantFeedback(deck, { cardId: card.id, variantId: "v2" }, { action: "disable" });
-  assert.equal(disabled.updatedCard?.variants.find((variant) => variant.id === "v2")?.qualityStatus, "disabled");
-
-  const missing = recordVariantFeedback(deck, { cardId: card.id, variantId: "unknown" });
-  assert.equal(missing.deck, deck);
-  assert.equal(missing.updatedCard, null);
 });
 
 test("Tagesfortschritt verschiebt Karten zwischen offenem und erledigtem Anteil ohne Doppelzählung", () => {

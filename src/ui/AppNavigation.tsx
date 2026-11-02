@@ -58,9 +58,9 @@ function NavigationBrand({ onNavigate }: Pick<AppNavigationProps, "onNavigate">)
       type="button"
       data-navigation-brand="true"
       onClick={() => onNavigate("uebersicht")}
-      className="flex items-center gap-3 rounded-inset text-left outline-none"
+      className="flex items-center gap-1 min-[360px]:gap-3 rounded-inset text-left outline-none"
     >
-      <img src="/core-socrates.svg" alt="" className="h-9 w-auto shrink-0 xl:h-10" draggable={false} />
+      <img src="/core-brain.svg" alt="" className="size-9 shrink-0 xl:size-10" draggable={false} />
       <CoreWordmark />
     </button>
   );
@@ -174,7 +174,7 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
   );
 
   return (
-    <div className="flex shrink-0 items-center gap-1.5" data-navigation-utilities="true" data-sync-status={syncProps.syncStatus.status}>
+    <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncProps.syncStatus.status}>
       <SyncUtilityButton {...syncProps} onPreloadView={onPreloadView} />
       {themeButton}
       {helpButton}

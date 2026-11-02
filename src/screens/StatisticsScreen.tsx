@@ -463,7 +463,6 @@ export function StatisticsScreenContent({ dataset: { decks, projection: statisti
               options={PERIOD_OPTIONS}
               value={period}
               onValueChange={changePeriod}
-              size="regular"
               className="mt-2 max-w-full"
             />
           </div>

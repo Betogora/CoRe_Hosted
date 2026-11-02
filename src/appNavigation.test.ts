@@ -343,6 +343,9 @@ test("card editor tabs come from a fixed list and open by entry (W5, W6)", () =>
   const fromSession = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", cardEditorReturnContext: { deckId: "deck-1", returnContext: { view: "learn" } } });
   assert.equal(fromTable.cardEditorTab, "general");
   assert.equal(fromSession.cardEditorTab, "content");
+  const variantsFromSession = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", cardEditorTab: "variants", cardEditorReturnContext: { deckId: "deck-1", returnContext: { view: "learn" } } });
+  assert.equal(variantsFromSession.cardEditorTab, "variants");
+  assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(variantsFromSession)), variantsFromSession);
   for (const tab of ["general", "content", "variants", "study"] as const) {
     const route = createViewRoute("kartenstapel", { focusedDeckId: "deck-1", selectedCardId: "card-1", cardEditorTab: tab });
     assert.deepEqual(parseAppRouteFromUrl(appRouteToUrl(route)), route);

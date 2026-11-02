@@ -127,7 +127,7 @@ test("eine entfallende Karte ohne Lernstand wird weich gelöscht", async () => {
 // previous content's prompt keys (anki-N) and therefore finds no card; the plan ends as "kept" instead of "updated".
 test("generische anki-N-Schlüssel erhalten den Abfrageschlüssel des besseren Übersetzers", async () => {
   const generic = await importNote(CHANGED_BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
-  assert.deepEqual(generic.note.translator, { id: "generic", version: 1 });
+  assert.deepEqual(generic.note.translator, { id: "generic", version: 2 });
   assert.deepEqual(generic.cards.map((card) => card.promptKey), ["anki-0"]);
   const stock = await importNote(BASIC, ["Hauptstadt von Frankreich?", "Paris"], [0]);
   const card = studied(generic.cards[0]);

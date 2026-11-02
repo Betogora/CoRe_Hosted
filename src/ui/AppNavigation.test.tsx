@@ -99,7 +99,7 @@ test("CoRe brand links both navigation layouts to today", () => {
   const brandButtons = markup.match(/<button[^>]*data-navigation-brand="true"[\s\S]*?<\/button>/g) ?? [];
   assert.equal(brandButtons.length, 2);
   for (const brand of brandButtons) {
-    assert.match(brand, /<img src="\/core-socrates\.svg" alt=""/);
+    assert.match(brand, /<img src="\/core-brain\.svg" alt=""/);
     assert.equal(brand.replace(/<[^>]+>/g, ""), "CoRe");
   }
 });

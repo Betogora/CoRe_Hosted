@@ -72,6 +72,9 @@ export interface CreationScreenProps {
 }
 
 export interface DashboardScreenProps {
+  onPausePomodoro?: () => void;
+  onResumePomodoro?: () => void;
+  onResetPomodoro?: () => void;
   pomodoroTimer?: PomodoroTimer | null;
   onStartPomodoro?: (minutes: number) => void;
   state: WorkspaceState;
@@ -338,13 +341,12 @@ export interface StudyModeProps {
   onStartPomodoro: (minutes: number) => void;
   onExit: () => void;
   onReturnToLearn: () => void;
-  onEditCard: (deckId: string, cardId: string) => unknown;
+  onEditCard: (deckId: string, cardId: string, tab?: CardEditorTab) => unknown;
   onEditDeck: (deckId: string) => unknown;
   /** Own flag names of the account (`uiPreferences.flagNames`). */
   flagNames: readonly string[];
   onSetCardStudyState: (deckId: string, cardId: string, patch: CardStudyStatePatch) => { deck: Deck; note: Note } | null;
   onSetDeckReviewOrder: (deckId: string, order: import("./coreTypes.ts").NewReviewOrder) => Deck | null;
-  onCardUpdated: (deckId: string, card: Card) => unknown;
   onReview: (result: ReviewAnswerResult) => unknown;
   sessionPlan?: {
     progress: DailyReviewProgressSummary;

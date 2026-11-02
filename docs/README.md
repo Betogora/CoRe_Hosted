@@ -17,6 +17,13 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [UI-Elements](ui-elements.html) | UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster mit echten Produktansichten und Kartenbausteinen, Icons und Zustandsmatrix; mit Suche und Kapitelnavigation | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
 | [Kartenbausteine](card-types.html) | acht Bausteine (Frage und Antwort, Rückrichtung, Eintippen, Feldrollen, Lückentext, Auswahl, Bildverdeckung, Formeln und Medien) im echten Reviewrenderer (`NoteCardContent`), je mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 
+Alle Seiten haben statt einer Kopfleiste eine Seitenleiste aus drei gleich
+breiten Boxen: oben der Wechsel zwischen den Seiten samt Theme-Schalter, darunter
+die Suche der jeweiligen Seite und darunter die Inhaltsnavigation des Dokuments,
+die das aktuelle Kapitel markiert. Ab 1051 px bleibt die Leiste beim Scrollen
+links stehen; darunter steht sie über dem Inhalt, Seiten und Kapitel laufen als
+waagerechte Leisten. `/` springt in die Suche.
+
 Die [Kartenbausteine](card-types.html) ordnen den Note-/Card-Renderer nach
 Bausteinen statt nach Kartentypen; der UI-Katalog zeigt dieselben Fälle unter
 [CoRe-Fachmuster](ui-elements.html#note-content).
@@ -64,8 +71,8 @@ HTML-Ansichten ändern diese Zuständigkeiten nicht und sind keine zweite Quelle
 Die Specs-Leseansicht folgt dem Aufbau des UI-Elemente-Katalogs: Titel und
 Einleitung als Kopf, je `##`-Kapitel ein Abschnitt mit Navigationseintrag und je
 `###`-Unterabschnitt eine Karte; Kapitel ohne Unterabschnitte bilden eine breite
-Karte. Die Suche filtert Karten, die Navigation markiert das aktuelle Kapitel und
-läuft unter 1050 px als waagerechte Leiste. Anker behalten das Schema
+Karte. Die Suche der Seitenleiste filtert Karten, die Inhaltsnavigation führt je
+Kapitel einen Eintrag. Anker behalten das Schema
 `specs--<Überschrift>`. Die ergänzende Codeumfang-Grafik am Ende wird aus den
 Quellen neu berechnet und verwendet den produktiven `SegmentedDonut` und `StatTile`. Sie zählt nichtleere Zeilen
 einschließlich Kommentaren in `src/` und `api/` (TS/TSX) sowie `src/styles.css`,
@@ -74,6 +81,13 @@ werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
 der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
 
 ## Ergänzende Analysen und Nachweise
+
+Der Maskottchen-Vorrat mit 37 SVG-Motiven als einzelne, offline nutzbare
+HTML-Dateien ist ein lokales Gestaltungswerkzeug und nicht Teil von Repository
+oder Deployment: `npm run mascots:build` erzeugt ihn aus dem Motivregister und
+der gemeinsamen `BrainMascot`-Komponente unter `output/mascots/`. Das App-Logo
+`public/core-brain.svg` entsteht in `docs:build` aus derselben Palette;
+`check:docs` prüft seinen Stand.
 
 Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 

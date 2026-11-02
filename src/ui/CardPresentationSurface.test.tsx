@@ -49,8 +49,10 @@ test("renders review content without a framed card surface", () => {
 test("remeasures review content from a collapsed frame instead of retaining a tall previous card", () => {
   const style = { height: "900px" };
   const heightsAtMeasurement: string[] = [];
+  const rootStyle = new Map<string, string>();
   const frameDocument = {
     documentElement: {
+      style: { setProperty: (name: string, value: string) => rootStyle.set(name, value) },
       get scrollHeight() {
         heightsAtMeasurement.push(style.height);
         return style.height === "1px" ? 48 : 900;
@@ -67,8 +69,11 @@ test("remeasures review content from a collapsed frame instead of retaining a ta
   fitReviewFrameToContent(
     { style } as unknown as HTMLIFrameElement,
     frameDocument as unknown as Document,
+    1000,
   );
 
   assert.deepEqual(heightsAtMeasurement, ["1px", "1px"]);
   assert.equal(style.height, "73px");
+  // Media stay within the window, because `vh` inside the content-sized frame would refer to the frame itself.
+  assert.equal(rootStyle.get("--core-media-max-height"), "500px");
 });

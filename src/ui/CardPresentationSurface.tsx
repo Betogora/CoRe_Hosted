@@ -33,7 +33,11 @@ function loadPresentationFontCss(): Promise<string> {
   return presentationFontCssPromise;
 }
 
-export function fitReviewFrameToContent(frame: HTMLIFrameElement, frameDocument: Document) {
+// `vh` inside the content-sized review frame would refer to the frame, so media get their limit from the window.
+const REVIEW_MEDIA_HEIGHT = 0.5;
+
+export function fitReviewFrameToContent(frame: HTMLIFrameElement, frameDocument: Document, viewportHeight: number) {
+  frameDocument.documentElement.style.setProperty("--core-media-max-height", `${Math.round(viewportHeight * REVIEW_MEDIA_HEIGHT)}px`);
   frame.style.height = "1px";
   const height = Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body.scrollHeight, 1);
   frame.style.height = `${Math.ceil(height)}px`;
@@ -60,7 +64,7 @@ export function CardPresentationSurface({
 }: CardPresentationSurfaceProps) {
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
-  const frameResizeObserverRef = React.useRef<ResizeObserver | null>(null);
+  const frameFitCleanupRef = React.useRef<(() => void) | null>(null);
   const selectionCleanupRef = React.useRef<(() => void) | null>(null);
 
   React.useEffect(() => {
@@ -71,7 +75,7 @@ export function CardPresentationSurface({
     return () => { active = false; };
   }, []);
 
-  React.useEffect(() => () => { frameResizeObserverRef.current?.disconnect(); selectionCleanupRef.current?.(); }, []);
+  React.useEffect(() => () => { frameFitCleanupRef.current?.(); selectionCleanupRef.current?.(); }, []);
 
   const srcdoc = React.useMemo(
     () => presentation ? resolvePresentationMedia(presentation.srcdoc.replace("<style>", `<style>${fontFaceCss}`), mediaUrls) : "",
@@ -81,7 +85,7 @@ export function CardPresentationSurface({
   React.useLayoutEffect(() => {
     selectionCleanupRef.current?.();
     if (surface !== "review") return;
-    frameResizeObserverRef.current?.disconnect();
+    frameFitCleanupRef.current?.();
     if (frameRef.current) frameRef.current.style.height = "1px";
   }, [srcdoc, surface]);
 
@@ -97,12 +101,12 @@ export function CardPresentationSurface({
     const frame = frameRef.current;
     const frameDocument = frame?.contentDocument;
     if (!frame || !frameDocument) return;
-    const updateHeight = () => fitReviewFrameToContent(frame, frameDocument);
-    frameResizeObserverRef.current?.disconnect();
-    if (typeof ResizeObserver !== "undefined") {
-      frameResizeObserverRef.current = new ResizeObserver(updateHeight);
-      frameResizeObserverRef.current.observe(frameDocument.body);
-    }
+    const updateHeight = () => fitReviewFrameToContent(frame, frameDocument, window.innerHeight);
+    frameFitCleanupRef.current?.();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateHeight);
+    observer?.observe(frameDocument.body);
+    window.addEventListener("resize", updateHeight);
+    frameFitCleanupRef.current = () => { observer?.disconnect(); window.removeEventListener("resize", updateHeight); };
     updateHeight();
   };
   return (

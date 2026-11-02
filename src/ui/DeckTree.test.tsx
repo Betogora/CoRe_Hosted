@@ -116,8 +116,7 @@ test("deck tree keeps the compact summary order across dashboard and learning", 
   }
   assert.match(learning, /aria-label="Bereich \/ Grundlagen lernen"/);
   assert.doesNotMatch(learning, /aria-pressed=|data-selected=/);
-  assert.match(learning, />Alle einklappen</);
-  assert.doesNotMatch(dashboard, /Alle einklappen|Alle aufklappen/);
+  for (const markup of [dashboard, learning]) assert.match(markup, />Alle einklappen</);
 });
 
 test("deck tree groups every main deck with its subdecks in one tinted group", () => {
@@ -166,4 +165,17 @@ test("deck tree fills every hovered row neutrally across its activation surface"
   );
 
   assert.equal((markup.match(/data-deck-row-activation="true"[^>]*class="[^"]*hover:bg-core-subtle/g) ?? []).length, 2);
+});
+
+test("deck tree limits the collection to the selected main decks in their order", () => {
+  const selectableRows = createDeckLibraryModel([
+    ...decks,
+    createCoreDeck({ id: "second-root", name: "Zweiter Bereich", hierarchyPath: ["Zweiter Bereich"], source: "manual", cards: [] }),
+    createCoreDeck({ id: "third-root", name: "Dritter Bereich", hierarchyPath: ["Dritter Bereich"], source: "manual", cards: [] }),
+  ]).rows;
+  const markup = renderToStaticMarkup(
+    <DeckTree rows={selectableRows} rootDeckIds={["third-root", "root"]} mode="dashboard" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+
+  assert.deepEqual([...markup.matchAll(/data-testid="dashboard-deck-row-([^"]+)"/g)].map((match) => match[1]), ["third-root", "root", "child"]);
 });

@@ -52,7 +52,6 @@ export function CardStudyStateControls({
           options={SUSPEND_OPTIONS}
           ariaLabel="Aussetzstatus der Karte"
           disabled={disabled}
-          size="compact"
           className="ml-auto max-w-[15rem] flex-1 basis-48"
           onValueChange={(value) => onSuspendedChange(value === "suspended")}
         />

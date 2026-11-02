@@ -8,6 +8,7 @@ import { registerAppModuleLoadErrors, registerCoreServiceWorker } from "./pwa.ts
 import { SuccessToastProvider } from "./ui/feedbackUi.tsx";
 import { CoreTooltipProvider } from "./ui/tooltipUi.tsx";
 import "./styles.css";
+import "./ui/brainMascot.css";
 
 markAppStarted();
 markServiceWorkerContext(typeof navigator === "undefined" || !("serviceWorker" in navigator)

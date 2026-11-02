@@ -106,7 +106,7 @@ test("shared card mark control exposes pressed semantics", () => {
   assert.match(markup, /fill="currentColor"/);
 });
 
-test("segmented controls expose one icon-free pressed brick in both densities", () => {
+test("segmented controls expose one icon-free pressed brick", () => {
   const markup = renderToStaticMarkup(
     <>
       <CoreSegmentedControl
@@ -118,15 +118,12 @@ test("segmented controls expose one icon-free pressed brick in both densities", 
         ]}
         value="month"
         onValueChange={() => undefined}
-        size="compact"
       />
       <CoreModeControl value="on" onChange={() => undefined} />
     </>,
   );
 
   assert.equal((markup.match(/role="group"/g) ?? []).length, 2);
-  assert.match(markup, /aria-label="Zeitraum" data-size="compact"/);
-  assert.match(markup, /aria-label="CoRe-Modus" data-size="regular"/);
   assert.equal((markup.match(/aria-pressed="true"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-pressed="(true|false)"/g) ?? []).length, 5);
   assert.doesNotMatch(markup, /<svg/);

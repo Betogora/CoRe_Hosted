@@ -1,9 +1,45 @@
 # CoRe-Verlauf
 
 **Rolle:** einzige kanonische Quelle für abgeschlossene Arbeit, datierte Abnahmen, Release-IDs und Smoke-Protokolle.
-**Stand:** 2026-10-31
+**Stand:** 2026-11-02
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
+
+## 2026-11-02 — Aktive Stapel: Zahlen ohne Pille, Dashboard mit gemeinsamer Ansicht
+
+- `Neu`, `Offen` und `Fällig` erscheinen in Liste und Kacheln als Zahlen in Statusfarbe ohne Hintergrundfläche und in Größe des Stapelnamens; Nullwerte bleiben neutral.
+- Das Dashboard-Widget nutzt statt der eigenen Teaser-Ansicht wieder `DeckTree` wie `Lernen` (Gruppen, Auf-/Zuklappen, Kachel-Panel, Optionsmenü, Ziehen) im Widgetrahmen. `rootDeckIds` beschränkt es auf die drei Hauptstapel mit den meisten startbaren Karten; Verschiebeziele umfassen weiterhin alle Stapel. Der Eck-Link `Alle Stapel öffnen` steht nach der Ansichtsauswahl.
+- Prüfung: fokussierte Tests, `typecheck`, `check:docs`; Sichtprüfung Heute und Lernen in Liste und Kacheln bei 320, 390, 1280 und 1440 px hell ohne waagerechten Überlauf. Dark Mode und E2E nicht geprüft.
+
+## 2026-11-01 — Einheitliche Radien für Auswahl-Controls
+
+- Wie in der BengtsToolBox gilt eine Geometrie: Auswahl-Schienen `--core-radius-panel` (14 px), Indikator und Optionen `--core-radius-control` (10 px) statt `calc(panel - 0.25rem)`.
+- Die kompakte Dichte von `CoreSegmentedControl` (8/6 px, 36 px hoch) entfällt; das Aussetz-Segment in `CardStudyStateControls` nutzt die reguläre Schiene.
+- Einzelne Auswahl-Elemente haben 10 px: Icon-Auswahl der Stapeleinstellungen, Prüfungsfilter im Kalender (vorher rund), Aufgaben, Zeitblöcke und Zielvorschau im Wochenkalender (vorher 8 px).
+- Docs: UI-Elements ragt nicht mehr über den Rand (Importschritte brechen in der Katalogspalte um); der Theme-Schalter der Doku ist der Ghost-`IconButton` der App-Navigation.
+
+## 2026-11-01 — Docs-Leseseiten: Seitenleiste statt Kopfleiste
+
+- Die sticky Kopfleiste aller fünf HTML-Seiten entfällt, weil sie beim Scrollen Inhalt verdeckte. Eine gemeinsame Seitenleiste (`siteSidebar` in `scripts/docsSite.ts`) stapelt drei gleich breite Boxen im bisherigen Design der Inhaltsnavigation: Seitenwechsel mit Theme-Schalter, Suche, Inhaltsnavigation.
+- Docs und Journeys nutzen dieselbe Leiste statt eigener Seitenspalte und Mobilmenü; Kartenbausteine erhält eine Suche. UI-Elements und Kartenbausteine portieren ihre Kapitel in die Leiste und lesen die gemeinsame Suche.
+- Prüfung: `check:docs` grün; Sichtprüfung aller fünf Seiten bei 1440 px hell und dunkel sowie bei 390 und 320 px ohne waagerechten Überlauf.
+
+## 2026-11-01 — Übernahme aus `wip/ai-source-three-steps-20261031`: KI-Quellenformular in drei Bereichen
+
+- Merge von `8870293` (letzter Stand von `codex/ai-source-three-steps`): drei Bereiche „Quelle & Stapel“, „Deine Lernwünsche“ und „Deine Karten“, ab 1280 px nebeneinander, darunter Weiter/Zurück; eingefügter Text als zweite Quelle; Stapelziel als Ja/Nein-Frage mit „Stapel ändern“; Lernziel entfällt, Sprache und Formulierung kommen hinzu; „Ergänzungen“ standardmäßig aus und gekennzeichnet.
+- ToolBox-Nachzug (ADR-046): neutrale Bereichsflächen statt Tönung in Blau, Flieder und Sand, Formatkacheln im Auswahlmuster des Prüfungsplaners; Kopf wie bisher mit Titel „Karten automatisch erstellen lassen“ und Statusmeldung statt Kartenillustration und Untertitel; die Hinweise zu Antwortumfang und Mehrfachauswahl entfallen, Datenschutz- und Ergänzungshinweis bleiben.
+
+## 2026-11-01 — Maskottchen aufgeräumt, Vorrat lokal, Logo ohne Blinzeln
+
+- Maskottchen-Vorrat (37 Einzel-HTMLs, 1,9 MB, davon rund 1,3 MB eingebettete Schrift) aus Repository und Deployment genommen; `npm run mascots:build` erzeugt ihn lokal unter `output/mascots/`, `mascots:check` und die Synchronisierung in `docs:build` entfallen.
+- `public/core-brain.svg` wird aus einer TSX-Fassung im Generator erzeugt und teilt mit den Motiven `src/brainMascotPalette.ts`; das endlose Blinzeln des Logos ist entfernt.
+- Augenfolgen misst die Zeichnung einmal pro Frame statt bei jedem Zeigerereignis; quadratische Motive per Registerfeld `tile` statt Listenposition; wirkungslose CSS-Regel für reduzierte Bewegung entfernt; veraltete Farbbezeichnungen nach der Umfärbung korrigiert.
+
+## 2026-10-31 — Übernahme aus `codex/gesamtstand`: Maskottchen, Motivationsimpuls und Dashboard
+
+- Merge von `f215101` samt gemeinsamer Basis `ebbc214` (Widget-Anordnung; das KI-Quellenformular darin war schon auf `main`) auf den Stand nach PR #70: Gehirn-Logo statt Sokrates-Büste, Widget `Dein Motivationsimpuls` mit 37 Motiven und Einzel-HTMLs unter `public/mascots/`, nachrückendes Widget-Raster mit Miniatur-Menüband, Lerntimer mit Ring und direkt einstellbaren Ziffern, kompakte To-dos mit Planeraufgaben, aufklappbare Unterstapel.
+- ToolBox-Nachzug (ADR-046): Maskottchenpalette auf Akzent, Primärblau und Markentinte, Logo in derselben Palette, Stock-Seiten mit den ToolBox-Neutraltönen; Widget-Paddings, Zählpille, Prüfungskacheln, Logo-Größe und Hover der Unterstapel wie im übrigen Redesign. Die entfallenen Tokens `--core-action` und `--core-subtle` aus dem Branch zeigen auf `--core-action-primary` und `--core-surface-muted`.
+- Nicht übernommen: Quizreste im Prüfungs-Widget (ADR-042) und der Untertitel „Ein Gedanke für deinen Lerntag“; Planeraufgaben stehen in der To-do-Vorschau ohne Kasten wie eigene Aufgaben.
 
 ## 2026-10-31 — Testsuite, Paket C: Scope Creep
 
@@ -116,6 +152,13 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 
 - `npm run test:beta:hosted` gegen `https://core-hosted.vercel.app` mit dem Production-Deployment von `7663022` (PR #52, Abschluss P1) nach dem Datenbank-Cutover aus R5 und den Migrationen für Planungs-RPC, Online-Zusammenfassungen und -Mindmaps sowie Profilformat 2 und 3: 10 von 10 bestanden in 3,0 min.
 - Die lokalen Sicherungen der Lernstände aus der Neuberechnung (R5) sind danach gelöscht.
+
+## 2026-10-29 — Gehirn-Vorrat und täglicher Motivationsimpuls
+
+- Abschließende Typprüfung einschließlich Knip, zwölf Dokumentationstests und Driftprüfung aller erzeugten HTML-Dateien grün.
+- 37 SVG-Nachzeichnungen der beiden Vorlagen mit autarken Einzel-HTMLs und Übersicht unter `public/mascots/`; gemeinsame Zeichenquelle und Interaktion für App, Katalog und Vorrat. Das Motivationswidget kombiniert 60 eigene deutsche Impulse mit freundlichen Motiven und wechselt zum konfigurierten Lerntagesbeginn. Die einmalige Layout-Ergänzung respektiert anschließendes Entfernen.
+- Verifiziert: 29 fokussierte Modul-/Rendering-/Theme-Tests sowie 29 unterschiedliche Browserfälle über gezielte Läufe und erfolgreiche Nachläufe. Die Browserfälle decken alle sechs Pflichtviewports in Hell/Dunkel, drei Widgetgrößen, Entfernen und Hinzufügen, Lerntageswechsel, Maus/Tastatur, reduzierte Bewegung, emulierte Touch-Eingabe, alle 37 offline geöffneten Einzeldateien sowie Widget-Drag, Abbruch, Menüband, Pfeile und Layout ab. Die Drag-Vorbereitung wurde für das auf schmalen Displays zunächst außerhalb des Viewports liegende Ziel angepasst. Der Produktionsbuild einschließlich Chunk-Budgets ist grün (Initialgraph 240,1 KiB gzip).
+- Screenshots: `test-results/motivation-verified/`, `test-results/motivation-regression/` und `test-results/motivation-drag-final/`; Gesamtübersicht und erste Dashboardansicht zusätzlich im Sitzungsscratchpad `C:/Users/noemi/.codex/visualizations/2026/10/29/01a18869-295a-7971-9326-06f2643803b1/`. Die Pflichtmatrix und die Motivübersicht wurden visuell angesehen. Die angemeldete lokale App zeigt das ergänzte Widget und bestätigt die Begrüßung nach Aktivierung. Nativer 200-%-Browserzoom und physische Touchgeräte wurden nicht geprüft. Kein Commit, Push oder Release.
 
 ## 2026-10-29 — Reife aus FSRS (P1 R7): Specs und Doku, Abschluss P1
 
