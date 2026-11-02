@@ -425,6 +425,7 @@ test("Anki-Vorlagen aus dem Katalog-Delta liegen lokal vor; Löschungen entferne
 
   await repository.applyCloudCatalogPage({ table: "note_type_sources", entities: [source("vorlage", ".card{}.meta{}"), source("lokal", ".cloud{}")], reset: false, cursor: 1 });
   assert.equal((await repository.loadNoteTypeSource("vorlage"))?.css, ".card{}.meta{}");
+  assert.equal(await repository.loadNoteTypeSource("vorlage"), await repository.loadNoteTypeSource("vorlage"), "Eine unveränderte Vorlage bleibt dasselbe Objekt");
   assert.equal((await repository.loadNoteTypeSource("lokal"))?.css, ".lokal{}", "Ein noch nicht gesendeter Import bleibt maßgeblich");
 
   await repository.applyCloudCatalogPage({ table: "note_type_sources", entities: [source("vorlage", ".card{}", CREATED_AT)], reset: false, cursor: 2 });

@@ -5,6 +5,12 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-02 — Originallayout importierter Karten: App-Einbindung (P3, Paket C)
+
+- Review, Lern-Vorschau, Editor-Vorschau, Vorschau-Dialog und Importvorschau zeigen generisch übersetzte Karten mit eigenem Design im Originallayout. `NoteLayoutContext` liefert Vorlage und Stapelpfad; die App bindet ihn an die Replica, die Importvorschau an die Vorlage der Vorschaukarte. Nur Inhalte des generischen Übersetzers lesen eine Vorlage, die Replica liefert ein unverändertes Template als dasselbe Objekt, damit der Renderer es nicht erneut aufbereitet.
+- Im Originallayout ein Rahmen, der beim Aufdecken zur Rückseite wechselt und `#answer` in den Blick scrollt; Eintippen, Vorlesen und Rückfallhinweis laufen wie im CoRe-Design. `{{Deck}}` und `{{Subdeck}}` nutzen den Stapelpfad.
+- Importbericht nennt je Notiztyp `Originallayout` oder `CoRe-Design`; die Regel liegt in `originalLayout.ts` für Renderer und Bericht. Kartenbaustein „Originallayout“ im Katalog, Specs mit Ausnahme zu getrennten Rahmen.
+
 ## 2026-11-02 — Originallayout importierter Karten: Vorlagen-Sync und Vorlagenmedien (P3, Paket B)
 
 - Migration `20261102102620_originallayout_vorlagen_sync`: `note_type_sources` trägt `sync_change_id` mit Stempel-Trigger und Index; `pull_account_catalog_delta` liefert Vorlagen mit, `get_account_bootstrap` zählt sie im Server-Cursor. Vorlagen liegen damit auf jedem Gerät vollständig in der Replica (`loadNoteTypeSource`), auch offline; ein Reimport ersetzt sie per Upsert und erreicht über den neuen Cursor alle Geräte. Lokal noch nicht gesendete Vorlagen überschreibt das Delta nicht.

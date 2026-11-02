@@ -178,7 +178,15 @@ Dark Mode `nightMode night_mode`; ohne eigene Nachtregeln erhält `.card` Ankis
 dunkle Grundfarben. Die Kontrastanpassung entfällt. Bleibt die Vorderseite ohne
 sichtbaren Inhalt, rendert die Karte im CoRe-Design mit der Diagnose
 „Originallayout nicht darstellbar.“ Designprüfung, aufbereitetes CSS und
-zerlegte Templates werden je Vorlage zwischengespeichert.
+zerlegte Templates werden je Vorlage zwischengespeichert; die Regel selbst (`hasOwnDesign`,
+`needsScript`) liegt in `originalLayout.ts`, das auch der Importbericht nutzt
+(`ApkgNotetypeReport.layout`). `NoteCardContent` liest Vorlage und Stapelpfad
+(`{{Deck}}`, `{{Subdeck}}`) über `NoteLayoutContext` aus `ui/noteLayoutContext.ts`:
+die App bindet ihn an `loadNoteTypeSource` der Replica, die ein unverändertes
+Template als dasselbe Objekt liefert, die Importvorschau an die Vorlage der
+Vorschaukarte. Nur Inhalte des generischen Übersetzers lesen eine Vorlage. Im
+Originallayout zeigt der Host einen Rahmen, der beim Aufdecken zur Rückseite
+wechselt; `CardPresentationSurface` scrollt dann `#answer` in den Blick.
 
 `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
 Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine

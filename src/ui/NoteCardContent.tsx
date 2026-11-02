@@ -7,6 +7,7 @@ import { ActionButton } from "./actionUi.tsx";
 import { CoreSegmentedControl } from "./coreUi.tsx";
 import { StatusMessage } from "./feedbackUi.tsx";
 import { CardPresentationSurface } from "./CardPresentationSurface.tsx";
+import { NoteLayoutContext } from "./noteLayoutContext.ts";
 
 export interface NoteCardContentProps {
   note: Note;
@@ -50,6 +51,11 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
   const [selectedText, setSelectedText] = React.useState("");
   const [speechError, setSpeechError] = React.useState("");
+  const layout = React.useContext(NoteLayoutContext);
+  // Only the generic translator's contents can show their template's own layout; others never read a template.
+  const layoutSourceId = note.translator?.id === "generic" ? note.noteTypeSourceId : null;
+  const noteTypeSource = React.useMemo(() => layoutSourceId ? layout.loadNoteTypeSource(layoutSourceId).catch(() => null) : Promise.resolve(null), [layout, layoutSourceId]);
+  const deckName = layout.deckName(card.deckId);
 
   const interaction = note.content.interaction;
   const prompt = interaction.kind === "reveal" ? interaction.prompts.find((item) => item.key === card.promptKey) : null;
@@ -67,9 +73,9 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
     if (!theme) return;
     let active = true;
     void (async () => {
-      const mathCss = await loadMathCss(note);
+      const [mathCss, source] = await Promise.all([loadMathCss(note), noteTypeSource]);
       const [question, options, questionSpeech, answerSpeech] = await Promise.all([
-        renderCard({ note, card, side: "question", surface, theme, mathCss }),
+        renderCard({ note, card, side: "question", surface, theme, mathCss, noteTypeSource: source, deckName }),
         renderNoteChoiceOptions(note, theme),
         renderNoteSpeech(note, card, "question", theme),
         renderNoteSpeech(note, card, "answer", theme),
@@ -77,23 +83,26 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
       if (active) { setPresentation({ question, options, speech: { question: questionSpeech, answer: answerSpeech }, mathCss }); setError(""); }
     })().catch(() => { if (active) setError("Die Karte konnte nicht dargestellt werden."); });
     return () => { active = false; };
-  }, [card, note, surface, theme]);
+  }, [card, deckName, note, noteTypeSource, surface, theme]);
   React.useEffect(() => {
     if (!theme) return;
     let active = true;
     void (async () => {
-      const result = await renderCard({ note, card, side: "answer", surface, theme, mathCss: await loadMathCss(note), typedAnswer });
+      const [mathCss, source] = await Promise.all([loadMathCss(note), noteTypeSource]);
+      const result = await renderCard({ note, card, side: "answer", surface, theme, mathCss, typedAnswer, noteTypeSource: source, deckName });
       if (active) setAnswer({ result, typed: typedAnswer });
     })().catch(() => { if (active) setError("Die Karte konnte nicht dargestellt werden."); });
     return () => { active = false; };
-  }, [card, note, surface, theme, typedAnswer]);
+  }, [card, deckName, note, noteTypeSource, surface, theme, typedAnswer]);
 
   if (error) return <StatusMessage tone="error" announce="assertive">{error}</StatusMessage>;
   if (!presentation) return <StatusMessage tone="info" announce="polite">Kartendarstellung wird vorbereitet …</StatusMessage>;
   // Until the answer side matches the final input, the question stays visible instead of a loading state.
   const answerResult = revealed && answer && answer.typed === typedAnswer ? answer.result : null;
   const choiceResult = interaction.kind === "choice" ? evaluateNoteChoice(interaction, selected) : null;
-  const oneFrame = interaction.kind === "cloze" || interaction.kind === "image-occlusion" || surface !== "review";
+  // An original layout turns to its back like in Anki; the back repeats the front through `{{FrontSide}}`.
+  const original = presentation.question.layout === "original";
+  const oneFrame = interaction.kind === "cloze" || interaction.kind === "image-occlusion" || surface !== "review" || original;
   const diagnostics = [...presentation.question.diagnostics, ...(answerResult?.diagnostics ?? [])].filter((item, index, all) => all.findIndex((candidate) => candidate.code === item.code && candidate.detail === item.detail) === index);
   const speech = presentation.speech[revealed ? "answer" : "question"];
   const frameProps = { surface: "review" as const, mediaUrls, onTextSelectionChange: setSelectedText };
@@ -108,7 +117,7 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
 
   return <div className="grid min-w-0 gap-4" data-note-card={card.promptKey}>
     {presentation.mathCss && interaction.kind === "choice" ? <style>{presentation.mathCss}</style> : null}
-    <CardPresentationSurface {...frameProps} presentation={oneFrame && answerResult ? answerResult : presentation.question} title={oneFrame && answerResult ? "Aufgedeckte Karte" : "Frage"} />
+    <CardPresentationSurface {...frameProps} presentation={oneFrame && answerResult ? answerResult : presentation.question} title={oneFrame && answerResult ? "Aufgedeckte Karte" : "Frage"} scrollTargetId={original && answerResult && surface === "review" ? "answer" : undefined} />
 
     {typeIn && !revealed ? <div className="grid gap-2">
       <label className="core-field-label" htmlFor={`typed-${card.id}`}>Antwort eingeben</label>

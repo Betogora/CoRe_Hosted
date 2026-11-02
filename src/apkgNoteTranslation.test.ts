@@ -149,6 +149,7 @@ test("Vorlagenmedien mit `_` aus CSS und Template kommen nur bei generischen Not
   assert.deepEqual(graph.notes[1].media, {});
   assert.deepEqual(graph.mediaFiles.map((file) => file.name).sort(), ["_eigen.woff2", "_hintergrund.png", "_logo.png"]);
   assert.deepEqual(graph.report.missingMedia, ["_fehlt.png"]);
+  assert.deepEqual(graph.report.notetypes.map((report) => report.layout), ["original", "core"]);
 });
 
 test("Native Bildverdeckung liest Radien, maskierte Doppelpunkte, Drehung, Schriftgröße und dauerhaft verdeckte Formen", async () => {

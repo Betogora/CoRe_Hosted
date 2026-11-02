@@ -1,10 +1,10 @@
 import { makeId } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
-import type { ApkgTranslationReport, ImportDeck, ImportReviewEvent, NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
+import type { ApkgTranslationReport, ImportDeck, ImportReviewEvent, ImportSample, NoteSource, NoteTypeSource } from "./apkgNoteTranslation.ts";
 import { parseApkgWorkerResponse } from "./apkgImportWorkerProtocol.ts";
 
 export { ANKI_PACKAGE_MAX_BYTES } from "./apkgImportInternal.ts";
-export type { ApkgTranslationReport, NoteTypeSource } from "./apkgNoteTranslation.ts";
+export type { ApkgTranslationReport, ImportSample, NoteTypeSource } from "./apkgNoteTranslation.ts";
 
 /** A media file of the package; its bytes were read from the archive and checked against the SHA-1. */
 export interface ImportMediaFile {
@@ -39,7 +39,7 @@ export interface ApkgImportPreview {
   fileSize: number;
   rootDeckName: string;
   report: ApkgTranslationReport;
-  samples: Array<{ note: Note; card: Card; notetypeName: string }>;
+  samples: ImportSample[];
   /** Media of the samples for the preview only; the commit reads every file again. */
   sampleMedia: ImportMediaFile[];
   commitGraph: ImportCommitGraph;
@@ -48,7 +48,7 @@ export interface ApkgImportPreview {
 interface ApkgPreviewDescriptor {
   rootDeckName: string;
   report: ApkgTranslationReport;
-  samples: Array<{ note: Note; card: Card; notetypeName: string }>;
+  samples: ImportSample[];
   sampleMedia: ImportMediaFile[];
   counts: Pick<ImportCommitGraph, "deckCount" | "noteCount" | "cardCount" | "reviewEventCount" | "mediaCount" | "ankiGuids">;
 }

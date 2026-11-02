@@ -111,7 +111,7 @@ Akzeptanz:
 - Der Importbereich bietet ausschließlich Anki-Pakete (`.apkg`, `.colpkg`) an; Text-, CSV- und Tabellenimporte gibt es nicht.
 - Das Paket wird zuerst analysiert. Vorschau und `Import übernehmen` sind getrennte Schritte.
 - Hierarchien werden ohne fachliches Tiefenlimit importiert. Jeder Stapel verweist auf seinen unmittelbaren Anki-Elternstapel und behält den Quellpfad; eine Abflachungswarnung gibt es nicht.
-- Der Bericht nennt Datei, Stapel, Karten, vorhandene und fehlende Medien sowie verständliche Warnungen. Der Abschnitt `Notiztypen` zeigt je Notiztyp Übersetzer, Inhalte, Karten, übernommenen Lernstand, generisch als Feldliste übernommene und übersprungene Inhalte, nur im Editor sichtbare Felder und fehlende Medien.
+- Der Bericht nennt Datei, Stapel, Karten, vorhandene und fehlende Medien sowie verständliche Warnungen. Der Abschnitt `Notiztypen` zeigt je Notiztyp Übersetzer, Inhalte, Karten, übernommenen Lernstand, generisch als Feldliste übernommene und übersprungene Inhalte, nur im Editor sichtbare Felder, fehlende Medien und ob die Karten im `Originallayout` oder im `CoRe-Design` erscheinen.
 - Bis zu drei Beispielkarten erscheinen im Reviewrenderer mit Frage, Antwort und Beispielmedien. Tatsächliche Darstellungsabweichungen und Diagnosen bleiben sichtbar; pauschale Originaltreue- und Sicherheitshinweise entfallen. Notetype-IDs, Template-Ordinals, Hashes und Importidentitäten dominieren den Hauptflow nicht.
 - Eine accountgebundene APKG-Sitzung erhält bei App-Navigation Datei-Metadaten, Vorschau, Fortschritt und Abschluss; `Erstellen → Import` stellt sie wieder dar. Die Zurückaktion `Erstellen`, Logout und bestätigter Abschluss setzen sie zurück. Reload erhält weder Datei noch Vorschau oder Worker.
 - `Import übernehmen` endet nach dem lokal validierten IndexedDB-Commit und dem dauerhaften Einreihen vorhandener Medien. Jede Anki-Notiz wird ein Inhalt, jede reale Anki-Karte eine eigenständige CoRe-Karte dieses Inhalts. Inhalte, Karten, Reviews und Medien synchronisieren danach getrennt; Anki-Vorlagen und rohe Felder bleiben unsichtbar für spätere Neuübersetzungen erhalten.
@@ -440,7 +440,7 @@ Akzeptanz:
 
 ### 6.3 Import
 
-- Anki-Pakete werden über registrierte Übersetzer in CoRe-Inhalte mit Feldrollen und Interaktion übersetzt und im CoRe-Design gerendert; Anki-Vorlagen und -CSS werden nicht angezeigt. Unbekannte Notiztypen werden generisch als Feldliste übernommen. Template-JavaScript, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben unsichtbar erhalten und Abweichungen erscheinen als Diagnose.
+- Anki-Pakete werden über registrierte Übersetzer in CoRe-Inhalte mit Feldrollen und Interaktion übersetzt und im CoRe-Design gerendert. Generisch übersetzte Notiztypen mit eigenem CSS und ohne Script erscheinen stattdessen im Originallayout ihres Autors (ADR-047); deren Schriften und Bilder (`_`-Dateien) kommen mit. Unbekannte Notiztypen werden generisch als Feldliste übernommen. Template-JavaScript, Add-on-/Custom-Filter und andere nicht portable Funktionen werden nicht ausgeführt; Quellwerte bleiben unsichtbar erhalten und Abweichungen erscheinen als Diagnose.
 - Importfehler bleiben sichtbar und enthalten eine sinnvolle nächste Aktion.
 - Die Importsteuerung unterscheidet `idle`, `analyzing`, `preview`, `committing`, `syncing_cloud`, `syncing_media`, `succeeded`, `partial`, `failed_terminal` und `cancelled`. Während `analyzing` bricht `Analyse abbrechen` den Worker ab und führt nach `cancelled`; es wird nichts übernommen. Das Übernehmen selbst ist nicht abbrechbar.
 - Die Phasen `analyzing`, `committing`, `syncing_cloud` und `syncing_media` zeigen in der Dateizeile einen eigenen monotonen Fortschritt; Zwischenwerte bleiben unter 100 Prozent, 100 Prozent heißt abgeschlossen.
@@ -592,7 +592,7 @@ Der [`src/ui`-Katalog](../src/ui/README.md) beschreibt die Wiederverwendung. Bes
 
 ### Kartenflächen
 
-Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor und Importvorschau gleich.
+Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor und Importvorschau gleich. Ausnahme ist das Originallayout importierter Karten (ADR-047): Die Karte zeigt Template und CSS ihres Anki-Autors ohne Script, ohne Schalter und ohne Kontrastanpassung; die Bedienung um die Karte bleibt CoRe. Beim Aufdecken wechselt sie wie in Anki auf ihre Rückseite und scrollt zur Antwortmarke, statt Frage und Antwort getrennt zu zeigen. Im Dark Mode trägt sie Ankis Nachtklassen. Bleibt die Vorderseite leer, erscheint die Karte im CoRe-Design mit dem Hinweis `Originallayout nicht darstellbar.`
 
 - Frage und Antwort ohne Feldbeschriftung; beim Aufdecken bleibt die Frage stehen, und die Antwort folgt. Ein fester Anweisungstext begleitet die Frage.
 - Hinweise sind zugeklappte, per Tastatur bedienbare Abschnitte unter der Frage. `Zusatz` und `Quelle` (als Link-Chips) erscheinen erst nach dem Aufdecken, `Notiz` nur im Editor.

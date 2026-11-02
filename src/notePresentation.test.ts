@@ -268,7 +268,7 @@ function layoutSource(names: string[], front: string, back: string, options: { c
 
 async function renderLayout(source: NoteTypeSource | null, values: string[], side: "question" | "answer", options: {
   fields?: Array<[string, NoteField["role"]]>; interaction?: NoteContent["interaction"]; promptKey?: string; translator?: string; tags?: string[];
-  typedAnswer?: string; mode?: NotePresentationTheme["mode"];
+  typedAnswer?: string; mode?: NotePresentationTheme["mode"]; deckName?: string;
 } = {}) {
   const fields = (options.fields ?? POKEMON_FIELDS).map(([name, role], ordinal): NoteField => ({ id: `f${ordinal}`, name, role, html: values[ordinal] ?? "" }));
   const value = content(options.interaction ?? { kind: "reveal", prompts: [{ key: "anki-0", name: "Bilderkennung", instruction: "", questionFieldIds: ["f1", "f2", "f3"], answerFieldIds: ["f0"], requires: null, typeInFieldId: null }] }, fields);
@@ -276,7 +276,7 @@ async function renderLayout(source: NoteTypeSource | null, values: string[], sid
   const graph = createNote({ content: value, deckId: "deck" });
   const note = { ...graph.note, noteTypeSourceId: "vorlage", translator: { id: options.translator ?? "generic", version: 3 } };
   const card = graph.cards.find((item) => item.promptKey === (options.promptKey ?? "anki-0"))!;
-  return renderCard({ note, card, side, surface: "review", theme: { ...theme, mode: options.mode ?? "light" }, typedAnswer: options.typedAnswer, noteTypeSource: source });
+  return renderCard({ note, card, side, surface: "review", theme: { ...theme, mode: options.mode ?? "light" }, typedAnswer: options.typedAnswer, noteTypeSource: source, deckName: options.deckName });
 }
 
 test("Originallayout setzt Zeilen aus mehreren Feldern wie das Template zusammen", async () => {
@@ -324,13 +324,13 @@ test("Eine leere Vorderseite fällt mit Hinweis auf das CoRe-Design zurück", as
 
 test("Originallayout folgt Ankis Bedingungen, Filtern und Sonderfeldern", async () => {
   const front = '{{#Generation}}<p class="g">{{text:Generation}}</p>{{/Generation}}{{^Nummer}}<p>ohne Nummer</p>{{/Nummer}}{{#Nummer}}<p>mit Nummer</p>{{/Nummer}}'
-    + '{{hint:Hinweis}}<div class="s">{{Tags}}|{{Card}}|{{Type}}</div>{{type:Name}}{{tts de_DE:Name}}';
+    + '{{hint:Hinweis}}<div class="s">{{Tags}}|{{Card}}|{{Type}}|{{Deck}}|{{Subdeck}}</div>{{type:Name}}{{tts de_DE:Name}}';
   const source = layoutSource(POKEMON_NAMES, front, "{{FrontSide}}<hr id=answer>{{type:Name}}");
   const typeIn: NoteContent["interaction"] = { kind: "reveal", prompts: [{ key: "anki-0", name: "Bilderkennung", instruction: "", questionFieldIds: ["f2"], answerFieldIds: ["f0"], requires: null, typeInFieldId: "f0" }] };
   const values = ["Karpador", "", "<b>X</b>", "", "Wasser"];
-  const question = await renderLayout(source, values, "question", { interaction: typeIn, tags: ["pokemon"] });
+  const question = await renderLayout(source, values, "question", { interaction: typeIn, tags: ["pokemon"], deckName: "Pokémon::Gen I" });
   assert.match(question.srcdoc, /<p class="g">X<\/p><p>ohne Nummer<\/p><details><summary>Hinweis<\/summary>Wasser<\/details>/);
-  assert.match(question.srcdoc, /<div class="s">pokemon\|Bilderkennung\|Pokémon<\/div>/);
+  assert.match(question.srcdoc, /<div class="s">pokemon\|Bilderkennung\|Pokémon\|Pokémon::Gen I\|Gen I<\/div>/);
   assert.doesNotMatch(question.accessibleText, /Karpador|mit Nummer/);
   assert.deepEqual([...question.interactions].sort(), ["hint", "typed-answer"]);
   const answer = await renderLayout(source, values, "answer", { interaction: typeIn, typedAnswer: "Karpadr" });

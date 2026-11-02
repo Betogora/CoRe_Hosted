@@ -15,6 +15,7 @@ import type {
 } from "./coreTypes.ts";
 import { makeId, stableContentHash } from "./coreModel/coreValues.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
+import { hasOwnDesign, needsScript } from "./originalLayout.ts";
 import { createNote } from "./coreModel/notes.ts";
 import { normalizeTags, splitAnkiSystemTags } from "./coreModel/tags.ts";
 import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
@@ -85,6 +86,8 @@ export interface ApkgNotetypeReport {
   unmappedFields: string[];
   missingMedia: string[];
   study: Record<StudyMigration, number>;
+  /** Whether its cards show the template's own layout (ADR-047) or the CoRe design. */
+  layout: "original" | "core";
 }
 
 export interface ApkgTranslationReport {
@@ -912,6 +915,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         unmappedFields: Object.entries(plan.fieldRoles).filter(([, role]) => role === "note").map(([name]) => name),
         missingMedia: layoutNames.filter((name) => !media.byName.has(name)),
         study: { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 0, new: 0 },
+        layout: plan.translator.id === GENERIC.id && hasOwnDesign(model.css) && model.templates.some((template) => !needsScript(template)) ? "original" as const : "core" as const,
       },
     };
     plans.set(notetypeId, entry);
@@ -1054,14 +1058,18 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
 const NOTE_CHUNK_SIZE = 250;
 const REVIEW_CHUNK_SIZE = 500;
 
+/** A preview card with its template, so the preview shows the original layout like the review. */
+export interface ImportSample { note: Note; card: Card; notetypeName: string; noteTypeSource: NoteTypeSource | null }
+
 /** Preview of a translated package: report, five sample cards and the counts the commit will stream. */
 export function describeImportGraph(graph: ApkgImportGraph) {
   const notesById = new Map(graph.notes.map((note) => [note.id, note]));
-  const notetypeNames = new Map(graph.noteTypeSources.map((source) => [source.id, source.name]));
-  const samples: Array<{ note: Note; card: Card; notetypeName: string }> = [];
+  const sourcesById = new Map(graph.noteTypeSources.map((source) => [source.id, source]));
+  const samples: ImportSample[] = [];
   for (const card of graph.cards) {
     const note = notesById.get(card.noteId);
-    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card, notetypeName: notetypeNames.get(note.noteTypeSourceId ?? "") ?? "Anki-Notiztyp" });
+    const noteTypeSource = sourcesById.get(note?.noteTypeSourceId ?? "") ?? null;
+    if (note && !samples.some((sample) => sample.note.id === note.id)) samples.push({ note, card, notetypeName: noteTypeSource?.name ?? "Anki-Notiztyp", noteTypeSource });
     if (samples.length >= 5) break;
   }
   return {

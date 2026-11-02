@@ -2,6 +2,7 @@ import type { NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type { Card, Note, NoteField, NoteInteraction } from "./coreTypes.ts";
 import type { CoreTheme } from "./coreTheme.ts";
 import { compileSafeTemplate, type SafeTemplateAstNode, type TemplateDiagnostic } from "./safeTemplate.ts";
+import { hasOwnDesign, needsScript } from "./originalLayout.ts";
 import { sanitizeLayoutHtml, sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
 import { buildSrcdoc } from "./presentationFrame.ts";
@@ -288,8 +289,6 @@ type LayoutTemplate = NoteTypeSource["templates"][number];
 type LayoutSide = "question" | "answer";
 interface LayoutContext { fields: Map<string, NoteField>; special: Record<string, string>; side: LayoutSide; ordinal: number; frontSide: string; typedAnswer: string | undefined }
 
-// Rules on these selectors only restyle Anki's default card; anything else is the author's own design.
-const CARD_LEVEL_SELECTOR = /^(?:\.card|\.card\.night_?mode|\.night_?mode\.card|\.night_?mode \.card)$/;
 interface PreparedLayoutCss { ownDesign: boolean; css: string; nightRules: boolean; media: string[] }
 // Each note type's CSS and each template's parsed sides are prepared once, not per card or page turn.
 const layoutCssCache = new WeakMap<NoteTypeSource, PreparedLayoutCss>();
@@ -301,8 +300,7 @@ function layoutCss(source: NoteTypeSource) {
   if (!prepared) {
     const css = source.css.replace(/@import[^;]*;?/gi, "").replace(/url\(\s*['"]?\s*(?:[a-z][\w+.-]*:)?\/\/[^)]*\)/gi, "none").replace(/<\/style/gi, "<\\/style");
     prepared = {
-      ownDesign: [...source.css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{/g)]
-        .some((rule) => rule[1].split(",").some((selector) => !CARD_LEVEL_SELECTOR.test(selector.trim().replace(/\s+/g, " ").toLowerCase()))),
+      ownDesign: hasOwnDesign(source.css),
       css,
       nightRules: /night_?mode/i.test(css),
       media: [...css.matchAll(/url\(\s*['"]?([^'")]+?)['"]?\s*\)/gi)].map((match) => match[1].trim()).filter((name) => !/^(?:data|blob):/i.test(name)),
@@ -316,7 +314,7 @@ function layoutCss(source: NoteTypeSource) {
 function originalLayoutTemplate(note: Note, card: Card, source: NoteTypeSource | null | undefined): LayoutTemplate | null {
   if (!source || source.id !== note.noteTypeSourceId || note.translator?.id !== "generic" || !layoutCss(source).ownDesign) return null;
   const template = source.kind === 1 ? source.templates[0] : source.templates.find((item) => `anki-${item.ordinal}` === card.promptKey);
-  return template && !/<script\b|\son[a-z]+\s*=|<button\b|javascript:/i.test(template.front + template.back) ? template : null;
+  return template && !needsScript(template) ? template : null;
 }
 
 function layoutAst(source: NoteTypeSource, template: LayoutTemplate) {
@@ -367,15 +365,18 @@ function expandLayout(nodes: SafeTemplateAstNode[], context: LayoutContext) {
 }
 
 /** Null when the question side would show nothing, e.g. because a script was meant to fill it. */
-async function renderOriginalLayout({ note, card, side, surface, theme, mathCss, typedAnswer, source, template }: {
+async function renderOriginalLayout({ note, card, side, surface, theme, mathCss, typedAnswer, deckName, source, template }: {
   note: Note; card: Card; side: LayoutSide; surface: "review" | "preview" | "management"; theme: NotePresentationTheme; mathCss: string;
-  typedAnswer: string | undefined; source: NoteTypeSource; template: LayoutTemplate;
+  typedAnswer: string | undefined; deckName: string; source: NoteTypeSource; template: LayoutTemplate;
 }): Promise<NotePresentationResult | null> {
   const ast = layoutAst(source, template);
   const ordinal = Number(card.promptKey.split(":")[1]);
   const context: LayoutContext = {
     fields: new Map(note.content.fields.map((field) => [field.id, field])),
-    special: { Tags: note.content.tags.join(" "), Type: source.name, Card: template.name, CardFlag: card.ankiFlag ? `flag${card.ankiFlag}` : "" },
+    special: {
+      Tags: note.content.tags.join(" "), Type: source.name, Card: template.name, CardFlag: card.ankiFlag ? `flag${card.ankiFlag}` : "",
+      Deck: deckName, Subdeck: deckName.split("::").at(-1)!,
+    },
     side: "question",
     ordinal,
     frontSide: "",
@@ -406,18 +407,20 @@ async function renderOriginalLayout({ note, card, side, surface, theme, mathCss,
   };
 }
 
-export async function renderCard({ note, card, side, surface, theme, mathCss = "", typedAnswer, noteTypeSource }: {
+export async function renderCard({ note, card, side, surface, theme, mathCss = "", typedAnswer, noteTypeSource, deckName = "" }: {
   note: Note; card: Card; side: "question" | "answer"; surface: "review" | "preview" | "management"; theme: NotePresentationTheme; mathCss?: string;
   /** Typed input; on the answer side it replaces the type-in field with the character comparison. */
   typedAnswer?: string;
   /** Imported template of the content; its own layout replaces the CoRe design where ADR-047 applies. */
   noteTypeSource?: NoteTypeSource | null;
+  /** Full `::` path of the card's deck for the template fields `{{Deck}}` and `{{Subdeck}}`. */
+  deckName?: string;
 }): Promise<NotePresentationResult> {
   if (card.noteId !== note.id) throw new Error("Die Karte gehört zu einem anderen Inhalt.");
   const diagnostics: TemplateDiagnostic[] = [];
   const template = originalLayoutTemplate(note, card, noteTypeSource);
   if (template) {
-    const original = await renderOriginalLayout({ note, card, side, surface, theme, mathCss, typedAnswer, source: noteTypeSource!, template });
+    const original = await renderOriginalLayout({ note, card, side, surface, theme, mathCss, typedAnswer, deckName, source: noteTypeSource!, template });
     if (original) return original;
     diagnostics.push({ code: "original-layout", level: "warning", message: "Originallayout nicht darstellbar.", detail: null });
   }

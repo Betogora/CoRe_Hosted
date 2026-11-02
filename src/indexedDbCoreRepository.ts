@@ -660,13 +660,19 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   };
 
   /** A content with all its cards when every sibling the catalog knows is resident; otherwise null. */
+  // The renderer prepares each template object once, so an unchanged template is returned as the same object.
+  const loadedNoteTypeSources = new Map<string, NoteTypeSource & { updatedAt: string }>();
   /** The Anki template of an imported content, for its original layout (ADR-047); kept on every device. */
   const loadNoteTypeSource = async (id: string): Promise<NoteTypeSource | null> => {
     await writeChain;
     const transaction = database.transaction(STORE.noteTypeSources, "readonly");
-    const source = await requestResult<NoteTypeSource | undefined>(transaction.objectStore(STORE.noteTypeSources).get(id));
+    const source = await requestResult<(NoteTypeSource & { updatedAt: string }) | undefined>(transaction.objectStore(STORE.noteTypeSources).get(id));
     await transactionDone(transaction);
-    return source ?? null;
+    if (!source) return null;
+    const known = loadedNoteTypeSources.get(id);
+    if (known?.updatedAt === source.updatedAt) return known;
+    loadedNoteTypeSources.set(id, source);
+    return source;
   };
 
   const loadNoteGraph = async (noteId: string): Promise<NoteGraph | null> => {

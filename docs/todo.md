@@ -94,10 +94,9 @@ voraus.
 
 Importierte Inhalte zeigen, wo nötig, das Layout ihres Stapelautors: Template-
 HTML und CSS der Herkunftsvorlage, ohne JavaScript, im bestehenden
-Sandbox-Rahmen (ADR-047). Renderer und Regeln (Paket A) sowie
-Vorlagen-Sync und Vorlagenmedien (Paket B) stehen, siehe [`history.md`](history.md);
-die App reicht die Vorlage noch nicht an `renderCard` weiter, deshalb ist das
-Originallayout noch nirgends sichtbar. Die Oberfläche um die Karte bleibt CoRe; es gibt
+Sandbox-Rahmen (ADR-047). Renderer und Regeln (A),
+Vorlagen-Sync und Vorlagenmedien (B) sowie die App-Einbindung (C) stehen, siehe
+[`history.md`](history.md); offen ist die Abnahme (D). Die Oberfläche um die Karte bleibt CoRe; es gibt
 keine wählbaren Notiz- oder Kartentypen und keinen Schalter. Anlass: eigene
 Stapel wie `Pokemon_Gen_I_Auszug.apkg` verlieren im CoRe-Design Zeilen aus
 mehreren Feldern („??? · Generation X“) und ihr Styling.
@@ -143,12 +142,6 @@ Vorlagen werden je Notiztyp, nicht je Karte übertragen. Gemessen wird mit
 `scripts/benchmarkApkgImport.ts` (Import) und `performance:measure:local`
 (Start, Lernen) jeweils vorher und nachher.
 
-- [ ] **C App-Einbindung:** Review mit einem Rahmen und Scroll zu `#answer`
-      (O16), Eintippen (O18), Editor-Vorschau (O21), sichtbarer
-      Rückfallhinweis (O12), Importbericht (O22); Stapelname für die
-      Sonderfelder `Deck` und `Subdeck` an `renderCard` übergeben; `specs.md` mit
-      Ausnahme zu getrennten Rahmen. Nachweis: visuelle Pflichtmatrix Light, Dark und
-      Mobil, betroffene E2E-Specs.
 - [ ] **D Abnahme:** APKG-Matrixzeilen mit visuellem Nachweis (darunter die
       Pokémon-Vorlage), Korpuslauf vorher/nachher, `performance:measure:local`,
       `audit-last-change` über P3.
