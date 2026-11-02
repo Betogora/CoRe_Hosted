@@ -87,7 +87,7 @@ test("Freie Text- und Markerfarben erhalten die Auswahl trotz Fokuswechsel und R
   const panel = await openMindMaps(page); await root(panel, "Formatierte Notiz"); await node(panel, "Formatierte Notiz").dblclick();
   const editor = panel.getByRole("textbox", { name: "Kartentext bearbeiten", exact: true }); await editor.fill("Farbe bleibt gespeichert.");
   for (const [label, color, property, expected] of [["Stiftfarbe", "#e5484d", "color", "rgb(229, 72, 77)"], ["Markerfarbe", "#f6dd8e", "backgroundColor", "rgb(246, 221, 142)"]] as const) {
-    await editor.press("Control+A"); await panel.getByRole("button", { name: label, exact: true }).click(); await page.getByRole("dialog", { name: label, exact: true }).getByRole("radio", { name: `Farbe ${color}`, exact: true }).click();
+    await editor.press("Control+A"); await panel.getByRole("button", { name: label, exact: true }).click(); await page.getByRole("dialog", { name: label, exact: true }).getByRole("radio", { name: `Farbe ${color.toUpperCase()}`, exact: true }).click();
     await expect.poll(() => editor.evaluate((el, args) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n)[args.property] === args.expected), { property, expected })).toBe(true);
     await panel.getByRole("button", { name: label, exact: true }).click();
   }
@@ -120,7 +120,7 @@ test("Bilder in Stichwortdetails und Textkarten sowie freie Kastenfarben überst
   await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("Mein Text.");
   await panel.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles(image);
   await panel.getByRole("button", { name: "Kastenfarbe frei wählen", exact: true }).click();
-  await page.getByRole("dialog", { name: "Kastenfarbe frei wählen", exact: true }).getByRole("radio", { name: "Farbe #8b5cf6", exact: true }).click();
+  await page.getByRole("dialog", { name: "Kastenfarbe frei wählen", exact: true }).getByRole("radio", { name: "Farbe #8B5CF6", exact: true }).click();
   await page.keyboard.press("Escape");
   await finish(panel);
   await expect(node(panel, "Energie").locator("img")).toHaveCount(0);

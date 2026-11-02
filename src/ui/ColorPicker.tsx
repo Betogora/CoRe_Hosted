@@ -12,6 +12,11 @@ export const COLOR_PICKER_PRESETS = [
 
 interface ColorWheelPosition { hue: number; intensity: number }
 
+// Exact BengtsToolBox values without a CoRe geometry token: popover radius, inner shadow and the selection ring.
+const TOOLBOX_INNER_SHADOW = "inset 0 2px 4px 0 rgb(0 0 0 / 0.05)";
+const TOOLBOX_POPOVER_RADIUS = "12px";
+const TOOLBOX_SELECTED_RING = "0 0 0 2px var(--core-surface), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent), var(--core-shadow-soft)";
+
 function colorFromWheelPosition({ hue, intensity }: ColorWheelPosition) {
   return hsvToHex({ hue, saturation: clampNumber(intensity, 0, 1), value: 1 });
 }
@@ -156,9 +161,9 @@ export function ColorPicker({
         type="button"
         aria-label={ariaLabel}
         disabled={disabled}
-        className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
+        className={`size-button shrink-0 rounded-control border border-core-border bg-core-canvas p-0.5 shadow-soft transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
       >
-        <span aria-hidden="true" className="block size-full rounded-marker border border-core-border shadow-inset" style={{ backgroundColor: shownColor }} />
+        <span aria-hidden="true" className="block size-full rounded-marker border border-core-border" style={{ backgroundColor: shownColor, boxShadow: TOOLBOX_INNER_SHADOW }} />
       </button>
     </Popover.Trigger>
   );
@@ -173,7 +178,8 @@ export function ColorPicker({
           collisionPadding={12}
           aria-label={ariaLabel}
           data-testid="color-wheel-popover"
-          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-panel p-3.5 outline-none"
+          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] p-3.5 outline-none"
+          style={{ borderRadius: TOOLBOX_POPOVER_RADIUS }}
           // A text selection stays in its editor while a tool color is applied there.
           onFocusOutside={tool ? (event) => event.preventDefault() : undefined}
           // Escape closes only the picker, not a surrounding editor or dialog in the React tree.
@@ -183,13 +189,14 @@ export function ColorPicker({
             ref={wheelRef}
             role="slider"
             tabIndex={0}
-            aria-label="Farbkreis: Pfeiltasten ändern Farbe und Intensität"
+            aria-label="Farbkreis: links und rechts ändern den Farbton, oben und unten die Intensität"
             aria-valuemin={0}
             aria-valuemax={360}
             aria-valuenow={Math.round(position.hue)}
             aria-valuetext={`${previewColor}, ${Math.round(position.intensity * 100)} %`}
-            className="relative mx-auto aspect-square w-full max-w-48 touch-none rounded-round border border-core-border shadow-inset outline-none"
+            className="relative mx-auto aspect-square w-full max-w-48 touch-none rounded-round border border-core-border outline-none"
             style={{
+              boxShadow: TOOLBOX_INNER_SHADOW,
               backgroundImage: "radial-gradient(circle, #fff 0%, rgb(255 255 255 / 0) 100%), conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
             }}
             onKeyDown={handleKeyDown}
@@ -223,16 +230,17 @@ export function ColorPicker({
           >
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-round border-strong border-core-surface"
+              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-round border-strong"
               style={{
                 backgroundColor: previewColor,
-                boxShadow: "0 0 0 1px var(--core-text)",
+                borderColor: "#fff",
+                boxShadow: "0 0 0 1px rgb(6 52 79 / 0.75)",
                 left: `${markerPosition.left}%`,
                 top: `${markerPosition.top}%`,
               }}
             />
           </div>
-          <div role="radiogroup" aria-label="Schnellwahl" className="mt-3 grid grid-cols-7 justify-items-center gap-1.5 border-t border-core-border pt-3">
+          <div role="radiogroup" aria-label="Farbvorschläge" className="mt-3 grid grid-cols-7 justify-items-center gap-2 border-t border-core-border pt-3">
             {presets.map((preset) => {
               const presetColor = normalizeColor(preset, normalizedValue);
               const selected = presetColor === previewColor;
@@ -242,9 +250,9 @@ export function ColorPicker({
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  aria-label={`Farbe ${presetColor}`}
-                  className={`aspect-square w-full max-w-7 rounded-round border border-core-border shadow-soft transition-transform ${selected ? "shadow-selection" : "hover:scale-110"}`}
-                  style={{ backgroundColor: presetColor }}
+                  aria-label={`Farbe ${presetColor.toUpperCase()}`}
+                  className={`size-7 min-h-0 !min-w-0 rounded-round transition-transform ${selected ? "" : "hover:scale-110"}`}
+                  style={{ backgroundColor: presetColor, boxShadow: selected ? TOOLBOX_SELECTED_RING : "var(--core-shadow-soft)" }}
                   onMouseDown={tool ? (event) => event.preventDefault() : undefined}
                   onClick={() => {
                     applyColor(presetColor);

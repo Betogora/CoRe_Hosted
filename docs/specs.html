@@ -1940,6 +1940,9 @@ video {
 .w-px {
   width: 1px;
 }
+.\!min-w-0 {
+  min-width: 0px !important;
+}
 .min-w-0 {
   min-width: 0px;
 }
@@ -2000,9 +2003,6 @@ video {
 }
 .max-w-5xl {
   max-width: 64rem;
-}
-.max-w-7 {
-  max-width: 1.75rem;
 }
 .max-w-7xl {
   max-width: 80rem;
@@ -2548,9 +2548,6 @@ video {
 .border-core-success {
   border-color: var(--core-success);
 }
-.border-core-surface {
-  border-color: var(--core-surface);
-}
 .border-core-warning {
   border-color: var(--core-warning);
 }
@@ -2634,6 +2631,9 @@ video {
 }
 .p-0 {
   padding: 0px;
+}
+.p-0\.5 {
+  padding: 0.125rem;
 }
 .p-1 {
   padding: 0.25rem;
@@ -2977,6 +2977,11 @@ video {
 .opacity-70 {
   opacity: 0.7;
 }
+.shadow {
+  --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --tw-shadow-colored: 0 1px 3px 0 var(--tw-shadow-color), 0 1px 2px -1px var(--tw-shadow-color);
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
 .shadow-floating {
   --tw-shadow: var(--core-shadow-floating);
   --tw-shadow-colored: var(--core-shadow-floating);
@@ -3015,6 +3020,11 @@ video {
 .outline-none {
   outline: 2px solid transparent;
   outline-offset: 2px;
+}
+.ring {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 .ring-\[3px\] {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
@@ -7258,7 +7268,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.780</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.611</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">221</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.238</td><td>33 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>26,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div></main></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.780</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.618</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">221</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.238</td><td>33 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>26,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

@@ -500,10 +500,10 @@ test("deck presentation form saves name, icon and color together", async ({ page
   const primaryControls = page.getByTestId("deck-settings-primary-controls");
   const saveBar = page.getByTestId("settings-save-bar");
   const saveButton = saveBar.getByRole("button", { name: "Speichern" });
-  for (const trigger of [iconTrigger, colorTrigger]) {
-    await expect(trigger).toHaveCSS("width", "40px");
-    await expect(trigger).toHaveCSS("height", "40px");
-  }
+  await expect(iconTrigger).toHaveCSS("width", "40px");
+  await expect(iconTrigger).toHaveCSS("height", "40px");
+  await expect(colorTrigger).toHaveCSS("width", "36px");
+  await expect(colorTrigger).toHaveCSS("height", "36px");
   await expect(titleIcon).toBeVisible();
   await expect(primaryControls.getByRole("group", { name: "CoRe-Modus" })).toBeVisible();
   await expect(primaryControls.getByRole("button", { name: "Lernen", exact: true })).toHaveCount(0);

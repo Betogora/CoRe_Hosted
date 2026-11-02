@@ -209,9 +209,9 @@ test("dashboard heatmap picks its history color with the shared color picker and
   const popover = page.getByTestId("color-wheel-popover");
   await expect(page.getByRole("slider", { name: /Farbkreis/ })).toBeVisible();
   await expect(popover.getByRole("radio")).toHaveCount(14);
-  await popover.getByRole("radio", { name: "Farbe #3fa66b" }).click();
+  await popover.getByRole("radio", { name: "Farbe #3FA66B" }).click();
   await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
-  await expect(popover.getByRole("radio", { name: "Farbe #3fa66b" })).toHaveAttribute("aria-checked", "true");
+  await expect(popover.getByRole("radio", { name: "Farbe #3FA66B" })).toHaveAttribute("aria-checked", "true");
   await expect.poll(() => page.evaluate(() => window.localStorage.getItem("core.studyHeatmap.historyColor.v2"))).toBe("#3fa66b");
   await page.keyboard.press("Escape");
   await expect(popover).toBeHidden();
@@ -770,7 +770,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen)$/ }).evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
     );
-    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= (viewport.width < 768 ? 44 : 40) && height >= (viewport.width < 768 ? 44 : 40))).toBe(true);
+    expect(targetSizes.every(({ width, height }: { width: number; height: number }) => width >= (viewport.width < 768 ? 44 : 36) && height >= (viewport.width < 768 ? 44 : 36))).toBe(true);
   }
 
   const iconButton = page.getByRole("button", { name: "Icon auswählen" });

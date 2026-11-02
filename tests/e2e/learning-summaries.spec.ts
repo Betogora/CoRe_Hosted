@@ -136,7 +136,7 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await panel.getByRole("button", { name: "Stift", exact: true }).click();
   await expect(panel.getByRole("combobox", { name: "Schrift", exact: true })).toHaveCount(0);
   await panel.getByRole("button", { name: "Zeichenfarbe", exact: true }).click();
-  await page.getByRole("dialog", { name: "Zeichenfarbe", exact: true }).getByRole("radio", { name: "Farbe #e5484d", exact: true }).click();
+  await page.getByRole("dialog", { name: "Zeichenfarbe", exact: true }).getByRole("radio", { name: "Farbe #E5484D", exact: true }).click();
   await page.keyboard.press("Escape");
   await panel.getByRole("combobox", { name: "Stiftstärke", exact: true }).click();
   await page.getByRole("option", { name: "Kräftig", exact: true }).click();
