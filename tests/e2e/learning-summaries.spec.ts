@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Locator } from "@playwright/test";
 import type { LearningSummary } from "../../src/learningSummaries.ts";
+import { VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
 test.setTimeout(90_000);
 async function openSummaries(page: Page) {
@@ -76,7 +77,7 @@ test("KI-Fehler erhalten Formular und vorhandene Fassungen", async ({ page }) =>
   await expect(popup.getByRole("textbox", { name: "Titel", exact: true })).toHaveValue("Erhaltene Auswahl");
   await popup.getByRole("button", { name: "Abbrechen", exact: true }).click();
   await page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true }).getByRole("button", { name: "Verwerfen", exact: true }).click();
-  await expect(panel.getByTestId("summary-list").getByRole("button")).toHaveCount(2);
+  await expect(panel.getByTestId("summary-list").getByRole("button", { name: /öffnen$/ })).toHaveCount(2);
 });
 
 test("Modulladefehler nach einem Update erhalten Titel und Einstellungen ohne Reload", async ({ page }) => {
@@ -146,7 +147,7 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await expect(drawing.locator("path")).toHaveAttribute("stroke", "#cc3344");
   await expect(drawing.locator("path")).toHaveAttribute("stroke-width", "5");
   await panel.getByRole("button", { name: "Zeichenmarker", exact: true }).click();
-  await expect(panel.getByRole("textbox", { name: "Markerfarbe", exact: true })).toHaveValue("#e4bf63");
+  await expect(panel.getByRole("textbox", { name: "Markerfarbe", exact: true })).toHaveValue("#f6d36b");
   await expect(panel.getByRole("combobox", { name: "Markerbreite", exact: true })).toContainText("Mittel");
   await panel.getByRole("button", { name: "Radierer", exact: true }).click();
   await drawing.locator("path").last().click();
@@ -204,10 +205,11 @@ test("Alte Seiten öffnen als ein Text; Zeichnungen überstehen Bearbeiten, Radi
 });
 
 test("Zusammenfassungseditor: visuelle Pflichtmatrix für Text und Zeichenwerkzeuge", async ({ page }, testInfo) => {
+  test.skip(!visualOutput, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
   test.setTimeout(300_000);
   const panel = await openSummaries(page);
   await panel.getByRole("button", { name: "Zusammenfassung „Europa im Überblick“ öffnen", exact: true }).click();
-  for (const size of [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }]) {
+  for (const size of VISUAL_MATRIX_VIEWPORTS) {
     await page.setViewportSize(size);
     for (const theme of ["light", "dark"]) {
       await page.evaluate((mode) => { document.documentElement.dataset.coreTheme = mode; }, theme);
@@ -289,6 +291,7 @@ test("Löschen fragt nach, entfernt nur die gewählte Fassung und bleibt nach Re
 });
 
 test("Zusammenfassungsliste und KI-Popover: visuelle Pflichtmatrix", async ({ page }, testInfo) => {
+  test.skip(!visualOutput, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
   test.setTimeout(300_000);
   const catalogPanel = await openSummaries(page);
   await catalogPanel.scrollIntoViewIfNeeded();

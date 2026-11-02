@@ -9,6 +9,7 @@ import {
   provisionLocalE2EAccounts,
 } from "./localE2EEnvironment.ts";
 import { synchronizeDatabaseTypes } from "./databaseTypes.ts";
+import { affectedE2ESpecs } from "./affectedE2ESpecs.ts";
 
 const SUPABASE_CLI_PATH = path.join(process.cwd(), "node_modules", "supabase", "dist", "supabase.js");
 const PLAYWRIGHT_CLI_PATH = path.join(process.cwd(), "node_modules", "@playwright", "test", "cli.js");
@@ -17,7 +18,7 @@ const NPM_CLI_PATH = String(process.env.npm_execpath ?? "").trim();
 const OWNERSHIP_RLS_TEST_NAME = "ownership-smoke.test.ts";
 const GOLDEN_E2E_TAG = "@golden-e2e";
 const BETA_CORE_TAG = "@beta-core";
-const GATES = ["pr", "golden", "beta", "core-rls", "rls", "release", "performance"] as const;
+const GATES = ["pr", "golden", "beta", "core-rls", "rls", "release", "affected", "performance"] as const;
 type LocalGate = (typeof GATES)[number];
 const ALL_RLS_TEST_PATHS = readdirSync(path.join(process.cwd(), "tests", "rls"))
   .filter((fileName) => fileName.endsWith(".test.ts"))
@@ -114,6 +115,22 @@ async function stopOrphanedLocalViteServers() {
   });
 }
 
+function specPaths(names: readonly string[]) {
+  return names.map((name) => `tests/e2e/${name}.spec.ts`);
+}
+
+/** Paths changed against the merge base with origin/main, including uncommitted and untracked files. */
+async function changedFiles() {
+  const git = (args: string[]) => runCommand("git", args, { capture: true }).then(({ stdout }) => stdout.split(/\r?\n/).filter(Boolean));
+  const [base] = await git(["merge-base", "origin/main", "HEAD"]);
+  return [...await git(["diff", "--name-only", base]), ...await git(["ls-files", "--others", "--exclude-standard"])];
+}
+
+function runCatalogE2E(args: readonly string[]) {
+  console.log("Katalogflows ohne Supabase parallel ausführen …");
+  return runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", "--config=playwright.catalog.config.ts", ...args]);
+}
+
 export async function runLocalE2E(playwrightArguments: string[] = []) {
   const legacyRlsOnly = playwrightArguments.includes("--rls-only");
   const gateArgument = playwrightArguments.find((argument) => argument.startsWith("--gate="));
@@ -124,14 +141,27 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
   const runFullRls = gate === "rls" || gate === "release";
   const runGoldenE2E = gate === "pr" || gate === "golden";
   const runBetaE2E = gate === "beta";
-  const runFullE2E = gate === "release";
   const runPerformance = gate === "performance";
-
-  try {
-    await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
-  } catch {
-    throw new Error("Docker Desktop läuft nicht. Starte Docker Desktop und führe den Befehl danach erneut aus.");
+  const affected = gate === "affected" ? affectedE2ESpecs(await changedFiles()) : null;
+  const runFullE2E = gate === "release" || affected?.full === true;
+  const affectedSupabaseSpecs = affected && !affected.full ? affected.supabase : [];
+  if (affected) {
+    console.log(affected.full
+      ? "Gemeinsame Infrastruktur oder nicht zugeordneter Produktcode geändert: vollständige Browsersuite ausführen …"
+      : `Betroffene Browserflows: ${[...affected.catalog, ...affected.supabase].join(", ") || "keine"}`);
   }
+  const needsSupabase = !affected || affected.full || affectedSupabaseSpecs.length > 0;
+
+  if (needsSupabase) {
+    try {
+      await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
+    } catch {
+      throw new Error("Docker Desktop läuft nicht. Starte Docker Desktop und führe den Befehl danach erneut aus.");
+    }
+  }
+  if (runFullE2E && forwardedPlaywrightArguments.length === 0) await runCatalogE2E([]);
+  else if (affected && !affected.full && affected.catalog.length) await runCatalogE2E(specPaths(affected.catalog));
+  if (!needsSupabase) return;
 
   let supabaseStartAttempted = false;
   try {
@@ -192,7 +222,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       await runCommand(process.execPath, [NPM_CLI_PATH, "run", "benchmark:statistics"], {
         env: testEnvironment,
       });
-    } else if (runGoldenE2E || runBetaE2E || runFullE2E) {
+    } else if (runGoldenE2E || runBetaE2E || runFullE2E || affectedSupabaseSpecs.length) {
       console.log(runBetaE2E
         ? "Beta-Core-Verträge einschließlich Auth, Medien, Import und Konflikten ausführen …"
         : runGoldenE2E
@@ -201,10 +231,10 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       const selectedTag = runBetaE2E ? BETA_CORE_TAG : GOLDEN_E2E_TAG;
       const selectedArguments = runGoldenE2E || runBetaE2E
         ? ["--grep", selectedTag, ...forwardedPlaywrightArguments]
-        : forwardedPlaywrightArguments;
+        : [...specPaths(affectedSupabaseSpecs), ...forwardedPlaywrightArguments];
       await stopOrphanedLocalViteServers();
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
-        env: { ...testEnvironment, CORE_E2E_GATE: gate },
+        env: { ...testEnvironment, CORE_E2E_GATE: runFullE2E ? "release" : gate },
       });
       if (runFullE2E && forwardedPlaywrightArguments.length === 0) {
         console.log("E-Mail-/Passwort-Beta-Artefakt im selben Supabase-Lauf prüfen …");

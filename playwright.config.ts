@@ -69,17 +69,6 @@ export default defineConfig({
   ],
   projects: [
     {
-      name: "learning-content-chromium",
-      testMatch: [/learning-summaries\.spec\.ts/, /mindmaps\.spec\.ts/, /deck-ui-restoration\.spec\.ts/, /dashboard-widgets\.spec\.ts/, /exam-contact-planning\.spec\.ts/, /exam-topic-order\.spec\.ts/, /ai-source-creation\.spec\.ts/],
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "note-presentation-chromium",
-      testMatch: /note-presentation\.spec\.ts/,
-      outputDir: "test-results/note-presentation-browser",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
       name: "auth-setup",
       testMatch: /auth\.setup\.ts/,
       use: {
