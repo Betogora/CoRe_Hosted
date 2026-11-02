@@ -1,12 +1,13 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { ArrowDown, ArrowUp, ArrowUpRight, Check, GripVertical, LayoutGrid, Maximize2, Pause, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, Check, ChevronDown, ChevronUp, GripVertical, LayoutGrid, Maximize2, Pause, Pencil, Play, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import { DASHBOARD_WIDGETS, moveDashboardWidget, readDashboardPreferences, writeDashboardPreferences, type DashboardPreferences, type DashboardWidgetId } from "../dashboardWidgets.ts";
 import { getPomodoroTimerSnapshot, type PomodoroTimer } from "../pomodoroTimer.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { SoftPanel } from "../ui/coreUi.tsx";
 import { BrainMascot } from "../ui/BrainMascot.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
+import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { useDashboardWidgetDrag } from "./useDashboardWidgetDrag.ts";
 import { useDashboardWidgetLayout } from "./useDashboardWidgetLayout.ts";
 import { DashboardTaskText } from "./DashboardTaskText.tsx";
@@ -28,8 +29,13 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   const [editing, setEditing] = React.useState(false);
   const [storageError, setStorageError] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState("");
-  const [libraryOpen, setLibraryOpen] = React.useState(false);
+  const [libraryExpanded, setLibraryExpanded] = React.useState(false);
+  const [libraryOverflows, setLibraryOverflows] = React.useState(false);
+  const library = React.useRef<HTMLDivElement>(null);
+  const toggle = React.useRef<HTMLButtonElement>(null);
+  const refocusToggle = React.useRef(false);
   const dragHelpId = React.useId();
+  const libraryId = React.useId();
 
   function update(next: DashboardPreferences) {
     setPreferences(next);
@@ -51,42 +57,71 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
     update({ ...preferences, widgets: addedWidgets(id, target) });
     setAnnouncement(`${DASHBOARD_WIDGETS.find((widget) => widget.id === id)?.title} hinzugefügt.`);
   }
+  function remove(id: DashboardWidgetId) {
+    update({ ...preferences, widgets: preferences.widgets.filter((entry) => entry.id !== id) });
+    setAnnouncement(`${DASHBOARD_WIDGETS.find((widget) => widget.id === id)?.title} entfernt.`);
+  }
   const drag = useDashboardWidgetDrag((from, to, adding) => { if (adding) add(from, to); else if (to) move(from, to); });
   const pendingAddition = drag.preview?.adding && drag.preview.overBoard ? drag.preview : null;
   const widgets = pendingAddition ? addedWidgets(pendingAddition.id, pendingAddition.target) : drag.preview?.target && !drag.preview.adding ? moveDashboardWidget(preferences.widgets, drag.preview.id, drag.preview.target) : preferences.widgets;
   useDashboardWidgetLayout(drag.grid, widgets.map((widget) => `${widget.id}:${widget.width}`).join(",") + (pendingAddition ? ":preview" : ":saved"), editing);
+  function toggleEditing() {
+    drag.cancel();
+    refocusToggle.current = true;
+    setEditing(!editing);
+  }
+  // Pencil and "Fertig" are different buttons; keep keyboard focus on whichever replaces the other.
+  React.useEffect(() => {
+    if (refocusToggle.current) toggle.current?.focus({ preventScroll: true });
+    refocusToggle.current = false;
+  }, [editing]);
+  // The library stays one row; the expander appears only once its tiles overflow that row.
+  React.useLayoutEffect(() => {
+    const element = library.current;
+    if (!element || libraryExpanded) return;
+    const measure = () => setLibraryOverflows(element.scrollWidth > element.clientWidth + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [editing, libraryExpanded]);
 
+  // Desktop shows the toggle in the header, narrow screens directly below the preview row.
+  const libraryToggle = (placement: "header" | "below") => libraryOverflows || libraryExpanded ? <button type="button" className="dashboard-widget-library-more" data-placement={placement} aria-expanded={libraryExpanded} aria-controls={libraryId} onClick={() => setLibraryExpanded(!libraryExpanded)}>{libraryExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}<span>{libraryExpanded ? "Weniger Widgets" : "Weitere Widgets"}</span></button> : null;
   const contents = { ...children, timer: <DashboardTimer timer={timer} onStart={onStartTimer} onPause={onPauseTimer} onResume={onResumeTimer} onReset={onResetTimer} />, todos: <DashboardTodos todos={preferences.todos} onChange={(todos) => update({ ...preferences, todos })} planner={planner} onOpenPlanner={onOpenPlanner} /> };
   return <div className="grid min-w-0 gap-6 dashboard-modules" onPointerMove={drag.move} onPointerUp={drag.finish} onPointerCancel={drag.cancel} onLostPointerCapture={drag.cancel} onKeyDownCapture={drag.keyDown}>
-    {header(<ActionButton variant={editing ? "primary" : "secondary"} icon={editing ? Check : LayoutGrid} aria-expanded={editing} aria-controls="dashboard-customize" onClick={() => { drag.cancel(); setLibraryOpen(false); setEditing(!editing); }}>{editing ? "Fertig" : "Seite anpassen"}</ActionButton>)}
+    {header(editing
+      ? <ActionButton ref={toggle} variant="primary" icon={Check} aria-expanded aria-controls="dashboard-customize" onClick={toggleEditing}>Fertig</ActionButton>
+      : <CoreTooltip label="Seite bearbeiten"><IconButton ref={toggle} variant="ghost" icon={Pencil} label="Seite bearbeiten" aria-expanded={false} aria-controls="dashboard-customize" onClick={toggleEditing} /></CoreTooltip>)}
     {storageError ? <StatusMessage tone="error">Die Änderungen sind aktuell nur bis zum Neuladen verfügbar. Der Browserspeicher ist nicht erreichbar.</StatusMessage> : null}
     <p className="sr-only" role="status">{announcement}</p>
-    {editing ? <section id="dashboard-customize" aria-label="Seite anpassen" className="dashboard-customize core-surface-raised rounded-panel p-5 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3"><p className="core-body text-core-secondary">Am Griff ziehen. Die anderen Widgets machen Platz.</p><div className="flex flex-wrap gap-2"><ActionButton variant="secondary" icon={Plus} aria-expanded={libraryOpen} onClick={() => setLibraryOpen(!libraryOpen)}>Widget hinzufügen</ActionButton><button type="button" className="core-action-ghost" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })}>Standardlayout</button></div></div>
+    {editing ? <section id="dashboard-customize" aria-label="Widgets" className="dashboard-customize core-surface-raised rounded-panel p-5 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Widgets</h2><div className="dashboard-customize-actions">{libraryToggle("header")}<CoreTooltip label="Standardlayout"><IconButton variant="ghost" icon={RotateCcw} label="Standardlayout" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })} /></CoreTooltip></div></div>
       <p id={dragHelpId} className="sr-only">Mit Maus oder Touch ziehen. Escape bricht ab. Alternativ die Pfeiltasten am Griff oder die Pfeilschaltflächen verwenden.</p>
-      {libraryOpen ? <div className="dashboard-widget-library mt-4" aria-label="Widgets hinzufügen">{DASHBOARD_WIDGETS.map((widget) => {
+      <div className="mt-4"><div ref={library} id={libraryId} role="group" aria-label="Widgets auswählen" data-expanded={libraryExpanded} data-overflows={libraryOverflows} className="dashboard-widget-library">{DASHBOARD_WIDGETS.map((widget) => {
         const active = preferences.widgets.some((entry) => entry.id === widget.id);
-        return <button key={widget.id} type="button" className="dashboard-widget-miniature" disabled={active} aria-label={`${widget.title} hinzufügen`} onPointerDown={(event) => drag.start(event, widget.id, true)} onClick={() => { if (!drag.consumeClick()) add(widget.id); }}>
-          <WidgetMiniature id={widget.id} /><span className="flex items-center justify-between gap-2 core-caption font-semibold"><span>{widget.title}</span>{active ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}</span><span className="core-caption text-core-muted">{active ? "Auf deiner Seite" : "Ziehen oder antippen"}</span>
+        return <button key={widget.id} type="button" className="dashboard-widget-miniature" aria-pressed={active} aria-label={widget.title} onPointerDown={active ? undefined : (event) => drag.start(event, widget.id, true)} onClick={() => { if (drag.consumeClick()) return; if (active) remove(widget.id); else add(widget.id); }}>
+          <WidgetMiniature id={widget.id} /><span className="flex items-center justify-between gap-2 core-caption font-semibold"><span className="min-w-0 hyphens-auto [overflow-wrap:anywhere]">{widget.title}</span>{active ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}</span>
         </button>;
-      })}</div> : null}
+      })}</div>
+      {libraryToggle("below")}</div>
     </section> : null}
-    {!preferences.widgets.length ? <SoftPanel className="p-6"><p className="core-body text-core-muted">Hier ist Platz für deinen Lerntag.</p><ActionButton variant="secondary" icon={Plus} className="mt-4" onClick={() => { setEditing(true); setLibraryOpen(true); }}>Widgets auswählen</ActionButton></SoftPanel> : null}
+    {!preferences.widgets.length ? <SoftPanel className="p-6"><p className="core-body text-core-muted">Hier ist Platz für deinen Lerntag.</p><ActionButton variant="secondary" icon={Plus} className="mt-4" onClick={() => setEditing(true)}>Widgets auswählen</ActionButton></SoftPanel> : null}
     <div ref={drag.grid} className="dashboard-widget-grid">
       {preferences.widgets.map((widget) => {
         const index = preferences.widgets.findIndex((entry) => entry.id === widget.id);
         const definition = DASHBOARD_WIDGETS.find((entry) => entry.id === widget.id)!;
         return <section key={widget.id} data-layout-order={widgets.findIndex((entry) => entry.id === widget.id)} style={{ order: widgets.findIndex((entry) => entry.id === widget.id) }} aria-label={definition.title} data-dashboard-widget={widget.id} data-width={widget.width} data-editing={editing} data-dragging={drag.preview?.id === widget.id} data-drop-target={drag.preview?.target === widget.id && drag.preview.id !== widget.id} className="dashboard-widget">
           <div className="dashboard-widget-body">{editing ? <div className="dashboard-widget-tools">
-            <button type="button" aria-label={`${definition.title} verschieben`} aria-describedby={dragHelpId} className="dashboard-widget-grip core-action-ghost min-w-0 flex-1 gap-2 text-left" onPointerDown={(event) => drag.start(event, widget.id)} onKeyDown={(event) => {
+            <IconButton variant="ghost" icon={GripVertical} label={`${definition.title} verschieben`} aria-describedby={dragHelpId} className="dashboard-widget-grip" onPointerDown={(event) => drag.start(event, widget.id)} onKeyDown={(event) => {
               if (drag.preview) return;
               const adjacent = preferences.widgets[index + (event.key === "ArrowUp" ? -1 : 1)];
               if ((event.key === "ArrowUp" || event.key === "ArrowDown") && adjacent) { event.preventDefault(); move(widget.id, adjacent.id); }
-            }}><GripVertical size={16} className="shrink-0 text-core-muted" aria-hidden="true" /><span className="min-w-0 break-words core-field-label">{definition.title}</span></button>
-            <IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
+            }} />
+            <div className="dashboard-widget-tool-actions"><IconButton variant="ghost" icon={ArrowUp} label={`${definition.title} nach vorne`} disabled={index === 0} onClick={() => move(widget.id, preferences.widgets[index - 1].id)} />
             <IconButton variant="ghost" icon={ArrowDown} label={`${definition.title} nach hinten`} disabled={index === preferences.widgets.length - 1} onClick={() => move(widget.id, preferences.widgets[index + 1].id)} />
-            <IconButton variant="ghost" icon={Maximize2} label={`${definition.title}: Größe ändern (${widget.width === "small" ? "kompakt" : widget.width === "wide" ? "breit" : "volle Breite"})`} onClick={() => update({ ...preferences, widgets: preferences.widgets.map((entry) => entry.id === widget.id ? { ...entry, width: entry.width === "small" ? "wide" : entry.width === "wide" ? "full" : "small" } : entry) })} />
-            <IconButton variant="ghost" icon={X} label={`${definition.title} entfernen`} onClick={() => update({ ...preferences, widgets: preferences.widgets.filter((entry) => entry.id !== widget.id) })} />
+            <IconButton variant="ghost" icon={Maximize2} className="dashboard-widget-resize" label={`${definition.title}: Größe ändern (${widget.width === "small" ? "kompakt" : widget.width === "wide" ? "breit" : "volle Breite"})`} onClick={() => update({ ...preferences, widgets: preferences.widgets.map((entry) => entry.id === widget.id ? { ...entry, width: entry.width === "small" ? "wide" : entry.width === "wide" ? "full" : "small" } : entry) })} />
+            <IconButton variant="ghost" icon={X} label={`${definition.title} entfernen`} onClick={() => remove(widget.id)} /></div>
           </div> : null}
           <div className="dashboard-widget-content">{contents[widget.id]}</div></div>
         </section>;
