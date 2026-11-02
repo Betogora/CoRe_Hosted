@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
-import { matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
+import { matrixThemes, matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
 test.setTimeout(60_000);
 
@@ -173,7 +173,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
   for (const size of matrixViewports()) {
     await page.setViewportSize(size);
-    for (const theme of ["light", "dark"]) {
+    for (const theme of matrixThemes) {
       await page.evaluate((value) => document.documentElement.dataset.coreTheme = value, theme);
       const section = page.locator("#inhalt");
       const front = section.frameLocator('iframe[title="Vorderseite"]').locator("body");

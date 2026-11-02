@@ -14,3 +14,6 @@ export const VISUAL_MATRIX_VIEWPORTS = [
 export function matrixViewports(viewports = VISUAL_MATRIX_VIEWPORTS) {
   return visualOutput ? viewports : [{ width: 390, height: 844 }, { width: 1440, height: 900 }];
 }
+
+/** Both themes belong to the visual matrix; ordinary runs check behavior once in the light theme. */
+export const matrixThemes: readonly ("light" | "dark")[] = visualOutput ? ["light", "dark"] : ["light"];
