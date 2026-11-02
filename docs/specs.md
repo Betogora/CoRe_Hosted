@@ -299,7 +299,7 @@ Akzeptanz:
 
 ### 5.4 Karte bewerten, neu laden und fortfahren
 
-Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine 2-px-Linie über die gesamte Inhaltsbreite; die Antwort wiederholt die Frage nicht. Unter dem Karteninhalt erscheint keine zusätzliche Trennlinie. Bilder und Videos im Karteninhalt sind höchstens 50 % der Fensterhöhe hoch und behalten ihr Seitenverhältnis. Der Kopf zeigt den Stapelnamen ohne separate Kartenposition oder Wiederholungsnummer; der Tagesfortschritt bleibt erhalten. Vier Bewertungen aktualisieren den Lernzustand.
+Vor der Antwort zeigt der Review nur den Lerninhalt und die Aktion zum Aufdecken, ohne Abschnittslabels. Nach dem Aufdecken bleiben Frage und Antwort sichtbar, getrennt durch eine 2-px-Linie über die gesamte Inhaltsbreite; die Antwort wiederholt die Frage nicht. Unter dem Karteninhalt erscheint keine zusätzliche Trennlinie. Bilder und Videos im Karteninhalt sind höchstens 50 % der Fensterhöhe hoch und behalten ihr Seitenverhältnis. Der Kopf zeigt den Stapelnamen ohne separate Kartenposition oder Wiederholungsnummer; der Tagesfortschritt bleibt erhalten. Vier Bewertungen aktualisieren den Lernzustand. Die gezeigte Karte wechselt erst mit ihrer Bewertung; nachgeladene Karten reihen sich nur dahinter ein. Die nächsten drei Karten samt Medien werden während des Lernens vorbereitet, damit sie ohne Ladezustand erscheinen.
 
 Akzeptanz:
 

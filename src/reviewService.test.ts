@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import { getSimulatedNow } from "./simulationClock.ts";
-import { answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, moveDailyReviewProgress } from "./reviewService.ts";
+import { advanceDailyReviewSession, answerVariant, classifyDailyReviewProgress, createDailyReviewQueue, createDailyReviewSessionState, getNextDailyReviewSessionItem, moveDailyReviewProgress, reconcileDailyReviewSessionState } from "./reviewService.ts";
 import type { Card, Deck, ReviewSchedulerState } from "./coreTypes.ts";
 
 function basicCard(front = "Q", back = "A"): Card {
@@ -272,4 +272,19 @@ test("zurückgestellte Karten warten bis zum nächsten Lerntag; das letzte manue
   assert.equal(today.reviewsCompletedToday, 0, "manuelle Ereignisse zählen nicht als Wiederholung");
   const tomorrow = createDailyReviewQueue(deck, { now: "2026-08-22T08:00:00.000Z", timeZone: "UTC" });
   assert.ok(tomorrow.items.some((item) => item.cardId === "buried"));
+});
+
+test("die gezeigte Karte bleibt aktuell, wenn nachgeladene Karten die Reihenfolge davor ändern", () => {
+  const cards = ["a", "b", "c"].map((id) => cardInPhase(id, "review", "2026-08-21T07:00:00.000Z"));
+  const deck = createCoreDeck({ id: "deck", cards });
+  const options = { now: "2026-08-21T08:00:00.000Z", timeZone: "UTC" };
+  const first = createDailyReviewSessionState([{ deckId: "deck", cardId: "b" }, { deckId: "deck", cardId: "c" }]);
+  assert.equal(getNextDailyReviewSessionItem(deck, first, options)?.cardId, "b");
+  // Loading more cards puts "a" first; the card on screen must not change under the learner.
+  const reloaded = reconcileDailyReviewSessionState(first, [{ deckId: "deck", cardId: "a" }, { deckId: "deck", cardId: "b" }, { deckId: "deck", cardId: "c" }]);
+  assert.equal(getNextDailyReviewSessionItem(deck, reloaded, { ...options, shownKey: "deck:b" })?.cardId, "b");
+  assert.equal(getNextDailyReviewSessionItem(deck, reloaded, options)?.cardId, "a");
+  // Once answered, the next card follows the queue again, even if the answer sends it into a learning step.
+  const answered = advanceDailyReviewSession(reloaded, { key: "deck:b", rating: "again", nextReviewState: { state: "relearning" } });
+  assert.equal(getNextDailyReviewSessionItem(deck, answered, { ...options, shownKey: null })?.cardId, "a");
 });

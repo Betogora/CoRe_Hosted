@@ -7,7 +7,7 @@ import { ActionButton } from "./actionUi.tsx";
 import { CoreSegmentedControl } from "./coreUi.tsx";
 import { StatusMessage } from "./feedbackUi.tsx";
 import { CardPresentationSurface } from "./CardPresentationSurface.tsx";
-import { NoteLayoutContext } from "./noteLayoutContext.ts";
+import { NoteLayoutContext, type NoteLayoutSource } from "./noteLayoutContext.ts";
 
 export interface NoteCardContentProps {
   note: Note;
@@ -38,24 +38,67 @@ function readTheme(): NotePresentationTheme | null {
 
 const loadMathCss = (note: Note) => noteHasMath(note) ? import("../noteMathAssets.ts").then((assets) => assets.loadNoteMathCss()) : Promise.resolve("");
 
+interface CardBundle {
+  question: NotePresentationResult;
+  /** The answer side without typed input; a typed answer renders its comparison separately. */
+  answer: NotePresentationResult;
+  options: Array<{ id: string; html: string }>;
+  speech: Record<"question" | "answer", Speech>;
+  mathCss: string;
+}
+type BundleEntry = { promise: Promise<CardBundle>; value?: CardBundle };
+
+// Only the generic translator's contents can show their template's own layout; others never read a template.
+const noteTypeSourceFor = (note: Note, layout: NoteLayoutSource) =>
+  note.translator?.id === "generic" && note.noteTypeSourceId ? layout.loadNoteTypeSource(note.noteTypeSourceId).catch(() => null) : null;
+// Rendered sides per content object: a prefetched card shows at once, and a variant (its own object) never mixes up.
+const bundleCache = new WeakMap<Note, Map<string, BundleEntry>>();
+
+function cardBundle(note: Note, card: Card, surface: NonNullable<NoteCardContentProps["surface"]>, theme: NotePresentationTheme, layout: NoteLayoutSource): BundleEntry {
+  const deckName = layout.deckName(card.deckId);
+  const key = JSON.stringify([card.id, card.promptKey, card.ankiFlag, deckName, surface, theme]);
+  let entries = bundleCache.get(note);
+  if (!entries) bundleCache.set(note, entries = new Map());
+  const known = entries.get(key);
+  if (known) return known;
+  const promise = (async (): Promise<CardBundle> => {
+    const [mathCss, noteTypeSource] = await Promise.all([loadMathCss(note), noteTypeSourceFor(note, layout)]);
+    const side = (side: "question" | "answer") => renderCard({ note, card, side, surface, theme, mathCss, noteTypeSource, deckName });
+    const [question, answer, options, questionSpeech, answerSpeech] = await Promise.all([
+      side("question"), side("answer"), renderNoteChoiceOptions(note, theme), renderNoteSpeech(note, card, "question", theme), renderNoteSpeech(note, card, "answer", theme),
+    ]);
+    return { question, answer, options, speech: { question: questionSpeech, answer: answerSpeech }, mathCss };
+  })();
+  const entry: BundleEntry = { promise };
+  promise.then((value) => { entry.value = value; }, () => entries.delete(key));
+  entries.set(key, entry);
+  return entry;
+}
+
+/** Renders upcoming review cards ahead, so each appears without a loading state once it is due. */
+export function useNoteCardPrefetch(items: ReadonlyArray<{ note: Note; card: Card }>) {
+  const layout = React.useContext(NoteLayoutContext);
+  React.useEffect(() => {
+    const theme = readTheme();
+    if (theme) for (const { note, card } of items) void cardBundle(note, card, "review", theme, layout).promise.catch(() => undefined);
+  }, [items, layout]);
+}
+
 export function NoteCardContent(props: NoteCardContentProps) {
   return <NoteCardContentBody key={`${props.card.id}:${props.note.contentRevision}`} {...props} />;
 }
 
 function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review", mediaUrls = {} }: NoteCardContentProps) {
   const [theme, setTheme] = React.useState(readTheme);
-  const [presentation, setPresentation] = React.useState<{ question: NotePresentationResult; options: Array<{ id: string; html: string }>; speech: Record<"question" | "answer", Speech>; mathCss: string } | null>(null);
-  const [answer, setAnswer] = React.useState<{ result: NotePresentationResult; typed: string | undefined } | null>(null);
+  const layout = React.useContext(NoteLayoutContext);
+  const bundle = theme ? cardBundle(note, card, surface, theme, layout) : null;
+  const [presentation, setPresentation] = React.useState<CardBundle | null>(() => bundle?.value ?? null);
+  const [typedResult, setTypedResult] = React.useState<{ result: NotePresentationResult; typed: string } | null>(null);
   const [error, setError] = React.useState("");
   const [typed, setTyped] = React.useState("");
   const [selected, setSelected] = React.useState<Record<string, boolean>>({});
   const [selectedText, setSelectedText] = React.useState("");
   const [speechError, setSpeechError] = React.useState("");
-  const layout = React.useContext(NoteLayoutContext);
-  // Only the generic translator's contents can show their template's own layout; others never read a template.
-  const layoutSourceId = note.translator?.id === "generic" ? note.noteTypeSourceId : null;
-  const noteTypeSource = React.useMemo(() => layoutSourceId ? layout.loadNoteTypeSource(layoutSourceId).catch(() => null) : Promise.resolve(null), [layout, layoutSourceId]);
-  const deckName = layout.deckName(card.deckId);
 
   const interaction = note.content.interaction;
   const prompt = interaction.kind === "reveal" ? interaction.prompts.find((item) => item.key === card.promptKey) : null;
@@ -70,35 +113,27 @@ function NoteCardContentBody({ note, card, revealed, onReveal, surface = "review
     return () => observer.disconnect();
   }, []);
   React.useEffect(() => {
-    if (!theme) return;
+    if (!bundle) return;
     let active = true;
-    void (async () => {
-      const [mathCss, source] = await Promise.all([loadMathCss(note), noteTypeSource]);
-      const [question, options, questionSpeech, answerSpeech] = await Promise.all([
-        renderCard({ note, card, side: "question", surface, theme, mathCss, noteTypeSource: source, deckName }),
-        renderNoteChoiceOptions(note, theme),
-        renderNoteSpeech(note, card, "question", theme),
-        renderNoteSpeech(note, card, "answer", theme),
-      ]);
-      if (active) { setPresentation({ question, options, speech: { question: questionSpeech, answer: answerSpeech }, mathCss }); setError(""); }
-    })().catch(() => { if (active) setError("Die Karte konnte nicht dargestellt werden."); });
+    bundle.promise.then((value) => { if (active) { setPresentation(value); setError(""); } })
+      .catch(() => { if (active) setError("Die Karte konnte nicht dargestellt werden."); });
     return () => { active = false; };
-  }, [card, deckName, note, noteTypeSource, surface, theme]);
+  }, [bundle]);
   React.useEffect(() => {
-    if (!theme) return;
+    if (!theme || typedAnswer === undefined) return;
     let active = true;
     void (async () => {
-      const [mathCss, source] = await Promise.all([loadMathCss(note), noteTypeSource]);
-      const result = await renderCard({ note, card, side: "answer", surface, theme, mathCss, typedAnswer, noteTypeSource: source, deckName });
-      if (active) setAnswer({ result, typed: typedAnswer });
+      const [mathCss, noteTypeSource] = await Promise.all([loadMathCss(note), noteTypeSourceFor(note, layout)]);
+      const result = await renderCard({ note, card, side: "answer", surface, theme, mathCss, typedAnswer, noteTypeSource, deckName: layout.deckName(card.deckId) });
+      if (active) setTypedResult({ result, typed: typedAnswer });
     })().catch(() => { if (active) setError("Die Karte konnte nicht dargestellt werden."); });
     return () => { active = false; };
-  }, [card, deckName, note, noteTypeSource, surface, theme, typedAnswer]);
+  }, [card, layout, note, surface, theme, typedAnswer]);
 
   if (error) return <StatusMessage tone="error" announce="assertive">{error}</StatusMessage>;
   if (!presentation) return <StatusMessage tone="info" announce="polite">Kartendarstellung wird vorbereitet …</StatusMessage>;
   // Until the answer side matches the final input, the question stays visible instead of a loading state.
-  const answerResult = revealed && answer && answer.typed === typedAnswer ? answer.result : null;
+  const answerResult = !revealed ? null : typedAnswer === undefined ? presentation.answer : typedResult?.typed === typedAnswer ? typedResult.result : null;
   const choiceResult = interaction.kind === "choice" ? evaluateNoteChoice(interaction, selected) : null;
   // An original layout turns to its back like in Anki; the back repeats the front through `{{FrontSide}}`.
   const original = presentation.question.layout === "original";

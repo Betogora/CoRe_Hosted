@@ -21,11 +21,11 @@ import {
   type DailyReviewSessionState,
   updateDailyReviewSessionIndex,
 } from "../reviewService.ts";
-import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
+import { useNoteMediaPrefetch, useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { DailyReviewProgress } from "../ui/DailyReviewProgress.tsx";
 import { PomodoroProgress } from "../ui/pomodoroTimerUi.tsx";
-import { NoteCardContent } from "../ui/NoteCardContent.tsx";
+import { NoteCardContent, useNoteCardPrefetch } from "../ui/NoteCardContent.tsx";
 import { StudySettingsOverlay } from "../ui/StudySettingsOverlay.tsx";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { CoreTag } from "../ui/coreUi.tsx";
@@ -54,6 +54,9 @@ function createEasyDaysContext(
     timeZone,
   };
 }
+
+// Cards rendered and media loaded ahead: enough to answer quickly without holding many images.
+const PREFETCH_CARD_COUNT = 3;
 
 export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStore, getNow, learningDayKey, dayStartHour = 0, learnAheadMinutes = 20, easyDays = DEFAULT_EASY_DAYS, dueForecast = null, timeZone, simulationOffsetMinutes, pomodoroTimer, onStartPomodoro, onExit, onReturnToLearn, onEditCard, onEditDeck, flagNames, onSetCardStudyState, onSetDeckReviewOrder, onReview, sessionPlan, bufferSize = 50, hasMoreCards = false, onLoadMoreCards }: StudyModeProps) {
   const [sessionDecks, setSessionDecks] = React.useState(decks);
@@ -119,10 +122,13 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   const { queue, easyDaysContext } = queuePlanRef.current;
   const [sessionDailyProgress, setSessionDailyProgress] = React.useState(() => sessionPlan?.progress ?? queue.dailyProgress);
   const effectiveReviewSession = reviewSession ?? createDailyReviewSessionState(queue.items);
+  // The card on screen until it is answered or leaves the session; loaded cards must not replace it mid-card.
+  const shownKeyRef = React.useRef<string | null>(null);
   const current = React.useMemo(
-    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, sessionIndex: sessionIndexRef.current! }),
+    () => getNextDailyReviewSessionItem(sessionDecks, effectiveReviewSession, { deckId: rootDeck?.id, now: getNow(), dayStartHour, learnAheadMinutes, timeZone, easyDaysContext, sessionIndex: sessionIndexRef.current!, shownKey: shownKeyRef.current }),
     [dayStartHour, easyDaysContext, effectiveLearningDayKey, getNow, learnAheadMinutes, sessionDecks, effectiveReviewSession, rootDeck?.id, timeZone],
   );
+  shownKeyRef.current = current?.sessionInfo.key ?? null;
   const currentDeck = sessionDecks.find((candidate) => candidate.id === current?.deckId) ?? rootDeck;
   const completedInitialCount = effectiveReviewSession.completedInitialKeys.length;
   const repeatCount = effectiveReviewSession.repeatCount;
@@ -138,6 +144,19 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
   );
   const isCurrentVariant = Boolean(current?.variant);
   const { urls: studyMediaUrls, missing: studyMissingMedia } = useNoteMediaUrls(currentNote?.media, mediaStore);
+  // The next cards of the session render and load their media while the learner looks at this one.
+  const upcomingCards = React.useMemo(() => {
+    const items: Array<{ note: Note; card: Card }> = [];
+    for (const key of effectiveReviewSession.remainingInitialKeys) {
+      if (items.length === PREFETCH_CARD_COUNT) break;
+      const entry = key === current?.sessionInfo.key ? undefined : sessionIndexRef.current!.entriesByKey.get(key);
+      const note = entry ? sessionNotes.get(entry.card.noteId) : undefined;
+      if (entry && note) items.push({ note, card: entry.card });
+    }
+    return items;
+  }, [current?.sessionInfo.key, effectiveReviewSession.remainingInitialKeys, sessionDecks, sessionNotes]);
+  useNoteCardPrefetch(upcomingCards);
+  useNoteMediaPrefetch(upcomingCards.map(({ note }) => note.media), mediaStore);
 
   React.useEffect(() => {
     setSessionDecks(decks);
@@ -256,6 +275,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
       classifyDailyReviewProgress(previousStudy, false, getNow(), { dayStartHour, timeZone }),
       classifyDailyReviewProgress(nextStudy, true, getNow(), { dayStartHour, timeZone }),
     ));
+    shownKeyRef.current = null;
     setReviewSession((session) => session && reviewedKey
       ? advanceDailyReviewSession(session, { key: reviewedKey, rating, nextReviewState: nextStudy })
       : session);
@@ -313,6 +333,7 @@ export function StudyMode({ deck, decks, notes, answeredToday, deckId, mediaStor
       null,
     ));
     setShowSettings(false);
+    shownKeyRef.current = null;
     setReviewSession((session) => removeDailyReviewSessionItem(session ?? effectiveReviewSession, currentKey));
     setShowAnswer(false);
     setShowOriginal(false);

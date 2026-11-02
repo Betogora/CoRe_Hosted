@@ -35,12 +35,16 @@ function loadPresentationFontCss(): Promise<string> {
 
 // `vh` inside the content-sized review frame would refer to the frame, so media get their limit from the window.
 const REVIEW_MEDIA_HEIGHT = 0.5;
+// A new review card starts at the last card's height, so the page below does not collapse and jump while it loads.
+let lastReviewFrameHeight = 1;
 
+/** Collapses and measures within one task, so the shrink is never painted. */
 export function fitReviewFrameToContent(frame: HTMLIFrameElement, frameDocument: Document, viewportHeight: number) {
   frameDocument.documentElement.style.setProperty("--core-media-max-height", `${Math.round(viewportHeight * REVIEW_MEDIA_HEIGHT)}px`);
   frame.style.height = "1px";
   const height = Math.max(frameDocument.documentElement.scrollHeight, frameDocument.body.scrollHeight, 1);
-  frame.style.height = `${Math.ceil(height)}px`;
+  lastReviewFrameHeight = Math.ceil(height);
+  frame.style.height = `${lastReviewFrameHeight}px`;
 }
 
 export interface CardPresentationSurfaceProps {
@@ -67,6 +71,7 @@ export function CardPresentationSurface({
 }: CardPresentationSurfaceProps) {
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
+  const [initialReviewHeight] = React.useState(() => lastReviewFrameHeight);
   const frameFitCleanupRef = React.useRef<(() => void) | null>(null);
   const selectionCleanupRef = React.useRef<(() => void) | null>(null);
 
@@ -85,11 +90,10 @@ export function CardPresentationSurface({
     [fontFaceCss, mediaUrls, presentation],
   );
 
+  // A new document keeps the frame's height until it is measured on load; collapsing here showed as a blank jump.
   React.useLayoutEffect(() => {
     selectionCleanupRef.current?.();
-    if (surface !== "review") return;
-    frameFitCleanupRef.current?.();
-    if (frameRef.current) frameRef.current.style.height = "1px";
+    if (surface === "review") frameFitCleanupRef.current?.();
   }, [srcdoc, surface]);
 
   if (!presentation) {
@@ -97,7 +101,7 @@ export function CardPresentationSurface({
   }
 
   const frameClassName = surface === "review"
-    ? `h-px w-full border-0 bg-transparent${presentation.layout === "original" ? " rounded-panel" : ""}`
+    ? `w-full border-0 bg-transparent${presentation.layout === "original" ? " rounded-panel" : ""}`
     : "min-h-72 w-full rounded-control border border-core-border bg-core-surface";
   const resizeReviewFrame = () => {
     if (surface !== "review") return;
@@ -123,6 +127,7 @@ export function CardPresentationSurface({
           referrerPolicy="no-referrer"
           srcDoc={srcdoc}
           className={frameClassName}
+          style={surface === "review" ? { height: initialReviewHeight } : undefined}
           onLoad={() => {
             resizeReviewFrame();
             selectionCleanupRef.current?.();
