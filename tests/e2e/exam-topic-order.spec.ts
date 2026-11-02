@@ -10,7 +10,7 @@ async function openDemo(page: Page, dark = false) {
 }
 async function positionList(page: Page, list: Locator) {
   const search = await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).boundingBox();
-  await list.evaluate((element, clearance) => { element.scrollTop = 0; element.scrollIntoView({ block: "start", behavior: "instant" }); window.scrollBy({ top: -clearance, behavior: "instant" }); }, (search ? search.y + search.height : 180) + 24);
+  await list.evaluate((element, clearance) => { element.scrollTop = 0; element.scrollIntoView({ block: "start", behavior: "instant" }); window.scrollBy({ top: -clearance, behavior: "instant" }); }, (search ? Math.max(0, search.y + search.height) : 180) + 24);
 }
 async function beginDrag(page: Page, list: Locator) {
   await positionList(page, list);

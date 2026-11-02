@@ -31,9 +31,38 @@ samt knip, Dokumente, Modultests und Build laufen gleichzeitig; das Gate meldet 
 schlägt fehl, wenn einer davon fehlschlägt. Commits
 und Pushes führen es nicht automatisch aus, weil ein gemischter Worktree auch
 Änderungen außerhalb des zu pushenden Commits enthalten kann. GitHub Actions
-führt auf `main`, in Pull Requests und manuell denselben einzelnen Quality-Job
-aus. Vercel verwendet ebenfalls `npm run gate:push` als Build-Barriere; die
-ausgelieferte Anwendung erhält dadurch keinen zusätzlichen Runtime-Overhead.
+führt auf `main`, in Pull Requests und manuell denselben Quality-Job aus,
+daneben den Job `catalog-e2e` mit den Katalogflows. Vercel verwendet ebenfalls
+`npm run gate:push` als Build-Barriere; die ausgelieferte Anwendung erhält
+dadurch keinen zusätzlichen Runtime-Overhead.
+
+### Gezielte Browserläufe
+
+```powershell
+npm run test:e2e:catalog
+npm run test:e2e:affected:local
+```
+
+`test:e2e:catalog` führt die Specs aus `tests/e2e/support/catalogSpecs.ts`
+über `playwright.catalog.config.ts` parallel aus. Sie laufen gegen den
+generierten Katalog oder vollständig abgefangene App-Flows, brauchen weder
+Docker noch Supabase und starten einen eigenen Vite-Server auf Port 5195.
+`npm run test:e2e:local` schließt sie ein.
+
+`test:e2e:affected:local` bestimmt die betroffenen Specs aus den Änderungen
+gegenüber der Merge-Basis mit `origin/main`, einschließlich uncommitteter und
+neuer Dateien (`scripts/affectedE2ESpecs.ts`). Geänderte Specs laufen immer;
+Produktquellen wählen über ihren Bereich die zugehörigen Specs, Dokumentation
+und Modultests keine. Betroffene Katalogspecs laufen ohne Supabase, die übrigen
+in einem lokalen Supabase-Lauf wie beim Release-Gate. Gemeinsame
+E2E-Infrastruktur, Playwright- und Build-Konfiguration, Abhängigkeiten,
+Migrationen, App-Shell und keinem Bereich zugeordnete Produktquellen führen
+zur vollständigen Suite. Der Lauf ersetzt vor einem Release weder
+`npm run test:e2e:local` noch die visuelle Pflichtmatrix.
+
+Screenshot-Matrizen der Browserflows laufen nur mit `CORE_VISUAL_OUTPUT=1`;
+ohne die Variable prüfen Flows mit Breitenschleife ein Smartphone- und ein
+Desktopformat (390 × 844, 1440 × 900) und schreiben keine Screenshots.
 
 ### Visuelle Pflichtmatrix
 

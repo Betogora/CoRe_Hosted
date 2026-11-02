@@ -21,7 +21,7 @@ async function openEditor(page: Page, dark = false) {
     await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
     await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
   }
-  await page.getByRole("button", { name: "Seite anpassen", exact: true }).click();
+  await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
 }
 
 async function positions(page: Page) {
@@ -50,6 +50,12 @@ async function beginDrag(page: Page) {
     target = { x: rect!.x + rect!.width / 2, y: rect!.y + 70 };
   }
   await page.mouse.move(target.x, target.y, { steps: 10 });
+  // Edge autoscroll can still shift the board while the pointer travels; re-aim at the settled target.
+  await expect.poll(async () => {
+    const rect = (await page.locator('[data-dashboard-widget="learning"]').boundingBox())!;
+    await page.mouse.move(rect.x + rect.width / 2, rect.y + 70, { steps: 2 });
+    return page.locator('[data-dashboard-widget="learning"]').getAttribute("data-drop-target");
+  }).toBe("true");
   await expect(page.getByTestId("dashboard-widget-drag-preview")).toBeVisible();
   const preview = await page.getByTestId("dashboard-widget-drag-preview").boundingBox();
   expect(preview).not.toBeNull();
@@ -69,7 +75,7 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
       expect(Math.abs(timer!.y - motivation!.y)).toBeLessThan(2);
     }
     await page.screenshot({ path: info.outputPath("00-uebersicht.png") });
-    await page.getByRole("button", { name: "Seite anpassen", exact: true }).click();
+    await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
     await page.screenshot({ path: info.outputPath("01-bearbeiten.png") });
     await beginDrag(page);
     await expect.poll(() => order(page)).toEqual(defaults);
@@ -171,13 +177,13 @@ test("Widget-Höhen schließen Lücken und passen sich aufgeklappten Inhalten an
 });
 
 test("Widgetoptionen erhalten Größen, Pfeile und Entfernen; abgebrochener Drag bleibt ungespeichert", async ({ page }, info) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 640, height: 844 });
   await openEditor(page);
   await beginDrag(page);
   await page.keyboard.press("Escape"); await page.mouse.up();
   await page.reload();
   await expect.poll(() => order(page)).toEqual(defaults);
-  await page.getByRole("button", { name: "Seite anpassen", exact: true }).click();
+  await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
   await page.screenshot({ path: info.outputPath("05-widgetmenue.png") });
   await page.getByRole("button", { name: "Lerntimer nach vorne", exact: true }).click();
   await expect.poll(() => order(page)).toEqual(["learning", "timer", "motivation", "decks", "todos", "heatmap"]);
@@ -185,9 +191,21 @@ test("Widgetoptionen erhalten Größen, Pfeile und Entfernen; abgebrochener Drag
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveAttribute("data-width", "wide");
   await page.getByRole("button", { name: "Lerntimer entfernen", exact: true }).click();
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(0);
-  await page.getByRole("button", { name: "Widget hinzufügen", exact: true }).click();
-  await page.getByRole("button", { name: "Lerntimer hinzufügen", exact: true }).click();
+  const tile = page.getByRole("button", { name: "Lerntimer", exact: true });
+  await expect(tile).toHaveAttribute("aria-pressed", "false");
+  await tile.click();
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(1);
+  await expect(tile).toHaveAttribute("aria-pressed", "true");
+  await tile.click();
+  await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(0);
+  const expand = page.getByRole("button", { name: "Weitere Widgets", exact: true });
+  await expect(expand).toHaveAttribute("aria-expanded", "false");
+  await expand.click();
+  await expect(page.locator(".dashboard-widget-library")).toHaveAttribute("data-expanded", "true");
+  expect(await page.locator(".dashboard-widget-library").evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
+  await page.screenshot({ path: info.outputPath("05b-widgetmenue-ausgeklappt.png") });
+  await page.getByRole("button", { name: "Standardlayout", exact: true }).click();
+  await expect.poll(() => order(page)).toEqual(defaults);
 });
 
 test("Timer: Ziffern, Mausrad, Pause und Fortsetzen ohne Voreinstellungen", async ({ page }) => {
@@ -219,8 +237,7 @@ for (const width of [390, 1440]) test(`Widget aus Menüband ziehen ${width}`, as
   await page.setViewportSize({ width, height: 900 });
   await openEditor(page);
   await page.getByRole("button", { name: "Lerntimer entfernen", exact: true }).click();
-  await page.getByRole("button", { name: "Widget hinzufügen", exact: true }).click();
-  const source = page.getByRole("button", { name: "Lerntimer hinzufügen", exact: true });
+  const source = page.getByRole("button", { name: "Lerntimer", exact: true });
   await source.scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("06-menueband.png") });
   const a = await source.boundingBox();
@@ -253,8 +270,7 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) test
   await page.getByTestId("dashboard-deck-list").scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
-  await page.getByRole("button", { name: "Seite anpassen", exact: true }).click();
-  await page.getByRole("button", { name: "Widget hinzufügen", exact: true }).click();
+  await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
   await page.locator(".dashboard-widget-library").scrollIntoViewIfNeeded();
   await expect(page.locator(".dashboard-mini-cells i")).toHaveCount(35);
   expect(await page.locator(".dashboard-mini-cells i").first().evaluate((cell) => cell.getBoundingClientRect().width)).toBeGreaterThan(6);
@@ -267,21 +283,22 @@ for (const [width, height] of [[320, 720], [360, 800], [390, 844], [430, 932], [
     await page.setViewportSize({ width, height });
     await openEditor(page, theme === "dark");
     const widget = page.locator('[data-dashboard-widget="motivation"]');
-    for (const size of ["small", "wide", "full"]) {
+    // Below 640 px every widget spans the full width, so the size control is hidden there.
+    if (width < 640) await expect(widget.getByRole("button", { name: /Größe ändern/ })).toBeHidden();
+    for (const size of width < 640 ? ["small"] : ["small", "wide", "full"]) {
       await expect(widget).toHaveAttribute("data-width", size);
       await widget.scrollIntoViewIfNeeded();
       await expect(widget.getByRole("heading", { name: "Dein Motivationsimpuls" })).toBeVisible();
       await expect(widget.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
       await page.screenshot({ path: info.outputPath(`motivation-${size}.png`) });
       expect(await widget.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
-      await widget.getByRole("button", { name: /Größe ändern/ }).click();
+      if (width >= 640) await widget.getByRole("button", { name: /Größe ändern/ }).click();
     }
     await widget.getByRole("button", { name: "Dein Motivationsimpuls entfernen", exact: true }).click();
     await page.reload();
     await expect(widget).toHaveCount(0);
-    await page.getByRole("button", { name: "Seite anpassen", exact: true }).click();
-    await page.getByRole("button", { name: "Widget hinzufügen", exact: true }).click();
-    await page.getByRole("button", { name: "Dein Motivationsimpuls hinzufügen", exact: true }).click();
+    await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
+    await page.getByRole("button", { name: "Dein Motivationsimpuls", exact: true }).click();
     await expect(widget).toHaveCount(1);
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
     await widget.getByRole("button", { name: "Gehirn begrüßen" }).click();
