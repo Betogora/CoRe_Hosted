@@ -83,7 +83,8 @@ function ancestors(path: string): string[] {
 
 /** Text a learner sees: collapsed hints stay hidden until opened. */
 function visibleText(srcdoc: string): string {
-  const body = srcdoc.slice(srcdoc.search(/<body[^>]*>/) + srcdoc.match(/<body[^>]*>/)![0].length, srcdoc.lastIndexOf("</body>"));
+  const open = srcdoc.match(/<body[^>]*>/)!;
+  const body = srcdoc.slice(open.index! + open[0].length, srcdoc.lastIndexOf("</body>"));
   return notePlainText(body.replace(/<div class="core-note-hint">[\s\S]*?<\/div><\/details>/g, "</details>"));
 }
 

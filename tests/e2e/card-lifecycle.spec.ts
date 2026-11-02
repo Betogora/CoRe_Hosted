@@ -199,7 +199,7 @@ test("[Vertrag: typgerechter Basic-Lebenszyklus] @beta-core Basic erstellen, bea
   await expect(page.getByTestId("review-answer-tools")).toHaveCount(0);
   const ratingButtons = page.getByRole("button", { name: /Bewertung (Nochmal|Schwer|Gut|Leicht)/ });
   await expect(ratingButtons).toHaveCount(4);
-  await expect(ratingButtons.nth(0).locator("span").first()).toHaveText("Nochmal");
+  await expect(ratingButtons.nth(0).locator(".core-control-label")).toHaveText("Nochmal");
   await expect(ratingButtons.nth(0)).toHaveAttribute("data-core-tooltip", "Taste 1");
   await expect(ratingButtons.nth(0)).toContainText("1 min");
   await ratingButtons.nth(0).hover();

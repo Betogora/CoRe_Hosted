@@ -21,6 +21,8 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Korpuslauf vorher/nachher: Übersetzungsquoten unverändert; Originallayout für den Pokémon-Stapel und zwei Lückentext-Vorlagen. Der Lauf zeigte, dass Vorlagenmedien auch für generische Vorlagen mit Script übernommen wurden (Ankizin +12, Ankiphil +9 bis +11 Dateien); sie kommen jetzt nur noch bei Vorlagen im Originallayout mit, die Medienzahlen entsprechen wieder dem alten Stand. Importzeiten: Ankizin 54,4 s → 48,9 s, Ankiphil-Auszüge in drei Läufen je Stand überlappend (alt 142–281 ms, neu 148–246 ms).
 - `performance:measure:local`: Startmessung 2/2 innerhalb der Budgets, Initialgraph 245,1 KiB gzip. Der Statistik-Benchmark brach im Gesamtlauf einmal an der 50-ms-Grenze der Clientprojektion ab; in je zwei Einzelläufen auf altem und neuem Stand bestand er. Der Lauf brauchte Port 5196, weil 5190 von einer parallelen Sitzung belegt war.
 - Audit über P3: CSS-Medienerkennung für Renderer und Übersetzer in `originalLayout.ts` zusammengeführt.
+- Migration `20261102102620_originallayout_vorlagen_sync.sql` per `supabase db push` auf `hirbiuiydczmnjqtoyqx` (CoRe-Database) angewandt, Probelauf vorher mit genau dieser einen ausstehenden Migration; `verify_schema_v1.sql` gegen das Projekt grün.
+- `card-lifecycle.spec.ts` prüft das Label der Bewertungstaste über `.core-control-label` statt des ersten `span`, das seit der ToolBox-Designsprache der Farbpunkt ist; betroffene Specs `card-lifecycle`, `apkg-quality-report` und `first-learning` lokal 17/17 grün.
 
 ## 2026-11-02 — Originallayout importierter Karten: App-Einbindung (P3, Paket C)
 
