@@ -270,8 +270,8 @@ test("Astfarben werden nach außen kräftiger und die Linienwahl übersteht Relo
   await mode(panel, "Verknüpfen"); await panel.getByRole("button", { name: "Graue Linien", exact: true }).click(); await fit(panel);
   await node(panel, "Ast A").click(); await node(panel, "Ast B").click();
   await expect(panel.locator(".core-mindmap-edges path")).toHaveCount(1);
-  const neutral = await panel.evaluate((el) => getComputedStyle(el).getPropertyValue("--core-text-muted").trim());
-  for (const line of await panel.locator(".core-mindmap-hierarchy path,.core-mindmap-edges path").all()) await expect(line).toHaveCSS("stroke", neutral.startsWith("#") ? "rgb(102, 116, 146)" : neutral);
+  const neutral = await panel.evaluate((el) => { const probe = el.appendChild(document.createElement("span")); probe.style.color = "var(--core-text-muted)"; const color = getComputedStyle(probe).color; probe.remove(); return color; });
+  for (const line of await panel.locator(".core-mindmap-hierarchy path,.core-mindmap-edges path").all()) await expect(line).toHaveCSS("stroke", neutral);
   await save(panel); await reload(page, panel); await mode(panel, "Verknüpfen");
   await expect(panel.getByRole("button", { name: "Graue Linien", exact: true })).toHaveAttribute("aria-pressed", "true");
   await panel.getByRole("button", { name: "Kastenfarben", exact: true }).click();

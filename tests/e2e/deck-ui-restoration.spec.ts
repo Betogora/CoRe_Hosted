@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
 test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -66,17 +67,8 @@ test("Escape schließt einen Dialog auch nach einem Klick auf seinen Titel", asy
   await expect(dialog).toHaveCount(0);
 });
 
-for (const theme of ["light", "dark"] as const) {
-  for (const viewport of [
-    { width: 320, height: 720 },
-    { width: 360, height: 800 },
-    { width: 390, height: 844 },
-    { width: 430, height: 932 },
-    { width: 1280, height: 720 },
-    { width: 1279, height: 900 },
-    { width: 1280, height: 900 },
-    { width: 1440, height: 900 },
-  ]) {
+for (const theme of visualOutput ? ["light", "dark"] as const : ["light"] as const) {
+  for (const viewport of visualOutput ? [...VISUAL_MATRIX_VIEWPORTS, { width: 1279, height: 900 }, { width: 1280, height: 900 }] : matrixViewports()) {
     test(`Stapelansichten: ${theme} bei ${viewport.width}×${viewport.height}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport);
       await page.goto("/docs/ui-elements.html#screens");
@@ -87,7 +79,7 @@ for (const theme of ["light", "dark"] as const) {
       const capture = async (name: string) => {
         await expect(product).toBeVisible();
         expect(await product.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-        await page.screenshot({ path: testInfo.outputPath(`${name}.png`) });
+        if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`${name}.png`) });
       };
       await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
       await capture("learn-list");
@@ -127,12 +119,9 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   const product = page.locator(".catalog-product-preview");
   const close = page.getByRole("button", { name: "Produktansicht schließen", exact: true });
-  for (const theme of ["light", "dark"] as const) {
+  for (const theme of visualOutput ? ["light", "dark"] as const : ["light"] as const) {
     if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
-    for (const viewport of [
-      { width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 },
-      { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 },
-    ]) {
+    for (const viewport of matrixViewports()) {
       await page.setViewportSize(viewport);
       await page.getByRole("button", { name: "Tagesübersicht öffnen", exact: true }).click();
       await close.press("Control+End");
@@ -140,23 +129,23 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
       const lastDeckRow = product.getByTestId("dashboard-deck-list").locator('[data-deck-row="true"]').last();
       await lastDeckRow.scrollIntoViewIfNeeded();
       await expect(lastDeckRow).toBeInViewport({ ratio: 1 });
-      await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-dashboard-decks.png`) });
+      if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-dashboard-decks.png`) });
       await close.click();
       await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
       await close.press("Control+End");
       await expect(product.getByRole("button", { name: "Anlegen", exact: true })).toBeInViewport();
-      await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-learn-create.png`) });
+      if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`${theme}-${viewport.width}-learn-create.png`) });
       await close.click();
     }
     await page.evaluate(() => { document.documentElement.style.zoom = "2"; });
     await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
     await expect(product.getByRole("button", { name: "Als Kacheln anzeigen", exact: true })).toBeVisible();
     expect(await product.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
-    await page.screenshot({ path: testInfo.outputPath(`${theme}-zoom-200-list.png`) });
+    if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`${theme}-zoom-200-list.png`) });
     await product.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
     await product.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte öffnen", exact: true }).click();
     await expect(product.getByTestId("learn-deck-folder-panel")).toBeVisible();
-    await page.screenshot({ path: testInfo.outputPath(`${theme}-zoom-200-branch.png`) });
+    if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`${theme}-zoom-200-branch.png`) });
     await product.getByRole("button", { name: "Als Liste anzeigen", exact: true }).click();
     await close.click();
     await page.evaluate(() => { document.documentElement.style.zoom = "1"; });

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
 test.setTimeout(60_000);
 
@@ -127,6 +128,7 @@ test("Kartenbausteine: Audio und MP4 spielen im scriptfreien Frame, Vorlesen ble
 });
 
 test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen", async ({ page }) => {
+  test.skip(!visualOutput, "Die vollständige Sichtmatrix wird gezielt ausgeführt.");
   test.setTimeout(900_000);
   const output = path.resolve("test-results/note-presentation/matrix");
   await mkdir(output, { recursive: true });
@@ -136,8 +138,7 @@ test("Kartenbausteine: visuelle Pflichtmatrix in beiden Themes und Darstellungen
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenbausteine");
   // Keep only the documentation chrome from covering component screenshots.
   await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
-  const sizes = [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }];
-  for (const size of sizes) {
+  for (const size of VISUAL_MATRIX_VIEWPORTS) {
     await page.setViewportSize(size);
     for (const theme of ["light", "dark"] as const) {
       await page.evaluate((value) => document.documentElement.dataset.coreTheme = value, theme);
@@ -173,7 +174,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   await mkdir(output, { recursive: true });
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
   await page.addStyleTag({ content: ".docs-site-nav,.docs-mobile-nav{position:static!important}" });
-  for (const size of [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }]) {
+  for (const size of matrixViewports()) {
     await page.setViewportSize(size);
     for (const theme of ["light", "dark"]) {
       await page.evaluate((value) => document.documentElement.dataset.coreTheme = value, theme);
@@ -182,11 +183,11 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
       await expect(front).toContainText("Welche Hauptstadt siehst du?");
       await expect(section.frameLocator('iframe[title="Vorderseite"]').locator('img[alt="Beispielansicht von Lissabon"]')).toHaveCount(1);
       await front.evaluate(async (body) => { await body.ownerDocument.fonts.ready; });
-      await section.locator('iframe[title="Vorderseite"]').screenshot({ path: path.join(output, `${size.width}-${theme}-management-question.png`) });
-      await section.screenshot({ path: path.join(output, `${size.width}-${theme}-content.png`), animations: "disabled" });
+      if (visualOutput) await section.locator('iframe[title="Vorderseite"]').screenshot({ path: path.join(output, `${size.width}-${theme}-management-question.png`) });
+      if (visualOutput) await section.screenshot({ path: path.join(output, `${size.width}-${theme}-content.png`), animations: "disabled" });
       await section.getByRole("button", { name: "Antwort aufdecken", exact: true }).click();
       await expect(section.frameLocator('iframe[title="Antwort"]').locator("body")).not.toBeEmpty();
-      await section.screenshot({ path: path.join(output, `${size.width}-${theme}-review-answer.png`), animations: "disabled" });
+      if (visualOutput) await section.screenshot({ path: path.join(output, `${size.width}-${theme}-review-answer.png`), animations: "disabled" });
       await section.getByRole("button", { name: "Zurücksetzen", exact: true }).click();
     }
   }
@@ -197,7 +198,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   await expect(dialog.frameLocator('iframe[title="Frage"]').locator("body")).not.toBeEmpty();
   await dialog.getByRole("button", { name: "Rückseite", exact: true }).click();
   await expect(dialog.frameLocator('iframe[title="Aufgedeckte Karte"]').locator(".core-card-answer-separator")).toHaveCount(1);
-  await dialog.screenshot({ path: path.join(output, "390-dark-preview-answer.png"), animations: "disabled" });
+  if (visualOutput) await dialog.screenshot({ path: path.join(output, "390-dark-preview-answer.png"), animations: "disabled" });
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible();
 });
@@ -213,5 +214,5 @@ test("Kartenbausteine: Eintippen und Aufdecken bei 200 Prozent CSS-Zoom", async 
   await expect(comparison).toContainText("Richtig Herz");
   await expect(comparison.locator(".typed-missing")).toHaveText("z");
   expect(await demo.evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
-  await demo.screenshot({ path: path.resolve("test-results/note-presentation/zoom-200-css.png"), animations: "disabled" });
+  if (visualOutput) await demo.screenshot({ path: path.resolve("test-results/note-presentation/zoom-200-css.png"), animations: "disabled" });
 });
