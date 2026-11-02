@@ -12,3 +12,8 @@ export function hasOwnDesign(css: string): boolean {
 export function needsScript(template: { front: string; back: string }): boolean {
   return /<script\b|\son[a-z]+\s*=|<button\b|javascript:/i.test(template.front + template.back);
 }
+
+/** Local files the CSS loads through `url()`, such as fonts and background images. */
+export function cssMediaNames(css: string): string[] {
+  return [...css.matchAll(/url\(\s*['"]?([^'")]+?)['"]?\s*\)/gi)].map((match) => match[1].trim()).filter((name) => !/^(?:data|blob):|\/\//i.test(name));
+}

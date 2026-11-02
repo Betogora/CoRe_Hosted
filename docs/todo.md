@@ -90,62 +90,6 @@ voraus.
       Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
       für Fortschritt und Ergebnisliste.
 
-## P3: Originallayout importierter Karten
-
-Importierte Inhalte zeigen, wo nötig, das Layout ihres Stapelautors: Template-
-HTML und CSS der Herkunftsvorlage, ohne JavaScript, im bestehenden
-Sandbox-Rahmen (ADR-047). Renderer und Regeln (A),
-Vorlagen-Sync und Vorlagenmedien (B) sowie die App-Einbindung (C) stehen, siehe
-[`history.md`](history.md); offen ist die Abnahme (D). Die Oberfläche um die Karte bleibt CoRe; es gibt
-keine wählbaren Notiz- oder Kartentypen und keinen Schalter. Anlass: eigene
-Stapel wie `Pokemon_Gen_I_Auszug.apkg` verlieren im CoRe-Design Zeilen aus
-mehreren Feldern („??? · Generation X“) und ihr Styling.
-
-Entscheidungen O1–O24 (2026-11-02):
-
-- O1 „Originallayout“ erscheint nur im Importbericht (O22) und im
-  Rückfallhinweis (O12).
-- O2 Automatik: Originallayout genau dann, wenn der generische Übersetzer den
-  Inhalt übersetzt hat, die Vorlage eigenes Design mitbringt (CSS über Ankis
-  Standardblock `.card` hinaus) und kein Script, keinen Event-Handler und
-  keinen Button enthält. Die Regel gehört zum Renderer und wird je Vorlage
-  zwischengespeichert; Regeländerungen wirken ohne Neuübersetzung.
-- O3–O4 Kein Übersteuern, kein Schalter je Stapel oder Inhalt.
-- O5 Manuelle und KI-Inhalte nie; Duplikate behalten das Layout.
-- O6 Gerendert wird aus den CoRe-Feldern über ihre Anki-Position (`fN`). Der
-  Link-Umbau wandert in die CoRe-Darstellung; Furigana bleibt beim Übersetzer,
-  weil das Originallayout dieselbe Ausgabe erzeugt.
-- O7 `class` und `data-*` bleiben in Feldern erhalten.
-- O8 Vorlagen (Template und CSS) laufen mit dem Katalog-Delta auf jedes Gerät
-  und liegen vollständig in der Replica, rohe Felder nicht. O9 Reimport
-  aktualisiert Vorlagen.
-- O10 CSS vollständig außer `@import` und externen `url()`. O11 Vorlagenmedien
-  (`_`-Dateien aus CSS und Template) zählen zu den Medien jedes Inhalts.
-- O12 Ohne sichtbaren Inhalt CoRe-Design mit Hinweis „Originallayout nicht
-  darstellbar“.
-- O13 Hintergrund aus `.card` mit CoRe-Radius, keine Kontrastanpassung. O14
-  `card nightMode night_mode` mit Ankis dunklen Grundfarben, wenn die Vorlage
-  keine eigenen Nachtregeln hat. O15 Bildgrenzen nur über `:where()`.
-- O16 Ein Rahmen, der beim Aufdecken zur Rückseite wechselt und zu `#answer`
-  scrollt. O17 Lücken als `<span class="cloze">`. O18 Eingabe in der App,
-  Vergleich an der Stelle von `{{type:…}}`. O19 `{{hint:…}}` als `<details>`,
-  Vorlesen über die App, `[sound:…]` als Audio-Control.
-- O20 KI-Varianten im CoRe-Design. O21 Editor-Vorschau wie Review. O22 Der
-  Abschnitt `Notiztypen` im Importbericht nennt je Vorlage „Originallayout“
-  oder „CoRe-Design“. O23 `accessibleText` aus dem Originallayout. O24 Cache
-  nur nach Messung.
-
-Performance ist Abnahmekriterium jedes Pakets: Karten im CoRe-Design tragen
-keine Zusatzkosten; Vorlage und CSS werden je Vorlage einmal aufbereitet, nicht
-je Karte oder Seitenwechsel; der Import entscheidet nichts je Notiz;
-Vorlagen werden je Notiztyp, nicht je Karte übertragen. Gemessen wird mit
-`scripts/benchmarkApkgImport.ts` (Import) und `performance:measure:local`
-(Start, Lernen) jeweils vorher und nachher.
-
-- [ ] **D Abnahme:** APKG-Matrixzeilen mit visuellem Nachweis (darunter die
-      Pokémon-Vorlage), Korpuslauf vorher/nachher, `performance:measure:local`,
-      `audit-last-change` über P3.
-
 ## Offene Nachweise
 
 Abnahmen der Kartenmodell-Roadmap; sie brauchen echte Geräte oder Daten, keinen
@@ -158,6 +102,12 @@ neuen Code.
       Karteneditor V2: Tag-Eingabe mit Bildschirmtastatur (Android schickt
       die Leertaste oft ohne Tastenereignis), Reiter und Flaggenraster bei
       200 % Zoom.
+- [ ] **Originallayout in der App (ADR-047):** Pokémon-Stapel
+      (`fixtures/apkg/corpus/Pokemon_Gen_I_Auszug.apkg`) mit echtem Konto
+      importieren, auf einem zweiten Gerät öffnen und offline lernen; Review,
+      Editor-Vorschau und Importvorschau in Light und Dark bei 390 und 1440 px.
+      Renderer, Sync und Katalog sind automatisiert und visuell belegt, die
+      eingeloggte App nicht.
 - [ ] **Korpus (Phase 5):** AnKing und ein echter Lernstand mit Lern-,
       Wiederlern-, ausgesetzten, begrabenen und geflaggten Karten. Ziel: mindestens
       95 % voll übersetzt, 0 % nicht darstellbar. Prüfung:

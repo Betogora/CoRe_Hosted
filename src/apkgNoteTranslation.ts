@@ -15,7 +15,7 @@ import type {
 } from "./coreTypes.ts";
 import { makeId, stableContentHash } from "./coreModel/coreValues.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
-import { hasOwnDesign, needsScript } from "./originalLayout.ts";
+import { cssMediaNames, hasOwnDesign, needsScript } from "./originalLayout.ts";
 import { createNote } from "./coreModel/notes.ts";
 import { normalizeTags, splitAnkiSystemTags } from "./coreModel/tags.ts";
 import { cardStudyFromReviewState, createReviewState } from "./coreModel/reviewState.ts";
@@ -181,7 +181,7 @@ function firstImageSource(html: string): string {
 
 /** Template media of a note type: `_`-prefixed files, by Anki convention, that its CSS or static template HTML names. */
 function layoutMediaNames(model: AnkiModel): string[] {
-  const css = [...model.css.matchAll(/url\(\s*['"]?([^'")]+?)['"]?\s*\)/gi)].map((match) => match[1]);
+  const css = cssMediaNames(model.css);
   const html = model.templates.flatMap((template) => [...`${template.front}${template.back}`.matchAll(/\ssrc\s*=\s*["']([^"'{}]+)["']/gi)].map((match) => match[1]));
   return [...new Set([...css, ...html].map((name) => name.trim()).filter((name) => name.startsWith("_")))];
 }
@@ -882,8 +882,9 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
     if (known) return known;
     const model = normalizeModel(pkg.models[notetypeId]);
     const plan = planNotetype(model);
-    // Only generic note types can show their original layout (ADR-047), so only they bring their template media along.
-    const layoutNames = plan.translator.id === GENERIC.id ? layoutMediaNames(model) : [];
+    // Only note types that show their original layout (ADR-047) bring their template media along.
+    const layout = plan.translator.id === GENERIC.id && hasOwnDesign(model.css) && model.templates.some((template) => !needsScript(template)) ? "original" as const : "core" as const;
+    const layoutNames = layout === "original" ? layoutMediaNames(model) : [];
     const entry = {
       model,
       plan,
@@ -915,7 +916,7 @@ export async function translateAnkiPackage(pkg: AnkiPackage, options: { imported
         unmappedFields: Object.entries(plan.fieldRoles).filter(([, role]) => role === "note").map(([name]) => name),
         missingMedia: layoutNames.filter((name) => !media.byName.has(name)),
         study: { "fsrs-memory-state": 0, "revlog-replay": 0, "classic-state": 0, new: 0 },
-        layout: plan.translator.id === GENERIC.id && hasOwnDesign(model.css) && model.templates.some((template) => !needsScript(template)) ? "original" as const : "core" as const,
+        layout,
       },
     };
     plans.set(notetypeId, entry);

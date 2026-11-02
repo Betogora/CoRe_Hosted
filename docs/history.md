@@ -5,6 +5,13 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-02 — Originallayout importierter Karten: Abnahme (P3, Paket D)
+
+- APKG-Matrix: Notiztyp „CoRe-Matrix Originallayout“ (`special-latest`, `matrix-originallayout`) mit Zeile aus mehreren Feldern, Feld im Attribut, Typ-Badge aus CSS und Nachtregeln. Die Erwartung führt je Notiz `layout`; der Matrix-Test rendert wie die App mit der Herkunftsvorlage, sodass jede andere Matrix-Vorlage nachweislich im CoRe-Design bleibt. Fall in der visuellen Pflichtmatrix ergänzt; Sichtprüfung Review vor und nach dem Aufdecken und Kartenvorschau hell und dunkel bei 390 × 844 und 1440 × 900 ohne Überlauf (Renderer-Harness, nicht die eingeloggte App).
+- Korpuslauf vorher/nachher: Übersetzungsquoten unverändert; Originallayout für den Pokémon-Stapel und zwei Lückentext-Vorlagen. Der Lauf zeigte, dass Vorlagenmedien auch für generische Vorlagen mit Script übernommen wurden (Ankizin +12, Ankiphil +9 bis +11 Dateien); sie kommen jetzt nur noch bei Vorlagen im Originallayout mit, die Medienzahlen entsprechen wieder dem alten Stand. Importzeiten: Ankizin 54,4 s → 48,9 s, Ankiphil-Auszüge in drei Läufen je Stand überlappend (alt 142–281 ms, neu 148–246 ms).
+- `performance:measure:local`: Startmessung 2/2 innerhalb der Budgets, Initialgraph 245,1 KiB gzip. Der Statistik-Benchmark brach im Gesamtlauf einmal an der 50-ms-Grenze der Clientprojektion ab; in je zwei Einzelläufen auf altem und neuem Stand bestand er. Der Lauf brauchte Port 5196, weil 5190 von einer parallelen Sitzung belegt war.
+- Audit über P3: CSS-Medienerkennung für Renderer und Übersetzer in `originalLayout.ts` zusammengeführt.
+
 ## 2026-11-02 — Originallayout importierter Karten: App-Einbindung (P3, Paket C)
 
 - Review, Lern-Vorschau, Editor-Vorschau, Vorschau-Dialog und Importvorschau zeigen generisch übersetzte Karten mit eigenem Design im Originallayout. `NoteLayoutContext` liefert Vorlage und Stapelpfad; die App bindet ihn an die Replica, die Importvorschau an die Vorlage der Vorschaukarte. Nur Inhalte des generischen Übersetzers lesen eine Vorlage, die Replica liefert ein unverändertes Template als dasselbe Objekt, damit der Renderer es nicht erneut aufbereitet.

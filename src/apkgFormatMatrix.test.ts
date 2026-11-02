@@ -32,6 +32,7 @@ interface ExpectedNote {
   speech: Record<string, string>;
   choice: { mode: "single" | "multiple" | "kprim"; options: string[]; correct: boolean[] } | null;
   occlusion?: Array<{ kind: string; ordinal: number; alwaysOccluded: boolean }> | null;
+  layout: "core" | "original";
   tags: string[];
   marked: boolean;
   cards: ExpectedCard[];
@@ -82,7 +83,7 @@ function ancestors(path: string): string[] {
 
 /** Text a learner sees: collapsed hints stay hidden until opened. */
 function visibleText(srcdoc: string): string {
-  const body = srcdoc.slice(srcdoc.indexOf("<body>") + 6, srcdoc.lastIndexOf("</body>"));
+  const body = srcdoc.slice(srcdoc.search(/<body[^>]*>/) + srcdoc.match(/<body[^>]*>/)![0].length, srcdoc.lastIndexOf("</body>"));
   return notePlainText(body.replace(/<div class="core-note-hint">[\s\S]*?<\/div><\/details>/g, "</details>"));
 }
 
@@ -201,8 +202,11 @@ async function runFixture(name: string, expected: ExpectedFixture) {
       const card = noteCards[index];
       if (!card) continue;
       const subject = `${expectedNote.guid}#${expectedCard.ord}`;
-      const question = await renderCard({ note, card, side: "question", surface: "review", theme: THEME });
-      const answer = await renderCard({ note, card, side: "answer", surface: "review", theme: THEME });
+      // Like the app, the card renders with its imported template, so the original layout is part of the contract.
+      const noteTypeSource = graph.noteTypeSources.find((source) => source.id === note.noteTypeSourceId) ?? null;
+      const question = await renderCard({ note, card, side: "question", surface: "review", theme: THEME, noteTypeSource });
+      const answer = await renderCard({ note, card, side: "answer", surface: "review", theme: THEME, noteTypeSource });
+      check("card.layout", subject, () => assert.equal(question.layout, expectedNote.layout));
       check("card.deck", subject, () => assert.equal(deckPaths.get(card.deckId), expectedCard.deckPath));
       check("card.key", subject, () => assert.equal(card.promptKey, expectedCard.key));
       check("card.front", subject, () => assertText(`${visibleText(question.srcdoc)} ${options}`, expectedCard.frontIncludes, expectedCard.frontExcludes, "Vorderseite"));

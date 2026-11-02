@@ -2,7 +2,7 @@ import type { NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type { Card, Note, NoteField, NoteInteraction } from "./coreTypes.ts";
 import type { CoreTheme } from "./coreTheme.ts";
 import { compileSafeTemplate, type SafeTemplateAstNode, type TemplateDiagnostic } from "./safeTemplate.ts";
-import { hasOwnDesign, needsScript } from "./originalLayout.ts";
+import { cssMediaNames, hasOwnDesign, needsScript } from "./originalLayout.ts";
 import { sanitizeLayoutHtml, sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
 import { buildSrcdoc } from "./presentationFrame.ts";
@@ -303,7 +303,7 @@ function layoutCss(source: NoteTypeSource) {
       ownDesign: hasOwnDesign(source.css),
       css,
       nightRules: /night_?mode/i.test(css),
-      media: [...css.matchAll(/url\(\s*['"]?([^'")]+?)['"]?\s*\)/gi)].map((match) => match[1].trim()).filter((name) => !/^(?:data|blob):/i.test(name)),
+      media: cssMediaNames(css),
     };
     layoutCssCache.set(source, prepared);
   }

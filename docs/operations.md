@@ -84,6 +84,7 @@ Note-Übersetzung, die auch der App-Import verwendet.
 | Kprim, Multiple und Single Choice | `special-latest` | `matrix-mc-kprim`, `matrix-mc-multiple`, `matrix-mc-single` |
 | Formeln und LaTeX | `special-latest` | `matrix-math` |
 | Tabelle, farbiger Text, Audio und Video | `special-latest` | `matrix-media-rich` |
+| Originallayout (Template, CSS, Feld im Attribut, Nachtregeln) | `special-latest` | `matrix-originallayout` |
 
 Der Abschlussbericht nennt Version, Viewports, Theme, geprüfte Zustände und
 Screenshot-Nachweise. Nicht geprüfte Fälle bleiben ausdrücklich offen;

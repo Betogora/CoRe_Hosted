@@ -4,7 +4,7 @@
   "fixtures": {
     "standard-latest": {
       "file": "standard-latest.apkg",
-      "sha256": "d9c4d4ceff8f0e1e79a5f4bb2172d9b62fdcf544db2ea25cf8f1a922ee4c665e",
+      "sha256": "91e6f55054274de25ffb166e0cd096d5b46e95e91f1b56117b02ff57047d703b",
       "packageFormat": "latest",
       "zipEntries": [
         "collection.anki2",
@@ -48,12 +48,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340900",
+              "ankiCardId": "1793618789239",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Basic",
@@ -89,12 +90,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340904",
+              "ankiCardId": "1793618789240",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Umgekehrt",
@@ -117,7 +119,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340905",
+              "ankiCardId": "1793618789241",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Umgekehrt::Rückrichtung",
@@ -154,12 +156,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340907",
+              "ankiCardId": "1793618789243",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -180,7 +183,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340908",
+              "ankiCardId": "1793618789244",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Optional",
@@ -215,12 +218,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340909",
+              "ankiCardId": "1793618789245",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -254,12 +258,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340910",
+              "ankiCardId": "1793618789247",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Eintippen",
@@ -295,12 +300,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340912",
+              "ankiCardId": "1793618789249",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -324,7 +330,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340911",
+              "ankiCardId": "1793618789251",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -347,7 +353,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340913",
+              "ankiCardId": "1793618789250",
               "ord": 2,
               "key": "cloze:3",
               "deckPath": "Matrix Standard::Lückentext",
@@ -383,12 +389,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340914",
+              "ankiCardId": "1793618789253",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -410,7 +417,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340915",
+              "ankiCardId": "1793618789252",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -445,12 +452,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340916",
+              "ankiCardId": "1793618789254",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Standard::Template-Heimat",
@@ -471,7 +479,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340917",
+              "ankiCardId": "1793618789255",
               "ord": 1,
               "key": "anki-1",
               "deckPath": "Matrix Standard::Template-Zielstapel",
@@ -505,12 +513,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340918",
+              "ankiCardId": "1793618789256",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Ebene 2::Ebene 3::Ebene 4::Ebene 5::Ebene 6",
@@ -544,12 +553,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340919",
+              "ankiCardId": "1793618789257",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Leerer Elternstapel::Kind",
@@ -575,7 +585,7 @@
     },
     "standard-legacy2": {
       "file": "standard-legacy2.apkg",
-      "sha256": "56fc301513b4ad014386b6d81274f372e1f1c8221b3782a353e0b9bb6217beaa",
+      "sha256": "f29fd1717b69781f80489252d2abee817e8408a11cafe5b31bf5fa98f51d0b13",
       "packageFormat": "legacy-2",
       "zipEntries": [
         "collection.anki2",
@@ -619,12 +629,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340900",
+              "ankiCardId": "1793618789239",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Basic",
@@ -660,12 +671,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340904",
+              "ankiCardId": "1793618789240",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Umgekehrt",
@@ -688,7 +700,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340905",
+              "ankiCardId": "1793618789241",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Umgekehrt::Rückrichtung",
@@ -725,12 +737,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340907",
+              "ankiCardId": "1793618789243",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -751,7 +764,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340908",
+              "ankiCardId": "1793618789244",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Optional",
@@ -786,12 +799,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340909",
+              "ankiCardId": "1793618789245",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -825,12 +839,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340910",
+              "ankiCardId": "1793618789247",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Eintippen",
@@ -866,12 +881,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340912",
+              "ankiCardId": "1793618789249",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -895,7 +911,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340911",
+              "ankiCardId": "1793618789251",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -918,7 +934,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340913",
+              "ankiCardId": "1793618789250",
               "ord": 2,
               "key": "cloze:3",
               "deckPath": "Matrix Standard::Lückentext",
@@ -954,12 +970,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340914",
+              "ankiCardId": "1793618789253",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -981,7 +998,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340915",
+              "ankiCardId": "1793618789252",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -1016,12 +1033,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340916",
+              "ankiCardId": "1793618789254",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Standard::Template-Heimat",
@@ -1042,7 +1060,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340917",
+              "ankiCardId": "1793618789255",
               "ord": 1,
               "key": "anki-1",
               "deckPath": "Matrix Standard::Template-Zielstapel",
@@ -1076,12 +1094,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340918",
+              "ankiCardId": "1793618789256",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Ebene 2::Ebene 3::Ebene 4::Ebene 5::Ebene 6",
@@ -1115,12 +1134,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340919",
+              "ankiCardId": "1793618789257",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Leerer Elternstapel::Kind",
@@ -1146,7 +1166,7 @@
     },
     "standard-legacy1": {
       "file": "standard-legacy1.apkg",
-      "sha256": "52603d8b5131290f7283cbb78a3bb91d6a24aa1b5fbb51c7f47dcf6fe437036e",
+      "sha256": "ad57c2c4784d8067ed491958721ab979cee5ccac05cb22c008e427ce89c5d894",
       "packageFormat": "legacy-1",
       "zipEntries": [
         "collection.anki2",
@@ -1188,12 +1208,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340900",
+              "ankiCardId": "1793618789239",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Basic",
@@ -1229,12 +1250,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340904",
+              "ankiCardId": "1793618789240",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Umgekehrt",
@@ -1257,7 +1279,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340905",
+              "ankiCardId": "1793618789241",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Umgekehrt::Rückrichtung",
@@ -1294,12 +1316,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340907",
+              "ankiCardId": "1793618789243",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -1320,7 +1343,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340908",
+              "ankiCardId": "1793618789244",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Optional",
@@ -1355,12 +1378,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340909",
+              "ankiCardId": "1793618789245",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -1394,12 +1418,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340910",
+              "ankiCardId": "1793618789247",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Eintippen",
@@ -1435,12 +1460,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340912",
+              "ankiCardId": "1793618789249",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -1464,7 +1490,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340911",
+              "ankiCardId": "1793618789251",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -1487,7 +1513,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340913",
+              "ankiCardId": "1793618789250",
               "ord": 2,
               "key": "cloze:3",
               "deckPath": "Matrix Standard::Lückentext",
@@ -1523,12 +1549,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340914",
+              "ankiCardId": "1793618789253",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -1550,7 +1577,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340915",
+              "ankiCardId": "1793618789252",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -1585,12 +1612,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340916",
+              "ankiCardId": "1793618789254",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Standard::Template-Heimat",
@@ -1611,7 +1639,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340917",
+              "ankiCardId": "1793618789255",
               "ord": 1,
               "key": "anki-1",
               "deckPath": "Matrix Standard::Template-Zielstapel",
@@ -1645,12 +1673,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340918",
+              "ankiCardId": "1793618789256",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Ebene 2::Ebene 3::Ebene 4::Ebene 5::Ebene 6",
@@ -1684,12 +1713,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340919",
+              "ankiCardId": "1793618789257",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Leerer Elternstapel::Kind",
@@ -1715,7 +1745,7 @@
     },
     "special-latest": {
       "file": "special-latest.apkg",
-      "sha256": "2d4292f25e31f3fc9695e8999892401c1dc834baa54a5cf5f3958b77ee8b2330",
+      "sha256": "1a0a6026b47f5b6460548afd834044d6c2ff0b41fc00718bd7e27bc2a1a351d6",
       "packageFormat": "latest",
       "zipEntries": [
         "0",
@@ -1790,6 +1820,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [
             "#Kardio::Labor"
           ],
@@ -1797,7 +1828,7 @@
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340959",
+              "ankiCardId": "1793618789321",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Sonderformate::AnKing",
@@ -1860,12 +1891,13 @@
             ]
           },
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340960",
+              "ankiCardId": "1793618789323",
               "ord": 0,
               "key": "choice",
               "deckPath": "Matrix Sonderformate::Multiple Choice",
@@ -1932,12 +1964,13 @@
             ]
           },
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340961",
+              "ankiCardId": "1793618789325",
               "ord": 0,
               "key": "choice",
               "deckPath": "Matrix Sonderformate::Multiple Choice",
@@ -2002,12 +2035,13 @@
             ]
           },
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340962",
+              "ankiCardId": "1793618789326",
               "ord": 0,
               "key": "choice",
               "deckPath": "Matrix Sonderformate::Multiple Choice",
@@ -2053,12 +2087,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340963",
+              "ankiCardId": "1793618789328",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Sonderformate::Unbekannter Notiztyp",
@@ -2099,12 +2134,13 @@
           },
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340964",
+              "ankiCardId": "1793618789329",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Sonderformate::Hinweis und Vorlesen",
@@ -2141,12 +2177,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340965",
+              "ankiCardId": "1793618789330",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Sonderformate::Furigana",
@@ -2186,6 +2223,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2193,7 +2231,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570340966",
+              "ankiCardId": "1793618789331",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Sonderformate::Drei Richtungen",
@@ -2216,7 +2254,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340967",
+              "ankiCardId": "1793618789332",
               "ord": 1,
               "key": "anki-1",
               "deckPath": "Matrix Sonderformate::Drei Richtungen",
@@ -2239,7 +2277,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340968",
+              "ankiCardId": "1793618789333",
               "ord": 2,
               "key": "anki-2",
               "deckPath": "Matrix Sonderformate::Drei Richtungen",
@@ -2275,12 +2313,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340969",
+              "ankiCardId": "1793618789334",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Sonderformate::Zwei Lückenfelder",
@@ -2304,7 +2343,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340970",
+              "ankiCardId": "1793618789335",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Sonderformate::Zwei Lückenfelder",
@@ -2341,12 +2380,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340971",
+              "ankiCardId": "1793618789336",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Sonderformate::Formeln",
@@ -2386,12 +2426,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340972",
+              "ankiCardId": "1793618789337",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Sonderformate::Formeln",
@@ -2416,7 +2457,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340973",
+              "ankiCardId": "1793618789338",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Sonderformate::Formeln",
@@ -2461,12 +2502,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570340974",
+              "ankiCardId": "1793618789339",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Sonderformate::Ankizin",
@@ -2520,6 +2562,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2528,7 +2571,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570340975",
+              "ankiCardId": "1793618789340",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Sonderformate::Blickdiagnose",
@@ -2559,6 +2602,56 @@
           ]
         },
         {
+          "guid": "matrix-originallayout",
+          "notetype": "CoRe-Matrix Originallayout",
+          "interaction": "reveal",
+          "fieldRoles": {
+            "Name": "answer",
+            "Nummer": "prompt",
+            "Generation": "prompt",
+            "Artwork": "prompt",
+            "Typen": "answer"
+          },
+          "instruction": {
+            "anki-0": "Generation …"
+          },
+          "speech": {},
+          "choice": null,
+          "occlusion": null,
+          "layout": "original",
+          "tags": [],
+          "marked": false,
+          "media": [
+            "blick.png"
+          ],
+          "cards": [
+            {
+              "ankiCardId": "1793618789341",
+              "ord": 0,
+              "key": "anki-0",
+              "deckPath": "Matrix Sonderformate::Originallayout",
+              "frontIncludes": [
+                "??? · Generation X"
+              ],
+              "frontExcludes": [
+                "Karpador",
+                "Wasser"
+              ],
+              "backIncludes": [
+                "??? · Generation X",
+                "Karpador",
+                "Wasser"
+              ],
+              "backExcludes": [],
+              "links": [],
+              "learning": {
+                "state": "new",
+                "suspended": false
+              }
+            }
+          ]
+        },
+        {
           "guid": "matrix-media-rich",
           "notetype": "Basic",
           "interaction": "reveal",
@@ -2570,6 +2663,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2578,7 +2672,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570340976",
+              "ankiCardId": "1793618789342",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Sonderformate::Medien und Tabellen",
@@ -2642,6 +2736,7 @@
               "alwaysOccluded": false
             }
           ],
+          "layout": "core",
           "tags": [
             "Anatomie"
           ],
@@ -2651,7 +2746,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570340987",
+              "ankiCardId": "1793618789348",
               "ord": 0,
               "key": "io:1",
               "deckPath": "Matrix Sonderformate::Image Occlusion",
@@ -2675,7 +2770,7 @@
               }
             },
             {
-              "ankiCardId": "1791570340988",
+              "ankiCardId": "1793618789349",
               "ord": 1,
               "key": "io:2",
               "deckPath": "Matrix Sonderformate::Image Occlusion",
@@ -2732,6 +2827,7 @@
               "alwaysOccluded": true
             }
           ],
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2739,7 +2835,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341019",
+              "ankiCardId": "1793618789381",
               "ord": 0,
               "key": "io:1",
               "deckPath": "Matrix Sonderformate::Image Occlusion Enhanced",
@@ -2788,6 +2884,7 @@
               "alwaysOccluded": false
             }
           ],
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2795,7 +2892,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341039",
+              "ankiCardId": "1793618789404",
               "ord": 0,
               "key": "io:1",
               "deckPath": "Matrix Sonderformate::Image Occlusion Enhanced",
@@ -2889,7 +2986,7 @@
     },
     "media-latest": {
       "file": "media-latest.apkg",
-      "sha256": "c99e44a45f4fa938bf96ba837220262ee9acc44c2f31a787ecff1ff379bbb3f1",
+      "sha256": "5271d2155be6cde175852931d4a3609a0ebce8fe0f103b181b6c7001d56591e1",
       "packageFormat": "latest",
       "zipEntries": [
         "0",
@@ -2931,6 +3028,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2938,7 +3036,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341064",
+              "ankiCardId": "1793618789431",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Medien",
@@ -2972,6 +3070,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -2979,7 +3078,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341065",
+              "ankiCardId": "1793618789432",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Medien",
@@ -3013,6 +3112,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -3020,7 +3120,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341066",
+              "ankiCardId": "1793618789433",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Medien",
@@ -3054,6 +3154,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -3061,7 +3162,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341067",
+              "ankiCardId": "1793618789434",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Medien",
@@ -3095,6 +3196,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [
@@ -3102,7 +3204,7 @@
           ],
           "cards": [
             {
-              "ankiCardId": "1791570341068",
+              "ankiCardId": "1793618789435",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Medien",
@@ -3136,12 +3238,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341070",
+              "ankiCardId": "1793618789436",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Medien",
@@ -3192,7 +3295,7 @@
     },
     "learning-latest": {
       "file": "learning-latest.apkg",
-      "sha256": "982d5993abcb809ed075f412068b5218cc794ab46775ee06e3db9dd22f88b044",
+      "sha256": "abc1ad68f72195d79ab6b2b1b14944425bc21398b3a8b617f137ebd9e38edb81",
       "packageFormat": "latest",
       "zipEntries": [
         "collection.anki2",
@@ -3236,12 +3339,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341073",
+              "ankiCardId": "1793618789437",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3276,12 +3380,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341074",
+              "ankiCardId": "1793618789438",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3316,6 +3421,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [
             "marked"
           ],
@@ -3323,7 +3429,7 @@
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341076",
+              "ankiCardId": "1793618789440",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3363,12 +3469,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341078",
+              "ankiCardId": "1793618789442",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3403,12 +3510,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341080",
+              "ankiCardId": "1793618789444",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3443,12 +3551,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341081",
+              "ankiCardId": "1793618789447",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3483,12 +3592,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341082",
+              "ankiCardId": "1793618789448",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3523,12 +3633,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341084",
+              "ankiCardId": "1793618789450",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3555,7 +3666,7 @@
     },
     "learning-legacy2": {
       "file": "learning-legacy2.apkg",
-      "sha256": "1ddd9a500ae12d15757fcbc5edbb2c7738fc252331b1d6ff757f1ecb7b25ee70",
+      "sha256": "fa59f8339a12d233f03db55a4646fc2dc56b7aae203b401bfa087e7ce45523a6",
       "packageFormat": "legacy-2",
       "zipEntries": [
         "collection.anki2",
@@ -3599,12 +3710,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341073",
+              "ankiCardId": "1793618789437",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3639,12 +3751,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341074",
+              "ankiCardId": "1793618789438",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3679,6 +3792,7 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [
             "marked"
           ],
@@ -3686,7 +3800,7 @@
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341076",
+              "ankiCardId": "1793618789440",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3726,12 +3840,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341078",
+              "ankiCardId": "1793618789442",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3766,12 +3881,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341080",
+              "ankiCardId": "1793618789444",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3806,12 +3922,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341081",
+              "ankiCardId": "1793618789447",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3846,12 +3963,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341082",
+              "ankiCardId": "1793618789448",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3886,12 +4004,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341084",
+              "ankiCardId": "1793618789450",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3918,7 +4037,7 @@
     },
     "learning-without-scheduling": {
       "file": "learning-without-scheduling.apkg",
-      "sha256": "ae63340281ad46d23550c738aefd3d138337c8f5a09ea6fac8fb8b081dba22fe",
+      "sha256": "e0705d04de52578cb6368f38708c1288ce3bff8e316e03793361cdf8ea5d9764",
       "packageFormat": "latest",
       "zipEntries": [
         "collection.anki2",
@@ -3953,12 +4072,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341073",
+              "ankiCardId": "1793618789437",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -3993,12 +4113,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341074",
+              "ankiCardId": "1793618789438",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -4033,12 +4154,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341076",
+              "ankiCardId": "1793618789440",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -4073,12 +4195,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341078",
+              "ankiCardId": "1793618789442",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -4113,12 +4236,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341080",
+              "ankiCardId": "1793618789444",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -4153,12 +4277,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341081",
+              "ankiCardId": "1793618789447",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -4193,12 +4318,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341082",
+              "ankiCardId": "1793618789448",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Zustände",
@@ -4233,12 +4359,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341084",
+              "ankiCardId": "1793618789450",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Lernstand::Gefiltert",
@@ -4265,7 +4392,7 @@
     },
     "collection-latest": {
       "file": "collection-latest.colpkg",
-      "sha256": "9ae36e9e109e7b28d32aeb24015b8d5c5257f47a4aee574b78af3a538a00960f",
+      "sha256": "ae781be22b33a5f93889a4b86e2277ba1c5580ad6d65023c1af9ebc75b1fa4f1",
       "packageFormat": "colpkg",
       "zipEntries": [
         "collection.anki2",
@@ -4300,12 +4427,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341692",
+              "ankiCardId": "1793618789917",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Basic",
@@ -4341,12 +4469,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341694",
+              "ankiCardId": "1793618789918",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Umgekehrt",
@@ -4369,7 +4498,7 @@
               }
             },
             {
-              "ankiCardId": "1791570341695",
+              "ankiCardId": "1793618789919",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Umgekehrt::Rückrichtung",
@@ -4406,12 +4535,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341698",
+              "ankiCardId": "1793618789921",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -4432,7 +4562,7 @@
               }
             },
             {
-              "ankiCardId": "1791570341699",
+              "ankiCardId": "1793618789922",
               "ord": 1,
               "key": "reverse",
               "deckPath": "Matrix Standard::Optional",
@@ -4467,12 +4597,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341701",
+              "ankiCardId": "1793618789923",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Optional",
@@ -4506,12 +4637,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341703",
+              "ankiCardId": "1793618789924",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Eintippen",
@@ -4547,12 +4679,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341705",
+              "ankiCardId": "1793618789927",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -4576,7 +4709,7 @@
               }
             },
             {
-              "ankiCardId": "1791570341707",
+              "ankiCardId": "1793618789925",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -4599,7 +4732,7 @@
               }
             },
             {
-              "ankiCardId": "1791570341706",
+              "ankiCardId": "1793618789926",
               "ord": 2,
               "key": "cloze:3",
               "deckPath": "Matrix Standard::Lückentext",
@@ -4635,12 +4768,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341708",
+              "ankiCardId": "1793618789928",
               "ord": 0,
               "key": "cloze:1",
               "deckPath": "Matrix Standard::Lückentext",
@@ -4662,7 +4796,7 @@
               }
             },
             {
-              "ankiCardId": "1791570341709",
+              "ankiCardId": "1793618789929",
               "ord": 1,
               "key": "cloze:2",
               "deckPath": "Matrix Standard::Lückentext",
@@ -4697,12 +4831,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341710",
+              "ankiCardId": "1793618789930",
               "ord": 0,
               "key": "anki-0",
               "deckPath": "Matrix Standard::Template-Heimat",
@@ -4723,7 +4858,7 @@
               }
             },
             {
-              "ankiCardId": "1791570341711",
+              "ankiCardId": "1793618789931",
               "ord": 1,
               "key": "anki-1",
               "deckPath": "Matrix Standard::Template-Zielstapel",
@@ -4757,12 +4892,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341712",
+              "ankiCardId": "1793618789932",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Ebene 2::Ebene 3::Ebene 4::Ebene 5::Ebene 6",
@@ -4796,12 +4932,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341713",
+              "ankiCardId": "1793618789933",
               "ord": 0,
               "key": "forward",
               "deckPath": "Matrix Standard::Leerer Elternstapel::Kind",
@@ -4835,12 +4972,13 @@
           "speech": {},
           "choice": null,
           "occlusion": null,
+          "layout": "core",
           "tags": [],
           "marked": false,
           "media": [],
           "cards": [
             {
-              "ankiCardId": "1791570341714",
+              "ankiCardId": "1793618789934",
               "ord": 0,
               "key": "forward",
               "deckPath": "Default",
@@ -4866,7 +5004,7 @@
     },
     "empty-latest": {
       "file": "empty-latest.apkg",
-      "sha256": "4cb2ecf2968743fddc2153eadcd7a5be63235c6c39c9005d9aadaace9e03f10a",
+      "sha256": "226bca2e5c332eca8257dd013b9b8925803cde7e7f46eaf2cf63c4a5cabe2282",
       "packageFormat": "latest",
       "zipEntries": [
         "collection.anki2",
@@ -4887,7 +5025,7 @@
     },
     "broken": {
       "file": "broken.apkg",
-      "sha256": "ded0df67a6d7ee8f869baf4e9ab5b4cc83284fa3e03edda9bb76246deb18b84b",
+      "sha256": "e0dce6e669932dad9ffa899cf51cc85008e56a9b437d93256e7dc2e0baa9ddf9",
       "packageFormat": "broken",
       "zipEntries": [],
       "axes": {
