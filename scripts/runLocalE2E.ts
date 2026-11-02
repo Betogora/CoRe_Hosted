@@ -150,15 +150,18 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       ? "Gemeinsame Infrastruktur oder nicht zugeordneter Produktcode geändert: vollständige Browsersuite ausführen …"
       : `Betroffene Browserflows: ${[...affected.catalog, ...affected.supabase].join(", ") || "keine"}`);
   }
+  const needsSupabase = !affected || affected.full || affectedSupabaseSpecs.length > 0;
+
+  if (needsSupabase) {
+    try {
+      await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
+    } catch {
+      throw new Error("Docker Desktop läuft nicht. Starte Docker Desktop und führe den Befehl danach erneut aus.");
+    }
+  }
   if (runFullE2E && forwardedPlaywrightArguments.length === 0) await runCatalogE2E([]);
   else if (affected && !affected.full && affected.catalog.length) await runCatalogE2E(specPaths(affected.catalog));
-  if (affected && !affected.full && !affectedSupabaseSpecs.length) return;
-
-  try {
-    await runCommand("docker", ["info", "--format", "{{.ServerVersion}}"], { capture: true, timeoutMs: 5_000 });
-  } catch {
-    throw new Error("Docker Desktop läuft nicht. Starte Docker Desktop und führe den Befehl danach erneut aus.");
-  }
+  if (!needsSupabase) return;
 
   let supabaseStartAttempted = false;
   try {
@@ -228,7 +231,7 @@ export async function runLocalE2E(playwrightArguments: string[] = []) {
       const selectedTag = runBetaE2E ? BETA_CORE_TAG : GOLDEN_E2E_TAG;
       const selectedArguments = runGoldenE2E || runBetaE2E
         ? ["--grep", selectedTag, ...forwardedPlaywrightArguments]
-        : runFullE2E ? forwardedPlaywrightArguments : [...specPaths(affectedSupabaseSpecs), ...forwardedPlaywrightArguments];
+        : [...specPaths(affectedSupabaseSpecs), ...forwardedPlaywrightArguments];
       await stopOrphanedLocalViteServers();
       await runCommand(process.execPath, [PLAYWRIGHT_CLI_PATH, "test", ...selectedArguments], {
         env: { ...testEnvironment, CORE_E2E_GATE: runFullE2E ? "release" : gate },

@@ -43,9 +43,11 @@ Zum Teilen den ganzen `docs`-Ordner mitnehmen. Die Seiten lassen sich direkt
 3. `npm run docs:build` erzeugt die fünf Leseseiten. `npm run check:docs` prüft
    Quellenstand, Dokumentverweise, Journey-Regeln und die vollständige Zuordnung
    exportierter UI-Komponenten zu Gruppen und Demos. `npm run gate:push` führt
-   diesen Check ebenfalls aus. Das Katalog-Bundle trägt einen Hash seiner
-   Eingaben (Quellen ohne Tests, Katalog, Generator, Assets, Lockfile); stimmt
-   er und ist die eingebettete Runtime unverändert, entfällt der Neuaufbau.
+   diesen Check ebenfalls aus. Ein Hash der Katalog-Eingaben (Quellen ohne
+   Tests, Katalog, Generator, Assets, Lockfile, Build-Konfiguration) steht
+   gekürzt als Quellenstand im Katalog und vor der eingebetteten Runtime. Jede
+   geänderte Eingabe macht den Katalog veraltet; stimmt der Hash und ist die
+   Runtime unverändert, entfällt der Neuaufbau des Bundles.
    HTML-Ausgaben nie direkt bearbeiten.
 4. Betroffene Demos, Zustände und App-Ansichten gemäß der
    [visuellen Pflichtmatrix](operations.md#visuelle-pflichtmatrix) ansehen.

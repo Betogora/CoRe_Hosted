@@ -5,6 +5,16 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-02 — Testsuite, Paket D: Gezielte Browserläufe und schnellere Docs-Prüfung
+
+- `check:docs` baut das Katalog-Bundle nur neu, wenn sich seine Eingaben geändert haben: Der Eingabe-Hash steht vor der eingebetteten Runtime und ersetzt als gekürzter Quellenstand im Katalog den bisherigen eigenen `sourceHash`. Gemessen am 2026-10-31: 12,6 s statt 32 s für die Prüfung ohne Neuaufbau.
+- Die acht Specs ohne Supabase (Katalog und abgefangene App-Flows) laufen über `playwright.catalog.config.ts` parallel: `npm run test:e2e:catalog`, in der CI als eigener Job `catalog-e2e`. Die Projekte `learning-content-chromium` und `note-presentation-chromium` entfallen; `npm run test:e2e:local` führt die Katalogflows weiter mit aus.
+- `npm run test:e2e:affected:local` wählt Specs aus den Änderungen gegenüber `origin/main` (`scripts/affectedE2ESpecs.ts`); gemeinsame Infrastruktur und nicht zugeordnete Produktquellen führen zur vollständigen Suite. Ein Modultest meldet Specs, die keine Produktquelle erreicht.
+- Sichtmatrizen in `deck-ui-restoration`, `learning-summaries`, `mindmaps` und `note-presentation` laufen nur mit `CORE_VISUAL_OUTPUT=1`, sonst je ein Smartphone- und ein Desktopformat ohne Screenshots. Drei an zwischenzeitliche Produktänderungen angepasste Erwartungen: Listenbuttons der Zusammenfassungen, Standard-Markerfarbe, neutrale Mindmap-Linienfarbe aus dem Theme-Token.
+- Testbug: `exam-topic-order` scheiterte auf `main` unter 1280 px, weil die Positionierungshilfe die seit der Docs-Seitenleiste nicht mehr klebende Suche als Abstand einrechnete (negative Koordinate, Liste aus dem Bild gescrollt). Die Hilfe zählt nur noch eine sichtbare Suche.
+- Prüfung: `npm run gate:push` grün (30,9 s), `npm run test:e2e:catalog` lokal mit vier Workern 209 bestanden, 19 Sichtmatrix-Tests übersprungen, 10,7 min; unter paralleler Fremdlast schlugen einzelne Drag-Flows wegen Zeitüberschreitung fehl und bestanden im Einzellauf. Ohne Docker ungeprüft: die Supabase-Specs, `npm run test:e2e:local` und ein vollständiger Lauf von `test:e2e:affected:local`; dessen Specauswahl prüft der Modultest, der Abbruch ohne Docker meldet sich jetzt vor dem Katalog-Lauf.
+- Offen bleiben die Kontoresets, Überschneidungen, festen Wartezeiten und übrigen Breitenschleifen aus [`todo.md`](todo.md#testsuite-verschlanken).
+
 ## 2026-11-02 — Aktive Stapel: Zahlen ohne Pille, Dashboard mit gemeinsamer Ansicht
 
 - `Neu`, `Offen` und `Fällig` erscheinen in Liste und Kacheln als Zahlen in Statusfarbe ohne Hintergrundfläche und in Größe des Stapelnamens; Nullwerte bleiben neutral.
