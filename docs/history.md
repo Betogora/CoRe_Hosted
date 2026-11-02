@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-02 — UI-Elemente: ColorPicker, Quiet-Löschbutton, ein FileDropField, schlanker Katalog
+
+- Aus der BengtsToolBox übernommen: `ColorPicker` (Farbkreis und zweizeilige Schnellwahl aus 14 Farben, Auslöser als Farbfeld oder Werkzeug-Icon) ersetzt `ColorWheelPicker` und den Slot-/Spektrum-/Hex-Popover. Er gilt für Stapel-, Prüfungs- und Heatmap-Farbe, Stift- und Markerfarbe im Texteditor, freie Mindmap-Farben und die Zeichenfarben der Zusammenfassung. Die Heatmap wählt ihre Farbe damit frei statt aus vier Lernstatustönen (Speicherschlüssel `v2`, Standard CoRe-Akzent).
+- `IconButton` hat die Variante `destructive-quiet` (grau, beim Hovern rot) in CoRe-Bedienhöhe; sieben handgebaute oder Ghost-Mülleimer nutzen sie.
+- `FileDropField` ist eine konfigurierbare Komponente ohne Iconkachel statt vier Varianten; `SegmentedDonut` ist entfernt, die Codeumfang-Grafik der Doku zeigt nur die Tabelle.
+- `ui-elements.html`: jedes Format einmal, ohne Erklärtexte, Zustandsmatrix und Kartenvarianten-Galerie (34 → 29 Karten, Seitenhöhe ~32.800 → ~17.100 px). Produktansichten öffnet nur noch `?preview=screens` bzw. `?preview=<name>` als Gerüst der Katalogflows; Smooth-Scroll ist dort aus, weil er Tooltip-Hover abbrach.
+- Prüfung: `npm run gate:push` grün; Katalogflows 92 bestanden, 2 unter paralleler Last flackernd (einzeln 9/9 grün); gegen lokales Supabase besteht der Heatmap-Farbtest. `exam-planning` „Prüfungskarte bearbeitet inline“ scheitert unabhängig davon am eingeklappten Stapel „Europa“, `world-capitals-hierarchy` „deck presentation form …“ besteht den Farbwähler-Teil und scheitert danach an einer seit dem ToolBox-Redesign veralteten Rahmenfarben-Prüfung der Stapelzeile.
+
 ## 2026-11-02 — Testsuite, Paket D: Katalogflows eingedampft
 
 - Die Katalogflows prüfen ohne `CORE_VISUAL_OUTPUT` nur noch 390 × 844 und 1440 × 900 im hellen Theme und schreiben keine Screenshots; `exam-contact-planning` und `exam-topic-order` behalten zusätzlich ihr 720 × 450-Layout. Umgestellt sind `dashboard-widgets` (vier Schleifen über 10 Breiten × 2 Themes, Motivation, 38 ganzseitige Screenshots des Maskottchen-Vorrats), `exam-contact-planning`, `exam-topic-order`, die Mindmap-Sichtmatrix und der Kartenrahmen in `note-presentation`. Die Prüfung, dass Timer und Motivation bei 640 und 999 px in einer Reihe stehen, ist ein eigener Test ohne Drag. Mit der Variable laufen weiter alle Größen, Rasterumbrüche und beide Themes. `matrixThemes` in `tests/e2e/support/visualMatrix.ts` ersetzt die verstreuten Theme-Schleifen.
