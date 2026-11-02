@@ -3,7 +3,7 @@ import { matrixThemes, matrixViewports, visualOutput } from "./support/visualMat
 
 test.setTimeout(90_000);
 async function openMindMaps(page: Page) {
-  await page.goto("./docs/ui-elements.html#screens");
+  await page.goto("./docs/ui-elements.html?preview=screens");
   await page.getByRole("button", { name: "Mindmaps öffnen", exact: true }).click();
   const panel = page.getByTestId("deck-mindmaps-panel");
   await expect(panel.getByTestId("mindmap-canvas")).toBeVisible();
@@ -86,14 +86,14 @@ test("Schreiben bearbeitet ausgewählte Karten oder freies Flächentext-HTML mit
 test("Freie Text- und Markerfarben erhalten die Auswahl trotz Fokuswechsel und Reload", async ({ page }) => {
   const panel = await openMindMaps(page); await root(panel, "Formatierte Notiz"); await node(panel, "Formatierte Notiz").dblclick();
   const editor = panel.getByRole("textbox", { name: "Kartentext bearbeiten", exact: true }); await editor.fill("Farbe bleibt gespeichert.");
-  for (const [label, color, property, expected] of [["Stiftfarbe", "#123abc", "color", "rgb(18, 58, 188)"], ["Markerfarbe", "#e8cd64", "backgroundColor", "rgb(232, 205, 100)"]] as const) {
-    await editor.press("Control+A"); await panel.getByRole("button", { name: label, exact: true }).click(); await panel.getByRole("dialog", { name: label, exact: true }).getByRole("textbox").fill(color);
+  for (const [label, color, property, expected] of [["Stiftfarbe", "#e5484d", "color", "rgb(229, 72, 77)"], ["Markerfarbe", "#f6dd8e", "backgroundColor", "rgb(246, 221, 142)"]] as const) {
+    await editor.press("Control+A"); await panel.getByRole("button", { name: label, exact: true }).click(); await page.getByRole("dialog", { name: label, exact: true }).getByRole("radio", { name: `Farbe ${color}`, exact: true }).click();
     await expect.poll(() => editor.evaluate((el, args) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n)[args.property] === args.expected), { property, expected })).toBe(true);
     await panel.getByRole("button", { name: label, exact: true }).click();
   }
   await finish(panel); await save(panel); await reload(page, panel); await node(panel, "Formatierte Notiz").dblclick();
-  expect(await editor.evaluate((el) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n).color === "rgb(18, 58, 188)"))).toBe(true);
-  expect(await editor.evaluate((el) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n).backgroundColor === "rgb(232, 205, 100)"))).toBe(true);
+  expect(await editor.evaluate((el) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n).color === "rgb(229, 72, 77)"))).toBe(true);
+  expect(await editor.evaluate((el) => Array.from(el.querySelectorAll("*")).some((n) => getComputedStyle(n).backgroundColor === "rgb(246, 221, 142)"))).toBe(true);
 });
 
 test("Direkte Bearbeitung mit allen Textwerkzeugen oben, automatischer Werkzeugwahl und fetten Titeln über normalem Text", async ({ page }) => {
@@ -120,8 +120,8 @@ test("Bilder in Stichwortdetails und Textkarten sowie freie Kastenfarben überst
   await panel.getByRole("textbox", { name: "Kartentext bearbeiten" }).fill("Mein Text.");
   await panel.getByLabel("Bild hinzufügen", { exact: true }).setInputFiles(image);
   await panel.getByRole("button", { name: "Kastenfarbe frei wählen", exact: true }).click();
-  await panel.getByRole("dialog", { name: "Kastenfarbe frei wählen", exact: true }).getByRole("textbox").fill("#123abc");
-  await panel.getByRole("button", { name: "Kastenfarbe frei wählen", exact: true }).press("Escape");
+  await page.getByRole("dialog", { name: "Kastenfarbe frei wählen", exact: true }).getByRole("radio", { name: "Farbe #8b5cf6", exact: true }).click();
+  await page.keyboard.press("Escape");
   await finish(panel);
   await expect(node(panel, "Energie").locator("img")).toHaveCount(0);
   await expect(node(panel, "Energie").getByRole("button", { name: "Bilder anzeigen", exact: true })).toBeVisible();
@@ -129,7 +129,7 @@ test("Bilder in Stichwortdetails und Textkarten sowie freie Kastenfarben überst
   await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click();
   await finish(panel); await expect(node(panel, "Energie").locator("img")).toBeVisible();
   await save(panel); await reload(page, panel);
-  await expect(node(panel, "Energie")).toHaveAttribute("data-color", "#123abc");
+  await expect(node(panel, "Energie")).toHaveAttribute("data-color", "#8b5cf6");
   await expect(node(panel, "Energie").locator("img")).toHaveAttribute("src", /^blob:/);
   await node(panel, "Energie").dblclick(); await panel.getByRole("button", { name: "Bild „energie.png“ entfernen", exact: true }).click();
   await expect(node(panel, "Energie").locator("img")).toHaveCount(0); await panel.getByRole("button", { name: "Rückgängig", exact: true }).click();
@@ -192,7 +192,7 @@ test("Gestalten enthält Zeichnen, Radieren und Schreiben mit Farben und Strichs
 });
 
 test("Zusammenfassungsquellen und Entwurfsschutz bleiben im neuen Editor erhalten", async ({ page }) => {
-  await page.goto("./docs/ui-elements.html#screens"); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
+  await page.goto("./docs/ui-elements.html?preview=screens"); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
   const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true }); await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
   const panel = page.getByTestId("deck-mindmaps-panel"); await root(panel, "Mein Entwurf"); await save(panel); await node(panel, "Mein Entwurf").dblclick();
   await page.evaluate(() => { const put = IDBDatabase.prototype.transaction; IDBDatabase.prototype.transaction = function (...args: Parameters<IDBDatabase["transaction"]>) { const tx = put.apply(this, args); if (args[1] === "readwrite") Object.defineProperty(tx, "oncomplete", { set(handler: (event: Event) => void) { tx.addEventListener("complete", (event) => setTimeout(() => handler.call(tx, event), 1500)); } }); return tx; }; });
@@ -235,7 +235,7 @@ test("Mehrfachauswahl per Antippen erstellt Gruppen ohne Tastaturmodifikator", a
 
 
 test("Ein laufender Bildimport wird vor dem Speichern beim Tabwechsel vollständig übernommen", async ({ page }) => {
-  await page.goto("./docs/ui-elements.html#screens"); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
+  await page.goto("./docs/ui-elements.html?preview=screens"); await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
   const tabs = page.getByRole("group", { name: "Stapelinhalte", exact: true }); await tabs.getByRole("button", { name: "Mind Map", exact: true }).click();
   const panel = page.getByTestId("deck-mindmaps-panel"); await root(panel, "Bildnotiz"); await node(panel, "Bildnotiz").dblclick();
   await panel.getByRole("group", { name: "Kastenart", exact: true }).getByRole("button", { name: "Textkarte", exact: true }).click(); await finish(panel); await save(panel);
@@ -402,7 +402,7 @@ test("Erzeugte Mindmaps zeigen Blatttexte direkt und speichern Änderungen im no
 
 
 test("Ohne Zusammenfassung bleibt nur die gemeinsame Erstellung mit kompakter Unterstapelwahl", async ({ page }) => {
-  await page.goto("./docs/ui-elements.html#screens");
+  await page.goto("./docs/ui-elements.html?preview=screens");
   await page.getByRole("button", { name: "Mindmaps ohne Zusammenfassung öffnen", exact: true }).click();
   const panel = page.getByTestId("deck-mindmaps-panel"), generate = panel.getByRole("button", { name: "Zusammenfassung und Mindmap erzeugen", exact: true });
   await expect(panel.getByTestId("mindmap-canvas")).toBeVisible();

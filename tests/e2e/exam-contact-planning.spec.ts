@@ -11,7 +11,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
   for (const theme of matrixThemes) {
   test(`FSRS-Kontaktplanung ${width}×${height} ${theme}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
-    await page.goto("/docs/ui-elements.html#screens");
+    await page.goto("/docs/ui-elements.html?preview=screens");
     await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
     if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
     await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
@@ -73,7 +73,7 @@ for (const [width, height, scale] of viewports) test.describe(`${width}×${heigh
 });
 
 test("der Kalender startet mit der aktuellen Woche und lässt frühere Wochen gezielt öffnen", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   const calendar = page.getByTestId("exam-month-calendar"), cells = calendar.locator("[data-date]");
@@ -100,7 +100,7 @@ test("der Kalender startet mit der aktuellen Woche und lässt frühere Wochen ge
 
 test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speichern erhalten", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview"), editor = product.getByTestId("exam-plan-editor");
@@ -166,7 +166,7 @@ test("Stapelzweige, Suche und individuelle Wochentagszeiten bleiben beim Speiche
 
 
 test("Lernzeit-Eingabewege übernehmen Defaults, aktivieren Tage direkt und erhalten die genaue Planung", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview"), editor = product.getByTestId("exam-plan-editor");
@@ -212,7 +212,7 @@ test("Lernzeit-Eingabewege übernehmen Defaults, aktivieren Tage direkt und erha
 
 
 test("die Schrittleiste erlaubt genau einen gültigen Schritt vorwärts und beliebig zurück", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   await page.getByRole("button", { name: "Prüfung hinzufügen", exact: true }).click();
@@ -244,7 +244,7 @@ test("die Schrittleiste erlaubt genau einen gültigen Schritt vorwärts und beli
 
 test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erhalten", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview");
@@ -273,7 +273,7 @@ test("Lernstart ist heute vorbelegt und bleibt beim Speichern und Bearbeiten erh
 
 
 test("Prüfungsfarben filtern Monat, Woche und Tagesdetails unabhängig ohne Planänderung", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview"), calendar = product.getByTestId("exam-calendar");
@@ -310,7 +310,7 @@ test("Prüfungsfarben filtern Monat, Woche und Tagesdetails unabhängig ohne Pla
 
 
 test("Monatsansicht zeigt Karten und Lesen in derselben Fachkachel", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Prüfungen öffnen", exact: true }).click();
   const calendar = page.locator(".catalog-product-preview").getByTestId("exam-calendar");

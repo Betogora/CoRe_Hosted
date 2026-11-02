@@ -996,6 +996,11 @@ video {
     color: var(--core-text);
   }
 
+  .core-action-destructive-quiet:not(:disabled):hover {
+    background: var(--core-danger-surface);
+    color: var(--core-danger-text);
+  }
+
   .core-action-ghost:disabled {
     cursor: not-allowed;
     border-color: transparent;
@@ -1225,6 +1230,10 @@ video {
 .inset-x-1 {
   left: 0.25rem;
   right: 0.25rem;
+}
+.inset-x-2 {
+  left: 0.5rem;
+  right: 0.5rem;
 }
 .inset-x-\[8\%\] {
   left: 8%;
@@ -1587,10 +1596,6 @@ video {
   width: 1.25rem;
   height: 1.25rem;
 }
-.size-6 {
-  width: 1.5rem;
-  height: 1.5rem;
-}
 .size-7 {
   width: 1.75rem;
   height: 1.75rem;
@@ -1879,9 +1884,6 @@ video {
 .w-4\/5 {
   width: 80%;
 }
-.w-56 {
-  width: 14rem;
-}
 .w-7 {
   width: 1.75rem;
 }
@@ -1896,9 +1898,6 @@ video {
 }
 .w-\[calc\(100dvw-2rem\)\] {
   width: calc(100dvw - 2rem);
-}
-.w-\[min\(15rem\2c calc\(100vw-1\.5rem\)\)\] {
-  width: min(15rem, calc(100vw - 1.5rem));
 }
 .w-\[min\(17rem\2c calc\(100vw-1\.5rem\)\)\] {
   width: min(17rem, calc(100vw - 1.5rem));
@@ -2001,6 +2000,9 @@ video {
 }
 .max-w-5xl {
   max-width: 64rem;
+}
+.max-w-7 {
+  max-width: 1.75rem;
 }
 .max-w-7xl {
   max-width: 80rem;
@@ -2418,9 +2420,6 @@ video {
 }
 .overflow-hidden {
   overflow: hidden;
-}
-.overflow-visible {
-  overflow: visible;
 }
 .overflow-x-auto {
   overflow-x: auto;
@@ -4580,45 +4579,6 @@ summary {
   color: var(--core-text-muted);
 }
 
-.core-hue-range {
-  width: 100%;
-  height: 2.75rem;
-  cursor: pointer;
-  -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
-  border: 0;
-  border-radius: var(--core-radius-round);
-  background:
-    linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444) center / calc(100% - 2px) 0.625rem no-repeat,
-    linear-gradient(var(--core-border), var(--core-border)) center / 100% 0.75rem no-repeat;
-  outline: none;
-}
-
-.core-hue-range::-webkit-slider-thumb {
-  width: 1rem;
-  height: 1rem;
-  -webkit-appearance: none;
-          appearance: none;
-  border: var(--core-border-width-strong) solid var(--core-surface);
-  border-radius: var(--core-radius-round);
-  background: var(--core-action-primary);
-  box-shadow:
-    0 0 0 var(--core-border-width) var(--core-focus-ring-soft),
-    var(--core-shadow-soft);
-}
-
-.core-hue-range::-moz-range-thumb {
-  width: 1rem;
-  height: 1rem;
-  border: var(--core-border-width-strong) solid var(--core-surface);
-  border-radius: var(--core-radius-round);
-  background: var(--core-action-primary);
-  box-shadow:
-    0 0 0 1px var(--core-focus-ring-soft),
-    var(--core-shadow-soft);
-}
-
 .card-html img,
 .rich-text-field img,
 .card-html video,
@@ -5009,9 +4969,6 @@ summary {
 .core-mindmap-compact-field input[type="range"] { min-height: 44px; }
 .core-mindmap-text-toolbar:empty { display: none; }
 .core-mindmap-text-toolbar > [role="toolbar"] { border-radius: var(--core-radius-control); position: relative; }
-.core-mindmap-text-toolbar .core-rich-text-extra-tools > .relative { position: static; }
-.core-mindmap-text-toolbar [role="dialog"] { left: auto; right: 0; max-height: min(32rem, 65dvh); overflow-y: auto; }
-.core-mindmap-custom-color > [role="dialog"] { left: var(--mindmap-color-x, 0px); right: auto; max-height: 65dvh; overflow-y: auto; }
 .core-mindmap-canvas { position: relative; min-width: 0; height: 640px; max-height: 75dvh; min-height: 360px; overflow: hidden; touch-action: none; background-color: var(--core-surface); background-image: radial-gradient(circle, var(--core-border) 1px, transparent 1px); cursor: grab; }
 .core-mindmap-canvas[data-tool="pen"], .core-mindmap-canvas[data-tool="text"] { cursor: crosshair; }
 .core-mindmap-canvas[data-tool="erase"] { cursor: cell; }
@@ -5113,10 +5070,6 @@ summary {
 .core-summary-tool-modes [aria-pressed="true"], .core-summary-tool-modes [aria-pressed="true"]:hover { background: var(--core-action-soft); color: var(--core-action-primary) !important; }
 .core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; flex-wrap: nowrap; }
 .core-summary-text-tools .core-rich-text-extra-tools { position: absolute; top: calc(100% + 6px); left: 0; width: min(20rem, 100%); z-index: 25; padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); box-shadow: var(--core-shadow-raised); }
-.core-summary-text-tools .core-rich-text-extra-tools > .relative { position: static; }
-.core-summary-text-tools [role="dialog"] { left: 0; right: auto; max-width: min(14rem, calc(100vw - 2rem)); max-height: min(30rem, calc(100dvh - 10rem)); overflow-y: auto; z-index: 30; }
-.core-summary-drawing-color { display: flex; align-items: center; gap: var(--core-space-sm); min-height: var(--core-control-height); }
-.core-summary-drawing-color input { width: var(--core-control-height); height: var(--core-control-height); padding: var(--core-space-xs); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); cursor: pointer; }
 .core-summary-ink-preview { flex-shrink: 0; }
 .core-summary-stage { min-width: 0; padding-top: var(--core-space-lg); }
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); box-shadow: var(--core-shadow-soft); }
@@ -5195,12 +5148,6 @@ summary {
   background: var(--core-surface-muted);
   color: var(--core-text-secondary);
 }
-.core-ai-source-column [data-file-drop-field="true"] { border-width: var(--core-border-width); }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] { display: flex; flex-direction: column; gap: var(--core-space-md); min-height: 0; border-style: solid; background: var(--core-surface); }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid { min-height: 0; }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .mt-4 { order: -1; margin-top: 0; }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid > div > :is(svg, p) { display: none; }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid button { margin-top: 0; }
 .core-ai-source-format {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -5371,6 +5318,11 @@ summary {
   --tw-scale-y: 1.05;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
+.hover\:scale-110:hover {
+  --tw-scale-x: 1.1;
+  --tw-scale-y: 1.1;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
 .hover\:border-t-4:hover {
   border-top-width: 4px;
 }
@@ -5441,9 +5393,6 @@ summary {
 }
 .focus-visible\:ring-inset:focus-visible {
   --tw-ring-inset: inset;
-}
-.focus-visible\:ring-\[var\(--core-focus-ring\)\]:focus-visible {
-  --tw-ring-color: var(--core-focus-ring);
 }
 .focus-visible\:ring-core-focus:focus-visible {
   --tw-ring-color: var(--core-focus);
@@ -6438,9 +6387,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-journey-flow pre { margin: 0; padding: var(--core-space-md); }
 .mermaid svg { max-width: 100%; height: auto; }
 .docs-code-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--core-space-md); }
-.docs-code-chart { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--core-space-xl); align-items: center; margin: var(--core-space-xl) 0; }
-.docs-code-donut { display: grid; justify-items: center; gap: var(--core-space-md); }
-.docs-code-donut > span:first-child { width: 10rem; height: 10rem; }
+.docs-code-chart { margin: var(--core-space-xl) 0; }
 .docs-code-dot { display: inline-block; width: var(--core-space-sm); height: var(--core-space-sm); border-radius: var(--core-radius-round); margin-right: var(--core-space-sm); }
 .docs-code-chart tbody th { font-weight: var(--core-weight-control); }
 .docs-code-chart thead th { white-space: nowrap; }
@@ -6490,7 +6437,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
   .docs-panel-links a[data-depth="3"] { display: none; }
 }
 @media (max-width: 600px) {
-  .docs-code-stats, .docs-code-chart { grid-template-columns: 1fr; }
+  .docs-code-stats { grid-template-columns: 1fr; }
   .docs-code-chart th, .docs-code-chart td { padding: var(--core-space-sm); }
 }
 @media print { .docs-sidebar { display: none; } .docs-frame { display: block; padding: 0; } .docs-document { max-width: none; } }
@@ -6622,6 +6569,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-in
   .catalog-accents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 html { scroll-behavior: smooth; }
+/* The preview harness has no jump links; smooth scrolling would only delay its pointer interactions. */
+html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html">Docs</a><a href="specs.html" aria-current="page">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Specs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Anforderung, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"><a href="#specs--1-produktvision">1. Produktvision</a><a href="#specs--2-produktprinzipien">2. Produktprinzipien</a><a href="#specs--3-produktreife">3. Produktreife</a><a href="#specs--4-domänensprache">4. Domänensprache</a><a href="#specs--5-kernjourneys">5. Kernjourneys</a><a href="#specs--6-funktionale-anforderungen">6. Funktionale Anforderungen</a><a href="#specs--7-visueller-produktvertrag">7. Visueller Produktvertrag</a><a href="#specs--8-nichtfunktionale-anforderungen">8. Nichtfunktionale Anforderungen</a><a href="#specs--9-beta-abnahme">9. Beta-Abnahme</a><a href="#specs--10-nichtziele-des-beta-kerns">10. Nichtziele des Beta-Kerns</a><a href="#specs--codeumfang">Codeumfang</a></div></nav></aside><main class="docs-main"><div id="specs--document" class="catalog" data-specs-catalog><header class="catalog-hero"><h1 id="specs--core--produktvertrag-und-kernjourneys">CoRe — Produktvertrag und Kernjourneys</h1><p class="catalog-lede">CoRe ergänzt Spaced Repetition um Content Repetition: Wissen auch bei veränderter Frage abrufen. Implementierung, Architektur, Betrieb, Entscheidungen, Verlauf und Roadmap stehen in der <a href="index.html#readme--document">Dokumentenlandkarte</a>.</p><ul class="specs-meta"><li class="core-status-label"><span>Rolle</span> einzige kanonische Quelle für Produktversprechen, Kernjourneys, funktionale Anforderungen und Produktabnahme.</li><li class="core-status-label"><span>Status</span> Arbeitsfassung</li><li class="core-status-label"><span>Stand</span> 2026-10-29</li></ul></header><p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche.</p><section id="specs--1-produktvision" class="catalog-section"><div class="catalog-section-heading"><h2>1. Produktvision</h2><p>CoRe startet Anki-kompatibel, hält das Lernen ruhig und behandelt jede planbare Karte als eigene Lerneinheit. Gelernt wird der Inhalt, nicht Layout, Wortlaut oder Lückenposition.</p>
 </div><div class="catalog-grid"><article id="specs--zielgruppen" class="catalog-card"><div class="catalog-card-header"><h3>Zielgruppen</h3></div><div class="catalog-preview specs-prose"><ul>
@@ -7083,7 +7032,7 @@ html { scroll-behavior: smooth; }
 <li>Eine globale Filterleiste steuert alles außer der Heatmap: <code>30 Tage</code>, <code>90 Tage</code>, <code>1 Jahr</code>, <code>Gesamt</code> sowie gesamte Sammlung, ein oder mehrere Stapel. Standard ist <code>Gesamte Sammlung · 1 Jahr</code>; Oberstapel schließen Unterstapel dedupliziert ein. Die Stapelauswahl bietet Suche, <code>Gesamte Sammlung</code> und den Baum; eingeschlossene Unterstapel bleiben markiert und deaktiviert.</li>
 <li>Die Inhaltsnavigation gliedert in <code>Überblick</code>, <code>Lernaktivität</code>, <code>Planung &amp; Kartenbestand</code>, <code>FSRS-Gedächtnismodell</code>, <code>Antwortverhalten</code> und gegebenenfalls <code>Stapelvergleich</code>. Der Überblick zeigt sieben Kennzahlen.</li>
 <li>Historische Bereiche: Übersicht, gestapelte Wiederholungen, gemessene Lernzeit mit Abdeckung, hinzugefügte Karten, Lern-Heatmap, Antwortzeitpunkt, Antwortknöpfe, wahre Erinnerungsquote und Stapelvergleich.</li>
-<li>Die Heatmap folgt nur dem Stapel-Scope und wählt ihren Zeitraum lokal (<code>Woche</code>, <code>Monat</code>, <code>Jahr</code>; Standard die letzten sieben Lerntage) über das gemeinsame Dropdown. Die Wochenansicht zeigt Wochentagskürzel und Datum (<code>Fr</code>, <code>25.09.</code>); Monat und Jahr zeigen ganze Kalenderzeiträume, Pfeile wechseln einen ganzen Zeitraum, das Jahresraster scrollt auf schmalen Flächen lokal horizontal.</li>
+<li>Die Heatmap folgt nur dem Stapel-Scope und wählt ihren Zeitraum lokal (<code>Woche</code>, <code>Monat</code>, <code>Jahr</code>; Standard die letzten sieben Lerntage) über das gemeinsame Dropdown. Die Wochenansicht zeigt Wochentagskürzel und Datum (<code>Fr</code>, <code>25.09.</code>); Monat und Jahr zeigen ganze Kalenderzeiträume, Pfeile wechseln einen ganzen Zeitraum, das Jahresraster scrollt auf schmalen Flächen lokal horizontal. Das Farbfeld neben dem Zeitraum öffnet die gemeinsame Farbauswahl (Farbkreis und Schnellwahl); die gewählte Farbe tönt die vier Lernstufen, gilt für Dashboard und Statistik gemeinsam und bleibt browserlokal gespeichert.</li>
 <li>Der Titel zeigt den Streak der gewählten Stapel; ein Lerntag zählt ab einem validen Review, der sichtbare Zeitraum begrenzt den Streak nicht. Von morgen bis Tag +365 zeigt eine von der Aktivität unterscheidbare, beschriftete Prognose die nächste Fälligkeit jeder aktiven Karte genau einmal (ohne Varianten, Entwürfe, gelöschte, ausgesetzte und begrabene Karten), ohne Folgetermine zu simulieren. Spätere Resttage sind abgeblendet und beschriftet.</li>
 <li>Die Legende <code>Weniger</code> bis <code>Mehr</code> erklärt nur vergangene Aktivität. Ihre browserlokal für Dashboard und Statistik gemeinsame Grundfarbe ist auf die Rollen <code>Gelernt</code>, <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> beschränkt; Standard ist <code>Neu</code>, ungültige Werte werden darauf normalisiert. Prognose und Heute-Markierung bleiben von der Wahl unberührt.</li>
 <li>Die wahre Erinnerungsquote verwendet nur die erste geeignete Wiederholung einer Karte je Lerntag mit vorherigem Intervall von mindestens einem Tag. Ändert sich der Tagesbeginn, werden Reviews neu gruppiert.</li>
@@ -7309,7 +7258,7 @@ html { scroll-behavior: smooth; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.778</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">40.150</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">222</dd></dl></div><div class="docs-code-chart"><div class="docs-code-donut"><span class="block shrink-0 size-10 "><svg viewBox="0 0 40 40" class="block size-full overflow-visible" role="img" aria-label="Bildschirmcode: Heute: 320 Zeilen, Lernen &amp; Karten: 2.238 Zeilen, Erstellen &amp; Import: 1.786 Zeilen, Prüfungen: 430 Zeilen, Statistik: 567 Zeilen, Konto &amp; Sync: 635 Zeilen, Hilfe: 802 Zeilen"><path d="M 20 1 A 19 19 0 0 1 25.553845913824688 1.8298377672214272 L 23.94615367561228 7.089621571446804 A 13.5 13.5 0 0 0 20 6.5 Z" fill="var(--core-learning-status-learned)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Heute" data-donut-value="320"></path><path d="M 25.553845913824688 1.8298377672214272 A 19 19 0 0 1 33.231130970710936 33.63587816152278 L 29.401066742347243 29.688650272660922 A 13.5 13.5 0 0 0 23.94615367561228 7.089621571446804 Z" fill="var(--core-learning-status-new)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Lernen &amp; Karten" data-donut-value="2238"></path><path d="M 33.231130970710936 33.63587816152278 A 19 19 0 0 1 5.292221648386711 32.02835217142463 L 9.549736434380032 28.546460753380657 A 13.5 13.5 0 0 0 29.401066742347243 29.688650272660922 Z" fill="var(--core-learning-status-in-progress)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Erstellen &amp; Import" data-donut-value="1786"></path><path d="M 5.292221648386711 32.02835217142463 A 19 19 0 0 1 1.7766411570381422 25.37672693007967 L 7.051823980000787 23.820305976635556 A 13.5 13.5 0 0 0 9.549736434380032 28.546460753380657 Z" fill="var(--core-action-primary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Prüfungen" data-donut-value="430"></path><path d="M 1.7766411570381422 25.37672693007967 A 19 19 0 0 1 1.538730518751322 15.507614315231137 L 6.88278221069173 16.808041750295807 A 13.5 13.5 0 0 0 7.051823980000787 23.820305976635556 Z" fill="var(--core-learning-status-due)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Statistik" data-donut-value="567"></path><path d="M 1.538730518751322 15.507614315231137 A 19 19 0 0 1 7.140177704428783 6.013400322940194 L 10.862757842620452 10.062152861036454 A 13.5 13.5 0 0 0 6.88278221069173 16.808041750295807 Z" fill="var(--core-learning-progress-completed)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Konto &amp; Sync" data-donut-value="635"></path><path d="M 7.140177704428783 6.013400322940194 A 19 19 0 0 1 19.999999999999996 1 L 19.999999999999996 6.5 A 13.5 13.5 0 0 0 10.862757842620452 10.062152861036454 Z" fill="var(--core-text-secondary)" fill-rule="evenodd" stroke="var(--core-border)" stroke-width="1" stroke-linejoin="round" vector-effect="non-scaling-stroke" data-donut-segment="Hilfe" data-donut-value="802"></path></svg></span><span class="core-caption">6.778 Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.238</td><td>33 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.786</td><td>26,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div></main></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.780</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.611</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">221</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.238</td><td>33 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>26,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

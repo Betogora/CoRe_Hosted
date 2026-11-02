@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { createRoot } from "react-dom/client";
 import { CoreTooltipProvider } from "../src/ui/tooltipUi.tsx";
 import { SuccessToastProvider } from "../src/ui/feedbackUi.tsx";
-import { DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, ProductViewsDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
+import { CatalogPreview, DEMO_GROUPS, NOTE_CASE_TITLES, NoteCaseDemo, StudyDemo, type CatalogCardKind, type CatalogSectionId } from "./uiCatalogDemos.tsx";
 
 export interface CatalogData {
   components: { name: string; file: string; group: string; usage: number; usedIn: string[] }[];
@@ -37,7 +37,6 @@ export const CATALOG_SECTIONS: { id: CatalogSectionId; nav: string; title: strin
   { id: "shared", nav: "Shared Patterns", title: "Gemeinsame App-Muster" },
   { id: "fachmuster", nav: "CoRe · Fachmuster", title: "CoRe · Fachmuster" },
   { id: "icons", nav: "Icons & Assets", title: "Icons, Illustrationen und Assets" },
-  { id: "states", nav: "Zustände", title: "Zustandsmatrix" },
 ];
 
 interface CatalogCard { id: string; section: CatalogSectionId; title: string; search: string; source?: string; wide?: boolean; render: () => React.ReactNode }
@@ -210,6 +209,7 @@ function CardBlocks() {
   </CatalogFrame></SuccessToastProvider></CoreTooltipProvider>;
 }
 
-createRoot(document.getElementById("catalog-root")!).render(new URLSearchParams(window.location.search).get("preview") === "dashboard"
-  ? <CoreTooltipProvider><SuccessToastProvider><ProductViewsDemo kind="dashboard" /></SuccessToastProvider></CoreTooltipProvider>
+const preview = new URLSearchParams(window.location.search).get("preview");
+createRoot(document.getElementById("catalog-root")!).render(preview
+  ? <CoreTooltipProvider><SuccessToastProvider><CatalogPreview kind={preview} /></SuccessToastProvider></CoreTooltipProvider>
   : document.body.dataset.catalog === "cards" ? <CardBlocks /> : <Catalog />);

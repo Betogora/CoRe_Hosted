@@ -13,7 +13,7 @@ import { createNote, type AddableFieldRole, type ManualNoteErrors, type Occlusio
 import type { CreationWorkflow, ManualCreationInput, ManualImageAttachment } from "../creationWorkflow.ts";
 import type { MediaSyncProgress } from "../mediaStore.ts";
 import type { Deck, NoteContent, OcclusionMask } from "../coreTypes.ts";
-import { isReadableSourceDocument, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
+import { isReadableSourceDocument, READABLE_SOURCE_DOCUMENT_ACCEPT, READABLE_SOURCE_DOCUMENT_LABEL, type TransientSourceDocument } from "../documentModel.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, OrbIcon, SoftPanel } from "../ui/coreUi.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
@@ -666,7 +666,7 @@ export function ManualCreationPanel({
                 <ActionButton type="button" variant="secondary" icon={ImagePlus} className="w-fit" disabled={isSaving} onClick={() => occlusion.masks.length > 0 ? setImageChangeConfirmOpen(true) : clearOcclusionImage()}>Anderes Bild wählen</ActionButton>
               </>
             ) : (
-              <FileDropField kind="image" selected={false} busy={isPreparingImage} disabled={isSaving} onFile={chooseOcclusionImage} />
+              <FileDropField accept="image/*" pasteImages ariaLabel="Bild einfügen oder ablegen" prompt="Bild mit Strg+V einfügen oder hier ablegen" actionLabel="Bild auswählen" busy={isPreparingImage} disabled={isSaving} onFile={chooseOcclusionImage} />
             )}
             {fieldErrors.occlusion ? <p className="core-caption font-medium text-core-danger" role="alert">{fieldErrors.occlusion}</p> : null}
           </div>
@@ -868,7 +868,7 @@ export function ManualCreationPanel({
       {documentMode ? (
         <div className={`grid gap-4 ${document ? "xl:grid-cols-2" : ""}`}>
           <div className="grid content-start gap-4" inert={isSaving} aria-disabled={isSaving || undefined}>
-            <FileDropField kind="document" selected={Boolean(document)} onFile={handleDocument} disabled={isSaving}>
+            <FileDropField accept={READABLE_SOURCE_DOCUMENT_ACCEPT} label={`Quelle (${READABLE_SOURCE_DOCUMENT_LABEL})`} ariaLabel="Quelldatei auswählen oder ablegen" prompt="PDF-, Text-, Markdown-, CSV- oder TSV-Datei hier ablegen" actionLabel={document ? "Andere Datei auswählen" : "Datei auswählen"} onFile={handleDocument} disabled={isSaving}>
               {document ? <p className="truncate core-caption text-core-muted">{document.fileName}</p> : null}
             </FileDropField>
             {document && !shouldShowPdfViewer ? (

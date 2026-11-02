@@ -4,6 +4,7 @@ import { Eraser, Highlighter, Keyboard, Maximize2, Minimize2, PenLine, Redo2, Un
 import type { LearningSummary, SummaryPage, SummaryStroke } from "../learningSummaries.ts";
 import { summaryDrawingLayout } from "../summaryDocumentLayout.ts";
 import { IconButton } from "../ui/actionUi.tsx";
+import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
@@ -127,7 +128,7 @@ export function SummaryDocumentEditor({ value, onChange, busy }: {
       </div>}
       <div ref={setToolbarContainer} className="core-summary-text-tools" hidden={tool !== "text"}/>
       {(tool === "pen" || tool === "marker") && <div className="core-summary-ink-tools" role="group" aria-label={tool === "marker" ? "Marker-Einstellungen" : "Stift-Einstellungen"}>
-        <label className="core-summary-drawing-color core-caption">Farbe<input type="color" aria-label={tool === "marker" ? "Markerfarbe" : "Zeichenfarbe"} value={ink.color} onChange={(event) => tool === "marker" ? setMarker({ ...marker, color: event.target.value }) : setPen({ ...pen, color: event.target.value })}/></label>
+        <ColorPicker ariaLabel={tool === "marker" ? "Markerfarbe" : "Zeichenfarbe"} value={ink.color} onValueCommit={(color) => tool === "marker" ? setMarker({ ...marker, color }) : setPen({ ...pen, color })}/>
         <CoreSelect ariaLabel={tool === "marker" ? "Markerbreite" : "Stiftstärke"} value={String(ink.width)} options={(tool === "marker" ? [{ value: "8", label: "Schmal" }, { value: "12", label: "Mittel" }, { value: "24", label: "Breit" }] : [{ value: "1", label: "Fein" }, { value: "3", label: "Mittel" }, { value: "5", label: "Kräftig" }])} onValueChange={(next) => tool === "marker" ? setMarker({ ...marker, width: Number(next) }) : setPen({ ...pen, width: Number(next) })}/>
         <svg className="core-summary-ink-preview" width="48" height="28" aria-hidden="true"><path d="M14 14 L34 14" fill="none" stroke={ink.color} strokeWidth={ink.width} strokeOpacity={tool === "marker" ? 0.3 : 1} strokeLinecap="round"/></svg>
       </div>}

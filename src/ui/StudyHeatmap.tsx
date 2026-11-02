@@ -1,4 +1,3 @@
-import * as Popover from "@radix-ui/react-popover";
 import React from "react";
 import { Activity, ChevronLeft, ChevronRight } from "lucide-react";
 import {
@@ -10,6 +9,7 @@ import {
 } from "../studyHeatmapModel.ts";
 import { OrbIcon, SoftPanel } from "./coreUi.tsx";
 import { normalizeColor } from "./colorMath.ts";
+import { ColorPicker } from "./ColorPicker.tsx";
 import { CoreSelect } from "./selectUi.tsx";
 import { CoreTooltip } from "./tooltipUi.tsx";
 
@@ -27,14 +27,8 @@ const forecastToneByLevel = [
   "core-heatmap-forecast-level-3",
   "core-heatmap-forecast-level-4",
 ];
-export const HEATMAP_HISTORY_COLOR_STORAGE_KEY = "core.studyHeatmap.historyColor.v1";
-export const HEATMAP_HISTORY_COLOR_OPTIONS = [
-  { color: "#6f7e9e", label: "Gelernt", tone: "var(--core-learning-status-learned)" },
-  { color: "#d6a3d2", label: "Neu", tone: "var(--core-learning-status-new)" },
-  { color: "#e28b68", label: "Offen", tone: "var(--core-learning-status-in-progress)" },
-  { color: "#e4bf63", label: "Fällig", tone: "var(--core-learning-status-due)" },
-] as const;
-export const HEATMAP_HISTORY_DEFAULT_COLOR: string = HEATMAP_HISTORY_COLOR_OPTIONS[1].color;
+export const HEATMAP_HISTORY_COLOR_STORAGE_KEY = "core.studyHeatmap.historyColor.v2";
+export const HEATMAP_HISTORY_DEFAULT_COLOR = "#b55b43";
 const PERIOD_OPTIONS: Array<{ value: StudyHeatmapPeriod; label: string }> = [
   { value: "week", label: "Woche" },
   { value: "month", label: "Monat" },
@@ -48,14 +42,8 @@ const PERIOD_NAVIGATION_LABELS: Record<StudyHeatmapPeriod, { previous: string; n
 const UTC_WEEKDAY_DATE_FORMATTER = new Intl.DateTimeFormat("de-DE", { weekday: "short", timeZone: "UTC" });
 const UTC_MONTH_FORMATTER = new Intl.DateTimeFormat("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
-function getHeatmapHistoryColorOption(value: unknown) {
-  const normalizedColor = normalizeColor(value, "");
-  return HEATMAP_HISTORY_COLOR_OPTIONS.find((option) => option.color === normalizedColor)
-    ?? HEATMAP_HISTORY_COLOR_OPTIONS[1];
-}
-
 export function normalizeHeatmapHistoryColor(value: unknown) {
-  return getHeatmapHistoryColorOption(value).color;
+  return normalizeColor(value, HEATMAP_HISTORY_DEFAULT_COLOR);
 }
 
 function readStoredHeatmapColor() {
@@ -77,52 +65,12 @@ function writeStoredHeatmapColor(color: string) {
 }
 
 function createHeatmapColorStyle(color: string) {
-  const tone = getHeatmapHistoryColorOption(color).tone;
   return {
-    "--core-heatmap-history-level-1": `color-mix(in srgb, var(--core-surface) 84%, ${tone})`,
-    "--core-heatmap-history-level-2": `color-mix(in srgb, var(--core-surface) 65%, ${tone})`,
-    "--core-heatmap-history-level-3": `color-mix(in srgb, var(--core-surface) 38%, ${tone})`,
-    "--core-heatmap-history-level-4": tone,
+    "--core-heatmap-history-level-1": `color-mix(in srgb, var(--core-surface) 84%, ${color})`,
+    "--core-heatmap-history-level-2": `color-mix(in srgb, var(--core-surface) 65%, ${color})`,
+    "--core-heatmap-history-level-3": `color-mix(in srgb, var(--core-surface) 38%, ${color})`,
+    "--core-heatmap-history-level-4": color,
   } as React.CSSProperties;
-}
-
-function HeatmapColorPicker({ value, className = "", onValueCommit }: { value: string; className?: string; onValueCommit: (color: string) => void }) {
-  const selectedOption = getHeatmapHistoryColorOption(value);
-  return (
-    <Popover.Root>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          aria-label="Heatmap-Farbe ändern"
-          className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition hover:border-core-action ${className}`}
-        >
-          <span aria-hidden="true" className="block size-full rounded-inset border border-core-border shadow-inset" style={{ backgroundColor: selectedOption.tone }} />
-        </button>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content align="end" sideOffset={6} collisionPadding={12} aria-label="Heatmap-Farbe ändern" className="core-overlay z-50 w-fit rounded-panel p-2 outline-none">
-          <div className="grid grid-cols-2 gap-1" role="group" aria-label="CoRe-Farben" data-testid="heatmap-color-grid">
-            {HEATMAP_HISTORY_COLOR_OPTIONS.map((option) => {
-              const selected = option.color === selectedOption.color;
-              return (
-                <Popover.Close asChild key={option.color}>
-                  <button
-                    type="button"
-                    aria-label={option.label}
-                    aria-pressed={selected}
-                    className={`grid size-control place-items-center rounded-control border bg-core-surface transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-core-focus ${selected ? "border-core-action shadow-selection" : "border-core-border"}`}
-                    onClick={() => onValueCommit(option.color)}
-                  >
-                    <span aria-hidden="true" className="size-7 rounded-inset border border-core-border shadow-inset" style={{ backgroundColor: option.tone }} />
-                  </button>
-                </Popover.Close>
-              );
-            })}
-          </div>
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
-  );
 }
 
 function dateFromKey(key: string) {
@@ -352,10 +300,6 @@ export function StudyHeatmap({
     setAnchorKey(null);
   };
 
-  const selectHistoryColor = (nextColor: string) => {
-    setHistoryColor(normalizeHeatmapHistoryColor(nextColor));
-  };
-
   return (
     <SoftPanel
       className={`core-study-heatmap-container p-4 sm:p-6 ${className}`}
@@ -368,10 +312,7 @@ export function StudyHeatmap({
           <h3 className="whitespace-nowrap core-heading-3 font-semibold text-core-text">{formatStudyHeatmapTitle(heatmap.currentStreak)}</h3>
         </div>
         <div className="core-study-heatmap-controls flex max-w-full items-center justify-end gap-2 whitespace-nowrap" data-testid="study-heatmap-controls">
-          <HeatmapColorPicker
-            value={historyColor}
-            onValueCommit={selectHistoryColor}
-          />
+          <ColorPicker ariaLabel="Heatmap-Farbe ändern" value={historyColor} onValueCommit={setHistoryColor} />
           <CoreSelect
             ariaLabel="Heatmap-Zeitraum"
             options={PERIOD_OPTIONS}

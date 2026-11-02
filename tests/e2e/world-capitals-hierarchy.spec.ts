@@ -542,17 +542,16 @@ test("deck presentation form saves name, icon and color together", async ({ page
   expect(colorTriggerBox).not.toBeNull();
   expect(Math.abs(colorPopoverBox!.x + colorPopoverBox!.width - colorTriggerBox!.x - colorTriggerBox!.width)).toBeLessThanOrEqual(1);
   expect(Math.abs(colorPopoverBox!.width - iconPopoverBox!.width)).toBeLessThanOrEqual(1);
-  expect(Math.abs(colorPopoverBox!.height - iconPopoverBox!.height)).toBeLessThanOrEqual(1);
   await wheel.click({ position: { x: 185, y: 96 } });
   const pointerPreview = await colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor);
   await wheel.press("ArrowRight");
   await expect.poll(() => colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor)).not.toBe(pointerPreview);
   await expect.poll(async () => {
-    const [titleBorderColor, swatchColor] = await Promise.all([
-      titleIcon.evaluate((icon) => getComputedStyle(icon).borderColor),
+    const [titleIconColor, swatchColor] = await Promise.all([
+      titleIcon.evaluate((icon) => getComputedStyle(icon).color),
       colorTrigger.locator("span").evaluate((swatch) => getComputedStyle(swatch).backgroundColor),
     ]);
-    return titleBorderColor === swatchColor;
+    return titleIconColor === swatchColor;
   }).toBe(true);
   expect((await storedDeckPresentation(page, DECK_IDS.europe)).iconColor).toBe(original.iconColor);
 
@@ -581,7 +580,6 @@ test("deck presentation form saves name, icon and color together", async ({ page
   expect(mobileColorPopoverBox!.x).toBeGreaterThanOrEqual(12);
   expect(mobileColorPopoverBox!.x + mobileColorPopoverBox!.width).toBeLessThanOrEqual(378);
   expect(Math.abs(mobileColorPopoverBox!.width - mobileIconPopoverBox!.width)).toBeLessThanOrEqual(1);
-  expect(Math.abs(mobileColorPopoverBox!.height - mobileIconPopoverBox!.height)).toBeLessThanOrEqual(1);
   await page.keyboard.press("Escape");
   await expect(saveBar).toBeVisible();
   await saveButton.click();

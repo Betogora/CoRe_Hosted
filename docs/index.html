@@ -996,6 +996,11 @@ video {
     color: var(--core-text);
   }
 
+  .core-action-destructive-quiet:not(:disabled):hover {
+    background: var(--core-danger-surface);
+    color: var(--core-danger-text);
+  }
+
   .core-action-ghost:disabled {
     cursor: not-allowed;
     border-color: transparent;
@@ -1225,6 +1230,10 @@ video {
 .inset-x-1 {
   left: 0.25rem;
   right: 0.25rem;
+}
+.inset-x-2 {
+  left: 0.5rem;
+  right: 0.5rem;
 }
 .inset-x-\[8\%\] {
   left: 8%;
@@ -1587,10 +1596,6 @@ video {
   width: 1.25rem;
   height: 1.25rem;
 }
-.size-6 {
-  width: 1.5rem;
-  height: 1.5rem;
-}
 .size-7 {
   width: 1.75rem;
   height: 1.75rem;
@@ -1879,9 +1884,6 @@ video {
 .w-4\/5 {
   width: 80%;
 }
-.w-56 {
-  width: 14rem;
-}
 .w-7 {
   width: 1.75rem;
 }
@@ -1896,9 +1898,6 @@ video {
 }
 .w-\[calc\(100dvw-2rem\)\] {
   width: calc(100dvw - 2rem);
-}
-.w-\[min\(15rem\2c calc\(100vw-1\.5rem\)\)\] {
-  width: min(15rem, calc(100vw - 1.5rem));
 }
 .w-\[min\(17rem\2c calc\(100vw-1\.5rem\)\)\] {
   width: min(17rem, calc(100vw - 1.5rem));
@@ -2001,6 +2000,9 @@ video {
 }
 .max-w-5xl {
   max-width: 64rem;
+}
+.max-w-7 {
+  max-width: 1.75rem;
 }
 .max-w-7xl {
   max-width: 80rem;
@@ -2418,9 +2420,6 @@ video {
 }
 .overflow-hidden {
   overflow: hidden;
-}
-.overflow-visible {
-  overflow: visible;
 }
 .overflow-x-auto {
   overflow-x: auto;
@@ -4580,45 +4579,6 @@ summary {
   color: var(--core-text-muted);
 }
 
-.core-hue-range {
-  width: 100%;
-  height: 2.75rem;
-  cursor: pointer;
-  -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
-  border: 0;
-  border-radius: var(--core-radius-round);
-  background:
-    linear-gradient(to right, #ef4444, #f59e0b, #fef08a, #22c55e, #06b6d4, #2563eb, #7c3aed, #ef4444) center / calc(100% - 2px) 0.625rem no-repeat,
-    linear-gradient(var(--core-border), var(--core-border)) center / 100% 0.75rem no-repeat;
-  outline: none;
-}
-
-.core-hue-range::-webkit-slider-thumb {
-  width: 1rem;
-  height: 1rem;
-  -webkit-appearance: none;
-          appearance: none;
-  border: var(--core-border-width-strong) solid var(--core-surface);
-  border-radius: var(--core-radius-round);
-  background: var(--core-action-primary);
-  box-shadow:
-    0 0 0 var(--core-border-width) var(--core-focus-ring-soft),
-    var(--core-shadow-soft);
-}
-
-.core-hue-range::-moz-range-thumb {
-  width: 1rem;
-  height: 1rem;
-  border: var(--core-border-width-strong) solid var(--core-surface);
-  border-radius: var(--core-radius-round);
-  background: var(--core-action-primary);
-  box-shadow:
-    0 0 0 1px var(--core-focus-ring-soft),
-    var(--core-shadow-soft);
-}
-
 .card-html img,
 .rich-text-field img,
 .card-html video,
@@ -5009,9 +4969,6 @@ summary {
 .core-mindmap-compact-field input[type="range"] { min-height: 44px; }
 .core-mindmap-text-toolbar:empty { display: none; }
 .core-mindmap-text-toolbar > [role="toolbar"] { border-radius: var(--core-radius-control); position: relative; }
-.core-mindmap-text-toolbar .core-rich-text-extra-tools > .relative { position: static; }
-.core-mindmap-text-toolbar [role="dialog"] { left: auto; right: 0; max-height: min(32rem, 65dvh); overflow-y: auto; }
-.core-mindmap-custom-color > [role="dialog"] { left: var(--mindmap-color-x, 0px); right: auto; max-height: 65dvh; overflow-y: auto; }
 .core-mindmap-canvas { position: relative; min-width: 0; height: 640px; max-height: 75dvh; min-height: 360px; overflow: hidden; touch-action: none; background-color: var(--core-surface); background-image: radial-gradient(circle, var(--core-border) 1px, transparent 1px); cursor: grab; }
 .core-mindmap-canvas[data-tool="pen"], .core-mindmap-canvas[data-tool="text"] { cursor: crosshair; }
 .core-mindmap-canvas[data-tool="erase"] { cursor: cell; }
@@ -5113,10 +5070,6 @@ summary {
 .core-summary-tool-modes [aria-pressed="true"], .core-summary-tool-modes [aria-pressed="true"]:hover { background: var(--core-action-soft); color: var(--core-action-primary) !important; }
 .core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; flex-wrap: nowrap; }
 .core-summary-text-tools .core-rich-text-extra-tools { position: absolute; top: calc(100% + 6px); left: 0; width: min(20rem, 100%); z-index: 25; padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); box-shadow: var(--core-shadow-raised); }
-.core-summary-text-tools .core-rich-text-extra-tools > .relative { position: static; }
-.core-summary-text-tools [role="dialog"] { left: 0; right: auto; max-width: min(14rem, calc(100vw - 2rem)); max-height: min(30rem, calc(100dvh - 10rem)); overflow-y: auto; z-index: 30; }
-.core-summary-drawing-color { display: flex; align-items: center; gap: var(--core-space-sm); min-height: var(--core-control-height); }
-.core-summary-drawing-color input { width: var(--core-control-height); height: var(--core-control-height); padding: var(--core-space-xs); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); cursor: pointer; }
 .core-summary-ink-preview { flex-shrink: 0; }
 .core-summary-stage { min-width: 0; padding-top: var(--core-space-lg); }
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); box-shadow: var(--core-shadow-soft); }
@@ -5195,12 +5148,6 @@ summary {
   background: var(--core-surface-muted);
   color: var(--core-text-secondary);
 }
-.core-ai-source-column [data-file-drop-field="true"] { border-width: var(--core-border-width); }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] { display: flex; flex-direction: column; gap: var(--core-space-md); min-height: 0; border-style: solid; background: var(--core-surface); }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid { min-height: 0; }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .mt-4 { order: -1; margin-top: 0; }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid > div > :is(svg, p) { display: none; }
-.core-ai-source-column[data-file-selected="true"] [data-file-drop-field="true"] > .grid button { margin-top: 0; }
 .core-ai-source-format {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -5371,6 +5318,11 @@ summary {
   --tw-scale-y: 1.05;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
+.hover\:scale-110:hover {
+  --tw-scale-x: 1.1;
+  --tw-scale-y: 1.1;
+  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
+}
 .hover\:border-t-4:hover {
   border-top-width: 4px;
 }
@@ -5441,9 +5393,6 @@ summary {
 }
 .focus-visible\:ring-inset:focus-visible {
   --tw-ring-inset: inset;
-}
-.focus-visible\:ring-\[var\(--core-focus-ring\)\]:focus-visible {
-  --tw-ring-color: var(--core-focus-ring);
 }
 .focus-visible\:ring-core-focus:focus-visible {
   --tw-ring-color: var(--core-focus);
@@ -6438,9 +6387,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-journey-flow pre { margin: 0; padding: var(--core-space-md); }
 .mermaid svg { max-width: 100%; height: auto; }
 .docs-code-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--core-space-md); }
-.docs-code-chart { display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: var(--core-space-xl); align-items: center; margin: var(--core-space-xl) 0; }
-.docs-code-donut { display: grid; justify-items: center; gap: var(--core-space-md); }
-.docs-code-donut > span:first-child { width: 10rem; height: 10rem; }
+.docs-code-chart { margin: var(--core-space-xl) 0; }
 .docs-code-dot { display: inline-block; width: var(--core-space-sm); height: var(--core-space-sm); border-radius: var(--core-radius-round); margin-right: var(--core-space-sm); }
 .docs-code-chart tbody th { font-weight: var(--core-weight-control); }
 .docs-code-chart thead th { white-space: nowrap; }
@@ -6490,7 +6437,7 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
   .docs-panel-links a[data-depth="3"] { display: none; }
 }
 @media (max-width: 600px) {
-  .docs-code-stats, .docs-code-chart { grid-template-columns: 1fr; }
+  .docs-code-stats { grid-template-columns: 1fr; }
   .docs-code-chart th, .docs-code-chart td { padding: var(--core-space-sm); }
 }
 @media print { .docs-sidebar { display: none; } .docs-frame { display: block; padding: 0; } .docs-document { max-width: none; } }
@@ -6622,6 +6569,8 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-in
   .catalog-accents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 html { scroll-behavior: smooth; }
+/* The preview harness has no jump links; smooth scrolling would only delay its pointer interactions. */
+html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html" aria-current="page">Docs</a><a href="specs.html">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Docs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Abschnitt, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="readme--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="README.md">README.md</a></p><h1 id="readme--core--docs" class="core-heading-1" tabindex="-1">CoRe – Docs <a class="docs-anchor" href="#readme--core--docs" aria-label="Link zu CoRe – Docs">#</a></h1>
 <p>CoRe verbindet Anki-kompatible Karten mit Spaced Repetition und kontrollierten
@@ -6655,7 +6604,7 @@ Für jede Dokumentationsrolle gibt es genau eine verbindliche Quelle.</p>
 </tr>
 <tr>
 <td><a href="ui-elements.html">UI-Elements</a></td>
-<td>UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster mit echten Produktansichten und Kartenbausteinen, Icons und Zustandsmatrix; mit Suche und Kapitelnavigation</td>
+<td>UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster und Icons; jedes Format genau einmal, ohne Erklärtexte und ohne aufrufbare Produktansichten; mit Suche und Kapitelnavigation</td>
 <td>App-Code; Demos in <code>scripts/uiCatalogDemos.tsx</code>, ergänzende Screen-Muster in <code>scripts/uiCatalogPatterns.html</code></td>
 </tr>
 <tr>
@@ -6671,8 +6620,9 @@ die das aktuelle Kapitel markiert. Ab 1051 px bleibt die Leiste beim Scrollen
 links stehen; darunter steht sie über dem Inhalt, Seiten und Kapitel laufen als
 waagerechte Leisten. <code>/</code> springt in die Suche.</p>
 <p>Die <a href="card-types.html">Kartenbausteine</a> ordnen den Note-/Card-Renderer nach
-Bausteinen statt nach Kartentypen; der UI-Katalog zeigt dieselben Fälle unter
-<a href="ui-elements.html#note-content">CoRe-Fachmuster</a>.</p>
+Bausteinen statt nach Kartentypen und sind die einzige Seite mit allen
+Renderer-Fällen; der UI-Katalog zeigt den Renderer einmal unter
+<a href="ui-elements.html#inhalt">Karteninhalte</a>.</p>
 <p>Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
 Styles und die Schrift Manrope sind eingebettet; Journey-Diagramme nutzen
 <code>vendor/mermaid.min.js</code>. Externe Schriften lädt weder die App noch die Doku.
@@ -6758,11 +6708,11 @@ Einleitung als Kopf, je <code>##</code>-Kapitel ein Abschnitt mit Navigationsein
 Karte. Die Suche der Seitenleiste filtert Karten, die Inhaltsnavigation führt je
 Kapitel einen Eintrag. Anker behalten das Schema
 <code>specs--&lt;Überschrift&gt;</code>. Die ergänzende Codeumfang-Grafik am Ende wird aus den
-Quellen neu berechnet und verwendet den produktiven <code>SegmentedDonut</code> und <code>StatTile</code>. Sie zählt nichtleere Zeilen
+Quellen neu berechnet und verwendet den produktiven <code>StatTile</code> mit einer Bereichstabelle. Sie zählt nichtleere Zeilen
 einschließlich Kommentaren in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>,
 ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
 werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
-der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</p>
+die Tabelle zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</p>
 <h2 id="readme--ergänzende-analysen-und-nachweise" class="core-heading-2" tabindex="-1">Ergänzende Analysen und Nachweise <a class="docs-anchor" href="#readme--ergänzende-analysen-und-nachweise" aria-label="Link zu Ergänzende Analysen und Nachweise">#</a></h2>
 <p>Der Maskottchen-Vorrat mit 37 SVG-Motiven als einzelne, offline nutzbare
 HTML-Dateien ist ein lokales Gestaltungswerkzeug und nicht Teil von Repository
@@ -6775,7 +6725,7 @@ der gemeinsamen <code>BrainMascot</code>-Komponente unter <code>output/mascots/<
 <li><a href="test-portfolio.md"><code>test-portfolio.md</code></a>: ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.</li>
 <li><a href="anki-format-analysis.md"><code>anki-format-analysis.md</code></a>: technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.</li>
 <li><a href="file-naming-conventions.md"><code>file-naming-conventions.md</code></a>: Dateinamensregeln.</li>
-<li><a href="ui-elements.html"><code>ui-elements.html</code></a>: direkt aus produktiven Komponenten erzeugte Demos plus klar gekennzeichnete lokale Screen-Muster.</li>
+<li><a href="ui-elements.html"><code>ui-elements.html</code></a>: direkt aus produktiven Komponenten erzeugte Demos plus lokale Markup-Muster. Jedes Format und jede Variante erscheint genau einmal; Erklärungen gehören in die Specs. Dialoge wie Kartenvorschau oder Lerneinstellungen öffnen sich direkt, ganze Produktansichten nicht. Echte Screens mit lokalen Beispieldaten öffnet ausschließlich <code>ui-elements.html?preview=&lt;name&gt;</code> (etwa <code>dashboard</code>, <code>exams</code>, <code>decks</code>, <code>summaries</code>, <code>mindmaps</code>) als Gerüst der Katalog-Browsertests.</li>
 <li><a href="card-types.html"><code>card-types.html</code></a>: interaktive Referenz der Kartenbausteine mit ihrem Erstellungsweg.</li>
 </ul>
 <h2 id="readme--technische-einstiegspunkte" class="core-heading-2" tabindex="-1">Technische Einstiegspunkte <a class="docs-anchor" href="#readme--technische-einstiegspunkte" aria-label="Link zu Technische Einstiegspunkte">#</a></h2>

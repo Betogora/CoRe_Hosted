@@ -177,7 +177,7 @@ export function DeckSummariesPanel({ deck, userId, cloud = null, onGenerateSumma
           <div className="grid min-w-0 gap-4" data-testid="summary-list">{filtered.map((summary) => <div key={summary.id} className="core-summary-row"><button type="button" disabled={busy} className="core-summary-preview core-surface-raised rounded-panel border border-core-border p-6 text-left" onClick={() => request(() => open(summary))} aria-label={`Zusammenfassung „${summary.title}“ öffnen`}>
             <div className="core-summary-preview-copy min-w-0"><h4 className="break-words core-heading-3">{summary.title}</h4><p className="mt-1 core-caption text-core-muted">{summaryDescription(summary)}</p><div className="core-summary-excerpt mt-4 core-body text-core-secondary" aria-hidden="true">{summaryPlainText(summary.html)}</div></div>
             <span className="core-summary-preview-action inline-flex min-h-button items-center gap-2 core-body font-semibold text-core-action">Vollständig öffnen<ChevronRight size={17} aria-hidden="true"/></span>
-          </button><IconButton variant="ghost" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>)}</div>
+          </button><IconButton variant="destructive-quiet" icon={Trash2} label={`Zusammenfassung „${summary.title}“ löschen`} disabled={busy} onClick={() => { setError(""); setDeleting(summary); }}/></div>)}</div>
           {!filtered.length ? <StatusMessage tone="info">Keine passende Zusammenfassung gefunden.</StatusMessage> : null}
         </> : null}
       <div className="core-summary-create-actions grid min-w-0 gap-3" data-open={view === "create"}>

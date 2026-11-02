@@ -37,6 +37,13 @@ test("IconButton offers a borderless ghost action with the same square target", 
   assert.match(markup, /min-w-button/);
 });
 
+test("IconButton offers a quiet destructive action that only turns red on hover", () => {
+  const markup = renderToStaticMarkup(<IconButton label="Löschen" icon={Trash2} variant="destructive-quiet" />);
+  assert.match(markup, /core-action-ghost core-action-destructive-quiet/);
+  assert.match(markup, /min-w-button/);
+  assert.doesNotMatch(markup, /style=/);
+});
+
 test("CrossLinkButton centralizes the compact cross-link style for buttons and anchors", () => {
   const markup = renderToStaticMarkup(
     <>

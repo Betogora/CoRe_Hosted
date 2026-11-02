@@ -17,7 +17,7 @@ async function previewOrder(page: Page) {
 }
 
 async function openEditor(page: Page, dark = false) {
-  await page.goto("/docs/ui-elements.html?preview=dashboard#screens");
+  await page.goto("/docs/ui-elements.html?preview=dashboard");
   if (dark) {
     await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
     await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
@@ -320,7 +320,7 @@ for (const { width, height } of matrixViewports()) for (const theme of matrixThe
 
 test("Motivation wechselt ohne Neuladen auch nach einem inaktiven Tab", async ({ page }) => {
   await page.clock.install();
-  await page.goto("/docs/ui-elements.html?preview=dashboard#screens");
+  await page.goto("/docs/ui-elements.html?preview=dashboard");
   const widget = page.locator('[data-dashboard-widget="motivation"]');
   const day = await widget.locator("[data-motivation-day]").getAttribute("data-motivation-day");
   const quote = await widget.locator(".motivation-widget-quote").textContent();
@@ -391,7 +391,7 @@ test.describe("Maskottchen-Vorrat", () => {
 
 test("Timer: Scrollen ohne Fokus, Ring, Pause und Reset auf die Startdauer", async ({ page }, info) => {
   await page.clock.install();
-  await page.goto("/docs/ui-elements.html?preview=dashboard#screens");
+  await page.goto("/docs/ui-elements.html?preview=dashboard");
   const timer = page.locator('[data-dashboard-widget="timer"]');
   const minutes = timer.getByRole("spinbutton", { name: "Minuten", exact: true });
   const seconds = timer.getByRole("spinbutton", { name: "Sekunden", exact: true });
@@ -434,7 +434,7 @@ test("Timer: Scrollen ohne Fokus, Ring, Pause und Reset auf die Startdauer", asy
 
 test("Aufgaben: gemischte Dreier-Vorschau, Inline-Plus und ausklappbare lange Texte", async ({ page }, info) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/docs/ui-elements.html?preview=dashboard#screens");
+  await page.goto("/docs/ui-elements.html?preview=dashboard");
   const box = page.locator(".dashboard-todos");
   const planned = box.locator('[data-exam-todo]').filter({ visible: true });
   await expect(planned).toHaveCount(3);
@@ -509,7 +509,7 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) {
 for (const { width, height } of sizes) for (const theme of matrixThemes) {
   test(`Prüfungs-Checkliste ${width}×${height} ${theme}: vollständige Ansicht`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
-    await page.goto("/docs/ui-elements.html?preview=exams#screens");
+    await page.goto("/docs/ui-elements.html?preview=exams");
     if (theme === "dark") {
       await page.getByRole("button", { name: "Produktansicht schließen", exact: true }).click();
       await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();

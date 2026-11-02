@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { matrixThemes, matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
 test("Unterstapelbaum klappt mehrere Ebenen vor dem direkten Öffnen auf", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview");
@@ -40,7 +40,7 @@ test("Unterstapelbaum klappt mehrere Ebenen vor dem direkten Öffnen auf", async
 
 test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Lernen öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview");
@@ -66,7 +66,7 @@ test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async 
 });
 
 test("Stapelinhalte behalten aktuelle Reiter und Lernaktion ohne zusätzliche Köpfe oder Anzahltexte", async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview");
@@ -108,7 +108,7 @@ for (const theme of matrixThemes) {
   for (const viewport of visualOutput ? [...VISUAL_MATRIX_VIEWPORTS, { width: 1279, height: 900 }, { width: 1280, height: 900 }] : matrixViewports()) {
     test(`Stapelansichten: ${theme} bei ${viewport.width}×${viewport.height}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport);
-      await page.goto("/docs/ui-elements.html#screens");
+      await page.goto("/docs/ui-elements.html?preview=screens");
       await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
       if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
       const product = page.locator(".catalog-product-preview");
@@ -152,7 +152,7 @@ for (const theme of matrixThemes) {
 
 test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreichbar", async ({ page }, testInfo) => {
   test.setTimeout(180_000);
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   const product = page.locator(".catalog-product-preview");
   const close = page.getByRole("button", { name: "Produktansicht schließen", exact: true });

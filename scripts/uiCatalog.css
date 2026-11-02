@@ -125,4 +125,6 @@ body:has(.catalog-product-preview) > [data-testid="card-detail-backdrop"] { z-in
   .catalog-accents { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 html { scroll-behavior: smooth; }
+/* The preview harness has no jump links; smooth scrolling would only delay its pointer interactions. */
+html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }

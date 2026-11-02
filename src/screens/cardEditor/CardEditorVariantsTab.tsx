@@ -65,9 +65,7 @@ function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, on
               </CoreTooltip>
             ) : null}
             <CoreTooltip label="Löschen">
-              <button type="button" aria-label={`Variante ${number} löschen`} disabled={busy} className="core-action-ghost min-w-control p-2 text-core-danger-text" onClick={onDelete}>
-                <Trash2 size={20} aria-hidden="true" />
-              </button>
+              <IconButton icon={Trash2} variant="destructive-quiet" label={`Variante ${number} löschen`} disabled={busy} onClick={onDelete} />
             </CoreTooltip>
           </div>
         )}

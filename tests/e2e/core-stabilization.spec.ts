@@ -196,29 +196,26 @@ test("dashboard heatmap changes its header layout only once across responsive wi
   }
 });
 
-test("dashboard heatmap restricts its persisted color to the four learning-status tones", async ({ page }: any) => {
+test("dashboard heatmap picks its history color with the shared color picker and persists it", async ({ page }: any) => {
   await resetToFreshLocalState(page);
-  await page.evaluate(() => window.localStorage.setItem("core.studyHeatmap.historyColor.v1", "#123456"));
+  await page.evaluate(() => window.localStorage.setItem("core.studyHeatmap.historyColor.v2", "lila"));
   await page.reload();
 
   const heatmap = page.locator(".core-study-heatmap-container");
   const trigger = page.getByRole("button", { name: "Heatmap-Farbe ändern" });
-  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#d6a3d2");
-  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("core.studyHeatmap.historyColor.v1"))).toBe("#d6a3d2");
+  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#b55b43");
 
   await trigger.click();
-  const palette = page.getByTestId("heatmap-color-grid");
-  await expect(palette).toBeVisible();
-  await expect(palette.getByRole("button")).toHaveCount(4);
-  await expect.poll(() => palette.evaluate((element: HTMLElement) => getComputedStyle(element).gridTemplateColumns.split(" ").length)).toBe(2);
-  await expect(palette.getByRole("button", { name: "Neu" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("slider", { name: /Farbkreis/ })).toHaveCount(0);
-
-  await palette.getByRole("button", { name: "Fällig" }).click();
-  await expect(palette).toBeHidden();
+  const popover = page.getByTestId("color-wheel-popover");
+  await expect(page.getByRole("slider", { name: /Farbkreis/ })).toBeVisible();
+  await expect(popover.getByRole("radio")).toHaveCount(14);
+  await popover.getByRole("radio", { name: "Farbe #3fa66b" }).click();
+  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#3fa66b");
+  await expect(popover.getByRole("radio", { name: "Farbe #3fa66b" })).toHaveAttribute("aria-checked", "true");
+  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("core.studyHeatmap.historyColor.v2"))).toBe("#3fa66b");
+  await page.keyboard.press("Escape");
+  await expect(popover).toBeHidden();
   await expect(trigger).toBeFocused();
-  await expect(heatmap).toHaveAttribute("data-heatmap-history-color", "#e4bf63");
-  await expect.poll(() => page.evaluate(() => window.localStorage.getItem("core.studyHeatmap.historyColor.v1"))).toBe("#e4bf63");
 });
 
 test("dashboard heatmap preserves its cells, today marker and label alignment", async ({ page }: any) => {

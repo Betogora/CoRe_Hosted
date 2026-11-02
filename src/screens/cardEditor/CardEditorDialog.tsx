@@ -265,9 +265,7 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
               <IconButton icon={Copy} label="Duplizieren" variant="ghost" disabled={isDuplicating} onClick={() => void duplicate()} />
             </CoreTooltip>
             <CoreTooltip label="Löschen">
-              <button type="button" aria-label="Löschen" className="core-action-ghost min-w-control p-2 text-core-danger-text" onClick={props.onDeleteNote}>
-                <Trash2 size={20} aria-hidden="true" />
-              </button>
+              <IconButton icon={Trash2} variant="destructive-quiet" label="Löschen" onClick={props.onDeleteNote} />
             </CoreTooltip>
             <CoreTooltip label="Schließen · Esc">
               <IconButton icon={X} label="Detailansicht schließen" variant="ghost" onClick={props.onClose} />

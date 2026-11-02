@@ -6,7 +6,7 @@ import { matrixThemes, matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } 
 test.setTimeout(60_000);
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/docs/ui-elements.html#note-content");
+  await page.goto("/docs/ui-elements.html?preview=cards");
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Kartenbausteine");
   await expect(page.locator('[data-note-demo="typed"] input')).toBeVisible();
 });
@@ -170,6 +170,7 @@ test("Bisheriger Kartenrahmen: Review, Inhaltsansicht und Vorschau bleiben bedie
   test.setTimeout(180_000);
   const output = path.resolve("test-results/note-presentation/existing-frames");
   await mkdir(output, { recursive: true });
+  await page.goto("/docs/ui-elements.html#inhalt");
   await page.getByLabel("Katalog durchsuchen", { exact: true }).fill("Karteninhalte");
   for (const size of matrixViewports()) {
     await page.setViewportSize(size);

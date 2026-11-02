@@ -8,7 +8,7 @@ import { getLearningDayKey } from "../learningDay.ts";
 import { createDeckLibraryModel, type DeckLibrarySummary } from "../libraryModel.ts";
 import { ActionButton } from "../ui/actionUi.tsx";
 import { CoreDatePicker } from "../ui/CoreDatePicker.tsx";
-import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
+import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { ActionDialog, PageHeader } from "../ui/coreUi.tsx";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { ExamCalendar } from "./ExamCalendar.tsx";
@@ -115,7 +115,7 @@ export function ExamPlanEditor({ embedded = false, onDirtyChange, decks, deckSum
           </label>)}</div>
           <p id={`${plan.id}-goal-hint`} className="core-field-hint">Ein höheres Ziel plant häufigere Wiederholungen ein.</p>
         </fieldset>
-        <label className={LABEL}>Farbe<ColorWheelPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
+        <label className={LABEL}>Farbe<ColorPicker value={plan.color ?? "#6f7e9e"} ariaLabel="Prüfungsfarbe auswählen" className="justify-self-start" onValueCommit={(color) => patch({ color, colorIndex: undefined })} /></label>
       </div> : null}
       {embedded || step === 1 ? <details className="group min-w-0" open={embedded ? (showErrors && !selected.size) || undefined : true}>
         {embedded ? <Summary>Lernstoff · {formatExamCount(selected.size, "Stapel", "Stapel")}</Summary> : <summary className="hidden" />}<div className="grid min-w-0 gap-4">

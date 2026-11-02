@@ -2,7 +2,7 @@ import React from "react";
 import { ArrowLeft, ArrowRight, CircleDot, FileText, FileUp, Layers3, ListChecks, MessageSquare, Pencil, SlidersHorizontal, Sparkles, TextCursorInput, X } from "lucide-react";
 import type { CreationScreenProps } from "../appScreenProps.ts";
 import {
-  AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_COVERAGE, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS,
+  AI_SOURCE_ACCEPT, AI_SOURCE_ANSWER_LENGTHS, AI_SOURCE_CARD_FORMS, AI_SOURCE_FORMAT_LABEL, AI_SOURCE_COVERAGE, AI_SOURCE_LANGUAGES, AI_SOURCE_PRIOR_KNOWLEDGE, AI_SOURCE_REGISTERS,
   aiSourceFileError, createAiSourceCreationDraft, describeAiSourceSettings, suggestSourceDeckName, validateAiSourceCreation,
   type AiSourceSettings,
 } from "../aiSourceCreation.ts";
@@ -129,13 +129,13 @@ export function AiSourceCreationPanel({ decks, initialTargetDeckId, onDraftState
         }}>
           <div className="flex items-center justify-between gap-4 xl:hidden"><p className="core-caption text-core-muted" aria-live="polite">Schritt {step + 1} von 3</p><div className="core-ai-source-progress" aria-hidden="true">{steps.map((label, index) => <span key={label} data-complete={index <= step} />)}</div></div>
           <div className="grid min-w-0 gap-4 xl:grid-cols-3 xl:items-start" data-testid="ai-source-steps">
-            <section aria-labelledby="ai-source-step-1" data-file-selected={Boolean(draft.file)} className={`core-ai-source-column min-w-0 content-start gap-6 ${step === 0 ? "grid" : "hidden xl:grid"}`}>
+            <section aria-labelledby="ai-source-step-1" className={`core-ai-source-column min-w-0 content-start gap-6 ${step === 0 ? "grid" : "hidden xl:grid"}`}>
               <div className="core-ai-source-section-heading"><span className="core-ai-source-section-icon" aria-hidden="true"><FileUp size={21} /></span><div><p className="core-caption text-core-muted" aria-hidden="true">Schritt 01</p><h3 id="ai-source-step-1" className="core-heading-3 text-core-text">{steps[0]}</h3></div></div>
               <fieldset className="grid min-w-0 gap-3">
                 <legend className="mb-3 core-field-label">Woraus sollen die Karten entstehen?</legend>
                 <CoreSegmentedControl ariaLabel="Art der Quelle" className="w-full" value={draft.sourceMode} options={[{ value: "file", label: "Datei" }, { value: "text", label: "Text einfügen" }]} onValueChange={(value) => { setFileError(null); setDraft((current) => ({ ...current, sourceMode: value as "file" | "text" })); }} />
                 {draft.sourceMode === "file" ? <>
-                  <FileDropField kind="ai-source" label="" selected={Boolean(draft.file)} onFile={selectFile}>
+                  <FileDropField accept={AI_SOURCE_ACCEPT} ariaLabel="Quelle für automatische Karten auswählen oder ablegen" prompt={`Quelldatei hier ablegen (${AI_SOURCE_FORMAT_LABEL})`} actionLabel={draft.file ? "Ersetzen" : "Datei auswählen"} onFile={selectFile}>
                     {draft.file ? (
                       <div className="flex min-w-0 items-center gap-3">
                         <FileText size={22} className="shrink-0 text-core-action" aria-hidden="true" />

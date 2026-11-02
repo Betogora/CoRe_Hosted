@@ -10,7 +10,8 @@ import { createLatestSaver } from "../latestSaver.ts";
 import { textToCardHtml } from "../richText.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, SoftPanel } from "../ui/coreUi.tsx";
-import { ColorPopover, highlightPaletteColors, normalizeColor } from "../ui/colorPicker.tsx";
+import { COLOR_PICKER_PRESETS, ColorPicker } from "../ui/ColorPicker.tsx";
+import { normalizeColor } from "../ui/colorMath.ts";
 import { StatusMessage } from "../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../ui/RichTextEditor.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
@@ -44,14 +45,10 @@ function connectionPath(from: MindMapRect, to: MindMapRect) {
   return `M ${x1} ${y1} C ${x1 + bend} ${y1}, ${x2 - bend} ${y2}, ${x2} ${y2}`;
 }
 function ColorControl({ label, value = "default", onChange }: { label: string; value?: MindMapColor; onChange: (color: MindMapColor) => void }) {
-  const [open, setOpen] = React.useState(false), [custom, setCustom] = React.useState(() => normalizeColor(value, highlightPaletteColors[0]));
-  const id = React.useId(), ref = React.useRef<HTMLDivElement>(null), trigger = React.useRef<HTMLButtonElement>(null);
-  const [offset, setOffset] = React.useState(0);
-  React.useLayoutEffect(() => { if (!open) return; const position = () => { const r = trigger.current?.getBoundingClientRect(); if (r) setOffset(Math.max(16, Math.min(r.right - 224, window.innerWidth - 240)) - r.left); }; position(); window.addEventListener("resize", position); return () => window.removeEventListener("resize", position); }, [open]);
-  React.useEffect(() => { if (!open) return; const close = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); }; document.addEventListener("pointerdown", close); return () => document.removeEventListener("pointerdown", close); }, [open]);
+  const [custom, setCustom] = React.useState(() => normalizeColor(value, COLOR_PICKER_PRESETS[7]));
   return <fieldset className="core-mindmap-color-picker"><legend className="core-caption text-core-muted">{label}</legend><div className="flex flex-wrap items-center gap-1">
     {mindMapColors.map((color) => <button key={color.value} type="button" className="core-mindmap-swatch rounded-control" style={{ "--mindmap-ink": inkColor(color.value) } as React.CSSProperties} aria-label={`${label} ${color.label}`} aria-pressed={value === color.value} onClick={() => onChange(color.value)}><span aria-hidden="true"/></button>)}
-    <div className="core-mindmap-custom-color relative" style={{ "--mindmap-color-x": `${offset}px` } as React.CSSProperties} ref={ref} onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); setOpen(false); trigger.current?.focus(); } }}><button ref={trigger} type="button" className="core-mindmap-swatch rounded-control" aria-label={`${label} frei wählen`} aria-haspopup="dialog" aria-expanded={open} onClick={() => { setCustom(normalizeColor(value, custom)); setOpen(!open); }}><Palette size={18} aria-hidden="true"/></button>{open && <ColorPopover id={id} label={`${label} frei wählen`} icon={Palette} colors={[custom]} paletteColors={highlightPaletteColors} selectedSlot={0} onSelectSlot={() => undefined} onChangeSlot={(_slot, color) => setCustom(color)} onApply={(color) => onChange(color)}/>}</div>
+    <ColorPicker variant="tool" icon={Palette} className="core-mindmap-swatch rounded-control" ariaLabel={`${label} frei wählen`} value={normalizeColor(value, custom)} onValueCommit={(color) => { setCustom(color); onChange(color); }}/>
   </div></fieldset>;
 }
 export function DeckMindMapsPanel({ deck, userId, cloud = null, onGenerateSummary, onDraftStateChange }: DeckMindMapsPanelProps) {

@@ -6,7 +6,7 @@ import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
 import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
 import { createDeckLibraryModel } from "../libraryModel.ts";
 import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
-import { ColorWheelPicker } from "../ui/ColorWheelPicker.tsx";
+import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
@@ -227,7 +227,7 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
           <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
             <label className="col-span-2 grid min-w-0 gap-2 core-field-label md:col-span-1">Name<input className="core-field min-w-0" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} /></label>
             <label className="grid gap-2 core-field-label">Icon<DeckIconPicker value={activeDraft.appearance.iconKey} color={activeDraft.appearance.iconColor} onChange={(iconKey) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconKey }) } : current)} /></label>
-            <label className="grid gap-2 core-field-label">Farbe<ColorWheelPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
+            <label className="grid gap-2 core-field-label">Farbe<ColorPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
           </div>
           {feedback ? <p className="core-status-error mt-3 core-body" role="alert">{feedback}</p> : null}
           <div className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,12rem)_auto] sm:items-end" data-testid="deck-settings-leech">

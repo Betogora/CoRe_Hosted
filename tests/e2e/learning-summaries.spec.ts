@@ -4,7 +4,7 @@ import { VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts
 
 test.setTimeout(90_000);
 async function openSummaries(page: Page) {
-  await page.goto("./docs/ui-elements.html#screens");
+  await page.goto("./docs/ui-elements.html?preview=screens");
   await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
   const panel = page.getByTestId("deck-summaries-panel");
   await expect(panel.getByTestId("summary-list")).toBeVisible();
@@ -135,7 +135,9 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await expect(editor.locator("b,strong")).toHaveText("Text mit Zeichnung.");
   await panel.getByRole("button", { name: "Stift", exact: true }).click();
   await expect(panel.getByRole("combobox", { name: "Schrift", exact: true })).toHaveCount(0);
-  await panel.getByLabel("Zeichenfarbe", { exact: true }).fill("#cc3344");
+  await panel.getByRole("button", { name: "Zeichenfarbe", exact: true }).click();
+  await page.getByRole("dialog", { name: "Zeichenfarbe", exact: true }).getByRole("radio", { name: "Farbe #e5484d", exact: true }).click();
+  await page.keyboard.press("Escape");
   await panel.getByRole("combobox", { name: "Stiftstärke", exact: true }).click();
   await page.getByRole("option", { name: "Kräftig", exact: true }).click();
   const drawing = panel.getByRole("img", { name: "Zeichenfläche Zusammenfassung", exact: true });
@@ -144,17 +146,17 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await page.mouse.move(box.x + 60, box.y + 180); await page.mouse.down();
   await page.mouse.move(box.x + 180, box.y + 220, { steps: 8 }); await page.mouse.up();
   await expect(drawing.locator("path")).toHaveCount(1);
-  await expect(drawing.locator("path")).toHaveAttribute("stroke", "#cc3344");
+  await expect(drawing.locator("path")).toHaveAttribute("stroke", "#e5484d");
   await expect(drawing.locator("path")).toHaveAttribute("stroke-width", "5");
   await panel.getByRole("button", { name: "Zeichenmarker", exact: true }).click();
-  await expect(panel.getByRole("textbox", { name: "Markerfarbe", exact: true })).toHaveValue("#f6d36b");
+  await expect(panel.getByRole("button", { name: "Markerfarbe", exact: true }).locator("span")).toHaveCSS("background-color", "rgb(246, 211, 107)");
   await expect(panel.getByRole("combobox", { name: "Markerbreite", exact: true })).toContainText("Mittel");
   await panel.getByRole("button", { name: "Radierer", exact: true }).click();
   await drawing.locator("path").last().click();
   await expect(drawing.locator("path")).toHaveCount(0);
   await panel.getByRole("button", { name: "Zeichnung rückgängig", exact: true }).click();
   await panel.getByRole("button", { name: "Stift", exact: true }).click();
-  await expect(panel.getByLabel("Zeichenfarbe", { exact: true })).toHaveValue("#cc3344");
+  await expect(panel.getByRole("button", { name: "Zeichenfarbe", exact: true }).locator("span")).toHaveCSS("background-color", "rgb(229, 72, 77)");
   await saveOnLeave(page, panel);
   await page.reload(); await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
   await panel.getByRole("button", { name: "Zusammenfassung „Europa im Überblick“ öffnen", exact: true }).click();

@@ -6,7 +6,7 @@ import type { Card, NoteContent } from "../../coreTypes.ts";
 import type { ManualImageAttachment } from "../../creationWorkflow.ts";
 import type { AccountMediaStore } from "../../mediaStore.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
-import { ActionButton } from "../../ui/actionUi.tsx";
+import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import type { RichTextImageActions } from "../../ui/RichTextEditor.tsx";
@@ -69,12 +69,10 @@ function NoteMediaList({ graph, mediaUrls, services }: { graph: NoteGraph; media
               <>
                 <span className="shrink-0 core-caption text-core-muted">nicht verwendet</span>
                 <CoreTooltip label="Entfernen">
-                  <button type="button" aria-label={`${name} entfernen`} disabled={removing === name} className="core-action-ghost min-w-control p-2 text-core-danger-text" onClick={() => {
+                  <IconButton icon={Trash2} variant="destructive-quiet" label={`${name} entfernen`} disabled={removing === name} onClick={() => {
                     setRemoving(name);
                     void services.removeNoteMedia(graph, [name]).finally(() => setRemoving(""));
-                  }}>
-                    <Trash2 size={18} aria-hidden="true" />
-                  </button>
+                  }} />
                 </CoreTooltip>
               </>
             )}

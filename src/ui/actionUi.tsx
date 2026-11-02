@@ -6,6 +6,7 @@ const ACTION_VARIANT_CLASS = {
   secondary: "core-action-secondary",
   destructive: "core-action-destructive",
   ghost: "core-action-ghost",
+  "destructive-quiet": "core-action-ghost core-action-destructive-quiet",
 } as const;
 
 export interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -40,7 +41,7 @@ export interface IconButtonProps
   extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   label: string;
   icon: LucideIcon;
-  variant?: "secondary" | "destructive" | "ghost";
+  variant?: "secondary" | "destructive" | "destructive-quiet" | "ghost";
 }
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
@@ -52,7 +53,7 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(f
       {...props}
       ref={ref}
       aria-label={label}
-      style={variant === "destructive" ? style : { ...style, color: "var(--core-text)" }}
+      style={variant.startsWith("destructive") ? style : { ...style, color: "var(--core-text)" }}
       className={`${ACTION_VARIANT_CLASS[variant]} min-w-button p-2 ${className}`}
     >
       <Icon size={16} aria-hidden="true" />

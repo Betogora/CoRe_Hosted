@@ -113,7 +113,7 @@ test("Lernverlauf: erzeugte Karten folgen §6.11 und zeigen jede Beispielkette a
   assert.equal([...html.matchAll(/data-mark="mature"/g)].length, EXAMPLE_CHAINS.length);
 });
 
-test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte ins Ringdiagramm", () => {
+test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte in die Tabelle", () => {
   const footprint = codeFootprint();
   const files = footprint.areas.flatMap((area) => area.files);
   assert.equal(new Set(files).size, files.length);
@@ -125,8 +125,7 @@ test("Codeumfang ordnet Bildschirmdateien einmal zu und überträgt die Werte in
     assert.ok(footprint.areas.find((area) => area.label === label)?.files.includes(`src/screens/${file}.tsx`));
   }
   const html = codeFootprintMarkup();
-  assert.equal([...html.matchAll(/data-donut-segment=/g)].length, footprint.areas.length);
-  const values = [...html.matchAll(/data-donut-value="(\d+)"/g)].map((match) => Number(match[1]));
+  const values = [...html.matchAll(/<\/th><td>([\d.]+)<\/td>/g)].map((match) => Number(match[1].replaceAll(".", "")));
   assert.deepEqual(values, footprint.areas.map((area) => area.lines));
 });
 

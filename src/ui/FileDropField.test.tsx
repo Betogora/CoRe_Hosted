@@ -3,33 +3,28 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { FileDropField } from "./FileDropField.tsx";
 
-test("FileDropField owns variant copy, file semantics, shared tokens and details", () => {
-  const documentMarkup = renderToStaticMarkup(
-    <FileDropField kind="document" selected onFile={() => undefined}>
-      <p>beispiel.pdf</p>
-    </FileDropField>,
+test("FileDropField is configured by its caller and shows prompt and action without an icon tile", () => {
+  const markup = renderToStaticMarkup(
+    <FileDropField accept=".pdf" ariaLabel="Quelldatei auswählen oder ablegen" label="Quelle" prompt="PDF hier ablegen" actionLabel="Datei auswählen" onFile={() => undefined} />,
   );
-  const imageMarkup = renderToStaticMarkup(
-    <FileDropField kind="image" label="Vorderseite" selected busy onFile={() => undefined} />,
-  );
-
-  assert.match(documentMarkup, /data-file-drop-field="true"/);
-  assert.match(documentMarkup, /aria-label="Quelldatei auswählen oder ablegen"/);
-  assert.match(documentMarkup, /accept="\.txt,\.md,\.markdown,\.csv,\.tsv,\.pdf"/);
-  assert.match(documentMarkup, /border border-dashed border-core-border-strong bg-core-subtle/);
-  assert.match(documentMarkup, /data-drop-state="idle"/);
-  assert.match(documentMarkup, /focus-visible:ring-\[var\(--core-focus-ring\)\]/);
-  for (const pattern of [/lucide-file-text/, />Andere Datei auswählen<\/span>/, /beispiel\.pdf/]) assert.match(documentMarkup, pattern);
-  assert.match(imageMarkup, /aria-label="Vorderseite: Bild einfügen oder ablegen"/);
-  assert.match(imageMarkup, /aria-disabled="true".*aria-busy="true"/);
-  assert.match(imageMarkup, /accept="image\/\*".*disabled=""/);
-  for (const pattern of [/lucide-image-plus/, />Bild ersetzen<\/span>/]) assert.match(imageMarkup, pattern);
+  assert.match(markup, /data-file-drop-field="true"/);
+  assert.match(markup, /aria-label="Quelldatei auswählen oder ablegen"/);
+  assert.match(markup, /accept="\.pdf"/);
+  assert.match(markup, /border border-dashed border-core-border-strong bg-core-subtle/);
+  assert.match(markup, /data-drop-state="idle"/);
+  for (const pattern of [/>Quelle<\/span>/, />PDF hier ablegen<\/p>/, />Datei auswählen<\/span>/]) assert.match(markup, pattern);
+  assert.equal((markup.match(/<svg/g) ?? []).length, 1);
+  assert.doesNotMatch(markup, /tabindex="0"/);
 });
 
-test("automatic creation has a separate source whitelist without expanding manual sources", () => {
-  const source = renderToStaticMarkup(<FileDropField kind="ai-source" selected onFile={() => undefined} />);
-  const manual = renderToStaticMarkup(<FileDropField kind="document" selected={false} onFile={() => undefined} />);
-  assert.match(source, /\.docx,\.pptx/);
-  assert.match(source, />Ersetzen<\/span>/);
-  assert.doesNotMatch(manual, /\.docx|\.pptx/);
+test("FileDropField replaces the prompt with details and locks while busy", () => {
+  const markup = renderToStaticMarkup(
+    <FileDropField accept="image/*" pasteImages busy ariaLabel="Bild einfügen oder ablegen" prompt="Bild hier ablegen" actionLabel="Bild ersetzen" onFile={() => undefined}>
+      <p>herz.png</p>
+    </FileDropField>,
+  );
+  assert.match(markup, /aria-disabled="true".*aria-busy="true"/);
+  assert.match(markup, /accept="image\/\*".*disabled=""/);
+  assert.match(markup, /herz\.png/);
+  assert.doesNotMatch(markup, /Bild hier ablegen/);
 });

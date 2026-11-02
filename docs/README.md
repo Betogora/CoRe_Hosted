@@ -14,7 +14,7 @@ Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
 | [Docs](index.html) | Orientierung und Quellen | diese README |
 | [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
 | [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
-| [UI-Elements](ui-elements.html) | UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster mit echten Produktansichten und Kartenbausteinen, Icons und Zustandsmatrix; mit Suche und Kapitelnavigation | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
+| [UI-Elements](ui-elements.html) | UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster und Icons; jedes Format genau einmal, ohne Erklärtexte und ohne aufrufbare Produktansichten; mit Suche und Kapitelnavigation | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
 | [Kartenbausteine](card-types.html) | acht Bausteine (Frage und Antwort, Rückrichtung, Eintippen, Feldrollen, Lückentext, Auswahl, Bildverdeckung, Formeln und Medien) im echten Reviewrenderer (`NoteCardContent`), je mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 
 Alle Seiten haben statt einer Kopfleiste eine Seitenleiste aus drei gleich
@@ -25,8 +25,9 @@ links stehen; darunter steht sie über dem Inhalt, Seiten und Kapitel laufen als
 waagerechte Leisten. `/` springt in die Suche.
 
 Die [Kartenbausteine](card-types.html) ordnen den Note-/Card-Renderer nach
-Bausteinen statt nach Kartentypen; der UI-Katalog zeigt dieselben Fälle unter
-[CoRe-Fachmuster](ui-elements.html#note-content).
+Bausteinen statt nach Kartentypen und sind die einzige Seite mit allen
+Renderer-Fällen; der UI-Katalog zeigt den Renderer einmal unter
+[Karteninhalte](ui-elements.html#inhalt).
 
 Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
 Styles und die Schrift Manrope sind eingebettet; Journey-Diagramme nutzen
@@ -76,11 +77,11 @@ Einleitung als Kopf, je `##`-Kapitel ein Abschnitt mit Navigationseintrag und je
 Karte. Die Suche der Seitenleiste filtert Karten, die Inhaltsnavigation führt je
 Kapitel einen Eintrag. Anker behalten das Schema
 `specs--<Überschrift>`. Die ergänzende Codeumfang-Grafik am Ende wird aus den
-Quellen neu berechnet und verwendet den produktiven `SegmentedDonut` und `StatTile`. Sie zählt nichtleere Zeilen
+Quellen neu berechnet und verwendet den produktiven `StatTile` mit einer Bereichstabelle. Sie zählt nichtleere Zeilen
 einschließlich Kommentaren in `src/` und `api/` (TS/TSX) sowie `src/styles.css`,
 ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
 werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
-der Ring zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
+die Tabelle zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
 
 ## Ergänzende Analysen und Nachweise
 
@@ -96,7 +97,7 @@ Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
 - [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
 - [`anki-format-analysis.md`](anki-format-analysis.md): technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.
 - [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
-- [`ui-elements.html`](ui-elements.html): direkt aus produktiven Komponenten erzeugte Demos plus klar gekennzeichnete lokale Screen-Muster.
+- [`ui-elements.html`](ui-elements.html): direkt aus produktiven Komponenten erzeugte Demos plus lokale Markup-Muster. Jedes Format und jede Variante erscheint genau einmal; Erklärungen gehören in die Specs. Dialoge wie Kartenvorschau oder Lerneinstellungen öffnen sich direkt, ganze Produktansichten nicht. Echte Screens mit lokalen Beispieldaten öffnet ausschließlich `ui-elements.html?preview=<name>` (etwa `dashboard`, `exams`, `decks`, `summaries`, `mindmaps`) als Gerüst der Katalog-Browsertests.
 - [`card-types.html`](card-types.html): interaktive Referenz der Kartenbausteine mit ihrem Erstellungsweg.
 
 ## Technische Einstiegspunkte

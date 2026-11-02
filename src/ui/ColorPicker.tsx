@@ -1,6 +1,14 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
+import type { LucideIcon } from "lucide-react";
 import { clampNumber, hexToHsv, hsvToHex, normalizeColor } from "./colorMath.ts";
+import { CoreTooltip } from "./tooltipUi.tsx";
+
+/** Quick picks as a two-row rainbow: each column is one hue, strong above and lightened below. */
+export const COLOR_PICKER_PRESETS = [
+  "#e5484d", "#f28c28", "#edb72a", "#3fa66b", "#0d8e90", "#3b7dd8", "#8b5cf6",
+  "#f5a3a6", "#f9c48f", "#f6dd8e", "#9ed5b3", "#8acfd0", "#a4c2ee", "#c9b4fa",
+] as const;
 
 interface ColorWheelPosition { hue: number; intensity: number }
 
@@ -32,21 +40,30 @@ function getMarkerPosition({ hue, intensity }: ColorWheelPosition) {
   };
 }
 
-interface ColorWheelPickerProps {
+interface ColorPickerProps {
   value: string;
-  ariaLabel?: string;
+  ariaLabel: string;
+  onValueCommit: (color: string) => void;
+  /** `compact` shows the color as a square swatch; `tool` shows a toolbar icon with a color bar and keeps a text selection alive. */
+  variant?: "compact" | "tool";
+  icon?: LucideIcon;
+  presets?: readonly string[];
   disabled?: boolean;
   className?: string;
-  onValueCommit: (color: string) => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function ColorWheelPicker({
+export function ColorPicker({
   value,
-  ariaLabel = "Farbe wählen",
+  ariaLabel,
+  onValueCommit,
+  variant = "compact",
+  icon: Icon,
+  presets = COLOR_PICKER_PRESETS,
   disabled = false,
   className = "",
-  onValueCommit,
-}: ColorWheelPickerProps) {
+  onOpenChange,
+}: ColorPickerProps) {
   const normalizedValue = normalizeColor(value, "#6f7e9e");
   const [isOpen, setIsOpen] = React.useState(false);
   const [previewColor, setPreviewColor] = React.useState(normalizedValue);
@@ -55,12 +72,18 @@ export function ColorWheelPicker({
   const activePointerRef = React.useRef<number | null>(null);
   const pendingPositionRef = React.useRef<ColorWheelPosition | null>(null);
   const animationFrameRef = React.useRef<number | null>(null);
+  const tool = variant === "tool";
 
   function applyPosition(nextPosition: ColorWheelPosition) {
     const nextColor = colorFromWheelPosition(nextPosition);
     setPosition(nextPosition);
     setPreviewColor(nextColor);
     return nextColor;
+  }
+
+  function applyColor(nextColor: string) {
+    setPosition(wheelPositionFromColor(nextColor));
+    setPreviewColor(nextColor);
   }
 
   function flushPendingPosition() {
@@ -80,16 +103,15 @@ export function ColorWheelPicker({
     if (rect) schedulePosition(wheelPositionFromPoint(event.clientX - rect.left, event.clientY - rect.top, Math.min(rect.width, rect.height)));
   }
 
+  // A tool applies its color to the current selection, so the same color counts again.
   function commitColor(nextColor: string) {
-    if (nextColor !== normalizedValue) onValueCommit(nextColor);
+    if (tool || nextColor !== normalizedValue) onValueCommit(nextColor);
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (nextOpen) {
-      setPreviewColor(normalizedValue);
-      setPosition(wheelPositionFromColor(normalizedValue));
-    }
+    if (nextOpen) applyColor(normalizedValue);
     setIsOpen(nextOpen);
+    onOpenChange?.(nextOpen);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -111,33 +133,51 @@ export function ColorWheelPicker({
     if (animationFrameRef.current !== null) window.cancelAnimationFrame(animationFrameRef.current);
   }, []);
 
+  const shownColor = isOpen ? previewColor : normalizedValue;
+  // A tool popover stays in its toolbar's DOM, so focus in it still counts as being inside the editor.
+  const Portal = tool ? React.Fragment : Popover.Portal;
   const markerPosition = getMarkerPosition(position);
+  const trigger = tool ? (
+    <Popover.Trigger asChild>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        disabled={disabled}
+        className={`core-rich-text-tool relative ${className}`}
+        onMouseDown={(event) => event.preventDefault()}
+      >
+        {Icon ? <Icon size={16} aria-hidden="true" /> : null}
+        <span aria-hidden="true" className="absolute inset-x-2 bottom-1 h-1 rounded-round" style={{ backgroundColor: shownColor }} />
+      </button>
+    </Popover.Trigger>
+  ) : (
+    <Popover.Trigger asChild>
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        disabled={disabled}
+        className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
+      >
+        <span aria-hidden="true" className="block size-full rounded-marker border border-core-border shadow-inset" style={{ backgroundColor: shownColor }} />
+      </button>
+    </Popover.Trigger>
+  );
 
   return (
     <Popover.Root open={isOpen} onOpenChange={handleOpenChange}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          disabled={disabled}
-          className={`size-control shrink-0 rounded-control border border-core-border bg-core-surface p-1 shadow-soft transition-colors hover:border-core-action disabled:pointer-events-none disabled:opacity-50 ${className}`}
-        >
-          <span
-            aria-hidden="true"
-            className="block size-full rounded-marker border border-core-border shadow-inset"
-            style={{ backgroundColor: isOpen ? previewColor : normalizedValue }}
-          />
-        </button>
-      </Popover.Trigger>
-
-      <Popover.Portal>
+      {tool ? <CoreTooltip label={ariaLabel}>{trigger}</CoreTooltip> : trigger}
+      <Portal>
         <Popover.Content
-          align="end"
+          align={tool ? "start" : "end"}
           sideOffset={6}
           collisionPadding={12}
           aria-label={ariaLabel}
           data-testid="color-wheel-popover"
-          className="core-overlay z-50 w-[min(15rem,calc(100vw-1.5rem))] rounded-panel p-3.5 outline-none"
+          className="core-overlay z-50 w-[min(17rem,calc(100vw-1.5rem))] rounded-panel p-3.5 outline-none"
+          // A text selection stays in its editor while a tool color is applied there.
+          onFocusOutside={tool ? (event) => event.preventDefault() : undefined}
+          // Escape closes only the picker, not a surrounding editor or dialog in the React tree.
+          onKeyDown={(event) => { if (event.key === "Escape") event.stopPropagation(); }}
         >
           <div
             ref={wheelRef}
@@ -148,7 +188,7 @@ export function ColorWheelPicker({
             aria-valuemax={360}
             aria-valuenow={Math.round(position.hue)}
             aria-valuetext={`${previewColor}, ${Math.round(position.intensity * 100)} %`}
-            className="relative mx-auto aspect-square w-full max-w-48 touch-none rounded-round border border-core-border shadow-inset outline-none focus-visible:ring-2 focus-visible:ring-core-focus"
+            className="relative mx-auto aspect-square w-full max-w-48 touch-none rounded-round border border-core-border shadow-inset outline-none"
             style={{
               backgroundImage: "radial-gradient(circle, #fff 0%, rgb(255 255 255 / 0) 100%), conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)",
             }}
@@ -192,8 +232,30 @@ export function ColorWheelPicker({
               }}
             />
           </div>
+          <div role="radiogroup" aria-label="Schnellwahl" className="mt-3 grid grid-cols-7 justify-items-center gap-1.5 border-t border-core-border pt-3">
+            {presets.map((preset) => {
+              const presetColor = normalizeColor(preset, normalizedValue);
+              const selected = presetColor === previewColor;
+              return (
+                <button
+                  key={presetColor}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={`Farbe ${presetColor}`}
+                  className={`aspect-square w-full max-w-7 rounded-round border border-core-border shadow-soft transition-transform ${selected ? "shadow-selection" : "hover:scale-110"}`}
+                  style={{ backgroundColor: presetColor }}
+                  onMouseDown={tool ? (event) => event.preventDefault() : undefined}
+                  onClick={() => {
+                    applyColor(presetColor);
+                    commitColor(presetColor);
+                  }}
+                />
+              );
+            })}
+          </div>
         </Popover.Content>
-      </Popover.Portal>
+      </Portal>
     </Popover.Root>
   );
 }

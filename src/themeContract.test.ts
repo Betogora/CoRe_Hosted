@@ -80,7 +80,6 @@ test("product UI consumes the shared geometry scale instead of independent utili
 
 test("productive TSX does not reintroduce the replaced palette or named status utilities", () => {
   const source = ["src/App.tsx", "src/AppErrorBoundary.tsx", ...productionFiles("src/screens"), ...productionFiles("src/ui")]
-    .filter((path) => !path.endsWith("colorPicker.tsx"))
     .map((path) => readFileSync(path, "utf8"))
     .join("\n");
   assert.doesNotMatch(source, /#(?:17214f|66709a|4f5eb1|dfe4f5|4e5b8c|eef1fb|f8f9fe)/i);
@@ -101,7 +100,7 @@ test("pointer focus stays frameless while keyboard focus shows one outline", () 
 
 test("the UI catalog lists every canonical shared export", () => {
   const catalog = readFileSync("src/ui/README.md", "utf8");
-  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "SegmentedDonut", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
+  for (const name of ["SoftPanel", "PageHeader", "EmptyState", "ActionDialog", "OrbIcon", "StatTile", "DailyReviewProgress", "CoreModeControl", "ActionButton", "IconButton", "StatusMessage", "SuccessToast", "SuccessToastProvider", "useSuccessToast"]) {
     assert.match(catalog, new RegExp(`\\b${name}\\b`));
   }
 });

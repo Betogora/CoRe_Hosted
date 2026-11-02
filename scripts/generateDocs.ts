@@ -16,7 +16,7 @@ import tailwindConfig from "../tailwind.config.ts";
 import { DEMO_GROUPS } from "./uiCatalogDemos.tsx";
 import { synchronizeBrainLogo } from "./generateMascots.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
-import { SegmentedDonut, StatTile } from "../src/ui/coreUi.tsx";
+import { StatTile } from "../src/ui/coreUi.tsx";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
 import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 
@@ -55,17 +55,13 @@ export function codeFootprint() {
 export function codeFootprintMarkup() {
   const footprint = codeFootprint();
   const number = (value: number) => value.toLocaleString("de-DE");
-  const segments = footprint.areas.map((area) => ({ key: area.label, value: area.lines, color: area.color }));
-  const chart = renderToStaticMarkup(React.createElement(SegmentedDonut, {
-    segments, ariaLabel: `Bildschirmcode: ${footprint.areas.map((area) => `${area.label}: ${number(area.lines)} Zeilen`).join(", ")}`,
-  }));
   const tiles = renderToStaticMarkup(React.createElement("div", { className: "docs-code-stats" },
     React.createElement(StatTile, { size: "compact", label: "Bildschirmcode", value: number(footprint.screens) }),
     React.createElement(StatTile, { size: "compact", label: "Gemeinsamer Code & API", value: number(footprint.shared) }),
     React.createElement(StatTile, { size: "compact", label: "Quelldateien", value: number(footprint.files) }),
   ));
   const rows = footprint.areas.map((area) => `<tr><th scope="row"><span class="docs-code-dot" style="background:${area.color}" aria-hidden="true"></span>${area.label}</th><td>${number(area.lines)}</td><td>${(area.lines / footprint.screens * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</td></tr>`).join("");
-  return `${tiles}<div class="docs-code-chart"><div class="docs-code-donut">${chart}<span class="core-caption">${number(footprint.screens)} Zeilen</span></div><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
+  return `${tiles}<div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody>${rows}</tbody></table></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p>`;
 }
 
 const DEFAULT_RETENTION = 0.92;

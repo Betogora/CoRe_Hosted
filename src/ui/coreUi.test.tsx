@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, PageHeader, SegmentedDonut } from "./coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, PageHeader } from "./coreUi.tsx";
 import { FileText, NotebookPen } from "lucide-react";
 
 test("sliding tabs keep every icon and accessible label but show only the selected label", () => {
@@ -141,45 +141,4 @@ test("segmented controls disable every option together", () => {
   );
 
   assert.equal(markup.match(/disabled=""/g)?.length, 2);
-});
-
-test("segmented donut renders exact ordered values with a transparent framed center", () => {
-  const markup = renderToStaticMarkup(
-    <SegmentedDonut
-      segments={[
-        { key: "new", value: 1, color: "var(--core-learning-status-new)" },
-        { key: "in-progress", value: 2, color: "var(--core-learning-status-in-progress)" },
-        { key: "due", value: 0, color: "var(--core-learning-status-due)" },
-        { key: "learned", value: 97, color: "var(--core-learning-status-learned)" },
-      ]}
-      ariaLabel="Gesamtfortschritt: 97 von 100 Karten gelernt."
-      size="responsive"
-    />,
-  );
-
-  assert.match(markup, /role="img" aria-label="Gesamtfortschritt: 97 von 100 Karten gelernt\."/);
-  assert.ok(markup.indexOf('data-donut-segment="new"') < markup.indexOf('data-donut-segment="in-progress"'));
-  assert.ok(markup.indexOf('data-donut-segment="in-progress"') < markup.indexOf('data-donut-segment="learned"'));
-  assert.match(markup, /data-donut-segment="new" data-donut-value="1"/);
-  assert.match(markup, /data-donut-segment="in-progress" data-donut-value="2"/);
-  assert.match(markup, /data-donut-segment="learned" data-donut-value="97"/);
-  assert.doesNotMatch(markup, /data-donut-segment="due"/);
-  assert.match(markup, /stroke="var\(--core-border\)" stroke-width="1"/);
-  assert.equal((markup.match(/<path/g) ?? []).length, 3);
-});
-
-test("segmented donut renders full and empty distributions without inventing segments", () => {
-  const full = renderToStaticMarkup(
-    <SegmentedDonut
-      segments={[{ key: "learned", value: 1, color: "var(--core-learning-status-learned)" }]}
-      ariaLabel="Eine Karte gelernt."
-    />,
-  );
-  const empty = renderToStaticMarkup(<SegmentedDonut segments={[]} ariaLabel="Keine aktiven Karten" size="compact" />);
-
-  assert.match(full, /data-donut-segment="learned" data-donut-value="1"/);
-  assert.doesNotMatch(full, /data-donut-empty/);
-  assert.match(empty, /data-donut-empty="true"/);
-  assert.match(empty, /fill="var\(--core-surface-muted\)"/);
-  assert.match(empty, /aria-label="Keine aktiven Karten"/);
 });

@@ -4,7 +4,6 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createStudyHeatmapModelFromCounts } from "../studyHeatmapModel.ts";
 import {
-  HEATMAP_HISTORY_COLOR_OPTIONS,
   HEATMAP_HISTORY_COLOR_STORAGE_KEY,
   HEATMAP_HISTORY_DEFAULT_COLOR,
   normalizeHeatmapHistoryColor,
@@ -63,8 +62,8 @@ test("shared study heatmap defaults to seven days with the streak title and shar
   assert.match(markup, /data-testid="study-heatmap-header"[\s\S]*1 Tag Streak[\s\S]*data-testid="study-heatmap-controls"/);
   assert.match(markup, /data-testid="study-heatmap-controls"><button[^>]*aria-label="Heatmap-Farbe ändern"/);
   assert.match(markup, /data-testid="study-heatmap-controls">[\s\S]*aria-label="Heatmap-Farbe ändern"[\s\S]*aria-label="Heatmap-Zeitraum"/);
-  assert.match(markup, /data-heatmap-history-color="#d6a3d2"/);
-  assert.match(markup, /background-color:var\(--core-learning-status-new\)/);
+  assert.match(markup, /data-heatmap-history-color="#b55b43"/);
+  assert.match(markup, /aria-label="Heatmap-Farbe ändern"[^>]*><span[^>]*background-color:#b55b43/);
   assert.match(markup, /role="combobox"[\s\S]*aria-label="Heatmap-Zeitraum"/);
   assert.doesNotMatch(markup, /aria-pressed=/);
   assert.match(markup, />Woche</);
@@ -99,25 +98,17 @@ test("shared study heatmap uses the plural streak title for zero and multiple da
   assert.match(streakMarkup, /3 Tage Streak/);
 });
 
-test("shared study heatmap offers exactly the four learning-status colors", () => {
-  assert.equal(HEATMAP_HISTORY_COLOR_STORAGE_KEY, "core.studyHeatmap.historyColor.v1");
-  assert.equal(HEATMAP_HISTORY_DEFAULT_COLOR, "#d6a3d2");
-  assert.deepEqual(HEATMAP_HISTORY_COLOR_OPTIONS, [
-    { color: "#6f7e9e", label: "Gelernt", tone: "var(--core-learning-status-learned)" },
-    { color: "#d6a3d2", label: "Neu", tone: "var(--core-learning-status-new)" },
-    { color: "#e28b68", label: "Offen", tone: "var(--core-learning-status-in-progress)" },
-    { color: "#e4bf63", label: "Fällig", tone: "var(--core-learning-status-due)" },
-  ]);
-
-  const markup = renderHeatmapAt("week", "2026-08-10", new Map(), "#e28b68");
-  assert.match(markup, /data-heatmap-history-color="#e28b68"/);
-  assert.match(markup, /--core-heatmap-history-level-1:color-mix\(in srgb, var\(--core-surface\) 84%, var\(--core-learning-status-in-progress\)\)/);
-  assert.match(markup, /--core-heatmap-history-level-4:var\(--core-learning-status-in-progress\)/);
+test("shared study heatmap tints its history levels with the freely picked color", () => {
+  assert.equal(HEATMAP_HISTORY_COLOR_STORAGE_KEY, "core.studyHeatmap.historyColor.v2");
+  const markup = renderHeatmapAt("week", "2026-08-10", new Map(), "#3fa66b");
+  assert.match(markup, /data-heatmap-history-color="#3fa66b"/);
+  assert.match(markup, /--core-heatmap-history-level-1:color-mix\(in srgb, var\(--core-surface\) 84%, #3fa66b\)/);
+  assert.match(markup, /--core-heatmap-history-level-4:#3fa66b/);
 });
 
-test("shared study heatmap accepts only current palette colors and otherwise uses CoRe lilac", () => {
-  for (const option of HEATMAP_HISTORY_COLOR_OPTIONS) assert.equal(normalizeHeatmapHistoryColor(option.color.toUpperCase()), option.color);
-  for (const value of [null, "", "#123456", "lila"]) assert.equal(normalizeHeatmapHistoryColor(value), HEATMAP_HISTORY_DEFAULT_COLOR);
+test("shared study heatmap normalizes stored colors and otherwise uses the CoRe accent", () => {
+  assert.equal(normalizeHeatmapHistoryColor("#3FA66B"), "#3fa66b");
+  for (const value of [null, "", "lila", "#12345"]) assert.equal(normalizeHeatmapHistoryColor(value), HEATMAP_HISTORY_DEFAULT_COLOR);
 });
 
 test("shared study heatmap renders forecast copy and gray levels without changing the historical legend", () => {

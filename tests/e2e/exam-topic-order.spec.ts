@@ -7,7 +7,7 @@ const viewports = visualOutput
   : [[390, 844], [1440, 900], [720, 450]];
 async function topicIds(list: Locator) { return list.locator(":scope > li").evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.topicId)); }
 async function openDemo(page: Page, dark = false) {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   if (dark) await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
   return page.locator(".catalog-demo").filter({ has: page.getByRole("heading", { name: "Prüfungen · Themenreihenfolge", exact: true }) });

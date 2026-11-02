@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { loadEnv } from "vite";
 
 async function openCatalogFlow(page: Page) {
-  await page.goto("/docs/ui-elements.html#screens");
+  await page.goto("/docs/ui-elements.html?preview=screens");
   await page.locator("#screens").getByRole("button", { name: "Automatische Erstellung öffnen", exact: true }).click();
   return page.getByTestId("ai-source-creation");
 }
@@ -289,7 +289,7 @@ for (const theme of ["light", "dark"] as const) {
       await capture("existing-manual-source");
       await page.getByRole("button", { name: "Bildverdeckung", exact: true }).click();
       await capture("existing-manual-image");
-      await page.goto("/docs/ui-elements.html#screens");
+      await page.goto("/docs/ui-elements.html?preview=screens");
       if (theme === "dark") await page.locator("#docs-theme").click();
       await page.locator("#screens").getByRole("button", { name: "Automatische Erstellung öffnen", exact: true }).click();
       await capture("catalog-form");

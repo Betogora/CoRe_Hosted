@@ -1,25 +1,14 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, Palette, PenLine, Sigma, Underline, Unlink } from "lucide-react";
+import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, PenLine, Sigma, Underline, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextEditorHtml, normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
 import { CoreTooltip } from "./tooltipUi.tsx";
-import {
-  ColorPopover,
-  ColorToolButton,
-  defaultHighlightColors,
-  defaultTextColors,
-  highlightPaletteColors,
-  normalizeColor,
-  textPaletteColors,
-  useStoredColorSlots,
-} from "./colorPicker.tsx";
+import { COLOR_PICKER_PRESETS, ColorPicker } from "./ColorPicker.tsx";
 
-const richTextColorStorageKeys = {
-  text: "core.richText.textColors.v2",
-  highlight: "core.richText.highlightColors.v2",
-};
+const textColorPresets = ["#181d25", "#667492", ...COLOR_PICKER_PRESETS.slice(0, 5)];
+const highlightColorPresets = COLOR_PICKER_PRESETS.slice(7);
 
 interface TextSelectionOffsets {
   start: number;
@@ -173,10 +162,7 @@ interface RichTextEditorProps {
 
 export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
-  const toolbarRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
-  const textColorButtonRef = React.useRef<HTMLButtonElement>(null);
-  const highlightColorButtonRef = React.useRef<HTMLButtonElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
   const isFocusedRef = React.useRef(false);
   // Only input changes a field: focusing and leaving it keeps stored (also imported) HTML untouched (W15).
@@ -184,18 +170,15 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const [focusWithin, setFocusWithin] = React.useState(false);
   const lastEmittedNormalizedHtmlRef = React.useRef("");
   const normalizedValue = React.useMemo(() => normalizeRichTextForEditor(value), [value]);
-  const [textColors, updateTextColorSlot] = useStoredColorSlots(richTextColorStorageKeys.text, defaultTextColors);
-  const [highlightColors, updateHighlightColorSlot] = useStoredColorSlots(richTextColorStorageKeys.highlight, defaultHighlightColors);
-  const [openColorMenu, setOpenColorMenu] = React.useState<"text" | "highlight" | null>(null);
-  const [selectedColorSlots, setSelectedColorSlots] = React.useState({ text: 0, highlight: 0 });
+  const [textColor, setTextColor] = React.useState<string>(textColorPresets[0]);
+  const [highlightColor, setHighlightColor] = React.useState<string>(highlightColorPresets[2]);
+  const [colorMenuOpen, setColorMenuOpen] = React.useState(false);
   const [clozeStatus, setClozeStatus] = React.useState("");
   const [imageStatus, setImageStatus] = React.useState("");
   const [imageError, setImageError] = React.useState("");
   const [isPreparingImages, setIsPreparingImages] = React.useState(false);
   const [moreToolsOpen, setMoreToolsOpen] = React.useState(false);
   const moreToolsId = React.useId();
-  const textColorMenuId = React.useId();
-  const highlightColorMenuId = React.useId();
   const clozeStatusId = React.useId();
   const imageStatusId = React.useId();
 
@@ -213,35 +196,6 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     }
     lastEmittedNormalizedHtmlRef.current = normalizedValue;
   }, [imageActions?.mediaUrls, normalizedValue]);
-
-  React.useEffect(() => {
-    if (!openColorMenu || typeof document === "undefined") return undefined;
-
-    function closeColorMenu(event: MouseEvent) {
-      if (!toolbarRef.current?.contains(event.target as Node)) {
-        setOpenColorMenu(null);
-      }
-    }
-
-    function closeColorMenuWithKeyboard(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      const trigger = openColorMenu === "text" ? textColorButtonRef.current : highlightColorButtonRef.current;
-      setOpenColorMenu(null);
-      window.requestAnimationFrame(() => trigger?.focus());
-    }
-
-    const menuId = openColorMenu === "text" ? textColorMenuId : highlightColorMenuId;
-    const frame = window.requestAnimationFrame(() => document.getElementById(menuId)?.querySelector<HTMLElement>("button, [tabindex], input")?.focus());
-
-    document.addEventListener("mousedown", closeColorMenu);
-    document.addEventListener("keydown", closeColorMenuWithKeyboard);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      document.removeEventListener("mousedown", closeColorMenu);
-      document.removeEventListener("keydown", closeColorMenuWithKeyboard);
-    };
-  }, [highlightColorMenuId, openColorMenu, textColorMenuId]);
 
   function hasEditorSelection() {
     const editor = editorRef.current;
@@ -574,19 +528,14 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     emitChange();
   }
 
-  function selectColorSlot(kind: "text" | "highlight", slotIndex: number) {
-    setSelectedColorSlots((currentSlots) => ({ ...currentSlots, [kind]: slotIndex }));
+  function applyColor(kind: "text" | "highlight", color: string) {
+    (kind === "text" ? setTextColor : setHighlightColor)(color);
+    runCommand(kind === "text" ? "foreColor" : "backColor", color);
   }
 
-  function applyStoredColor(kind: "text" | "highlight", color: unknown, shouldClose = false) {
-    const fallback = kind === "text" ? defaultTextColors[0] : defaultHighlightColors[0];
-    runCommand(kind === "text" ? "foreColor" : "backColor", normalizeColor(color, fallback));
-    if (shouldClose) setOpenColorMenu(null);
-  }
-
-  function changeColorSlot(kind: "text" | "highlight", slotIndex: number, color: unknown) {
-    const updateSlot = kind === "text" ? updateTextColorSlot : updateHighlightColorSlot;
-    updateSlot(slotIndex, color);
+  function openColorMenu(open: boolean) {
+    if (open) saveSelection();
+    setColorMenuOpen(open);
   }
 
   function handlePaste(event: React.ClipboardEvent<HTMLDivElement>) {
@@ -631,14 +580,14 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     void insertImageFiles(files, dropRange);
   }
 
-  const toolbarShown = !toolbarOnFocus || focusWithin || openColorMenu !== null;
+  const toolbarShown = !toolbarOnFocus || focusWithin || colorMenuOpen;
   const active = isActive || (toolbarOnFocus && focusWithin);
   const fieldClass = `${minHeightClass} rich-text-field min-w-0 ${toolbarShown ? "rounded-b-control border-t-0" : "rounded-control"} border bg-core-surface p-4 core-body-large font-normal leading-7 text-core-text outline-none transition ${
     active ? "border-core-action" : "border-core-border"
   } ${active && toolbarHost ? "shadow-selection" : ""}`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
   const toolbar = (
-      <div ref={toolbarRef} role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`}>
+      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
         {imageActions ? (
@@ -671,7 +620,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
         {clozeActions ? <ToolbarButton label={`Auswahl als Lücke c${normalizeClozeGroupId(clozeActions.groupId)} markieren`} icon={Braces} onRun={addCloze} /> : null}
         <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
         {!showAllTools && <CoreTooltip label="Weitere Textwerkzeuge">
-          <button type="button" className="core-rich-text-tool" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); setOpenColorMenu(null); }}>
+          <button type="button" className="core-rich-text-tool" aria-label="Weitere Textwerkzeuge" aria-expanded={moreToolsOpen} aria-controls={moreToolsId} onMouseDown={(event) => { event.preventDefault(); saveSelection(); }} onClick={() => { setMoreToolsOpen((open) => !open); }}>
             <MoreHorizontal size={16} aria-hidden="true" />
           </button>
         </CoreTooltip>}
@@ -681,60 +630,8 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           <ToolbarButton label="Stichpunkte" icon={List} onRun={() => runCommand("insertUnorderedList")} />
           <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} onRun={() => runCommand("insertOrderedList")} />
           <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
-          <div className="relative">
-            <ColorToolButton
-              buttonRef={textColorButtonRef}
-              label="Stiftfarbe"
-              icon={PenLine}
-              color={textColors[selectedColorSlots.text] ?? textColors[0]}
-              isOpen={openColorMenu === "text"}
-              menuId={textColorMenuId}
-              onToggle={() => {
-                saveSelection();
-                setOpenColorMenu((currentMenu) => (currentMenu === "text" ? null : "text"));
-              }}
-            />
-            {openColorMenu === "text" ? (
-              <ColorPopover
-                id={textColorMenuId}
-                label="Stiftfarbe"
-                icon={Palette}
-                colors={textColors}
-                paletteColors={textPaletteColors}
-                selectedSlot={selectedColorSlots.text}
-                onSelectSlot={(slotIndex: any) => selectColorSlot("text", slotIndex)}
-                onApply={(color: any, shouldClose: boolean|undefined) => applyStoredColor("text", color, shouldClose)}
-                onChangeSlot={(slotIndex: any, color: any) => changeColorSlot("text", slotIndex, color)}
-              />
-            ) : null}
-          </div>
-          <div className="relative">
-            <ColorToolButton
-              buttonRef={highlightColorButtonRef}
-              label="Markerfarbe"
-              icon={Highlighter}
-              color={highlightColors[selectedColorSlots.highlight] ?? highlightColors[0]}
-              isOpen={openColorMenu === "highlight"}
-              menuId={highlightColorMenuId}
-              onToggle={() => {
-                saveSelection();
-                setOpenColorMenu((currentMenu) => (currentMenu === "highlight" ? null : "highlight"));
-              }}
-            />
-            {openColorMenu === "highlight" ? (
-              <ColorPopover
-                id={highlightColorMenuId}
-                label="Markerfarbe"
-                icon={Highlighter}
-                colors={highlightColors}
-                paletteColors={highlightPaletteColors}
-                selectedSlot={selectedColorSlots.highlight}
-                onSelectSlot={(slotIndex: any) => selectColorSlot("highlight", slotIndex)}
-                onApply={(color: any, shouldClose: boolean|undefined) => applyStoredColor("highlight", color, shouldClose)}
-                onChangeSlot={(slotIndex: any, color: any) => changeColorSlot("highlight", slotIndex, color)}
-              />
-            ) : null}
-          </div>
+          <ColorPicker variant="tool" icon={PenLine} ariaLabel="Stiftfarbe" value={textColor} presets={textColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("text", color)} />
+          <ColorPicker variant="tool" icon={Highlighter} ariaLabel="Markerfarbe" value={highlightColor} presets={highlightColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("highlight", color)} />
           <span className="mx-1 h-7 w-px bg-core-border" aria-hidden="true" />
           <ToolbarButton label="Formatierung löschen" icon={Eraser} onRun={() => runCommand("removeFormat")} />
           {clozeActions ? <ToolbarButton label="Lücke entfernen" icon={Unlink} onRun={removeCloze} /> : null}

@@ -397,8 +397,10 @@ export function ApkgImportPanel({ workflow, session, onSessionChange, isSessionC
         </div>
 
         <FileDropField
-          kind="apkg"
-          selected={Boolean(selectedFile)}
+          accept=".apkg,.colpkg"
+          ariaLabel="Anki-Datei (APKG oder COLPKG) auswählen oder ablegen"
+          prompt="APKG- oder COLPKG-Datei hier ablegen (Max. 2 GiB)"
+          actionLabel={selectedFile ? "Andere Datei auswählen" : "APKG-Datei auswählen"}
           onFile={parseFile}
           disabled={fileInteractionLocked}
           busy={progressRunning}
