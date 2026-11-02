@@ -1,7 +1,8 @@
+import type { NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type { Card, Note, NoteField, NoteInteraction } from "./coreTypes.ts";
 import type { CoreTheme } from "./coreTheme.ts";
-import type { TemplateDiagnostic } from "./safeTemplate.ts";
-import { sanitizeNoteHtml } from "./htmlSafety.ts";
+import { compileSafeTemplate, type SafeTemplateAstNode, type TemplateDiagnostic } from "./safeTemplate.ts";
+import { sanitizeLayoutHtml, sanitizeNoteHtml } from "./htmlSafety.ts";
 import { noteContentMediaRefs } from "./coreModel/noteContent.ts";
 import { buildSrcdoc } from "./presentationFrame.ts";
 import { colorContrast, ensureTextContrast, hexToHsv, resolveCssColor } from "./ui/colorMath.ts";
@@ -20,6 +21,8 @@ export interface NotePresentationResult {
   mediaReferences: string[];
   interactions: Array<"hint" | "typed-answer" | "tts" | "audio" | "video" | "choice">;
   diagnostics: TemplateDiagnostic[];
+  /** `original`: the imported template's own layout (ADR-047), shown in one frame like in Anki. */
+  layout: "core" | "original";
 }
 
 const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -75,16 +78,17 @@ function clozeAt(value: string, start: number): ClozeToken | null {
   return null;
 }
 const clozeAtOpening = (value: string, cursor: number) => value.startsWith("{{", cursor) && /^\{\{c\d+(?:,\d+)*::/i.test(value.slice(cursor));
-function renderClozes(value: string, ordinal: number, side: "question" | "answer", math: boolean, accent: string): string {
+function renderClozes(value: string, ordinal: number, side: "question" | "answer", math: boolean, accent: string, anki = false): string {
   let output = "";
   for (let cursor = 0; cursor < value.length;) {
     const token = clozeAtOpening(value, cursor) ? clozeAt(value, cursor) : null;
     if (!token) { output += value[cursor++]; continue; }
     const active = token.ordinals.includes(ordinal);
-    const inner = active && side === "question" ? `[${notePlainText(token.hint) || "…"}]` : renderClozes(token.text, ordinal, side, math, accent);
+    const inner = active && side === "question" ? `[${notePlainText(token.hint) || "…"}]` : renderClozes(token.text, ordinal, side, math, accent, anki);
+    const shown = active && side === "question" ? escapeHtml(inner) : inner;
     output += !active ? inner : math
       ? `\\colorbox{${accent}}{${side === "question" ? `\\text{${inner.replace(/[\\{}$%&#_^~]/g, (character) => `\\char"${character.charCodeAt(0).toString(16)}{}`)}}` : `$${inner}$`}}`
-      : `<mark class="core-active-cloze">${active && side === "question" ? escapeHtml(inner) : inner}</mark>`;
+      : anki ? `<span class="cloze">${shown}</span>` : `<mark class="core-active-cloze">${shown}</mark>`;
     cursor = token.end;
   }
   return output;
@@ -150,19 +154,21 @@ function occlusionHtml(interaction: Extract<NoteInteraction, { kind: "image-occl
   return `<div class="core-occlusion"><img src="${escapeHtml(interaction.image)}" alt="${escapeHtml(alt)}"/><div class="mask-layer"><svg aria-hidden="true" viewBox="0 0 1 1" preserveAspectRatio="none">${polygons}</svg>${layer}</div></div>`;
 }
 
-async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, side: "question" | "answer", theme: NotePresentationTheme, diagnostics: TemplateDiagnostic[], interactions: Set<NotePresentationResult["interactions"][number]>) {
+/** `layout`: the expanded template of an original layout, which keeps its colours and has its clozes rendered already. */
+async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, side: "question" | "answer", theme: NotePresentationTheme, diagnostics: TemplateDiagnostic[], interactions: Set<NotePresentationResult["interactions"][number]>, layout = false) {
   const interaction = note.content.interaction;
+  const clozes = interaction.kind === "cloze" && !layout;
   const ordinal = Number(card.promptKey.split(":")[1]);
   const katex = noteHasMath(note) ? await import("katex") : null;
   const html = (raw: string) => {
-    const sanitized = adjustedColors(sanitizeNoteHtml(raw), theme.colors);
+    const sanitized = layout ? sanitizeLayoutHtml(raw) : adjustedColors(sanitizeNoteHtml(raw), theme.colors);
     let output = "";
     let cursor = 0;
     for (const match of sanitized.matchAll(MATH)) {
       const prose = sanitized.slice(cursor, match.index);
-      output += interaction.kind === "cloze" ? renderClozes(prose, ordinal, side, false, theme.colors["success-surface"]) : prose;
+      output += clozes ? renderClozes(prose, ordinal, side, false, theme.colors["success-surface"]) : prose;
       let tex = notePlainText(match.slice(1).find((group) => group !== undefined) ?? "");
-      if (interaction.kind === "cloze") tex = renderClozes(tex, ordinal, side, true, theme.colors["success-surface"]);
+      if (clozes) tex = renderClozes(tex, ordinal, side, true, theme.colors["success-surface"]);
       try {
         let blocked = false;
         const rendered = katex!.renderToString(tex, { displayMode: match[1] === undefined && match[2] === undefined, throwOnError: true, trust: () => { blocked = true; return false; }, strict: "error", maxExpand: 1000, maxSize: 20 });
@@ -175,7 +181,7 @@ async function createHtmlRenderer(note: Note, card: Pick<Card, "promptKey">, sid
       cursor = match.index + match[0].length;
     }
     const rest = sanitized.slice(cursor);
-    output += interaction.kind === "cloze" ? renderClozes(rest, ordinal, side, false, theme.colors["success-surface"]) : rest;
+    output += clozes ? renderClozes(rest, ordinal, side, false, theme.colors["success-surface"]) : rest;
     return output.replace(/\[sound:([^\]\r\n]+)\]/gi, (_match, name: string) => {
       const video = /\.(?:mp4|webm|mov)(?:[?#].*)?$/i.test(name);
       interactions.add(video ? "video" : "audio");
@@ -214,6 +220,24 @@ function typedComparisonHtml(expected: string, typed: string): string {
 
 const LINK_ICON = '<svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>';
 
+// Parts the app inserts into a card, in the CoRe design and the original layout alike.
+const APP_PART_CSS = `
+  .core-typed-comparison{display:grid;gap:.625rem;padding:.75rem 1rem;border:1px solid var(--core-border);border-left:3px solid var(--core-danger);border-radius:.75rem}
+  .core-typed-comparison[data-correct="true"]{border-left-color:var(--core-learning-goal-achieved)}
+  .core-typed-comparison p{display:grid;gap:.125rem;margin:0}
+  .core-typed-label{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
+  .core-typed-value{font-size:1.125rem;font-weight:600;letter-spacing:.02em}
+  .typed-correct{color:var(--core-learning-goal-achieved)}
+  .typed-wrong{border-radius:.2em;background:var(--core-danger-surface);color:var(--core-text);text-decoration:line-through 1.5px var(--core-danger)}
+  .typed-missing{text-decoration:underline 2px var(--core-danger);text-underline-offset:.2em}
+  .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}
+  .core-math-error{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:.375rem;padding:.125rem .5rem;border-radius:.5rem;background:var(--core-danger-surface)}
+  .core-math-error code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.875em;white-space:pre-wrap}
+  .core-math-error>span{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
+  .katex{display:inline-block;max-width:100%;overflow-x:auto;vertical-align:middle}
+  .katex-display{max-width:100%;overflow:auto}
+`;
+
 const NOTE_CARD_CSS = `
   body{background:var(--core-surface);color:var(--core-text)}
   body:has(>.core-card-answer-separator:first-child){padding-top:0}
@@ -236,15 +260,6 @@ const NOTE_CARD_CSS = `
   .core-source-link svg{flex-shrink:0;color:var(--core-text-muted)}
   .core-source-link:hover{background:var(--core-surface-muted)}
   .core-active-cloze{padding:.05em .35em;border-radius:.375rem;background:var(--core-success-surface);box-shadow:inset 0 0 0 1px var(--core-success);color:var(--core-text);font-weight:600;-webkit-box-decoration-break:clone;box-decoration-break:clone}
-  .core-typed-comparison{display:grid;gap:.625rem;padding:.75rem 1rem;border:1px solid var(--core-border);border-left:3px solid var(--core-danger);border-radius:.75rem}
-  .core-typed-comparison[data-correct="true"]{border-left-color:var(--core-learning-goal-achieved)}
-  .core-typed-comparison p{display:grid;gap:.125rem;margin:0}
-  .core-typed-label{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
-  .core-typed-value{font-size:1.125rem;font-weight:600;letter-spacing:.02em}
-  .typed-correct{color:var(--core-learning-goal-achieved)}
-  .typed-wrong{border-radius:.2em;background:var(--core-danger-surface);color:var(--core-text);text-decoration:line-through 1.5px var(--core-danger)}
-  .typed-missing{text-decoration:underline 2px var(--core-danger);text-underline-offset:.2em}
-  .typed-empty{color:var(--core-text-muted);font-weight:400;font-style:italic}
   .core-occlusion{position:relative;display:inline-block;max-width:100%;margin-top:.75rem;overflow:hidden;border:1px solid var(--core-border);border-radius:.75rem;vertical-align:top}
   .core-occlusion img{display:block;max-width:100%;height:auto}
   .core-occlusion svg,.core-occlusion .mask-overlay,.mask-layer{position:absolute;inset:0;width:100%;height:100%}
@@ -262,20 +277,150 @@ const NOTE_CARD_CSS = `
   td,th{padding:.375rem .625rem;border:1px solid var(--core-border);text-align:left;vertical-align:top}
   audio{display:block;width:100%;max-width:28rem;margin:.75rem 0}
   video{display:block;max-width:100%;margin:.75rem 0;border-radius:.75rem}
-  .core-math-error{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:.375rem;padding:.125rem .5rem;border-radius:.5rem;background:var(--core-danger-surface)}
-  .core-math-error code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.875em;white-space:pre-wrap}
-  .core-math-error>span{color:var(--core-text-muted);font-size:.75rem;font-weight:600}
-  .katex{display:inline-block;max-width:100%;overflow-x:auto;vertical-align:middle}
-  .katex-display{max-width:100%;overflow:auto}
+  ${APP_PART_CSS}
 `;
 
-export async function renderCard({ note, card, side, surface, theme, mathCss = "", typedAnswer }: {
+const themeVariables = (theme: NotePresentationTheme) => `:root{${Object.entries(theme.colors).map(([name, value]) => `--core-${name}:${value}`).join(";")}}`;
+
+// --- Original layout of imported cards (ADR-047) -------------------------------------------
+
+type LayoutTemplate = NoteTypeSource["templates"][number];
+type LayoutSide = "question" | "answer";
+interface LayoutContext { fields: Map<string, NoteField>; special: Record<string, string>; side: LayoutSide; ordinal: number; frontSide: string; typedAnswer: string | undefined }
+
+// Rules on these selectors only restyle Anki's default card; anything else is the author's own design.
+const CARD_LEVEL_SELECTOR = /^(?:\.card|\.card\.night_?mode|\.night_?mode\.card|\.night_?mode \.card)$/;
+interface PreparedLayoutCss { ownDesign: boolean; css: string; nightRules: boolean; media: string[] }
+// Each note type's CSS and each template's parsed sides are prepared once, not per card or page turn.
+const layoutCssCache = new WeakMap<NoteTypeSource, PreparedLayoutCss>();
+const layoutAstCache = new WeakMap<LayoutTemplate, Record<"front" | "back", SafeTemplateAstNode[]>>();
+
+/** `@import` and remote `url()` would load from outside the frame; `</style` would end its style element. */
+function layoutCss(source: NoteTypeSource) {
+  let prepared = layoutCssCache.get(source);
+  if (!prepared) {
+    const css = source.css.replace(/@import[^;]*;?/gi, "").replace(/url\(\s*['"]?\s*(?:[a-z][\w+.-]*:)?\/\/[^)]*\)/gi, "none").replace(/<\/style/gi, "<\\/style");
+    prepared = {
+      ownDesign: [...source.css.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{/g)]
+        .some((rule) => rule[1].split(",").some((selector) => !CARD_LEVEL_SELECTOR.test(selector.trim().replace(/\s+/g, " ").toLowerCase()))),
+      css,
+      nightRules: /night_?mode/i.test(css),
+      media: [...css.matchAll(/url\(\s*['"]?([^'")]+?)['"]?\s*\)/gi)].map((match) => match[1].trim()).filter((name) => !/^(?:data|blob):/i.test(name)),
+    };
+    layoutCssCache.set(source, prepared);
+  }
+  return prepared;
+}
+
+/** The template whose own layout this card shows: generic translation, own CSS and nothing that needs a script. */
+function originalLayoutTemplate(note: Note, card: Card, source: NoteTypeSource | null | undefined): LayoutTemplate | null {
+  if (!source || source.id !== note.noteTypeSourceId || note.translator?.id !== "generic" || !layoutCss(source).ownDesign) return null;
+  const template = source.kind === 1 ? source.templates[0] : source.templates.find((item) => `anki-${item.ordinal}` === card.promptKey);
+  return template && !/<script\b|\son[a-z]+\s*=|<button\b|javascript:/i.test(template.front + template.back) ? template : null;
+}
+
+function layoutAst(source: NoteTypeSource, template: LayoutTemplate) {
+  let ast = layoutAstCache.get(template);
+  if (!ast) {
+    const fields = source.fields.map(({ name, ordinal }) => ({ id: `f${ordinal}`, name }));
+    ast = { front: compileSafeTemplate(template.front, fields).ast.nodes, back: compileSafeTemplate(template.back, fields).ast.nodes };
+    layoutAstCache.set(template, ast);
+  }
+  return ast;
+}
+
+// Like Anki, a field with only whitespace, line breaks or empty divs counts as empty in `{{#Field}}`.
+const emptyField = (html: string) => /^(?:\s|&nbsp;|<\/?(?:br|div)\b[^>]*>)*$/i.test(html);
+const rubyText = (html: string, mode: string) => html.replace(/ ?([^ >[\]]+?)\[([^\]]+?)\]/g, (_match, base: string, reading: string) =>
+  mode === "kana" ? reading : mode === "kanji" ? base : `<ruby>${base}<rt>${reading}</rt></ruby>`);
+
+function layoutFilter(value: string, filter: string, name: string, context: LayoutContext) {
+  if (filter === "text") return escapeHtml(notePlainText(value));
+  if (filter === "cloze") return renderClozes(value, context.ordinal, context.side, false, "", true);
+  if (filter === "hint") return emptyField(value) ? "" : `<details><summary>${escapeHtml(name)}</summary>${value}</details>`;
+  // The app shows the input; the answer side gets the comparison where the template asks for it.
+  if (filter === "type") return context.side === "answer" && context.typedAnswer !== undefined ? typedComparisonHtml(notePlainText(value), context.typedAnswer) : "";
+  if (filter === "furigana" || filter === "kana" || filter === "kanji") return rubyText(value, filter);
+  // Speech runs through the app's read-aloud buttons; Anki leaves unknown add-on filters' text unchanged.
+  return filter.startsWith("tts") ? "" : value;
+}
+
+/** Anki's template expansion; a field inside a tag, such as `data-x="{{Field}}"`, is inserted as escaped text. */
+function expandLayout(nodes: SafeTemplateAstNode[], context: LayoutContext) {
+  let html = "";
+  const value = (fieldId: string, name: string) => fieldId.startsWith("special:") ? context.special[name] ?? "" : context.fields.get(fieldId)?.html ?? "";
+  const walk = (items: SafeTemplateAstNode[]) => {
+    for (const node of items) {
+      if (node.kind === "text") html += node.value;
+      else if (node.kind === "front-side") html += context.frontSide;
+      else if (node.kind === "conditional") {
+        if (emptyField(value(node.fieldId, node.sourceName)) === node.inverted) walk(node.children);
+      } else {
+        // Anki applies the filter next to the field name first.
+        const filtered = node.filters.reduceRight((current, filter) => layoutFilter(current, filter, node.sourceName, context), value(node.fieldId, node.sourceName));
+        html += html.lastIndexOf("<") > html.lastIndexOf(">") ? escapeHtml(notePlainText(filtered)) : filtered;
+      }
+    }
+  };
+  walk(nodes);
+  return html;
+}
+
+/** Null when the question side would show nothing, e.g. because a script was meant to fill it. */
+async function renderOriginalLayout({ note, card, side, surface, theme, mathCss, typedAnswer, source, template }: {
+  note: Note; card: Card; side: LayoutSide; surface: "review" | "preview" | "management"; theme: NotePresentationTheme; mathCss: string;
+  typedAnswer: string | undefined; source: NoteTypeSource; template: LayoutTemplate;
+}): Promise<NotePresentationResult | null> {
+  const ast = layoutAst(source, template);
+  const ordinal = Number(card.promptKey.split(":")[1]);
+  const context: LayoutContext = {
+    fields: new Map(note.content.fields.map((field) => [field.id, field])),
+    special: { Tags: note.content.tags.join(" "), Type: source.name, Card: template.name, CardFlag: card.ankiFlag ? `flag${card.ankiFlag}` : "" },
+    side: "question",
+    ordinal,
+    frontSide: "",
+    typedAnswer,
+  };
+  const question = expandLayout(ast.front, context);
+  if (!notePlainText(question) && !/<(?:img|audio|video)\b|\[sound:/i.test(question)) return null;
+  const raw = side === "question" ? question : expandLayout(ast.back, { ...context, side: "answer", frontSide: question });
+  const diagnostics: TemplateDiagnostic[] = [];
+  const interactions = new Set<NotePresentationResult["interactions"][number]>();
+  const body = (await createHtmlRenderer(note, card, side, theme, diagnostics, interactions, true))(raw);
+  const interaction = note.content.interaction;
+  if (interaction.kind === "reveal" && interaction.prompts.find((prompt) => prompt.key === card.promptKey)?.typeInFieldId) interactions.add("typed-answer");
+  if (/<details\b/i.test(body)) interactions.add("hint");
+  if (note.content.speech.length) interactions.add("tts");
+  if (/<audio\b/i.test(body)) interactions.add("audio");
+  if (/<video\b/i.test(body)) interactions.add("video");
+  const { css, nightRules, media } = layoutCss(source);
+  // Without night rules of its own, the layout gets Anki's dark card colours so its text stays readable.
+  const night = theme.mode === "dark" && !nightRules ? ".card{background-color:#2c2c2c;color:#fcfcfc}" : "";
+  return {
+    srcdoc: buildSrcdoc(body, `${themeVariables(theme)}${APP_PART_CSS}${css}${night}${mathCss}`, theme.mode, surface === "review", `card card${source.kind === 1 ? ordinal : template.ordinal + 1}`),
+    accessibleText: notePlainText(body),
+    mediaReferences: [...new Set([...noteContentMediaRefs(note.content), ...media])],
+    interactions: [...interactions],
+    diagnostics,
+    layout: "original",
+  };
+}
+
+export async function renderCard({ note, card, side, surface, theme, mathCss = "", typedAnswer, noteTypeSource }: {
   note: Note; card: Card; side: "question" | "answer"; surface: "review" | "preview" | "management"; theme: NotePresentationTheme; mathCss?: string;
   /** Typed input; on the answer side it replaces the type-in field with the character comparison. */
   typedAnswer?: string;
+  /** Imported template of the content; its own layout replaces the CoRe design where ADR-047 applies. */
+  noteTypeSource?: NoteTypeSource | null;
 }): Promise<NotePresentationResult> {
   if (card.noteId !== note.id) throw new Error("Die Karte gehört zu einem anderen Inhalt.");
   const diagnostics: TemplateDiagnostic[] = [];
+  const template = originalLayoutTemplate(note, card, noteTypeSource);
+  if (template) {
+    const original = await renderOriginalLayout({ note, card, side, surface, theme, mathCss, typedAnswer, source: noteTypeSource!, template });
+    if (original) return original;
+    diagnostics.push({ code: "original-layout", level: "warning", message: "Originallayout nicht darstellbar.", detail: null });
+  }
   const interactions = new Set<NotePresentationResult["interactions"][number]>();
   const content = note.content;
   const interaction = content.interaction;
@@ -284,7 +429,12 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
   const fieldsHtml = (fields: NoteField[]) => fields.filter((field) => field.role === "prompt" || field.role === "answer").map((field) => `<div class="core-note-field">${html(field.html)}</div>`).join("");
   const supplements = () => {
     const filled = (role: NoteField["role"]) => content.fields.filter((field) => field.role === role && field.html.trim()).map((field) => ({ field, value: html(field.html) }));
-    const sources = filled("source");
+    // A source field holding only a web address, such as a template's `href="{{Link}}"`, becomes a link named after the field.
+    const sources = filled("source").map(({ field, value }) => {
+      const url = notePlainText(value);
+      return /<a\b/.test(value) || !/^https?:\/\/\S+$/.test(url) ? { field, value }
+        : { field, value: `<a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(field.name)}</a>` };
+    });
     const isLink = ({ value }: { value: string }) => /<a\b/.test(value);
     const sections = [...filled("extra"), ...sources.filter((source) => !isLink(source))]
       .map(({ field, value }) => `<section class="core-note-supplement"><h3>${escapeHtml(field.name)}</h3>${value}</section>`).join("");
@@ -322,13 +472,13 @@ export async function renderCard({ note, card, side, surface, theme, mathCss = "
   const replacesFront = interaction.kind === "cloze" || interaction.kind === "image-occlusion";
   const body = side === "question" ? question : replacesFront ? question + supplements()
     : `${surface === "review" ? "" : question}<hr class="core-card-answer-separator"/>${answer}${supplements()}`;
-  const colors = Object.entries(theme.colors).map(([name, value]) => `--core-${name}:${value}`).join(";");
   return {
-    srcdoc: buildSrcdoc(body, `:root{${colors}}${NOTE_CARD_CSS}${mathCss}`, theme.mode, surface === "review"),
+    srcdoc: buildSrcdoc(body, `${themeVariables(theme)}${NOTE_CARD_CSS}${mathCss}`, theme.mode, surface === "review"),
     accessibleText: notePlainText(body),
     mediaReferences: noteContentMediaRefs(content),
     interactions: [...interactions],
     diagnostics,
+    layout: "core",
   };
 }
 

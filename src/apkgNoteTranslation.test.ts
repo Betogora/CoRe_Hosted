@@ -112,7 +112,8 @@ test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Z
   assert.deepEqual(graph.report.notetypes[0].fieldRoles, { Titel: "prompt", Muskel: "prompt", Ursprung: "answer", Klinik: "extra", "AMBOSS-Link": "source", Source: "source", "Note ID": "note" });
   const content = graph.notes[0].content;
   assert.equal(content.interaction.kind === "reveal" && content.interaction.prompts[0].instruction, "Wo liegt der Ursprung des …?");
-  assert.match(content.fields.find((field) => field.name === "AMBOSS-Link")?.html ?? "", /^<a [^>]*href="https:\/\/next\.amboss\.com\/de\/article\/x">AMBOSS-Link<\/a>$/);
+  // Link targets stay raw; the CoRe design turns them into a source link (ADR-047).
+  assert.equal(content.fields.find((field) => field.name === "AMBOSS-Link")?.html, "https://next.amboss.com/de/article/x");
   assert.equal(content.fields.find((field) => field.name === "Note ID")?.html, "1565424901299");
 });
 

@@ -1,9 +1,20 @@
-export function buildSrcdoc(html: string, css: string, theme: "light" | "dark", reviewSurface = false): string {
+/**
+ * Wraps rendered card HTML in the script-free frame. `cardClass` marks the original layout of an imported card
+ * (ADR-047): body and root carry Anki's `card`/`nightMode` classes and the template's CSS brings its own typography.
+ */
+export function buildSrcdoc(html: string, css: string, theme: "light" | "dark", reviewSurface = false, cardClass = ""): string {
   const background = reviewSurface ? "transparent" : theme === "dark" ? "#17151f" : "#ffffff";
   const foreground = theme === "dark" ? "#f4f0ff" : "#211b2b";
   const separator = theme === "dark" ? "#536078" : "#d5dbe5";
-  const reviewOverrides = reviewSurface ? "html{scrollbar-gutter:stable}html,body{background:transparent!important}" : "";
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; connect-src 'none'; font-src data: blob:; form-action 'none'; frame-src 'none'; img-src data: blob:; media-src data: blob:; object-src 'none'; script-src 'none'; style-src 'unsafe-inline'"><meta name="color-scheme" content="${theme}"><style>:root{color-scheme:${theme}}html,body{margin:0;max-width:100%;overflow-wrap:anywhere}body{box-sizing:border-box;background:${background};color:${foreground};font-family:"Manrope Variable",Manrope,ui-sans-serif,system-ui,sans-serif;font-size:1rem;line-height:1.5;padding:clamp(1rem,3vw,2rem)}p{margin:0 0 .75rem}p:last-child{margin-bottom:0}ul,ol{margin:.75rem 0;padding-inline-start:1.5rem}li+li{margin-top:.375rem}strong,b{font-weight:600}.core-card-answer-separator{height:1px;margin:1.25rem auto;max-width:12rem;border:0;background:${separator}}.core-field-separator{height:.75rem}img,video{height:auto;max-width:100%;max-height:var(--core-media-max-height,none);object-fit:contain}${css}${reviewOverrides}</style></head><body>${html}</body></html>`;
+  const night = theme === "dark" ? "nightMode night_mode" : "";
+  const typography = cardClass
+    ? "body{padding:20px}"
+    : `body{padding:clamp(1rem,3vw,2rem)}p{margin:0 0 .75rem}p:last-child{margin-bottom:0}ul,ol{margin:.75rem 0;padding-inline-start:1.5rem}li+li{margin-top:.375rem}strong,b{font-weight:600}.core-card-answer-separator{height:1px;margin:1.25rem auto;max-width:12rem;border:0;background:${separator}}.core-field-separator{height:.75rem}`;
+  // The original layout keeps the template's card background, rounded like CoRe surfaces.
+  const reviewOverrides = !reviewSurface ? "" : cardClass ? "html{scrollbar-gutter:stable;background:transparent!important}body{border-radius:.75rem}" : "html{scrollbar-gutter:stable}html,body{background:transparent!important}";
+  const rootClass = cardClass && night ? ` class="${night}"` : "";
+  const bodyClass = cardClass ? ` class="${[cardClass, night].filter(Boolean).join(" ")}"` : "";
+  return `<!doctype html><html${rootClass}><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; connect-src 'none'; font-src data: blob:; form-action 'none'; frame-src 'none'; img-src data: blob:; media-src data: blob:; object-src 'none'; script-src 'none'; style-src 'unsafe-inline'"><meta name="color-scheme" content="${theme}"><style>:root{color-scheme:${theme}}html,body{margin:0;max-width:100%;overflow-wrap:anywhere}body{box-sizing:border-box;background:${background};color:${foreground};font-family:"Manrope Variable",Manrope,ui-sans-serif,system-ui,sans-serif;font-size:1rem;line-height:1.5}${typography}:where(img,video){height:auto;max-width:100%;max-height:var(--core-media-max-height,none);object-fit:contain}${css}${reviewOverrides}</style></head><body${bodyClass}>${html}</body></html>`;
 }
 
 export function resolvePresentationMedia(srcdoc: string, mediaUrls: Record<string, string>): string {

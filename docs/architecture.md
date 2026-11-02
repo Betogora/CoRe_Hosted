@@ -131,9 +131,9 @@ nicht die Planung.
 ### Kartendarstellung
 
 `notePresentation.ts` rendert validierte `Note`/`Card`-Paare asynchron über
-`renderCard({ note, card, side, surface, theme, typedAnswer? })`. Das Ergebnis enthält
-`srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions` und
-`diagnostics`; HTML wird weder persistiert noch aus Anki-Templates erzeugt.
+`renderCard({ note, card, side, surface, theme, typedAnswer?, noteTypeSource? })`. Das Ergebnis enthält
+`srcdoc`, `accessibleText`, stabile `mediaReferences`, `interactions`, `diagnostics`
+und `layout` (`core` oder `original`); HTML wird nie persistiert.
 Der Theme-Snapshot enthält die aktuellen semantischen Farben. Feld-HTML
 durchläuft `sanitizeNoteHtml`. Farbige Marker (`background-color`) ändern ihre
 Helligkeit, bis die Kartenschrift des Themes darauf 4,5 : 1 erreicht; graue,
@@ -159,7 +159,26 @@ Review-Antworten ergänzen nur Antwort und Trennlinie; Vorschau und Verwaltung
 enthalten beide Seiten. Lücken und Bildmasken ersetzen die Frage beim Aufdecken.
 Zusätze stehen vor den Quellen; Quellen mit Link erscheinen gemeinsam als Chips am
 Kartenende. Mit `typedAnswer` ersetzt die Antwortseite das Eingabefeld durch den
-Zeichenvergleich aus `compareTypedAnswer`.
+Zeichenvergleich aus `compareTypedAnswer`. Eine Quelle, die nur eine Webadresse
+enthält, wird zum Link mit dem Feldnamen.
+
+Originallayout (ADR-047): Mit der Herkunftsvorlage (`noteTypeSource`) rendert
+`renderCard` deren Template samt CSS statt des CoRe-Designs, wenn der Inhalt vom
+generischen Übersetzer stammt, die Vorlage CSS über Ankis Standardblock `.card`
+hinaus mitbringt und weder Script, Event-Handler noch Button enthält. Das Template
+wird aus den CoRe-Feldern über ihre Anki-Position (`fN`) befüllt: Bedingungen,
+`{{FrontSide}}`, `Tags`, `Type`, `Card`, `CardFlag` sowie die Filter `text`,
+`cloze` (Ankis `<span class="cloze">`), `hint` (natives `<details>`), `type`
+(Zeichenvergleich auf der Rückseite), `furigana`/`kana`/`kanji` und `tts` (Vorlesen
+über die App); unbekannte Filter lassen das Feld unverändert. Ein Feld in einem
+Tag wird als escapter Text eingesetzt. `sanitizeLayoutHtml` behält Klassen, IDs,
+`data-*` und Inline-Layout ohne nachladbare Werte; aus dem CSS entfallen
+`@import`, externe `url()` und `</style`. Der Rahmen trägt `card cardN` und im
+Dark Mode `nightMode night_mode`; ohne eigene Nachtregeln erhält `.card` Ankis
+dunkle Grundfarben. Die Kontrastanpassung entfällt. Bleibt die Vorderseite ohne
+sichtbaren Inhalt, rendert die Karte im CoRe-Design mit der Diagnose
+„Originallayout nicht darstellbar.“ Designprüfung, aufbereitetes CSS und
+zerlegte Templates werden je Vorlage zwischengespeichert.
 
 `presentationFrame.ts` besitzt das gemeinsame CSP-Gerüst und die bestehende
 Blob-/Data-URL-Auflösung. Der Rahmen enthält kein Script und erlaubt keine
@@ -244,7 +263,7 @@ notes, cards, mediaFiles, reviewEvents, noteTypeSources, noteSources, report }`:
   Zusatz; Lückentypen führen alle Rückseitenfelder als Zusatz. Metadaten (`Note ID`, `ankihub_id`, `Date Stamp`,
   GUID) bleiben unabhängig von ihrer Position Notiz; `Source`/`Quelle` und
   AMBOSS-, Link- oder URL-Felder werden Quelle. Ein Feld in `href="…{{Feld}}…"`
-  wird Quelle und zum Link mit dem Feldnamen als Beschriftung. Felder in anderen
+  wird Quelle und bleibt roh; den Link baut die Darstellung. Felder in anderen
   Attributen (`data-*`, `class`, `alt` …) gelten nicht als angezeigt; nur
   `src="{{Feld}}"` zeigt das Feld vorerst weiter. Statischer Text
   auf der Zeile eines Fragefelds (ohne Buttons, Links und Tag-Inhalt, ohne

@@ -142,8 +142,8 @@ const CLOZE = { id: "anki-cloze", version: 1 };
 const IMAGE_OCCLUSION = { id: "anki-image-occlusion", version: 2 };
 const IMAGE_OCCLUSION_ENHANCED = { id: "image-occlusion-enhanced", version: 2 };
 const MULTIPLE_CHOICE = { id: "multiple-choice-for-anki", version: 1 };
-const ANKING = { id: "anking", version: 1 };
-const GENERIC = { id: "generic", version: 2 };
+const ANKING = { id: "anking", version: 2 };
+const GENERIC = { id: "generic", version: 3 };
 const FIELD_LIST = { id: "field-list", version: 1 };
 const DAY_MS = 86_400_000;
 
@@ -233,8 +233,8 @@ interface TemplateRef {
   hidden: boolean;
   /** Static text on the same line before and after the field, and the line above it. */
   line: { before: string; after: string; previous: string };
-  /** `href="prefix{{Field}}suffix"`: the field holds a link target. */
-  href: { prefix: string; suffix: string } | null;
+  /** `href="…{{Field}}…"`: the field holds a link target. */
+  href: boolean;
 }
 
 const BLOCK_BREAK = /<(?:br|p|hr|li|tr|table|h[1-6])\b[^>]*>|<\/(?:p|li|tr|table|h[1-6])>/i;
@@ -290,8 +290,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
         const ordinal = model.fields.indexOf(node.sourceName);
         if (ordinal < 0) return;
         const previous = nodes[index - 1]?.kind === "text" ? (nodes[index - 1] as { value: string }).value : "";
-        const next = nodes[index + 1]?.kind === "text" ? (nodes[index + 1] as { value: string }).value : "";
-        const href = previous.match(/\shref\s*=\s*(["'])([^"']*)$/i);
+        const href = /\shref\s*=\s*["'][^"']*$/i.test(previous);
         // Other attributes only style the card; `src` keeps showing the field until image sources are translated.
         if (inTag.has(node) && !href && !/\ssrc\s*=\s*["']?[^"'<>]*$/i.test(previous)) return;
         const before = visibleText.get(nodes[index - 1]) ?? "";
@@ -308,7 +307,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
             after: staticText(after.split(BLOCK_BREAK)[0]),
             previous: before.split(BLOCK_BREAK).slice(0, -1).map(staticText).filter(Boolean).at(-1) ?? "",
           },
-          href: href ? { prefix: href[2], suffix: next.slice(0, Math.max(0, next.indexOf(href[1]))) } : null,
+          href,
         });
       }
     });
@@ -320,13 +319,7 @@ function analyzeTemplate(source: string, model: AnkiModel) {
 const isHint = (ref: TemplateRef) => ref.filters.includes("hint");
 const isTypeIn = (ref: TemplateRef) => ref.filters.includes("type");
 const ttsLanguage = (ref: TemplateRef) => ref.filters.find((filter) => filter.startsWith("tts "))?.split(/\s+/)[1] ?? null;
-const isDisplayed = (ref: TemplateRef) => !isHint(ref) && !isTypeIn(ref) && ttsLanguage(ref) === null && ref.href === null && !ref.behindButton;
-
-/** A link target becomes a link labelled with the field name, so it renders as a source chip. */
-function linkField(name: string, html: string, href: { prefix: string; suffix: string }) {
-  const url = `${href.prefix}${plainText(html)}${href.suffix}`;
-  return /<a\b/i.test(html) || !/^https?:\/\/\S+$/.test(url) ? html : `<a href="${escapeAttribute(url)}">${escapeAttribute(name)}</a>`;
-}
+const isDisplayed = (ref: TemplateRef) => !isHint(ref) && !isTypeIn(ref) && ttsLanguage(ref) === null && !ref.href && !ref.behindButton;
 
 function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ordinal: number) => string): NotetypePlan {
   const cloze = model.kind === 1;
@@ -335,7 +328,6 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
   const prompts: RevealPrompt[] = [];
   const speech = new Map<number, string>();
   const rubyModes = new Map<number, "furigana" | "kana" | "kanji">();
-  const links = new Map<number, { prefix: string; suffix: string }>();
   model.fields.forEach((name, ordinal) => {
     if (METADATA_FIELD.test(name.trim())) assign(ordinal, "note");
     else if (SOURCE_FIELD.test(name.trim())) assign(ordinal, "source");
@@ -351,7 +343,6 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
       if (language) speech.set(ref.ordinal, language);
       const ruby = ref.filters.find((filter): filter is "furigana" | "kana" | "kanji" => filter === "furigana" || filter === "kana" || filter === "kanji");
       if (ruby) rubyModes.set(ref.ordinal, ruby);
-      if (ref.href && !links.has(ref.ordinal)) links.set(ref.ordinal, ref.href);
       if (isHint(ref)) assign(ref.ordinal, "hint");
       if (ref.href) assign(ref.ordinal, "source");
     }
@@ -360,7 +351,7 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
     const displayed = front.refs.filter((ref) => isDisplayed(ref) && asksWith(ref.ordinal));
     const question = [...new Set(displayed.map((ref) => ref.ordinal))];
     const typeIn = front.refs.find(isTypeIn)?.ordinal ?? null;
-    const answerRefs = back.refs.filter((ref) => !isHint(ref) && ttsLanguage(ref) === null && ref.href === null
+    const answerRefs = back.refs.filter((ref) => !isHint(ref) && ttsLanguage(ref) === null && !ref.href
       && (back.hasAnswerMarker ? ref.answerSide : !frontOrdinals.has(ref.ordinal)));
     for (const ordinal of question) assign(ordinal, "prompt");
     // Back fields shown directly answer; fields revealed on demand are supplements.
@@ -388,8 +379,7 @@ function genericPlan(model: AnkiModel, translator: TranslatorId, promptKey: (ord
   for (const name of model.fields) roles[name] ??= "note";
   const transform = (ordinal: number, html: string) => {
     const ruby = rubyModes.get(ordinal);
-    const link = links.get(ordinal);
-    return link && roles[model.fields[ordinal]] === "source" ? linkField(model.fields[ordinal], html, link) : ruby ? furigana(html, ruby) : html;
+    return ruby ? furigana(html, ruby) : html;
   };
   return {
     translator,

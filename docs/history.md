@@ -5,6 +5,14 @@
 
 Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht in [`status.md`](status.md), offene Arbeit in [`todo.md`](todo.md).
 
+## 2026-11-02 — Originallayout importierter Karten: Renderer und Regeln (P3, Paket A)
+
+- ADR-047 löst für generisch übersetzte Inhalte mit eigenem Design die reine CoRe-Darstellung aus ADR-032 ab. `renderCard` nimmt optional die Herkunftsvorlage (`noteTypeSource`) und rendert dann deren Template samt CSS; Ergebnisfeld `layout` (`core`/`original`). Die App reicht die Vorlage noch nicht weiter (Paket B und C).
+- Template-Rendering ohne Script: Bedingungen, `{{FrontSide}}`, Sonderfelder, Filter `text`, `cloze`, `hint`, `type`, `furigana`/`kana`/`kanji`, `tts`; Felder in Tags werden als escapter Text eingesetzt. `sanitizeLayoutHtml` für das zusammengesetzte HTML; aus dem CSS entfallen `@import`, externe `url()` und `</style`. Leere Vorderseite fällt mit Diagnose auf das CoRe-Design zurück.
+- Felder behalten `class` und `data-*`. Link-Ziele aus `href="{{Feld}}"` bleiben roh, die CoRe-Darstellung baut den Quellen-Link; dadurch entfallen Präfix und Suffix um das Feld. Übersetzer `generic` 3 und `anking` 2 übersetzen unbearbeitete Importe neu.
+- Bilder und Videos begrenzt `:where(img,video)`, damit Stapel-CSS die Grenzen überschreiben kann.
+- Prüfung: Renderertests einschließlich Angriffs-Payloads in Template und CSS, fokussierte Übersetzer-, Bereinigungs- und Rahmentests, `typecheck`, `check:docs`. Sichtprobe der Pokémon-Vorlage aus dem Korpus („??? · Generation X“ mit Typ-Badge) bei 1440 px hell und dunkel und bei 375 px ohne Überlauf. Import-Benchmark (25.000 Karten, 1.000 Medien): 4.453 ms vorher, 4.310 ms nachher; Rendern je Kartenseite 0,09 ms in beiden Darstellungen.
+
 ## 2026-11-02 — Aktive Stapel: Zahlen ohne Pille, Dashboard mit gemeinsamer Ansicht
 
 - `Neu`, `Offen` und `Fällig` erscheinen in Liste und Kacheln als Zahlen in Statusfarbe ohne Hintergrundfläche und in Größe des Stapelnamens; Nullwerte bleiben neutral.

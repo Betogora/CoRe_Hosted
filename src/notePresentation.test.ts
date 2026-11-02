@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { NoteTypeSource } from "./apkgNoteTranslation.ts";
 import type { NoteContent, NoteField, OcclusionShape } from "./coreTypes.ts";
 import { createNote } from "./coreModel/notes.ts";
 import { colorContrast } from "./ui/colorMath.ts";
@@ -42,6 +43,14 @@ test("Hinweise sind native Details; Zusatz und Quellen erscheinen nur nach Aufde
   assert.match(reordered.accessibleText, /Pankreas.*Literatur/);
   assert.match(reordered.srcdoc, /<div class="core-note-sources"><a class="core-source-link"/);
   assert.doesNotMatch(answer.accessibleText, /Nur Editor/);
+});
+
+test("Eine Quelle mit bloßer Webadresse wird zum Link mit dem Feldnamen, andere Quellen bleiben Text", async () => {
+  const value = basic();
+  value.fields.push(field("AMBOSS-Link", "source", "https://next.amboss.com/de/article/x"), field("Quelle", "source", "Lehrbuch, S. 3"));
+  const answer = await render(value, "answer");
+  assert.match(answer.srcdoc, /<a class="core-source-link" href="https:\/\/next\.amboss\.com\/de\/article\/x" target="_blank" rel="noopener noreferrer">AMBOSS-Link<svg/);
+  assert.match(answer.srcdoc, /<h3>Quelle<\/h3>Lehrbuch, S\. 3/);
 });
 
 test("Lücken werden verschachtelt und mehrfach nummeriert aufgelöst, Hinweise behalten Doppelpunkte", async () => {
@@ -239,4 +248,113 @@ test("Auswertung unterstützt Single, Multiple und vollständige Kprim-Antworten
   assert.equal(evaluateNoteChoice({ kind: "choice", mode: "single", options: options.slice(0, 2) }, { 0: true }).correct, true);
   assert.equal(evaluateNoteChoice({ kind: "choice", mode: "kprim", options }, { 0: true, 1: false, 2: true, 3: false }).correct, true);
   assert.equal(evaluateNoteChoice({ kind: "choice", mode: "kprim", options }, { 0: true, 2: true }).complete, false);
+});
+
+// --- Originallayout importierter Karten (ADR-047) ---
+
+const POKEMON_FIELDS: Array<[string, NoteField["role"]]> = [["Name", "answer"], ["Nummer", "prompt"], ["Generation", "prompt"], ["Bild", "prompt"], ["Hinweis", "hint"]];
+const POKEMON_NAMES = POKEMON_FIELDS.map(([name]) => name);
+const POKEMON_FRONT = '<div class="meta"><span class="dex" data-generation="{{Generation}}">{{Nummer}}</span> · Generation {{Generation}}</div><div class="art">{{Bild}}</div>';
+const POKEMON_CSS = ".card{font-family:Georgia}.meta{color:#555}";
+const pokemon = ["Karpador", "???", "X", '<img src="pk0129.png">', ""];
+
+function layoutSource(names: string[], front: string, back: string, options: { css?: string; kind?: number } = {}): NoteTypeSource {
+  return {
+    id: "vorlage", ankiNotetypeId: "1", name: "Pokémon", translator: { id: "generic", version: 3 }, kind: options.kind ?? 0, originalStockKind: 0,
+    css: options.css ?? POKEMON_CSS, fields: names.map((name, ordinal) => ({ name, ordinal })),
+    templates: [{ name: "Bilderkennung", ordinal: 0, front, back, targetDeckId: null }], config: {},
+  };
+}
+
+async function renderLayout(source: NoteTypeSource | null, values: string[], side: "question" | "answer", options: {
+  fields?: Array<[string, NoteField["role"]]>; interaction?: NoteContent["interaction"]; promptKey?: string; translator?: string; tags?: string[];
+  typedAnswer?: string; mode?: NotePresentationTheme["mode"];
+} = {}) {
+  const fields = (options.fields ?? POKEMON_FIELDS).map(([name, role], ordinal): NoteField => ({ id: `f${ordinal}`, name, role, html: values[ordinal] ?? "" }));
+  const value = content(options.interaction ?? { kind: "reveal", prompts: [{ key: "anki-0", name: "Bilderkennung", instruction: "", questionFieldIds: ["f1", "f2", "f3"], answerFieldIds: ["f0"], requires: null, typeInFieldId: null }] }, fields);
+  value.tags = options.tags ?? [];
+  const graph = createNote({ content: value, deckId: "deck" });
+  const note = { ...graph.note, noteTypeSourceId: "vorlage", translator: { id: options.translator ?? "generic", version: 3 } };
+  const card = graph.cards.find((item) => item.promptKey === (options.promptKey ?? "anki-0"))!;
+  return renderCard({ note, card, side, surface: "review", theme: { ...theme, mode: options.mode ?? "light" }, typedAnswer: options.typedAnswer, noteTypeSource: source });
+}
+
+test("Originallayout setzt Zeilen aus mehreren Feldern wie das Template zusammen", async () => {
+  const source = layoutSource(POKEMON_NAMES, POKEMON_FRONT, '{{FrontSide}}<hr id=answer><div class="name">{{Name}}</div>');
+  const question = await renderLayout(source, pokemon, "question");
+  assert.equal(question.layout, "original");
+  assert.match(question.srcdoc, /<span class="dex" data-generation="X">\?\?\?<\/span> · Generation X/);
+  assert.match(question.srcdoc, /<body class="card card1">/);
+  assert.match(question.srcdoc, /\.meta\{color:#555\}/);
+  assert.equal(question.accessibleText, "??? · Generation X");
+  assert.deepEqual(question.mediaReferences, ["pk0129.png"]);
+  const answer = await renderLayout(source, pokemon, "answer");
+  assert.match(answer.srcdoc, /<hr id="answer" \/><div class="name">Karpador<\/div>/);
+  assert.equal(answer.accessibleText, "??? · Generation X Karpador");
+});
+
+test("Originallayout setzt Felder in Attributen als Text ein und entfernt Nachladen und Schadcode aus Template und CSS", async () => {
+  const front = '<div class="x" title="{{Nummer}}">{{Generation}}</div><iframe src="https://evil.example/f"></iframe><object data="x"></object><form action="https://evil.example"><input></form><img src="https://evil.example/p.png">';
+  const css = '.x{color:red}@import url("https://evil.example/a.css");.y{background:url(https://evil.example/p.png)}.z{background:url("lokal.png")}</style><img src=x>';
+  const result = await renderLayout(layoutSource(POKEMON_NAMES, front, front, { css }), ["", 'a"><b>b</b>', "X"], "question");
+  assert.equal(result.layout, "original");
+  assert.match(result.srcdoc, /title="a&quot;&gt;b"/);
+  assert.doesNotMatch(result.srcdoc, /evil\.example|<iframe|<object|<form|<input/);
+  assert.doesNotMatch(result.srcdoc, /<\/style><img/);
+  assert.deepEqual(result.mediaReferences, ["lokal.png"]);
+});
+
+test("Ohne eigenes Design, mit Script oder Button und außerhalb des generischen Übersetzers bleibt das CoRe-Design", async () => {
+  const layouts = await Promise.all([
+    renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, POKEMON_FRONT, { css: ".card { font-family: arial; color: black }\n.nightMode .card { color: white }" }), pokemon, "question"),
+    renderLayout(layoutSource(POKEMON_NAMES, `${POKEMON_FRONT}<script>fill()</script>`, POKEMON_FRONT), pokemon, "question"),
+    renderLayout(layoutSource(POKEMON_NAMES, `${POKEMON_FRONT}<button onclick="show()">Mehr</button>`, POKEMON_FRONT), pokemon, "question"),
+    renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, POKEMON_FRONT), pokemon, "question", { translator: "anki-basic" }),
+    renderLayout(null, pokemon, "question"),
+  ]);
+  assert.deepEqual(layouts.map((result) => result.layout), ["core", "core", "core", "core", "core"]);
+});
+
+test("Eine leere Vorderseite fällt mit Hinweis auf das CoRe-Design zurück", async () => {
+  const result = await renderLayout(layoutSource(POKEMON_NAMES, '<div class="ziel">{{#Hinweis}}{{Hinweis}}{{/Hinweis}}</div>', ""), pokemon, "question");
+  assert.equal(result.layout, "core");
+  assert.deepEqual(result.diagnostics.map((item) => item.message), ["Originallayout nicht darstellbar."]);
+  assert.match(result.accessibleText, /\?\?\? X/);
+});
+
+test("Originallayout folgt Ankis Bedingungen, Filtern und Sonderfeldern", async () => {
+  const front = '{{#Generation}}<p class="g">{{text:Generation}}</p>{{/Generation}}{{^Nummer}}<p>ohne Nummer</p>{{/Nummer}}{{#Nummer}}<p>mit Nummer</p>{{/Nummer}}'
+    + '{{hint:Hinweis}}<div class="s">{{Tags}}|{{Card}}|{{Type}}</div>{{type:Name}}{{tts de_DE:Name}}';
+  const source = layoutSource(POKEMON_NAMES, front, "{{FrontSide}}<hr id=answer>{{type:Name}}");
+  const typeIn: NoteContent["interaction"] = { kind: "reveal", prompts: [{ key: "anki-0", name: "Bilderkennung", instruction: "", questionFieldIds: ["f2"], answerFieldIds: ["f0"], requires: null, typeInFieldId: "f0" }] };
+  const values = ["Karpador", "", "<b>X</b>", "", "Wasser"];
+  const question = await renderLayout(source, values, "question", { interaction: typeIn, tags: ["pokemon"] });
+  assert.match(question.srcdoc, /<p class="g">X<\/p><p>ohne Nummer<\/p><details><summary>Hinweis<\/summary>Wasser<\/details>/);
+  assert.match(question.srcdoc, /<div class="s">pokemon\|Bilderkennung\|Pokémon<\/div>/);
+  assert.doesNotMatch(question.accessibleText, /Karpador|mit Nummer/);
+  assert.deepEqual([...question.interactions].sort(), ["hint", "typed-answer"]);
+  const answer = await renderLayout(source, values, "answer", { interaction: typeIn, typedAnswer: "Karpadr" });
+  assert.match(answer.srcdoc, /<div class="core-typed-comparison" data-correct="false">/);
+  assert.match(answer.srcdoc, /\.core-typed-comparison\{/);
+});
+
+test("Lücken im Originallayout tragen Ankis Klasse cloze", async () => {
+  const fields: Array<[string, NoteField["role"]]> = [["Text", "prompt"], ["Extra", "extra"]];
+  const source = layoutSource(["Text", "Extra"], '<div class="c">{{cloze:Text}}</div>', '<div class="c">{{cloze:Text}}</div><div class="e">{{Extra}}</div>', { kind: 1 });
+  const values = ["{{c1::Paris}} liegt an der {{c2::Seine}}.", "Hauptstadt"];
+  const question = await renderLayout(source, values, "question", { fields, interaction: { kind: "cloze" }, promptKey: "cloze:1" });
+  assert.match(question.srcdoc, /<div class="c"><span class="cloze">\[…\]<\/span> liegt an der Seine\.<\/div>/);
+  assert.match(question.srcdoc, /<body class="card card1">/);
+  const answer = await renderLayout(source, values, "answer", { fields, interaction: { kind: "cloze" }, promptKey: "cloze:2" });
+  assert.match(answer.srcdoc, /Paris liegt an der <span class="cloze">Seine<\/span>\./);
+  assert.match(answer.srcdoc, /<body class="card card2">/);
+});
+
+test("Im Dark Mode trägt das Originallayout Ankis Nachtklassen und ohne eigene Nachtregeln Ankis dunkle Kartenfarben", async () => {
+  const plain = await renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, POKEMON_FRONT), pokemon, "question", { mode: "dark" });
+  assert.match(plain.srcdoc, /<html class="nightMode night_mode">/);
+  assert.match(plain.srcdoc, /<body class="card card1 nightMode night_mode">/);
+  assert.match(plain.srcdoc, /\.card\{background-color:#2c2c2c;color:#fcfcfc\}/);
+  const own = await renderLayout(layoutSource(POKEMON_NAMES, POKEMON_FRONT, POKEMON_FRONT, { css: `${POKEMON_CSS}.nightMode .card{color:#eee}` }), pokemon, "question", { mode: "dark" });
+  assert.doesNotMatch(own.srcdoc, /#2c2c2c/);
 });
