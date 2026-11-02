@@ -194,7 +194,21 @@ externen Ressourcen. `CardPresentationSurface` zeigt ein fertiges Renderergebnis
 im Sandbox-Iframe, erlaubt isolierte externe Popups und meldet Textauswahl an den
 Host. Im Review wächst der Iframe mit seinem Inhalt, `vh` bezöge sich dort also auf
 den Rahmen; der Host setzt deshalb `--core-media-max-height` (50 % der
-Fensterhöhe), an der der Rahmen Bilder und Videos begrenzt.
+Fensterhöhe), an der der Rahmen Bilder und Videos begrenzt. Ein neuer Inhalt behält
+die Höhe des Rahmens, bis er geladen und gemessen ist, und eine neue Karte startet
+mit der zuletzt gemessenen Höhe; die Messung zieht den Rahmen nur innerhalb eines
+Schritts zusammen. Im Originallayout entfällt die Scrollleisten-Reserve, damit der
+Kartenhintergrund bis an den gerundeten Rand reicht.
+
+`NoteCardContent` rendert Vorder-, Rückseite, Auswahloptionen und Vorlesetexte einer
+Karte gemeinsam und hält das Ergebnis je Inhaltsobjekt (`WeakMap`); Varianten sind
+eigene Objekte und teilen nichts mit ihrem Original. `useNoteCardPrefetch` rendert
+so die nächsten drei Karten der Lernsitzung voraus. `ui/cardMedia.tsx` teilt
+aufgelöste Medien je Medienspeicher und Medienmenge zwischen aktueller Karte und
+`useNoteMediaPrefetch`; Blob-URLs werden fünf Sekunden nach dem letzten Halter
+freigegeben. Der Lernmodus hält die gezeigte Karte über
+`getNextDailyReviewSessionItem({ shownKey })`, bis sie bewertet ist oder die Sitzung
+verlässt; nachgeladene Karten ordnen nur die Karten dahinter.
 
 `ui/NoteCardContent.tsx` besitzt ausschließlich transienten Eingabe-, Auswahl-
 und Darstellungszustand. Das Eingabefeld steht bis zum Aufdecken im Host; danach

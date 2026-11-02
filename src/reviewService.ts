@@ -707,17 +707,20 @@ export function advanceDailyReviewSession(
   };
 }
 
+/** `shownKey`: the card on screen stays until it is answered; loading more cards only reorders the cards behind it. */
 export function getNextDailyReviewSessionItem(
   decksOrDeck: Deck | Deck[],
   session: DailyReviewSessionState,
-  options: ReviewServiceOptions = {},
+  options: ReviewServiceOptions & { shownKey?: string | null } = {},
 ) {
   const decks = asDeckArray(decksOrDeck);
   const sessionIndex = options.sessionIndex ?? createDailyReviewSessionIndex(decks);
   const entriesByKey = sessionIndex.entriesByKey;
   const now = options.now ?? new Date().toISOString();
   const learnAheadMinutes = normalizeLearnAheadMinutes(options.learnAheadMinutes);
-  const initialKey = session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
+  const shownKey = options.shownKey && entriesByKey.has(options.shownKey)
+    && (session.remainingInitialKeys.includes(options.shownKey) || session.repeatKeys.includes(options.shownKey)) ? options.shownKey : null;
+  const initialKey = shownKey ?? session.remainingInitialKeys.find((candidate) => entriesByKey.has(candidate)) ?? null;
   const repeatKey = initialKey ? null : session.repeatKeys.find((candidate) => {
     const candidateEntry = entriesByKey.get(candidate);
     return candidateEntry ? isLearningAvailable(candidateEntry.card, now, learnAheadMinutes, options) : false;

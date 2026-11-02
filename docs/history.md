@@ -20,6 +20,13 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Prüfung: `npm run gate:push` grün (30,9 s), `npm run test:e2e:catalog` lokal mit vier Workern 209 bestanden, 19 Sichtmatrix-Tests übersprungen, 10,7 min; unter paralleler Fremdlast schlugen einzelne Drag-Flows wegen Zeitüberschreitung fehl und bestanden im Einzellauf. Ohne Docker ungeprüft: die Supabase-Specs, `npm run test:e2e:local` und ein vollständiger Lauf von `test:e2e:affected:local`; dessen Specauswahl prüft der Modultest, der Abbruch ohne Docker meldet sich jetzt vor dem Katalog-Lauf.
 - Offen bleiben die Kontoresets, Überschneidungen, festen Wartezeiten und übrigen Breitenschleifen aus [`todo.md`](todo.md#testsuite-verschlanken).
 
+## 2026-11-02 — Lernmodus: stabile Karte, Vorladen und ruhiger Kartenrahmen
+
+- Anlass: Bildschirmaufnahme eines Ankizin-Stapels (CoRe-Design). Nach dem Start und bei aufgedeckter Antwort wechselte die Karte nach dem Nachladen weiterer Karten zu einer anderen; dazwischen standen „Kartendarstellung wird vorbereitet …“ oder eine leere Fläche.
+- Die gezeigte Karte bleibt aktuell, bis sie bewertet ist oder die Sitzung verlässt (`shownKey` in `getNextDailyReviewSessionItem`); nachgeladene Karten ordnen nur die Karten dahinter.
+- Der Kartenrahmen klappt beim Inhaltswechsel nicht mehr auf 1 px zusammen; neue Karten starten mit der zuletzt gemessenen Höhe. Im Originallayout entfällt die Scrollleisten-Reserve, die rechts einen ungerundeten Streifen ließ.
+- Vorladen: Die nächsten drei Karten der Sitzung werden gerendert und ihre Medien aufgelöst; aktuelle und vorgeladene Karten teilen dieselben Blob-URLs. Vorher lud jede Karte nicht offline gespeicherte Bilder erst beim Erscheinen und renderte dabei zweimal.
+
 ## 2026-11-02 — Originallayout importierter Karten: Abnahme (P3, Paket D)
 
 - APKG-Matrix: Notiztyp „CoRe-Matrix Originallayout“ (`special-latest`, `matrix-originallayout`) mit Zeile aus mehreren Feldern, Feld im Attribut, Typ-Badge aus CSS und Nachtregeln. Die Erwartung führt je Notiz `layout`; der Matrix-Test rendert wie die App mit der Herkunftsvorlage, sodass jede andere Matrix-Vorlage nachweislich im CoRe-Design bleibt. Fall in der visuellen Pflichtmatrix ergänzt; Sichtprüfung Review vor und nach dem Aufdecken und Kartenvorschau hell und dunkel bei 390 × 844 und 1440 × 900 ohne Überlauf (Renderer-Harness, nicht die eingeloggte App).
