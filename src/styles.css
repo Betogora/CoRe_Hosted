@@ -2710,18 +2710,17 @@ summary {
 .dashboard-widget-grip:active { cursor: grabbing; }
 .dashboard-widget-placeholder { border: 2px dashed var(--core-action-primary); background: var(--core-surface-muted); }
 .dashboard-customize { min-width: 0; }
-.dashboard-widget-library { display: flex; min-width: 0; max-width: 100%; gap: 12px; overflow-x: auto; padding: 6px 4px 14px; }
-.dashboard-widget-library[data-expanded="true"] { flex-wrap: wrap; overflow-x: visible; }
+.dashboard-widget-library { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(160px, calc((100% - 12px) / 2)), 1fr)); gap: 12px; min-width: 0; padding: 6px 4px; }
 .dashboard-widget-library-more { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: var(--core-button-height); padding: 8px 12px; border-radius: var(--core-radius-control); background: var(--core-surface-muted); color: var(--core-text); font-weight: 600; }
 .dashboard-widget-library-more:hover { background: var(--core-border); }
 .dashboard-customize-actions { display: flex; align-items: center; gap: 8px; }
 .dashboard-widget-library-more[data-placement="header"] { display: none; }
+.dashboard-widget-library-more[data-placement="below"] { width: 100%; margin-top: 8px; }
 @media (min-width: 640px) {
   .dashboard-widget-library-more[data-placement="header"] { display: flex; }
   .dashboard-widget-library-more[data-placement="below"] { display: none; }
-  .dashboard-widget-library[data-overflows="true"][data-expanded="false"] { mask-image: linear-gradient(to right, #000 calc(100% - 56px), transparent); }
 }
-.dashboard-widget-miniature { display: grid; align-content: start; gap: 8px; flex: 0 0 min(172px, calc((100% - 12px) / 2)); min-width: 0; padding: 12px; text-align: left; border: 1px solid transparent; border-radius: var(--core-radius-panel); color: var(--core-text); background: var(--core-surface); cursor: pointer; }
+.dashboard-widget-miniature { display: grid; align-content: start; gap: 8px; min-width: 0; padding: 12px; text-align: left; border: 1px solid transparent; border-radius: var(--core-radius-panel); color: var(--core-text); background: var(--core-surface); cursor: pointer; }
 .dashboard-widget-miniature[aria-pressed="false"] { touch-action: none; cursor: grab; }
 .dashboard-widget-miniature[aria-pressed="false"]:hover { border-color: var(--core-border); }
 .dashboard-widget-miniature[aria-pressed="true"] { border-color: var(--core-action-primary); box-shadow: var(--core-shadow-selection); }

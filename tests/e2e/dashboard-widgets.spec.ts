@@ -199,6 +199,12 @@ test("Widgetoptionen erhalten Größen, Pfeile und Entfernen; abgebrochener Drag
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveAttribute("data-width", "wide");
   await page.getByRole("button", { name: "Lerntimer entfernen", exact: true }).click();
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(0);
+  // Collapsed, the bar shows only the complete first row; the expander reveals the rest.
+  await expect(page.locator(".dashboard-widget-miniature")).not.toHaveCount(6);
+  await page.getByRole("button", { name: "Weitere Widgets", exact: true }).click();
+  await expect(page.locator(".dashboard-widget-miniature")).toHaveCount(6);
+  await expect(page.getByRole("button", { name: "Weniger Widgets", exact: true })).toHaveAttribute("aria-expanded", "true");
+  await page.screenshot({ path: info.outputPath("05b-widgetmenue-ausgeklappt.png") });
   const tile = page.getByRole("button", { name: "Lerntimer", exact: true });
   await expect(tile).toHaveAttribute("aria-pressed", "false");
   await tile.click();
@@ -206,12 +212,6 @@ test("Widgetoptionen erhalten Größen, Pfeile und Entfernen; abgebrochener Drag
   await expect(tile).toHaveAttribute("aria-pressed", "true");
   await tile.click();
   await expect(page.locator('[data-dashboard-widget="timer"]')).toHaveCount(0);
-  const expand = page.getByRole("button", { name: "Weitere Widgets", exact: true });
-  await expect(expand).toHaveAttribute("aria-expanded", "false");
-  await expand.click();
-  await expect(page.locator(".dashboard-widget-library")).toHaveAttribute("data-expanded", "true");
-  expect(await page.locator(".dashboard-widget-library").evaluate((element) => element.scrollWidth <= element.clientWidth + 1)).toBe(true);
-  await page.screenshot({ path: info.outputPath("05b-widgetmenue-ausgeklappt.png") });
   await page.getByRole("button", { name: "Standardlayout", exact: true }).click();
   await expect.poll(() => order(page)).toEqual(defaults);
 });
@@ -245,6 +245,8 @@ for (const width of [390, 1440]) test(`Widget aus Menüband ziehen ${width}`, as
   await page.setViewportSize({ width, height: 900 });
   await openEditor(page);
   await page.getByRole("button", { name: "Lerntimer entfernen", exact: true }).click();
+  const more = page.getByRole("button", { name: "Weitere Widgets", exact: true });
+  if (await more.isVisible()) await more.click();
   const source = page.getByRole("button", { name: "Lerntimer", exact: true });
   await source.scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath("06-menueband.png") });
@@ -279,6 +281,8 @@ for (const { width, height } of sizes) for (const theme of matrixThemes) test(`W
   if (visualOutput) await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
+  const more = page.getByRole("button", { name: "Weitere Widgets", exact: true });
+  if (await more.isVisible()) await more.click();
   await page.locator(".dashboard-widget-library").scrollIntoViewIfNeeded();
   await expect(page.locator(".dashboard-mini-cells i")).toHaveCount(35);
   expect(await page.locator(".dashboard-mini-cells i").first().evaluate((cell) => cell.getBoundingClientRect().width)).toBeGreaterThan(6);

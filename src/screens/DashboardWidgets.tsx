@@ -30,7 +30,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
   const [storageError, setStorageError] = React.useState(false);
   const [announcement, setAnnouncement] = React.useState("");
   const [libraryExpanded, setLibraryExpanded] = React.useState(false);
-  const [libraryOverflows, setLibraryOverflows] = React.useState(false);
+  const [libraryColumns, setLibraryColumns] = React.useState<number>(DASHBOARD_WIDGETS.length);
   const library = React.useRef<HTMLDivElement>(null);
   const toggle = React.useRef<HTMLButtonElement>(null);
   const refocusToggle = React.useRef(false);
@@ -75,16 +75,17 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
     if (refocusToggle.current) toggle.current?.focus({ preventScroll: true });
     refocusToggle.current = false;
   }, [editing]);
-  // The library stays one row; the expander appears only once its tiles overflow that row.
+  // Collapsed, the library shows only the complete tiles of its first grid row; the expander reveals the rest.
   React.useLayoutEffect(() => {
     const element = library.current;
-    if (!element || libraryExpanded) return;
-    const measure = () => setLibraryOverflows(element.scrollWidth > element.clientWidth + 1);
+    if (!element) return;
+    const measure = () => setLibraryColumns(getComputedStyle(element).gridTemplateColumns.split(" ").length);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     return () => observer.disconnect();
-  }, [editing, libraryExpanded]);
+  }, [editing]);
+  const libraryOverflows = DASHBOARD_WIDGETS.length > libraryColumns;
 
   // Desktop shows the toggle in the header, narrow screens directly below the preview row.
   const libraryToggle = (placement: "header" | "below") => libraryOverflows || libraryExpanded ? <button type="button" className="dashboard-widget-library-more" data-placement={placement} aria-expanded={libraryExpanded} aria-controls={libraryId} onClick={() => setLibraryExpanded(!libraryExpanded)}>{libraryExpanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}<span>{libraryExpanded ? "Weniger Widgets" : "Weitere Widgets"}</span></button> : null;
@@ -98,7 +99,7 @@ export function DashboardWidgets({ userId, header, children, planner, onOpenPlan
     {editing ? <section id="dashboard-customize" aria-label="Widgets" className="dashboard-customize core-surface-raised rounded-panel p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="core-heading-3 font-semibold text-core-text">Widgets</h2><div className="dashboard-customize-actions">{libraryToggle("header")}<CoreTooltip label="Standardlayout"><IconButton variant="ghost" icon={RotateCcw} label="Standardlayout" onClick={() => update({ ...preferences, widgets: DASHBOARD_WIDGETS.map(({ id, width }) => ({ id, width })) })} /></CoreTooltip></div></div>
       <p id={dragHelpId} className="sr-only">Mit Maus oder Touch ziehen. Escape bricht ab. Alternativ die Pfeiltasten am Griff oder die Pfeilschaltflächen verwenden.</p>
-      <div className="mt-4"><div ref={library} id={libraryId} role="group" aria-label="Widgets auswählen" data-expanded={libraryExpanded} data-overflows={libraryOverflows} className="dashboard-widget-library">{DASHBOARD_WIDGETS.map((widget) => {
+      <div className="mt-4"><div ref={library} id={libraryId} role="group" aria-label="Widgets auswählen" className="dashboard-widget-library">{(libraryExpanded ? DASHBOARD_WIDGETS : DASHBOARD_WIDGETS.slice(0, libraryColumns)).map((widget) => {
         const active = preferences.widgets.some((entry) => entry.id === widget.id);
         return <button key={widget.id} type="button" className="dashboard-widget-miniature" aria-pressed={active} aria-label={widget.title} onPointerDown={active ? undefined : (event) => drag.start(event, widget.id, true)} onClick={() => { if (drag.consumeClick()) return; if (active) remove(widget.id); else add(widget.id); }}>
           <WidgetMiniature id={widget.id} /><span className="flex items-center justify-between gap-2 core-caption font-semibold"><span className="min-w-0 hyphens-auto [overflow-wrap:anywhere]">{widget.title}</span>{active ? <Check size={16} aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}</span>
