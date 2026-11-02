@@ -144,11 +144,10 @@ von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
       nach jedem Test. Überschneidungen zusammenlegen (Speicherschutz der
       Einstellungen dreifach, Pomodoro, Heatmap-Geometrie, Bewertung),
       wirkungslose feste Wartezeiten entfernen und die übrigen Breitenschleifen
-      (`dashboard-widgets`, `product-surfaces`, `core-stabilization`,
-      `world-capitals-hierarchy`) über `matrixViewports()` aus
-      `tests/e2e/support/visualMatrix.ts` kürzen. Katalogkonfiguration,
-      `--gate=affected` und die Sichtmatrix hinter `CORE_VISUAL_OUTPUT` sind
-      erledigt (siehe [Verlauf](history.md)). Nachweis: Laufzeit von
+      der Supabase-Specs (`product-surfaces`, `core-stabilization`,
+      `world-capitals-hierarchy`) über `matrixViewports()` und `matrixThemes`
+      aus `tests/e2e/support/visualMatrix.ts` kürzen. Katalogkonfiguration,
+      `--gate=affected` und die eingedampften Katalogflows sind erledigt (siehe [Verlauf](history.md)). Nachweis: Laufzeit von
       `npm run test:e2e:local` vorher und nachher, mit lokalem Supabase.
 
 ## Später

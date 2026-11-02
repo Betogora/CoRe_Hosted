@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
+import { matrixThemes, matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
 test("Unterstapelbaum klappt mehrere Ebenen vor dem direkten Öffnen auf", async ({ page }) => {
   await page.goto("/docs/ui-elements.html#screens");
@@ -104,7 +104,7 @@ test("Escape schließt einen Dialog auch nach einem Klick auf seinen Titel", asy
   await expect(dialog).toHaveCount(0);
 });
 
-for (const theme of visualOutput ? ["light", "dark"] as const : ["light"] as const) {
+for (const theme of matrixThemes) {
   for (const viewport of visualOutput ? [...VISUAL_MATRIX_VIEWPORTS, { width: 1279, height: 900 }, { width: 1280, height: 900 }] : matrixViewports()) {
     test(`Stapelansichten: ${theme} bei ${viewport.width}×${viewport.height}`, async ({ page }, testInfo) => {
       await page.setViewportSize(viewport);
@@ -156,7 +156,7 @@ test("Sammlungsende, Schnellanlage und 200 Prozent Vergrößerung bleiben erreic
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   const product = page.locator(".catalog-product-preview");
   const close = page.getByRole("button", { name: "Produktansicht schließen", exact: true });
-  for (const theme of visualOutput ? ["light", "dark"] as const : ["light"] as const) {
+  for (const theme of matrixThemes) {
     if (theme === "dark") await page.getByRole("button", { name: "Dark Mode einschalten", exact: true }).click();
     for (const viewport of matrixViewports()) {
       await page.setViewportSize(viewport);

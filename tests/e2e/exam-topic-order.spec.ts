@@ -1,6 +1,10 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { matrixThemes, visualOutput } from "./support/visualMatrix.ts";
 
-const viewports = [[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [1280, 720], [1440, 900], [720, 450]];
+// Ordinary runs keep phone, desktop and the short 720 × 450 layout; visual runs add every matrix and breakpoint size.
+const viewports = visualOutput
+  ? [[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [1280, 720], [1440, 900], [720, 450]]
+  : [[390, 844], [1440, 900], [720, 450]];
 async function topicIds(list: Locator) { return list.locator(":scope > li").evaluateAll((rows) => rows.map((row) => (row as HTMLElement).dataset.topicId)); }
 async function openDemo(page: Page, dark = false) {
   await page.goto("/docs/ui-elements.html#screens");
@@ -22,12 +26,12 @@ async function beginDrag(page: Page, list: Locator) {
   await page.mouse.move(handle.x + handle.width / 2, target.y + target.height - 4, { steps: 8 });
 }
 
-for (const [width, height] of viewports) for (const theme of ["light", "dark"]) {
+for (const [width, height] of viewports) for (const theme of matrixThemes) {
   test(`Themen sortieren ${width}×${height} ${theme}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     const demo = await openDemo(page, theme === "dark"), list = demo.getByRole("list", { name: "Themenreihenfolge", exact: true });
     await expect(list).toBeHidden();
-    await demo.screenshot({ path: info.outputPath("01-geschlossen.png") });
+    if (visualOutput) await demo.screenshot({ path: info.outputPath("01-geschlossen.png") });
     await demo.getByText("Themenreihenfolge ändern", { exact: true }).click();
     await expect(list).toBeVisible();
     const initial = await topicIds(list), swapped = [initial[1], initial[0], ...initial.slice(2)];
@@ -38,7 +42,7 @@ for (const [width, height] of viewports) for (const theme of ["light", "dark"]) 
     await expect.poll(() => topicIds(list)).toEqual(initial); await expect(handle).toBeFocused();
     await beginDrag(page, list);
     await expect.poll(() => topicIds(list)).toEqual(swapped);
-    await page.screenshot({ path: info.outputPath("02-ziehen.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("02-ziehen.png") });
     await page.mouse.up();
     await expect.poll(() => topicIds(list)).toEqual(swapped);
     await beginDrag(page, list);
@@ -50,7 +54,7 @@ for (const [width, height] of viewports) for (const theme of ["light", "dark"]) 
     await page.mouse.move(bounds.x + bounds.width + 30, bounds.y + 20); await page.mouse.up();
     await expect.poll(() => topicIds(list)).toEqual(swapped);
     await list.evaluate((element) => { element.scrollTop = 0; });
-    await demo.screenshot({ path: info.outputPath("03-geöffnet.png") });
+    if (visualOutput) await demo.screenshot({ path: info.outputPath("03-geöffnet.png") });
     await demo.getByText("Themenreihenfolge ändern", { exact: true }).click();
     await expect(list).toBeHidden();
     await demo.getByText("Themenreihenfolge ändern", { exact: true }).click();

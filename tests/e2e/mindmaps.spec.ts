@@ -1,4 +1,5 @@
 import { expect, test, type CDPSession, type Page, type Locator } from "@playwright/test";
+import { matrixThemes, matrixViewports, visualOutput } from "./support/visualMatrix.ts";
 
 test.setTimeout(90_000);
 async function openMindMaps(page: Page) {
@@ -426,13 +427,13 @@ test("Mindmap-Werkzeuge und Erstellungsoptionen: visuelle Pflichtmatrix", async 
     await page.getByRole("button", { name: empty ? "Mindmaps ohne Zusammenfassung öffnen" : "Mindmaps öffnen", exact: true }).click();
     await expect(panel.getByTestId("mindmap-canvas")).toBeVisible();
     if (!empty) await panel.getByRole("button", { name: "Aus Zusammenfassung", exact: true }).click();
-    for (const size of [{ width: 320, height: 720 }, { width: 360, height: 800 }, { width: 390, height: 844 }, { width: 430, height: 932 }, { width: 1280, height: 720 }, { width: 1440, height: 900 }]) {
+    for (const size of matrixViewports()) {
       await page.setViewportSize(size);
-      for (const theme of ["light", "dark"]) {
+      for (const theme of matrixThemes) {
         await page.evaluate((mode) => { document.documentElement.dataset.coreTheme = mode; }, theme);
         await panel.scrollIntoViewIfNeeded();
         expect(await panel.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-        await panel.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-${empty ? "empty" : "summary"}.png`), animations: "disabled" });
+        if (visualOutput) await panel.screenshot({ path: testInfo.outputPath(`${size.width}-${theme}-${empty ? "empty" : "summary"}.png`), animations: "disabled" });
       }
     }
   }
@@ -443,15 +444,15 @@ test("Mindmap-Werkzeuge und Erstellungsoptionen: visuelle Pflichtmatrix", async 
   await expect(product.getByTestId("mindmap-canvas")).toBeVisible();
   for (const width of [390, 1440]) {
     await page.setViewportSize({ width, height: 900 });
-    for (const theme of ["light", "dark"]) {
+    for (const theme of matrixThemes) {
       await page.evaluate((mode) => { document.documentElement.dataset.coreTheme = mode; }, theme);
       await product.evaluate((element) => element.scrollTo({ top: 0 }));
-      await page.screenshot({ path: testInfo.outputPath(`app-${width}-${theme}.png`), animations: "disabled" });
+      if (visualOutput) await page.screenshot({ path: testInfo.outputPath(`app-${width}-${theme}.png`), animations: "disabled" });
     }
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   await product.evaluate((element) => { (element as HTMLElement).style.zoom = "2"; element.scrollTo({ top: 0 }); });
-  await page.screenshot({ path: testInfo.outputPath("app-200-percent.png"), animations: "disabled" });
+  if (visualOutput) await page.screenshot({ path: testInfo.outputPath("app-200-percent.png"), animations: "disabled" });
   await product.getByRole("checkbox", { name: "Unterstapel einbeziehen" }).uncheck();
   await product.getByRole("button", { name: "Zusammenfassung und Mindmap erzeugen", exact: true }).click();
   await expect(product.getByTestId("mindmap-node").first()).toBeVisible();
