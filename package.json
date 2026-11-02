@@ -17,6 +17,8 @@
     "test:e2e": "playwright test",
     "test:e2e:golden:local": "tsx scripts/runLocalE2E.ts --gate=golden",
     "test:e2e:local": "tsx scripts/runLocalE2E.ts --gate=release",
+    "test:e2e:affected:local": "tsx scripts/runLocalE2E.ts --gate=affected",
+    "test:e2e:catalog": "playwright test --config=playwright.catalog.config.ts",
     "test:pr:local": "tsx scripts/runLocalE2E.ts --gate=pr",
     "gate:push": "tsx scripts/runQualityGate.ts",
     "gate:nightly": "npm test -- --compact && npm run test:e2e:local && npm run benchmark:apkg",

@@ -139,23 +139,17 @@ Läuft unabhängig von P1/P2, je Paket ein eigener PR. Regeln im Pflegevertrag
 von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
 2026-10-31 im [Verlauf](history.md).
 
-- [ ] **D – Browserflows:** Etwa 80 Flows setzen das Cloud-Konto zurück,
-      auch reine Layoutprüfungen; `card-lifecycle` doppelt vor und nach jedem
-      Test. Screenshot-Matrizen (`note-presentation`, `learning-summaries`,
-      `deck-ui-restoration`) hinter `CORE_VISUAL_OUTPUT`. Katalogspecs ohne
-      Supabase in eine eigene parallele Playwright-Konfiguration, die auf PRs
-      in der CI läuft. Überschneidungen zusammenlegen (Speicherschutz der
+- [ ] **D – Browserflows, Rest:** Etwa 80 Flows setzen das Cloud-Konto
+      zurück, auch reine Layoutprüfungen; `card-lifecycle` doppelt vor und
+      nach jedem Test. Überschneidungen zusammenlegen (Speicherschutz der
       Einstellungen dreifach, Pomodoro, Heatmap-Geometrie, Bewertung),
-      wirkungslose feste Wartezeiten und lange Breitenschleifen auf die
-      Breakpoints der visuellen Pflichtmatrix kürzen. Danach `--gate=affected`
-      in `runLocalE2E.ts`: geänderte Specs plus Zuordnung von `src/screens`,
-      `src/ui` und Sync-Modulen zu Specs. Nachweis: Laufzeit von
-      `npm run test:e2e:local` vorher und nachher.
-- [ ] **Dokumentationsprüfung beschleunigen:** `npm run check:docs` ist nach
-      dem parallelen Gate der längste Schritt; fast die ganze Zeit steckt im
-      Rollup-Bundle des UI-Katalogs. Prüfen, ob ein Inhaltshash der
-      Bundle-Eingaben den Neuaufbau bei unveränderten Quellen überspringen
-      kann, ohne veraltete HTML-Seiten durchzulassen.
+      wirkungslose feste Wartezeiten entfernen und die übrigen Breitenschleifen
+      (`dashboard-widgets`, `product-surfaces`, `core-stabilization`,
+      `world-capitals-hierarchy`) über `matrixViewports()` aus
+      `tests/e2e/support/visualMatrix.ts` kürzen. Katalogkonfiguration,
+      `--gate=affected` und die Sichtmatrix hinter `CORE_VISUAL_OUTPUT` sind
+      erledigt (siehe [Verlauf](history.md)). Nachweis: Laufzeit von
+      `npm run test:e2e:local` vorher und nachher, mit lokalem Supabase.
 
 ## Später
 

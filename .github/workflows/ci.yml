@@ -33,3 +33,35 @@ jobs:
 
       - name: Lokales Push-Gate ausführen
         run: npm run gate:push
+
+  catalog-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v7
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Chromium installieren
+        run: npx playwright install --with-deps chromium
+
+      - name: Katalogflows ohne Supabase ausführen
+        run: npm run test:e2e:catalog
+
+      - name: Fehlerartefakte hochladen
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: catalog-e2e-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

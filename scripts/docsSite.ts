@@ -68,8 +68,12 @@ export function siteSidebar(currentFile: string, toc: string) {
   return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a>${theme}</div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links">${toc}</div></nav></aside>`;
 }
 
+/** Escapes a script for inline embedding; applying it twice changes nothing. */
+export function inlineScript(script: string) {
+  return script.replace(/<\/script/gi, "<\\/script").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufdd0-\ufdef\ufffe\uffff]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
+}
+
 export function htmlPage(file: string, content: string, css: string, script: string, { toc = "", extraHead = "" } = {}) {
   const label = DOC_PAGES.find((candidate) => candidate.file === file)!.label;
-  const inlineScript = script.replace(/<\/script/gi, "<\\/script").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufdd0-\ufdef\ufffe\uffff]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
-  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body><div class="docs-frame">${siteSidebar(file, toc)}<main class="docs-main">${content}</main></div><script>${inlineScript}</script></body></html>\n`;
+  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body><div class="docs-frame">${siteSidebar(file, toc)}<main class="docs-main">${content}</main></div><script>${inlineScript(script)}</script></body></html>\n`;
 }
