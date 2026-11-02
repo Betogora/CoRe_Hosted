@@ -15,6 +15,7 @@ import type { WorkspaceState } from "./coreWorkspace.ts";
 import type { CardTableSort, DeckLibrarySummary } from "./libraryModel.ts";
 import type { SyncOutboxMutation } from "./syncEngine.ts";
 import type { CloudCatalogPage, CloudEntityPage } from "./cloudRepository.ts";
+import type { ReplicatedNoteTypeSource } from "./cloudRepositoryValidation.ts";
 import type { ReviewAnswerResult } from "./reviewService.ts";
 import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgImport.ts";
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
@@ -447,6 +448,15 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       }
       await transactionDone(transaction);
       shell = await loadShell(database);
+    } else if (page.table === "note_type_sources") {
+      const transaction = database.transaction(STORE.noteTypeSources, "readwrite");
+      const store = transaction.objectStore(STORE.noteTypeSources);
+      for (const source of page.entities as ReplicatedNoteTypeSource[]) {
+        if (pendingEntityMutation("note_type_sources", source.id)) continue;
+        if (source.deletedAt) store.delete(source.id);
+        else store.put(source);
+      }
+      await transactionDone(transaction);
     } else if (page.table === "deck_study_summaries") {
       const transaction = database.transaction(STORE.deckStudySummaries, "readwrite");
       const store = transaction.objectStore(STORE.deckStudySummaries);
@@ -650,6 +660,21 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   };
 
   /** A content with all its cards when every sibling the catalog knows is resident; otherwise null. */
+  // The renderer prepares each template object once, so an unchanged template is returned as the same object.
+  const loadedNoteTypeSources = new Map<string, NoteTypeSource & { updatedAt: string }>();
+  /** The Anki template of an imported content, for its original layout (ADR-047); kept on every device. */
+  const loadNoteTypeSource = async (id: string): Promise<NoteTypeSource | null> => {
+    await writeChain;
+    const transaction = database.transaction(STORE.noteTypeSources, "readonly");
+    const source = await requestResult<(NoteTypeSource & { updatedAt: string }) | undefined>(transaction.objectStore(STORE.noteTypeSources).get(id));
+    await transactionDone(transaction);
+    if (!source) return null;
+    const known = loadedNoteTypeSources.get(id);
+    if (known?.updatedAt === source.updatedAt) return known;
+    loadedNoteTypeSources.set(id, source);
+    return source;
+  };
+
   const loadNoteGraph = async (noteId: string): Promise<NoteGraph | null> => {
     await writeChain;
     const transaction = database.transaction([STORE.notes, STORE.cards, STORE.variants, STORE.cardCatalog], "readonly");
@@ -1085,6 +1110,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     loadCardBody,
     loadNotes,
     loadNoteGraph,
+    loadNoteTypeSource,
     applyHydratedBodies,
     saveNoteGraphs: writeNoteGraphs,
     updateCard,

@@ -13,6 +13,7 @@ function fixture(): { presentation: NotePresentationResult } {
       mediaReferences: ["figure.png"],
       interactions: [],
       diagnostics: [],
+      layout: "core",
     },
   };
 }

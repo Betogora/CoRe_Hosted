@@ -51,6 +51,8 @@ export interface CardPresentationSurfaceProps {
   title: string;
   loadingLabel?: string;
   className?: string;
+  /** Element of the card scrolled into view once loaded, like Anki's `#answer` after revealing. */
+  scrollTargetId?: string;
 }
 
 export function CardPresentationSurface({
@@ -61,6 +63,7 @@ export function CardPresentationSurface({
   title,
   loadingLabel = "Kartendarstellung wird vorbereitet …",
   className = "",
+  scrollTargetId,
 }: CardPresentationSurfaceProps) {
   const [fontFaceCss, setFontFaceCss] = React.useState(cachedPresentationFontCss);
   const frameRef = React.useRef<HTMLIFrameElement>(null);
@@ -94,7 +97,7 @@ export function CardPresentationSurface({
   }
 
   const frameClassName = surface === "review"
-    ? "h-px w-full border-0 bg-transparent"
+    ? `h-px w-full border-0 bg-transparent${presentation.layout === "original" ? " rounded-panel" : ""}`
     : "min-h-72 w-full rounded-control border border-core-border bg-core-surface";
   const resizeReviewFrame = () => {
     if (surface !== "review") return;
@@ -124,6 +127,7 @@ export function CardPresentationSurface({
             resizeReviewFrame();
             selectionCleanupRef.current?.();
             const frameDocument = frameRef.current?.contentDocument;
+            if (scrollTargetId) frameDocument?.getElementById(scrollTargetId)?.scrollIntoView({ block: "nearest" });
             if (onTextSelectionChange && frameDocument) {
               const update = () => onTextSelectionChange(frameDocument.getSelection()?.toString().trim() ?? "");
               frameDocument.addEventListener("selectionchange", update);

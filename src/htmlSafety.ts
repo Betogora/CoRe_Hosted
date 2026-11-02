@@ -90,7 +90,7 @@ const options: IFilterXSSOptions = {
 
 const cardHtmlFilter = new FilterXSS(options);
 
-const NOTE_GLOBAL_ATTRIBUTES = ["title", "dir", "lang", "style"];
+const NOTE_GLOBAL_ATTRIBUTES = ["class", "title", "dir", "lang", "style"];
 const NOTE_TAG_ATTRIBUTES: Record<string, string[]> = {
   a: ["href"],
   audio: ["src", "controls"],
@@ -162,7 +162,7 @@ const noteHtmlFilter = new FilterXSS({
   stripIgnoreTag: true,
   stripIgnoreTagBody: ["script", "style", "iframe", "object", "embed", "form", "template"],
   onIgnoreTagAttr(_tag, name, value) {
-    return /^aria-[\w-]+$/i.test(name) ? `${name}="${escapeAttrValue(value)}"` : undefined;
+    return /^(?:data|aria)-[\w-]+$/i.test(name) ? `${name}="${escapeAttrValue(value)}"` : undefined;
   },
   onTagAttr(_tag, name, rawValue, isWhiteAttr) {
     if (!isWhiteAttr) return undefined;
@@ -180,9 +180,28 @@ const noteHtmlFilter = new FilterXSS({
   },
 });
 
-/** Field HTML of the universal note content (ADR-032): semantic markup only, no layout, fonts or remote media. */
+/**
+ * Field HTML of the universal note content (ADR-032): semantic markup without layout, fonts or remote media. Classes
+ * and `data-*` stay for the original layout of imported cards (ADR-047); the CoRe design ignores them.
+ */
 export function sanitizeNoteHtml(html: unknown) {
   return noteHtmlFilter.process(String(html ?? ""))
+    .replace(VOID_TAG_PATTERN, (_match, tag: string, attributes: string) => `<${tag}${attributes.replace(/\s*\/$/, "")} />`)
+    .replace(/<a\b(?![^>]*\brel=)/gi, '<a rel="noopener noreferrer"');
+}
+
+const layoutHtmlFilter = new FilterXSS({
+  ...options,
+  safeAttrValue(tag, name, value, cssFilter) {
+    if (name !== "style") return options.safeAttrValue!(tag, name, value, cssFilter);
+    // The original layout keeps any inline declaration whose value cannot load or run anything.
+    return escapeAttrValue(value.split(";").filter((declaration) => /^\s*[\w-]+\s*:/.test(declaration) && SAFE_CSS_VALUE.test(declaration.slice(declaration.indexOf(":") + 1).trim())).join(";"));
+  },
+});
+
+/** Expanded template of an imported card's original layout (ADR-047): classes, ids, `data-*` and inline layout stay. */
+export function sanitizeLayoutHtml(html: string) {
+  return layoutHtmlFilter.process(html)
     .replace(VOID_TAG_PATTERN, (_match, tag: string, attributes: string) => `<${tag}${attributes.replace(/\s*\/$/, "")} />`)
     .replace(/<a\b(?![^>]*\brel=)/gi, '<a rel="noopener noreferrer"');
 }

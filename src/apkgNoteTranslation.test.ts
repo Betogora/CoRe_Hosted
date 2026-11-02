@@ -112,7 +112,8 @@ test("Ankizin-artige Vorlagen: Kopfzeilen-Metadaten, Rückseiten-Buttons, Link-Z
   assert.deepEqual(graph.report.notetypes[0].fieldRoles, { Titel: "prompt", Muskel: "prompt", Ursprung: "answer", Klinik: "extra", "AMBOSS-Link": "source", Source: "source", "Note ID": "note" });
   const content = graph.notes[0].content;
   assert.equal(content.interaction.kind === "reveal" && content.interaction.prompts[0].instruction, "Wo liegt der Ursprung des …?");
-  assert.match(content.fields.find((field) => field.name === "AMBOSS-Link")?.html ?? "", /^<a [^>]*href="https:\/\/next\.amboss\.com\/de\/article\/x">AMBOSS-Link<\/a>$/);
+  // Link targets stay raw; the CoRe design turns them into a source link (ADR-047).
+  assert.equal(content.fields.find((field) => field.name === "AMBOSS-Link")?.html, "https://next.amboss.com/de/article/x");
   assert.equal(content.fields.find((field) => field.name === "Note ID")?.html, "1565424901299");
 });
 
@@ -131,6 +132,26 @@ test("Felder in Attributen wie data-* zählen weder als sichtbares Feld noch als
   const prompt = interaction.kind === "reveal" ? interaction.prompts[0] : null;
   assert.equal(prompt?.instruction, "Generation …");
   assert.deepEqual(prompt?.questionFieldIds, ["f1", "f2", "f4"]);
+});
+
+test("Vorlagenmedien mit `_` aus CSS und Template kommen nur bei Notiztypen im Originallayout mit; fehlende werden berichtet", async () => {
+  const css = '@font-face{font-family:Eigen;src:url("_eigen.woff2")}.card{background:url(_hintergrund.png)}.x{background:url(_fehlt.png)}';
+  const custom = { ...model("8", ["Vorne", "Hinten"], [['<img src="_logo.png">{{Vorne}}', "{{FrontSide}}<hr id=answer>{{Hinten}}"]]), config: { kind: 0, originalStockKind: 0, css } };
+  const stock = { ...basic, id: "9", config: { ...basic.config, css } };
+  const scripted = { ...model("10", ["Vorne", "Hinten"], [['{{Vorne}}<button onclick="f()">Mehr</button>', "{{Hinten}}"]]), config: { kind: 0, originalStockKind: 0, css } };
+  const graph = await translateAnkiPackage(ankiPackage({
+    models: { 8: custom, 9: stock, 10: scripted },
+    notes: [note("100", "8", ["Frage", "Antwort"]), note("101", "9", ["Frage", "Antwort"]), note("102", "10", ["Frage", "Antwort"])],
+    cards: [card("200", "100"), card("201", "101"), card("202", "102")],
+    media: { format: "media-entries", missing: [], files: [media("_eigen.woff2", "a1"), media("_hintergrund.png", "b2"), media("_logo.png", "c3"), media("_ungenutzt.png", "d4")] },
+  }), { importedAt: IMPORTED_AT });
+
+  assert.deepEqual(graph.notes[0].media, { "_eigen.woff2": "a1", "_hintergrund.png": "b2", "_logo.png": "c3" });
+  assert.deepEqual(graph.notes[1].media, {});
+  assert.deepEqual(graph.notes[2].media, {}, "Ein Template mit Script zeigt kein Originallayout und braucht keine Vorlagenmedien");
+  assert.deepEqual(graph.mediaFiles.map((file) => file.name).sort(), ["_eigen.woff2", "_hintergrund.png", "_logo.png"]);
+  assert.deepEqual(graph.report.missingMedia, ["_fehlt.png"]);
+  assert.deepEqual(graph.report.notetypes.map((report) => report.layout), ["original", "core", "core"]);
 });
 
 test("Native Bildverdeckung liest Radien, maskierte Doppelpunkte, Drehung, Schriftgröße und dauerhaft verdeckte Formen", async () => {

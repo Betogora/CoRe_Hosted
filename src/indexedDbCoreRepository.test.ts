@@ -414,6 +414,25 @@ test("eine Änderung an einem noch nicht gesendeten Stapel bleibt ein Cloud-Inse
   reopened.close();
 });
 
+test("Anki-Vorlagen aus dem Katalog-Delta liegen lokal vor; Löschungen entfernen sie, ungesendete Importe bleiben", async () => {
+  const repository = await openRepository(workspaceState(0));
+  const source = (id: string, css: string, deletedAt: string | null = null) => ({
+    id, ankiNotetypeId: `anki-${id}`, name: "Pokémon", translator: { id: "generic", version: 3 }, kind: 0, originalStockKind: 0, css,
+    fields: [{ name: "Name", ordinal: 0 }], templates: [{ name: "Karte 1", ordinal: 0, front: "{{Name}}", back: "{{Name}}", targetDeckId: null }],
+    config: {}, revision: 1, updatedAt: CREATED_AT, deletedAt,
+  });
+  await repository.commitImportGraph(importGraph([{ kind: "note-type-sources", values: [source("lokal", ".lokal{}")] }]), { deckSettings: {}, reimportTargets: { notes: [], cards: [], noteTypeSources: [] } });
+
+  await repository.applyCloudCatalogPage({ table: "note_type_sources", entities: [source("vorlage", ".card{}.meta{}"), source("lokal", ".cloud{}")], reset: false, cursor: 1 });
+  assert.equal((await repository.loadNoteTypeSource("vorlage"))?.css, ".card{}.meta{}");
+  assert.equal(await repository.loadNoteTypeSource("vorlage"), await repository.loadNoteTypeSource("vorlage"), "Eine unveränderte Vorlage bleibt dasselbe Objekt");
+  assert.equal((await repository.loadNoteTypeSource("lokal"))?.css, ".lokal{}", "Ein noch nicht gesendeter Import bleibt maßgeblich");
+
+  await repository.applyCloudCatalogPage({ table: "note_type_sources", entities: [source("vorlage", ".card{}", CREATED_AT)], reset: false, cursor: 2 });
+  assert.equal(await repository.loadNoteTypeSource("vorlage"), null);
+  repository.close();
+});
+
 function importedNote(id: string, ankiGuid: string, front: string, { reverse = false, contentRevision = 1 } = {}) {
   const created = createBasicNote("deck-anki", front, "Antwort", { reverse, createdAt: CREATED_AT });
   const note: Note = { ...created.note, id, source: "anki-apkg", ankiGuid, contentRevision, importedContentRevision: 1 };

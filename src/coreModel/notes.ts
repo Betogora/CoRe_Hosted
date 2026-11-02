@@ -21,8 +21,14 @@ interface CreateNoteInput {
   translator?: Note["translator"];
   /** Media names mapped to SHA-1; names that already are a SHA-1 (manual images) map to themselves. */
   media?: Record<string, string>;
+  /** Template media of the imported note type, kept although no field names them (ADR-047). */
+  layoutMedia?: Record<string, string>;
   createdAt?: string;
 }
+
+// Anki names template media with a leading `_`; they belong to the original layout, not to the fields.
+const isLayoutMedia = (name: string) => name.startsWith("_");
+const layoutMediaOf = (media: Record<string, string>) => Object.fromEntries(Object.entries(media).filter(([name]) => isLayoutMedia(name)));
 
 /** Keeps the media mapping for names the content references; manual images are named by their SHA-1. */
 function noteMediaFor(content: NoteContent, media: Record<string, string> = {}): Record<string, string> {
@@ -34,10 +40,10 @@ function noteMediaFor(content: NoteContent, media: Record<string, string> = {}):
   return result;
 }
 
-/** Drops media entries the content no longer references; referenced ones stay. No content change. */
+/** Drops media entries the content no longer references; referenced ones and template media stay. No content change. */
 export function removeUnusedNoteMedia(note: Note, names: readonly string[], updatedAt = new Date().toISOString()): Note {
   const used = new Set(noteContentMediaRefs(note.content));
-  const removed = names.filter((name) => name in note.media && !used.has(name));
+  const removed = names.filter((name) => name in note.media && !used.has(name) && !isLayoutMedia(name));
   if (!removed.length) return note;
   const media = Object.fromEntries(Object.entries(note.media).filter(([name]) => !removed.includes(name)));
   return { ...note, media, revision: note.revision + 1, updatedAt };
@@ -71,7 +77,7 @@ export function createNote(input: CreateNoteInput): { note: Note; cards: Card[] 
     id: input.id ?? makeId("note"),
     ...(input.userId === undefined ? {} : { userId: input.userId }),
     content: parsed.value,
-    media: noteMediaFor(parsed.value, input.media),
+    media: { ...noteMediaFor(parsed.value, input.media), ...input.layoutMedia },
     source: input.source ?? "manual",
     ankiGuid: input.ankiGuid ?? null,
     noteTypeSourceId: input.noteTypeSourceId ?? null,
@@ -147,7 +153,7 @@ export function planNoteContentChange(
     ? {
       ...previous.note,
       content: parsed.value,
-      media: noteMediaFor(parsed.value, previous.note.media),
+      media: { ...noteMediaFor(parsed.value, previous.note.media), ...layoutMediaOf(previous.note.media) },
       contentRevision: previous.note.contentRevision + (contentChanged ? 1 : 0),
       revision: previous.note.revision + 1,
       updatedAt,
@@ -227,7 +233,7 @@ export function duplicateNote(note: Note, cards: readonly Card[], createdAt = ne
   const deckByKey = new Map(cards.map((card) => [card.promptKey, card.deckId]));
   const fallbackDeckId = cards[0]?.deckId;
   if (!fallbackDeckId) throw new Error("Dem Inhalt ist keine Karte zugeordnet.");
-  const copy = createNote({ content, deckId: fallbackDeckId, media: note.media, createdAt });
+  const copy = createNote({ content, deckId: fallbackDeckId, media: note.media, layoutMedia: layoutMediaOf(note.media), createdAt });
   return { note: copy.note, cards: copy.cards.map((card) => ({ ...card, deckId: deckByKey.get(card.promptKey) ?? fallbackDeckId })) };
 }
 

@@ -20,6 +20,35 @@ Der Verlauf ist kein Produktvertrag und keine Roadmap. Aktuelles Verhalten steht
 - Prüfung: `npm run gate:push` grün (30,9 s), `npm run test:e2e:catalog` lokal mit vier Workern 209 bestanden, 19 Sichtmatrix-Tests übersprungen, 10,7 min; unter paralleler Fremdlast schlugen einzelne Drag-Flows wegen Zeitüberschreitung fehl und bestanden im Einzellauf. Ohne Docker ungeprüft: die Supabase-Specs, `npm run test:e2e:local` und ein vollständiger Lauf von `test:e2e:affected:local`; dessen Specauswahl prüft der Modultest, der Abbruch ohne Docker meldet sich jetzt vor dem Katalog-Lauf.
 - Offen bleiben die Kontoresets, Überschneidungen, festen Wartezeiten und übrigen Breitenschleifen aus [`todo.md`](todo.md#testsuite-verschlanken).
 
+## 2026-11-02 — Originallayout importierter Karten: Abnahme (P3, Paket D)
+
+- APKG-Matrix: Notiztyp „CoRe-Matrix Originallayout“ (`special-latest`, `matrix-originallayout`) mit Zeile aus mehreren Feldern, Feld im Attribut, Typ-Badge aus CSS und Nachtregeln. Die Erwartung führt je Notiz `layout`; der Matrix-Test rendert wie die App mit der Herkunftsvorlage, sodass jede andere Matrix-Vorlage nachweislich im CoRe-Design bleibt. Fall in der visuellen Pflichtmatrix ergänzt; Sichtprüfung Review vor und nach dem Aufdecken und Kartenvorschau hell und dunkel bei 390 × 844 und 1440 × 900 ohne Überlauf (Renderer-Harness, nicht die eingeloggte App).
+- Korpuslauf vorher/nachher: Übersetzungsquoten unverändert; Originallayout für den Pokémon-Stapel und zwei Lückentext-Vorlagen. Der Lauf zeigte, dass Vorlagenmedien auch für generische Vorlagen mit Script übernommen wurden (Ankizin +12, Ankiphil +9 bis +11 Dateien); sie kommen jetzt nur noch bei Vorlagen im Originallayout mit, die Medienzahlen entsprechen wieder dem alten Stand. Importzeiten: Ankizin 54,4 s → 48,9 s, Ankiphil-Auszüge in drei Läufen je Stand überlappend (alt 142–281 ms, neu 148–246 ms).
+- `performance:measure:local`: Startmessung 2/2 innerhalb der Budgets, Initialgraph 245,1 KiB gzip. Der Statistik-Benchmark brach im Gesamtlauf einmal an der 50-ms-Grenze der Clientprojektion ab; in je zwei Einzelläufen auf altem und neuem Stand bestand er. Der Lauf brauchte Port 5196, weil 5190 von einer parallelen Sitzung belegt war.
+- Audit über P3: CSS-Medienerkennung für Renderer und Übersetzer in `originalLayout.ts` zusammengeführt.
+- Migration `20261102102620_originallayout_vorlagen_sync.sql` per `supabase db push` auf `hirbiuiydczmnjqtoyqx` (CoRe-Database) angewandt, Probelauf vorher mit genau dieser einen ausstehenden Migration; `verify_schema_v1.sql` gegen das Projekt grün.
+- `card-lifecycle.spec.ts` prüft das Label der Bewertungstaste über `.core-control-label` statt des ersten `span`, das seit der ToolBox-Designsprache der Farbpunkt ist; betroffene Specs `card-lifecycle`, `apkg-quality-report` und `first-learning` lokal 17/17 grün.
+
+## 2026-11-02 — Originallayout importierter Karten: App-Einbindung (P3, Paket C)
+
+- Review, Lern-Vorschau, Editor-Vorschau, Vorschau-Dialog und Importvorschau zeigen generisch übersetzte Karten mit eigenem Design im Originallayout. `NoteLayoutContext` liefert Vorlage und Stapelpfad; die App bindet ihn an die Replica, die Importvorschau an die Vorlage der Vorschaukarte. Nur Inhalte des generischen Übersetzers lesen eine Vorlage, die Replica liefert ein unverändertes Template als dasselbe Objekt, damit der Renderer es nicht erneut aufbereitet.
+- Im Originallayout ein Rahmen, der beim Aufdecken zur Rückseite wechselt und `#answer` in den Blick scrollt; Eintippen, Vorlesen und Rückfallhinweis laufen wie im CoRe-Design. `{{Deck}}` und `{{Subdeck}}` nutzen den Stapelpfad.
+- Importbericht nennt je Notiztyp `Originallayout` oder `CoRe-Design`; die Regel liegt in `originalLayout.ts` für Renderer und Bericht. Kartenbaustein „Originallayout“ im Katalog, Specs mit Ausnahme zu getrennten Rahmen.
+
+## 2026-11-02 — Originallayout importierter Karten: Vorlagen-Sync und Vorlagenmedien (P3, Paket B)
+
+- Migration `20261102102620_originallayout_vorlagen_sync`: `note_type_sources` trägt `sync_change_id` mit Stempel-Trigger und Index; `pull_account_catalog_delta` liefert Vorlagen mit, `get_account_bootstrap` zählt sie im Server-Cursor. Vorlagen liegen damit auf jedem Gerät vollständig in der Replica (`loadNoteTypeSource`), auch offline; ein Reimport ersetzt sie per Upsert und erreicht über den neuen Cursor alle Geräte. Lokal noch nicht gesendete Vorlagen überschreibt das Delta nicht.
+- Vorlagenmedien: `_`-Dateien, die CSS oder statisches Template-HTML eines generisch übersetzten Notiztyps nennen, kommen beim Import in `notes.media` jedes Inhalts und damit in `note_media`, Offline-Download und Freigabeschutz; fehlende stehen im Importbericht. Bearbeiten, Duplizieren und Bereinigen behalten `_`-Einträge.
+- Prüfung: `test:rls:local` (20/20, darunter Vorlagen im Delta vor und nach einer Änderung), Verify-SQL um Spalte, Index und Trigger ergänzt, `db:types:generate`; Repository-, Kernmodell- und Importtests; `typecheck`.
+
+## 2026-11-02 — Originallayout importierter Karten: Renderer und Regeln (P3, Paket A)
+
+- ADR-047 löst für generisch übersetzte Inhalte mit eigenem Design die reine CoRe-Darstellung aus ADR-032 ab. `renderCard` nimmt optional die Herkunftsvorlage (`noteTypeSource`) und rendert dann deren Template samt CSS; Ergebnisfeld `layout` (`core`/`original`). Die App reicht die Vorlage noch nicht weiter (Paket B und C).
+- Template-Rendering ohne Script: Bedingungen, `{{FrontSide}}`, Sonderfelder, Filter `text`, `cloze`, `hint`, `type`, `furigana`/`kana`/`kanji`, `tts`; Felder in Tags werden als escapter Text eingesetzt. `sanitizeLayoutHtml` für das zusammengesetzte HTML; aus dem CSS entfallen `@import`, externe `url()` und `</style`. Leere Vorderseite fällt mit Diagnose auf das CoRe-Design zurück.
+- Felder behalten `class` und `data-*`. Link-Ziele aus `href="{{Feld}}"` bleiben roh, die CoRe-Darstellung baut den Quellen-Link; dadurch entfallen Präfix und Suffix um das Feld. Übersetzer `generic` 3 und `anking` 2 übersetzen unbearbeitete Importe neu.
+- Bilder und Videos begrenzt `:where(img,video)`, damit Stapel-CSS die Grenzen überschreiben kann.
+- Prüfung: Renderertests einschließlich Angriffs-Payloads in Template und CSS, fokussierte Übersetzer-, Bereinigungs- und Rahmentests, `typecheck`, `check:docs`. Sichtprobe der Pokémon-Vorlage aus dem Korpus („??? · Generation X“ mit Typ-Badge) bei 1440 px hell und dunkel und bei 375 px ohne Überlauf. Import-Benchmark (25.000 Karten, 1.000 Medien): 4.453 ms vorher, 4.310 ms nachher; Rendern je Kartenseite 0,09 ms in beiden Darstellungen.
+
 ## 2026-11-02 — Aktive Stapel: Zahlen ohne Pille, Dashboard mit gemeinsamer Ansicht
 
 - `Neu`, `Offen` und `Fällig` erscheinen in Liste und Kacheln als Zahlen in Statusfarbe ohne Hintergrundfläche und in Größe des Stapelnamens; Nullwerte bleiben neutral.

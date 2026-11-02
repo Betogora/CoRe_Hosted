@@ -381,6 +381,11 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const deltaA = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: 0, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta für Nutzer A");
       assert.ok(deltaA.changes.length > 0);
       assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));
+      assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_type_sources" && entry.row.id === fixtureA.note_type_sources.id), "Anki-Vorlagen laufen durch den Katalog-Delta-Sync");
+      // A reimport replaces the template; the new cursor position brings it to other devices.
+      assertNoError(await clientA.from("note_type_sources").update({ definition: { kind: 0, verified: true, css: ".neu{}" } }).eq("id", fixtureA.note_type_sources.id), "Vorlage per Reimport ersetzen");
+      const sourceDelta = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: deltaA.nextCursor, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta nach geänderter Vorlage");
+      assert.deepEqual(sourceDelta.changes.filter((entry: any) => entry.table === "note_type_sources").map((entry: any) => entry.row.definition.css), [".neu{}"]);
 
       const catalogRequest = { p_deck_id: fixtureA.decks.id, p_query: "", p_sort_field: "sortField", p_sort_direction: "asc", p_cursor: null, p_limit: 50 };
       const catalogA = assertNoError(await clientA.rpc("list_account_card_catalog", catalogRequest), "Kartenkatalog für Nutzer A");

@@ -574,6 +574,7 @@ export type Database = {
           id: string
           name: string
           revision: number
+          sync_change_id: number
           updated_at: string
           updated_by_device_id: string | null
           user_id: string
@@ -586,6 +587,7 @@ export type Database = {
           id: string
           name: string
           revision?: number
+          sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id: string
@@ -598,6 +600,7 @@ export type Database = {
           id?: string
           name?: string
           revision?: number
+          sync_change_id?: number
           updated_at?: string
           updated_by_device_id?: string | null
           user_id?: string

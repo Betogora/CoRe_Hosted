@@ -38,8 +38,8 @@ test("latest APKG preview shows the complete quality report without mutating acc
   }
   const notetypes = page.getByRole("region", { name: "Notiztypen" });
   await expect(notetypes.getByTestId("apkg-notetype-report")).toHaveCount(2);
-  await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "Basic" })).toContainText("5 Inhalte · 5 Karten · kein Lernstand");
-  await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "CoRe-Matrix Schrift" })).toContainText("1 Inhalt · 1 Karte · kein Lernstand");
+  await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "Basic" })).toContainText("5 Inhalte · 5 Karten · kein Lernstand · CoRe-Design");
+  await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "CoRe-Matrix Schrift" })).toContainText("1 Inhalt · 1 Karte · kein Lernstand · CoRe-Design");
   await expect(notetypes.getByTestId("apkg-notetype-report").filter({ hasText: "Basic" })).toContainText("1 Medium fehlt im Paket.");
   await expect(page.getByText("1 referenziertes Medium fehlt im Paket. Betroffene Karten können ohne Bild oder Ton erscheinen.", { exact: true })).toBeVisible();
   const warnings = page.getByRole("region", { name: "1 Warnung", exact: true });

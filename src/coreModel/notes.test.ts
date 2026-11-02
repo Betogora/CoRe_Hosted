@@ -4,7 +4,7 @@ import type { Card, NoteContent, RevealPrompt } from "../coreTypes.ts";
 import { addCardVariant, createCardVariant, getActiveVariants, replaceOutdatedVariants } from "./cards.ts";
 import { createManualNoteContent } from "./creation.ts";
 import { notePromptLabel } from "./noteContent.ts";
-import { createBasicNote, createNote, planNoteContentChange, planNoteDeletion, removeUnusedNoteMedia } from "./notes.ts";
+import { createBasicNote, createNote, duplicateNote, planNoteContentChange, planNoteDeletion, removeUnusedNoteMedia } from "./notes.ts";
 
 const CREATED_AT = "2026-10-06T10:00:00.000Z";
 const CHANGED_AT = "2026-10-06T11:00:00.000Z";
@@ -345,4 +345,14 @@ test("only unreferenced media can be removed, without a content change", () => {
   assert.equal(cleaned.revision, note.revision + 1);
   assert.equal(cleaned.contentRevision, note.contentRevision);
   assert.equal(removeUnusedNoteMedia(cleaned, ["herz.png"], CHANGED_AT), cleaned);
+});
+
+test("Vorlagenmedien mit `_` bleiben beim Bearbeiten, Duplizieren und Bereinigen, auch ohne Nennung im Feld", () => {
+  const font = { "_schrift.woff2": "c".repeat(40) };
+  const graph = createNote({ content: createBasicNote("deck", "Frage", "Antwort").note.content, deckId: "deck", layoutMedia: font, createdAt: CREATED_AT });
+  assert.deepEqual(graph.note.media, font);
+  const edited = planNoteContentChange(graph, { ...graph.note.content, fields: graph.note.content.fields.map((field) => ({ ...field, html: `${field.html}!` })) }, CHANGED_AT);
+  assert.deepEqual(edited.note.media, font);
+  assert.deepEqual(duplicateNote(graph.note, graph.cards, CHANGED_AT).note.media, font);
+  assert.equal(removeUnusedNoteMedia(graph.note, ["_schrift.woff2"], CHANGED_AT), graph.note);
 });

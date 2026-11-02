@@ -40,6 +40,7 @@ begin
     ('notes', 'imported_tags'),
     ('note_sources', 'fields'),
     ('note_type_sources', 'definition'),
+    ('note_type_sources', 'sync_change_id'),
     ('cards', 'note_id'),
     ('cards', 'prompt_key'),
     ('cards', 'anki_card_id'),
@@ -199,7 +200,7 @@ begin
     select 1
     from unnest(array[
       'decks_user_sync_change_id_idx', 'card_catalog_user_sync_change_id_idx', 'card_catalog_active_deck_sort_idx',
-      'card_catalog_active_deck_due_idx', 'deck_study_summaries_user_sync_change_id_idx', 'note_media_user_sha1_idx',
+      'card_catalog_active_deck_due_idx', 'deck_study_summaries_user_sync_change_id_idx', 'note_type_sources_user_sync_change_id_idx', 'note_media_user_sha1_idx',
       'review_events_user_answered_idx', 'cards_user_note_idx'
     ]) as expected(index_name)
     where not exists (select 1 from pg_indexes where schemaname = 'public' and indexname = expected.index_name)
@@ -229,6 +230,12 @@ begin
     where tgrelid = 'public.decks'::regclass and tgname = 'decks_stamp_account_sync_change' and not tgisinternal
   ) then
     raise exception 'Delta-Sync-Stempel der Stapel fehlt.';
+  end if;
+  if not exists (
+    select 1 from pg_trigger
+    where tgrelid = 'public.note_type_sources'::regclass and tgname = 'note_type_sources_stamp_account_sync_change' and not tgisinternal
+  ) then
+    raise exception 'Delta-Sync-Stempel der Anki-Vorlagen fehlt.';
   end if;
 
   if to_regprocedure('public.record_review_atomic(text,jsonb,timestamp with time zone,text,jsonb,timestamp with time zone,jsonb,text)') is null
