@@ -2,8 +2,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 import path from "node:path";
+import { matrixThemes, matrixViewports, visualOutput } from "./support/visualMatrix.ts";
 
-const sizes = [[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [999, 900], [1000, 900], [1280, 720], [1440, 900]];
+// Visual runs add the grid breakpoints (639/640 and 999/1000) to the mandatory matrix.
+const sizes = matrixViewports([[320, 720], [360, 800], [390, 844], [430, 932], [639, 900], [640, 900], [999, 900], [1000, 900], [1280, 720], [1440, 900]].map(([width, height]) => ({ width, height })));
 const defaults = ["learning", "motivation", "timer", "decks", "todos", "heatmap"];
 
 async function order(page: Page) {
@@ -64,23 +66,29 @@ async function beginDrag(page: Page) {
   await expect(page.locator('[data-dashboard-widget="learning"]')).toHaveAttribute("data-drop-target", "true");
 }
 
-for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
+test("Timer und Motivation stehen ab den Rasterbreiten 640 und 999 in einer Reihe", async ({ page }) => {
+  for (const width of [640, 999]) {
+    await page.setViewportSize({ width, height: 900 });
+    await openEditor(page);
+    await page.getByRole("button", { name: "Fertig", exact: true }).click();
+    const timer = await page.locator('[data-dashboard-widget="timer"]').boundingBox();
+    const motivation = await page.locator('[data-dashboard-widget="motivation"]').boundingBox();
+    expect(Math.abs(timer!.y - motivation!.y), `${width} px`).toBeLessThan(2);
+  }
+});
+
+for (const { width, height } of sizes) for (const theme of matrixThemes) {
   test(`Widget-Drag ${width}×${height} ${theme}: Vorschau, Drop, Persistenz und Escape`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     await openEditor(page, theme === "dark");
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
-    if (width === 640 || width === 999) {
-      const timer = await page.locator('[data-dashboard-widget="timer"]').boundingBox();
-      const motivation = await page.locator('[data-dashboard-widget="motivation"]').boundingBox();
-      expect(Math.abs(timer!.y - motivation!.y)).toBeLessThan(2);
-    }
-    await page.screenshot({ path: info.outputPath("00-uebersicht.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("00-uebersicht.png") });
     await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
-    await page.screenshot({ path: info.outputPath("01-bearbeiten.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("01-bearbeiten.png") });
     await beginDrag(page);
     await expect.poll(() => order(page)).toEqual(defaults);
     await expect.poll(async () => (await previewOrder(page))[0]).toBe("timer");
-    await page.screenshot({ path: info.outputPath("02-ziehen.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("02-ziehen.png") });
     await page.keyboard.press("Escape");
     await page.mouse.up();
     await expect(page.getByTestId("dashboard-widget-drag-preview")).toHaveCount(0);
@@ -94,7 +102,7 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
     await page.mouse.up();
     await expect.poll(() => order(page)).toEqual(["timer", "learning", "motivation", "decks", "todos", "heatmap"]);
     await page.getByRole("button", { name: "Fertig", exact: true }).click();
-    await page.screenshot({ path: info.outputPath("03-verschoben.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("03-verschoben.png") });
     await page.reload();
     await expect.poll(() => order(page)).toEqual(["timer", "learning", "motivation", "decks", "todos", "heatmap"]);
     expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
@@ -262,23 +270,23 @@ for (const width of [390, 1440]) test(`Widget aus Menüband ziehen ${width}`, as
   await expect.poll(() => order(page)).toEqual(["timer", "learning", "motivation", "decks", "todos", "heatmap"]);
 });
 
-for (const [width, height] of sizes) for (const theme of ["light", "dark"]) test(`Widget-Kacheln und Menüband ${width} ${theme}`, async ({ page }, info) => {
+for (const { width, height } of sizes) for (const theme of matrixThemes) test(`Widget-Kacheln und Menüband ${width} ${theme}`, async ({ page }, info) => {
   await page.setViewportSize({ width, height });
   await openEditor(page, theme === "dark");
   await page.getByRole("button", { name: "Fertig", exact: true }).click();
   await page.getByRole("button", { name: "Als Kacheln anzeigen", exact: true }).click();
   await page.getByTestId("dashboard-deck-list").scrollIntoViewIfNeeded();
-  await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
+  if (visualOutput) await page.screenshot({ path: info.outputPath("08-stapelkacheln.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
   await page.getByRole("button", { name: "Seite bearbeiten", exact: true }).click();
   await page.locator(".dashboard-widget-library").scrollIntoViewIfNeeded();
   await expect(page.locator(".dashboard-mini-cells i")).toHaveCount(35);
   expect(await page.locator(".dashboard-mini-cells i").first().evaluate((cell) => cell.getBoundingClientRect().width)).toBeGreaterThan(6);
-  await page.screenshot({ path: info.outputPath("09-menueband.png") });
+  if (visualOutput) await page.screenshot({ path: info.outputPath("09-menueband.png") });
   expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
 });
 
-for (const [width, height] of [[320, 720], [360, 800], [390, 844], [430, 932], [1280, 720], [1440, 900]]) for (const theme of ["light", "dark"]) {
+for (const { width, height } of matrixViewports()) for (const theme of matrixThemes) {
   test(`Motivation ${width}×${height} ${theme}: Größen und dauerhafte Entfernung`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     await openEditor(page, theme === "dark");
@@ -290,7 +298,7 @@ for (const [width, height] of [[320, 720], [360, 800], [390, 844], [430, 932], [
       await widget.scrollIntoViewIfNeeded();
       await expect(widget.getByRole("heading", { name: "Dein Motivationsimpuls" })).toBeVisible();
       await expect(widget.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
-      await page.screenshot({ path: info.outputPath(`motivation-${size}.png`) });
+      if (visualOutput) await page.screenshot({ path: info.outputPath(`motivation-${size}.png`) });
       expect(await widget.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
       if (width >= 640) await widget.getByRole("button", { name: /Größe ändern/ }).click();
     }
@@ -363,14 +371,14 @@ test.describe("Maskottchen-Vorrat", () => {
     expect(files).toHaveLength(37);
     const ids = await page.locator("[id]").evaluateAll((elements) => elements.map((element) => element.id));
     expect(new Set(ids).size).toBe(ids.length);
-    await page.screenshot({ path: info.outputPath("maskottchen-vorrat.png"), fullPage: true });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("maskottchen-vorrat.png"), fullPage: true });
     await context.setOffline(true);
     for (const file of files) {
       await page.goto(stock(file));
       await expect(page.getByRole("button", { name: "Gehirn begrüßen" })).toBeVisible();
       await page.getByRole("button", { name: "Gehirn begrüßen" }).click();
       await expect(page.getByRole("status")).toHaveText("Schön, dass du da bist!");
-      await page.screenshot({ path: info.outputPath(file.replace(".html", ".png")), fullPage: true });
+      if (visualOutput) await page.screenshot({ path: info.outputPath(file.replace(".html", ".png")), fullPage: true });
     }
     expect(errors).toEqual([]);
   });
@@ -455,7 +463,7 @@ test("Aufgaben: gemischte Dreier-Vorschau, Inline-Plus und ausklappbare lange Te
 });
 
 
-for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
+for (const { width, height } of sizes) for (const theme of matrixThemes) {
   test(`Kompakte Widgets ${width}×${height} ${theme}: Timer und Aufgaben`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     await openEditor(page, theme === "dark");
@@ -463,23 +471,23 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
     const timer = page.locator('[data-dashboard-widget="timer"]');
     const box = page.locator(".dashboard-todos");
     await timer.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: info.outputPath("timer-idle.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("timer-idle.png") });
     await box.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: info.outputPath("todos-empty-own.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("todos-empty-own.png") });
     const text = "Prüfungsstoff und Zusammenhänge wiederholen: " + "Pathologie, Anatomie und Physiologie. ".repeat(10);
     await box.getByRole("button", { name: "Eigene Aufgabe hinzufügen", exact: true }).click();
-    await page.screenshot({ path: info.outputPath("todos-add.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("todos-add.png") });
     await box.getByRole("textbox", { name: "Eigene Aufgabe", exact: true }).fill(text);
     await box.getByRole("button", { name: "Aufgabe hinzufügen", exact: true }).click();
     await expect(box.locator('[data-own-todo]').filter({ visible: true })).toHaveCount(1);
     await expect(box.locator('[data-exam-todo]').filter({ visible: true })).toHaveCount(2);
     await box.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: info.outputPath("todos-compact.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("todos-compact.png") });
     await box.locator('[data-own-todo]').getByRole("button", { name: "Vollständigen Aufgabentext anzeigen" }).click();
-    await page.screenshot({ path: info.outputPath("todos-expanded.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("todos-expanded.png") });
     await box.locator('[data-own-todo]').getByRole("button", { name: "Aufgabentext einklappen" }).click();
     await box.getByRole("button", { name: /^Alle \d+ Aufgaben anzeigen$/ }).click();
-    await page.screenshot({ path: info.outputPath("todos-all.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("todos-all.png") });
     expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);
     for (const widget of [timer, box]) {
       expect(await widget.evaluate((element) => {
@@ -494,7 +502,7 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
 }
 
 
-for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
+for (const { width, height } of sizes) for (const theme of matrixThemes) {
   test(`Prüfungs-Checkliste ${width}×${height} ${theme}: vollständige Ansicht`, async ({ page }, info) => {
     await page.setViewportSize({ width, height });
     await page.goto("/docs/ui-elements.html?preview=exams#screens");
@@ -505,7 +513,7 @@ for (const [width, height] of sizes) for (const theme of ["light", "dark"]) {
     }
     const checklist = page.getByTestId("dashboard-exam-unit");
     await checklist.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: info.outputPath("pruefungen-checkliste.png") });
+    if (visualOutput) await page.screenshot({ path: info.outputPath("pruefungen-checkliste.png") });
     await expect(checklist.locator('[data-exam-todo]').first()).toBeVisible();
     await expect(checklist.getByRole("button", { name: "Vollständigen Aufgabentext anzeigen" })).toHaveCount(0);
     expect(await page.locator(".catalog-product-preview").evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(false);

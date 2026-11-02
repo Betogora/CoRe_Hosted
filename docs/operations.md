@@ -62,7 +62,10 @@ zur vollständigen Suite. Der Lauf ersetzt vor einem Release weder
 
 Screenshot-Matrizen der Browserflows laufen nur mit `CORE_VISUAL_OUTPUT=1`;
 ohne die Variable prüfen Flows mit Breitenschleife ein Smartphone- und ein
-Desktopformat (390 × 844, 1440 × 900) und schreiben keine Screenshots.
+Desktopformat (390 × 844, 1440 × 900) im hellen Theme und schreiben keine
+Screenshots; die Prüfungsflows behalten zusätzlich das 200-%-Layout
+720 × 450. Mit der Variable laufen alle Größen der Pflichtmatrix, die
+betroffenen Rasterumbrüche und beide Themes.
 
 ### Visuelle Pflichtmatrix
 
