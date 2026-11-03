@@ -323,6 +323,7 @@ function ContentDemo({ section }: { section: string }) {
     {section === "inhalt" && <Demo title="NoteCardContent" wide><StudyDemo /></Demo>}
     {section === "dialogs" && <Demo title="CardPreviewDialog"><ActionButton variant="secondary" onClick={() => setPreview(true)}>Kartenvorschau öffnen</ActionButton><CardPreviewDialog note={fixture.note} card={fixture.card} mediaUrls={fixture.mediaUrls} open={preview} onOpenChange={setPreview} /></Demo>}
     {section === "editor" && <Demo title="RichTextEditor" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Karteninhalt" isActive showAllTools clozeActions={{ groupId: 1 }} imageActions={{ mediaUrls, prepare: prepareImage }} /></Demo>}
+    {section === "editor" && <Demo title="RichTextEditor · Dokumentwerkzeuge" wide><RichTextEditor value={text} onChange={setText} ariaLabel="Beispiel-Dokument mit Dokumentwerkzeugen" isActive documentTools /></Demo>}
     {section === "colors" && <Demo title="ColorPicker · Farbfeld und Werkzeug"><div className="catalog-row"><ColorPicker ariaLabel="Farbe wählen" value={color} onValueCommit={setColor} /><ColorPicker variant="tool" icon={Highlighter} ariaLabel="Markerfarbe" value={color} onValueCommit={setColor} /></div></Demo>}
     {section === "media" && <Demo title="PdfDocumentViewer" wide><PdfDemo /></Demo>}
   </>;

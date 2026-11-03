@@ -16,6 +16,13 @@ test("renders all tools in one toolbar when explicitly requested", () => {
   assert.doesNotMatch(markup, /hidden=""/);
 });
 
+test("renders the grouped document toolbar without an overflow menu", () => {
+  const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Zusammenfassung" documentTools />);
+  const labels = Array.from(markup.matchAll(/<button[^>]*aria-label="([^"]+)"/g), (match) => match[1]);
+  assert.deepEqual(labels, ["Rückgängig", "Wiederholen", "Überschrift", "Zwischenüberschrift", "Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Textfarbe", "Hervorheben", "Stichpunkte", "Nummerierte Liste", "Auswahl als Formel setzen", "Formatierung entfernen"]);
+  assert.match(markup, /aria-label="Überschrift" aria-pressed="false"/);
+});
+
 test("finds the one cloze surrounding a selection or caret", () => {
   const text = "A {{c2::Berlin::Stadt}} B";
   const expectedSpan = { start: 2, end: 23, contentStart: 8, contentEnd: 14 };
