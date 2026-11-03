@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Baseline, Bold, Braces, Eraser, Heading2, Heading3, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, PenLine, Redo2, RemoveFormatting, Sigma, Strikethrough, Underline, Undo2, Unlink } from "lucide-react";
+import { Baseline, Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, PenLine, Redo2, RemoveFormatting, Sigma, Strikethrough, Underline, Undo2, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextEditorHtml, normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
@@ -123,7 +123,7 @@ export function selectionOverlapsRichTextCloze(text: string, selection: TextSele
 }
 
 const documentFormatCommands = ["bold", "italic", "underline", "strikeThrough", "insertUnorderedList", "insertOrderedList"] as const;
-type DocumentFormatState = Partial<Record<(typeof documentFormatCommands)[number], boolean>> & { block?: string };
+type DocumentFormatState = Partial<Record<(typeof documentFormatCommands)[number], boolean>>;
 
 function ToolbarButton({ label, icon: Icon, onRun, disabled = false, pressed }: { label: string; icon: LucideIcon; onRun: () => void; disabled?: boolean; pressed?: boolean }) {
   return (
@@ -162,11 +162,13 @@ interface RichTextEditorProps {
   imageActions?: RichTextImageActions;
   /** Shows the toolbar only while focus is in the field or its toolbar, e.g. for a column of several fields. */
   toolbarOnFocus?: boolean;
-  /** Long-form documents: grouped toolbar with history, headings, strikethrough and active format states instead of the card tool set. */
+  /** Long-form documents: grouped toolbar with history, strikethrough and active format states instead of the card tool set. */
   documentTools?: boolean;
+  /** Document-wide controls of the caller (e.g. font and size), shown after the history group of `documentTools`. */
+  documentSettings?: React.ReactNode;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false, documentTools = false }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false, documentTools = false, documentSettings }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
@@ -213,7 +215,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
 
   function refreshFormatState() {
     if (!documentTools) return;
-    const next: DocumentFormatState = { block: document.queryCommandValue("formatBlock").toLowerCase() };
+    const next: DocumentFormatState = {};
     for (const command of documentFormatCommands) next[command] = document.queryCommandState(command);
     setFormatState((current) => Object.entries(next).every(([key, value]) => current[key as keyof DocumentFormatState] === value) ? current : next);
   }
@@ -550,11 +552,6 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     refreshFormatState();
   }
 
-  /** Toggles a heading level; running it on the active level turns the block back into a paragraph. */
-  function toggleHeading(tag: "h2" | "h3") {
-    runCommand("formatBlock", formatState.block === tag ? "<p>" : `<${tag}>`);
-  }
-
   function applyColor(kind: "text" | "highlight", color: string) {
     (kind === "text" ? setTextColor : setHighlightColor)(color);
     runCommand(kind === "text" ? "foreColor" : "backColor", color);
@@ -619,10 +616,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           <ToolbarButton label="Rückgängig" icon={Undo2} onRun={() => runCommand("undo")} />
           <ToolbarButton label="Wiederholen" icon={Redo2} onRun={() => runCommand("redo")} />
         </div>
-        <div className="core-rich-text-group" role="group" aria-label="Absatzformat">
-          <ToolbarButton label="Überschrift" icon={Heading2} pressed={formatState.block === "h2"} onRun={() => toggleHeading("h2")} />
-          <ToolbarButton label="Zwischenüberschrift" icon={Heading3} pressed={formatState.block === "h3"} onRun={() => toggleHeading("h3")} />
-        </div>
+        {documentSettings}
         <div className="core-rich-text-group" role="group" aria-label="Zeichenformat">
           <ToolbarButton label="Fett" icon={Bold} pressed={Boolean(formatState.bold)} onRun={() => runCommand("bold")} />
           <ToolbarButton label="Kursiv" icon={Italic} pressed={Boolean(formatState.italic)} onRun={() => runCommand("italic")} />
@@ -637,8 +631,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
           <ToolbarButton label="Stichpunkte" icon={List} pressed={Boolean(formatState.insertUnorderedList)} onRun={() => runCommand("insertUnorderedList")} />
           <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} pressed={Boolean(formatState.insertOrderedList)} onRun={() => runCommand("insertOrderedList")} />
         </div>
-        <div className="core-rich-text-group" role="group" aria-label="Einfügen und Bereinigen">
-          <ToolbarButton label="Auswahl als Formel setzen" icon={Sigma} onRun={addFormula} />
+        <div className="core-rich-text-group">
           <ToolbarButton label="Formatierung entfernen" icon={RemoveFormatting} onRun={() => runCommand("removeFormat")} />
         </div>
       </div>

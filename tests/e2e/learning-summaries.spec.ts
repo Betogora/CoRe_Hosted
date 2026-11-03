@@ -124,11 +124,12 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await expect(panel.getByRole("textbox", { name: "Zusammenfassung bearbeiten" })).toHaveCount(1);
   await expect(editor).toContainText("Absatz 90");
   expect((await editor.boundingBox())!.height).toBeGreaterThan(2000);
-  await panel.getByRole("button", { name: "Schrift und Größe", exact: true }).click();
-  const fontSettings = page.getByRole("dialog", { name: "Schrift und Größe", exact: true });
-  await fontSettings.getByRole("button", { name: "Serif", exact: true }).click();
-  await fontSettings.getByRole("button", { name: "Groß", exact: true }).click();
-  await page.keyboard.press("Escape");
+  await panel.getByRole("combobox", { name: "Schrift", exact: true }).click();
+  await page.getByRole("option", { name: "Serif", exact: true }).click();
+  await panel.getByRole("spinbutton", { name: "Schriftgröße in Pixel", exact: true }).fill("22");
+  await panel.getByRole("spinbutton", { name: "Schriftgröße in Pixel", exact: true }).press("Enter");
+  await panel.getByRole("button", { name: "Schriftgröße erhöhen", exact: true }).click();
+  await expect(editor).toHaveCSS("font-size", "23px");
   await editor.evaluate((element) => { element.innerHTML = "<p>Text mit Zeichnung.</p>"; element.dispatchEvent(new InputEvent("input", { bubbles: true })); });
   await expect(editor.locator("b,strong")).toHaveCount(0);
   await editor.press("ControlOrMeta+a");
@@ -137,7 +138,8 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await panel.getByRole("button", { name: "Stift", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Fett", exact: true })).toBeHidden();
   await panel.getByRole("button", { name: "Rot", exact: true }).click();
-  await panel.getByRole("button", { name: "Kräftig", exact: true }).click();
+  await panel.getByRole("spinbutton", { name: "Stiftstärke in Pixel", exact: true }).fill("5");
+  await panel.getByRole("spinbutton", { name: "Stiftstärke in Pixel", exact: true }).press("Enter");
   const drawing = panel.getByRole("img", { name: "Zeichenfläche Zusammenfassung", exact: true });
   await drawing.scrollIntoViewIfNeeded();
   const box = (await drawing.boundingBox())!;
@@ -148,7 +150,12 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await expect(drawing.locator("path")).toHaveAttribute("stroke-width", "5");
   await panel.getByRole("button", { name: "Zeichenmarker", exact: true }).click();
   await expect(panel.getByRole("button", { name: "Gelb", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await expect(panel.getByRole("button", { name: "Mittel", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.getByRole("button", { name: "Gerade auf Textzeile", exact: true })).toHaveAttribute("aria-pressed", "true");
+  const row = (await editor.boundingBox())!;
+  await page.mouse.move(row.x + 40, row.y + 40); await page.mouse.down();
+  await page.mouse.move(row.x + 140, row.y + 30, { steps: 6 }); await page.mouse.up();
+  await expect(editor.locator('span[style*="background-color"]')).toHaveCount(1);
+  await expect(drawing.locator("path")).toHaveCount(1);
   await panel.getByRole("button", { name: "Radierer", exact: true }).click();
   await drawing.locator("path").last().click();
   await expect(drawing.locator("path")).toHaveCount(0);
@@ -159,8 +166,8 @@ test("Ein Dokument wächst ohne Seitenumbruch; Text, Schrift und Zeichnungen ble
   await page.reload(); await page.getByRole("button", { name: "Zusammenfassungen öffnen", exact: true }).click();
   await panel.getByRole("button", { name: "Zusammenfassung „Europa im Überblick“ öffnen", exact: true }).click();
   await expect(editor.locator("b,strong")).toHaveText("Text mit Zeichnung.");
-  await panel.getByRole("button", { name: "Schrift und Größe", exact: true }).click();
-  await expect(page.getByRole("dialog", { name: "Schrift und Größe", exact: true }).getByRole("button", { name: "Serif", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(panel.getByRole("combobox", { name: "Schrift", exact: true })).toContainText("Serif");
+  await expect(panel.getByRole("spinbutton", { name: "Schriftgröße in Pixel", exact: true })).toHaveValue("23");
   await expect(drawing.locator("path")).toHaveCount(1);
 });
 
@@ -226,9 +233,6 @@ test("Zusammenfassungseditor: visuelle Pflichtmatrix für Text und Zeichenwerkze
   await panel.getByRole("button", { name: "Schreiben", exact: true }).click();
   await panel.getByRole("button", { name: "Arbeitsfläche vergrößern", exact: true }).click();
   const workspace = page.getByRole("dialog", { name: "Zusammenfassung bearbeiten – Arbeitsfläche", exact: true });
-  await workspace.getByRole("button", { name: "Schrift und Größe", exact: true }).click();
-  await page.screenshot({ path: testInfo.outputPath("390-font-settings.png"), animations: "disabled" });
-  await page.keyboard.press("Escape");
   await workspace.getByRole("button", { name: "Textfarbe", exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath("390-text-color.png"), animations: "disabled" });
   await page.keyboard.press("Escape");

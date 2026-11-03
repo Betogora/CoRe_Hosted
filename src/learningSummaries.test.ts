@@ -88,6 +88,8 @@ test("unbekannte Zusammenfassungspayloads werden validiert und HTML wird sanitis
   assert.throws(() => readLearningSummary({ ...summary, title: " " }));
   assert.throws(() => readLearningSummary({ ...summary, settings: { ...summary.settings, detail: "anything" } }));
   assert.throws(() => readLearningSummary({ ...summary, html: "x".repeat(100_001) }));
+  assert.equal(readLearningSummary({ ...summary, fontSize: 18 }).fontSize, 18);
+  for (const fontSize of [9, 33, 16.5]) assert.throws(() => readLearningSummary({ ...summary, fontSize }));
 });
 
 test("ungültige Writes erhalten vorhandene Fassungen; ohne Konto wird nicht gespeichert", async () => {

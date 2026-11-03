@@ -22,6 +22,7 @@ export type SummaryGeneration = v.InferOutput<typeof generationSchema>;
 const pageFormatSchema = v.picklist(["portrait", "landscape", "infinity"]);
 export type SummaryPageFormat = v.InferOutput<typeof pageFormatSchema>;
 const coordinate = v.pipe(v.number(), v.finite(), v.minValue(-1_000_000), v.maxValue(1_000_000));
+export const SUMMARY_FONT_SIZE = { min: 10, max: 32 } as const;
 const summaryStrokeSchema = v.strictObject({
   id: identifier,
   tool: v.picklist(["pen", "marker"]),
@@ -45,7 +46,7 @@ const summarySchema = v.strictObject({
   pageFormat: v.optional(pageFormatSchema),
   settings: summarySettingsSchema,
   generation: v.optional(generationSchema),
-  font: v.picklist(["sans", "serif"]), fontSize: v.picklist([14, 16, 22]),
+  font: v.picklist(["sans", "serif"]), fontSize: v.pipe(v.number(), v.integer(), v.minValue(SUMMARY_FONT_SIZE.min), v.maxValue(SUMMARY_FONT_SIZE.max)),
   createdAt: v.pipe(v.string(), v.isoTimestamp()), updatedAt: v.pipe(v.string(), v.isoTimestamp()),
 });
 export type LearningSummary = v.InferOutput<typeof summarySchema>;

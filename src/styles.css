@@ -2539,13 +2539,15 @@ summary {
 .core-summary-text-tools[hidden] { display: none; }
 .core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; }
 .core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
-.core-summary-swatch, .core-summary-width { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; border-radius: var(--core-radius-control); transition: background-color 140ms ease; }
-.core-summary-swatch:hover, .core-summary-width:hover { background: var(--core-surface-hover); }
+.core-summary-swatch, .core-summary-ink-dot { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; border-radius: var(--core-radius-control); transition: background-color 140ms ease; }
+.core-summary-swatch:hover { background: var(--core-surface-hover); }
 .core-summary-swatch span { width: 1.25rem; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--summary-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core-text) 30%, transparent); }
 .core-summary-swatch[aria-pressed="true"] span { box-shadow: 0 0 0 2px var(--core-surface-raised), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent); }
-.core-summary-width span { border-radius: var(--core-radius-round); }
-.core-summary-width[aria-pressed="true"] { background: var(--core-action-soft); }
-.core-summary-font-popover { z-index: 75; display: grid; gap: var(--core-space-md); padding: var(--core-space-md); border-radius: var(--core-radius-panel); }
+.core-summary-ink-dot span { border-radius: var(--core-radius-round); }
+.core-summary-stepper { display: flex; align-items: center; }
+.core-summary-stepper input { width: 3rem; height: var(--core-button-height); padding: 0; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); color: var(--core-text); text-align: center; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.core-summary-stepper input::-webkit-inner-spin-button, .core-summary-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.core-summary-font-select { width: 8.5rem; }
 .core-summary-stage { min-width: 0; padding-top: var(--core-space-lg); }
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); box-shadow: var(--core-shadow-soft); }
 .core-summary-sheet .rich-text-field { min-height: 638px; padding: var(--core-space-xl); border: 0; border-radius: var(--core-radius-panel); box-shadow: none; overflow: visible; font-family: var(--summary-font); font-size: var(--summary-size); line-height: 1.75; background: transparent; }
@@ -2557,7 +2559,7 @@ summary {
 .core-summary-drawing-layer[data-tool="eraser"] path:hover { stroke-opacity: 0.45; }
 .core-summary-expanded { position: fixed; inset: 0; z-index: 70; overflow-y: auto; overscroll-behavior: contain; background: var(--core-canvas); padding: var(--core-space-sm); }
 /* Below one-row width the context tools move to their own swipeable row, as in mobile note apps. */
-@container summary-document (width < 60rem) {
+@container summary-document (width < 68rem) {
   .core-summary-tool-context, .core-rich-text-document-toolbar { flex-wrap: nowrap; }
   .core-summary-tool-context { order: 1; flex-basis: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-top: var(--core-space-sm); padding-inline-end: var(--core-space-xl); border-top: var(--core-border-width) solid var(--core-border); mask-image: linear-gradient(to right, #000 calc(100% - var(--core-space-xl)), transparent); }
   .core-rich-text-document-toolbar { flex: none; }

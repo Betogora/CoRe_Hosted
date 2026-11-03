@@ -19,8 +19,8 @@ test("renders all tools in one toolbar when explicitly requested", () => {
 test("renders the grouped document toolbar without an overflow menu", () => {
   const markup = renderToStaticMarkup(<RichTextEditor ariaLabel="Zusammenfassung" documentTools />);
   const labels = Array.from(markup.matchAll(/<button[^>]*aria-label="([^"]+)"/g), (match) => match[1]);
-  assert.deepEqual(labels, ["Rückgängig", "Wiederholen", "Überschrift", "Zwischenüberschrift", "Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Textfarbe", "Hervorheben", "Stichpunkte", "Nummerierte Liste", "Auswahl als Formel setzen", "Formatierung entfernen"]);
-  assert.match(markup, /aria-label="Überschrift" aria-pressed="false"/);
+  assert.deepEqual(labels, ["Rückgängig", "Wiederholen", "Fett", "Kursiv", "Unterstrichen", "Durchgestrichen", "Textfarbe", "Hervorheben", "Stichpunkte", "Nummerierte Liste", "Formatierung entfernen"]);
+  assert.match(markup, /aria-label="Fett" aria-pressed="false"/);
 });
 
 test("finds the one cloze surrounding a selection or caret", () => {
