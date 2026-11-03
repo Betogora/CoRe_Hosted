@@ -160,7 +160,7 @@ export function generatedSummaryHtml(result: AiLearningSummarySuccess, material:
     const content = format === "prose" ? [...item.paragraphs.map(paragraph), ...item.points.map((entry) => `<p>${point(entry)}</p>`)].join("")
       : format === "bullets" ? list([...item.paragraphs.map(escapeCardHtmlText), ...item.points.map(point)])
       : item.paragraphs.map(paragraph).join("") + list(item.points.map(point));
-    return `${format === "prose" ? "" : `<h${level}>${escapeCardHtmlText(item.heading)}</h${level}>`}${content}${refs.length ? `<p><small>Grundlage: ${refs.join(" · ")}</small></p>` : ""}`;
+    return `${format === "prose" ? "" : `<h${level}>${escapeCardHtmlText(item.heading)}</h${level}>`}${content}${refs.length ? `<details><summary>Belege (${refs.length})</summary><p><small>${refs.join("<br>")}</small></p></details>` : ""}`;
   };
   const body = result.summary.sections.map((section) => block(section, 2) + section.subsections.map((subsection) => block(subsection, 3)).join("")).join("");
   const warnings = [...material.notices, ...result.summary.warnings];

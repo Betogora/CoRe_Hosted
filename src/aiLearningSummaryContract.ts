@@ -2,7 +2,7 @@ import * as v from "valibot";
 import { summarySettingsSchema } from "./learningSummarySettings.js";
 
 export const AI_LEARNING_SUMMARY_ENDPOINT = "/api/ai/summary";
-export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v3";
+export const AI_LEARNING_SUMMARY_PROMPT_VERSION = "learning-summary-v4";
 export const AI_LEARNING_SUMMARY_DEADLINE_MS = 120_000;
 const MAX_SUMMARY_MATERIAL_CHARS = 400_000;
 export const MAX_SUMMARY_REQUEST_BYTES = 1_536 * 1_024;
@@ -111,12 +111,12 @@ export function buildLearningSummaryPrompt(input: AiLearningSummaryRequest): str
     `Grundlage: ${{ cards: "nur Karteninhalte", source: "nur die Originalquelle", "cards-and-source": "Karten als Themenbasis; Quellen erklären oder vertiefen belegte Inhalte" }[settings.material]}.`,
     `Länge: ${{ short: "etwa 150–300 Wörter", medium: "etwa 450–750 Wörter", long: "etwa 900–1.500 Wörter" }[settings.length]}. Das ist ein weiches Budget: Bei wenig Material kürzer bleiben, niemals auffüllen. Bei knappem Budget priorisiere Fokus, zentrale Konzepte und Voraussetzungen.`,
     `Detailgrad: ${{ essentials: "nur Kernaussagen und unverzichtbare Einschränkungen", balanced: "Kernaussagen mit relevanten Zusammenhängen", detailed: "präzise Definitionen, Zusammenhänge, Unterschiede und Ausnahmen aus dem Material" }[settings.detail]}. Länge und Tiefe sind unabhängig; bei kurzer detaillierter Fassung verdichte die Formulierung.`,
-    `Darstellung: ${{ bullets: "überwiegend points; paragraphs nur für unverzichtbare Zusammenhänge", sections: "paragraphs für Zusammenhänge und points für einzelne Begriffe, Kriterien und Merksätze", prose: "zusammenhängender Fließtext in paragraphs; points bleiben leer" }[settings.format]}.`,
+    `Darstellung: ${{ bullets: "überwiegend points; paragraphs nur für unverzichtbare Zusammenhänge", sections: "ausführliche paragraphs, die Mechanismen, Ursachen, Bedingungen und Zusammenhänge erklären; points ergänzen nur knappe Begriffe, Kriterien und Merksätze, die der Fließtext nicht schon ausführt", prose: "zusammenhängender Fließtext in paragraphs; points bleiben leer" }[settings.format]}.`,
     `Lernziel: ${{ understand: "vorhandene Zusammenhänge verständlich erklären", repeat: "knappe Wiederholung von Begriffen, Unterschieden und Merksätzen", exam: "abfragbare Definitionen, Kriterien, Abgrenzungen und Bedingungen hervorheben; keine Prüfungswahrscheinlichkeiten behaupten" }[settings.goal]}.`,
     `Sprachstil: ${settings.register === "simple" ? "einfache Sprache; Fachbegriffe nur erklären, wenn das Material dies trägt" : "fachnahe, präzise Sprache"}.`,
     settings.includeExamples ? "Nimm geeignete Beispiele auf, aber ausschließlich Beispiele aus dem Material." : "Lasse Beispiele weg; fasse die fachlichen Aussagen zusammen.",
     "Gliederung: sections sind die Hauptthemen, subsections deren Teilthemen. heading ist ein kurzer Thementitel mit höchstens acht Wörtern. Jeder Punkt in points hat ein keyword mit höchstens sechs Wörtern, das den Begriff benennt, und einen text mit der zugehörigen Aussage. Aus Überschriften und keywords entsteht später eine Mindmap.",
-    "Jedes keyword kommt in der ganzen Zusammenfassung höchstens einmal vor. Lege subsections nur an, wenn sie neue Punkte enthalten; wiederhole keine Aussagen eines anderen Abschnitts. Außer bei Fließtext hat ein Abschnitt höchstens zwei paragraphs; einzelne Begriffe, Kriterien und Merksätze gehören in points.",
+    "Jedes keyword kommt in der ganzen Zusammenfassung höchstens einmal vor. Lege subsections nur an, wenn sie neue Punkte enthalten; wiederhole keine Aussagen eines anderen Abschnitts. paragraphs und points eines Abschnitts ergänzen sich: Was der Fließtext erklärt, wiederholen die points nicht, auch nicht umformuliert oder als Stichwortliste derselben Begriffe. Ist ein Begriff im Fließtext vollständig erklärt, entfällt sein Punkt.",
     "relations nennt bis zu zwölf fachliche Querbezüge zwischen zwei keywords oder headings aus verschiedenen Abschnitten, die das Material belegt, etwa gleicher Prozess, Ursache und Wirkung oder Gegensatz. Schreibe from und to exakt wie das keyword beziehungsweise heading. Ohne belegte Querbezüge bleibt relations leer.",
     "Jeder Abschnitt und Unterabschnitt benötigt references mit mindestens einer passenden Material-ID. Verwende nur IDs aus dem Material.",
     settings.showReferences ? "Die App zeigt die Materialbelege an. Schreibe selbst keine Belegmarker oder URLs in den Text." : "Die App blendet Materialbelege aus; die interne Zuordnung in references bleibt trotzdem erhalten. Keine Belegmarker im Text.",

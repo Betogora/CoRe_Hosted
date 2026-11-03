@@ -332,7 +332,7 @@ test("Freier Flächentext nutzt Bearbeitung, Bewegung, Löschung und lokale Pers
 });
 
 test("Fette Stichworte werden Kartentitel, Belegzeilen werden nicht zu Karten", () => {
-  const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>Zellatmung</h2><ul><li><strong>ATP</strong>: Universeller Energieträger der Zelle.</li></ul><p><small>Grundlage: Biologie · Was ist ATP?</small></p>" };
+  const summary = { ...createLearningSummary("deck", "Energie", createSummarySettings()), html: "<h2>Zellatmung</h2><ul><li><strong>ATP</strong>: Universeller Energieträger der Zelle.</li></ul><details><summary>Belege (1)</summary><p><small>Biologie · Was ist ATP?</small></p></details>" };
   const map = mindMapFromSummary(summary);
   assert.deepEqual(map.nodes.map((node) => node.label), ["Energie", "Zellatmung", "ATP"]);
   assert.equal(map.nodes[2].sourceText, "Universeller Energieträger der Zelle.");
