@@ -447,7 +447,7 @@ export function mindMapFromSummary(summary: LearningSummary): LearningMindMap {
   const flush = () => {
     const lead = /^\s*<(strong|b)\b[^>]*>([\s\S]*?)<\/\1>\s*:/i.exec(passage), keyword = lead ? summaryPlainText(lead[2]).slice(0, 120) : "";
     const body = keyword ? summaryPlainText(passage.slice(lead![0].length)) : summaryPlainText(passage);
-    if ((keyword || body) && !/^\s*<small\b/i.test(passage)) content.push({ tag, text: keyword ? `${keyword}: ${body}` : body, body, ...(keyword ? { keyword } : {}) });
+    if ((keyword || body) && !/^\s*<(small|details|summary)\b/i.test(passage)) content.push({ tag, text: keyword ? `${keyword}: ${body}` : body, body, ...(keyword ? { keyword } : {}) });
     passage = "";
   };
   for (const token of summary.html.split(/(<[^>]*>)/g)) {
