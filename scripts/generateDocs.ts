@@ -18,7 +18,7 @@ import { synchronizeBrainLogo } from "./generateMascots.tsx";
 import type { CatalogData } from "./uiCatalog.tsx";
 import { StatTile } from "../src/ui/coreUi.tsx";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS, EXAMPLE_SITUATIONS, EXAMPLE_VARIANT_THRESHOLDS, exampleRatingEffects, runExampleChain, type ExampleContact, type ExampleOutcome } from "../src/schedulerExampleChains.ts";
-import { DOCUMENT_PAGES, DOC_PAGES, documentId, escapeHtml, htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
+import { DOCUMENT_PAGES, DOC_PAGES, documentId, htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 
 const root = process.cwd();
 const docs = path.join(root, "docs");
@@ -253,10 +253,9 @@ export function journeyProjection(specs: string) {
     const [intro, acceptance] = body.split(/\nAkzeptanz:\n/);
     if (!acceptance) throw new Error(`Akzeptanz fehlt in Journey ${title}.`);
     const steps = JOURNEY_FLOWS[index];
-    const diagram = `flowchart TD\n${steps.map((label, node) => `N${node}["${label}"]${node < steps.length - 1 ? ` --> N${node + 1}` : ""}`).join("\n")}`;
     const prefix = `journey-${index + 1}`;
     const uiGroup = ["navigation", "inhalt", "stapel", "feedback", "inhalt", "symbols", "formulare"][index];
-    return `<article id="${prefix}" class="docs-document docs-journey">${renderMarkdown(`## ${title}\n${intro}`, "specs.md", prefix)}<h3 id="${prefix}--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">${escapeHtml(diagram)}</pre><ol>${steps.map((label) => `<li>${label}</li>`).join("")}</ol></div>${renderMarkdown(`### Regeln, Zustände und Akzeptanz\n${acceptance}`, "specs.md", `${prefix}-rules`)}<p class="docs-source">Quelle: <a href="specs.html#specs--${markdownAnchor(title)}">Produktvertrag ${title.split(" ")[0]}</a> · <a href="ui-elements.html#${uiGroup}">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>`;
+    return `<article id="${prefix}" class="docs-document docs-journey">${renderMarkdown(`## ${title}\n${intro}`, "specs.md", prefix)}<h3 id="${prefix}--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow">${steps.map((label, step) => `<li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">${step + 1}</span><span>${label}</span></li>`).join("")}</ol>${renderMarkdown(`### Regeln, Zustände und Akzeptanz\n${acceptance}`, "specs.md", `${prefix}-rules`)}<p class="docs-source">Quelle: <a href="specs.html#specs--${markdownAnchor(title)}">Produktvertrag ${title.split(" ")[0]}</a> · <a href="ui-elements.html#${uiGroup}">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>`;
   }).join("\n");
 }
 
@@ -330,7 +329,7 @@ export async function synchronizeDocs(mode: "write" | "check") {
   const runtime = currentRuntime(inputs) ?? inlineScript(await buildCatalogRuntime(fonts, images));
   const results = new Map<string, string>();
   function reader(file: string, contents: string) {
-    results.set(file, htmlPage(file, contents, css, viewer, { extraHead: file === "journeys.html" ? '<script src="vendor/mermaid.min.js"></script>' : "" }));
+    results.set(file, htmlPage(file, contents, css, viewer));
   }
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
   reader("index.html", document("README.md"));
@@ -338,7 +337,6 @@ export async function synchronizeDocs(mode: "write" | "check") {
   const specs = specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
   results.set("specs.html", htmlPage("specs.html", specs.html, css, viewer, { toc: specs.toc }));
   reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
-  results.set("journeys.html", results.get("journeys.html")!.replace("</body>", '<script>mermaid.initialize({startOnLoad:true,securityLevel:"strict",theme:"neutral"});</script></body>'));
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));

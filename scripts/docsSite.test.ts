@@ -50,11 +50,10 @@ test("Dokumentverweise führen auf die HTML-Ansicht und behalten den kanonischen
   assert.match(html, /index.html#readme--document/);
 });
 
-test("Markdown rendert Tabellen, verschachtelte Listen, Code und Diagramme vollständig", () => {
-  const html = renderMarkdown("| A | B |\n|---|---|\n| 1 | 2 |\n\n- Eltern\n  - Kind\n\n```mermaid\nflowchart TD\nA --> B\n```\n\n```ts\nconst a = '<';\n```", "README.md");
+test("Markdown rendert Tabellen, verschachtelte Listen und Code vollständig", () => {
+  const html = renderMarkdown("| A | B |\n|---|---|\n| 1 | 2 |\n\n- Eltern\n  - Kind\n\n```ts\nconst a = '<';\n```", "README.md");
   assert.match(html, /<table>/);
   assert.match(html, /<li>Kind/);
-  assert.match(html, /class="mermaid"/);
   assert.match(html, /&lt;/);
 });
 
@@ -62,6 +61,7 @@ test("Journey-Projektion erhält sämtliche Akzeptanzregeln der sieben Kernjourn
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
   const html = journeyProjection(specs);
   assert.equal([...html.matchAll(/class="docs-document docs-journey"/g)].length, 7);
+  assert.equal([...html.matchAll(/class="docs-flow"/g)].length, 7);
   const section = specs.split("## 5. Kernjourneys")[1].split("## 6.")[0];
   for (const rule of section.matchAll(/^- (.+)$/gm)) {
     const rendered = renderMarkdown(rule[0], "specs.md").match(/<li>([\s\S]*?)<\/li>/)?.[1];

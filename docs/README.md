@@ -1,127 +1,74 @@
 # CoRe – Docs
 
 CoRe verbindet Anki-kompatible Karten mit Spaced Repetition und kontrollierten
-KI-Umformulierungen. Einstieg für Menschen und Modelle ist [index.html](index.html).
-Für jede Dokumentationsrolle gibt es genau eine verbindliche Quelle.
+KI-Umformulierungen. Für jede Frage gibt es genau eine verbindliche Quelle; die
+HTML-Seiten sind daraus erzeugte Leseansichten.
 
-## Leseoberfläche
+## Leseseiten
 
-Die gemeinsamen Namen `index.html`, `specs.html`, `journeys.html` und
-`ui-elements.html` entsprechen der SmarterNutrition-Dokumentation.
-
-| Seite | Inhalt | Quelle |
+| Seite | Zeigt | Erzeugt aus |
 | --- | --- | --- |
-| [Docs](index.html) | Orientierung und Quellen | diese README |
-| [Specs](specs.html) | vollständiger Produktvertrag | `specs.md` |
-| [Journeys](journeys.html) | sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln | Abschnitt 5 von `specs.md`; Ablaufdarstellung in `scripts/generateDocs.ts` |
-| [UI-Elements](ui-elements.html) | UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster und Icons; jedes Format genau einmal, ohne Erklärtexte und ohne aufrufbare Produktansichten; mit Suche und Kapitelnavigation | App-Code; Demos in `scripts/uiCatalogDemos.tsx`, ergänzende Screen-Muster in `scripts/uiCatalogPatterns.html` |
-| [Kartenbausteine](card-types.html) | acht Bausteine (Frage und Antwort, Rückrichtung, Eintippen, Feldrollen, Lückentext, Auswahl, Bildverdeckung, Formeln und Medien) im echten Reviewrenderer (`NoteCardContent`), je mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
+| [Docs](index.html) | diesen Wegweiser | `README.md` |
+| [Specs](specs.html) | den vollständigen Produktvertrag | `specs.md` |
+| [Journeys](journeys.html) | die Kernjourneys als Schrittkette mit allen Akzeptanzregeln | Kapitel 5 von `specs.md` |
+| [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx`, `scripts/uiCatalogPatterns.html` |
+| [Kartenbausteine](card-types.html) | alle Renderer-Fälle mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 
-Alle Seiten haben statt einer Kopfleiste eine Seitenleiste aus drei gleich
-breiten Boxen: oben der Wechsel zwischen den Seiten samt Theme-Schalter, darunter
-die Suche der jeweiligen Seite und darunter die Inhaltsnavigation des Dokuments,
-die das aktuelle Kapitel markiert. Ab 1051 px bleibt die Leiste beim Scrollen
-links stehen; darunter steht sie über dem Inhalt, Seiten und Kapitel laufen als
-waagerechte Leisten. `/` springt in die Suche.
+Die Seiten lassen sich direkt öffnen oder über `npm run dev` unter
+`http://127.0.0.1:5190/docs/index.html` lesen; sie laden nichts von außen.
+`ui-elements.html?preview=<name>` öffnet echte Screens mit Beispieldaten als
+Gerüst der Katalog-Browsertests.
 
-Die [Kartenbausteine](card-types.html) ordnen den Note-/Card-Renderer nach
-Bausteinen statt nach Kartentypen und sind die einzige Seite mit allen
-Renderer-Fällen; der UI-Katalog zeigt den Renderer einmal unter
-[Karteninhalte](ui-elements.html#inhalt).
+## Welche Datei wofür
 
-Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
-Styles und die Schrift Manrope sind eingebettet; Journey-Diagramme nutzen
-`vendor/mermaid.min.js`. Externe Schriften lädt weder die App noch die Doku.
-Zum Teilen den ganzen `docs`-Ordner mitnehmen. Die Seiten lassen sich direkt
-öffnen oder über `npm run dev` unter `http://127.0.0.1:5190/docs/index.html` lesen.
+| Frage | Quelle | Gehört nicht hinein |
+| --- | --- | --- |
+| Was soll das Produkt tun? | [`specs.md`](specs.md) | Architektur, APIs, Runbooks, Roadmap |
+| Wie ist es gebaut, wem gehört was? | [`architecture.md`](architecture.md) | Produktstatus, Nachweise |
+| Was ist heute da, was fehlt? | [`status.md`](status.md) | Verhalten (steht in den Specs), Planung |
+| Was ist warum entschieden? | [`decisions.md`](decisions.md) | offene Schritte, Layoutregeln |
+| Was ist als Nächstes zu tun? | [`todo.md`](todo.md) | Erledigtes |
+| Wie wird getestet und geprüft? | [`test-portfolio.md`](test-portfolio.md) | Release-Abläufe |
+| Wie wird freigegeben, zurückgerollt, wiederhergestellt? | [`operations.md`](operations.md) | Testinventur, ausgefüllte Nachweise |
+| Was lief auf Production, was waren die Meilensteine? | [`history.md`](history.md) | heutiger Vertrag, Arbeitsdetails (stehen in Commits) |
+| Wie verhält sich Anki? | [`anki-format-analysis.md`](anki-format-analysis.md) | CoRes Übersetzung (steht in der Architektur) |
+| Wie heißen Dateien? | [`file-naming-conventions.md`](file-naming-conventions.md) | – |
 
-## Pflege bei jeder Änderung
+Technische Einstiege außerhalb von `docs/`:
+[`AGENTS.md`](../AGENTS.md) (Regeln für Coding-Agenten),
+[`src/ui/README.md`](../src/ui/README.md) (UI-Bausteine),
+[`src/screens/README.md`](../src/screens/README.md) (Screen-Landkarte),
+[`supabase/migrations/`](../supabase/migrations/20261030103636_kartenmodell_baseline.sql)
+(Schemabaseline) und [`supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql)
+(Struktur-, RLS- und Policy-Gate).
 
-1. Produktverhalten in `specs.md`, technische Verträge in ihrer Rollenquelle ändern.
-2. Designwünsche anhand der HTML-Referenz formulieren; danach in den angegebenen
-   App-Quellen umsetzen. Gemeinsame UI-Änderungen aktualisieren ihre Live-Demo;
-   lokale Screen-Muster zusätzlich ihre kuratierten Beispiele.
-3. `npm run docs:build` erzeugt die fünf Leseseiten. `npm run check:docs` prüft
-   Quellenstand, Dokumentverweise, Journey-Regeln und die vollständige Zuordnung
-   exportierter UI-Komponenten zu Gruppen und Demos. `npm run gate:push` führt
-   diesen Check ebenfalls aus. Ein Hash der Katalog-Eingaben (Quellen ohne
-   Tests, Katalog, Generator, Assets, Lockfile, Build-Konfiguration) steht
-   gekürzt als Quellenstand im Katalog und vor der eingebetteten Runtime. Jede
-   geänderte Eingabe macht den Katalog veraltet; stimmt der Hash und ist die
-   Runtime unverändert, entfällt der Neuaufbau des Bundles.
-   HTML-Ausgaben nie direkt bearbeiten.
-4. Betroffene Demos, Zustände und App-Ansichten gemäß der
-   [visuellen Pflichtmatrix](operations.md#visuelle-pflichtmatrix) ansehen.
+## Pflege
 
-Ein technischer Inventarcheck ersetzt keine visuelle Prüfung.
+1. Eine Änderung nur in der Quelle ihrer Rolle vornehmen; andere Dokumente verlinken.
+2. UI-Änderungen in den App-Quellen umsetzen und die betroffenen Demos in
+   `scripts/uiCatalogDemos.tsx` bzw. `scripts/uiCatalogPatterns.html` mitziehen.
+3. `npm run docs:build` erzeugt die Leseseiten, `npm run check:docs` prüft
+   Quellenstand, Verweise, Journey-Regeln und die Zuordnung aller exportierten
+   UI-Komponenten zu Demos. HTML-Dateien nie direkt bearbeiten.
+4. Sichtbare Änderungen nach der
+   [visuellen Pflichtmatrix](test-portfolio.md#visuelle-pflichtmatrix) ansehen;
+   ein technischer Check ersetzt das nicht.
 
-Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre, unversionierte Vergleichsseite vorgelegt und nach der Entscheidung gelöscht. Architektur und weiteres Projektwissen bleiben ausschließlich in Markdown.
+- Erledigtes verschwindet aus `todo.md`; Details stehen in Commit und Pull
+  Request, Production- und Datenbankschritte als Betriebsnachweis in `history.md`.
+- Offene Gestaltungsvarianten werden per `visual-ab-review` als temporäre
+  Vergleichsseite vorgelegt und danach gelöscht.
+- Historische Roadmaps, Audits und Zwischenstände bleiben nur in Git.
+- `npm run mascots:build` erzeugt den lokalen Maskottchen-Vorrat unter
+  `output/mascots/` (nicht im Repository); das App-Logo entsteht in `docs:build`.
 
-## Kanonische Rollen
+## Wann ein ADR entsteht
 
-| Rolle | Einzige Quelle | Enthält | Enthält ausdrücklich nicht |
-| --- | --- | --- | --- |
-| Produkt und Kernjourneys | [`specs.md`](specs.md) | Produktversprechen, Anforderungen, Kernjourneys, Beta-Abnahme | Implementierungsjournal, Architektur, APIs, Runbooks, Roadmap |
-| Architektur und Invarianten | [`architecture.md`](architecture.md) | Modulgrenzen, Domäneninvarianten, persistierte Begriffe und implementierte APIs | Produktstatus, Release-Nachweise |
-| Aktueller Status | [`status.md`](status.md) | heutiger verifizierter Ist-Stand und bekannte Lücken | historisch grüne Läufe, offene Planung |
-| Betrieb und Runbooks | [`operations.md`](operations.md) | lokale Gates, Release, Smoke, Rollback, Auth, Restore und Störungen | ausgefüllte Release-Protokolle |
-| Entscheidungen | [`decisions.md`](decisions.md) | geltende ADRs (vorgeschlagen oder angenommen) mit Status, Kontext, Entscheidung, Konsequenzen und Datum | offene Umsetzungsschritte |
-| Verlauf | [`history.md`](history.md) | abgeschlossene Pakete, datierte Abnahmen, Release-IDs und Smoke-Protokolle | heutiger Vertrag, offene Roadmap |
-| Offene Roadmap | [`todo.md`](todo.md) | ausschließlich offene Aufgaben, Gates und geparkte Themen | abgeschlossene Checklisten, Releasehistorie |
+Nur wenn alle drei Punkte zutreffen:
 
-HTML-Ansichten ändern diese Zuständigkeiten nicht und sind keine zweite Quelle.
-
-Die Specs-Leseansicht folgt dem Aufbau des UI-Elemente-Katalogs: Titel und
-Einleitung als Kopf, je `##`-Kapitel ein Abschnitt mit Navigationseintrag und je
-`###`-Unterabschnitt eine Karte; Kapitel ohne Unterabschnitte bilden eine breite
-Karte. Die Suche der Seitenleiste filtert Karten, die Inhaltsnavigation führt je
-Kapitel einen Eintrag. Anker behalten das Schema
-`specs--<Überschrift>`. Die ergänzende Codeumfang-Grafik am Ende wird aus den
-Quellen neu berechnet und verwendet den produktiven `StatTile` mit einer Bereichstabelle. Sie zählt nichtleere Zeilen
-einschließlich Kommentaren in `src/` und `api/` (TS/TSX) sowie `src/styles.css`,
-ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
-werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
-die Tabelle zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.
-
-## Ergänzende Analysen und Nachweise
-
-Der Maskottchen-Vorrat mit 37 SVG-Motiven als einzelne, offline nutzbare
-HTML-Dateien ist ein lokales Gestaltungswerkzeug und nicht Teil von Repository
-oder Deployment: `npm run mascots:build` erzeugt ihn aus dem Motivregister und
-der gemeinsamen `BrainMascot`-Komponente unter `output/mascots/`. Das App-Logo
-`public/core-brain.svg` entsteht in `docs:build` aus derselben Palette;
-`check:docs` prüft seinen Stand.
-
-Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:
-
-- [`test-portfolio.md`](test-portfolio.md): ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.
-- [`anki-format-analysis.md`](anki-format-analysis.md): technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.
-- [`file-naming-conventions.md`](file-naming-conventions.md): Dateinamensregeln.
-- [`ui-elements.html`](ui-elements.html): direkt aus produktiven Komponenten erzeugte Demos plus lokale Markup-Muster. Jedes Format und jede Variante erscheint genau einmal; Erklärungen gehören in die Specs. Dialoge wie Kartenvorschau oder Lerneinstellungen öffnen sich direkt, ganze Produktansichten nicht. Echte Screens mit lokalen Beispieldaten öffnet ausschließlich `ui-elements.html?preview=<name>` (etwa `dashboard`, `exams`, `decks`, `summaries`, `mindmaps`) als Gerüst der Katalog-Browsertests.
-- [`card-types.html`](card-types.html): interaktive Referenz der Kartenbausteine mit ihrem Erstellungsweg.
-
-## Technische Einstiegspunkte
-
-- [`../AGENTS.md`](../AGENTS.md): Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.
-- [`../src/screens/README.md`](../src/screens/README.md): Screen-Landkarte.
-- [`../supabase/migrations/20261030103636_kartenmodell_baseline.sql`](../supabase/migrations/20261030103636_kartenmodell_baseline.sql): einzige Pre-Release-Schemabaseline (Kartenmodell `Note`/`Card`); spätere Migrationen im selben Ordner bauen darauf auf.
-- [`../supabase/verify_schema_v1.sql`](../supabase/verify_schema_v1.sql): ausführbares Struktur-, RLS- und Policy-Gate.
-
-## Entscheidungen
-
-Ein ADR in [`decisions.md`](decisions.md) entsteht nur, wenn alle drei Punkte zutreffen:
-
-- Die Entscheidung betrifft mehrere Module oder Produktbereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).
-- Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen und Abwägungen betrifft.
+- Die Entscheidung betrifft mehrere Module oder Bereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).
+- Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen abwägt.
 - Ohne Festhalten würde sie wahrscheinlich erneut diskutiert oder versehentlich umgekehrt.
 
-Nicht in ADRs gehören Layout- und Bedienregeln (`specs.md`, `src/ui/README.md`), Modulzuständigkeiten (`architecture.md`), offene Schritte (`todo.md`) und Verlauf (`history.md`, Git). Ändert sich eine Entscheidung, wird ihr Text aktualisiert statt eine Kette aus „teilweise abgelöst durch …“ zu bilden; eine aufgehobene Entscheidung wird gelöscht. Nummern bleiben stabil und werden nicht neu vergeben.
-
-## Inventarregeln
-
-- `docs/todo.md` ist die einzige TODO-Markdown-Datei.
-- Neue offene Arbeit wird nur dort eingetragen.
-- Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in `history.md` dokumentiert.
-- Historische Roadmaps, Audits und Recherchezwischenstände bleiben über Git erhalten und werden nicht als parallele Dokumente fortgeführt.
-- Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.
-- Aufgehobene Entscheidungen werden aus `decisions.md` gelöscht; Git bewahrt sie. Datierte Nachweise in `history.md` definieren keinen heutigen Produktvertrag.
+Ändert sich eine Entscheidung, wird ihr Text aktualisiert; eine aufgehobene wird
+gelöscht. Nummern bleiben stabil.

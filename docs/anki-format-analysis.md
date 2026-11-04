@@ -1,230 +1,66 @@
-# Anki-Formatanalyse für CoRe
+# Anki-Referenz
 
-Stand: 2026-10-07
+Stand: 2026-11-04
 
-Dieses Dokument ist eine kompakte technische Referenz für Ankis Modell- und
-Paketgrenzen. Der verbindliche CoRe-Vertrag steht in
-[`architecture.md`](architecture.md) und [`specs.md`](specs.md); aktueller
-Implementierungsstand und offene Arbeit gehören nicht hierher.
+Belegtes Verhalten von Anki und verbreiteten Add-ons, auf das sich CoRes
+Import stützt. Wie CoRe daraus Inhalte und Karten macht, steht ausschließlich in
+[`architecture.md`](architecture.md#note-übersetzung); sichtbares Verhalten in
+[`specs.md`](specs.md).
 
-## Kurzentscheidung
+Gepflegt wird diese Datei, wenn eine neue Anki-Version, ein Add-on-Notiztyp oder
+ein Korpusstapel ein Format zeigt, das hier noch fehlt oder anders beschrieben
+ist – typischerweise beim Erweitern eines Übersetzers oder der APKG-Matrix.
 
-Ankis wichtigste Modellentscheidung ist die Trennung von Inhalt, Darstellung,
-Review-Einheit, Lernzustand, Organisation und Medien:
+## Modell
 
-- `Note`: fachlicher Inhaltsdatensatz mit Feldern und Tags.
-- `Notetype`: Feldschema, Templates, CSS und Regeln zur Kartengenerierung.
-- `Card`: konkrete reviewbare Einheit mit eigenem Deck, Schedulerzustand und
-  eigener Review-Historie.
-- `Deck`: Studien- und Organisationscontainer für Cards, nicht der Besitzer
-  fachlicher Inhalte.
-- `Revlog`: append-only Verlauf der Review-Ereignisse.
-- `Media`: externe Dateien, auf die Felder, Templates oder CSS verweisen.
+| Begriff | Anki-Bedeutung |
+| --- | --- |
+| `Note` | Inhaltsdatensatz mit `id`, `guid`, `notetype_id`, Änderungsdaten, Tags und `fields` |
+| `Notetype` | Feldschema, Templates, CSS, Regeln zur Kartengenerierung, Typ `normal` oder `cloze` |
+| `Card` | reviewbare Einheit mit `note_id`, `deck_id`, `template_idx`, Queue, Fälligkeit, Intervall, Ease, Reps, Lapses, Flags und optionalem FSRS-Memory-State |
+| `Deck` | Studien- und Organisationscontainer für Cards, nicht Besitzer der Inhalte |
+| `Revlog` | append-only Review-Ereignisse; Legacy-Spalten u. a. `cid`, `ease`, `ivl`, `lastIvl`, `factor`, `time`, `type` |
+| `Media` | externe Dateien, auf die Felder, Templates oder CSS verweisen |
 
-CoRe übernimmt diese Trennung an der Modellgrenze, kopiert Ankis gewachsene
-Speicherformen aber nicht intern. APKG, SQLite, Protobuf, Legacy-JSON, Zstd und
-Template-HTML bleiben Importdetails hinter der öffentlichen Import-Seam.
+- Die Anzeige einer Card entsteht aus Note-Feldern und Template; eine Feldänderung wirkt auf alle Cards der Note.
+- Unterstapel werden über `::` im Namen ausgedrückt (`Chinese::Hanzi`); Elternstapel lernen Karten der Unterstapel mit. Nativ trennt Anki Stapelpfade mit `U+001F`.
+- Decks tragen u. a. Konfiguration, Beschreibung, Tageslimits und optional einen eigenen Desired-Retention-Wert.
+- Ein Template kann einen Zielstapel (`did`) setzen; die Card landet dann in einem anderen Stapel als ihre Geschwister.
 
-Kernaussage: Anki ist für CoRe Vorbild an der Modellgrenze, aber nicht das
-interne Datenformat.
+## Templates und Standardtypen
 
-## Quellenbasis
+- Templates sind HTML, Styling ist CSS; Bedingungen (`{{#Feld}}`) steuern Anzeige und Kartengenerierung.
+- Standardtypen: Basic, Basic and Reversed, Basic optional reversed, Basic typing, Cloze, Image Occlusion. Sie tragen `originalStockKind` 1 bis 6.
+- `originalStockKind` ist kein verlässliches Typmerkmal: Anki setzt 1 auch für Notiztypen aus `models.new()`, einschließlich Lückentypen, und Klone behalten den Wert. Erst unveränderte Standardvorlagen weisen einen Standardtyp nach.
 
-Primärquellen:
+## Pakete und Medien
 
-- [Anki-Repository](https://github.com/ankitects/anki)
-- [Anki-Manual: Grundbegriffe](https://docs.ankiweb.net/getting-started.html)
-- [Anki-Manual: lokale Dateien](https://docs.ankiweb.net/files.html)
-- [Anki-Manual: Templates](https://docs.ankiweb.net/templates/intro.html)
-- [Anki-Manual: Kartengenerierung](https://docs.ankiweb.net/templates/generation.html)
-- [Legacy-SQLite-Schema](https://github.com/ankitects/anki/blob/main/rslib/src/storage/schema11.sql)
-- Protobuf-Modelle im Anki-Repository: `proto/anki/cards.proto`,
-  `notes.proto`, `decks.proto`, `notetypes.proto`, `import_export.proto`
-- Paket- und Medienhandling im Anki-Repository:
-  `rslib/src/import_export/package/meta.rs` und
-  `rslib/src/import_export/package/media.rs`
+- Lokal liegen Inhalte in `collection.anki2`, Medien in `collection.media`; APKG bündelt Collection, Medien und Metadaten.
+- Paketvarianten: Legacy 1 `collection.anki2` (Schema V11), Legacy 2 `collection.anki21` (V11), Latest `collection.anki21b` (V18, Zstd).
+- V18 hält `decks` und `notetypes` in normalen Tabellen, `fields` und `templates` in `WITHOUT ROWID`-B-Bäumen; Notetype-, Field- und Template-Konfigurationen sind Protobuf.
+- Moderne Medienlisten sind Protobuf (`MediaEntries`): Datei *i* liegt im ZIP-Eintrag `i`, zstd-komprimiert, mit SHA-1 und Größe der entpackten Datei. Legacy-Pakete nutzen eine JSON-Hashmap wie `{"0": "bild.png"}` ohne Hash.
 
-## Anki-Istmodell
+## Belegte Exportdetails (`anki==26.5`, 2026-10-06)
 
-### Decks
+- Moderne `.apkg`/`.colpkg` enthalten neben `collection.anki21b` stets eine Platzhalter-`collection.anki2`; der Legacy-Export schreibt `collection.anki21` plus Platzhalter. Anki 2.0 nutzt nur `collection.anki2` mit Schema 11.
+- Ein Deckexport enthält gefilterte Karten mit `did` des Filterstapels und dem Heimatstapel in `odid`, dazu stets den Stapel `Default`.
+- Ein Export ohne Lernstand entfernt die Tags `marked` und `leech`, wandelt gefilterte Stapel in normale um und löscht `odid`; der Heimatstapel ist danach nicht mehr bestimmbar.
 
-Im Manual ist ein Deck eine Gruppe von Karten. Unterstapel werden über Namen
-mit `::` ausgedrückt, etwa `Chinese::Hanzi`. Ein Elternstapel bezieht beim
-Lernen Karten aus Unterstapeln ein. Decks können unterschiedliche Lernoptionen
-haben, etwa neue Karten pro Tag oder Wiederholungsgrenzen.
+## Bildverdeckung
 
-Technisch sind Decks nicht der fachliche Inhaltsbesitzer. Eine Note liegt global
-in der Collection, und die daraus erzeugten Cards können in unterschiedlichen
-Decks landen. Das ist besonders wichtig bei Template-Deck-Overrides: Ein
-Kartentemplate kann erzeugte Cards in ein anderes Deck legen als das beim
-Hinzufügen gewählte Standarddeck.
+- Native Image Occlusion speichert Masken als Lückentext im Feld `Occlusion`, etwa `{{c1::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4:oi=1}}`. Formen: `rect`, `ellipse`, `polygon:points=x,y …`, `text:text=…`. `oi=1` (occludeInactive) hält eine Form auch auf Karten anderer Gruppen verdeckt.
+- Aktuelle Versionen speichern Ellipsen mit `rx`/`ry` statt `width`/`height`; Text maskiert `:` als `\:`.
+- Editor und Reviewer (26.9) normieren x-Werte (`left`, `width`, `rx`, Polygon-x) auf die Bildbreite, y-Werte auf die Bildhöhe; `fs` ist die Schriftgröße relativ zur Bildhöhe, `scale` vergrößert Text zusätzlich.
+- Rechtecke, Ellipsen und Text drehen sich um `angle` Grad in Bildpixeln um ihre linke obere Ecke. Polygone ignorieren `angle`; ihre Punkte werden so verschoben, dass die linke obere Ecke ihres Umrisses auf `left`/`top` liegt. Text zeichnet Anki in Arial auf weißem Kasten.
+- Das Template zeichnet die Masken per `anki.imageOcclusion.setup()` aus der Anki-Laufzeit, nicht aus dem Paket.
+- Image Occlusion Enhanced (Add-on) legt je Maske eine Note mit `Image`, `Question Mask`, `Answer Mask` und `Original Mask` an. Die Maskenfelder verweisen auf SVGs in Bildgröße. Das Frage-SVG markiert die abgefragte Form mit `class="qshape"` (auch an einer Gruppe); im Modus „alle verdecken“ (`ao`, ID `…-ao-N`) enthält es alle übrigen Formen, im Modus „eine verdecken“ (`oa`) nur die abgefragte. Der Korpus (66 Notes) enthält nur ungedrehte `rect`-Formen ohne Beschriftung.
 
-Die moderne Protobuf-Schnittstelle modelliert Decks unter anderem mit ID, Name,
-Study-/Browser-Zuständen, Deck-Art, Konfiguration, Beschreibung, Tageslimits und
-optionalem Desired-Retention-Override.
+## Add-on- und Korpus-Notiztypen
 
-CoRe-Folgerung: Decks sind Studiencontainer. Intern bleiben echte
-Parent-/Child-IDs kanonisch; `::` ist nur eine importierte Hierarchiecodierung.
-CoRe erhält den vollständigen Quellbaum ohne fachliches Tiefenlimit. Jeder
-importierte Stapel verweist auf seinen unmittelbaren Anki-Elternstapel und
-behält den vollständigen Pfad sowie seine stabile Importidentität. Ab Ebene 6
-bleiben lediglich Einrückung und Tiefenfarbe visuell konstant; die echte
-Beziehung wird nicht in Kartentags umgewandelt.
+- „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3): Notiztyp `AllInOne (kprim, mc, sc)` mit `Question`, `Title`, `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources`, `Extra 1`. `QType` 0 = Kprim, 1 = Multiple Choice, 2 = Single Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske.
+- Ankizin, Ankiphil und Dellas (Korpus, 2026-10-07) zeigen Quelle und Note-ID in einer Kopfzeile auf beiden Seiten, legen Zusatzfelder hinter Buttons oder `display:none` auf die Rückseite, führen Links als `href="{{Feld}}"` bzw. `{{text:Feld}}` und nutzen den Filter `edit:` des Add-ons „Edit Field During Review“.
 
-### Notes, Notetypes und Cards
+## Quellen
 
-Anki trennt den fachlichen Inhalt von der reviewbaren Karte:
-
-- Eine Note enthält `id`, `guid`, `notetype_id`, Änderungsdaten, Tags und
-  `fields`.
-- Ein Notetype enthält Feldstruktur, Templates, CSS,
-  Kartengenerierungsregeln und den Typ `normal` oder `cloze`.
-- Eine Card enthält unter anderem `note_id`, `deck_id`, `template_idx`, Queue,
-  Fälligkeit, Intervall, Ease-Faktor, Reps, Lapses, Flags und optionalen
-  FSRS-Memory-State.
-
-Der Inhalt einer Card ist damit nicht einfach `front/back`. Die Anzeige wird
-aus Note-Feldern und Template gerendert. Eine fachliche Feldänderung wirkt auf
-alle daraus generierten Cards.
-
-CoRe-Folgerung: Wie in Anki trennt CoRe Inhalt (`Note`) und Abfrage (`Card`).
-Eine Anki-Note wird zu einem Inhalt im universellen CoRe-Format, jede
-importierte Card, jede Reverse-Richtung und jede Cloze-Gruppe zu einer
-eigenständigen CoRe-Karte dieses Inhalts mit eigenem Lernzustand. Eine
-Feldänderung wirkt wie in Anki auf alle Geschwister.
-
-### Templates und Stock-Formate
-
-Anki-Templates steuern, welche Felder auf Vorder- und Rückseite erscheinen und
-welche Karten erzeugt werden. Templates sind HTML, Styling ist CSS. Notetypes
-kennen Felder und Templates einschließlich Anforderungen für bedingte
-Kartengenerierung.
-
-Offizielle Stock-Notetypes umfassen unter anderem Basic, Basic and Reversed,
-Basic optional reversed, Basic typing, Cloze und Image Occlusion.
-
-CoRe-Folgerung: Ein versionierter Übersetzer überführt jede Notiz anhand ihres
-Notiztyps in das universelle CoRe-Inhaltsformat; die Darstellung übernimmt
-CoRes eigener sicherer Renderer. Eigene Designs generisch übersetzter Notiztypen
-erscheinen als Originallayout aus Template-HTML und -CSS (ADR-047); Script,
-externe Ressourcen und Add-on-Filter werden nie ausgeführt. Notiztyp-Vorlage und
-rohe Feldwerte bleiben unsichtbar für spätere Neuübersetzungen gespeichert.
-
-### Review und Revlog
-
-Anki speichert Review-Ereignisse in `revlog`. Das Legacy-Schema hält pro
-Ereignis unter anderem `cid`, `ease`, `ivl`, `lastIvl`, `factor`, `time` und
-`type`. Cards besitzen zusätzlich den aktuellen Schedulerzustand.
-
-CoRe-Folgerung: Aktueller Zustand und Ereignisverlauf bleiben getrennt.
-`review_events` sind append-only; Queue- und Schedulerzustand gehören direkt
-zur jeweiligen Karte. KI-Umformulierungen teilen diesen Zustand und erzeugen
-keine eigene Queue-Einheit.
-
-Der APKG-Leser ordnet geeignete `revlog`-Zeilen über stabile
-Anki-Kartenidentitäten den eigenständigen CoRe-Karten zu und vereinigt sie über
-deterministische Ereignis-IDs. Beschädigte oder nicht zuordenbare Zeilen werden
-gezählt und übersprungen. Der anfängliche Card-Zustand folgt der Reihenfolge
-gültiger FSRS-Memory-State, chronologisches Revlog-Replay, klassischer
-Kartenstatus und neue Karte. Nach dem ersten CoRe-Review übernimmt
-ausschließlich FSRS-6.
-
-### APKG, Collection und Medien
-
-Anki speichert lokale Profilinhalte in `collection.anki2`; Medien liegen
-separat in `collection.media`. APKG-Dateien bündeln Collection, Medien und
-Metadaten.
-
-Von CoRe unterstützte Paketvarianten:
-
-- Legacy 1: `collection.anki2`, Schema V11
-- Legacy 2: `collection.anki21`, Schema V11
-- Latest: `collection.anki21b`, Schema V18, Zstd-komprimiert
-
-Im modernen V18-Pfad liegen `decks` und `notetypes` in normalen Tabellen,
-`fields` und `templates` in `WITHOUT ROWID`-Index-B-Bäumen. CoRe normalisiert
-diese Tabellen in dieselbe private Form wie Legacy-`col.models`. Bekannte
-Notetype-, Field- und Template-Konfigurationen werden bounds-sicher aus
-Protobuf dekodiert; vollständige Rohbytes, 64-Bit-Werte und unbekannte Felder
-bleiben erhalten. Ankis nativer Deck-Trenner `U+001F` wird erst an der
-Importgrenze in `::` übersetzt.
-
-Bei modernen Paketen ist die Medienliste Protobuf-basiert; Legacy-Medien nutzen
-eine JSON-Hashmap wie `{"0": "bild.png"}`. Der Import normalisiert Dateinamen,
-prüft Sicherheit, verwendet SHA-1 und Größe, dekomprimiert bei Bedarf und hält
-Medien von Karteninhalten getrennt.
-
-Mit `anki==26.5` verifizierte Exportdetails (APKG-Formatmatrix, 2026-10-06):
-
-- Moderne `.apkg`- und `.colpkg`-Dateien enthalten neben `collection.anki21b`
-  stets eine Platzhalter-`collection.anki2`; der Legacy-Export schreibt
-  `collection.anki21` plus Platzhalter. Anki 2.0 verwendet ausschließlich
-  `collection.anki2` mit Schema 11.
-- Die sechs Standardnotiztypen tragen `originalStockKind` 1 bis 6: Basic,
-  Basic und umgekehrt, optional umgekehrt, Antwort eintippen, Cloze und Image
-  Occlusion.
-- Image Occlusion speichert Masken als Lückentext im Feld `Occlusion`, etwa
-  `{{c1::image-occlusion:rect:left=.1:top=.2:width=.3:height=.4:oi=1}}`; Formen
-  sind `rect`, `ellipse`, `polygon:points=x,y …` und `text:text=…`. `oi=1`
-  (occludeInactive) hält eine Form auch auf Karten anderer Gruppen verdeckt.
-  Das Template zeichnet die Masken per `anki.imageOcclusion.setup()` aus der
-  Anki-Laufzeit, nicht aus dem Paket.
-- Ein Deckexport enthält gefilterte Karten mit `did` des Filterstapels und dem
-  Heimatstapel in `odid`, dazu stets den Stapel `Default`. Ein Export ohne
-  Lernstand entfernt die Tags `marked` und `leech`.
-- Ein Export ohne Lernstand wandelt gefilterte Stapel in normale Stapel um; ihre
-  Karten bleiben dort und verlieren `odid`, ein Heimatstapel ist danach nicht
-  mehr bestimmbar.
-- Ein Template-Zielstapel (`did` im Template) legt die betreffende Karte direkt
-  in einen anderen Stapel als ihre Geschwister.
-- `originalStockKind` ist kein verlässliches Typmerkmal: Anki setzt 1 (Basic)
-  auch für Notiztypen aus `models.new()`, einschließlich Lückentypen, und
-  Klone behalten den Wert. Erst unveränderte Standardvorlagen weisen einen
-  Standardtyp nach.
-- In modernen Paketen liegt Mediendatei *i* der `MediaEntries` im ZIP-Eintrag
-  `i` (zstd-komprimiert), mit SHA-1 und Größe der entpackten Datei; Legacy-Pakete
-  nennen nur Name und Eintrag.
-- Image Occlusion speichert Ellipsen in aktuellen Versionen mit `rx`/`ry` statt
-  `width`/`height`; Text in Eigenschaften maskiert `:` als `\:`.
-- Ankis Editor und Reviewer (26.9) normieren x-Werte (`left`, `width`, `rx`,
-  Polygon-x) auf die Bildbreite und y-Werte auf die Bildhöhe; `fs` ist die
-  Schriftgröße relativ zur Bildhöhe, `scale` vergrößert den Text zusätzlich.
-  Rechtecke, Ellipsen und Text drehen sich um `angle` Grad in Bildpixeln um ihre
-  linke obere Ecke (`left`/`top`). Polygone ignorieren `angle`; ihre Punkte
-  werden so verschoben, dass die linke obere Ecke ihres Umrisses auf
-  `left`/`top` liegt. Text zeichnet Anki in Arial auf einem weißen Kasten.
-- Ankizin-, Ankiphil- und Dellas-Notiztypen (Korpus, 2026-10-07) zeigen
-  Quelle und Notiz-ID in einer Kopfzeile auf beiden Seiten, legen Zusatzfelder
-  hinter Buttons oder `display:none` auf die Rückseite, führen Links als
-  `href="{{Feld}}"` beziehungsweise `{{text:Feld}}` und nutzen den Filter
-  `edit:` des Add-ons „Edit Field During Review“.
-- Image Occlusion Enhanced legt je Maske eine Notiz mit den Feldern `Image`,
-  `Question Mask`, `Answer Mask` und `Original Mask` an; die Maskenfelder
-  verweisen auf SVG-Dateien in Bildgröße (`width`/`height` in Pixeln). Das
-  Frage-SVG enthält die abgefragte Form mit `class="qshape"` (auch an einer
-  Gruppe) und im Modus „alle verdecken“ (`ao`, erkennbar an der ID
-  `…-ao-N`) alle übrigen Formen; im Modus „eine verdecken“ (`oa`) nur die
-  abgefragte. Der reale Korpus (66 Notizen) enthält ausschließlich ungedrehte
-  `rect`-Formen ohne Beschriftungen.
-- Das Add-on „Multiple Choice for Anki“ (`zjosua/anki-mc`, AGPLv3) legt den
-  Notiztyp `AllInOne (kprim, mc, sc)` mit den Feldern `Question`, `Title`,
-  `QType (0=kprim,1=mc,2=sc)`, `Q_1` bis `Q_5`, `Answers`, `Sources` und
-  `Extra 1` an. `QType` bedeutet 0 = Kprim, 1 = Multiple Choice, 2 = Single
-  Choice; `Answers` ist eine durch Leerzeichen getrennte 0/1-Maske.
-
-CoRe-Folgerung: APKG ist Austauschformat, nicht Persistenzformat.
-Der universelle Renderer verarbeitet übersetzte Feldrollen und
-Interaktionen statt Anki-Templates: verschachtelte `{{c1,3::Text::Hinweis}}`
-werden vor dem Formelschritt aufgelöst; aktive äußere Lücken verbergen innere.
-MathJax-Delimiters sowie `[latex]`, `[$]` und `[$$]` gehen an KaTeX. Bei Fehlern bleibt
-die bereits maskierte Quellfassung sichtbar. Native Bildmasken und die Masken
-aus Image Occlusion Enhanced werden als relative Formen über dem Bild
-gezeichnet, gedreht wie in Anki, ohne die Anki-JavaScript-Laufzeit.
-`[sound:…mp4]` verwendet ein Video-Control; TTS-Metadaten werden ausschließlich
-im React-Host ausgewertet und duplizieren den Feldtext nicht. Die
-APKG-Übersetzung auf diesen Vertrag beschreibt
-[`architecture.md`](architecture.md#note-übersetzung).
-
-`src/apkgImport.ts` bleibt die öffentliche Seam; Worker-Protokoll, ZIP, SQLite,
-Zstd und MediaEntries bleiben in ihren privaten
-Eigentümermodulen und außerhalb von React und dem kanonischen CoRe-Datenmodell.
+- [Anki-Repository](https://github.com/ankitects/anki): Protobuf-Modelle `proto/anki/cards.proto`, `notes.proto`, `decks.proto`, `notetypes.proto`, `import_export.proto`; Paket- und Medienhandling in `rslib/src/import_export/package/meta.rs` und `media.rs`; [Legacy-Schema](https://github.com/ankitects/anki/blob/main/rslib/src/storage/schema11.sql)
+- Anki-Manual: [Grundbegriffe](https://docs.ankiweb.net/getting-started.html), [lokale Dateien](https://docs.ankiweb.net/files.html), [Templates](https://docs.ankiweb.net/templates/intro.html), [Kartengenerierung](https://docs.ankiweb.net/templates/generation.html)

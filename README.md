@@ -90,7 +90,7 @@ Der Skill liegt unter [`.agents/skills/visual-ab-review/SKILL.md`](.agents/skill
 
 Voraussetzungen: Node.js mit den Projektabhängigkeiten (`npm ci`), Chromium (`npx playwright install chromium`) und Python ab 3.10. Optional ermöglicht Pillow (`python -m pip install Pillow`) eine Rangliste nach Pixelanteil und kleinere eingebettete Bilder; ohne Pillow bleibt der Vergleich ausführbar. Es werden keine zusätzlichen npm-Abhängigkeiten benötigt.
 
-Alle Befehle aus der Repository-Wurzel ausführen. Zunächst `npm run docs:build`, dann `npm run dev` starten (Port 5190). Die [Projektkonfiguration](visual-review.config.mjs) enthält zwei Katalogszenen ohne Anmeldung und sechs Viewports jeweils in Light und Dark. Weitere App-Zustände samt erforderlichem Demo- oder Anmelde-Setup bei der konkreten Änderung ergänzen; die [visuelle Pflichtmatrix](docs/operations.md#visuelle-pflichtmatrix) bleibt maßgeblich.
+Alle Befehle aus der Repository-Wurzel ausführen. Zunächst `npm run docs:build`, dann `npm run dev` starten (Port 5190). Die [Projektkonfiguration](visual-review.config.mjs) enthält zwei Katalogszenen ohne Anmeldung und sechs Viewports jeweils in Light und Dark. Weitere App-Zustände samt erforderlichem Demo- oder Anmelde-Setup bei der konkreten Änderung ergänzen; die [visuelle Pflichtmatrix](docs/test-portfolio.md#visuelle-pflichtmatrix) bleibt maßgeblich.
 
 ```sh
 node .agents/skills/visual-ab-review/scenes.mjs --config visual-review.config.mjs --list

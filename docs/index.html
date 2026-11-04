@@ -6343,9 +6343,11 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-source { color: var(--core-text-muted); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); margin-bottom: var(--core-space-lg); }
 [id] { scroll-margin-top: var(--core-space-xl); }
 .docs-journey { border-top: var(--core-border-width) solid var(--core-border); margin-bottom: var(--core-space-xl); }
-.docs-journey-flow { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: var(--core-space-xl); align-items: start; }
-.docs-journey-flow pre { margin: 0; padding: var(--core-space-md); }
-.mermaid svg { max-width: 100%; height: auto; }
+/* Journey-Ablauf als Schrittkette: nummerierte Karten mit Pfeilen, schmal untereinander. */
+.docs-flow { --docs-flow-gap: 2rem; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--docs-flow-gap); margin: var(--core-space-md) 0 var(--core-space-xl); padding: 0; list-style: none; }
+.docs-flow-step { position: relative; display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); box-shadow: var(--core-shadow-soft); font-size: var(--core-type-body); line-height: var(--core-leading-body); font-weight: var(--core-weight-control); }
+.docs-flow-step:not(:last-child)::after { content: ""; position: absolute; top: 50%; left: calc(100% + var(--docs-flow-gap) / 2); width: 1.125rem; height: 1.125rem; translate: -50% -50%; background: var(--core-text-muted); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='m12 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
+.docs-flow-number { display: inline-grid; flex: none; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--core-radius-round); background: var(--core-action-primary); color: var(--core-text-on-accent); font-size: var(--core-type-caption); font-weight: var(--core-weight-emphasis); }
 .docs-code-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--core-space-md); }
 .docs-code-chart { margin: var(--core-space-xl) 0; }
 .docs-code-dot { display: inline-block; width: var(--core-space-sm); height: var(--core-space-sm); border-radius: var(--core-radius-round); margin-right: var(--core-space-sm); }
@@ -6385,7 +6387,8 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .specs-prose .catalog-label { margin: var(--core-space-lg) 0 var(--core-space-sm); }
 .specs-prose .docs-code-chart { margin-bottom: var(--core-space-lg); }
 @media (max-width: 1279px) {
-  .docs-journey-flow { grid-template-columns: 1fr; }
+  .docs-flow { --docs-flow-gap: 1.75rem; grid-auto-flow: row; }
+  .docs-flow-step:not(:last-child)::after { top: calc(100% + var(--docs-flow-gap) / 2); left: 50%; rotate: 90deg; }
 }
 /* Schmal steht die Seitenleiste oben im Fluss; Seiten und Inhalt laufen als waagerechte Leisten. */
 @media (max-width: 1050px) {
@@ -6534,184 +6537,144 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 </style></head><body><div class="docs-frame"><aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a><button type="button" id="docs-theme" aria-label="Dark Mode einschalten" style="color:var(--core-text)" class="core-action-ghost min-w-button p-2 size-button shrink-0 rounded-control"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg></button></div><div class="docs-panel-links"><a href="index.html" aria-current="page">Docs</a><a href="specs.html">Specs</a><a href="journeys.html">Journeys</a><a href="ui-elements.html">UI-Elements</a><a href="card-types.html">Kartenbausteine</a></div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">Docs durchsuchen</span><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg><input id="docs-search" type="search" placeholder="Abschnitt, Begriff …" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside><main class="docs-main"><article id="readme--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="README.md">README.md</a></p><h1 id="readme--core--docs" class="core-heading-1" tabindex="-1">CoRe – Docs <a class="docs-anchor" href="#readme--core--docs" aria-label="Link zu CoRe – Docs">#</a></h1>
 <p>CoRe verbindet Anki-kompatible Karten mit Spaced Repetition und kontrollierten
-KI-Umformulierungen. Einstieg für Menschen und Modelle ist <a href="index.html">index.html</a>.
-Für jede Dokumentationsrolle gibt es genau eine verbindliche Quelle.</p>
-<h2 id="readme--leseoberfläche" class="core-heading-2" tabindex="-1">Leseoberfläche <a class="docs-anchor" href="#readme--leseoberfläche" aria-label="Link zu Leseoberfläche">#</a></h2>
-<p>Die gemeinsamen Namen <code>index.html</code>, <code>specs.html</code>, <code>journeys.html</code> und
-<code>ui-elements.html</code> entsprechen der SmarterNutrition-Dokumentation.</p>
+KI-Umformulierungen. Für jede Frage gibt es genau eine verbindliche Quelle; die
+HTML-Seiten sind daraus erzeugte Leseansichten.</p>
+<h2 id="readme--leseseiten" class="core-heading-2" tabindex="-1">Leseseiten <a class="docs-anchor" href="#readme--leseseiten" aria-label="Link zu Leseseiten">#</a></h2>
 <table>
 <thead>
 <tr>
 <th>Seite</th>
-<th>Inhalt</th>
-<th>Quelle</th>
+<th>Zeigt</th>
+<th>Erzeugt aus</th>
 </tr>
 </thead>
 <tbody><tr>
 <td><a href="index.html">Docs</a></td>
-<td>Orientierung und Quellen</td>
-<td>diese README</td>
+<td>diesen Wegweiser</td>
+<td><code>README.md</code></td>
 </tr>
 <tr>
 <td><a href="specs.html">Specs</a></td>
-<td>vollständiger Produktvertrag</td>
+<td>den vollständigen Produktvertrag</td>
 <td><code>specs.md</code></td>
 </tr>
 <tr>
 <td><a href="journeys.html">Journeys</a></td>
-<td>sieben Abläufe, Diagramme und sämtliche Akzeptanzregeln</td>
-<td>Abschnitt 5 von <code>specs.md</code>; Ablaufdarstellung in <code>scripts/generateDocs.ts</code></td>
+<td>die Kernjourneys als Schrittkette mit allen Akzeptanzregeln</td>
+<td>Kapitel 5 von <code>specs.md</code></td>
 </tr>
 <tr>
 <td><a href="ui-elements.html">UI-Elements</a></td>
-<td>UI-Elemente-Katalog im Aufbau der BengtsToolBox: Grundlagen (Farben, Typografie, Formen, Token-, Komponenten- und Klasseninventar), generische Primitive, gemeinsame App-Muster, CoRe-Fachmuster und Icons; jedes Format genau einmal, ohne Erklärtexte und ohne aufrufbare Produktansichten; mit Suche und Kapitelnavigation</td>
-<td>App-Code; Demos in <code>scripts/uiCatalogDemos.tsx</code>, ergänzende Screen-Muster in <code>scripts/uiCatalogPatterns.html</code></td>
+<td>jede UI-Komponente und jedes Format genau einmal, als echte Komponente</td>
+<td><code>scripts/uiCatalogDemos.tsx</code>, <code>scripts/uiCatalogPatterns.html</code></td>
 </tr>
 <tr>
 <td><a href="card-types.html">Kartenbausteine</a></td>
-<td>acht Bausteine (Frage und Antwort, Rückrichtung, Eintippen, Feldrollen, Lückentext, Auswahl, Bildverdeckung, Formeln und Medien) im echten Reviewrenderer (<code>NoteCardContent</code>), je mit Erstellungsweg</td>
+<td>alle Renderer-Fälle mit Erstellungsweg</td>
 <td>dieselben Demos und CoRe-Modellhelfer</td>
 </tr>
 </tbody></table>
-<p>Alle Seiten haben statt einer Kopfleiste eine Seitenleiste aus drei gleich
-breiten Boxen: oben der Wechsel zwischen den Seiten samt Theme-Schalter, darunter
-die Suche der jeweiligen Seite und darunter die Inhaltsnavigation des Dokuments,
-die das aktuelle Kapitel markiert. Ab 1051 px bleibt die Leiste beim Scrollen
-links stehen; darunter steht sie über dem Inhalt, Seiten und Kapitel laufen als
-waagerechte Leisten. <code>/</code> springt in die Suche.</p>
-<p>Die <a href="card-types.html">Kartenbausteine</a> ordnen den Note-/Card-Renderer nach
-Bausteinen statt nach Kartentypen und sind die einzige Seite mit allen
-Renderer-Fällen; der UI-Katalog zeigt den Renderer einmal unter
-<a href="ui-elements.html#inhalt">Karteninhalte</a>.</p>
-<p>Alle HTML-Seiten sind erzeugte Ausgaben. Die textlichen Inhalte, Katalogskripte,
-Styles und die Schrift Manrope sind eingebettet; Journey-Diagramme nutzen
-<code>vendor/mermaid.min.js</code>. Externe Schriften lädt weder die App noch die Doku.
-Zum Teilen den ganzen <code>docs</code>-Ordner mitnehmen. Die Seiten lassen sich direkt
-öffnen oder über <code>npm run dev</code> unter <code>http://127.0.0.1:5190/docs/index.html</code> lesen.</p>
-<h2 id="readme--pflege-bei-jeder-änderung" class="core-heading-2" tabindex="-1">Pflege bei jeder Änderung <a class="docs-anchor" href="#readme--pflege-bei-jeder-änderung" aria-label="Link zu Pflege bei jeder Änderung">#</a></h2>
-<ol>
-<li>Produktverhalten in <code>specs.md</code>, technische Verträge in ihrer Rollenquelle ändern.</li>
-<li>Designwünsche anhand der HTML-Referenz formulieren; danach in den angegebenen
-App-Quellen umsetzen. Gemeinsame UI-Änderungen aktualisieren ihre Live-Demo;
-lokale Screen-Muster zusätzlich ihre kuratierten Beispiele.</li>
-<li><code>npm run docs:build</code> erzeugt die fünf Leseseiten. <code>npm run check:docs</code> prüft
-Quellenstand, Dokumentverweise, Journey-Regeln und die vollständige Zuordnung
-exportierter UI-Komponenten zu Gruppen und Demos. <code>npm run gate:push</code> führt
-diesen Check ebenfalls aus. Ein Hash der Katalog-Eingaben (Quellen ohne
-Tests, Katalog, Generator, Assets, Lockfile, Build-Konfiguration) steht
-gekürzt als Quellenstand im Katalog und vor der eingebetteten Runtime. Jede
-geänderte Eingabe macht den Katalog veraltet; stimmt der Hash und ist die
-Runtime unverändert, entfällt der Neuaufbau des Bundles.
-HTML-Ausgaben nie direkt bearbeiten.</li>
-<li>Betroffene Demos, Zustände und App-Ansichten gemäß der
-<a href="operations.md#visuelle-pflichtmatrix">visuellen Pflichtmatrix</a> ansehen.</li>
-</ol>
-<p>Ein technischer Inventarcheck ersetzt keine visuelle Prüfung.</p>
-<p>Offene Gestaltungsvarianten werden per <code>visual-ab-review</code> als temporäre, unversionierte Vergleichsseite vorgelegt und nach der Entscheidung gelöscht. Architektur und weiteres Projektwissen bleiben ausschließlich in Markdown.</p>
-<h2 id="readme--kanonische-rollen" class="core-heading-2" tabindex="-1">Kanonische Rollen <a class="docs-anchor" href="#readme--kanonische-rollen" aria-label="Link zu Kanonische Rollen">#</a></h2>
+<p>Die Seiten lassen sich direkt öffnen oder über <code>npm run dev</code> unter
+<code>http://127.0.0.1:5190/docs/index.html</code> lesen; sie laden nichts von außen.
+<code>ui-elements.html?preview=&lt;name&gt;</code> öffnet echte Screens mit Beispieldaten als
+Gerüst der Katalog-Browsertests.</p>
+<h2 id="readme--welche-datei-wofür" class="core-heading-2" tabindex="-1">Welche Datei wofür <a class="docs-anchor" href="#readme--welche-datei-wofür" aria-label="Link zu Welche Datei wofür">#</a></h2>
 <table>
 <thead>
 <tr>
-<th>Rolle</th>
-<th>Einzige Quelle</th>
-<th>Enthält</th>
-<th>Enthält ausdrücklich nicht</th>
+<th>Frage</th>
+<th>Quelle</th>
+<th>Gehört nicht hinein</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>Produkt und Kernjourneys</td>
+<td>Was soll das Produkt tun?</td>
 <td><a href="specs.html#specs--document"><code>specs.md</code></a></td>
-<td>Produktversprechen, Anforderungen, Kernjourneys, Beta-Abnahme</td>
-<td>Implementierungsjournal, Architektur, APIs, Runbooks, Roadmap</td>
+<td>Architektur, APIs, Runbooks, Roadmap</td>
 </tr>
 <tr>
-<td>Architektur und Invarianten</td>
+<td>Wie ist es gebaut, wem gehört was?</td>
 <td><a href="architecture.md"><code>architecture.md</code></a></td>
-<td>Modulgrenzen, Domäneninvarianten, persistierte Begriffe und implementierte APIs</td>
-<td>Produktstatus, Release-Nachweise</td>
+<td>Produktstatus, Nachweise</td>
 </tr>
 <tr>
-<td>Aktueller Status</td>
+<td>Was ist heute da, was fehlt?</td>
 <td><a href="status.md"><code>status.md</code></a></td>
-<td>heutiger verifizierter Ist-Stand und bekannte Lücken</td>
-<td>historisch grüne Läufe, offene Planung</td>
+<td>Verhalten (steht in den Specs), Planung</td>
 </tr>
 <tr>
-<td>Betrieb und Runbooks</td>
-<td><a href="operations.md"><code>operations.md</code></a></td>
-<td>lokale Gates, Release, Smoke, Rollback, Auth, Restore und Störungen</td>
-<td>ausgefüllte Release-Protokolle</td>
-</tr>
-<tr>
-<td>Entscheidungen</td>
+<td>Was ist warum entschieden?</td>
 <td><a href="decisions.md"><code>decisions.md</code></a></td>
-<td>geltende ADRs (vorgeschlagen oder angenommen) mit Status, Kontext, Entscheidung, Konsequenzen und Datum</td>
-<td>offene Umsetzungsschritte</td>
+<td>offene Schritte, Layoutregeln</td>
 </tr>
 <tr>
-<td>Verlauf</td>
-<td><a href="history.md"><code>history.md</code></a></td>
-<td>abgeschlossene Pakete, datierte Abnahmen, Release-IDs und Smoke-Protokolle</td>
-<td>heutiger Vertrag, offene Roadmap</td>
-</tr>
-<tr>
-<td>Offene Roadmap</td>
+<td>Was ist als Nächstes zu tun?</td>
 <td><a href="todo.md"><code>todo.md</code></a></td>
-<td>ausschließlich offene Aufgaben, Gates und geparkte Themen</td>
-<td>abgeschlossene Checklisten, Releasehistorie</td>
+<td>Erledigtes</td>
+</tr>
+<tr>
+<td>Wie wird getestet und geprüft?</td>
+<td><a href="test-portfolio.md"><code>test-portfolio.md</code></a></td>
+<td>Release-Abläufe</td>
+</tr>
+<tr>
+<td>Wie wird freigegeben, zurückgerollt, wiederhergestellt?</td>
+<td><a href="operations.md"><code>operations.md</code></a></td>
+<td>Testinventur, ausgefüllte Nachweise</td>
+</tr>
+<tr>
+<td>Was lief auf Production, was waren die Meilensteine?</td>
+<td><a href="history.md"><code>history.md</code></a></td>
+<td>heutiger Vertrag, Arbeitsdetails (stehen in Commits)</td>
+</tr>
+<tr>
+<td>Wie verhält sich Anki?</td>
+<td><a href="anki-format-analysis.md"><code>anki-format-analysis.md</code></a></td>
+<td>CoRes Übersetzung (steht in der Architektur)</td>
+</tr>
+<tr>
+<td>Wie heißen Dateien?</td>
+<td><a href="file-naming-conventions.md"><code>file-naming-conventions.md</code></a></td>
+<td>–</td>
 </tr>
 </tbody></table>
-<p>HTML-Ansichten ändern diese Zuständigkeiten nicht und sind keine zweite Quelle.</p>
-<p>Die Specs-Leseansicht folgt dem Aufbau des UI-Elemente-Katalogs: Titel und
-Einleitung als Kopf, je <code>##</code>-Kapitel ein Abschnitt mit Navigationseintrag und je
-<code>###</code>-Unterabschnitt eine Karte; Kapitel ohne Unterabschnitte bilden eine breite
-Karte. Die Suche der Seitenleiste filtert Karten, die Inhaltsnavigation führt je
-Kapitel einen Eintrag. Anker behalten das Schema
-<code>specs--&lt;Überschrift&gt;</code>. Die ergänzende Codeumfang-Grafik am Ende wird aus den
-Quellen neu berechnet und verwendet den produktiven <code>StatTile</code> mit einer Bereichstabelle. Sie zählt nichtleere Zeilen
-einschließlich Kommentaren in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>,
-ohne Tests, Typdeklarationen und generierte Datenbanktypen. Bildschirmdateien
-werden den Produktbereichen zugeordnet, übriger Code zählt gemeinsam;
-die Tabelle zeigt nur die Bildschirmanteile, keine Performance oder Komplexität.</p>
-<h2 id="readme--ergänzende-analysen-und-nachweise" class="core-heading-2" tabindex="-1">Ergänzende Analysen und Nachweise <a class="docs-anchor" href="#readme--ergänzende-analysen-und-nachweise" aria-label="Link zu Ergänzende Analysen und Nachweise">#</a></h2>
-<p>Der Maskottchen-Vorrat mit 37 SVG-Motiven als einzelne, offline nutzbare
-HTML-Dateien ist ein lokales Gestaltungswerkzeug und nicht Teil von Repository
-oder Deployment: <code>npm run mascots:build</code> erzeugt ihn aus dem Motivregister und
-der gemeinsamen <code>BrainMascot</code>-Komponente unter <code>output/mascots/</code>. Das App-Logo
-<code>public/core-brain.svg</code> entsteht in <code>docs:build</code> aus derselben Palette;
-<code>check:docs</code> prüft seinen Stand.</p>
-<p>Diese Dokumente ergänzen die Rollenquellen, konkurrieren aber nicht mit ihnen:</p>
+<p>Technische Einstiege außerhalb von <code>docs/</code>:
+<a href="../AGENTS.md"><code>AGENTS.md</code></a> (Regeln für Coding-Agenten),
+<a href="../src/ui/README.md"><code>src/ui/README.md</code></a> (UI-Bausteine),
+<a href="../src/screens/README.md"><code>src/screens/README.md</code></a> (Screen-Landkarte),
+<a href="../supabase/migrations/20261030103636_kartenmodell_baseline.sql"><code>supabase/migrations/</code></a>
+(Schemabaseline) und <a href="../supabase/verify_schema_v1.sql"><code>supabase/verify_schema_v1.sql</code></a>
+(Struktur-, RLS- und Policy-Gate).</p>
+<h2 id="readme--pflege" class="core-heading-2" tabindex="-1">Pflege <a class="docs-anchor" href="#readme--pflege" aria-label="Link zu Pflege">#</a></h2>
+<ol>
+<li>Eine Änderung nur in der Quelle ihrer Rolle vornehmen; andere Dokumente verlinken.</li>
+<li>UI-Änderungen in den App-Quellen umsetzen und die betroffenen Demos in
+<code>scripts/uiCatalogDemos.tsx</code> bzw. <code>scripts/uiCatalogPatterns.html</code> mitziehen.</li>
+<li><code>npm run docs:build</code> erzeugt die Leseseiten, <code>npm run check:docs</code> prüft
+Quellenstand, Verweise, Journey-Regeln und die Zuordnung aller exportierten
+UI-Komponenten zu Demos. HTML-Dateien nie direkt bearbeiten.</li>
+<li>Sichtbare Änderungen nach der
+<a href="test-portfolio.md#visuelle-pflichtmatrix">visuellen Pflichtmatrix</a> ansehen;
+ein technischer Check ersetzt das nicht.</li>
+</ol>
 <ul>
-<li><a href="test-portfolio.md"><code>test-portfolio.md</code></a>: ausführbare Testkategorien, Produktverträge und CI-/Release-Gates.</li>
-<li><a href="anki-format-analysis.md"><code>anki-format-analysis.md</code></a>: technische Referenz zu Anki/APKG, Templates, Medien, Inhalten und Karten.</li>
-<li><a href="file-naming-conventions.md"><code>file-naming-conventions.md</code></a>: Dateinamensregeln.</li>
-<li><a href="ui-elements.html"><code>ui-elements.html</code></a>: direkt aus produktiven Komponenten erzeugte Demos plus lokale Markup-Muster. Jedes Format und jede Variante erscheint genau einmal; Erklärungen gehören in die Specs. Dialoge wie Kartenvorschau oder Lerneinstellungen öffnen sich direkt, ganze Produktansichten nicht. Echte Screens mit lokalen Beispieldaten öffnet ausschließlich <code>ui-elements.html?preview=&lt;name&gt;</code> (etwa <code>dashboard</code>, <code>exams</code>, <code>decks</code>, <code>summaries</code>, <code>mindmaps</code>) als Gerüst der Katalog-Browsertests.</li>
-<li><a href="card-types.html"><code>card-types.html</code></a>: interaktive Referenz der Kartenbausteine mit ihrem Erstellungsweg.</li>
+<li>Erledigtes verschwindet aus <code>todo.md</code>; Details stehen in Commit und Pull
+Request, Production- und Datenbankschritte als Betriebsnachweis in <code>history.md</code>.</li>
+<li>Offene Gestaltungsvarianten werden per <code>visual-ab-review</code> als temporäre
+Vergleichsseite vorgelegt und danach gelöscht.</li>
+<li>Historische Roadmaps, Audits und Zwischenstände bleiben nur in Git.</li>
+<li><code>npm run mascots:build</code> erzeugt den lokalen Maskottchen-Vorrat unter
+<code>output/mascots/</code> (nicht im Repository); das App-Logo entsteht in <code>docs:build</code>.</li>
 </ul>
-<h2 id="readme--technische-einstiegspunkte" class="core-heading-2" tabindex="-1">Technische Einstiegspunkte <a class="docs-anchor" href="#readme--technische-einstiegspunkte" aria-label="Link zu Technische Einstiegspunkte">#</a></h2>
+<h2 id="readme--wann-ein-adr-entsteht" class="core-heading-2" tabindex="-1">Wann ein ADR entsteht <a class="docs-anchor" href="#readme--wann-ein-adr-entsteht" aria-label="Link zu Wann ein ADR entsteht">#</a></h2>
+<p>Nur wenn alle drei Punkte zutreffen:</p>
 <ul>
-<li><a href="../AGENTS.md"><code>../AGENTS.md</code></a>: Arbeitsregeln, Architekturgrenzen und Validierung für Coding-Agenten.</li>
-<li><a href="../src/screens/README.md"><code>../src/screens/README.md</code></a>: Screen-Landkarte.</li>
-<li><a href="../supabase/migrations/20261030103636_kartenmodell_baseline.sql"><code>../supabase/migrations/20261030103636_kartenmodell_baseline.sql</code></a>: einzige Pre-Release-Schemabaseline (Kartenmodell <code>Note</code>/<code>Card</code>); spätere Migrationen im selben Ordner bauen darauf auf.</li>
-<li><a href="../supabase/verify_schema_v1.sql"><code>../supabase/verify_schema_v1.sql</code></a>: ausführbares Struktur-, RLS- und Policy-Gate.</li>
-</ul>
-<h2 id="readme--entscheidungen" class="core-heading-2" tabindex="-1">Entscheidungen <a class="docs-anchor" href="#readme--entscheidungen" aria-label="Link zu Entscheidungen">#</a></h2>
-<p>Ein ADR in <a href="decisions.md"><code>decisions.md</code></a> entsteht nur, wenn alle drei Punkte zutreffen:</p>
-<ul>
-<li>Die Entscheidung betrifft mehrere Module oder Produktbereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).</li>
-<li>Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen und Abwägungen betrifft.</li>
+<li>Die Entscheidung betrifft mehrere Module oder Bereiche oder ist schwer umkehrbar (Datenmodell, Persistenz, Sicherheit, Anbieter, Kosten, Datenschutz).</li>
+<li>Ihr Grund steht weder im Code noch in den Specs, weil er Alternativen abwägt.</li>
 <li>Ohne Festhalten würde sie wahrscheinlich erneut diskutiert oder versehentlich umgekehrt.</li>
 </ul>
-<p>Nicht in ADRs gehören Layout- und Bedienregeln (<code>specs.md</code>, <code>src/ui/README.md</code>), Modulzuständigkeiten (<code>architecture.md</code>), offene Schritte (<code>todo.md</code>) und Verlauf (<code>history.md</code>, Git). Ändert sich eine Entscheidung, wird ihr Text aktualisiert statt eine Kette aus „teilweise abgelöst durch …“ zu bilden; eine aufgehobene Entscheidung wird gelöscht. Nummern bleiben stabil und werden nicht neu vergeben.</p>
-<h2 id="readme--inventarregeln" class="core-heading-2" tabindex="-1">Inventarregeln <a class="docs-anchor" href="#readme--inventarregeln" aria-label="Link zu Inventarregeln">#</a></h2>
-<ul>
-<li><code>docs/todo.md</code> ist die einzige TODO-Markdown-Datei.</li>
-<li>Neue offene Arbeit wird nur dort eingetragen.</li>
-<li>Abgeschlossene Arbeit wird aus dem TODO entfernt und datiert in <code>history.md</code> dokumentiert.</li>
-<li>Historische Roadmaps, Audits und Recherchezwischenstände bleiben über Git erhalten und werden nicht als parallele Dokumente fortgeführt.</li>
-<li>Eine Vertragsänderung wird nur in der Quelle ihrer Rolle vorgenommen; andere Dokumente verlinken darauf.</li>
-<li>Aufgehobene Entscheidungen werden aus <code>decisions.md</code> gelöscht; Git bewahrt sie. Datierte Nachweise in <code>history.md</code> definieren keinen heutigen Produktvertrag.</li>
-</ul>
+<p>Ändert sich eine Entscheidung, wird ihr Text aktualisiert; eine aufgehobene wird
+gelöscht. Nummern bleiben stabil.</p>
 </article></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {

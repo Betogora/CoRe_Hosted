@@ -43,9 +43,11 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .docs-source { color: var(--core-text-muted); font-size: var(--core-type-caption); line-height: var(--core-leading-caption); margin-bottom: var(--core-space-lg); }
 [id] { scroll-margin-top: var(--core-space-xl); }
 .docs-journey { border-top: var(--core-border-width) solid var(--core-border); margin-bottom: var(--core-space-xl); }
-.docs-journey-flow { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: var(--core-space-xl); align-items: start; }
-.docs-journey-flow pre { margin: 0; padding: var(--core-space-md); }
-.mermaid svg { max-width: 100%; height: auto; }
+/* Journey-Ablauf als Schrittkette: nummerierte Karten mit Pfeilen, schmal untereinander. */
+.docs-flow { --docs-flow-gap: 2rem; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: var(--docs-flow-gap); margin: var(--core-space-md) 0 var(--core-space-xl); padding: 0; list-style: none; }
+.docs-flow-step { position: relative; display: flex; align-items: center; gap: var(--core-space-sm); min-width: 0; padding: var(--core-space-md); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); background: var(--core-surface); box-shadow: var(--core-shadow-soft); font-size: var(--core-type-body); line-height: var(--core-leading-body); font-weight: var(--core-weight-control); }
+.docs-flow-step:not(:last-child)::after { content: ""; position: absolute; top: 50%; left: calc(100% + var(--docs-flow-gap) / 2); width: 1.125rem; height: 1.125rem; translate: -50% -50%; background: var(--core-text-muted); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14'/%3E%3Cpath d='m12 5 7 7-7 7'/%3E%3C/svg%3E") center / contain no-repeat; }
+.docs-flow-number { display: inline-grid; flex: none; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: var(--core-radius-round); background: var(--core-action-primary); color: var(--core-text-on-accent); font-size: var(--core-type-caption); font-weight: var(--core-weight-emphasis); }
 .docs-code-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--core-space-md); }
 .docs-code-chart { margin: var(--core-space-xl) 0; }
 .docs-code-dot { display: inline-block; width: var(--core-space-sm); height: var(--core-space-sm); border-radius: var(--core-radius-round); margin-right: var(--core-space-sm); }
@@ -85,7 +87,8 @@ body { margin: 0; color: var(--core-text); background: var(--core-canvas); font:
 .specs-prose .catalog-label { margin: var(--core-space-lg) 0 var(--core-space-sm); }
 .specs-prose .docs-code-chart { margin-bottom: var(--core-space-lg); }
 @media (max-width: 1279px) {
-  .docs-journey-flow { grid-template-columns: 1fr; }
+  .docs-flow { --docs-flow-gap: 1.75rem; grid-auto-flow: row; }
+  .docs-flow-step:not(:last-child)::after { top: calc(100% + var(--docs-flow-gap) / 2); left: 50%; rotate: 90deg; }
 }
 /* Schmal steht die Seitenleiste oben im Fluss; Seiten und Inhalt laufen als waagerechte Leisten. */
 @media (max-width: 1050px) {
