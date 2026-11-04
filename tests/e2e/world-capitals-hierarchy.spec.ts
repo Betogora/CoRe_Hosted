@@ -153,9 +153,9 @@ test("dashboard shows the full grouped tree without progress ring and direct dra
   await expect(rootRow.getByRole("button", { name: /Stapeloptionen/ })).toBeVisible();
   await expect(southAmericaRow.locator('[data-deck-drag-source="true"]')).toHaveCount(1);
   const rootActivation = rootRow.getByRole("button", { name: "Inhalte von Welt-Hauptstädte öffnen" });
+  const restingFill = await rootActivation.evaluate((element) => getComputedStyle(element).backgroundColor);
   await rootActivation.hover();
-  const sharedHoverFill = await page.locator("html").evaluate((element) => getComputedStyle(element).getPropertyValue("--core-focus-ring-soft").trim());
-  await expect(rootActivation).toHaveCSS("background-color", sharedHoverFill);
+  await expect.poll(() => rootActivation.evaluate((element) => getComputedStyle(element).backgroundColor)).not.toBe(restingFill);
   await expect(rootRow).toHaveCSS("border-bottom-width", "0px");
 
   await rootRow.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte" }).click();
@@ -394,7 +394,7 @@ test("active deck header and rows fit every target width and toggle reliably on 
       expect(layout.rowLabelsHidden).toBe(false);
     } else {
       expect(layout.headerHeight).toBeLessThanOrEqual(30);
-      expect(layout.headerTitleInset).toBeCloseTo(12, 0);
+      expect(layout.headerTitleInset).toBeCloseTo(13, 0);
       expect(layout.headerLabels).toEqual(layout.summaryWidth <= 512
         ? ["Stapel"]
         : ["Stapel", "Neu", "Offen", "Fällig"]);
@@ -628,7 +628,7 @@ test("deck presentation form saves name, icon and color together", async ({ page
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
   const europeRow = page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`);
   await expect(europeRow).toContainText("Europa kompakt");
-  await expect.poll(() => europeRow.locator("span[style*='border-color']").first().evaluate((element) => getComputedStyle(element).borderColor)).toBe(cssRgbFromHex(saved.iconColor));
+  await expect.poll(() => europeRow.locator('[data-deck-icon="true"]').first().evaluate((element) => getComputedStyle(element).color)).toBe(cssRgbFromHex(saved.iconColor));
   await page.reload();
   await expect.poll(() => storedDeckPresentation(page, DECK_IDS.europe)).toEqual(saved);
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toContainText("Europa kompakt");

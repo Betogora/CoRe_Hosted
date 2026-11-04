@@ -174,6 +174,16 @@ Aus dem Karteneditor V2 (ADR-045) ausgeklammert:
   dem Lernbereich. Prüfungsthemen über Tags als Antwort auf die offene
   Themenzuordnung in ungegliederten Stapeln.
 
+Zu klären:
+
+- Zeilenhöhe der Kartentabelle: Seit der ToolBox-Designsprache (ADR-046) sind
+  Karten- und Kopfzeilen etwa 40 px hoch, der Vertrag „Karten- und
+  Stapelzeilen bleiben auch in schmalen Viewports kompakt“ in
+  `tests/e2e/navigation-context.spec.ts` erwartet höchstens 30 px und schlägt
+  im Nightly fehl. Mit der Überarbeitung entscheiden: kompakte Zeilen für mehr
+  sichtbare Karten oder die ruhigere Höhe der Stapelzeilen; danach Test oder
+  Layout angleichen.
+
 ### Anki-Austausch nach dem Karteneditor V2
 
 - Stapel-Export als `.apkg`. Dabei `marked`, `leech` und Flaggen
