@@ -1000,7 +1000,7 @@ test("a card moved out of the opened deck, moved back and duplicated stays reach
   const toast = page.locator('[data-success-toast-region="true"]');
   await expect(toast).toContainText("Karte nach „Asien“ verschoben.");
   await toast.getByRole("button", { name: "Rückgängig" }).click();
-  await expect(editor.getByTestId("card-deck")).toContainText("Europa kompakt");
+  await expect(editor.getByTestId("card-deck").getByText("Europa", { exact: true })).toBeVisible();
   await expect.poll(async () => Boolean(await storedCard(page, DECK_IDS.europe, "card_world_capitals_alb"))).toBe(true);
 
   await editor.getByRole("button", { name: "Duplizieren", exact: true }).click();
