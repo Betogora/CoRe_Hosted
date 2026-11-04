@@ -246,13 +246,13 @@ test("Suchtexte kommen zuletzt in jeder Delta-Seite und schließen sie ab", asyn
     },
   });
   const pages: Array<{ table: string; entities: unknown[]; advanceCursor?: boolean }> = [];
-  const cursor = await streamAccountCatalogChanges(delta([{ note_id: "note-1", search_text: "Herz MUSKEL", deleted_at: null, sync_change_id: 9 }]), 0, async (page) => {
+  const cursor = await streamAccountCatalogChanges(delta([{ note_id: "note-1", search_text: "Herz MUSKEL", search_fields: [{ n: "vorderseite", t: "Herz" }], deleted_at: null, sync_change_id: 9 }]), 0, async (page) => {
     pages.push(page);
   });
 
   assert.equal(cursor, 9);
   assert.deepEqual(pages.map((page) => page.table), ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"]);
-  assert.deepEqual(pages.at(-1), { table: "note_search", entities: [{ noteId: "note-1", searchText: "herz muskel", deletedAt: null }], reset: false, cursor: 9, advanceCursor: true });
+  assert.deepEqual(pages.at(-1), { table: "note_search", entities: [{ noteId: "note-1", searchText: "herz muskel", searchFields: [{ name: "vorderseite", text: "herz" }], deletedAt: null }], reset: false, cursor: 9, advanceCursor: true });
   assert.ok(pages.slice(0, -1).every((page) => page.advanceCursor === false));
   await assert.rejects(streamAccountCatalogChanges(delta([{ note_id: "note-1" }]), 0, async () => undefined), /Suchtexte/);
 });

@@ -518,6 +518,7 @@ export type Database = {
         Row: {
           deleted_at: string | null
           note_id: string
+          search_fields: Json
           search_text: string
           sync_change_id: number
           updated_at: string
@@ -526,6 +527,7 @@ export type Database = {
         Insert: {
           deleted_at?: string | null
           note_id: string
+          search_fields?: Json
           search_text?: string
           sync_change_id?: number
           updated_at?: string
@@ -534,6 +536,7 @@ export type Database = {
         Update: {
           deleted_at?: string | null
           note_id?: string
+          search_fields?: Json
           search_text?: string
           sync_change_id?: number
           updated_at?: string
@@ -656,6 +659,7 @@ export type Database = {
           media: Json
           note_type_source_id: string | null
           revision: number
+          search_fields: Json
           search_text: string
           sort_text: string
           source: string
@@ -678,6 +682,7 @@ export type Database = {
           media?: Json
           note_type_source_id?: string | null
           revision?: number
+          search_fields?: Json
           search_text?: string
           sort_text?: string
           source: string
@@ -700,6 +705,7 @@ export type Database = {
           media?: Json
           note_type_source_id?: string | null
           revision?: number
+          search_fields?: Json
           search_text?: string
           sort_text?: string
           source?: string

@@ -54,3 +54,18 @@ test("Nicht unterstützte Anki-Begriffe werden benannt, normaler Text mit Doppel
   assert.deepEqual(unsupportedCardSearchTerms("is:due -deck:Physik flag:9 prop:ivl>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended"), ["is:due", "-deck:Physik", "flag:9", "prop:ivl>3"]);
   assert.deepEqual(unsupportedCardSearchTerms(""), []);
 });
+
+test("Feld:Text sucht nur im genannten Feld, verneint auch außerhalb", () => {
+  const search = parseCardSearchQuery("Ursprung:Scaleni -Back_Extra:merke muskel");
+  assert.deepEqual(search, {
+    text: "muskel",
+    terms: [
+      { kind: "field", name: "ursprung", value: "scaleni", negated: false },
+      { kind: "field", name: "back_extra", value: "merke", negated: true },
+    ],
+  });
+  const card = { ...entry(), normalizedSearchText: "muskel scaleni", searchFields: [{ name: "ursprung", text: "mm. scaleni" }, { name: "back_extra", text: "nichts" }] };
+  assert.equal(matchesCardSearch(card, search), true);
+  assert.equal(matchesCardSearch({ ...card, searchFields: [{ name: "ansatz", text: "mm. scaleni" }] }, search), false, "anderes Feld");
+  assert.equal(matchesCardSearch({ ...card, searchFields: undefined }, parseCardSearchQuery("ursprung:scaleni")), false, "ohne Feldtexte kein Treffer");
+});

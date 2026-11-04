@@ -55,7 +55,7 @@ const CARD_STUDY_FIELDS = [
 ];
 const TECHNICAL_CONTENT_FIELDS_BY_TABLE: Record<string, Set<string>> = {
   decks: new Set(["hierarchy_path"]),
-  notes: new Set(["search_text", "sort_text"]),
+  notes: new Set(["search_text", "search_fields", "sort_text"]),
   cards: new Set(CARD_STUDY_FIELDS),
   card_variants: new Set(["performance", "content_hash"]),
 };
@@ -83,6 +83,7 @@ const CONFLICT_PROTECTED_FIELDS = new Set([
   "model_run_id",
   "hierarchy_path",
   "search_text",
+  "search_fields",
   "sort_text",
   "performance",
   "content_hash",
@@ -950,6 +951,7 @@ function noteToCloudRow(note: Note, userId: string) {
     content: note.content,
     media: note.media ?? {},
     search_text: text.searchText,
+    search_fields: text.searchFields.map((field) => ({ n: field.name, t: field.text })),
     sort_text: text.sortText,
     source: note.source,
     anki_guid: note.ankiGuid,

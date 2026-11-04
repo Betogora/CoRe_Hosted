@@ -626,8 +626,13 @@ test("die Suche folgt Katalogänderungen nach ihrem ersten Aufbau", async () => 
   const [entry] = (await repository.listCatalogPage("deck-idb", { query: "frage 1" })).items;
   await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [{ ...entry, deletedAt: CREATED_AT }], reset: false, cursor: 1 });
   assert.deepEqual(await search(), []);
-  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: "note-2", searchText: "frage 2 über frage 1 hinaus", deletedAt: null }], reset: false, cursor: 2 });
+  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: "note-2", searchText: "frage 2 über frage 1 hinaus", searchFields: [{ name: "vorderseite", text: "frage 2" }], deletedAt: null }], reset: false, cursor: 2 });
   assert.deepEqual(await search(), ["card-2"], "der replizierte Volltext gilt für alle Karten des Inhalts");
+  const fieldSearch = (query: string) => repository.listCatalogPage("deck-idb", { query }).then((page) => page.items.map((entry) => entry.id));
+  assert.deepEqual(await fieldSearch("vorderseite:2"), ["card-2"], "Feldtexte kommen mit dem replizierten Suchtext");
+  assert.deepEqual(await fieldSearch("vorderseite:hinaus"), [], "Feldsuche prüft nur das genannte Feld");
+  assert.deepEqual(await fieldSearch("rückseite:antwort"), ["card-0"], "ein lokaler Inhalt bringt seine Feldtexte selbst mit");
+  assert.deepEqual(await fieldSearch("-vorderseite:2 frage"), ["card-0"]);
   repository.close();
 });
 

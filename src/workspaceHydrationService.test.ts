@@ -549,7 +549,7 @@ test("ein vollständiger Katalog sucht lokal im Volltext aus note_search, ohne C
   const local = graph("deck-full", "full", "Kurz", CREATED_AT);
   const deck = createCoreDeck({ id: "deck-full", ownerId: userId, name: "Voll", source: "manual", cards: local.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
-  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: local.note.id, searchText: "kurz mit innervation durch den nervus accessorius", deletedAt: null }], reset: false, cursor: 2 });
+  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: local.note.id, searchText: "kurz mit innervation durch den nervus accessorius", searchFields: [], deletedAt: null }], reset: false, cursor: 2 });
   await repository.completeCatalogReconciliation(2);
   const service = createWorkspaceHydrationService({
     repository,
@@ -562,5 +562,32 @@ test("ein vollständiger Katalog sucht lokal im Volltext aus note_search, ohne C
   assert.deepEqual(page.items.map((entry) => entry.id), local.cards.map((card) => card.id));
   assert.equal(page.totalCount, local.cards.length);
   assert.equal(page.limitedToLocalCatalog, false);
+  repository.close();
+});
+
+test("ohne replizierte Suchtexte sucht auch ein vollständiger Katalog in der Cloud", async () => {
+  const userId = randomUUID();
+  const local = graph("deck-old-server", "old", "Kurz", CREATED_AT);
+  const deck = createCoreDeck({ id: "deck-old-server", ownerId: userId, name: "Alt", source: "manual", cards: local.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  // A server without note_search: the delta brings catalog rows but no texts.
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
+  await repository.completeCatalogReconciliation(1);
+  assert.equal(repository.getReplicaStatus().searchTextsReady, false);
+  const calls: string[] = [];
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: {
+      async rpc(name: string) {
+        calls.push(name);
+        return { data: { groups: {} }, error: null };
+      },
+    },
+  });
+
+  await withNavigator({ onLine: true }, () => service.queryCardPage({ deckId: deck.id, query: "accessorius", page: 0, pageSize: 50 }));
+
+  assert.deepEqual(calls, ["search_account_card_catalog"]);
   repository.close();
 });

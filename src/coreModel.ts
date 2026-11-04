@@ -32,6 +32,7 @@ export {
   createBasicNote,
   createNote,
   duplicateNote,
+  fieldSearchKey,
   noteTextIndex,
   planNoteContentChange,
   planNoteDeletion,

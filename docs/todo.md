@@ -168,32 +168,6 @@ Referenz gelesen.
   Option „Reschedule cards based on my answers“) und `Nur üben` ohne
   Planänderung (Ankis Vorschaumodus).
 
-- [ ] **KV1 – Suchkern und Performance:** Lokale Volltextsuche über
-      `note_search` und `catalogSearchIndex.ts` steht (ADR-048). Offen:
-      - **Release-Reihenfolge:** Migration `20261104220000_kartensuche_volltext`
-        vor dem Client auf dem gehosteten Projekt ausrollen; sonst gilt ein
-        Katalog ohne Texte als vollständig.
-      - **Budgets** (synthetisches Konto mit 50.000 Karten, in
-        `performance:measure:local`): Eingabe bis Treffer höchstens 100 ms
-        (p95, lokal, Entprellung von 250 auf etwa 120 ms gesenkt); Filterklick
-        höchstens 100 ms; Scrollen ohne lange Tasks über 50 ms; Editor öffnen
-        höchstens 150 ms bei lokalem Kartenkörper; Massenaktion über 1.000
-        Karten lokal höchstens 1 s, Sync im Hintergrund. Die Indexladung
-        (heute rund 40 µs je Zeile aus IndexedDB, also etwa 2 s für 50.000
-        Zeilen in Stapeln zu 1.000) darf keinen langen Task erzeugen.
-      - **Feldsuche:** `note_search` erhält die Feldtexte je Inhalt (Feldname
-        normalisiert, je Feld höchstens 4.000 Zeichen); `Feld:Text` prüft nach
-        dem Volltextvorfilter nur die Kandidaten. Cloud: Vorfilter über den
-        Trigramm-Index auf `notes.search_text`, danach Prüfung der Feldtexte.
-      - **Cloud bei unvollständigem Katalog:** Eine RPC liefert IDs und
-        Sortwerte per Keyset ohne Fensterzählung je Stapel, die Gesamtzahl
-        getrennt und gedeckelt („über 1.000“); vorher `EXPLAIN ANALYZE` des
-        3,6-s-Falls. Ersetzt `search_account_card_catalog`.
-      - **Ein Suchmodell** für die Syntax aus KV2: `cardSearchQuery.ts` parst
-        Suchfeld, Chips, Menü und gespeicherte Suchen in denselben Ausdruck;
-        lokale und Cloud-Auswertung haben Paritätstests.
-      Nachweis: Budgets in zwei grünen Läufen, Paritätstests lokal/Cloud,
-      `test:rls:local`, `db:types:check`.
 - [ ] **KV2 – Suchzeile und erweiterte Suche:**
       - **Suchzeile** (einzeilig): Suchfeld etwa halbe Breite, Stapelfilter
         (Baum, Unterstapel eingeschlossen), rechts `Erweiterte Suche` mit
@@ -222,10 +196,16 @@ Referenz gelesen.
         Symbol blendet seine Farbe gleich über und wächst auf 108 %. Nur
         `transform` und Farben animieren, damit läuft der Übergang mit der
         Bildrate des Geräts. Katalogdemo mit allen drei Stellungen.
-      - **Suchsyntax:** Freitext, `"Phrase"`, `-`, `or`, Klammern, `Feld:Text`,
-        `deck:`, `tag:`, `flag:`, `is:new|learn|review|due|suspended|buried`,
-        `added:`, `edited:`, `rated:n[:Bewertung]`, `introduced:`, `resched:`,
-        `prop:` mit Vergleich, `has:variant`; keine regulären Ausdrücke.
+      - **Suchsyntax:** Freitext, `"Phrase"`, `-`, `or`, Klammern,
+        `deck:`, `is:new|learn|review|due|buried`, `added:`, `edited:`,
+        `rated:n[:Bewertung]`, `introduced:`, `resched:`, `prop:` mit
+        Vergleich, `has:variant`; keine regulären Ausdrücke. `Feld:Text`,
+        `flag:`, `tag:`, `tag:none`, `tag:leech`, `tag:marked` und
+        `is:suspended` gibt es schon (ADR-048).
+      - **Ein Suchmodell:** `cardSearchQuery.ts` parst Suchfeld, Chips, Menü
+        und gespeicherte Suchen in denselben Ausdruck; jeder neue Begriff wird
+        lokal (`matchesCardSearch`) und in den beiden Cloud-RPCs gleich
+        ausgewertet, mit Paritätstests und erweitertem `benchmark:search`.
       - **Gespeicherte Suchen:** kontogebunden und synchronisiert. `Speichern`
         legt oben eine Zeile mit Namensfeld an; ein Klick wendet die Suche
         an, dazu Umbenennen und Löschen. Braucht eine Schemaergänzung.
@@ -239,7 +219,8 @@ Referenz gelesen.
       Seitennavigation entfällt. Flach zeigt die Trefferzahl und den
       Stapelpfad; Vor/Zurück im Editor läuft über alle Treffer. Mobil
       zweizeilige Zeilen mit Datum rechts.
-      Nachweis: Scrolltest mit 50.000 Karten im Budget, Pflichtmatrix.
+      Nachweis: Scrolltest mit 50.000 Karten ohne lange Tasks über 50 ms,
+      Pflichtmatrix.
 - [ ] **KV4 – Mehrfachauswahl und Massenaktionen:** Auswahl per Kontrollkästchen,
       Umschalt- und Strg-Klick, `Alle N Treffer auswählen`, mobil Langdrücken;
       eine Auswahlleiste nennt die Anzahl. Aktionen: Stapel ändern, Tags
@@ -251,7 +232,8 @@ Referenz gelesen.
       gebündelt und ist als neue Änderung rückgängig zu machen; zwischenzeitlich
       geänderte Karten meldet der Toast.
       Nachweis: Modelltests je Aktion samt Rückgängig, Konflikt- und
-      Offline-Fälle, E2E einer Massenaktion, Budget 1.000 Karten.
+      Offline-Fälle, E2E einer Massenaktion; 1.000 Karten lokal in höchstens
+      1 s, Sync im Hintergrund.
 - [ ] **KV5 – Inhalte pflegen:**
       - **Suchen und Ersetzen:** in allen Feldern, einem Feld oder Tags, für
         Auswahl oder alle Treffer, wörtlich, mit Groß-/Kleinschreibung und Vorschau der
@@ -293,7 +275,8 @@ Referenz gelesen.
       Scrollposition. Tastenkürzel für Suche, Bewegen und Öffnen, Auswahl,
       Flagge, Markieren, Aussetzen, Stapel, Tags, Löschen und Rückgängig, ohne
       Browser-Kürzel zu überschreiben; Tooltips nennen sie.
-      Nachweis: Tastaturtests, Pflichtmatrix bei 1280 und 1440 px.
+      Nachweis: Tastaturtests, Pflichtmatrix bei 1280 und 1440 px; Editor
+      öffnet bei lokalem Kartenkörper in höchstens 150 ms.
 - [ ] **Abschluss:** `specs.md` §5.3 und §6, `architecture.md` (Suchindex,
       Massenaktionen), ADR zu Suchmodell und Cutover, Hilfeseite.
 

@@ -276,6 +276,8 @@ export function writeState(database: IDBDatabase, state: WorkspaceState): Promis
       catalogCompleteness: state.decks.some((deck) => deck.cards.length > 0) ? "complete" : "empty",
       catalogCursor: 0,
       catalogServerCursor: 0,
+      // Catalog rows written from local contents carry their full text.
+      searchTextsReady: true,
     } satisfies ReplicaStatus,
   });
   return transactionDone(transaction);

@@ -40,6 +40,7 @@ import {
   type DeckStudySummary,
   type NoteGraph,
   type NoteSearchEntry,
+  type NoteSearchField,
   type OfflineCardManifestEntry,
   type OfflineDeckRecord,
   type OfflineMediaManifestEntry,
@@ -527,12 +528,11 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           continue;
         }
         const searchText = entry.searchText.slice(0, 4_000);
-        searchStore.put({ noteId: entry.noteId, searchText });
+        searchStore.put({ noteId: entry.noteId, searchText, searchFields: entry.searchFields });
         // A pending local edit keeps its own, newer text until its upload comes back.
         if (pendingEntityMutation("notes", entry.noteId)) continue;
         for (const row of await requestResult<StoredCardCatalog[]>(catalogStore.index("noteId").getAll(entry.noteId))) {
-          if (row.normalizedSearchText === searchText) continue;
-          catalogStore.put({ ...row, normalizedSearchText: searchText }); markCatalogChanged(row.id);
+          catalogStore.put({ ...row, normalizedSearchText: searchText, searchFields: entry.searchFields }); markCatalogChanged(row.id);
         }
       }
       await transactionDone(transaction);
@@ -567,10 +567,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           continue;
         }
         // Cloud entries carry only the preview; the full text comes from a local content or the replicated note search.
-        const localSearchText = previousCatalog && previousCatalog.noteId === entity.noteId && previousCatalog.dependencyRevision === entity.dependencyRevision
-          ? previousCatalog.normalizedSearchText
-          : (await requestResult<{ searchText: string } | undefined>(searchStore.get(entity.noteId)))?.searchText ?? entity.normalizedSearchText;
-        const catalog = storedCatalogRecord({ ...entity, normalizedSearchText: localSearchText });
+        const keepsLocalText = previousCatalog && previousCatalog.noteId === entity.noteId && previousCatalog.dependencyRevision === entity.dependencyRevision;
+        const replicated = keepsLocalText ? null : await requestResult<{ searchText: string; searchFields?: NoteSearchField[] } | undefined>(searchStore.get(entity.noteId));
+        const catalog = storedCatalogRecord({
+          ...entity,
+          normalizedSearchText: keepsLocalText ? previousCatalog.normalizedSearchText : replicated?.searchText ?? entity.normalizedSearchText,
+          searchFields: keepsLocalText ? previousCatalog.searchFields : replicated?.searchFields,
+        });
         if (previousCatalog && previousCatalog.deckId !== catalog.deckId) {
           await applyReplicaCatalogChange(transaction, previousCatalog.deckId, previousCatalog, null, referenceAt, !page.reset);
         }
@@ -1161,9 +1164,16 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     setAccountBaselineState(state: AccountBaselineState, serverCatalogCursor = replicaStatus.catalogServerCursor) {
       return persistReplicaStatus({ accountBaselineState: state, catalogServerCursor: Math.max(0, serverCatalogCursor) });
     },
-    completeCatalogReconciliation(serverCatalogCursor = replicaStatus.catalogCursor) {
+    async completeCatalogReconciliation(serverCatalogCursor = replicaStatus.catalogCursor) {
+      await writeChain;
+      const transaction = database.transaction([STORE.cardCatalog, STORE.noteSearch], "readonly");
+      const [catalogRows, searchTexts] = await Promise.all([
+        requestResult(transaction.objectStore(STORE.cardCatalog).count()),
+        requestResult(transaction.objectStore(STORE.noteSearch).count()),
+      ]);
       return persistReplicaStatus({
         catalogCompleteness: "complete",
+        searchTextsReady: catalogRows === 0 || searchTexts > 0,
         catalogCursor: Math.max(replicaStatus.catalogCursor, serverCatalogCursor),
         catalogServerCursor: Math.max(replicaStatus.catalogServerCursor, serverCatalogCursor),
       });

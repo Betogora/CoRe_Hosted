@@ -2,12 +2,17 @@ import type { CardCatalogEntry } from "./workspaceReplica.ts";
 
 /**
  * Search terms in Anki notation: `flag:1`, `tag:herz` (also finds `herz::*`), `tag:none`, `tag:leech`,
- * `tag:marked`, `is:suspended`; a leading `-` negates a term. All terms must match.
+ * `tag:marked`, `is:suspended` and `Feld:Text` for text in one named field; a leading `-` negates a term.
+ * All terms must match.
  */
 type CardSearchTerm =
   | { kind: "flag"; value: number; negated: boolean }
   | { kind: "tag"; value: string; negated: boolean }
+  | { kind: "field"; name: string; value: string; negated: boolean }
   | { kind: "tag-none" | "leech" | "marked" | "suspended"; negated: boolean };
+
+/** Keys of Anki's search syntax; any other `name:text` searches the field of that name. */
+const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
 
 export interface CardSearchQuery {
   /** Remaining words, lower case, matched as one substring of the content text. */
@@ -15,9 +20,13 @@ export interface CardSearchQuery {
   terms: CardSearchTerm[];
 }
 
-type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable">;
+type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable">;
 
 function parseTerm(token: string): CardSearchTerm | null {
+  const field = /^(-?)([\p{L}\p{N}_]+):(.+)$/u.exec(token);
+  if (field && !ANKI_SEARCH_KEYS.has(field[2].toLowerCase())) {
+    return { kind: "field", name: field[2].toLocaleLowerCase("de"), value: field[3].toLocaleLowerCase("de"), negated: field[1] === "-" };
+  }
   const match = /^(-?)(flag|tag|is):(.+)$/i.exec(token);
   if (!match) return null;
   const negated = match[1] === "-";
@@ -42,8 +51,6 @@ export function parseCardSearchQuery(query: unknown): CardSearchQuery {
   return { text: words.join(" ").toLocaleLowerCase("de"), terms };
 }
 
-const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
-
 /** Terms in Anki notation that CoRe does not understand yet; the search treats them as plain text. */
 export function unsupportedCardSearchTerms(query: unknown): string[] {
   return String(query ?? "").trim().split(/\s+/).filter((token) => {
@@ -56,6 +63,7 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
   switch (term.kind) {
     case "flag": return entry.ankiFlag === term.value;
     case "tag": return entry.tagKeys.includes(term.value);
+    case "field": return Boolean(entry.searchFields?.some((field) => field.name === term.name && field.text.includes(term.value)));
     case "tag-none": return entry.tagKeys.length === 0;
     case "leech": return entry.leeched;
     case "marked": return entry.marked;

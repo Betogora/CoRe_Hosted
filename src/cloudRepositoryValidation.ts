@@ -212,6 +212,7 @@ const deckStudySummarySchema = v.looseObject({
 const noteSearchRowSchema = v.looseObject({
   note_id: v.string(),
   search_text: v.string(),
+  search_fields: v.array(v.object({ n: v.string(), t: v.string() })),
   deleted_at: v.nullable(v.string()),
 });
 const deckStudySummaryRowSchema = v.looseObject({
@@ -566,6 +567,7 @@ export function validateNoteSearchRows(input: unknown): NoteSearchEntry[] {
   return parseRows(noteSearchRowSchema, input, "Cloud-Suchtexte hatten ein ungültiges Format.").map((row) => ({
     noteId: row.note_id,
     searchText: row.search_text.toLocaleLowerCase("de"),
+    searchFields: row.search_fields.map((field) => ({ name: field.n, text: field.t.toLocaleLowerCase("de") })),
     deletedAt: row.deleted_at,
   }));
 }

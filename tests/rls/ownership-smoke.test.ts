@@ -421,6 +421,14 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.ok(searchA.items.some((entry: any) => entry.id === fixtureA.cards.id), "Die Suche findet auch Text der Antwort");
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", catalogRequest), "fremden Kartenkatalog für Nutzer B").items, []);
       const searchRequest = { p_deck_ids: [fixtureA.decks.id], p_query: "antwort a", p_sort_field: "sortField", p_sort_direction: "asc", p_limit: 50 };
+      // `Feld:Text` reads the field texts of note_search, the same data the local search uses.
+      assertNoError(await clientA.from("notes").update({ search_fields: [{ n: "rückseite", t: "antwort a" }] }).eq("id", fixtureA.notes.id), "Feldtexte setzen");
+      const fieldTerm = (name: string) => ({ ...catalogRequest, p_terms: [{ kind: "field", name, value: "antwort", negated: false }] });
+      const fieldHits = assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("rückseite")), "Feldsuche für Nutzer A");
+      assert.ok(fieldHits.items.some((entry: any) => entry.id === fixtureA.cards.id), "Feldsuche findet den Text im genannten Feld");
+      assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("vorderseite")), "Feldsuche im anderen Feld").items, []);
+      const groupedFieldHits = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [{ kind: "field", name: "rückseite", value: "antwort", negated: false }] }), "stapelübergreifende Feldsuche");
+      assert.ok(groupedFieldHits.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id));
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});

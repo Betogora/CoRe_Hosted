@@ -16,10 +16,17 @@ export interface NoteGraph {
  * Per-card list and delta entry. The cloud projection carries no full text; locally written entries
  * search the content text, entries from the cloud catalog search their preview.
  */
+/** Text of one named field for `Feld:Text` searches; `name` is the `fieldSearchKey` of the field name. */
+export interface NoteSearchField {
+  name: string;
+  text: string;
+}
+
 /** Full search text of one content, replicated so a complete local catalog can be searched offline. */
 export interface NoteSearchEntry {
   noteId: string;
   searchText: string;
+  searchFields: NoteSearchField[];
   deletedAt: string | null;
 }
 
@@ -29,6 +36,8 @@ export interface CardCatalogEntry {
   noteId: string;
   frontPreview: string;
   normalizedSearchText: string;
+  /** Field texts of the content; known once its body or its replicated search text is local. */
+  searchFields?: NoteSearchField[];
   sortText: string;
   dueAt: string | null;
   scheduleState: string;
@@ -124,6 +133,11 @@ export interface ReplicaStatus {
   catalogCompleteness: "empty" | "partial" | "complete";
   catalogCursor: number;
   catalogServerCursor: number;
+  /**
+   * The local catalog carries full search texts, so a complete catalog may answer searches itself (ADR-048).
+   * False after a reconciliation without any replicated text, e.g. against a server without `note_search`.
+   */
+  searchTextsReady?: boolean;
 }
 
 export interface CatalogPageRequest {
@@ -221,6 +235,7 @@ export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalog
     noteId: card.noteId,
     frontPreview: preview.slice(0, 240),
     normalizedSearchText: text?.searchText ?? preview.toLocaleLowerCase("de"),
+    ...(text ? { searchFields: text.searchFields } : {}),
     sortText: preview.toLocaleLowerCase("de").slice(0, 128),
     dueAt: card.study.dueAt,
     scheduleState: card.study.state,
