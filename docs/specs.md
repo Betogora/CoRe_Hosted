@@ -87,6 +87,7 @@ Akzeptanz:
 - Datenschutztexte versprechen nur technisch wirksames Verhalten.
 - Sync-, Offline- und Konfliktstatus sind ohne Tabellen-, Revisions- oder Geräteterminologie verständlich.
 - Demo-Daten entstehen nur durch eine ausdrückliche Nutzeraktion oder im Entwicklungs-/Testmodus. Die Demo legt Beispielstapel mit neuen Karten ohne Lernhistorie an, zeigt währenddessen ihren Ladezustand, startet bei Mehrfachklick nur einmal und meldet Fehler sichtbar.
+- Die Demo „Welt-Hauptstädte“ fragt mit deutschen Hauptstadtnamen und grammatisch passendem Ländernamen („Hauptstadt der Schweiz“); jeder Kontinent-Unterstapel trägt eine eigene Farbe der Stapelpalette.
 - Die Begrüßung trennt `Willkommen zurück,` vom vollständig umbrechbaren Profilnamen.
 
 #### Tageslernfläche
@@ -163,7 +164,7 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` zeigt die Stapelübersicht als schnellen Sitzungseinstieg; `Lerneinstellungen` öffnet die accountweite Planung unter `/karten-einstellungen`. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel ist der eigene Hauptreiter `Karten` unter `/kartenstapel`.
+`Lernen` zeigt die Stapelübersicht als schnellen Sitzungseinstieg; `Lerneinstellungen` öffnet den Einstellungsdialog im Bereich `Lerntag & Planung`. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel ist der eigene Hauptreiter `Karten` unter `/kartenstapel`.
 
 Akzeptanz:
 
@@ -211,7 +212,7 @@ Akzeptanz:
 #### Stapeloptionen, Verschieben und Löschen
 
 - Jede Stapelgruppe besitzt dasselbe Drei-Punkte-Menü mit Icon, lokalem Namen, CoRe-Modus (`Aus`/`An`), `Einstellungen` und bestätigtem `Verschieben`. `An` öffnet zuerst den Dialog `CoRe für „<Stapel>“ einschalten` (siehe KI-Umformulierungen); `Aus` wirkt sofort. Der Trigger trägt den Tooltip `Stapeloptionen für <lokaler Stapelname>`; sein zugänglicher Name enthält den vollständigen Pfad.
-- Der Bereich `Stapel` in den Stapeleinstellungen bündelt Name, Icon und Farbe sowie `Unterstapel anlegen`, den segmentierten `CoRe-Modus` und `Löschen`. Unterstapel entstehen dort mit vorausgewähltem Elternstapel oder über die Ebenenauswahl des Schnellformulars.
+- Der Bereich `Stapel` in den Stapeleinstellungen bündelt als Zeilen Name, Icon, Farbe, den segmentierten `CoRe-Modus`, bei eingeschaltetem CoRe `Kartenvarianten`, die Lernbremse, `Offline-Nutzung`, `Unterstapel anlegen` und zuletzt `Löschen`. Unterstapel entstehen dort mit vorausgewähltem Elternstapel oder über die Ebenenauswahl des Schnellformulars.
 - In Dashboard und Lernen verschiebt ein Desktop-Drag den vollständigen Baum als direkten Unterstapel des hervorgehobenen Ziels; die Hauptebenen-Zone entfernt die Elternzuordnung. Nach kurzer Bewegungsschwelle reagiert die Zeile direkt auf Maus und Trackpad und hält den Griff auch außerhalb der Zeile.
 - Während des Drags sind Quelle, aktuelles Ziel und Hauptebenen-Zone erkennbar hervorgehoben; es gibt genau eine Hauptebenen-Zone. Gültige Ziele sind als solche erkennbar, ein erfolgreicher Drop klappt das Ziel auf. Selbst-, Nachfahren- und unveränderte Ziele ändern nichts.
 - Ein beendeter Drag löst die Flächenaktion nicht aus. Erfolg, Fehler und No-op werden über eine Live-Region gemeldet; Bestätigung und Rückgängig gibt es dabei nicht. Die Kartenverwaltung, Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
@@ -330,14 +331,14 @@ Akzeptanz:
 
 #### Pomodoro-Timer
 
-- Derselbe ausklappbare Start steht unter `Lerneinstellungen → Fokuswerkzeuge`. Jeder Start ersetzt einen laufenden Countdown.
+- Derselbe ausklappbare Start steht unter `Einstellungen → Fokuswerkzeuge`. Jeder Start ersetzt einen laufenden Countdown.
 - Es gibt accountbezogen genau einen browserlokalen Timer mit realer Endzeit. Er übersteht Navigation, Hintergrund, Reload und weitere Tabs, nutzt aber weder Cloud, Deckdaten noch simulierte Lernzeit.
 - Während des Laufs erscheint der Fortschritt im Review und in der App-Navigation. Beim Ablauf verschwinden die Anzeigen und ein schließbarer Toast meldet `Timer abgelaufen.` Im Dashboard hält `Pause` die verbleibende Zeit an; sie übersteht Reload und Kontowechsel. `Start` setzt sie fort. Während der Pause sind die laufenden Fortschrittsanzeigen ausgeblendet. `Timer zurücksetzen` im Dashboard beendet den Durchlauf auch in Navigation, Review und weiteren Tabs; es löst keine Ablaufmeldung aus. Töne und automatische Pausenzyklen gibt es nicht.
 
 #### Tagesgrenzen, Lerntag und Lernprofile
 
-- `Neue Karten pro Tag` (0–500) und `Wiederholungen pro Tag` (0–2.000) werden nur in den Stapeleinstellungen als Ganzzahlfelder ohne Slider bearbeitet; `Maximales Intervall in Tagen` (30–36.500) ebenso. Eine Änderung des Neulimits hebt einen Tages-Override auf. Ohne bewusste Änderung bleibt die geplante Sitzungsgröße stabil.
-- `Lerneinstellungen → Lerntag & Planung` enthält accountweit den Tagesbeginn (0–23 Uhr), das Vorziehfenster (0–720 Minuten, Standard 20, 0 deaktiviert) und den Wochenrhythmus aus sieben Easy-Days-Stufen (`Normal`, `Weniger`, `Minimal`; sieben gleiche Werte sind neutral). Bei Tagesbeginn 3 gehört 02:59:59 noch zum Vortag. Das Vorziehfenster gilt für Queue und laufende Sitzung aller Stapel. Diese Werte werden weder in Stapel kopiert noch von Lernprofilen verändert.
+- `Neue Karten pro Tag` (0–500) und `Wiederholungen pro Tag` (0–2.000) werden als Ganzzahlfelder ohne Slider bearbeitet, je Stapel in den Stapeleinstellungen und als Standard für neue Stapel in den Lerneinstellungen; `Maximales Intervall` (30–36.500 Tage) ebenso. Eine Änderung des Neulimits hebt einen Tages-Override auf. Ohne bewusste Änderung bleibt die geplante Sitzungsgröße stabil.
+- `Einstellungen → Lerntag & Planung` enthält accountweit den Tagesbeginn (0–23 Uhr), das Vorziehfenster (0–720 Minuten, Standard 20, 0 deaktiviert) und den Wochenrhythmus aus sieben Easy-Days-Stufen, als Tabelle mit einer Zeile je Wochentag und je einer Spalte für `Normal`, `Weniger` und `Minimal` (sieben gleiche Werte sind neutral). Bei Tagesbeginn 3 gehört 02:59:59 noch zum Vortag. Das Vorziehfenster gilt für Queue und laufende Sitzung aller Stapel. Diese Werte werden weder in Stapel kopiert noch von Lernprofilen verändert.
 - Die unveränderlichen Vorlagen `Standard`, `Intensiv` und `Entspannt` setzen neue Karten, tägliche Wiederholungen und maximales Intervall auf `20 / 200 / 1.000`, `30 / 300 / 365` bzw. `10 / 100 / 2.000`, dazu die Position und Sortierung neuer Karten (Alter oder stabiler Lerntagszufall) und die Sortierung fälliger Karten (Überfälligkeit oder Abrufwahrscheinlichkeit).
 - Eigene benannte Lernprofile sind kontoweite Vorlagen in Lern- und Stapeleinstellungen. `Auf diesen Stapel anwenden` kopiert Werte und Herkunftsversion in genau einen Stapel; `Als Standardprofil verwenden` übernimmt sie in den globalen Standard. Es gibt keine Live-Vererbung: Direkte Änderungen machen Stapel bzw. Standard zu `Eigene Einstellungen`; Umbenennen, Aktualisieren oder bestätigtes Löschen ändert keinen Stapel; eine neuere Version wird an älteren Kopien sichtbar und kann erneut angewandt werden.
 - `Tagesrunde & Lernprofile` und `Scheduler & CoRe` definieren den Standard für neue Stapel: Tageslimits, Kartenreihenfolge, Schedulerprofil, Haltbarkeitsschwelle für Varianten und aktive Varianten. `Auf alle neuen Stapel anwenden` speichert nur den Standard; `Auf alle Stapel anwenden` kopiert ihn zusätzlich in alle Stapel, wobei Name, Hierarchie, Darstellung, CoRe-Modus, Karten und Verlauf erhalten bleiben. Ein abweichendes Neulimit hebt den Tages-Override auf. Manuelle, importierte und Demo-Stapel erhalten den Standard; Reimporte behalten lokale Einstellungen.
@@ -398,7 +399,7 @@ Akzeptanz:
 
 ### 5.7 Lernfortschritt über simulierte Tage prüfen
 
-`/simulator` ist direkt und unter `Lerneinstellungen → Fokuswerkzeuge` erreichbar. Er verschiebt die Lernzeit vorhandener Accountkarten minuten- oder tageweise um bis zu 3.650 Tage ab „Heute“. Zeitwechsel verändern keine Karte; Reviews sind echte Bewertungen mit simuliertem Zeitpunkt.
+`/simulator` ist direkt und unter `Einstellungen → Fokuswerkzeuge` erreichbar. Er verschiebt die Lernzeit vorhandener Accountkarten minuten- oder tageweise um bis zu 3.650 Tage ab „Heute“. Zeitwechsel verändern keine Karte; Reviews sind echte Bewertungen mit simuliertem Zeitpunkt.
 
 Akzeptanz:
 
@@ -414,12 +415,12 @@ Akzeptanz:
 
 - E-Mail und Passwort sind die freigegebene Kernanmeldung.
 - Das Profil enthält Anzeigename und Login-E-Mail; Hochschule, Fachgebiet und Spracheinstellung gibt es nicht, die Oberfläche ist deutsch. Ohne Community-Funktion gibt es keinen Privatsphäre-Bereich.
-- `Einstellungen öffnen` öffnet `Allgemeine Einstellungen` mit `Konto`, `Daten & Synchronisierung` und `Über uns`. Die Seite `Lerneinstellungen` gliedert sich in `Lerntag & Planung`, `Tagesrunde & Lernprofile`, `Scheduler & CoRe` und `Fokuswerkzeuge`; Stapeleinstellungen in `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`.
-- Alle Seiten haben Querlinks und dieselbe Inhaltsnavigation, die den aktuellen Abschnitt nennt. Scrollspy markiert genau einen Abschnitt; Auswahl nutzt Hashlinks und Browser-Zurück. Auf Karten- und Simulatorrouten bleibt `Lernen` aktiv; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen` als aktiv.
+- Allgemeine und Lerneinstellungen bilden einen modalen Dialog `Einstellungen` über der aktuellen Ansicht. Links stehen die Bereiche in zwei Gruppen: `Allgemein` mit `Konto`, `Daten & Synchronisierung` und `Über uns`, `Lernen` mit `Lerntag & Planung`, `Tagesrunde & Lernprofile`, `Scheduler & CoRe`, `Flaggen` und `Fokuswerkzeuge`; rechts steht genau der gewählte Bereich. Unter 768 px füllt der Dialog den Bildschirm und zeigt zuerst die Bereichsliste, dann den Bereich mit `Zurück zu den Bereichen`. Stapeleinstellungen bleiben eine Seite mit `Stapel`, `Tagesrunde & Lernprofile` und `Scheduler & CoRe`, Inhaltsnavigation und Scrollspy.
+- Einstiege: `Einstellungen öffnen` (ab 768 px mit `Konto`), `Lerneinstellungen` in Lernen und Kartenverwaltung (`Lerntag & Planung`), der Querlink der Stapeleinstellungen (`Tagesrunde & Lernprofile`), `Namen bearbeiten` am Flaggenwähler (`Flaggen`) und das Sync-Symbol (`Daten & Synchronisierung`, bei Konflikten mit Fokus auf die Konflikte). Aus dem Karteneditor wird zuerst die Karte verlassen. Die URL trägt den Bereich als `settings=`; ein Bereichswechsel ersetzt den History-Eintrag, Schließen, Escape, Außenklick und Browser-Zurück schließen den Dialog. Ein Direktaufruf öffnet ihn über der aufgerufenen Ansicht. Solange der Dialog offen ist, markiert die Navigation `Einstellungen öffnen` als geöffnet, das Hauptziel bleibt das der Ansicht darunter; der Simulator markiert `Lernen`.
 - `Über uns` verlinkt auf `/hilfe`, zeigt `Impressum` und `Datenschutzerklärung` als `In Vorbereitung` und die Paketversion mit `v`. Keine andere Oberfläche zeigt Version, Umgebung oder Commit.
-- Weicht ein Einstellungsfeld vom gespeicherten Stand ab, erscheint seitenweit genau eine nichtmodale Leiste `Änderungen speichern?`. `Änderungen verwerfen` verwirft den Seitenentwurf; während des Speicherns sind beide Aktionen gesperrt. Scheitert das Speichern, meldet die Leiste `Speichern fehlgeschlagen – bitte erneut versuchen.` und der Entwurf bleibt erhalten. Lehnt die Validierung den Entwurf ab, etwa bei leerem Stapelnamen, erscheint der Hinweis nur beim Feld und die Leiste bleibt bei `Änderungen speichern?`.
+- Weicht ein Einstellungsfeld vom gespeicherten Stand ab, erscheint genau eine Leiste `Änderungen speichern?`: im Dialog als Fußzeile, auf der Stapelseite nichtmodal über dem Inhalt. `Änderungen verwerfen` verwirft den Seitenentwurf; während des Speicherns sind beide Aktionen gesperrt. Scheitert das Speichern, meldet die Leiste `Speichern fehlgeschlagen – bitte erneut versuchen.` und der Entwurf bleibt erhalten. Lehnt die Validierung den Entwurf ab, etwa bei leerem Stapelnamen, erscheint der Hinweis nur beim Feld und die Leiste bleibt bei `Änderungen speichern?`.
 - Reichweiten: allgemeine Einstellungen eine Speicheraktion, Lerneinstellungen `Auf alle Stapel anwenden` und `Auf alle neuen Stapel anwenden`, Stapeleinstellungen Stapel oder Stapelbaum. Erfolg schließt die Leiste und meldet die Reichweite einmal; Fehler lassen sie offen und erscheinen beim betroffenen Bereich.
-- Bei ungespeicherten Einstellungen werden App-Navigation, Querlinks, Zurück, Stapelwechsel, Abmelden und Browser-Zurück/-Vorwärts abgebrochen. Lernprofil-Aktionen, `Auf diesen Stapel anwenden`, manueller Sync und die Lerneinstellungen einer Sitzung wirken unmittelbar.
+- Bei ungespeicherten Einstellungen werden App-Navigation, Querlinks, Zurück, Stapelwechsel, Abmelden und Browser-Zurück/-Vorwärts abgebrochen, im Dialog auch Schließen, Escape, Außenklick und der Wechsel zwischen `Allgemein` und `Lernen`; Bereiche derselben Gruppe teilen einen Entwurf. Escape schließt zuerst eine offene Auswahlliste oder Bestätigung. Lernprofil-Aktionen, `Auf diesen Stapel anwenden`, manueller Sync und die Lerneinstellungen einer Sitzung wirken unmittelbar.
 - Tagesbeginn, Vorziehfenster, Easy Days, Lernprofile und der globale Stapelstandard sind accountweite Scheduler-Präferenzen im Profil-Sync.
 - Eigene Flaggennamen sind eine accountweite Oberflächeneinstellung im Profil-Sync; die Lerneinstellungen bieten dafür den Abschnitt `Flaggen`, der Flaggenwähler verlinkt mit `Namen bearbeiten` dorthin.
 - Sicherheitskritische Aktionen sind von Profil- und Lernoptionen getrennt.
@@ -610,7 +611,7 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor un
 ### App-Shell und Navigation
 
 - Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`. Ein kompakter Kopf bietet `CoRe` mit Gehirn-Logo (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Statistik, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
-- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` mit Gehirn-Logo (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Statistik öffnen` und `Hilfe öffnen` haben je einen eigenen aktiven Zustand und dieselbe neutrale Hover-Fläche wie die übrigen Utilities; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Lerneinstellungen, Stapelinhalte und Simulator markieren `Lernen`. Eine Profilvorschau erscheint nicht.
+- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` mit Gehirn-Logo (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Statistik öffnen` und `Hilfe öffnen` haben je einen eigenen aktiven Zustand und dieselbe neutrale Hover-Fläche wie die übrigen Utilities; der offene Einstellungsdialog markiert `Einstellungen öffnen`, Stapelinhalte und Simulator markieren `Lernen`. Eine Profilvorschau erscheint nicht.
 - Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.
 
 ### Bedienelemente
@@ -619,6 +620,7 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor un
 - Auswahlfelder nutzen denselben Trigger und ein Overlay. Erneutes Antippen, Außenberührung und Escape schließen ohne Wertänderung; gewählte und fokussierte Optionen sind zusätzlich zur Farbe markiert und per Tastatur bedienbar.
 - Modale Bestätigungsdialoge behandeln Escape und Klick auf den Hintergrund wie Abbrechen; Klicks im Dialog oder einem Auswahl-Overlay schließen nicht. Abbrechen verändert keine Fachdaten und stellt den Fokus wieder her.
 - Einstellungsfelder haben eindeutige Titel ohne wiederholende Untertitel; Hinweise erklären nur Folgen, Abwägungen, Warnungen oder nicht offensichtliches Verhalten.
+- Einstellungen stehen als Liste aus Zeilen ohne Kästen: Titel links, darunter höchstens ein kurzer Hinweis, Bedienelement rechts (unter 768 px darunter, kurze Werte und Kontrollkästchen bleiben rechts), getrennt durch feine Linien. Ab drei gleichartigen Werten erscheint eine Tabelle; bis drei kurze Optionen (Zahlen bis fünf) erscheinen als Segmente, sonst als Auswahlfeld. Ein gespeicherter Wert außerhalb der Voreinstellungen markiert kein Segment und erscheint als `Eigene · …`. Zahlen mit Einheit nutzen ein Feld mit Einheit, das beim Verlassen auf den gültigen Bereich begrenzt.
 - Fachliche Inhalte, Warnungen und Folgeaktionen bleiben ohne generische Disclosure-Flächen sichtbar; ausklappbar sind nur Navigation, Hierarchien und kompakte Werkzeuge.
 - Die Rich-Text-Toolbar zeigt Fett, Kursiv sowie Bild- und Lückenaktionen direkt; `Weitere Textwerkzeuge` klappt Zusatzaktionen an Ort und Stelle aus und erhält die Textauswahl.
 
