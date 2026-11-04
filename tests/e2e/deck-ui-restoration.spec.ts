@@ -1,41 +1,45 @@
 import { expect, test } from "@playwright/test";
 import { matrixThemes, matrixViewports, VISUAL_MATRIX_VIEWPORTS, visualOutput } from "./support/visualMatrix.ts";
 
-test("Unterstapelbaum klappt mehrere Ebenen vor dem direkten Öffnen auf", async ({ page }) => {
+test("Unterstapel zeigen den Zweig wie die Lernen-Liste und öffnen jeden Stapel direkt", async ({ page }) => {
   await page.goto("/docs/ui-elements.html?preview=screens");
   await page.getByRole("searchbox", { name: "Katalog durchsuchen", exact: true }).fill("Produktansichten");
   await page.getByRole("button", { name: "Stapelinhalte öffnen", exact: true }).click();
   const product = page.locator(".catalog-product-preview");
   const tree = product.getByTestId("deck-content-substacks");
   const heading = product.getByTestId("deck-content-heading");
-  const europe = tree.getByTestId("content-substack-catalog-europe");
-  const south = tree.getByTestId("content-substack-catalog-substack-0");
-  const portugal = tree.getByTestId("content-substack-catalog-substack-1");
-  const lisbon = tree.getByTestId("content-substack-catalog-substack-2");
+  const world = tree.getByTestId("content-deck-row-catalog-world");
+  const europe = tree.getByTestId("content-deck-row-catalog-europe");
+  const south = tree.getByTestId("content-deck-row-catalog-substack-0");
+  const portugal = tree.getByTestId("content-deck-row-catalog-substack-1");
+  const lisbon = tree.getByTestId("content-deck-row-catalog-substack-2");
+  await expect(tree.getByRole("region", { name: "Stapelgruppe Welt-Hauptstädte", exact: true })).toBeVisible();
+  await expect(world).toHaveAttribute("data-deck-depth", "0");
+  await expect(europe).toHaveAttribute("data-deck-depth", "1");
   await expect(south).toHaveCount(0);
-  await europe.getByRole("button", { name: /^Stapel .* aufklappen$/ }).click();
+  await europe.getByRole("button", { name: /^Unterstapel von .* anzeigen$/ }).click();
   await expect(heading).toContainText("Welt-Hauptstädte");
   await expect(south).toBeVisible();
   await expect(portugal).toHaveCount(0);
   await south.getByRole("button", { name: /^Unterstapel von .* anzeigen$/ }).press("Enter");
-  await portugal.getByRole("button", { name: /^Stapel .* aufklappen$/ }).press("Space");
+  await portugal.getByRole("button", { name: /^Unterstapel von .* anzeigen$/ }).press("Space");
   await expect(lisbon).toBeVisible();
   await europe.getByRole("button", { name: /^Unterstapel von .* ausblenden$/ }).click();
   await expect(lisbon).toHaveCount(0);
   await expect(south).toHaveCount(0);
-  await europe.getByRole("button", { name: /^Stapel .* aufklappen$/ }).click();
+  await europe.getByRole("button", { name: /^Unterstapel von .* anzeigen$/ }).click();
   await expect(lisbon).toBeVisible();
-  await expect(heading).toContainText("Welt-Hauptstädte");
-  await portugal.getByRole("button", { name: /^Karten von .* öffnen$/ }).click();
+  await portugal.getByRole("button", { name: /^Inhalte von .* öffnen$/ }).click();
   await expect(heading.getByRole("heading", { name: "Portugal", exact: true })).toBeVisible();
   const tabs = product.getByRole("group", { name: "Stapelinhalte", exact: true });
-  await expect(tabs.getByRole("button", { name: "Karten", exact: true })).toHaveAttribute("aria-pressed", "true");
-  await tabs.getByRole("button", { name: "Unterstapel", exact: true }).click();
+  await expect(tabs.getByRole("button", { name: "Unterstapel", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(europe).toHaveCount(0);
-  await lisbon.getByRole("button", { name: /^Stapel .* öffnen$/ }).click();
+  await expect(tree.getByTestId("content-deck-row-catalog-substack-1")).toHaveAttribute("data-deck-depth", "0");
+  await lisbon.getByRole("button", { name: /^Inhalte von .* öffnen$/ }).click();
   await expect(heading.getByRole("heading", { name: "Lissabon", exact: true })).toBeVisible();
-  await tabs.getByRole("button", { name: "Unterstapel", exact: true }).click();
-  await expect(product).toContainText("Keine weiteren Unterstapel");
+  await expect(tree).toContainText("Keine Unterstapel");
+  await expect(tree.getByRole("button", { name: "Karten lernen", exact: true })).toBeVisible();
+  await expect(product.getByTestId("deck-content-study")).toBeVisible();
 });
 
 test("Liste und Kacheln bleiben ohne Explorer und speichern die Auswahl", async ({ page }) => {
@@ -125,7 +129,7 @@ for (const theme of matrixThemes) {
       await product.getByRole("button", { name: "Unterstapel von Welt-Hauptstädte öffnen", exact: true }).click();
       await expect(product.getByTestId("learn-deck-folder-panel")).toBeVisible();
       await capture("learn-branch");
-      await product.getByRole("button", { name: "Alle Inhalte von Welt-Hauptstädte öffnen", exact: true }).click();
+      await product.getByRole("button", { name: "Inhalte von Welt-Hauptstädte öffnen", exact: true }).click();
       const tabs = product.getByRole("group", { name: "Stapelinhalte", exact: true });
       for (const [label, name] of [
         ["Unterstapel", "children"], ["Zusammenfassungen", "summary"], ["Quiz", "quiz"],

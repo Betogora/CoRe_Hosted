@@ -134,20 +134,49 @@ test("deck tree groups every main deck with its subdecks in one tinted group", (
   assert.doesNotMatch(markup, /Hauptstapel<|Unterstapel<\/span>/);
 });
 
-test("deck tree tiles show main decks as tiles with content, study and options actions", () => {
+test("deck tree tiles show main decks as tiles with study and options beside the counts", () => {
+  const tileRows = createDeckLibraryModel([
+    ...decks,
+    createCoreDeck({ id: "leaf-root", name: "Einzelstapel", hierarchyPath: ["Einzelstapel"], source: "manual", cards: [] }),
+  ]).rows;
   const markup = renderToStaticMarkup(
-    <DeckTree rows={rows} mode="learn" view="tiles" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+    <DeckTree rows={tileRows} mode="learn" view="tiles" collapsedDeckIds={[]} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
   );
 
   assert.match(markup, /data-deck-view="tiles"/);
   assert.match(markup, /data-testid="learn-deck-tiles"/);
   assert.ok(markup.indexOf('data-testid="learn-deck-tiles"') < markup.indexOf('data-testid="learn-deck-row-root"'));
   assert.match(markup, /aria-label="Unterstapel von Bereich öffnen"/);
-  assert.match(markup, /aria-label="Inhalte von Bereich öffnen"[^>]*>.*Inhalte</);
+  assert.match(markup, /aria-label="Stapel Einzelstapel öffnen"/);
   assert.match(markup, /aria-label="Bereich lernen"/);
   assert.match(markup, /Stapeloptionen für Bereich/);
   for (const label of ["Neu", "Offen", "Fällig"]) assert.match(markup, new RegExp(`<dt class="(?![^"]*sr-only)[^"]*">${label}</dt>`));
   assert.doesNotMatch(markup, /learn-deck-row-child|deck-summary-header|Alle einklappen|learn-deck-folder-panel/);
+});
+
+test("deck tree content mode shows one branch with its opened deck as group head", () => {
+  const branchRows = createDeckLibraryModel([
+    ...decks,
+    createCoreDeck({ id: "grandchild", parentDeckId: "child", name: "Vertiefung", hierarchyPath: ["Bereich", "Grundlagen", "Vertiefung"], source: "manual", cards: [] }),
+    createCoreDeck({ id: "sibling", parentDeckId: "root", name: "Anwendung", hierarchyPath: ["Bereich", "Anwendung"], source: "manual", cards: [] }),
+    createCoreDeck({ id: "other", name: "Anderer Bereich", hierarchyPath: ["Anderer Bereich"], source: "manual", cards: [] }),
+  ]).rows;
+  const render = (collapsedDeckIds: string[]) => renderToStaticMarkup(
+    <DeckTree rows={branchRows} rootDeckIds={["child"]} mode="content" collapsedDeckIds={collapsedDeckIds} onDeckExpansionChange={() => undefined} onActivate={() => undefined} onStudy={() => undefined} onOpenSettings={() => undefined} onSetDeckCoreMode={() => undefined} onMoveDeck={() => null} />,
+  );
+  const markup = render([]);
+
+  assert.equal((markup.match(/data-deck-group=/g) ?? []).length, 1);
+  assert.match(markup, /aria-label="Stapelgruppe Grundlagen" data-deck-group="child"/);
+  assert.match(markup, /data-testid="content-deck-row-child"[^>]*data-deck-depth="0"/);
+  assert.match(markup, /data-testid="content-deck-row-grandchild"[^>]*data-deck-depth="1"/);
+  assert.doesNotMatch(markup, /content-deck-row-(root|sibling|other)|Aktive Stapel/);
+  assert.match(markup, /data-testid="deck-summary-header"/);
+  assert.match(markup, /aria-label="Bereich \/ Grundlagen lernen"/);
+  assert.match(markup, /Stapeloptionen für Bereich \/ Grundlagen \/ Vertiefung/);
+  assert.doesNotMatch(markup, /Alle (auf|ein)klappen/);
+  assert.match(render(["child"]), /Unterstapel von Bereich \/ Grundlagen anzeigen/);
+  assert.doesNotMatch(render(["child"]), /content-deck-row-grandchild/);
 });
 
 test("deck tree projects a persisted collapsed parent", () => {

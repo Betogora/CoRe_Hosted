@@ -45,9 +45,10 @@ export function useStoredDeckTreeView(storageKey: string) {
 
 export interface DeckTreeProps {
   rows: DeckLibraryRow[];
-  /** Shows only these main decks with their subtrees, in this order; menus and placement still see every row. */
+  /** Shows only these decks with their subtrees, in this order, each as its own group; menus and placement still see every row. */
   rootDeckIds?: readonly string[];
-  mode: "dashboard" | "learn";
+  /** `content` shows one deck's subtree in its content view, without the `Aktive Stapel` heading. */
+  mode: "dashboard" | "learn" | "content";
   /** `list` groups every main deck in its own card; `tiles` shows main decks as tiles with an inline branch panel. */
   view?: DeckTreeView;
   /** Shows the icon-only tiles/list control in the header when set. */
@@ -177,7 +178,6 @@ interface DeckTreeRowProps {
   dropState: "valid" | "invalid" | undefined;
   onToggle: (deckId: string) => void;
   onActivate: (row: DeckLibraryRow) => void;
-  onOpenContent: (row: DeckLibraryRow) => void;
   onPointerDown: (event: React.PointerEvent<HTMLButtonElement>, row: DeckLibraryRow) => void;
   onKeyDown: () => void;
   onStudy: (row: DeckLibraryRow) => void;
@@ -187,7 +187,7 @@ interface DeckTreeRowProps {
 }
 
 /** One deck row; memoized so sync status, drag hover on other rows or parent renders do not repaint the whole tree. */
-const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onOpenContent, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
+const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, decks, isCollapsed, isSelected, isDragged, dropState, onToggle, onActivate, onPointerDown, onKeyDown, onStudy, onOpenSettings, onSetCoreMode, onMoveDeck }: DeckTreeRowProps) {
   const tile = presentation !== "row";
   const activationLabel = tile ? row.hasChildren ? `Unterstapel von ${row.path} öffnen` : `Stapel ${row.path} öffnen` : `Inhalte von ${row.path} öffnen`;
   const collapseControl = row.hasChildren ? (
@@ -238,7 +238,6 @@ const DeckTreeRow = React.memo(function DeckTreeRow({ row, mode, presentation, d
         studyAction={tile ? undefined : studyAction}
         leadingControl={collapseControl}
         actions={tile ? <>
-          <ActionButton variant="secondary" icon={PanelsTopLeft} className="pointer-events-auto" aria-label={`Inhalte von ${row.path} öffnen`} onClick={() => onOpenContent(row)}>Inhalte</ActionButton>
           {studyAction}
           {optionsMenu}
         </> : optionsMenu}
@@ -262,9 +261,14 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
     if (!rootDeckIds) return rows;
     const groups = new Map(rootDeckIds.map((deckId) => [deckId, [] as DeckLibraryRow[]]));
     let group: DeckLibraryRow[] | null = null;
+    let rootDepth = 0;
     for (const row of rows) {
-      if (row.depth === 0) group = groups.get(row.id) ?? null;
-      group?.push(row);
+      if (group && row.depth <= rootDepth) group = null;
+      if (!group && groups.has(row.id)) {
+        group = groups.get(row.id)!;
+        rootDepth = row.depth;
+      }
+      group?.push(rootDepth ? { ...row, depth: row.depth - rootDepth } : row);
     }
     return [...groups.values()].flat();
   }, [rootDeckIds, rows]);
@@ -508,13 +512,12 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       suppressedClickDeckIdRef.current = null;
       return;
     }
-    if (view === "tiles") setFolderDeckId(row.id);
+    if (view === "tiles" && row.hasChildren) setFolderDeckId(row.id);
     else onActivate(row);
   }
 
   const stableToggle = useStableCallback(toggleCollapsed);
   const stableActivate = useStableCallback(activate);
-  const stableOpenContent = useStableCallback(onActivate);
   const stablePointerDown = useStableCallback(startPointer);
   const stableKeyDown = useStableCallback(() => { suppressedClickDeckIdRef.current = null; });
   const stableStudy = useStableCallback(onStudy);
@@ -575,7 +578,6 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
         dropState={dropIntent?.targetDeckId === row.id ? (dropIntent.error ? "invalid" : "valid") : undefined}
         onToggle={stableToggle}
         onActivate={stableActivate}
-        onOpenContent={stableOpenContent}
         onPointerDown={stablePointerDown}
         onKeyDown={stableKeyDown}
         onStudy={stableStudy}
@@ -598,18 +600,19 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
         <h4 className="min-w-0 flex-1 basis-44 break-words core-heading-3 font-semibold text-core-text">{folderRow.name}</h4>
         <div className="flex shrink-0 gap-2">
+          <CoreTooltip label="Stapel öffnen">
+            <IconButton label={`Inhalte von ${folderRow.path} öffnen`} icon={PanelsTopLeft} onClick={() => onActivate(folderRow)} />
+          </CoreTooltip>
           <IconButton label="Eine Ebene zurück" icon={ArrowLeft} onClick={() => folderRow.parentDeckId ? setFolderDeckId(folderRow.parentDeckId) : closeFolder()} />
           <IconButton label="Unterstapelübersicht schließen" icon={X} onClick={closeFolder} />
         </div>
       </div>
       {folderRows.length ? <div className="core-deck-subfolder-grid">{folderRows.map((child) => renderRow(child, "subfolder"))}</div> : <p className="core-body text-core-muted">Keine Unterstapel.</p>}
-      <div className="flex flex-wrap gap-2">
-        <ActionButton variant="secondary" icon={PanelsTopLeft} aria-label={`Alle Inhalte von ${folderRow.path} öffnen`} onClick={() => onActivate(folderRow)}>Alle Karten dieses Zweigs</ActionButton>
-        <ActionButton variant="secondary" icon={Play} aria-label={`${folderRow.path} als Zweig lernen`} onClick={() => onStudy(folderRow)}>Diesen Zweig lernen</ActionButton>
-      </div>
     </section>
   ) : null;
-  const showExpandAll = view === "list" && parentDeckIds.length > 0;
+  const title = mode === "content" ? null : "Aktive Stapel";
+  // The opened deck of the content view is always a parent; the switch only helps with deeper levels.
+  const showExpandAll = view === "list" && parentDeckIds.length > (mode === "content" ? 1 : 0);
   const showViewControl = Boolean(onViewChange) && rows.length > 0;
 
   return (
@@ -624,9 +627,9 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
       >
         <span className="sr-only" role="status" aria-live="polite">{dragStatus}</span>
         <div className="core-deck-tree-layout grid">
-          <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
+          {title || headerAction || showExpandAll || showViewControl ? <div className={`core-deck-tree-header grid min-h-control items-center gap-3${showViewControl ? " core-deck-tree-view-header" : ""}`} data-testid={`${mode}-deck-list-header`}>
             <div className="core-deck-tree-heading min-w-0">
-              <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">Aktive Stapel</h3>
+              {title ? <h3 className="core-deck-tree-title break-words core-heading-3 font-semibold text-core-text">{title}</h3> : null}
             </div>
             {headerAction || showExpandAll || showViewControl ? (
               <div className="core-deck-tree-header-action flex flex-wrap items-center justify-end gap-2 justify-self-end">
@@ -641,7 +644,7 @@ export function DeckTree({ rows, rootDeckIds, mode, view = "list", onViewChange,
                 {headerAction}
               </div>
             ) : null}
-          </div>
+          </div> : null}
           {rows.length === 0 ? contentAfterRows : null}
           {view === "tiles" && rows.length > 0 ? (
             <div className="core-deck-folder-grid" ref={folderGridRef} data-testid={`${mode}-deck-tiles`}>

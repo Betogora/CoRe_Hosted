@@ -150,15 +150,19 @@ test("deck content opens on its subdecks with path, heading and branch actions",
   assert.match(markup, /aria-label="Eine Ebene zurück"/);
   assert.match(markup, /aria-pressed="true"[^>]*aria-label="Unterstapel"|aria-label="Unterstapel"[^>]*aria-pressed="true"/);
   assert.match(markup, /data-testid="deck-content-substacks"/);
-  assert.match(markup, /data-testid="content-substack-grandchild"/);
-  assert.match(markup, /aria-label="Stapel Hauptstapel \/ Kapitel \/ Abschnitt öffnen"/);
-  assert.match(markup, />Alle Karten dieses Zweigs</);
-  assert.match(markup, />Diesen Zweig lernen</);
+  assert.match(markup, /aria-label="Stapelgruppe Kapitel" data-deck-group="child"/);
+  assert.match(markup, /data-testid="content-deck-row-grandchild"/);
+  assert.match(markup, /aria-label="Inhalte von Hauptstapel \/ Kapitel \/ Abschnitt öffnen"/);
+  assert.match(markup, /aria-label="Hauptstapel \/ Kapitel \/ Abschnitt lernen"/);
+  assert.doesNotMatch(markup, /Aktive Stapel|learn-deck-create-form/);
   assert.doesNotMatch(markup, /data-testid="card-library-panel"|Einschließlich|direkte Unterstapel|data-donut-/);
 
   const leaf = renderScreen([root, child, grandchild], { contentDeckId: grandchild.id, contentTab: "children" });
-  assert.match(leaf, />Keine weiteren Unterstapel</);
-  assert.match(leaf, />Karten öffnen</);
+  const leafPanel = leaf.slice(leaf.indexOf('data-testid="deck-content-substacks"'));
+  assert.match(leafPanel, /role="status">Keine Unterstapel</);
+  assert.match(leafPanel, /<button(?=[^>]*disabled="")[^>]*>[\s\S]*?Karten lernen/);
+  assert.match(leaf, /data-testid="deck-content-study"/);
+  assert.doesNotMatch(leaf, /content-deck-row-/);
   const top = renderScreen([root, child], { contentDeckId: root.id, contentTab: "summary" });
   assert.match(top, /aria-label="Zur Stapelübersicht"/);
   assert.match(top, /data-testid="deck-summaries-panel"/);
@@ -172,11 +176,12 @@ test("substack tree starts collapsed and keeps other branches outside the opened
   const grandchild = deckOf("grandchild", "Abschnitt", [], { parentDeckId: child.id, hierarchyPath: ["Hauptstapel", "Kapitel", "Abschnitt"] });
   const other = deckOf("other", "Anderer Stapel", []);
   const markup = renderScreen([root, child, grandchild, other], { contentDeckId: root.id, contentTab: "children" });
-  assert.match(markup, /data-testid="content-substack-child"/);
-  assert.doesNotMatch(markup, /data-testid="content-substack-(grandchild|other|root)"/);
-  assert.match(markup, /aria-label="Stapel Hauptstapel \/ Kapitel aufklappen" aria-expanded="false"/);
-  assert.match(markup, /aria-label="Unterstapel von Hauptstapel \/ Kapitel anzeigen"/);
-  assert.match(markup, /aria-label="Karten von Hauptstapel \/ Kapitel öffnen"/);
+  assert.match(markup, /data-testid="content-deck-row-root"[^>]*data-deck-depth="0"/);
+  assert.match(markup, /data-testid="content-deck-row-child"[^>]*data-deck-depth="1"/);
+  assert.doesNotMatch(markup, /data-testid="content-deck-row-(grandchild|other)"/);
+  assert.match(markup, /aria-label="Unterstapel von Hauptstapel ausblenden"/);
+  assert.match(markup, /aria-label="Unterstapel von Hauptstapel \/ Kapitel anzeigen" aria-expanded="false"/);
+  assert.match(markup, /aria-label="Inhalte von Hauptstapel \/ Kapitel öffnen"/);
 });
 
 test("deck learning is disabled only for an empty deck, including the paged catalog", () => {

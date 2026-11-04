@@ -3810,14 +3810,6 @@ button[aria-label] {
   .core-deck-create-form { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; }
 }
 
-.core-deck-substack-list .core-deck-summary-responsive { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-leading { grid-column: 1; grid-row: 1; }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 1; grid-row: 2; min-width: 0; max-width: 12rem; }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions { grid-column: 1; grid-row: 3; justify-content: flex-end; }
-.core-deck-substack-list .core-deck-summary-actions > span { flex-wrap: wrap; }
-.core-deck-substack-list .core-deck-summary-count-label { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; white-space: normal; }
-.core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-metrics { grid-template-columns: repeat(3, minmax(3rem, 1fr)); width: auto; }
-
 .core-deck-content-tabs {
   height: calc(var(--core-control-height) + 2 * var(--core-space-xs));
 }
@@ -3864,29 +3856,6 @@ button[aria-label] {
   background: var(--core-action-soft);
   border-color: var(--core-action-primary);
   box-shadow: var(--core-shadow-selection);
-}
-.core-deck-substack-list { display: grid; gap: 0; container: core-deck-substack-list / inline-size; --core-deck-depth-indent: 12px; }
-.core-deck-substack-list > .core-deck-summary-row + .core-deck-summary-row { border-top: var(--core-border-width) solid var(--core-border); }
-.core-deck-substack-list .core-deck-summary-name,
-.core-deck-substack-list .core-deck-summary-count-value { font-size: var(--core-type-body); line-height: var(--core-leading-body); }
-@container core-deck-substack-list (min-width: 42rem) {
-  .core-deck-substack-list .core-deck-summary-responsive {
-    --core-deck-depth-indent: 18px;
-    grid-template-columns: minmax(0, 1fr) 10rem auto;
-    padding: var(--core-space-md);
-    -moz-column-gap: var(--core-space-xl);
-         column-gap: var(--core-space-xl);
-  }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-counts { grid-column: 2; grid-row: 1; width: 10rem; }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions {
-    grid-column: 3;
-    grid-row: 1;
-    padding: 0;
-    margin: 0;
-    border: 0;
-    background: transparent;
-  }
-  .core-deck-substack-list .core-deck-summary-responsive .core-deck-summary-actions > span { width: auto; flex-wrap: nowrap; gap: var(--core-space-xs); }
 }
 .core-deck-folder-breadcrumb {
   display: flex;
@@ -3940,11 +3909,12 @@ button[aria-label] {
 .core-deck-subfolder-card > [data-deck-row-activation] { border-radius: var(--core-radius-panel); }
 
 .core-deck-folder-summary {
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--core-space-md);
-  padding: var(--core-space-xl) var(--core-space-xl) 0;
+  padding: var(--core-space-xl);
 }
 .core-deck-folder-summary .core-deck-summary-leading {
+  grid-column: 1 / -1;
   min-height: 4.5rem;
   flex-wrap: wrap;
   gap: var(--core-space-sm);
@@ -3962,21 +3932,8 @@ button[aria-label] {
 .core-deck-folder-summary .core-deck-summary-count { text-align: start; }
 .core-deck-folder-summary .core-deck-summary-count-value { font-size: var(--core-type-heading-3); line-height: var(--core-leading-heading-3); }
 .core-deck-subfolder-summary .core-deck-summary-count-value { font-size: var(--core-type-body-large); line-height: var(--core-leading-body-large); }
-.core-deck-folder-summary .core-deck-summary-actions {
-  margin: var(--core-space-xs) calc(-1 * var(--core-space-xl)) 0;
-  padding: var(--core-space-md);
-  border-top: var(--core-border-width) solid var(--core-border);
-  border-radius: var(--core-radius-panel);
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
-  background: color-mix(in srgb, var(--core-surface-muted) 50%, var(--core-surface));
-}
-.core-deck-folder-summary .core-deck-summary-actions > span {
-  display: grid;
-  width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: var(--core-space-sm);
-}
+.core-deck-folder-summary .core-deck-summary-actions { align-self: end; }
+.core-deck-folder-summary .core-deck-summary-actions > span { gap: var(--core-space-sm); }
 .core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action,
 .core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) {
   border: var(--core-border-width) solid var(--core-border);
@@ -3987,17 +3944,11 @@ button[aria-label] {
 .core-deck-folder-summary .core-deck-summary-actions .core-deck-icon-action:not(:disabled):is(:hover, :active, [data-state="open"]) {
   background: var(--core-surface-muted);
 }
-.core-deck-subfolder-summary { gap: var(--core-space-sm); padding: var(--core-space-md) var(--core-space-md) 0; }
+.core-deck-subfolder-summary { gap: var(--core-space-sm); padding: var(--core-space-md); }
 .core-deck-subfolder-summary .core-deck-summary-leading { min-height: var(--core-control-height); flex-wrap: nowrap; }
 .core-deck-subfolder-summary .core-deck-summary-leading > span:last-child { flex-basis: auto; }
 .core-deck-subfolder-summary .core-deck-summary-leading > [data-deck-icon] { flex-shrink: 0; }
 .core-deck-subfolder-summary .core-deck-summary-leading > button { order: 1; }
-.core-deck-subfolder-summary .core-deck-summary-actions {
-  margin-inline: calc(-1 * var(--core-space-md));
-  border-radius: var(--core-radius-panel);
-  border-start-start-radius: 0;
-  border-start-end-radius: 0;
-}
 
 .core-deck-tree-header.core-deck-tree-view-header {
   grid-template-columns: minmax(0, 1fr) auto;
@@ -6706,7 +6657,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <li>Zeilen zeigen lokale Namen. Stapelbäume sind je Ebene alphabetisch wie in Anki sortiert, ohne numerische Sonderbehandlung (<code>Stapel 10</code> vor <code>Stapel 9</code>); Elternstapel bleiben mit ihrem Unterbaum zusammen.</li>
 <li><code>Heute</code> und <code>Lernen</code> zeigen <code>Neu</code>, <code>Offen</code> und <code>Fällig</code> unter einer nicht sortierbaren Kopfzeile als Zahlen in Statusfarbe ohne Hintergrundfläche, so groß wie der Stapelname; Nullwerte bleiben neutral. Einen Fortschrittsring gibt es nicht. Auf schmalen Flächen entfallen Kennzahllabel ohne Abkürzung; Zahlen behalten zugängliche Namen. Die Kartenverwaltung zeigt auf keiner Ebene Kennzahlen, auch nicht assistiv.</li>
 <li>Jeder Hauptstapel bildet mit seinen Unterstapeln eine eigene umrandete Gruppe. Nur die Zeile des Hauptstapels ist leicht in seiner Stapelfarbe getönt; Unterstapelzeilen bleiben neutral. Badges und Untertitel mit Karten- oder Unterstapelanzahl erscheinen nicht.</li>
-<li>Dashboard und <code>Lernen</code> bieten im Kopf von <code>Aktive Stapel</code> dieselbe reine Icon-Auswahl zwischen Kacheln und Liste (Tooltip und zugänglicher Name <code>Als Kacheln anzeigen</code>/<code>Als Liste anzeigen</code>); die Wahl gilt browserlokal und je Bereich getrennt. In der Liste klappt <code>Alle aufklappen</code>/<code>Alle einklappen</code> sämtliche Elternstapel gemeinsam. Die Kachelansicht zeigt jeden Hauptstapel als Kachel mit beschrifteten Tageszahlen und einer Aktionsleiste aus <code>Inhalte</code>, Lernaktion und Stapeloptionen. Ein Klick auf eine Kachel öffnet unter ihrer Kachelreihe ein Panel mit Stapelpfad, Name, <code>Eine Ebene zurück</code>, Schließen, den direkten Unterstapeln als kleineren Kacheln (ohne Unterstapel <code>Keine Unterstapel.</code>) sowie <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; Unterstapel-Kacheln führen eine Ebene tiefer.</li>
+<li>Dashboard und <code>Lernen</code> bieten im Kopf von <code>Aktive Stapel</code> dieselbe reine Icon-Auswahl zwischen Kacheln und Liste (Tooltip und zugänglicher Name <code>Als Kacheln anzeigen</code>/<code>Als Liste anzeigen</code>); die Wahl gilt browserlokal und je Bereich getrennt. In der Liste klappt <code>Alle aufklappen</code>/<code>Alle einklappen</code> sämtliche Elternstapel gemeinsam. Die Kachelansicht zeigt jeden Hauptstapel als Kachel mit beschrifteten Tageszahlen; Lernaktion und Stapeloptionen stehen in derselben Zeile rechts neben den Zahlen, eine untere Aktionsleiste gibt es nicht. Ein Klick auf eine Kachel mit Unterstapeln öffnet unter ihrer Kachelreihe ein Panel mit Stapelpfad, Name, <code>Stapel öffnen</code> (zu den Stapelinhalten), <code>Eine Ebene zurück</code>, Schließen und den direkten Unterstapeln als kleineren Kacheln desselben Musters; Unterstapel-Kacheln mit eigenen Unterstapeln führen eine Ebene tiefer. Eine Kachel ohne Unterstapel öffnet auf jeder Ebene direkt die Stapelinhalte.</li>
 <li>Die Tageszahlen berücksichtigen verbleibende Limits: ausgewählte neue Karten (<code>Neu</code>), heutiges Learning/Relearning (<code>Offen</code>) und ausgewählte fällige Reviews (<code>Fällig</code>). Elternzeilen aggregieren den Teilbaum nach den Einstellungen des dargestellten Stapels. Ausgesetzte und begrabene Karten zählen nirgends.</li>
 <li>In der Liste öffnet die Stapelfläche <code>/kartenstapel?deck=&lt;ID&gt;&amp;content=1</code>. Eine eigene Lernaktion startet den Reviewpfad samt Unterstapeln und Limits; ihr zugänglicher Name enthält den Stapelpfad, ihr Tooltip den lokalen Namen. Auf-/Zuklappen, Lernen und Stapeloptionen lösen die Flächenaktion nicht aus; die Fläche ist per Enter und Leertaste bedienbar.</li>
 <li>Lernaktion und Stapeloptionen haben 44-px-Klickflächen.</li>
@@ -6717,7 +6668,7 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 <ul>
 <li>Der Kopf der Inhaltsansicht zeigt den klickbaren Stapelpfad <code>Alle Stapel › … › Stapel</code>, Stapel-Icon und Namen sowie <code>Eine Ebene zurück</code> beziehungsweise auf Hauptebene <code>Zur Stapelübersicht</code>. <code>Aktive Stapel</code> und der Bereichsumschalter entfallen.</li>
 <li>Die Tabs lauten <code>Unterstapel</code>, <code>Zusammenfassungen</code>, <code>Quiz</code>, <code>Mind Map</code>, <code>Karten</code>, <code>Quelle</code>; initial ist <code>Unterstapel</code> aktiv. Der Tab steht in der URL (<code>tab=</code>) und bleibt beim Rückweg aus einer Sitzung erhalten; ein geöffneter Karteneditor erzwingt <code>Karten</code>. Wechsel zwischen Inhaltsreitern und über Breadcrumbs schützen ungespeicherte Entwürfe mit demselben Speichern-/Verwerfen-Dialog. Auf schmalen Flächen scrollt die Leiste lokal. <code>Quiz</code> und <code>Quelle</code> bleiben bis zu ihrer Umsetzung Platzhalter; Zusammenfassungen und Mindmaps behalten ihre aktuellen Funktionen.</li>
-<li><code>Unterstapel</code> zeigt einen aufklappbaren Baum mit beschrifteten Kennzahlen, <code>Inhalte</code>, Lernaktion und Stapeloptionen. Anfangs sind nur die direkten Unterstapel sichtbar. Ein Klick auf die Zeile oder den Pfeil eines Elternstapels klappt dessen Unterstapel an derselben Stelle auf oder zu; der geöffnete Stapel und sein Pfad bleiben dabei unverändert. Beliebig tiefe Ebenen lassen sich so erreichen; die Einrückung ist wie im übrigen Stapelbaum begrenzt. <code>Inhalte</code> öffnet auf jeder sichtbaren Ebene direkt die Karten des gewählten Zweigs; bei einem Blatt führt auch die Zeile dorthin. Darunter stehen <code>Alle Karten dieses Zweigs</code> und <code>Diesen Zweig lernen</code>; ohne Unterstapel erscheinen <code>Keine weiteren Unterstapel</code> und <code>Karten öffnen</code>.</li>
+<li><code>Unterstapel</code> zeigt den Zweig des geöffneten Stapels in derselben Gruppendarstellung wie die Liste in <code>Lernen</code>: Kopfzeile <code>Stapel</code>, <code>Neu</code>, <code>Offen</code>, <code>Fällig</code>, der geöffnete Stapel als getönter Gruppenkopf und darunter sein Unterbaum, mit Chevron, Lernaktion und Stapeloptionen je Zeile. Anfangs sind nur die direkten Unterstapel sichtbar; Chevrons klappen tiefere Ebenen an derselben Stelle auf, <code>Alle aufklappen</code>/<code>Alle einklappen</code> erscheint erst ab Enkelstapeln. Die Zeilenfläche öffnet wie in <code>Lernen</code> die Stapelinhalte des gewählten Stapels. Titel <code>Aktive Stapel</code>, Ansichtsauswahl, Schnellformular, <code>Inhalte</code> und eigene Zweigaktionen entfallen. Ohne Unterstapel zeigt der Reiter im Platzhaltermuster von <code>Quiz</code> und <code>Quelle</code> <code>Keine Unterstapel</code> mit einer zusätzlichen Aktion <code>Karten lernen</code>.</li>
 <li><code>Karten</code> zeigt die Karten des Stapels samt aller Unterstapel mit gemeinsamer Suche, Sortierung und Seitenwechsel. Mit Unterstapeln verwendet der Tab die hierarchischen Stapelköpfe der Kartenverwaltung, initial geöffnet und lokal auf- und zuklappbar; ohne Unterstapel entfällt der Kopf.</li>
 <li>Sie nutzt dieselben Kartenzeilen, denselben Editor und dieselben Mutationen wie die Gesamtverwaltung; Aktionen wirken im tatsächlich zugehörigen Unterstapel. Ein Kartenlink und das Schließen des Editors erhalten den Inhaltskontext auch nach Reload. Elternstapel und andere Zweige bleiben ausgeschlossen.</li>
 <li>Direkt neben den Inhaltsreitern steht die primäre Aktion <code>Karten lernen</code>; auf schmalen Flächen steht sie darunter. Sie bleibt in allen Inhaltsbereichen erreichbar und startet die Sitzung samt Unterstapeln. Sie ist nur bei leerem Stapelbaum deaktiviert; die Suche beeinflusst sie nicht. Das Verlassen der Sitzung führt zu den Stapelinhalten zurück.</li>

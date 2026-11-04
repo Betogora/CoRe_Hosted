@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, X } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, X, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -41,6 +41,19 @@ const deckContentTabs = [
 ] as const;
 
 const CARD_SEARCH_DEBOUNCE_MS = 250;
+
+/** Centered state of a content tab without its own content, e.g. `Demnächst verfügbar` or `Keine Unterstapel`. */
+function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
+  return (
+    <SoftPanel aria-label={label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10" data-testid={testId}>
+      <div className="flex min-w-0 flex-col items-center gap-4 text-center">
+        <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action"><Icon size={22} aria-hidden="true" /></span>
+        <p className="core-heading-3 text-core-text" role="status">{title}</p>
+        {action}
+      </div>
+    </SoftPanel>
+  );
+}
 
 function SortHeader({ field, label, sort, onChange }: {
   field: CardTableSortField;
@@ -214,7 +227,6 @@ export function DecksScreen({
     !deck.deletedAt && ((deckSummaries?.get(deck.id)?.inventory.totalCards ?? 0) > 0 || deck.cards.some((card) => !card.deletedAt))
   )), [contentDeckId, deckSummaries, libraryDecks]);
   const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
-  const ContentIcon = selectedContentTab.icon;
   const [query, setQuery] = React.useState("");
   const [deferredQuery, setDeferredQuery] = React.useState("");
   // Flag, leech and tag filters are search terms in the query (Anki notation), so search and filters stay one state.
@@ -708,9 +720,11 @@ export function DecksScreen({
       }} />}
 
       {contentDeckId && contentTab === "children" ? (
-        contentRow && contentLibrary ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow} decks={decks} hasStudyCards={hasStudyCards}
-          onOpenCards={(id) => onOpenDeckContent(id, "cards")}
+        contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
+          onOpenDeck={(id) => onOpenDeckContent(id, "children")}
           onStudy={onStartDeck} onOpenSettings={onOpenDeckSettings} onSetCoreMode={onSetDeckCoreMode} onMoveDeck={onMoveDeck} />
+          : <DeckContentPlaceholder label="Unterstapel" icon={Layers} title="Keine Unterstapel" testId="deck-content-substacks"
+            action={<ActionButton variant="secondary" icon={Play} disabled={!hasStudyCards} onClick={() => onStartDeck(contentRow.deck)}>Karten lernen</ActionButton>} />
           : <EmptyState icon={Layers} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab === "summary" ? (
         contentDeck ? <DeckSummariesPanel key={`${summaryAccountId ?? contentDeck.ownerId}:${contentDeck.id}`} deck={contentDeck}
@@ -721,12 +735,7 @@ export function DecksScreen({
           userId={summaryAccountId ?? contentDeck.ownerId} cloud={learningContentCloud} onGenerateSummary={onGenerateSummary} onDraftStateChange={handleEditorDraftStateChange} />
           : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
-        <SoftPanel aria-label={selectedContentTab.label} className="flex min-h-[214px] items-center justify-center p-6 sm:p-10">
-          <div className="flex min-w-0 flex-col items-center gap-4 text-center" role="status">
-            <span className="grid size-12 place-items-center rounded-control bg-core-subtle text-core-action"><ContentIcon size={22} aria-hidden="true" /></span>
-            <p className="core-heading-3 text-core-text">Demnächst verfügbar</p>
-          </div>
-        </SoftPanel>
+        <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
       ) : <SoftPanel className="min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
         <div className="grid gap-6">
           {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-2 text-core-text">Aktive Stapel</h3> : null}
