@@ -139,13 +139,13 @@ test("Jede exportierte gemeinsame UI-Komponente hat Gruppe und Demo; Inventar en
 
 test("Katalogbeispiele und Dokumentationsrahmen verwenden nur definierte Design-Tokens", () => {
   const tokens = new Set(createCatalogData().tokens.map((token) => token.name));
-  for (const file of ["scripts/uiCatalogDemos.tsx", "scripts/uiCatalog.css", "docs/tooling/site.css"]) {
+  for (const file of ["scripts/uiCatalogDemos.tsx", "scripts/uiCatalog.css", "scripts/docsSite.css"]) {
     for (const [, token] of readFileSync(file, "utf8").matchAll(/var\((--core-[a-z0-9-]+)/g)) assert.ok(tokens.has(token), `${file}: ${token} fehlt`);
   }
 });
 
 test("Der Dokumentationsrahmen verwendet CoRe-Typografie und die gemeinsame Radiusskala", () => {
-  postcss.parse(readFileSync("docs/tooling/site.css", "utf8")).walkDecls((declaration) => {
+  postcss.parse(readFileSync("scripts/docsSite.css", "utf8")).walkDecls((declaration) => {
     if (["font-size", "line-height"].includes(declaration.prop)) assert.match(declaration.value, /^var\(--core-(type|leading)-/);
     if (declaration.prop === "font") assert.match(declaration.value, /var\(--core-type-/);
     if (declaration.prop === "border-radius") assert.match(declaration.value, /^(?:0\s+)?var\(--core-radius-/);

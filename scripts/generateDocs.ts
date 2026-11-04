@@ -324,8 +324,8 @@ export async function synchronizeDocs(mode: "write" | "check") {
     .map((file) => [`/fonts/${file.replaceAll("\\", "/")}`, `data:font/woff2;base64,${readFileSync(path.join(root, "public/fonts", file)).toString("base64")}`]));
   for (const [file, url] of fonts) styles = styles.replaceAll(file, url);
   const images = new Map([["/core-brain.svg", `data:image/svg+xml;base64,${Buffer.from(text("public/core-brain.svg")).toString("base64")}`]]);
-  const css = `${styles}\n${text("src/ui/brainMascot.css")}\n${text("docs/tooling/site.css")}\n${text("scripts/uiCatalog.css")}`;
-  const viewer = ts.transpileModule(text("docs/tooling/viewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
+  const css = `${styles}\n${text("src/ui/brainMascot.css")}\n${text("scripts/docsSite.css")}\n${text("scripts/uiCatalog.css")}`;
+  const viewer = ts.transpileModule(text("scripts/docsViewer.ts"), { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } }).outputText;
   const runtime = currentRuntime(inputs) ?? inlineScript(await buildCatalogRuntime(fonts, images));
   const results = new Map<string, string>();
   function reader(file: string, contents: string) {
