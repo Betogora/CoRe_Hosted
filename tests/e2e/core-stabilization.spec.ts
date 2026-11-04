@@ -982,6 +982,36 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   expect(manualEvents[0].flags).toEqual({ kind: "manual_reschedule" });
 });
 
+test("a card moved out of the opened deck, moved back and duplicated stays reachable with its copy", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.europe}&content=1&tab=cards`);
+  const row = page.getByTestId("deck-card-card_world_capitals_alb");
+  await row.click();
+  const editor = page.getByTestId("card-detail-dialog");
+  await editor.getByRole("button", { name: "Verschieben", exact: true }).click();
+  const moveDialog = page.getByRole("dialog", { name: "Karte verschieben" });
+  await moveDialog.getByRole("combobox", { name: "Zielstapel" }).click();
+  await page.getByRole("option", { name: /Asien$/ }).click();
+  await moveDialog.getByRole("button", { name: "Verschieben", exact: true }).click();
+
+  // The card left the opened deck: the editor closes, the source table drops its row and the undo toast stays.
+  await expect(editor).toHaveCount(0);
+  await expect(row).toHaveCount(0);
+  const toast = page.locator('[data-success-toast-region="true"]');
+  await expect(toast).toContainText("Karte nach „Asien“ verschoben.");
+  await toast.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(editor.getByTestId("card-deck")).toContainText("Europa kompakt");
+  await expect.poll(async () => Boolean(await storedCard(page, DECK_IDS.europe, "card_world_capitals_alb"))).toBe(true);
+
+  await editor.getByRole("button", { name: "Duplizieren", exact: true }).click();
+  await expect(toast).toContainText("Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt.");
+  await expect(editor.getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Albanien?");
+  const europe = (await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe);
+  const copy = europe.cards.find((card: any) => card.id !== "card_world_capitals_alb" && frontHtml(card)?.includes("Albanien") && frontHtml(card)?.includes("(Kopie)"));
+  expect(copy).toBeTruthy();
+  await expect(page.getByTestId(`deck-card-${copy.id}`)).toBeAttached();
+});
+
 test("shared CoRe date picker updates the simulator within its bounded range", async ({ page }: any) => {
   await resetToFreshLocalState(page);
   await page.goto("/simulator");

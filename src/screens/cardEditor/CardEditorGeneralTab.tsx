@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarClock, CalendarDays, Check, Copy, Layers, MoveRight, Pause, Snail, Star } from "lucide-react";
+import { CalendarClock, CalendarDays, Check, Copy, Layers, MoveRight, Pause, Snail } from "lucide-react";
 import type { CardEditorServices, DecksScreenProps } from "../../appScreenProps.ts";
 import type { SimilarNote } from "../../cloudRepositoryValidation.ts";
 import { notePromptLabel } from "../../coreModel.ts";
@@ -7,7 +7,7 @@ import type { Card, CardStudyStatePatch, Deck } from "../../coreTypes.ts";
 import { addLearningDays, getLearningDayKey, getLearningDayRange, getLearningDayStartForKey } from "../../learningDay.ts";
 import { manuallyBuriedCardIds } from "../../siblingBurying.ts";
 import type { NoteGraph } from "../../workspaceReplica.ts";
-import { ActionButton } from "../../ui/actionUi.tsx";
+import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
 import { ActionDialog, CardMarkButton } from "../../ui/coreUi.tsx";
 import { CoreDatePicker } from "../../ui/CoreDatePicker.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
@@ -17,6 +17,7 @@ import { TagInput } from "../../ui/TagInput.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import { useOnline } from "./useOnline.ts";
 import { cardStateLabel } from "./cardEditorModel.ts";
+import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import type { PendingCard } from "./CardEditorContentTab.tsx";
 
 const QUICK_DATES = [
@@ -29,33 +30,29 @@ const QUICK_DATES = [
 const formatDayKey = (key: string) => new Date(`${key}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 const formatInstant = (iso: string) => new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 
-function Section({ title, children, testId }: { title: string; children: React.ReactNode; testId?: string }) {
-  const id = React.useId();
+function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby={id} data-testid={testId}>
-      <h3 id={id} className="core-body font-semibold text-core-text">{title}</h3>
+    <div className="grid min-h-control min-w-0 grid-cols-[8rem_minmax(0,1fr)_auto] items-center gap-x-3">
+      <dt className="core-body text-core-muted">{label}</dt>
       {children}
-    </section>
+    </div>
   );
 }
 
 function CopyableId({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = React.useState(false);
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <dt className="w-28 shrink-0 core-caption text-core-muted">{label}</dt>
-      <dd className="min-w-0 flex-1 truncate font-mono core-caption text-core-text">{value}</dd>
+    <DetailRow label={label}>
+      <dd className="min-w-0 truncate font-mono core-body text-core-text">{value}</dd>
       <CoreTooltip label={copied ? "Kopiert" : "Kopieren"}>
-        <button type="button" aria-label={`${label} kopieren`} className="core-action-ghost min-w-control p-2" onClick={() => {
+        <IconButton icon={copied ? Check : Copy} variant="ghost" label={`${label} kopieren`} onClick={() => {
           void navigator.clipboard?.writeText(value).then(() => {
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1500);
           });
-        }}>
-          {copied ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
-        </button>
+        }} />
       </CoreTooltip>
-    </div>
+    </DetailRow>
   );
 }
 
@@ -223,15 +220,15 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
       <div className="grid min-w-0 gap-4">
         <Section title="Flagge" testId="card-flag">
           <FlagPicker value={card.ankiFlag} names={services.flagNames} onValueChange={onSetFlag} onEditNames={services.openFlagNames} />
-          <div className="flex min-h-control items-center justify-between gap-3 border-t border-core-border pt-2">
-            <span className="flex items-center gap-2 core-body font-semibold text-core-secondary"><Star size={18} aria-hidden="true" />Markiert</span>
+          <div className="flex min-h-control items-center justify-between gap-3 border-t border-core-border pt-3">
+            <span className="core-body font-semibold text-core-text">Markiert</span>
             <CoreTooltip label="Markieren · Strg+K">
               <CardMarkButton marked={note.marked} onMarkedChange={onSetMarked} />
             </CoreTooltip>
           </div>
         </Section>
         <Section title="Planung" testId="card-planning">
-          <p className="core-body font-semibold text-core-text" data-testid="card-plan-state">{planState}</p>
+          <p className="core-body-large font-semibold text-core-text" data-testid="card-plan-state">{planState}</p>
           <div className="flex flex-wrap gap-2" role="group" aria-label="Schnellwahl">
             {QUICK_DATES.map((entry) => {
               const key = getLearningDayKey(addLearningDays(now, entry.days, dayOptions) ?? "", dayOptions) ?? "";
@@ -264,11 +261,10 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
             </div>
           ) : null}
         </Section>
-        <Section title="Stapel" testId="card-deck">
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-            <span className="flex min-w-0 items-center gap-2 core-body font-semibold text-core-text"><Layers size={18} className="shrink-0" aria-hidden="true" /><span className="truncate">{deckName(card.deckId)}</span></span>
-            <ActionButton variant="secondary" icon={MoveRight} loading={busy === "move"} onClick={() => { setMoveTarget(card.deckId); setMoveOpen(true); }}>Verschieben</ActionButton>
-          </div>
+        <Section title="Stapel" testId="card-deck" aside={
+          <ActionButton variant="secondary" icon={MoveRight} loading={busy === "move"} onClick={() => { setMoveTarget(card.deckId); setMoveOpen(true); }}>Verschieben</ActionButton>
+        }>
+          <p className="flex min-w-0 items-center gap-2 core-body-large font-semibold text-core-text"><Layers size={18} className="shrink-0" aria-hidden="true" /><span className="truncate">{deckName(card.deckId)}</span></p>
         </Section>
         {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
       </div>
@@ -278,7 +274,7 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
         </Section>
         {siblings.length > 1 || pendingCards.length ? (
           <Section title="Karten aus diesem Inhalt" testId="card-siblings">
-            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1">
+            <ul className="-mx-3 grid grid-cols-[minmax(0,1fr)] gap-1">
               {siblings.map((sibling) => {
                 const content = (
                   <>
@@ -307,12 +303,12 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
         ) : null}
         {online && services.cloud && similar?.length ? (
           <Section title="Ähnliche Inhalte" testId="card-similar">
-            <ul className="grid grid-cols-[minmax(0,1fr)] gap-1">
+            <ul className="-mx-3 grid grid-cols-[minmax(0,1fr)] gap-1">
               {similar.map((entry) => (
                 <li key={entry.noteId}>
                   <button type="button" onClick={() => onSelectCard(entry.deckId, entry.cardId)} className="flex min-h-control w-full min-w-0 items-center gap-2 rounded-inset px-3 text-left core-body transition-colors hover:bg-core-subtle">
                     <span className="min-w-0 flex-1 truncate text-core-text">{entry.preview || "Ohne Text"}</span>
-                    <span className="shrink-0 core-caption text-core-muted">{deckName(entry.deckId)}</span>
+                    <span className="shrink-0 text-core-muted">{deckName(entry.deckId)}</span>
                   </button>
                 </li>
               ))}
@@ -320,10 +316,10 @@ export function CardEditorGeneralTab({ decks, graph, card, now, dayStartHour, ti
           </Section>
         ) : null}
         <Section title="Details" testId="card-details">
-          <dl className="grid gap-1.5">
-            <div className="flex min-w-0 gap-2"><dt className="w-28 shrink-0 core-caption text-core-muted">Quelle</dt><dd className="min-w-0 core-body text-core-text">{note.source === "anki-apkg" ? "Anki-Import" : "Eigener Inhalt"}</dd></div>
-            <div className="flex min-w-0 gap-2"><dt className="w-28 shrink-0 core-caption text-core-muted">Prüfung</dt><dd className="min-w-0 core-body text-core-text">{exams === null ? "…" : exams.length ? exams.join(", ") : "Keine"}</dd></div>
-            <div className="flex min-w-0 gap-2"><dt className="w-28 shrink-0 core-caption text-core-muted">Erstellt</dt><dd className="min-w-0 core-body text-core-text">{formatInstant(card.createdAt)}</dd></div>
+          <dl className="grid divide-y divide-core-border">
+            <DetailRow label="Quelle"><dd className="col-span-2 min-w-0 core-body text-core-text">{note.source === "anki-apkg" ? "Anki-Import" : "Eigener Inhalt"}</dd></DetailRow>
+            <DetailRow label="Prüfung"><dd className="col-span-2 min-w-0 core-body text-core-text">{exams === null ? "…" : exams.length ? exams.join(", ") : "Keine"}</dd></DetailRow>
+            <DetailRow label="Erstellt"><dd className="col-span-2 min-w-0 core-body text-core-text">{formatInstant(card.createdAt)}</dd></DetailRow>
             <CopyableId label="Karten-ID" value={card.id} />
             <CopyableId label="Inhalts-ID" value={note.id} />
             {card.ankiCardId ? <CopyableId label="Anki-Karten-ID" value={card.ankiCardId} /> : null}

@@ -532,9 +532,11 @@
     grid-auto-columns: var(--core-control-height);
   }
 
-  /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
+  /*
+   * The card editor's four equally wide tabs (ARIA tabs) in the shared selection rail: as wide as the labels from
+   * 640 px, full width below; the sliding indicator marks the selected one.
+   */
   .core-card-editor-tabs {
-    height: calc(var(--core-control-height) + 0.5rem);
     display: grid;
     width: 100%;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -542,6 +544,17 @@
 
   .core-card-editor-tabs .core-segmented-control-option {
     padding-inline: 0.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .core-card-editor-tabs {
+      width: fit-content;
+      grid-template-columns: repeat(4, minmax(7.5rem, 1fr));
+    }
+
+    .core-card-editor-tabs .core-segmented-control-option {
+      padding-inline: var(--core-space-lg);
+    }
   }
 
   @media (pointer: coarse), (max-width: 767px) {

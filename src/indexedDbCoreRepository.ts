@@ -1255,7 +1255,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     rescheduleCards(cardIds: string[], dueAt: string, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, "manual_reschedule", (card) => rescheduleCard(card, dueAt, occurredAt), occurredAt);
     },
-    /** "Als neu lernen": the cards start over as new cards; their review history stays. */
+    /** "Lernstand zurücksetzen": the cards start over as new cards; their review history stays. */
     resetCards(cardIds: string[], occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, "manual_reset", (card) => resetCardStudy(card, occurredAt), occurredAt);
     },

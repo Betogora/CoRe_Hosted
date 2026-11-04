@@ -1446,7 +1446,8 @@ export function App() {
     const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
     setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => {
       if (!page) return [deckId, page];
-      if (refreshPages && graph?.cards.some((card) => card.deckId === deckId)) return [deckId, undefined];
+      // A deck that lost a card reloads as well, so a moved card leaves no row behind in its former deck.
+      if (refreshPages && (graph?.cards.some((card) => card.deckId === deckId) || page.items.some((item) => entries.has(item.id)))) return [deckId, undefined];
       const selected = page.selected && page.selected.note.id === noteId
         ? graph?.cards.some((card) => card.id === page.selected!.cardId) ? { ...graph, cardId: page.selected.cardId } : null
         : page.selected;
@@ -1491,7 +1492,9 @@ export function App() {
 
   async function duplicateDeckNote(graph: NoteGraph) {
     if (!workspaceRepository) return null;
-    const copy = duplicateNote(graph.note, graph.cards);
+    // The stored graph, not the shown one: after a move or its undo the copy lands in the card's current decks.
+    const current = await workspaceRepository.loadNoteGraph(graph.note.id) ?? graph;
+    const copy = duplicateNote(current.note, current.cards);
     await workspaceRepository.saveNoteGraphs([{ previous: null, next: copy }]);
     refresh();
     syncEngine?.requestSync();

@@ -108,7 +108,7 @@ export function moveCardToDeck(card: Card, deckId: string, updatedAt = new Date(
 }
 
 /**
- * "Als neu lernen": the card starts over as a new card with zero repetitions and lapses and without leech; its review
+ * "Lernstand zurücksetzen": the card starts over as a new card with zero repetitions and lapses and without leech; its review
  * history stays. New cards keep their creation order, so it returns to its original place among them.
  */
 export function resetCardStudy(card: Card, occurredAt = new Date().toISOString()): Card {

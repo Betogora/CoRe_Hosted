@@ -22,7 +22,7 @@ test("the curve starts at 100 % after each answer, decays in between and marks f
   assert.ok(curve.every((point) => point.percent > 0 && point.percent <= 100));
 });
 
-test("without answers there is no curve; Als neu lernen starts over", () => {
+test("without answers there is no curve; Lernstand zurücksetzen starts over", () => {
   assert.deepEqual(createRetrievabilityCurve([event("2026-01-01T10:00:00.000Z", "manual", "manual_reschedule")], "2026-02-01T10:00:00.000Z"), []);
   const curve = createRetrievabilityCurve([
     event("2026-01-01T10:00:00.000Z", "good"),

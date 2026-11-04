@@ -733,9 +733,11 @@ video {
     grid-auto-columns: var(--core-control-height);
   }
 
-  /* The card editor's four equally wide tabs (ARIA tabs); the sliding indicator marks the selected one. */
+  /*
+   * The card editor's four equally wide tabs (ARIA tabs) in the shared selection rail: as wide as the labels from
+   * 640 px, full width below; the sliding indicator marks the selected one.
+   */
   .core-card-editor-tabs {
-    height: calc(var(--core-control-height) + 0.5rem);
     display: grid;
     width: 100%;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -743,6 +745,18 @@ video {
 
   .core-card-editor-tabs .core-segmented-control-option {
     padding-inline: 0.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .core-card-editor-tabs {
+      width: -moz-fit-content;
+      width: fit-content;
+      grid-template-columns: repeat(4, minmax(7.5rem, 1fr));
+    }
+
+    .core-card-editor-tabs .core-segmented-control-option {
+      padding-inline: var(--core-space-lg);
+    }
   }
 
   @media (pointer: coarse), (max-width: 767px) {
@@ -1421,6 +1435,10 @@ video {
   margin-left: -0.5rem;
   margin-right: -0.5rem;
 }
+.-mx-3 {
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
+}
 .mx-1 {
   margin-left: 0.25rem;
   margin-right: 0.25rem;
@@ -1484,9 +1502,6 @@ video {
 }
 .mt-1 {
   margin-top: 0.25rem;
-}
-.mt-1\.5 {
-  margin-top: 0.375rem;
 }
 .mt-12 {
   margin-top: 3rem;
@@ -1945,6 +1960,9 @@ video {
 .min-w-12 {
   min-width: 3rem;
 }
+.min-w-14 {
+  min-width: 3.5rem;
+}
 .min-w-16 {
   min-width: 4rem;
 }
@@ -1980,9 +1998,6 @@ video {
 }
 .min-w-button {
   min-width: var(--core-button-height);
-}
-.min-w-control {
-  min-width: var(--core-control-height);
 }
 .min-w-max {
   min-width: -moz-max-content;
@@ -2222,6 +2237,9 @@ video {
 .grid-cols-\[3\.5rem_repeat\(7\2c minmax\(0\2c 1fr\)\)\] {
   grid-template-columns: 3.5rem repeat(7,minmax(0,1fr));
 }
+.grid-cols-\[8rem_minmax\(0\2c 1fr\)_auto\] {
+  grid-template-columns: 8rem minmax(0,1fr) auto;
+}
 .grid-cols-\[9rem_minmax\(0\2c 1fr\)\] {
   grid-template-columns: 9rem minmax(0,1fr);
 }
@@ -2375,8 +2393,8 @@ video {
 .gap-y-2 {
   row-gap: 0.5rem;
 }
-.gap-y-3 {
-  row-gap: 0.75rem;
+.gap-y-4 {
+  row-gap: 1rem;
 }
 .space-y-1 > :not([hidden]) ~ :not([hidden]) {
   --tw-space-y-reverse: 0;
@@ -5864,8 +5882,8 @@ summary {
     padding-right: 0.75rem;
   }
 
-  .sm\:pt-1\.5 {
-    padding-top: 0.375rem;
+  .sm\:pt-1 {
+    padding-top: 0.25rem;
   }
 
   .sm\:pt-4 {
@@ -5951,10 +5969,6 @@ summary {
     grid-template-columns: minmax(0,1fr) minmax(0,1fr);
   }
 
-  .md\:grid-cols-\[minmax\(0\2c 2fr\)_minmax\(0\2c 3fr\)\] {
-    grid-template-columns: minmax(0,2fr) minmax(0,3fr);
-  }
-
   .md\:flex-wrap {
     flex-wrap: wrap;
   }
@@ -5978,10 +5992,6 @@ summary {
   .md\:gap-x-6 {
     -moz-column-gap: 1.5rem;
          column-gap: 1.5rem;
-  }
-
-  .md\:self-start {
-    align-self: flex-start;
   }
 
   .md\:justify-self-end {
