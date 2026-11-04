@@ -2532,19 +2532,26 @@ summary {
 }
 .core-summary-document-editor { min-width: 0; container: summary-document / inline-size; }
 .core-summary-tools { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-md); padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); }
-.core-summary-tool-modes, .core-summary-tool-actions, .core-summary-font-tools, .core-summary-ink-tools, .core-summary-drawing-history { display: flex; flex-wrap: wrap; align-items: center; gap: var(--core-space-xs); min-width: 0; }
-.core-summary-tool-modes { order: 0; flex-shrink: 0; }
-.core-summary-tool-actions { order: 4; margin-left: auto; }
-.core-summary-font-tools { order: 1; gap: var(--core-space-sm); }
-.core-summary-font-tools > label { gap: var(--core-space-xs); }
-.core-summary-text-tools { order: 2; min-width: 0; }
+.core-summary-tool-context, .core-summary-tool-group, .core-summary-tool-actions, .core-rich-text-document-toolbar, .core-rich-text-group { display: flex; align-items: center; min-width: 0; }
+.core-summary-tool-context, .core-rich-text-document-toolbar { flex: 1 1 0; flex-wrap: wrap; gap: var(--core-space-xs) var(--core-space-md); }
+.core-summary-tool-group, .core-rich-text-group { flex: none; gap: var(--core-space-xs); }
+.core-summary-tool-group + .core-summary-tool-group, .core-rich-text-group + .core-rich-text-group { padding-inline-start: var(--core-space-md); border-inline-start: var(--core-border-width) solid var(--core-border); }
+.core-summary-tool-group > .core-caption { white-space: nowrap; }
+.core-summary-tool-modes { flex-shrink: 0; }
+.core-summary-tool-actions { gap: var(--core-space-xs); margin-left: auto; }
+.core-summary-text-tools { display: contents; }
 .core-summary-text-tools[hidden] { display: none; }
-.core-summary-ink-tools { order: 1; gap: var(--core-space-sm); }
-.core-summary-drawing-history { order: 2; }
-.core-summary-tool-modes [aria-pressed="true"], .core-summary-tool-modes [aria-pressed="true"]:hover { background: var(--core-action-soft); color: var(--core-action-primary) !important; }
-.core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; flex-wrap: nowrap; }
-.core-summary-text-tools .core-rich-text-extra-tools { position: absolute; top: calc(100% + 6px); left: 0; width: min(20rem, 100%); z-index: 25; padding: var(--core-space-sm); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); box-shadow: var(--core-shadow-raised); }
-.core-summary-ink-preview { flex-shrink: 0; }
+.core-summary-text-tools [role="toolbar"] { position: static; border: 0; padding: 0; background: transparent; }
+.core-rich-text-tool[aria-pressed="true"] { background: var(--core-action-soft); color: var(--core-action-primary); }
+.core-summary-swatch, .core-summary-ink-dot { display: grid; place-items: center; width: var(--core-button-height); height: var(--core-button-height); flex-shrink: 0; border-radius: var(--core-radius-control); transition: background-color 140ms ease; }
+.core-summary-swatch:hover { background: var(--core-surface-hover); }
+.core-summary-swatch span { width: 1.25rem; height: 1.25rem; border-radius: var(--core-radius-round); background: var(--summary-ink); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--core-text) 30%, transparent); }
+.core-summary-swatch[aria-pressed="true"] span { box-shadow: 0 0 0 2px var(--core-surface-raised), 0 0 0 4px color-mix(in srgb, var(--core-text) 70%, transparent); }
+.core-summary-ink-dot span { border-radius: var(--core-radius-round); }
+.core-summary-stepper { display: flex; align-items: center; }
+.core-summary-stepper input { width: 3rem; height: var(--core-button-height); padding: 0; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); background: var(--core-surface); color: var(--core-text); text-align: center; font: inherit; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.core-summary-stepper input::-webkit-inner-spin-button, .core-summary-stepper input::-webkit-outer-spin-button { margin: 0; -webkit-appearance: none; }
+.core-summary-font-select { width: 8.5rem; }
 .core-summary-stage { min-width: 0; padding-top: var(--core-space-lg); }
 .core-summary-sheet { position: relative; width: min(100%, 794px); margin-inline: auto; background: var(--core-surface); border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-panel); box-shadow: var(--core-shadow-soft); }
 .core-summary-sheet .rich-text-field { min-height: 638px; padding: var(--core-space-xl); border: 0; border-radius: var(--core-radius-panel); box-shadow: none; overflow: visible; font-family: var(--summary-font); font-size: var(--summary-size); line-height: 1.75; background: transparent; }
@@ -2555,11 +2562,14 @@ summary {
 .core-summary-drawing-layer[data-tool="eraser"] path { pointer-events: stroke; }
 .core-summary-drawing-layer[data-tool="eraser"] path:hover { stroke-opacity: 0.45; }
 .core-summary-expanded { position: fixed; inset: 0; z-index: 70; overflow-y: auto; overscroll-behavior: contain; background: var(--core-canvas); padding: var(--core-space-sm); }
+/* Below one-row width the context tools move to their own swipeable row, as in mobile note apps. */
+@container summary-document (width < 68rem) {
+  .core-summary-tool-context, .core-rich-text-document-toolbar { flex-wrap: nowrap; }
+  .core-summary-tool-context { order: 1; flex-basis: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; padding-top: var(--core-space-sm); padding-inline-end: var(--core-space-xl); border-top: var(--core-border-width) solid var(--core-border); mask-image: linear-gradient(to right, #000 calc(100% - var(--core-space-xl)), transparent); }
+  .core-rich-text-document-toolbar { flex: none; }
+}
 @container summary-document (max-width: 40rem) {
   .core-summary-tools { gap: var(--core-space-sm); }
-  .core-summary-tool-actions { order: 0; }
-  .core-summary-font-tools, .core-summary-ink-tools, .core-summary-drawing-history, .core-summary-text-tools { flex-basis: 100%; }
-  .core-summary-text-tools [role="toolbar"] { width: max-content; }
   .core-summary-sheet .rich-text-field { padding: var(--core-space-lg); }
 }
 

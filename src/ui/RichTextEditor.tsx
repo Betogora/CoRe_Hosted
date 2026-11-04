@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, PenLine, Sigma, Underline, Unlink } from "lucide-react";
+import { Baseline, Bold, Braces, Eraser, Highlighter, ImagePlus, Italic, MoreHorizontal, List, ListOrdered, PenLine, Redo2, RemoveFormatting, Sigma, Strikethrough, Underline, Undo2, Unlink } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { sanitizeCardHtml } from "../htmlSafety.ts";
 import { normalizeRichTextEditorHtml, normalizeRichTextForEditor, textToCardHtml } from "../richText.ts";
@@ -122,13 +122,17 @@ export function selectionOverlapsRichTextCloze(text: string, selection: TextSele
   );
 }
 
-function ToolbarButton({ label, icon: Icon, onRun, disabled = false }: { label: string; icon: LucideIcon; onRun: () => void; disabled?: boolean }) {
+const documentFormatCommands = ["bold", "italic", "underline", "strikeThrough", "insertUnorderedList", "insertOrderedList"] as const;
+type DocumentFormatState = Partial<Record<(typeof documentFormatCommands)[number], boolean>>;
+
+function ToolbarButton({ label, icon: Icon, onRun, disabled = false, pressed }: { label: string; icon: LucideIcon; onRun: () => void; disabled?: boolean; pressed?: boolean }) {
   return (
     <CoreTooltip label={label}>
       <button
         type="button"
         className="core-rich-text-tool"
         aria-label={label}
+        aria-pressed={pressed}
         disabled={disabled}
         onMouseDown={(event) => {
           event.preventDefault();
@@ -158,9 +162,13 @@ interface RichTextEditorProps {
   imageActions?: RichTextImageActions;
   /** Shows the toolbar only while focus is in the field or its toolbar, e.g. for a column of several fields. */
   toolbarOnFocus?: boolean;
+  /** Long-form documents: grouped toolbar with history, strikethrough and active format states instead of the card tool set. */
+  documentTools?: boolean;
+  /** Document-wide controls of the caller (e.g. font and size), shown after the history group of `documentTools`. */
+  documentSettings?: React.ReactNode;
 }
 
-export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false }: RichTextEditorProps) {
+export function RichTextEditor({ value = "", onChange, onFocus, isActive = false, minHeightClass = "min-h-48", ariaLabel, ariaInvalid = false, ariaDescribedBy, clozeActions, imageActions, toolbarHost, showAllTools = false, toolbarOnFocus = false, documentTools = false, documentSettings }: RichTextEditorProps) {
   const editorRef = React.useRef<HTMLDivElement>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
   const selectionRef = React.useRef<Range | null>(null);
@@ -178,6 +186,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
   const [imageError, setImageError] = React.useState("");
   const [isPreparingImages, setIsPreparingImages] = React.useState(false);
   const [moreToolsOpen, setMoreToolsOpen] = React.useState(false);
+  const [formatState, setFormatState] = React.useState<DocumentFormatState>({});
   const moreToolsId = React.useId();
   const clozeStatusId = React.useId();
   const imageStatusId = React.useId();
@@ -196,6 +205,20 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     }
     lastEmittedNormalizedHtmlRef.current = normalizedValue;
   }, [imageActions?.mediaUrls, normalizedValue]);
+
+  React.useEffect(() => {
+    if (!documentTools || typeof document === "undefined") return undefined;
+    const update = () => { if (hasEditorSelection()) refreshFormatState(); };
+    document.addEventListener("selectionchange", update);
+    return () => document.removeEventListener("selectionchange", update);
+  }, [documentTools]);
+
+  function refreshFormatState() {
+    if (!documentTools) return;
+    const next: DocumentFormatState = {};
+    for (const command of documentFormatCommands) next[command] = document.queryCommandState(command);
+    setFormatState((current) => Object.entries(next).every(([key, value]) => current[key as keyof DocumentFormatState] === value) ? current : next);
+  }
 
   function hasEditorSelection() {
     const editor = editorRef.current;
@@ -526,6 +549,7 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     document.execCommand(command, false, commandValue ?? undefined);
     saveSelection();
     emitChange();
+    refreshFormatState();
   }
 
   function applyColor(kind: "text" | "highlight", color: string) {
@@ -586,7 +610,32 @@ export function RichTextEditor({ value = "", onChange, onFocus, isActive = false
     active ? "border-core-action" : "border-core-border"
   } ${active && toolbarHost ? "shadow-selection" : ""}`;
   const editorDescribedBy = [ariaDescribedBy, clozeStatus ? clozeStatusId : null, imageStatus || imageError ? imageStatusId : null].filter(Boolean).join(" ") || undefined;
-  const toolbar = (
+  const toolbar = documentTools ? (
+      <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className="core-rich-text-toolbar core-rich-text-document-toolbar">
+        <div className="core-rich-text-group" role="group" aria-label="Verlauf">
+          <ToolbarButton label="Rückgängig" icon={Undo2} onRun={() => runCommand("undo")} />
+          <ToolbarButton label="Wiederholen" icon={Redo2} onRun={() => runCommand("redo")} />
+        </div>
+        {documentSettings}
+        <div className="core-rich-text-group" role="group" aria-label="Zeichenformat">
+          <ToolbarButton label="Fett" icon={Bold} pressed={Boolean(formatState.bold)} onRun={() => runCommand("bold")} />
+          <ToolbarButton label="Kursiv" icon={Italic} pressed={Boolean(formatState.italic)} onRun={() => runCommand("italic")} />
+          <ToolbarButton label="Unterstrichen" icon={Underline} pressed={Boolean(formatState.underline)} onRun={() => runCommand("underline")} />
+          <ToolbarButton label="Durchgestrichen" icon={Strikethrough} pressed={Boolean(formatState.strikeThrough)} onRun={() => runCommand("strikeThrough")} />
+        </div>
+        <div className="core-rich-text-group" role="group" aria-label="Farbe">
+          <ColorPicker variant="tool" icon={Baseline} ariaLabel="Textfarbe" value={textColor} presets={textColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("text", color)} />
+          <ColorPicker variant="tool" icon={Highlighter} ariaLabel="Hervorheben" value={highlightColor} presets={highlightColorPresets} onOpenChange={openColorMenu} onValueCommit={(color) => applyColor("highlight", color)} />
+        </div>
+        <div className="core-rich-text-group" role="group" aria-label="Listen">
+          <ToolbarButton label="Stichpunkte" icon={List} pressed={Boolean(formatState.insertUnorderedList)} onRun={() => runCommand("insertUnorderedList")} />
+          <ToolbarButton label="Nummerierte Liste" icon={ListOrdered} pressed={Boolean(formatState.insertOrderedList)} onRun={() => runCommand("insertOrderedList")} />
+        </div>
+        <div className="core-rich-text-group">
+          <ToolbarButton label="Formatierung entfernen" icon={RemoveFormatting} onRun={() => runCommand("removeFormat")} />
+        </div>
+      </div>
+  ) : (
       <div role="toolbar" aria-label="Werkzeuge zur Textformatierung" className={`core-rich-text-toolbar flex max-w-full min-w-0 flex-wrap items-center gap-0.5 rounded-t-control border p-1 ${active ? "border-core-action" : "border-core-border"}`}>
         <ToolbarButton label="Fett" icon={Bold} onRun={() => runCommand("bold")} />
         <ToolbarButton label="Kursiv" icon={Italic} onRun={() => runCommand("italic")} />
