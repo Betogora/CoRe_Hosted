@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { AI_LEARNING_SUMMARY_PROMPT_VERSION } from "../../src/aiLearningSummaryContract.ts";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setNoteMarked } from "../../src/coreModel.ts";
 import { createCoreRepository } from "../../src/coreRepository.ts";
 import type { Deck, Note } from "../../src/coreTypes.ts";
@@ -738,7 +739,7 @@ test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorw�
 });
 
 const CONTENT_URL = `/kartenstapel?deck=${DECK_IDS.childB}&content=1&tab=`;
-const SUMMARY_RESULT = { summary: { sections: [{ heading: "Bereich B", paragraphs: ["Karte B1 führt zu Antwort B1."], points: [], references: ["m1"], subsections: [] }], warnings: [], relations: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: "learning-summary-v3", usage: null };
+const SUMMARY_RESULT = { summary: { sections: [{ heading: "Bereich B", paragraphs: ["Karte B1 führt zu Antwort B1."], points: [], references: ["m1"], subsections: [] }], warnings: [], relations: [] }, model: "openai/gpt-6-luna", privacyMode: "zdr", promptVersion: AI_LEARNING_SUMMARY_PROMPT_VERSION, usage: null };
 
 test("[Vertrag: Lerninhalte] Tabs öffnen per URL; Entwürfe sind bei Tab-, Bereichswechsel und Reload geschützt, Verwerfen lässt Fassungen unverändert", async ({ page }) => {
   const summaries = page.getByTestId("deck-summaries-panel"), guard = page.getByRole("dialog", { name: "Änderungen übernehmen?", exact: true });
