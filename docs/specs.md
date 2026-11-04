@@ -163,14 +163,14 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` bündelt `Stapelübersicht` und `Kartenverwaltung` als schnellen Sitzungseinstieg; `Lerneinstellungen` öffnet die accountweite Planung unter `/karten-einstellungen`. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen liegt unter der verborgenen Route `/kartenstapel`.
+`Lernen` zeigt die Stapelübersicht als schnellen Sitzungseinstieg; `Lerneinstellungen` öffnet die accountweite Planung unter `/karten-einstellungen`. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel ist der eigene Hauptreiter `Karten` unter `/kartenstapel`.
 
 Akzeptanz:
 
 #### Navigation und Seitenkopf
 
-- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Prüfungen`, `Erstellen`, `Statistik`. Auf `/kartenstapel` ist `Lernen` aktiv; ein Klick auf `Lernen` öffnet stets die Stapelübersicht. Der Schriftzug `CoRe` samt Gehirn-Logo navigiert zu `Heute`.
-- Beide Lernen-Bereiche zeigen `REVIEW` und `Lernen` im Seitenkopf; Bereichsauswahl und `Lerneinstellungen` sind in beiden erreichbar.
+- Die Hauptnavigation lautet in Top- und Bottom-Bar exakt `Heute`, `Lernen`, `Erstellen`, `Karten`, `Prüfung`. `Statistik` ist kein Reiter, sondern eine reine Icon-Aktion links vom Theme-Schalter. Auf `/kartenstapel` ist `Karten` aktiv, in den Stapelinhalten (`content=1`) `Lernen`. Ein Klick auf `Lernen` öffnet stets die Stapelübersicht, ein Klick auf `Karten` die Kartenverwaltung aller Stapel; beide übernehmen den zuletzt gewählten Stapel als Fokus. Der Schriftzug `CoRe` samt Gehirn-Logo navigiert zu `Heute`.
+- `Lernen` zeigt `REVIEW` und `Lernen`, die Kartenverwaltung `Alle Stapel` und `Kartenverwaltung` im Seitenkopf; beide bieten `Lerneinstellungen`. Eine Bereichsauswahl zwischen beiden gibt es nicht. Die Kartenverwaltung einzelner Stapel bleibt als Reiter `Karten` der Stapelinhalte im selben Design erreichbar.
 - Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.
 
 #### Stapelbäume
@@ -609,8 +609,8 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor un
 
 ### App-Shell und Navigation
 
-- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Prüfungen`, `Erstellen` und `Statistik`. Ein kompakter Kopf bietet `CoRe` mit Gehirn-Logo (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
-- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` mit Gehirn-Logo (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Hilfe öffnen` hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
+- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`. Ein kompakter Kopf bietet `CoRe` mit Gehirn-Logo (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Statistik, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
+- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` mit Gehirn-Logo (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Statistik öffnen` und `Hilfe öffnen` haben je einen eigenen aktiven Zustand und dieselbe neutrale Hover-Fläche wie die übrigen Utilities; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Lerneinstellungen, Stapelinhalte und Simulator markieren `Lernen`. Eine Profilvorschau erscheint nicht.
 - Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.
 
 ### Bedienelemente

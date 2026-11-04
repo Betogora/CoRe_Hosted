@@ -806,10 +806,6 @@ video {
       padding-inline: 0.25rem;
       line-height: var(--core-leading-caption);
     }
-
-    .core-learning-area-control .core-segmented-control-option {
-      padding-inline: 0.25rem;
-    }
   }
 
   /* Four question types do not fit one row below 360 px; two rows keep every label inside its option. */
@@ -3141,6 +3137,22 @@ video {
   font-display: swap;
 }
 
+/* Sync status or Pomodoro next to the four utilities leave no room for the wordmark; the logo keeps the brand. */
+@media (max-width: 26.8125rem) {
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
+    gap: 0;
+  }
+}
+
 @media (max-width: 18.75rem) {
   .core-centered-viewport {
     padding: 0.25rem;
@@ -3569,49 +3581,6 @@ button[aria-label] {
   --core-deck-depth-indent: 18px;
 }
 
-
-.core-learning-header-container {
-  container: core-learning-header / inline-size;
-}
-
-.core-learning-header-container > .core-page-header-with-action {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-}
-
-@container core-learning-header (max-width: 42rem) {
-  .core-learning-header-container > .core-page-header-with-action {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .core-learning-header-container .core-page-header-action {
-    width: 100%;
-  }
-}
-
-@container core-learning-header (max-width: 32rem) {
-  .core-learning-header-container > .core-page-header-with-action {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-learning-header-container .core-page-header-action,
-  .core-learning-header-container .core-learning-header-actions {
-    display: contents;
-  }
-
-  .core-learning-header-container .core-learning-header-actions > .core-action-secondary {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-  }
-
-  .core-learning-header-container .core-learning-area-control {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
-  }
-}
 
 .core-deck-tree-header {
   grid-template-columns: minmax(0, 1fr);
@@ -6257,6 +6226,9 @@ summary {
 .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {
   display: none;
 }
+.\[\&\>header\]\:flex-wrap>header {
+  flex-wrap: wrap;
+}
 .\[\&\>svg\]\:relative>svg {
   position: relative;
 }
@@ -6638,7 +6610,7 @@ N4[&quot;Synchronisierung oder Teilabschluss sehen&quot;]</pre><ol><li>Erstellen
 </ul>
 <p class="docs-source">Quelle: <a href="specs.html#specs--52-stapel-importieren-oder-manuell-anlegen">Produktvertrag 5.2</a> · <a href="ui-elements.html#inhalt">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>
 <article id="journey-3" class="docs-document docs-journey"><h2 id="journey-3--53-karten-bearbeiten-und-eine-sitzung-starten" class="core-heading-2" tabindex="-1">5.3 Karten bearbeiten und eine Sitzung starten <a class="docs-anchor" href="#journey-3--53-karten-bearbeiten-und-eine-sitzung-starten" aria-label="Link zu 5.3 Karten bearbeiten und eine Sitzung starten">#</a></h2>
-<p><code>Lernen</code> bündelt <code>Stapelübersicht</code> und <code>Kartenverwaltung</code> als schnellen Sitzungseinstieg; <code>Lerneinstellungen</code> öffnet die accountweite Planung unter <code>/karten-einstellungen</code>. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen liegt unter der verborgenen Route <code>/kartenstapel</code>.</p>
+<p><code>Lernen</code> zeigt die Stapelübersicht als schnellen Sitzungseinstieg; <code>Lerneinstellungen</code> öffnet die accountweite Planung unter <code>/karten-einstellungen</code>. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel ist der eigene Hauptreiter <code>Karten</code> unter <code>/kartenstapel</code>.</p>
 <h3 id="journey-3--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><div class="docs-journey-flow"><pre class="mermaid">flowchart TD
 N0[&quot;Lernen öffnen&quot;] --&gt; N1
 N1[&quot;Stapel und Karten verwalten&quot;] --&gt; N2
@@ -6647,8 +6619,8 @@ N3[&quot;Sitzung vorbereiten&quot;] --&gt; N4
 N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><li>Stapel und Karten verwalten</li><li>Inhalt und Lernwerte prüfen</li><li>Sitzung vorbereiten</li><li>Erste verfügbare Karte lernen</li></ol></div><h3 id="journey-3-rules--regeln-zustände-und-akzeptanz" class="core-heading-3" tabindex="-1">Regeln, Zustände und Akzeptanz <a class="docs-anchor" href="#journey-3-rules--regeln-zustände-und-akzeptanz" aria-label="Link zu Regeln, Zustände und Akzeptanz">#</a></h3>
 <h4 id="journey-3-rules--navigation-und-seitenkopf" class="core-control-label" tabindex="-1">Navigation und Seitenkopf <a class="docs-anchor" href="#journey-3-rules--navigation-und-seitenkopf" aria-label="Link zu Navigation und Seitenkopf">#</a></h4>
 <ul>
-<li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht. Der Schriftzug <code>CoRe</code> samt Gehirn-Logo navigiert zu <code>Heute</code>.</li>
-<li>Beide Lernen-Bereiche zeigen <code>REVIEW</code> und <code>Lernen</code> im Seitenkopf; Bereichsauswahl und <code>Lerneinstellungen</code> sind in beiden erreichbar.</li>
+<li>Die Hauptnavigation lautet in Top- und Bottom-Bar exakt <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Karten</code>, <code>Prüfung</code>. <code>Statistik</code> ist kein Reiter, sondern eine reine Icon-Aktion links vom Theme-Schalter. Auf <code>/kartenstapel</code> ist <code>Karten</code> aktiv, in den Stapelinhalten (<code>content=1</code>) <code>Lernen</code>. Ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht, ein Klick auf <code>Karten</code> die Kartenverwaltung aller Stapel; beide übernehmen den zuletzt gewählten Stapel als Fokus. Der Schriftzug <code>CoRe</code> samt Gehirn-Logo navigiert zu <code>Heute</code>.</li>
+<li><code>Lernen</code> zeigt <code>REVIEW</code> und <code>Lernen</code>, die Kartenverwaltung <code>Alle Stapel</code> und <code>Kartenverwaltung</code> im Seitenkopf; beide bieten <code>Lerneinstellungen</code>. Eine Bereichsauswahl zwischen beiden gibt es nicht. Die Kartenverwaltung einzelner Stapel bleibt als Reiter <code>Karten</code> der Stapelinhalte im selben Design erreichbar.</li>
 <li>Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.</li>
 </ul>
 <h4 id="journey-3-rules--stapelbäume" class="core-control-label" tabindex="-1">Stapelbäume <a class="docs-anchor" href="#journey-3-rules--stapelbäume" aria-label="Link zu Stapelbäume">#</a></h4>

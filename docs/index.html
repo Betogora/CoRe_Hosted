@@ -806,10 +806,6 @@ video {
       padding-inline: 0.25rem;
       line-height: var(--core-leading-caption);
     }
-
-    .core-learning-area-control .core-segmented-control-option {
-      padding-inline: 0.25rem;
-    }
   }
 
   /* Four question types do not fit one row below 360 px; two rows keep every label inside its option. */
@@ -3141,6 +3137,22 @@ video {
   font-display: swap;
 }
 
+/* Sync status or Pomodoro next to the four utilities leave no room for the wordmark; the logo keeps the brand. */
+@media (max-width: 26.8125rem) {
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
+    gap: 0;
+  }
+}
+
 @media (max-width: 18.75rem) {
   .core-centered-viewport {
     padding: 0.25rem;
@@ -3569,49 +3581,6 @@ button[aria-label] {
   --core-deck-depth-indent: 18px;
 }
 
-
-.core-learning-header-container {
-  container: core-learning-header / inline-size;
-}
-
-.core-learning-header-container > .core-page-header-with-action {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-}
-
-@container core-learning-header (max-width: 42rem) {
-  .core-learning-header-container > .core-page-header-with-action {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .core-learning-header-container .core-page-header-action {
-    width: 100%;
-  }
-}
-
-@container core-learning-header (max-width: 32rem) {
-  .core-learning-header-container > .core-page-header-with-action {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-learning-header-container .core-page-header-action,
-  .core-learning-header-container .core-learning-header-actions {
-    display: contents;
-  }
-
-  .core-learning-header-container .core-learning-header-actions > .core-action-secondary {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-  }
-
-  .core-learning-header-container .core-learning-area-control {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
-  }
-}
 
 .core-deck-tree-header {
   grid-template-columns: minmax(0, 1fr);
@@ -6256,6 +6225,9 @@ summary {
 }
 .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {
   display: none;
+}
+.\[\&\>header\]\:flex-wrap>header {
+  flex-wrap: wrap;
 }
 .\[\&\>svg\]\:relative>svg {
   position: relative;

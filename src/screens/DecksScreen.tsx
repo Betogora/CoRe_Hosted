@@ -715,9 +715,7 @@ export function DecksScreen({
               onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
           </div>
         </div>
-      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
-        if (area === "overview") onOpenLearn(selectedDeckId);
-      }} />}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} />}
 
       {contentDeckId && contentTab === "children" ? (
         contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}

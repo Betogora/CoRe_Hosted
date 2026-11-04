@@ -2205,7 +2205,7 @@ export function App() {
       <div className="grid min-h-dvh min-w-0 w-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] overflow-x-clip bg-core-canvas xl:h-dvh xl:min-h-0 xl:overflow-hidden">
         <AppNavigation
           navigationItems={navigationItems}
-          activeView={activeView}
+          activeView={activeView === "kartenstapel" && deckContent ? "lernen" : activeView}
           simulationOffsetMinutes={simulationOffsetMinutes}
           simulationDateLabel={formatSimulationDate(learningNow)}
           pomodoroTimer={pomodoroTimer}
@@ -2216,7 +2216,7 @@ export function App() {
           onPreloadView={(viewId) => {
             if (featurePreloadingAllowed && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId);
           }}
-          onNavigate={(viewId) => viewId === "lernen" ? openLearn(focusedDeckId) : navigateToView(viewId)}
+          onNavigate={(viewId) => navigateToView(viewId, { focusedDeckId })}
           onResetSimulation={() => changeSimulationOffset(0)}
         />
 

@@ -341,10 +341,9 @@ test("cards page renders sortable collapsed deck sections without learning metri
   const cardPages = { [originalDeck.id]: cardPage(originalDeck.id, [atp]) };
   const markup = renderScreen(decks, { cardPages });
 
-  assert.match(markup, /<h2[^>]*>Lernen<\/h2>/);
-  assert.match(markup, /aria-label="Bereich in Lernen"/);
-  assert.match(markup, /aria-pressed="false"[^>]*>Stapelübersicht<\/button>/);
-  assert.match(markup, /aria-pressed="true"[^>]*>Kartenverwaltung<\/button>/);
+  assert.match(markup, />Alle Stapel<\/p><h2[^>]*>Kartenverwaltung<\/h2>/);
+  assert.match(markup, />Lerneinstellungen<\/span><\/button>/);
+  assert.doesNotMatch(markup, /Bereich in Lernen|>Stapelübersicht</);
   assert.match(markup, /<h3[^>]*>Aktive Stapel<\/h3>/);
   assert.match(markup, /data-testid="card-library-panel"/);
   assert.match(markup, /data-testid="card-library-table"/);

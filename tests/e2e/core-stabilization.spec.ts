@@ -269,7 +269,7 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
 
 test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async ({ page }: any) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
+  await page.getByRole("button", { name: "Statistik öffnen" }).click();
 
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
@@ -868,7 +868,7 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Varianten", exact: true }).click();
@@ -918,16 +918,14 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   await expect(page.getByText("1 Karte · 0 Wiederholungen")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByPlaceholder("Stapel, Vorderseite, Rückseite oder Tags suchen").fill("Côte d'Ivoire");
   await expect(page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" })).toBeVisible();
 });
 
 test("card rescheduling preserves scheduler state and keeps version history out of the editor", async ({ page }: any) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Côte d'Ivoire?");

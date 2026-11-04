@@ -9,7 +9,7 @@ function mainMenu(page: Page) {
 }
 
 async function planExam(page: Page, name: string) {
-  await mainMenu(page).getByRole("button", { name: "Prüfungen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Prüfung", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Prüfungen", exact: true })).toBeVisible();
   await page.getByTestId("exam-planning-screen").getByRole("button", { name: "Prüfung hinzufügen" }).first().click();
   const inspector = page.getByTestId("exam-plan-inspector");
@@ -58,7 +58,7 @@ test("Prüfungsplanung: globaler Bereich, Plan im Profil, heutige Einheit als Le
   await expect(page.getByTestId("dashboard-exam-unit").getByRole("button", { name: "Heutige Einheit lernen" })).toBeVisible();
 
   await page.reload();
-  await mainMenu(page).getByRole("button", { name: "Prüfungen" }).click();
+  await mainMenu(page).getByRole("button", { name: "Prüfung", exact: true }).click();
   await card.getByRole("button", { name: "Geografie: Details öffnen" }).click();
   await card.getByRole("button", { name: "Pausieren" }).click();
   await page.getByRole("dialog", { name: "Prüfung pausieren?" }).getByRole("button", { name: "Pausieren", exact: true }).click();
@@ -110,8 +110,8 @@ test("Prüfungen bleiben auf dem Handy über die untere Navigation erreichbar", 
   await page.setViewportSize({ width: 320, height: 720 });
   await resetToFreshLocalState(page);
   const bottomNavigation = page.getByRole("navigation", { name: "Mobile Hauptnavigation" });
-  await expect(bottomNavigation.getByRole("button")).toHaveText(["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"]);
-  await bottomNavigation.getByRole("button", { name: "Prüfungen" }).click();
+  await expect(bottomNavigation.getByRole("button")).toHaveText(["Heute", "Lernen", "Erstellen", "Karten", "Prüfung"]);
+  await bottomNavigation.getByRole("button", { name: "Prüfung", exact: true }).click();
   await expect(page).toHaveURL(/\/pruefungen$/);
   await expect(page.getByRole("heading", { name: "Noch keine Prüfung geplant" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);

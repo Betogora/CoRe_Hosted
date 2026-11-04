@@ -806,10 +806,6 @@ video {
       padding-inline: 0.25rem;
       line-height: var(--core-leading-caption);
     }
-
-    .core-learning-area-control .core-segmented-control-option {
-      padding-inline: 0.25rem;
-    }
   }
 
   /* Four question types do not fit one row below 360 px; two rows keep every label inside its option. */
@@ -3141,6 +3137,22 @@ video {
   font-display: swap;
 }
 
+/* Sync status or Pomodoro next to the four utilities leave no room for the wordmark; the logo keeps the brand. */
+@media (max-width: 26.8125rem) {
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-brand] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .core-mobile-header > div:has([data-navigation-utility="sync"], [data-pomodoro-progress]) [data-navigation-utilities="true"] {
+    gap: 0;
+  }
+}
+
 @media (max-width: 18.75rem) {
   .core-centered-viewport {
     padding: 0.25rem;
@@ -3569,49 +3581,6 @@ button[aria-label] {
   --core-deck-depth-indent: 18px;
 }
 
-
-.core-learning-header-container {
-  container: core-learning-header / inline-size;
-}
-
-.core-learning-header-container > .core-page-header-with-action {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
-}
-
-@container core-learning-header (max-width: 42rem) {
-  .core-learning-header-container > .core-page-header-with-action {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .core-learning-header-container .core-page-header-action {
-    width: 100%;
-  }
-}
-
-@container core-learning-header (max-width: 32rem) {
-  .core-learning-header-container > .core-page-header-with-action {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .core-learning-header-container .core-page-header-action,
-  .core-learning-header-container .core-learning-header-actions {
-    display: contents;
-  }
-
-  .core-learning-header-container .core-learning-header-actions > .core-action-secondary {
-    grid-column: 2;
-    grid-row: 1;
-    align-self: end;
-  }
-
-  .core-learning-header-container .core-learning-area-control {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    width: 100%;
-  }
-}
 
 .core-deck-tree-header {
   grid-template-columns: minmax(0, 1fr);
@@ -6257,6 +6226,9 @@ summary {
 .\[\&\:\:-webkit-details-marker\]\:hidden::-webkit-details-marker {
   display: none;
 }
+.\[\&\>header\]\:flex-wrap>header {
+  flex-wrap: wrap;
+}
 .\[\&\>svg\]\:relative>svg {
   position: relative;
 }
@@ -6715,12 +6687,12 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Jede neue Maske ist eine eigene Karte; gruppierte Masken werden gemeinsam abgefragt; <code>Bleibt verdeckt</code> verdeckt eine Maske auf allen Karten ohne eigene Abfrage.</li>
 <li>Maus, Stift und Touch zeichnen per Ziehen, Polygone per Punkten (erster Punkt, Doppelklick oder Enter schließt). Per Tastatur sind Masken fokussierbar: Pfeiltasten verschieben, Entf löscht, Strg+G gruppiert, Strg+Umschalt+G löst auf, Escape hebt die Auswahl auf, Buchstaben wählen das Werkzeug.</li>
 <li>Gespeichert wird erst mit Bild und mindestens einer abgefragten Maske.</li>
-</ul></div></article><article id="specs--53-karten-bearbeiten-und-eine-sitzung-starten" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>5.3 Karten bearbeiten und eine Sitzung starten</h3></div><div class="catalog-preview specs-prose"><p><code>Lernen</code> bündelt <code>Stapelübersicht</code> und <code>Kartenverwaltung</code> als schnellen Sitzungseinstieg; <code>Lerneinstellungen</code> öffnet die accountweite Planung unter <code>/karten-einstellungen</code>. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen liegt unter der verborgenen Route <code>/kartenstapel</code>.</p>
+</ul></div></article><article id="specs--53-karten-bearbeiten-und-eine-sitzung-starten" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>5.3 Karten bearbeiten und eine Sitzung starten</h3></div><div class="catalog-preview specs-prose"><p><code>Lernen</code> zeigt die Stapelübersicht als schnellen Sitzungseinstieg; <code>Lerneinstellungen</code> öffnet die accountweite Planung unter <code>/karten-einstellungen</code>. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel ist der eigene Hauptreiter <code>Karten</code> unter <code>/kartenstapel</code>.</p>
 <p class="catalog-label">Akzeptanz</p>
 <h4 id="specs--navigation-und-seitenkopf" class="catalog-label" tabindex="-1">Navigation und Seitenkopf</h4>
 <ul>
-<li>Die Hauptnavigation lautet exakt <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code>, <code>Statistik</code>. Auf <code>/kartenstapel</code> ist <code>Lernen</code> aktiv; ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht. Der Schriftzug <code>CoRe</code> samt Gehirn-Logo navigiert zu <code>Heute</code>.</li>
-<li>Beide Lernen-Bereiche zeigen <code>REVIEW</code> und <code>Lernen</code> im Seitenkopf; Bereichsauswahl und <code>Lerneinstellungen</code> sind in beiden erreichbar.</li>
+<li>Die Hauptnavigation lautet in Top- und Bottom-Bar exakt <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Karten</code>, <code>Prüfung</code>. <code>Statistik</code> ist kein Reiter, sondern eine reine Icon-Aktion links vom Theme-Schalter. Auf <code>/kartenstapel</code> ist <code>Karten</code> aktiv, in den Stapelinhalten (<code>content=1</code>) <code>Lernen</code>. Ein Klick auf <code>Lernen</code> öffnet stets die Stapelübersicht, ein Klick auf <code>Karten</code> die Kartenverwaltung aller Stapel; beide übernehmen den zuletzt gewählten Stapel als Fokus. Der Schriftzug <code>CoRe</code> samt Gehirn-Logo navigiert zu <code>Heute</code>.</li>
+<li><code>Lernen</code> zeigt <code>REVIEW</code> und <code>Lernen</code>, die Kartenverwaltung <code>Alle Stapel</code> und <code>Kartenverwaltung</code> im Seitenkopf; beide bieten <code>Lerneinstellungen</code>. Eine Bereichsauswahl zwischen beiden gibt es nicht. Die Kartenverwaltung einzelner Stapel bleibt als Reiter <code>Karten</code> der Stapelinhalte im selben Design erreichbar.</li>
 <li>Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.</li>
 </ul>
 <h4 id="specs--stapelbäume" class="catalog-label" tabindex="-1">Stapelbäume</h4>
@@ -7113,8 +7085,8 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Bedeutung ist immer zusätzlich durch Text, Icon oder Zahl erkennbar.</li>
 <li>Bestehendes Karten-HTML und persistierte Farben werden nicht umgeschrieben. Neue oder ungültige Stapeldarstellungen verwenden Slate.</li>
 </ul></div></article><article id="specs--app-shell-und-navigation" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>App-Shell und Navigation</h3></div><div class="catalog-preview specs-prose"><ul>
-<li>Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu <code>Heute</code>, <code>Lernen</code>, <code>Prüfungen</code>, <code>Erstellen</code> und <code>Statistik</code>. Ein kompakter Kopf bietet <code>CoRe</code> mit Gehirn-Logo (zu <code>Heute</code>), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.</li>
-<li>Ab 1280 px bietet eine schwebende Top-Bar links <code>CoRe</code> mit Gehirn-Logo (zu <code>Heute</code>), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. <code>Hilfe öffnen</code> hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren <code>Einstellungen öffnen</code>, Karten- und Simulatorrouten markieren <code>Lernen</code>. Eine Profilvorschau erscheint nicht.</li>
+<li>Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu <code>Heute</code>, <code>Lernen</code>, <code>Erstellen</code>, <code>Karten</code> und <code>Prüfung</code>. Ein kompakter Kopf bietet <code>CoRe</code> mit Gehirn-Logo (zu <code>Heute</code>), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Statistik, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.</li>
+<li>Ab 1280 px bietet eine schwebende Top-Bar links <code>CoRe</code> mit Gehirn-Logo (zu <code>Heute</code>), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. <code>Statistik öffnen</code> und <code>Hilfe öffnen</code> haben je einen eigenen aktiven Zustand und dieselbe neutrale Hover-Fläche wie die übrigen Utilities; nur die allgemeinen Einstellungen markieren <code>Einstellungen öffnen</code>, Lerneinstellungen, Stapelinhalte und Simulator markieren <code>Lernen</code>. Eine Profilvorschau erscheint nicht.</li>
 <li>Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.</li>
 </ul></div></article><article id="specs--bedienelemente" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bedienelemente</h3></div><div class="catalog-preview specs-prose"><ul>
 <li>Buttons, Icon-Aktionen, Eingaben und Auswahlfelder haben ohne feinen Zeiger oder unter 768 px Zielflächen von mindestens 44 × 44 px.</li>
@@ -7233,7 +7205,7 @@ html:has(.catalog-preview) { scroll-behavior: auto; }
 <li>Vollständiges Admin-Portal, Zahlungen oder Abonnements.</li>
 <li>Native Store-Apps oder Push-Benachrichtigungen.</li>
 <li>KI-Bildvariation, breiter OCR-Worker oder vollständige Anki-Template-Ausführung.</li>
-</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.788</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.683</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">221</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.246</td><td>33,1 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>26,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div></main></div><script>function initializeDocsViewer() {
+</ul></div></article></div></section><section id="specs--codeumfang" class="catalog-section"><div class="catalog-section-heading"><h2>Codeumfang der Produktbereiche</h2><p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p></div><div class="catalog-grid"><article id="specs--codeumfang-bereiche" class="catalog-card catalog-card-wide"><div class="catalog-card-header"><h3>Bildschirmcode je Produktbereich</h3></div><div class="catalog-preview specs-prose"><div class="docs-code-stats"><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Bildschirmcode</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">6.778</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Gemeinsamer Code &amp; API</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">39.639</dd></dl><dl data-size="compact" class="flex flex-col rounded-control border border-core-border bg-core-surface px-4 py-3 shadow-soft min-w-0"><dt class="core-caption font-medium text-core-muted"><span>Quelldateien</span></dt><dd class="core-metric mt-auto pt-1 text-core-text">221</dd></dl></div><div class="docs-code-chart"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Codeumfang je Produktbereich"><div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table><thead><tr><th>Bereich</th><th>Zeilen</th><th>Anteil</th></tr></thead><tbody><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-learned)" aria-hidden="true"></span>Heute</th><td>320</td><td>4,7 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-new)" aria-hidden="true"></span>Lernen & Karten</th><td>2.236</td><td>33 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-in-progress)" aria-hidden="true"></span>Erstellen & Import</th><td>1.788</td><td>26,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-action-primary)" aria-hidden="true"></span>Prüfungen</th><td>430</td><td>6,3 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-status-due)" aria-hidden="true"></span>Statistik</th><td>567</td><td>8,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-learning-progress-completed)" aria-hidden="true"></span>Konto & Sync</th><td>635</td><td>9,4 %</td></tr><tr><th scope="row"><span class="docs-code-dot" style="background:var(--core-text-secondary)" aria-hidden="true"></span>Hilfe</th><td>802</td><td>11,8 %</td></tr></tbody></table></div></div></div><p class="docs-source">Beim Erzeugen gemessen: nichtleere Zeilen in <code>src/</code> und <code>api/</code> (TS/TSX) sowie <code>src/styles.css</code>. Ohne Tests, Typdeklarationen, generierte Datenbanktypen, Dokumentation und Fremdcode. Bereichszuordnung nach Bildschirmdateien in <a href="../src/screens/README.md">der Screen-Landkarte</a>; übriger Code zählt gemeinsam. Enthält Kommentare und misst weder Laufzeit noch Komplexität.</p></div></article></div></section><footer class="catalog-footer">CoRe Specs · 11 Kapitel · 43 Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div></main></div><script>function initializeDocsViewer() {
     const theme = document.getElementById("docs-theme");
     theme.addEventListener("click", () => {
         const dark = document.documentElement.dataset.coreTheme !== "dark";

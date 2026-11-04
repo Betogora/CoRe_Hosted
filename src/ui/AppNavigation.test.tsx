@@ -67,29 +67,30 @@ test("manual sync keeps a direct sync action that marks pending changes", () => 
   assert.equal((saving.match(/<button[^>]*disabled=""[^>]*aria-label="Synchronisiert gerade"|<button[^>]*aria-label="Synchronisiert gerade"[^>]*disabled=""/g) ?? []).length, 2);
 });
 
-test("app navigation exposes five primary entries and marks learning active for the hidden cards route", () => {
+test("app navigation exposes five primary entries and marks card management as its own tab", () => {
   const markup = renderNavigation("kartenstapel");
-  const expectedTabOrder = ["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"];
+  const expectedTabOrder = ["Heute", "Lernen", "Erstellen", "Karten", "Prüfung"];
 
   assert.match(markup, /data-navigation-layout="top-bar"/);
   assert.match(markup, /data-navigation-layout="mobile-header"/);
   assert.match(markup, /data-navigation-layout="bottom-bar"/);
-  for (const label of expectedTabOrder) assert.match(markup, new RegExp(`>${label}<`));
   const topBarNavigation = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
     assert.ok(topBarNavigation.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < topBarNavigation.indexOf(`>${expectedTabOrder[index]}</span>`));
   }
   for (const label of expectedTabOrder) assert.match(topBarNavigation, new RegExp(`</svg><span>${label}</span>`));
   const bottomBarMarkup = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
+  for (const label of expectedTabOrder) assert.equal((bottomBarMarkup.match(new RegExp(`>${label}</span>`, "g")) ?? []).length, 1);
   for (let index = 1; index < expectedTabOrder.length; index += 1) {
     assert.ok(bottomBarMarkup.indexOf(`>${expectedTabOrder[index - 1]}</span>`) < bottomBarMarkup.indexOf(`>${expectedTabOrder[index]}</span>`));
   }
   assert.equal((bottomBarMarkup.match(/<button/g) ?? []).length, 5);
-  assert.doesNotMatch(bottomBarMarkup, /lucide-layers/);
-  assert.doesNotMatch(bottomBarMarkup, />Karten<\/span>/);
+  assert.match(bottomBarMarkup, /lucide-layers/);
+  assert.doesNotMatch(markup, />Statistik</);
   assert.doesNotMatch(bottomBarMarkup, />Mehr<\/span>/);
   assert.equal((markup.match(/aria-current="page"/g) ?? []).length, 2);
-  assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Lernen<\/span>/);
+  assert.match(topBarNavigation, /aria-current="page"[^>]*>[\s\S]*?>Karten<\/span>/);
+  assert.match(bottomBarMarkup, /aria-current="page"[^>]*>[\s\S]*?>Karten<\/span>/);
   assert.match(markup, /bottom:max\(0\.75rem, env\(safe-area-inset-bottom\)\)/);
 });
 
@@ -105,13 +106,13 @@ test("CoRe brand links both navigation layouts to today", () => {
 });
 
 test("bottom navigation keeps every icon before its visible label and exactly one current page", () => {
-  for (const activeView of ["uebersicht", "lernen", "neue-karten", "statistik"]) {
+  for (const activeView of ["uebersicht", "lernen", "neue-karten", "kartenstapel", "pruefungen"]) {
     const markup = renderNavigation(activeView);
     const bottomBar = markup.match(/<nav[^>]*data-navigation-layout="bottom-bar"[\s\S]*?<\/nav>/)?.[0] ?? "";
     assert.equal((bottomBar.match(/aria-current="page"/g) ?? []).length, 1);
     assert.equal((bottomBar.match(/aria-hidden="true"/g) ?? []).length, 5);
     assert.doesNotMatch(bottomBar, /sr-only/);
-    for (const label of ["Heute", "Lernen", "Prüfungen", "Erstellen", "Statistik"]) assert.match(bottomBar, new RegExp(`</svg><span[^>]*>${label}</span>`));
+    for (const label of ["Heute", "Lernen", "Erstellen", "Karten", "Prüfung"]) assert.match(bottomBar, new RegExp(`</svg><span[^>]*>${label}</span>`));
   }
 });
 
@@ -132,6 +133,20 @@ test("help and general settings have separate utility states while card settings
   assert.equal((helpMarkup.match(/<button[^>]*data-navigation-utility="settings"[^>]*aria-current="page"[^>]*>/g) ?? []).length, 0);
 });
 
+test("statistics is an icon-only utility with its own current state", () => {
+  const markup = renderNavigation("statistik");
+  const statisticsButtons = markup.match(/<button[^>]*data-navigation-utility="statistics"[\s\S]*?<\/button>/g) ?? [];
+  assert.equal(statisticsButtons.length, 2);
+  for (const button of statisticsButtons) {
+    assert.match(button, /aria-label="Statistik öffnen"/);
+    assert.match(button, /aria-current="page"/);
+    assert.match(button, /core-action-ghost/);
+    assert.equal(button.replace(/<[^>]+>/g, ""), "");
+  }
+  assert.equal((markup.match(/aria-current="page"/g) ?? []).length, 2);
+  assert.doesNotMatch(renderNavigation("uebersicht"), /data-navigation-utility="statistics"[^>]*aria-current/);
+});
+
 test("responsive navigation shares compact settings, theme and help actions without a profile preview", () => {
   const markup = renderNavigation("uebersicht", 0, null, { status: "idle" }, true);
   const topBarMarkup = markup.match(/<header[^>]*data-navigation-layout="top-bar"[\s\S]*?<\/header>/)?.[0] ?? "";
@@ -140,13 +155,15 @@ test("responsive navigation shares compact settings, theme and help actions with
   assert.equal((markup.match(/data-navigation-utilities="true"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Einstellungen öffnen"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Hilfe öffnen"/g) ?? []).length, 2);
+  assert.equal((markup.match(/aria-label="Statistik öffnen"/g) ?? []).length, 2);
   assert.equal((markup.match(/aria-label="Dark Mode einschalten"/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-circle-help/g) ?? []).length, 2);
   assert.equal((markup.match(/lucide-sun/g) ?? []).length, 2);
   assert.doesNotMatch(topBarMarkup, /Content Repetition/);
   for (const layoutMarkup of [topBarMarkup, mobileHeaderMarkup]) {
     assert.match(layoutMarkup, /data-navigation-utilities="true" data-sync-status="idle"/);
-    assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
+    assert.ok(layoutMarkup.indexOf('data-navigation-utility="sync"') < layoutMarkup.indexOf('data-navigation-utility="statistics"'));
+    assert.ok(layoutMarkup.indexOf('data-navigation-utility="statistics"') < layoutMarkup.indexOf('data-navigation-utility="theme"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="theme"') < layoutMarkup.indexOf('data-navigation-utility="help"'));
     assert.ok(layoutMarkup.indexOf('data-navigation-utility="help"') < layoutMarkup.indexOf('data-navigation-utility="settings"'));
   }
