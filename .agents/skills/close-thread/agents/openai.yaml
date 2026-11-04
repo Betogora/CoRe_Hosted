@@ -1,0 +1,7 @@
+interface:
+  display_name: "Close Thread"
+  short_description: "Offene Arbeit prüfen, sicher aufräumen, Thread archivieren"
+  default_prompt: "Nutze $close-thread, um offene Arbeit, Fragen und Inhalte dieses Threads zu prüfen, Erledigtes sicher aufzuräumen und den Thread zu archivieren, wenn nichts offen ist."
+
+policy:
+  allow_implicit_invocation: true
