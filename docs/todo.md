@@ -84,7 +84,7 @@ voraus.
       auch für ungespeicherte Ergebnisse.
 - [ ] **Freigabe:** „Karten erstellen“ und den Hinweis „noch nicht verfügbar“
       erst danach umstellen; ohne Verbindung bleibt die Aktion mit Meldung
-      gesperrt. Specs §6.4, `status.md` und `architecture.md` nachziehen.
+      gesperrt. Specs [Automatisch aus einer Quelle](specs.md#automatisch-aus-einer-quelle), `status.md` und `architecture.md` nachziehen.
       Nachweis: Routen- und Vertragstests, E2E mit gemockter Route (Erfolg,
       Hinweise, Abbruch, Fehler, nichts gespeichert vor Übernahme), echte
       Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix

@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
-import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, specsCatalog } from "./generateDocs.ts";
+import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsCatalog } from "./generateDocs.ts";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -57,14 +57,22 @@ test("Markdown rendert Tabellen, verschachtelte Listen und Code vollständig", (
   assert.match(html, /&lt;/);
 });
 
-test("Journey-Projektion erhält sämtliche Akzeptanzregeln der sieben Kernjourneys", () => {
+test("Journey-Projektion zeigt je Kernjourney ihren Ablauf und verlinkt die Akzeptanz in die Specs", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
   const html = journeyProjection(specs);
-  assert.equal([...html.matchAll(/class="docs-document docs-journey"/g)].length, 7);
-  assert.equal([...html.matchAll(/class="docs-flow"/g)].length, 7);
-  const section = specs.split("## 5. Kernjourneys")[1].split("## 6.")[0];
+  const section = specs.match(/^## \d+\. Kernjourneys\n([\s\S]*?)(?=^## )/m)![1];
+  const titles = [...section.matchAll(/^### (.+)$/gm)].map((match) => match[1]);
+  const journeys = html.split(/(?=<article id="journey-\d+")/);
+  assert.equal(journeys.length, titles.length);
+  journeys.forEach((journey, index) => {
+    const steps = section.split(`### ${titles[index]}\n`)[1].split(/\nAkzeptanz:\n/)[0].match(/^\d+\. /gm)?.length ?? 0;
+    assert.ok(steps > 0, `Ablauf fehlt: ${titles[index]}`);
+    assert.equal([...journey.matchAll(/class="docs-flow-step"/g)].length, steps, titles[index]);
+    const acceptance = journey.split(/id="journey-\d+-rules--akzeptanz"/)[1].split('<p class="docs-source">')[0];
+    assert.match(acceptance, /href="specs\.html#specs--[^"]+"/, `Akzeptanz ohne Specs-Verweis: ${titles[index]}`);
+  });
   for (const rule of section.matchAll(/^- (.+)$/gm)) {
-    const rendered = renderMarkdown(rule[0], "specs.md").match(/<li>([\s\S]*?)<\/li>/)?.[1];
+    const rendered = renderMarkdown(journeySpecsLinks(rule[0]), "specs.md").match(/<li>([\s\S]*?)<\/li>/)?.[1];
     assert.ok(rendered && html.includes(rendered), `Akzeptanz fehlt: ${rule[1].slice(0, 80)}`);
   }
 });
@@ -74,8 +82,8 @@ test("Specs-Leseansicht bildet Titel, Kapitel und Unterabschnitte auf Hero, Kapi
     "# Vertrag", "", "**Status:** Entwurf", "**Stand:** 2026-01-01", "", "Einleitung mit [Docs](README.md).", "", "---", "",
     "## 1. Begriffe", "", "| A | B |", "| --- | --- |", "| 1 | 2 |", "",
     "## 2. Abläufe", "", "Einführung.", "", "- Vorab", "",
-    "### 2.1 Kurz", "", "Text.", "", "Akzeptanz:", "", "- Punkt", "", "#### Detail", "", "Mehr.", "",
-    "### 2.2 Lang", "", ...Array.from({ length: 7 }, (_, index) => `- Regel ${index}`), "",
+    "### Kurz", "", "Zweck:", "", "Text.", "", "Zustände und Meldungen:", "", "- Punkt", "", "#### Detail", "", "Mehr.", "",
+    "### Lang", "", ...Array.from({ length: 7 }, (_, index) => `- Regel ${index}`), "",
   ].join("\n"));
   assert.match(html, /<header class="catalog-hero">[\s\S]*<h1 id="specs--vertrag">Vertrag<\/h1><p class="catalog-lede">Einleitung mit <a href="index.html#readme--document">/);
   assert.match(html, /<ul class="specs-meta"><li class="core-status-label"><span>Status<\/span> Entwurf<\/li><li class="core-status-label"><span>Stand<\/span> 2026-01-01<\/li><\/ul>/);
@@ -83,8 +91,8 @@ test("Specs-Leseansicht bildet Titel, Kapitel und Unterabschnitte auf Hero, Kapi
   assert.match(html, /<section id="specs--1-begriffe" class="catalog-section"><div class="catalog-section-heading"><h2>1\. Begriffe<\/h2><\/div><div class="catalog-grid"><article id="specs--1-begriffe--inhalt" class="catalog-card catalog-card-wide"><div class="catalog-preview specs-prose"><div class="docs-table-scroll"/);
   assert.match(html, /<h2>2\. Abläufe<\/h2><p>Einführung\.<\/p>\n*<\/div>/);
   assert.match(html, /id="specs--2-abläufe--überblick" class="catalog-card"><div class="catalog-card-header"><h3>Überblick<\/h3>/);
-  assert.match(html, /id="specs--21-kurz" class="catalog-card"><div class="catalog-card-header"><h3>2\.1 Kurz<\/h3>[\s\S]*<p class="catalog-label">Akzeptanz<\/p>[\s\S]*<h4 id="specs--detail" class="catalog-label" tabindex="-1">Detail<\/h4>/);
-  assert.match(html, /id="specs--22-lang" class="catalog-card catalog-card-wide"/);
+  assert.match(html, /id="specs--kurz" class="catalog-card"><div class="catalog-card-header"><h3>Kurz<\/h3>[\s\S]*<p class="catalog-label">Zweck<\/p>[\s\S]*<p class="catalog-label">Zustände und Meldungen<\/p>[\s\S]*<h4 id="specs--detail" class="catalog-label" tabindex="-1">Detail<\/h4>/);
+  assert.match(html, /id="specs--lang" class="catalog-card catalog-card-wide"/);
   assert.match(html, /<p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche\.<\/p>/);
 });
 
@@ -98,15 +106,15 @@ test("Specs-Leseansicht enthält je Kapitel einen Navigationseintrag, je Unterab
   for (const id of chapters) assert.match(html, new RegExp(`<section id="${id}" class="catalog-section">`));
   for (const [, title] of outline.matchAll(/^### (.+)$/gm)) assert.match(html, new RegExp(`<article id="specs--${markdownAnchor(title)}" class="catalog-card`), title);
   for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Anker #${anchor} fehlt`);
-  for (const [, anchor] of journeyProjection(specs).matchAll(/href="specs\.html#([^"]+)"/g)) assert.ok(ids.has(anchor), `Journey-Anker ${anchor} fehlt`);
+  for (const [, anchor] of journeyProjection(specs).matchAll(/href="specs\.html#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Journey-Anker ${anchor} fehlt`);
   assert.ok(ids.has("specs--document") && ids.has("specs--5-kernjourneys"));
 });
 
-test("Lernverlauf: erzeugte Karten folgen §6.11 und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
+test("Lernverlauf: erzeugte Karten folgen dem Abschnitt „Lernverlauf einer Karte“ und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
-  const { html } = specsCatalog(specs, undefined, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
-  const order = [...html.matchAll(/<article id="(specs--611-lernverlauf-einer-karte|specs--lernverlauf-[a-z]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(order, ["specs--611-lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
+  const { html } = specsCatalog(specs, undefined, { "specs--lernverlauf-einer-karte": cardHistoryCards() });
+  const order = [...html.matchAll(/<article id="(specs--lernverlauf-einer-karte|specs--lernverlauf-[a-z]+)"/g)].map((match) => match[1]);
+  assert.deepEqual(order, ["specs--lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
   const contacts = EXAMPLE_CHAINS.reduce((sum, chain) => sum + chain.ratings.length, 0);
   assert.equal([...html.matchAll(/class="docs-chain-step"/g)].length, contacts);
   assert.equal([...html.matchAll(/<tr><th scope="rowgroup"/g)].length, EXAMPLE_CHAINS.length * EXAMPLE_RETENTIONS.length);

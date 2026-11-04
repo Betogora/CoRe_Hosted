@@ -95,7 +95,7 @@ export interface CardEditorVariantsTabProps {
   onOpenDeckSettings: () => void;
 }
 
-/** The original for comparison, then each variant with its state marks and actions (specs §5.3 `Varianten`). */
+/** The original for comparison, then each variant with its state marks and actions (specs.md#editor-reiter-varianten). */
 export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVariant, onUpdateVariant, onOpenDeckSettings }: CardEditorVariantsTabProps) {
   const setSuccessToast = useSuccessToast();
   const [busyId, setBusyId] = React.useState<string | null>(null);

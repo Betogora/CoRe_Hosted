@@ -10,7 +10,7 @@ HTML-Seiten sind daraus erzeugte Leseansichten.
 | --- | --- | --- |
 | [Docs](index.html) | diesen Wegweiser | `README.md` |
 | [Specs](specs.html) | den vollständigen Produktvertrag | `specs.md` |
-| [Journeys](journeys.html) | die Kernjourneys als Schrittkette mit allen Akzeptanzregeln | Kapitel 5 von `specs.md` |
+| [Journeys](journeys.html) | die Kernjourneys mit Zweck, Schrittkette und verlinkter Akzeptanz | Kapitel „Kernjourneys“ von `specs.md` |
 | [UI-Elements](ui-elements.html) | jede UI-Komponente und jedes Format genau einmal, als echte Komponente | `scripts/uiCatalogDemos.tsx`, `scripts/uiCatalogPatterns.html` |
 | [Kartenbausteine](card-types.html) | alle Renderer-Fälle mit Erstellungsweg | dieselben Demos und CoRe-Modellhelfer |
 

@@ -76,7 +76,7 @@ const gap = (outcome: ExampleOutcome) => outcome.intervalMinutes != null ? `${ou
 const firstMature = (contacts: ExampleContact[]) => contacts.findIndex((contact) => contact.band === "mature");
 const firstVariant = (contacts: ExampleContact[], threshold: number) => contacts.findIndex((contact) => contact.variantThresholds.includes(threshold));
 
-/** Lernverlauf einer Karte (specs.md §6.11): Tabellen und Zeitleisten aus den Beispielketten des Golden-Tests. */
+/** Lernverlauf einer Karte (specs.md#lernverlauf-einer-karte): Tabellen und Zeitleisten aus den Beispielketten des Golden-Tests. */
 export function cardHistoryCards(): SpecsCard[] {
   const source = '<p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p>';
   const effects = `<table><thead><tr><th>Lage der Karte</th>${Object.values(RATING_LABELS).map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${EXAMPLE_SITUATIONS.map((situation) => {
@@ -234,28 +234,25 @@ export function createCatalogData(): Omit<CatalogData, "sourceHash"> {
   };
 }
 
-const JOURNEY_FLOWS = [
-  ["Account öffnen", "Anmelden oder registrieren", "Leeren oder bestehenden Account sehen", "Import, manuelle Karte oder Lernen wählen"],
-  ["Erstellen öffnen", "APKG analysieren oder Karte eingeben", "Vorschau und Inhalt prüfen", "Lokal speichern", "Synchronisierung oder Teilabschluss sehen"],
-  ["Lernen öffnen", "Stapel und Karten verwalten", "Inhalt und Lernwerte prüfen", "Sitzung vorbereiten", "Erste verfügbare Karte lernen"],
-  ["Frage sehen", "Antwort aufdecken", "Nochmal, Schwer, Gut oder Leicht", "Bewertung lokal sichern", "Nächste Karte, Lernschritt oder Abschluss"],
-  ["Geeignete Karte lernen", "Original oder KI-Umformulierung sehen", "Antwort aufdecken", "Ursprung prüfen und Feedback geben"],
-  ["Hilfe öffnen", "Active Recall und Spaced Repetition", "Smarter Recall und Content Repetition", "FSRS und Varianten nachvollziehen"],
-  ["Simulator öffnen", "Lernzeit verschieben", "Verfügbare Karten und Planung prüfen", "Bei Bedarf bewerten oder Zeit zurücksetzen"],
-];
+/** Verweise einer Journey auf Specs-Abschnitte (`#anker`) führen auf der Journey-Seite in die Specs. */
+export const journeySpecsLinks = (markdown: string) => markdown.replace(/\]\(#/g, "](specs.md#");
 
+/** Projiziert das Kapitel „Kernjourneys“: je Journey Zweck, die Schrittkette aus `Ablauf:` und die verlinkte `Akzeptanz:`. */
 export function journeyProjection(specs: string) {
-  const section = specs.match(/^## 5\. Kernjourneys\n([\s\S]*?)(?=^## 6\.)/m)?.[1];
+  const section = specs.match(/^## \d+\. Kernjourneys\n([\s\S]*?)(?=^## )/m)?.[1];
   if (!section) throw new Error("Kernjourneys fehlen in docs/specs.md.");
-  const journeys = [...section.matchAll(/^### (5\.\d+ .+)\n([\s\S]*?)(?=^### 5\.|$(?![\s\S]))/gm)];
-  if (journeys.length !== JOURNEY_FLOWS.length) throw new Error("Journey-Projektion und Produktvertrag haben unterschiedliche Journey-Anzahlen.");
+  const journeys = [...section.matchAll(/^### (.+)\n([\s\S]*?)(?=^### |$(?![\s\S]))/gm)];
+  if (!journeys.length) throw new Error("Das Kapitel Kernjourneys enthält keine Journey.");
   return journeys.map(([, title, body], index) => {
-    const [intro, acceptance] = body.split(/\nAkzeptanz:\n/);
+    const [intro, rest = ""] = body.split(/\nAblauf:\n/);
+    const [flow, acceptance] = rest.split(/\nAkzeptanz:\n/);
+    const steps = [...flow.matchAll(/^\d+\. (.+)$/gm)].map(([, step]) => step);
+    if (!steps.length) throw new Error(`Ablauf fehlt in Journey ${title}.`);
     if (!acceptance) throw new Error(`Akzeptanz fehlt in Journey ${title}.`);
-    const steps = JOURNEY_FLOWS[index];
     const prefix = `journey-${index + 1}`;
-    const uiGroup = ["navigation", "inhalt", "stapel", "feedback", "inhalt", "symbols", "formulare"][index];
-    return `<article id="${prefix}" class="docs-document docs-journey">${renderMarkdown(`## ${title}\n${intro}`, "specs.md", prefix)}<h3 id="${prefix}--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow">${steps.map((label, step) => `<li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">${step + 1}</span><span>${label}</span></li>`).join("")}</ol>${renderMarkdown(`### Regeln, Zustände und Akzeptanz\n${acceptance}`, "specs.md", `${prefix}-rules`)}<p class="docs-source">Quelle: <a href="specs.html#specs--${markdownAnchor(title)}">Produktvertrag ${title.split(" ")[0]}</a> · <a href="ui-elements.html#${uiGroup}">UI-Beispiele</a> · <a href="card-types.html">Kartentypen</a></p></article>`;
+    const step = (label: string) => renderMarkdown(journeySpecsLinks(label), "specs.md", prefix).trim().replace(/^<p>([\s\S]*)<\/p>$/, "$1");
+    const flowHtml = steps.map((label, number) => `<li class="docs-flow-step"><span class="docs-flow-number" aria-hidden="true">${number + 1}</span><span>${step(label)}</span></li>`).join("");
+    return `<article id="${prefix}" class="docs-document docs-journey">${renderMarkdown(`## ${title}\n${journeySpecsLinks(intro)}`, "specs.md", prefix)}<h3 id="${prefix}--ablauf" class="core-heading-3" tabindex="-1">Ablauf</h3><ol class="docs-flow">${flowHtml}</ol>${renderMarkdown(`### Akzeptanz\n${journeySpecsLinks(acceptance)}`, "specs.md", `${prefix}-rules`)}<p class="docs-source">Quelle: <a href="specs.html#specs--${markdownAnchor(title)}">Produktvertrag: ${title}</a></p></article>`;
   }).join("\n");
 }
 
@@ -334,9 +331,9 @@ export async function synchronizeDocs(mode: "write" | "check") {
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
   reader("index.html", document("README.md"));
   const footprint = { id: "specs--codeumfang", title: "Codeumfang der Produktbereiche", intro: "<p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>", cards: [{ id: "specs--codeumfang-bereiche", title: "Bildschirmcode je Produktbereich", html: codeFootprintMarkup(), wide: true }] };
-  const specs = specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--611-lernverlauf-einer-karte": cardHistoryCards() });
+  const specs = specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--lernverlauf-einer-karte": cardHistoryCards() });
   results.set("specs.html", htmlPage("specs.html", specs.html, css, viewer, { toc: specs.toc }));
-  reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Alle sieben Abläufe aus dem Produktvertrag. Die Schritte orientieren; sämtliche verbindlichen Regeln und Sonderfälle stehen darunter unverändert.</p></article>${journeyProjection(text("docs/specs.md"))}`);
+  reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Die Kernjourneys aus dem Produktvertrag mit Zweck, Ablauf und Akzeptanz. Die verbindlichen Regeln stehen in den verlinkten Abschnitten der Specs.</p></article>${journeyProjection(text("docs/specs.md"))}`);
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));

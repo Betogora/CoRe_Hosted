@@ -3,7 +3,7 @@ import type { MaturityBand, ReviewRating, ReviewSchedulerState, ReviewState } fr
 import { selectReviewVariant } from "./coreVariantService.ts";
 import { getDurabilityDays, scheduleWithFsrs } from "./scheduler.ts";
 
-// Example chains of the card-history spec (specs.md §6.11); the golden test pins their values.
+// Example chains of the card-history spec (specs.md#lernverlauf-einer-karte); the golden test pins their values.
 
 const START = "2026-08-21T10:00:00.000Z";
 const DAY_MS = 86_400_000;

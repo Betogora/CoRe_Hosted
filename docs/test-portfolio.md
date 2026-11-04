@@ -203,7 +203,7 @@ getrennt mit realer SMTP-Zustellung abgenommen.
 
 - Ein Test wird nur entfernt, wenn sein Vertrag anderswo nachweisbar bleibt oder aus dem Produkt entfernt wurde.
 - Ein Export, den außer Tests niemand nutzt, ist toter Code; Funktion und Test entfallen gemeinsam. Ausnahmen tragen `/** @internal */` (bewusst nur für Tests angebotene Seam-Hilfe) oder `/** @public */` (fertige Schnittstelle mit ausstehendem Aufrufer).
-- Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#9-beta-abnahme), auch hosted.
+- Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#22-beta-abnahme), auch hosted.
 - Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen.
 - Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
 - Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`.
