@@ -8,6 +8,7 @@ import { calculateRetrievability, getDurabilityDays, getMaturityBand } from "../
 import { ActionButton } from "../../ui/actionUi.tsx";
 import { ActionDialog } from "../../ui/coreUi.tsx";
 import { useSuccessToast } from "../../ui/feedbackUi.tsx";
+import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { createRetrievabilityCurve } from "./retrievabilityCurve.ts";
 import { useOnline } from "./useOnline.ts";
 
@@ -30,14 +31,14 @@ const RATINGS: Record<string, { label: string; tone: string }> = {
 
 const MANUAL_KINDS: Record<string, string> = {
   manual_reschedule: "Neu geplant",
-  manual_reset: "Als neu gelernt",
+  manual_reset: "Lernstand zurückgesetzt",
   manual_leech: "Lernbremse geändert",
   manual_restore: "Rückgängig",
   manual_bury: "Zurückgestellt",
   manual_unbury: "Zurückstellen aufgehoben",
 };
 
-const STATES: Record<Card["study"]["state"], string> = { new: "Neu", learning: "Lernen", review: "Wiederholung", relearning: "Neu lernen" };
+const STATES: Record<Card["study"]["state"], string> = { new: "Neu", learning: "Lernen", review: "Wiederholung", relearning: "Erneut lernen" };
 
 const formatDate = (iso: string) => new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
 const formatDateTime = (iso: string) => new Date(iso).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -84,7 +85,7 @@ export interface CardEditorStudyTabProps {
   services: CardEditorServices;
 }
 
-/** Study state and FSRS-7 figures of the card, its review history and `Als neu lernen …` (W18, W21). */
+/** Study state and FSRS-7 figures of the card, its review history and `Lernstand zurücksetzen …` (W18, W21). */
 export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services }: CardEditorStudyTabProps) {
   const online = useOnline();
   const setSuccessToast = useSuccessToast();
@@ -117,9 +118,9 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
     try {
       await services.resetCards([card.id]);
       setConfirmReset(false);
-      setSuccessToast("Die Karte wird als neu gelernt.");
+      setSuccessToast("Lernstand zurückgesetzt. Die Karte ist wieder neu.");
     } catch {
-      setError("Die Karte konnte nicht zurückgesetzt werden.");
+      setError("Der Lernstand konnte nicht zurückgesetzt werden.");
     } finally {
       setResetting(false);
     }
@@ -128,22 +129,22 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
   return (
     <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-study-tab">
       <div className="grid min-w-0 content-start gap-4">
-        <section className="grid min-w-0 gap-4 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Lernstand">
-          <ol className="grid grid-cols-4 gap-1" aria-label="Reifeband" data-testid="card-maturity-band">
+        <Section title="Lernstand" testId="card-study-state">
+          <ol className="grid grid-cols-4 gap-1 rounded-panel bg-core-subtle p-1" aria-label="Reifeband" data-testid="card-maturity-band">
             {BANDS.map((entry) => {
               const current = entry.value === band;
               return (
-                <li key={entry.value} aria-current={current ? "step" : undefined} className={`grid min-h-control place-items-center rounded-inset px-1 core-caption font-semibold ${current ? "bg-core-action text-core-on-accent" : "bg-core-subtle text-core-muted"}`}>
+                <li key={entry.value} aria-current={current ? "step" : undefined} className={`grid min-h-control place-items-center rounded-control px-1 core-control-label ${current ? "bg-core-action text-core-on-accent" : "text-core-muted"}`}>
                   {entry.label}
                 </li>
               );
             })}
           </ol>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3" data-testid="card-study-figures">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3" data-testid="card-study-figures">
             {figures.map((figure) => (
               <div key={figure.label} className="min-w-0">
-                <dt className="truncate core-caption text-core-muted">{figure.label}</dt>
-                <dd className="core-body-large font-semibold tabular-nums text-core-text">{figure.value}</dd>
+                <dt className="truncate core-body text-core-muted">{figure.label}</dt>
+                <dd className="break-words core-heading-2 tabular-nums text-core-text hyphens-auto">{figure.value}</dd>
               </div>
             ))}
           </dl>
@@ -152,36 +153,33 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
               <Snail size={18} className="text-core-danger-text" aria-hidden="true" />Lernbremse seit {formatDateTime(study.leechedAt)}
             </p>
           ) : null}
-          <ActionButton variant="secondary" icon={RotateCcw} className="w-fit" disabled={!reviewed && !study.leechedAt} onClick={() => setConfirmReset(true)}>Als neu lernen …</ActionButton>
+          <div className="border-t border-core-border pt-4">
+            <ActionButton variant="secondary" icon={RotateCcw} disabled={!reviewed && !study.leechedAt} onClick={() => setConfirmReset(true)}>Lernstand zurücksetzen …</ActionButton>
+          </div>
           {error ? <p className="core-status-error core-body" role="alert">{error}</p> : null}
-        </section>
-        <section className="grid min-w-0 gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby="card-curve-heading" data-testid="card-review-curve">
-          <h3 id="card-curve-heading" className="core-body font-semibold text-core-text">Abrufverlauf</h3>
+        </Section>
+        <Section title="Abrufverlauf" testId="card-review-curve">
           {events === null ? <p className="core-body text-core-muted" role="status">Wird geladen …</p> : curve.length ? (
             <React.Suspense fallback={<div className="h-56" />}>
               <RetrievabilityChart points={curve} targetPercent={study.extra.desiredRetention * 100} now={Date.parse(now)} />
             </React.Suspense>
           ) : <p className="core-body text-core-muted">Noch keine Bewertungen.</p>}
-        </section>
+        </Section>
       </div>
-      <section className="grid min-w-0 gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby="card-history-heading" data-testid="card-review-history">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 id="card-history-heading" className="core-body font-semibold text-core-text">Bewertungen</h3>
-          {cloudState === "loading" ? <span className="core-caption text-core-muted" role="status">Cloud wird geladen …</span> : cloudState === "failed" ? <span className="core-caption text-core-muted" role="status">Nur lokale Bewertungen</span> : !online ? <span className="core-caption text-core-muted">Offline: nur lokale Bewertungen</span> : null}
-        </div>
+      <Section title="Bewertungen" testId="card-review-history" aside={cloudState === "loading" ? <span className="core-body text-core-muted" role="status">Cloud wird geladen …</span> : cloudState === "failed" ? <span className="core-body text-core-muted" role="status">Nur lokale Bewertungen</span> : !online ? <span className="core-body text-core-muted">Offline: nur lokale Bewertungen</span> : null}>
         {events === null ? <p className="core-body text-core-muted" role="status">Wird geladen …</p> : events.length === 0 ? <p className="core-body text-core-muted">Noch keine Bewertungen.</p> : (
           <table className="w-full table-fixed border-collapse core-body" data-testid="card-review-list">
             <thead>
-              <tr className="border-b border-core-border text-left core-caption text-core-muted">
-                <th scope="col" className="w-1/2 py-1.5 font-semibold">Zeitpunkt</th>
-                <th scope="col" className="py-1.5 font-semibold">Bewertung</th>
+              <tr className="border-b border-core-border text-left text-core-muted">
+                <th scope="col" className="w-1/2 py-2 font-semibold">Zeitpunkt</th>
+                <th scope="col" className="py-2 font-semibold">Bewertung</th>
               </tr>
             </thead>
             <tbody>
               {[...events].reverse().map((event) => (
                 <tr key={event.id} className="border-b border-core-border last:border-0">
-                  <td className="truncate py-1.5 tabular-nums text-core-secondary">{formatDateTime(event.answeredAt)}</td>
-                  <td className="truncate py-1.5 text-core-text">
+                  <td className="truncate py-2 tabular-nums text-core-secondary">{formatDateTime(event.answeredAt)}</td>
+                  <td className="truncate py-2 text-core-text">
                     {event.rating === "manual" ? null : <span aria-hidden="true" className="mr-2 inline-block size-2.5 rounded-round align-middle" style={{ background: RATINGS[event.rating]?.tone }} />}
                     <span className={event.rating === "manual" ? "text-core-muted" : ""}>{eventLabel(event)}</span>
                   </td>
@@ -190,13 +188,14 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
             </tbody>
           </table>
         )}
-      </section>
+      </Section>
       <ActionDialog
         open={confirmReset}
-        title="Als neu lernen?"
-        description="Wiederholungs- und Fehlerzähler gehen auf 0, die Lernbremse wird aufgehoben. Der Bewertungsverlauf bleibt mit einem manuellen Eintrag."
-        confirmLabel="Als neu lernen"
+        title="Lernstand zurücksetzen?"
+        description="Die Karte wird danach wie eine neue Karte gelernt."
+        confirmLabel="Zurücksetzen"
         cancelLabel="Abbrechen"
+        destructive
         confirmLoading={resetting}
         onCancel={() => setConfirmReset(false)}
         onConfirm={() => void reset()}

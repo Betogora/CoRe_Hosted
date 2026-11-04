@@ -10,6 +10,7 @@ import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { RichTextEditor } from "../../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import { VARIANT_STATE_TONE, variantStateMarks } from "./cardEditorModel.ts";
+import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 
 function readinessLabel(coreMode: Deck["deckSettings"]["coreMode"], ready: boolean): string {
   if (coreMode === "off") return "CoRe-Modus aus";
@@ -37,13 +38,13 @@ function VariantRow({ variant, index, busy, reactivationBlocked, canGenerate, on
       <div className="flex min-w-0 items-start gap-3">
         <div className="min-w-0 flex-1">
           <span className="flex flex-wrap gap-1.5">
-            {marks.map((mark) => <span key={mark.label} className={`inline-flex rounded-inset px-2 py-0.5 core-caption font-semibold text-core-text ${VARIANT_STATE_TONE[mark.tone]}`}>{mark.label}</span>)}
+            {marks.map((mark) => <span key={mark.label} className={`inline-flex rounded-control px-3 py-1 core-status-label text-core-text ${VARIANT_STATE_TONE[mark.tone]}`}>{mark.label}</span>)}
           </span>
           {editing ? null : (
             <>
-              <p className="mt-1.5 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
+              <p className="mt-2 break-words core-body font-semibold text-core-text">{stripHtml(variant.front)}</p>
               <p className="break-words core-body text-core-muted">{stripHtml(variant.back)}</p>
-              {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-caption text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
+              {(variant.performance?.attempts ?? 0) > 0 ? <p className="mt-1 core-body text-core-muted">{variant.performance.attempts}× abgefragt · {variant.performance.correctCount} richtig</p> : null}
             </>
           )}
         </div>
@@ -124,22 +125,17 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
   }
 
   return (
-    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:items-start" data-testid="card-variant-tools">
-      <section className="grid min-w-0 gap-2 rounded-panel border border-core-border bg-core-surface p-4" aria-label="Original">
-        <span className="w-fit rounded-inset bg-core-subtle px-2 py-0.5 core-caption font-semibold text-core-text">Original</span>
+    <div className="grid min-w-0 content-start gap-4 p-4 sm:p-6 md:grid-cols-2 md:items-start" data-testid="card-variant-tools">
+      <Section title="Original" testId="card-variant-original">
         {original ? (
-          <>
+          <div className="grid min-w-0 gap-0.5">
             <p className="break-words core-body font-semibold text-core-text">{stripHtml(original.front)}</p>
             <p className="break-words core-body text-core-muted">{stripHtml(original.back)}</p>
-          </>
+          </div>
         ) : <p className="core-body text-core-muted">{eligibility.reasons[0] ?? "Diese Karte hat keine Frage und Antwort."}</p>}
-      </section>
-      <section className="grid min-w-0 gap-3 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby="card-variants-heading">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <h3 id="card-variants-heading" className="core-body font-semibold text-core-text">Varianten</h3>
-          <p className="core-caption font-semibold text-core-muted" data-testid="variant-active-count">{readiness.activeCount} von {readiness.maxActive} aktiv</p>
-        </div>
-        <p className="core-caption text-core-muted" data-testid="variant-readiness">Haltbarkeit {readiness.durabilityDays} von {readiness.thresholdDays} Tagen · {readinessLabel(deck.deckSettings.coreMode, readiness.ready)}</p>
+      </Section>
+      <Section title="Varianten" testId="card-variants" aside={<p className="core-body font-semibold text-core-muted" data-testid="variant-active-count">{readiness.activeCount} von {readiness.maxActive} aktiv</p>}>
+        <p className="-mt-2 core-body text-core-muted" data-testid="variant-readiness">Haltbarkeit {readiness.durabilityDays} von {readiness.thresholdDays} Tagen · {readinessLabel(deck.deckSettings.coreMode, readiness.ready)}</p>
         {variants.length ? (
           <ul className="grid divide-y divide-core-border border-y border-core-border">
             {variants.map((variant, index) => (
@@ -161,24 +157,22 @@ export function CardEditorVariantsTab({ deck, note, card, services, onGenerateVa
             ))}
           </ul>
         ) : null}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        {eligibility.eligible ? null : <p className="core-body text-core-muted">{eligibility.reasons[0] ?? "Varianten sind für diese Karte nicht verfügbar."}</p>}
+        {status ? <p className="core-body text-core-warning" role="status" aria-live="polite">{status}</p> : null}
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <ActionButton variant="secondary" icon={Sparkles} loading={generating} disabled={!eligibility.eligible || busyId !== null}
             onClick={() => void act("generate", () => onGenerateVariant(card.id), hasOutdated ? "Veraltete Variante wurde ersetzt." : "Variante wurde generiert.", "Die Variante konnte nicht generiert werden.")}>
             {hasOutdated ? "Variante neu generieren" : variants.length ? "Weitere Variante generieren" : "Variante generieren"}
           </ActionButton>
-          <p className="min-w-0 flex-1 basis-56 core-caption text-core-muted">
-            {eligibility.eligible ? "Sendet nur Frage und Antwort an GPT-6 Luna; der Anbieter speichert nichts." : eligibility.reasons[0] ?? "Varianten sind für diese Karte nicht verfügbar."}
-          </p>
+          <CrossLinkButton onSelect={onOpenDeckSettings}><Settings size={15} aria-hidden="true" />Stapeleinstellungen</CrossLinkButton>
         </div>
-        {status ? <p className="core-body text-core-warning" role="status" aria-live="polite">{status}</p> : null}
-        <CrossLinkButton className="w-fit" onSelect={onOpenDeckSettings}><Settings size={15} aria-hidden="true" />Stapeleinstellungen</CrossLinkButton>
-      </section>
+      </Section>
       <ActionDialog
         open={Boolean(pendingDeletion)}
         title="Variante löschen?"
         description="Die Variante wird auf allen Geräten entfernt. Grundkarte und Lernstand bleiben unverändert."
         confirmLabel="Variante löschen"
-        cancelLabel="Behalten"
+        cancelLabel="Abbrechen"
         destructive
         onCancel={() => setPendingDeletion(null)}
         onConfirm={() => {

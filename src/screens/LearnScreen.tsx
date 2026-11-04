@@ -114,9 +114,7 @@ export function LearnScreen({ decks, deckSummaries, now, dayStartHour, learnAhea
 
   return (
     <div className="grid min-w-0 gap-6">
-      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
-        if (area === "cards") onOpenDecks(focusedDeckId);
-      }} />
+      <LearningAreaHeader area="overview" onOpenCardSettings={onOpenCardSettings} />
 
       <DeckTree
         rows={focusedDeckMissing ? [] : library.rows}

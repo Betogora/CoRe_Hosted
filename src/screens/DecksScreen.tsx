@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, X, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
@@ -599,6 +599,8 @@ export function DecksScreen({
   /** A moved card stays open unless it left the opened deck tree; then the editor closes. */
   function handleCardMoved(deckId: string, cardId: string) {
     if (contentDeckId && !libraryDecks.some((deck) => deck.id === deckId)) {
+      // The move's toast with `Rückgängig` outlives the closed editor; undo reopens the card in its former deck.
+      preserveToastForSelectionChange.current = true;
       closeDetail();
       return;
     }
@@ -715,9 +717,7 @@ export function DecksScreen({
               onClick={() => requestDetailAction(() => onStartDeck(contentDeck))} data-testid="deck-content-study">Karten lernen</ActionButton> : null}
           </div>
         </div>
-      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} onAreaChange={(area) => {
-        if (area === "overview") onOpenLearn(selectedDeckId);
-      }} />}
+      ) : <LearningAreaHeader area="cards" onOpenCardSettings={onOpenCardSettings} />}
 
       {contentDeckId && contentTab === "children" ? (
         contentRow && contentLibrary ? contentRow.hasChildren ? <DeckSubstacksPanel key={contentRow.id} rows={contentLibrary.rows} current={contentRow}
@@ -925,10 +925,12 @@ export function DecksScreen({
       <ActionDialog
         open={Boolean(pendingCardDelete)}
         title={pendingCardDelete && pendingCardDelete.graph.cards.length > 1 ? `Inhalt mit ${pendingCardDelete.graph.cards.length} Karten löschen?` : "Karte löschen?"}
-        description={pendingCardDelete && pendingCardDelete.graph.cards.length > 1 ? "Alle Karten dieses Inhalts werden gelöscht, auch in anderen Stapeln." : null}
-        confirmLabel="Ja"
-        cancelLabel="Nein"
-        actionIcons={{ cancel: X, confirm: Check }}
+        description={pendingCardDelete && pendingCardDelete.graph.cards.length > 1
+          ? "Alle Karten dieses Inhalts werden auf allen Geräten gelöscht, auch in anderen Stapeln."
+          : "Die Karte wird auf allen Geräten gelöscht."}
+        confirmLabel="Löschen"
+        cancelLabel="Abbrechen"
+        destructive
         confirmLoading={deletingCard}
         onCancel={() => {
           if (!deletingCard) setPendingCardDelete(null);

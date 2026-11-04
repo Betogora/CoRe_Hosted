@@ -269,7 +269,7 @@ test("dashboard heatmap preserves its cells, today marker and label alignment", 
 
 test("statistics uses the shared filtered heatmap without clipped shadows or retired subtitles", async ({ page }: any) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
+  await page.getByRole("button", { name: "Statistik öffnen" }).click();
 
   await expect(page.getByTestId("study-heatmap-header").getByRole("heading", { name: /Tage? Streak/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lernkalender" })).toHaveCount(0);
@@ -868,7 +868,7 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
   await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Varianten", exact: true }).click();
@@ -918,16 +918,14 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await expect(page.getByRole("heading", { name: "Sitzung abgeschlossen" })).toBeVisible();
   await expect(page.getByText("1 Karte · 0 Wiederholungen")).toBeVisible();
   await page.getByRole("button", { name: "Zurück zum Ausgangspunkt" }).click();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByPlaceholder("Stapel, Vorderseite, Rückseite oder Tags suchen").fill("Côte d'Ivoire");
   await expect(page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" })).toBeVisible();
 });
 
 test("card rescheduling preserves scheduler state and keeps version history out of the editor", async ({ page }: any) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await page.getByTestId(`deck-toggle-${DECK_IDS.africa}`).click();
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
   await expect(page.getByTestId("card-detail-dialog").getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Côte d'Ivoire?");
@@ -982,6 +980,36 @@ test("card rescheduling preserves scheduler state and keeps version history out 
   expect(manualEvents[0].schedulerBefore).toEqual({ card: { state: before.study.state, dueAt: before.study.dueAt, intervalDays: before.study.intervalDays } });
   expect(manualEvents[0].schedulerAfter).toEqual({ card: { state: scheduled.study.state, dueAt: scheduled.study.dueAt, intervalDays: scheduled.study.intervalDays } });
   expect(manualEvents[0].flags).toEqual({ kind: "manual_reschedule" });
+});
+
+test("a card moved out of the opened deck, moved back and duplicated stays reachable with its copy", async ({ page }: any) => {
+  await resetToFreshLocalState(page);
+  await page.goto(`/kartenstapel?deck=${DECK_IDS.europe}&content=1&tab=cards`);
+  const row = page.getByTestId("deck-card-card_world_capitals_alb");
+  await row.click();
+  const editor = page.getByTestId("card-detail-dialog");
+  await editor.getByRole("button", { name: "Verschieben", exact: true }).click();
+  const moveDialog = page.getByRole("dialog", { name: "Karte verschieben" });
+  await moveDialog.getByRole("combobox", { name: "Zielstapel" }).click();
+  await page.getByRole("option", { name: /Asien$/ }).click();
+  await moveDialog.getByRole("button", { name: "Verschieben", exact: true }).click();
+
+  // The card left the opened deck: the editor closes, the source table drops its row and the undo toast stays.
+  await expect(editor).toHaveCount(0);
+  await expect(row).toHaveCount(0);
+  const toast = page.locator('[data-success-toast-region="true"]');
+  await expect(toast).toContainText("Karte nach „Asien“ verschoben.");
+  await toast.getByRole("button", { name: "Rückgängig" }).click();
+  await expect(editor.getByTestId("card-deck")).toContainText("Europa kompakt");
+  await expect.poll(async () => Boolean(await storedCard(page, DECK_IDS.europe, "card_world_capitals_alb"))).toBe(true);
+
+  await editor.getByRole("button", { name: "Duplizieren", exact: true }).click();
+  await expect(toast).toContainText("Kopie wurde erfolgreich direkt unter der Ausgangskarte erstellt.");
+  await expect(editor.getByRole("heading", { level: 2 })).toHaveText("Was ist die Hauptstadt von Albanien?");
+  const europe = (await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.europe);
+  const copy = europe.cards.find((card: any) => card.id !== "card_world_capitals_alb" && frontHtml(card)?.includes("Albanien") && frontHtml(card)?.includes("(Kopie)"));
+  expect(copy).toBeTruthy();
+  await expect(page.getByTestId(`deck-card-${copy.id}`)).toBeAttached();
 });
 
 test("shared CoRe date picker updates the simulator within its bounded range", async ({ page }: any) => {

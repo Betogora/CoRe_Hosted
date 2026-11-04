@@ -220,7 +220,7 @@ test("deck drag focus uses square row holes with desktop top bar and mobile bott
 
 test("statistics deck filter uses full-width selection rows while keeping multiple selection", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Statistik" }).click();
+  await page.getByRole("button", { name: "Statistik öffnen" }).click();
 
   const trigger = page.getByRole("combobox", { name: /Stapel filtern/ });
   await trigger.click();
@@ -721,13 +721,13 @@ test("unlimited logical hierarchy keeps deep drag, subtree moves, dialogs and vi
   await expect.poll(() => storedHierarchyPath(page, DEEP_DECK_IDS.subtreeChild)).toEqual(["Tiefer Teilbaum", "Teilbaum-Kind"]);
 
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await page.getByTestId(`deck-options-${DEEP_DECK_IDS.leaf}`).click();
   await page.getByTestId(`deck-options-menu-${DEEP_DECK_IDS.leaf}`).getByRole("button", { name: "Verschieben" }).click();
   await page.getByRole("combobox", { name: "Ziel für Tiefes Blatt" }).click();
   await page.getByRole("textbox", { name: "Stapel suchen" }).fill("Ebene 13");
   await page.getByRole("option", { name: /Ebene 13$/ }).click();
-  await page.getByRole("button", { name: "Verschieben bestätigen" }).click();
+  await page.getByRole("dialog", { name: "Stapel verschieben" }).getByRole("button", { name: "Verschieben", exact: true }).click();
   await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.leaf)).toBe("deck_deep_level_13");
 
   await page.setViewportSize({ width: 1280, height: 900 });
@@ -736,7 +736,7 @@ test("unlimited logical hierarchy keeps deep drag, subtree moves, dialogs and vi
   await page.getByRole("combobox", { name: "Ziel für Tiefer Teilbaum" }).click();
   await page.getByRole("textbox", { name: "Stapel suchen" }).fill("Ebene 13");
   await page.getByRole("option", { name: /Ebene 13$/ }).click();
-  await page.getByRole("button", { name: "Verschieben bestätigen" }).click();
+  await page.getByRole("dialog", { name: "Stapel verschieben" }).getByRole("button", { name: "Verschieben", exact: true }).click();
   await expect.poll(() => storedParentDeckId(page, DEEP_DECK_IDS.subtree)).toBe("deck_deep_level_13");
 
   for (const viewport of [
@@ -763,8 +763,7 @@ test("a real Play click immediately after drag starts learning", async ({ page }
 
 test("deck management disables direct drag and shares the confirmed keyboard move", async ({ page }) => {
   await resetToFreshLocalState(page);
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
 
   const rootRow = page.getByTestId(`deck-header-${DECK_IDS.root}`);
   const southAmericaRow = page.getByTestId(`deck-header-${DECK_IDS.southAmerica}`);
@@ -814,7 +813,7 @@ test("deck management disables direct drag and shares the confirmed keyboard mov
     return topElement != null && option.contains(topElement);
   })).toBe(true);
   await europeMoveOption.click();
-  await page.getByRole("button", { name: "Verschieben bestätigen" }).press("Enter");
+  await page.getByRole("dialog", { name: "Stapel verschieben" }).getByRole("button", { name: "Verschieben", exact: true }).press("Enter");
   await expect.poll(() => storedParentDeckId(page, DECK_IDS.southAmerica)).toBe(DECK_IDS.europe);
 
   await page.getByTestId(`deck-options-${DECK_IDS.southAmerica}`).click();
@@ -844,7 +843,7 @@ test("three-dot actions share the local-name tooltip across dashboard, learning 
   await expect(learningMenu).not.toContainText("Welt-Hauptstädte / Afrika");
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   const managementOptions = page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" });
   await expect(managementOptions).not.toHaveAttribute("title");
   await managementOptions.focus();

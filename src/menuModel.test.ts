@@ -8,9 +8,9 @@ test("lists the navigation items in product order", () => {
   assert.deepStrictEqual(menu.listNavigationItems(), [
     { id: "uebersicht", label: "Heute", iconKey: "home" },
     { id: "lernen", label: "Lernen", iconKey: "learn" },
-    { id: "pruefungen", label: "Prüfungen", iconKey: "exam" },
     { id: "neue-karten", label: "Erstellen", iconKey: "plus" },
-    { id: "statistik", label: "Statistik", iconKey: "chart" },
+    { id: "kartenstapel", label: "Karten", iconKey: "layers" },
+    { id: "pruefungen", label: "Prüfung", iconKey: "exam" },
   ]);
 });
 
@@ -38,13 +38,13 @@ test("returns new-card content by id", () => {
   });
 });
 
-test("keeps cards routable while primary navigation exposes only the four product entries", () => {
+test("keeps statistics, help, settings and simulator routable outside the primary navigation", () => {
   const menu = createMenuModel();
 
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
-  assert.equal(menu.getView("kartenstapel").title, "Karten");
-  assert.equal(menu.getView("kartenstapel")?.navigation, "hidden");
+  assert.equal(menu.getView("kartenstapel").title, "Kartenverwaltung");
+  assert.equal(menu.getView("statistik")?.navigation, "hidden");
   assert.ok(menu);
 // @ts-expect-error -- Die Fixture prüft bewusst eine unvollständige, ungültige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("hilfe").title, "Wie CoRe und FSRS funktionieren");
@@ -53,8 +53,8 @@ test("keeps cards routable while primary navigation exposes only the four produc
 // @ts-expect-error -- Die Fixture pr?ft bewusst eine unvollst?ndige, ung?ltige oder konfliktbehaftete Laufzeitform.
   assert.equal(menu.getView("einstellungen").title, "Einstellungen");
   assert.deepStrictEqual(menu.getView("einstellungen")?.stats, []);
-  assert.equal(menu.listRoutableViewIds().includes("kartenstapel"), true);
-  assert.equal(menu.listNavigationItems().some((item) => item.id === "kartenstapel"), false);
+  assert.equal(menu.listRoutableViewIds().includes("statistik"), true);
+  assert.equal(menu.listNavigationItems().some((item) => item.id === "statistik"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "einstellungen"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "hilfe"), false);
   assert.equal(menu.listNavigationItems().some((item) => item.id === "simulator"), false);

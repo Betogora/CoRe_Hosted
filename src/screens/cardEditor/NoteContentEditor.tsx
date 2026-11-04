@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, Keyboard, PlusSquare, X } from "lucide-react";
 import { addNoteField, canRemoveNoteField, isMovableNoteField, moveNoteField, noteBlocks, removeNoteField, renameNoteField, setNoteFieldRole, setNoteReverse, setNoteTypeIn, validateNoteEditorValue, type AddableFieldRole, type NoteEditorErrors, type NoteEditorValue } from "../../coreModel.ts";
 import type { Card, Note, NoteContent } from "../../coreTypes.ts";
 import { IconButton } from "../../ui/actionUi.tsx";
-import { CoreSegmentedControl } from "../../ui/coreUi.tsx";
+import { CoreSegmentedControl, SoftPanel } from "../../ui/coreUi.tsx";
 import { NOTE_FIELD_ROLE_LABELS, NoteBlockControls } from "../../ui/NoteBlockControls.tsx";
 import { NoteCardContent } from "../../ui/NoteCardContent.tsx";
 import { RichTextEditor, type RichTextImageActions } from "../../ui/RichTextEditor.tsx";
@@ -121,7 +121,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
   const fields = (
     <div className="grid min-w-0 content-start gap-4" inert={disabled}>
       <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2" data-testid="note-direction">
-        <span className="core-body font-semibold text-core-text">{noteKindLabel({ content: structure })}</span>
+        <h3 className="core-heading-3 font-semibold text-core-text">{noteKindLabel({ content: structure })}</h3>
         {structureEditable && blocks.reverse !== null ? (
           <CoreSegmentedControl
             ariaLabel="Lernrichtung"
@@ -209,7 +209,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
 
   const previewColumn = occlusionImage && interaction.kind === "image-occlusion" ? (
     <div className="grid min-w-0 content-start gap-2" data-testid="note-occlusion">
-      <span className="core-body font-semibold text-core-text">Bild und Masken</span>
+      <h3 className="core-heading-3 font-semibold text-core-text">Bild und Masken</h3>
       <React.Suspense fallback={<p className="core-body text-core-muted" role="status">Masken-Editor wird geladen …</p>}>
         <OcclusionEditor
           imageUrl={occlusionImage}
@@ -223,7 +223,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
       </React.Suspense>
     </div>
   ) : (
-    <section className="grid min-w-0 content-start gap-3" aria-label="Live-Vorschau" data-testid="card-live-preview">
+    <section className="grid min-w-0 content-start gap-4" aria-label="Live-Vorschau" data-testid="card-live-preview">
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
         {previewCards.length > 1 ? (
           <CoreSelect
@@ -232,7 +232,7 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
             options={previewCards.map((entry) => ({ value: entry.card.id, label: entry.label }))}
             onValueChange={(id) => { setPreviewCardId(id); setSide("question"); setRound((current) => current + 1); }}
           />
-        ) : <span />}
+        ) : <h3 className="core-heading-3 font-semibold text-core-text">Vorschau</h3>}
         <CoreSegmentedControl
           ariaLabel="Kartenseite in der Vorschau"
           className="core-segmented-touch"
@@ -255,9 +255,9 @@ export function NoteContentEditor({ note, value, structure, onValueChange, onStr
   return (
     <div className="grid min-w-0 gap-4">
       <CoreSegmentedControl ariaLabel="Ansicht" options={MOBILE_OPTIONS} value={mobileView} onValueChange={setMobileView} className="core-segmented-touch w-full md:hidden" />
-      <div className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className={mobileView === "edit" ? "min-w-0" : "hidden min-w-0 md:block"}>{fields}</div>
-        <div className={`${mobileView === "preview" ? "min-w-0" : "hidden min-w-0 md:block"} md:sticky md:top-0 md:self-start`}>{previewColumn}</div>
+      <div className="grid min-w-0 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-start">
+        <SoftPanel className={`p-4 sm:p-6 ${mobileView === "edit" ? "" : "hidden md:block"}`}>{fields}</SoftPanel>
+        <SoftPanel className={`p-4 sm:p-6 ${mobileView === "preview" ? "" : "hidden md:block"} md:sticky md:top-0`}>{previewColumn}</SoftPanel>
       </div>
     </div>
   );

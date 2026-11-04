@@ -240,7 +240,7 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
 
   return (
     <CardEditorSurface marked={note.marked} labelledBy={titleId} surfaceRef={props.surfaceRef} onKeyDown={handleKeyDown}>
-      <header className="grid shrink-0 gap-3 border-b border-core-border px-3 pb-3 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-editor">
+      <header className="grid shrink-0 gap-4 border-b border-core-border px-3 pb-4 pt-3 sm:px-6 sm:pt-4" data-testid="card-detail-editor">
         <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 sm:gap-x-3">
           {hits ? (
             <div className="col-start-1 row-start-1 flex shrink-0 items-center gap-1" data-testid="card-hit-navigation">
@@ -250,12 +250,12 @@ export function CardEditorDialog(props: CardEditorDialogProps) {
               <CoreTooltip label="Nächste Karte · Alt+↓">
                 <IconButton icon={ChevronDown} label="Nächste Karte" variant="ghost" disabled={!hits.onNext} onClick={() => hits.onNext?.()} />
               </CoreTooltip>
-              <span className="hidden min-w-12 whitespace-nowrap core-caption font-semibold tabular-nums text-core-muted sm:inline" aria-label={`Karte ${hits.position} von ${hits.total}`}>{hits.position} / {hits.total}</span>
+              <span className="hidden min-w-14 whitespace-nowrap core-body font-semibold tabular-nums text-core-muted sm:inline" aria-label={`Karte ${hits.position} von ${hits.total}`}>{hits.position} / {hits.total}</span>
             </div>
           ) : null}
-          <div className="col-span-3 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:pt-1.5">
-            <h2 id={titleId} tabIndex={-1} className="line-clamp-2 break-words core-heading-3 font-semibold text-core-text outline-none sm:line-clamp-1" data-card-editor-heading>{cardEditorTitle(note)}</h2>
-            <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 core-caption text-core-muted">
+          <div className="col-span-3 row-start-2 min-w-0 sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:pt-1">
+            <h2 id={titleId} tabIndex={-1} className="line-clamp-2 break-words core-heading-2 text-core-text outline-none sm:line-clamp-1" data-card-editor-heading>{cardEditorTitle(note)}</h2>
+            <p className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 core-body text-core-muted">
               <span className="min-w-0 truncate" data-testid="card-sibling-position">{cardHeaderLabel(note, card, siblings.length)}</span>
               <CardStatusIcons card={card} marked={note.marked} flagNames={services.flagNames} />
             </p>

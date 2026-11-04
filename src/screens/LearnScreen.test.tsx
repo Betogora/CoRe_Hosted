@@ -40,10 +40,7 @@ test("learning rows expose shared counts, direct activation, settings and drag-a
   assert.match(markup, /data-core-tooltip="Stapeloptionen für Welt-Hauptstädte"/);
   assert.match(markup, /lucide-ellipsis/);
   assert.match(markup, /<h2[^>]*>Lernen<\/h2>/);
-  assert.match(markup, /aria-label="Bereich in Lernen"/);
-  assert.match(markup, /aria-label="Bereich in Lernen"[^>]*core-control-label/);
-  assert.match(markup, /aria-pressed="true"[^>]*>Stapelübersicht<\/button>/);
-  assert.match(markup, /aria-pressed="false"[^>]*>Kartenverwaltung<\/button>/);
+  assert.doesNotMatch(markup, /Bereich in Lernen|>Stapelübersicht<|>Kartenverwaltung<\/button>/);
   assert.match(markup, /lucide-settings2/);
   assert.match(markup, />Lerneinstellungen<\/span><\/button>/);
   assert.match(markup, /data-testid="learn-deck-list-header"/);

@@ -42,8 +42,8 @@ const views: MenuView[] = [
     id: "kartenstapel",
     label: "Karten",
     iconKey: "layers",
-    navigation: "hidden",
-    title: "Karten",
+    navigation: "primary",
+    title: "Kartenverwaltung",
     eyebrow: "",
     stats: [
       { label: "Decks", value: "0" },
@@ -81,7 +81,7 @@ const views: MenuView[] = [
     id: "statistik",
     label: "Statistik",
     iconKey: "chart",
-    navigation: "primary",
+    navigation: "hidden",
     title: "Statistik",
     eyebrow: "Leistung",
     stats: [
@@ -110,7 +110,7 @@ const views: MenuView[] = [
   },
   {
     id: "pruefungen",
-    label: "Prüfungen",
+    label: "Prüfung",
     iconKey: "exam",
     navigation: "primary",
     title: "Prüfungen",
@@ -127,7 +127,7 @@ const views: MenuView[] = [
     stats: [],
   },
 ];
-const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "pruefungen", "neue-karten", "statistik"];
+const primaryNavigationOrder: MenuViewId[] = ["uebersicht", "lernen", "neue-karten", "kartenstapel", "pruefungen"];
 
 function navigationItem(view: MenuView) {
   return { id: view.id, label: view.label, iconKey: view.iconKey };

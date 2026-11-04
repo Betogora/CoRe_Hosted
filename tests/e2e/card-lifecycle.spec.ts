@@ -125,8 +125,7 @@ async function finishManualCreation(page: Page, deckName: string, expectedCardCo
 
 async function openCreatedCardEditor(page: Page, deck: Deck) {
   await page.getByRole("button", { name: "Karten prüfen" }).click();
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
   await page.getByTestId(`deck-card-${deck.cards[0].id}`).click();
   await openEditorTab(page, "Inhalt");
 }
@@ -643,8 +642,7 @@ test("[Vertrag: APKG-Reimport nach lokaler Bearbeitung] @beta-core Reimport übe
   expect(importedCard.note).toMatchObject({ source: "anki-apkg", ankiGuid: "matrix-basic", contentRevision: 1, importedContentRevision: 1 });
   const studyBeforeReimport = importedCard.study;
   await page.getByRole("button", { name: "Zur Übersicht" }).click();
-  await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await page.getByTestId(`deck-toggle-${importedDeck.id}`).click();
   await page.getByTestId(`deck-card-${importedCard.id}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();

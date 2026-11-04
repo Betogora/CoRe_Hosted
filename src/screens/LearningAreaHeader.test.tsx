@@ -3,12 +3,12 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { LearningAreaHeader } from "./LearningAreaHeader.tsx";
 
-test("learning areas use the shared regular area switch and keep settings before it", () => {
-  for (const area of ["overview", "cards"] as const) {
-    const markup = renderToStaticMarkup(<LearningAreaHeader area={area} onAreaChange={() => undefined} onOpenCardSettings={() => undefined} />);
-    assert.ok(markup.indexOf("Lerneinstellungen") < markup.indexOf('aria-label="Bereich in Lernen"'));
+test("learning and card management headers keep learning settings without an area switch", () => {
+  for (const [area, eyebrow, title] of [["overview", "Review", "Lernen"], ["cards", "Alle Stapel", "Kartenverwaltung"]] as const) {
+    const markup = renderToStaticMarkup(<LearningAreaHeader area={area} onOpenCardSettings={() => undefined} />);
+    assert.match(markup, new RegExp(`>${eyebrow}</p><h2[^>]*>${title}</h2>`));
+    assert.ok(markup.indexOf(`>${title}</h2>`) < markup.indexOf("Lerneinstellungen"));
     assert.match(markup, /lucide-settings2/);
-    assert.match(markup, /role="group" aria-label="Bereich in Lernen"/);
-    assert.match(markup, new RegExp(`aria-pressed="true"[^>]*>${area === "overview" ? "Stapelübersicht" : "Kartenverwaltung"}`));
+    assert.doesNotMatch(markup, /role="group"|aria-pressed|Bereich in Lernen/);
   }
 });

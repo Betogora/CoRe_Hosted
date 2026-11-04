@@ -12,6 +12,7 @@ import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import type { RichTextImageActions } from "../../ui/RichTextEditor.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
 import { cardStateLabel, draftChangeSummary, outdatedVariantCount, removedCardsDescription, type NoteContentPlan } from "./cardEditorModel.ts";
+import { CardEditorSection as Section } from "./CardEditorSection.tsx";
 import { NoteContentEditor, type PreviewCard } from "./NoteContentEditor.tsx";
 
 /** Image preparation and local storage of the creation workflow, loaded only when an image is inserted or saved. */
@@ -58,16 +59,15 @@ function NoteMediaList({ graph, mediaUrls, services }: { graph: NoteGraph; media
   }, [mediaUrls]);
   if (!names.length) return null;
   return (
-    <section className="grid min-w-0 gap-2 rounded-panel border border-core-border bg-core-surface p-4" aria-labelledby="card-media-heading" data-testid="card-media">
-      <h3 id="card-media-heading" className="core-body font-semibold text-core-text">Medien</h3>
+    <Section title="Medien" testId="card-media">
       <ul className="grid divide-y divide-core-border">
         {names.map((name) => (
           <li key={name} className="flex min-h-control min-w-0 items-center gap-3 py-1 core-body">
             <span className="min-w-0 flex-1 truncate text-core-text">{name}</span>
-            {sizes[name] !== undefined ? <span className="shrink-0 core-caption tabular-nums text-core-muted">{formatBytes(sizes[name])}</span> : null}
+            {sizes[name] !== undefined ? <span className="shrink-0 tabular-nums text-core-muted">{formatBytes(sizes[name])}</span> : null}
             {used.has(name) ? null : (
               <>
-                <span className="shrink-0 core-caption text-core-muted">nicht verwendet</span>
+                <span className="shrink-0 text-core-muted">nicht verwendet</span>
                 <CoreTooltip label="Entfernen">
                   <IconButton icon={Trash2} variant="destructive-quiet" label={`${name} entfernen`} disabled={removing === name} onClick={() => {
                     setRemoving(name);
@@ -79,7 +79,7 @@ function NoteMediaList({ graph, mediaUrls, services }: { graph: NoteGraph; media
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }
 
@@ -252,7 +252,7 @@ export function CardEditorContentTab({ graph, card, mediaUrls, mediaStore, daySt
 
   return (
     <div ref={containerRef} className="flex min-h-full min-w-0 flex-col" data-testid="card-content-tab">
-      <div className="grid min-w-0 flex-1 content-start gap-6 p-4 sm:p-6">
+      <div className="grid min-w-0 flex-1 content-start gap-4 p-4 sm:p-6">
         <NoteContentEditor
           note={baseGraph.note}
           value={form}

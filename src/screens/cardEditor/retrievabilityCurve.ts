@@ -15,7 +15,7 @@ const MAX_POINTS = 360;
 
 /**
  * Retrievability over time like the editor draft of round 3: after each answer it starts at 100 % and decays until the
- * next answer; `Als neu lernen` starts over. The memory state is replayed with FSRS-7 from the ratings, so imported Anki
+ * next answer; `Lernstand zurücksetzen` starts over. The memory state is replayed with FSRS-7 from the ratings, so imported Anki
  * histories without stored stabilities draw the same curve.
  */
 export function createRetrievabilityCurve(events: readonly Pick<ReviewEvent, "rating" | "answeredAt" | "flags">[], now: string): RetrievabilityPoint[] {

@@ -130,9 +130,9 @@ export const DeckOptionsMenu = React.memo(function DeckOptionsMenu({ row, decks,
               {moveError ? <p className="core-body mt-3 font-semibold text-core-text" role="alert">{moveError}</p> : null}
             </>
           )}
-          confirmLabel="Verschieben bestätigen"
+          confirmLabel="Verschieben"
           cancelLabel="Abbrechen"
-          actionIcons={{ confirm: MoveRight, cancel: Layers }}
+          actionIcons={{ confirm: MoveRight }}
           onCancel={() => {
             setMoveDialogOpen(false);
             setMoveError("");

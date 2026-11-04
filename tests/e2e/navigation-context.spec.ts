@@ -424,8 +424,8 @@ test("[Vertrag: Kartenverwaltung] Karten- und Stapelzeilen bleiben auch in schma
 test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderungen bleiben kontrollierbar", async ({ page }) => {
   await page.goto("/kartenstapel");
   await waitForApp(page);
-  await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Kartenverwaltung", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("heading", { name: "Kartenverwaltung", exact: true })).toBeVisible();
+  await expect(mainMenu(page).getByRole("button", { name: "Karten", exact: true })).toHaveAttribute("aria-current", "page");
   await expect(page.getByTestId(`deck-card-${CARD_IDS.b1}`)).toHaveCount(0);
 
   const search = page.getByRole("textbox", { name: "Karten durchsuchen" });
@@ -504,7 +504,7 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
   await page.getByTestId("card-detail-dialog").getByRole("tab", { name: "Inhalt", exact: true }).click();
   await page.getByRole("textbox", { name: "Feld Vorderseite" }).fill("Navigation bleibt geschützt");
-  const overviewSegment = page.getByRole("button", { name: "Stapelübersicht", exact: true });
+  const learnNavigation = mainMenu(page).getByRole("button", { name: "Lernen", exact: true });
   await page.keyboard.press("Escape");
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Weiter bearbeiten" }).click();
@@ -513,10 +513,10 @@ test("[Vertrag: Kartenverwaltung] Stapel, Sortierung und ungespeicherte Änderun
   await expect(changesDialog).toBeVisible();
   await changesDialog.getByRole("button", { name: "Verwerfen" }).click();
   await expect(page.getByTestId("card-detail-dialog")).toHaveCount(0);
-  await overviewSegment.click();
+  await learnNavigation.click();
   await expect(page).toHaveURL(`/lernen?deck=${DECK_IDS.childB}`);
   await expect(page.getByRole("heading", { name: "Lernen", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Stapelübersicht", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(learnNavigation).toHaveAttribute("aria-current", "page");
 });
 
 test("[Vertrag: Kartenverwaltung] Aussetzen aktualisiert die Kartenzeile ohne Editor-Flackern", async ({ page }) => {
@@ -568,7 +568,7 @@ test("[Vertrag: URL-Kontext] @beta-core Reload, Direktlink und Review-Rückweg e
   await expect(linkedDeckRow).toBeVisible();
   await expect(linkedDeckRow).not.toHaveAttribute("data-selected");
 
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await expect(page).toHaveURL(`/kartenstapel?deck=${DECK_IDS.childB}`);
   await expect(page.getByTestId(`deck-toggle-${DECK_IDS.childB}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByTestId(`deck-card-${CARD_IDS.b2}`).click();
@@ -688,7 +688,7 @@ test("[Vertrag: Review-Stapeleinstellungen] Sitzungsstapel und Rückweg bleiben 
 test("[Vertrag: Browser-History und sichere Fallbacks] @beta-core Zurück, Vorwärts und ungültige IDs bleiben deterministisch", async ({ page }) => {
   await page.goto(`/lernen?deck=${DECK_IDS.childB}`);
   await waitForApp(page);
-  await page.getByRole("button", { name: "Kartenverwaltung", exact: true }).click();
+  await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   const deckUrl = `/kartenstapel?deck=${DECK_IDS.childB}`;
   const firstCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b1}&cardTab=content`;
   const secondCardUrl = `/kartenstapel?deck=${DECK_IDS.childB}&card=${CARD_IDS.b2}&cardTab=content`;

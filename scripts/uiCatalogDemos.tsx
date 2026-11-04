@@ -49,7 +49,6 @@ import { CardHtml } from "../src/ui/cardMedia.tsx";
 import { RichTextEditor } from "../src/ui/RichTextEditor.tsx";
 import { PdfDocumentViewer } from "../src/ui/PdfDocumentViewer.tsx";
 import { LearningAreaHeader } from "../src/screens/LearningAreaHeader.tsx";
-import type { LearnArea } from "../src/screens/screenConstants.ts";
 import { ratingButtons } from "../src/screens/screenConstants.ts";
 import { AuthGateScreen } from "../src/screens/AuthGateScreen.tsx";
 import { SyncConflictPanel } from "../src/screens/SyncConflictPanel.tsx";
@@ -219,7 +218,6 @@ function FeedbackDemo({ section }: { section: string }) {
 function NavigationDemo({ section }: { section: string }) {
   const menu = createMenuModel();
   const [view, setView] = useState("uebersicht");
-  const [area, setArea] = useState<LearnArea>("overview");
   const [showShell, setShowShell] = useState(false);
   const [syncDemo, setSyncDemo] = useState("saved");
   const syncDemoStatus: SyncStatus = syncDemo === "offline" ? { status: "offline", message: "Offline", pendingCount: 2, nextRetryAt: null }
@@ -231,7 +229,7 @@ function NavigationDemo({ section }: { section: string }) {
   return <>
     {section === "navigation" && <Demo title="AppNavigation" wide><div className="catalog-row"><CoreSelect ariaLabel="Sync-Zustand" value={syncDemo} onValueChange={setSyncDemo} options={[{ value: "saved", label: "Synchronisiert (kein Icon)" }, { value: "manual", label: "Manuell, ausstehend" }, { value: "offline", label: "Offline" }, { value: "error", label: "Fehler" }, { value: "conflict", label: "2 Konflikte" }]} /><ActionButton variant="secondary" onClick={() => setShowShell(true)}>App-Navigation öffnen</ActionButton></div>{showShell && <div className="catalog-shell-preview" onKeyDown={(event) => { if (event.key === "Escape") setShowShell(false); }}><AppNavigation activeView={view} navigationItems={menu.listNavigationItems()} simulationOffsetMinutes={0} simulationDateLabel="2. Oktober 2026" pomodoroTimer={null} onNavigate={setView} onResetSimulation={() => undefined} syncStatus={syncDemoStatus} manualSync={syncDemo === "manual"} onSyncNow={() => toast("Beispiel synchronisiert.")} onOpenSyncSettings={(target) => toast(target === "sync-conflicts" ? "Konflikte in den Einstellungen geöffnet." : "Synchronisierung in den Einstellungen geöffnet.")} /><div className="catalog-shell-content"><h2 className="core-heading-2">Navigation: {menu.getView(view)?.label ?? "Lernen"}</h2><ActionButton variant="primary" autoFocus onClick={() => setShowShell(false)}>Vorschau schließen</ActionButton></div></div>}</Demo>}
     {section === "navigation" && <Demo title="CoreWordmark"><span className="core-heading-1"><CoreWordmark /></span></Demo>}
-    {section === "headings" && <Demo title="LearningAreaHeader" wide><LearningAreaHeader area={area} onAreaChange={setArea} onOpenCardSettings={() => toast("Lerneinstellungen gewählt.")} /></Demo>}
+    {section === "headings" && <Demo title="LearningAreaHeader" wide><div className="grid gap-6">{(["overview", "cards"] as const).map((area) => <LearningAreaHeader key={area} area={area} onOpenCardSettings={() => toast("Lerneinstellungen gewählt.")} />)}</div></Demo>}
     {section === "navigation" && <Demo title="InPageNavigation" wide><InPageNavigation ariaLabel="Beispielbereiche" items={[{ id: "catalog-demo-overview", label: "Überblick", icon: Home }, { id: "catalog-demo-plan", label: "Planung", icon: Layers }]}><section id="catalog-demo-overview" aria-labelledby="catalog-demo-overview-heading"><h3 id="catalog-demo-overview-heading" className="core-heading-3" tabIndex={-1}>Überblick</h3><p className="core-body">Kennzahlen und gespeicherte Einstellungen.</p></section><section id="catalog-demo-plan" aria-labelledby="catalog-demo-plan-heading"><h3 id="catalog-demo-plan-heading" className="core-heading-3" tabIndex={-1}>Planung</h3><p className="core-body">Lernplanung und Tageslimits.</p></section></InPageNavigation></Demo>}
   </>;
 }
@@ -632,7 +630,7 @@ export const DEMO_GROUPS = [
   { id: "tags-flags", section: "primitive", title: "Tags und Flaggen", description: "Tag-Eingabe, Flaggenwähler und Flaggenpunkt.", components: ["TagInput", "FlagPicker", "FlagDot"], render: TagsAndFlagsDemo },
   { id: "colors", section: "primitive", title: "ColorPicker", description: "Farbfeld oder Werkzeug, Farbkreis und Schnellwahl.", components: ["ColorPicker"], render: () => <ContentDemo section="colors" /> },
   { id: "flaechen", section: "shared", title: "SoftPanel und EmptyState", description: "Inhaltsflächen und leere Zustände.", components: ["SoftPanel", "EmptyState"], render: () => <FoundationsDemo section="surfaces" /> },
-  { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel und Titel mit Bereichssteuerung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
+  { id: "headings", section: "shared", title: "PageHeader und LearningAreaHeader", description: "Seitentitel sowie Köpfe von Lernen und Kartenverwaltung.", components: ["PageHeader", "LearningAreaHeader"], render: () => <><FoundationsDemo section="headings" /><NavigationDemo section="headings" /></> },
   { id: "navigation", section: "shared", title: "AppNavigation und InPageNavigation", description: "Responsive Hauptnavigation, CoRe-Wortmarke und Sprunglinks.", components: ["AppNavigation", "CoreWordmark", "InPageNavigation"], render: () => <NavigationDemo section="navigation" /> },
   { id: "stapel", section: "shared", title: "Stapeltabelle, Baum und Menü", description: "Tabellenzeile, Stapelbaum, Unterstapel und Optionsmenü.", components: ["DeckSummaryHeader", "DeckSummaryRow", "DeckOptionsMenu", "DeckTree"], wide: true, render: () => <DecksDemo section="stapel" /> },
   { id: "charts", section: "fachmuster", title: "Kennzahlen und Heatmap", description: "Kennzahlen und Lern-Heatmap.", components: ["StatTile", "StudyHeatmap"], wide: true, render: () => <><FoundationsDemo section="charts" /><DecksDemo section="charts" /></> },

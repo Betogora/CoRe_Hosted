@@ -73,7 +73,7 @@ Abweichende Code- und Tabellennamen erklärt [`architecture.md`](architecture.md
 | Haltbarkeit | Tage, bis die Erinnerung an eine Karte auf 90 % fällt; aus dem FSRS-7-Gedächtniszustand berechnet und unabhängig von der Zielerinnerung |
 | Reife | Aus dem Lernstand abgeleitete Stufe einer Karte: `Neu`, `Lernen` (Lern- und Wiederlernphase), `Jung` und `Reif` (Wiederholung ab 21 Tagen Haltbarkeit); nie gesammelt oder gezählt |
 | Review State | Persönlicher Schedulingzustand einer Karte |
-| Review Event | Unveränderliches Bewertungsereignis oder manuelles Ereignis (Neu planen, Als neu lernen, Lernbremse, Zurückstellen, Rückgängig) |
+| Review Event | Unveränderliches Bewertungsereignis oder manuelles Ereignis (Neu planen, Lernstand zurücksetzen, Lernbremse, Zurückstellen, Rückgängig) |
 
 ## 5. Kernjourneys
 
@@ -163,14 +163,14 @@ Akzeptanz:
 
 ### 5.3 Karten bearbeiten und eine Sitzung starten
 
-`Lernen` bündelt `Stapelübersicht` und `Kartenverwaltung` als schnellen Sitzungseinstieg; `Lerneinstellungen` öffnet die accountweite Planung unter `/karten-einstellungen`. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen liegt unter der verborgenen Route `/kartenstapel`.
+`Lernen` zeigt die Stapelübersicht als schnellen Sitzungseinstieg; `Lerneinstellungen` öffnet die accountweite Planung unter `/karten-einstellungen`. Die direktlinkfähige Gesamtverwaltung für Karten, Stapelstruktur, Inhalt und erweiterte Optionen aller Stapel ist der eigene Hauptreiter `Karten` unter `/kartenstapel`.
 
 Akzeptanz:
 
 #### Navigation und Seitenkopf
 
-- Die Hauptnavigation lautet exakt `Heute`, `Lernen`, `Prüfungen`, `Erstellen`, `Statistik`. Auf `/kartenstapel` ist `Lernen` aktiv; ein Klick auf `Lernen` öffnet stets die Stapelübersicht. Der Schriftzug `CoRe` samt Gehirn-Logo navigiert zu `Heute`.
-- Beide Lernen-Bereiche zeigen `REVIEW` und `Lernen` im Seitenkopf; Bereichsauswahl und `Lerneinstellungen` sind in beiden erreichbar.
+- Die Hauptnavigation lautet in Top- und Bottom-Bar exakt `Heute`, `Lernen`, `Erstellen`, `Karten`, `Prüfung`. `Statistik` ist kein Reiter, sondern eine reine Icon-Aktion links vom Theme-Schalter. Auf `/kartenstapel` ist `Karten` aktiv, in den Stapelinhalten (`content=1`) `Lernen`. Ein Klick auf `Lernen` öffnet stets die Stapelübersicht, ein Klick auf `Karten` die Kartenverwaltung aller Stapel; beide übernehmen den zuletzt gewählten Stapel als Fokus. Der Schriftzug `CoRe` samt Gehirn-Logo navigiert zu `Heute`.
+- `Lernen` zeigt `REVIEW` und `Lernen`, die Kartenverwaltung `Alle Stapel` und `Kartenverwaltung` im Seitenkopf; beide bieten `Lerneinstellungen`. Eine Bereichsauswahl zwischen beiden gibt es nicht. Die Kartenverwaltung einzelner Stapel bleibt als Reiter `Karten` der Stapelinhalte im selben Design erreichbar.
 - Im Seitenkopf überlagert sich nichts, und es entsteht kein horizontaler Seitenüberlauf.
 
 #### Stapelbäume
@@ -217,20 +217,20 @@ Akzeptanz:
 - Ein beendeter Drag löst die Flächenaktion nicht aus. Erfolg, Fehler und No-op werden über eine Live-Region gemeldet; Bestätigung und Rückgängig gibt es dabei nicht. Die Kartenverwaltung, Touch, Tastatur und assistive Bedienung verwenden den bestätigten Verschiebedialog.
 - Stapelanzahl und Verschieben samt Unterbaum haben kein fachliches Limit. APKG-Hierarchien behalten Elternbeziehung, Pfad, Importidentitäten und `ankiDeckPath`; Inhalts- und Anki-Tags bleiben unverändert.
 - Stapellöschung zeigt Stapelname, Unterstapelzahl und aktive Kartenanzahl; Abbruch ändert nichts.
-- Kartenlöschung verwendet `Karte löschen?` mit `Nein` und `Ja`, bei mehreren Karten `Inhalt mit N Karten löschen?` mit dem Hinweis, dass alle Karten des Inhalts auch in anderen Stapeln gelöscht werden. `Nein`, Escape und Außenklick brechen ab; der Außenklick schließt zusätzlich das Detail. `Ja` löscht lokal persistent (Soft Delete), schließt Dialog und Detail, hält die Scrollposition und meldet `Karte wurde erfolgreich gelöscht.` bzw. `Inhalt mit N Karten wurde erfolgreich gelöscht.` mit sofortigem Undo samt Lernstand. Eine ausstehende Synchronisierung blockiert den Abschluss nicht.
+- Kartenlöschung verwendet wie alle Löschungen den roten Bestätigungsdialog: `Karte löschen?` mit `Die Karte wird auf allen Geräten gelöscht.`, bei mehreren Karten `Inhalt mit N Karten löschen?` mit dem Hinweis, dass alle Karten des Inhalts auch in anderen Stapeln gelöscht werden; die Aktionen heißen `Abbrechen` und `Löschen`. `Abbrechen`, Escape und Außenklick brechen ab; der Außenklick schließt zusätzlich das Detail. `Löschen` löscht lokal persistent (Soft Delete), schließt Dialog und Detail, hält die Scrollposition und meldet `Karte wurde erfolgreich gelöscht.` bzw. `Inhalt mit N Karten wurde erfolgreich gelöscht.` mit sofortigem Undo samt Lernstand. Eine ausstehende Synchronisierung blockiert den Abschluss nicht.
 - Programmatische Fokusführung, Fokusfallen und Tastaturbedienung bleiben erhalten. Fokus per Tastatur zeigt appweit einen einheitlichen Rahmen (WCAG 2.4.7); Maus-, Touch- und programmatischer Fokus nach einem Klick zeigen keinen, reine `focus-within`-Rahmen gibt es nicht. Eingabefelder behalten ihre eigene Fokusfläche.
 
 #### Kartendetail und Editor
 
 - Ein Kartenklick öffnet den Editor als Dialog über die ganze Fläche, mobil im Vollbild. Deck, Karte und Reiter stehen in der URL; nur bekannte Reiter sind erlaubt. Reload und Browser-Zurück/-Vorwärts bleiben deterministisch, ein Reiterwechsel fragt nie nach. X und Escape schließen; danach kehrt der Fokus zur Zeile zurück.
 - Der Kopf zeigt Vor/Zurück durch die geladenen Treffer der Tabelle (`12 / 48`; am Seitenende wird nachgeladen, sonst ist der Knopf inaktiv; die benachbarten Treffer werden vorgeladen, bis zur Antwort zeigt das Detail den Ladebalken der Statistik statt `Karte nicht gefunden`), den Titel, eine Unterzeile mit Statussymbolen (Stern, Flagge, Pause, Lernbremse) sowie `Duplizieren`, `Löschen` und `Schließen`. Ohne Trefferliste, etwa aus einer Sitzung, entfällt Vor/Zurück.
-- Vier gleich breite Reiter: `Allgemein`, `Inhalt`, `Varianten`, `Lernen`; mobil kompakt mit 44-px-Zielen. Aus der Tabelle öffnet `Allgemein`, aus einer Sitzung (`Karte bearbeiten`, mit allowlist-validiertem Rückkontext) `Inhalt`. `Varianten` und `Lernen` laden erst beim Öffnen.
+- Vier gleich breite Reiter: `Allgemein`, `Inhalt`, `Varianten`, `Lernen` in der gemeinsamen Auswahlschiene (wie `CoreSegmentedControl`), ab 640 px so breit wie ihre Beschriftungen, darunter über die volle Breite mit 44-px-Zielen. Aus der Tabelle öffnet `Allgemein`, aus einer Sitzung (`Karte bearbeiten`, mit allowlist-validiertem Rückkontext) `Inhalt`. `Varianten` und `Lernen` laden erst beim Öffnen.
 - Tastenkürzel: `Strg+Enter` speichert den Entwurf, `Strg+1` bis `Strg+7` schaltet die Flagge, `Strg+K` die Markierung, `Alt+↑`/`Alt+↓` wechselt zur vorigen/nächsten Karte. Die Reiter folgen dem ARIA-Tabs-Muster; Tooltips nennen die Kürzel.
 - Eine markierte Karte färbt Kopf, Reiter und Hintergrund leicht gelb; innere Karten bleiben weiß. Flagge und Aussetzung färben keine Fläche.
 
 `Allgemein` wirkt sofort und übernimmt keine ungespeicherten Inhaltsänderungen:
 
-- Links Flagge mit Markiert (mobil ein 4×2-Raster mit Namen), Planung und Stapel. Die Planung bietet Schnellwahl und den gemeinsamen Datumspicker; `Neu planen` erscheint erst nach einer Datumsänderung, setzt `dueAt` DST-sicher auf den Beginn des gewählten Lerntags und lässt eine Aussetzung bestehen. Dazu `Aussetzen` und `Zurückstellen` (bis zum nächsten Lerntag). `Verschieben` wählt den Zielstapel im Stapeldialog. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.
+- Links Flagge mit Markiert (mobil ein 4×2-Raster mit Namen), Planung und Stapel. Die Planung bietet Schnellwahl und den gemeinsamen Datumspicker; `Neu planen` erscheint erst nach einer Datumsänderung, setzt `dueAt` DST-sicher auf den Beginn des gewählten Lerntags und lässt eine Aussetzung bestehen. Dazu `Aussetzen` und `Zurückstellen` (bis zum nächsten Lerntag). `Verschieben` wählt den Zielstapel im selben Verschiebedialog wie `Stapel verschieben` (Stapelauswahl, `Abbrechen`, `Verschieben`). Verlässt die Karte damit den geöffneten Stapelbaum, schließt der Editor; der Toast mit `Rückgängig` bleibt und öffnet die Karte wieder im früheren Stapel. Der frühere Stapel zeigt die verschobene Karte nicht mehr. Der Simulator nutzt denselben Picker mit Zehnjahresgrenze.
 - Rechts Tags, `Karten aus diesem Inhalt`, `Ähnliche Inhalte` und `Details`. Tags erscheinen als Chips mit dem letzten Pfadteil und dem vollen Pfad im Tooltip; importierte Tags sind eingeklappt mit Anzahl, lassen sich aufklappen und bearbeiten; Vorschläge kommen aus dem Tag-Verzeichnis des Kontos. `Karten aus diesem Inhalt` listet alle Geschwister mit Abfrage, Stapel und Lernzustand, hebt die geöffnete hervor und zeigt Abfragen, die erst beim Speichern entstehen, als „Neu beim Speichern“. `Ähnliche Inhalte` zeigt bis zu drei Inhalte mit ähnlichem Text und lädt erst, wenn der Browser frei ist; offline entfällt der Bereich. `Details` nennt Quelle, Prüfung und kopierbare IDs.
 - Verschieben, Zurückstellen, Neu planen, Lernbremse zurücksetzen und Tag entfernen bestätigen sich mit einem Toast samt `Rückgängig`. Er bleibt 10 Sekunden, pausiert bei Mauszeiger und Fokus und wird von einem neuen Toast ersetzt. Flagge, Markiert, Aussetzen und Tag hinzufügen zeigen keinen Toast; ihr Bedienelement zeigt den Zustand und setzt ihn zurück. Rückgängig ist eine neue, synchronisierte Änderung und entfällt mit Meldung, wenn sich die Karte inzwischen geändert hat.
 
@@ -245,13 +245,13 @@ Akzeptanz:
 
 `Varianten`:
 
-- Das Original steht zum Vergleich oben. Jede Variante trägt ihre Zustandsmarke und bietet `Bearbeiten`, `Neu generieren`, `Abschalten` bzw. `Reaktivieren` und `Löschen`; veraltete Varianten lassen sich ersetzen, ein Link führt zu den Stapeleinstellungen. Bearbeitet wird in der Zeile der Variante und sofort gespeichert; eine bearbeitete Variante gilt als eigene, `Varianten neu generieren` ersetzt sie nicht, eine Inhaltsänderung macht sie wie alle veraltet. Die Freigabe zeigt die Variantenbereitschaft nach Haltbarkeit (siehe KI-Umformulierungen).
+- Original und Varianten stehen in zwei gleich breiten Spalten nebeneinander, mobil untereinander. Jede Variante trägt ihre Zustandsmarke und bietet `Bearbeiten`, `Neu generieren`, `Abschalten` bzw. `Reaktivieren` und `Löschen`; veraltete Varianten lassen sich ersetzen, ein Link führt zu den Stapeleinstellungen. Bearbeitet wird in der Zeile der Variante und sofort gespeichert; eine bearbeitete Variante gilt als eigene, `Varianten neu generieren` ersetzt sie nicht, eine Inhaltsänderung macht sie wie alle veraltet. Die Freigabe zeigt die Variantenbereitschaft nach Haltbarkeit (siehe KI-Umformulierungen).
 
 `Lernen`:
 
 - Kennzahlen aus Lernstand und FSRS-7, darunter Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen und Fehler, das Reifeband (`Neu`, `Lernen`, `Jung`, `Reif`) und eine Lernbremse mit Zeitpunkt.
-- Links unter den Kennzahlen der `Abrufverlauf` als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor `Nochmal`; `Als neu lernen` beginnt die Kurve neu. Rechts die Liste `Bewertungen`. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.
-- `Als neu lernen …` setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.
+- Links unter den Kennzahlen der `Abrufverlauf` als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor `Nochmal`; `Lernstand zurücksetzen` beginnt die Kurve neu. Rechts die Liste `Bewertungen`. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.
+- `Lernstand zurücksetzen …` (roter Dialog `Lernstand zurücksetzen?` mit `Die Karte wird danach wie eine neue Karte gelernt.`) setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.
 
 `Duplizieren` legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig `(Kopie)`. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu. `Löschen` fragt wie in der Kartenverwaltung nach, schließt danach den Editor und bietet dort `Rückgängig`.
 #### Vorschau und Darstellung
@@ -280,7 +280,7 @@ Akzeptanz:
 - Ein importierter Inhalt merkt sich die Tags seines letzten Imports; diese erscheinen eingeklappt, eigene Tags sichtbar. Ein Reimport führt die Tags auch bei lokal bearbeitetem Inhalt zusammen: Lokal ergänzte bleiben, lokal entfernte bleiben entfernt, im Paket neue kommen dazu, im Paket entfallene gehen.
 - Flaggen sind die sieben Anki-Farben je Karte (1 Rot bis 7 Lila). Eigene Namen gelten kontoweit und werden in den Lerneinstellungen im Abschnitt `Flaggen` vergeben; ein leerer Name steht für den Farbnamen. Flaggen sind nie nur an der Farbe erkennbar.
 - Das Anki-Tag `marked` wird zur Markierung des Inhalts, `leech` zur Lernbremse: Karten des Inhalts mit mindestens einem Fehler erhalten sie, hat keine einen, alle. Beide erscheinen danach nicht als Tag. Anki-Flaggen werden übernommen, Flaggennamen nicht, weil `.apkg` sie nicht enthält.
-- Beim Lernen erhält eine Karte die Lernbremse, wenn ein `Nochmal` in der Wiederholung die Fehlerschwelle des Stapels erreicht (Standard 8) und danach bei jeder halben Schwelle erneut; frühere Fehler lösen nicht rückwirkend aus. Der Stapel wählt `Nur kennzeichnen` (Standard) oder `Aussetzen`. Die Lernbremse lässt sich im Editor zurücksetzen; `Als neu lernen` hebt sie auf.
+- Beim Lernen erhält eine Karte die Lernbremse, wenn ein `Nochmal` in der Wiederholung die Fehlerschwelle des Stapels erreicht (Standard 8) und danach bei jeder halben Schwelle erneut; frühere Fehler lösen nicht rückwirkend aus. Der Stapel wählt `Nur kennzeichnen` (Standard) oder `Aussetzen`. Die Lernbremse lässt sich im Editor zurücksetzen; `Lernstand zurücksetzen` hebt sie auf.
 - Lokal gesetzte Flaggen, Markierung und Lernbremse bleiben beim Reimport; neue Karten übernehmen die importierte Flagge.
 
 #### KI-Umformulierungen
@@ -480,7 +480,7 @@ Akzeptanz:
 
 - Karteninhalte sind direkt prüfbar; einen wiederherstellbaren Versionsverlauf gibt es nicht.
 - Manuelle Neuplanung ändert nur `dueAt` und die technische Aktualisierungszeit; Phase, Lernschritt, Intervalle, Wiederholungen, Difficulty, Stability, letzter Reviewzeitpunkt, FSRS-Werte, Reife sowie Inhaltsrevisionen bleiben. Genau ein `ReviewEvent` mit `rating: "manual"` hält alten und neuen Termin fest und zählt nicht als Lernen, Fortschritt oder FSRS-Bewertung.
-- Dasselbe gilt für `Als neu lernen`, das Setzen und Zurücksetzen der Lernbremse, `Zurückstellen` und das Rückgängigmachen dieser Aktionen: Jede ist genau ein manuelles `ReviewEvent` mit ihrer Art und kollidiert nie mit Bewertungen oder Inhaltsänderungen auf anderen Geräten.
+- Dasselbe gilt für `Lernstand zurücksetzen`, das Setzen und Zurücksetzen der Lernbremse, `Zurückstellen` und das Rückgängigmachen dieser Aktionen: Jede ist genau ein manuelles `ReviewEvent` mit ihrer Art und kollidiert nie mit Bewertungen oder Inhaltsänderungen auf anderen Geräten.
 - Rückgängig nach einer Sofortaktion ist eine neue Änderung mit neuer Revision; hat sich die Karte inzwischen geändert, entfällt es mit Meldung.
 - Ein Karten-Undo nimmt den Soft-Delete-Tombstone revisionsgeprüft zurück, ohne neue Karte oder zweiten Review State.
 - Importfehler führen nicht zum Verlust des letzten verlässlichen Inhalts.
@@ -609,8 +609,8 @@ Alle Inhalte erscheinen im CoRe-Design (ADR-032), in Review, Vorschau, Editor un
 
 ### App-Shell und Navigation
 
-- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Prüfungen`, `Erstellen` und `Statistik`. Ein kompakter Kopf bietet `CoRe` mit Gehirn-Logo (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
-- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` mit Gehirn-Logo (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Hilfe öffnen` hat einen eigenen aktiven Zustand; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Karten- und Simulatorrouten markieren `Lernen`. Eine Profilvorschau erscheint nicht.
+- Im kompakten App-Modus führt eine Safe-Area-fähige Bottom Bar zu `Heute`, `Lernen`, `Erstellen`, `Karten` und `Prüfung`. Ein kompakter Kopf bietet `CoRe` mit Gehirn-Logo (zu `Heute`), bei aktivem Timer dessen Fortschritt und die Utility-Aktionen Sync (nur bei Bedarf, siehe Synchronisierung), Statistik, Theme, Hilfe und Einstellungen. Eine aktive Simulation hat eine eigene Statuszeile.
+- Ab 1280 px bietet eine schwebende Top-Bar links `CoRe` mit Gehirn-Logo (zu `Heute`), mittig dieselben fünf Ziele mit Icon und Wort und rechts bei aktivem Timer dessen Fortschritt sowie dieselben Utility-Aktionen in derselben Reihenfolge. Eine aktive Simulation hat eine eigene Statuszeile unter der Top-Bar. `Statistik öffnen` und `Hilfe öffnen` haben je einen eigenen aktiven Zustand und dieselbe neutrale Hover-Fläche wie die übrigen Utilities; nur die allgemeinen Einstellungen markieren `Einstellungen öffnen`, Lerneinstellungen, Stapelinhalte und Simulator markieren `Lernen`. Eine Profilvorschau erscheint nicht.
 - Reduced Motion deaktiviert Gleitbewegungen und die Statistik-Laufanimation.
 
 ### Bedienelemente

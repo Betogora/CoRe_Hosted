@@ -35,7 +35,6 @@ export interface AppNavigationProps {
 }
 
 const iconByKey: Record<string, LucideIcon> = {
-  chart: BarChart3,
   exam: CalendarCheck,
   home: Home,
   layers: Layers,
@@ -125,26 +124,28 @@ function SyncUtilityButton({ syncStatus, manualSync, onSyncNow, onOpenSyncSettin
 }
 
 function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView, onToggleTheme, ...syncProps }: Pick<ResponsiveNavigationProps, "activeView" | "theme" | "onNavigate" | "onPreloadView" | "onToggleTheme" | "syncStatus" | "manualSync" | "onSyncNow" | "onOpenSyncSettings">) {
-  const settingsActive = activeView === "einstellungen";
-  const helpActive = activeView === "hilfe";
   const darkModeActive = theme === "dark";
   const ThemeIcon = darkModeActive ? Moon : Sun;
-  const settingsButton = (
-    <IconButton
-      type="button"
-      variant="ghost"
-      data-app-navigation="true"
-      data-navigation-utility="settings"
-      label="Einstellungen öffnen"
-      icon={Settings}
-      onClick={() => onNavigate("einstellungen")}
-      onPointerEnter={() => onPreloadView?.("einstellungen")}
-      onFocus={() => onPreloadView?.("einstellungen")}
-      onTouchStart={() => onPreloadView?.("einstellungen")}
-      className={`size-button shrink-0 rounded-control ${settingsActive ? "!bg-core-subtle !text-core-action" : ""}`}
-      aria-current={settingsActive ? "page" : undefined}
-    />
-  );
+  const pageButton = (viewId: "statistik" | "hilfe" | "einstellungen", utility: string, label: string, icon: LucideIcon) => {
+    const active = activeView === viewId;
+    const preload = () => onPreloadView?.(viewId);
+    return (
+      <IconButton
+        type="button"
+        variant="ghost"
+        data-app-navigation="true"
+        data-navigation-utility={utility}
+        label={label}
+        icon={icon}
+        onClick={() => onNavigate(viewId)}
+        onPointerEnter={preload}
+        onFocus={preload}
+        onTouchStart={preload}
+        className={`size-button shrink-0 rounded-control ${active ? "!bg-core-subtle !text-core-action" : ""}`}
+        aria-current={active ? "page" : undefined}
+      />
+    );
+  };
   const themeButton = (
     <IconButton
       type="button"
@@ -156,29 +157,14 @@ function NavigationUtilityButtons({ activeView, theme, onNavigate, onPreloadView
       className="size-button shrink-0 rounded-control"
     />
   );
-  const helpButton = (
-    <IconButton
-      type="button"
-      variant="ghost"
-      data-app-navigation="true"
-      data-navigation-utility="help"
-      label="Hilfe öffnen"
-      icon={CircleHelp}
-      onClick={() => onNavigate("hilfe")}
-      onPointerEnter={() => onPreloadView?.("hilfe")}
-      onFocus={() => onPreloadView?.("hilfe")}
-      onTouchStart={() => onPreloadView?.("hilfe")}
-      className={`size-button shrink-0 rounded-control ${helpActive ? "!bg-core-subtle !text-core-action" : ""}`}
-      aria-current={helpActive ? "page" : undefined}
-    />
-  );
 
   return (
     <div className="flex shrink-0 items-center gap-0 min-[360px]:gap-1.5" data-navigation-utilities="true" data-sync-status={syncProps.syncStatus.status}>
       <SyncUtilityButton {...syncProps} onPreloadView={onPreloadView} />
+      {pageButton("statistik", "statistics", "Statistik öffnen", BarChart3)}
       {themeButton}
-      {helpButton}
-      {settingsButton}
+      {pageButton("hilfe", "help", "Hilfe öffnen", CircleHelp)}
+      {pageButton("einstellungen", "settings", "Einstellungen öffnen", Settings)}
     </div>
   );
 }
@@ -290,7 +276,7 @@ function MobileBottomNavigation({ navigationItems, activeView, onNavigate, onPre
 
 export function AppNavigation(props: AppNavigationProps) {
   const [theme, setTheme] = React.useState(readCoreTheme);
-  const navigationActiveView = ["kartenstapel", "karten-einstellungen", "simulator"].includes(props.activeView) ? "lernen" : props.activeView;
+  const navigationActiveView = ["karten-einstellungen", "simulator"].includes(props.activeView) ? "lernen" : props.activeView;
   const mobileBottomNavigation = <MobileBottomNavigation {...props} activeView={navigationActiveView} />;
   const responsiveProps = {
     ...props,

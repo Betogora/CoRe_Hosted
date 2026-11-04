@@ -49,7 +49,7 @@ test("Flaggen sind 0 bis 7 und erhöhen die Kartenrevision", () => {
   assert.throws(() => setCardFlag(card, 8), /Flagge/);
 });
 
-test("Kartenaktionen: Als neu lernen, Lernbremse, Wiederherstellen und Verschieben", () => {
+test("Kartenaktionen: Lernstand zurücksetzen, Lernbremse, Wiederherstellen und Verschieben", () => {
   const [card] = createBasicNote("deck", "Frage", "Antwort").cards;
   const learned = { ...card, study: { ...card.study, state: "review" as const, reps: 9, lapses: 8, leechedAt: "2026-10-01T00:00:00.000Z" }, studyRevision: 9 };
 

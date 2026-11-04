@@ -38,7 +38,7 @@ function renderVariants(card = createBasicNote("deck", "Was ist ATP?", "Ein Ener
 test("the variants tab shows the original, state marks and one row of actions per variant", () => {
   const card = addCardVariant(createBasicNote("deck", "Was ist ATP?", "Ein Energieträger.").cards[0], { front: "Wofür steht ATP?", back: "Energie", qualityStatus: "active", isActive: true });
   const markup = renderVariants(card);
-  assert.match(markup, />Original<\/span><p[^>]*>Was ist ATP\?</);
+  assert.match(markup, />Original<\/h3><\/div><div[^>]*><p[^>]*>Was ist ATP\?</);
   assert.match(markup, />aktiv</);
   for (const label of ["bearbeiten", "neu generieren", "abschalten", "löschen"]) assert.match(markup, new RegExp(`aria-label="Variante 1 ${label}"`));
   assert.doesNotMatch(markup, /reaktivieren/);
@@ -76,7 +76,7 @@ test("the study tab names the nine figures, the maturity band and the leech with
   assert.deepEqual([...band.matchAll(/<li[^>]*>([^<]+)/g)].map((match) => match[1]), ["Neu", "Lernen", "Jung", "Reif"]);
   assert.match(band, /aria-current="step"[^>]*>(Jung|Reif)</);
   assert.match(markup, /Lernbremse seit 20\.07\.2026/);
-  assert.match(markup, />Als neu lernen …</);
+  assert.match(markup, />Lernstand zurücksetzen …</);
   assert.doesNotMatch(markup, /XP/);
 });
 
