@@ -5,7 +5,7 @@ export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
-import { getVisibleDeckDepth } from "../deckHierarchy.ts";
+import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
 import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
@@ -20,7 +20,7 @@ import { CoreTooltip } from "../ui/tooltipUi.tsx";
 import { FlagDot, flagName } from "../ui/flagUi.tsx";
 import { CoreSelect } from "../ui/selectUi.tsx";
 import { TagInput } from "../ui/TagInput.tsx";
-import { readCardSearchFilters, withCardSearchFilter } from "../cardSearchQuery.ts";
+import { readCardSearchFilters, unsupportedCardSearchTerms, withCardSearchFilter } from "../cardSearchQuery.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
 import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
@@ -96,11 +96,13 @@ interface CardTableRowViewProps {
   flag: number;
   flagNames: readonly string[];
   syncConflict: boolean;
+  /** Visible depth of the deck header above the row; null without deck headers. */
+  depth: number | null;
   onSelect: (deckId: string, cardId: string) => void;
 }
 
 /** One card row of the table; memoized so a page of up to 50 rows does not repaint on unrelated state changes. */
-const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, onSelect }: CardTableRowViewProps) {
+const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, frontPreview, nextStudyLabel, selected, marked, flag, flagNames, syncConflict, depth, onSelect }: CardTableRowViewProps) {
   const suspended = !card.reviewable;
   return (
     <tr
@@ -110,7 +112,11 @@ const CardTableRowView = React.memo(function CardTableRowView({ deckId, card, fr
       data-suspended={suspended ? "true" : undefined}
       data-card-row="true"
     >
-      <td className="min-w-0 px-2 py-2.5 align-middle sm:px-3 md:px-4">
+      <td
+        className={`min-w-0 px-2 py-2.5 align-middle sm:px-3 md:px-4 ${depth === null ? "" : "[--core-card-row-lead:1.25rem] sm:[--core-card-row-lead:3rem]"}`}
+        // Under the deck header the text starts where the header's deck icon starts (behind the chevron).
+        style={depth === null ? undefined : { paddingLeft: `calc(var(--core-card-row-lead) + ${depth} * var(--core-deck-depth-indent, ${DECK_DEPTH_INDENT_PX}px))` }}
+      >
         <button
           type="button"
           data-testid={"deck-card-" + card.id}
@@ -231,6 +237,7 @@ export function DecksScreen({
   const [deferredQuery, setDeferredQuery] = React.useState("");
   // Flag, leech and tag filters are search terms in the query (Anki notation), so search and filters stay one state.
   const searchFilters = React.useMemo(() => readCardSearchFilters(query), [query]);
+  const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);
   const flagFilterOptions = React.useMemo(() => [
     { value: "any", label: "Alle Flaggen" },
     { value: "0", label: "Ohne Flagge" },
@@ -278,6 +285,18 @@ export function DecksScreen({
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
+  const isGroupExpanded = (groupId: string) => searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(groupId) : expandedDeckIdSet.has(groupId));
+  const cardsLoading = tableModel.groups.some((group) => group.loading && isGroupExpanded(group.id));
+  const showsDeckHeader = !contentDeckId || libraryDecks.length > 1;
+  // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
+  const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
+  React.useEffect(() => {
+    const header = document.querySelector<HTMLElement>('[data-navigation-layout="mobile-header"]');
+    if (!header) return;
+    const observer = new ResizeObserver(() => setMobileHeaderHeight(header.offsetHeight));
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
   const groupById = React.useMemo(() => new Map(tableModel.allGroups.map((group) => [group.id, group])), [tableModel.allGroups]);
   const deckNameById = React.useMemo(() => new Map(decks.map((deck) => [deck.id, deck.name])), [decks]);
   const selectedContentDeckId = React.useMemo(() => {
@@ -434,7 +453,7 @@ export function DecksScreen({
     const rows: Array<{ deckId: string; cardId: string; position: number; index: number; group: (typeof tableModel.groups)[number] }> = [];
     let offset = 0;
     for (const group of tableModel.groups) {
-      const expanded = searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(group.id) : expandedDeckIdSet.has(group.id));
+      const expanded = isGroupExpanded(group.id);
       if (!expanded) continue;
       group.cardRows.forEach((row, index) => rows.push({ deckId: group.id, cardId: row.entry.id, position: offset + group.page * group.pageSize + index + 1, index, group }));
       offset += group.totalCardCount;
@@ -736,16 +755,20 @@ export function DecksScreen({
           : <EmptyState icon={Network} title="Stapel nicht gefunden oder nicht verfügbar." />
       ) : contentDeckId && contentTab !== "cards" ? (
         <DeckContentPlaceholder label={selectedContentTab.label} icon={selectedContentTab.icon} title="Demnächst verfügbar" />
-      ) : <SoftPanel className="min-w-0 overflow-hidden p-5 sm:p-6" aria-labelledby={contentDeckId ? undefined : "card-library-heading"} aria-label={contentDeckId ? "Karten" : undefined} data-testid="card-library-panel">
+      ) : <SoftPanel className="min-w-0 overflow-clip p-5 sm:p-6" aria-label="Karten" data-testid="card-library-panel">
         <div className="grid gap-6">
-          {!contentDeckId ? <h3 id="card-library-heading" className="flex min-h-control items-center whitespace-nowrap core-heading-2 text-core-text">Aktive Stapel</h3> : null}
           <div className="grid gap-4">
             <label className="grid min-w-0 gap-2">
                 <span className="core-field-label">Karten durchsuchen</span>
                 <span className="relative flex min-w-0">
                   <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={16} aria-hidden="true" />
-                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" />
+                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" aria-describedby={unsupportedTerms.length ? "card-search-unsupported" : undefined} />
                 </span>
+                {unsupportedTerms.length ? (
+                  <span id="card-search-unsupported" className="core-field-hint" data-testid="card-search-unsupported">
+                    Noch nicht unterstützt, wird als Text gesucht: {unsupportedTerms.join(" ")}
+                  </span>
+                ) : null}
               </label>
             <div className="flex flex-wrap items-center gap-3">
               <CoreSegmentedControl
@@ -794,22 +817,30 @@ export function DecksScreen({
           </div>
 
           {tableModel.groups.length ? (
-            <div className="min-w-0 max-w-full overflow-hidden rounded-panel border border-core-border bg-core-surface">
-          <table className="w-full table-fixed border-collapse" data-testid="card-library-table">
+            <div className="min-w-0 max-w-full overflow-clip rounded-panel border border-core-border bg-core-surface">
+          <table className="w-full table-fixed border-collapse" data-testid="card-library-table" aria-busy={cardsLoading || undefined}>
               <colgroup>
                 <col />
                 <col className="w-20 sm:w-[5.75rem]" />
                 <col className="w-20" />
               </colgroup>
-              <thead className="sticky top-0 z-10 bg-core-surface">
+              {/* From xl the screen region scrolls; its top padding (xl:py-10 in App) would otherwise hold the header 40 px low. */}
+              <thead className="sticky top-[var(--core-card-table-sticky-top)] z-10 bg-core-surface xl:-top-10" style={{ "--core-card-table-sticky-top": `${mobileHeaderHeight}px` } as React.CSSProperties}>
                 <tr className="core-table-header-row h-10 border-b border-core-border">
                   <SortHeader field="sortField" label="Sortierfeld" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="nextStudyDate" label="Datum" sort={cardSort} onChange={changeSort} />
                   <SortHeader field="variants" label="Variante" sort={cardSort} onChange={changeSort} />
                 </tr>
+                {cardsLoading ? (
+                  <tr aria-hidden="true">
+                    <td colSpan={3} className="p-0">
+                      <div className="core-statistics-load-track !mt-0" data-testid="card-library-loading"><span /></div>
+                    </td>
+                  </tr>
+                ) : null}
               </thead>
               {tableModel.groups.map((group) => {
-                const expanded = searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(group.id) : expandedDeckIdSet.has(group.id));
+                const expanded = isGroupExpanded(group.id);
                 const visibleDepth = getVisibleDeckDepth(group.depth);
                 const groupLeadingControl = (
                   <span className="grid size-9 shrink-0 place-items-center text-core-action" aria-hidden="true">
@@ -826,8 +857,8 @@ export function DecksScreen({
                   />
                 );
                 return (
-                <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id}>
-                  {!contentDeckId || libraryDecks.length > 1 ? <tr
+                <tbody key={group.id} id={"deck-card-list-" + group.id} data-testid={"card-group-" + group.id} data-loading={group.loading && expanded ? "true" : undefined} className={group.loading && expanded ? "[&>tr[data-card-row]]:opacity-60" : undefined}>
+                  {showsDeckHeader ? <tr
                     data-testid={"deck-header-" + group.id}
                     data-deck-depth={visibleDepth}
                     className="core-deck-summary-row"
@@ -871,6 +902,7 @@ export function DecksScreen({
                       flag={selectedGraph?.cards.find((candidate) => candidate.id === card.id)?.ankiFlag ?? card.ankiFlag}
                       flagNames={cardEditor.flagNames}
                       syncConflict={Boolean(syncConflictCardIds?.has(card.id))}
+                      depth={showsDeckHeader ? visibleDepth : null}
                       onSelect={stableRequestCardSelection}
                     />
                   ))}{group.pageCount > 1 ? (
@@ -887,7 +919,7 @@ export function DecksScreen({
                         </div>
                       </td>
                     </tr>
-                  ) : null}</> : expanded ? (
+                  ) : null}</> : expanded && !group.loading && !group.hasChildren ? (
                     <tr className="border-b border-core-border bg-core-surface">
                       <td colSpan={3} className="px-3 py-2.5 core-body text-core-muted sm:px-4">Keine Karten</td>
                     </tr>

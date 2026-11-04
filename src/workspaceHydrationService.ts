@@ -266,6 +266,8 @@ export function createWorkspaceHydrationService({
       try {
         cloudPage = await fetchCatalogPage(request);
       } catch (error) {
+        // A replaced request is no cloud failure: it must not fall back to the local catalog or flag it as limited.
+        if (request.signal?.aborted) throw error;
         cloudError = error;
       }
     }

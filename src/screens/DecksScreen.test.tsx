@@ -344,10 +344,9 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, />Alle Stapel<\/p><h2[^>]*>Kartenverwaltung<\/h2>/);
   assert.match(markup, />Lerneinstellungen<\/span><\/button>/);
   assert.doesNotMatch(markup, /Bereich in Lernen|>Stapelübersicht</);
-  assert.match(markup, /<h3[^>]*>Aktive Stapel<\/h3>/);
-  assert.match(markup, /data-testid="card-library-panel"/);
+  assert.doesNotMatch(markup, /Aktive Stapel/);
+  assert.match(markup, /aria-label="Karten" data-testid="card-library-panel"/);
   assert.match(markup, /data-testid="card-library-table"/);
-  assert.ok(markup.indexOf("Aktive Stapel") < markup.indexOf("Karten durchsuchen"));
   assert.ok(markup.indexOf("Karten durchsuchen") < markup.indexOf('aria-label="Karten durchsuchen"'));
   assert.ok(markup.indexOf('aria-label="Karten durchsuchen"') < markup.indexOf('data-testid="card-library-table"'));
   assert.match(markup, /Sortierfeld/);
@@ -410,6 +409,30 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.doesNotMatch(expandedMarkup, /Mit Varianten|Ohne Varianten/);
   assert.doesNotMatch(expandedMarkup, /inline-block whitespace-nowrap rounded-round/);
   assert.match(expandedMarkup, /aria-label="Keine Variante"[\s\S]*?<span class="grid size-\[1\.125rem\] place-items-center"><\/span>/);
+  assert.match(expandedMarkup, /padding-left:calc\(var\(--core-card-row-lead\) \+ 0 \* var\(--core-deck-depth-indent, 8px\)\)/, "Kartenzeilen rücken unter ihren Stapelkopf ein");
+});
+
+test("cards page keeps stale rows dimmed while the page for a new query loads and skips empty rows of parents", () => {
+  const atp = basicGraph("deck-parent", "Was ist ATP?", "Ein Energieträger.");
+  const parent = deckOf("deck-parent", "Biologie", [atp]);
+  const child = deckOf("deck-child", "Zellbiologie", [], { parentDeckId: parent.id, hierarchyPath: ["Biologie", "Zellbiologie"] });
+  const empty = deckOf("deck-empty", "Chemie", []);
+  const decks = [parent, child, empty];
+  const stalePages = { [parent.id]: cardPage(parent.id, [atp]), [empty.id]: cardPage(empty.id, []) };
+  const loading = renderScreen(decks, { cardPages: stalePages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id, empty.id] });
+  assert.doesNotMatch(loading, /data-testid="card-library-loading"/, "die Seite zur leeren Suche ist geladen");
+
+  const emptyParentPages = { ...stalePages, [parent.id]: cardPage(parent.id, []) };
+  const settled = renderScreen(decks, { cardPages: emptyParentPages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id, empty.id] });
+  assert.equal((settled.match(/>Keine Karten</g) ?? []).length, 1, "nur der Stapel ohne Unterstapel meldet keine Karten");
+
+  const sortedPages = { [parent.id]: { ...cardPage(parent.id, [atp]), sort: { field: "variants", direction: "asc" } as const } };
+  const pending = renderScreen(decks, { cardPages: sortedPages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id] });
+  assert.match(pending, /data-testid="card-library-loading"/);
+  assert.match(pending, /aria-busy="true"/);
+  assert.match(pending, /data-loading="true"/);
+  assert.match(pending, /Was ist ATP\?/, "die bisherigen Treffer bleiben sichtbar");
+  assert.doesNotMatch(pending, />Keine Karten</);
 });
 
 test("cards page caps visual depth at level six and keeps deeper decks expandable", () => {

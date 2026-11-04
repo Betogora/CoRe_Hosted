@@ -162,6 +162,8 @@ type CardTableGroup = DeckLibraryRow & {
   pageCount: number;
   pageSize: number;
   deckMatches: boolean;
+  /** Paged tables only: the page for the current query and sort is still requested. */
+  loading?: boolean;
 };
 
 type DeckInventorySummary = ReturnType<typeof summarizeDeckReview>;
@@ -429,7 +431,10 @@ export function createPagedCardTableModel(
   const searchText = parseCardSearchQuery(query).text;
   const allGroups = baseModel.allGroups.map((group) => {
     const candidate = cardPages?.[group.id];
-    const page = candidate && candidate.query === query && sameCardTableSort(candidate.sort, cardSort) ? candidate : undefined;
+    const current = candidate && candidate.query === query && sameCardTableSort(candidate.sort, cardSort) ? candidate : undefined;
+    // Until the page for the current query and sort arrives, the previous page stays visible as a stale placeholder.
+    const loading = awaitingPages && !current;
+    const page = current ?? (loading ? candidate : undefined);
     const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
     const pageItems = (page?.items ?? []).slice(0, pageSize);
     const knownTotal = Math.floor(page?.totalCount ?? (normalizedQuery || withoutVariants ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
@@ -449,13 +454,14 @@ export function createPagedCardTableModel(
       pageCount,
       pageSize,
       deckMatches,
+      loading,
     };
   });
   const groups = allGroups.filter((group) => (
     !normalizedQuery
     || group.deckMatches
     || group.totalCardCount > 0
-    || (awaitingPages && !cardPages?.[group.id])
+    || group.loading
   ));
   return { allGroups, groups, cardSort };
 }

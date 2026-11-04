@@ -1349,6 +1349,9 @@ video {
 .top-\[calc\(100\%\+0\.5rem\)\] {
   top: calc(100% + 0.5rem);
 }
+.top-\[var\(--core-card-table-sticky-top\)\] {
+  top: var(--core-card-table-sticky-top);
+}
 .top-full {
   top: 100%;
 }
@@ -1454,6 +1457,9 @@ video {
 .my-4 {
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+.\!mt-0 {
+  margin-top: 0px !important;
 }
 .-me-2 {
   margin-inline-end: -0.5rem;
@@ -2435,6 +2441,9 @@ video {
 .overflow-hidden {
   overflow: hidden;
 }
+.overflow-clip {
+  overflow: clip;
+}
 .overflow-x-auto {
   overflow-x: auto;
 }
@@ -3130,6 +3139,9 @@ video {
 }
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+.\[--core-card-row-lead\:1\.25rem\] {
+  --core-card-row-lead: 1.25rem;
 }
 .\[overflow-wrap\:anywhere\] {
   overflow-wrap: anywhere;
@@ -5889,6 +5901,10 @@ summary {
   .sm\:pt-4 {
     padding-top: 1rem;
   }
+
+  .sm\:\[--core-card-row-lead\:3rem\] {
+    --core-card-row-lead: 3rem;
+  }
 }
 @media (min-width: 768px) {
 
@@ -6111,6 +6127,10 @@ summary {
     position: sticky;
   }
 
+  .xl\:-top-10 {
+    top: -2.5rem;
+  }
+
   .xl\:bottom-4 {
     bottom: 1rem;
   }
@@ -6257,6 +6277,9 @@ summary {
 }
 .\[\&\>svg\]\:text-core-muted>svg {
   color: var(--core-text-muted);
+}
+.\[\&\>tr\[data-card-row\]\]\:opacity-60>tr[data-card-row] {
+  opacity: 0.6;
 }
 .\[\&_span\]\:min-w-0 span {
   min-width: 0px;
@@ -6657,16 +6680,17 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 </ul>
 <h4 id="journey-3-rules--kartenverwaltung" class="core-control-label" tabindex="-1">Kartenverwaltung <a class="docs-anchor" href="#journey-3-rules--kartenverwaltung" aria-label="Link zu Kartenverwaltung">#</a></h4>
 <ul>
-<li>Ein gemeinsames Panel bündelt <code>Aktive Stapel</code>, die Suche mit sichtbarem Label <code>Karten durchsuchen</code> und die gruppierte Gesamttabelle. Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.</li>
-<li>Die Tabelle zeigt je Karte nur <code>Sortierfeld</code> (bereinigte Vorderseite), <code>Datum</code> (<code>Neu</code> oder <code>TT.MM.JJJJ</code>) und <code>Variante</code> (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist <code>Sortierfeld</code> A–Z, einheitlich für alle Sektionen und nicht persistiert. Leere aufgeklappte Stapel zeigen <code>Keine Karten</code>.</li>
+<li>Ein gemeinsames Panel ohne eigenen Titel bündelt die Suche mit sichtbarem Label <code>Karten durchsuchen</code> und die gruppierte Gesamttabelle. Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.</li>
+<li>Die Tabelle zeigt je Karte nur <code>Sortierfeld</code> (bereinigte Vorderseite), <code>Datum</code> (<code>Neu</code> oder <code>TT.MM.JJJJ</code>) und <code>Variante</code> (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist <code>Sortierfeld</code> A–Z, einheitlich für alle Sektionen und nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Aufgeklappte Stapel ohne Karten und ohne Unterstapel zeigen <code>Keine Karten</code>; Elternstapel ohne eigene Karten zeigen keine Leerzeile.</li>
 <li>Unter der Suche wählt <code>Alle Karten</code>/<code>Ohne Variante</code>, ob nur Karten ohne aktive Variante erscheinen; ein Klick auf eine Spaltensortierung hebt den Filter auf. In geöffneten Stapelinhalten bietet der aktive Filter <code>Für diese Karten Varianten generieren</code> und startet dieselbe Stapelgenerierung wie die Stapeleinstellungen.</li>
 <li>Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung <code>Ausgesetzt</code>. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.</li>
 <li>Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen; Filter wählen Flagge, Lernbremse und Tags.</li>
-<li>Stapelköpfe der Kartenverwaltung haben keine Trennlinie; nur Kartenzeilen trennt eine dünne Linie. Ein Klick auf die Kopffläche klappt die Karten auf oder zu, Hover füllt sie neutral wie in <code>Aktive Stapel</code>, und die Hierarchie ist an Einrückung und Tiefenfläche erkennbar, die ab der sechsten Ebene gleich bleiben.</li>
+<li>Stapelköpfe der Kartenverwaltung haben keine Trennlinie; nur Kartenzeilen trennt eine dünne Linie. Ein Klick auf die Kopffläche klappt die Karten auf oder zu, Hover füllt sie neutral wie in <code>Aktive Stapel</code>, und die Hierarchie ist an Einrückung und Tiefenfläche erkennbar, die ab der sechsten Ebene gleich bleiben. Kartenzeilen beginnen unter dem Stapel-Icon ihres Kopfes.</li>
 <li>Lange Sortierfelder erhalten Ellipsen. Kartenverwaltung und <code>Aktive Stapel</code> erzeugen keinen horizontalen Überlauf; <code>Datum</code> und <code>Variante</code> bleiben ungekürzt.</li>
 <li>Bei mehreren Seiten zeigt die Seitennavigation <code>Seite X von Y</code>; an den Enden ist der jeweilige Pfeil deaktiviert.</li>
 <li>Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags, startet 250 ms nach der letzten Eingabe, bricht veraltete Anfragen ab und öffnet passende Sektionen nur während der Suche. Einen Modusfilter gibt es nicht.</li>
-<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code> und <code>is:suspended</code>; ein vorangestelltes <code>-</code> verneint einen Begriff. Alle Begriffe müssen zutreffen, der übrige Text sucht wie bisher. Online- und Offline-Suche liefern dieselben Treffer.</li>
+<li>Bis die Seite einer geänderten Suche oder Sortierung da ist, bleiben die bisherigen Zeilen gedimmt stehen und unter dem Spaltenkopf läuft der Ladebalken der Statistik; <code>Keine Karten</code> erscheint erst mit der Antwort.</li>
+<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code> und <code>is:suspended</code>; ein vorangestelltes <code>-</code> verneint einen Begriff. Alle Begriffe müssen zutreffen, der übrige Text sucht wie bisher. Online- und Offline-Suche liefern dieselben Treffer. Weitere Anki-Begriffe wie <code>is:due</code> oder <code>deck:</code> nennt eine Zeile unter der Suche als noch nicht unterstützt; sie werden als Text gesucht.</li>
 </ul>
 <h4 id="journey-3-rules--stapeloptionen-verschieben-und-löschen" class="core-control-label" tabindex="-1">Stapeloptionen, Verschieben und Löschen <a class="docs-anchor" href="#journey-3-rules--stapeloptionen-verschieben-und-löschen" aria-label="Link zu Stapeloptionen, Verschieben und Löschen">#</a></h4>
 <ul>

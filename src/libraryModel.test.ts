@@ -345,6 +345,12 @@ test("paged card table uses only pages for the current query and sort and keeps 
 
   const stale = createPagedCardTableModel([parent, child], { deck_child: { ...childPage, sort: { field: "variants", direction: "asc" } } }, { ...options, awaitingPages: false });
   assert.deepEqual(stale.groups, []);
+
+  const reloading = createPagedCardTableModel([parent, child], { deck_child: { ...childPage, query: "ner" } }, { ...options, awaitingPages: true });
+  const reloadingChild = reloading.allGroups.find((group) => group.id === "deck_child")!;
+  assert.equal(reloadingChild.loading, true);
+  assert.deepEqual(reloadingChild.cardRows.map((row) => row.id), ["card_nerv", "card_muskel"], "die vorige Seite bleibt bis zur Antwort stehen");
+  assert.equal(awaiting.allGroups.find((group) => group.id === "deck_child")!.loading, false);
 });
 
 test("card table preserves hierarchy and card order while including empty decks", () => {

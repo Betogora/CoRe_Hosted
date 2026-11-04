@@ -5,7 +5,7 @@ Stand: 2026-11-02
 Nur offene Arbeit. Ist-Stand in [`status.md`](status.md), Entscheidungen in
 [`decisions.md`](decisions.md), erledigte Arbeit in [`history.md`](history.md).
 
-Reihenfolge = Priorität: P1 vor P2. Offene Nachweise brauchen keinen Code und
+Reihenfolge = Priorität: P1 vor P2 vor P4 (P3 Einstellungen läuft auf `main`). Offene Nachweise brauchen keinen Code und
 laufen unabhängig davon; die Release-Voraussetzungen sind vor dem ersten
 externen Release fällig, „Später“ ist geparkt.
 
@@ -90,6 +90,220 @@ voraus.
       Quellen je Format mit allen vier Kartenformen, visuelle Pflichtmatrix
       für Fortschritt und Ergebnisliste.
 
+## P4: Kartenverwaltung 2.0
+
+Der Reiter `Karten` wird zur vollwertigen Kartenverwaltung nach dem Vorbild von
+Ankis Browser: Suche mit Filtermenü, flache Trefferliste, Massenaktionen und
+Pflegewerkzeuge in einer Version, ohne vorgeplante Folgeversion. Die Tabelle
+behält ihre Spalten `Sortierfeld`, `Datum` und `Variante`; weitere kommen
+nicht hinzu. Grundlage sind Sichtprüfung und Messung vom 2026-11-04
+(Konto mit 60 Stapeln, Stapel `Muskeltrainer` mit 581 Karten) und Ankis
+Seitenleiste (`qt/aqt/browser/sidebar/tree.py`), Suchsyntax
+(`rslib/src/search/`) und Tabellenmodell (`qt/aqt/browser/table/`), nur als
+Referenz gelesen.
+
+**Befund**
+
+- Die Cloud-Suche (`search_account_card_catalog`) braucht 2,5–3,6 s; sie
+  nummeriert und zählt alle Treffer je Stapel, bevor die erste Seite kommt, und
+  wertet `flag:`/`tag:` je Zeile über `jsonb_array_elements` aus. Sie läuft auch
+  bei vollständigem lokalem Katalog online (`workspaceHydrationService.ts`,
+  `queryCardPage`).
+- Während der Suche zeigt jeder Stapel `Keine Karten`; online erscheint
+  danach fälschlich `Offline werden nur bereits lokal indexierte Karten …`.
+- `is:due` und andere Anki-Begriffe werden als Freitext gesucht und liefern
+  kommentarlos nichts.
+- 581 Karten im `Muskeltrainer` tragen dasselbe Sortierfeld; welche Abfrage
+  gemeint ist, zeigt erst der Editor.
+- Kein Stapelfilter, keine Mehrfachauswahl; Seitenwechsel in 50er-Seiten je
+  Stapel zerlegt Suchtreffer über viele Stapel.
+- Spaltenkopf scrollt weg, Kartenzeilen sind nicht unter ihren Stapelkopf
+  eingerückt, das Panel heißt `Aktive Stapel`, Elternstapel zeigen
+  `Keine Karten`, obwohl Unterstapel Karten haben.
+- Mobil belegen Suche und Filter den ersten Bildschirm; Fragen werden nach
+  etwa 14 Zeichen gekürzt.
+
+**Entscheidungen (2026-11-04)**
+
+- Zielgröße: 50.000 Karten flüssig, 100.000 bedienbar. „Flüssig“ heißt die
+  Budgets unter KV1, gemessen, nicht geschätzt.
+- Ohne Suche und Filter bleibt der Stapelbaum; mit Suchtext oder einem Filter
+  außer dem Stapelfilter zeigt die Liste alle Treffer flach. Der Stapelfilter
+  allein zeigt den gewählten Teilbaum.
+- Stapel wandern aus der Trefferliste in den Stapelfilter der Suchzeile.
+- Massenaktionen bestätigen ab einer Karte mit Dialog (Wirkung und Anzahl);
+  danach folgt in jedem Fall ein Toast mit `Rückgängig`, auch bei `Löschen`.
+- Die Suche durchsucht wie heute alle Felder und kann zusätzlich in einem
+  einzelnen Feld suchen.
+- Das Menü erklärt Kombinationsregeln, Chips und Suchbegriffe selbst.
+- Menüaufbau (A/B-Runden 1 und 2): Das Menü klappt unter der Suchzeile auf.
+  Kategorien links, rechts die Einträge der gewählten Kategorie mit
+  Suchbegriff und dem Schalter `Mit`/`Egal`/`Ohne` (Ausgangsstellung
+  `Egal`, also nicht Teil der Suche). Darüber steht der erzeugte
+  Suchausdruck mit Kopieren.
+  `Speichern` legt ihn als benannte Suche ab, `Zurücksetzen` leert alle
+  Filter. Gespeicherte Suchen und Suchsyntax bilden zusammen die letzte
+  Kategorie `Gespeichert & Syntax`.
+- Mobil: Suchfeld mit Stapel- und Filter-Icon samt Zähler; das Filter-Icon
+  unterscheidet sich vom Icon des Knopfs `Lerneinstellungen`.
+- Bausteine: vorhandene UI-Komponenten (`DeckSelect`, `ActionButton`,
+  `IconButton`, `CoreSegmentedControl`, `FlagDot`, `core-field`,
+  `SoftPanel`); neu sind nur Kategorienleiste (Muster der
+  `InPageNavigation`-Leiste), Filter-Chip (Muster der `TagInput`-Chips) und
+  `CoreTriStateControl` (A/B-Runde 3, Variante A): dieselbe Schiene wie
+  `CoreSegmentedControl` (Rahmen, Radius, 3 px Innenabstand, 4 px Abstand),
+  aber quadratische Symbolsegmente ✓ | – | ⊘ in Auswahlhöhe minus 8 px
+  (30 px, bei Touch 36 px), Ausgangsstellung `Egal` in der Mitte. Der
+  Indikator gleitet in 180 ms und blendet seine Farbe in 260 ms über (blau
+  `Mit`, rot `Ohne`, neutral `Egal`); Reduced Motion schaltet beides ab. Rolle `radiogroup`, Tooltips nennen `Mit`, `Egal`, `Ohne`. Alle neuen
+  Elemente folgen der Designsprache der BengtsToolBox (ADR-046) und kommen
+  in den UI-Katalog.
+- Persistenz: so einfach wie möglich. Suche, Filter und Sortierung leben wie
+  heute nur im Bildschirmzustand; Reload oder Reiterwechsel beginnt leer.
+  Dauerhaft sind nur gespeicherte Suchen. Nachsteuern erst bei Bedarf.
+- `Suchen und Ersetzen` ersetzt wörtlichen Text; reguläre Ausdrücke gibt es
+  weder dort noch in der Suche.
+- `Treffer lernen` bietet wie Ankis gefilterte Stapel beide Wege (KV5):
+  `Vorziehen` mit zählenden Bewertungen (Standard, wie Ankis voreingestellte
+  Option „Reschedule cards based on my answers“) und `Nur üben` ohne
+  Planänderung (Ankis Vorschaumodus).
+
+- [ ] **KV1 – Suchkern und Performance (Cutover):**
+      - **Budgets** (synthetisches Konto mit 50.000 Karten, in
+        `performance:measure:local`): Eingabe bis Treffer höchstens 100 ms
+        (p95, lokal, Entprellung von 250 auf etwa 120 ms gesenkt); Filterklick
+        höchstens 100 ms; Scrollen ohne lange Tasks über 50 ms; Editor öffnen
+        höchstens 150 ms bei lokalem Kartenkörper; Massenaktion über 1.000
+        Karten lokal höchstens 1 s, Sync im Hintergrund.
+      - **Ein Suchmodell:** `cardSearchQuery.ts` parst Suchfeld, Chips,
+        Menü und gespeicherte Suchen in denselben Ausdruck; lokale und
+        Cloud-Auswertung haben dieselbe Semantik und Paritätstests.
+      - **Lokal zuerst:** Ein Suchindex im Web Worker hält je Karte nur ID,
+        Stapel, Inhalt, Filter- und Sortwerte, Texte je Inhalt einmal (heute
+        je Karte über `normalizedSearchText` mehrfach). Er wird aus IndexedDB in
+        Batches aufgebaut, beim Sync inkrementell nachgeführt und liefert eine
+        sortierte ID-Liste; Zeilen lädt nur der sichtbare Ausschnitt (Ankis
+        „IDs zuerst“). Umgekehrte Sortierung spiegelt die Liste ohne neue
+        Abfrage.
+      - **Cloud nur bei unvollständigem Katalog:** Eine RPC liefert IDs und
+        Sortwerte per Keyset ohne Fensterzählung je Stapel; die Gesamtzahl
+        kommt getrennt und gedeckelt („über 1.000“). Vorher `EXPLAIN ANALYZE`
+        des heutigen 3,6-s-Falls.
+      - **Feldsuche:** Der Index trennt Felder je Inhalt (Feldname
+        normalisiert); `Feld:Text` prüft nach dem Volltextvorfilter nur noch
+        die Kandidaten. Geschätzt 10–30 ms Zusatz bei 50.000 Karten im Worker,
+        Speicher etwa wie heute, weil Geschwister den Text teilen; das
+        4.000-Zeichen-Limit gilt dann je Feld. Cloud: Vorfilter über den
+        vorhandenen Trigramm-Index auf `notes.search_text`, danach Prüfung in
+        `notes.fields`, kein neuer Index.
+      - **Cutover:** Neuer lokaler Index-Store mit IndexedDB-Versionssprung
+        statt Kompatibilitätspfad; `search_account_card_catalog` wird ersetzt,
+        Typen neu generiert. Architektur und ADR bei Umsetzung ergänzen.
+      Nachweis: Budgets in zwei grünen Läufen, Paritätstests lokal/Cloud,
+      `test:rls:local`, `db:types:check`.
+- [ ] **KV2 – Suchzeile und erweiterte Suche:**
+      - **Suchzeile** (einzeilig): Suchfeld etwa halbe Breite, Stapelfilter
+        (Baum, Unterstapel eingeschlossen), rechts `Erweiterte Suche` mit
+        Zähler aktiver Filter. Mobil: Suchfeld plus Stapel- und Filter-Icon mit
+        Zähler; das Menü öffnet als Vollbild mit `N Karten anzeigen`.
+      - **Chips:** Aktive Filter stehen mit Trefferzahl unter der Zeile, einzeln
+        entfernbar, dazu `Alle zurücksetzen`. Erkannte Begriffe im Suchfeld
+        werden beim Leerzeichen zu Chips.
+      - **Menügruppen** (Ankis Seitenleiste gespiegelt): Heute (fällig, überfällig, heute gelernt, heute „Nochmal“, heute
+        hinzugefügt, heute bearbeitet, erstmals gelernt, neu geplant);
+        Kartenstatus (Neu, Lernen, Jung, Reif, Ausgesetzt, Zurückgestellt,
+        Lernbremse, Markiert); Flaggen 1–7 mit eigenen Namen und ohne Flagge;
+        Stapel (Baum); Tags (Baum, ohne Tags); Inhalt (Inhaltsform,
+        Anki-Notiztyp, Abfrage, Varianten mit, ohne, veraltet); Zeitraum
+        (hinzugefügt, bearbeitet, bewertet, erstmals gelernt in N Tagen); Werte
+        (Fälligkeit, Intervall, Haltbarkeit, Schwierigkeit,
+        Abrufwahrscheinlichkeit, Wiederholungen, Fehler mit Vergleich); Felder
+        (Text in einem Feld); zuletzt Gespeichert & Syntax (gespeicherte
+        Suchen, darunter die Erklärung der Suchsyntax).
+      - **Kombination:** Innerhalb einer Gruppe genügt ein Treffer, zwischen
+        Gruppen müssen alle zutreffen; jedes Element lässt sich ausschließen.
+      - **Dreifach-Schalter** `CoreTriStateControl` in `src/ui/` wie
+        abgenommen (2026-11-04): Indikator `transform 180ms
+        cubic-bezier(0.22, 1, 0.36, 1)`, Farbe `background-color 260ms
+        cubic-bezier(0.4, 0, 0.2, 1)` mit 20 ms Verzögerung; das gewählte
+        Symbol blendet seine Farbe gleich über und wächst auf 108 %. Nur
+        `transform` und Farben animieren, damit läuft der Übergang mit der
+        Bildrate des Geräts. Katalogdemo mit allen drei Stellungen.
+      - **Suchsyntax:** Freitext, `"Phrase"`, `-`, `or`, Klammern, `Feld:Text`,
+        `deck:`, `tag:`, `flag:`, `is:new|learn|review|due|suspended|buried`,
+        `added:`, `edited:`, `rated:n[:Bewertung]`, `introduced:`, `resched:`,
+        `prop:` mit Vergleich, `has:variant`; keine regulären Ausdrücke.
+      - **Gespeicherte Suchen:** kontogebunden und synchronisiert. `Speichern`
+        legt oben eine Zeile mit Namensfeld an; ein Klick wendet die Suche
+        an, dazu Umbenennen und Löschen. Braucht eine Schemaergänzung.
+      - **Ablösung:** `Alle Karten`/`Ohne Variante`, Flaggenauswahl,
+        `Lernbremse` und Tag-Filter über der Tabelle gehen im Menü auf;
+        `Für diese Karten Varianten generieren` wird Massenaktion (KV4).
+      Nachweis: Parser- und Komponententests, UI-Katalog-Demo,
+      Pflichtmatrix Light/Dark bei 390 und 1440 px, E2E Suche und Filter.
+- [ ] **KV3 – Trefferliste:** Eine durchgehende, virtualisierte Liste ersetzt
+      die 50er-Seiten je Stapel, im Baum wie in der flachen Ansicht; die
+      Seitennavigation entfällt. Flach zeigt die Trefferzahl und den
+      Stapelpfad; Vor/Zurück im Editor läuft über alle Treffer. Mobil
+      zweizeilige Zeilen mit Datum rechts.
+      Nachweis: Scrolltest mit 50.000 Karten im Budget, Pflichtmatrix.
+- [ ] **KV4 – Mehrfachauswahl und Massenaktionen:** Auswahl per Kontrollkästchen,
+      Umschalt- und Strg-Klick, `Alle N Treffer auswählen`, mobil Langdrücken;
+      eine Auswahlleiste nennt die Anzahl. Aktionen: Stapel ändern, Tags
+      hinzufügen und entfernen, Flagge setzen und entfernen, Markieren,
+      Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (Datum oder
+      Bereich), Lernstand zurücksetzen, Position neuer Karten (Ankis
+      `Reposition`), Varianten generieren, Löschen. Jede Aktion läuft als eine
+      lokale Transaktion über neue Sammelhelfer in `coreModel.ts`, synchronisiert
+      gebündelt und ist als neue Änderung rückgängig zu machen; zwischenzeitlich
+      geänderte Karten meldet der Toast.
+      Nachweis: Modelltests je Aktion samt Rückgängig, Konflikt- und
+      Offline-Fälle, E2E einer Massenaktion, Budget 1.000 Karten.
+- [ ] **KV5 – Inhalte pflegen:**
+      - **Suchen und Ersetzen:** in allen Feldern, einem Feld oder Tags, für
+        Auswahl oder alle Treffer, wörtlich, mit Groß-/Kleinschreibung und Vorschau der
+        betroffenen Inhalte. Zählt als lokale Bearbeitung
+        (`contentRevision`), macht Varianten veraltet und ist rückgängig zu
+        machen.
+      - **Duplikate finden:** nach Feld oder Sortierfeld, optional innerhalb der
+        aktuellen Suche, im Worker; Gruppen öffnen, taggen oder löschen.
+      - **Tag-Verwaltung** für das Konto: umbenennen samt Untertags,
+        zusammenführen, löschen, ungenutzte bereinigen, Herkunft anzeigen; im
+        Menü über die Tag-Zeile.
+      - **Treffer lernen:** lernt die aktuellen Treffer oder die Auswahl,
+        unabhängig von Fälligkeit und Tageslimits; ausgesetzte und
+        zurückgestellte Karten bleiben außen vor. Ein Startdialog nennt die
+        Kartenzahl und bietet `Vorziehen` (Standard) oder `Nur üben`, dazu die
+        Reihenfolge `Wie die Liste` oder `Gemischt`.
+        - **Vorziehen:** normale Sitzung mit gespeicherten Bewertungen über
+          den bestehenden Schreibpfad (`record_review`). Noch nicht fällige
+          Karten zählen als vorgezogene Wiederholung; FSRS rechnet mit den
+          tatsächlich vergangenen Tagen, die Haltbarkeit wächst deshalb
+          weniger als bei pünktlicher Wiederholung. Neue Karten werden
+          eingeführt, ohne das Tageslimit zu belasten.
+        - **Nur üben:** Ablauf wie eine Sitzung (Frage, Aufdecken,
+          Bewerten). `Nochmal` holt die Karte nach einigen anderen Karten
+          zurück, `Schwer` noch einmal, `Gut` und `Einfach` beenden sie für
+          diese Übung; sie endet, wenn jede Karte einmal gewusst wurde.
+          Lernstand, Fälligkeit, FSRS-Werte und Lernbremse bleiben
+          unverändert, es entsteht kein Bewertungseintrag. Am Ende eine
+          Übersicht (geübt, wie oft `Nochmal`) mit `Nochmal üben` für die
+          schwierigen Karten.
+        - Technisch ein transienter Sitzungsstapel wie die Prüfungseinheit
+          (`plannedOrder`), aber mit einer Trefferschlange statt der
+          Fälligkeitsschlange; `Nur üben` hat keinen Schreibpfad. Damit
+          lassen sich auch Prüfungsthemen über Tags lernen.
+      Nachweis: Modell- und Routentests, Reimport-Schutz bearbeiteter Inhalte,
+      E2E je Werkzeug.
+- [ ] **KV6 – Arbeitsfluss:** Ab etwa 1280 px öffnet der Editor neben der
+      Liste, darunter bleibt der Dialog; die Liste behält Auswahl und
+      Scrollposition. Tastenkürzel für Suche, Bewegen und Öffnen, Auswahl,
+      Flagge, Markieren, Aussetzen, Stapel, Tags, Löschen und Rückgängig, ohne
+      Browser-Kürzel zu überschreiben; Tooltips nennen sie.
+      Nachweis: Tastaturtests, Pflichtmatrix bei 1280 und 1440 px.
+- [ ] **Abschluss:** `specs.md` §5.3 und §6, `architecture.md` (Suchindex,
+      Massenaktionen), ADR zu Suchmodell und Cutover, Hilfeseite.
+
 ## Offene Nachweise
 
 Abnahmen der Kartenmodell-Roadmap; sie brauchen echte Geräte oder Daten, keinen
@@ -158,22 +372,6 @@ von [`test-portfolio.md`](test-portfolio.md#pflegevertrag); Messung vom
 
 ## Später
 
-### Kartenverwaltung V2
-
-Aus dem Karteneditor V2 (ADR-045) ausgeklammert:
-
-- Tag-Verwaltung für das ganze Konto: umbenennen, zusammenführen, löschen,
-  Herkunft anzeigen.
-- Mehrfachbearbeitung: Flagge, Tags, Stapel, Aussetzen, Neu planen,
-  Zurücksetzen für viele Karten.
-- Suchen und Ersetzen in Feldern.
-- Duplikate kontoweit finden, etwa „Felder gleich“.
-- Gespeicherte Suchen und Spaltenauswahl.
-- Position neuer Karten (Ankis „Reposition“).
-- Lernen nach Tag oder Flagge (Ankis gefilterte Stapel), sinnvoll gemeinsam mit
-  dem Lernbereich. Prüfungsthemen über Tags als Antwort auf die offene
-  Themenzuordnung in ungegliederten Stapeln.
-
 ### Anki-Austausch nach dem Karteneditor V2
 
 - Stapel-Export als `.apkg`. Dabei `marked`, `leech` und Flaggen
@@ -236,4 +434,4 @@ Aus dem Karteneditor V2 (ADR-045) ausgeklammert:
 - Prüfungsplanung: semantische Themenzuordnung innerhalb ungegliederter Stapel.
   Heute bilden Unterstapel die Themen; eine spätere Zuordnung braucht
   explizite, prüfbare Themengrenzen und darf Lernstände nicht ändern. Einen
-  Lösungsweg über Tags nennt P0 unter „Für Kartenverwaltung V2 vorgemerkt“.
+  Lösungsweg über Tags bietet P4 mit `Treffer lernen` (KV5).

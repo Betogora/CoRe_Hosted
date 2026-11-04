@@ -42,6 +42,16 @@ export function parseCardSearchQuery(query: unknown): CardSearchQuery {
   return { text: words.join(" ").toLocaleLowerCase("de"), terms };
 }
 
+const ANKI_SEARCH_KEYS = new Set(["added", "card", "cid", "deck", "did", "dupe", "edited", "flag", "introduced", "is", "mid", "nc", "nid", "note", "preset", "prop", "rated", "re", "resched", "sc", "tag", "w"]);
+
+/** Terms in Anki notation that CoRe does not understand yet; the search treats them as plain text. */
+export function unsupportedCardSearchTerms(query: unknown): string[] {
+  return String(query ?? "").trim().split(/\s+/).filter((token) => {
+    const match = /^-?([a-z]+):./i.exec(token);
+    return Boolean(match && ANKI_SEARCH_KEYS.has(match[1].toLowerCase()) && !parseTerm(token));
+  });
+}
+
 function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
   switch (term.kind) {
     case "flag": return entry.ankiFlag === term.value;

@@ -210,7 +210,7 @@ export function App() {
   const [deckSummaries, setDeckSummaries] = React.useState<ReadonlyMap<string, DeckLibrarySummary>>(new Map());
   const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
   const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
-  const cardPageRequestRef = React.useRef(new Map<string, { key: string; controller: AbortController }>());
+  const cardPageRequestRef = React.useRef(new Map<string, { controller: AbortController }>());
   const cardPagesRef = React.useRef(cardPages);
   cardPagesRef.current = cardPages;
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
@@ -719,12 +719,12 @@ export function App() {
   const requestCardPage = React.useCallback(async (request: DecksCardPageRequest) => {
     if (!workspaceRepository) return;
     const runId = bootRunRef.current;
-    const requestKey = JSON.stringify(request);
     // A newer request for the same deck (typing in the search) cancels the stale one.
     cardPageRequestRef.current.get(request.deckId)?.controller.abort();
     const controller = new AbortController();
-    cardPageRequestRef.current.set(request.deckId, { key: requestKey, controller });
-    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(request.deckId)?.key === requestKey;
+    cardPageRequestRef.current.set(request.deckId, { controller });
+    // Identity, not a key: a repeated identical request replaces this one, whose (aborted) answer must be dropped.
+    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(request.deckId)?.controller === controller;
     // Prev/next only changes the selected card: the loaded page stays and just the card (often prefetched) is read.
     const shown = cardPagesRef.current[request.deckId];
     const onlySelectionChanged = Boolean(workspaceHydrationService && request.selectedCardId && shown && !shown.loadError

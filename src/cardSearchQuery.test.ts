@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { matchesCardSearch, parseCardSearchQuery, readCardSearchFilters, withCardSearchFilter } from "./cardSearchQuery.ts";
+import { matchesCardSearch, parseCardSearchQuery, readCardSearchFilters, unsupportedCardSearchTerms, withCardSearchFilter } from "./cardSearchQuery.ts";
 
 const entry = (overrides: Partial<Parameters<typeof matchesCardSearch>[0]> = {}) => ({
   normalizedSearchText: "die mitochondrien liefern energie",
@@ -48,4 +48,9 @@ test("filters write and read the search terms and keep text and other terms", ()
   assert.equal(withCardSearchFilter(withCardSearchFilter(query, "flag", null), "tags", []), "herz -flag:2 is:suspended tag:leech");
   assert.equal(withCardSearchFilter("flag:1", "flag", 0), "flag:0");
   assert.deepEqual(readCardSearchFilters(withCardSearchFilter("", "leech", false)), { flag: null, leech: false, tags: [] });
+});
+
+test("Nicht unterstützte Anki-Begriffe werden benannt, normaler Text mit Doppelpunkt nicht", () => {
+  assert.deepEqual(unsupportedCardSearchTerms("is:due -deck:Physik flag:9 prop:ivl>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended"), ["is:due", "-deck:Physik", "flag:9", "prop:ivl>3"]);
+  assert.deepEqual(unsupportedCardSearchTerms(""), []);
 });

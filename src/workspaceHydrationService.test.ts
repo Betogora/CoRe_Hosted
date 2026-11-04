@@ -208,7 +208,7 @@ test("partielle Kataloge geben exakt die angeforderte Cloud-Keyset-Seite zurück
   repository.close();
 });
 
-test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und fällt auf den lokalen Katalog zurück", async () => {
+test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und meldet keinen eingeschränkten Katalog", async () => {
   const userId = randomUUID();
   const local = graph("deck-search", "local", "Zulu lokal", CREATED_AT);
   const deck = createCoreDeck({ id: "deck-search", ownerId: userId, name: "Suche", source: "manual", cards: local.cards });
@@ -233,10 +233,8 @@ test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und fällt auf d
     },
   });
 
-  const page = await service.queryCardPage({ deckId: deck.id, query: "zulu", signal: controller.signal });
+  await withNavigator({ onLine: true }, () => assert.rejects(service.queryCardPage({ deckId: deck.id, query: "zulu", page: 1, signal: controller.signal }), { name: "AbortError" }));
 
-  assert.deepEqual(page.items.map((entry) => entry.id), ["card-local"]);
-  assert.equal(page.limitedToLocalCatalog, true);
   assert.deepEqual((await repository.listCatalogPage(deck.id)).items.map((entry) => entry.id), ["card-local"]);
   repository.close();
 });

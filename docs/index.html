@@ -1349,6 +1349,9 @@ video {
 .top-\[calc\(100\%\+0\.5rem\)\] {
   top: calc(100% + 0.5rem);
 }
+.top-\[var\(--core-card-table-sticky-top\)\] {
+  top: var(--core-card-table-sticky-top);
+}
 .top-full {
   top: 100%;
 }
@@ -1454,6 +1457,9 @@ video {
 .my-4 {
   margin-top: 1rem;
   margin-bottom: 1rem;
+}
+.\!mt-0 {
+  margin-top: 0px !important;
 }
 .-me-2 {
   margin-inline-end: -0.5rem;
@@ -2435,6 +2441,9 @@ video {
 .overflow-hidden {
   overflow: hidden;
 }
+.overflow-clip {
+  overflow: clip;
+}
 .overflow-x-auto {
   overflow-x: auto;
 }
@@ -3130,6 +3139,9 @@ video {
 }
 .ease-out {
   transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+}
+.\[--core-card-row-lead\:1\.25rem\] {
+  --core-card-row-lead: 1.25rem;
 }
 .\[overflow-wrap\:anywhere\] {
   overflow-wrap: anywhere;
@@ -5889,6 +5901,10 @@ summary {
   .sm\:pt-4 {
     padding-top: 1rem;
   }
+
+  .sm\:\[--core-card-row-lead\:3rem\] {
+    --core-card-row-lead: 3rem;
+  }
 }
 @media (min-width: 768px) {
 
@@ -6111,6 +6127,10 @@ summary {
     position: sticky;
   }
 
+  .xl\:-top-10 {
+    top: -2.5rem;
+  }
+
   .xl\:bottom-4 {
     bottom: 1rem;
   }
@@ -6257,6 +6277,9 @@ summary {
 }
 .\[\&\>svg\]\:text-core-muted>svg {
   color: var(--core-text-muted);
+}
+.\[\&\>tr\[data-card-row\]\]\:opacity-60>tr[data-card-row] {
+  opacity: 0.6;
 }
 .\[\&_span\]\:min-w-0 span {
   min-width: 0px;
