@@ -8,6 +8,7 @@ import type {
   AccountStudyOverview,
   CardCatalogEntry,
   DeckStudySummary,
+  NoteSearchEntry,
   OfflineCardManifestEntry,
   OfflineMediaManifestEntry,
 } from "./workspaceReplica.ts";
@@ -207,6 +208,11 @@ const deckStudySummarySchema = v.looseObject({
   suspendedCount: nonNegativeIntegerSchema,
   activeVariantCount: nonNegativeIntegerSchema,
   updatedAt: v.nullable(v.string()),
+});
+const noteSearchRowSchema = v.looseObject({
+  note_id: v.string(),
+  search_text: v.string(),
+  deleted_at: v.nullable(v.string()),
 });
 const deckStudySummaryRowSchema = v.looseObject({
   deck_id: v.string(),
@@ -554,6 +560,14 @@ export function validateAccountStudyOverview(input: unknown): AccountStudyOvervi
 
 export function validateDueForecast(input: unknown) {
   return parseValue(dueForecastSchema, input, "Cloud-Fälligkeitsprognose hatte ein ungültiges Format.");
+}
+
+export function validateNoteSearchRows(input: unknown): NoteSearchEntry[] {
+  return parseRows(noteSearchRowSchema, input, "Cloud-Suchtexte hatten ein ungültiges Format.").map((row) => ({
+    noteId: row.note_id,
+    searchText: row.search_text.toLocaleLowerCase("de"),
+    deletedAt: row.deleted_at,
+  }));
 }
 
 export function validateDeckStudySummaryRows(input: unknown): DeckStudySummary[] {

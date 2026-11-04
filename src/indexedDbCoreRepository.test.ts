@@ -7,6 +7,7 @@ import { createBasicNote, createCoreDeck, planNoteContentChange, planNoteDeletio
 import type { Card, Deck, Note } from "./coreTypes.ts";
 import type { WorkspaceState } from "./coreWorkspace.ts";
 import { createIndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
+import { openDatabase } from "./indexedDbStore.ts";
 import { answerVariant } from "./reviewService.ts";
 
 Object.assign(globalThis, { IDBKeyRange });
@@ -589,4 +590,64 @@ test("das lokale Tag-Verzeichnis liest die Inhalte der Replik", async () => {
   assert.deepEqual(await repository.listTagDirectory(), [{ tag: "#AK::Herz", noteCount: 1, importedCount: 1 }]);
   assert.deepEqual(await repository.listCatalogPage("deck-tags", { query: "tag:#ak" }).then((page) => page.items.map((entry) => entry.id)), ["card-0"]);
   repository.close();
+});
+
+test("die Suche über den Index ordnet und blättert wie der Katalog ohne Suche", async () => {
+  const repository = await openRepository(workspaceState(60));
+  for (const sort of [
+    { field: "sortField", direction: "asc" },
+    { field: "sortField", direction: "desc" },
+    { field: "nextStudyDate", direction: "asc" },
+    { field: "variants", direction: "desc" },
+  ] as const) {
+    const unfiltered = [];
+    const searched = [];
+    for (let cursor = null as { sortValue: string; id: string } | null, first = true; first || cursor; first = false) {
+      const page = await repository.listCatalogPage("deck-idb", { sort, cursor });
+      unfiltered.push(...page.items.map((entry) => entry.id));
+      cursor = page.nextCursor;
+    }
+    for (let cursor = null as { sortValue: string; id: string } | null, first = true; first || cursor; first = false) {
+      const page = await repository.listCatalogPage("deck-idb", { sort, cursor, query: "frage", includeTotal: true });
+      assert.equal(page.totalCount, 60);
+      searched.push(...page.items.map((entry) => entry.id));
+      cursor = page.nextCursor;
+    }
+    assert.equal(searched.length, 60, `${sort.field} ${sort.direction}`);
+    assert.deepEqual(searched, unfiltered, `${sort.field} ${sort.direction}`);
+  }
+  repository.close();
+});
+
+test("die Suche folgt Katalogänderungen nach ihrem ersten Aufbau", async () => {
+  const repository = await openRepository(workspaceState(3));
+  const search = () => repository.listCatalogPage("deck-idb", { query: "frage 1" }).then((page) => page.items.map((entry) => entry.id));
+  assert.deepEqual(await search(), ["card-1"]);
+  const [entry] = (await repository.listCatalogPage("deck-idb", { query: "frage 1" })).items;
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [{ ...entry, deletedAt: CREATED_AT }], reset: false, cursor: 1 });
+  assert.deepEqual(await search(), []);
+  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: "note-2", searchText: "frage 2 über frage 1 hinaus", deletedAt: null }], reset: false, cursor: 2 });
+  assert.deepEqual(await search(), ["card-2"], "der replizierte Volltext gilt für alle Karten des Inhalts");
+  repository.close();
+});
+
+test("ein Upgrade der lokalen Datenbank legt den Suchtext-Speicher an und lässt den Katalog nachladen", async () => {
+  const userId = randomUUID();
+  const name = `core.workspace.entities.v5.${userId}`;
+  await new Promise<void>((resolve, reject) => {
+    const request = indexedDB.open(name, 1);
+    request.onupgradeneeded = () => {
+      request.result.createObjectStore("syncMetadata", { keyPath: "key" }).put({ key: "replicaStatus", value: { catalogCompleteness: "complete", catalogCursor: 7 } });
+    };
+    request.onsuccess = () => { request.result.close(); resolve(); };
+    request.onerror = () => reject(request.error);
+  });
+  const database = await openDatabase(indexedDB as unknown as IDBFactory, userId);
+  assert.ok(database.objectStoreNames.contains("noteSearch"));
+  const status = await new Promise<{ value: { catalogCompleteness: string; catalogCursor: number } }>((resolve) => {
+    const read = database.transaction("syncMetadata").objectStore("syncMetadata").get("replicaStatus");
+    read.onsuccess = () => resolve(read.result);
+  });
+  assert.deepEqual(status.value, { catalogCompleteness: "partial", catalogCursor: 7 });
+  database.close();
 });

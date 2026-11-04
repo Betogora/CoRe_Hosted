@@ -10,6 +10,7 @@ import {
   loadReimportTargets,
   recordAtomicReview,
   reviewEventToCloudRow,
+  streamAccountCatalogChanges,
 } from "./cloudRepository.ts";
 import type { ReviewEvent } from "./coreTypes.ts";
 import { noteFromRow, validateAccountRows, validateOfflineManifestRows } from "./cloudRepositoryValidation.ts";
@@ -236,4 +237,22 @@ test("Reimport-Ziele liefern Inhalte, Karten mit Anki-Karten-ID und Vorlagen", a
   assert.deepEqual(targets.noteTypeSources, [{ id: "source", ankiNotetypeId: "1600000000000" }]);
   const invalid = { async rpc() { return { data: { notes: [], cards: [{ id: "card" }], noteTypeSources: [] }, error: null }; } };
   await assert.rejects(() => loadReimportTargets(invalid, ["guid-1"]), /ungültige Karte/);
+});
+
+test("Suchtexte kommen zuletzt in jeder Delta-Seite und schließen sie ab", async () => {
+  const delta = (rows: unknown[]) => ({
+    async rpc() {
+      return { data: { changes: rows.map((row) => ({ table: "note_search", row })), nextCursor: 9, hasMore: false }, error: null };
+    },
+  });
+  const pages: Array<{ table: string; entities: unknown[]; advanceCursor?: boolean }> = [];
+  const cursor = await streamAccountCatalogChanges(delta([{ note_id: "note-1", search_text: "Herz MUSKEL", deleted_at: null, sync_change_id: 9 }]), 0, async (page) => {
+    pages.push(page);
+  });
+
+  assert.equal(cursor, 9);
+  assert.deepEqual(pages.map((page) => page.table), ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"]);
+  assert.deepEqual(pages.at(-1), { table: "note_search", entities: [{ noteId: "note-1", searchText: "herz muskel", deletedAt: null }], reset: false, cursor: 9, advanceCursor: true });
+  assert.ok(pages.slice(0, -1).every((page) => page.advanceCursor === false));
+  await assert.rejects(streamAccountCatalogChanges(delta([{ note_id: "note-1" }]), 0, async () => undefined), /Suchtexte/);
 });

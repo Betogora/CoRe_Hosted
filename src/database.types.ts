@@ -514,6 +514,41 @@ export type Database = {
           },
         ]
       }
+      note_search: {
+        Row: {
+          deleted_at: string | null
+          note_id: string
+          search_text: string
+          sync_change_id: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          deleted_at?: string | null
+          note_id: string
+          search_text?: string
+          sync_change_id?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          deleted_at?: string | null
+          note_id?: string
+          search_text?: string
+          sync_change_id?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_search_note_owner_fk"
+            columns: ["user_id", "note_id"]
+            isOneToOne: true
+            referencedRelation: "notes"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
+      }
       note_sources: {
         Row: {
           created_at: string

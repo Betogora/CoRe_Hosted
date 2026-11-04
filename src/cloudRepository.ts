@@ -19,6 +19,7 @@ import {
   validateDeckStudySummary,
   validateDeckStudySummaryRows,
   validateDueForecast,
+  validateNoteSearchRows,
   validateOfflineManifestRows,
   requireJsonRecord,
   validateProfileRows,
@@ -36,6 +37,7 @@ import type {
   CatalogPage,
   CatalogPageRequest,
   DeckStudySummary,
+  NoteSearchEntry,
   OfflineCardManifestEntry,
   OfflineMediaManifestEntry,
 } from "./workspaceReplica.ts";
@@ -537,12 +539,13 @@ export async function loadAccountCloudBootstrap(
 }
 
 // Anki templates travel with the catalog so the original layout (ADR-047) works on every device, also offline.
-const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries", "note_type_sources"] as const;
+// note_search comes last in each page: it fills the search text of catalog rows applied just before.
+const CATALOG_TABLES = ["decks", "card_catalog", "deck_study_summaries", "note_type_sources", "note_search"] as const;
 type CatalogCloudTable = typeof CATALOG_TABLES[number];
 
 export interface CloudCatalogPage {
   table: CatalogCloudTable;
-  entities: Deck[] | CardCatalogEntry[] | DeckStudySummary[] | ReplicatedNoteTypeSource[];
+  entities: Deck[] | CardCatalogEntry[] | DeckStudySummary[] | ReplicatedNoteTypeSource[] | NoteSearchEntry[];
   reset: boolean;
   cursor: number;
   advanceCursor?: boolean;
@@ -588,7 +591,9 @@ export async function streamAccountCatalogChanges(
           ? validateCardCatalogRows(rows)
           : table === "deck_study_summaries"
             ? validateDeckStudySummaryRows(rows)
-            : validateAccountRows("note_type_sources", rows).flatMap((row) => replicatedNoteTypeSourceFromRow(row) ?? []);
+            : table === "note_search"
+              ? validateNoteSearchRows(rows)
+              : validateAccountRows("note_type_sources", rows).flatMap((row) => replicatedNoteTypeSourceFromRow(row) ?? []);
       await onPage({ table, entities, reset: false, cursor: delta.nextCursor, advanceCursor: tableIndex === CATALOG_TABLES.length - 1 });
     }
     next = delta.nextCursor;

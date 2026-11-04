@@ -16,6 +16,13 @@ export interface NoteGraph {
  * Per-card list and delta entry. The cloud projection carries no full text; locally written entries
  * search the content text, entries from the cloud catalog search their preview.
  */
+/** Full search text of one content, replicated so a complete local catalog can be searched offline. */
+export interface NoteSearchEntry {
+  noteId: string;
+  searchText: string;
+  deletedAt: string | null;
+}
+
 export interface CardCatalogEntry {
   id: string;
   deckId: string;

@@ -168,37 +168,30 @@ Referenz gelesen.
   Option „Reschedule cards based on my answers“) und `Nur üben` ohne
   Planänderung (Ankis Vorschaumodus).
 
-- [ ] **KV1 – Suchkern und Performance (Cutover):**
+- [ ] **KV1 – Suchkern und Performance:** Lokale Volltextsuche über
+      `note_search` und `catalogSearchIndex.ts` steht (ADR-048). Offen:
+      - **Release-Reihenfolge:** Migration `20261104220000_kartensuche_volltext`
+        vor dem Client auf dem gehosteten Projekt ausrollen; sonst gilt ein
+        Katalog ohne Texte als vollständig.
       - **Budgets** (synthetisches Konto mit 50.000 Karten, in
         `performance:measure:local`): Eingabe bis Treffer höchstens 100 ms
         (p95, lokal, Entprellung von 250 auf etwa 120 ms gesenkt); Filterklick
         höchstens 100 ms; Scrollen ohne lange Tasks über 50 ms; Editor öffnen
         höchstens 150 ms bei lokalem Kartenkörper; Massenaktion über 1.000
-        Karten lokal höchstens 1 s, Sync im Hintergrund.
-      - **Ein Suchmodell:** `cardSearchQuery.ts` parst Suchfeld, Chips,
-        Menü und gespeicherte Suchen in denselben Ausdruck; lokale und
-        Cloud-Auswertung haben dieselbe Semantik und Paritätstests.
-      - **Lokal zuerst:** Ein Suchindex im Web Worker hält je Karte nur ID,
-        Stapel, Inhalt, Filter- und Sortwerte, Texte je Inhalt einmal (heute
-        je Karte über `normalizedSearchText` mehrfach). Er wird aus IndexedDB in
-        Batches aufgebaut, beim Sync inkrementell nachgeführt und liefert eine
-        sortierte ID-Liste; Zeilen lädt nur der sichtbare Ausschnitt (Ankis
-        „IDs zuerst“). Umgekehrte Sortierung spiegelt die Liste ohne neue
-        Abfrage.
-      - **Cloud nur bei unvollständigem Katalog:** Eine RPC liefert IDs und
-        Sortwerte per Keyset ohne Fensterzählung je Stapel; die Gesamtzahl
-        kommt getrennt und gedeckelt („über 1.000“). Vorher `EXPLAIN ANALYZE`
-        des heutigen 3,6-s-Falls.
-      - **Feldsuche:** Der Index trennt Felder je Inhalt (Feldname
-        normalisiert); `Feld:Text` prüft nach dem Volltextvorfilter nur noch
-        die Kandidaten. Geschätzt 10–30 ms Zusatz bei 50.000 Karten im Worker,
-        Speicher etwa wie heute, weil Geschwister den Text teilen; das
-        4.000-Zeichen-Limit gilt dann je Feld. Cloud: Vorfilter über den
-        vorhandenen Trigramm-Index auf `notes.search_text`, danach Prüfung in
-        `notes.fields`, kein neuer Index.
-      - **Cutover:** Neuer lokaler Index-Store mit IndexedDB-Versionssprung
-        statt Kompatibilitätspfad; `search_account_card_catalog` wird ersetzt,
-        Typen neu generiert. Architektur und ADR bei Umsetzung ergänzen.
+        Karten lokal höchstens 1 s, Sync im Hintergrund. Die Indexladung
+        (heute rund 40 µs je Zeile aus IndexedDB, also etwa 2 s für 50.000
+        Zeilen in Stapeln zu 1.000) darf keinen langen Task erzeugen.
+      - **Feldsuche:** `note_search` erhält die Feldtexte je Inhalt (Feldname
+        normalisiert, je Feld höchstens 4.000 Zeichen); `Feld:Text` prüft nach
+        dem Volltextvorfilter nur die Kandidaten. Cloud: Vorfilter über den
+        Trigramm-Index auf `notes.search_text`, danach Prüfung der Feldtexte.
+      - **Cloud bei unvollständigem Katalog:** Eine RPC liefert IDs und
+        Sortwerte per Keyset ohne Fensterzählung je Stapel, die Gesamtzahl
+        getrennt und gedeckelt („über 1.000“); vorher `EXPLAIN ANALYZE` des
+        3,6-s-Falls. Ersetzt `search_account_card_catalog`.
+      - **Ein Suchmodell** für die Syntax aus KV2: `cardSearchQuery.ts` parst
+        Suchfeld, Chips, Menü und gespeicherte Suchen in denselben Ausdruck;
+        lokale und Cloud-Auswertung haben Paritätstests.
       Nachweis: Budgets in zwei grünen Läufen, Paritätstests lokal/Cloud,
       `test:rls:local`, `db:types:check`.
 - [ ] **KV2 – Suchzeile und erweiterte Suche:**

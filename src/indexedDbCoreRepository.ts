@@ -21,7 +21,8 @@ import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgI
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
-import { isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { isEmptyCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { catalogSortValue, createCatalogSearchIndex } from "./catalogSearchIndex.ts";
 import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import { createTagDirectoryBuilder } from "./tagDirectory.ts";
 import type { StatisticsSelection } from "./statisticsModel.ts";
@@ -38,6 +39,7 @@ import {
   type CardCatalogEntry,
   type DeckStudySummary,
   type NoteGraph,
+  type NoteSearchEntry,
   type OfflineCardManifestEntry,
   type OfflineDeckRecord,
   type OfflineMediaManifestEntry,
@@ -93,6 +95,9 @@ interface CatalogCursor {
   sortValue: string;
   id: string;
 }
+
+/** Catalog rows read per transaction while the search index loads; small enough to keep each task short. */
+const SEARCH_INDEX_BATCH_SIZE = 1_000;
 
 export interface NoteGraphChange {
   previous: NoteGraph | null;
@@ -197,6 +202,55 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
   let studyOverview: AccountStudyOverview | null = studyOverviewRow?.value ?? null;
   let firstDeckSummariesStarted = false;
   const pageCursorsByKey = new Map<string, Map<number, CatalogCursor | null>>();
+  // Searches run over an in-memory copy of the catalog (KV1). Writes only mark rows; the copy catches up before the
+  // next search, and a cleared catalog reloads it in batches that do not block the page.
+  const searchIndex = createCatalogSearchIndex();
+  let searchIndexGeneration = 0;
+  let searchIndexReady = false;
+  let searchIndexLoad: Promise<void> | null = null;
+  const changedCatalogIds = new Set<string>();
+  const markCatalogChanged = (id: string) => { changedCatalogIds.add(id); };
+  const markCatalogReset = () => {
+    searchIndexGeneration += 1;
+    searchIndexReady = false;
+    changedCatalogIds.clear();
+  };
+  const loadSearchIndex = async () => {
+    const generation = searchIndexGeneration;
+    changedCatalogIds.clear();
+    const rows: CardCatalogEntry[] = [];
+    let after: string | null = null;
+    while (true) {
+      const transaction = database.transaction(STORE.cardCatalog, "readonly");
+      const range: IDBKeyRange | undefined = after === null ? undefined : IDBKeyRange.lowerBound(after, true);
+      const batch: StoredCardCatalog[] = await requestResult<StoredCardCatalog[]>(transaction.objectStore(STORE.cardCatalog).getAll(range, SEARCH_INDEX_BATCH_SIZE));
+      for (const row of batch) rows.push(catalogEntry(row));
+      if (batch.length < SEARCH_INDEX_BATCH_SIZE) break;
+      after = batch.at(-1)!.id;
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+    if (generation !== searchIndexGeneration) return;
+    searchIndex.replaceAll(rows);
+    searchIndexReady = true;
+  };
+  const ensureSearchIndex = async () => {
+    await writeChain;
+    while (!searchIndexReady) {
+      searchIndexLoad ??= loadSearchIndex().finally(() => { searchIndexLoad = null; });
+      await searchIndexLoad;
+    }
+    if (!changedCatalogIds.size) return;
+    const ids = [...changedCatalogIds];
+    changedCatalogIds.clear();
+    const transaction = database.transaction(STORE.cardCatalog, "readonly");
+    const store = transaction.objectStore(STORE.cardCatalog);
+    const rows = await Promise.all(ids.map((id) => requestResult<StoredCardCatalog | undefined>(store.get(id))));
+    ids.forEach((id, index) => {
+      const row = rows[index];
+      if (row) searchIndex.put(catalogEntry(row));
+      else searchIndex.remove(id);
+    });
+  };
 
   const adjustOverviewCount = (counts: Record<string, number>, key: string, delta: number) => {
     const next = Math.max(0, (counts[key] ?? 0) + delta);
@@ -345,7 +399,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         await applyReplicaCatalogChange(transaction, card.deckId, previousCatalog, nextCatalog, occurredAt);
         transaction.objectStore(STORE.cards).put(cardRecord(card));
         transaction.objectStore(STORE.reviewEvents).put(event);
-        transaction.objectStore(STORE.cardCatalog).put(nextCatalog);
+        transaction.objectStore(STORE.cardCatalog).put(nextCatalog); markCatalogChanged(nextCatalog.id);
         transaction.objectStore(STORE.bodyResidency).put(residencyRecord(nextCatalog, "cached"));
       }
       writeOutbox(transaction, mutationBatch);
@@ -384,7 +438,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         if (card.deletedAt || note.deletedAt) {
           if (before) await applyReplicaCatalogChange(transaction, before.deckId, before, null, updatedAt);
           transaction.objectStore(STORE.cards).delete(card.id);
-          catalogStore.delete(card.id);
+          catalogStore.delete(card.id); markCatalogChanged(card.id);
           transaction.objectStore(STORE.bodyResidency).delete(card.id);
           for (const key of storedVariantKeys) variantStore.delete(key);
           continue;
@@ -397,7 +451,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           await applyReplicaCatalogChange(transaction, card.deckId, before, catalog, updatedAt);
         }
         transaction.objectStore(STORE.cards).put(cardRecord(card));
-        catalogStore.put(catalog);
+        catalogStore.put(catalog); markCatalogChanged(catalog.id);
         transaction.objectStore(STORE.bodyResidency).put(residencyRecord(catalog, "cached"));
         const nextVariantIds = new Set(card.variants.map((variant) => variant.id));
         for (const key of storedVariantKeys) if (!nextVariantIds.has(String(key))) variantStore.delete(key);
@@ -463,16 +517,36 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       if (page.reset) store.clear();
       for (const entity of page.entities as DeckStudySummary[]) store.put(entity);
       await transactionDone(transaction);
-    } else {
-      const transaction = database.transaction([STORE.cardCatalog, STORE.cards, STORE.variants, STORE.notes, STORE.bodyResidency, STORE.deckStudySummaries, STORE.offlineDecks, STORE.syncMetadata], "readwrite");
+    } else if (page.table === "note_search") {
+      const transaction = database.transaction([STORE.noteSearch, STORE.cardCatalog], "readwrite");
+      const searchStore = transaction.objectStore(STORE.noteSearch);
       const catalogStore = transaction.objectStore(STORE.cardCatalog);
+      for (const entry of page.entities as NoteSearchEntry[]) {
+        if (entry.deletedAt) {
+          searchStore.delete(entry.noteId);
+          continue;
+        }
+        const searchText = entry.searchText.slice(0, 4_000);
+        searchStore.put({ noteId: entry.noteId, searchText });
+        // A pending local edit keeps its own, newer text until its upload comes back.
+        if (pendingEntityMutation("notes", entry.noteId)) continue;
+        for (const row of await requestResult<StoredCardCatalog[]>(catalogStore.index("noteId").getAll(entry.noteId))) {
+          if (row.normalizedSearchText === searchText) continue;
+          catalogStore.put({ ...row, normalizedSearchText: searchText }); markCatalogChanged(row.id);
+        }
+      }
+      await transactionDone(transaction);
+    } else {
+      const transaction = database.transaction([STORE.cardCatalog, STORE.noteSearch, STORE.cards, STORE.variants, STORE.notes, STORE.bodyResidency, STORE.deckStudySummaries, STORE.offlineDecks, STORE.syncMetadata], "readwrite");
+      const catalogStore = transaction.objectStore(STORE.cardCatalog);
+      const searchStore = transaction.objectStore(STORE.noteSearch);
       const cardStore = transaction.objectStore(STORE.cards);
       const variantStore = transaction.objectStore(STORE.variants);
       const residencyStore = transaction.objectStore(STORE.bodyResidency);
       const offlineStore = transaction.objectStore(STORE.offlineDecks);
       if (page.reset) {
         const protectedRows = (await Promise.all(pendingEntityIdsForTable("cards").map((id) => requestResult<StoredCardCatalog | undefined>(catalogStore.get(id))))).filter(Boolean);
-        catalogStore.clear();
+        catalogStore.clear(); markCatalogReset();
         for (const row of protectedRows) catalogStore.put(row);
       }
       const changedDeckIds = new Set<string>();
@@ -486,22 +560,22 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const referenceAt = new Date().toISOString();
         if (entity.deletedAt) {
           await applyReplicaCatalogChange(transaction, entity.deckId, previousCatalog, null, referenceAt, !page.reset);
-          catalogStore.delete(entity.id);
+          catalogStore.delete(entity.id); markCatalogChanged(entity.id);
           cardStore.delete(entity.id);
           residencyStore.delete(entity.id);
           for (const key of await requestResult<IDBValidKey[]>(variantStore.index("cardId").getAllKeys(entity.id))) variantStore.delete(key);
           continue;
         }
-        // Cloud entries carry only the preview; a local content keeps the full search text.
+        // Cloud entries carry only the preview; the full text comes from a local content or the replicated note search.
         const localSearchText = previousCatalog && previousCatalog.noteId === entity.noteId && previousCatalog.dependencyRevision === entity.dependencyRevision
           ? previousCatalog.normalizedSearchText
-          : entity.normalizedSearchText;
+          : (await requestResult<{ searchText: string } | undefined>(searchStore.get(entity.noteId)))?.searchText ?? entity.normalizedSearchText;
         const catalog = storedCatalogRecord({ ...entity, normalizedSearchText: localSearchText });
         if (previousCatalog && previousCatalog.deckId !== catalog.deckId) {
           await applyReplicaCatalogChange(transaction, previousCatalog.deckId, previousCatalog, null, referenceAt, !page.reset);
         }
         await applyReplicaCatalogChange(transaction, catalog.deckId, previousCatalog?.deckId === catalog.deckId ? previousCatalog : null, catalog, referenceAt, !page.reset);
-        catalogStore.put(catalog);
+        catalogStore.put(catalog); markCatalogChanged(catalog.id);
         const residency = await requestResult<CardBodyResidencyRecord | undefined>(residencyStore.get(entity.id));
         if (residency && bodyResidencyForRevision(residency, entity) === "catalog-only") {
           residencyStore.put({ ...residency, state: "catalog-only", bodyRevision: entity.bodyRevision, studyRevision: entity.studyRevision, dependencyRevision: entity.dependencyRevision });
@@ -519,7 +593,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     });
   };
 
-  /** Keyset page of a deck's local catalog; with a query, rows are scanned from the cursor until the page is full. */
+  /** Keyset page of a deck's local catalog; a query is answered from the in-memory search index. */
   const listCatalogPage = async (deckId: string, {
     cursor = null,
     limit = CATALOG_PAGE_LIMIT,
@@ -528,9 +602,27 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     includeTotal = false,
   }: { cursor?: CatalogCursor | null; limit?: number; query?: string; sort?: CardTableSort; includeTotal?: boolean } = {}) => {
     await writeChain;
-    const search = parseCardSearchQuery(query);
-    const filtered = !isEmptyCardSearch(search);
     const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(limit))));
+    if (!isEmptyCardSearch(parseCardSearchQuery(query))) {
+      await ensureSearchIndex();
+      const matches = searchIndex.search(query, sort).get(deckId) ?? [];
+      const descending = sort.direction === "desc";
+      const start = cursor ? matches.findIndex((entry) => {
+        const value = catalogSortValue(entry, sort.field);
+        const order = value !== cursor.sortValue ? (value < cursor.sortValue ? -1 : 1) : (entry.id < cursor.id ? -1 : entry.id > cursor.id ? 1 : 0);
+        return descending ? order < 0 : order > 0;
+      }) : 0;
+      const from = start < 0 ? matches.length : start;
+      const items = matches.slice(from, from + pageLimit);
+      const hasMore = from + pageLimit < matches.length;
+      const lastItem = items.at(-1);
+      return {
+        items,
+        totalCount: includeTotal ? matches.length : null,
+        hasMore,
+        nextCursor: hasMore && lastItem ? { sortValue: catalogSortValue(lastItem, sort.field), id: lastItem.id } : null,
+      };
+    }
     const indexName = sort.field === "nextStudyDate" ? "deckDue" : sort.field === "variants" ? "deckVariants" : "deckSort";
     const sortValueOf = (row: StoredCardCatalog) => indexName === "deckDue" ? row.dueSort : indexName === "deckVariants" ? String(row.hasActiveVariants) : row.sortText;
     const keyFor = (value: string, id: string): IDBValidKey => indexName === "deckVariants" ? [deckId, Number(value), id] : [deckId, value, id];
@@ -542,7 +634,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     let boundary: IDBValidKey | null = cursor ? keyFor(cursor.sortValue, cursor.id) : null;
     let complete = false;
     let hasMore = false;
-    if (includeTotal && !filtered) {
+    if (includeTotal) {
       const countTransaction = database.transaction(STORE.cardCatalog, "readonly");
       totalCount = await requestResult(countTransaction.objectStore(STORE.cardCatalog).index(indexName).count(IDBKeyRange.bound(lower, upper)));
       await transactionDone(countTransaction);
@@ -564,7 +656,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const row = entry.value as StoredCardCatalog;
           scanned += 1;
           boundary = entry.key;
-          if (!row.deletedAt && (!filtered || matchesCardSearch(catalogEntry(row), search))) rows.push(row);
+          if (!row.deletedAt) rows.push(row);
           const elapsed = (globalThis.performance?.now?.() ?? Date.now()) - startedAt;
           if (rows.length > pageLimit || scanned >= LOCAL_WRITE_CHUNK_SIZE || elapsed >= 25) { resolve(); return; }
           entry.continue();
@@ -576,15 +668,6 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     if (rows.length > pageLimit) {
       rows.length = pageLimit;
       hasMore = true;
-    }
-    if (includeTotal && filtered) {
-      let matches = 0;
-      const countTransaction = database.transaction(STORE.cardCatalog, "readonly");
-      await iterateCursor<StoredCardCatalog>(countTransaction.objectStore(STORE.cardCatalog).index("deckScan").openCursor(IDBKeyRange.bound([deckId, ""], [deckId, "￿"])), (row) => {
-        if (!row.deletedAt && matchesCardSearch(catalogEntry(row), search)) matches += 1;
-      });
-      await transactionDone(countTransaction);
-      totalCount = matches;
     }
     const last = rows.at(-1);
     return {
@@ -716,7 +799,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await applyReplicaCatalogChange(transaction, card.deckId, before?.deckId === card.deckId ? before : null, catalog);
       if (before && before.deckId !== card.deckId) await applyReplicaCatalogChange(transaction, before.deckId, before, null);
       transaction.objectStore(STORE.cards).put(cardRecord(card));
-      catalogStore.put(catalog);
+      catalogStore.put(catalog); markCatalogChanged(catalog.id);
       const residency = await requestResult<CardBodyResidencyRecord | undefined>(transaction.objectStore(STORE.bodyResidency).get(card.id));
       transaction.objectStore(STORE.bodyResidency).put({
         ...residencyRecord(catalog, residency?.state === "downloaded" ? "downloaded" : state),
@@ -1324,7 +1407,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           writeOutbox(transaction, queueMutations(planEntityMutations({ cards: [hydrateCard(stored)] }, { cards: [{ ...updatedCard, variants: [] }] })));
         }
         transaction.objectStore(STORE.cards).put(cardRecord(updatedCard));
-        catalogStore.put(catalog);
+        catalogStore.put(catalog); markCatalogChanged(catalog.id);
         transaction.objectStore(STORE.bodyResidency).put(residencyRecord(catalog, "cached"));
         if (variant) transaction.objectStore(STORE.variants).put(variantRecord(variant, updatedCard.deckId));
         transaction.objectStore(STORE.reviewEvents).put(event);
@@ -1633,6 +1716,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       return summaryResult;
     },
     /** Catalog page by page number (cursors are remembered per query) plus the opened content with its siblings. */
+    /** Loads the search index ahead of the first search, in short batches. */
+    prepareCardSearch: () => ensureSearchIndex(),
     async listCardPage(deckId: string, { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null }: {
       page?: number;
       pageSize?: number;
@@ -1783,7 +1868,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           const catalog = note ? catalogRecordFor(card, note) : before ? { ...before, bodyRevision: card.revision, studyRevision: card.studyRevision } : null;
           if (!catalog) continue;
           await applyReplicaCatalogChange(transaction, card.deckId, before, catalog);
-          transaction.objectStore(STORE.cardCatalog).put(catalog);
+          transaction.objectStore(STORE.cardCatalog).put(catalog); markCatalogChanged(catalog.id);
           const residency = await requestResult<CardBodyResidencyRecord | undefined>(transaction.objectStore(STORE.bodyResidency).get(cardId));
           if (residency && residency.state !== "catalog-only") transaction.objectStore(STORE.bodyResidency).put({ ...residency, bodyRevision: catalog.bodyRevision, studyRevision: catalog.studyRevision, dependencyRevision: catalog.dependencyRevision });
         }

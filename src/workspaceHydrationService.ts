@@ -255,14 +255,15 @@ export function createWorkspaceHydrationService({
 
   const queryCardPage = async (request: CardPageRequest) => {
     const status = repository.getReplicaStatus();
-    // A complete local catalog serves unfiltered pages itself; only searches keep using the cloud cursors.
-    if (status.catalogCompleteness === "complete" && !request.query?.trim()) {
+    // A complete local catalog serves every page itself, searches included (KV1); only a partial one asks the cloud.
+    if (status.catalogCompleteness === "complete") {
       pageCursors.clear();
       totalCounts.clear();
+      if (!request.query?.trim()) void repository.prepareCardSearch().catch(() => undefined);
     }
     let cloudPage = null;
     let cloudError: unknown = null;
-    if (isOnline() && (status.catalogCompleteness !== "complete" || Boolean(request.query?.trim()))) {
+    if (isOnline() && status.catalogCompleteness !== "complete") {
       try {
         cloudPage = await fetchCatalogPage(request);
       } catch (error) {

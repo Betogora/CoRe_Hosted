@@ -213,6 +213,8 @@ test("ein abgebrochener Suchauftrag übernimmt keine Cloudseite und meldet keine
   const local = graph("deck-search", "local", "Zulu lokal", CREATED_AT);
   const deck = createCoreDeck({ id: "deck-search", ownerId: userId, name: "Suche", source: "manual", cards: local.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  // Ein noch unvollständiger Katalog sucht in der Cloud.
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
   const [localEntry] = (await repository.listCatalogPage(deck.id)).items;
   const remoteOnly = catalogRow({ ...localEntry, id: "card-remote", noteId: "note-remote", frontPreview: "Zulu entfernt", sortText: "zulu entfernt" });
   const controller = new AbortController();
@@ -433,6 +435,8 @@ test("Parallele Stapelsuchen gehen in einer Anfrage und blättern je Stapel mit 
   const deckA = createCoreDeck({ id: "deck-search-a", ownerId: userId, name: "A", source: "manual", cards: first.cards });
   const deckB = createCoreDeck({ id: "deck-search-b", ownerId: userId, name: "B", source: "manual", cards: second.cards });
   const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deckA, deckB], [first.note, second.note]), indexedDb: new IDBFactory() });
+  // Ein noch unvollständiger Katalog sucht in der Cloud.
+  await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 0 });
   const rowA = catalogRow((await repository.listCatalogPage(deckA.id)).items[0]);
   const rowB = catalogRow((await repository.listCatalogPage(deckB.id)).items[0]);
   const calls: Array<{ name: string; payload: any }> = [];
@@ -537,5 +541,26 @@ test("Prüfungsplanung übernimmt noch nicht synchronisierte Antworten statt des
   assert.equal(cards.length, 1);
   assert.notEqual(cards[0].study.state, "new");
   assert.equal(cards[0].study.lastRating, "good");
+  repository.close();
+});
+
+test("ein vollständiger Katalog sucht lokal im Volltext aus note_search, ohne Cloudanfrage", async () => {
+  const userId = randomUUID();
+  const local = graph("deck-full", "full", "Kurz", CREATED_AT);
+  const deck = createCoreDeck({ id: "deck-full", ownerId: userId, name: "Voll", source: "manual", cards: local.cards });
+  const repository = await createIndexedDbCoreRepository({ userId, initialState: workspace(userId, [deck], [local.note]), indexedDb: new IDBFactory() });
+  await repository.applyCloudCatalogPage({ table: "note_search", entities: [{ noteId: local.note.id, searchText: "kurz mit innervation durch den nervus accessorius", deletedAt: null }], reset: false, cursor: 2 });
+  await repository.completeCatalogReconciliation(2);
+  const service = createWorkspaceHydrationService({
+    repository,
+    mediaStore: null,
+    client: { rpc(name: string) { throw new Error(`Unerwartete RPC ${name}`); } },
+  });
+
+  const page = await withNavigator({ onLine: true }, () => service.queryCardPage({ deckId: deck.id, query: "accessorius", page: 0, pageSize: 50 }));
+
+  assert.deepEqual(page.items.map((entry) => entry.id), local.cards.map((card) => card.id));
+  assert.equal(page.totalCount, local.cards.length);
+  assert.equal(page.limitedToLocalCatalog, false);
   repository.close();
 });

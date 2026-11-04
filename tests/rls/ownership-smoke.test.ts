@@ -335,6 +335,7 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         note_media: { user_id: userA.id, note_id: fixtureA.notes.id, sha1: "e".repeat(40) },
         card_catalog: { user_id: userA.id, id: `${prefix}_forged_catalog`, deck_id: fixtureA.decks.id, note_id: fixtureA.notes.id },
         deck_study_summaries: { user_id: userA.id, deck_id: fixtureA.decks.id },
+        note_search: { user_id: userA.id, note_id: fixtureA.notes.id, search_text: "gefälscht" },
       };
       for (const [table, row] of Object.entries(projectionRows)) {
         assertPostgresError(await clientA.from(table).insert(row), "42501", `${table}: direkter Write auf Projektion`);
@@ -342,6 +343,9 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const ownCatalog = assertNoError(await clientA.from("card_catalog").select("id,note_id").eq("id", fixtureA.cards.id), "eigenen Katalogeintrag lesen");
       assert.deepEqual(ownCatalog, [{ id: fixtureA.cards.id, note_id: fixtureA.notes.id }]);
       assert.deepEqual(assertNoError(await clientB.from("card_catalog").select("id").eq("id", fixtureA.cards.id), "fremden Katalogeintrag lesen"), []);
+      const ownSearch = assertNoError(await clientA.from("note_search").select("note_id,search_text").eq("note_id", fixtureA.notes.id), "eigenen Suchtext lesen");
+      assert.equal(ownSearch.length, 1, "notes pflegt note_search per Trigger");
+      assert.deepEqual(assertNoError(await clientB.from("note_search").select("note_id").eq("note_id", fixtureA.notes.id), "fremden Suchtext lesen"), []);
     });
 
     await t.test("Replica-RPCs liefern ausschließlich Daten des angemeldeten Accounts", async () => {
@@ -378,14 +382,36 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assertNoError(await clientA.from("decks").update({ deck_settings: {} }).eq("id", fixtureA.decks.id), "Begraben wieder ausschalten");
       assertNoError(await clientA.from("cards").update({ deleted_at: new Date().toISOString() }).eq("id", siblingId), "Geschwister entfernen");
 
-      const deltaA = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: 0, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta für Nutzer A");
+      // The delta is paged like the real sync; the fixture's catalog and search rows exceed one page.
+      const pullDelta = async (cursor: number, label: string) => {
+        const changes: any[] = [];
+        for (let next = cursor, more = true; more;) {
+          const page = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: next, p_limit: 500, p_max_bytes: 1048576 }), label);
+          changes.push(...page.changes);
+          next = page.nextCursor;
+          more = page.hasMore;
+          if (!more) return { changes, nextCursor: next };
+        }
+        return { changes, nextCursor: cursor };
+      };
+      const deltaA = await pullDelta(0, "Katalog-Delta für Nutzer A");
       assert.ok(deltaA.changes.length > 0);
       assert.ok(deltaA.changes.every((entry: any) => entry.row.user_id === userA.id));
       assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_type_sources" && entry.row.id === fixtureA.note_type_sources.id), "Anki-Vorlagen laufen durch den Katalog-Delta-Sync");
       // A reimport replaces the template; the new cursor position brings it to other devices.
       assertNoError(await clientA.from("note_type_sources").update({ definition: { kind: 0, verified: true, css: ".neu{}" } }).eq("id", fixtureA.note_type_sources.id), "Vorlage per Reimport ersetzen");
-      const sourceDelta = assertNoError(await clientA.rpc("pull_account_catalog_delta", { p_cursor: deltaA.nextCursor, p_limit: 500, p_max_bytes: 1048576 }), "Katalog-Delta nach geänderter Vorlage");
+      const sourceDelta = await pullDelta(deltaA.nextCursor, "Katalog-Delta nach geänderter Vorlage");
       assert.deepEqual(sourceDelta.changes.filter((entry: any) => entry.table === "note_type_sources").map((entry: any) => entry.row.definition.css), [".neu{}"]);
+      assert.ok(deltaA.changes.some((entry: any) => entry.table === "note_search" && entry.row.note_id === fixtureA.notes.id), "Suchtexte laufen durch den Katalog-Delta-Sync");
+      // Only a changed text brings a new search row; other note changes such as the mark do not.
+      assertNoError(await clientA.from("notes").update({ marked: true }).eq("id", fixtureA.notes.id), "Inhalt markieren");
+      const markDelta = await pullDelta(sourceDelta.nextCursor, "Katalog-Delta nach Markierung");
+      assert.equal(markDelta.changes.filter((entry: any) => entry.table === "note_search").length, 0);
+      const [{ search_text: originalText }] = assertNoError(await clientA.from("notes").select("search_text").eq("id", fixtureA.notes.id), "Suchtext lesen");
+      assertNoError(await clientA.from("notes").update({ search_text: "neuer volltext a" }).eq("id", fixtureA.notes.id), "Suchtext ändern");
+      const textDelta = await pullDelta(markDelta.nextCursor, "Katalog-Delta nach neuem Text");
+      assert.deepEqual(textDelta.changes.filter((entry: any) => entry.table === "note_search").map((entry: any) => entry.row.search_text), ["neuer volltext a"]);
+      assertNoError(await clientA.from("notes").update({ search_text: originalText }).eq("id", fixtureA.notes.id), "Suchtext zurücksetzen");
 
       const catalogRequest = { p_deck_id: fixtureA.decks.id, p_query: "", p_sort_field: "sortField", p_sort_direction: "asc", p_cursor: null, p_limit: 50 };
       const catalogA = assertNoError(await clientA.rpc("list_account_card_catalog", catalogRequest), "Kartenkatalog für Nutzer A");

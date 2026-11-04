@@ -11,7 +11,7 @@ import {
 } from "./workspaceReplica.ts";
 
 // ADR-034: a fresh database without upgrade path.
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 
 const DATABASE_PREFIX = "core.workspace.entities.v5.";
 
@@ -28,6 +28,7 @@ export const STORE = Object.freeze({
   syncMetadata: "syncMetadata",
   deckStudySummaries: "deckStudySummaries",
   cardCatalog: "cardCatalog",
+  noteSearch: "noteSearch",
   bodyResidency: "bodyResidency",
   offlineDecks: "offlineDecks",
   offlineManifests: "offlineManifests",
@@ -38,7 +39,7 @@ export const LOCAL_WRITE_CHUNK_SIZE = 250;
 
 export const CATALOG_PAGE_LIMIT = 50;
 
-const NO_DUE_DATE = "9999-12-31T23:59:59.999Z";
+export const NO_DUE_DATE = "9999-12-31T23:59:59.999Z";
 
 export type StoredCard = Omit<Card, "variants">;
 
@@ -96,8 +97,22 @@ export function iterateCursor<T>(request: IDBRequest<IDBCursorWithValue | null>,
 export function openDatabase(indexedDb: IDBFactory, userId: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDb.open(`${DATABASE_PREFIX}${userId}`, DATABASE_VERSION);
-    request.onupgradeneeded = () => {
+    request.onupgradeneeded = (event) => {
       const database = request.result;
+      if (event.oldVersion < 2) {
+        // Full search texts per content (KV1). An existing replica has none yet: marking its catalog partial keeps
+        // searches in the cloud until the next delta pull has brought the texts.
+        database.createObjectStore(STORE.noteSearch, { keyPath: "noteId" });
+        if (event.oldVersion >= 1) {
+          const metadata = request.transaction!.objectStore(STORE.syncMetadata);
+          const read = metadata.get("replicaStatus");
+          read.onsuccess = () => {
+            const row = read.result as { key: string; value?: { catalogCompleteness?: string } } | undefined;
+            if (row?.value?.catalogCompleteness === "complete") metadata.put({ ...row, value: { ...row.value, catalogCompleteness: "partial" } });
+          };
+          return;
+        }
+      }
       database.createObjectStore(STORE.meta, { keyPath: "key" });
       database.createObjectStore(STORE.decks, { keyPath: "id" }).createIndex("parentDeckId", "parentDeckId", { unique: false });
       database.createObjectStore(STORE.notes, { keyPath: "id" }).createIndex("ankiGuid", "ankiGuid", { unique: false });
