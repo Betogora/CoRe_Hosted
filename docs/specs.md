@@ -251,7 +251,7 @@ Akzeptanz:
 
 - Kennzahlen aus Lernstand und FSRS-7, darunter Fälligkeit, Haltbarkeit, Abrufwahrscheinlichkeit, Schwierigkeit, Wiederholungen und Fehler, das Reifeband (`Neu`, `Lernen`, `Jung`, `Reif`) und eine Lernbremse mit Zeitpunkt.
 - Links unter den Kennzahlen der `Abrufverlauf` als Lernkurve im Diagrammstil der Statistik: die Abrufwahrscheinlichkeit springt nach jeder Bewertung auf 100 % und fällt bis zur nächsten, gestrichelt die Ziel-Abrufwahrscheinlichkeit des Stapels, rote Punkte vor `Nochmal`; `Lernstand zurücksetzen` beginnt die Kurve neu. Rechts die Liste `Bewertungen`. Beides lädt erst beim Öffnen; lokal vorhandene Bewertungen erscheinen sofort, online ergänzt die Cloud den Rest.
-- `Lernstand zurücksetzen …` (Dialog `Lernstand zurücksetzen?`) setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.
+- `Lernstand zurücksetzen …` (roter Dialog `Lernstand zurücksetzen?` mit `Die Karte wird danach wie eine neue Karte gelernt.`) setzt nach Bestätigung Wiederholungs- und Fehlerzähler auf 0 und hebt die Lernbremse auf; der Bewertungsverlauf bleibt mit einem manuellen Eintrag, die Karte steht wieder an ihrer ursprünglichen Stelle unter den neuen Karten.
 
 `Duplizieren` legt eine eigenständige Kopie mit neuen Karten in denselben Stapeln an; die Frage erhält einmalig `(Kopie)`. Felder, Tags und Medien bleiben, Karten-, Review- und Scheduleridentitäten sind neu. `Löschen` fragt wie in der Kartenverwaltung nach, schließt danach den Editor und bietet dort `Rückgängig`.
 #### Vorschau und Darstellung

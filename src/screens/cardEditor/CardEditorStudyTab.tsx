@@ -192,9 +192,10 @@ export function CardEditorStudyTab({ card, now, dayStartHour, timeZone, services
       <ActionDialog
         open={confirmReset}
         title="Lernstand zurücksetzen?"
-        description="Die Karte wird wieder neu gelernt: Wiederholungs- und Fehlerzähler gehen auf 0, die Lernbremse wird aufgehoben. Inhalt und Bewertungsverlauf bleiben."
+        description="Die Karte wird danach wie eine neue Karte gelernt."
         confirmLabel="Zurücksetzen"
         cancelLabel="Abbrechen"
+        destructive
         confirmLoading={resetting}
         onCancel={() => setConfirmReset(false)}
         onConfirm={() => void reset()}
