@@ -60,7 +60,7 @@ test("KI-Ausgabe akzeptiert nur bekannte Verweise und wird ohne ausführbares HT
   assert.throws(() => parseAiLearningSummarySuccess({ ...generated, summary: { ...generated.summary, sections: [{ ...generated.summary.sections[0], references: ["m99"] }] } }, prepared.request), /verweise/i);
   assert.throws(() => parseAiLearningSummarySuccess({ ...generated, summary: { ...generated.summary, sections: [{ ...generated.summary.sections[0], paragraphs: [], points: [] }] } }, prepared.request), /leeren/);
   const html = generatedSummaryHtml({ ...generated, summary: { ...generated.summary, sections: [{ ...generated.summary.sections[0], paragraphs: ['<img src=x onerror="alert(1)"> & ATP'] }] } }, prepared);
-  assert.match(html, /&lt;img/); assert.doesNotMatch(html, /<img/); assert.match(html, /href="\/kartenstapel/);
+  assert.match(html, /&lt;img/); assert.doesNotMatch(html, /<img/); assert.match(html, /<details><summary>Belege \(1\)<\/summary><p><small><a href="\/kartenstapel/);
   const stored = readLearningSummary({ ...createLearningSummary("root", "Titel", defaults), html, generation: { model: generated.model, privacyMode: generated.privacyMode, promptVersion: generated.promptVersion, generatedAt: new Date().toISOString(), materialUnits: 1 } });
   assert.equal(stored.generation?.materialUnits, 1);
 });
@@ -97,7 +97,7 @@ test("Ausgeblendete Belege bleiben intern validiert und erscheinen nicht im Edit
   const result = parseAiLearningSummarySuccess(generated, material.request);
   assert.deepEqual(result.summary.sections[0].references, ["m1"]);
   const html = generatedSummaryHtml(result, material);
-  assert.doesNotMatch(html, /Grundlage:|href=/);
+  assert.doesNotMatch(html, /<details|href=/);
   assert.match(html, /ATP/);
 });
 

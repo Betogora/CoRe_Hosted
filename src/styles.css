@@ -2425,6 +2425,10 @@ summary {
 .core-summary-editor .rich-text-field h2 { font-size: var(--core-type-heading-2); }
 .core-summary-editor .rich-text-field h3 { font-size: var(--core-type-heading-3); }
 .core-summary-editor .rich-text-field p { margin-block-end: var(--core-space-lg); }
+.core-summary-editor .rich-text-field details { margin-block: calc(-1 * var(--core-space-sm)) var(--core-space-lg); color: var(--core-text-muted); font: var(--core-type-caption)/var(--core-leading-caption) var(--core-font-sans); }
+.core-summary-editor .rich-text-field summary { width: fit-content; cursor: pointer; }
+.core-summary-editor .rich-text-field details small { font-size: inherit; }
+.core-summary-editor .rich-text-field details p { margin-block: var(--core-space-xs) 0; padding-inline-start: var(--core-space-md); border-inline-start: var(--core-border-width) solid var(--core-border); }
 
 /* The mindmap world remains independent of its viewport and editing toolbar. */
 .core-mindmap-panel { container: core-mindmap / inline-size; }
