@@ -5,6 +5,7 @@ import type { Card, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import {
   type CardTableSort,
+  createCardSearchContext,
   createCardTableModel,
   createDeckLibraryModel,
   createPagedCardTableModel,
@@ -684,4 +685,19 @@ test("library metrics, card dates and heatmap share the configured learning day"
   assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");
 });
 
+test("deck: und note: lösen sich über Pfad und Namen auf; der Katalog kennt Notiztyp und veraltete Varianten", () => {
+  const { parent, child } = createDeckHierarchy();
+  const context = createCardSearchContext("deck:medizin note:basic_* deck:anatomie", [parent, child], {
+    now: "2026-07-01T08:00:00.000Z",
+    noteTypes: [{ id: "nt-1", name: "Basic (and reversed)" }, { id: "nt-2", name: "Cloze" }],
+  });
+  assert.deepEqual(context.deckMatches?.medizin?.slice().sort(), ["deck_child", "deck_parent"]);
+  assert.deepEqual(context.deckMatches?.anatomie, [], "nur der volle Pfad");
+  assert.deepEqual(context.noteTypeMatches, { "basic_*": ["nt-1"] });
 
+  const card = addCardVariant(libraryCard("card_outdated"), { id: "variant_old", front: "Alt", back: "Alt" });
+  const outdated = { ...card, variants: card.variants.map((variant) => ({ ...variant, meta: { ...variant.meta, outdated: true } })) };
+  const entry = catalogEntryFromCard(outdated, { ...notesById.get(card.noteId)!, noteTypeSourceId: "nt-1" });
+  assert.deepEqual([entry.noteTypeId, entry.hasOutdatedVariants], ["nt-1", true]);
+  assert.equal(catalogEntryFromCard(card, notesById.get(card.noteId)!).hasOutdatedVariants, false);
+});

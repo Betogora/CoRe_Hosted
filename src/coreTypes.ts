@@ -55,7 +55,12 @@ export interface UiPreferences {
   syncIntervalMinutes: SyncIntervalMinutes;
   /** Own names of the flags 1–7; an empty name stands for the color name. */
   flagNames: string[];
+  /** Saved searches of the card management, in the learner's order (KV2c). */
+  savedSearches: SavedCardSearch[];
 }
+
+/** A named search expression; relative terms (`rated:1`, `is:due`) resolve whenever it is applied. */
+export type SavedCardSearch = { id: string; name: string; query: string };
 
 export type SyncIntervalMinutes = 0 | 1 | 5 | 15 | 30;
 

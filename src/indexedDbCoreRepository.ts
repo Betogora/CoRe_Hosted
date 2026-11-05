@@ -1347,6 +1347,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       await transactionDone(transaction);
       return builder.entries();
     },
+    /** Anki note types of the replica (`note:` search); the catalog delta keeps them complete on every device. */
+    async listNoteTypes() {
+      await writeChain;
+      const transaction = database.transaction(STORE.noteTypeSources, "readonly");
+      const sources = await requestResult<NoteTypeSource[]>(transaction.objectStore(STORE.noteTypeSources).getAll());
+      await transactionDone(transaction);
+      return sources.map(({ id, name }) => ({ id, name })).sort((left, right) => left.name.localeCompare(right.name, "de"));
+    },
     /** Manual reschedule: only the due date changes; suspension stays. */
     rescheduleCards(cardIds: string[], dueAt: string, occurredAt = new Date().toISOString()) {
       return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, dueAt, occurredAt), occurredAt);
@@ -1395,7 +1403,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const previousCatalog = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(updatedCard.id)) ?? null;
         const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(updatedCard.noteId)) ?? null;
         const history = withStudyEvents(previousCatalog, [event]);
-        const catalog = note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys, editedAt: previousCatalog.editedAt, contentKind: previousCatalog.contentKind } : {}) });
+        const catalog = note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys, editedAt: previousCatalog.editedAt, contentKind: previousCatalog.contentKind, noteTypeId: previousCatalog.noteTypeId } : {}) });
         await applyReplicaCatalogChange(transaction, deck.id, previousCatalog, catalog, event.answeredAt);
         const overviewContext = studyOverview ? studyOverviewContext(studyOverview) : null;
         const overviewDay = overviewContext ? getStudyHeatmapDayKey(event.answeredAt, overviewContext.timeZone, overviewContext.dayStartHour) : null;

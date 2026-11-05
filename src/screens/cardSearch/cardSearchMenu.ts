@@ -78,7 +78,13 @@ function writtenTermLabel(bare: string): { label: string; category: string } | n
 }
 
 /** Categories of the advanced search (ADR-048, KV2): Anki's browser sidebar as filters with three positions. */
-export function createCardSearchMenu({ decks, tags, flagNames }: { decks: Deck[]; tags: readonly TagDirectoryEntry[]; flagNames: readonly string[] }): CardSearchMenuCategory[] {
+export function createCardSearchMenu({ decks, tags, flagNames, noteTypes = [] }: {
+  decks: Deck[];
+  tags: readonly TagDirectoryEntry[];
+  flagNames: readonly string[];
+  /** Anki note types; one row per name (`note:`, spaces as `_`), since several imports bring the same type. */
+  noteTypes?: readonly { id: string; name: string }[];
+}): CardSearchMenuCategory[] {
   const deckRows = createDeckLibraryModel(decks).rows;
   return [
     { id: "heute", label: "Heute", icon: CalendarClock, items: [
@@ -115,12 +121,14 @@ export function createCardSearchMenu({ decks, tags, flagNames }: { decks: Deck[]
     ] },
     { id: "inhalt", label: "Inhalt", icon: Sparkles, items: [
       { label: "Variante", term: "has:variant" },
+      { label: "Veraltete Variante", term: "has:outdated" },
       ...CONTENT_FORMS,
+      ...[...new Set(noteTypes.map((noteType) => noteType.name))].map((name) => ({ label: `Notiztyp ${name}`, term: `note:${name.replace(/\s+/g, "_")}` })),
     ] },
     { id: "zeitraum", label: "Zeitraum", icon: CalendarRange, items: [] },
     { id: "werte", label: "Werte", icon: Gauge, items: [] },
     { id: "felder", label: "Felder", icon: TextCursorInput, items: [] },
-    { id: "syntax", label: "Suchsyntax", icon: CircleHelp, items: [] },
+    { id: "syntax", label: "Gespeichert & Syntax", icon: CircleHelp, items: [] },
   ];
 }
 

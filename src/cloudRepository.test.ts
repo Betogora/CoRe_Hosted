@@ -268,7 +268,7 @@ test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleib
     created_at: "2026-11-01T08:00:00+00:00", edited_at: "2026-11-02T08:00:00+00:00", content_kind: "cloze",
     interval_days: 12, difficulty: 6.5, reps: 4, lapses: 1, first_reviewed_at: "2026-11-01T09:00:00+00:00",
     last_again_at: "2026-11-03T09:00:00+00:00", last_hard_at: null, last_good_at: "2026-11-04T09:00:00+00:00",
-    last_easy_at: null, last_rescheduled_at: null,
+    last_easy_at: null, last_rescheduled_at: null, note_type_id: "nt-1", has_outdated_variants: true,
   };
   const delta = { async rpc() { return { data: { changes: [{ table: "card_catalog", row: { ...row, ...history } }, { table: "card_catalog", row: { ...row, id: "card-2" } }], nextCursor: 4, hasMore: false }, error: null }; } };
   const pages: Array<{ table: string; entities: any[] }> = [];
@@ -276,8 +276,8 @@ test("Katalogzeilen bringen Lernverlauf und Werte mit, ein Server ohne sie bleib
 
   const [withHistory, withoutHistory] = pages.find((page) => page.table === "card_catalog")!.entities;
   assert.deepEqual(
-    [withHistory.contentKind, withHistory.intervalDays, withHistory.difficulty, withHistory.reps, withHistory.lapses, withHistory.lastAgainAt, withHistory.lastHardAt],
-    ["cloze", 12, 6.5, 4, 1, "2026-11-03T09:00:00+00:00", null],
+    [withHistory.contentKind, withHistory.intervalDays, withHistory.difficulty, withHistory.reps, withHistory.lapses, withHistory.lastAgainAt, withHistory.lastHardAt, withHistory.noteTypeId, withHistory.hasOutdatedVariants],
+    ["cloze", 12, 6.5, 4, 1, "2026-11-03T09:00:00+00:00", null, "nt-1", true],
   );
   assert.equal(withoutHistory.firstReviewedAt, undefined, "ohne Migration fehlt der Verlauf, die Zeile bleibt gültig");
 });

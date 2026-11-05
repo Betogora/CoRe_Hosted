@@ -17,6 +17,7 @@ const cloudProfile: Profile = {
     deckManagerExpandedDeckIds: [],
     syncIntervalMinutes: 5,
     flagNames: ["", "", "", "", "", "", ""],
+    savedSearches: [],
   },
 };
 

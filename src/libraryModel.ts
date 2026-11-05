@@ -9,7 +9,7 @@ import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
-import { cardSearchDeckTerms, deckPatternMatches, isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
+import { cardSearchContextTerms, deckPatternMatches, isEmptyCardSearch, namePatternMatches, matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 type DateInput = string | number | Date;
@@ -124,11 +124,18 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-/** Resolves the query's terms relative to today's learning day and its `did:` and `deck:` terms to decks with subdecks. */
-export function createCardSearchContext(query: string, decks: Deck[], options: Pick<LibraryOptions, "now" | "dayStartHour" | "timeZone"> = {}): CardSearchContext {
+/**
+ * Resolves the query's terms relative to today's learning day, its `did:` and `deck:` terms to decks with subdecks
+ * and its `note:` terms to the matching note types.
+ */
+export function createCardSearchContext(
+  query: string,
+  decks: Deck[],
+  options: Pick<LibraryOptions, "now" | "dayStartHour" | "timeZone"> & { noteTypes?: readonly { id: string; name: string }[] } = {},
+): CardSearchContext {
   const now = options.now ?? new Date();
   const todayStart = getLearningDayRange(now, { dayStartHour: options.dayStartHour, timeZone: options.timeZone })?.start ?? new Date(now).getTime();
-  const { ids, names } = cardSearchDeckTerms(query);
+  const { deckIds: ids, deckNames: names, noteTypeNames } = cardSearchContextTerms(query);
   const subtree = (deckId: string) => [...collectDeckTreeIds(decks, deckId)];
   return {
     todayStart,
@@ -137,6 +144,10 @@ export function createCardSearchContext(query: string, decks: Deck[], options: P
       deckMatches: Object.fromEntries(names.map((pattern) => [pattern, [...new Set(decks
         .filter((deck) => deckPatternMatches(pattern, (deck.hierarchyPath?.length ? deck.hierarchyPath : [deck.name]).join("::")))
         .flatMap((deck) => subtree(deck.id)))]])),
+    } : {}),
+    ...(noteTypeNames.length ? {
+      noteTypeMatches: Object.fromEntries(noteTypeNames.map((pattern) => [pattern, (options.noteTypes ?? [])
+        .filter((noteType) => namePatternMatches(pattern, noteType.name)).map((noteType) => noteType.id)])),
     } : {}),
   };
 }

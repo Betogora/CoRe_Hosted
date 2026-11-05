@@ -26,6 +26,7 @@ export type Database = {
           first_reviewed_at: string | null
           front_preview: string
           has_active_variants: boolean
+          has_outdated_variants: boolean
           id: string
           interval_days: number
           lapses: number
@@ -38,6 +39,7 @@ export type Database = {
           marked: boolean
           maturity_band: string
           note_id: string
+          note_type_id: string | null
           reps: number
           reviewable: boolean
           schedule_state: string
@@ -64,6 +66,7 @@ export type Database = {
           first_reviewed_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
+          has_outdated_variants?: boolean
           id: string
           interval_days?: number
           lapses?: number
@@ -76,6 +79,7 @@ export type Database = {
           marked?: boolean
           maturity_band?: string
           note_id: string
+          note_type_id?: string | null
           reps?: number
           reviewable?: boolean
           schedule_state?: string
@@ -102,6 +106,7 @@ export type Database = {
           first_reviewed_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
+          has_outdated_variants?: boolean
           id?: string
           interval_days?: number
           lapses?: number
@@ -114,6 +119,7 @@ export type Database = {
           marked?: boolean
           maturity_band?: string
           note_id?: string
+          note_type_id?: string | null
           reps?: number
           reviewable?: boolean
           schedule_state?: string

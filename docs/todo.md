@@ -169,20 +169,19 @@ Referenz gelesen.
   Planänderung (Ankis Vorschaumodus).
 
 - [ ] **KV2 – Erweiterte Suche vervollständigen:** Suchzeile, Chips, Menü
-      mit `CoreTriStateControl` und alle Begriffe aus dem Katalog stehen,
-      einschließlich Lernverlauf, Werten, Inhaltsform und `deck:Name`. Offen,
+      mit `CoreTriStateControl`, gespeicherte Suchen und alle Begriffe aus dem
+      Katalog stehen, einschließlich Lernverlauf, Werten, Inhaltsform,
+      Notiztyp, veralteten Varianten und `deck:Name`. Offen,
       jeweils lokal (`matchesCardSearch`) und in beiden Cloud-RPCs gleich
       ausgewertet, mit Paritätstests:
-      - **KV2b-Rest:** Kartenstatus `Zurückgestellt` (`is:buried`; manuell und
-        als Geschwister, beides heute nur aus den Tagesereignissen und den
-        Stapeloptionen der Lernsitzung abgeleitet), `prop:s` und `prop:r`
-        (Haltbarkeit und Abrufwahrscheinlichkeit aus dem FSRS-7-Zustand, nur im
-        Client berechenbar), Inhalt nach Anki-Notiztyp, Abfrage (`card:`) und
-        veralteten Varianten.
-      - **KV2c – Gespeicherte Suchen:** kontogebunden und synchronisiert, in
-        der Kategorie `Suchsyntax` über der Erklärung. `Speichern` legt oben
-        eine Zeile mit Namensfeld an; ein Klick wendet die Suche an, dazu
-        Umbenennen und Löschen. Braucht eine Schemaergänzung.
+      - **KV2b-Rest, Entscheidung offen:** Kartenstatus `Zurückgestellt`
+        (`is:buried`): Manuelles Zurückstellen steht in den Tagesereignissen,
+        Geschwister-Zurückstellen entsteht erst beim Aufbau der Lernsitzung aus
+        den Stapeloptionen. `prop:s` und `prop:r`: Haltbarkeit und
+        Abrufwahrscheinlichkeit kommen aus dem FSRS-7-Zustand und lassen sich
+        nur im Client berechnen; `prop:r` hängt zudem von der Uhrzeit ab.
+        Abfrage (`card:`): Abfrageschlüssel sind je Inhaltsform verschieden
+        (`forward`, `reverse`, Vorlagennamen, `io:N`).
       - **KV2d – Kombination:** `"Phrase"`, `or` und Klammern; innerhalb
         einer Menügruppe genügt dann ein Treffer, zwischen Gruppen müssen alle
         zutreffen. Keine regulären Ausdrücke.

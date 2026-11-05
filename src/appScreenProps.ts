@@ -5,7 +5,7 @@ import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
 import type { CardStudySnapshot } from "./cloudRepositoryValidation.ts";
-import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, GlobalSchedulerPreferences, LearningProfileTemplate, Note, NoteContent, Profile, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
 import type { SimilarNote } from "./cloudRepositoryValidation.ts";
 import type { TagDirectoryEntry } from "./tagDirectory.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -168,6 +168,8 @@ export interface CardEditorServices {
   listReviewEvents: (cardId: string) => Promise<ReviewEvent[]>;
   /** Tags of the whole account online, of the local replica offline. */
   listTagDirectory: () => Promise<TagDirectoryEntry[]>;
+  /** Anki note types of the account for `note:` (replicated completely). */
+  listNoteTypes: () => Promise<{ id: string; name: string }[]>;
   listExamsForDeck: (deckId: string) => Promise<string[]>;
   /** Loads a neighbouring card ahead so prev/next opens without waiting. */
   prefetchCard: (cardId: string) => void;
@@ -220,6 +222,9 @@ export interface DecksScreenProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
   expandedDeckIds: string[];
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
+  /** Saved searches of the account (`uiPreferences.savedSearches`); the whole list is written at once. */
+  savedSearches: readonly SavedCardSearch[];
+  onSavedSearchesChange: (searches: SavedCardSearch[]) => unknown;
   cardPages?: Readonly<Record<string, DecksCardPage | undefined>>;
   onRequestCardPage?: (request: DecksCardPageRequest) => unknown;
   syncConflictCardIds?: ReadonlySet<string>;

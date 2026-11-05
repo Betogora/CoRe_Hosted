@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  cardSearchDeckTerms,
+  cardSearchContextTerms,
   cardSearchTermState,
   cardSearchTerms,
   deckPatternMatches,
+  namePatternMatches,
   cardSearchText,
   matchesCardSearch,
   parseCardSearchQuery,
@@ -82,7 +83,7 @@ test("Zustand, Reife, Varianten, Stapel und Fälligkeit werten den Lernstand aus
   assert.equal(matchesCardSearch(entry({ hasActiveVariants: true }), parseCardSearchQuery("-has:variant", context)), false);
   assert.equal(matchesCardSearch(entry({ deckId: "deck-a1" }), parseCardSearchQuery("did:deck-a", context)), true, "Unterstapel zählen mit");
   assert.equal(matchesCardSearch(entry({ deckId: "deck-b" }), parseCardSearchQuery("did:deck-a", context)), false);
-  assert.deepEqual(cardSearchDeckTerms("did:deck-a -did:deck-b did:deck-a deck:Bio::* herz"), { ids: ["deck-a", "deck-b"], names: ["bio::*"] });
+  assert.deepEqual(cardSearchContextTerms("did:deck-a -did:deck-b did:deck-a deck:Bio::* note:Basic herz"), { deckIds: ["deck-a", "deck-b"], deckNames: ["bio::*"], noteTypeNames: ["basic"] });
   // Today runs from 04:00 to 04:00 the next day.
   assert.equal(matchesCardSearch(entry({ dueAt: "2026-11-06T03:59:00.000Z" }), parseCardSearchQuery("is:due", context)), true);
   assert.equal(matchesCardSearch(entry({ dueAt: "2026-11-06T04:00:00.000Z" }), parseCardSearchQuery("is:due", context)), false);
@@ -149,4 +150,16 @@ test("deck: findet Stapel nach Pfad wie Anki, samt Unterstapeln und Platzhaltern
   const context = { ...TODAY, deckMatches: { "bio*": ["deck-a", "deck-a1"] } };
   assert.equal(matchesCardSearch(entry({ deckId: "deck-a1" }), parseCardSearchQuery("deck:Bio*", context)), true);
   assert.equal(matchesCardSearch(entry({ deckId: "deck-a1" }), parseCardSearchQuery("deck:physik", context)), false, "unbekannter Stapel trifft nichts");
+});
+
+test("note:, mid: und has:outdated prüfen Notiztyp und veraltete Varianten", () => {
+  const context = { ...TODAY, noteTypeMatches: { "basic*": ["nt-1", "nt-3"] } };
+  assert.equal(matchesCardSearch(entry({ noteTypeId: "nt-3" }), parseCardSearchQuery("note:Basic*", context)), true);
+  assert.equal(matchesCardSearch(entry({ noteTypeId: null }), parseCardSearchQuery("note:Basic*", context)), false, "eigene Inhalte haben keinen Notiztyp");
+  assert.equal(matchesCardSearch(entry({ noteTypeId: null }), parseCardSearchQuery("-note:Basic*", context)), true);
+  assert.equal(matchesCardSearch(entry({ noteTypeId: "nt-2" }), parseCardSearchQuery("mid:nt-2", context)), true);
+  assert.equal(matchesCardSearch(entry({ hasOutdatedVariants: true }), parseCardSearchQuery("has:outdated", context)), true);
+  assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("has:outdated", context)), false, "ein alter Katalogeintrag ohne Feld trifft nicht");
+  assert.equal(namePatternMatches("basic", "Basic (and reversed)"), false, "ohne Platzhalter nur der ganze Name");
+  assert.equal(namePatternMatches("basic_(and_reversed)", "Basic (and reversed)"), true);
 });

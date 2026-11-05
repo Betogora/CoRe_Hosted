@@ -1,4 +1,4 @@
-import type { SyncIntervalMinutes, UiPreferences } from "./coreTypes.ts";
+import type { SavedCardSearch, SyncIntervalMinutes, UiPreferences } from "./coreTypes.ts";
 
 export type DeckExpansionSurface = "dashboard" | "learn" | "deck-manager";
 
@@ -8,7 +8,12 @@ export const DEFAULT_UI_PREFERENCES: UiPreferences = {
   deckManagerExpandedDeckIds: [],
   syncIntervalMinutes: 5,
   flagNames: ["", "", "", "", "", "", ""],
+  savedSearches: [],
 };
+
+export const SAVED_SEARCH_LIMIT = 100;
+export const SAVED_SEARCH_NAME_LENGTH = 60;
+const SAVED_SEARCH_QUERY_LENGTH = 1_000;
 
 const SYNC_INTERVALS = new Set<SyncIntervalMinutes>([0, 1, 5, 15, 30]);
 
@@ -21,6 +26,24 @@ function normalizeSyncInterval(value: unknown): SyncIntervalMinutes {
 export function normalizeFlagNames(value: unknown): string[] {
   const names = Array.isArray(value) ? value : [];
   return Array.from({ length: 7 }, (_, index) => typeof names[index] === "string" ? names[index].trim().slice(0, 40) : "");
+}
+
+/** Saved searches with an id, a name and a query; duplicates by id and anything beyond the limit are dropped. */
+function normalizeSavedSearches(value: unknown): SavedCardSearch[] {
+  if (!Array.isArray(value)) return [];
+  const ids = new Set<string>();
+  const searches: SavedCardSearch[] = [];
+  for (const entry of value) {
+    const { id, name, query } = (entry && typeof entry === "object" ? entry : {}) as Record<string, unknown>;
+    if (typeof id !== "string" || !id || ids.has(id) || typeof name !== "string" || typeof query !== "string") continue;
+    const trimmedName = name.trim().slice(0, SAVED_SEARCH_NAME_LENGTH);
+    const trimmedQuery = query.trim().slice(0, SAVED_SEARCH_QUERY_LENGTH);
+    if (!trimmedName || !trimmedQuery) continue;
+    ids.add(id);
+    searches.push({ id, name: trimmedName, query: trimmedQuery });
+    if (searches.length === SAVED_SEARCH_LIMIT) break;
+  }
+  return searches;
 }
 
 function normalizeDeckIds(value: unknown): string[] {
@@ -36,6 +59,7 @@ export function normalizeUiPreferences(value: unknown): UiPreferences {
     deckManagerExpandedDeckIds: normalizeDeckIds(preferences.deckManagerExpandedDeckIds),
     syncIntervalMinutes: normalizeSyncInterval(preferences.syncIntervalMinutes),
     flagNames: normalizeFlagNames(preferences.flagNames),
+    savedSearches: normalizeSavedSearches(preferences.savedSearches),
   };
 }
 

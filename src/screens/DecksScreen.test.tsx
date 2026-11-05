@@ -58,6 +58,7 @@ const CARD_EDITOR_SERVICES: CardEditorServices = {
   loadCard: async () => null,
   listReviewEvents: async () => [],
   listTagDirectory: async () => [],
+  listNoteTypes: async () => [],
   listExamsForDeck: async () => [],
   prefetchCard: () => undefined,
   cloud: null,
@@ -101,6 +102,8 @@ function renderScreen(decks: Deck[], overrides: Partial<DecksScreenProps> = {}) 
     onDraftStateChange: () => undefined,
     expandedDeckIds: [],
     onSetDeckExpanded: () => undefined,
+    savedSearches: [],
+    onSavedSearchesChange: () => undefined,
     ...overrides,
   };
   return renderToStaticMarkup(<DecksScreen {...props} />);

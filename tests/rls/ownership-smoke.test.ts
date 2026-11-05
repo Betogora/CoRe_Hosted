@@ -456,6 +456,11 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await prop("reps", "!=", 0), false);
       assert.equal(await hitsWith([{ kind: "form", value: "reveal", negated: false }]), true);
       assert.equal(await hitsWith([{ kind: "form", value: "cloze", negated: false }]), false);
+      // Note type and outdated variants (KV2b-Rest): the fixture's own content has no Anki note type.
+      assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: true }]), true, "ohne Notiztyp trifft die Verneinung");
+      assert.equal(await hitsWith([{ kind: "outdated", negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "outdated", negated: true }]), true);
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});

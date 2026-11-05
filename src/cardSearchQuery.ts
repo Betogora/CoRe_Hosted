@@ -8,7 +8,8 @@ const DAY_MS = 86_400_000;
  * `tag:marked`, `is:suspended|new|learn|review|young|mature|due`, `prop:due<n` (days from today, also `<=`, `=`,
  * `>=`, `>`), `has:variant`, `did:<deck id>` and `deck:Name` (the deck with its subdecks; `*` and `_` as wildcards),
  * `added:n`, `edited:n`, `introduced:n`, `resched:n`, `rated:n` and `rated:n:1` to `4` (today and the n - 1 days before),
- * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`
+ * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`,
+ * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant)
  * and `Feld:Text` for text in one named field; a leading `-` negates a term. All terms must match.
  *
  * Terms relative to today or to the deck tree are resolved against a `CardSearchContext`, so the local search and
@@ -28,7 +29,8 @@ type CardSearchTerm =
   /** Interval and difficulty only count for cards that are not new; `value` is in days or on the scale of 1 to 10. */
   | { kind: "prop"; field: PropField; operator: PropOperator; value: number; negated: boolean }
   | { kind: "form"; value: NoteInteraction["kind"]; negated: boolean }
-  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant"; negated: boolean };
+  | { kind: "notetype"; ids: string[]; negated: boolean }
+  | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean };
 
 type SinceField = "added" | "edited" | "introduced" | "rescheduled" | "rated";
 type PropField = "ivl" | "d" | "reps" | "lapses";
@@ -41,6 +43,8 @@ export interface CardSearchContext {
   deckSubtrees?: Readonly<Record<string, readonly string[]>>;
   /** Deck ids matching a `deck:` pattern with their subdecks, keyed by the lower-case pattern. */
   deckMatches?: Readonly<Record<string, readonly string[]>>;
+  /** Note type ids whose name matches a `note:` pattern, keyed by the lower-case pattern. */
+  noteTypeMatches?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** Keys of Anki's search syntax (and CoRe's `has:`); any other `name:text` searches the field of that name. */
@@ -54,7 +58,7 @@ export interface CardSearchQuery {
 
 type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
   | "createdAt" | "editedAt" | "contentKind" | "intervalDays" | "difficulty" | "reps" | "lapses"
-  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt">;
+  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants">;
 
 const RATINGS: readonly ReviewRating[] = ["again", "hard", "good", "easy"];
 const CONTENT_FORMS: Readonly<Record<string, NoteInteraction["kind"]>> = { reveal: "reveal", choice: "choice", cloze: "cloze", occlusion: "image-occlusion" };
@@ -97,15 +101,17 @@ function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm |
       negated: since[1] === "-",
     };
   }
-  const match = /^(-?)(flag|tag|is|has|did|deck):(.+)$/i.exec(token);
+  const match = /^(-?)(flag|tag|is|has|did|deck|note|mid):(.+)$/i.exec(token);
   if (!match) return null;
   const negated = match[1] === "-";
   const key = match[2].toLowerCase();
   if (key === "did") return { kind: "deck", ids: [...(context?.deckSubtrees?.[match[3]] ?? [match[3]])], negated };
   if (key === "deck") return { kind: "deck", ids: [...(context?.deckMatches?.[match[3].toLocaleLowerCase("und")] ?? [])], negated };
+  if (key === "mid") return { kind: "notetype", ids: [match[3]], negated };
+  if (key === "note") return { kind: "notetype", ids: [...(context?.noteTypeMatches?.[match[3].toLocaleLowerCase("und")] ?? [])], negated };
   const value = match[3].toLocaleLowerCase("und");
   if (key === "flag") return /^[0-7]$/.test(value) ? { kind: "flag", value: Number(value), negated } : null;
-  if (key === "has") return value === "variant" ? { kind: "variant", negated } : null;
+  if (key === "has") return value === "variant" ? { kind: "variant", negated } : value === "outdated" ? { kind: "outdated", negated } : null;
   if (key === "is") {
     if (value === "suspended") return { kind: "suspended", negated };
     if (value === "new" || value === "learn" || value === "review") return { kind: "state", value, negated };
@@ -140,22 +146,30 @@ export function unsupportedCardSearchTerms(query: unknown): string[] {
   });
 }
 
-/** Deck ids of the `did:` terms and lower-case patterns of the `deck:` terms; the caller resolves both for the context. */
-export function cardSearchDeckTerms(query: unknown): { ids: string[]; names: string[] } {
-  const ids = new Set<string>();
-  const names = new Set<string>();
+/** Values of the `did:`, `deck:` and `note:` terms (patterns in lower case); the caller resolves them for the context. */
+export function cardSearchContextTerms(query: unknown): { deckIds: string[]; deckNames: string[]; noteTypeNames: string[] } {
+  const found = { did: new Set<string>(), deck: new Set<string>(), note: new Set<string>() };
   for (const token of String(query ?? "").trim().split(/\s+/)) {
-    const match = /^-?(did|deck):(.+)$/i.exec(token);
-    if (match?.[1].toLowerCase() === "did") ids.add(match[2]);
-    else if (match) names.add(match[2].toLocaleLowerCase("und"));
+    const match = /^-?(did|deck|note):(.+)$/i.exec(token);
+    if (!match) continue;
+    const key = match[1].toLowerCase() as keyof typeof found;
+    found[key].add(key === "did" ? match[2] : match[2].toLocaleLowerCase("und"));
   }
-  return { ids: [...ids], names: [...names] };
+  return { deckIds: [...found.did], deckNames: [...found.deck], noteTypeNames: [...found.note] };
+}
+
+function wildcardSource(pattern: string): string {
+  return [...pattern].map((char) => char === "*" ? ".*" : char === "_" ? "." : char.replace(/[.+?^$()|[\]{}\\]/g, "\\$&")).join("");
 }
 
 /** Whether a deck path (`A::B`) matches a `deck:` pattern like Anki: `*` any text, `_` one character, subdecks included. */
 export function deckPatternMatches(pattern: string, path: string): boolean {
-  const source = [...pattern].map((char) => char === "*" ? ".*" : char === "_" ? "." : char.replace(/[.+?^$()|[\]{}\\]/g, "\\$&")).join("");
-  return new RegExp(`^${source}(?:::.*)?$`, "iu").test(path);
+  return new RegExp(`^${wildcardSource(pattern)}(?:::.*)?$`, "iu").test(path);
+}
+
+/** Whether a note type name matches a `note:` pattern with the same wildcards. */
+export function namePatternMatches(pattern: string, name: string): boolean {
+  return new RegExp(`^${wildcardSource(pattern)}$`, "iu").test(name);
 }
 
 function sinceValue(entry: SearchableEntry, term: Extract<CardSearchTerm, { kind: "since" }>): string | null | undefined {
@@ -208,6 +222,8 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
       return value !== undefined && compares(value, term.operator, term.value);
     }
     case "form": return entry.contentKind === term.value;
+    case "notetype": return Boolean(entry.noteTypeId) && term.ids.includes(entry.noteTypeId!);
+    case "outdated": return entry.hasOutdatedVariants === true;
     case "tag-none": return entry.tagKeys.length === 0;
     case "leech": return entry.leeched;
     case "marked": return entry.marked;

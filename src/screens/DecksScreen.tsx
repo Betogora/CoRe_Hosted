@@ -192,6 +192,8 @@ export function DecksScreen({
   onDraftStateChange,
   expandedDeckIds,
   onSetDeckExpanded,
+  savedSearches,
+  onSavedSearchesChange,
   cardPages,
   onRequestCardPage,
   syncConflictCardIds,
@@ -239,14 +241,21 @@ export function DecksScreen({
   const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);
   const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
   const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
+  const [noteTypes, setNoteTypes] = React.useState<Awaited<ReturnType<typeof cardEditor.listNoteTypes>>>([]);
   React.useEffect(() => {
     if (!advancedSearchOpen) return;
     let current = true;
     void cardEditor.listTagDirectory().then((entries) => { if (current) setTagDirectory(entries); }).catch(() => undefined);
     return () => { current = false; };
   }, [advancedSearchOpen, cardEditor]);
-  const searchMenu = React.useMemo(() => createCardSearchMenu({ decks: libraryDecks, tags: tagDirectory, flagNames: cardEditor.flagNames }), [cardEditor.flagNames, libraryDecks, tagDirectory]);
-  const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone }), [dayStartHour, decks, deferredQuery, now, timeZone]);
+  // Note types resolve typed `note:` terms too, so they load with the screen and again with the menu.
+  React.useEffect(() => {
+    let current = true;
+    void cardEditor.listNoteTypes().then((entries) => { if (current) setNoteTypes(entries); }).catch(() => undefined);
+    return () => { current = false; };
+  }, [advancedSearchOpen, cardEditor]);
+  const searchMenu = React.useMemo(() => createCardSearchMenu({ decks: libraryDecks, tags: tagDirectory, flagNames: cardEditor.flagNames, noteTypes }), [cardEditor.flagNames, libraryDecks, noteTypes, tagDirectory]);
+  const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone, noteTypes }), [dayStartHour, decks, deferredQuery, noteTypes, now, timeZone]);
   function changeQuery(next: string) {
     setQuery(next);
     setCardPageByDeckId({});
@@ -780,6 +789,8 @@ export function DecksScreen({
                   categories={searchMenu}
                   resultCount={searchResultCount}
                   onClose={() => setAdvancedSearchOpen(false)}
+                  savedSearches={savedSearches}
+                  onSavedSearchesChange={onSavedSearchesChange}
                 />
               ) : null}
             </CardSearchBar>

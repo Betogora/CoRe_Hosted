@@ -71,6 +71,9 @@ export interface CardCatalogEntry {
   lastGoodAt?: string | null;
   lastEasyAt?: string | null;
   lastRescheduledAt?: string | null;
+  /** Anki note type (`note:`) of the content and whether a variant of the card is outdated (`has:outdated`). */
+  noteTypeId?: string | null;
+  hasOutdatedVariants?: boolean;
   bodyRevision: number;
   studyRevision: number;
   dependencyRevision: number;
@@ -312,7 +315,8 @@ export function catalogEntryFromCard(card: Card, note: Note | null, history?: Ca
     activeVariantCount: activeVariants.length,
     activeVariantId: activeVariants[0]?.id ?? null,
     createdAt: card.createdAt,
-    ...(note ? { editedAt: note.updatedAt, contentKind: note.content.interaction.kind } : {}),
+    ...(note ? { editedAt: note.updatedAt, contentKind: note.content.interaction.kind, noteTypeId: note.noteTypeSourceId } : {}),
+    hasOutdatedVariants: card.variants.some((variant) => !variant.deletedAt && variant.meta.outdated === true),
     intervalDays: card.study.intervalDays,
     difficulty: card.study.difficulty,
     reps: card.study.reps,

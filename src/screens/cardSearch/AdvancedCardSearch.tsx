@@ -1,9 +1,12 @@
 import React from "react";
-import { ArrowLeft, Check, ChevronRight, Copy, Plus, RotateCcw, X } from "lucide-react";
-import { cardSearchTermState, cardSearchTermsOfKind, withCardSearchTermState } from "../../cardSearchQuery.ts";
+import { ArrowLeft, BookmarkPlus, Check, ChevronRight, Copy, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import { cardSearchTermState, cardSearchTerms, cardSearchTermsOfKind, cardSearchText, withCardSearchTermState } from "../../cardSearchQuery.ts";
 import { fieldSearchKey } from "../../coreModel.ts";
+import type { SavedCardSearch } from "../../coreTypes.ts";
+import { SAVED_SEARCH_LIMIT, SAVED_SEARCH_NAME_LENGTH } from "../../uiPreferences.ts";
 import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
 import { CoreTriStateControl } from "../../ui/coreUi.tsx";
+import { useSuccessToast } from "../../ui/feedbackUi.tsx";
 import { FlagDot } from "../../ui/flagUi.tsx";
 import { CoreSelect } from "../../ui/selectUi.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
@@ -32,6 +35,7 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["added:1  edited:1  introduced:1  resched:1", "heute hinzugefügt, bearbeitet, erstmals gelernt, neu geplant"],
   ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch <, <=, =, !="],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
+  ["note:Basic  has:outdated", "Anki-Notiztyp (wie deck: mit * und _), Karten mit veralteter Variante"],
 ];
 
 /** Categories whose terms are written with a small form instead of fixed rows. */
@@ -156,9 +160,119 @@ function PropTerms({ terms, query, onQueryChange, categories }: { terms: string[
   );
 }
 
+/** Name a new saved search starts with: its readable filters and its free text. */
+export function suggestedSearchName(query: string, categories: readonly CardSearchMenuCategory[]): string {
+  const filters = cardSearchTerms(query).map((term) => {
+    const { label, negated } = cardSearchTermLabel(term, categories);
+    return negated ? `ohne ${label}` : label;
+  });
+  return [...filters, cardSearchText(query)].filter(Boolean).join(", ").slice(0, SAVED_SEARCH_NAME_LENGTH);
+}
+
+function NameForm({ initialName, label, submitLabel, onSubmit, onCancel }: {
+  initialName: string;
+  label: string;
+  submitLabel: string;
+  onSubmit: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = React.useState(initialName);
+  return (
+    <form
+      className="flex min-w-0 items-center gap-2 py-1"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (name.trim()) onSubmit(name.trim());
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          onCancel();
+        }
+      }}
+    >
+      <input className="core-field min-w-0 flex-1" value={name} maxLength={SAVED_SEARCH_NAME_LENGTH} aria-label={label} autoFocus onFocus={(event) => event.currentTarget.select()} onChange={(event) => setName(event.target.value)} />
+      <ActionButton type="submit" variant="secondary" icon={Check} disabled={!name.trim()} className="max-sm:hidden">{submitLabel}</ActionButton>
+      <IconButton type="submit" label={submitLabel} icon={Check} disabled={!name.trim()} className="sm:hidden" />
+      <IconButton type="button" label="Abbrechen" icon={X} variant="ghost" onClick={onCancel} />
+    </form>
+  );
+}
+
+/** Saved searches (KV2c): a click applies one, the current one is marked; renaming in place, deleting with undo. */
+function SavedSearches({ query, onQueryChange, searches, onSearchesChange, draftName, onDraftDone }: {
+  query: string;
+  onQueryChange: (query: string) => void;
+  searches: readonly SavedCardSearch[];
+  onSearchesChange: (searches: SavedCardSearch[]) => void;
+  /** Name for a new saved search of the current query; null while none is being named. */
+  draftName: string | null;
+  onDraftDone: () => void;
+}) {
+  const [renamingId, setRenamingId] = React.useState<string | null>(null);
+  const setToast = useSuccessToast();
+  const latest = React.useRef(searches);
+  latest.current = searches;
+  const expression = query.trim();
+  return (
+    <section className="grid min-w-0 gap-2" aria-labelledby="saved-searches-heading">
+      <h3 id="saved-searches-heading" className="core-body font-semibold text-core-text">Gespeicherte Suchen</h3>
+      {draftName !== null ? (
+        <NameForm initialName={draftName} label="Name der Suche" submitLabel="Speichern" onCancel={onDraftDone} onSubmit={(name) => {
+          onSearchesChange([...latest.current, { id: crypto.randomUUID(), name, query: expression }]);
+          onDraftDone();
+          setToast(`Suche „${name}“ gespeichert.`);
+        }} />
+      ) : null}
+      {searches.length ? (
+        <ul className="grid min-w-0">
+          {searches.map((search, index) => (
+            <li key={search.id} className="min-w-0 border-b border-core-border last:border-b-0">
+              {renamingId === search.id ? (
+                <NameForm initialName={search.name} label={`Neuer Name für „${search.name}“`} submitLabel="Umbenennen" onCancel={() => setRenamingId(null)} onSubmit={(name) => {
+                  onSearchesChange(latest.current.map((entry) => entry.id === search.id ? { ...entry, name } : entry));
+                  setRenamingId(null);
+                }} />
+              ) : (
+                <div className="flex min-h-[2.875rem] min-w-0 items-center gap-1 py-1">
+                  <button
+                    type="button"
+                    aria-current={search.query === expression ? "true" : undefined}
+                    className="grid min-w-0 flex-1 rounded-inset px-1 py-1 text-left hover:bg-core-subtle aria-[current=true]:text-core-action"
+                    onClick={() => onQueryChange(search.query)}
+                  >
+                    <span className="truncate core-body font-semibold">{search.name}</span>
+                    <code className="truncate font-mono core-caption text-core-muted">{search.query}</code>
+                  </button>
+                  <IconButton type="button" label={`„${search.name}“ umbenennen`} icon={Pencil} variant="ghost" onClick={() => setRenamingId(search.id)} />
+                  <IconButton type="button" label={`„${search.name}“ löschen`} icon={Trash2} variant="destructive-quiet" onClick={() => {
+                    onSearchesChange(latest.current.filter((entry) => entry.id !== search.id));
+                    setToast(`Suche „${search.name}“ gelöscht.`, {
+                      appearance: "neutral",
+                      action: {
+                        label: "Rückgängig",
+                        onAction: () => {
+                          const next = [...latest.current];
+                          next.splice(Math.min(index, next.length), 0, search);
+                          onSearchesChange(next);
+                        },
+                      },
+                    });
+                  }} />
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : draftName === null ? <p className="core-body text-core-muted">Keine gespeicherten Suchen</p> : null}
+    </section>
+  );
+}
+
 function SyntaxHelp() {
   return (
     <div className="grid min-w-0 gap-3">
+      <h3 className="core-body font-semibold text-core-text">Suchsyntax</h3>
       <p className="core-body text-core-secondary">
         Eine Karte erscheint nur, wenn alle Begriffe zutreffen.
         Jede Zeile filtert mit, ohne oder egal; Begriffe im Suchfeld wirken genauso und erscheinen als Filter.
@@ -182,17 +296,20 @@ function SyntaxHelp() {
  * three-position switch on the right, above them the whole search expression. Below 768 px a full screen sheet
  * that shows the category list first.
  */
-export function AdvancedCardSearch({ id, query, onQueryChange, categories, resultCount, onClose }: {
+export function AdvancedCardSearch({ id, query, onQueryChange, categories, resultCount, onClose, savedSearches, onSavedSearchesChange }: {
   id: string;
   query: string;
   onQueryChange: (query: string) => void;
   categories: readonly CardSearchMenuCategory[];
   resultCount: number | null;
   onClose: () => void;
+  savedSearches: readonly SavedCardSearch[];
+  onSavedSearchesChange: (searches: SavedCardSearch[]) => void;
 }) {
   const [activeId, setActiveId] = React.useState<CardSearchMenuCategory["id"]>("heute");
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
+  const [draftName, setDraftName] = React.useState<string | null>(null);
   const active = categories.find((category) => category.id === activeId) ?? categories[0];
   const writtenOf = (category: CardSearchMenuCategory) => category.id in WRITTEN_KINDS ? writtenTerms(query, category.id as WrittenCategory, categories) : [];
   const activeCount = (category: CardSearchMenuCategory) => category.items.filter((item) => cardSearchTermState(query, item.term)).length
@@ -220,6 +337,13 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
                 setCopied(true);
                 window.setTimeout(() => setCopied(false), 1500);
               });
+            }} />
+          </CoreTooltip>
+          <CoreTooltip label={savedSearches.length >= SAVED_SEARCH_LIMIT ? `Höchstens ${SAVED_SEARCH_LIMIT} gespeicherte Suchen` : "Suche speichern"}>
+            <IconButton icon={BookmarkPlus} variant="ghost" label="Suche speichern" disabled={!expression || savedSearches.length >= SAVED_SEARCH_LIMIT} onClick={() => {
+              setActiveId("syntax");
+              setMobileOpen(true);
+              setDraftName(suggestedSearchName(query, categories));
             }} />
           </CoreTooltip>
         </div>
@@ -251,12 +375,17 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
           </ul>
         </nav>
         <div className={`min-w-0 ${mobileOpen ? "" : "max-md:hidden"}`} data-testid={`advanced-card-search-${active.id}`}>
-          {active.id === "syntax" ? <SyntaxHelp />
+          {active.id === "syntax" ? (
+            <div className="grid min-w-0 gap-6">
+              <SavedSearches query={query} onQueryChange={onQueryChange} searches={savedSearches} onSearchesChange={onSavedSearchesChange} draftName={draftName} onDraftDone={() => setDraftName(null)} />
+              <SyntaxHelp />
+            </div>
+          )
             : active.id === "felder" ? <FieldTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} />
             : active.id === "zeitraum" ? <SinceTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
             : active.id === "werte" ? <PropTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
               : active.items.length ? (
-                <ul className={`grid min-w-0 ${active.id === "stapel" || active.id === "tags" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
+                <ul className={`grid min-w-0 ${active.id === "stapel" || active.id === "tags" || active.id === "inhalt" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
                   {active.items.map((item) => <TermRow key={item.term} item={item} query={query} onQueryChange={onQueryChange} />)}
                 </ul>
               ) : <p className="core-body text-core-muted">Keine Einträge</p>}

@@ -22,6 +22,7 @@ function completeProfile(userId: string) {
       deckManagerExpandedDeckIds: [],
       syncIntervalMinutes: 5 as const,
       flagNames: ["", "", "", "", "", "", ""],
+      savedSearches: [],
     },
   };
 }

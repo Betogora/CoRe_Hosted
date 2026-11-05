@@ -1,5 +1,5 @@
 import React from "react";
-import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SyncStatus } from "./coreTypes.ts";
+import type { Card, CardStudyState, CardStudyStatePatch, CoreMode, Deck, ExamDailyTask, ExamPlanningSettings, ImportVerificationScope, LearningProfileTemplate, NewReviewOrder, Note, NoteContent, ReviewEvent, SavedCardSearch, SyncStatus } from "./coreTypes.ts";
 import type { ImportCommitGraph, ImportMediaFile } from "./apkgImport.ts";
 import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
@@ -580,6 +580,7 @@ export function App() {
         if (!cloud || (typeof navigator !== "undefined" && navigator.onLine === false)) return local();
         return (await import("./cloudRepository.ts")).listAccountTags(cloud).catch(local);
       },
+      listNoteTypes: async () => repository().listNoteTypes(),
       prefetchCard: (cardId) => actions().prefetchCard(cardId),
       listExamsForDeck: async (deckId) => {
         const currentState = latestStateRef.current;
@@ -1671,6 +1672,17 @@ export function App() {
     }), { preserveCardPages: true });
   }
 
+  function saveSearches(searches: SavedCardSearch[]) {
+    const currentState = latestStateRef.current;
+    if (!workspaceRepository || !currentState) return null;
+    const profile = currentState.profile;
+    return runRepositoryMutation((repository) => repository.saveProfile({
+      ...profile,
+      // saveProfile normalizes the preferences (limit, lengths, duplicate ids).
+      uiPreferences: { ...profile.uiPreferences, savedSearches: searches },
+    }), { preserveCardPages: true });
+  }
+
   async function prepareDeckStart(deck: { id: string; }) {
     const currentRoute = getStudyReturnRoute();
     const returnRoute = activeView === "kartenstapel"
@@ -1929,6 +1941,8 @@ export function App() {
           onDraftStateChange={handleCardDraftStateChange}
           expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
           onSetDeckExpanded={saveDeckExpansion}
+          savedSearches={state.profile.uiPreferences.savedSearches}
+          onSavedSearchesChange={saveSearches}
           onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
             view: "decks",
             ...(selectedCardId ? { cardId: selectedCardId } : {}),
