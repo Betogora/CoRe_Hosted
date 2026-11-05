@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { htmlPage, inlineScript, markdownAnchor, renderMarkdown } from "./docsSite.ts";
 import { runInNewContext } from "node:vm";
-import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsCatalog } from "./generateDocs.ts";
+import { cardHistoryCards, codeFootprint, codeFootprintMarkup, createCatalogData, journeyProjection, journeySpecsLinks, specsDocument } from "./generateDocs.ts";
 import { EXAMPLE_CHAINS, EXAMPLE_RETENTIONS } from "../src/schedulerExampleChains.ts";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -23,7 +23,7 @@ test("Eingebettete Bibliothekszeichen bleiben gültiges HTML und behalten ihre J
 });
 
 test("Jede Leseseite führt Seitenwechsel, Suche und Inhalt untereinander in der Seitenleiste statt einer Kopfleiste", () => {
-  const html = htmlPage("specs.html", "<p>Inhalt</p>", "", "", { toc: '<a href="#specs--1-begriffe">1. Begriffe</a>' });
+  const html = htmlPage("specs.html", "<p>Inhalt</p>", "", "");
   assert.doesNotMatch(html, /<header/);
   const sidebar = html.match(/<body><div class="docs-frame"><aside class="docs-sidebar">([\s\S]*?)<\/aside><main class="docs-main"><p>Inhalt<\/p><\/main>/)![1];
   const panels = [...sidebar.matchAll(/<(?:nav|div) class="docs-panel ([a-z-]+)"/g)].map((match) => match[1]);
@@ -31,7 +31,7 @@ test("Jede Leseseite führt Seitenwechsel, Suche und Inhalt untereinander in der
   assert.match(sidebar, /<a href="specs.html" aria-current="page">Specs<\/a>/);
   assert.match(sidebar, /id="docs-theme" aria-label="Dark Mode einschalten"/);
   assert.match(sidebar, /<span class="catalog-search-label">Specs durchsuchen<\/span><svg[\s\S]*?<input id="docs-search" type="search"/);
-  assert.match(sidebar, /<div id="docs-toc" class="docs-panel-links"><a href="#specs--1-begriffe">1\. Begriffe<\/a><\/div>/);
+  assert.match(sidebar, /<div id="docs-toc" class="docs-panel-links"><\/div>/);
 });
 
 test("Markdown-Anker erhalten Unicode, doppelte Überschriften und direkte Abschnittslinks", () => {
@@ -77,44 +77,34 @@ test("Journey-Projektion zeigt je Kernjourney ihren Ablauf und verlinkt die Akze
   }
 });
 
-test("Specs-Leseansicht bildet Titel, Kapitel und Unterabschnitte auf Hero, Kapitel und Karten ab", () => {
-  const { html, toc } = specsCatalog([
-    "# Vertrag", "", "**Status:** Entwurf", "**Stand:** 2026-01-01", "", "Einleitung mit [Docs](README.md).", "", "---", "",
+test("Specs-Leseansicht zeigt Kapitel und Abschnitte als Überschriften und Rasterzeilen als Labels", () => {
+  const html = specsDocument([
+    "# Vertrag", "", "**Stand:** 2026-01-01", "", "---", "",
     "## 1. Begriffe", "", "| A | B |", "| --- | --- |", "| 1 | 2 |", "",
-    "## 2. Abläufe", "", "Einführung.", "", "- Vorab", "",
-    "### Kurz", "", "Zweck:", "", "Text.", "", "Zustände und Meldungen:", "", "- Punkt", "", "#### Detail", "", "Mehr.", "",
-    "### Lang", "", ...Array.from({ length: 7 }, (_, index) => `- Regel ${index}`), "",
-  ].join("\n"));
-  assert.match(html, /<header class="catalog-hero">[\s\S]*<h1 id="specs--vertrag">Vertrag<\/h1><p class="catalog-lede">Einleitung mit <a href="index.html#readme--document">/);
-  assert.match(html, /<ul class="specs-meta"><li class="core-status-label"><span>Status<\/span> Entwurf<\/li><li class="core-status-label"><span>Stand<\/span> 2026-01-01<\/li><\/ul>/);
-  assert.deepEqual(toc.match(/href="#[^"]+"/g), ['href="#specs--1-begriffe"', 'href="#specs--2-abläufe"']);
-  assert.match(html, /<section id="specs--1-begriffe" class="catalog-section"><div class="catalog-section-heading"><h2>1\. Begriffe<\/h2><\/div><div class="catalog-grid"><article id="specs--1-begriffe--inhalt" class="catalog-card catalog-card-wide"><div class="catalog-preview specs-prose"><div class="docs-table-scroll"/);
-  assert.match(html, /<h2>2\. Abläufe<\/h2><p>Einführung\.<\/p>\n*<\/div>/);
-  assert.match(html, /id="specs--2-abläufe--überblick" class="catalog-card"><div class="catalog-card-header"><h3>Überblick<\/h3>/);
-  assert.match(html, /id="specs--kurz" class="catalog-card"><div class="catalog-card-header"><h3>Kurz<\/h3>[\s\S]*<p class="catalog-label">Zweck<\/p>[\s\S]*<p class="catalog-label">Zustände und Meldungen<\/p>[\s\S]*<h4 id="specs--detail" class="catalog-label" tabindex="-1">Detail<\/h4>/);
-  assert.match(html, /id="specs--lang" class="catalog-card catalog-card-wide"/);
-  assert.match(html, /<p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche\.<\/p>/);
+    "### Kurz", "", "Zweck:", "", "Text.", "", "Zustände und Meldungen:", "", "- Punkt", "",
+  ].join("\n"), { title: "Anhang", html: "<p>Zahlen</p>" });
+  assert.match(html, /^<article id="specs--document" class="docs-document"><h1 id="specs--vertrag"/);
+  assert.doesNotMatch(html, /<hr>|catalog-card/);
+  assert.match(html, /<h2 id="specs--1-begriffe"[\s\S]*<h3 id="specs--kurz"[\s\S]*<p class="docs-label">Zweck<\/p>[\s\S]*<p class="docs-label">Zustände und Meldungen<\/p>/);
+  assert.match(html, /<h2 id="specs--anhang"[^>]*>Anhang[\s\S]*<p>Zahlen<\/p><\/article>$/);
 });
 
-test("Specs-Leseansicht enthält je Kapitel einen Navigationseintrag, je Unterabschnitt eine Karte und gültige Anker", () => {
+test("Specs-Leseansicht enthält jede Überschrift und nur gültige Anker", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
-  const { html, toc } = specsCatalog(specs);
+  const html = specsDocument(specs);
   const ids = new Set([...html.matchAll(/ id="([^"]+)"/g)].map((match) => match[1]));
   const outline = specs.replace(/^```[\s\S]*?^```/gm, "");
-  const chapters = [...outline.matchAll(/^## (.+)$/gm)].map((match) => `specs--${markdownAnchor(match[1])}`);
-  assert.deepEqual([...toc.matchAll(/href="#([^"]+)"/g)].map((match) => match[1]), chapters);
-  for (const id of chapters) assert.match(html, new RegExp(`<section id="${id}" class="catalog-section">`));
-  for (const [, title] of outline.matchAll(/^### (.+)$/gm)) assert.match(html, new RegExp(`<article id="specs--${markdownAnchor(title)}" class="catalog-card`), title);
+  for (const [, title] of outline.matchAll(/^#{2,3} (.+)$/gm)) assert.ok(ids.has(`specs--${markdownAnchor(title)}`), title);
   for (const [, anchor] of html.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Anker #${anchor} fehlt`);
   for (const [, anchor] of journeyProjection(specs).matchAll(/href="specs\.html#([^"]+)"/g)) assert.ok(ids.has(decodeURIComponent(anchor)), `Journey-Anker ${anchor} fehlt`);
-  assert.ok(ids.has("specs--document") && ids.has("specs--5-kernjourneys"));
 });
 
-test("Lernverlauf: erzeugte Karten folgen dem Abschnitt „Lernverlauf einer Karte“ und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
+test("Lernverlauf: erzeugte Blöcke folgen dem Abschnitt „Lernverlauf einer Karte“ und zeigen jede Beispielkette als Zeitleiste und Tabelle", () => {
   const specs = readFileSync("docs/specs.md", "utf8").replace(/\r\n/g, "\n");
-  const { html } = specsCatalog(specs, undefined, { "specs--lernverlauf-einer-karte": cardHistoryCards() });
-  const order = [...html.matchAll(/<article id="(specs--lernverlauf-einer-karte|specs--lernverlauf-[a-z]+)"/g)].map((match) => match[1]);
-  assert.deepEqual(order, ["specs--lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
+  const html = specsDocument(specs, undefined, { "specs--lernverlauf-einer-karte": cardHistoryCards() });
+  const order = [...html.matchAll(/<h[1-6] id="([^"]+)"/g)].map((match) => match[1]);
+  const at = order.indexOf("specs--lernverlauf-einer-karte");
+  assert.deepEqual(order.slice(at, at + 5), ["specs--lernverlauf-einer-karte", "specs--lernverlauf-bewertungen", "specs--lernverlauf-zeitleisten", "specs--lernverlauf-tabellen", "specs--lernverlauf-varianten"]);
   const contacts = EXAMPLE_CHAINS.reduce((sum, chain) => sum + chain.ratings.length, 0);
   assert.equal([...html.matchAll(/class="docs-chain-step"/g)].length, contacts);
   assert.equal([...html.matchAll(/<tr><th scope="rowgroup"/g)].length, EXAMPLE_CHAINS.length * EXAMPLE_RETENTIONS.length);

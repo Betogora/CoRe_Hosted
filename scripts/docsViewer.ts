@@ -14,7 +14,6 @@ function initializeDocsViewer() {
     }
   });
   const toc = document.getElementById("docs-toc")!;
-  if (document.querySelector("[data-specs-catalog]")) return initializeSpecsCatalog(search, toc);
   if (document.getElementById("catalog-root")) return;
   const entries = [...document.querySelectorAll<HTMLElement>(".docs-document h1, .docs-document h2, .docs-document h3")].map((heading) => {
     const link = document.createElement("a");
@@ -78,46 +77,5 @@ function revealTocLink(link: HTMLElement, toc: HTMLElement) {
   const position = link.getBoundingClientRect();
   if (position.left < bounds.left || position.right > bounds.right) box.scrollLeft += position.left - bounds.left - 16;
   if (position.top < bounds.top || position.bottom > bounds.bottom) box.scrollTop += position.top - bounds.top - 48;
-}
-/** Specs im Katalogaufbau: Kartensuche, leere Kapitel ausblenden und Kapitel-Scrollspy. */
-function initializeSpecsCatalog(search: HTMLInputElement, toc: HTMLElement) {
-  const normalize = (value: string | null) => (value ?? "").toLocaleLowerCase("de");
-  const sections = [...document.querySelectorAll<HTMLElement>(".catalog-section")].map((section) => ({
-    section,
-    heading: normalize(section.querySelector(".catalog-section-heading")!.textContent),
-    cards: [...section.querySelectorAll<HTMLElement>(".catalog-card")].map((card) => ({ card, text: normalize(card.textContent) })),
-  }));
-  const empty = document.getElementById("specs-empty")!;
-  const links = [...toc.querySelectorAll<HTMLAnchorElement>("a")];
-  const targets = links.map((link) => ({ link, target: document.getElementById(decodeURIComponent(link.hash.slice(1)))! }));
-  search.addEventListener("input", () => {
-    const query = normalize(search.value.trim());
-    let visible = 0;
-    for (const { section, heading, cards } of sections) {
-      const all = !query || heading.includes(query);
-      let shown = 0;
-      for (const { card, text } of cards) { card.hidden = !all && !text.includes(query); if (!card.hidden) shown++; }
-      section.hidden = shown === 0;
-      visible += shown;
-    }
-    empty.hidden = visible > 0;
-    schedule();
-  });
-  let frame = 0;
-  function update() {
-    frame = 0;
-    const visible = targets.filter(({ target }) => !target.hidden);
-    const passed = visible.filter(({ target }) => target.getBoundingClientRect().top <= parseFloat(getComputedStyle(target).scrollMarginTop) + 8);
-    const atEnd = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
-    const active = ((atEnd ? visible : passed).at(-1) ?? visible[0] ?? targets[0]).link;
-    if (active.getAttribute("aria-current")) return;
-    links.forEach((link) => link === active ? link.setAttribute("aria-current", "location") : link.removeAttribute("aria-current"));
-    revealTocLink(active, toc);
-  }
-  function schedule() { if (!frame) frame = requestAnimationFrame(update); }
-  window.addEventListener("scroll", schedule, { passive: true });
-  window.addEventListener("resize", schedule);
-  document.fonts.ready.then(schedule);
-  update();
 }
 initializeDocsViewer();

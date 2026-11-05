@@ -172,7 +172,7 @@ stehen in [`todo.md`](todo.md).
 **Status:** angenommen
 **Kontext:** Der Vorgängerstil „Soft Minimal“ (2026-10-09) übernahm nur den Aufbau der BengtsToolBox und behielt eigene Palette, Höhen und Typostufen; die Übereinstimmung blieb sichtbar unvollständig.
 **Entscheidung:** CoRe übernimmt die BengtsToolBox optisch vollständig, ohne ihr inhaltlich zu folgen: Neutral- und Markenpalette in Light und Dark, Bedienhöhen, Typostufen, Flächen, Radien und die lokal eingebettete Schrift Manrope, ohne externe Schriften. Funktion, Inhalte und Reihenfolge bleiben erhalten. Lernstatus und Bewertungen teilen vier gekoppelte Farbrollen.
-**Konsequenzen:** `src/styles.css` trägt ausschließlich ToolBox-Werte; die konkreten Werte stehen in den Specs (Visueller Produktvertrag) und im UI-Katalog.
+**Konsequenzen:** `src/styles.css` trägt ausschließlich ToolBox-Werte; die konkreten Werte zeigt der UI-Katalog.
 **Datum:** 2026-10-30
 
 ## ADR-047 — Originallayout importierter Karten

@@ -1,8 +1,4 @@
-# CoRe – Docs
-
-CoRe verbindet Anki-kompatible Karten mit Spaced Repetition und kontrollierten
-KI-Umformulierungen. Für jede Frage gibt es genau eine verbindliche Quelle; die
-HTML-Seiten sind daraus erzeugte Leseansichten.
+# Docs
 
 ## Leseseiten
 

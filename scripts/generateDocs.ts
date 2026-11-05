@@ -77,7 +77,7 @@ const firstMature = (contacts: ExampleContact[]) => contacts.findIndex((contact)
 const firstVariant = (contacts: ExampleContact[], threshold: number) => contacts.findIndex((contact) => contact.variantThresholds.includes(threshold));
 
 /** Lernverlauf einer Karte (specs.md#lernverlauf-einer-karte): Tabellen und Zeitleisten aus den Beispielketten des Golden-Tests. */
-export function cardHistoryCards(): SpecsCard[] {
+export function cardHistoryCards(): SpecsBlock[] {
   const source = '<p class="docs-source">Beim Erzeugen mit dem Produktions-Scheduler berechnet; dieselben Werte prüft <code>src/schedulerExampleChains.test.ts</code>. Jede Antwort fällt auf den Fälligkeitstermin; Haltbarkeit = Tage, bis die Erinnerung auf 90 % fällt.</p>';
   const effects = `<table><thead><tr><th>Lage der Karte</th>${Object.values(RATING_LABELS).map((label) => `<th>${label}</th>`).join("")}</tr></thead><tbody>${EXAMPLE_SITUATIONS.map((situation) => {
     const outcomes = exampleRatingEffects(situation.ratings, DEFAULT_RETENTION);
@@ -103,71 +103,27 @@ export function cardHistoryCards(): SpecsCard[] {
     }).join("")}</tr>`;
   })).join("")}</tbody></table>`;
   return [
-    { id: "specs--lernverlauf-bewertungen", title: "Was jede Bewertung bewirkt", html: `<p>Bei Zielerinnerung ${percent(DEFAULT_RETENTION)} und den Standardlernschritten 1 und 10 Minuten; „In der Wiederholung“ ist die Karte nach dreimal „Gut“.</p>${effects}${source}`, wide: true },
-    { id: "specs--lernverlauf-zeitleisten", title: `Beispielketten als Zeitleiste (${percent(DEFAULT_RETENTION)})`, html: `<p>Jeder Punkt ist ein Kontakt: Tag, Bewertung und Phase davor, dann der Abstand bis zum nächsten Kontakt. Markiert sind der Kontakt, nach dem die Karte reif ist, und der erste Kontakt mit Variante bei der Standardschwelle von ${DEFAULT_VARIANT_THRESHOLD} Tagen und einer aktiven Variante.</p>${legend}${timelines}${source}`, wide: true },
-    { id: "specs--lernverlauf-tabellen", title: "Beispielketten je Zielerinnerung", html: `<p>Die Haltbarkeit folgt dem Gedächtnis, nicht der Zielerinnerung; eine höhere Zielerinnerung verkürzt nur die Abstände und verschiebt damit die Tage.</p>${tables}${source}`, wide: true },
-    { id: "specs--lernverlauf-varianten", title: "Wann Varianten erscheinen", html: `<p>Erster Kontakt, bei dem statt der Karte die Variante kommt, je Stapelschwelle. Mit einer aktiven Variante wechseln Karte und Variante sich ab; nach „Nochmal“ kommt bis zur nächsten erfolgreichen Antwort die Karte selbst.</p>${variants}${source}`, wide: true },
+    { id: "specs--lernverlauf-bewertungen", title: "Was jede Bewertung bewirkt", html: `<p>Bei Zielerinnerung ${percent(DEFAULT_RETENTION)} und den Standardlernschritten 1 und 10 Minuten; „In der Wiederholung“ ist die Karte nach dreimal „Gut“.</p>${effects}${source}` },
+    { id: "specs--lernverlauf-zeitleisten", title: `Beispielketten als Zeitleiste (${percent(DEFAULT_RETENTION)})`, html: `<p>Jeder Punkt ist ein Kontakt: Tag, Bewertung und Phase davor, dann der Abstand bis zum nächsten Kontakt. Markiert sind der Kontakt, nach dem die Karte reif ist, und der erste Kontakt mit Variante bei der Standardschwelle von ${DEFAULT_VARIANT_THRESHOLD} Tagen und einer aktiven Variante.</p>${legend}${timelines}${source}` },
+    { id: "specs--lernverlauf-tabellen", title: "Beispielketten je Zielerinnerung", html: `<p>Die Haltbarkeit folgt dem Gedächtnis, nicht der Zielerinnerung; eine höhere Zielerinnerung verkürzt nur die Abstände und verschiebt damit die Tage.</p>${tables}${source}` },
+    { id: "specs--lernverlauf-varianten", title: "Wann Varianten erscheinen", html: `<p>Erster Kontakt, bei dem statt der Karte die Variante kommt, je Stapelschwelle. Mit einer aktiven Variante wechseln Karte und Variante sich ab; nach „Nochmal“ kommt bis zur nächsten erfolgreichen Antwort die Karte selbst.</p>${variants}${source}` },
   ];
 }
 
-type SpecsCard = { id: string; title: string; html: string; wide?: boolean };
-type SpecsSection = { id: string; title: string; intro: string; cards: SpecsCard[] };
+type SpecsBlock = { id: string; title: string; html: string };
 
-const plainText = (html: string) => html.replace(/<[^>]+>/g, "").replace(/&(amp|lt|gt|quot|#39);/g, (_, name: string) => ({ amp: "&", lt: "<", gt: ">", quot: '"', "#39": "'" })[name]!);
-
-function specsCard({ id, title, html, wide }: SpecsCard) {
-  const body = html.trim()
-    .replace(/<h([4-6]) (id="[^"]+") class="[^"]*" tabindex="-1">([\s\S]*?) <a class="docs-anchor"[^>]*>#<\/a><\/h\1>/g, '<h$1 $2 class="catalog-label" tabindex="-1">$3</h$1>')
-    .replace(/<p>(\p{L}[\p{L}\s/-]{0,40}):<\/p>/gu, '<p class="catalog-label">$1</p>')
-    .replace(/<table>/g, '<div class="docs-table-scroll" tabindex="0" role="region" aria-label="Seitlich scrollbare Tabelle"><table>').replace(/<\/table>/g, "</table></div>");
-  return `<article id="${id}" class="catalog-card${wide ? " catalog-card-wide" : ""}">${title ? `<div class="catalog-card-header"><h3>${title}</h3></div>` : ""}<div class="catalog-preview specs-prose">${body}</div></article>`;
-}
-
-/** Projiziert docs/specs.md in den Katalogaufbau: `##`-Kapitel werden Abschnitte, `###`-Unterabschnitte Karten. */
-export function specsCatalog(markdown: string, appendix?: { section: SpecsSection; label: string }, generated: Record<string, SpecsCard[]> = {}) {
-  const parts = renderMarkdown(markdown, "specs.md").split(/(<h[123] id="[^"]+" class="[^"]*" tabindex="-1">[\s\S]*?<\/h[123]>\n?)/);
-  let title = { id: "", html: "" };
-  let intro = "";
-  const sections: SpecsSection[] = [];
-  for (let index = 1; index < parts.length; index += 2) {
-    const [, depth, id, html] = parts[index].match(/^<h([123]) id="([^"]+)"[^>]*>([\s\S]*?) <a class="docs-anchor"/)!;
-    const content = parts[index + 1].replace(/<hr>\n?/g, "");
-    if (depth === "1") { title = { id, html }; intro += content; }
-    else if (depth === "2") sections.push({ id, title: html, intro: content, cards: [] });
-    else if (sections.length) sections.at(-1)!.cards.push({ id, title: html, html: content }, ...(generated[id] ?? []));
+/** Projiziert docs/specs.md als Leseseite wie die Journeys: Kapitel und Abschnitte als Überschriften, Rasterzeilen (`Zweck:` …) als Labels, erzeugte Blöcke hinter ihrem Abschnitt. */
+export function specsDocument(markdown: string, appendix?: { title: string; html: string }, generated: Record<string, SpecsBlock[]> = {}) {
+  let html = renderMarkdown(markdown, "specs.md").replace(/<hr>\n?/g, "").replace(/<p>(\p{L}[\p{L}\s/-]{0,40}):<\/p>/gu, '<p class="docs-label">$1</p>');
+  for (const [id, blocks] of Object.entries(generated)) {
+    const start = html.indexOf(`<h3 id="${id}"`);
+    if (start < 0) throw new Error(`Abschnitt ${id} fehlt in docs/specs.md.`);
+    const next = html.slice(start + 1).search(/<h[123] id=/);
+    const end = next < 0 ? html.length : start + 1 + next;
+    html = html.slice(0, end) + blocks.map((block) => `<h4 id="${block.id}" class="core-control-label" tabindex="-1">${block.title}</h4>${block.html}`).join("") + html.slice(end);
   }
-  if (!title.html || !sections.length) throw new Error("docs/specs.md braucht einen Titel und nummerierte Kapitel.");
-  for (const section of sections) {
-    if (!section.cards.length) {
-      section.cards.push({ id: `${section.id}--inhalt`, title: "", html: section.intro, wide: true });
-      section.intro = "";
-      continue;
-    }
-    const lead = section.intro.match(/^(?:<p>[\s\S]*?<\/p>\n*)*/)![0];
-    const rest = section.intro.slice(lead.length).trim();
-    section.intro = lead;
-    if (rest) section.cards.unshift({ id: `${section.id}--überblick`, title: "Überblick", html: rest });
-    for (const card of section.cards) card.wide ||= /<table/.test(card.html) || (card.html.match(/<li>/g)?.length ?? 0) > 6 || plainText(card.html).length > 700;
-    // Eine ungerade schmale Karte vor einer breiten füllt die Zeile, statt eine Lücke zu lassen.
-    let narrow = 0;
-    section.cards.forEach((card, index) => {
-      narrow = card.wide ? 0 : narrow + 1;
-      if (narrow % 2 && section.cards[index + 1]?.wide !== false) card.wide = true;
-    });
-  }
-  if (appendix) sections.push(appendix.section);
-  const meta: string[] = [];
-  const lede: string[] = [];
-  for (const block of intro.trim().split(/\n(?=<(?:p|ul|ol|div|table|blockquote|pre)[\s>])/).filter(Boolean)) {
-    const entries = block.match(/^<p>([\s\S]*)<\/p>$/)?.[1].split("\n").map((line) => line.match(/^<strong>([^<]+):<\/strong>\s*([\s\S]+)$/));
-    if (entries?.every(Boolean)) meta.push(...entries.map((entry) => `<li class="core-status-label"><span>${entry![1]}</span> ${entry![2]}</li>`));
-    else lede.push(block.replace(/^<p>/, '<p class="catalog-lede">'));
-  }
-  const toc = sections.map((section) => `<a href="#${section.id}">${plainText(section === appendix?.section ? appendix.label : section.title)}</a>`).join("");
-  const cards = sections.reduce((sum, section) => sum + section.cards.length, 0);
-  const body = sections.map((section) => `<section id="${section.id}" class="catalog-section"><div class="catalog-section-heading"><h2>${section.title}</h2>${section.intro}</div><div class="catalog-grid">${section.cards.map(specsCard).join("")}</div></section>`).join("");
-  const html = `<div id="specs--document" class="catalog" data-specs-catalog><header class="catalog-hero"><h1 id="${title.id}">${title.html}</h1>${lede.join("")}${meta.length ? `<ul class="specs-meta">${meta.join("")}</ul>` : ""}</header><p id="specs-empty" class="catalog-empty" role="status" hidden>Keine Abschnitte passen zur Suche.</p>${body}<footer class="catalog-footer">CoRe Specs · ${sections.length} Kapitel · ${cards} Abschnitte · Quelle <a href="specs.md">docs/specs.md</a></footer></div>`;
-  return { html, toc };
+  if (appendix) html += renderMarkdown(`## ${appendix.title}`, "specs.md") + appendix.html;
+  return `<article id="specs--document" class="docs-document">${html}</article>`;
 }
 
 export function createCatalogData(): Omit<CatalogData, "sourceHash"> {
@@ -330,10 +286,9 @@ export async function synchronizeDocs(mode: "write" | "check") {
   }
   function document(file: string) { return `<article id="${documentId(file)}--document" class="docs-document"><p class="docs-source">Verbindliche Quelle: <a href="${file}">${file}</a></p>${renderMarkdown(text(`docs/${file}`), file)}</article>`; }
   reader("index.html", document("README.md"));
-  const footprint = { id: "specs--codeumfang", title: "Codeumfang der Produktbereiche", intro: "<p>CoRe ist eine App mit mehreren Bereichen. Der Ring zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>", cards: [{ id: "specs--codeumfang-bereiche", title: "Bildschirmcode je Produktbereich", html: codeFootprintMarkup(), wide: true }] };
-  const specs = specsCatalog(text("docs/specs.md"), { section: footprint, label: "Codeumfang" }, { "specs--lernverlauf-einer-karte": cardHistoryCards() });
-  results.set("specs.html", htmlPage("specs.html", specs.html, css, viewer, { toc: specs.toc }));
-  reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Kernjourneys</h1><p>Die Kernjourneys aus dem Produktvertrag mit Zweck, Ablauf und Akzeptanz. Die verbindlichen Regeln stehen in den verlinkten Abschnitten der Specs.</p></article>${journeyProjection(text("docs/specs.md"))}`);
+  const footprint = { title: "Codeumfang der Produktbereiche", html: `<p>CoRe ist eine App mit mehreren Bereichen. Die Tabelle zeigt deren Anteil am Bildschirmcode; gemeinsam genutzte Logik, UI und API stehen separat.</p>${codeFootprintMarkup()}` };
+  reader("specs.html", specsDocument(text("docs/specs.md"), footprint, { "specs--lernverlauf-einer-karte": cardHistoryCards() }));
+  reader("journeys.html", `<article class="docs-document"><h1 id="journeys--document" class="core-heading-1" tabindex="-1">Journeys</h1></article>${journeyProjection(text("docs/specs.md"))}`);
   for (const [file, catalog] of [["ui-elements.html", "ui"], ["card-types.html", "cards"]]) {
     const content = `<div id="catalog-root"></div><script id="catalog-data" type="application/json">${JSON.stringify(data).replaceAll("<", "\\u003c")}</script>`;
     results.set(file, htmlPage(file, content, css, `${viewer}\n${runtimeHeader(inputs, runtime)}${runtime}${RUNTIME_END}`).replace("<body>", `<body data-catalog="${catalog}">`));
