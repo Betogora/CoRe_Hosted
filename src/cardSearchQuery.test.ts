@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  cardSearchDeckIds,
+  cardSearchDeckTerms,
   cardSearchTermState,
   cardSearchTerms,
+  deckPatternMatches,
   cardSearchText,
   matchesCardSearch,
   parseCardSearchQuery,
@@ -81,7 +82,7 @@ test("Zustand, Reife, Varianten, Stapel und Fälligkeit werten den Lernstand aus
   assert.equal(matchesCardSearch(entry({ hasActiveVariants: true }), parseCardSearchQuery("-has:variant", context)), false);
   assert.equal(matchesCardSearch(entry({ deckId: "deck-a1" }), parseCardSearchQuery("did:deck-a", context)), true, "Unterstapel zählen mit");
   assert.equal(matchesCardSearch(entry({ deckId: "deck-b" }), parseCardSearchQuery("did:deck-a", context)), false);
-  assert.deepEqual(cardSearchDeckIds("did:deck-a -did:deck-b did:deck-a herz"), ["deck-a", "deck-b"]);
+  assert.deepEqual(cardSearchDeckTerms("did:deck-a -did:deck-b did:deck-a deck:Bio::* herz"), { ids: ["deck-a", "deck-b"], names: ["bio::*"] });
   // Today runs from 04:00 to 04:00 the next day.
   assert.equal(matchesCardSearch(entry({ dueAt: "2026-11-06T03:59:00.000Z" }), parseCardSearchQuery("is:due", context)), true);
   assert.equal(matchesCardSearch(entry({ dueAt: "2026-11-06T04:00:00.000Z" }), parseCardSearchQuery("is:due", context)), false);
@@ -94,7 +95,7 @@ test("Zustand, Reife, Varianten, Stapel und Fälligkeit werten den Lernstand aus
 });
 
 test("Nicht unterstützte Anki-Begriffe werden benannt, normaler Text mit Doppelpunkt nicht", () => {
-  assert.deepEqual(unsupportedCardSearchTerms("is:due -deck:Physik flag:9 prop:ivl>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended has:x"), ["-deck:Physik", "flag:9", "prop:ivl>3", "has:x"]);
+  assert.deepEqual(unsupportedCardSearchTerms("is:due -is:buried flag:9 prop:s>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended has:x"), ["-is:buried", "flag:9", "prop:s>3", "has:x"]);
   assert.deepEqual(unsupportedCardSearchTerms(""), []);
 });
 
@@ -111,4 +112,41 @@ test("Feld:Text sucht nur im genannten Feld, verneint auch außerhalb", () => {
   assert.equal(matchesCardSearch(card, search), true);
   assert.equal(matchesCardSearch({ ...card, searchFields: [{ name: "ansatz", text: "mm. scaleni" }] }, search), false, "anderes Feld");
   assert.equal(matchesCardSearch({ ...card, searchFields: undefined }, parseCardSearchQuery("ursprung:scaleni")), false, "ohne Feldtexte kein Treffer");
+});
+
+test("Zeitraum, Werte und Inhaltsform werten Verlauf und Katalogwerte aus", () => {
+  const search = (query: string) => parseCardSearchQuery(query, TODAY);
+  // Today starts at 04:00 UTC; `n` days are today and the n - 1 days before.
+  assert.deepEqual(search("rated:7:1").terms, [{ kind: "since", field: "rated", rating: "again", from: "2026-10-30T04:00:00.000Z", negated: false }]);
+  assert.equal(matchesCardSearch(entry({ createdAt: "2026-11-05T05:00:00.000Z" }), search("added:1")), true);
+  assert.equal(matchesCardSearch(entry({ createdAt: "2026-11-05T03:59:00.000Z" }), search("added:1")), false, "gestern zählt nicht zu added:1");
+  assert.equal(matchesCardSearch(entry({ createdAt: "2026-11-04T05:00:00.000Z" }), search("added:2")), true);
+  assert.equal(matchesCardSearch(entry({ editedAt: "2026-11-05T09:00:00+00:00" }), search("edited:1")), true, "Zeitstempel der Cloud");
+  assert.equal(matchesCardSearch(entry({ firstReviewedAt: "2026-10-01T09:00:00.000Z" }), search("introduced:30")), false);
+  const answered = entry({ lastAgainAt: "2026-11-01T09:00:00.000Z", lastGoodAt: "2026-11-05T09:00:00.000Z" });
+  assert.equal(matchesCardSearch(answered, search("rated:1")), true, "jede Bewertung zählt");
+  assert.equal(matchesCardSearch(answered, search("rated:1:1")), false, "heute kein Nochmal");
+  assert.equal(matchesCardSearch(answered, search("rated:7:1")), true);
+  assert.equal(matchesCardSearch(entry(), search("rated:1")), false, "ohne Verlauf kein Treffer");
+  assert.equal(matchesCardSearch(entry(), search("-rated:1")), true);
+
+  assert.equal(matchesCardSearch(entry({ intervalDays: 21 }), search("prop:ivl>=21")), true);
+  assert.equal(matchesCardSearch(entry({ difficulty: 7.5 }), search("prop:d>7")), true);
+  assert.equal(matchesCardSearch(entry({ scheduleState: "new", intervalDays: 0 }), search("prop:ivl<1")), false, "neue Karten haben kein Intervall");
+  assert.equal(matchesCardSearch(entry({ lapses: 0 }), search("prop:lapses!=0")), false);
+  assert.equal(matchesCardSearch(entry({ scheduleState: "new", reps: 0 }), search("prop:reps=0")), true);
+  assert.equal(matchesCardSearch(entry({ contentKind: "image-occlusion" }), search("is:occlusion -is:cloze")), true);
+  assert.deepEqual(unsupportedCardSearchTerms("prop:s>3 prop:r<0.9 is:buried added:0 edited:3:1 rated:2:4"), ["prop:s>3", "prop:r<0.9", "is:buried", "added:0", "edited:3:1"]);
+});
+
+test("deck: findet Stapel nach Pfad wie Anki, samt Unterstapeln und Platzhaltern", () => {
+  assert.equal(deckPatternMatches("biologie", "Biologie"), true);
+  assert.equal(deckPatternMatches("biologie", "Biologie::Zellbiologie"), true, "Unterstapel");
+  assert.equal(deckPatternMatches("zellbiologie", "Biologie::Zellbiologie"), false, "nur der volle Pfad");
+  assert.equal(deckPatternMatches("*zell*", "Biologie::Zellbiologie"), true);
+  assert.equal(deckPatternMatches("anatomie_1.", "Anatomie 1. Semester"), false);
+  assert.equal(deckPatternMatches("anatomie_1.*", "Anatomie 1. Semester"), true, "_ steht für ein Zeichen, auch das Leerzeichen");
+  const context = { ...TODAY, deckMatches: { "bio*": ["deck-a", "deck-a1"] } };
+  assert.equal(matchesCardSearch(entry({ deckId: "deck-a1" }), parseCardSearchQuery("deck:Bio*", context)), true);
+  assert.equal(matchesCardSearch(entry({ deckId: "deck-a1" }), parseCardSearchQuery("deck:physik", context)), false, "unbekannter Stapel trifft nichts");
 });

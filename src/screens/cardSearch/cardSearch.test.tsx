@@ -15,7 +15,7 @@ const menu = createCardSearchMenu({
 });
 
 test("das Menü spiegelt Ankis Seitenleiste mit Begriffen je Zeile", () => {
-  assert.deepEqual(menu.map((category) => category.label), ["Heute", "Kartenstatus", "Flaggen", "Stapel", "Tags", "Inhalt", "Felder", "Suchsyntax"]);
+  assert.deepEqual(menu.map((category) => category.label), ["Heute", "Kartenstatus", "Flaggen", "Stapel", "Tags", "Inhalt", "Zeitraum", "Werte", "Felder", "Suchsyntax"]);
   const items = (id: string) => menu.find((category) => category.id === id)!.items;
   assert.deepEqual(items("stapel").map((item) => [item.label, item.term, item.depth]), [["Biologie", "did:deck-bio", 0], ["Zellbiologie", "did:deck-zell", 1]]);
   assert.ok(items("stapel").every((item) => item.hideTerm), "Stapelzeilen zeigen keine technische ID");
@@ -24,6 +24,11 @@ test("das Menü spiegelt Ankis Seitenleiste mit Begriffen je Zeile", () => {
   assert.deepEqual(cardSearchTermLabel("-tag:Anatomie::Kopf", menu), { label: "Anatomie::Kopf", category: "Tags", negated: true });
   assert.deepEqual(cardSearchTermLabel("is:due", menu), { label: "Fällig", category: "Heute", negated: false });
   assert.deepEqual(cardSearchTermLabel("ursprung:scaleni", menu), { label: "ursprung:scaleni", category: null, negated: false });
+  assert.deepEqual(cardSearchTermLabel("rated:1:1", menu), { label: "Nochmal", category: "Heute", negated: false });
+  assert.deepEqual(cardSearchTermLabel("rated:7:1", menu), { label: "Nochmal, letzte 7 Tage", category: "Zeitraum", negated: false });
+  assert.deepEqual(cardSearchTermLabel("-prop:ivl>=21", menu), { label: "Intervall ≥ 21 Tage", category: "Werte", negated: true });
+  assert.deepEqual(cardSearchTermLabel("prop:d<7.5", menu), { label: "Schwierigkeit < 7,5", category: "Werte", negated: false });
+  assert.equal(cardSearchTermLabel("prop:ivl=1", menu).label, "Intervall = 1 Tag");
 });
 
 test("Mit, Egal und Ohne zeigen den Stand des Suchausdrucks", () => {
@@ -55,4 +60,11 @@ test("Chips nennen Kategorie, Wert und Ausschluss; der Stapelfilter zeigt den Na
   assert.match(markup, /Heute<\/span><span[^>]*>Fällig/);
   assert.match(markup, /ohne Tags<\/span><span[^>]*>Anatomie::Kopf/);
   assert.match(markup, /Alle zurücksetzen/);
+});
+
+test("Zeitraum und Werte zählen nur Begriffe, die keine feste Zeile haben", () => {
+  const markup = renderToStaticMarkup(<AdvancedCardSearch id="menu" query="rated:1 rated:7 -prop:lapses>3" onQueryChange={() => undefined} categories={menu} resultCount={null} onClose={() => undefined} />);
+  assert.match(markup, /Heute<\/span><span[^>]*aria-label="1 aktiv"/, "rated:1 ist die Zeile Gelernt unter Heute");
+  assert.match(markup, /Zeitraum<\/span><span[^>]*aria-label="1 aktiv"/);
+  assert.match(markup, /Werte<\/span><span[^>]*aria-label="1 aktiv"/);
 });

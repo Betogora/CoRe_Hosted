@@ -1,5 +1,5 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
-import type { Card, Note } from "./coreTypes.ts";
+import type { Card, Note, ReviewEvent, ReviewRating } from "./coreTypes.ts";
 import { getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 
@@ -53,6 +53,24 @@ export interface CardCatalogEntry {
   hasActiveVariants: boolean;
   activeVariantCount: number;
   activeVariantId: string | null;
+  /**
+   * Learning history and values for `added:`, `edited:`, `rated:`, `introduced:`, `prop:` and the content form
+   * (`is:cloze` …). Entries stored before these fields existed lack them until the catalog delta brings them.
+   */
+  createdAt?: string;
+  editedAt?: string | null;
+  contentKind?: string;
+  intervalDays?: number;
+  difficulty?: number;
+  reps?: number;
+  lapses?: number;
+  /** Times of the first answer, the last answer per rating and the last manual reschedule; other manual events do not count. */
+  firstReviewedAt?: string | null;
+  lastAgainAt?: string | null;
+  lastHardAt?: string | null;
+  lastGoodAt?: string | null;
+  lastEasyAt?: string | null;
+  lastRescheduledAt?: string | null;
   bodyRevision: number;
   studyRevision: number;
   dependencyRevision: number;
@@ -227,7 +245,49 @@ export function bodyResidencyForRevision(
 }
 
 /** Local catalog entry with the same revisions as the cloud projection (`private.refresh_card_catalog`). */
-export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalogEntry {
+/** The answer history a catalog entry keeps; the card body has no complete history, the cloud derives it from all answers. */
+export type CatalogReviewHistory = Pick<CardCatalogEntry, "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt">;
+
+/** Kind of the manual event that sets a new due date (`resched:`). */
+export const MANUAL_RESCHEDULE_KIND = "manual_reschedule";
+
+const LAST_RATED_FIELD: Record<ReviewRating, keyof CatalogReviewHistory> = {
+  again: "lastAgainAt",
+  hard: "lastHardAt",
+  good: "lastGoodAt",
+  easy: "lastEasyAt",
+};
+
+export function catalogReviewHistory(entry: CatalogReviewHistory | null | undefined): CatalogReviewHistory {
+  return {
+    firstReviewedAt: entry?.firstReviewedAt ?? null,
+    lastAgainAt: entry?.lastAgainAt ?? null,
+    lastHardAt: entry?.lastHardAt ?? null,
+    lastGoodAt: entry?.lastGoodAt ?? null,
+    lastEasyAt: entry?.lastEasyAt ?? null,
+    lastRescheduledAt: entry?.lastRescheduledAt ?? null,
+  };
+}
+
+/** History after more study events, in any order; of the manual events only a reschedule counts. */
+export function withStudyEvents(history: CatalogReviewHistory | null | undefined, events: Iterable<Pick<ReviewEvent, "rating" | "answeredAt" | "flags">>): CatalogReviewHistory {
+  const next = catalogReviewHistory(history);
+  const later = (field: keyof CatalogReviewHistory, at: string) => {
+    if (!next[field] || Date.parse(at) > Date.parse(next[field]!)) next[field] = at;
+  };
+  for (const event of events) {
+    if (event.rating === "manual") {
+      if (event.flags?.kind === MANUAL_RESCHEDULE_KIND) later("lastRescheduledAt", event.answeredAt);
+      continue;
+    }
+    if (!next.firstReviewedAt || Date.parse(event.answeredAt) < Date.parse(next.firstReviewedAt)) next.firstReviewedAt = event.answeredAt;
+    later(LAST_RATED_FIELD[event.rating], event.answeredAt);
+  }
+  return next;
+}
+
+/** Catalog entry of a card; the answer history comes from the previous entry or the known answers. */
+export function catalogEntryFromCard(card: Card, note: Note | null, history?: CatalogReviewHistory | null): CardCatalogEntry {
   const activeVariants = getActiveVariants(card)
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || left.id.localeCompare(right.id));
   const text = note ? noteTextIndex(note.content) : null;
@@ -251,6 +311,13 @@ export function catalogEntryFromCard(card: Card, note: Note | null): CardCatalog
     hasActiveVariants: activeVariants.length > 0,
     activeVariantCount: activeVariants.length,
     activeVariantId: activeVariants[0]?.id ?? null,
+    createdAt: card.createdAt,
+    ...(note ? { editedAt: note.updatedAt, contentKind: note.content.interaction.kind } : {}),
+    intervalDays: card.study.intervalDays,
+    difficulty: card.study.difficulty,
+    reps: card.study.reps,
+    lapses: card.study.lapses,
+    ...catalogReviewHistory(history),
     bodyRevision: card.revision,
     studyRevision: card.studyRevision,
     dependencyRevision: (note?.revision ?? 1) + card.variants.reduce((total, variant) => total + variant.revision, 0),

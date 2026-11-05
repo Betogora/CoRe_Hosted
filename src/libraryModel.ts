@@ -9,7 +9,7 @@ import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
-import { cardSearchDeckIds, isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
+import { cardSearchDeckTerms, deckPatternMatches, isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
 import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 type DateInput = string | number | Date;
@@ -124,14 +124,20 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-/** Resolves the query's terms relative to today's learning day and to the subtrees of its `did:` decks. */
+/** Resolves the query's terms relative to today's learning day and its `did:` and `deck:` terms to decks with subdecks. */
 export function createCardSearchContext(query: string, decks: Deck[], options: Pick<LibraryOptions, "now" | "dayStartHour" | "timeZone"> = {}): CardSearchContext {
   const now = options.now ?? new Date();
   const todayStart = getLearningDayRange(now, { dayStartHour: options.dayStartHour, timeZone: options.timeZone })?.start ?? new Date(now).getTime();
-  const deckIds = cardSearchDeckIds(query);
+  const { ids, names } = cardSearchDeckTerms(query);
+  const subtree = (deckId: string) => [...collectDeckTreeIds(decks, deckId)];
   return {
     todayStart,
-    ...(deckIds.length ? { deckSubtrees: Object.fromEntries(deckIds.map((deckId) => [deckId, [...collectDeckTreeIds(decks, deckId)]])) } : {}),
+    ...(ids.length ? { deckSubtrees: Object.fromEntries(ids.map((deckId) => [deckId, subtree(deckId)])) } : {}),
+    ...(names.length ? {
+      deckMatches: Object.fromEntries(names.map((pattern) => [pattern, [...new Set(decks
+        .filter((deck) => deckPatternMatches(pattern, (deck.hierarchyPath?.length ? deck.hierarchyPath : [deck.name]).join("::")))
+        .flatMap((deck) => subtree(deck.id)))]])),
+    } : {}),
   };
 }
 

@@ -31,6 +31,8 @@ import { markStartupPhaseReady, markStartupPhaseStarted } from "./appPerformance
 import {
   bodyResidencyForRevision,
   catalogEntryFromCard,
+  withStudyEvents,
+  MANUAL_RESCHEDULE_KIND,
   type AccountBaselineState,
   type AccountStatisticsSnapshot,
   type AccountStudyOverview,
@@ -395,8 +397,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       })));
       for (const { previous, card, event } of changes) {
         const note = notes.get(card.noteId) ?? null;
-        const nextCatalog = catalogRecordFor(card, note);
         const previousCatalog = await requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(card.id)) ?? catalogRecordFor(previous, note);
+        const nextCatalog = catalogRecordFor(card, note, withStudyEvents(previousCatalog, [event]));
         await applyReplicaCatalogChange(transaction, card.deckId, previousCatalog, nextCatalog, occurredAt);
         transaction.objectStore(STORE.cards).put(cardRecord(card));
         transaction.objectStore(STORE.reviewEvents).put(event);
@@ -444,7 +446,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           for (const key of storedVariantKeys) variantStore.delete(key);
           continue;
         }
-        const catalog = catalogRecordFor(card, note);
+        const catalog = catalogRecordFor(card, note, before);
         if (before && before.deckId !== card.deckId) {
           await applyReplicaCatalogChange(transaction, before.deckId, before, null, updatedAt);
           await applyReplicaCatalogChange(transaction, card.deckId, null, catalog, updatedAt);
@@ -799,7 +801,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       };
       const note = notesById.get(card.noteId) ?? await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(card.noteId)) ?? null;
       const before = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(card.id)) ?? null;
-      const catalog = catalogRecordFor(card, note);
+      const catalog = catalogRecordFor(card, note, before);
       await applyReplicaCatalogChange(transaction, card.deckId, before?.deckId === card.deckId ? before : null, catalog);
       if (before && before.deckId !== card.deckId) await applyReplicaCatalogChange(transaction, before.deckId, before, null);
       transaction.objectStore(STORE.cards).put(cardRecord(card));
@@ -1347,7 +1349,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     },
     /** Manual reschedule: only the due date changes; suspension stays. */
     rescheduleCards(cardIds: string[], dueAt: string, occurredAt = new Date().toISOString()) {
-      return applyManualStudyChanges(cardIds, "manual_reschedule", (card) => rescheduleCard(card, dueAt, occurredAt), occurredAt);
+      return applyManualStudyChanges(cardIds, MANUAL_RESCHEDULE_KIND, (card) => rescheduleCard(card, dueAt, occurredAt), occurredAt);
     },
     /** "Lernstand zurücksetzen": the cards start over as new cards; their review history stays. */
     resetCards(cardIds: string[], occurredAt = new Date().toISOString()) {
@@ -1392,7 +1394,8 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         const catalogStore = transaction.objectStore(STORE.cardCatalog);
         const previousCatalog = await requestResult<StoredCardCatalog | undefined>(catalogStore.get(updatedCard.id)) ?? null;
         const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(updatedCard.noteId)) ?? null;
-        const catalog = note ? catalogRecordFor(updatedCard, note) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys } : {}) });
+        const history = withStudyEvents(previousCatalog, [event]);
+        const catalog = note ? catalogRecordFor(updatedCard, note, history) : storedCatalogRecord({ ...catalogEntryFromCard(updatedCard, null, history), ...(previousCatalog ? { frontPreview: previousCatalog.frontPreview, sortText: previousCatalog.sortText, normalizedSearchText: previousCatalog.normalizedSearchText, marked: previousCatalog.marked, tagKeys: previousCatalog.tagKeys, editedAt: previousCatalog.editedAt, contentKind: previousCatalog.contentKind } : {}) });
         await applyReplicaCatalogChange(transaction, deck.id, previousCatalog, catalog, event.answeredAt);
         const overviewContext = studyOverview ? studyOverviewContext(studyOverview) : null;
         const overviewDay = overviewContext ? getStudyHeatmapDayKey(event.answeredAt, overviewContext.timeZone, overviewContext.dayStartHour) : null;
@@ -1877,7 +1880,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
           if (!card) continue;
           const note = await requestResult<Note | undefined>(transaction.objectStore(STORE.notes).get(card.noteId)) ?? null;
           const before = await requestResult<StoredCardCatalog | undefined>(transaction.objectStore(STORE.cardCatalog).get(cardId)) ?? null;
-          const catalog = note ? catalogRecordFor(card, note) : before ? { ...before, bodyRevision: card.revision, studyRevision: card.studyRevision } : null;
+          const catalog = note ? catalogRecordFor(card, note, before) : before ? { ...before, bodyRevision: card.revision, studyRevision: card.studyRevision } : null;
           if (!catalog) continue;
           await applyReplicaCatalogChange(transaction, card.deckId, before, catalog);
           transaction.objectStore(STORE.cardCatalog).put(catalog); markCatalogChanged(catalog.id);

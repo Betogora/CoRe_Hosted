@@ -565,6 +565,31 @@ test("manuelle Lernstandsänderungen reisen als manuelle Ereignisse; Rückgängi
   repository.close();
 });
 
+test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhaltsänderungen", async () => {
+  const initialState = workspaceState(2);
+  const repository = await openRepository(initialState);
+  const ids = (query: string) => repository.listCatalogPage("deck-idb", { query, searchContext: { todayStart: Date.parse("2026-08-21T00:00:00.000Z") } })
+    .then((page) => page.items.map((entry) => entry.id).sort());
+
+  repository.recordReview(answerVariant(initialState.decks[0], "card-0", null, "again", { now: "2026-08-21T10:00:00.000Z" }));
+  await repository.rescheduleCards(["card-1"], "2026-08-30T04:00:00.000Z", "2026-08-21T10:05:00.000Z");
+  assert.deepEqual(await ids("rated:1:1"), ["card-0"]);
+  assert.deepEqual(await ids("introduced:1"), ["card-0"]);
+  assert.deepEqual(await ids("resched:1"), ["card-1"], "eine Neuplanung ist keine Antwort");
+  assert.deepEqual(await ids("rated:1"), ["card-0"]);
+  assert.deepEqual(await ids("added:1"), [], "angelegt am 19. August");
+  assert.deepEqual(await ids("added:3 is:reveal prop:reps<1"), ["card-1"]);
+
+  const graph = (await repository.loadNoteGraph("note-0"))!;
+  const plan = planNoteContentChange(graph, {
+    ...graph.note.content,
+    fields: graph.note.content.fields.map((field) => field.id === "front" ? { ...field, html: "Neue Frage" } : field),
+  });
+  await repository.saveNoteGraphs([{ previous: graph, next: { note: plan.note, cards: plan.keptCards } }]);
+  assert.deepEqual(await ids("rated:1:1 edited:1"), ["card-0"], "die Bearbeitung behält den Verlauf");
+  repository.close();
+});
+
 test("eine Lernbremse, die der Stapel aussetzt, synchronisiert die Aussetzung als Kartenänderung", async () => {
   const graph = basicGraph("deck-leech", 0);
   const card: Card = { ...graph.cards[0], study: { ...graph.cards[0].study, state: "review", reps: 5, stability: 20, difficulty: 6, lastReviewedAt: "2026-08-01T00:00:00.000Z" } };
@@ -636,23 +661,26 @@ test("die Suche folgt Katalogänderungen nach ihrem ersten Aufbau", async () => 
   repository.close();
 });
 
-test("ein Upgrade der lokalen Datenbank legt den Suchtext-Speicher an und lässt den Katalog nachladen", async () => {
-  const userId = randomUUID();
-  const name = `core.workspace.entities.v5.${userId}`;
-  await new Promise<void>((resolve, reject) => {
-    const request = indexedDB.open(name, 1);
-    request.onupgradeneeded = () => {
-      request.result.createObjectStore("syncMetadata", { keyPath: "key" }).put({ key: "replicaStatus", value: { catalogCompleteness: "complete", catalogCursor: 7 } });
-    };
-    request.onsuccess = () => { request.result.close(); resolve(); };
-    request.onerror = () => reject(request.error);
-  });
-  const database = await openDatabase(indexedDB as unknown as IDBFactory, userId);
-  assert.ok(database.objectStoreNames.contains("noteSearch"));
-  const status = await new Promise<{ value: { catalogCompleteness: string; catalogCursor: number } }>((resolve) => {
-    const read = database.transaction("syncMetadata").objectStore("syncMetadata").get("replicaStatus");
-    read.onsuccess = () => resolve(read.result);
-  });
-  assert.deepEqual(status.value, { catalogCompleteness: "partial", catalogCursor: 7 });
-  database.close();
+test("ein Upgrade der lokalen Datenbank legt den Suchtext-Speicher an und lädt den ganzen Katalog neu", async () => {
+  for (const version of [1, 2]) {
+    const userId = randomUUID();
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open(`core.workspace.entities.v5.${userId}`, version);
+      request.onupgradeneeded = () => {
+        if (version === 2) request.result.createObjectStore("noteSearch", { keyPath: "noteId" });
+        request.result.createObjectStore("syncMetadata", { keyPath: "key" }).put({ key: "replicaStatus", value: { catalogCompleteness: "complete", catalogCursor: 7 } });
+      };
+      request.onsuccess = () => { request.result.close(); resolve(); };
+      request.onerror = () => reject(request.error);
+    });
+    const database = await openDatabase(indexedDB as unknown as IDBFactory, userId);
+    assert.ok(database.objectStoreNames.contains("noteSearch"));
+    const status = await new Promise<{ value: { catalogCompleteness: string; catalogCursor: number } }>((resolve) => {
+      const read = database.transaction("syncMetadata").objectStore("syncMetadata").get("replicaStatus");
+      read.onsuccess = () => resolve(read.result);
+    });
+    // An older client may have taken the migration's catalog rows without their new columns: pull everything again.
+    assert.deepEqual(status.value, { catalogCompleteness: "partial", catalogCursor: 0 }, `von Version ${version}`);
+    database.close();
+  }
 });

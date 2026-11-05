@@ -1,12 +1,20 @@
 import React from "react";
 import { ArrowLeft, Check, ChevronRight, Copy, Plus, RotateCcw, X } from "lucide-react";
-import { cardSearchFieldTerms, cardSearchTermState, withCardSearchTermState } from "../../cardSearchQuery.ts";
+import { cardSearchTermState, cardSearchTermsOfKind, withCardSearchTermState } from "../../cardSearchQuery.ts";
 import { fieldSearchKey } from "../../coreModel.ts";
 import { ActionButton, IconButton } from "../../ui/actionUi.tsx";
 import { CoreTriStateControl } from "../../ui/coreUi.tsx";
 import { FlagDot } from "../../ui/flagUi.tsx";
+import { CoreSelect } from "../../ui/selectUi.tsx";
 import { CoreTooltip } from "../../ui/tooltipUi.tsx";
-import type { CardSearchMenuCategory, CardSearchMenuItem } from "./cardSearchMenu.ts";
+import {
+  CARD_SEARCH_OPERATORS,
+  CARD_SEARCH_PROP_OPTIONS,
+  CARD_SEARCH_SINCE_OPTIONS,
+  cardSearchTermLabel,
+  type CardSearchMenuCategory,
+  type CardSearchMenuItem,
+} from "./cardSearchMenu.ts";
 
 const SYNTAX: ReadonlyArray<[string, string]> = [
   ["nacken", "Text in allen Feldern, Antwortoptionen und Tags"],
@@ -19,7 +27,16 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["is:due  is:suspended", "heute fällig, ausgesetzt"],
   ["prop:due<0  prop:due=1", "überfällig, morgen fällig (Tage ab heute)"],
   ["tag:leech  tag:marked  has:variant", "Lernbremse, markiert, mit Variante"],
+  ["deck:Biologie  deck:*zell*", "Stapel nach Pfad (A::B) samt Unterstapeln; * beliebig, _ ein Zeichen"],
+  ["rated:7  rated:7:1", "in den letzten 7 Tagen gelernt, davon mit Nochmal (2 Schwer, 3 Gut, 4 Einfach)"],
+  ["added:1  edited:1  introduced:1  resched:1", "heute hinzugefügt, bearbeitet, erstmals gelernt, neu geplant"],
+  ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch <, <=, =, !="],
+  ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
 ];
+
+/** Categories whose terms are written with a small form instead of fixed rows. */
+const WRITTEN_KINDS = { felder: "field", zeitraum: "since", werte: "prop" } as const;
+type WrittenCategory = keyof typeof WRITTEN_KINDS;
 
 function TermRow({ item, query, onQueryChange }: { item: CardSearchMenuItem; query: string; onQueryChange: (query: string) => void }) {
   const state = cardSearchTermState(query, item.term);
@@ -38,42 +55,104 @@ function TermRow({ item, query, onQueryChange }: { item: CardSearchMenuItem; que
   );
 }
 
-function FieldTerms({ query, onQueryChange }: { query: string; onQueryChange: (query: string) => void }) {
-  const [field, setField] = React.useState("");
-  const [text, setText] = React.useState("");
-  const fieldTerms = cardSearchFieldTerms(query);
-  const name = fieldSearchKey(field);
-  const value = text.trim().split(/\s+/)[0] ?? "";
+/** Terms of a form category as written in the query, without those that already have a fixed row elsewhere. */
+function writtenTerms(query: string, category: WrittenCategory, categories: readonly CardSearchMenuCategory[]): string[] {
+  const fixed = new Set(categories.flatMap((entry) => entry.items.map((item) => item.term.toLocaleLowerCase("und"))));
+  return cardSearchTermsOfKind(query, WRITTEN_KINDS[category]).filter((term) => !fixed.has(term.replace(/^-/, "").toLocaleLowerCase("und")));
+}
+
+/** A form that adds one term, and below it the written terms of its category with their switches. */
+function TermForm({ terms, label, query, onQueryChange, term, children }: {
+  terms: string[];
+  label: (bare: string) => string;
+  query: string;
+  onQueryChange: (query: string) => void;
+  /** The term the form would add, null while incomplete. */
+  term: string | null;
+  children: React.ReactNode;
+}) {
   return (
     <div className="grid min-w-0 gap-3">
       <form
         className="flex min-w-0 flex-wrap items-end gap-2"
         onSubmit={(event) => {
           event.preventDefault();
-          if (!name || !value) return;
-          onQueryChange(withCardSearchTermState(query, `${name}:${value}`, "in"));
-          setText("");
+          if (term) onQueryChange(withCardSearchTermState(query, term, "in"));
         }}
       >
-        <label className="grid min-w-0 flex-1 basis-32 gap-1">
-          <span className="core-field-label">Feld</span>
-          <input className="core-field" value={field} onChange={(event) => setField(event.target.value)} placeholder="Rückseite" />
-        </label>
-        <label className="grid min-w-0 flex-[2] basis-40 gap-1">
-          <span className="core-field-label">Text</span>
-          <input className="core-field" value={text} onChange={(event) => setText(event.target.value)} placeholder="Wort im Feld" />
-        </label>
-        <ActionButton type="submit" variant="secondary" icon={Plus} disabled={!name || !value}>Hinzufügen</ActionButton>
+        {children}
+        <ActionButton type="submit" variant="secondary" icon={Plus} disabled={!term}>Hinzufügen</ActionButton>
       </form>
-      {fieldTerms.length ? (
+      {terms.length ? (
         <ul className="grid min-w-0">
-          {fieldTerms.map((term) => {
-            const bare = term.replace(/^-/, "");
-            return <TermRow key={bare} item={{ label: bare.replace(":", ": "), term: bare }} query={query} onQueryChange={onQueryChange} />;
+          {terms.map((written) => {
+            const bare = written.replace(/^-/, "");
+            return <TermRow key={bare} item={{ label: label(bare), term: bare }} query={query} onQueryChange={onQueryChange} />;
           })}
         </ul>
       ) : null}
     </div>
+  );
+}
+
+function FieldTerms({ terms, query, onQueryChange }: { terms: string[]; query: string; onQueryChange: (query: string) => void }) {
+  const [field, setField] = React.useState("");
+  const [text, setText] = React.useState("");
+  const name = fieldSearchKey(field);
+  const value = text.trim().split(/\s+/)[0] ?? "";
+  return (
+    <TermForm terms={terms} label={(bare) => bare.replace(":", ": ")} query={query} onQueryChange={(next) => { onQueryChange(next); setText(""); }} term={name && value ? `${name}:${value}` : null}>
+      <label className="grid min-w-0 flex-1 basis-32 gap-1">
+        <span className="core-field-label">Feld</span>
+        <input className="core-field" value={field} onChange={(event) => setField(event.target.value)} placeholder="Rückseite" />
+      </label>
+      <label className="grid min-w-0 flex-[2] basis-40 gap-1">
+        <span className="core-field-label">Text</span>
+        <input className="core-field" value={text} onChange={(event) => setText(event.target.value)} placeholder="Wort im Feld" />
+      </label>
+    </TermForm>
+  );
+}
+
+function SinceTerms({ terms, query, onQueryChange, categories }: { terms: string[]; query: string; onQueryChange: (query: string) => void; categories: readonly CardSearchMenuCategory[] }) {
+  const [kind, setKind] = React.useState<string>(CARD_SEARCH_SINCE_OPTIONS[0].value);
+  const [days, setDays] = React.useState("7");
+  const option = CARD_SEARCH_SINCE_OPTIONS.find((candidate) => candidate.value === kind)!;
+  const count = Number(days);
+  return (
+    <TermForm terms={terms} label={(bare) => cardSearchTermLabel(bare, categories).label} query={query} onQueryChange={onQueryChange} term={Number.isInteger(count) && count >= 1 && count <= 9999 ? option.term(count) : null}>
+      <div className="grid min-w-0 flex-[2] basis-44 gap-1">
+        <span className="core-field-label">Was</span>
+        <CoreSelect ariaLabel="Was" value={kind} onValueChange={setKind} options={CARD_SEARCH_SINCE_OPTIONS} className="w-full" />
+      </div>
+      <label className="grid min-w-0 flex-1 basis-28 gap-1">
+        <span className="core-field-label">Letzte Tage</span>
+        <input className="core-field" type="number" inputMode="numeric" min={1} max={9999} value={days} onChange={(event) => setDays(event.target.value)} />
+      </label>
+    </TermForm>
+  );
+}
+
+function PropTerms({ terms, query, onQueryChange, categories }: { terms: string[]; query: string; onQueryChange: (query: string) => void; categories: readonly CardSearchMenuCategory[] }) {
+  const [field, setField] = React.useState<string>(CARD_SEARCH_PROP_OPTIONS[0].value);
+  const [operator, setOperator] = React.useState<string>(">=");
+  const [value, setValue] = React.useState("21");
+  const number = value.trim().replace(",", ".");
+  return (
+    <TermForm terms={terms} label={(bare) => cardSearchTermLabel(bare, categories).label} query={query} onQueryChange={onQueryChange} term={/^\d{1,5}(\.\d+)?$/.test(number) ? `prop:${field}${operator}${number}` : null}>
+      <div className="grid min-w-0 flex-[2] basis-40 gap-1">
+        <span className="core-field-label">Wert</span>
+        <CoreSelect ariaLabel="Wert" value={field} onValueChange={setField} options={CARD_SEARCH_PROP_OPTIONS} className="w-full" />
+      </div>
+      <div className="grid min-w-0 basis-20 gap-1">
+        <span className="core-field-label">Vergleich</span>
+        <CoreSelect ariaLabel="Vergleich" value={operator} onValueChange={setOperator} options={CARD_SEARCH_OPERATORS} className="w-full" />
+      </div>
+      <label className="grid min-w-0 flex-1 basis-24 gap-1">
+        <span className="core-field-label">Zahl</span>
+        <input className="core-field" inputMode="decimal" value={value} onChange={(event) => setValue(event.target.value)} />
+      </label>
+    </TermForm>
   );
 }
 
@@ -115,8 +194,9 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const active = categories.find((category) => category.id === activeId) ?? categories[0];
+  const writtenOf = (category: CardSearchMenuCategory) => category.id in WRITTEN_KINDS ? writtenTerms(query, category.id as WrittenCategory, categories) : [];
   const activeCount = (category: CardSearchMenuCategory) => category.items.filter((item) => cardSearchTermState(query, item.term)).length
-    + (category.id === "felder" ? cardSearchFieldTerms(query).length : 0);
+    + writtenOf(category).length;
   const expression = query.trim();
 
   return (
@@ -172,7 +252,9 @@ export function AdvancedCardSearch({ id, query, onQueryChange, categories, resul
         </nav>
         <div className={`min-w-0 ${mobileOpen ? "" : "max-md:hidden"}`} data-testid={`advanced-card-search-${active.id}`}>
           {active.id === "syntax" ? <SyntaxHelp />
-            : active.id === "felder" ? <FieldTerms query={query} onQueryChange={onQueryChange} />
+            : active.id === "felder" ? <FieldTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} />
+            : active.id === "zeitraum" ? <SinceTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
+            : active.id === "werte" ? <PropTerms terms={writtenOf(active)} query={query} onQueryChange={onQueryChange} categories={categories} />
               : active.items.length ? (
                 <ul className={`grid min-w-0 ${active.id === "stapel" || active.id === "tags" ? "max-h-[28rem] overflow-y-auto pr-1" : ""}`}>
                   {active.items.map((item) => <TermRow key={item.term} item={item} query={query} onQueryChange={onQueryChange} />)}

@@ -169,21 +169,16 @@ Referenz gelesen.
   Planänderung (Ankis Vorschaumodus).
 
 - [ ] **KV2 – Erweiterte Suche vervollständigen:** Suchzeile, Chips, Menü
-      mit `CoreTriStateControl` und die Begriffe aus den vorhandenen
-      Katalogspalten stehen (`is:new|learn|review|young|mature|due`,
-      `prop:due`, `did:`, `has:variant`). Offen, jeweils lokal
-      (`matchesCardSearch`) und in beiden Cloud-RPCs gleich ausgewertet, mit
-      Paritätstests und erweitertem `benchmark:search`:
-      - **KV2b – Lernverlauf im Katalog:** Der Katalog erhält, was die übrigen
-        Menüzeilen brauchen: Heute (heute gelernt, heute „Nochmal“, heute
-        hinzugefügt, heute bearbeitet, erstmals gelernt, neu geplant),
-        Kartenstatus `Zurückgestellt`, Inhalt (Inhaltsform, Anki-Notiztyp,
-        Abfrage, Varianten veraltet), Zeitraum (hinzugefügt, bearbeitet,
-        bewertet, erstmals gelernt in N Tagen) und Werte (Intervall,
-        Haltbarkeit, Schwierigkeit, Abrufwahrscheinlichkeit, Wiederholungen,
-        Fehler mit Vergleich). Syntax: `is:buried`, `added:`, `edited:`,
-        `rated:n[:Bewertung]`, `introduced:`, `resched:`, `prop:` für diese
-        Werte, `deck:Name`. Braucht eine Schemaergänzung.
+      mit `CoreTriStateControl` und alle Begriffe aus dem Katalog stehen,
+      einschließlich Lernverlauf, Werten, Inhaltsform und `deck:Name`. Offen,
+      jeweils lokal (`matchesCardSearch`) und in beiden Cloud-RPCs gleich
+      ausgewertet, mit Paritätstests:
+      - **KV2b-Rest:** Kartenstatus `Zurückgestellt` (`is:buried`; manuell und
+        als Geschwister, beides heute nur aus den Tagesereignissen und den
+        Stapeloptionen der Lernsitzung abgeleitet), `prop:s` und `prop:r`
+        (Haltbarkeit und Abrufwahrscheinlichkeit aus dem FSRS-7-Zustand, nur im
+        Client berechenbar), Inhalt nach Anki-Notiztyp, Abfrage (`card:`) und
+        veralteten Varianten.
       - **KV2c – Gespeicherte Suchen:** kontogebunden und synchronisiert, in
         der Kategorie `Suchsyntax` über der Erklärung. `Speichern` legt oben
         eine Zeile mit Namensfeld an; ein Klick wendet die Suche an, dazu

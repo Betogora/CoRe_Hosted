@@ -440,6 +440,22 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await hitsWith([{ kind: "deck", ids: [fixtureA.decks.id], negated: false }]), true);
       assert.equal(await hitsWith([{ kind: "deck", ids: ["fremder-stapel"], negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "due", from: null, to: "2099-01-01T00:00:00.000Z", reviewableOnly: false, negated: false }]), false, "neue Karten sind nie fällig");
+      // Learning history, values and content form (KV2b); a missing value never matches, its negation always does.
+      const catalogRow = assertNoError(await clientA.from("card_catalog").select("created_at, content_kind").eq("id", fixtureA.cards.id).single(), "Katalogzeile lesen");
+      assert.equal(catalogRow.content_kind, "reveal");
+      const since = (field: string, from: string, rating: string | null = null, negated = false) => hitsWith([{ kind: "since", field, rating, from, negated }]);
+      assert.equal(await since("added", catalogRow.created_at), true);
+      assert.equal(await since("added", "2099-01-01T00:00:00.000Z"), false);
+      assert.equal(await since("rated", "2000-01-01T00:00:00.000Z", "again"), false, "kein Nochmal");
+      assert.equal(await since("rescheduled", "2000-01-01T00:00:00.000Z"), false);
+      assert.equal(await since("rescheduled", "2000-01-01T00:00:00.000Z", null, true), true, "ohne Neuplanung trifft die Verneinung");
+      const prop = (field: string, operator: string, value: number) => hitsWith([{ kind: "prop", field, operator, value, negated: false }]);
+      assert.equal(await prop("ivl", ">=", 0), false, "neue Karten haben kein Intervall");
+      assert.equal(await prop("d", "<=", 10), false, "und keine Schwierigkeit");
+      assert.equal(await prop("lapses", "=", 0), true);
+      assert.equal(await prop("reps", "!=", 0), false);
+      assert.equal(await hitsWith([{ kind: "form", value: "reveal", negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "form", value: "cloze", negated: false }]), false);
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});
@@ -706,6 +722,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
         assert.equal(first.card.study_revision, currentCard.study_revision + 1);
         assert.equal(first.variant.revision, currentVariant.revision);
         assert.equal(first.event.id, eventId);
+        const history = assertNoError(await clientA.from("card_catalog").select("first_reviewed_at, last_good_at, last_again_at").eq("id", fixtureA.cards.id).single(), "Lernverlauf im Katalog lesen");
+        assert.equal(Date.parse(history.last_good_at), Date.parse(answeredAt), "die Auffrischung sieht die Antwort derselben Transaktion");
+        assert.ok(Date.parse(history.first_reviewed_at) <= Date.parse(answeredAt));
+        assert.equal(history.last_again_at, null);
         const [deckAfter, noteAfter] = await Promise.all([
           clientA.from("decks").select("revision,sync_change_id").eq("id", fixtureA.decks.id).single(),
           clientA.from("notes").select("revision,content_revision").eq("id", fixtureA.notes.id).single(),

@@ -15,18 +15,30 @@ export type Database = {
           active_variant_id: string | null
           anki_flag: number
           body_revision: number
+          content_kind: string
           created_at: string
           deck_id: string
           deleted_at: string | null
           dependency_revision: number
+          difficulty: number
           due_at: string | null
+          edited_at: string | null
+          first_reviewed_at: string | null
           front_preview: string
           has_active_variants: boolean
           id: string
+          interval_days: number
+          lapses: number
+          last_again_at: string | null
+          last_easy_at: string | null
+          last_good_at: string | null
+          last_hard_at: string | null
+          last_rescheduled_at: string | null
           leeched: boolean
           marked: boolean
           maturity_band: string
           note_id: string
+          reps: number
           reviewable: boolean
           schedule_state: string
           sort_text: string
@@ -41,18 +53,30 @@ export type Database = {
           active_variant_id?: string | null
           anki_flag?: number
           body_revision?: number
+          content_kind?: string
           created_at: string
           deck_id: string
           deleted_at?: string | null
           dependency_revision?: number
+          difficulty?: number
           due_at?: string | null
+          edited_at?: string | null
+          first_reviewed_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
           id: string
+          interval_days?: number
+          lapses?: number
+          last_again_at?: string | null
+          last_easy_at?: string | null
+          last_good_at?: string | null
+          last_hard_at?: string | null
+          last_rescheduled_at?: string | null
           leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id: string
+          reps?: number
           reviewable?: boolean
           schedule_state?: string
           sort_text?: string
@@ -67,18 +91,30 @@ export type Database = {
           active_variant_id?: string | null
           anki_flag?: number
           body_revision?: number
+          content_kind?: string
           created_at?: string
           deck_id?: string
           deleted_at?: string | null
           dependency_revision?: number
+          difficulty?: number
           due_at?: string | null
+          edited_at?: string | null
+          first_reviewed_at?: string | null
           front_preview?: string
           has_active_variants?: boolean
           id?: string
+          interval_days?: number
+          lapses?: number
+          last_again_at?: string | null
+          last_easy_at?: string | null
+          last_good_at?: string | null
+          last_hard_at?: string | null
+          last_rescheduled_at?: string | null
           leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id?: string
+          reps?: number
           reviewable?: boolean
           schedule_state?: string
           sort_text?: string
