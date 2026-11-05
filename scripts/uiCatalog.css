@@ -2,14 +2,12 @@
 .catalog { font-family: var(--core-font-sans); color: var(--core-text); }
 .catalog code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .84em; }
 
-.catalog-hero { padding: clamp(1.5rem, 4vw, 3.5rem) 0 2rem; }
-.catalog-hero h1 { max-width: 15ch; margin: .55rem 0 .9rem; font-size: clamp(2.4rem, 6vw, 4.5rem); font-weight: 700; line-height: .98; letter-spacing: -.045em; }
-.catalog-lede { max-width: 72ch; margin: 0; color: var(--core-text-muted); font-size: clamp(1rem, 2vw, 1.18rem); line-height: 1.5; }
 
 .catalog-search { position: relative; display: block; min-width: 0; }
 .catalog-search svg { position: absolute; top: 50%; left: .75rem; width: 1rem; height: 1rem; transform: translateY(-50%); color: var(--core-text-muted); }
 .catalog-search input { width: 100%; height: 2.75rem; padding: 1.2rem .75rem .3rem 2.4rem; border: var(--core-border-width) solid var(--core-border); border-radius: var(--core-radius-control); color: var(--core-text); background: var(--core-surface); font-size: .875rem; }
 .catalog-search-label { position: absolute; z-index: 1; top: .3rem; left: 2.4rem; max-width: calc(100% - 3rem); color: var(--core-text-muted); font-size: .6875rem; line-height: .875rem; pointer-events: none; }
+.catalog-title { margin: 0 0 var(--core-space-xl); }
 .catalog-empty { padding: 2rem; border: var(--core-border-width) dashed var(--core-border); border-radius: .75rem; color: var(--core-text-muted); background: var(--core-surface); text-align: center; }
 
 .catalog-section { scroll-margin-top: 1.5rem; margin: 0 0 2.5rem; min-width: 0; }

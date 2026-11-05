@@ -1,7 +1,7 @@
 /** Screenshot matrices run only on request (`CORE_VISUAL_OUTPUT=1`); ordinary runs keep one phone and one desktop breakpoint. */
 export const visualOutput = Boolean(process.env.CORE_VISUAL_OUTPUT);
 
-/** Viewports of the mandatory visual matrix in `docs/operations.md#visuelle-pflichtmatrix`. */
+/** Viewports of the mandatory visual matrix in `docs/test-portfolio.md#visuelle-pflichtmatrix`. */
 export const VISUAL_MATRIX_VIEWPORTS = [
   { width: 320, height: 720 },
   { width: 360, height: 800 },

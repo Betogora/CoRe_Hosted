@@ -166,7 +166,7 @@ export interface CardEditorDialogProps {
   onDraftStateChange: (guard: CardDraftGuard | null) => void;
 }
 
-/** Full-surface card editor with the tabs `Allgemein`, `Inhalt`, `Varianten` and `Lernen` (specs §5.3). */
+/** Full-surface card editor with the tabs `Allgemein`, `Inhalt`, `Varianten` and `Lernen` (specs.md#kartendetail-und-editor). */
 export function CardEditorDialog(props: CardEditorDialogProps) {
   const { graph, cardId, tab, onTabChange, hits, services, onSetStudyState, onDraftStateChange } = props;
   const { note } = graph;
