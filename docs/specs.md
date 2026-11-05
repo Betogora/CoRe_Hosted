@@ -87,6 +87,7 @@ Akzeptanz:
 - Datenschutztexte versprechen nur technisch wirksames Verhalten.
 - Sync-, Offline- und Konfliktstatus sind ohne Tabellen-, Revisions- oder Geräteterminologie verständlich.
 - Demo-Daten entstehen nur durch eine ausdrückliche Nutzeraktion oder im Entwicklungs-/Testmodus. Die Demo legt Beispielstapel mit neuen Karten ohne Lernhistorie an, zeigt währenddessen ihren Ladezustand, startet bei Mehrfachklick nur einmal und meldet Fehler sichtbar.
+- Die Demo „Welt-Hauptstädte“ fragt mit deutschen Hauptstadtnamen und grammatisch passendem Ländernamen („Hauptstadt der Schweiz“); jeder Kontinent-Unterstapel trägt eine eigene Farbe der Stapelpalette.
 - Die Begrüßung trennt `Willkommen zurück,` vom vollständig umbrechbaren Profilnamen.
 
 #### Tageslernfläche

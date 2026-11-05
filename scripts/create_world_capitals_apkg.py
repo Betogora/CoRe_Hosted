@@ -20,7 +20,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE_PATH = ROOT / "fixtures" / "apkg" / "world-capitals.source.json"
+SOURCE_PATH = ROOT / "library" / "world-capitals" / "world-capitals.source.json"
 APKG_PATH = ROOT / "fixtures" / "apkg" / "world-capitals.apkg"
 COUNTRIES_URL = "https://raw.githubusercontent.com/mledoze/countries/master/countries.json"
 SNAPSHOT_DATE = "2026-07-07"
@@ -39,6 +39,47 @@ CONTINENTS = [
     ("ozeanien", "Ozeanien"),
     ("suedamerika", "Südamerika"),
 ]
+
+
+# mledoze/countries names capitals in English; German learners expect the German exonym.
+GERMAN_CAPITALS = {
+    "DZA": ["Algier"], "DJI": ["Dschibuti"], "SWZ": ["Mbabane", "Lobamba"], "LBY": ["Tripolis"], "SOM": ["Mogadischu"],
+    "SDN": ["Khartum"], "ZAF": ["Pretoria", "Bloemfontein", "Kapstadt"], "EGY": ["Kairo"], "ETH": ["Addis Abeba"],
+    "ARM": ["Eriwan"], "CHN": ["Peking"], "GEO": ["Tiflis"], "HKG": ["Victoria"], "IND": ["Neu-Delhi"], "IRQ": ["Bagdad"],
+    "IRN": ["Teheran"], "JPN": ["Tokio"], "YEM": ["Sanaa"], "KGZ": ["Bischkek"], "KWT": ["Kuwait-Stadt"], "PRK": ["Pjöngjang"],
+    "OMN": ["Maskat"], "SAU": ["Riad"], "SGP": ["Singapur"], "LKA": ["Sri Jayawardenepura Kotte", "Colombo"], "SYR": ["Damaskus"],
+    "TJK": ["Duschanbe"], "TWN": ["Taipeh"], "TKM": ["Aschgabat"], "UZB": ["Taschkent"], "BEL": ["Brüssel"],
+    "DNK": ["Kopenhagen"], "GRC": ["Athen"], "ISL": ["Reykjavík"], "ITA": ["Rom"], "LUX": ["Luxemburg"], "POL": ["Warschau"],
+    "PRT": ["Lissabon"], "ROU": ["Bukarest"], "RUS": ["Moskau"], "SMR": ["San Marino"], "SRB": ["Belgrad"], "CZE": ["Prag"],
+    "UKR": ["Kyjiw"], "VAT": ["Vatikanstadt"], "CYP": ["Nikosia"], "AUT": ["Wien"], "ATG": ["St. John’s"],
+    "GTM": ["Guatemala-Stadt"], "CUB": ["Havanna"], "MEX": ["Mexiko-Stadt"], "PAN": ["Panama-Stadt"], "USA": ["Washington, D.C."],
+    "PYF": ["Papeete"], "KIR": ["Süd-Tarawa"], "BOL": ["Sucre", "La Paz"],
+}
+
+# "Was ist die Hauptstadt …": names with an article take the genitive instead of "von".
+CAPITAL_OF = {
+    "IOT": "des Britischen Territoriums im Indischen Ozean", "COG": "der Republik Kongo", "COD": "der Demokratischen Republik Kongo",
+    "COM": "der Komoren", "SYC": "der Seychellen", "SDN": "des Sudan", "SSD": "des Südsudan", "TCD": "des Tschad",
+    "ESH": "der Westsahara", "CAF": "der Zentralafrikanischen Republik", "ATF": "der Französischen Süd- und Antarktisgebiete",
+    "SGS": "von Südgeorgien und den Südlichen Sandwichinseln", "IRQ": "des Irak", "IRN": "des Iran", "YEM": "des Jemen",
+    "LBN": "des Libanon", "MDV": "der Malediven", "MNG": "der Mongolei", "PHL": "der Philippinen", "TUR": "der Türkei",
+    "ARE": "der Vereinigten Arabischen Emirate", "FRO": "der Färöer", "IMN": "der Insel Man", "UNK": "des Kosovo",
+    "NLD": "der Niederlande", "CHE": "der Schweiz", "SVK": "der Slowakei", "UKR": "der Ukraine", "VAT": "der Vatikanstadt",
+    "GBR": "des Vereinigten Königreichs", "VIR": "der Amerikanischen Jungferninseln", "BHS": "der Bahamas",
+    "VGB": "der Britischen Jungferninseln", "DOM": "der Dominikanischen Republik", "CYM": "der Kaimaninseln",
+    "BES": "der Karibischen Niederlande", "TCA": "der Turks- und Caicosinseln", "USA": "der Vereinigten Staaten",
+    "COK": "der Cookinseln", "CCK": "der Kokosinseln", "MHL": "der Marshallinseln", "NFK": "der Norfolkinsel",
+    "MNP": "der Nördlichen Marianen", "PCN": "der Pitcairninseln", "SLB": "der Salomonen", "CXR": "der Weihnachtsinsel",
+    "FLK": "der Falklandinseln",
+}
+
+
+def localize_items(items):
+    for item in items:
+        cca3 = item["cca3"]
+        item["capitals"] = GERMAN_CAPITALS.get(cca3, item["capitals"])
+        item["question"] = f"Was ist die Hauptstadt {CAPITAL_OF.get(cca3, 'von ' + item['country'])}?"
+    return items
 
 
 def load_json(path: Path):
@@ -120,7 +161,7 @@ def normalize_countries(countries):
 def build_source(refresh: bool):
     if refresh or not SOURCE_PATH.exists():
         countries = fetch_countries()
-        items = normalize_countries(countries)
+        items = localize_items(normalize_countries(countries))
         source = {
             "metadata": {
                 "title": ROOT_DECK_NAME,
@@ -143,7 +184,7 @@ def build_source(refresh: bool):
 
 
 def card_front(item) -> str:
-    question = f"Was ist die Hauptstadt von {item['country']}?"
+    question = item["question"]
     media_name = item.get("benchmarkMedia")
     return f'{question}<br><img src="{media_name}">' if media_name else question
 
@@ -376,6 +417,7 @@ def build_benchmark_fixture(source, repeat: int, media_count: int, item_count: i
             item["ankiNoteId"] = 1820400000000 + serial
             item["ankiCardId"] = 1820500000000 + serial
             item["country"] = f"{item['country']} ({repetition + 1})"
+            item["question"] = f"Was ist die Hauptstadt von {item['country']}?"
             if media_names:
                 item["benchmarkMedia"] = media_names[serial % len(media_names)]
             expanded.append(item)

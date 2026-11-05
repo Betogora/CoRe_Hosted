@@ -2,6 +2,7 @@ import type { AnkiPackage, AnkiPackageMediaFile, AnkiReviewHistoryEntry } from "
 import type {
   Card,
   ChoiceOption,
+  DeckAppearance,
   Note,
   NoteContent,
   NoteField,
@@ -35,6 +36,8 @@ export interface ImportDeck {
   name: string;
   hierarchyPath: string[];
   parentDeckId: string | null;
+  /** Anki packages carry no deck appearance; CoRe's own library decks set one. */
+  appearance?: DeckAppearance;
 }
 
 export interface ImportReviewEvent {

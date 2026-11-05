@@ -31,6 +31,7 @@ CoRe ist eine Vite-/React-SPA mit TypeScript. Accountgebundene Browsermodule kap
 | `importUiState.ts`, `apkgImportSession.ts` | sichtbare Importphasen und flüchtige accountgebundene Sitzung |
 | `apkgImport.ts` | öffentliche APKG-Grenze: Vorschau und gestreamter Importgraph; Worker, Protokoll, ZIP und SQLite bleiben privat |
 | `apkgNoteTranslation.ts`, `importRetranslation.ts` | Übersetzung eines gelesenen Anki-Pakets in den `Note`/`Card`-Importgraphen und automatische Neuübersetzung unbearbeiteter Importe |
+| `library/` (Repository-Wurzel), `fixtures/worldCapitals.ts` | Grundbibliothek: je Stapel eine versionierte Quelle mit stabilen Inhalts-IDs; `scripts/create_world_capitals_apkg.py` erzeugt daraus das Anki-Paket. Die Demo committet Welt-Hauptstädte als Importgraph; `ImportDeck.appearance` trägt dabei die Stapelfarbe, die Anki-Pakete nicht kennen |
 | `notePresentation.ts`, `presentationFrame.ts` | asynchroner Kartenrenderer sowie gemeinsames CSP-Gerüst und Medienauflösung |
 | `CardPresentationSurface`, `NoteCardContent`, `CardPreviewDialog` | Iframe-Rahmen, Antwort-Host mit transientem Eingabe-/Auswahlzustand und Vorschau |
 | `mainThreadBudget.ts` | teilt lange Hauptthread-Schleifen (Stapelzähler, Neuübersetzung) in Scheiben von höchstens 50 ms |

@@ -454,6 +454,19 @@ function importGraph(chunks: ImportGraphChunk[]): ImportCommitGraph {
   };
 }
 
+test("ein Bibliotheksstapel bringt seine Stapelfarben mit; Anki-Stapel ohne Darstellung erhalten den Standard", async () => {
+  const repository = await openRepository(workspaceState(0));
+  await repository.commitImportGraph(importGraph([{ kind: "decks", decks: [
+    { id: "library-root", ankiDeckId: "library-root", name: "Bibliothek", hierarchyPath: ["Bibliothek"], parentDeckId: null },
+    { id: "library-child", ankiDeckId: "library-child", name: "Europa", hierarchyPath: ["Bibliothek", "Europa"], parentDeckId: "library-root", appearance: { iconKey: "globe", iconColor: "#3b7dd8" } },
+  ] }]), { deckSettings: {}, reimportTargets: { notes: [], cards: [], noteTypeSources: [] } });
+
+  const appearances = Object.fromEntries(repository.getShellState().decks.map((deck) => [deck.name, deck.deckSettings.appearance]));
+  assert.deepEqual(appearances.Europa, { iconKey: "globe", iconColor: "#3b7dd8" });
+  assert.deepEqual(appearances.Bibliothek, { iconKey: "book-open", iconColor: "#6f7e9e" });
+  repository.close();
+});
+
 test("Reimport behält lokale Bearbeitungen, erkennt Karten an der Anki-Karten-ID und zählt fehlende Karten", async () => {
   const edited = importedNote("note-edited", "guid-edited", "Lokal bearbeitet", { reverse: true, contentRevision: 2 });
   edited.cards = edited.cards.map((card) => ({ ...card, id: `card-edited-${card.promptKey}`, ankiCardId: card.promptKey === "forward" ? "anki-a1" : "anki-a2" }));
