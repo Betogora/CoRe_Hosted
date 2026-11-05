@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { addCardVariant, cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState, setCardSuspended } from "./coreModel.ts";
 import type { Card, Note } from "./coreTypes.ts";
-import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
+import { catalogEntryFromCard, promptOrdinal, type CardCatalogEntry } from "./workspaceReplica.ts";
 import {
   type CardTableSort,
   createCardSearchContext,
@@ -700,4 +700,8 @@ test("deck: und note: lösen sich über Pfad und Namen auf; der Katalog kennt No
   const entry = catalogEntryFromCard(outdated, { ...notesById.get(card.noteId)!, noteTypeSourceId: "nt-1" });
   assert.deepEqual([entry.noteTypeId, entry.hasOutdatedVariants], ["nt-1", true]);
   assert.equal(catalogEntryFromCard(card, notesById.get(card.noteId)!).hasOutdatedVariants, false);
+});
+
+test("Abfrageschlüssel werden zur Abfragenummer wie in Ankis card:N", () => {
+  assert.deepEqual(["forward", "reverse", "choice", "anki-0", "anki-1", "cloze:3", "io:12", "eigene"].map(promptOrdinal), [1, 2, 1, 1, 2, 3, 12, null]);
 });

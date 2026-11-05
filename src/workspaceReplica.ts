@@ -1,6 +1,7 @@
 import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { Card, Note, ReviewEvent, ReviewRating } from "./coreTypes.ts";
 import { getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
+import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 
 export type AccountBaselineState = "uninitialized" | "nonempty" | "confirmed-empty";
@@ -74,6 +75,11 @@ export interface CardCatalogEntry {
   /** Anki note type (`note:`) of the content and whether a variant of the card is outdated (`has:outdated`). */
   noteTypeId?: string | null;
   hasOutdatedVariants?: boolean;
+  /** Number of the prompt as in Anki's `card:N` (template, cloze or mask); null for an unknown prompt key. */
+  promptOrdinal?: number | null;
+  /** Last manual bury and unbury (`is:buried`: buried today when the bury is the later one). */
+  lastBuriedAt?: string | null;
+  lastUnburiedAt?: string | null;
   bodyRevision: number;
   studyRevision: number;
   dependencyRevision: number;
@@ -249,7 +255,17 @@ export function bodyResidencyForRevision(
 
 /** Local catalog entry with the same revisions as the cloud projection (`private.refresh_card_catalog`). */
 /** The answer history a catalog entry keeps; the card body has no complete history, the cloud derives it from all answers. */
-export type CatalogReviewHistory = Pick<CardCatalogEntry, "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt">;
+export type CatalogReviewHistory = Pick<CardCatalogEntry, "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "lastBuriedAt" | "lastUnburiedAt">;
+
+/** `card:N` of a prompt key, the same mapping as `private.refresh_card_catalog`. */
+export function promptOrdinal(promptKey: string): number | null {
+  if (promptKey === "forward" || promptKey === "choice") return 1;
+  if (promptKey === "reverse") return 2;
+  const anki = /^anki-(\d{1,6})$/.exec(promptKey);
+  if (anki) return Number(anki[1]) + 1;
+  const numbered = /^(?:cloze|io):(\d{1,6})$/.exec(promptKey);
+  return numbered ? Number(numbered[1]) : null;
+}
 
 /** Kind of the manual event that sets a new due date (`resched:`). */
 export const MANUAL_RESCHEDULE_KIND = "manual_reschedule";
@@ -269,10 +285,12 @@ export function catalogReviewHistory(entry: CatalogReviewHistory | null | undefi
     lastGoodAt: entry?.lastGoodAt ?? null,
     lastEasyAt: entry?.lastEasyAt ?? null,
     lastRescheduledAt: entry?.lastRescheduledAt ?? null,
+    lastBuriedAt: entry?.lastBuriedAt ?? null,
+    lastUnburiedAt: entry?.lastUnburiedAt ?? null,
   };
 }
 
-/** History after more study events, in any order; of the manual events only a reschedule counts. */
+/** History after more study events, in any order; of the manual events only reschedules and (un)burying count. */
 export function withStudyEvents(history: CatalogReviewHistory | null | undefined, events: Iterable<Pick<ReviewEvent, "rating" | "answeredAt" | "flags">>): CatalogReviewHistory {
   const next = catalogReviewHistory(history);
   const later = (field: keyof CatalogReviewHistory, at: string) => {
@@ -280,7 +298,10 @@ export function withStudyEvents(history: CatalogReviewHistory | null | undefined
   };
   for (const event of events) {
     if (event.rating === "manual") {
-      if (event.flags?.kind === MANUAL_RESCHEDULE_KIND) later("lastRescheduledAt", event.answeredAt);
+      const kind = event.flags?.kind;
+      if (kind === MANUAL_RESCHEDULE_KIND) later("lastRescheduledAt", event.answeredAt);
+      else if (kind === MANUAL_BURY_KIND) later("lastBuriedAt", event.answeredAt);
+      else if (kind === MANUAL_UNBURY_KIND) later("lastUnburiedAt", event.answeredAt);
       continue;
     }
     if (!next.firstReviewedAt || Date.parse(event.answeredAt) < Date.parse(next.firstReviewedAt)) next.firstReviewedAt = event.answeredAt;
@@ -317,6 +338,7 @@ export function catalogEntryFromCard(card: Card, note: Note | null, history?: Ca
     createdAt: card.createdAt,
     ...(note ? { editedAt: note.updatedAt, contentKind: note.content.interaction.kind, noteTypeId: note.noteTypeSourceId } : {}),
     hasOutdatedVariants: card.variants.some((variant) => !variant.deletedAt && variant.meta.outdated === true),
+    promptOrdinal: promptOrdinal(card.promptKey),
     intervalDays: card.study.intervalDays,
     difficulty: card.study.difficulty,
     reps: card.study.reps,

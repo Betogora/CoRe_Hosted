@@ -9,7 +9,8 @@ const DAY_MS = 86_400_000;
  * `>=`, `>`), `has:variant`, `did:<deck id>` and `deck:Name` (the deck with its subdecks; `*` and `_` as wildcards),
  * `added:n`, `edited:n`, `introduced:n`, `resched:n`, `rated:n` and `rated:n:1` to `4` (today and the n - 1 days before),
  * `prop:ivl|d|reps|lapses` with `<`, `<=`, `=`, `!=`, `>=`, `>`, the content form `is:reveal|choice|cloze|occlusion`,
- * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant)
+ * `note:Name` (Anki note type, wildcards like `deck:`) and `mid:<note type id>`, `has:outdated` (an outdated variant),
+ * `card:N` (number of the prompt as in Anki), `is:buried` (buried by hand today; buried siblings only exist in a session)
  * and `Feld:Text` for text in one named field; a leading `-` negates a term. All terms must match.
  *
  * Terms relative to today or to the deck tree are resolved against a `CardSearchContext`, so the local search and
@@ -30,6 +31,9 @@ type CardSearchTerm =
   | { kind: "prop"; field: PropField; operator: PropOperator; value: number; negated: boolean }
   | { kind: "form"; value: NoteInteraction["kind"]; negated: boolean }
   | { kind: "notetype"; ids: string[]; negated: boolean }
+  | { kind: "card"; value: number; negated: boolean }
+  /** Buried by hand from `from` (the start of today) on and not unburied since. */
+  | { kind: "buried"; from: string; negated: boolean }
   | { kind: "tag-none" | "leech" | "marked" | "suspended" | "variant" | "outdated"; negated: boolean };
 
 type SinceField = "added" | "edited" | "introduced" | "rescheduled" | "rated";
@@ -58,7 +62,7 @@ export interface CardSearchQuery {
 
 type SearchableEntry = Pick<CardCatalogEntry, "normalizedSearchText" | "searchFields" | "ankiFlag" | "tagKeys" | "leeched" | "marked" | "reviewable" | "scheduleState" | "maturityBand" | "dueAt" | "hasActiveVariants" | "deckId"
   | "createdAt" | "editedAt" | "contentKind" | "intervalDays" | "difficulty" | "reps" | "lapses"
-  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants">;
+  | "firstReviewedAt" | "lastAgainAt" | "lastHardAt" | "lastGoodAt" | "lastEasyAt" | "lastRescheduledAt" | "noteTypeId" | "hasOutdatedVariants" | "promptOrdinal" | "lastBuriedAt" | "lastUnburiedAt">;
 
 const RATINGS: readonly ReviewRating[] = ["again", "hard", "good", "easy"];
 const CONTENT_FORMS: Readonly<Record<string, NoteInteraction["kind"]>> = { reveal: "reveal", choice: "choice", cloze: "cloze", occlusion: "image-occlusion" };
@@ -101,6 +105,8 @@ function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm |
       negated: since[1] === "-",
     };
   }
+  const card = /^(-?)card:(\d{1,3})$/i.exec(token);
+  if (card && Number(card[2]) >= 1) return { kind: "card", value: Number(card[2]), negated: card[1] === "-" };
   const match = /^(-?)(flag|tag|is|has|did|deck|note|mid):(.+)$/i.exec(token);
   if (!match) return null;
   const negated = match[1] === "-";
@@ -114,6 +120,7 @@ function parseTerm(token: string, context?: CardSearchContext): CardSearchTerm |
   if (key === "has") return value === "variant" ? { kind: "variant", negated } : value === "outdated" ? { kind: "outdated", negated } : null;
   if (key === "is") {
     if (value === "suspended") return { kind: "suspended", negated };
+    if (value === "buried") return { kind: "buried", from: dayBound(context, 0), negated };
     if (value === "new" || value === "learn" || value === "review") return { kind: "state", value, negated };
     if (value === "young" || value === "mature") return { kind: "maturity", value, negated };
     if (value === "due") return { kind: "due", from: null, to: dayBound(context, 1), reviewableOnly: true, negated };
@@ -224,6 +231,10 @@ function termMatches(entry: SearchableEntry, term: CardSearchTerm): boolean {
     case "form": return entry.contentKind === term.value;
     case "notetype": return Boolean(entry.noteTypeId) && term.ids.includes(entry.noteTypeId!);
     case "outdated": return entry.hasOutdatedVariants === true;
+    case "card": return entry.promptOrdinal === term.value;
+    case "buried":
+      return Boolean(entry.lastBuriedAt) && Date.parse(entry.lastBuriedAt!) >= Date.parse(term.from)
+        && (!entry.lastUnburiedAt || Date.parse(entry.lastUnburiedAt) < Date.parse(entry.lastBuriedAt!));
     case "tag-none": return entry.tagKeys.length === 0;
     case "leech": return entry.leeched;
     case "marked": return entry.marked;

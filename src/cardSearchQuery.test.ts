@@ -96,7 +96,7 @@ test("Zustand, Reife, Varianten, Stapel und Fälligkeit werten den Lernstand aus
 });
 
 test("Nicht unterstützte Anki-Begriffe werden benannt, normaler Text mit Doppelpunkt nicht", () => {
-  assert.deepEqual(unsupportedCardSearchTerms("is:due -is:buried flag:9 prop:s>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended has:x"), ["-is:buried", "flag:9", "prop:s>3", "has:x"]);
+  assert.deepEqual(unsupportedCardSearchTerms("is:due -card:Vorderseite flag:9 prop:s>3 Ursprung:scaleni https://x.de flag:1 tag:herz is:suspended has:x"), ["-card:Vorderseite", "flag:9", "prop:s>3", "has:x"]);
   assert.deepEqual(unsupportedCardSearchTerms(""), []);
 });
 
@@ -137,7 +137,7 @@ test("Zeitraum, Werte und Inhaltsform werten Verlauf und Katalogwerte aus", () =
   assert.equal(matchesCardSearch(entry({ lapses: 0 }), search("prop:lapses!=0")), false);
   assert.equal(matchesCardSearch(entry({ scheduleState: "new", reps: 0 }), search("prop:reps=0")), true);
   assert.equal(matchesCardSearch(entry({ contentKind: "image-occlusion" }), search("is:occlusion -is:cloze")), true);
-  assert.deepEqual(unsupportedCardSearchTerms("prop:s>3 prop:r<0.9 is:buried added:0 edited:3:1 rated:2:4"), ["prop:s>3", "prop:r<0.9", "is:buried", "added:0", "edited:3:1"]);
+  assert.deepEqual(unsupportedCardSearchTerms("prop:s>3 prop:r<0.9 is:buried added:0 edited:3:1 rated:2:4"), ["prop:s>3", "prop:r<0.9", "added:0", "edited:3:1"]);
 });
 
 test("deck: findet Stapel nach Pfad wie Anki, samt Unterstapeln und Platzhaltern", () => {
@@ -162,4 +162,14 @@ test("note:, mid: und has:outdated prüfen Notiztyp und veraltete Varianten", ()
   assert.equal(matchesCardSearch(entry(), parseCardSearchQuery("has:outdated", context)), false, "ein alter Katalogeintrag ohne Feld trifft nicht");
   assert.equal(namePatternMatches("basic", "Basic (and reversed)"), false, "ohne Platzhalter nur der ganze Name");
   assert.equal(namePatternMatches("basic_(and_reversed)", "Basic (and reversed)"), true);
+});
+
+test("card:N prüft die Abfragenummer, is:buried das heutige manuelle Zurückstellen", () => {
+  const search = (query: string) => parseCardSearchQuery(query, TODAY);
+  assert.equal(matchesCardSearch(entry({ promptOrdinal: 2 }), search("card:2")), true);
+  assert.equal(matchesCardSearch(entry({ promptOrdinal: null }), search("card:1")), false, "unbekannter Abfrageschlüssel");
+  assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z" }), search("is:buried")), true);
+  assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z", lastUnburiedAt: "2026-11-05T10:00:00.000Z" }), search("is:buried")), false, "wieder hervorgeholt");
+  assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T09:00:00.000Z", lastUnburiedAt: "2026-11-04T10:00:00.000Z" }), search("is:buried")), true);
+  assert.equal(matchesCardSearch(entry({ lastBuriedAt: "2026-11-05T03:00:00.000Z" }), search("is:buried")), false, "gestern zurückgestellt gilt heute nicht mehr");
 });

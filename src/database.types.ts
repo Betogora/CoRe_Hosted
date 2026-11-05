@@ -31,15 +31,18 @@ export type Database = {
           interval_days: number
           lapses: number
           last_again_at: string | null
+          last_buried_at: string | null
           last_easy_at: string | null
           last_good_at: string | null
           last_hard_at: string | null
           last_rescheduled_at: string | null
+          last_unburied_at: string | null
           leeched: boolean
           marked: boolean
           maturity_band: string
           note_id: string
           note_type_id: string | null
+          prompt_ordinal: number | null
           reps: number
           reviewable: boolean
           schedule_state: string
@@ -71,15 +74,18 @@ export type Database = {
           interval_days?: number
           lapses?: number
           last_again_at?: string | null
+          last_buried_at?: string | null
           last_easy_at?: string | null
           last_good_at?: string | null
           last_hard_at?: string | null
           last_rescheduled_at?: string | null
+          last_unburied_at?: string | null
           leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id: string
           note_type_id?: string | null
+          prompt_ordinal?: number | null
           reps?: number
           reviewable?: boolean
           schedule_state?: string
@@ -111,15 +117,18 @@ export type Database = {
           interval_days?: number
           lapses?: number
           last_again_at?: string | null
+          last_buried_at?: string | null
           last_easy_at?: string | null
           last_good_at?: string | null
           last_hard_at?: string | null
           last_rescheduled_at?: string | null
+          last_unburied_at?: string | null
           leeched?: boolean
           marked?: boolean
           maturity_band?: string
           note_id?: string
           note_type_id?: string | null
+          prompt_ordinal?: number | null
           reps?: number
           reviewable?: boolean
           schedule_state?: string

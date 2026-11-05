@@ -461,6 +461,10 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.equal(await hitsWith([{ kind: "notetype", ids: ["irgendein-typ"], negated: true }]), true, "ohne Notiztyp trifft die Verneinung");
       assert.equal(await hitsWith([{ kind: "outdated", negated: false }]), false);
       assert.equal(await hitsWith([{ kind: "outdated", negated: true }]), true);
+      assert.equal(await hitsWith([{ kind: "card", value: 1, negated: false }]), true, "forward ist Abfrage 1");
+      assert.equal(await hitsWith([{ kind: "card", value: 2, negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "buried", from: "2000-01-01T00:00:00.000Z", negated: true }]), true);
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});

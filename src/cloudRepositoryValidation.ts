@@ -190,6 +190,9 @@ const cardCatalogRowSchema = v.looseObject({
   last_rescheduled_at: v.optional(v.nullable(v.string())),
   note_type_id: v.optional(v.nullable(v.string())),
   has_outdated_variants: v.optional(v.boolean()),
+  prompt_ordinal: v.optional(v.nullable(v.number())),
+  last_buried_at: v.optional(v.nullable(v.string())),
+  last_unburied_at: v.optional(v.nullable(v.string())),
 });
 const cardStudyStateRowSchema = v.object({
   card_id: v.string(),
@@ -548,6 +551,9 @@ export function validateCardCatalogRows(input: unknown): CardCatalogEntry[] {
     lastRescheduledAt: row.last_rescheduled_at,
     noteTypeId: row.note_type_id,
     hasOutdatedVariants: row.has_outdated_variants,
+    promptOrdinal: row.prompt_ordinal,
+    lastBuriedAt: row.last_buried_at,
+    lastUnburiedAt: row.last_unburied_at,
     bodyRevision: row.body_revision,
     studyRevision: row.study_revision,
     dependencyRevision: row.dependency_revision,

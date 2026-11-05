@@ -171,20 +171,16 @@ Referenz gelesen.
 - [ ] **KV2 – Erweiterte Suche vervollständigen:** Suchzeile, Chips, Menü
       mit `CoreTriStateControl`, gespeicherte Suchen und alle Begriffe aus dem
       Katalog stehen, einschließlich Lernverlauf, Werten, Inhaltsform,
-      Notiztyp, veralteten Varianten und `deck:Name`. Offen,
-      jeweils lokal (`matchesCardSearch`) und in beiden Cloud-RPCs gleich
-      ausgewertet, mit Paritätstests:
-      - **KV2b-Rest, Entscheidung offen:** Kartenstatus `Zurückgestellt`
-        (`is:buried`): Manuelles Zurückstellen steht in den Tagesereignissen,
-        Geschwister-Zurückstellen entsteht erst beim Aufbau der Lernsitzung aus
-        den Stapeloptionen. `prop:s` und `prop:r`: Haltbarkeit und
-        Abrufwahrscheinlichkeit kommen aus dem FSRS-7-Zustand und lassen sich
-        nur im Client berechnen; `prop:r` hängt zudem von der Uhrzeit ab.
-        Abfrage (`card:`): Abfrageschlüssel sind je Inhaltsform verschieden
-        (`forward`, `reverse`, Vorlagennamen, `io:N`).
+      Notiztyp, veralteten Varianten, `card:N`, `is:buried` und `deck:Name`.
+      Offen, jeweils lokal (`matchesCardSearch`) und in beiden Cloud-RPCs
+      gleich ausgewertet, mit Paritätstests:
       - **KV2d – Kombination:** `"Phrase"`, `or` und Klammern; innerhalb
         einer Menügruppe genügt dann ein Treffer, zwischen Gruppen müssen alle
         zutreffen. Keine regulären Ausdrücke.
+      - **KV2e – Haltbarkeit `prop:s`:** Der Scheduler schreibt die Haltbarkeit
+        (`getDurabilityDays`) bei jeder Antwort in den Lernstand, der Katalog
+        übernimmt sie; ältere Karten bekommen den Wert erst mit ihrer nächsten
+        Antwort und treffen bis dahin nicht.
       Nachweis: Parser- und Komponententests, Pflichtmatrix Light/Dark bei 390
       und 1440 px, E2E Suche und Filter.
 - [ ] **KV3 – Trefferliste:** Eine durchgehende, virtualisierte Liste ersetzt

@@ -579,6 +579,10 @@ test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhalts
   assert.deepEqual(await ids("rated:1"), ["card-0"]);
   assert.deepEqual(await ids("added:1"), [], "angelegt am 19. August");
   assert.deepEqual(await ids("added:3 is:reveal prop:reps<1"), ["card-1"]);
+  await repository.buryCards(["card-0"], true, "2026-08-21T10:10:00.000Z");
+  assert.deepEqual(await ids("is:buried"), ["card-0"]);
+  await repository.buryCards(["card-0"], false, "2026-08-21T10:15:00.000Z");
+  assert.deepEqual(await ids("is:buried"), [], "wieder hervorgeholt");
 
   const graph = (await repository.loadNoteGraph("note-0"))!;
   const plan = planNoteContentChange(graph, {

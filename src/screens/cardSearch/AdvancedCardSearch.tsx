@@ -36,6 +36,7 @@ const SYNTAX: ReadonlyArray<[string, string]> = [
   ["prop:ivl>=21  prop:d>7  prop:reps=0  prop:lapses>3", "Intervall in Tagen, Schwierigkeit 1 bis 10, Wiederholungen, Fehler; auch <, <=, =, !="],
   ["is:reveal  is:choice  is:cloze  is:occlusion", "Frage–Antwort, Auswahl, Lückentext, Bildverdeckung"],
   ["note:Basic  has:outdated", "Anki-Notiztyp (wie deck: mit * und _), Karten mit veralteter Variante"],
+  ["card:2  is:buried", "zweite Abfrage (Vorlage, Lücke oder Maske), heute manuell zurückgestellt"],
 ];
 
 /** Categories whose terms are written with a small form instead of fixed rows. */
