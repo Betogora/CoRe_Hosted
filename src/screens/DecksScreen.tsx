@@ -1,26 +1,27 @@
 import React from "react";
-import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Snail, Sparkles, Star, CircleHelp, type LucideIcon } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, ChevronDown, ChevronLeft, ChevronRight, FileText, Layers, Minus, Network, NotebookPen, PanelsTopLeft, Play, RotateCcw, Search, Sparkles, Star, CircleHelp, type LucideIcon } from "lucide-react";
 import type { CardDraftGuard, DecksScreenProps } from "../appScreenProps.ts";
 export type { DecksCardPage, DecksCardPageRequest } from "../appScreenProps.ts";
 export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onRequestCardPage">;
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
-import { CARD_TABLE_PAGE_SIZE, createCardTableModel, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
 import { useStableCallback } from "../ui/useStableCallback.ts";
-import { ActionDialog, CoreSegmentedControl, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
+import { ActionDialog, CoreSlidingTabs, EmptyState, SoftPanel } from "../ui/coreUi.tsx";
 import { DeckOptionsMenu } from "../ui/DeckOptionsMenu.tsx";
 import { DeckSummaryRow } from "../ui/DeckSummaryRow.tsx";
 import { DeckAppearanceIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
 import { CoreTooltip } from "../ui/tooltipUi.tsx";
-import { FlagDot, flagName } from "../ui/flagUi.tsx";
-import { CoreSelect } from "../ui/selectUi.tsx";
-import { TagInput } from "../ui/TagInput.tsx";
-import { readCardSearchFilters, unsupportedCardSearchTerms, withCardSearchFilter } from "../cardSearchQuery.ts";
+import { FlagDot } from "../ui/flagUi.tsx";
+import { cardSearchTermState, unsupportedCardSearchTerms } from "../cardSearchQuery.ts";
+import { AdvancedCardSearch } from "./cardSearch/AdvancedCardSearch.tsx";
+import { CardSearchBar } from "./cardSearch/CardSearchBar.tsx";
+import { createCardSearchMenu } from "./cardSearch/cardSearchMenu.ts";
 import { CardEditorDialog, CardEditorSurface, type CardEditorHitNavigation } from "./cardEditor/CardEditorDialog.tsx";
 import { DeckSummariesPanel } from "./DeckSummariesPanel.tsx";
 import { DeckMindMapsPanel } from "./DeckMindMapsPanel.tsx";
@@ -84,7 +85,6 @@ function SortHeader({ field, label, sort, onChange }: {
 }
 
 
-const VARIANT_FILTER_SORT: CardTableSort = { field: "variants", direction: "asc" };
 
 interface CardTableRowViewProps {
   deckId: string;
@@ -235,14 +235,18 @@ export function DecksScreen({
   const selectedContentTab = deckContentTabs.find((tab) => tab.value === contentTab)!;
   const [query, setQuery] = React.useState("");
   const [deferredQuery, setDeferredQuery] = React.useState("");
-  // Flag, leech and tag filters are search terms in the query (Anki notation), so search and filters stay one state.
-  const searchFilters = React.useMemo(() => readCardSearchFilters(query), [query]);
+  // Every filter is a search term in the query (Anki notation), so search, chips and menu stay one state.
   const unsupportedTerms = React.useMemo(() => unsupportedCardSearchTerms(deferredQuery), [deferredQuery]);
-  const flagFilterOptions = React.useMemo(() => [
-    { value: "any", label: "Alle Flaggen" },
-    { value: "0", label: "Ohne Flagge" },
-    ...[1, 2, 3, 4, 5, 6, 7].map((flag) => ({ value: String(flag), label: `Flagge ${flagName(flag, cardEditor.flagNames)}` })),
-  ], [cardEditor.flagNames]);
+  const [advancedSearchOpen, setAdvancedSearchOpen] = React.useState(false);
+  const [tagDirectory, setTagDirectory] = React.useState<Awaited<ReturnType<typeof cardEditor.listTagDirectory>>>([]);
+  React.useEffect(() => {
+    if (!advancedSearchOpen) return;
+    let current = true;
+    void cardEditor.listTagDirectory().then((entries) => { if (current) setTagDirectory(entries); }).catch(() => undefined);
+    return () => { current = false; };
+  }, [advancedSearchOpen, cardEditor]);
+  const searchMenu = React.useMemo(() => createCardSearchMenu({ decks: libraryDecks, tags: tagDirectory, flagNames: cardEditor.flagNames }), [cardEditor.flagNames, libraryDecks, tagDirectory]);
+  const searchContext = React.useMemo(() => createCardSearchContext(deferredQuery, decks, { now, dayStartHour, timeZone }), [dayStartHour, decks, deferredQuery, now, timeZone]);
   function changeQuery(next: string) {
     setQuery(next);
     setCardPageByDeckId({});
@@ -253,11 +257,7 @@ export function DecksScreen({
     return () => window.clearTimeout(timer);
   }, [deferredQuery, query]);
   const [cardPageByDeckId, setCardPageByDeckId] = React.useState<Record<string, number>>({});
-  const [chosenSort, setChosenSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
-  const [withoutVariants, setWithoutVariants] = React.useState(false);
-  // Neither the local catalog nor the cloud search filter by variants; sorting cards without one first and
-  // cutting at the first card with a variant gives the same rows on both paths.
-  const cardSort = React.useMemo<CardTableSort>(() => withoutVariants ? VARIANT_FILTER_SORT : chosenSort, [chosenSort, withoutVariants]);
+  const [cardSort, setCardSort] = React.useState<CardTableSort>(DEFAULT_CARD_TABLE_SORT);
   const [deckStatus, setDeckStatus] = React.useState("");
   const [deckStatusType, setDeckStatusType] = React.useState<"status" | "alert">("status");
   const setSuccessToast = useSuccessToast();
@@ -278,15 +278,16 @@ export function DecksScreen({
       return createCardTableModel(libraryDecks, { query: deferredQuery, cardSort, cardPageByDeckId, now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries });
     }
     return createPagedCardTableModel(libraryDecks, cardPages, {
-      query: deferredQuery, cardSort, cardPageByDeckId, withoutVariants, awaitingPages: Boolean(onRequestCardPage),
+      query: deferredQuery, cardSort, cardPageByDeckId, awaitingPages: Boolean(onRequestCardPage),
       now, dayStartHour, learnAheadMinutes, timeZone, deckSummaries,
     });
-  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages, withoutVariants]);
+  }, [cardPageByDeckId, cardPages, cardSort, dayStartHour, deckSummaries, libraryDecks, deferredQuery, learnAheadMinutes, now, onRequestCardPage, timeZone, usesCardPages]);
   const searchExpandsGroups = Boolean(deferredQuery.trim());
   const [expandedDeckIdSet, setExpandedDeckIdSet] = React.useState(() => new Set(expandedDeckIds));
   const [collapsedContentDeckIds, setCollapsedContentDeckIds] = React.useState(() => new Set<string>());
   const isGroupExpanded = (groupId: string) => searchExpandsGroups || (contentDeckId ? !collapsedContentDeckIds.has(groupId) : expandedDeckIdSet.has(groupId));
   const cardsLoading = tableModel.groups.some((group) => group.loading && isGroupExpanded(group.id));
+  const searchResultCount = searchExpandsGroups && !cardsLoading ? tableModel.groups.reduce((total, group) => total + group.totalCardCount, 0) : null;
   const showsDeckHeader = !contentDeckId || libraryDecks.length > 1;
   // Below xl the page scrolls under the sticky mobile header, so the table header sticks right beneath it.
   const [mobileHeaderHeight, setMobileHeaderHeight] = React.useState(0);
@@ -362,9 +363,10 @@ export function DecksScreen({
         query: deferredQuery,
         sort: cardSort,
         selectedCardId: selectedCardForDeck,
+        searchContext,
       });
     }
-  }, [cardPageByDeckId, cardPages, cardSort, contentDeckId, contentTab, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
+  }, [cardPageByDeckId, cardPages, cardSort, contentDeckId, contentTab, deferredQuery, expandedDeckIdSet, onRequestCardPage, searchContext, searchExpandsGroups, selectedCardId, selectedDeckId, tableModel.allGroups]);
 
   React.useEffect(() => {
     if (contentDeckId) return;
@@ -515,8 +517,7 @@ export function DecksScreen({
 
   function changeSort(field: CardTableSortField) {
     setCardPageByDeckId({});
-    setWithoutVariants(false);
-    setChosenSort((current) => current.field === field
+    setCardSort((current) => current.field === field
       ? { field, direction: current.direction === "asc" ? "desc" : "asc" }
       : { field, direction: "asc" });
   }
@@ -695,6 +696,7 @@ export function DecksScreen({
                     query: selectedPage.query,
                     sort: selectedPage.sort,
                     selectedCardId,
+                    searchContext,
                   })}>Erneut laden</ActionButton>
                 ) : null}
                 <ActionButton type="button" variant="secondary" onClick={closeDetail}>Zur Kartenliste</ActionButton>
@@ -758,55 +760,34 @@ export function DecksScreen({
       ) : <SoftPanel className="min-w-0 overflow-clip p-5 sm:p-6" aria-label="Karten" data-testid="card-library-panel">
         <div className="grid gap-6">
           <div className="grid gap-4">
-            <label className="grid min-w-0 gap-2">
-                <span className="core-field-label">Karten durchsuchen</span>
-                <span className="relative flex min-w-0">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-core-muted" size={16} aria-hidden="true" />
-                  <input className="core-field min-w-0 !pl-10" value={query} onChange={(event) => changeQuery(event.target.value)} placeholder={contentDeckId ? "Vorderseite, Rückseite oder Tags suchen" : "Stapel, Vorderseite, Rückseite oder Tags suchen"} aria-label="Karten durchsuchen" aria-describedby={unsupportedTerms.length ? "card-search-unsupported" : undefined} />
-                </span>
-                {unsupportedTerms.length ? (
-                  <span id="card-search-unsupported" className="core-field-hint" data-testid="card-search-unsupported">
-                    Noch nicht unterstützt, wird als Text gesucht: {unsupportedTerms.join(" ")}
-                  </span>
-                ) : null}
-              </label>
-            <div className="flex flex-wrap items-center gap-3">
-              <CoreSegmentedControl
-                ariaLabel="Karten nach Variante filtern"
-                value={withoutVariants ? "without" : "all"}
-                options={[{ value: "all", label: "Alle Karten" }, { value: "without", label: "Ohne Variante" }]}
-                onValueChange={(value) => { setWithoutVariants(value === "without"); setCardPageByDeckId({}); }}
-              />
-              <CoreSelect
-                ariaLabel="Nach Flagge filtern"
-                value={searchFilters.flag === null ? "any" : String(searchFilters.flag)}
-                options={flagFilterOptions}
-                onValueChange={(value) => changeQuery(withCardSearchFilter(query, "flag", value === "any" ? null : Number(value)))}
-              />
-              <button
-                type="button"
-                aria-pressed={searchFilters.leech}
-                className="core-action-secondary aria-pressed:border-core-action aria-pressed:bg-[var(--core-action-soft)] aria-pressed:text-core-action"
-                onClick={() => changeQuery(withCardSearchFilter(query, "leech", !searchFilters.leech))}
-              >
-                <Snail size={16} aria-hidden="true" />Lernbremse
-              </button>
-              <div className="min-w-0 flex-1 basis-56">
-                <TagInput
-                  tags={searchFilters.tags}
-                  loadDirectory={cardEditor.listTagDirectory}
-                  label="Nach Tags filtern"
-                  labelHidden
-                  placeholder="Nach Tag filtern"
-                  onChange={(tags) => changeQuery(withCardSearchFilter(query, "tags", tags))}
+            <CardSearchBar
+              query={query}
+              onQueryChange={changeQuery}
+              decks={libraryDecks}
+              categories={searchMenu}
+              advancedOpen={advancedSearchOpen}
+              onAdvancedOpenChange={setAdvancedSearchOpen}
+              advancedId="advanced-card-search"
+              resultCount={searchResultCount}
+              placeholder={contentDeckId ? "Vorderseite, Rückseite, Felder oder Tags durchsuchen" : "Stapel, Vorderseite, Rückseite, Felder oder Tags durchsuchen"}
+              hint={unsupportedTerms.length ? `Noch nicht unterstützt, wird als Text gesucht: ${unsupportedTerms.join(" ")}` : undefined}
+            >
+              {advancedSearchOpen ? (
+                <AdvancedCardSearch
+                  id="advanced-card-search"
+                  query={query}
+                  onQueryChange={changeQuery}
+                  categories={searchMenu}
+                  resultCount={searchResultCount}
+                  onClose={() => setAdvancedSearchOpen(false)}
                 />
-              </div>
-              {withoutVariants && contentDeck && onGenerateDeckVariants ? (
-                <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateDeckVariants(contentDeck)}>
-                  Für diese Karten Varianten generieren
-                </ActionButton>
               ) : null}
-            </div>
+            </CardSearchBar>
+            {cardSearchTermState(query, "has:variant") === "out" && contentDeck && onGenerateDeckVariants ? (
+              <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} className="justify-self-start" onClick={() => onGenerateDeckVariants(contentDeck)}>
+                Für diese Karten Varianten generieren
+              </ActionButton>
+            ) : null}
             {deckStatus ? <p className={"core-body font-semibold " + (deckStatusType === "alert" ? "core-status-error" : "core-status-info")} role={deckStatusType}>{deckStatus}</p> : null}
             {deletedCardUndo ? (
               <div className="flex flex-wrap items-center gap-3 rounded-panel border border-core-border bg-core-subtle px-4 py-3">

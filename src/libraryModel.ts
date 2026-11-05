@@ -9,7 +9,8 @@ import { buildSortedDeckChildren } from "./deckOrdering.ts";
 import type { Deck, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import { getLearningDayRange } from "./learningDay.ts";
-import { isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { cardSearchDeckIds, isEmptyCardSearch, matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
+import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 type DateInput = string | number | Date;
 
@@ -123,15 +124,14 @@ function createDeckRow(
 
 export type DeckLibraryRow = ReturnType<typeof createDeckRow>;
 
-/**
- * Rows of a page sorted by variants ascending, cut at the first card with an active variant; the cut also
- * fixes the total, since all later pages only hold cards with variants.
- */
-export function cardsWithoutVariants(items: CardCatalogEntry[], page: number, pageSize: number, totalCount: number) {
-  const withoutVariants = items.filter((entry) => !entry.hasActiveVariants);
+/** Resolves the query's terms relative to today's learning day and to the subtrees of its `did:` decks. */
+export function createCardSearchContext(query: string, decks: Deck[], options: Pick<LibraryOptions, "now" | "dayStartHour" | "timeZone"> = {}): CardSearchContext {
+  const now = options.now ?? new Date();
+  const todayStart = getLearningDayRange(now, { dayStartHour: options.dayStartHour, timeZone: options.timeZone })?.start ?? new Date(now).getTime();
+  const deckIds = cardSearchDeckIds(query);
   return {
-    items: withoutVariants,
-    totalCount: withoutVariants.length < items.length ? page * pageSize + withoutVariants.length : Math.max(withoutVariants.length, totalCount),
+    todayStart,
+    ...(deckIds.length ? { deckSubtrees: Object.fromEntries(deckIds.map((deckId) => [deckId, [...collectDeckTreeIds(decks, deckId)]])) } : {}),
   };
 }
 
@@ -420,11 +420,10 @@ export function createPagedCardTableModel(
   options: Omit<LibraryOptions, "query" | "cardSort" | "cardPageSize" | "notesById"> & {
     query: string;
     cardSort: CardTableSort;
-    withoutVariants: boolean;
     awaitingPages: boolean;
   },
 ) {
-  const { query, cardSort, withoutVariants, awaitingPages, cardPageByDeckId = {}, ...modelOptions } = options;
+  const { query, cardSort, awaitingPages, cardPageByDeckId = {}, ...modelOptions } = options;
   const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
   const baseModel = createCardTableModel(decks.map((deck) => ({ ...deck, cards: [] })), modelOptions);
   const normalizedQuery = normalizeQuery(query);
@@ -436,11 +435,8 @@ export function createPagedCardTableModel(
     const loading = awaitingPages && !current;
     const page = current ?? (loading ? candidate : undefined);
     const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(page?.pageSize ?? CARD_TABLE_PAGE_SIZE)));
-    const pageItems = (page?.items ?? []).slice(0, pageSize);
-    const knownTotal = Math.floor(page?.totalCount ?? (normalizedQuery || withoutVariants ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
-    const { items, totalCount } = withoutVariants
-      ? cardsWithoutVariants(pageItems, Math.floor(page?.page ?? 0), pageSize, knownTotal)
-      : { items: pageItems, totalCount: knownTotal };
+    const items = (page?.items ?? []).slice(0, pageSize);
+    const totalCount = Math.floor(page?.totalCount ?? (normalizedQuery ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0));
     const totalCardCount = Math.max(items.length, totalCount);
     const pageCount = Math.max(1, Math.ceil(totalCardCount / pageSize));
     const currentPage = Math.min(Math.max(0, Math.floor(page?.page ?? cardPageByDeckId[group.id] ?? 0)), pageCount - 1);
@@ -467,7 +463,7 @@ export function createPagedCardTableModel(
 }
 
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {
-  const search = parseCardSearchQuery(options.query);
+  const search = parseCardSearchQuery(options.query, createCardSearchContext(String(options.query ?? ""), decks, options));
   const searching = !isEmptyCardSearch(search);
   const cardSort = options.cardSort ?? DEFAULT_CARD_TABLE_SORT;
   const pageSize = Math.max(1, Math.min(CARD_TABLE_PAGE_SIZE, Math.floor(options.cardPageSize ?? CARD_TABLE_PAGE_SIZE)));

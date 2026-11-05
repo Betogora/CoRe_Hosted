@@ -623,7 +623,7 @@ function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage 
 }
 
 export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
-  const search = parseCardSearchQuery(request.query);
+  const search = parseCardSearchQuery(request.query, request.searchContext);
   const call = client.rpc("list_account_card_catalog", {
     p_deck_id: request.deckId,
     p_query: search.text,
@@ -642,9 +642,9 @@ export async function listAccountCardCatalog(client: any, request: CatalogPageRe
 /** First search page of every requested deck in one request; decks without hits are absent from the result. */
 export async function searchAccountCardCatalog(
   client: any,
-  request: { deckIds: string[]; query: string; sort?: CatalogPageRequest["sort"]; limit?: number },
+  request: { deckIds: string[]; query: string; searchContext?: CatalogPageRequest["searchContext"]; sort?: CatalogPageRequest["sort"]; limit?: number },
 ): Promise<Map<string, CatalogPage>> {
-  const search = parseCardSearchQuery(request.query);
+  const search = parseCardSearchQuery(request.query, request.searchContext);
   const { data, error } = await client.rpc("search_account_card_catalog", {
     p_deck_ids: request.deckIds,
     p_query: search.text,

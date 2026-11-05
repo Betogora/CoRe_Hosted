@@ -1,3 +1,4 @@
+import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { Dispatch, SetStateAction } from "react";
 import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
@@ -231,6 +232,8 @@ export interface DecksCardPageRequest {
   query: string;
   sort: CardTableSort;
   selectedCardId: string | null;
+  /** Today's learning day and the subtrees of `did:` terms, so the search resolves them like the screen. */
+  searchContext: CardSearchContext;
 }
 
 export interface DecksCardPage {

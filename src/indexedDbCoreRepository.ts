@@ -21,7 +21,7 @@ import type { ImportCommitGraph, ImportMediaFile, NoteTypeSource } from "./apkgI
 import { createStudyHeatmapModelFromCounts, getStudyHeatmapDayKey } from "./studyHeatmapModel.ts";
 import { getLearningDayKey, getLearningDayRange } from "./learningDay.ts";
 import { insertEntityMutation, planEntityMutations } from "./syncMutationPlanner.ts";
-import { isEmptyCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { isEmptyCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
 import { catalogSortValue, createCatalogSearchIndex } from "./catalogSearchIndex.ts";
 import { MANUAL_BURY_KIND, MANUAL_UNBURY_KIND } from "./siblingBurying.ts";
 import { createTagDirectoryBuilder } from "./tagDirectory.ts";
@@ -603,12 +603,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     query = "",
     sort = { field: "sortField", direction: "asc" } as CardTableSort,
     includeTotal = false,
-  }: { cursor?: CatalogCursor | null; limit?: number; query?: string; sort?: CardTableSort; includeTotal?: boolean } = {}) => {
+    searchContext,
+  }: { cursor?: CatalogCursor | null; limit?: number; query?: string; sort?: CardTableSort; includeTotal?: boolean; searchContext?: CardSearchContext } = {}) => {
     await writeChain;
     const pageLimit = Math.min(CATALOG_PAGE_LIMIT, Math.max(1, Math.floor(Number(limit))));
     if (!isEmptyCardSearch(parseCardSearchQuery(query))) {
       await ensureSearchIndex();
-      const matches = searchIndex.search(query, sort).get(deckId) ?? [];
+      const matches = searchIndex.search(query, sort, searchContext).get(deckId) ?? [];
       const descending = sort.direction === "desc";
       const start = cursor ? matches.findIndex((entry) => {
         const value = catalogSortValue(entry, sort.field);
@@ -1728,23 +1729,24 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
     /** Catalog page by page number (cursors are remembered per query) plus the opened content with its siblings. */
     /** Loads the search index ahead of the first search, in short batches. */
     prepareCardSearch: () => ensureSearchIndex(),
-    async listCardPage(deckId: string, { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null }: {
+    async listCardPage(deckId: string, { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null, searchContext }: {
       page?: number;
       pageSize?: number;
       query?: string;
       sort?: CardTableSort;
       selectedCardId?: string | null;
+      searchContext?: CardSearchContext;
     } = {}) {
-      const key = JSON.stringify([deckId, query, sort.field, sort.direction]);
+      const key = JSON.stringify([deckId, query, sort.field, sort.direction, searchContext ?? null]);
       const cursors = pageCursorsByKey.get(key) ?? new Map<number, CatalogCursor | null>([[0, null]]);
       pageCursorsByKey.set(key, cursors);
       let requestedPage = Math.max(0, Math.floor(page));
       while (!cursors.has(requestedPage)) requestedPage -= 1;
-      let result = await listCatalogPage(deckId, { cursor: cursors.get(requestedPage) ?? null, limit: pageSize, query, sort, includeTotal: true });
+      let result = await listCatalogPage(deckId, { cursor: cursors.get(requestedPage) ?? null, limit: pageSize, query, sort, includeTotal: true, searchContext });
       while (requestedPage < page && result.nextCursor) {
         requestedPage += 1;
         cursors.set(requestedPage, result.nextCursor);
-        result = await listCatalogPage(deckId, { cursor: result.nextCursor, limit: pageSize, query, sort, includeTotal: true });
+        result = await listCatalogPage(deckId, { cursor: result.nextCursor, limit: pageSize, query, sort, includeTotal: true, searchContext });
       }
       if (result.nextCursor) cursors.set(requestedPage + 1, result.nextCursor);
       const selectedBody = selectedCardId ? await loadCardBody(selectedCardId) : null;

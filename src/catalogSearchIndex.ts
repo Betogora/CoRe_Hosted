@@ -1,4 +1,4 @@
-import { matchesCardSearch, parseCardSearchQuery } from "./cardSearchQuery.ts";
+import { matchesCardSearch, parseCardSearchQuery, type CardSearchContext } from "./cardSearchQuery.ts";
 import { NO_DUE_DATE } from "./indexedDbStore.ts";
 import type { CardTableSort } from "./libraryModel.ts";
 import type { CardCatalogEntry } from "./workspaceReplica.ts";
@@ -54,10 +54,10 @@ export function createCatalogSearchIndex() {
       if (entries.delete(id)) changed();
     },
     /** Matching entries per deck in the requested order. */
-    search(query: string, sort: CardTableSort): ReadonlyMap<string, readonly CardCatalogEntry[]> {
-      const key = JSON.stringify([query, sort.field, sort.direction]);
+    search(query: string, sort: CardTableSort, context?: CardSearchContext): ReadonlyMap<string, readonly CardCatalogEntry[]> {
+      const key = JSON.stringify([query, sort.field, sort.direction, context ?? null]);
       if (cached?.key === key) return cached.byDeck;
-      const search = parseCardSearchQuery(query);
+      const search = parseCardSearchQuery(query, context);
       const byDeck = new Map<string, CardCatalogEntry[]>();
       const sorted = order(sort.field);
       const descending = sort.direction === "desc";
@@ -73,5 +73,3 @@ export function createCatalogSearchIndex() {
     },
   };
 }
-
-export type CatalogSearchIndex = ReturnType<typeof createCatalogSearchIndex>;

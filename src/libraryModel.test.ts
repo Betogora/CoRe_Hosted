@@ -5,7 +5,6 @@ import type { Card, Note } from "./coreTypes.ts";
 import { catalogEntryFromCard, type CardCatalogEntry } from "./workspaceReplica.ts";
 import {
   type CardTableSort,
-  cardsWithoutVariants,
   createCardTableModel,
   createDeckLibraryModel,
   createPagedCardTableModel,
@@ -331,7 +330,7 @@ test("paged card table uses only pages for the current query and sort and keeps 
   const sort: CardTableSort = { field: "sortField", direction: "asc" };
   const items = cards.map((card) => catalogEntryFromCard(card, null));
   const childPage = { items, page: 0, pageSize: 50, totalCount: 2, query: "nerv", sort };
-  const options = { query: "nerv", cardSort: sort, withoutVariants: false, now: "2026-07-01T08:00:00.000Z" };
+  const options = { query: "nerv", cardSort: sort, now: "2026-07-01T08:00:00.000Z" };
 
   const awaiting = createPagedCardTableModel([parent, child], { deck_child: childPage }, { ...options, awaitingPages: true });
   assert.deepEqual(awaiting.groups.map((group) => group.id), ["deck_parent", "deck_child"]);
@@ -685,13 +684,4 @@ test("library metrics, card dates and heatmap share the configured learning day"
   assert.equal(table.groups[0].cardRows[0].nextStudyLabel, "10.07.2026");
 });
 
-test("the variant filter cuts a variant-sorted page at the first card with a variant and fixes the total", () => {
-  const entry = (id: string, hasActiveVariants: boolean) => ({ id, hasActiveVariants } as CardCatalogEntry);
-  const mixed = cardsWithoutVariants([entry("a", false), entry("b", false), entry("c", true)], 1, 50, 120);
-  assert.deepEqual(mixed.items.map((item) => item.id), ["a", "b"]);
-  assert.equal(mixed.totalCount, 52);
 
-  const full = cardsWithoutVariants([entry("a", false), entry("b", false)], 0, 2, 120);
-  assert.equal(full.items.length, 2);
-  assert.equal(full.totalCount, 120, "a page without any variant keeps the known total so paging continues");
-});

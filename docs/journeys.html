@@ -733,6 +733,70 @@ video {
     grid-auto-columns: var(--core-control-height);
   }
 
+  /* CoreTriStateControl: rail of the segmented control with square segments (KV2, accepted 2026-11-04). */
+  .core-tri-state-control {
+    --core-tri-size: calc(var(--core-selection-height) - 8px);
+    grid-auto-columns: var(--core-tri-size);
+  }
+
+  .core-tri-state-option {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    place-items: center;
+    width: var(--core-tri-size);
+    height: 100%;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0;
+    line-height: 0;
+    border-radius: var(--core-radius-control);
+    color: var(--core-text-secondary);
+    transition: color 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .core-tri-state-option:not([aria-checked="true"]):hover {
+    color: var(--core-text);
+  }
+
+  .core-tri-state-option[aria-checked="true"] {
+    transition: color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+  }
+
+  .core-tri-state-option svg {
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .core-tri-state-option[aria-checked="true"] svg {
+    transform: scale(1.08);
+  }
+
+  .core-tri-state-option:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  .core-tri-state-indicator {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    z-index: 0;
+    width: var(--core-tri-size);
+    height: calc(100% - 6px);
+    border-radius: var(--core-radius-control);
+    background: var(--core-surface);
+    box-shadow: var(--core-selection-indicator-shadow);
+    pointer-events: none;
+    transform: translateX(calc(var(--core-tri-index) * (var(--core-tri-size) + 0.25rem)));
+    transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), background-color 260ms cubic-bezier(0.4, 0, 0.2, 1) 20ms;
+  }
+
+  .core-tri-state-control[data-tri-value="any"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text); }
+  .core-tri-state-control[data-tri-value="in"] .core-tri-state-indicator { background: var(--core-action-primary); }
+  .core-tri-state-control[data-tri-value="in"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-accent); }
+  .core-tri-state-control[data-tri-value="out"] .core-tri-state-indicator { background: var(--core-danger); }
+  .core-tri-state-control[data-tri-value="out"] .core-tri-state-option[aria-checked="true"] { color: var(--core-text-on-danger); }
+
   /*
    * The card editor's four equally wide tabs (ARIA tabs) in the shared selection rail: as wide as the labels from
    * 640 px, full width below; the sliding indicator marks the selected one.
@@ -779,7 +843,10 @@ video {
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .core-segmented-control-indicator {
+    .core-segmented-control-indicator,
+    .core-tri-state-indicator,
+    .core-tri-state-option,
+    .core-tri-state-option svg {
       transition: none;
     }
 
@@ -1491,11 +1558,17 @@ video {
 .mb-8 {
   margin-bottom: 2rem;
 }
+.ml-1\.5 {
+  margin-left: 0.375rem;
+}
 .ml-2 {
   margin-left: 0.5rem;
 }
 .ml-auto {
   margin-left: auto;
+}
+.mr-1\.5 {
+  margin-right: 0.375rem;
 }
 .mr-2 {
   margin-right: 0.5rem;
@@ -1813,6 +1886,12 @@ video {
 .min-h-72 {
   min-height: 18rem;
 }
+.min-h-8 {
+  min-height: 2rem;
+}
+.min-h-\[2\.875rem\] {
+  min-height: 2.875rem;
+}
 .min-h-\[20rem\] {
   min-height: 20rem;
 }
@@ -1909,6 +1988,9 @@ video {
 }
 .w-8 {
   width: 2rem;
+}
+.w-\[45\%\] {
+  width: 45%;
 }
 .w-\[calc\(100\%\+1rem\)\] {
   width: calc(100% + 1rem);
@@ -2024,6 +2106,9 @@ video {
 .max-w-7xl {
   max-width: 80rem;
 }
+.max-w-\[14rem\] {
+  max-width: 14rem;
+}
 .max-w-\[15rem\] {
   max-width: 15rem;
 }
@@ -2063,6 +2148,9 @@ video {
 .flex-\[1_1_16rem\] {
   flex: 1 1 16rem;
 }
+.flex-\[2\] {
+  flex: 2;
+}
 .shrink {
   flex-shrink: 1;
 }
@@ -2072,6 +2160,12 @@ video {
 .grow {
   flex-grow: 1;
 }
+.basis-32 {
+  flex-basis: 8rem;
+}
+.basis-40 {
+  flex-basis: 10rem;
+}
 .basis-44 {
   flex-basis: 11rem;
 }
@@ -2080,9 +2174,6 @@ video {
 }
 .basis-52 {
   flex-basis: 13rem;
-}
-.basis-56 {
-  flex-basis: 14rem;
 }
 .basis-64 {
   flex-basis: 16rem;
@@ -2380,6 +2471,10 @@ video {
 }
 .gap-px {
   gap: 1px;
+}
+.gap-x-1\.5 {
+  -moz-column-gap: 0.375rem;
+       column-gap: 0.375rem;
 }
 .gap-x-2 {
   -moz-column-gap: 0.5rem;
@@ -2829,6 +2924,9 @@ video {
 .pr-2 {
   padding-right: 0.5rem;
 }
+.pr-3 {
+  padding-right: 0.75rem;
+}
 .pr-9 {
   padding-right: 2.25rem;
 }
@@ -2861,6 +2959,9 @@ video {
 }
 .text-right {
   text-align: right;
+}
+.align-top {
+  vertical-align: top;
 }
 .align-middle {
   vertical-align: middle;
@@ -5513,6 +5614,77 @@ summary {
     border-width: 0;
   }
 }
+@media not all and (min-width: 768px) {
+
+  .max-md\:sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .max-md\:fixed {
+    position: fixed;
+  }
+
+  .max-md\:absolute {
+    position: absolute;
+  }
+
+  .max-md\:inset-0 {
+    inset: 0px;
+  }
+
+  .max-md\:-right-1\.5 {
+    right: -0.375rem;
+  }
+
+  .max-md\:-top-1\.5 {
+    top: -0.375rem;
+  }
+
+  .max-md\:z-50 {
+    z-index: 50;
+  }
+
+  .max-md\:hidden {
+    display: none;
+  }
+
+  .max-md\:size-control {
+    width: var(--core-control-height);
+    height: var(--core-control-height);
+  }
+
+  .max-md\:content-start {
+    align-content: flex-start;
+  }
+
+  .max-md\:overflow-y-auto {
+    overflow-y: auto;
+  }
+
+  .max-md\:rounded-none {
+    border-radius: 0px;
+  }
+
+  .max-md\:border-0 {
+    border-width: 0px;
+  }
+
+  .max-md\:p-0 {
+    padding: 0px;
+  }
+
+  .max-md\:pb-28 {
+    padding-bottom: 7rem;
+  }
+}
 @media not all and (min-width: 640px) {
 
   .max-sm\:sr-only {
@@ -5525,6 +5697,10 @@ summary {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border-width: 0;
+  }
+
+  .max-sm\:hidden {
+    display: none;
   }
 
   .max-sm\:px-2\.5 {
@@ -5605,6 +5781,10 @@ summary {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 1;
+  }
+
+  .sm\:block {
+    display: block;
   }
 
   .sm\:inline {
@@ -5920,6 +6100,10 @@ summary {
     grid-column: span 1 / span 1;
   }
 
+  .md\:-ml-px {
+    margin-left: -1px;
+  }
+
   .md\:block {
     display: block;
   }
@@ -5945,12 +6129,20 @@ summary {
     min-height: 2rem;
   }
 
+  .md\:min-h-control {
+    min-height: var(--core-control-height);
+  }
+
   .md\:w-auto {
     width: auto;
   }
 
   .md\:max-w-xl {
     max-width: 36rem;
+  }
+
+  .md\:flex-\[1\.4\] {
+    flex: 1.4;
   }
 
   .md\:grid-cols-2 {
@@ -5963,6 +6155,10 @@ summary {
 
   .md\:grid-cols-6 {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .md\:grid-cols-\[13rem_minmax\(0\2c 1fr\)\] {
+    grid-template-columns: 13rem minmax(0,1fr);
   }
 
   .md\:grid-cols-\[minmax\(0\2c 1fr\)_12rem_auto\] {
@@ -6005,6 +6201,10 @@ summary {
     align-items: center;
   }
 
+  .md\:gap-3 {
+    gap: 0.75rem;
+  }
+
   .md\:gap-x-6 {
     -moz-column-gap: 1.5rem;
          column-gap: 1.5rem;
@@ -6018,12 +6218,50 @@ summary {
     border-radius: var(--core-radius-overlay);
   }
 
+  .md\:rounded-r-control {
+    border-top-right-radius: var(--core-radius-control);
+    border-bottom-right-radius: var(--core-radius-control);
+  }
+
   .md\:border-b {
     border-bottom-width: var(--core-border-width);
   }
 
+  .md\:border-l {
+    border-left-width: var(--core-border-width);
+  }
+
+  .md\:border-l-strong {
+    border-left-width: var(--core-border-width-strong);
+  }
+
+  .md\:border-core-action {
+    border-color: var(--core-action-primary);
+  }
+
+  .md\:border-core-border {
+    border-color: var(--core-border);
+  }
+
+  .md\:border-transparent {
+    border-color: transparent;
+  }
+
+  .md\:bg-core-subtle {
+    background-color: var(--core-surface-muted);
+  }
+
   .md\:p-4 {
     padding: 1rem;
+  }
+
+  .md\:p-5 {
+    padding: 1.25rem;
+  }
+
+  .md\:px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
   }
 
   .md\:px-4 {
@@ -6031,8 +6269,21 @@ summary {
     padding-right: 1rem;
   }
 
+  .md\:py-2 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
   .md\:pr-8 {
     padding-right: 2rem;
+  }
+
+  .md\:font-semibold {
+    font-weight: var(--core-weight-emphasis);
+  }
+
+  .md\:text-core-action {
+    color: var(--core-action-primary);
   }
 }
 @media (min-width: 1024px) {
@@ -6680,17 +6931,20 @@ N4[&quot;Erste verfügbare Karte lernen&quot;]</pre><ol><li>Lernen öffnen</li><
 </ul>
 <h4 id="journey-3-rules--kartenverwaltung" class="core-control-label" tabindex="-1">Kartenverwaltung <a class="docs-anchor" href="#journey-3-rules--kartenverwaltung" aria-label="Link zu Kartenverwaltung">#</a></h4>
 <ul>
-<li>Ein gemeinsames Panel ohne eigenen Titel bündelt die Suche mit sichtbarem Label <code>Karten durchsuchen</code> und die gruppierte Gesamttabelle. Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.</li>
+<li>Ein gemeinsames Panel ohne eigenen Titel bündelt die Suchzeile und die gruppierte Gesamttabelle. Einen Direkteinstieg zur Kartenerstellung gibt es dort nicht.</li>
+<li>Die Suchzeile ist einzeilig: Suchfeld <code>Karten durchsuchen</code>, ab <code>md</code> daneben der Stapelfilter (<code>Alle Stapel</code> oder ein Stapel samt Unterstapeln) und rechts <code>Erweiterte Suche</code> mit der Zahl der aktiven Filter; schmal bleibt dort nur das Filter-Icon. Das Suchfeld zeigt nur den freien Text; fertig getippte Begriffe wie <code>tag:x </code> werden zu Filtern.</li>
+<li>Unter der Suchzeile stehen bei aktiven Filtern die Trefferzahl, je Filter ein Chip aus Kategorie und Wert (verneint als <code>ohne &lt;Kategorie&gt;</code> in Gefahrfarbe) mit Entfernen-Knopf sowie <code>Alle zurücksetzen</code>. Ein geöffnetes Menü steht über den Chips, damit neue Chips es nicht verschieben.</li>
+<li><code>Erweiterte Suche</code> öffnet unter der Suchzeile ein Menü mit dem vollständigen Suchausdruck samt Kopierknopf, <code>Zurücksetzen</code> und den Kategorien <code>Heute</code>, <code>Kartenstatus</code>, <code>Flaggen</code>, <code>Stapel</code>, <code>Tags</code> (als Baum, mit <code>Ohne Tags</code>), <code>Inhalt</code>, <code>Felder</code> und <code>Suchsyntax</code>; jede Kategorie zählt ihre aktiven Filter. Jede Zeile trägt einen Dreifachschalter <code>Mit</code>/<code>Egal</code>/<code>Ohne</code> und, außer bei Stapeln, ihren Begriff. <code>Felder</code> fügt <code>Feld:Text</code> hinzu; <code>Suchsyntax</code> erklärt die Schreibweise. Unter <code>md</code> ist das Menü ein Vollbild: erst die Kategorienliste, dann die Kategorie mit Zurück-Pfeil, unten Zurücksetzen und <code>N Karten anzeigen</code>.</li>
 <li>Die Tabelle zeigt je Karte nur <code>Sortierfeld</code> (bereinigte Vorderseite), <code>Datum</code> (<code>Neu</code> oder <code>TT.MM.JJJJ</code>) und <code>Variante</code> (Zahl der aktiven Varianten, ohne Variante ein zugänglich beschrifteter Strich). Alle Spalten sind auf- und absteigend sortierbar; Standard ist <code>Sortierfeld</code> A–Z, einheitlich für alle Sektionen und nicht persistiert. Der Spaltenkopf bleibt beim Scrollen stehen. Aufgeklappte Stapel ohne Karten und ohne Unterstapel zeigen <code>Keine Karten</code>; Elternstapel ohne eigene Karten zeigen keine Leerzeile.</li>
-<li>Unter der Suche wählt <code>Alle Karten</code>/<code>Ohne Variante</code>, ob nur Karten ohne aktive Variante erscheinen; ein Klick auf eine Spaltensortierung hebt den Filter auf. In geöffneten Stapelinhalten bietet der aktive Filter <code>Für diese Karten Varianten generieren</code> und startet dieselbe Stapelgenerierung wie die Stapeleinstellungen.</li>
+<li>In geöffneten Stapelinhalten bietet der Filter <code>-has:variant</code> (Inhalt <code>Variante</code> auf <code>Ohne</code>) <code>Für diese Karten Varianten generieren</code> und startet dieselbe Stapelgenerierung wie die Stapeleinstellungen.</li>
 <li>Ausgesetzte Karten bleiben mit unverändertem Datum sichtbar, sind sichtbar hervorgehoben und tragen die zugängliche Kennzeichnung <code>Ausgesetzt</code>. Markierte Karten sind sichtbar und zugänglich als markiert gekennzeichnet. Beides kann gleichzeitig erscheinen.</li>
-<li>Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen; Filter wählen Flagge, Lernbremse und Tags.</li>
+<li>Eine gesetzte Flagge erscheint als Farbpunkt mit zugänglichem Namen.</li>
 <li>Stapelköpfe der Kartenverwaltung haben keine Trennlinie; nur Kartenzeilen trennt eine dünne Linie. Ein Klick auf die Kopffläche klappt die Karten auf oder zu, Hover füllt sie neutral wie in <code>Aktive Stapel</code>, und die Hierarchie ist an Einrückung und Tiefenfläche erkennbar, die ab der sechsten Ebene gleich bleiben. Kartenzeilen beginnen unter dem Stapel-Icon ihres Kopfes.</li>
 <li>Lange Sortierfelder erhalten Ellipsen. Kartenverwaltung und <code>Aktive Stapel</code> erzeugen keinen horizontalen Überlauf; <code>Datum</code> und <code>Variante</code> bleiben ungekürzt.</li>
 <li>Bei mehreren Seiten zeigt die Seitennavigation <code>Seite X von Y</code>; an den Enden ist der jeweilige Pfeil deaktiviert.</li>
 <li>Die Suche umfasst Stapelpfad, alle Felder, Antwortoptionen und Tags, startet 250 ms nach der letzten Eingabe, bricht veraltete Anfragen ab und öffnet passende Sektionen nur während der Suche. Einen Modusfilter gibt es nicht.</li>
 <li>Bis die Seite einer geänderten Suche oder Sortierung da ist, bleiben die bisherigen Zeilen gedimmt stehen und unter dem Spaltenkopf läuft der Ladebalken der Statistik; <code>Keine Karten</code> erscheint erst mit der Antwort.</li>
-<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code>, <code>is:suspended</code> und <code>Feld:Text</code> (Text nur in dem Feld dieses Namens, ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen im Feldnamen als <code>_</code>, etwa <code>ursprung:scaleni</code> oder <code>back_extra:merke</code>); ein vorangestelltes <code>-</code> verneint einen Begriff. Alle Begriffe müssen zutreffen, der übrige Text sucht wie bisher. Online- und Offline-Suche liefern dieselben Treffer. Weitere Anki-Begriffe wie <code>is:due</code> oder <code>deck:</code> nennt eine Zeile unter der Suche als noch nicht unterstützt; sie werden als Text gesucht.</li>
+<li>Die Suche versteht Begriffe in Anki-Schreibweise: <code>flag:1</code> bis <code>flag:7</code> (<code>flag:0</code> ohne Flagge), <code>tag:x</code> (auch Unter-Tags, ohne Rücksicht auf Groß-/Kleinschreibung), <code>tag:none</code>, <code>tag:leech</code> (Lernbremse), <code>tag:marked</code>, <code>is:suspended</code>, <code>is:new</code>, <code>is:learn</code> (auch Wiederlernen), <code>is:review</code>, <code>is:young</code> und <code>is:mature</code> (Reife <code>Jung</code> beziehungsweise <code>Reif</code>), <code>is:due</code> (bis Ende des Lerntags fällig und lernbar), <code>prop:due</code> mit <code>&lt;</code>, <code>&lt;=</code>, <code>=</code>, <code>&gt;=</code>, <code>&gt;</code> und Tagen ab heute (<code>prop:due&lt;0</code> überfällig, <code>prop:due=1</code> morgen fällig; neue Karten sind nie fällig), <code>did:&lt;Stapel-ID&gt;</code> (Stapel samt Unterstapeln), <code>has:variant</code> (mit aktiver Variante) und <code>Feld:Text</code> (Text nur in dem Feld dieses Namens, ohne Rücksicht auf Groß-/Kleinschreibung, Leerzeichen im Feldnamen als <code>_</code>, etwa <code>ursprung:scaleni</code> oder <code>back_extra:merke</code>); ein vorangestelltes <code>-</code> verneint einen Begriff. Alle Begriffe müssen zutreffen, der übrige Text sucht wie bisher. Lerntag und Stapelbaum gehen aufgelöst in die Anfrage, daher liefern Online- und Offline-Suche dieselben Treffer. Weitere Anki-Begriffe wie <code>rated:</code> oder <code>deck:</code> nennt eine Zeile unter der Suche als noch nicht unterstützt; sie werden als Text gesucht.</li>
 </ul>
 <h4 id="journey-3-rules--stapeloptionen-verschieben-und-löschen" class="core-control-label" tabindex="-1">Stapeloptionen, Verschieben und Löschen <a class="docs-anchor" href="#journey-3-rules--stapeloptionen-verschieben-und-löschen" aria-label="Link zu Stapeloptionen, Verschieben und Löschen">#</a></h4>
 <ul>

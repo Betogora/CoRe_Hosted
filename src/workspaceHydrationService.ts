@@ -1,3 +1,4 @@
+import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { Card, CardStudyState, Deck, Note } from "./coreTypes.ts";
 import type { IndexedDbCoreRepository, ReimportTargets } from "./indexedDbCoreRepository.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -14,6 +15,7 @@ interface CardPageRequest {
   query?: string;
   sort?: CardTableSort;
   selectedCardId?: string | null;
+  searchContext?: CardSearchContext;
   /** Aborts a stale search request before its cloud page is applied. */
   signal?: AbortSignal;
 }
@@ -108,6 +110,7 @@ export function createWorkspaceHydrationService({
     request.query ?? "",
     request.sort?.field ?? "sortField",
     request.sort?.direction ?? "asc",
+    request.searchContext ?? null,
   ]);
 
   /** With `allowMissing`, cards the cloud no longer has load as null instead of failing the batch. */
@@ -162,13 +165,13 @@ export function createWorkspaceHydrationService({
   const searchFirstPage = (request: CardPageRequest): Promise<CatalogPage> => {
     const query = request.query!.trim();
     const limit = Math.min(50, Math.max(1, request.pageSize ?? 50));
-    const key = JSON.stringify([query, request.sort?.field ?? "sortField", request.sort?.direction ?? "asc", limit]);
+    const key = JSON.stringify([query, request.sort?.field ?? "sortField", request.sort?.direction ?? "asc", limit, request.searchContext ?? null]);
     if (!pendingSearch || pendingSearch.key !== key) {
       const batch: NonNullable<typeof pendingSearch> = { key, deckIds: new Set(), pages: Promise.resolve(new Map()) };
       batch.pages = new Promise<void>((resolve) => setTimeout(resolve, 0)).then(async () => {
         if (pendingSearch === batch) pendingSearch = null;
         const { searchAccountCardCatalog } = await import("./cloudRepository.ts");
-        const pages = await searchAccountCardCatalog(client, { deckIds: [...batch.deckIds], query, sort: request.sort, limit });
+        const pages = await searchAccountCardCatalog(client, { deckIds: [...batch.deckIds], query, searchContext: request.searchContext, sort: request.sort, limit });
         const entities = [...pages.values()].flatMap((page) => page.items);
         if (entities.length) await repository.applyCloudCatalogPage({ table: "card_catalog", entities, reset: false, cursor: repository.getReplicaStatus().catalogCursor });
         return pages;
@@ -203,6 +206,7 @@ export function createWorkspaceHydrationService({
       const cloudPage = await listAccountCardCatalog(client, {
         deckId: request.deckId,
         query: request.query,
+        searchContext: request.searchContext,
         sort: request.sort,
         cursor: cursors.get(page) ?? null,
         limit: Math.min(50, Math.max(1, request.pageSize ?? 50)),

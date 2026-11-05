@@ -429,6 +429,17 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", fieldTerm("vorderseite")), "Feldsuche im anderen Feld").items, []);
       const groupedFieldHits = assertNoError(await clientA.rpc("search_account_card_catalog", { p_deck_ids: [fixtureA.decks.id], p_query: "", p_terms: [{ kind: "field", name: "rückseite", value: "antwort", negated: false }] }), "stapelübergreifende Feldsuche");
       assert.ok(groupedFieldHits.groups[fixtureA.decks.id]?.items.some((entry: any) => entry.id === fixtureA.cards.id));
+      // Learning state, variants, decks and due bounds arrive resolved from parseCardSearchQuery (KV2a).
+      const hitsWith = async (terms: unknown[]) => assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_terms: terms }), "Lernstandsbegriffe")
+        .items.some((entry: any) => entry.id === fixtureA.cards.id);
+      assert.equal(await hitsWith([{ kind: "state", value: "new", negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "state", value: "review", negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "maturity", value: "new", negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "variant", negated: false }]), true, "drei aktive Varianten");
+      assert.equal(await hitsWith([{ kind: "variant", negated: true }]), false);
+      assert.equal(await hitsWith([{ kind: "deck", ids: [fixtureA.decks.id], negated: false }]), true);
+      assert.equal(await hitsWith([{ kind: "deck", ids: ["fremder-stapel"], negated: false }]), false);
+      assert.equal(await hitsWith([{ kind: "due", from: null, to: "2099-01-01T00:00:00.000Z", reviewableOnly: false, negated: false }]), false, "neue Karten sind nie fällig");
       const groupedA = assertNoError(await clientA.rpc("search_account_card_catalog", searchRequest), "Stapelübergreifende Suche für Nutzer A");
       assert.ok(groupedA.groups[fixtureA.decks.id].items.some((entry: any) => entry.id === fixtureA.cards.id), "Die gebündelte Suche findet die Karte im Stapel");
       assert.deepEqual(assertNoError(await clientB.rpc("search_account_card_catalog", searchRequest), "fremde Stapelsuche für Nutzer B").groups, {});

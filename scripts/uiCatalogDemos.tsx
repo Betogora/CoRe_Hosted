@@ -18,7 +18,7 @@ import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
 import { createPomodoroTimer, createPomodoroTimerFromSeconds, pausePomodoroTimer, resumePomodoroTimer, type PomodoroTimer } from "../src/pomodoroTimer.ts";
 import { ActionButton, CrossLinkButton, IconButton } from "../src/ui/actionUi.tsx";
-import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreTag, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, EmptyState, OrbIcon, PageHeader, SoftPanel, StatTile } from "../src/ui/coreUi.tsx";
+import { ActionDialog, CardMarkButton, CoreIconSegmentedControl, CoreTag, CoreModeControl, CoreSegmentedControl, CoreSlidingTabs, CoreTriStateControl, EmptyState, OrbIcon, PageHeader, SoftPanel, StatTile, type CoreTriState } from "../src/ui/coreUi.tsx";
 import { StatusMessage, useSuccessToast } from "../src/ui/feedbackUi.tsx";
 import { createAccountMediaStore, type AccountMediaStore } from "../src/mediaStore.ts";
 import { CoreSelect, DeckMultiSelect, DeckSelect } from "../src/ui/selectUi.tsx";
@@ -172,12 +172,16 @@ function ControlsDemo({ section }: { section: string }) {
   const [iconView, setIconView] = useState<DeckTreeView>("tiles");
   const [marked, setMarked] = useState(false);
   const [suspended, setSuspended] = useState(false);
+  const [due, setDue] = useState<CoreTriState>("in");
+  const [again, setAgain] = useState<CoreTriState>("");
+  const [leech, setLeech] = useState<CoreTriState>("out");
   const options = [{ value: "front", label: "Vorderseite", icon: BookOpen }, { value: "back", label: "Rückseite", icon: Layers }];
   return <>
     {section === "segments" && <Demo title="CoreSegmentedControl"><CoreSegmentedControl ariaLabel="Kartenseite" value={tab} options={options} onValueChange={setTab} /></Demo>}
     {section === "segments" && <Demo title="CoreIconSegmentedControl"><CoreIconSegmentedControl ariaLabel="Stapelansicht" value={iconView} options={[{ value: "tiles", label: "Als Kacheln anzeigen", icon: Grid2x2 }, { value: "list", label: "Als Liste anzeigen", icon: List }]} onValueChange={setIconView} /></Demo>}
     {section === "segments" && <Demo title="CoreSlidingTabs"><CoreSlidingTabs ariaLabel="Vorschautabs" value={tab} options={options} onValueChange={setTab} /></Demo>}
     {section === "segments" && <Demo title="CoreModeControl"><CoreModeControl value={mode} onChange={setMode} /></Demo>}
+    {section === "segments" && <Demo title="CoreTriStateControl"><CoreTriStateControl label="Fällig" value={due} onValueChange={setDue} /><CoreTriStateControl label="Heute gelernt" value={again} onValueChange={setAgain} /><CoreTriStateControl label="Lernbremse" value={leech} onValueChange={setLeech} /></Demo>}
     {section === "buttons" && <Demo title="CardMarkButton und CardStudyStateControls"><CardMarkButton marked={marked} onMarkedChange={setMarked} /><CardStudyStateControls marked={marked} suspended={suspended} onMarkedChange={setMarked} onSuspendedChange={setSuspended} /></Demo>}
   </>;
 }
@@ -620,7 +624,7 @@ export type CatalogSectionId = "grundlagen" | "primitive" | "shared" | "fachmust
 
 export const DEMO_GROUPS = [
   { id: "aktionen", section: "primitive", title: "Button", description: "Text-, Icon-, Querlink-, Aktionskarten-, Markierungs- und Bewertungsbuttons.", components: ["ActionButton", "IconButton", "CrossLinkButton", "CreationActionCard", "CardMarkButton", "CardStudyStateControls"], render: () => <><ActionsDemo section="buttons" /><ControlsDemo section="buttons" /><LearningDemo section="buttons" /></> },
-  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl und CoRe-Modus.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl"], render: () => <ControlsDemo section="segments" /> },
+  { id: "auswahl", section: "primitive", title: "SegmentedControl", description: "Segmente, gleitende Tabs, reine Icon-Auswahl, CoRe-Modus und Dreifach-Schalter.", components: ["CoreSegmentedControl", "CoreSlidingTabs", "CoreIconSegmentedControl", "CoreModeControl", "CoreTriStateControl"], render: () => <ControlsDemo section="segments" /> },
   { id: "formulare", section: "primitive", title: "Input- und Select-Familie", description: "Text, Zahl, Passwort, mehrzeilige Eingaben, Checkbox, Radio, Select, Datum, Datei und Lerneinstellungen.", components: ["CoreSelect", "DeckSelect", "DeckMultiSelect", "CoreDatePicker", "FileDropField", "PomodoroTimerControl", "LearningSettingsPanel"], wide: true, render: () => <><FormsDemo section="forms" /><LearningDemo section="forms" /></> },
   { id: "badges", section: "primitive", title: "Tag", description: "Gemeinsames Tag in neutral und CoRe-Blau.", components: ["CoreTag"], render: BadgesDemo },
   { id: "tooltips", section: "primitive", title: "Tooltip", description: "Hinweise mit Text, Wert oder Stapelidentität.", components: ["CoreTooltip", "CoreTooltipProvider"], render: () => <ActionsDemo section="tooltips" /> },

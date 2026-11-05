@@ -17,10 +17,10 @@ geglättet.
 - [ ] **Einstiege:** Zähler der Karten ohne Variante in den Stapeleinstellungen
       (danach eine einzige Aktion, deren Beschriftung zwischen „generieren“ und
       „neu generieren“ wechselt); nach Fehlschlägen führt `Anzeigen` in der Leiste
-      zum Filter „Ohne Variante“; Stoppgründe in der Leiste kurz halten (z. B.
+      zum Filter `-has:variant`; Stoppgründe in der Leiste kurz halten (z. B.
       „Keine Verbindung“).
 - [ ] **Visuelle Pflichtmatrix:** Fortschrittsleiste, Einschalt-Dialog,
-      Variantenbereich der Stapeleinstellungen und Filter `Ohne Variante`; dazu
+      Variantenbereich der Stapeleinstellungen und Filter `-has:variant`; dazu
       ein E2E-Test der Stapelgenerierung (Route je Aufruf mit anderer Variante
       gemockt).
 - [ ] **Nicht umformulierbare Inhalte untersuchen:** Das erzwungene Werkzeug
@@ -168,52 +168,31 @@ Referenz gelesen.
   Option „Reschedule cards based on my answers“) und `Nur üben` ohne
   Planänderung (Ankis Vorschaumodus).
 
-- [ ] **KV2 – Suchzeile und erweiterte Suche:**
-      - **Suchzeile** (einzeilig): Suchfeld etwa halbe Breite, Stapelfilter
-        (Baum, Unterstapel eingeschlossen), rechts `Erweiterte Suche` mit
-        Zähler aktiver Filter. Mobil: Suchfeld plus Stapel- und Filter-Icon mit
-        Zähler; das Menü öffnet als Vollbild mit `N Karten anzeigen`.
-      - **Chips:** Aktive Filter stehen mit Trefferzahl unter der Zeile, einzeln
-        entfernbar, dazu `Alle zurücksetzen`. Erkannte Begriffe im Suchfeld
-        werden beim Leerzeichen zu Chips.
-      - **Menügruppen** (Ankis Seitenleiste gespiegelt): Heute (fällig, überfällig, heute gelernt, heute „Nochmal“, heute
-        hinzugefügt, heute bearbeitet, erstmals gelernt, neu geplant);
-        Kartenstatus (Neu, Lernen, Jung, Reif, Ausgesetzt, Zurückgestellt,
-        Lernbremse, Markiert); Flaggen 1–7 mit eigenen Namen und ohne Flagge;
-        Stapel (Baum); Tags (Baum, ohne Tags); Inhalt (Inhaltsform,
-        Anki-Notiztyp, Abfrage, Varianten mit, ohne, veraltet); Zeitraum
-        (hinzugefügt, bearbeitet, bewertet, erstmals gelernt in N Tagen); Werte
-        (Fälligkeit, Intervall, Haltbarkeit, Schwierigkeit,
-        Abrufwahrscheinlichkeit, Wiederholungen, Fehler mit Vergleich); Felder
-        (Text in einem Feld); zuletzt Gespeichert & Syntax (gespeicherte
-        Suchen, darunter die Erklärung der Suchsyntax).
-      - **Kombination:** Innerhalb einer Gruppe genügt ein Treffer, zwischen
-        Gruppen müssen alle zutreffen; jedes Element lässt sich ausschließen.
-      - **Dreifach-Schalter** `CoreTriStateControl` in `src/ui/` wie
-        abgenommen (2026-11-04): Indikator `transform 180ms
-        cubic-bezier(0.22, 1, 0.36, 1)`, Farbe `background-color 260ms
-        cubic-bezier(0.4, 0, 0.2, 1)` mit 20 ms Verzögerung; das gewählte
-        Symbol blendet seine Farbe gleich über und wächst auf 108 %. Nur
-        `transform` und Farben animieren, damit läuft der Übergang mit der
-        Bildrate des Geräts. Katalogdemo mit allen drei Stellungen.
-      - **Suchsyntax:** Freitext, `"Phrase"`, `-`, `or`, Klammern,
-        `deck:`, `is:new|learn|review|due|buried`, `added:`, `edited:`,
-        `rated:n[:Bewertung]`, `introduced:`, `resched:`, `prop:` mit
-        Vergleich, `has:variant`; keine regulären Ausdrücke. `Feld:Text`,
-        `flag:`, `tag:`, `tag:none`, `tag:leech`, `tag:marked` und
-        `is:suspended` gibt es schon (ADR-048).
-      - **Ein Suchmodell:** `cardSearchQuery.ts` parst Suchfeld, Chips, Menü
-        und gespeicherte Suchen in denselben Ausdruck; jeder neue Begriff wird
-        lokal (`matchesCardSearch`) und in den beiden Cloud-RPCs gleich
-        ausgewertet, mit Paritätstests und erweitertem `benchmark:search`.
-      - **Gespeicherte Suchen:** kontogebunden und synchronisiert. `Speichern`
-        legt oben eine Zeile mit Namensfeld an; ein Klick wendet die Suche
-        an, dazu Umbenennen und Löschen. Braucht eine Schemaergänzung.
-      - **Ablösung:** `Alle Karten`/`Ohne Variante`, Flaggenauswahl,
-        `Lernbremse` und Tag-Filter über der Tabelle gehen im Menü auf;
-        `Für diese Karten Varianten generieren` wird Massenaktion (KV4).
-      Nachweis: Parser- und Komponententests, UI-Katalog-Demo,
-      Pflichtmatrix Light/Dark bei 390 und 1440 px, E2E Suche und Filter.
+- [ ] **KV2 – Erweiterte Suche vervollständigen:** Suchzeile, Chips, Menü
+      mit `CoreTriStateControl` und die Begriffe aus den vorhandenen
+      Katalogspalten stehen (`is:new|learn|review|young|mature|due`,
+      `prop:due`, `did:`, `has:variant`). Offen, jeweils lokal
+      (`matchesCardSearch`) und in beiden Cloud-RPCs gleich ausgewertet, mit
+      Paritätstests und erweitertem `benchmark:search`:
+      - **KV2b – Lernverlauf im Katalog:** Der Katalog erhält, was die übrigen
+        Menüzeilen brauchen: Heute (heute gelernt, heute „Nochmal“, heute
+        hinzugefügt, heute bearbeitet, erstmals gelernt, neu geplant),
+        Kartenstatus `Zurückgestellt`, Inhalt (Inhaltsform, Anki-Notiztyp,
+        Abfrage, Varianten veraltet), Zeitraum (hinzugefügt, bearbeitet,
+        bewertet, erstmals gelernt in N Tagen) und Werte (Intervall,
+        Haltbarkeit, Schwierigkeit, Abrufwahrscheinlichkeit, Wiederholungen,
+        Fehler mit Vergleich). Syntax: `is:buried`, `added:`, `edited:`,
+        `rated:n[:Bewertung]`, `introduced:`, `resched:`, `prop:` für diese
+        Werte, `deck:Name`. Braucht eine Schemaergänzung.
+      - **KV2c – Gespeicherte Suchen:** kontogebunden und synchronisiert, in
+        der Kategorie `Suchsyntax` über der Erklärung. `Speichern` legt oben
+        eine Zeile mit Namensfeld an; ein Klick wendet die Suche an, dazu
+        Umbenennen und Löschen. Braucht eine Schemaergänzung.
+      - **KV2d – Kombination:** `"Phrase"`, `or` und Klammern; innerhalb
+        einer Menügruppe genügt dann ein Treffer, zwischen Gruppen müssen alle
+        zutreffen. Keine regulären Ausdrücke.
+      Nachweis: Parser- und Komponententests, Pflichtmatrix Light/Dark bei 390
+      und 1440 px, E2E Suche und Filter.
 - [ ] **KV3 – Trefferliste:** Eine durchgehende, virtualisierte Liste ersetzt
       die 50er-Seiten je Stapel, im Baum wie in der flachen Ansicht; die
       Seitennavigation entfällt. Flach zeigt die Trefferzahl und den
@@ -227,7 +206,8 @@ Referenz gelesen.
       hinzufügen und entfernen, Flagge setzen und entfernen, Markieren,
       Aussetzen und Reaktivieren, Zurückstellen, Fälligkeit setzen (Datum oder
       Bereich), Lernstand zurücksetzen, Position neuer Karten (Ankis
-      `Reposition`), Varianten generieren, Löschen. Jede Aktion läuft als eine
+      `Reposition`), Varianten generieren (ersetzt `Für diese Karten Varianten
+      generieren`), Löschen. Jede Aktion läuft als eine
       lokale Transaktion über neue Sammelhelfer in `coreModel.ts`, synchronisiert
       gebündelt und ist als neue Änderung rückgängig zu machen; zwischenzeitlich
       geänderte Karten meldet der Toast.

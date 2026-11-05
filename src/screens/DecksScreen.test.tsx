@@ -117,9 +117,9 @@ test("deck content shows only its own cards without deck headings and uses the e
   assert.doesNotMatch(renderScreen([deck, other], { cardPages }), /data-testid="deck-explorer"|Stapel wechseln/);
   assert.match(markup, /aria-label="Stapelinhalte"/);
   for (const label of ["Unterstapel", "Zusammenfassungen", "Quiz", "Mind Map", "Karten", "Quelle"]) assert.match(markup, new RegExp(`aria-label="${label}"`));
-  assert.match(markup, /aria-label="Karten nach Variante filtern"/);
-  assert.match(markup, />Ohne Variante</);
-  assert.doesNotMatch(markup, /Für diese Karten Varianten generieren/, "the generation action appears only while the filter is on");
+  assert.match(markup, /aria-label="Karten durchsuchen"/);
+  assert.match(markup, /aria-expanded="false" aria-controls="advanced-card-search"/);
+  assert.doesNotMatch(markup, /Für diese Karten Varianten generieren/, "the generation action appears only while -has:variant is set");
   assert.match(markup, /Was ist ATP\?/);
   assert.doesNotMatch(markup, /Was ist H2O|Aktive Stapel|Bereich in Lernen|deck-toggle-|deck-header-/);
   assert.match(markup, /data-testid="deck-content-study"[^>]*>[\s\S]*?Karten lernen/);
@@ -738,7 +738,7 @@ test("rows show a named flag dot and the filters read their search terms", () =>
     cardPages: { [deck.id]: cardPage(deck.id, [flagged]) },
   });
   assert.match(markup, /data-card-row="true"[\s\S]*?role="img" aria-label="Flagge Prüfung"/);
-  assert.match(markup, /aria-label="Nach Flagge filtern"[\s\S]*?Alle Flaggen/);
-  assert.match(markup, /aria-pressed="false"[^>]*><svg[^>]*>[\s\S]*?<\/svg>Lernbremse/);
-  assert.match(markup, /Nach Tags filtern/);
+  assert.match(markup, /aria-label="Stapel filtern"/);
+  assert.match(markup, /Erweiterte Suche/);
+  assert.doesNotMatch(markup, /data-testid="advanced-card-search"/, "das Menü ist anfangs zu");
 });

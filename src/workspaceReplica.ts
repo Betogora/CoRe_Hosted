@@ -1,3 +1,4 @@
+import type { CardSearchContext } from "./cardSearchQuery.ts";
 import type { Card, Note } from "./coreTypes.ts";
 import { getActiveVariants, isCardReviewBlocked, noteTextIndex, tagSearchKeys } from "./coreModel.ts";
 import type { CardTableSort } from "./libraryModel.ts";
@@ -143,6 +144,8 @@ export interface ReplicaStatus {
 export interface CatalogPageRequest {
   deckId: string;
   query?: string;
+  /** Resolves terms relative to today or to the deck tree (`CardSearchContext`). */
+  searchContext?: CardSearchContext;
   sort?: CardTableSort;
   cursor?: { sortValue: string; id: string } | null;
   limit?: number;
