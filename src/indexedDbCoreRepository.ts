@@ -814,7 +814,7 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
               ankiDeckId: incoming.ankiDeckId,
               parentDeckId: incoming.parentDeckId ? persistedDeckIds.get(incoming.parentDeckId) ?? incoming.parentDeckId : null,
               hierarchyPath: incoming.hierarchyPath,
-              deckSettings,
+              deckSettings: incoming.appearance ? { ...deckSettings, appearance: incoming.appearance } : deckSettings,
               createdAt: now,
             })),
           };
