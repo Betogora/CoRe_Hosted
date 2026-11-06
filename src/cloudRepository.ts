@@ -624,10 +624,11 @@ function parseCatalogPage(data: unknown, knownTotalCount?: number): CatalogPage 
 
 export async function listAccountCardCatalog(client: any, request: CatalogPageRequest): Promise<CatalogPage> {
   const search = parseCardSearchQuery(request.query, request.searchContext);
+  const scope = request.deckId === null ? [{ kind: "deck", ids: [...(request.deckIds ?? [])], negated: false }] : [];
   const call = client.rpc("list_account_card_catalog", {
     p_deck_id: request.deckId,
     p_query: search.text,
-    p_terms: search.terms,
+    p_terms: [...search.terms, ...scope],
     p_sort_field: request.sort?.field ?? "sortField",
     p_sort_direction: request.sort?.direction ?? "asc",
     p_cursor: request.cursor ?? null,

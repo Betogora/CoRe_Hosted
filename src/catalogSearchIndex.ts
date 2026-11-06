@@ -26,7 +26,7 @@ function compareEntries(field: CardTableSort["field"]) {
 export function createCatalogSearchIndex() {
   const entries = new Map<string, CardCatalogEntry>();
   const orders = new Map<CardTableSort["field"], CardCatalogEntry[]>();
-  let cached: { key: string; byDeck: Map<string, CardCatalogEntry[]> } | null = null;
+  let cached: { key: string; all: CardCatalogEntry[]; byDeck: Map<string, CardCatalogEntry[]>; scoped: Map<string, CardCatalogEntry[]> } | null = null;
   const changed = () => {
     orders.clear();
     cached = null;
@@ -55,21 +55,47 @@ export function createCatalogSearchIndex() {
     },
     /** Matching entries per deck in the requested order. */
     search(query: string, sort: CardTableSort, context?: CardSearchContext): ReadonlyMap<string, readonly CardCatalogEntry[]> {
-      const key = JSON.stringify([query, sort.field, sort.direction, context ?? null]);
-      if (cached?.key === key) return cached.byDeck;
-      const search = parseCardSearchQuery(query, context);
-      const byDeck = new Map<string, CardCatalogEntry[]>();
-      const sorted = order(sort.field);
-      const descending = sort.direction === "desc";
-      for (let index = 0; index < sorted.length; index += 1) {
-        const entry = sorted[descending ? sorted.length - 1 - index : index];
-        if (!matchesCardSearch(entry, search)) continue;
-        const list = byDeck.get(entry.deckId);
-        if (list) list.push(entry);
-        else byDeck.set(entry.deckId, [entry]);
+      return matching(query, sort, context).byDeck;
+    },
+    /**
+     * One window of the matching entries of the given decks (one deck, several decks as one list, or `null` for all),
+     * in the requested order; any window is a slice of the cached result, so scrolling far needs no walk.
+     */
+    slice(query: string, sort: CardTableSort, context: CardSearchContext | undefined, deckIds: readonly string[] | null, offset: number, limit: number) {
+      const result = matching(query, sort, context);
+      let list: readonly CardCatalogEntry[];
+      if (deckIds === null) list = result.all;
+      else if (deckIds.length === 1) list = result.byDeck.get(deckIds[0]) ?? [];
+      else {
+        const scopeKey = [...deckIds].sort().join("\n");
+        let scoped = result.scoped.get(scopeKey);
+        if (!scoped) {
+          const allowed = new Set(deckIds);
+          scoped = result.all.filter((entry) => allowed.has(entry.deckId));
+          result.scoped.set(scopeKey, scoped);
+        }
+        list = scoped;
       }
-      cached = { key, byDeck };
-      return byDeck;
+      return { items: list.slice(offset, offset + limit), totalCount: list.length };
     },
   };
+  function matching(query: string, sort: CardTableSort, context?: CardSearchContext) {
+    const key = JSON.stringify([query, sort.field, sort.direction, context ?? null]);
+    if (cached?.key === key) return cached;
+    const search = parseCardSearchQuery(query, context);
+    const all: CardCatalogEntry[] = [];
+    const byDeck = new Map<string, CardCatalogEntry[]>();
+    const sorted = order(sort.field);
+    const descending = sort.direction === "desc";
+    for (let index = 0; index < sorted.length; index += 1) {
+      const entry = sorted[descending ? sorted.length - 1 - index : index];
+      if (!matchesCardSearch(entry, search)) continue;
+      all.push(entry);
+      const list = byDeck.get(entry.deckId);
+      if (list) list.push(entry);
+      else byDeck.set(entry.deckId, [entry]);
+    }
+    cached = { key, all, byDeck, scoped: new Map() };
+    return cached;
+  }
 }

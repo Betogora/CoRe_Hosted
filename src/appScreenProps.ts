@@ -231,7 +231,9 @@ export interface DecksScreenProps {
 }
 
 export interface DecksCardPageRequest {
+  /** The list: a deck id, or `HIT_LIST_KEY` for the flat hit list over `deckIds` (KV3). */
   deckId: string;
+  deckIds?: string[];
   page: number;
   pageSize: 50;
   query: string;
@@ -241,15 +243,16 @@ export interface DecksCardPageRequest {
   searchContext: CardSearchContext;
 }
 
+/** Loaded windows of one card list (a deck or the flat hit list); scrolling adds pages of `pageSize` rows (KV3). */
 export interface DecksCardPage {
   deckId: string;
-  items: CardCatalogEntry[];
-  page: number;
+  pages: Readonly<Record<number, CardCatalogEntry[]>>;
   pageSize: number;
   totalCount: number;
-  hasMore?: boolean;
   query: string;
   sort: CardTableSort;
+  /** Scope of the flat hit list; a changed scope is a new list. */
+  deckIds?: string[];
   selected?: (NoteGraph & { cardId: string }) | null;
   /** The card the last answered request asked for; until it matches the selection, the editor shows its loading bar. */
   requestedCardId?: string | null;

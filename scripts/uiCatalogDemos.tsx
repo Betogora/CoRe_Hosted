@@ -13,6 +13,7 @@ import { NOTE_THEME_COLORS, renderCard, type NotePresentationResult, type NotePr
 import type { NoteTypeSource } from "../src/apkgImport.ts";
 import { NoteLayoutContext, type NoteLayoutSource } from "../src/ui/noteLayoutContext.ts";
 import { catalogEntryFromCard } from "../src/workspaceReplica.ts";
+import { matchesCardSearch, parseCardSearchQuery } from "../src/cardSearchQuery.ts";
 import { createDeckLibraryModel } from "../src/libraryModel.ts";
 import { createStudyHeatmapModelFromCounts } from "../src/studyHeatmapModel.ts";
 import { createDeckLearningSettingsDraft } from "../src/settingsDraft.ts";
@@ -514,11 +515,15 @@ function ProductViewsDemo({ kind }: { kind: string }) {
   const [cardPages, setCardPages] = useState<Record<string, DecksCardPage>>({});
   // Local stand-in for the catalog query of the app: every deck shows its sample cards as one page.
   const requestCardPage = React.useCallback((request: DecksCardPageRequest) => {
-    const deckCards = sampleDecks.find((candidate) => candidate.id === request.deckId)?.cards ?? [];
+    // The flat hit list of a search reads the cards of every deck in scope that match the search.
+    const search = parseCardSearchQuery(request.query);
+    const deckCards = request.deckIds
+      ? sampleDecks.filter((candidate) => request.deckIds!.includes(candidate.id)).flatMap((candidate) => candidate.cards)
+      : sampleDecks.find((candidate) => candidate.id === request.deckId)?.cards ?? [];
     const selectedCard = deckCards.find((card) => card.id === request.selectedCardId);
     const note = selectedCard ? sampleNotesById.get(selectedCard.noteId) : undefined;
-    const items = deckCards.map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null));
-    setCardPages((current) => ({ ...current, [request.deckId]: { deckId: request.deckId, items, page: 0, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null } }));
+    const items = deckCards.map((card) => catalogEntryFromCard(card, sampleNotesById.get(card.noteId) ?? null)).filter((entry) => !request.deckIds || matchesCardSearch(entry, search));
+    setCardPages((current) => ({ ...current, [request.deckId]: { deckId: request.deckId, deckIds: request.deckIds, pages: { 0: items }, pageSize: 50, totalCount: items.length, query: request.query, sort: request.sort, selected: selectedCard && note ? { note, cards: deckCards.filter((card) => card.noteId === note.id), cardId: selectedCard.id } : null, requestedCardId: request.selectedCardId } }));
   }, []);
   const noop = React.useCallback(() => undefined, []);
   const completedDemoExamCards = React.useRef(new Set<string>());

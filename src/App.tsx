@@ -210,7 +210,7 @@ export function App() {
   const [deckSummaries, setDeckSummaries] = React.useState<ReadonlyMap<string, DeckLibrarySummary>>(new Map());
   const [studyHeatmap, setStudyHeatmap] = React.useState<StudyHeatmapModel | undefined>();
   const [syncConflictCardIds, setSyncConflictCardIds] = React.useState<ReadonlySet<string>>(new Set());
-  const cardPageRequestRef = React.useRef(new Map<string, { controller: AbortController }>());
+  const cardPageRequestRef = React.useRef(new Map<string, { controller: AbortController; listKey: string; view: string }>());
   const cardPagesRef = React.useRef(cardPages);
   cardPagesRef.current = cardPages;
   const [syncStatus, setSyncStatus] = React.useState<SyncStatus>(createSyncIdleStatus);
@@ -720,37 +720,40 @@ export function App() {
   const requestCardPage = React.useCallback(async (request: DecksCardPageRequest) => {
     if (!workspaceRepository) return;
     const runId = bootRunRef.current;
-    // A newer request for the same deck (typing in the search) cancels the stale one.
-    cardPageRequestRef.current.get(request.deckId)?.controller.abort();
+    const listKey = request.deckId;
+    const view = JSON.stringify([request.query, request.sort.field, request.sort.direction, request.deckIds ?? null]);
+    const sameView = (page: DecksCardPage | undefined): page is DecksCardPage => Boolean(page && !page.loadError
+      && JSON.stringify([page.query, page.sort.field, page.sort.direction, page.deckIds ?? null]) === view);
+    // A changed search, sort or scope cancels what the list still loads; pages of the same view load side by side.
+    const requestKey = `${listKey}#${request.page}`;
+    for (const [key, running] of cardPageRequestRef.current) {
+      if (running.listKey === listKey && (running.view !== view || key === requestKey)) {
+        running.controller.abort();
+        cardPageRequestRef.current.delete(key);
+      }
+    }
     const controller = new AbortController();
-    cardPageRequestRef.current.set(request.deckId, { controller });
+    cardPageRequestRef.current.set(requestKey, { controller, listKey, view });
     // Identity, not a key: a repeated identical request replaces this one, whose (aborted) answer must be dropped.
-    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(request.deckId)?.controller === controller;
+    const isCurrent = () => bootRunRef.current === runId && cardPageRequestRef.current.get(requestKey)?.controller === controller;
     // Prev/next only changes the selected card: the loaded page stays and just the card (often prefetched) is read.
-    const shown = cardPagesRef.current[request.deckId];
-    const onlySelectionChanged = Boolean(workspaceHydrationService && request.selectedCardId && shown && !shown.loadError
-      && shown.page === request.page && shown.query === request.query && sameCardTableSort(shown.sort, request.sort));
-    let page;
+    const shown = cardPagesRef.current[listKey];
+    const onlySelectionChanged = Boolean(workspaceHydrationService && request.selectedCardId && sameView(shown) && shown.pages[request.page]);
+    const scope = request.deckIds ?? request.deckId;
+    let loaded: { items?: DecksCardPage["pages"][number]; page?: number; pageSize?: number; totalCount?: number; selected?: DecksCardPage["selected"]; limitedToLocalCatalog?: boolean };
     try {
-      page = onlySelectionChanged
-        ? { ...shown!, selected: await workspaceHydrationService!.querySelectedCard(request.deckId, request.selectedCardId!) }
+      loaded = onlySelectionChanged
+        ? { selected: await workspaceHydrationService!.querySelectedCard(scope, request.selectedCardId!) }
         : workspaceHydrationService
           ? await workspaceHydrationService.queryCardPage({ ...request, signal: controller.signal })
-          : await workspaceRepository.listCardPage(request.deckId, request);
+          : await workspaceRepository.listCardPage(scope, request);
     } catch (error) {
       if (!isCurrent() || controller.signal.aborted) return;
+      cardPageRequestRef.current.delete(requestKey);
       setCardPages((current) => ({
         ...current,
-        [request.deckId]: {
-          ...(current[request.deckId] ?? {
-            deckId: request.deckId,
-            items: [],
-            page: request.page,
-            pageSize: request.pageSize,
-            totalCount: 0,
-            query: request.query,
-            sort: request.sort,
-          }),
+        [listKey]: {
+          ...(current[listKey] ?? { deckId: listKey, pages: {}, pageSize: request.pageSize, totalCount: 0, query: request.query, sort: request.sort, deckIds: request.deckIds }),
           requestedCardId: request.selectedCardId,
           loadError: error instanceof Error ? error.message : "Karten konnten nicht geladen werden.",
         },
@@ -758,10 +761,29 @@ export function App() {
       return;
     }
     if (!isCurrent()) return;
-    setCardPages((current) => ({
-      ...current,
-      [request.deckId]: { ...page, deckId: request.deckId, query: request.query, sort: request.sort, requestedCardId: request.selectedCardId, loadError: null },
-    }));
+    cardPageRequestRef.current.delete(requestKey);
+    setCardPages((current) => {
+      const previous = sameView(current[listKey]) ? current[listKey]! : null;
+      const pages = { ...previous?.pages };
+      if (loaded.items) pages[loaded.page ?? request.page] = loaded.items;
+      // Only a request that names the open card changes it; scrolling loads pages without one.
+      const selection = request.selectedCardId ? { selected: loaded.selected ?? null, requestedCardId: request.selectedCardId } : { selected: previous?.selected, requestedCardId: previous?.requestedCardId };
+      return {
+        ...current,
+        [listKey]: {
+          deckId: listKey,
+          pages,
+          pageSize: loaded.pageSize ?? previous?.pageSize ?? request.pageSize,
+          totalCount: loaded.totalCount ?? previous?.totalCount ?? 0,
+          query: request.query,
+          sort: request.sort,
+          deckIds: request.deckIds,
+          ...selection,
+          loadError: null,
+          limitedToLocalCatalog: loaded.limitedToLocalCatalog ?? previous?.limitedToLocalCatalog,
+        },
+      };
+    });
   }, [workspaceHydrationService, workspaceRepository]);
 
   const queryStatistics = React.useCallback(
@@ -1445,18 +1467,19 @@ export function App() {
     refresh({ preserveCardPages: true });
     // Visible rows of the content's cards take over the changed preview, mark and suspension at once.
     const entries = new Map((graph?.cards ?? []).map((card) => [card.id, catalogEntryFromCard(card, graph!.note)]));
-    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([deckId, page]) => {
-      if (!page) return [deckId, page];
-      // A deck that lost a card reloads as well, so a moved card leaves no row behind in its former deck.
-      if (refreshPages && (graph?.cards.some((card) => card.deckId === deckId) || page.items.some((item) => entries.has(item.id)))) return [deckId, undefined];
-      const selected = page.selected && page.selected.note.id === noteId
-        ? graph?.cards.some((card) => card.id === page.selected!.cardId) ? { ...graph, cardId: page.selected.cardId } : null
-        : page.selected;
-      const items = page.items.map((item) => {
+    setCardPages((current) => Object.fromEntries(Object.entries(current).map(([listKey, list]) => {
+      if (!list) return [listKey, list];
+      const shownItems = Object.values(list.pages).flat();
+      // A list that lost or gained a card reloads, so a moved card leaves no row behind in its former deck.
+      if (refreshPages && (graph?.cards.some((card) => card.deckId === listKey || list.deckIds?.includes(card.deckId)) || shownItems.some((item) => entries.has(item.id)))) return [listKey, undefined];
+      const selected = list.selected && list.selected.note.id === noteId
+        ? graph?.cards.some((card) => card.id === list.selected!.cardId) ? { ...graph, cardId: list.selected.cardId } : null
+        : list.selected;
+      const pages = Object.fromEntries(Object.entries(list.pages).map(([page, items]) => [page, items.map((item) => {
         const entry = entries.get(item.id);
         return entry ? { ...item, ...entry, syncChangeId: item.syncChangeId } : item;
-      });
-      return [deckId, { ...page, items, selected }];
+      })]));
+      return [listKey, { ...list, pages, selected }];
     })));
     syncEngine?.requestSync();
     return graph;

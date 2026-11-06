@@ -565,6 +565,19 @@ test("manuelle Lernstandsänderungen reisen als manuelle Ereignisse; Rückgängi
   repository.close();
 });
 
+test("der Index liefert jede Seite direkt, auch stapelübergreifend als eine Liste (KV3)", async () => {
+  const repository = await openRepository(twoDeckState());
+  const page = (scope: string | string[], number: number, pageSize: number, query = "") => repository.listCardPage(scope, { page: number, pageSize, query });
+  const all = await page(["deck-a", "deck-b"], 0, 10);
+  assert.deepEqual(all.items.map((entry) => entry.id), ["card-0", "card-0-reverse", "card-1"], "nach Sortierfeld über beide Stapel");
+  assert.equal(all.totalCount, 3);
+  const second = await page(["deck-a", "deck-b"], 1, 2);
+  assert.deepEqual([second.page, second.items.map((entry) => entry.id), second.hasMore], [1, ["card-1"], false], "Seite 2 ohne die Seiten davor");
+  assert.deepEqual((await page(["deck-b"], 0, 10, "frage")).items.map((entry) => entry.id), ["card-0-reverse"]);
+  assert.deepEqual((await page("deck-a", 5, 2)).items, [], "hinter dem Ende ist die Seite leer");
+  repository.close();
+});
+
 test("der lokale Katalog führt den Lernverlauf fort und behält ihn bei Inhaltsänderungen", async () => {
   const initialState = workspaceState(2);
   const repository = await openRepository(initialState);

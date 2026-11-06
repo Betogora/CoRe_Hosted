@@ -169,7 +169,9 @@ export interface ReplicaStatus {
 }
 
 export interface CatalogPageRequest {
-  deckId: string;
+  /** One deck, or null for the decks of `deckIds` as one list (the flat hit list, KV3). */
+  deckId: string | null;
+  deckIds?: readonly string[];
   query?: string;
   /** Resolves terms relative to today or to the deck tree (`CardSearchContext`). */
   searchContext?: CardSearchContext;

@@ -1737,10 +1737,14 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       if (measureFirstRun) markStartupPhaseReady("firstDeckSummaries", { deckCount: result.size });
       return summaryResult;
     },
-    /** Catalog page by page number (cursors are remembered per query) plus the opened content with its siblings. */
     /** Loads the search index ahead of the first search, in short batches. */
     prepareCardSearch: () => ensureSearchIndex(),
-    async listCardPage(deckId: string, { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null, searchContext }: {
+    /**
+     * Catalog page by page number of one deck, or of several decks as one list (the flat hit list), plus the opened
+     * content with its siblings. The search index answers any page at once (KV3); a single deck without a search
+     * walks its keyset pages only until the index is loaded.
+     */
+    async listCardPage(scope: string | readonly string[], { page = 0, pageSize = CATALOG_PAGE_LIMIT, query = "", sort = { field: "sortField", direction: "asc" } as CardTableSort, selectedCardId = null, searchContext }: {
       page?: number;
       pageSize?: number;
       query?: string;
@@ -1748,6 +1752,27 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
       selectedCardId?: string | null;
       searchContext?: CardSearchContext;
     } = {}) {
+      const deckIds = typeof scope === "string" ? [scope] : scope;
+      const selected = async () => {
+        const selectedBody = selectedCardId ? await loadCardBody(selectedCardId) : null;
+        const selectedGraph = selectedBody && deckIds.includes(selectedBody.card.deckId) ? await loadNoteGraph(selectedBody.note.id) : null;
+        return selectedGraph && selectedBody ? { ...selectedGraph, cardId: selectedBody.card.id } : null;
+      };
+      await writeChain;
+      if (deckIds.length !== 1 || searchIndexReady || !isEmptyCardSearch(parseCardSearchQuery(query))) {
+        await ensureSearchIndex();
+        const requestedPage = Math.max(0, Math.floor(page));
+        const slice = searchIndex.slice(query, sort, searchContext, deckIds, requestedPage * pageSize, pageSize);
+        return {
+          items: slice.items,
+          page: requestedPage,
+          pageSize,
+          totalCount: slice.totalCount,
+          hasMore: (requestedPage + 1) * pageSize < slice.totalCount,
+          selected: await selected(),
+        };
+      }
+      const deckId = deckIds[0];
       const key = JSON.stringify([deckId, query, sort.field, sort.direction, searchContext ?? null]);
       const cursors = pageCursorsByKey.get(key) ?? new Map<number, CatalogCursor | null>([[0, null]]);
       pageCursorsByKey.set(key, cursors);
@@ -1760,15 +1785,13 @@ export async function createIndexedDbCoreRepository({ userId, initialState, inde
         result = await listCatalogPage(deckId, { cursor: result.nextCursor, limit: pageSize, query, sort, includeTotal: true, searchContext });
       }
       if (result.nextCursor) cursors.set(requestedPage + 1, result.nextCursor);
-      const selectedBody = selectedCardId ? await loadCardBody(selectedCardId) : null;
-      const selectedGraph = selectedBody && selectedBody.card.deckId === deckId ? await loadNoteGraph(selectedBody.note.id) : null;
       return {
         items: result.items,
         page: requestedPage,
         pageSize,
         totalCount: result.totalCount ?? result.items.length,
         hasMore: result.hasMore,
-        selected: selectedGraph && selectedBody ? { ...selectedGraph, cardId: selectedBody.card.id } : null,
+        selected: await selected(),
       };
     },
     async loadReviewSession(deckIds: string[], options: {

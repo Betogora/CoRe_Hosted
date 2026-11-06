@@ -27,7 +27,7 @@ function deckOf(id: string, name: string, graphs: NoteGraph[], extra: Partial<Pa
 
 function cardPage(deckId: string, graphs: NoteGraph[], { totalCount, page = 0, selected = null }: { totalCount?: number; page?: number; selected?: DecksCardPage["selected"] } = {}): DecksCardPage {
   const items = graphs.flatMap((graph) => graph.cards.map((card) => catalogEntryFromCard(card, graph.note)));
-  return { deckId, items, page, pageSize: 50, totalCount: totalCount ?? items.length, query: "", sort: SORT, selected };
+  return { deckId, pages: { [page]: items }, pageSize: 50, totalCount: totalCount ?? items.length, query: "", sort: SORT, selected, requestedCardId: selected?.cardId ?? null };
 }
 
 function selectedOf(graph: NoteGraph, cardId = graph.cards[0].id) {
@@ -259,7 +259,8 @@ test("deck content renders paged subdecks and resolves a direct card link to its
     },
   });
   assert.match(markup, /Katalog-Unterkarte/);
-  assert.match(markup, /Seite 1 von 2/);
+  assert.match(markup, /data-card-placeholder="true"/, "die noch nicht geladenen Karten des Unterstapels halten ihren Platz");
+  assert.doesNotMatch(markup, /Seite 1 von/);
   assert.match(markup, /data-testid="card-detail-dialog"/);
   assert.match(markup, /aria-label="Bereiche der Karte"/);
 
@@ -284,7 +285,7 @@ test("deck content renders paged subdecks and resolves a direct card link to its
   assert.match(detailMarkup, /aria-label="Markierung entfernen"/);
 });
 
-test("deck content preserves the paged catalog path without requiring group expansion", () => {
+test("deck content lists its catalog without requiring group expansion", () => {
   const graph = basicGraph("deck-bio", "Katalogkarte", "Antwort");
   const deck = deckOf("deck-bio", "Biologie", []);
   const markup = renderScreen([deck], {
@@ -293,15 +294,13 @@ test("deck content preserves the paged catalog path without requiring group expa
     cardPages: { [deck.id]: cardPage(deck.id, [graph], { totalCount: 60 }) },
   });
   assert.match(markup, /Katalogkarte/);
-  assert.match(markup, /Seite 1 von 2/);
-  assert.match(markup, /<button[^>]*disabled=""[^>]*aria-label="Vorherige Seite anzeigen"/);
-  assert.match(markup, /aria-label="Nächste Seite anzeigen"/);
-  assert.match(markup, /class="core-body [^"]*">Seite 1 von 2/);
+  assert.doesNotMatch(markup, /Seite anzeigen|Seite 1 von/, "keine Seitennavigation (KV3)");
+  assert.match(markup, /aria-rowcount="60"/, "die Tabelle kennt alle 60 Zeilen");
   assert.doesNotMatch(markup, /deck-toggle-|Aktive Stapel/);
 });
 
-test("cards page consumes a direct query page and projects at most 50 items", () => {
-  const pageGraphs = Array.from({ length: 51 }, (_, index) => basicGraph("deck-paged", `Seitenkarte ${index}`, `Antwort ${index}`, { cardId: `paged-card-${String(index).padStart(3, "0")}` }));
+test("a long list renders only the rows near the visible area and keeps the rest as height (KV3)", () => {
+  const pageGraphs = Array.from({ length: 49 }, (_, index) => basicGraph("deck-paged", `Seitenkarte ${index}`, `Antwort ${index}`, { cardId: `paged-card-${String(index).padStart(3, "0")}` }));
   const directGraph = basicGraph("deck-paged", "Direkt geladene Karte", "Direkte Antwort", { cardId: "direct-card" });
   const deck = deckOf("deck-paged", "Abfragestapel", []);
   const markup = renderScreen([deck], {
@@ -309,14 +308,14 @@ test("cards page consumes a direct query page and projects at most 50 items", ()
     selectedCardId: "direct-card",
     expandedDeckIds: [deck.id],
     cardPages: {
-      [deck.id]: cardPage(deck.id, [...pageGraphs.slice(0, 49), directGraph, ...pageGraphs.slice(49)], { page: 4, totalCount: 501, selected: selectedOf(directGraph) }),
+      [deck.id]: cardPage(deck.id, [directGraph, ...pageGraphs], { totalCount: 5001, selected: selectedOf(directGraph) }),
     },
   });
 
-  assert.equal((markup.match(/data-card-row="true"/g) ?? []).length, 50);
-  assert.match(markup, /Seitenkarte 48/);
-  assert.doesNotMatch(markup, /Seitenkarte 49|Seitenkarte 50/);
-  assert.match(markup, /Seite 5 von 11/);
+  const rendered = (markup.match(/data-card-row="true"/g) ?? []).length;
+  assert.ok(rendered > 10 && rendered < 50, `nur das Fenster wird gerendert (${rendered} Zeilen)`);
+  assert.match(markup, /aria-rowcount="5002"/, "Stapelkopf und 5001 Karten");
+  assert.match(markup, /<tr aria-hidden="true" style="height:\d+px"><\/tr><\/tbody>/, "ein Abstandshalter steht für die übrigen Zeilen");
   assert.match(markup, /data-testid="deck-card-direct-card"/);
   assert.match(markup, /Direkt geladene Karte/);
 });
@@ -360,7 +359,6 @@ test("cards page renders sortable collapsed deck sections without learning metri
   assert.match(markup, /aria-sort="ascending"/);
   assert.match(markup, /aria-label="Karten von Biologie aufklappen"/);
   assert.match(markup, /aria-expanded="false"/);
-  assert.match(markup, /aria-controls="deck-card-list-[^"]+"/);
   assert.match(markup, /data-testid="deck-toggle-[^"]+"[^>]*class="absolute inset-0[^"]*focus-visible:ring-2/);
   assert.doesNotMatch(markup, /aria-label="Lernstand für|aria-label="Gesamtfortschritt für|data-deck-count=|data-donut-/);
   assert.doesNotMatch(markup, /data-testid="deck-header-[^"]+"[^>]*class="[^"]*border-t-2/);
@@ -433,7 +431,7 @@ test("cards page keeps stale rows dimmed while the page for a new query loads an
   const pending = renderScreen(decks, { cardPages: sortedPages, onRequestCardPage: async () => undefined, expandedDeckIds: [parent.id] });
   assert.match(pending, /data-testid="card-library-loading"/);
   assert.match(pending, /aria-busy="true"/);
-  assert.match(pending, /data-loading="true"/);
+  assert.match(pending, /data-testid="card-library-rows" class="[^"]*opacity-60/, "die bisherigen Zeilen sind gedimmt");
   assert.match(pending, /Was ist ATP\?/, "die bisherigen Treffer bleiben sichtbar");
   assert.doesNotMatch(pending, />Keine Karten</);
 });
@@ -510,7 +508,7 @@ test("from a session the editor opens without a hit list", () => {
   assert.match(markup, /data-testid="card-content-tab"/);
 });
 
-test("prev and next walk the loaded hits and load the neighbouring page at a page end", () => {
+test("prev and next walk every row of the list and open a row whose page is not loaded yet", () => {
   const graphs = ["Erste", "Zweite", "Dritte"].map((front) => basicGraph("deck-bio", front, "Antwort"));
   const deck = deckOf("deck-bio", "Biologie", graphs);
   const page = (selected: NoteGraph) => ({ [deck.id]: cardPage(deck.id, graphs, { totalCount: 53, selected: selectedOf(selected) }) });
@@ -518,7 +516,7 @@ test("prev and next walk the loaded hits and load the neighbouring page at a pag
   assert.match(middle, /aria-label="Karte 2 von 53">2 \/ 53</);
   assert.doesNotMatch(middle, /<button[^>]*disabled=""[^>]*aria-label="(Vorige|Nächste) Karte"/);
   const last = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: page(graphs[2]) });
-  assert.doesNotMatch(last, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/, "am Seitenende lädt Weiter die nächste Seite");
+  assert.doesNotMatch(last, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/, "Weiter lädt die nächste Seite und öffnet ihre erste Karte");
   const only = renderScreen([deck], { expandedDeckIds: [deck.id], selectedDeckId: deck.id, selectedCardId: graphs[2].cards[0].id, cardPages: { [deck.id]: cardPage(deck.id, graphs, { selected: selectedOf(graphs[2]) }) } });
   assert.match(only, /<button[^>]*disabled=""[^>]*aria-label="Nächste Karte"/);
 });

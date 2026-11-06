@@ -8,6 +8,7 @@ import {
   createCardSearchContext,
   createCardTableModel,
   createDeckLibraryModel,
+  createHitListModel,
   createPagedCardTableModel,
   createStudyHeatmapModel,
 } from "./libraryModel.ts";
@@ -330,7 +331,7 @@ test("paged card table uses only pages for the current query and sort and keeps 
   const { parent, child } = createDeckHierarchy(cards);
   const sort: CardTableSort = { field: "sortField", direction: "asc" };
   const items = cards.map((card) => catalogEntryFromCard(card, null));
-  const childPage = { items, page: 0, pageSize: 50, totalCount: 2, query: "nerv", sort };
+  const childPage = { pages: { 0: items }, pageSize: 50, totalCount: 2, query: "nerv", sort };
   const options = { query: "nerv", cardSort: sort, now: "2026-07-01T08:00:00.000Z" };
 
   const awaiting = createPagedCardTableModel([parent, child], { deck_child: childPage }, { ...options, awaitingPages: true });
@@ -351,6 +352,21 @@ test("paged card table uses only pages for the current query and sort and keeps 
   assert.equal(reloadingChild.loading, true);
   assert.deepEqual(reloadingChild.cardRows.map((row) => row.id), ["card_nerv", "card_muskel"], "die vorige Seite bleibt bis zur Antwort stehen");
   assert.equal(awaiting.allGroups.find((group) => group.id === "deck_child")!.loading, false);
+});
+
+test("eine Liste setzt geladene Seiten an ihre Stelle und reserviert die übrigen Zeilen (KV3)", () => {
+  const sort: CardTableSort = { field: "sortField", direction: "asc" };
+  const entry = (id: string) => catalogEntryFromCard(libraryCard(id), null);
+  const list = { pages: { 0: [entry("a"), entry("b")], 3: [entry("x")] }, pageSize: 2, totalCount: 9, query: "herz", sort };
+  const hits = createHitListModel(list, { query: "herz", cardSort: sort, awaitingPages: true });
+  assert.equal(hits.totalCardCount, 9);
+  assert.deepEqual([...hits.rowsByIndex.keys()], [0, 1, 6]);
+  assert.deepEqual(hits.cardRows.map((row) => row.id), ["a", "b", "x"]);
+  assert.equal(hits.loading, false);
+  const changed = createHitListModel(list, { query: "lunge", cardSort: sort, awaitingPages: true });
+  assert.equal(changed.loading, true, "eine geänderte Suche wartet auf ihre erste Seite");
+  assert.deepEqual(changed.cardRows.map((row) => row.id), ["a", "b", "x"], "bis dahin bleibt die vorige Liste stehen");
+  assert.equal(createHitListModel(undefined, { query: "herz", cardSort: sort, awaitingPages: false }).totalCardCount, 0);
 });
 
 test("card table preserves hierarchy and card order while including empty decks", () => {
@@ -438,7 +454,7 @@ test("card table sorts all columns and projects next-study labels and variant st
   }
 });
 
-test("card table pages beyond the first page and finds the last card deterministically", () => {
+test("card table lists every card of a deck and the flat hits of a search in one order", () => {
   const cards = Array.from({ length: 101 }, (_, index) => libraryCard("large-card-" + index, {
     front: "Frage " + index,
     back: "Antwort " + index,
@@ -447,17 +463,13 @@ test("card table pages beyond the first page and finds the last card determinist
   const model = createCardTableModel([deck], { notesById });
 
   assert.equal(model.cardCount, 101);
-  assert.equal(model.groups[0].cardRows.length, 50);
-  assert.equal(model.groups[0].pageCount, 3);
+  assert.equal(model.groups[0].cardRows.length, 101);
+  assert.equal(model.groups[0].rowsByIndex.get(100)?.id, model.groups[0].cardRows[100].id);
 
   const lateMatch = createCardTableModel([deck], { query: "Frage 100", notesById });
   assert.equal(lateMatch.cardCount, 1);
   assert.deepEqual(lateMatch.groups[0].cardRows.map((row) => row.id), ["large-card-100"]);
-
-  const secondPage = createCardTableModel([deck], { notesById, cardPageByDeckId: { [deck.id]: 1 } });
-  assert.equal(secondPage.groups[0].page, 1);
-  assert.equal(secondPage.groups[0].cardRows.length, 50);
-  assert.notDeepEqual(secondPage.groups[0].cardRows.map((row) => row.id), model.groups[0].cardRows.map((row) => row.id));
+  assert.deepEqual(lateMatch.hits.cardRows.map((row) => row.id), ["large-card-100"]);
 });
 
 test("study heatmap counts only rated reviews by profile day and derives the current streak", () => {

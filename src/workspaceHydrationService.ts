@@ -9,7 +9,9 @@ import { markReplicaStartupGate } from "./appPerformance.ts";
 import { getLearningDayKey } from "./learningDay.ts";
 
 interface CardPageRequest {
+  /** The list: a deck id, or a key of its own for `deckIds` read as one list (the flat hit list). */
   deckId: string;
+  deckIds?: readonly string[];
   page?: number;
   pageSize?: number;
   query?: string;
@@ -107,6 +109,7 @@ export function createWorkspaceHydrationService({
   let pendingSearch: { key: string; deckIds: Set<string>; pages: Promise<Map<string, CatalogPage>> } | null = null;
   const pageKey = (request: CardPageRequest) => JSON.stringify([
     request.deckId,
+    request.deckIds ?? null,
     request.query ?? "",
     request.sort?.field ?? "sortField",
     request.sort?.direction ?? "asc",
@@ -192,7 +195,7 @@ export function createWorkspaceHydrationService({
     const requestedPage = Math.max(0, Math.floor(request.page ?? 0));
     const cursors = pageCursors.get(key) ?? new Map([[0, null]]);
     pageCursors.set(key, cursors);
-    if (requestedPage === 0 && request.query?.trim()) {
+    if (requestedPage === 0 && request.query?.trim() && !request.deckIds) {
       const page = await searchFirstPage(request);
       request.signal?.throwIfAborted();
       totalCounts.set(key, page.totalCount);
@@ -204,7 +207,8 @@ export function createWorkspaceHydrationService({
       if (page > 0 && !cursors.has(page)) break;
       if (page < requestedPage && cursors.has(page + 1)) continue;
       const cloudPage = await listAccountCardCatalog(client, {
-        deckId: request.deckId,
+        deckId: request.deckIds ? null : request.deckId,
+        deckIds: request.deckIds,
         query: request.query,
         searchContext: request.searchContext,
         sort: request.sort,
@@ -249,12 +253,13 @@ export function createWorkspaceHydrationService({
     while (preparedGraphs.size > PREPARED_GRAPH_LIMIT) preparedGraphs.delete(preparedGraphs.keys().next().value!);
   };
   const forgetPreparedGraphs = () => preparedGraphs.clear();
-  /** The selected card with all its siblings when it belongs to the deck, else null. */
-  const querySelectedCard = async (deckId: string, cardId: string): Promise<(NoteGraph & { cardId: string }) | null> => {
+  /** The selected card with all its siblings when it belongs to the deck (or one of the decks), else null. */
+  const querySelectedCard = async (scope: string | readonly string[], cardId: string): Promise<(NoteGraph & { cardId: string }) | null> => {
     const prepared = preparedGraphs.get(cardId);
     preparedGraphs.delete(cardId);
     const graph = (prepared ? await prepared : null) ?? await fetchCardGraph(cardId);
-    return graph?.cards.some((card) => card.id === cardId && card.deckId === deckId) ? { ...graph, cardId } : null;
+    const deckIds = typeof scope === "string" ? [scope] : scope;
+    return graph?.cards.some((card) => card.id === cardId && deckIds.includes(card.deckId)) ? { ...graph, cardId } : null;
   };
 
   const queryCardPage = async (request: CardPageRequest) => {
@@ -278,11 +283,11 @@ export function createWorkspaceHydrationService({
         cloudError = error;
       }
     }
-    const local = cloudPage ? null : await repository.listCardPage(request.deckId, { ...request, selectedCardId: null });
+    const local = cloudPage ? null : await repository.listCardPage(request.deckIds ?? request.deckId, { ...request, selectedCardId: null });
     const entries = cloudPage?.items ?? local!.items;
     markReplicaStartupGate("catalogUsable", { itemCount: entries.length });
     if (entries.length === 0 && cloudError) throw cloudError;
-    const selected = request.selectedCardId ? await querySelectedCard(request.deckId, request.selectedCardId) : null;
+    const selected = request.selectedCardId ? await querySelectedCard(request.deckIds ?? request.deckId, request.selectedCardId) : null;
     return {
       items: entries,
       page: Math.max(0, Math.floor(request.page ?? 0)),
