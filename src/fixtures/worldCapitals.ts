@@ -1,7 +1,7 @@
 import { cardStudyFromReviewState, createBasicNote, createCoreDeck, createReviewState } from "../coreModel.ts";
 import { getMaturityBand, simulateRatingOutcome } from "../scheduler.ts";
-import worldCapitalsSource from "../../fixtures/apkg/world-capitals.source.json" with { type: "json" };
-import type { Card, Deck, Note, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
+import worldCapitalsSource from "../../library/world-capitals/world-capitals.source.json" with { type: "json" };
+import type { Card, Deck, DeckAppearance, Note, ReviewEvent, ReviewRating, ReviewState } from "../coreTypes.ts";
 import type { ImportCommitGraph } from "../apkgImport.ts";
 
 type WorldCapitalItem = (typeof worldCapitalsSource.items)[number];
@@ -40,6 +40,21 @@ function createWorldCapitalsFixture(source: typeof worldCapitalsSource) {
 }
 
 const WORLD_CAPITALS_FIXTURE = createWorldCapitalsFixture(worldCapitalsSource);
+
+/** One color of the deck color palette per continent, so the subdecks stay apart in the deck tree. */
+const CONTINENT_COLORS: Record<string, string> = {
+  afrika: "#f28c28",
+  antarktis: "#0d8e90",
+  asien: "#e5484d",
+  europa: "#3b7dd8",
+  nordamerika: "#8b5cf6",
+  ozeanien: "#edb72a",
+  suedamerika: "#3fa66b",
+};
+
+function continentAppearance(continentId: string | null): DeckAppearance {
+  return { iconKey: "globe", iconColor: CONTINENT_COLORS[continentId ?? ""] ?? "#6f7e9e" };
+}
 
 const WORLD_CAPITALS_STUDY_HISTORY = {
   fixture: "world-capitals",
@@ -249,7 +264,7 @@ function withStudyHistory(deckId: string, card: Card, cardIndex: number, contine
 }
 
 function createCapitalNote(deckId: string, item: WorldCapitalItem) {
-  const front = `Was ist die Hauptstadt von ${item.country}?`;
+  const front = item.question;
   const back = item.capitals.length === 1 ? item.capitals[0] : `Hauptstädte: ${item.capitals.join(", ")}`;
   const created = createBasicNote(deckId, front, back, {
     tags: ["geo", "hauptstaedte", item.continentId, String(item.cca3).toLowerCase()],
@@ -275,6 +290,7 @@ export function createWorldCapitalsSeed({ withStudyHistory: includeHistory = tru
     parentDeckId: null,
     hierarchyPath: [WORLD_CAPITALS_FIXTURE.rootDeck.name],
     ankiDeckId: "world-capitals-root",
+    deckSettings: { appearance: continentAppearance(null) },
     createdAt: HISTORY_DECK_CREATED_AT,
     updatedAt: HISTORY_DECK_UPDATED_AT,
   });
@@ -298,6 +314,7 @@ export function createWorldCapitalsSeed({ withStudyHistory: includeHistory = tru
       parentDeckId: rootDeck.id,
       hierarchyPath: [rootDeck.name, continent.label],
       ankiDeckId: `world-capitals-${continent.id}`,
+      deckSettings: { appearance: continentAppearance(continent.id) },
       cards,
       reviewEvents,
       createdAt: HISTORY_DECK_CREATED_AT,
@@ -329,7 +346,7 @@ export function createWorldCapitalsImportGraph(): ImportCommitGraph {
     mediaCount: 0,
     ankiGuids: notes.flatMap((note) => note.ankiGuid ? [note.ankiGuid] : []),
     async streamChunks(visit) {
-      await visit({ kind: "decks", decks: decks.map(({ id, ankiDeckId, name, hierarchyPath, parentDeckId }) => ({ id, ankiDeckId, name, hierarchyPath, parentDeckId })) });
+      await visit({ kind: "decks", decks: decks.map(({ id, ankiDeckId, name, hierarchyPath, parentDeckId, deckSettings }) => ({ id, ankiDeckId, name, hierarchyPath, parentDeckId, appearance: deckSettings.appearance })) });
       await visit({ kind: "notes", notes, noteSources: [], cards });
       await visit({ kind: "reviews", values: reviews });
     },

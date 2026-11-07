@@ -155,12 +155,12 @@ function useDocsSearch() {
   return query;
 }
 
-function CatalogFrame({ title, lede, navigation, footer, children }: { title: string; lede: string; navigation: { id: string; label: string }[]; footer: React.ReactNode; children: React.ReactNode }) {
+function CatalogFrame({ title, navigation, footer, children }: { title: string; navigation: { id: string; label: string }[]; footer: React.ReactNode; children: React.ReactNode }) {
   const ids = React.useMemo(() => navigation.map((item) => item.id), [navigation]);
   const active = useActiveSection(ids);
   return <div className="catalog">
     {createPortal(navigation.map((item) => <a key={item.id} href={`#${item.id}`} aria-current={item.id === active ? "location" : undefined}>{item.label}</a>), document.getElementById("docs-toc")!)}
-    <header className="catalog-hero"><h1>{title}</h1><p className="catalog-lede">{lede}</p></header>
+    <h1 className="core-heading-1 catalog-title">{title}</h1>
     {children}
     <footer className="catalog-footer">{footer}</footer>
   </div>;
@@ -170,10 +170,9 @@ function Catalog() {
   const query = useDocsSearch();
   const visible = CARDS.filter((card) => !query || `${card.title} ${card.search}`.toLocaleLowerCase("de").includes(query));
   return <CoreTooltipProvider><SuccessToastProvider><CatalogFrame
-    title="UI-Elemente-Katalog"
-    lede="Gemeinsame Controls ausprobieren und die Oberflächen von CoRe entdecken."
+    title="UI-Elements"
     navigation={CATALOG_SECTIONS.map((section) => ({ id: section.id, label: section.nav }))}
-    footer={<>CoRe UI-Elemente-Katalog · {data.components.length} Komponenten · {data.tokens.length} Tokens · {data.icons.length} Icons · Quellenstand <code>{data.sourceHash}</code></>}
+    footer={<>UI-Elements · {data.components.length} Komponenten · {data.tokens.length} Tokens · {data.icons.length} Icons · Quellenstand <code>{data.sourceHash}</code></>}
   >
     {visible.length === 0 ? <p className="catalog-empty" role="status">Keine Katalogeinträge passen zur Suche.</p> : null}
     {CATALOG_SECTIONS.map((section) => {
@@ -195,9 +194,8 @@ function CardBlocks() {
   const visible = CARD_BLOCKS.filter((block) => !query || [block.label, block.description, block.creation, ...block.demos.map((demo) => "case" in demo ? NOTE_CASE_TITLES[demo.case] : demo.title)].join(" ").toLocaleLowerCase("de").includes(query));
   return <CoreTooltipProvider><SuccessToastProvider><CatalogFrame
     title="Kartenbausteine"
-    lede="Jede Karte entsteht aus einem Inhalt und seinen Bausteinen. Alle Beispiele nutzen den Renderer der App; Aufdecken, Auswahl und Eintippen sind interaktiv."
     navigation={CARD_BLOCKS.map((block) => ({ id: block.id, label: block.label }))}
-    footer={<>Alle Komponenten der Oberfläche zeigt der <a href="ui-elements.html">UI-Elemente-Katalog</a>.</>}
+    footer={<>Alle Komponenten der Oberfläche zeigt <a href="ui-elements.html">UI-Elements</a>.</>}
   >
     {visible.length === 0 ? <p className="catalog-empty" role="status">Keine Kartenbausteine passen zur Suche.</p> : null}
     {visible.map((block) => <section key={block.id} id={block.id} className="catalog-section">

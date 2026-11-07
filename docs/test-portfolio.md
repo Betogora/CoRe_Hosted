@@ -1,106 +1,212 @@
-# Testportfolio und Produktverträge
+# Tests und Prüfläufe
 
-Stand: 7. Oktober 2026. Laufzeiten sind auf einem bereits eingerichteten lokalen Entwicklungsrechner gemessene Korridore; der erste Docker- oder Playwright-Start kann länger dauern. Maßgeblich sind geschützte Produktverträge, nicht Testzahlen.
+Einzige Quelle für Testkategorien, automatische und lokale Prüfläufe, die visuelle
+Pflichtmatrix und die Performance-Gates. Release, Rollback und Restore stehen in
+[`operations.md`](operations.md). Maßgeblich sind geschützte Produktverträge, nicht
+Testzahlen oder Laufzeiten; `gate:push` und der Modultest-Runner melden ihre
+Laufzeiten bei jedem Lauf selbst.
+
+## Was wann automatisch läuft
+
+| Auslöser | Workflow / Ort | Befehl | Blockiert |
+| --- | --- | --- | --- |
+| Pull Request, Push auf `main`, manuell | GitHub `ci.yml`, Job `quality` | `npm run gate:push` | ja, Pflicht-Check für `main` |
+| wie oben | GitHub `ci.yml`, Job `catalog-e2e` | `npm run test:e2e:catalog` | nein, kein Pflicht-Check |
+| jedes Vercel-Deployment | Build-Befehl in `vercel.json` | `npm run gate:push` | ja, ohne Erfolg kein Deployment |
+| täglich 02:17 UTC, veröffentlichtes Release, manuell | GitHub `nightly-core.yml` | `npm run gate:nightly` | ja |
+| montags 04:17 UTC, manuell | GitHub `weekly-performance.yml` | `npm run performance:measure:local` | ja |
+
+Commits und Pushes führen lokal nichts automatisch aus, weil ein gemischter
+Worktree Änderungen außerhalb des Commits enthalten kann. Ein neuer Push in einen
+Pull Request bricht dessen überholten Lauf ab; Läufe auf `main` brechen nie ab.
+Die zeitgesteuerten Workflows haben je genau einen blockierenden Job ohne
+Abhängigkeiten oder `continue-on-error`.
+
+## Lokale Befehle
+
+- `npm run gate:push`: Typecheck (inkrementell), Prüfung auf Ungenutztes
+  (`npm run check:unused`, knip), generierte Dokumente (`npm run check:docs`),
+  alle Unit-, Contract- und Integrationstests mit kompakter Ausgabe und der
+  Production-Build mit Bundlebudgets laufen parallel (`scripts/runQualityGate.ts`).
+  Jeder Schritt meldet seine Laufzeit; einer rot heißt Gate rot.
+- `npm run gate:nightly`: Modultests, vollständige RLS- und Browser-Suite samt
+  Beta-Auth-Artefakt in einem Supabase-Lauf, danach der APKG-Benchmark. Die
+  Modultests laufen wegen datumsabhängiger Fälle täglich erneut.
+- `npm run test:e2e:catalog`: Specs aus `tests/e2e/support/catalogSpecs.ts` über
+  `playwright.catalog.config.ts`, parallel gegen den generierten Katalog oder
+  vollständig abgefangene App-Flows, ohne Docker und Supabase, eigener Vite-Server
+  auf Port 5195.
+- `npm run test:e2e:affected:local`: wählt die Specs aus den Änderungen gegenüber
+  der Merge-Basis mit `origin/main`, auch uncommittet (`scripts/affectedE2ESpecs.ts`).
+  Geänderte Specs laufen immer; Produktquellen wählen über ihren Bereich, Doku und
+  Modultests keine. Gemeinsame E2E-Infrastruktur, Playwright- und
+  Build-Konfiguration, Abhängigkeiten, Migrationen, App-Shell und nicht
+  zugeordnete Produktquellen führen zur vollständigen Suite. Ersetzt vor einem
+  Release weder `test:e2e:local` noch die visuelle Pflichtmatrix.
+- `npm run test:e2e:local`: vollständige lokale Browser-Suite mit Supabase,
+  einschließlich Katalogflows und Datenbanktyp-Drift.
+- `npm run test:pr:local`: Kern-RLS plus die sechs `@golden-e2e`-Flows.
+  `npm run test:e2e:golden:local` führt nur die Golden-Flows aus.
+- `npm run test:beta`: `gate:push`, Kern-RLS und die `@beta-core`-Flows; Google
+  und Magic Link bleiben deaktiviert. `npm run test:beta:hosted` läuft gegen eine
+  gehostete URL (siehe [Hosted-Core-Smoke](operations.md#hosted-core-smoke)).
+- `npm run test:rls:local`: vollständiges RLS isoliert.
+- `npm run test:release:local`: Integration, komplette RLS- und Browser-Suite,
+  APKG-Benchmark. `npm run test:release` stellt `gate:push` voran.
+
+Screenshot-Matrizen der Browserflows laufen nur mit `CORE_VISUAL_OUTPUT=1`.
+Ohne die Variable prüfen Flows mit Breitenschleife 390 × 844 und 1440 × 900 im
+hellen Theme ohne Screenshots; die Prüfungsflows behalten zusätzlich 720 × 450
+(200 %). Mit der Variable laufen alle Größen der Pflichtmatrix, betroffene
+Rasterumbrüche und beide Themes.
+
+Unter Windows kann WinNAT die Supabase-Ports reservieren
+(`netsh interface ipv4 show excludedportrange protocol=tcp`); `supabase start`
+scheitert dann mit „Zugriff auf einen Socket … unzulässig“. Ohne Systemeingriff
+hilft, die Ports in `supabase/config.toml` für den Lauf zu verschieben und die
+Datei danach zurückzusetzen; die Testskripte lesen URLs aus `supabase status`.
+
+## Visuelle Pflichtmatrix
+
+Jede visuelle UI-Änderung wird in den folgenden Viewports gerendert und anhand
+von Screenshots geprüft. Die Matrix gilt für alle betroffenen Ansichten und
+Zustände; Änderungen an gemeinsamen Komponenten oder der App-Shell beziehen alle
+konsumierenden Screens ein. Vor einer Produktfreigabe werden sämtliche sichtbaren
+Menüs und Kernjourneys geprüft.
+
+| Ziel | Viewport in CSS-Pixeln |
+| --- | --- |
+| Sehr schmales Smartphone | 320 × 720 |
+| Schmales Smartphone | 360 × 800 |
+| Standard-Smartphone | 390 × 844 |
+| Breites Smartphone | 430 × 932 |
+| Desktop-Mindestziel | 1280 × 720 |
+| Primärer Desktop | 1440 × 900 |
+
+- Bei Änderungen an Navigation, Shell oder Breakpoints zusätzlich 1279 × 900 und
+  1280 × 900; weitere betroffene Breakpoints jeweils unmittelbar darunter und darauf.
+- Light und Dark gehören immer dazu, auch wenn nur in einem Modus entwickelt wurde.
+- Prüfkriterien: lesbare lange Inhalte, vollständige Beschriftungen, keine
+  Überlagerungen, saubere Umbrüche, Touchziele (unter 768 px und auf Touchgeräten
+  mindestens 44 × 44 px, sonst 36 px für Buttons und 40 px für Felder),
+  Scrollbarkeit und die erreichbare letzte Aktion oberhalb fester Navigation und
+  Speicherleisten. Horizontales Hauptscrolling ist unzulässig; dokumentierte lokale
+  Scrollbereiche werden auf Bedienbarkeit geprüft.
+- Betroffene Dialoge, Popover und Selects werden geöffnet; Entwürfe sowie Lade-,
+  Fehler- und Leerzustände berücksichtigt. Bei Eingaben gehört die geöffnete
+  Smartphone-Tastatur dazu. Die betroffene Kernjourney wird zusätzlich bei 200 %
+  Zoom geprüft.
+
+Änderungen an Kartendarstellung oder APKG-Import prüfen zusätzlich diese
+Referenzinhalte aus `fixtures/apkg/matrix/`, je Fall in Light und Dark vor und
+nach dem Aufdecken in Review und Kartenvorschau bei mindestens 390 × 844 und
+1440 × 900:
+
+| Fall | Fixture | Notiz-GUID |
+| --- | --- | --- |
+| Lückentext mit Mehrfachnummer, verschachtelt, in Formel | `standard-latest`, `special-latest` | `matrix-cloze`, `matrix-cloze-nested`, `matrix-cloze-math` |
+| Bildverdeckung nativ und Image Occlusion Enhanced | `special-latest` | `matrix-io-native`, `matrix-ioe-1` |
+| Hinweise, Zusatz und Quellen-Link | `special-latest` | `matrix-hint-tts`, `matrix-anking` |
+| Antwort eintippen | `standard-latest` | `matrix-type-in` |
+| Kprim, Multiple und Single Choice | `special-latest` | `matrix-mc-kprim`, `matrix-mc-multiple`, `matrix-mc-single` |
+| Formeln und LaTeX | `special-latest` | `matrix-math` |
+| Tabelle, farbiger Text, Audio und Video | `special-latest` | `matrix-media-rich` |
+| Originallayout (Template, CSS, Feld im Attribut, Nachtregeln) | `special-latest` | `matrix-originallayout` |
+
+Der Abschlussbericht nennt Version, Viewports, Theme, geprüfte Zustände und
+Screenshots. Nicht geprüfte Fälle bleiben ausdrücklich offen; Geometrieprüfungen,
+Builds, Entwürfe oder Mockups ersetzen die Sichtprüfung nicht.
+
+## Performance-Gates
+
+Die Zielwerte stehen in [`specs.md`](specs.md#performance). Geprüft werden sie so:
+
+- Der Production-Build erzwingt die Bundle-Grenzen (300 KiB gzip initial, 200 KiB
+  je Lazy-Feature) bei jedem `gate:push`.
+- `npm run performance:measure:local` startet lokales Supabase, baut die
+  E2E-Production-App und misst je zehn gedrosselte Läufe (Chromium, etwa 1,6 Mbit/s,
+  150 ms RTT, vierfache CPU-Verlangsamung) für wiederkehrenden Browser, frischen
+  Kontext, persistenten Kontext ohne Service Worker, Offline-Kaltstart und einen
+  kontrollierten 4G-Preload. Im selben Lauf misst er den Statistikpfad mit
+  100.000 Karten und 1 Mio. logisch aggregierten Reviews.
+- Das Artefakt `test-results/performance.json` enthält nur Laufzeiten, Stapel- und
+  Outboxanzahl und den Service-Worker-Status; `npm run performance:gates --
+  test-results/performance.json` prüft es gegen die festen Grenzen (u. a. keine
+  automatischen 3G-Preloads, höchstens 50 ms je 4G-Preload-Task, Statistik-RPC p95
+  ≤ 1.000 ms, 100k-Kartensuche ≤ 2.000 ms, Clientprojektion ≤ 50 ms).
+- Zusätzlich lokal auszuführen bei Änderungen an Bootstrap, Preload, Sync, Katalog,
+  Statistik, Service Worker, Abhängigkeiten oder Chunking sowie vor Releases.
+- Ein rotes Gate bleibt rot; ein fehlendes oder nur technisch erzeugtes Artefakt
+  ist kein Freigabenachweis. Feld-p75/p95 und die vollständige 100k-Browserjourney
+  misst der Lauf nicht.
 
 ## Kategorien
 
-- `unit`: deterministische Regeln eines einzelnen Domänenmoduls ohne Netzwerk, Browser oder persistente Infrastruktur.
-- `contract`: öffentliche Modul-, Payload-, Sicherheits-, UI-Copy-, Schema- oder Boundary-Verträge. Externe Systeme werden dabei ersetzt oder mit einem engen Smoke geprüft.
-- `integration`: Zusammenspiel mehrerer produktiver Module oder persistenter lokaler Adapter ohne vollständige Nutzerreise.
-- `golden-e2e`: sechs verpflichtende Nutzerziele durch Browser, App und lokales Supabase. Der Testname beginnt mit dem betroffenen Vertrag.
-- `heavy-release`: ressourcen- oder zeitintensive Core-Infrastruktur-, Medien- oder betriebliche Restore-Pfade. Sie laufen im gemeinsamen Nightly-/Release-Gate und bleiben dort blockierend.
-- `performance`: reproduzierbare Bundle-, Start-, Preload-, Statistik- und Skalierungsgrenzen. Sie laufen beim Build, wöchentlich und bei performancekritischen Änderungen zusätzlich manuell.
+| Kategorie | Inhalt | Läuft in |
+| --- | --- | --- |
+| `unit` | deterministische Regeln eines Domänenmoduls ohne Netzwerk, Browser oder Persistenz | `gate:push`, nightly |
+| `contract` | öffentliche Modul-, Payload-, Sicherheits-, UI-Copy-, Schema- oder Boundary-Verträge | `gate:push`, nightly |
+| `integration` | Zusammenspiel mehrerer Module oder persistenter lokaler Adapter; Browserflows ohne Golden-Status | Modulsuites in `gate:push`; Browserflows nightly und lokal |
+| `golden-e2e` | sechs verpflichtende Nutzerziele durch Browser, App und lokales Supabase | nightly, `test:pr:local`, Release |
+| `heavy-release` | ressourcen- oder zeitintensive Infrastruktur-, Medien- und Restore-Pfade | nightly, Release |
+| `performance` | Bundle-, Start-, Preload-, Statistik- und Skalierungsgrenzen | Build, weekly, manuell |
 
-Die ausführbare Zuordnung der TypeScript-Modultests liegt in `scripts/runModuleTests.ts`. Neue `src/**/*.test.ts(x)`-Dateien sind zunächst `unit`; API- und Screen-Tests sind `contract`. Abweichende Contract- und Integration-Suites werden dort ausdrücklich zugeordnet. Der Runner verteilt die Dateien auf einen Prozess je CPU-Kern und führt sie dort ohne Prozessisolation (`--test-isolation=none`) nacheinander aus; tsx und gemeinsame Module laden so einmal je Prozess statt einmal je Datei. Ein Test räumt deshalb jeden globalen Zustand, den er setzt (Mocks, Timer, `globalThis`, Fake-IndexedDB-Datenbanken), selbst wieder ab und setzt weder eine Dateireihenfolge noch einen frischen Prozess voraus.
+Die Zuordnung der Modultests liegt in `scripts/runModuleTests.ts`. Neue
+`src/**/*.test.ts(x)` sind zunächst `unit`, API- und Screen-Tests `contract`. Der
+Runner verteilt die Dateien auf einen Prozess je CPU-Kern ohne Prozessisolation
+(`--test-isolation=none`): Ein Test räumt jeden globalen Zustand, den er setzt
+(Mocks, Timer, `globalThis`, Fake-IndexedDB), selbst ab und setzt weder
+Dateireihenfolge noch frischen Prozess voraus.
 
 ## Inventur
 
-| Suite | Kategorie | Geschützter Vertrag | Laufzeit | Benötigte Infrastruktur | Ausführung |
-|---|---|---|---|---|---|
-| `npm run test:unit` | `unit` | Kernmodell, Scheduler, Navigation, lokale Transformationen und reine UI-Helfer bleiben deterministisch. | historisch 5–10 s; rechnerabhängig | Node.js | manuelles Quality-Gate, GitHub Quality, Vercel, nightly, release |
-| `src/coreModel/notes.test.ts`, `noteContent.test.ts` | `unit` | Note-/Card-Domäne: validierte Inhalte, Abfrageableitung, stabile Kartenidentität und Lernstände bei Änderungen, bestätigungspflichtige Entfernungen, Löschplanung samt vollständigem Undo-Zustand, Wiederherstellung, Markierung und Kopie. | unter 1 s | Node.js | Teil von `npm test`; fokussiert per `npx tsx --test src/coreModel/notes.test.ts src/coreModel/noteContent.test.ts` |
-| `src/notePresentation.test.ts`, `src/ui/colorMath.test.ts` | `unit` | Note-/Card-Renderer: Seitenkomposition, Feldrollen, verschachtelte Lücken und Formeln ohne Antwortleck, relative Bildmasken, sichere Medien/Links, zugänglicher Formeltext, Unicode-Zeichenvergleich, Auswahlregeln und Theme-Kontrast. | unter 1 s nach Prozessstart | Node.js | Teil von `npm test`; fokussiert per `npx tsx --test src/notePresentation.test.ts src/ui/colorMath.test.ts` |
-| `tests/e2e/note-presentation.spec.ts` | `integration` | Echte Katalog-Kartenbausteine: Tastatureingabe, alle Auswahlmodi, native Hinweise, Script-CSP, eingebettete Formelschriften, Medienwiedergabe, Host-Sprachausgabe und isolierte AMBOSS-Textauswahl; sechs Viewports, beide Themes, Review/Vorschau vor und nach Aufdecken. Die App-Flows decken die übrigen E2E-Specs ab. | abhängig von Screenshot-Matrix und Katalogstart | Chromium; generierte Dokumentation | fokussiert mit `npm run test:e2e:catalog -- tests/e2e/note-presentation.spec.ts`, Sichtmatrix zusätzlich mit `CORE_VISUAL_OUTPUT=1`; CI-Job `catalog-e2e` und vollständiges Browsergate |
-| `npm run test:contract` | `contract` | APKG-Grenzen, Auth- und Medienadapter, APKG-Import, Migrationen, sichere Fehler, sichtbare deutsche UX und Buildbudgets bleiben stabil. | 8–15 s | Node.js; In-Memory-Adapter/Fixtures | manuelles Quality-Gate, GitHub Quality, Vercel, nightly, release |
-| `npm run test:integration` | `integration` | Workspace, Cloud-Repository, Sync-Outbox/-Engine, IndexedDB, Hydration einschließlich offline persistenter Neuplanung und persistenter Mediencache arbeiten modulübergreifend zusammen. | historisch 3–10 s; rechnerabhängig | Node.js, Fake IndexedDB | manuelles Quality-Gate, GitHub Quality, Vercel, nightly, release |
-| `npm run test:rls:core:local` | `contract` | Eigene Rows sind nutzbar; fremde Rows und `anon` bleiben gesperrt; Ownership-Fälschungen, fremde FKs und fremde Neuplanungen werden abgewiesen. Entfernte Tabellen, Spalten und `core-imports` müssen fehlen. | 45–90 s | Docker, lokales Supabase mit Auth, Postgres und Storage | nightly, release, manuell |
-| Golden 1: erster Account → erste Karte → Review | `golden-e2e` | Ein neuer Nutzer bestätigt seine E-Mail, sieht einen leeren Account, erstellt eine Karte und erreicht den ersten abgeschlossenen Review. | 5–15 s; gemessen 8,1 s | Chromium, Docker, lokales Supabase, Mailpit | nightly, release, manuell |
-| Golden 2: APKG → Vorschau → Import → Review | `golden-e2e` | Ein leerer Account prüft eine kleine APKG-Vorschau, übernimmt den Import bewusst und reviewt eine importierte Karte. | 5–15 s; gemessen 5,6 s | Chromium, Docker, lokales Supabase, APKG-Fixture | nightly, release, manuell |
-| Golden 3: manuell → PDF → Bearbeiten → Review | `golden-e2e` | PDF-Text hilft transient bei der Erstellung; nur der übernommene Karteninhalt bleibt gespeichert, bearbeitbar und im Review sichtbar. | 5–15 s; gemessen 9,5 s | Chromium, Docker, lokales Supabase, PDF.js/PDF-Fixture | nightly, release, manuell |
-| Golden 4: Review → Offline → Reconnect → Reload | `golden-e2e` | Ein offline beantwortetes Review bleibt lokal erhalten, wird nach Reconnect genau einmal cloudbestätigt und überlebt den Reload. | 5–15 s; gemessen 10,6 s | Chromium, Docker, lokales Supabase, Browser-Offlinemodus | nightly, release, manuell |
-| Golden 5: Variante → Reveal → Originalkarte → Verwaltung | `golden-e2e` | Vor Reveal leckt keine Lösung; danach klappt die zugehörige Originalkarte auf und `Varianten verwalten` öffnet den Editor im Tab `Varianten`, während die KI-Umformulierung denselben Lernstatus nutzt. | 5–15 s; gemessen 7,6 s | Chromium, Docker, lokales Supabase | nightly, release, manuell |
-| Golden 6: KI-Umformulierung → Persistenz → Reload | `golden-e2e` | Eine KI-Umformulierung wird sofort als terminlose Kindvariante gespeichert, cloudbestätigt und nach Reload wiedergefunden; der Browser ersetzt den Provider deterministisch, Cloudpersistenz bleibt real. | keine neue isolierte Zeitmessung | Chromium, Docker, lokales Supabase, kontrollierte KI-Antwort | nightly, release, manuell |
-| Typgerechter Kartenlebenszyklus | `integration` | Basic und Multiple Choice sowie beide Reverse-Richtungen, jede Cloze-Gruppe und jede Bildverdeckungsgruppe durchlaufen als eigenständige Karten Erstellung, Bearbeitung, Persistenz und Review; eine gelöschte Maske entfernt nur ihre Karte; mit aktivem Begraben stellt eine Antwort die Geschwisterkarte reloadfest bis zum nächsten Lerntag zurück; ein neuerer APKG-Reimport ersetzt Inhalt, erhält aber den CoRe-Lernstatus. | neun Browserflows etwa 60–80 s; gemessen 68 s | Chromium, Docker, lokales Supabase, APKG-Fixture | nightly, release, manuell |
-| Batch-Erstellung und Fehlertoleranz | `integration` | Fünf Karten bleiben in einer Session; Pin-Reset, Fokus, vollständige Deckpfade und Draftdialog sind deterministisch; Karten-/Decklöschung, Undo sowie Importmodus- und Terminalzustände bleiben reload- und syncfest. | vier Beta-Core-Browserflows etwa 20–35 s | Chromium, Docker, lokales Supabase | nightly, release, manuell |
-| Stapel-IA und URL-Kontext | `integration` | Learn und Kartenverwaltung bleiben getrennt, teilen aber View-, Deck-, Karten-, Erstell- und Review-Rückkontext über URL, Reload, Direktlink sowie Browser-Zurück/-Vorwärts; ungültige IDs bleiben sicher bedienbar. | zwei Beta-Core-Browserflows etwa 15–25 s; fokussiert zuletzt 16,1 s zuzüglich Auth-Setup | Chromium, Docker, lokales Supabase | nightly, release, manuell |
-| Lerninhalte: Zusammenfassungen und Mindmaps | `integration` | Katalogsuites `learning-summaries.spec.ts` und `mindmaps.spec.ts` prüfen Bedienung, Speicherfehler und Reload der echten Panels; `[Vertrag: Lerninhalte]` in `navigation-context.spec.ts` prüft in der App Tabs per URL, Entwurfsschutz bei Tab-, Bereichswechsel und Reload, KI-Fassung aus geladenem Material mit nachgebildeter `/api/ai/summary`, `Neu erzeugen` mit Rückfrage und Abbruch sowie die Kontobindung mit einem zweiten Testkonto; `src/latestSaver.test.ts` sichert das Autospeichern. | Katalog parallel mit den übrigen Katalogspecs, App-Verträge etwa 1–2 min | Chromium; für die App-Verträge Docker und lokales Supabase | Katalog im CI-Job `catalog-e2e` und über `npm run test:e2e:affected:local`, App-Verträge nightly und release |
-| Nicht-goldene Playwright-Flows | `integration` | Auth-Resilienz, statische Core-Navigation, Kartenneuplanung ohne sichtbaren Versionsverlauf, Accessibility-Smokes, Einstellungen, Hierarchie, Konflikte und Fehlerzustände bleiben browsernah funktionsfähig; frühere Labs-Routen fallen zurück. | vollständige Browser-Suite etwa 3–5 min | Chromium, Docker, lokales Supabase | nightly, release, manuell |
-| TUS über 6 MB und vollständiger RLS-/Zwei-Geräte-Lauf | `heavy-release` | Große resumierbare Medienuploads bleiben privat; konkurrierende Geräte schützen neueren Content, Offline-Reviews und Soft-Deletes; ein Review auf einem Gerät und eine Inhaltskorrektur auf einem anderen laufen ohne Konflikt zusammen, eine veraltete Korrektur bleibt ein Konflikt. | etwa 2–5 min | Docker, lokales Supabase Storage/Auth/Postgres, TUS | nightly, release, manuell |
-| Medien-Reconciliation und APKG-Medien-E2E | `heavy-release` | Accountweite SHA-1-Deduplizierung, Referenzreihenfolge, Shared-Object-Schutz, Pending-Queue, Cloudbestätigung und Signed URLs bleiben konsistent. | etwa 1–3 min | Chromium, Docker, lokales Supabase Storage, generierte APKG-Fixture | nightly, release, manuell |
-| Lokaler APKG-Benchmark `npm run benchmark:apkg` | `heavy-release` | Die Note-Übersetzung im Worker liefert 25.000 Karten, 1.000 Medien und höchstens fünf Vorschaukarten samt Beispielmedien; die Workerübergabe bleibt unter 100 ms, die Übersetzung unter 1 GiB Heap plus ArrayBuffer. Die sichtbare 2-GiB-Grenze (`ANKI_PACKAGE_MAX_BYTES`) schützt vor zu großen Eingaben. | drei Läufe; Werte des letzten Laufs in `history.md` | Node.js, Python | nightly, release, manuell |
-| Großpaket-Benchmark `npm run benchmark:apkg:large` | `heavy-release` | Erzeugt ein Paket knapp unter 2 GiB (1.000 Medien à 2,1 MB) und übersetzt es aus einer dateigestützten Blob-Quelle; der Worker läuft mit 1-GiB-Heap-Grenze und darf Heap plus ArrayBuffer von 1 GiB nicht überschreiten (K5.8). | ein Lauf; zuletzt 14,7 s Workerzeit, Spitze 183 MB | Node.js, Python, etwa 2 GB freier Plattenplatz in `test-results/` | manuell; Abnahme K5.8 |
-| `npm run performance:measure:local` | `performance` | Vier Startkontexte und kontrollierter 4G-Preload bestehen je zehn gedrosselte Läufe; Statistik-RPC, 100k-Kartensuche und Clientprojektion halten ihre p95-Grenzen mit 1 Mio. logisch aggregierten Reviews. | 50 Browserstarts plus wiederholte Datenbankmessungen | Chromium, Docker, lokales Supabase | wöchentlich, performancekritische Änderungen, release, manuell |
-| APKG-Formatmatrix `src/apkgFormatMatrix.test.ts` (Teil von `npm run test:contract`) | `contract` | Zwölf mit `anki==26.5` erzeugte Pakete aus `fixtures/apkg/matrix/` laufen über `readAnkiPackage`, die Note-Übersetzung und `renderCard`; die sichtbare Textfassung blendet zugeklappte Hinweise aus und ergänzt bei Auswahlfragen die Optionen. Geprüft werden Paketversionen (Anki 2.0, 2.1, aktuell, `.colpkg`, defekt, leer), Standard- und Community-Notiztypen, Stapelorganisation, Medien und Lernstand gegen die Zielerwartung in `apkg-matrix.expected.json`. Bekannte Lücken stehen streng in `KNOWN_GAPS`: Nicht gelistete Abweichungen und bereits geschlossene Lücken schlagen fehl. | unter 1 s | Node.js; versionierte Fixtures | manuelles Quality-Gate, GitHub Quality, Vercel, nightly, release |
-| `npm run fixtures:apkg-matrix` | Werkzeug | Erzeugt Matrix-Pakete und Erwartungsmanifest gemeinsam neu; Anki vergibt zeitbasierte IDs, daher nie einzeln bearbeiten. | unter 1 min | Python mit `anki==26.5` | manuell bei Matrixänderungen |
-| `src/apkgNoteTranslation.test.ts` (Teil von `npm run test:contract`) | `contract` | Ergänzt die Matrix um Mediendubletten und -normalisierung, Rückfall auf die Feldliste, geänderte Standardvorlagen, AnKing-Feldrollen, Image-Occlusion-Eigenschaften, klassischen und zurückgesetzten Lernstand, abgeleitete und überzählige Karten, die positionsgenaue Medienzuordnung moderner Pakete sowie Dateityp- und Größengrenze. | unter 1 s | Node.js; Matrix-Fixture | wie `npm test` |
-| `src/importRetranslation.test.ts`, `src/coreVariantService.test.ts` | `unit` | Automatische Neuübersetzung (K5.4): unveränderte Inhalte bleiben ungeschrieben, geänderte erhalten neue Übersetzerversion und `importedContentRevision`, Karten behalten Lernstand (auch nach `anki-N`-Neuverschlüsselung), neue Abfragen werden Karten, eine entfallende Karte mit Lernstand hält den Inhalt fest. Variantenquelle, Erzeugungseignung (CoRe-Modus, Höchstzahl), Variantenwahl im Review (Rotation mit Originalkarte, Lernstufe, Wiederholungsphase, Fehler) und Darstellung als transienter Inhalt. | unter 1 s | Node.js | Teil von `npm test` |
-| `npm run report:apkg-corpus` | Werkzeug | Übersetzt echte Stapel aus dem gitignorierten Ordner `fixtures/apkg/corpus/` und berichtet je Notiztyp Übersetzer und Version, Anteil voll, generisch, als Feldliste und nicht darstellbar übersetzter Inhalte, nicht zugeordnete Felder, fehlende Medien, Laufzeit und Heap. Ohne Dateien endet er mit Exit-Code 2 und gilt nicht als bestanden. Der Korpus wird wegen Größe und Lizenzen nie versioniert; was er an Vorlagenmustern aufdeckt, wird als selbst geschriebener Nachbau in die Matrix übernommen, damit andere ohne Korpus prüfen. | abhängig vom Korpus | Node.js; lokal bereitgestellte Realwelt-Stapel | manuell; Abnahme der Phase 5 |
-| `npm run measure:footprint` | `performance` | Misst den Speicherbedarf je 1.000 Basic-, Reverse- und Lückentext-Inhalte in Postgres, Sync und Browser-Replica als Vergleichsbasis für das Kartenmodell; kein Grenzwert-Gate. | unter 1 min | Python mit `anki==26.5`, Docker, lokal laufende Supabase-Datenbank | manuell, Ausgangs- und Abschlussmessung der Kartenmodell-Roadmap |
-Die mit `@beta-core` markierte Auswahl enthält alle sechs Golden-Flows und ergänzt sie um den typgerechten Kartenlebenszyklus, Batch-/Fehlertoleranz, dauerhafte URL-/History-Journeys, Passwort-Recovery, einen kleinen realen APKG-Medienimport und Konfliktauflösung. `@hosted-core` bezeichnet den hosted-tauglichen Teil ohne Mailpit-Lifecycle. Registrierung, Bestätigung und Recovery werden hosted separat mit realer SMTP-Zustellung abgenommen.
+| Suite | Kategorie | Geschützter Vertrag | Infrastruktur |
+| --- | --- | --- | --- |
+| `npm run test:unit` | `unit` | Kernmodell, Scheduler, Navigation, lokale Transformationen und reine UI-Helfer bleiben deterministisch. | Node.js |
+| `src/coreModel/notes.test.ts`, `noteContent.test.ts` | `unit` | Note-/Card-Domäne: validierte Inhalte, Abfrageableitung, stabile Kartenidentität und Lernstände bei Änderungen, bestätigungspflichtige Entfernungen, Löschplanung samt Undo, Wiederherstellung, Markierung und Kopie. | Node.js |
+| `src/notePresentation.test.ts`, `src/ui/colorMath.test.ts` | `unit` | Renderer: Seitenkomposition, Feldrollen, verschachtelte Lücken und Formeln ohne Antwortleck, relative Bildmasken, sichere Medien/Links, zugänglicher Formeltext, Unicode-Vergleich, Auswahlregeln, Theme-Kontrast. | Node.js |
+| `src/importRetranslation.test.ts`, `src/coreVariantService.test.ts` | `unit` | Neuübersetzung: unveränderte Inhalte bleiben ungeschrieben, Karten behalten Lernstand, neue Abfragen werden Karten, eine entfallende Karte mit Lernstand hält den Inhalt fest. Variantenquelle, Erzeugungseignung, Variantenwahl im Review und Darstellung. | Node.js |
+| `npm run test:contract` | `contract` | APKG-Grenzen, Auth- und Medienadapter, Import, Migrationen, sichere Fehler, sichtbare deutsche UX, Buildbudgets. | Node.js, In-Memory-Adapter |
+| `src/apkgFormatMatrix.test.ts` | `contract` | Zwölf mit `anki==26.5` erzeugte Pakete aus `fixtures/apkg/matrix/` laufen über `readAnkiPackage`, Note-Übersetzung und `renderCard` gegen `apkg-matrix.expected.json`; bekannte Lücken stehen streng in `KNOWN_GAPS`. | Node.js, versionierte Fixtures |
+| `src/apkgNoteTranslation.test.ts` | `contract` | Mediendubletten und -normalisierung, Feldlisten-Rückfall, geänderte Standardvorlagen, AnKing-Feldrollen, Image-Occlusion-Eigenschaften, Lernstand, abgeleitete und überzählige Karten, Medienzuordnung, Dateigrenzen. | Node.js, Matrix-Fixture |
+| `npm run test:integration` | `integration` | Workspace, Cloud-Repository, Sync-Outbox/-Engine, IndexedDB, Hydration und persistenter Mediencache arbeiten zusammen. | Node.js, Fake IndexedDB |
+| `npm run test:rls:core:local` | `contract` | Eigene Rows nutzbar, fremde Rows und `anon` gesperrt; Ownership-Fälschungen, fremde FKs und Neuplanungen abgewiesen; entfernte Tabellen und `core-imports` fehlen. | Docker, lokales Supabase |
+| Golden 1–6 (`@golden-e2e`) | `golden-e2e` | Erster Account → erste Karte → Review · APKG → Vorschau → Import → Review · manuell mit PDF → Bearbeiten → Review · Review offline → Reconnect → Reload · Variante → Reveal → Originalkarte → Verwaltung · KI-Umformulierung → Persistenz → Reload. | Chromium, Docker, lokales Supabase, Mailpit, Fixtures |
+| `tests/e2e/note-presentation.spec.ts` | `integration` | Katalog-Kartenbausteine: Eintippen, Auswahlmodi, Hinweise, Script-CSP, Formelschriften, Medien, Sprachausgabe, AMBOSS-Textauswahl. | Chromium, generierte Doku |
+| Kartenlebenszyklus, Batch-Erstellung, Stapel-IA und URL-Kontext | `integration` | Jede Kartenform als eigenständige Karte durch Erstellung, Bearbeitung, Persistenz und Review; Begraben reloadfest; Reimport erhält Lernstand; Batch, Löschen, Undo, Importzustände; URL-, Reload- und History-Kontext. | Chromium, Docker, lokales Supabase |
+| Lerninhalte (`learning-summaries`, `mindmaps`, `[Vertrag: Lerninhalte]`) | `integration` | Bedienung, Speicherfehler und Reload der Panels; Tabs per URL, Entwurfsschutz, KI-Fassung mit nachgebildeter Route, Kontobindung; `src/latestSaver.test.ts` sichert Autospeichern. | Chromium; App-Verträge mit Supabase |
+| Übrige Playwright-Flows | `integration` | Auth-Resilienz, Navigation, Neuplanung, Accessibility-Smokes, Einstellungen, Hierarchie, Konflikte, Fehlerzustände; frühere Labs-Routen fallen zurück. | Chromium, Docker, lokales Supabase |
+| TUS über 6 MB, RLS-/Zwei-Geräte-Lauf | `heavy-release` | Große Uploads bleiben privat; konkurrierende Geräte schützen neueren Inhalt, Offline-Reviews und Soft-Deletes. | Docker, lokales Supabase Storage |
+| Medien-Reconciliation, APKG-Medien-E2E | `heavy-release` | SHA-1-Deduplizierung, Referenzreihenfolge, Shared-Object-Schutz, Pending-Queue, Signed URLs. | Chromium, Docker, Supabase Storage |
+| `npm run benchmark:apkg` | `heavy-release` | Worker liefert 25.000 Karten, 1.000 Medien und höchstens fünf Vorschaukarten; Übergabe unter 100 ms, unter 1 GiB Heap plus ArrayBuffer. | Node.js, Python |
+| `npm run benchmark:apkg:large` | `heavy-release` | Paket knapp unter 2 GiB aus dateigestützter Blob-Quelle mit 1-GiB-Heap-Grenze. Nur manuell. | Node.js, Python, ~2 GB Platz |
+| `npm run performance:measure:local` | `performance` | siehe [Performance-Gates](#performance-gates). | Chromium, Docker, lokales Supabase |
+| `npm run measure:footprint` | `performance` | Speicherbedarf je 1.000 Basic-, Reverse- und Lückentext-Inhalte in Postgres, Sync und Replica; kein Grenzwert. Nur manuell. | Python `anki==26.5`, Docker |
+| `npm run fixtures:apkg-matrix` | Werkzeug | Erzeugt Matrix-Pakete und Erwartungsmanifest gemeinsam neu; nie einzeln bearbeiten. | Python `anki==26.5` |
+| `npm run report:apkg-corpus` | Werkzeug | Übersetzt echte Stapel aus dem gitignorierten `fixtures/apkg/corpus/` und berichtet je Notiztyp; ohne Dateien Exit-Code 2. Gefundene Muster gehen als Nachbau in die Matrix. | Node.js, lokaler Korpus |
 
-Eine globale Storage-Orphan-Reconciliation und ein betrieblicher Postgres-Backup-/Disaster-Restore sind noch keine implementierten Produktverträge. Das Heavy-Gate schützt den heute vorhandenen vollständigen Medienreferenzumfang und darf nicht als Nachweis für diese späteren Betriebsfunktionen bezeichnet werden.
+`@beta-core` umfasst die Golden-Flows plus Kartenlebenszyklus, Batch und
+Fehlertoleranz, URL-/History-Journeys, Passwort-Recovery, einen kleinen
+APKG-Medienimport und Konfliktauflösung. `@hosted-core` ist der hosted-taugliche
+Teil ohne Mailpit; Registrierung, Bestätigung und Recovery werden hosted
+getrennt mit realer SMTP-Zustellung abgenommen.
 
-## Gates und lokale Befehle
+## Bekannte Testlücken
 
-- Manuelles Quality-Gate: `npm run gate:push`; `scripts/runQualityGate.ts` startet Typecheck, generierte Dokumente (`npm run check:docs`), alle Modulprüfungen aus Unit, Contract und Integration mit kompakter Ausgabe und den Production-Build mit Bundlebudgets gleichzeitig, gibt jede Ausgabe gesammelt mit Laufzeit aus und schlägt fehl, sobald ein Schritt fehlschlägt. Der Typecheck läuft inkrementell (`node_modules/.cache/tsc`). Pushes starten ohne lokalen Test-Hook; GitHub und Vercel führen denselben Vertrag unabhängig aus.
-- Nightly Core: `npm run gate:nightly`; führt die Modultests und die vollständige RLS-/Browser-Suite aus, prüft zusätzlich nur das E-Mail-/Passwort-Beta-Artefakt im selben Supabase-Lebenszyklus und führt anschließend den APKG-Benchmark aus. Alle übrigen Beta-Journeys sind bereits in der vollständigen Suite enthalten. Der GitHub-Workflow läuft täglich um 02:17 UTC, bei veröffentlichten Releases und manuell als ein blockierender Job. Typecheck, Dokumente und Build hat `quality` für denselben Commit bereits geprüft; die Modultests laufen wegen datums- und uhrzeitabhängiger Fälle täglich erneut.
-- Weekly Performance: `npm run performance:measure:local`; hält Supabase für Startmessung und Statistikbenchmark in einem Lebenszyklus und prüft danach das Performanceartefakt. Der GitHub-Workflow läuft montags um 04:17 UTC und manuell.
-- Fokussiertes lokales PR-Produktgate: `npm run test:pr:local`; startet einmal lokales Supabase und führt Kern-RLS plus die sechs mit `@golden-e2e` markierten Flows aus. Es ist kein eigener erwarteter GitHub-Check mehr.
-- Golden isoliert: `npm run test:e2e:golden:local`.
-- Katalogflows ohne Supabase: `npm run test:e2e:catalog`; parallel über `playwright.catalog.config.ts`, in der CI als Job `catalog-e2e` neben `quality` (kein Pflicht-Check).
-- Betroffene Browserflows: `npm run test:e2e:affected:local`; wählt die Specs aus den Änderungen gegenüber `origin/main` und fällt bei gemeinsamer Infrastruktur oder nicht zugeordneten Produktquellen auf die vollständige Suite zurück. Regeln in [`operations.md`](operations.md#gezielte-browserläufe).
-- Beta-Core lokal: `npm run test:beta`; führt Quality einschließlich Integration, Kern-RLS und ausschließlich die mit `@beta-core` markierten Core-Flows aus. Google und Magic Link bleiben für dieses Gate deaktiviert; Labs und serverseitige APKG existieren nicht.
-- Beta-Core hosted: `npm run test:beta:hosted`; läuft mit dediziertem Testaccount gegen die in `CORE_HOSTED_BASE_URL` gesetzte Preview-, staged-Production- oder Production-URL. Die erforderlichen Variablennamen und Sicherheitsgrenzen stehen in [`operations.md`](operations.md#hosted-core-smoke).
-- Vollständiges RLS isoliert: `npm run test:rls:local`.
-- Vollständige lokale Infrastruktur: `npm run test:release:local`; Integration, komplette RLS-/Playwright-Suite und lokaler APKG-Benchmark.
-- Erweiterte lokale Vollabnahme: `npm run test:release`; führt Quality einschließlich Integration, vollständige lokale RLS-/Browserprüfungen einschließlich des Beta-Auth-Artefakts und den APKG-Benchmark ohne doppelte Modulsuite aus.
-
-Referenzmessung am 1. August 2026: Beta-Core umfasste 22 Browserjourneys. Die frühere erweiterte Core-Abnahme benötigte im erfolgreichen Wiederholungslauf 7:14 einschließlich Integration, lokalem Supabase-Start, Datenbanktypprüfung, vollständigem RLS/TUS/Zwei-Geräte-Gate, 51 Browserjourneys und lokalem 4.900-Karten-APKG-Benchmark. Externe Container-Registry-Rate-Limits sind Infrastrukturfehler und werden getrennt von Produktregressionen ausgewiesen.
-
-`.github/workflows/ci.yml` enthält für normale Pushes, Pull Requests und manuelle Läufe `quality` und den davon unabhängigen Job `catalog-e2e`. Ein neuer Push in einen Pull Request bricht dessen noch laufenden, damit überholten Lauf ab; `Cancelled` steht dann nur an Commits, die nicht mehr Kopf des Pull Requests sind. Läufe auf `main` brechen nie ab, jeder Merge wird vollständig geprüft. Die zeitgesteuerten Workflows besitzen jeweils genau einen unabhängigen, blockierenden Job; es gibt keine Jobabhängigkeiten, kein `continue-on-error` und keine Abbruchkonkurrenz, die erwartbare `Skipped`- oder `Cancelled`-Checks erzeugt.
-
-## Prüfung vom 2. Oktober 2026
-
-Alle 106 ursprünglichen Modultestdateien sowie zwölf Browser-, zwei RLS- und die Start-/Preload-Performance-Suite wurden anhand ihrer Assertions, produktiven Besitzer und aktuellen Verträge geprüft. Die verbleibenden Modultests umfassen 102 Dateien (71 Unit, 25 Contract, sechs Integration) und 519 bestandene Fälle (vorher 106/521); die Browserauswahl umfasst 99 Journeys plus Auth-Setup (vorher 101 plus Setup), davon 23 Beta- und neun Hosted-Journeys. Typverträge laufen zusätzlich im Typecheck.
-
-- `coreFeatures`, `learningModel` und `fsrsVariantFlow` sind in `variantGeneration`, `coreModel` und `reviewService` aufgegangen; die fachlichen Assertions bleiben erhalten. `coreTypes` prüft seine Typverträge jetzt beim Kompilieren statt über umfangreiche selbst gebaute Laufzeitfixtures.
-- Zwei History-/Review-Exit-Browserflows entfallen, weil `navigation-context` denselben Ablauf einschließlich Reload, Back/Forward und exaktem Rückkontext prüft. Reine Heatmap-Klassenprüfungen sind durch tatsächliche Browsergeometrie ersetzt; SSR-Ref-/Fokus-Tautologien, historische Copy-Negativlisten und doppelte Dekorationsprüfungen sind gekürzt. Help-Scrollgeschichten, Themewechsel und die mobile mehrteilige Speicherleiste bleiben browserseitig abgesichert.
-- Neue kompakte Prüfungen schützen Workerfehler vor und während des APKG-Commits, ungültige Cloudrevisionen/JSONB-Objekte/Offline-Manifeste und aktive bzw. noch nicht synchronisierte Karten bei Cachebereinigung. Sie fanden zwei Fehler: einen hängenden Worker-Commit und Arrays, die als JSONB-Objekte akzeptiert wurden. Die AA-Prüfung liest nun die tatsächlichen Theme-Tokens.
-- Die Startmessung bricht bei fehlender Long-Task-Beobachtung ausdrücklich ab, statt einen scheinbaren Nullwert zu berichten. Ein fehlender Messwert bleibt im Performance-Gate blockierend.
-- Der Fortschrittstest in `creationWorkflow` benötigt keine zusätzliche echte 245-Karten-Parserfixture. Der unmittelbar vorherige Test behält den vollständigen Parser-/Commitpfad. Fokussierte Golden-/Beta-/PR-Läufe starten nur einen Vite-Server; die Vollsuite behält alle vier Authkonfigurationen.
-- Quality schützt nun auch alle sechs schnellen Integrationssuites. Nightly vermeidet den zweiten Supabase-Start, wiederholte Kern-RLS-Prüfungen und die erneute Ausführung der bereits enthaltenen Beta-Journeys. Die Integration ist im gemeinsamen Quality-Lauf enthalten und wird nicht nochmals vorgeschaltet.
-
-Vorher benötigte `npm test` in diesem Audit 12,95 s Gesamtzeit; der erste Lauf nach Überarbeitung maß 27,77 s Node-Testdauer während Docker startete. Diese unterschiedlichen Lastbedingungen belegen keinen Laufzeitgewinn. Zeilenreduktion, Suitezuordnung und vermiedene Doppelläufe sind überprüfbare Einsparungen; neue CI-Laufzeitkorridore erst aus vergleichbaren Wiederholungen ableiten.
-
-Die vollständige Modulsuite, Typprüfung einschließlich UI-Katalog, Production-Build und Bundlebudgets bestehen. Im letzten gemeinsamen Quality-Lauf bestehen 520 Fälle einschließlich eines parallel ergänzten UI-Tests; die obige Inventur beschreibt den Auditzuschnitt. Der APKG-Benchmark bestätigt seinen Struktur- und Übergabevertrag (25.000 Karten, 1.000 Medien, fünf Vorschaukarten, gemessene Übergabe 0 ms). Sein Gate schützt nicht die gesamte Parserzeit oder einen tatsächlichen Speicherpeak; der gemeldete Worker-Heap beträgt im Maximum der drei Messpunkte rund 478 MiB. Browserauswahlen und Projektabhängigkeiten wurden per `--list` geprüft. Die tatsächlichen Browser-/RLS-/Datenbankdrift-Läufe sind in dieser Prüfung offen: Docker Desktop scheitert beim Start seines internen Inference Managers. Eine Hosted-Abnahme wurde nicht ausgeführt.
-
-Noch offen, nach Risiko priorisiert:
-
-1. Hydration: fehlgeschlagener Lernpuffer-Refill und sichtbarer Offlineabbruch auf Serviceebene, zusätzlich zum vorhandenen IndexedDB-/Outbox-Schutz.
-2. Quota: serviceübergreifender Schutz gepinnter/aktiver Medien und die Bereinigung von 80 auf 70 Prozent Speicherbelegung.
-3. APKG-Benchmark: Für Parserzeit und Speicher erst belastbare Messkorridore erheben, bevor diese zusätzlich blockierend werden.
-4. Vollständige automatisierte Accessibility-/Screenshot-Abnahme fehlt; vorhandene ARIA-, Tastatur- und Geometrieprüfungen ersetzen die manuelle visuelle Pflichtmatrix nicht.
+1. Hydration: fehlgeschlagener Lernpuffer-Refill und sichtbarer Offlineabbruch auf Serviceebene.
+2. Quota: serviceübergreifender Schutz gepinnter und aktiver Medien sowie die Bereinigung von 80 auf 70 % Speicherbelegung.
+3. APKG-Benchmark: Parserzeit und Speicherspitze sind noch nicht blockierend; erst belastbare Korridore erheben.
+4. Keine vollständige automatisierte Accessibility- und Screenshot-Abnahme; ARIA-, Tastatur- und Geometrieprüfungen ersetzen die Pflichtmatrix nicht.
+5. Globale Storage-Orphan-Reconciliation und Postgres-Disaster-Restore sind keine Produktverträge; das Heavy-Gate ist kein Nachweis dafür.
 
 ## Pflegevertrag
 
-- Ein Test wird nur entfernt, wenn sein Produktvertrag in einer anderen Suite nachweisbar bleibt oder der Vertrag ausdrücklich aus dem Produkt entfernt wurde.
-- Ein Export, den außer Tests niemand nutzt, ist toter Code: Funktion und Test entfallen gemeinsam. `npm run check:unused` meldet solche Exporte zusätzlich im Produktionsmodus von knip. Ausnahmen sind gekennzeichnet: `/** @internal */` für Hilfen, die ein öffentlicher Seam wie `coreModel.ts` bewusst nur für Tests anbietet, `/** @public */` für eine fertige Schnittstelle, deren Aufrufer noch aussteht.
-- Prüfungen, dass eine entfernte Funktion abwesend bleibt, gehören zur Entfernung selbst und bleiben nicht dauerhaft in der Suite. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#9-beta-abnahme) (keine Labs-Navigation und -Route); sie weisen das am ausgelieferten Artefakt nach, auch hosted.
-- Neue und geänderte Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen; reine Layout- und Darstellungsprüfungen kommen ohne Kontoreset aus. Screenshot-Matrizen laufen nur auf Anforderung (`CORE_VISUAL_OUTPUT`, Viewports aus `tests/e2e/support/visualMatrix.ts`), nicht in jedem Release-Lauf. Die Umstellung der Kontoresets bestehender Flows steht in [`todo.md`](todo.md#testsuite-verschlanken).
-- Eine neue Spec steht entweder in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` den Quellen zugeordnet, die sie prüft. `src/affectedE2ESpecs.test.ts` meldet Specs, die keine Produktquelle erreicht, und Zuordnungen auf fehlende Specs.
-- Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`, damit ein Fehler das betroffene Nutzerziel oder die Sicherheitsgrenze benennt.
-- Laufzeiten werden nach wesentlichen Infrastrukturänderungen als Bandbreite aktualisiert. Testanzahlen sind kein Abnahmekriterium.
-- Neue schwere Browser-, Storage-, Großdatei- oder Restore-Pfade werden `heavy-release`; nur ein enges, fachlich repräsentatives Golden- oder Security-Smoke darf ins PR-Gate.
-- APKG-Matrix: Zielerwartungen ändern sich nur im Generator `scripts/create_apkg_matrix_fixtures.py` und nur, wenn sie nachweislich von Ankis Verhalten oder einer ADR abweichen. Neue `KNOWN_GAPS`-Einträge sind nur für bisher unentdeckte Lücken zulässig, nie um ein rotes Gate grün zu machen.
-
-Für jeden neuen Test nennt der Review drei Dinge: den konkreten Fehler bzw. verletzbaren Produktvertrag, eine plausible produktive Änderung, bei der er fehlschlägt, und den zusätzlichen Schutz gegenüber vorhandenen Tests. Gleiche Assertion am zuständigen Besitzer genügt; Screens prüfen ihre Integration und Zustände, nicht erneut alle Interna gemeinsamer UI. Selbst geprüfte Literale, SSR-Grundverhalten und exakte Klassenfolgen ohne dokumentierte Semantik sind kein zusätzlicher Schutz. Fixtures bleiben so klein wie der Fehlerfall erlaubt; reale Großdaten bleiben dort, wo sie Stack-, Speicher- oder Skalierungsrisiken abprüfen.
+- Ein Test wird nur entfernt, wenn sein Vertrag anderswo nachweisbar bleibt oder aus dem Produkt entfernt wurde.
+- Ein Export, den außer Tests niemand nutzt, ist toter Code; Funktion und Test entfallen gemeinsam. Ausnahmen tragen `/** @internal */` (bewusst nur für Tests angebotene Seam-Hilfe) oder `/** @public */` (fertige Schnittstelle mit ausstehendem Aufrufer).
+- Abwesenheitsprüfungen gehören zur Entfernung selbst. Ausgenommen sind die Browserprüfungen für [Beta-Abnahme Punkt 4](specs.md#22-beta-abnahme), auch hosted.
+- Browserflows setzen das Cloud-Konto nur zurück, wenn sie Cloudzustand prüfen oder voraussetzen.
+- Eine neue Spec steht in `tests/e2e/support/catalogSpecs.ts` (ohne Supabase) oder in einem Projekt von `playwright.config.ts` und ist in `AREAS` von `scripts/affectedE2ESpecs.ts` zugeordnet; `src/affectedE2ESpecs.test.ts` meldet Lücken.
+- Golden- und RLS-Testnamen beginnen mit `[Vertrag: …]`.
+- Neue schwere Browser-, Storage-, Großdatei- oder Restore-Pfade werden `heavy-release`; ins PR-Gate darf nur ein enges Golden- oder Security-Smoke.
+- APKG-Matrix: Erwartungen ändern sich nur im Generator `scripts/create_apkg_matrix_fixtures.py` und nur bei belegter Abweichung von Anki oder einer ADR. Neue `KNOWN_GAPS` nur für bisher unentdeckte Lücken, nie um ein Gate grün zu machen.
+- Jeder neue Test nennt im Review den verletzbaren Vertrag, eine plausible Änderung, bei der er fehlschlägt, und den zusätzlichen Schutz gegenüber vorhandenen Tests. Fixtures bleiben so klein wie der Fehlerfall erlaubt.

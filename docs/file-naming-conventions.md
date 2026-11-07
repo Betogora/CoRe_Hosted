@@ -50,14 +50,6 @@ Diese Konvention gilt für neue und umbenannte Dateien im CoRe-Repository. Maßg
 - Versionsstände gehören grundsätzlich in Git oder in den Dokumentinhalt; das aktuelle Schema wird ausschließlich durch die Migrationsbaseline beschrieben.
 - Vermeiden: Leerzeichen, Umlaute, beliebige Groß-/Kleinschreibung, unklare Namen wie `testdatei.txt` und Statusketten wie `final-neu-v2.md`.
 
-## Projekt-Audit, aktualisiert am 14. Juli 2026
-
-- `testdatei.txt` wurde seiner tatsächlichen Rolle entsprechend nach `tests/fixtures/plain-text-sample.txt` verschoben.
-- React-, TypeScript-, Python-, SQL-, Fixture- und Dokumentdateien entsprechen der oben beschriebenen Rollenlogik. In `src/`, `api/`, `tests/` und `scripts/` verbleiben keine `.js`-, `.jsx`-, `.mjs`- oder `.cjs`-Dateien.
-- `StudyMode.tsx` bleibt bestehen: `StudyMode` ist der exportierte Komponentenname und bezeichnet bewusst einen Vollbildmodus statt eines regulären Navigationsscreens.
-- `.github/workflows/ci.yml` bleibt bestehen, weil `.yml` für GitHub-Workflows unterstützt wird und der Name bereits Teil der CI-Konfiguration ist.
-- Supabase-Migrationen, `config.toml` und die referenzierten E-Mail-Templates bleiben unverändert, damit lokale und bereits angewendete Datenbankpfade stabil bleiben.
-
 ## Offizielle Grundlagen
 
 - [React: Komponentennamen beginnen mit einem Großbuchstaben](https://react.dev/learn/your-first-component)

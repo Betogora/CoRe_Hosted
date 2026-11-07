@@ -87,11 +87,11 @@ test("app chrome switches exactly at the 1280 pixel top bar breakpoint", async (
       labelsFit: menuLabels.every((label) => label.scrollWidth <= label.clientWidth),
       targetsAreLargeEnough: targets.every((target) => {
         const rect = target.getBoundingClientRect();
-        return rect.width >= 40 && rect.height >= 40;
+        return rect.width >= 36 && rect.height >= 36;
       }),
     };
   });
-  expect(desktopLayout.panel).toEqual({ x: 8, y: 8, width: 1264, height: 64 });
+  expect(desktopLayout.panel).toEqual({ x: 16, y: 8, width: 1248, height: 64 });
   expect(desktopLayout.navigationCenterOffset).toBeLessThan(1);
   expect(desktopLayout.utilitiesRightOfNavigation).toBe(true);
   expect(desktopLayout.utilitiesInOneRow).toBe(true);

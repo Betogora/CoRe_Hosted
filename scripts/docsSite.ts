@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Marked } from "../docs/vendor/marked.esm.js";
+import { Marked } from "marked";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Moon, Search, Sun } from "lucide-react";
@@ -41,12 +41,9 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
         const typography = depth <= 3 ? `core-heading-${depth}` : "core-control-label";
         return `<h${depth} id="${id}" class="${typography}" tabindex="-1">${this.parser.parseInline(tokens)} <a class="docs-anchor" href="#${id}" aria-label="Link zu ${escapeHtml(text)}">#</a></h${depth}>\n`;
       },
-      code({ text, lang }) {
-        return lang === "mermaid" ? `<pre class="mermaid">${escapeHtml(text)}</pre>` : false;
-      },
     },
   });
-  return renderer.parse(source).replace(/href="([^\"]+)"/g, (match, href: string) => {
+  return renderer.parse(source, { async: false }).replace(/href="([^\"]+)"/g, (match, href: string) => {
     if (/^(?:[a-z][a-z0-9+.-]*:|\/)/i.test(href)) return match;
     if (href.startsWith(`#${prefix}--`)) return match;
     if (href.startsWith("#")) return `href="#${prefix}--${href.slice(1)}"`;
@@ -58,14 +55,14 @@ export function renderMarkdown(source: string, file: string, prefix = documentId
 }
 
 /** Seitenleiste jeder Leseseite: Seitenwechsel, Suche und Inhaltsnavigation untereinander, ohne Kopfleiste. */
-export function siteSidebar(currentFile: string, toc: string) {
+export function siteSidebar(currentFile: string) {
   const page = DOC_PAGES.find((candidate) => candidate.file === currentFile)!;
   // Theme-Schalter wie in der App-Navigation; die Sonne zeigt Light, der Mond Dark.
   const moon = renderToStaticMarkup(React.createElement(Moon, { size: 16, "aria-hidden": true }));
   const theme = renderToStaticMarkup(React.createElement(IconButton, { type: "button", variant: "ghost", id: "docs-theme", label: "Dark Mode einschalten", icon: Sun, className: "size-button shrink-0 rounded-control" })).replace("</svg>", `</svg>${moon}`);
   const search = renderToStaticMarkup(React.createElement(Search, { "aria-hidden": true }));
   const pages = DOC_PAGES.map((candidate) => `<a href="${candidate.file}"${candidate === page ? ' aria-current="page"' : ""}>${candidate.label}</a>`).join("");
-  return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a>${theme}</div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links">${toc}</div></nav></aside>`;
+  return `<aside class="docs-sidebar"><nav class="docs-panel docs-pages" aria-label="Doku-Seiten"><div class="docs-panel-head"><a class="docs-brand" href="index.html">CoRe <span>Docs</span></a>${theme}</div><div class="docs-panel-links">${pages}</div></nav><div class="docs-panel docs-search-panel" role="search"><label class="catalog-search"><span class="catalog-search-label">${page.search}</span>${search}<input id="docs-search" type="search" placeholder="${page.placeholder}" autocomplete="off"></label><p id="docs-search-count" class="docs-count" role="status"></p></div><nav class="docs-panel docs-toc" aria-label="Inhalt"><strong>Inhalt</strong><div id="docs-toc" class="docs-panel-links"></div></nav></aside>`;
 }
 
 /** Escapes a script for inline embedding; applying it twice changes nothing. */
@@ -73,7 +70,7 @@ export function inlineScript(script: string) {
   return script.replace(/<\/script/gi, "<\\/script").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufdd0-\ufdef\ufffe\uffff]/g, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
 }
 
-export function htmlPage(file: string, content: string, css: string, script: string, { toc = "", extraHead = "" } = {}) {
+export function htmlPage(file: string, content: string, css: string, script: string) {
   const label = DOC_PAGES.find((candidate) => candidate.file === file)!.label;
-  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style>${extraHead}</head><body><div class="docs-frame">${siteSidebar(file, toc)}<main class="docs-main">${content}</main></div><script>${inlineScript(script)}</script></body></html>\n`;
+  return `<!doctype html>\n<html lang="de" data-core-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><link rel="icon" href="data:,"><title>CoRe – ${label}</title><style>${css}</style></head><body><div class="docs-frame">${siteSidebar(file)}<main class="docs-main">${content}</main></div><script>${inlineScript(script)}</script></body></html>\n`;
 }

@@ -27,8 +27,9 @@
       "cca3": "DZA",
       "country": "Algerien",
       "countryEnglish": "Algeria",
+      "question": "Was ist die Hauptstadt von Algerien?",
       "capitals": [
-        "Algiers"
+        "Algier"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -42,6 +43,7 @@
       "cca3": "AGO",
       "country": "Angola",
       "countryEnglish": "Angola",
+      "question": "Was ist die Hauptstadt von Angola?",
       "capitals": [
         "Luanda"
       ],
@@ -57,6 +59,7 @@
       "cca3": "BEN",
       "country": "Benin",
       "countryEnglish": "Benin",
+      "question": "Was ist die Hauptstadt von Benin?",
       "capitals": [
         "Porto-Novo"
       ],
@@ -72,6 +75,7 @@
       "cca3": "BWA",
       "country": "Botswana",
       "countryEnglish": "Botswana",
+      "question": "Was ist die Hauptstadt von Botswana?",
       "capitals": [
         "Gaborone"
       ],
@@ -87,6 +91,7 @@
       "cca3": "IOT",
       "country": "Britisches Territorium im Indischen Ozean",
       "countryEnglish": "British Indian Ocean Territory",
+      "question": "Was ist die Hauptstadt des Britischen Territoriums im Indischen Ozean?",
       "capitals": [
         "Diego Garcia"
       ],
@@ -102,6 +107,7 @@
       "cca3": "BFA",
       "country": "Burkina Faso",
       "countryEnglish": "Burkina Faso",
+      "question": "Was ist die Hauptstadt von Burkina Faso?",
       "capitals": [
         "Ouagadougou"
       ],
@@ -117,6 +123,7 @@
       "cca3": "BDI",
       "country": "Burundi",
       "countryEnglish": "Burundi",
+      "question": "Was ist die Hauptstadt von Burundi?",
       "capitals": [
         "Gitega"
       ],
@@ -132,6 +139,7 @@
       "cca3": "CIV",
       "country": "Côte d'Ivoire",
       "countryEnglish": "Ivory Coast",
+      "question": "Was ist die Hauptstadt von Côte d'Ivoire?",
       "capitals": [
         "Yamoussoukro"
       ],
@@ -147,8 +155,9 @@
       "cca3": "DJI",
       "country": "Dschibuti",
       "countryEnglish": "Djibouti",
+      "question": "Was ist die Hauptstadt von Dschibuti?",
       "capitals": [
-        "Djibouti"
+        "Dschibuti"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -162,6 +171,7 @@
       "cca3": "ERI",
       "country": "Eritrea",
       "countryEnglish": "Eritrea",
+      "question": "Was ist die Hauptstadt von Eritrea?",
       "capitals": [
         "Asmara"
       ],
@@ -177,7 +187,9 @@
       "cca3": "SWZ",
       "country": "Eswatini",
       "countryEnglish": "Eswatini",
+      "question": "Was ist die Hauptstadt von Eswatini?",
       "capitals": [
+        "Mbabane",
         "Lobamba"
       ],
       "continentId": "afrika",
@@ -192,6 +204,7 @@
       "cca3": "GAB",
       "country": "Gabun",
       "countryEnglish": "Gabon",
+      "question": "Was ist die Hauptstadt von Gabun?",
       "capitals": [
         "Libreville"
       ],
@@ -207,6 +220,7 @@
       "cca3": "GMB",
       "country": "Gambia",
       "countryEnglish": "Gambia",
+      "question": "Was ist die Hauptstadt von Gambia?",
       "capitals": [
         "Banjul"
       ],
@@ -222,6 +236,7 @@
       "cca3": "GHA",
       "country": "Ghana",
       "countryEnglish": "Ghana",
+      "question": "Was ist die Hauptstadt von Ghana?",
       "capitals": [
         "Accra"
       ],
@@ -237,6 +252,7 @@
       "cca3": "GIN",
       "country": "Guinea",
       "countryEnglish": "Guinea",
+      "question": "Was ist die Hauptstadt von Guinea?",
       "capitals": [
         "Conakry"
       ],
@@ -252,6 +268,7 @@
       "cca3": "GNB",
       "country": "Guinea-Bissau",
       "countryEnglish": "Guinea-Bissau",
+      "question": "Was ist die Hauptstadt von Guinea-Bissau?",
       "capitals": [
         "Bissau"
       ],
@@ -267,6 +284,7 @@
       "cca3": "CMR",
       "country": "Kamerun",
       "countryEnglish": "Cameroon",
+      "question": "Was ist die Hauptstadt von Kamerun?",
       "capitals": [
         "Yaoundé"
       ],
@@ -282,6 +300,7 @@
       "cca3": "CPV",
       "country": "Kap Verde",
       "countryEnglish": "Cape Verde",
+      "question": "Was ist die Hauptstadt von Kap Verde?",
       "capitals": [
         "Praia"
       ],
@@ -297,6 +316,7 @@
       "cca3": "KEN",
       "country": "Kenia",
       "countryEnglish": "Kenya",
+      "question": "Was ist die Hauptstadt von Kenia?",
       "capitals": [
         "Nairobi"
       ],
@@ -312,6 +332,7 @@
       "cca3": "COM",
       "country": "Komoren",
       "countryEnglish": "Comoros",
+      "question": "Was ist die Hauptstadt der Komoren?",
       "capitals": [
         "Moroni"
       ],
@@ -327,6 +348,7 @@
       "cca3": "COG",
       "country": "Kongo",
       "countryEnglish": "Congo",
+      "question": "Was ist die Hauptstadt der Republik Kongo?",
       "capitals": [
         "Brazzaville"
       ],
@@ -342,6 +364,7 @@
       "cca3": "COD",
       "country": "Kongo (Dem. Rep.)",
       "countryEnglish": "DR Congo",
+      "question": "Was ist die Hauptstadt der Demokratischen Republik Kongo?",
       "capitals": [
         "Kinshasa"
       ],
@@ -357,6 +380,7 @@
       "cca3": "LSO",
       "country": "Lesotho",
       "countryEnglish": "Lesotho",
+      "question": "Was ist die Hauptstadt von Lesotho?",
       "capitals": [
         "Maseru"
       ],
@@ -372,6 +396,7 @@
       "cca3": "LBR",
       "country": "Liberia",
       "countryEnglish": "Liberia",
+      "question": "Was ist die Hauptstadt von Liberia?",
       "capitals": [
         "Monrovia"
       ],
@@ -387,8 +412,9 @@
       "cca3": "LBY",
       "country": "Libyen",
       "countryEnglish": "Libya",
+      "question": "Was ist die Hauptstadt von Libyen?",
       "capitals": [
-        "Tripoli"
+        "Tripolis"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -402,6 +428,7 @@
       "cca3": "MDG",
       "country": "Madagaskar",
       "countryEnglish": "Madagascar",
+      "question": "Was ist die Hauptstadt von Madagaskar?",
       "capitals": [
         "Antananarivo"
       ],
@@ -417,6 +444,7 @@
       "cca3": "MWI",
       "country": "Malawi",
       "countryEnglish": "Malawi",
+      "question": "Was ist die Hauptstadt von Malawi?",
       "capitals": [
         "Lilongwe"
       ],
@@ -432,6 +460,7 @@
       "cca3": "MLI",
       "country": "Mali",
       "countryEnglish": "Mali",
+      "question": "Was ist die Hauptstadt von Mali?",
       "capitals": [
         "Bamako"
       ],
@@ -447,6 +476,7 @@
       "cca3": "MAR",
       "country": "Marokko",
       "countryEnglish": "Morocco",
+      "question": "Was ist die Hauptstadt von Marokko?",
       "capitals": [
         "Rabat"
       ],
@@ -462,6 +492,7 @@
       "cca3": "MRT",
       "country": "Mauretanien",
       "countryEnglish": "Mauritania",
+      "question": "Was ist die Hauptstadt von Mauretanien?",
       "capitals": [
         "Nouakchott"
       ],
@@ -477,6 +508,7 @@
       "cca3": "MUS",
       "country": "Mauritius",
       "countryEnglish": "Mauritius",
+      "question": "Was ist die Hauptstadt von Mauritius?",
       "capitals": [
         "Port Louis"
       ],
@@ -492,6 +524,7 @@
       "cca3": "MYT",
       "country": "Mayotte",
       "countryEnglish": "Mayotte",
+      "question": "Was ist die Hauptstadt von Mayotte?",
       "capitals": [
         "Mamoudzou"
       ],
@@ -507,6 +540,7 @@
       "cca3": "MOZ",
       "country": "Mosambik",
       "countryEnglish": "Mozambique",
+      "question": "Was ist die Hauptstadt von Mosambik?",
       "capitals": [
         "Maputo"
       ],
@@ -522,6 +556,7 @@
       "cca3": "NAM",
       "country": "Namibia",
       "countryEnglish": "Namibia",
+      "question": "Was ist die Hauptstadt von Namibia?",
       "capitals": [
         "Windhoek"
       ],
@@ -537,6 +572,7 @@
       "cca3": "NER",
       "country": "Niger",
       "countryEnglish": "Niger",
+      "question": "Was ist die Hauptstadt von Niger?",
       "capitals": [
         "Niamey"
       ],
@@ -552,6 +588,7 @@
       "cca3": "NGA",
       "country": "Nigeria",
       "countryEnglish": "Nigeria",
+      "question": "Was ist die Hauptstadt von Nigeria?",
       "capitals": [
         "Abuja"
       ],
@@ -567,6 +604,7 @@
       "cca3": "RWA",
       "country": "Ruanda",
       "countryEnglish": "Rwanda",
+      "question": "Was ist die Hauptstadt von Ruanda?",
       "capitals": [
         "Kigali"
       ],
@@ -582,6 +620,7 @@
       "cca3": "REU",
       "country": "Réunion",
       "countryEnglish": "Réunion",
+      "question": "Was ist die Hauptstadt von Réunion?",
       "capitals": [
         "Saint-Denis"
       ],
@@ -597,6 +636,7 @@
       "cca3": "ZMB",
       "country": "Sambia",
       "countryEnglish": "Zambia",
+      "question": "Was ist die Hauptstadt von Sambia?",
       "capitals": [
         "Lusaka"
       ],
@@ -612,6 +652,7 @@
       "cca3": "SEN",
       "country": "Senegal",
       "countryEnglish": "Senegal",
+      "question": "Was ist die Hauptstadt von Senegal?",
       "capitals": [
         "Dakar"
       ],
@@ -627,6 +668,7 @@
       "cca3": "SYC",
       "country": "Seychellen",
       "countryEnglish": "Seychelles",
+      "question": "Was ist die Hauptstadt der Seychellen?",
       "capitals": [
         "Victoria"
       ],
@@ -642,6 +684,7 @@
       "cca3": "SLE",
       "country": "Sierra Leone",
       "countryEnglish": "Sierra Leone",
+      "question": "Was ist die Hauptstadt von Sierra Leone?",
       "capitals": [
         "Freetown"
       ],
@@ -657,6 +700,7 @@
       "cca3": "ZWE",
       "country": "Simbabwe",
       "countryEnglish": "Zimbabwe",
+      "question": "Was ist die Hauptstadt von Simbabwe?",
       "capitals": [
         "Harare"
       ],
@@ -672,8 +716,9 @@
       "cca3": "SOM",
       "country": "Somalia",
       "countryEnglish": "Somalia",
+      "question": "Was ist die Hauptstadt von Somalia?",
       "capitals": [
-        "Mogadishu"
+        "Mogadischu"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -687,6 +732,7 @@
       "cca3": "SHN",
       "country": "St. Helena, Ascension und Tristan da Cunha",
       "countryEnglish": "Saint Helena, Ascension and Tristan da Cunha",
+      "question": "Was ist die Hauptstadt von St. Helena, Ascension und Tristan da Cunha?",
       "capitals": [
         "Jamestown"
       ],
@@ -702,8 +748,9 @@
       "cca3": "SDN",
       "country": "Sudan",
       "countryEnglish": "Sudan",
+      "question": "Was ist die Hauptstadt des Sudan?",
       "capitals": [
-        "Khartoum"
+        "Khartum"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -717,6 +764,7 @@
       "cca3": "STP",
       "country": "São Tomé und Príncipe",
       "countryEnglish": "São Tomé and Príncipe",
+      "question": "Was ist die Hauptstadt von São Tomé und Príncipe?",
       "capitals": [
         "São Tomé"
       ],
@@ -732,10 +780,11 @@
       "cca3": "ZAF",
       "country": "Südafrika",
       "countryEnglish": "South Africa",
+      "question": "Was ist die Hauptstadt von Südafrika?",
       "capitals": [
         "Pretoria",
         "Bloemfontein",
-        "Cape Town"
+        "Kapstadt"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -749,6 +798,7 @@
       "cca3": "SSD",
       "country": "Südsudan",
       "countryEnglish": "South Sudan",
+      "question": "Was ist die Hauptstadt des Südsudan?",
       "capitals": [
         "Juba"
       ],
@@ -764,6 +814,7 @@
       "cca3": "TZA",
       "country": "Tansania",
       "countryEnglish": "Tanzania",
+      "question": "Was ist die Hauptstadt von Tansania?",
       "capitals": [
         "Dodoma"
       ],
@@ -779,6 +830,7 @@
       "cca3": "TGO",
       "country": "Togo",
       "countryEnglish": "Togo",
+      "question": "Was ist die Hauptstadt von Togo?",
       "capitals": [
         "Lomé"
       ],
@@ -794,6 +846,7 @@
       "cca3": "TCD",
       "country": "Tschad",
       "countryEnglish": "Chad",
+      "question": "Was ist die Hauptstadt des Tschad?",
       "capitals": [
         "N'Djamena"
       ],
@@ -809,6 +862,7 @@
       "cca3": "TUN",
       "country": "Tunesien",
       "countryEnglish": "Tunisia",
+      "question": "Was ist die Hauptstadt von Tunesien?",
       "capitals": [
         "Tunis"
       ],
@@ -824,6 +878,7 @@
       "cca3": "UGA",
       "country": "Uganda",
       "countryEnglish": "Uganda",
+      "question": "Was ist die Hauptstadt von Uganda?",
       "capitals": [
         "Kampala"
       ],
@@ -839,6 +894,7 @@
       "cca3": "ESH",
       "country": "Westsahara",
       "countryEnglish": "Western Sahara",
+      "question": "Was ist die Hauptstadt der Westsahara?",
       "capitals": [
         "El Aaiún"
       ],
@@ -854,6 +910,7 @@
       "cca3": "CAF",
       "country": "Zentralafrikanische Republik",
       "countryEnglish": "Central African Republic",
+      "question": "Was ist die Hauptstadt der Zentralafrikanischen Republik?",
       "capitals": [
         "Bangui"
       ],
@@ -869,8 +926,9 @@
       "cca3": "EGY",
       "country": "Ägypten",
       "countryEnglish": "Egypt",
+      "question": "Was ist die Hauptstadt von Ägypten?",
       "capitals": [
-        "Cairo"
+        "Kairo"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -884,6 +942,7 @@
       "cca3": "GNQ",
       "country": "Äquatorialguinea",
       "countryEnglish": "Equatorial Guinea",
+      "question": "Was ist die Hauptstadt von Äquatorialguinea?",
       "capitals": [
         "Malabo"
       ],
@@ -899,8 +958,9 @@
       "cca3": "ETH",
       "country": "Äthiopien",
       "countryEnglish": "Ethiopia",
+      "question": "Was ist die Hauptstadt von Äthiopien?",
       "capitals": [
-        "Addis Ababa"
+        "Addis Abeba"
       ],
       "continentId": "afrika",
       "continent": "Afrika"
@@ -914,6 +974,7 @@
       "cca3": "ATF",
       "country": "Französische Süd- und Antarktisgebiete",
       "countryEnglish": "French Southern and Antarctic Lands",
+      "question": "Was ist die Hauptstadt der Französischen Süd- und Antarktisgebiete?",
       "capitals": [
         "Port-aux-Français"
       ],
@@ -929,6 +990,7 @@
       "cca3": "SGS",
       "country": "Südgeorgien und die Südlichen Sandwichinseln",
       "countryEnglish": "South Georgia",
+      "question": "Was ist die Hauptstadt von Südgeorgien und den Südlichen Sandwichinseln?",
       "capitals": [
         "King Edward Point"
       ],
@@ -944,6 +1006,7 @@
       "cca3": "AFG",
       "country": "Afghanistan",
       "countryEnglish": "Afghanistan",
+      "question": "Was ist die Hauptstadt von Afghanistan?",
       "capitals": [
         "Kabul"
       ],
@@ -959,8 +1022,9 @@
       "cca3": "ARM",
       "country": "Armenien",
       "countryEnglish": "Armenia",
+      "question": "Was ist die Hauptstadt von Armenien?",
       "capitals": [
-        "Yerevan"
+        "Eriwan"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -974,6 +1038,7 @@
       "cca3": "AZE",
       "country": "Aserbaidschan",
       "countryEnglish": "Azerbaijan",
+      "question": "Was ist die Hauptstadt von Aserbaidschan?",
       "capitals": [
         "Baku"
       ],
@@ -989,6 +1054,7 @@
       "cca3": "BHR",
       "country": "Bahrain",
       "countryEnglish": "Bahrain",
+      "question": "Was ist die Hauptstadt von Bahrain?",
       "capitals": [
         "Manama"
       ],
@@ -1004,6 +1070,7 @@
       "cca3": "BGD",
       "country": "Bangladesch",
       "countryEnglish": "Bangladesh",
+      "question": "Was ist die Hauptstadt von Bangladesch?",
       "capitals": [
         "Dhaka"
       ],
@@ -1019,6 +1086,7 @@
       "cca3": "BTN",
       "country": "Bhutan",
       "countryEnglish": "Bhutan",
+      "question": "Was ist die Hauptstadt von Bhutan?",
       "capitals": [
         "Thimphu"
       ],
@@ -1034,6 +1102,7 @@
       "cca3": "BRN",
       "country": "Brunei",
       "countryEnglish": "Brunei",
+      "question": "Was ist die Hauptstadt von Brunei?",
       "capitals": [
         "Bandar Seri Begawan"
       ],
@@ -1049,8 +1118,9 @@
       "cca3": "CHN",
       "country": "China",
       "countryEnglish": "China",
+      "question": "Was ist die Hauptstadt von China?",
       "capitals": [
-        "Beijing"
+        "Peking"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1064,8 +1134,9 @@
       "cca3": "GEO",
       "country": "Georgien",
       "countryEnglish": "Georgia",
+      "question": "Was ist die Hauptstadt von Georgien?",
       "capitals": [
-        "Tbilisi"
+        "Tiflis"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1079,8 +1150,9 @@
       "cca3": "HKG",
       "country": "Hongkong",
       "countryEnglish": "Hong Kong",
+      "question": "Was ist die Hauptstadt von Hongkong?",
       "capitals": [
-        "City of Victoria"
+        "Victoria"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1094,8 +1166,9 @@
       "cca3": "IND",
       "country": "Indien",
       "countryEnglish": "India",
+      "question": "Was ist die Hauptstadt von Indien?",
       "capitals": [
-        "New Delhi"
+        "Neu-Delhi"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1109,6 +1182,7 @@
       "cca3": "IDN",
       "country": "Indonesien",
       "countryEnglish": "Indonesia",
+      "question": "Was ist die Hauptstadt von Indonesien?",
       "capitals": [
         "Jakarta"
       ],
@@ -1124,8 +1198,9 @@
       "cca3": "IRQ",
       "country": "Irak",
       "countryEnglish": "Iraq",
+      "question": "Was ist die Hauptstadt des Irak?",
       "capitals": [
-        "Baghdad"
+        "Bagdad"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1139,8 +1214,9 @@
       "cca3": "IRN",
       "country": "Iran",
       "countryEnglish": "Iran",
+      "question": "Was ist die Hauptstadt des Iran?",
       "capitals": [
-        "Tehran"
+        "Teheran"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1154,6 +1230,7 @@
       "cca3": "ISR",
       "country": "Israel",
       "countryEnglish": "Israel",
+      "question": "Was ist die Hauptstadt von Israel?",
       "capitals": [
         "Jerusalem"
       ],
@@ -1169,8 +1246,9 @@
       "cca3": "JPN",
       "country": "Japan",
       "countryEnglish": "Japan",
+      "question": "Was ist die Hauptstadt von Japan?",
       "capitals": [
-        "Tokyo"
+        "Tokio"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1184,8 +1262,9 @@
       "cca3": "YEM",
       "country": "Jemen",
       "countryEnglish": "Yemen",
+      "question": "Was ist die Hauptstadt des Jemen?",
       "capitals": [
-        "Sana'a"
+        "Sanaa"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1199,6 +1278,7 @@
       "cca3": "JOR",
       "country": "Jordanien",
       "countryEnglish": "Jordan",
+      "question": "Was ist die Hauptstadt von Jordanien?",
       "capitals": [
         "Amman"
       ],
@@ -1214,6 +1294,7 @@
       "cca3": "KHM",
       "country": "Kambodscha",
       "countryEnglish": "Cambodia",
+      "question": "Was ist die Hauptstadt von Kambodscha?",
       "capitals": [
         "Phnom Penh"
       ],
@@ -1229,6 +1310,7 @@
       "cca3": "KAZ",
       "country": "Kasachstan",
       "countryEnglish": "Kazakhstan",
+      "question": "Was ist die Hauptstadt von Kasachstan?",
       "capitals": [
         "Astana"
       ],
@@ -1244,6 +1326,7 @@
       "cca3": "QAT",
       "country": "Katar",
       "countryEnglish": "Qatar",
+      "question": "Was ist die Hauptstadt von Katar?",
       "capitals": [
         "Doha"
       ],
@@ -1259,8 +1342,9 @@
       "cca3": "KGZ",
       "country": "Kirgisistan",
       "countryEnglish": "Kyrgyzstan",
+      "question": "Was ist die Hauptstadt von Kirgisistan?",
       "capitals": [
-        "Bishkek"
+        "Bischkek"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1274,8 +1358,9 @@
       "cca3": "KWT",
       "country": "Kuwait",
       "countryEnglish": "Kuwait",
+      "question": "Was ist die Hauptstadt von Kuwait?",
       "capitals": [
-        "Kuwait City"
+        "Kuwait-Stadt"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1289,6 +1374,7 @@
       "cca3": "LAO",
       "country": "Laos",
       "countryEnglish": "Laos",
+      "question": "Was ist die Hauptstadt von Laos?",
       "capitals": [
         "Vientiane"
       ],
@@ -1304,6 +1390,7 @@
       "cca3": "LBN",
       "country": "Libanon",
       "countryEnglish": "Lebanon",
+      "question": "Was ist die Hauptstadt des Libanon?",
       "capitals": [
         "Beirut"
       ],
@@ -1319,6 +1406,7 @@
       "cca3": "MYS",
       "country": "Malaysia",
       "countryEnglish": "Malaysia",
+      "question": "Was ist die Hauptstadt von Malaysia?",
       "capitals": [
         "Kuala Lumpur"
       ],
@@ -1334,6 +1422,7 @@
       "cca3": "MDV",
       "country": "Malediven",
       "countryEnglish": "Maldives",
+      "question": "Was ist die Hauptstadt der Malediven?",
       "capitals": [
         "Malé"
       ],
@@ -1349,6 +1438,7 @@
       "cca3": "MNG",
       "country": "Mongolei",
       "countryEnglish": "Mongolia",
+      "question": "Was ist die Hauptstadt der Mongolei?",
       "capitals": [
         "Ulan Bator"
       ],
@@ -1364,6 +1454,7 @@
       "cca3": "MMR",
       "country": "Myanmar",
       "countryEnglish": "Myanmar",
+      "question": "Was ist die Hauptstadt von Myanmar?",
       "capitals": [
         "Naypyidaw"
       ],
@@ -1379,6 +1470,7 @@
       "cca3": "NPL",
       "country": "Nepal",
       "countryEnglish": "Nepal",
+      "question": "Was ist die Hauptstadt von Nepal?",
       "capitals": [
         "Kathmandu"
       ],
@@ -1394,8 +1486,9 @@
       "cca3": "PRK",
       "country": "Nordkorea",
       "countryEnglish": "North Korea",
+      "question": "Was ist die Hauptstadt von Nordkorea?",
       "capitals": [
-        "Pyongyang"
+        "Pjöngjang"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1409,8 +1502,9 @@
       "cca3": "OMN",
       "country": "Oman",
       "countryEnglish": "Oman",
+      "question": "Was ist die Hauptstadt von Oman?",
       "capitals": [
-        "Muscat"
+        "Maskat"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1424,6 +1518,7 @@
       "cca3": "TLS",
       "country": "Osttimor",
       "countryEnglish": "Timor-Leste",
+      "question": "Was ist die Hauptstadt von Osttimor?",
       "capitals": [
         "Dili"
       ],
@@ -1439,6 +1534,7 @@
       "cca3": "PAK",
       "country": "Pakistan",
       "countryEnglish": "Pakistan",
+      "question": "Was ist die Hauptstadt von Pakistan?",
       "capitals": [
         "Islamabad"
       ],
@@ -1454,6 +1550,7 @@
       "cca3": "PSE",
       "country": "Palästina",
       "countryEnglish": "Palestine",
+      "question": "Was ist die Hauptstadt von Palästina?",
       "capitals": [
         "Ramallah"
       ],
@@ -1469,6 +1566,7 @@
       "cca3": "PHL",
       "country": "Philippinen",
       "countryEnglish": "Philippines",
+      "question": "Was ist die Hauptstadt der Philippinen?",
       "capitals": [
         "Manila"
       ],
@@ -1484,8 +1582,9 @@
       "cca3": "SAU",
       "country": "Saudi-Arabien",
       "countryEnglish": "Saudi Arabia",
+      "question": "Was ist die Hauptstadt von Saudi-Arabien?",
       "capitals": [
-        "Riyadh"
+        "Riad"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1499,8 +1598,9 @@
       "cca3": "SGP",
       "country": "Singapur",
       "countryEnglish": "Singapore",
+      "question": "Was ist die Hauptstadt von Singapur?",
       "capitals": [
-        "Singapore"
+        "Singapur"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1514,7 +1614,9 @@
       "cca3": "LKA",
       "country": "Sri Lanka",
       "countryEnglish": "Sri Lanka",
+      "question": "Was ist die Hauptstadt von Sri Lanka?",
       "capitals": [
+        "Sri Jayawardenepura Kotte",
         "Colombo"
       ],
       "continentId": "asien",
@@ -1529,8 +1631,9 @@
       "cca3": "SYR",
       "country": "Syrien",
       "countryEnglish": "Syria",
+      "question": "Was ist die Hauptstadt von Syrien?",
       "capitals": [
-        "Damascus"
+        "Damaskus"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1544,6 +1647,7 @@
       "cca3": "KOR",
       "country": "Südkorea",
       "countryEnglish": "South Korea",
+      "question": "Was ist die Hauptstadt von Südkorea?",
       "capitals": [
         "Seoul"
       ],
@@ -1559,8 +1663,9 @@
       "cca3": "TJK",
       "country": "Tadschikistan",
       "countryEnglish": "Tajikistan",
+      "question": "Was ist die Hauptstadt von Tadschikistan?",
       "capitals": [
-        "Dushanbe"
+        "Duschanbe"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1574,8 +1679,9 @@
       "cca3": "TWN",
       "country": "Taiwan",
       "countryEnglish": "Taiwan",
+      "question": "Was ist die Hauptstadt von Taiwan?",
       "capitals": [
-        "Taipei"
+        "Taipeh"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1589,6 +1695,7 @@
       "cca3": "THA",
       "country": "Thailand",
       "countryEnglish": "Thailand",
+      "question": "Was ist die Hauptstadt von Thailand?",
       "capitals": [
         "Bangkok"
       ],
@@ -1604,8 +1711,9 @@
       "cca3": "TKM",
       "country": "Turkmenistan",
       "countryEnglish": "Turkmenistan",
+      "question": "Was ist die Hauptstadt von Turkmenistan?",
       "capitals": [
-        "Ashgabat"
+        "Aschgabat"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1619,6 +1727,7 @@
       "cca3": "TUR",
       "country": "Türkei",
       "countryEnglish": "Türkiye",
+      "question": "Was ist die Hauptstadt der Türkei?",
       "capitals": [
         "Ankara"
       ],
@@ -1634,8 +1743,9 @@
       "cca3": "UZB",
       "country": "Usbekistan",
       "countryEnglish": "Uzbekistan",
+      "question": "Was ist die Hauptstadt von Usbekistan?",
       "capitals": [
-        "Tashkent"
+        "Taschkent"
       ],
       "continentId": "asien",
       "continent": "Asien"
@@ -1649,6 +1759,7 @@
       "cca3": "ARE",
       "country": "Vereinigte Arabische Emirate",
       "countryEnglish": "United Arab Emirates",
+      "question": "Was ist die Hauptstadt der Vereinigten Arabischen Emirate?",
       "capitals": [
         "Abu Dhabi"
       ],
@@ -1664,6 +1775,7 @@
       "cca3": "VNM",
       "country": "Vietnam",
       "countryEnglish": "Vietnam",
+      "question": "Was ist die Hauptstadt von Vietnam?",
       "capitals": [
         "Hanoi"
       ],
@@ -1679,6 +1791,7 @@
       "cca3": "ALB",
       "country": "Albanien",
       "countryEnglish": "Albania",
+      "question": "Was ist die Hauptstadt von Albanien?",
       "capitals": [
         "Tirana"
       ],
@@ -1694,6 +1807,7 @@
       "cca3": "AND",
       "country": "Andorra",
       "countryEnglish": "Andorra",
+      "question": "Was ist die Hauptstadt von Andorra?",
       "capitals": [
         "Andorra la Vella"
       ],
@@ -1709,6 +1823,7 @@
       "cca3": "BLR",
       "country": "Belarus",
       "countryEnglish": "Belarus",
+      "question": "Was ist die Hauptstadt von Belarus?",
       "capitals": [
         "Minsk"
       ],
@@ -1724,8 +1839,9 @@
       "cca3": "BEL",
       "country": "Belgien",
       "countryEnglish": "Belgium",
+      "question": "Was ist die Hauptstadt von Belgien?",
       "capitals": [
-        "Brussels"
+        "Brüssel"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -1739,6 +1855,7 @@
       "cca3": "BIH",
       "country": "Bosnien und Herzegowina",
       "countryEnglish": "Bosnia and Herzegovina",
+      "question": "Was ist die Hauptstadt von Bosnien und Herzegowina?",
       "capitals": [
         "Sarajevo"
       ],
@@ -1754,6 +1871,7 @@
       "cca3": "BGR",
       "country": "Bulgarien",
       "countryEnglish": "Bulgaria",
+      "question": "Was ist die Hauptstadt von Bulgarien?",
       "capitals": [
         "Sofia"
       ],
@@ -1769,6 +1887,7 @@
       "cca3": "DEU",
       "country": "Deutschland",
       "countryEnglish": "Germany",
+      "question": "Was ist die Hauptstadt von Deutschland?",
       "capitals": [
         "Berlin"
       ],
@@ -1784,8 +1903,9 @@
       "cca3": "DNK",
       "country": "Dänemark",
       "countryEnglish": "Denmark",
+      "question": "Was ist die Hauptstadt von Dänemark?",
       "capitals": [
-        "Copenhagen"
+        "Kopenhagen"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -1799,6 +1919,7 @@
       "cca3": "EST",
       "country": "Estland",
       "countryEnglish": "Estonia",
+      "question": "Was ist die Hauptstadt von Estland?",
       "capitals": [
         "Tallinn"
       ],
@@ -1814,6 +1935,7 @@
       "cca3": "FIN",
       "country": "Finnland",
       "countryEnglish": "Finland",
+      "question": "Was ist die Hauptstadt von Finnland?",
       "capitals": [
         "Helsinki"
       ],
@@ -1829,6 +1951,7 @@
       "cca3": "FRA",
       "country": "Frankreich",
       "countryEnglish": "France",
+      "question": "Was ist die Hauptstadt von Frankreich?",
       "capitals": [
         "Paris"
       ],
@@ -1844,6 +1967,7 @@
       "cca3": "FRO",
       "country": "Färöer-Inseln",
       "countryEnglish": "Faroe Islands",
+      "question": "Was ist die Hauptstadt der Färöer?",
       "capitals": [
         "Tórshavn"
       ],
@@ -1859,6 +1983,7 @@
       "cca3": "GIB",
       "country": "Gibraltar",
       "countryEnglish": "Gibraltar",
+      "question": "Was ist die Hauptstadt von Gibraltar?",
       "capitals": [
         "Gibraltar"
       ],
@@ -1874,8 +1999,9 @@
       "cca3": "GRC",
       "country": "Griechenland",
       "countryEnglish": "Greece",
+      "question": "Was ist die Hauptstadt von Griechenland?",
       "capitals": [
-        "Athens"
+        "Athen"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -1889,6 +2015,7 @@
       "cca3": "GGY",
       "country": "Guernsey",
       "countryEnglish": "Guernsey",
+      "question": "Was ist die Hauptstadt von Guernsey?",
       "capitals": [
         "St. Peter Port"
       ],
@@ -1904,6 +2031,7 @@
       "cca3": "IMN",
       "country": "Insel Man",
       "countryEnglish": "Isle of Man",
+      "question": "Was ist die Hauptstadt der Insel Man?",
       "capitals": [
         "Douglas"
       ],
@@ -1919,6 +2047,7 @@
       "cca3": "IRL",
       "country": "Irland",
       "countryEnglish": "Ireland",
+      "question": "Was ist die Hauptstadt von Irland?",
       "capitals": [
         "Dublin"
       ],
@@ -1934,8 +2063,9 @@
       "cca3": "ISL",
       "country": "Island",
       "countryEnglish": "Iceland",
+      "question": "Was ist die Hauptstadt von Island?",
       "capitals": [
-        "Reykjavik"
+        "Reykjavík"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -1949,8 +2079,9 @@
       "cca3": "ITA",
       "country": "Italien",
       "countryEnglish": "Italy",
+      "question": "Was ist die Hauptstadt von Italien?",
       "capitals": [
-        "Rome"
+        "Rom"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -1964,6 +2095,7 @@
       "cca3": "JEY",
       "country": "Jersey",
       "countryEnglish": "Jersey",
+      "question": "Was ist die Hauptstadt von Jersey?",
       "capitals": [
         "Saint Helier"
       ],
@@ -1979,6 +2111,7 @@
       "cca3": "UNK",
       "country": "Kosovo",
       "countryEnglish": "Kosovo",
+      "question": "Was ist die Hauptstadt des Kosovo?",
       "capitals": [
         "Pristina"
       ],
@@ -1994,6 +2127,7 @@
       "cca3": "HRV",
       "country": "Kroatien",
       "countryEnglish": "Croatia",
+      "question": "Was ist die Hauptstadt von Kroatien?",
       "capitals": [
         "Zagreb"
       ],
@@ -2009,6 +2143,7 @@
       "cca3": "LVA",
       "country": "Lettland",
       "countryEnglish": "Latvia",
+      "question": "Was ist die Hauptstadt von Lettland?",
       "capitals": [
         "Riga"
       ],
@@ -2024,6 +2159,7 @@
       "cca3": "LIE",
       "country": "Liechtenstein",
       "countryEnglish": "Liechtenstein",
+      "question": "Was ist die Hauptstadt von Liechtenstein?",
       "capitals": [
         "Vaduz"
       ],
@@ -2039,6 +2175,7 @@
       "cca3": "LTU",
       "country": "Litauen",
       "countryEnglish": "Lithuania",
+      "question": "Was ist die Hauptstadt von Litauen?",
       "capitals": [
         "Vilnius"
       ],
@@ -2054,8 +2191,9 @@
       "cca3": "LUX",
       "country": "Luxemburg",
       "countryEnglish": "Luxembourg",
+      "question": "Was ist die Hauptstadt von Luxemburg?",
       "capitals": [
-        "Luxembourg"
+        "Luxemburg"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2069,6 +2207,7 @@
       "cca3": "MLT",
       "country": "Malta",
       "countryEnglish": "Malta",
+      "question": "Was ist die Hauptstadt von Malta?",
       "capitals": [
         "Valletta"
       ],
@@ -2084,6 +2223,7 @@
       "cca3": "MDA",
       "country": "Moldawien",
       "countryEnglish": "Moldova",
+      "question": "Was ist die Hauptstadt von Moldawien?",
       "capitals": [
         "Chișinău"
       ],
@@ -2099,6 +2239,7 @@
       "cca3": "MCO",
       "country": "Monaco",
       "countryEnglish": "Monaco",
+      "question": "Was ist die Hauptstadt von Monaco?",
       "capitals": [
         "Monaco"
       ],
@@ -2114,6 +2255,7 @@
       "cca3": "MNE",
       "country": "Montenegro",
       "countryEnglish": "Montenegro",
+      "question": "Was ist die Hauptstadt von Montenegro?",
       "capitals": [
         "Podgorica"
       ],
@@ -2129,6 +2271,7 @@
       "cca3": "NLD",
       "country": "Niederlande",
       "countryEnglish": "Netherlands",
+      "question": "Was ist die Hauptstadt der Niederlande?",
       "capitals": [
         "Amsterdam"
       ],
@@ -2144,6 +2287,7 @@
       "cca3": "MKD",
       "country": "Nordmazedonien",
       "countryEnglish": "North Macedonia",
+      "question": "Was ist die Hauptstadt von Nordmazedonien?",
       "capitals": [
         "Skopje"
       ],
@@ -2159,6 +2303,7 @@
       "cca3": "NOR",
       "country": "Norwegen",
       "countryEnglish": "Norway",
+      "question": "Was ist die Hauptstadt von Norwegen?",
       "capitals": [
         "Oslo"
       ],
@@ -2174,8 +2319,9 @@
       "cca3": "POL",
       "country": "Polen",
       "countryEnglish": "Poland",
+      "question": "Was ist die Hauptstadt von Polen?",
       "capitals": [
-        "Warsaw"
+        "Warschau"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2189,8 +2335,9 @@
       "cca3": "PRT",
       "country": "Portugal",
       "countryEnglish": "Portugal",
+      "question": "Was ist die Hauptstadt von Portugal?",
       "capitals": [
-        "Lisbon"
+        "Lissabon"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2204,8 +2351,9 @@
       "cca3": "ROU",
       "country": "Rumänien",
       "countryEnglish": "Romania",
+      "question": "Was ist die Hauptstadt von Rumänien?",
       "capitals": [
-        "Bucharest"
+        "Bukarest"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2219,8 +2367,9 @@
       "cca3": "RUS",
       "country": "Russland",
       "countryEnglish": "Russia",
+      "question": "Was ist die Hauptstadt von Russland?",
       "capitals": [
-        "Moscow"
+        "Moskau"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2234,8 +2383,9 @@
       "cca3": "SMR",
       "country": "San Marino",
       "countryEnglish": "San Marino",
+      "question": "Was ist die Hauptstadt von San Marino?",
       "capitals": [
-        "City of San Marino"
+        "San Marino"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2249,6 +2399,7 @@
       "cca3": "SWE",
       "country": "Schweden",
       "countryEnglish": "Sweden",
+      "question": "Was ist die Hauptstadt von Schweden?",
       "capitals": [
         "Stockholm"
       ],
@@ -2264,6 +2415,7 @@
       "cca3": "CHE",
       "country": "Schweiz",
       "countryEnglish": "Switzerland",
+      "question": "Was ist die Hauptstadt der Schweiz?",
       "capitals": [
         "Bern"
       ],
@@ -2279,8 +2431,9 @@
       "cca3": "SRB",
       "country": "Serbien",
       "countryEnglish": "Serbia",
+      "question": "Was ist die Hauptstadt von Serbien?",
       "capitals": [
-        "Belgrade"
+        "Belgrad"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2294,6 +2447,7 @@
       "cca3": "SVK",
       "country": "Slowakei",
       "countryEnglish": "Slovakia",
+      "question": "Was ist die Hauptstadt der Slowakei?",
       "capitals": [
         "Bratislava"
       ],
@@ -2309,6 +2463,7 @@
       "cca3": "SVN",
       "country": "Slowenien",
       "countryEnglish": "Slovenia",
+      "question": "Was ist die Hauptstadt von Slowenien?",
       "capitals": [
         "Ljubljana"
       ],
@@ -2324,6 +2479,7 @@
       "cca3": "ESP",
       "country": "Spanien",
       "countryEnglish": "Spain",
+      "question": "Was ist die Hauptstadt von Spanien?",
       "capitals": [
         "Madrid"
       ],
@@ -2339,6 +2495,7 @@
       "cca3": "SJM",
       "country": "Spitzbergen und Jan Mayen",
       "countryEnglish": "Svalbard and Jan Mayen",
+      "question": "Was ist die Hauptstadt von Spitzbergen und Jan Mayen?",
       "capitals": [
         "Longyearbyen"
       ],
@@ -2354,8 +2511,9 @@
       "cca3": "CZE",
       "country": "Tschechien",
       "countryEnglish": "Czechia",
+      "question": "Was ist die Hauptstadt von Tschechien?",
       "capitals": [
-        "Prague"
+        "Prag"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2369,8 +2527,9 @@
       "cca3": "UKR",
       "country": "Ukraine",
       "countryEnglish": "Ukraine",
+      "question": "Was ist die Hauptstadt der Ukraine?",
       "capitals": [
-        "Kyiv"
+        "Kyjiw"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2384,6 +2543,7 @@
       "cca3": "HUN",
       "country": "Ungarn",
       "countryEnglish": "Hungary",
+      "question": "Was ist die Hauptstadt von Ungarn?",
       "capitals": [
         "Budapest"
       ],
@@ -2399,8 +2559,9 @@
       "cca3": "VAT",
       "country": "Vatikanstadt",
       "countryEnglish": "Vatican City",
+      "question": "Was ist die Hauptstadt der Vatikanstadt?",
       "capitals": [
-        "Vatican City"
+        "Vatikanstadt"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2414,6 +2575,7 @@
       "cca3": "GBR",
       "country": "Vereinigtes Königreich",
       "countryEnglish": "United Kingdom",
+      "question": "Was ist die Hauptstadt des Vereinigten Königreichs?",
       "capitals": [
         "London"
       ],
@@ -2429,8 +2591,9 @@
       "cca3": "CYP",
       "country": "Zypern",
       "countryEnglish": "Cyprus",
+      "question": "Was ist die Hauptstadt von Zypern?",
       "capitals": [
-        "Nicosia"
+        "Nikosia"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2444,6 +2607,7 @@
       "cca3": "ALA",
       "country": "Åland",
       "countryEnglish": "Åland Islands",
+      "question": "Was ist die Hauptstadt von Åland?",
       "capitals": [
         "Mariehamn"
       ],
@@ -2459,8 +2623,9 @@
       "cca3": "AUT",
       "country": "Österreich",
       "countryEnglish": "Austria",
+      "question": "Was ist die Hauptstadt von Österreich?",
       "capitals": [
-        "Vienna"
+        "Wien"
       ],
       "continentId": "europa",
       "continent": "Europa"
@@ -2474,6 +2639,7 @@
       "cca3": "VIR",
       "country": "Amerikanische Jungferninseln",
       "countryEnglish": "United States Virgin Islands",
+      "question": "Was ist die Hauptstadt der Amerikanischen Jungferninseln?",
       "capitals": [
         "Charlotte Amalie"
       ],
@@ -2489,6 +2655,7 @@
       "cca3": "AIA",
       "country": "Anguilla",
       "countryEnglish": "Anguilla",
+      "question": "Was ist die Hauptstadt von Anguilla?",
       "capitals": [
         "The Valley"
       ],
@@ -2504,8 +2671,9 @@
       "cca3": "ATG",
       "country": "Antigua und Barbuda",
       "countryEnglish": "Antigua and Barbuda",
+      "question": "Was ist die Hauptstadt von Antigua und Barbuda?",
       "capitals": [
-        "Saint John's"
+        "St. John’s"
       ],
       "continentId": "nordamerika",
       "continent": "Nordamerika"
@@ -2519,6 +2687,7 @@
       "cca3": "ABW",
       "country": "Aruba",
       "countryEnglish": "Aruba",
+      "question": "Was ist die Hauptstadt von Aruba?",
       "capitals": [
         "Oranjestad"
       ],
@@ -2534,6 +2703,7 @@
       "cca3": "BHS",
       "country": "Bahamas",
       "countryEnglish": "Bahamas",
+      "question": "Was ist die Hauptstadt der Bahamas?",
       "capitals": [
         "Nassau"
       ],
@@ -2549,6 +2719,7 @@
       "cca3": "BRB",
       "country": "Barbados",
       "countryEnglish": "Barbados",
+      "question": "Was ist die Hauptstadt von Barbados?",
       "capitals": [
         "Bridgetown"
       ],
@@ -2564,6 +2735,7 @@
       "cca3": "BLZ",
       "country": "Belize",
       "countryEnglish": "Belize",
+      "question": "Was ist die Hauptstadt von Belize?",
       "capitals": [
         "Belmopan"
       ],
@@ -2579,6 +2751,7 @@
       "cca3": "BMU",
       "country": "Bermuda",
       "countryEnglish": "Bermuda",
+      "question": "Was ist die Hauptstadt von Bermuda?",
       "capitals": [
         "Hamilton"
       ],
@@ -2594,6 +2767,7 @@
       "cca3": "VGB",
       "country": "Britische Jungferninseln",
       "countryEnglish": "British Virgin Islands",
+      "question": "Was ist die Hauptstadt der Britischen Jungferninseln?",
       "capitals": [
         "Road Town"
       ],
@@ -2609,6 +2783,7 @@
       "cca3": "CRI",
       "country": "Costa Rica",
       "countryEnglish": "Costa Rica",
+      "question": "Was ist die Hauptstadt von Costa Rica?",
       "capitals": [
         "San José"
       ],
@@ -2624,6 +2799,7 @@
       "cca3": "CUW",
       "country": "Curaçao",
       "countryEnglish": "Curaçao",
+      "question": "Was ist die Hauptstadt von Curaçao?",
       "capitals": [
         "Willemstad"
       ],
@@ -2639,6 +2815,7 @@
       "cca3": "DMA",
       "country": "Dominica",
       "countryEnglish": "Dominica",
+      "question": "Was ist die Hauptstadt von Dominica?",
       "capitals": [
         "Roseau"
       ],
@@ -2654,6 +2831,7 @@
       "cca3": "DOM",
       "country": "Dominikanische Republik",
       "countryEnglish": "Dominican Republic",
+      "question": "Was ist die Hauptstadt der Dominikanischen Republik?",
       "capitals": [
         "Santo Domingo"
       ],
@@ -2669,6 +2847,7 @@
       "cca3": "SLV",
       "country": "El Salvador",
       "countryEnglish": "El Salvador",
+      "question": "Was ist die Hauptstadt von El Salvador?",
       "capitals": [
         "San Salvador"
       ],
@@ -2684,6 +2863,7 @@
       "cca3": "GRD",
       "country": "Grenada",
       "countryEnglish": "Grenada",
+      "question": "Was ist die Hauptstadt von Grenada?",
       "capitals": [
         "St. George's"
       ],
@@ -2699,6 +2879,7 @@
       "cca3": "GRL",
       "country": "Grönland",
       "countryEnglish": "Greenland",
+      "question": "Was ist die Hauptstadt von Grönland?",
       "capitals": [
         "Nuuk"
       ],
@@ -2714,6 +2895,7 @@
       "cca3": "GLP",
       "country": "Guadeloupe",
       "countryEnglish": "Guadeloupe",
+      "question": "Was ist die Hauptstadt von Guadeloupe?",
       "capitals": [
         "Basse-Terre"
       ],
@@ -2729,8 +2911,9 @@
       "cca3": "GTM",
       "country": "Guatemala",
       "countryEnglish": "Guatemala",
+      "question": "Was ist die Hauptstadt von Guatemala?",
       "capitals": [
-        "Guatemala City"
+        "Guatemala-Stadt"
       ],
       "continentId": "nordamerika",
       "continent": "Nordamerika"
@@ -2744,6 +2927,7 @@
       "cca3": "HTI",
       "country": "Haiti",
       "countryEnglish": "Haiti",
+      "question": "Was ist die Hauptstadt von Haiti?",
       "capitals": [
         "Port-au-Prince"
       ],
@@ -2759,6 +2943,7 @@
       "cca3": "HND",
       "country": "Honduras",
       "countryEnglish": "Honduras",
+      "question": "Was ist die Hauptstadt von Honduras?",
       "capitals": [
         "Tegucigalpa"
       ],
@@ -2774,6 +2959,7 @@
       "cca3": "JAM",
       "country": "Jamaika",
       "countryEnglish": "Jamaica",
+      "question": "Was ist die Hauptstadt von Jamaika?",
       "capitals": [
         "Kingston"
       ],
@@ -2789,6 +2975,7 @@
       "cca3": "CYM",
       "country": "Kaimaninseln",
       "countryEnglish": "Cayman Islands",
+      "question": "Was ist die Hauptstadt der Kaimaninseln?",
       "capitals": [
         "George Town"
       ],
@@ -2804,6 +2991,7 @@
       "cca3": "CAN",
       "country": "Kanada",
       "countryEnglish": "Canada",
+      "question": "Was ist die Hauptstadt von Kanada?",
       "capitals": [
         "Ottawa"
       ],
@@ -2819,6 +3007,7 @@
       "cca3": "BES",
       "country": "Karibische Niederlande",
       "countryEnglish": "Caribbean Netherlands",
+      "question": "Was ist die Hauptstadt der Karibischen Niederlande?",
       "capitals": [
         "Kralendijk",
         "Oranjestad",
@@ -2836,8 +3025,9 @@
       "cca3": "CUB",
       "country": "Kuba",
       "countryEnglish": "Cuba",
+      "question": "Was ist die Hauptstadt von Kuba?",
       "capitals": [
-        "Havana"
+        "Havanna"
       ],
       "continentId": "nordamerika",
       "continent": "Nordamerika"
@@ -2851,6 +3041,7 @@
       "cca3": "MTQ",
       "country": "Martinique",
       "countryEnglish": "Martinique",
+      "question": "Was ist die Hauptstadt von Martinique?",
       "capitals": [
         "Fort-de-France"
       ],
@@ -2866,8 +3057,9 @@
       "cca3": "MEX",
       "country": "Mexiko",
       "countryEnglish": "Mexico",
+      "question": "Was ist die Hauptstadt von Mexiko?",
       "capitals": [
-        "Mexico City"
+        "Mexiko-Stadt"
       ],
       "continentId": "nordamerika",
       "continent": "Nordamerika"
@@ -2881,6 +3073,7 @@
       "cca3": "MSR",
       "country": "Montserrat",
       "countryEnglish": "Montserrat",
+      "question": "Was ist die Hauptstadt von Montserrat?",
       "capitals": [
         "Plymouth"
       ],
@@ -2896,6 +3089,7 @@
       "cca3": "NIC",
       "country": "Nicaragua",
       "countryEnglish": "Nicaragua",
+      "question": "Was ist die Hauptstadt von Nicaragua?",
       "capitals": [
         "Managua"
       ],
@@ -2911,8 +3105,9 @@
       "cca3": "PAN",
       "country": "Panama",
       "countryEnglish": "Panama",
+      "question": "Was ist die Hauptstadt von Panama?",
       "capitals": [
-        "Panama City"
+        "Panama-Stadt"
       ],
       "continentId": "nordamerika",
       "continent": "Nordamerika"
@@ -2926,6 +3121,7 @@
       "cca3": "PRI",
       "country": "Puerto Rico",
       "countryEnglish": "Puerto Rico",
+      "question": "Was ist die Hauptstadt von Puerto Rico?",
       "capitals": [
         "San Juan"
       ],
@@ -2941,6 +3137,7 @@
       "cca3": "BLM",
       "country": "Saint-Barthélemy",
       "countryEnglish": "Saint Barthélemy",
+      "question": "Was ist die Hauptstadt von Saint-Barthélemy?",
       "capitals": [
         "Gustavia"
       ],
@@ -2956,6 +3153,7 @@
       "cca3": "MAF",
       "country": "Saint-Martin",
       "countryEnglish": "Saint Martin",
+      "question": "Was ist die Hauptstadt von Saint-Martin?",
       "capitals": [
         "Marigot"
       ],
@@ -2971,6 +3169,7 @@
       "cca3": "SXM",
       "country": "Sint Maarten",
       "countryEnglish": "Sint Maarten",
+      "question": "Was ist die Hauptstadt von Sint Maarten?",
       "capitals": [
         "Philipsburg"
       ],
@@ -2986,6 +3185,7 @@
       "cca3": "KNA",
       "country": "St. Kitts und Nevis",
       "countryEnglish": "Saint Kitts and Nevis",
+      "question": "Was ist die Hauptstadt von St. Kitts und Nevis?",
       "capitals": [
         "Basseterre"
       ],
@@ -3001,6 +3201,7 @@
       "cca3": "LCA",
       "country": "St. Lucia",
       "countryEnglish": "Saint Lucia",
+      "question": "Was ist die Hauptstadt von St. Lucia?",
       "capitals": [
         "Castries"
       ],
@@ -3016,6 +3217,7 @@
       "cca3": "SPM",
       "country": "St. Pierre und Miquelon",
       "countryEnglish": "Saint Pierre and Miquelon",
+      "question": "Was ist die Hauptstadt von St. Pierre und Miquelon?",
       "capitals": [
         "Saint-Pierre"
       ],
@@ -3031,6 +3233,7 @@
       "cca3": "VCT",
       "country": "St. Vincent und die Grenadinen",
       "countryEnglish": "Saint Vincent and the Grenadines",
+      "question": "Was ist die Hauptstadt von St. Vincent und die Grenadinen?",
       "capitals": [
         "Kingstown"
       ],
@@ -3046,6 +3249,7 @@
       "cca3": "TTO",
       "country": "Trinidad und Tobago",
       "countryEnglish": "Trinidad and Tobago",
+      "question": "Was ist die Hauptstadt von Trinidad und Tobago?",
       "capitals": [
         "Port of Spain"
       ],
@@ -3061,6 +3265,7 @@
       "cca3": "TCA",
       "country": "Turks-und Caicosinseln",
       "countryEnglish": "Turks and Caicos Islands",
+      "question": "Was ist die Hauptstadt der Turks- und Caicosinseln?",
       "capitals": [
         "Cockburn Town"
       ],
@@ -3076,8 +3281,9 @@
       "cca3": "USA",
       "country": "Vereinigte Staaten",
       "countryEnglish": "United States",
+      "question": "Was ist die Hauptstadt der Vereinigten Staaten?",
       "capitals": [
-        "Washington D.C."
+        "Washington, D.C."
       ],
       "continentId": "nordamerika",
       "continent": "Nordamerika"
@@ -3091,6 +3297,7 @@
       "cca3": "ASM",
       "country": "Amerikanisch-Samoa",
       "countryEnglish": "American Samoa",
+      "question": "Was ist die Hauptstadt von Amerikanisch-Samoa?",
       "capitals": [
         "Pago Pago"
       ],
@@ -3106,6 +3313,7 @@
       "cca3": "AUS",
       "country": "Australien",
       "countryEnglish": "Australia",
+      "question": "Was ist die Hauptstadt von Australien?",
       "capitals": [
         "Canberra"
       ],
@@ -3121,6 +3329,7 @@
       "cca3": "COK",
       "country": "Cookinseln",
       "countryEnglish": "Cook Islands",
+      "question": "Was ist die Hauptstadt der Cookinseln?",
       "capitals": [
         "Avarua"
       ],
@@ -3136,6 +3345,7 @@
       "cca3": "FJI",
       "country": "Fidschi",
       "countryEnglish": "Fiji",
+      "question": "Was ist die Hauptstadt von Fidschi?",
       "capitals": [
         "Suva"
       ],
@@ -3151,8 +3361,9 @@
       "cca3": "PYF",
       "country": "Französisch-Polynesien",
       "countryEnglish": "French Polynesia",
+      "question": "Was ist die Hauptstadt von Französisch-Polynesien?",
       "capitals": [
-        "Papeetē"
+        "Papeete"
       ],
       "continentId": "ozeanien",
       "continent": "Ozeanien"
@@ -3166,6 +3377,7 @@
       "cca3": "GUM",
       "country": "Guam",
       "countryEnglish": "Guam",
+      "question": "Was ist die Hauptstadt von Guam?",
       "capitals": [
         "Hagåtña"
       ],
@@ -3181,8 +3393,9 @@
       "cca3": "KIR",
       "country": "Kiribati",
       "countryEnglish": "Kiribati",
+      "question": "Was ist die Hauptstadt von Kiribati?",
       "capitals": [
-        "South Tarawa"
+        "Süd-Tarawa"
       ],
       "continentId": "ozeanien",
       "continent": "Ozeanien"
@@ -3196,6 +3409,7 @@
       "cca3": "CCK",
       "country": "Kokosinseln",
       "countryEnglish": "Cocos (Keeling) Islands",
+      "question": "Was ist die Hauptstadt der Kokosinseln?",
       "capitals": [
         "West Island"
       ],
@@ -3211,6 +3425,7 @@
       "cca3": "MHL",
       "country": "Marshallinseln",
       "countryEnglish": "Marshall Islands",
+      "question": "Was ist die Hauptstadt der Marshallinseln?",
       "capitals": [
         "Majuro"
       ],
@@ -3226,6 +3441,7 @@
       "cca3": "FSM",
       "country": "Mikronesien",
       "countryEnglish": "Micronesia",
+      "question": "Was ist die Hauptstadt von Mikronesien?",
       "capitals": [
         "Palikir"
       ],
@@ -3241,6 +3457,7 @@
       "cca3": "NRU",
       "country": "Nauru",
       "countryEnglish": "Nauru",
+      "question": "Was ist die Hauptstadt von Nauru?",
       "capitals": [
         "Yaren"
       ],
@@ -3256,6 +3473,7 @@
       "cca3": "NCL",
       "country": "Neukaledonien",
       "countryEnglish": "New Caledonia",
+      "question": "Was ist die Hauptstadt von Neukaledonien?",
       "capitals": [
         "Nouméa"
       ],
@@ -3271,6 +3489,7 @@
       "cca3": "NZL",
       "country": "Neuseeland",
       "countryEnglish": "New Zealand",
+      "question": "Was ist die Hauptstadt von Neuseeland?",
       "capitals": [
         "Wellington"
       ],
@@ -3286,6 +3505,7 @@
       "cca3": "NIU",
       "country": "Niue",
       "countryEnglish": "Niue",
+      "question": "Was ist die Hauptstadt von Niue?",
       "capitals": [
         "Alofi"
       ],
@@ -3301,6 +3521,7 @@
       "cca3": "NFK",
       "country": "Norfolkinsel",
       "countryEnglish": "Norfolk Island",
+      "question": "Was ist die Hauptstadt der Norfolkinsel?",
       "capitals": [
         "Kingston"
       ],
@@ -3316,6 +3537,7 @@
       "cca3": "MNP",
       "country": "Nördliche Marianen",
       "countryEnglish": "Northern Mariana Islands",
+      "question": "Was ist die Hauptstadt der Nördlichen Marianen?",
       "capitals": [
         "Saipan"
       ],
@@ -3331,6 +3553,7 @@
       "cca3": "PLW",
       "country": "Palau",
       "countryEnglish": "Palau",
+      "question": "Was ist die Hauptstadt von Palau?",
       "capitals": [
         "Ngerulmud"
       ],
@@ -3346,6 +3569,7 @@
       "cca3": "PNG",
       "country": "Papua-Neuguinea",
       "countryEnglish": "Papua New Guinea",
+      "question": "Was ist die Hauptstadt von Papua-Neuguinea?",
       "capitals": [
         "Port Moresby"
       ],
@@ -3361,6 +3585,7 @@
       "cca3": "PCN",
       "country": "Pitcairninseln",
       "countryEnglish": "Pitcairn Islands",
+      "question": "Was ist die Hauptstadt der Pitcairninseln?",
       "capitals": [
         "Adamstown"
       ],
@@ -3376,6 +3601,7 @@
       "cca3": "SLB",
       "country": "Salomonen",
       "countryEnglish": "Solomon Islands",
+      "question": "Was ist die Hauptstadt der Salomonen?",
       "capitals": [
         "Honiara"
       ],
@@ -3391,6 +3617,7 @@
       "cca3": "WSM",
       "country": "Samoa",
       "countryEnglish": "Samoa",
+      "question": "Was ist die Hauptstadt von Samoa?",
       "capitals": [
         "Apia"
       ],
@@ -3406,6 +3633,7 @@
       "cca3": "TKL",
       "country": "Tokelau",
       "countryEnglish": "Tokelau",
+      "question": "Was ist die Hauptstadt von Tokelau?",
       "capitals": [
         "Fakaofo"
       ],
@@ -3421,6 +3649,7 @@
       "cca3": "TON",
       "country": "Tonga",
       "countryEnglish": "Tonga",
+      "question": "Was ist die Hauptstadt von Tonga?",
       "capitals": [
         "Nuku'alofa"
       ],
@@ -3436,6 +3665,7 @@
       "cca3": "TUV",
       "country": "Tuvalu",
       "countryEnglish": "Tuvalu",
+      "question": "Was ist die Hauptstadt von Tuvalu?",
       "capitals": [
         "Funafuti"
       ],
@@ -3451,6 +3681,7 @@
       "cca3": "VUT",
       "country": "Vanuatu",
       "countryEnglish": "Vanuatu",
+      "question": "Was ist die Hauptstadt von Vanuatu?",
       "capitals": [
         "Port Vila"
       ],
@@ -3466,6 +3697,7 @@
       "cca3": "WLF",
       "country": "Wallis und Futuna",
       "countryEnglish": "Wallis and Futuna",
+      "question": "Was ist die Hauptstadt von Wallis und Futuna?",
       "capitals": [
         "Mata-Utu"
       ],
@@ -3481,6 +3713,7 @@
       "cca3": "CXR",
       "country": "Weihnachtsinsel",
       "countryEnglish": "Christmas Island",
+      "question": "Was ist die Hauptstadt der Weihnachtsinsel?",
       "capitals": [
         "Flying Fish Cove"
       ],
@@ -3496,6 +3729,7 @@
       "cca3": "ARG",
       "country": "Argentinien",
       "countryEnglish": "Argentina",
+      "question": "Was ist die Hauptstadt von Argentinien?",
       "capitals": [
         "Buenos Aires"
       ],
@@ -3511,8 +3745,10 @@
       "cca3": "BOL",
       "country": "Bolivien",
       "countryEnglish": "Bolivia",
+      "question": "Was ist die Hauptstadt von Bolivien?",
       "capitals": [
-        "Sucre"
+        "Sucre",
+        "La Paz"
       ],
       "continentId": "suedamerika",
       "continent": "Südamerika"
@@ -3526,6 +3762,7 @@
       "cca3": "BRA",
       "country": "Brasilien",
       "countryEnglish": "Brazil",
+      "question": "Was ist die Hauptstadt von Brasilien?",
       "capitals": [
         "Brasília"
       ],
@@ -3541,6 +3778,7 @@
       "cca3": "CHL",
       "country": "Chile",
       "countryEnglish": "Chile",
+      "question": "Was ist die Hauptstadt von Chile?",
       "capitals": [
         "Santiago"
       ],
@@ -3556,6 +3794,7 @@
       "cca3": "ECU",
       "country": "Ecuador",
       "countryEnglish": "Ecuador",
+      "question": "Was ist die Hauptstadt von Ecuador?",
       "capitals": [
         "Quito"
       ],
@@ -3571,6 +3810,7 @@
       "cca3": "FLK",
       "country": "Falklandinseln",
       "countryEnglish": "Falkland Islands",
+      "question": "Was ist die Hauptstadt der Falklandinseln?",
       "capitals": [
         "Stanley"
       ],
@@ -3586,6 +3826,7 @@
       "cca3": "GUF",
       "country": "Französisch-Guayana",
       "countryEnglish": "French Guiana",
+      "question": "Was ist die Hauptstadt von Französisch-Guayana?",
       "capitals": [
         "Cayenne"
       ],
@@ -3601,6 +3842,7 @@
       "cca3": "GUY",
       "country": "Guyana",
       "countryEnglish": "Guyana",
+      "question": "Was ist die Hauptstadt von Guyana?",
       "capitals": [
         "Georgetown"
       ],
@@ -3616,6 +3858,7 @@
       "cca3": "COL",
       "country": "Kolumbien",
       "countryEnglish": "Colombia",
+      "question": "Was ist die Hauptstadt von Kolumbien?",
       "capitals": [
         "Bogotá"
       ],
@@ -3631,6 +3874,7 @@
       "cca3": "PRY",
       "country": "Paraguay",
       "countryEnglish": "Paraguay",
+      "question": "Was ist die Hauptstadt von Paraguay?",
       "capitals": [
         "Asunción"
       ],
@@ -3646,6 +3890,7 @@
       "cca3": "PER",
       "country": "Peru",
       "countryEnglish": "Peru",
+      "question": "Was ist die Hauptstadt von Peru?",
       "capitals": [
         "Lima"
       ],
@@ -3661,6 +3906,7 @@
       "cca3": "SUR",
       "country": "Suriname",
       "countryEnglish": "Suriname",
+      "question": "Was ist die Hauptstadt von Suriname?",
       "capitals": [
         "Paramaribo"
       ],
@@ -3676,6 +3922,7 @@
       "cca3": "URY",
       "country": "Uruguay",
       "countryEnglish": "Uruguay",
+      "question": "Was ist die Hauptstadt von Uruguay?",
       "capitals": [
         "Montevideo"
       ],
@@ -3691,6 +3938,7 @@
       "cca3": "VEN",
       "country": "Venezuela",
       "countryEnglish": "Venezuela",
+      "question": "Was ist die Hauptstadt von Venezuela?",
       "capitals": [
         "Caracas"
       ],
