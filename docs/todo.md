@@ -183,13 +183,6 @@ Referenz gelesen.
         Antwort und treffen bis dahin nicht.
       Nachweis: Parser- und Komponententests, Pflichtmatrix Light/Dark bei 390
       und 1440 px, E2E Suche und Filter.
-- [ ] **KV3 – Trefferliste:** Eine durchgehende, virtualisierte Liste ersetzt
-      die 50er-Seiten je Stapel, im Baum wie in der flachen Ansicht; die
-      Seitennavigation entfällt. Flach zeigt die Trefferzahl und den
-      Stapelpfad; Vor/Zurück im Editor läuft über alle Treffer. Mobil
-      zweizeilige Zeilen mit Datum rechts.
-      Nachweis: Scrolltest mit 50.000 Karten ohne lange Tasks über 50 ms,
-      Pflichtmatrix.
 - [ ] **KV4 – Mehrfachauswahl und Massenaktionen:** Auswahl per Kontrollkästchen,
       Umschalt- und Strg-Klick, `Alle N Treffer auswählen`, mobil Langdrücken;
       eine Auswahlleiste nennt die Anzahl. Aktionen: Stapel ändern, Tags

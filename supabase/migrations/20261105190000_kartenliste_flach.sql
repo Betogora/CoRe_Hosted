@@ -3,8 +3,16 @@ begin;
 -- Kartenverwaltung 2.0, KV3: Die flache Trefferliste läuft über alle Stapel des Suchbereichs. Ohne `p_deck_id` liest
 -- `list_account_card_catalog` stapelübergreifend; der Client schränkt den Bereich mit einem `deck`-Begriff ein. Nur
 -- ein noch unvollständiger lokaler Katalog fragt so, ein vollständiger sucht lokal (ADR-048).
+--
+-- `p_offset` öffnet eine Seite ohne Cursor direkt, damit die durchgehende Liste nach einem Sprung nicht hunderte Seiten
+-- nacheinander lädt. Der Index über `note_id` hält die Volltextsuche über alle Stapel schnell: Ohne ihn schätzt der
+-- Planer `search_text like` auf wenige Treffer und vergleicht jede Katalogzeile mit jedem Inhalt (50.000 Karten:
+-- über 60 s statt 0,6 s).
 
-create or replace function public.list_account_card_catalog(
+create index if not exists card_catalog_active_note_idx on public.card_catalog (user_id, note_id) where deleted_at is null;
+
+drop function public.list_account_card_catalog(text, text, text, text, jsonb, integer, boolean, jsonb);
+create function public.list_account_card_catalog(
   p_deck_id text,
   p_query text default '',
   p_sort_field text default 'sortField',
@@ -12,7 +20,8 @@ create or replace function public.list_account_card_catalog(
   p_cursor jsonb default null,
   p_limit integer default 50,
   p_include_total boolean default false,
-  p_terms jsonb default '[]'::jsonb
+  p_terms jsonb default '[]'::jsonb,
+  p_offset integer default 0
 )
 returns jsonb
 language plpgsql
@@ -163,6 +172,7 @@ begin
         and ($4 is null or (%1$s, catalog_row.id) %2$s (%4$s, coalesce($4->>'id', '')))
       order by %1$s %5$s, catalog_row.id %5$s
       limit $5 + 1
+      offset case when $4 is null then $8 else 0 end
     ), page as materialized (
       select page_candidates.*,
         pg_catalog.row_number() over (order by sort_value %5$s, id %5$s) as page_position
@@ -184,10 +194,13 @@ begin
     )
   $query$, sort_expression, cursor_operator, cursor_output_expression, cursor_expression, sort_direction, search_condition)
   into response
-  using current_user_id, p_deck_id, query_pattern, p_cursor, page_limit, total_count, terms;
+  using current_user_id, p_deck_id, query_pattern, p_cursor, page_limit, total_count, terms, greatest(coalesce(p_offset, 0), 0);
 
   return response;
 end
 $$;
+
+revoke all on function public.list_account_card_catalog(text, text, text, text, jsonb, integer, boolean, jsonb, integer) from public, anon;
+grant execute on function public.list_account_card_catalog(text, text, text, text, jsonb, integer, boolean, jsonb, integer) to authenticated, service_role;
 
 commit;

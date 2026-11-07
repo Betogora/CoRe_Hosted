@@ -177,6 +177,8 @@ export interface CatalogPageRequest {
   searchContext?: CardSearchContext;
   sort?: CardTableSort;
   cursor?: { sortValue: string; id: string } | null;
+  /** Rows to skip when there is no cursor: a page far down the list opens directly (KV3). */
+  offset?: number;
   limit?: number;
   knownTotalCount?: number;
   signal?: AbortSignal;

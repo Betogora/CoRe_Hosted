@@ -175,7 +175,7 @@ test("Katalogseiten zeigen Previews und hydrieren nur den geöffneten Inhalt sam
   repository.close();
 });
 
-test("partielle Kataloge geben exakt die angeforderte Cloud-Keyset-Seite zurück", async () => {
+test("partielle Kataloge holen eine Cloudseite direkt per Versatz und danach per Keyset (KV3)", async () => {
   const userId = randomUUID();
   const graphs = ["Alpha", "Mitte", "Zulu"].map((front, index) => graph("deck-keyset", String(index), front, CREATED_AT));
   const deck = createCoreDeck({ id: "deck-keyset", ownerId: userId, name: "Keyset", source: "manual", cards: graphs.map((entry) => entry.cards[0]) });
@@ -185,26 +185,32 @@ test("partielle Kataloge geben exakt die angeforderte Cloud-Keyset-Seite zurück
   const zulu = all.items.find((entry) => entry.id === "card-2")!;
   await repository.applyCloudCatalogPage({ table: "card_catalog", entities: [], reset: false, cursor: 1 });
 
-  const cursors: Array<unknown> = [];
+  const calls: Array<[unknown, unknown]> = [];
   const service = createWorkspaceHydrationService({
     repository,
     mediaStore: null,
     client: {
       async rpc(name: string, payload: any) {
         assert.equal(name, "list_account_card_catalog");
-        cursors.push(payload.p_cursor);
-        return payload.p_cursor == null
-          ? { data: { items: [catalogRow(alpha)], totalCount: 2, hasMore: true, nextCursor: { sortValue: alpha.sortText, id: alpha.id } }, error: null }
-          : { data: { items: [catalogRow(zulu)], totalCount: 2, hasMore: false, nextCursor: null }, error: null };
+        calls.push([payload.p_cursor, payload.p_offset]);
+        const second = payload.p_cursor != null || payload.p_offset === 1;
+        return second
+          ? { data: { items: [catalogRow(zulu)], totalCount: 2, hasMore: false, nextCursor: null }, error: null }
+          : { data: { items: [catalogRow(alpha)], totalCount: 2, hasMore: true, nextCursor: { sortValue: alpha.sortText, id: alpha.id } }, error: null };
       },
     },
   });
-  const page = await service.queryCardPage({ deckId: deck.id, page: 1, pageSize: 1, sort: { field: "sortField", direction: "asc" } });
+  const sort = { field: "sortField", direction: "asc" } as const;
+  const jumped = await service.queryCardPage({ deckId: deck.id, page: 1, pageSize: 1, sort });
+  assert.deepEqual(calls, [[null, 1]], "eine Anfrage statt aller Seiten davor");
+  assert.deepEqual(jumped.items.map((entry) => entry.id), ["card-2"]);
+  assert.equal(jumped.totalCount, 2);
+  assert.equal(jumped.limitedToLocalCatalog, false);
 
-  assert.deepEqual(cursors, [null, { sortValue: alpha.sortText, id: alpha.id }]);
-  assert.deepEqual(page.items.map((entry) => entry.id), ["card-2"]);
-  assert.equal(page.totalCount, 2);
-  assert.equal(page.limitedToLocalCatalog, false);
+  calls.length = 0;
+  await service.queryCardPage({ deckId: deck.id, page: 0, pageSize: 1, sort });
+  await service.queryCardPage({ deckId: deck.id, page: 1, pageSize: 1, sort });
+  assert.deepEqual(calls, [[null, 0], [{ sortValue: alpha.sortText, id: alpha.id }, 0]], "nach einer geladenen Seite gilt ihr Cursor");
   repository.close();
 });
 

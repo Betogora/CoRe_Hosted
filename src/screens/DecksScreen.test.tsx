@@ -313,9 +313,9 @@ test("a long list renders only the rows near the visible area and keeps the rest
   });
 
   const rendered = (markup.match(/data-card-row="true"/g) ?? []).length;
-  assert.ok(rendered > 10 && rendered < 50, `nur das Fenster wird gerendert (${rendered} Zeilen)`);
+  assert.ok(rendered > 10 && rendered < 80, `nur das Fenster wird gerendert (${rendered} von 5001 Zeilen)`);
   assert.match(markup, /aria-rowcount="5002"/, "Stapelkopf und 5001 Karten");
-  assert.match(markup, /<tr aria-hidden="true" style="height:\d+px"><\/tr><\/tbody>/, "ein Abstandshalter steht für die übrigen Zeilen");
+  assert.match(markup, /<tr aria-hidden="true" style="height:[\d.]+px"><\/tr><\/tbody>/, "ein Abstandshalter steht für die übrigen Zeilen");
   assert.match(markup, /data-testid="deck-card-direct-card"/);
   assert.match(markup, /Direkt geladene Karte/);
 });

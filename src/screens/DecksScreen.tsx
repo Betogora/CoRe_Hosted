@@ -6,7 +6,8 @@ export type DecksScreenCardPageProps = Pick<DecksScreenProps, "cardPages" | "onR
 import { noteTextIndex } from "../coreModel.ts";
 import { collectDeckTreeIds } from "../coreWorkspace.ts";
 import { DECK_DEPTH_INDENT_PX, getVisibleDeckDepth } from "../deckHierarchy.ts";
-import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, createHitListModel, createPagedCardTableModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { CARD_TABLE_PAGE_SIZE, createCardSearchContext, createCardTableModel, createDeckLibraryModel, DEFAULT_CARD_TABLE_SORT, sameCardTableSort, type CardTableSort, type CardTableSortField } from "../libraryModel.ts";
+import { createHitListModel, createPagedCardTableModel } from "./cardList/cardListModel.ts";
 import type { CardCatalogEntry, NoteGraph } from "../workspaceReplica.ts";
 import { ActionButton, IconButton } from "../ui/actionUi.tsx";
 import { useNoteMediaUrls } from "../ui/cardMedia.tsx";
@@ -45,8 +46,8 @@ const deckContentTabs = [
 const CARD_SEARCH_DEBOUNCE_MS = 250;
 /** List key of the flat hit list of a search (KV3); its pages span every deck in scope. */
 const HIT_LIST_KEY = "__hits__";
-/** Heights until a row is measured: deck header, card row, card row with deck path, notice or empty row. */
-const ROW_ESTIMATE = { header: 56, card: 45, hit: 62, notice: 41 } as const;
+/** Heights until a row is measured (desktop): deck header, card row, card row with deck path, notice or empty row. */
+const ROW_ESTIMATE = { header: 42.5, card: 40.72, hit: 57, notice: 41 } as const;
 
 /** Centered state of a content tab without its own content, e.g. `Demnächst verfügbar` or `Keine Unterstapel`. */
 function DeckContentPlaceholder({ label, icon: Icon, title, action, testId }: { label: string; icon: LucideIcon; title: string; action?: React.ReactNode; testId?: string }) {
@@ -362,35 +363,65 @@ export function DecksScreen({
   const selectedPage = selectedListKey ? cardPages?.[selectedListKey] : undefined;
 
   // Rows of the virtual table (KV3): deck headers with their cards in the tree, or the hits of the flat list.
+  // Items hold only the structure; rows are looked up at render, so an arriving page does not rebuild 50,000 items.
   type ListItem =
-    | { kind: "header"; key: string; group: (typeof tableModel.groups)[number]; expanded: boolean; depth: number }
+    | { kind: "header"; key: string; deckId: string; expanded: boolean; depth: number }
     | { kind: "notice"; key: string }
     | { kind: "empty"; key: string }
-    | { kind: "card"; key: string; listKey: string; index: number; depth: number | null; row: (typeof tableModel.groups)[number]["cardRows"][number] | undefined };
+    | { kind: "card"; key: string; listKey: string; index: number; depth: number | null };
+  const limitedListKeys = Object.entries(cardPages ?? {}).filter(([, list]) => list?.limitedToLocalCatalog).map(([listKey]) => listKey).join("\n");
+  const listStructure = hitList
+    ? `hits:${hitList.totalCardCount}`
+    : tableModel.groups.map((group) => `${group.id}:${group.depth}:${group.totalCardCount}:${group.loading ? 1 : 0}:${group.hasChildren ? 1 : 0}:${isGroupExpanded(group.id) ? 1 : 0}`).join("|");
   const items = React.useMemo<ListItem[]>(() => {
     const list: ListItem[] = [];
+    const limited = new Set(limitedListKeys.split("\n"));
     if (hitList) {
-      if (cardPages?.[HIT_LIST_KEY]?.limitedToLocalCatalog) list.push({ kind: "notice", key: "notice:hits" });
-      for (let index = 0; index < hitList.totalCardCount; index += 1) {
-        list.push({ kind: "card", key: `hit:${index}`, listKey: HIT_LIST_KEY, index, depth: null, row: hitList.rowsByIndex.get(index) });
-      }
+      if (limited.has(HIT_LIST_KEY)) list.push({ kind: "notice", key: "notice:hits" });
+      for (let index = 0; index < hitList.totalCardCount; index += 1) list.push({ kind: "card", key: `hit:${index}`, listKey: HIT_LIST_KEY, index, depth: null });
       return list;
     }
     for (const group of tableModel.groups) {
       const expanded = isGroupExpanded(group.id);
       const depth = getVisibleDeckDepth(group.depth);
-      if (showsDeckHeader) list.push({ kind: "header", key: `deck:${group.id}`, group, expanded, depth });
+      if (showsDeckHeader) list.push({ kind: "header", key: `deck:${group.id}`, deckId: group.id, expanded, depth });
       if (!expanded) continue;
-      if (cardPages?.[group.id]?.limitedToLocalCatalog) list.push({ kind: "notice", key: `notice:${group.id}` });
+      if (limited.has(group.id)) list.push({ kind: "notice", key: `notice:${group.id}` });
       for (let index = 0; index < group.totalCardCount; index += 1) {
-        list.push({ kind: "card", key: `card:${group.id}:${index}`, listKey: group.id, index, depth: showsDeckHeader ? depth : null, row: group.rowsByIndex.get(index) });
+        list.push({ kind: "card", key: `card:${group.id}:${index}`, listKey: group.id, index, depth: showsDeckHeader ? depth : null });
       }
       if (!group.totalCardCount && !group.loading && !group.hasChildren) list.push({ kind: "empty", key: `empty:${group.id}` });
     }
     return list;
-    // isGroupExpanded reads the expansion state named here.
-  }, [cardPages, collapsedContentDeckIds, contentDeckId, expandedDeckIdSet, hitList, searchExpandsGroups, showsDeckHeader, tableModel.groups]);
+    // listStructure stands for groups, lengths and expansion; their contents are read at render.
+  }, [listStructure, limitedListKeys, showsDeckHeader]);
+  const rowOf = (item: Extract<ListItem, { kind: "card" }> | undefined) => item
+    ? (item.listKey === HIT_LIST_KEY ? hitList : groupById.get(item.listKey))?.rowsByIndex.get(item.index)
+    : undefined;
   const cardItems = React.useMemo(() => items.filter((item): item is Extract<ListItem, { kind: "card" }> => item.kind === "card"), [items]);
+  // Each list's rows are consecutive, so a row's position follows from where its list starts.
+  const listStarts = React.useMemo(() => {
+    const starts = new Map<string, { card: number; item: number }>();
+    let card = 0;
+    items.forEach((item, index) => {
+      if (item.kind !== "card") return;
+      if (!starts.has(item.listKey)) starts.set(item.listKey, { card, item: index });
+      card += 1;
+    });
+    return starts;
+  }, [items]);
+  const locateSelected = () => {
+    if (!selectedCardId) return null;
+    const lists = hitList ? [[HIT_LIST_KEY, hitList] as const] : tableModel.groups.map((group) => [group.id, group] as const);
+    for (const [listKey, list] of lists) {
+      for (const [index, row] of list.rowsByIndex) {
+        const start = row.id === selectedCardId ? listStarts.get(listKey) : undefined;
+        if (start) return { card: start.card + index, item: start.item + index };
+      }
+    }
+    return null;
+  };
+  const selectedLocation = locateSelected();
   const itemKey = React.useCallback((index: number) => items[index].key, [items]);
   const itemEstimate = React.useCallback((index: number) => {
     const item = items[index];
@@ -429,7 +460,6 @@ export function DecksScreen({
   // Pages of the rows near the visible area load as the list scrolls; a list not shown for the current search, sort
   // and scope loads its first page, which also brings its length. Each page is asked once per list version.
   const requestedPagesRef = React.useRef(new Map<string, DecksCardPage | undefined>());
-  const pendingHitPage = pendingHit ? `${pendingHit.listKey}#${Math.floor(pendingHit.index / CARD_TABLE_PAGE_SIZE)}` : null;
   React.useEffect(() => {
     if (!onRequestCardPage) return;
     if (contentDeckId && contentTab !== "cards") return;
@@ -444,8 +474,8 @@ export function DecksScreen({
     if (hitList && !isShown(HIT_LIST_KEY)) need(HIT_LIST_KEY, 0);
     for (let index = Math.max(0, virtual.start); index <= virtual.end; index += 1) {
       const item = items[index];
-      if (item?.kind === "header" && item.expanded && !isShown(item.group.id)) need(item.group.id, 0);
-      if (item?.kind === "card" && (!item.row || !isShown(item.listKey))) need(item.listKey, Math.floor(item.index / CARD_TABLE_PAGE_SIZE));
+      if (item?.kind === "header" && item.expanded && !isShown(item.deckId)) need(item.deckId, 0);
+      if (item?.kind === "card" && (!rowOf(item) || !isShown(item.listKey))) need(item.listKey, Math.floor(item.index / CARD_TABLE_PAGE_SIZE));
     }
     if (pendingHit) need(pendingHit.listKey, Math.floor(pendingHit.index / CARD_TABLE_PAGE_SIZE));
     const requested = requestedPagesRef.current;
@@ -562,29 +592,32 @@ export function DecksScreen({
   const stableRequestCardSelection = useStableCallback(requestCardSelection);
 
   // Prev/next walks every row of the list in table order (KV3); a row whose page is not loaded yet opens once it is.
-  const selectedPosition = React.useMemo(() => selectedCardId && !onCloseSelectedCard ? cardItems.findIndex((item) => item.row?.id === selectedCardId) : -1, [cardItems, onCloseSelectedCard, selectedCardId]);
+  const selectedPosition = selectedLocation && !onCloseSelectedCard ? selectedLocation.card : -1;
+  const previousHit = selectedPosition >= 0 ? cardItems[selectedPosition - 1] : undefined;
+  const nextHit = selectedPosition >= 0 ? cardItems[selectedPosition + 1] : undefined;
+  const previousRow = rowOf(previousHit);
+  const nextRow = rowOf(nextHit);
   const hits = React.useMemo<CardEditorHitNavigation | null>(() => {
     if (selectedPosition < 0) return null;
-    const step = (item: (typeof cardItems)[number] | undefined) => item
-      ? () => requestDetailAction(() => item.row ? onSelectDeck(item.row.entry.deckId, item.row.id, cardEditorTab) : setPendingHit({ listKey: item.listKey, index: item.index }))
+    const step = (item: (typeof cardItems)[number] | undefined, row: ReturnType<typeof rowOf>) => item
+      ? () => requestDetailAction(() => row ? onSelectDeck(row.entry.deckId, row.id, cardEditorTab) : setPendingHit({ listKey: item.listKey, index: item.index }))
       : null;
-    return { position: selectedPosition + 1, total: cardItems.length, onPrevious: step(cardItems[selectedPosition - 1]), onNext: step(cardItems[selectedPosition + 1]) };
+    return { position: selectedPosition + 1, total: cardItems.length, onPrevious: step(previousHit, previousRow), onNext: step(nextHit, nextRow) };
     // requestDetailAction and onSelectDeck read the latest state when they run.
-  }, [cardEditorTab, cardItems, selectedPosition]);
+  }, [cardEditorTab, cardItems.length, nextHit, nextRow, previousHit, previousRow, selectedPosition]);
   // The neighbouring hits load ahead once the open card is shown, so prev/next opens without waiting.
   React.useEffect(() => {
     if (selectedPosition < 0 || !selectedGraph) return;
-    for (const item of [cardItems[selectedPosition + 1], cardItems[selectedPosition - 1]]) if (item?.row) cardEditor.prefetchCard(item.row.id);
-  }, [cardEditor, cardItems, selectedGraph, selectedPosition]);
+    for (const row of [nextRow, previousRow]) if (row) cardEditor.prefetchCard(row.id);
+  }, [cardEditor, nextRow, previousRow, selectedGraph, selectedPosition]);
+  const pendingRow = pendingHit ? (pendingHit.listKey === HIT_LIST_KEY ? hitList : groupById.get(pendingHit.listKey))?.rowsByIndex.get(pendingHit.index) : undefined;
   React.useEffect(() => {
-    if (!pendingHit) return;
-    const item = cardItems.find((candidate) => candidate.listKey === pendingHit.listKey && candidate.index === pendingHit.index);
-    if (!item?.row) return;
+    if (!pendingHit || !pendingRow) return;
     setPendingHit(null);
-    onSelectDeck(item.row.entry.deckId, item.row.id, cardEditorTab);
-  }, [cardEditorTab, cardItems, onSelectDeck, pendingHit]);
+    onSelectDeck(pendingRow.entry.deckId, pendingRow.id, cardEditorTab);
+  }, [cardEditorTab, onSelectDeck, pendingHit, pendingRow]);
   // The open card's row scrolls into view, e.g. after prev/next, so closing the editor lands on it.
-  const selectedItemIndex = React.useMemo(() => selectedCardId ? items.findIndex((item) => item.kind === "card" && item.row?.id === selectedCardId) : -1, [items, selectedCardId]);
+  const selectedItemIndex = selectedLocation?.item ?? -1;
   React.useEffect(() => {
     if (selectedItemIndex >= 0) virtual.scrollToIndex(selectedItemIndex);
     // Only a newly selected row scrolls; later renders of the same selection leave the scroll position alone.
@@ -922,7 +955,9 @@ export function DecksScreen({
                 {virtual.paddingTop > 0 ? <tr aria-hidden="true" style={{ height: virtual.paddingTop }} /> : null}
                 {items.slice(virtual.start, virtual.end + 1).map((item) => {
                   if (item.kind === "header") {
-                    const { group, expanded } = item;
+                    const group = groupById.get(item.deckId);
+                    if (!group) return null;
+                    const { expanded } = item;
                     return (
                       <tr
                         key={item.key}
@@ -972,7 +1007,8 @@ export function DecksScreen({
                       </tr>
                     );
                   }
-                  if (!item.row) {
+                  const row = rowOf(item);
+                  if (!row) {
                     return (
                       <tr key={item.key} data-virtual-key={item.key} aria-hidden="true" className="border-b border-core-border bg-core-surface" data-card-placeholder="true">
                         <td colSpan={3} className="px-3 py-2.5 sm:px-4">
@@ -981,7 +1017,7 @@ export function DecksScreen({
                       </tr>
                     );
                   }
-                  const { entry: card, frontPreview, nextStudyLabel } = item.row;
+                  const { entry: card, frontPreview, nextStudyLabel } = row;
                   return (
                     <CardTableRowView
                       key={item.key}

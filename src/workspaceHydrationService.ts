@@ -203,37 +203,34 @@ export function createWorkspaceHydrationService({
       return page;
     }
     const { listAccountCardCatalog } = await import("./cloudRepository.ts");
-    for (let page = 0; page <= requestedPage; page += 1) {
-      if (page > 0 && !cursors.has(page)) break;
-      if (page < requestedPage && cursors.has(page + 1)) continue;
-      const cloudPage = await listAccountCardCatalog(client, {
-        deckId: request.deckIds ? null : request.deckId,
-        deckIds: request.deckIds,
-        query: request.query,
-        searchContext: request.searchContext,
-        sort: request.sort,
-        cursor: cursors.get(page) ?? null,
-        limit: Math.min(50, Math.max(1, request.pageSize ?? 50)),
-        knownTotalCount: totalCounts.get(key),
-        signal: request.signal,
-      });
-      request.signal?.throwIfAborted();
-      totalCounts.set(key, cloudPage.totalCount);
-      await repository.applyCloudCatalogPage({
-        table: "card_catalog",
-        entities: cloudPage.items,
-        reset: false,
-        cursor: repository.getReplicaStatus().catalogCursor,
-      });
-      if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(page + 1, cloudPage.nextCursor);
-      if (page === requestedPage) {
-        for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
-          if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);
-        }
-        return cloudPage;
-      }
+    const limit = Math.min(50, Math.max(1, request.pageSize ?? 50));
+    // A page without a known cursor opens by offset: the continuous list jumps far without walking every page before.
+    const cursor = cursors.get(requestedPage);
+    const cloudPage = await listAccountCardCatalog(client, {
+      deckId: request.deckIds ? null : request.deckId,
+      deckIds: request.deckIds,
+      query: request.query,
+      searchContext: request.searchContext,
+      sort: request.sort,
+      cursor: cursor ?? null,
+      offset: cursor === undefined ? requestedPage * limit : 0,
+      limit,
+      knownTotalCount: totalCounts.get(key),
+      signal: request.signal,
+    });
+    request.signal?.throwIfAborted();
+    totalCounts.set(key, cloudPage.totalCount);
+    await repository.applyCloudCatalogPage({
+      table: "card_catalog",
+      entities: cloudPage.items,
+      reset: false,
+      cursor: repository.getReplicaStatus().catalogCursor,
+    });
+    if (cloudPage.hasMore && cloudPage.nextCursor) cursors.set(requestedPage + 1, cloudPage.nextCursor);
+    for (const storedPage of [...cursors.keys()].sort((a, b) => a - b).slice(0, -32)) {
+      if (storedPage !== 0 && storedPage !== requestedPage) cursors.delete(storedPage);
     }
-    return null;
+    return cloudPage;
   };
 
   /**

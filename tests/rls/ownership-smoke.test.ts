@@ -420,6 +420,15 @@ test("lokales Supabase isoliert Nutzer A, Nutzer B und anon über alle accountge
       const searchA = assertNoError(await clientA.rpc("list_account_card_catalog", { ...catalogRequest, p_query: "antwort a" }), "Volltextsuche für Nutzer A");
       assert.ok(searchA.items.some((entry: any) => entry.id === fixtureA.cards.id), "Die Suche findet auch Text der Antwort");
       assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", catalogRequest), "fremden Kartenkatalog für Nutzer B").items, []);
+      // The flat hit list (KV3) reads across decks: no p_deck_id, the scope comes as a deck term.
+      const flatRequest = (ids: string[]) => ({ ...catalogRequest, p_deck_id: null, p_include_total: true, p_terms: [{ kind: "deck", ids, negated: false }] });
+      const flatA = assertNoError(await clientA.rpc("list_account_card_catalog", flatRequest([fixtureA.decks.id, fixtureB.decks.id])), "flache Trefferliste für Nutzer A");
+      assert.ok(flatA.items.some((entry: any) => entry.id === fixtureA.cards.id));
+      assert.ok(flatA.items.every((entry: any) => entry.user_id === undefined || entry.user_id === userA.id), "nur eigene Karten, auch wenn ein fremder Stapel im Bereich steht");
+      assert.equal(flatA.items.some((entry: any) => entry.id === fixtureB.cards.id), false);
+      assert.equal(flatA.totalCount, flatA.items.length);
+      assert.deepEqual(assertNoError(await clientA.rpc("list_account_card_catalog", flatRequest(["kein-stapel"])), "flache Liste ohne Stapel").items, []);
+      assert.deepEqual(assertNoError(await clientB.rpc("list_account_card_catalog", flatRequest([fixtureA.decks.id])), "fremde flache Liste für Nutzer B").items, []);
       const searchRequest = { p_deck_ids: [fixtureA.decks.id], p_query: "antwort a", p_sort_field: "sortField", p_sort_direction: "asc", p_limit: 50 };
       // `Feld:Text` reads the field texts of note_search, the same data the local search uses.
       assertNoError(await clientA.from("notes").update({ search_fields: [{ n: "rückseite", t: "antwort a" }] }).eq("id", fixtureA.notes.id), "Feldtexte setzen");

@@ -14,7 +14,7 @@ import { collectDeckTreeIds } from "./coreWorkspace.ts";
 
 type DateInput = string | number | Date;
 
-interface LibraryOptions {
+export interface LibraryOptions {
   query?: unknown;
   cardLimit?: number;
   now?: DateInput;
@@ -410,86 +410,8 @@ export function createDeckLibraryModel(decks: Deck[] = [], options: LibraryOptio
   return { rows, dailyLearningPlan };
 }
 
-/** Loaded windows of one card list (a deck or the flat hit list); it only counts while query and sort still match. */
-interface CardTableList {
-  pages: Readonly<Record<number, CardCatalogEntry[]>>;
-  pageSize: number;
-  totalCount: number;
-  query: string;
-  sort: CardTableSort;
-}
-
 export function sameCardTableSort(left: CardTableSort, right: CardTableSort) {
   return left.field === right.field && left.direction === right.direction;
-}
-
-/**
- * Rows of one list by position: the loaded pages of the current query and sort, or while they are requested the
- * previous list as a stale placeholder. `totalCount` is the list length the virtual table reserves rows for.
- */
-function createCardTableListRows(
-  list: CardTableList | undefined,
-  { query, cardSort, awaitingPages, fallbackTotal, ...rowOptions }: Pick<LibraryOptions, "dayStartHour" | "timeZone"> & {
-    query: string;
-    cardSort: CardTableSort;
-    awaitingPages: boolean;
-    fallbackTotal: number;
-  },
-) {
-  const current = list && list.query === query && sameCardTableSort(list.sort, cardSort) ? list : undefined;
-  const loading = awaitingPages && !current;
-  const shown = current ?? (loading ? list : undefined);
-  const rowsByIndex = new Map<number, CardTableRow>();
-  for (const [page, items] of Object.entries(shown?.pages ?? {})) {
-    const offset = Number(page) * (shown?.pageSize ?? CARD_TABLE_PAGE_SIZE);
-    items.forEach((entry, index) => rowsByIndex.set(offset + index, createCardTableRow(entry, rowOptions)));
-  }
-  const cardRows = [...rowsByIndex.entries()].sort(([left], [right]) => left - right).map(([, row]) => row);
-  const totalCardCount = Math.max(rowsByIndex.size ? Math.max(...rowsByIndex.keys()) + 1 : 0, Math.floor(shown?.totalCount ?? fallbackTotal));
-  return { rowsByIndex, cardRows, totalCardCount, loading };
-}
-
-/**
- * Card table over catalog lists: each group keeps its locally loaded deck and its rows come from that deck's list;
- * groups whose list is still requested stay visible during a search.
- */
-export function createPagedCardTableModel(
-  decks: Deck[],
-  cardPages: Readonly<Record<string, CardTableList | undefined>> | undefined,
-  options: Omit<LibraryOptions, "query" | "cardSort" | "notesById"> & {
-    query: string;
-    cardSort: CardTableSort;
-    awaitingPages: boolean;
-  },
-) {
-  const { query, cardSort, awaitingPages, ...modelOptions } = options;
-  const originalDecks = new Map(decks.map((deck) => [deck.id, deck]));
-  const baseModel = createCardTableModel(decks.map((deck) => ({ ...deck, cards: [] })), modelOptions);
-  const normalizedQuery = normalizeQuery(query);
-  const searchText = parseCardSearchQuery(query).text;
-  const allGroups = baseModel.allGroups.map((group) => {
-    const list = createCardTableListRows(cardPages?.[group.id], {
-      query, cardSort, awaitingPages, dayStartHour: options.dayStartHour, timeZone: options.timeZone,
-      fallbackTotal: normalizedQuery ? 0 : options.deckSummaries?.get(group.id)?.inventory.totalCards ?? 0,
-    });
-    const deckMatches = Boolean(searchText) && normalizeQuery(group.path).includes(searchText);
-    return { ...group, deck: originalDecks.get(group.id) ?? group.deck, ...list, deckMatches };
-  });
-  const groups = allGroups.filter((group) => (
-    !normalizedQuery
-    || group.deckMatches
-    || group.totalCardCount > 0
-    || group.loading
-  ));
-  return { allGroups, groups, cardSort };
-}
-
-/** The flat hit list of a search over all decks in scope (KV3), from its own card list. */
-export function createHitListModel(
-  list: CardTableList | undefined,
-  options: Pick<LibraryOptions, "dayStartHour" | "timeZone"> & { query: string; cardSort: CardTableSort; awaitingPages: boolean },
-) {
-  return createCardTableListRows(list, { ...options, fallbackTotal: 0 });
 }
 
 export function createCardTableModel(decks: Deck[] = [], options: LibraryOptions = {}) {

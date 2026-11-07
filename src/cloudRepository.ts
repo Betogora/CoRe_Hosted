@@ -634,6 +634,7 @@ export async function listAccountCardCatalog(client: any, request: CatalogPageRe
     p_cursor: request.cursor ?? null,
     p_limit: Math.min(50, Math.max(1, Math.floor(request.limit ?? 50))),
     p_include_total: request.knownTotalCount == null,
+    p_offset: request.cursor ? 0 : Math.max(0, Math.floor(request.offset ?? 0)),
   });
   const { data, error } = await (request.signal ? call.abortSignal(request.signal) : call);
   if (error) throw error;

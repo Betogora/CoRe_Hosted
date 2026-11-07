@@ -82,28 +82,31 @@ export function CardSearchBar({ query, onQueryChange, decks, categories, advance
       </div>
       {hint ? <p id="card-search-hint" className="core-field-hint" data-testid="card-search-unsupported">{hint}</p> : null}
       {children}
-      {terms.length ? (
+      {/* A search always names its number of hits, also without filters (the flat hit list, KV3). */}
+      {terms.length || resultCount !== null ? (
         <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-2" data-testid="card-search-chips">
           {resultCount !== null ? <p className="mr-1.5 shrink-0 whitespace-nowrap core-body font-semibold text-core-text">{resultCount === 1 ? "1 Karte" : `${resultCount} Karten`}</p> : null}
-          <ul className="contents" aria-label="Aktive Filter">
-            {terms.map((term) => {
-              const { label, category, negated } = term === deckTerm
-                ? { label: decks.find((deck) => deck.id === deckValue)?.name ?? deckValue, category: "Stapel", negated: false }
-                : cardSearchTermLabel(term, categories);
-              return (
-                <li key={term} className={`flex min-w-0 max-w-full items-center rounded-inset ${negated ? "bg-core-danger-soft" : "bg-core-subtle"} core-body text-core-text`}>
-                  <span className="flex min-h-8 min-w-0 items-center gap-1.5 pl-2.5 pr-1">
-                    {category ? <span className={negated ? "text-core-danger-text" : "text-core-muted"}>{negated ? `ohne ${category}` : category}</span> : negated ? <span className="text-core-danger-text">ohne</span> : null}
-                    <span className="truncate font-semibold">{label}</span>
-                  </span>
-                  <button type="button" className="grid size-8 shrink-0 place-items-center rounded-inset text-core-muted hover:text-core-text" aria-label={`Filter ${label} entfernen`} onClick={() => onQueryChange(withCardSearchTermState(query, negated ? term.slice(1) : term, ""))}>
-                    <X size={14} aria-hidden="true" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <button type="button" className="ml-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</button>
+          {terms.length ? (
+            <ul className="contents" aria-label="Aktive Filter">
+              {terms.map((term) => {
+                const { label, category, negated } = term === deckTerm
+                  ? { label: decks.find((deck) => deck.id === deckValue)?.name ?? deckValue, category: "Stapel", negated: false }
+                  : cardSearchTermLabel(term, categories);
+                return (
+                  <li key={term} className={`flex min-w-0 max-w-full items-center rounded-inset ${negated ? "bg-core-danger-soft" : "bg-core-subtle"} core-body text-core-text`}>
+                    <span className="flex min-h-8 min-w-0 items-center gap-1.5 pl-2.5 pr-1">
+                      {category ? <span className={negated ? "text-core-danger-text" : "text-core-muted"}>{negated ? `ohne ${category}` : category}</span> : negated ? <span className="text-core-danger-text">ohne</span> : null}
+                      <span className="truncate font-semibold">{label}</span>
+                    </span>
+                    <button type="button" className="grid size-8 shrink-0 place-items-center rounded-inset text-core-muted hover:text-core-text" aria-label={`Filter ${label} entfernen`} onClick={() => onQueryChange(withCardSearchTermState(query, negated ? term.slice(1) : term, ""))}>
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
+          {terms.length ? <button type="button" className="ml-1.5 core-body font-semibold text-core-action hover:underline" onClick={() => onQueryChange(cardSearchText(query))}>Alle zurücksetzen</button> : null}
         </div>
       ) : null}
     </div>

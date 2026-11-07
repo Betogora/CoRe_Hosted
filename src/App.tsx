@@ -31,7 +31,7 @@ import { applyGlobalLearningDefaultsToDeck, createGlobalDefaultDeckSettings } fr
 import type { IndexedDbCoreRepository } from "./indexedDbCoreRepository.ts";
 import { getGlobalSchedulerPreferences, markLearningSettingsCustom, normalizeLearningProfileSource, normalizeLearningSettings, withGlobalSchedulerPreferences, type LearningSettingsInput } from "./deckSettings.ts";
 import { getLearningDayKey, getLearningDayRange, getLearningTimeZone, getNextLearningDayBoundaryDelay } from "./learningDay.ts";
-import { createDeckLibraryModel, sameCardTableSort } from "./libraryModel.ts";
+import { createDeckLibraryModel } from "./libraryModel.ts";
 import { formatLimitSummary } from "./screens/screenConstants.ts";
 import type { DeckLibrarySummary } from "./libraryModel.ts";
 import type { StudyHeatmapModel } from "./studyHeatmapModel.ts";

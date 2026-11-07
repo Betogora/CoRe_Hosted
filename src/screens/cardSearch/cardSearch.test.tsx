@@ -77,3 +77,9 @@ test("eine neue gespeicherte Suche heißt wie ihre Filter und ihr Text", () => {
   const markup = renderToStaticMarkup(<AdvancedCardSearch id="menu" query="" onQueryChange={() => undefined} categories={menu} resultCount={null} onClose={() => undefined} savedSearches={[]} onSavedSearchesChange={() => undefined} />);
   assert.match(markup, /disabled=""[^>]*aria-label="Suche speichern"/, "ein leerer Ausdruck lässt sich nicht speichern");
 });
+
+test("eine reine Textsuche nennt ihre Trefferzahl ohne Filterchips", () => {
+  const markup = renderToStaticMarkup(<CardSearchBar query="lunge" onQueryChange={() => undefined} decks={[parent]} categories={menu} advancedOpen={false} onAdvancedOpenChange={() => undefined} advancedId="menu" resultCount={3} placeholder="Suchen" />);
+  assert.match(markup, />3 Karten</);
+  assert.doesNotMatch(markup, /Aktive Filter|Alle zurücksetzen/);
+});

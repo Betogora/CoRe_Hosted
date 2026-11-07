@@ -39,6 +39,8 @@ function scrollParent(element: HTMLElement): HTMLElement | null {
 
 /** Initial window before the first layout (and in static rendering): enough rows for one screen. */
 const INITIAL_VIEWPORT = { top: 0, height: 900 };
+/** A measured height this close to the assumed one keeps the offsets: recomputing them costs a pass over every row. */
+const MEASURE_TOLERANCE_PX = 0.75;
 
 /**
  * Window of a long list in the page or in the scrolling screen region (KV3): only rows near the visible area render,
@@ -86,23 +88,29 @@ export function useVirtualRows({ count, keyAt, estimate, overscan = 800 }: {
     };
   }, []);
 
-  // Measures the rendered rows; a changed height moves the offsets of all rows below it.
+  const { start, end } = visibleRange(offsets, viewport.top - overscan, viewport.top + viewport.height + overscan);
+  const renderedStart = React.useRef(start);
+  renderedStart.current = start;
+
+  // Measures the rendered rows (in list order from `start`); only a height that differs from the assumed one moves
+  // the offsets of the rows below it.
   React.useLayoutEffect(() => {
     const list = listRef.current;
     if (!list) return;
     let changed = false;
-    for (const row of list.querySelectorAll<HTMLElement>("[data-virtual-key]")) {
+    list.querySelectorAll<HTMLElement>("[data-virtual-key]").forEach((row, position) => {
+      const index = renderedStart.current + position;
+      if (index >= count) return;
       const key = row.dataset.virtualKey!;
       const height = row.getBoundingClientRect().height;
-      if (height > 0 && Math.abs((sizes.current.get(key) ?? -1) - height) > 0.5) {
+      const assumed = sizes.current.get(key) ?? estimate(index);
+      if (height > 0 && Math.abs(assumed - height) > MEASURE_TOLERANCE_PX) {
         sizes.current.set(key, height);
         changed = true;
       }
-    }
+    });
     if (changed) setMeasureVersion((version) => version + 1);
   });
-
-  const { start, end } = visibleRange(offsets, viewport.top - overscan, viewport.top + viewport.height + overscan);
   const total = offsets[count];
   const scrollToIndex = React.useCallback((index: number) => {
     const list = listRef.current;

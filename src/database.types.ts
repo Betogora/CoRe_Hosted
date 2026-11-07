@@ -1094,6 +1094,7 @@ export type Database = {
           p_deck_id: string
           p_include_total?: boolean
           p_limit?: number
+          p_offset?: number
           p_query?: string
           p_sort_direction?: string
           p_sort_field?: string
