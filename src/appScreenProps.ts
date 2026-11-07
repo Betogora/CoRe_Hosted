@@ -1,5 +1,5 @@
-import type { Dispatch, SetStateAction } from "react";
-import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, SettingsTarget, createViewRoute } from "./appNavigation.ts";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { AppRoute, AppViewId, CardEditorTab, DeckContentTab, DeckSettingsSection, GeneralSettingsSection, LearningSettingsSection, SettingsSection, createViewRoute } from "./appNavigation.ts";
 import type { ApkgImportSession } from "./apkgImportSession.ts";
 import type { AiCardVariantSuccess } from "./aiCardVariantContract.ts";
 import type { DeckMutationResult, WorkspaceState } from "./coreWorkspace.ts";
@@ -120,11 +120,12 @@ export interface ExamPlanningScreenProps {
 }
 
 export interface DeckSettingsScreenProps {
+  section: DeckSettingsSection;
+  onSelectSection: (section: DeckSettingsSection) => unknown;
   deck: Deck | null;
   decks: Deck[];
   deckSummaries?: ReadonlyMap<string, DeckLibrarySummary>;
   learningProfiles: LearningProfileTemplate[];
-  settingsTarget?: SettingsTarget | null;
   onSaveSettings: (deckId: string, draft: DeckSettingsDraft, scope: DeckSettingsSaveScope, baseline: DeckSettingsDraft) => DeckMutationResult | null;
   onApplyLearningProfile: (deckId: string, settings: DeckLearningSettingsDraft) => Deck | null;
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
@@ -141,8 +142,10 @@ export interface DeckSettingsScreenProps {
   /** Starts AI variants for the deck's next cards without one, or refreshes variants from an older prompt version; absent while generation is unavailable. */
   onGenerateVariants?: (deck: Deck, mode: "missing" | "refresh") => unknown;
   variantGenerationRunning?: boolean;
-  onBack: () => unknown;
-  backLabel?: string;
+  /** Closes the dialog towards the view it was opened from. */
+  onClose: () => unknown;
+  /** The save bar of the open draft. */
+  footer?: ReactNode;
 }
 
 /** Reads only the cloud offers; null without a signed-in client. Callers check online state themselves (W19). */
@@ -273,10 +276,21 @@ export interface LearnScreenProps {
   onSetDeckExpanded: (surface: DeckExpansionSurface, deckId: string | readonly string[], expanded: boolean) => unknown;
 }
 
+export interface SettingsDialogProps {
+  section: SettingsSection;
+  onSelectSection: (section: SettingsSection) => unknown;
+  onClose: () => unknown;
+  /** The save bar of the open draft. */
+  footer?: ReactNode;
+  children: ReactNode;
+}
+
 export interface SettingsScreenProps {
+  section: GeneralSettingsSection;
+  /** Moves focus to the sync conflicts inside the data area. */
+  focusConflicts?: boolean;
   profile: Profile;
   syncStatus: SyncStatus;
-  settingsTarget?: SettingsTarget | null;
   /** Time of the last successful sync in this session; stays visible while changes are pending. */
   lastSyncedAt?: string | null;
   storageStatus?: WorkspaceStorageStatus | null;
@@ -290,10 +304,13 @@ export interface SettingsScreenProps {
 }
 
 export interface GlobalCardSettingsScreenProps {
+  section: LearningSettingsSection;
+  /** Decks for the switch to the deck settings dialog. */
+  decks: Deck[];
+  onOpenDeckSettings: (deckId: string) => unknown;
   timeZone: string;
   globalSchedulerPreferences: GlobalSchedulerPreferences;
   flagNames: readonly string[];
-  settingsTarget?: SettingsTarget | null;
   learningProfiles: LearningProfileTemplate[];
   onSaveLearningProfiles: (profiles: LearningProfileTemplate[]) => unknown;
   onSaveSettings: (draft: GlobalCardSettingsDraft, scope: GlobalLearningSettingsSaveScope) => Profile | null | Promise<Profile | null>;
@@ -321,6 +338,8 @@ export interface SimulatorScreenProps {
 }
 
 export interface StudyModeProps {
+  /** A settings dialog lies over the session; review shortcuts pause meanwhile. */
+  shortcutsSuspended?: boolean;
   deck: Deck;
   decks: Deck[];
   notes: Note[];

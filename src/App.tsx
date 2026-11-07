@@ -5,7 +5,7 @@ import { ArrowRight, Database, Layers, Sparkles } from "lucide-react";
 import { authPhases, createSyncErrorStatus, createSyncIdleStatus, createSyncPendingStatus, createSyncSavingStatus, shouldShowAppShell, shouldShowAuthGate } from "./accountSession.ts";
 import { aiCardVariantAvoidTexts, createAiGeneratedVariantDraft, requestAiCardVariant } from "./aiCardVariant.ts";
 import { AiCardVariantContractError } from "./aiCardVariantContract.ts";
-import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, type AppRoute, type ReviewReturnContext, type SettingsReturnContext, type SettingsTarget } from "./appNavigation.ts";
+import { createReviewReturnContext, createStudyRoute, createViewRoute, reviewReturnContextToViewRoute, settingsContentSection, settingsSectionGroup, type AppRoute, type DeckSettingsOverlay, type DeckSettingsSection, type GeneralSettingsSection, type LearningSettingsSection, type ReviewReturnContext, type SettingsSection } from "./appNavigation.ts";
 import { startAppMediaRetryLifecycle } from "./appMediaLifecycle.ts";
 import { createEmptyApkgImportSession, disposeApkgImportPreview, hasVisibleApkgImportSession, resolveApkgCreationMethod, type ApkgImportSession } from "./apkgImportSession.ts";
 import type {
@@ -19,7 +19,7 @@ import type {
   SettingsSaveScope,
   GlobalLearningSettingsSaveScope,
 } from "./appScreenProps.ts";
-import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
+import { CreationScreen, DashboardScreen, DeckSettingsScreen, DecksScreen, ExamPlanningScreen, GlobalCardSettingsScreen, HelpScreen, LearnScreen, preloadAppView, preloadSettingsDialog, SettingsDialog, SettingsScreen, SimulatorScreen, StatisticsScreen, StudyMode } from "./appFeatureLoading.tsx";
 import { allowsBrowserSpeculativePreloading, startAdaptiveFeaturePreloading } from "./appFeaturePreload.ts";
 import { startAppSyncLifecycle } from "./appSyncLifecycle.ts";
 import { clearCloudAuthRedirectParams, formatCloudAuthError, getCloudUser, resetCloudPassword, signInCloudAccount, signInWithGoogle, signInWithMagicLink, signOutCloudAccount, signUpCloudAccount, updateCloudPassword } from "./cloudAuth.ts";
@@ -83,7 +83,6 @@ interface EmptyStudyStart {
   hasAdditionalNewCards: boolean;
   /** Cards held back only by daily limits, as a sentence; null when the deck has nothing for today. */
   limitSummary: string | null;
-  returnContext: SettingsReturnContext;
 }
 interface StudyPreparationFailure {
   deckId: string;
@@ -99,24 +98,27 @@ function studyPreparationFailureMessage(error: unknown) {
     : "Die benötigten Karten konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut.";
 }
 
-function reviewReturnContextToSettingsReturnContext(context: ReviewReturnContext): SettingsReturnContext {
-  if (context.view === "today") return { view: "today" };
-  if (context.view === "decks") return { view: "decks", ...(context.cardId ? { cardId: context.cardId } : {}) };
-  return { view: "learn" };
-}
-
-function createEmptyStudyStart(
-  deckId: string,
-  queue: StudyPreparation["queue"],
-  returnContext: ReviewReturnContext,
-): EmptyStudyStart {
+function createEmptyStudyStart(deckId: string, queue: StudyPreparation["queue"]): EmptyStudyStart {
   return {
     deckId,
     deckName: queue.deckName,
     hasAdditionalNewCards: queue.availableNewCards > 0,
     limitSummary: queue.limitSummary.reached ? formatLimitSummary(queue.limitSummary.hiddenDueCount, queue.limitSummary.hiddenNewCount) : null,
-    returnContext: reviewReturnContextToSettingsReturnContext(returnContext),
   };
+}
+
+type SettingsOverlay = { settingsSection?: SettingsSection; deckSettings?: DeckSettingsOverlay };
+
+/** Identifies the open settings dialog and its draft: the general or learning group, or one deck. */
+function settingsOverlayKey(route: SettingsOverlay): string | null {
+  if (route.deckSettings) return `deck:${route.deckSettings.deckId}`;
+  return route.settingsSection ? `settings:${settingsSectionGroup(route.settingsSection)}` : null;
+}
+
+function withSettingsOverlay(route: AppRoute, overlay: SettingsOverlay): AppRoute {
+  return route.mode === "study"
+    ? createStudyRoute(route.deckId, { returnContext: route.returnContext, deckSettings: overlay.deckSettings })
+    : createViewRoute(route.viewId, { ...route, settingsSection: overlay.settingsSection, deckSettings: overlay.deckSettings });
 }
 
 function withDeckLearningSettings(deck: Deck, settings: LearningSettingsInput): Deck {
@@ -225,6 +227,8 @@ export function App() {
   const creationSavingRef = React.useRef(false);
   const [pendingNavigation, setPendingNavigation] = React.useState<PendingNavigation | null>(null);
   const settingsDraftGuardRef = React.useRef<SettingsDraftGuard | null>(null);
+  const settingsOverlayKeyRef = React.useRef<string | null>(null);
+  const settingsHistoryPushedRef = React.useRef(false);
   const [settingsDraftOpen, setSettingsDraftOpen] = React.useState(false);
   const [settingsNavigationBlocked, setSettingsNavigationBlocked] = React.useState(false);
   const [savingSettingsDraft, setSavingSettingsDraft] = React.useState<SettingsSaveScope | "global" | null>(null);
@@ -260,6 +264,11 @@ export function App() {
   }, []);
   const handleBeforeNavigation = React.useCallback((route: AppRoute, source: "app" | "browser") => {
     if (settingsDraftGuardRef.current) {
+      const openOverlay = settingsOverlayKeyRef.current;
+      if (openOverlay && settingsOverlayKey(route) === openOverlay) {
+        setSettingsNavigationBlocked(false);
+        return false;
+      }
       setSettingsNavigationBlocked(true);
       return true;
     }
@@ -286,15 +295,21 @@ export function App() {
     completedDeckId,
     completedCount,
     completionKind,
-    settingsTarget,
-    settingsReturnContext,
     cardEditorReturnContext,
     cardEditorTab,
+    settingsSection,
+    deckSettings,
     navigateToRoute,
     navigateToView: navigateToViewNow,
     getStudyReturnRoute,
+    getCurrentRoute,
     resetBrowserRouteToDefault,
   } = useAppNavigation({ authPhase, defaultViewId: menu.defaultViewId, onBeforeNavigation: handleBeforeNavigation });
+  const settingsOverlay = settingsOverlayKey({ settingsSection: settingsSection ?? undefined, deckSettings: deckSettings ?? undefined });
+  settingsOverlayKeyRef.current = settingsOverlay;
+  React.useEffect(() => {
+    if (!settingsOverlay) settingsHistoryPushedRef.current = false;
+  }, [settingsOverlay]);
   React.useEffect(() => {
     let active = true;
     if (!cloudUser || !supabase) {
@@ -334,15 +349,16 @@ export function App() {
   }, [workspaceRepository]);
   React.useEffect(() => {
     let active = true;
-    if (!workspaceRepository || !focusedDeckId) {
+    const deckId = deckSettings?.deckId;
+    if (!workspaceRepository || !deckId) {
       setFocusedDeckBodyCache(null);
       return () => { active = false; };
     }
-    void workspaceRepository.getDeckBodyResidencySummary(focusedDeckId).then((summary) => {
+    void workspaceRepository.getDeckBodyResidencySummary(deckId).then((summary) => {
       if (active) setFocusedDeckBodyCache(summary);
     });
     return () => { active = false; };
-  }, [focusedDeckId, offlineDecks, workspaceRepository]);
+  }, [deckSettings?.deckId, offlineDecks, workspaceRepository]);
 
   const setApkgImportSession = React.useCallback((update: React.SetStateAction<ApkgImportSession>) => {
     setApkgImportSessionState((current) => {
@@ -537,6 +553,42 @@ export function App() {
     return navigateToViewNow(...args);
   }, [activeView, navigateToViewNow]);
 
+  /** Settings dialogs lie over the current view or session; from the card editor they first leave the card. Switching between them replaces the entry. */
+  const openSettingsOverlay = React.useCallback((overlay: SettingsOverlay) => {
+    const current = getCurrentRoute();
+    const replace = Boolean(settingsOverlayKey(current));
+    const base = current.mode === "view" ? createViewRoute(current.viewId, { ...current, selectedCardId: undefined, cardEditorReturnContext: undefined }) : current;
+    const open = () => {
+      const opened = navigateToRoute(withSettingsOverlay(base, overlay), { replace });
+      if (!replace && settingsOverlayKey(opened)) settingsHistoryPushedRef.current = true;
+    };
+    if (current.mode === "view" && current.selectedCardId && cardDraftGuardRef.current) {
+      setPendingNavigation({ source: "card", run: open });
+      return;
+    }
+    open();
+  }, [getCurrentRoute, navigateToRoute]);
+
+  const openSettings = React.useCallback((section: SettingsSection) => openSettingsOverlay({ settingsSection: section }), [openSettingsOverlay]);
+  const openDeckSettings = React.useCallback((deckId: string, section: DeckSettingsSection = "start") => openSettingsOverlay({ deckSettings: { deckId, section } }), [openSettingsOverlay]);
+
+  const selectSettingsOverlay = React.useCallback((overlay: SettingsOverlay) => {
+    navigateToRoute(withSettingsOverlay(getCurrentRoute(), overlay), { replace: true });
+  }, [getCurrentRoute, navigateToRoute]);
+
+  const closeSettings = React.useCallback(() => {
+    if (settingsDraftGuardRef.current) {
+      setSettingsNavigationBlocked(true);
+      return;
+    }
+    if (settingsHistoryPushedRef.current) {
+      settingsHistoryPushedRef.current = false;
+      window.history.back();
+      return;
+    }
+    navigateToRoute(withSettingsOverlay(getCurrentRoute(), {}), { replace: true });
+  }, [getCurrentRoute, navigateToRoute]);
+
   const handleCreationDraftStateChange = React.useCallback((dirty: boolean, focusDraft: (() => void) | null, saving: boolean) => {
     creationDraftDirtyRef.current = dirty;
     creationDraftFocusRef.current = focusDraft;
@@ -553,8 +605,8 @@ export function App() {
 
   // The editor keeps one services object per account; its actions read the latest app state when they run.
   const prefetchCard = (cardId: string) => workspaceHydrationService?.prefetchCardGraph(cardId);
-  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow, prefetchCard });
-  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, navigateToView, getLearningNow, prefetchCard };
+  const cardEditorActionsRef = React.useRef({ moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, openSettings, getLearningNow, prefetchCard });
+  cardEditorActionsRef.current = { moveDeckCard, applyManualStudyChanges, editDeckCardVariant, removeDeckNoteMedia, openSettings, getLearningNow, prefetchCard };
   const flagNamesKey = state?.profile.uiPreferences.flagNames.join("\n") ?? "";
   const cardEditorServices = React.useMemo<CardEditorServices>(() => {
     const actions = () => cardEditorActionsRef.current;
@@ -593,8 +645,8 @@ export function App() {
         listCardReviewEvents: async (cardId, signal) => (await import("./cloudRepository.ts")).listCardReviewEvents(cloud, cardId, signal),
         listSimilarNotes: async (noteId, signal) => (await import("./cloudRepository.ts")).listSimilarNotes(cloud, noteId, signal),
       } : null,
-      openFlagNames: () => actions().navigateToView("karten-einstellungen", { settingsTarget: "flag-names" }),
-      openSyncConflicts: () => actions().navigateToView("einstellungen", { settingsTarget: "sync-conflicts" }),
+      openFlagNames: () => actions().openSettings("flaggen"),
+      openSyncConflicts: () => actions().openSettings("konflikte"),
     };
   }, [flagNamesKey, supabase, workspaceRepository]);
 
@@ -895,7 +947,7 @@ export function App() {
         return;
       }
       if (preparation.queue.total === 0) {
-        setEmptyStudyStart(createEmptyStudyStart(studyRequest.deckId, preparation.queue, studyRequest.returnContext));
+        setEmptyStudyStart(createEmptyStudyStart(studyRequest.deckId, preparation.queue));
         study.setDecks(null);
         navigateToRoute(reviewReturnContextToViewRoute(studyRequest.returnContext), { replace: true });
         return;
@@ -1599,27 +1651,6 @@ export function App() {
     return persisted.decks;
   }
 
-  function deckSettingsSourceViewRoute(deckId: string | null, clearSelection = false) {
-    if (settingsReturnContext?.view === "today") return createViewRoute("uebersicht");
-    if (settingsReturnContext?.view === "decks") {
-      return createViewRoute("kartenstapel", clearSelection ? {} : {
-        focusedDeckId: deckId,
-        selectedCardId: deckId ? settingsReturnContext.cardId : null,
-      });
-    }
-    return createViewRoute("lernen", clearSelection ? {} : { focusedDeckId: deckId });
-  }
-
-  function deckSettingsReturnRoute(deckId: string | null, clearSelection = false) {
-    if (settingsReturnContext?.view !== "review") {
-      return deckSettingsSourceViewRoute(deckId, clearSelection);
-    }
-    if (clearSelection) return createViewRoute("lernen");
-    return createStudyRoute(settingsReturnContext.reviewReturnContext.deckId, {
-      returnContext: settingsReturnContext.reviewReturnContext.returnContext,
-    });
-  }
-
   function saveGeneralSettings(draft: GeneralSettingsDraft) {
     const currentState = latestStateRef.current;
     if (!currentState) return null;
@@ -1680,11 +1711,7 @@ export function App() {
           deckContent,
           deckContentTab,
         })
-      : activeView === "stapel-einstellungen"
-        ? settingsReturnContext?.view === "review"
-          ? reviewReturnContextToViewRoute(settingsReturnContext.reviewReturnContext.returnContext)
-          : deckSettingsSourceViewRoute(deck.id)
-        : activeView === "lernen"
+      : activeView === "lernen"
         ? createViewRoute("lernen", { focusedDeckId: deck.id })
         : currentRoute;
     const returnContext = createReviewReturnContext(returnRoute, deck.id);
@@ -1697,13 +1724,11 @@ export function App() {
       if (study.preparingKeyRef.current !== preparationKey) return;
       if (!preparation || !preparation.decks.some((candidate) => candidate.id === deck.id)) return;
       if (preparation.queue.total === 0) {
-        setEmptyStudyStart(createEmptyStudyStart(deck.id, preparation.queue, returnContext));
+        setEmptyStudyStart(createEmptyStudyStart(deck.id, preparation.queue));
         return;
       }
       adoptStudyWindow(preparation, preparationKey);
-      navigateToRoute(createStudyRoute(deck.id, { returnContext }), {
-        replace: activeView === "stapel-einstellungen",
-      });
+      navigateToRoute(createStudyRoute(deck.id, { returnContext }));
     } catch (error) {
       setStudyPreparationFailure({
         deckId: deck.id,
@@ -1770,14 +1795,6 @@ export function App() {
     });
   }
 
-  function openDeckSettings(deckId: string, returnContext: SettingsReturnContext = { view: "learn" }, target: SettingsTarget | null = null) {
-    navigateToView("stapel-einstellungen", {
-      focusedDeckId: deckId,
-      settingsReturnContext: returnContext,
-      ...(target ? { settingsTarget: target } : {}),
-    });
-  }
-
   function openDeckCreation(parentDeckId = "") {
     navigateToView("lernen", {
       focusedDeckId: parentDeckId || focusedDeckId,
@@ -1803,51 +1820,6 @@ export function App() {
               </button>
             </div>
           }
-        />
-      );
-    }
-    if (activeView === "stapel-einstellungen") {
-      const returnsToReview = settingsReturnContext?.view === "review";
-      const returnsToDashboard = settingsReturnContext?.view === "today";
-      const returnsToDecks = settingsReturnContext?.view === "decks";
-      return (
-        <DeckSettingsScreen
-          deck={state.decks.find((deck) => deck.id === focusedDeckId) ?? null}
-          decks={state.decks}
-          deckSummaries={deckSummaries}
-          learningProfiles={globalSchedulerPreferences.learningProfiles}
-          settingsTarget={settingsTarget}
-          onSaveSettings={saveDeckSettings}
-          onApplyLearningProfile={(deckId, learning: DeckLearningSettingsDraft) => saveDeckLearningSettings(deckId, learning)}
-          onSaveLearningProfiles={saveLearningProfiles}
-          onDraftStateChange={handleSettingsDraftStateChange}
-          onRequestContextAction={requestSettingsContextAction}
-          onCreateSubdeck={openDeckCreation}
-          onDeleteDeck={async (deckId) => {
-            const result = await deleteDeck(deckId);
-            if (result) navigateToRoute(deckSettingsReturnRoute(null, true));
-            return result;
-          }}
-          onSelectDeck={(deckId) => navigateToViewNow("stapel-einstellungen", { focusedDeckId: deckId }, { replace: true })}
-          onOpenGlobalSettings={() => navigateToView("karten-einstellungen")}
-          variantGenerationRunning={variantBatch.running}
-          onGenerateVariants={workspaceHydrationService ? (deck, mode) => variantBatch.start(deck, { mode }) : undefined}
-          offlineDeck={focusedDeckId ? offlineDecks[focusedDeckId] ?? null : null}
-          bodyCache={focusedDeckBodyCache}
-          onDownloadDeck={workspaceHydrationService && workspaceRepository ? async (deckId) => {
-            const refreshDownload = async () => {
-              const record = await workspaceRepository.getOfflineDeck(deckId);
-              if (record) setOfflineDecks((current) => ({ ...current, [deckId]: record }));
-            };
-            await workspaceHydrationService.downloadDeck(deckId, () => { void refreshDownload(); });
-            await refreshDownload();
-          } : undefined}
-          onRemoveDeckDownload={workspaceHydrationService ? async (deckId) => {
-            await workspaceHydrationService.removeDeckDownload(deckId);
-            setOfflineDecks((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== deckId)));
-          } : undefined}
-          backLabel={returnsToReview ? "Zurück zur Sitzung" : returnsToDashboard ? "Zurück zur Übersicht" : returnsToDecks ? "Zurück zur Kartenverwaltung" : "Zurück zu Lernen"}
-          onBack={() => navigateToRoute(deckSettingsReturnRoute(focusedDeckId))}
         />
       );
     }
@@ -1925,14 +1897,11 @@ export function App() {
           ), { replace: true }) : undefined}
           onMoveDeck={moveDeck}
           onOpenLearn={openLearn}
-          onOpenCardSettings={() => navigateToView("karten-einstellungen")}
+          onOpenCardSettings={() => openSettings("lerntag")}
           onDraftStateChange={handleCardDraftStateChange}
           expandedDeckIds={state.profile.uiPreferences.deckManagerExpandedDeckIds}
           onSetDeckExpanded={saveDeckExpansion}
-          onOpenDeckSettings={(deckId) => openDeckSettings(deckId, {
-            view: "decks",
-            ...(selectedCardId ? { cardId: selectedCardId } : {}),
-          })}
+          onOpenDeckSettings={(deckId) => openDeckSettings(deckId)}
         />
       );
     }
@@ -1995,8 +1964,8 @@ export function App() {
           onOpenCardCreation={() => openCardCreation(focusedDeckId)}
           onOpenDecks={openDecks}
           onOpenDeckContent={(deckId) => navigateToView("kartenstapel", { focusedDeckId: deckId, deckContent: true })}
-          onOpenCardSettings={() => navigateToView("karten-einstellungen")}
-          onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "learn" })}
+          onOpenCardSettings={() => openSettings("lerntag")}
+          onOpenDeckSettings={(deckId) => openDeckSettings(deckId)}
           onSetDeckCoreMode={requestDeckCoreMode}
           onMoveDeck={moveDeck}
           collapsedDeckIds={state.profile.uiPreferences.learnCollapsedDeckIds}
@@ -2044,48 +2013,7 @@ export function App() {
     if (activeView === "hilfe") {
       return <HelpScreen />;
     }
-    if (activeView === "karten-einstellungen") {
-      return (
-        <GlobalCardSettingsScreen
-          timeZone={learningTimeZone}
-          globalSchedulerPreferences={globalSchedulerPreferences}
-          flagNames={state.profile.uiPreferences.flagNames}
-          settingsTarget={settingsTarget}
-          learningProfiles={globalSchedulerPreferences.learningProfiles}
-          onSaveLearningProfiles={saveLearningProfiles}
-          onSaveSettings={saveGlobalCardSettings}
-          onDraftStateChange={handleSettingsDraftStateChange}
-          onNavigate={navigateToView}
-          simulationOffsetMinutes={simulationOffsetMinutes}
-          simulationDateLabel={formatSimulationDate(learningNow)}
-          pomodoroTimer={pomodoroTimer}
-          onStartPomodoro={startPomodoro}
-        />
-      );
-    }
-    if (activeView === "einstellungen") {
-      return (
-        <SettingsScreen
-          profile={state.profile}
-          syncStatus={syncStatus}
-          settingsTarget={settingsTarget}
-          lastSyncedAt={lastSyncedAt}
-          storageStatus={storageStatus}
-          onSaveSettings={saveGeneralSettings}
-          onDraftStateChange={handleSettingsDraftStateChange}
-          onSyncNow={syncNow}
-          onListConflicts={listSyncConflicts}
-          onResolveConflict={resolveSyncConflict}
-          onSignOut={() => {
-            if (!settingsDraftGuardRef.current) return signOut();
-            setSettingsNavigationBlocked(true);
-            return Promise.resolve();
-          }}
-          onNavigate={navigateToView}
-        />
-      );
-    }
-    return <DashboardScreen onResetPomodoro={resetPomodoro} onPausePomodoro={() => changePomodoroPause(true)} onResumePomodoro={() => changePomodoroPause(false)} pomodoroTimer={pomodoroTimer} onStartPomodoro={startPomodoro} state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId, { view: "today" })} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
+    return <DashboardScreen onResetPomodoro={resetPomodoro} onPausePomodoro={() => changePomodoroPause(true)} onResumePomodoro={() => changePomodoroPause(false)} pomodoroTimer={pomodoroTimer} onStartPomodoro={startPomodoro} state={state} deckSummaries={deckSummaries} studyHeatmap={studyHeatmap} now={learningNow} onNavigate={navigateToView} onStartDeck={startDeck} onStartAdditionalCards={startAdditionalCards} onCreateDemo={createDemo} onSetDeckCoreMode={requestDeckCoreMode} onMoveDeck={moveDeck} onOpenDeckSettings={(deckId) => openDeckSettings(deckId)} onSetDeckExpanded={saveDeckExpansion} onStartExamUnit={startExamUnit} onLoadExamPlanningData={loadExamPlanningData} onLoadExamSummaryAvailability={loadExamSummaryAvailability} onLoadExamLocalCardIds={workspaceHydrationService?.listLocalCardIds} onSaveExamTasks={saveExamTasks} />;
   }
 
   if (authPhase === "checking-session") {
@@ -2137,6 +2065,69 @@ export function App() {
         deckSummaries,
       }).rows.find((row) => row.id === studyRequest.deckId)?.dailyLearningSession ?? null
     : null;
+  const settingsSaveBarState = {
+    savingScope: savingSettingsDraft,
+    navigationBlocked: settingsNavigationBlocked,
+    failed: settingsSaveFailed,
+    onSave: (scope?: SettingsSaveScope) => { void saveSettingsDraft(scope); },
+    onDiscard: discardSettingsDraft,
+  };
+  const deckSettingsDialog = deckSettings ? (
+    <React.Suspense fallback={null}>
+      <DeckSettingsScreen
+        section={deckSettings.section}
+        onSelectSection={(section) => selectSettingsOverlay({ deckSettings: { deckId: deckSettings.deckId, section } })}
+        deck={state.decks.find((deck) => deck.id === deckSettings.deckId) ?? null}
+        decks={state.decks}
+        deckSummaries={deckSummaries}
+        learningProfiles={globalSchedulerPreferences.learningProfiles}
+        onSaveSettings={saveDeckSettings}
+        onApplyLearningProfile={(deckId, learning: DeckLearningSettingsDraft) => saveDeckLearningSettings(deckId, learning)}
+        onSaveLearningProfiles={saveLearningProfiles}
+        onDraftStateChange={handleSettingsDraftStateChange}
+        onRequestContextAction={requestSettingsContextAction}
+        onCreateSubdeck={openDeckCreation}
+        onDeleteDeck={async (deckId) => {
+          const result = await deleteDeck(deckId);
+          if (result) {
+            const current = getCurrentRoute();
+            const deleted = new Set(result.deletedDeckIds);
+            navigateToRoute(current.mode === "study"
+              ? createViewRoute("lernen")
+              : createViewRoute(current.viewId, { ...current, deckSettings: undefined, ...(current.focusedDeckId && deleted.has(current.focusedDeckId) ? { focusedDeckId: undefined, selectedCardId: undefined } : {}) }), { replace: true });
+          }
+          return result;
+        }}
+        onSelectDeck={(deckId) => selectSettingsOverlay({ deckSettings: { deckId, section: deckSettings.section } })}
+        onOpenGlobalSettings={() => openSettings("tagesrunde")}
+        variantGenerationRunning={variantBatch.running}
+        onGenerateVariants={workspaceHydrationService ? (deck, mode) => variantBatch.start(deck, { mode }) : undefined}
+        offlineDeck={offlineDecks[deckSettings.deckId] ?? null}
+        bodyCache={focusedDeckBodyCache}
+        onDownloadDeck={workspaceHydrationService && workspaceRepository ? async (deckId) => {
+          const refreshDownload = async () => {
+            const record = await workspaceRepository.getOfflineDeck(deckId);
+            if (record) setOfflineDecks((current) => ({ ...current, [deckId]: record }));
+          };
+          await workspaceHydrationService.downloadDeck(deckId, () => { void refreshDownload(); });
+          await refreshDownload();
+        } : undefined}
+        onRemoveDeckDownload={workspaceHydrationService ? async (deckId) => {
+          await workspaceHydrationService.removeDeckDownload(deckId);
+          setOfflineDecks((current) => Object.fromEntries(Object.entries(current).filter(([id]) => id !== deckId)));
+        } : undefined}
+        onClose={closeSettings}
+        footer={settingsDraftOpen ? (
+          <SettingsSaveBar
+            {...settingsSaveBarState}
+            open
+            mode={state.decks.some((deck) => deck.parentDeckId === deckSettings.deckId) ? "deck-tree" : "deck"}
+          />
+        ) : null}
+      />
+    </React.Suspense>
+  ) : null;
+
   if (studyRequest && !study.decks) return <LoadingScreen message="Lernsitzung wird vorbereitet." />;
   if (studyRequest && studyDeck) {
     return (
@@ -2175,16 +2166,8 @@ export function App() {
               returnContext: studyRequest.returnContext,
             },
           })}
-          onEditDeck={(currentDeckId) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToViewNow("pruefungen") : navigateToViewNow("stapel-einstellungen", {
-            focusedDeckId: currentDeckId,
-            settingsReturnContext: {
-              view: "review",
-              reviewReturnContext: {
-                deckId: studyRequest.deckId,
-                returnContext: studyRequest.returnContext,
-              },
-            },
-          })}
+          onEditDeck={(currentDeckId) => currentDeckId === EXAM_SESSION_DECK_ID ? navigateToViewNow("pruefungen") : openDeckSettings(currentDeckId)}
+          shortcutsSuspended={Boolean(deckSettings)}
           flagNames={cardEditorServices.flagNames}
           onSetCardStudyState={setStudyCardStudyState}
           onSetDeckReviewOrder={setStudyDeckReviewOrder}
@@ -2197,7 +2180,7 @@ export function App() {
           hasMoreCards={study.hasMoreCards}
           onLoadMoreCards={loadMoreStudyCards}
         />
-      </React.Suspense></NoteLayoutContext.Provider>
+      </React.Suspense>{deckSettingsDialog}</NoteLayoutContext.Provider>
     );
   }
 
@@ -2215,7 +2198,12 @@ export function App() {
           syncStatus={syncStatus}
           manualSync={state.profile.uiPreferences.syncIntervalMinutes === 0}
           onSyncNow={() => void syncNow()}
-          onOpenSyncSettings={(target) => navigateToView("einstellungen", { settingsTarget: target })}
+          onOpenSyncSettings={(target) => openSettings(target === "sync" ? "daten" : "konflikte")}
+          settingsOpen={Boolean(settingsSection)}
+          onOpenSettings={() => openSettings("start")}
+          onPreloadSettings={() => {
+            if (featurePreloadingAllowed && allowsBrowserSpeculativePreloading()) void preloadSettingsDialog();
+          }}
           onPreloadView={(viewId) => {
             if (featurePreloadingAllowed && allowsBrowserSpeculativePreloading()) void preloadAppView(viewId);
           }}
@@ -2229,17 +2217,65 @@ export function App() {
           </div>
         </section>
       </div>
-      <SettingsSaveBar
-        open={settingsDraftOpen}
-        savingScope={savingSettingsDraft}
-        navigationBlocked={settingsNavigationBlocked}
-        failed={settingsSaveFailed}
-        mode={activeView === "stapel-einstellungen"
-          ? (focusedDeckId && state.decks.some((deck) => deck.parentDeckId === focusedDeckId) ? "deck-tree" : "deck")
-          : activeView === "karten-einstellungen" ? "learning-global" : "global"}
-        onSave={(scope) => { void saveSettingsDraft(scope); }}
-        onDiscard={discardSettingsDraft}
-      />
+      {settingsSection ? (
+        <React.Suspense fallback={null}>
+          <SettingsDialog
+            section={settingsSection}
+            onSelectSection={(section) => selectSettingsOverlay({ settingsSection: section })}
+            onClose={closeSettings}
+            footer={settingsDraftOpen ? (
+              <SettingsSaveBar
+                {...settingsSaveBarState}
+                open
+                mode={settingsSectionGroup(settingsSection) === "learning" ? "learning-global" : "global"}
+              />
+            ) : null}
+          >
+            <React.Suspense fallback={<ScreenLoadingFallback />}>
+              {settingsSectionGroup(settingsSection) === "general" ? (
+                <SettingsScreen
+                  section={settingsContentSection(settingsSection) as GeneralSettingsSection}
+                  focusConflicts={settingsSection === "konflikte"}
+                  profile={state.profile}
+                  syncStatus={syncStatus}
+                  lastSyncedAt={lastSyncedAt}
+                  storageStatus={storageStatus}
+                  onSaveSettings={saveGeneralSettings}
+                  onDraftStateChange={handleSettingsDraftStateChange}
+                  onSyncNow={syncNow}
+                  onListConflicts={listSyncConflicts}
+                  onResolveConflict={resolveSyncConflict}
+                  onSignOut={() => {
+                    if (!settingsDraftGuardRef.current) return signOut();
+                    setSettingsNavigationBlocked(true);
+                    return Promise.resolve();
+                  }}
+                  onNavigate={navigateToView}
+                />
+              ) : (
+                <GlobalCardSettingsScreen
+                  section={settingsContentSection(settingsSection) as LearningSettingsSection}
+                  timeZone={learningTimeZone}
+                  globalSchedulerPreferences={globalSchedulerPreferences}
+                  flagNames={state.profile.uiPreferences.flagNames}
+                  learningProfiles={globalSchedulerPreferences.learningProfiles}
+                  onSaveLearningProfiles={saveLearningProfiles}
+                  onSaveSettings={saveGlobalCardSettings}
+                  onDraftStateChange={handleSettingsDraftStateChange}
+                  onNavigate={navigateToView}
+                  decks={state.decks}
+                  onOpenDeckSettings={(deckId) => openDeckSettings(deckId)}
+                  simulationOffsetMinutes={simulationOffsetMinutes}
+                  simulationDateLabel={formatSimulationDate(learningNow)}
+                  pomodoroTimer={pomodoroTimer}
+                  onStartPomodoro={startPomodoro}
+                />
+              )}
+            </React.Suspense>
+          </SettingsDialog>
+        </React.Suspense>
+      ) : null}
+      {deckSettingsDialog}
       {variantBatch.batch ? (
         <VariantGenerationBar
           deck={variantBatch.batch.deck}
@@ -2331,7 +2367,7 @@ export function App() {
         onConfirm={emptyStudyStart?.hasAdditionalNewCards ? () => {
           const target = emptyStudyStart;
           setEmptyStudyStart(null);
-          openDeckSettings(target.deckId, target.returnContext, "new-cards-per-day");
+          openDeckSettings(target.deckId, "neue-karten");
         } : undefined}
       />
       <ActionDialog

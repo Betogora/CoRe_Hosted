@@ -5,6 +5,7 @@ import { readActiveAccountState, resetToFreshLocalState } from "./support/appSta
 import { collectBrowserErrors } from "./support/browserErrors.ts";
 import { chooseCoreSelectOption } from "./support/coreSelect.ts";
 import { loadE2EEnvironment } from "./support/e2eEnvironment.ts";
+import { deckSettingsDialog, openSettingsArea, settingsDialog } from "./support/settingsDialog.ts";
 
 const PDF_SELECTION_FIXTURE = fileURLToPath(new URL("../fixtures/pdf-selection.pdf", import.meta.url));
 
@@ -616,12 +617,17 @@ test("browser back returns from settings to the previous screen", async ({ page 
 
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+  const dialog = settingsDialog(page);
+  await expect(dialog).toBeVisible();
+  await expect(page).toHaveURL(/\/lernen\?settings=start$/);
   await expect(page.getByRole("button", { name: "Export herunterladen" })).toHaveCount(0);
-  for (const section of ["Konto", "Daten & Synchronisierung", "Über uns"]) {
-    await expect(page.getByRole("heading", { name: section, exact: true })).toBeVisible();
+  for (const label of ["Konto", "Daten & Synchronisierung", "Über uns"]) {
+    await expect(dialog.getByRole("navigation", { name: "Bereiche der Einstellungen" }).getByRole("button", { name: label, exact: true })).toBeVisible();
   }
-  await expect(page.getByLabel("Login-E-Mail")).not.toBeEditable();
-  await expect(page.getByText("Die Login-E-Mail kann derzeit nicht in CoRe geändert werden.")).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Konto", exact: true })).toBeVisible();
+  await expect(dialog.getByLabel("Login-E-Mail")).not.toBeEditable();
+  await expect(dialog.getByText("Derzeit in CoRe nicht änderbar.")).toBeVisible();
+  await openSettingsArea(dialog, "ueber");
   await expect(page.getByText("Impressum", { exact: true })).toBeVisible();
   await expect(page.getByText("Datenschutzerklärung", { exact: true })).toBeVisible();
   await expect(page.getByText("In Vorbereitung", { exact: true })).toHaveCount(2);
@@ -632,9 +638,11 @@ test("browser back returns from settings to the previous screen", async ({ page 
   await expect(page).toHaveURL(/\/hilfe$/);
   await expect(page.getByRole("heading", { name: "Wie CoRe dein Lernen stärkt" })).toBeVisible();
   await page.goBack();
-  await expect(page).toHaveURL(/\/einstellungen(?:#.*)?$/);
+  await expect(page).toHaveURL(/\/lernen\?settings=ueber$/);
+  await expect(dialog).toBeVisible();
 
   await page.goBack();
+  await expect(dialog).toHaveCount(0);
   await expect(page.getByTestId(`learn-deck-row-${DECK_IDS.europe}`)).toBeVisible();
   await expect(page).toHaveURL(/\/lernen$/);
 });
@@ -642,26 +650,32 @@ test("browser back returns from settings to the previous screen", async ({ page 
 test("offline changes stay pending and flush when the browser reconnects", async ({ page, context }: any) => {
   await resetToFreshLocalState(page);
   await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
-  const displayName = page.getByLabel("Anzeigename");
+  const dialog = settingsDialog(page);
+  const displayName = dialog.getByLabel("Anzeigename");
   const originalDisplayName = await displayName.inputValue();
-  const syncNow = page.getByRole("button", { name: "Jetzt synchronisieren" });
+  const dataArea = dialog.getByLabel("Daten & Synchronisierung");
 
   try {
     await context.setOffline(true);
-    await expect(page.getByLabel("Daten & Synchronisierung").getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
-    await expect(syncNow).toBeEnabled();
+    await openSettingsArea(dialog, "daten");
+    await expect(dataArea.getByText("Offline. Die Verbindung wird automatisch erneut geprüft.")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Jetzt synchronisieren" })).toBeEnabled();
 
+    await openSettingsArea(dialog, "konto");
     await displayName.fill(`${originalDisplayName} Offline`);
     await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
-    await expect(page.getByLabel("Daten & Synchronisierung").getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
+    await openSettingsArea(dialog, "daten");
+    await expect(dataArea.getByText("Offline. Eine Änderung bleibt vorgemerkt und wird automatisch synchronisiert.")).toBeVisible();
 
     await context.setOffline(false);
-    await expect(page.getByLabel("Daten & Synchronisierung").getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+    await expect(dataArea.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
 
+    await openSettingsArea(dialog, "konto");
     await displayName.fill(originalDisplayName);
     await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
     await page.waitForTimeout(800);
-    await expect(page.getByLabel("Daten & Synchronisierung").getByText(/Zuletzt synchronisiert:/)).toBeVisible();
+    await openSettingsArea(dialog, "daten");
+    await expect(dataArea.getByText(/Zuletzt synchronisiert:/)).toBeVisible();
   } finally {
     await context.setOffline(false);
   }
@@ -753,19 +767,12 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(viewport);
-    const settingsNavigation = page.locator(viewport.width >= 1280 ? '[data-in-page-navigation="desktop"]' : '[data-in-page-navigation="compact"]');
-    await expect(settingsNavigation).toBeVisible();
-    if (viewport.width < 1280 && await settingsNavigation.locator("details").getAttribute("open") === null) {
-      await settingsNavigation.locator("summary").click();
-    }
-    await expect(settingsNavigation.getByRole("link")).toHaveCount(3);
+    await openSettingsArea(deckSettingsDialog(page), "stapel");
+    await expect(deckSettingsDialog(page).locator("[data-settings-section]")).toHaveCount(3);
     await expect(page.getByLabel("Stapelname")).toBeVisible();
     await expect(page.getByRole("button", { name: "Icon auswählen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Farbe auswählen" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Name und Darstellung speichern" })).toHaveCount(0);
-    await expect(page.getByTestId("learning-settings-new-cards")).toBeVisible();
-    await expect(page.getByTestId("learning-settings-max-reviews")).toBeVisible();
-    await expect(page.getByTestId("learning-settings-maximum-interval")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     const targetSizes = await page.getByRole("button", { name: /^(Icon auswählen|Farbe auswählen)$/ }).evaluateAll(
       (buttons: HTMLElement[]) => buttons.map((button) => ({ width: button.getBoundingClientRect().width, height: button.getBoundingClientRect().height })),
@@ -788,11 +795,13 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await expect(page.getByRole("switch", { name: "Kurze Abstände verdoppeln" })).toHaveCount(0);
 
   await page.setViewportSize({ width: 1440, height: 900 });
-  for (const [testId, nextValue] of [
-    ["learning-settings-new-cards", nextNewCards],
-    ["learning-settings-max-reviews", nextMaximumReviews],
-    ["learning-settings-maximum-interval", nextMaximumInterval],
+  const dialog = deckSettingsDialog(page);
+  for (const [section, testId, nextValue] of [
+    ["tagesrunde", "learning-settings-new-cards", nextNewCards],
+    ["tagesrunde", "learning-settings-max-reviews", nextMaximumReviews],
+    ["scheduler", "learning-settings-maximum-interval", nextMaximumInterval],
   ] as const) {
+    await openSettingsArea(dialog, section);
     const field = page.getByTestId(testId);
     await field.fill("");
     await expect(field).toHaveValue("");
@@ -806,10 +815,8 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.maximumReviewsPerDay).toBe(initialMaximumReviews);
   expect((await readAppState(page)).decks.find((deck: { id: string }) => deck.id === DECK_IDS.africa).deckSettings.schedulerProfile.maximumIntervalDays).toBe(initialMaximumInterval);
 
-  await page.getByLabel("Varianten einsetzen ab Haltbarkeit").click();
-  await page.getByRole("option", { name: "Später · 60 Tage" }).click();
-  await page.getByLabel("Aktive Varianten pro Karte").click();
-  await page.getByRole("option", { name: "3 Varianten" }).click();
+  await page.getByRole("group", { name: "Varianten einsetzen ab Haltbarkeit" }).getByRole("button", { name: "Später", exact: true }).click();
+  await page.getByRole("group", { name: "Aktive Varianten pro Karte" }).getByRole("button", { name: "3", exact: true }).click();
   await expect(saveBar).toHaveCount(1);
   await saveBar.getByRole("button", { name: "Speichern" }).click();
   await expect(saveBar).toHaveCount(0);
@@ -835,12 +842,16 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   });
 
   await page.reload();
+  await expect(deckSettingsDialog(page)).toBeVisible();
+  await openSettingsArea(deckSettingsDialog(page), "tagesrunde");
   await expect(page.getByTestId("learning-settings-new-cards")).toHaveValue(String(nextNewCards));
   await expect(page.getByTestId("learning-settings-max-reviews")).toHaveValue(String(nextMaximumReviews));
+  await openSettingsArea(deckSettingsDialog(page), "scheduler");
   await expect(page.getByTestId("learning-settings-maximum-interval")).toHaveValue(String(nextMaximumInterval));
   await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
-  await expect(page.getByLabel("Varianten einsetzen ab Haltbarkeit")).toContainText("Später · 60 Tage");
-  await expect(page.getByLabel("Aktive Varianten pro Karte")).toContainText("3 Varianten");
+  await expect(page.getByRole("group", { name: "Varianten einsetzen ab Haltbarkeit" }).getByRole("button", { name: "Später", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByTestId("learning-settings-variant-threshold")).toContainText("60 Tage");
+  await expect(page.getByRole("group", { name: "Aktive Varianten pro Karte" }).getByRole("button", { name: "3", exact: true })).toHaveAttribute("aria-pressed", "true");
 
   await page.goto(`/decks/${DECK_IDS.africa}/review?returnView=learn&returnDeck=${DECK_IDS.africa}`);
   await page.getByRole("button", { name: "Antwort anzeigen" }).click();
@@ -848,7 +859,7 @@ test("deck settings save appearance, learning, scheduler and CoRe values togethe
   await expect.poll(async () => (await readAppState(page)).decks
     .find((candidate: { id: string }) => candidate.id === DECK_IDS.africa)
     .deckSettings.schedulerProfile.desiredRetention).toBe(nextRetentionPercent / 100);
-  await page.goto(`/stapel-einstellungen?deck=${DECK_IDS.africa}&returnView=learn`);
+  await page.goto(`/lernen?settingsDeck=${DECK_IDS.africa}&settings=scheduler`);
   await expect(page.getByTestId("learning-settings-retention")).toHaveValue(String(nextRetentionPercent));
   expect(runtimeErrors).toEqual([]);
 });
@@ -860,14 +871,15 @@ test("[Vertrag: KI-Variante, Reveal, Originalkarte und Variantenverwaltung] @gol
   await mainMenu(page).getByRole("button", { name: "Lernen" }).click();
   await page.getByRole("button", { name: "Stapeloptionen für Welt-Hauptstädte / Afrika" }).click();
   await page.getByTestId(`deck-options-menu-${DECK_IDS.africa}`).getByRole("button", { name: "Einstellungen" }).click();
+  await openSettingsArea(deckSettingsDialog(page), "tagesrunde");
   await page.getByTestId("learning-settings-new-cards").fill("0");
   await page.getByTestId("learning-settings-max-reviews").fill("1");
   // The fixture card lasts about 18 days, below the default threshold of 21.
-  await page.getByRole("combobox", { name: "Varianten einsetzen ab Haltbarkeit" }).click();
-  await page.getByRole("option", { name: "Früher · 7 Tage" }).click();
+  await openSettingsArea(deckSettingsDialog(page), "scheduler");
+  await page.getByRole("group", { name: "Varianten einsetzen ab Haltbarkeit" }).getByRole("button", { name: "Früher", exact: true }).click();
   await page.getByTestId("settings-save-bar").getByRole("button", { name: "Speichern" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Stapeleinstellungen wurden für den Stapel gespeichert." })).toBeVisible();
-  await page.getByRole("button", { name: "Zurück zu Lernen" }).click();
+  await deckSettingsDialog(page).getByRole("button", { name: "Stapeleinstellungen schließen" }).click();
   await mainMenu(page).getByRole("button", { name: "Karten", exact: true }).click();
   await expect(page.getByTestId(`deck-toggle-${DECK_IDS.africa}`)).toHaveAttribute("aria-expanded", "true");
   await page.getByRole("button", { name: "Was ist die Hauptstadt von Côte d'Ivoire?" }).click();
@@ -1132,6 +1144,7 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     await page.reload();
     await expect(page.getByRole("navigation", { name: /Hauptmen/ })).toBeVisible();
     await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    await openSettingsArea(settingsDialog(page), "daten");
     const panel = page.getByTestId("sync-conflict-panel");
     const conflict = page.getByTestId(`sync-conflict-${conflictId}`);
     await expect(conflict.getByRole("heading", { name: "Lokaler E2E-Stapel" })).toBeVisible();
@@ -1140,7 +1153,7 @@ test("@beta-core @hosted-core settings resolve and persist an account-bound sync
     await conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Später entscheiden" }).click();
     await expect(panel.getByText("Für später zurückgestellt (1)")).toBeVisible();
     await page.reload();
-    await page.getByRole("button", { name: "Einstellungen öffnen" }).click();
+    await expect(settingsDialog(page)).toBeVisible();
     await expect(page.getByRole("heading", { name: "Für später zurückgestellt (1)" })).toBeVisible();
     await page.getByRole("button", { name: "Wieder aufnehmen" }).click();
     await expect(conflict.getByRole("button", { name: "Lokaler E2E-Stapel: Cloud übernehmen" })).toBeVisible();

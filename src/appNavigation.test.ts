@@ -10,6 +10,8 @@ import {
   normalizeAppRoute,
   parseAppRouteFromUrl,
   reviewReturnContextToViewRoute,
+  settingsContentSection,
+  settingsSectionGroup,
 } from "./appNavigation.ts";
 
 test("deck content retains its scope and editor selection through URL and history", () => {
@@ -54,17 +56,27 @@ test("roundtrips the simulator route without additional context", () => {
   assert.equal(appRouteToUrl(route), "/simulator");
 });
 
-test("roundtrips the global card-settings route without deck context", () => {
-  const route = parseAppRouteFromUrl("/karten-einstellungen");
+test("the settings dialog is an area on top of the current view and replaces the former settings pages", () => {
+  const route = parseAppRouteFromUrl("/lernen?deck=deck_a&settings=flaggen");
 
-  assert.deepEqual(route, { mode: "view", viewId: "karten-einstellungen" });
-  assert.equal(appRouteToUrl(route), "/karten-einstellungen");
+  assert.deepEqual(route, { mode: "view", viewId: "lernen", focusedDeckId: "deck_a", settingsSection: "flaggen" });
+  assert.equal(appRouteToUrl(route), "/lernen?deck=deck_a&settings=flaggen");
+  assert.deepEqual(parseAppRouteFromUrl("/?settings=unbekannt"), { mode: "view", viewId: "uebersicht" });
+  for (const formerPage of ["/einstellungen", "/karten-einstellungen?target=flag-names"]) {
+    assert.deepEqual(parseAppRouteFromUrl(formerPage), { mode: "view", viewId: "uebersicht" });
+  }
+});
+
+test("settings areas resolve to their content and draft group", () => {
+  assert.equal(settingsContentSection("start"), "konto");
+  assert.equal(settingsContentSection("konflikte"), "daten");
+  for (const section of ["start", "konto", "daten", "konflikte", "ueber"] as const) assert.equal(settingsSectionGroup(section), "general");
+  for (const section of ["lerntag", "tagesrunde", "scheduler", "flaggen", "fokus"] as const) assert.equal(settingsSectionGroup(section), "learning");
 });
 
 test("roundtrips deck, card and creation context without validating navigational ids away", () => {
   const learnRoute = parseAppRouteFromUrl("/lernen?deck=deck_deep&parent=deck_parent");
   const deckRoute = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&card=card_b");
-  const deckSettingsRoute = parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b");
   const creationRoute = parseAppRouteFromUrl("/neue-karten?method=manual&deck=deck_b&done=deck_new&doneCount=46&doneKind=import");
 
   assert.deepEqual(learnRoute, {
@@ -80,7 +92,6 @@ test("roundtrips deck, card and creation context without validating navigational
     selectedCardId: "card_b",
     cardEditorTab: "general",
   });
-  assert.deepEqual(deckSettingsRoute, { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" });
   assert.deepEqual(creationRoute, {
     mode: "view",
     viewId: "neue-karten",
@@ -92,85 +103,23 @@ test("roundtrips deck, card and creation context without validating navigational
   });
   assert.equal(appRouteToUrl(learnRoute), "/lernen?deck=deck_deep&parent=deck_parent");
   assert.equal(appRouteToUrl(deckRoute), "/kartenstapel?deck=deck_a&card=card_b&cardTab=general");
-  assert.equal(appRouteToUrl(deckSettingsRoute), "/stapel-einstellungen?deck=deck_b");
   assert.equal(appRouteToUrl(creationRoute), "/neue-karten?method=manual&deck=deck_b&done=deck_new&doneCount=46&doneKind=import");
 });
 
-test("roundtrips the deck-settings origin and keeps direct links on the safe learning fallback", () => {
-  const decksOrigin = parseAppRouteFromUrl(
-    "/stapel-einstellungen?deck=deck_b&returnView=decks&returnCard=card_b",
-  );
-  const learnOrigin = parseAppRouteFromUrl(
-    "/stapel-einstellungen?deck=deck_b&returnView=learn",
-  );
-  const dashboardOrigin = parseAppRouteFromUrl(
-    "/stapel-einstellungen?deck=deck_b&returnView=today",
-  );
+test("the deck settings dialog lies over views and sessions instead of having its own route", () => {
+  const overView = parseAppRouteFromUrl("/kartenstapel?deck=deck_a&settingsDeck=deck_b&settings=scheduler");
+  assert.deepEqual(overView, { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_a", deckSettings: { deckId: "deck_b", section: "scheduler" } });
+  assert.equal(appRouteToUrl(overView), "/kartenstapel?deck=deck_a&settingsDeck=deck_b&settings=scheduler");
 
-  assert.deepEqual(decksOrigin, {
-    mode: "view",
-    viewId: "stapel-einstellungen",
-    focusedDeckId: "deck_b",
-    settingsReturnContext: { view: "decks", cardId: "card_b" },
-  });
-  assert.deepEqual(learnOrigin, {
-    mode: "view",
-    viewId: "stapel-einstellungen",
-    focusedDeckId: "deck_b",
-    settingsReturnContext: { view: "learn" },
-  });
-  assert.deepEqual(dashboardOrigin, {
-    mode: "view",
-    viewId: "stapel-einstellungen",
-    focusedDeckId: "deck_b",
-    settingsReturnContext: { view: "today" },
-  });
-  assert.equal(
-    appRouteToUrl(decksOrigin),
-    "/stapel-einstellungen?deck=deck_b&returnView=decks&returnCard=card_b",
-  );
-  assert.equal(appRouteToUrl(learnOrigin), "/stapel-einstellungen?deck=deck_b&returnView=learn");
-  assert.equal(appRouteToUrl(dashboardOrigin), "/stapel-einstellungen?deck=deck_b&returnView=today");
-  assert.deepEqual(
-    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&returnView=external&returnCard=ignored"),
-    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
-  );
-});
+  const overSession = parseAppRouteFromUrl("/decks/deck_b/review?returnView=learn&returnDeck=deck_b&settingsDeck=deck_b&settings=neue-karten");
+  assert.deepEqual(overSession, { mode: "study", deckId: "deck_b", returnContext: { view: "learn", deckId: "deck_b" }, deckSettings: { deckId: "deck_b", section: "neue-karten" } });
+  assert.equal(appRouteToUrl(overSession), "/decks/deck_b/review?returnView=learn&returnDeck=deck_b&settingsDeck=deck_b&settings=neue-karten");
 
-test("roundtrips only the allowlisted deck-settings target", () => {
-  const route = parseAppRouteFromUrl(
-    "/stapel-einstellungen?deck=deck_b&returnView=learn&target=new-cards-per-day",
-  );
-
-  assert.deepEqual(route, {
-    mode: "view",
-    viewId: "stapel-einstellungen",
-    focusedDeckId: "deck_b",
-    settingsTarget: "new-cards-per-day",
-    settingsReturnContext: { view: "learn" },
-  });
-  assert.equal(
-    appRouteToUrl(route),
-    "/stapel-einstellungen?deck=deck_b&target=new-cards-per-day&returnView=learn",
-  );
-  assert.deepEqual(
-    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&target=scheduler"),
-    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
-  );
-});
-
-test("roundtrips only sync targets on the general settings route", () => {
-  for (const settingsTarget of ["sync", "sync-conflicts"] as const) {
-    const route = parseAppRouteFromUrl(`/einstellungen?target=${settingsTarget}`);
-    assert.deepEqual(route, { mode: "view", viewId: "einstellungen", settingsTarget });
-    assert.equal(appRouteToUrl(route), `/einstellungen?target=${settingsTarget}`);
+  assert.deepEqual(parseAppRouteFromUrl("/lernen?settingsDeck=deck_b&settings=konto"), { mode: "view", viewId: "lernen", deckSettings: { deckId: "deck_b", section: "start" } });
+  assert.deepEqual(createViewRoute("lernen", { settingsSection: "konto", deckSettings: { deckId: "deck_b", section: "stapel" } }), { mode: "view", viewId: "lernen", deckSettings: { deckId: "deck_b", section: "stapel" } });
+  for (const formerPage of ["/stapel-einstellungen?deck=deck_b&returnView=learn", "/stapel-einstellungen?deck=deck_b&target=new-cards-per-day"]) {
+    assert.deepEqual(parseAppRouteFromUrl(formerPage), { mode: "view", viewId: "uebersicht" });
   }
-  assert.deepEqual(parseAppRouteFromUrl("/einstellungen?target=new-cards-per-day"), { mode: "view", viewId: "einstellungen" });
-  assert.deepEqual(
-    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_b&target=sync"),
-    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_b" },
-  );
-  assert.equal(appRouteToUrl(createViewRoute("lernen", { settingsTarget: "sync" })), "/lernen");
 });
 
 test("roundtrips an allowlisted review return from the selected card editor", () => {
@@ -199,36 +148,6 @@ test("roundtrips an allowlisted review return from the selected card editor", ()
       cardEditorReturnContext: { deckId: "deck_child" },
     }),
     { mode: "view", viewId: "kartenstapel", focusedDeckId: "deck_child", selectedCardId: "card_current", cardEditorTab: "general" },
-  );
-});
-
-test("roundtrips an allowlisted review return from deck settings", () => {
-  const settingsRoute = createViewRoute("stapel-einstellungen", {
-    focusedDeckId: "deck_root",
-    settingsReturnContext: {
-      view: "review",
-      reviewReturnContext: {
-        deckId: "deck_root",
-        returnContext: { view: "decks", deckId: "deck_child", cardId: "card_current" },
-      },
-    },
-  });
-  const url = appRouteToUrl(settingsRoute);
-
-  assert.match(url, /^\/stapel-einstellungen\?deck=deck_root&returnView=review&reviewReturn=/);
-  assert.deepEqual(parseAppRouteFromUrl(url), settingsRoute);
-  assert.deepEqual(
-    parseAppRouteFromUrl("/stapel-einstellungen?deck=deck_root&returnView=review&reviewReturn=https%3A%2F%2Fevil.example"),
-    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_root" },
-  );
-  assert.deepEqual(
-    normalizeAppRoute({
-      mode: "view",
-      viewId: "stapel-einstellungen",
-      focusedDeckId: "deck_root",
-      settingsReturnContext: { view: "review", reviewReturnContext: { deckId: "deck_root" } },
-    }),
-    { mode: "view", viewId: "stapel-einstellungen", focusedDeckId: "deck_root" },
   );
 });
 
@@ -352,9 +271,4 @@ test("card editor tabs come from a fixed list and open by entry (W5, W6)", () =>
   }
   assert.deepEqual(parseAppRouteFromUrl("/kartenstapel?deck=deck-1&card=card-1&cardTab=media"), fromTable);
   assert.equal("cardEditorTab" in createViewRoute("kartenstapel", { focusedDeckId: "deck-1", cardEditorTab: "study" }), false);
-});
-
-test("the learning settings accept only the flag-names target", () => {
-  assert.equal(appRouteToUrl(createViewRoute("karten-einstellungen", { settingsTarget: "flag-names" })), "/karten-einstellungen?target=flag-names");
-  assert.deepEqual(parseAppRouteFromUrl("/karten-einstellungen?target=sync"), createViewRoute("karten-einstellungen"));
 });

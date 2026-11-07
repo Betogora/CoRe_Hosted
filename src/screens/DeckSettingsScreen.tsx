@@ -1,6 +1,7 @@
 import * as Popover from "@radix-ui/react-popover";
 import React from "react";
-import { ArrowLeft, CalendarRange, Download, FolderPlus, Layers, RefreshCw, SlidersHorizontal, Sparkles, Trash2 } from "lucide-react";
+import { CalendarRange, Download, FolderPlus, Layers, RefreshCw, Sparkles, Trash2 } from "lucide-react";
+import type { DeckSettingsSection } from "../appNavigation.ts";
 import type { DeckSettingsSaveScope, DeckSettingsScreenProps, SettingsSaveOutcome } from "../appScreenProps.ts";
 import { CARD_VARIANT_BATCH_LIMIT } from "../cardVariantBatch.ts";
 import { createDefaultDeckSettings, normalizeDeckAppearance } from "../coreModel.ts";
@@ -9,17 +10,28 @@ import { ActionButton, CrossLinkButton } from "../ui/actionUi.tsx";
 import { ColorPicker } from "../ui/ColorPicker.tsx";
 import { DeckAppearanceIcon, deckIconOptions, getDeckIcon } from "../ui/deckAppearance.tsx";
 import { useSuccessToast } from "../ui/feedbackUi.tsx";
+import { CoreNumberField } from "../ui/CoreNumberField.tsx";
 import { LearningSettingsPanel } from "../ui/LearningSettingsPanel.tsx";
-import { ActionDialog, CoreModeControl, CoreSegmentedControl, EmptyState, PageHeader, SoftPanel } from "../ui/coreUi.tsx";
-import { InPageNavigation } from "../ui/InPageNavigation.tsx";
+import { ActionDialog, CoreModeControl, CoreSegmentedControl, EmptyState } from "../ui/coreUi.tsx";
+import { SettingsDialogFrame } from "./SettingsDialogFrame.tsx";
 import { DeckSelect } from "../ui/selectUi.tsx";
 import { createDeckLearningSettingsDraft, createDeckSettingsDraft, normalizeDeckSettingsDraft, settingsDraftsEqual, type DeckLearningSettingsDraft, type DeckSettingsDraft } from "../settingsDraft.ts";
 
-const deckSettingsSections = [
-  { id: "deck-identity", label: "Stapel", icon: Layers },
-  { id: "deck-daily-profiles", label: "Tagesrunde & Lernprofile", icon: CalendarRange },
-  { id: "deck-scheduler-core", label: "Scheduler & CoRe", icon: Sparkles },
-] as const;
+type DeckSettingsArea = Exclude<DeckSettingsSection, "start" | "neue-karten">;
+
+const deckSettingsGroups = [{
+  items: [
+    { section: "stapel", label: "Stapel", icon: Layers },
+    { section: "tagesrunde", label: "Tagesrunde & Lernprofile", icon: CalendarRange },
+    { section: "scheduler", label: "Scheduler & CoRe", icon: Sparkles },
+  ],
+}] as const;
+
+const areaHeadingIds: Record<DeckSettingsArea, string> = {
+  stapel: "deck-identity-heading",
+  tagesrunde: "deck-daily-heading",
+  scheduler: "deck-scheduler-heading",
+};
 
 function DeckIconPicker({ value, color, onChange }: { value: string; color: string; onChange: (iconKey: string) => void }) {
   const SelectedIcon = getDeckIcon(value);
@@ -57,7 +69,7 @@ const LEECH_ACTION_OPTIONS = [
   { value: "suspend", label: "Aussetzen" },
 ] as const;
 
-export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfiles, settingsTarget = null, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onBack, backLabel = "Zurück zu Lernen" }: DeckSettingsScreenProps) {
+export function DeckSettingsScreen({ section, onSelectSection, deck, decks, deckSummaries, learningProfiles, onSaveSettings, onApplyLearningProfile, onSaveLearningProfiles, onDraftStateChange, onRequestContextAction, onCreateSubdeck, onDeleteDeck, onSelectDeck, onOpenGlobalSettings, offlineDeck = null, bodyCache = null, onDownloadDeck, onRemoveDeckDownload, onGenerateVariants, variantGenerationRunning = false, onClose, footer }: DeckSettingsScreenProps) {
   const initialDraft = deck ? createDeckSettingsDraft(deck) : null;
   const [baseline, setBaseline] = React.useState<DeckSettingsDraft | null>(initialDraft);
   const [draft, setDraft] = React.useState<DeckSettingsDraft | null>(initialDraft);
@@ -67,6 +79,9 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   const [deleting, setDeleting] = React.useState(false);
   const [feedback, setFeedback] = React.useState("");
   const [offlineBusy, setOfflineBusy] = React.useState(false);
+  const targetsNewCards = section === "neue-karten";
+  const area: DeckSettingsArea = section === "start" ? "stapel" : targetsNewCards ? "tagesrunde" : section;
+  const showAreaList = section === "start";
   const setSuccessToast = useSuccessToast();
   const deckRow = React.useMemo(() => deleteDialogOpen && deck ? createDeckLibraryModel(decks, { deckSummaries }).rows.find((row) => row.id === deck.id) ?? null : null, [deck, decks, deckSummaries, deleteDialogOpen]);
 
@@ -88,14 +103,18 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   }, [deck?.id, persistedDraftKey]);
 
   React.useEffect(() => {
-    if (!deck || settingsTarget !== "new-cards-per-day") return undefined;
+    if (deck) document.getElementById(areaHeadingIds[area])?.focus();
+  }, [area, deck?.id]);
+
+  React.useEffect(() => {
+    if (!deck || !targetsNewCards) return undefined;
     const frame = window.requestAnimationFrame(() => {
       const field = document.getElementById("learning-settings-new-cards");
       field?.scrollIntoView({ behavior: "smooth", block: "center" });
       field?.focus({ preventScroll: true });
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [deck?.id, settingsTarget]);
+  }, [deck?.id, targetsNewCards]);
 
   const activeDraft = deck && draftDeckIdRef.current === deck.id && draft ? draft : persistedDraft;
   const draftBelongsToDeck = draftDeckIdRef.current === deck?.id;
@@ -141,24 +160,40 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
     return () => onDraftStateChange(null);
   }, [dirty, draftGuard, onDraftStateChange]);
 
+  const deckSwitch = (
+    <DeckSelect ariaLabel="Stapel für Einstellungen auswählen" value={deck?.id ?? ""} decks={decks} specialOption={deck ? undefined : { value: "", label: "Stapel auswählen", icon: Layers }} onValueChange={(deckId) => { if (deckId && deckId !== deck?.id) onSelectDeck(deckId); }} testId="deck-settings-select" className="w-full" />
+  );
+
   if (!deck) {
     return (
-      <div className="grid min-w-0 gap-6">
-        <div className="flex flex-wrap items-end justify-between gap-4"><PageHeader eyebrow="Stapel" title="Stapeleinstellungen" /><CrossLinkButton onSelect={onOpenGlobalSettings}>Lerneinstellungen</CrossLinkButton></div>
+      <SettingsDialogFrame<DeckSettingsArea>
+        title="Stapeleinstellungen"
+        closeLabel="Stapeleinstellungen schließen"
+        navigationLabel="Bereiche der Stapeleinstellungen"
+        testId="deck-settings-dialog"
+        groups={[]}
+        activeSection="stapel"
+        showAreaList={false}
+        onSelectSection={onSelectSection}
+        onClose={onClose}
+      >
         {decks.length > 0 ? (
-          <SoftPanel className="p-6 sm:p-8">
-            <div className="mx-auto grid max-w-xl gap-4 text-center">
-              <span className="mx-auto grid size-12 place-items-center rounded-control bg-core-subtle text-core-action"><SlidersHorizontal size={20} aria-hidden="true" /></span>
-              <h2 className="core-heading-2 font-semibold text-core-text">Stapel auswählen</h2>
-              <p className="core-body text-core-secondary">Wähle einen vorhandenen Stapel, um seine Darstellung, Lernprofile und CoRe-Parameter zu bearbeiten.</p>
-              <DeckSelect ariaLabel="Stapel für Einstellungen auswählen" value="" decks={decks} specialOption={{ value: "", label: "Stapel auswählen", icon: Layers }} onValueChange={(deckId) => { if (deckId) onSelectDeck(deckId); }} testId="deck-settings-select" />
-              <button type="button" onClick={onBack} className="mx-auto core-action-secondary"><ArrowLeft size={16} aria-hidden="true" />{backLabel}</button>
+          <section className="core-settings-section" aria-labelledby="deck-settings-select-heading">
+            <h2 id="deck-settings-select-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Stapel auswählen</h2>
+            <div className="core-settings-list">
+              <div className="core-settings-row">
+                <div className="core-settings-row-text">
+                  <span className="core-settings-row-title">Stapel</span>
+                  <p className="core-settings-row-hint">Darstellung, Lernprofil und CoRe-Werte gelten je Stapel.</p>
+                </div>
+                <div className="core-settings-row-control md:w-72">{deckSwitch}</div>
+              </div>
             </div>
-          </SoftPanel>
+          </section>
         ) : (
-          <EmptyState icon={Layers} title="Noch kein Stapel vorhanden" body="Erstelle oder importiere zuerst einen Stapel." action={<button type="button" onClick={onBack} className="core-action-secondary"><ArrowLeft size={16} aria-hidden="true" />{backLabel}</button>} />
+          <EmptyState icon={Layers} title="Noch kein Stapel vorhanden" body="Erstelle oder importiere zuerst einen Stapel." />
         )}
-      </div>
+      </SettingsDialogFrame>
     );
   }
   if (!activeDraft) return null;
@@ -214,75 +249,115 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
   }
 
   return (
-    <div className="grid min-w-0 gap-6" data-testid={`deck-settings-${deck.id}`}>
-      <div className="flex min-w-0 flex-wrap items-end justify-between gap-4">
-        <PageHeader eyebrow="Stapel-Einstellungen" title={<span className="flex min-w-0 items-center gap-3"><DeckAppearanceIcon appearance={activeDraft.appearance} className="size-control" iconSize={20} data-testid="deck-settings-title-icon" /><span className="min-w-0 break-words" data-testid="deck-settings-title-name">{deck.name}</span></span>} />
-        <div className="flex flex-wrap gap-2"><CrossLinkButton onSelect={onOpenGlobalSettings}>Lerneinstellungen</CrossLinkButton><ActionButton type="button" variant="secondary" icon={ArrowLeft} onClick={onBack}>{backLabel}</ActionButton></div>
-      </div>
-
-      <InPageNavigation ariaLabel="Bereiche der Stapeleinstellungen" items={deckSettingsSections}>
-      <section id="deck-identity" className="grid gap-4" aria-labelledby="deck-identity-heading">
-        <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Stapel</h2>
-        <SoftPanel className="p-6">
-          <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] gap-4 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-end">
-            <label className="col-span-2 grid min-w-0 gap-2 core-field-label md:col-span-1">Name<input className="core-field min-w-0" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} /></label>
-            <label className="grid gap-2 core-field-label">Icon<DeckIconPicker value={activeDraft.appearance.iconKey} color={activeDraft.appearance.iconColor} onChange={(iconKey) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconKey }) } : current)} /></label>
-            <label className="grid gap-2 core-field-label">Farbe<ColorPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" className="justify-self-start" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} /></label>
-          </div>
-          {feedback ? <p className="core-status-error mt-3 core-body" role="alert">{feedback}</p> : null}
-          <div className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,12rem)_auto] sm:items-end" data-testid="deck-settings-leech">
-            <label className="grid min-w-0 gap-2 core-body font-semibold text-core-muted">
-              Lernbremse ab Fehlern
-              <input type="number" min={1} max={99} className="min-h-control min-w-0 rounded-control border border-core-border px-3 text-core-text" value={activeDraft.leech.leechThreshold}
-                onChange={(event) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechThreshold: Number(event.target.value) } } : current)} />
-            </label>
-            <CoreSegmentedControl
-              ariaLabel="Aktion der Lernbremse"
-              className="core-segmented-touch"
-              options={LEECH_ACTION_OPTIONS}
-              value={activeDraft.leech.leechAction}
-              onValueChange={(leechAction) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechAction } } : current)}
-            />
-          </div>
-          <div className="mt-6 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-end" data-testid="deck-settings-primary-controls">
-            <ActionButton type="button" variant="secondary" icon={FolderPlus} className="justify-self-start" onClick={() => onRequestContextAction(() => onCreateSubdeck(deck.id))}>Unterstapel anlegen</ActionButton>
-            <div className="grid gap-2">
-              <span className="core-field-label">CoRe-Modus</span>
-              <CoreModeControl value={activeDraft.learning.coreMode} onChange={(coreMode) => changeLearningDraft({ ...activeDraft.learning, coreMode })} />
-            </div>
-            <ActionButton type="button" variant="destructive" icon={Trash2} className="justify-self-start md:justify-self-end" onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
-          </div>
-          {onGenerateVariants && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-4" data-testid="deck-settings-variant-generation">
-              <div>
-                <p className="core-heading-3 text-core-text">Kartenvarianten</p>
-                <p className="mt-0.5 core-body text-core-secondary">{variantGenerationRunning ? "Es läuft bereits eine Generierung." : `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`}</p>
+    <SettingsDialogFrame<DeckSettingsArea>
+      title={<><DeckAppearanceIcon appearance={activeDraft.appearance} className="size-8 shrink-0" iconSize={18} data-testid="deck-settings-title-icon" /><span className="min-w-0 truncate" data-testid="deck-settings-title-name">{deck.name}</span></>}
+      closeLabel="Stapeleinstellungen schließen"
+      navigationLabel="Bereiche der Stapeleinstellungen"
+      testId="deck-settings-dialog"
+      groups={deckSettingsGroups}
+      activeSection={area}
+      showAreaList={showAreaList}
+      onSelectSection={onSelectSection}
+      onShowAreaList={() => onSelectSection("start")}
+      onClose={onClose}
+      navigationHeader={<>{deckSwitch}<CrossLinkButton className="w-fit" onSelect={onOpenGlobalSettings}>Standardwerte</CrossLinkButton></>}
+      footer={footer}
+    >
+    <div className="min-w-0" data-testid={`deck-settings-${deck.id}`}>
+      {area === "stapel" ? (
+        <section id="deck-identity" className="core-settings-section" aria-labelledby="deck-identity-heading">
+          <h2 id="deck-identity-heading" tabIndex={-1} className="core-heading-2 font-semibold text-core-text outline-none">Stapel</h2>
+          <div className="core-settings-list" data-testid="deck-settings-primary-controls">
+            <div className="core-settings-row">
+              <div className="core-settings-row-text">
+                <label htmlFor="deck-settings-name" className="core-settings-row-title">Name</label>
+                {feedback ? <p className="core-field-error" role="alert">{feedback}</p> : null}
               </div>
-              <div className="flex flex-wrap gap-2">
-                <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateVariants(deck, "missing")}>Varianten generieren</ActionButton>
-                <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
+              <div className="core-settings-row-control">
+                <input id="deck-settings-name" className="core-field min-w-0 md:w-72" value={activeDraft.name} aria-label="Stapelname" data-testid="deck-settings-name-input" onChange={(event) => { setDraft((current) => current ? { ...current, name: event.target.value } : current); setFeedback(""); }} />
               </div>
             </div>
-          ) : null}
-          {onDownloadDeck && onRemoveDeckDownload ? (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-control border border-core-border bg-core-subtle p-4">
-              <div>
-                <p className="core-heading-3 text-core-text">Offline-Nutzung</p>
-                <p className="mt-0.5 core-body text-core-secondary">{offlineLabel}{offlineDeck?.state === "downloading" && offlineDeck.expectedCardCount > 0 ? ` · ${offlineDeck.verifiedCardCount} von ${offlineDeck.expectedCardCount} Karten` : ""}</p>
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Icon</span>
+              <div className="core-settings-row-control">
+                <DeckIconPicker value={activeDraft.appearance.iconKey} color={activeDraft.appearance.iconColor} onChange={(iconKey) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconKey }) } : current)} />
               </div>
-              {offlineDeck && offlineDeck.state !== "none" ? (
-                <div className="flex flex-wrap gap-2">
-                  {offlineDeck.state === "outdated" || offlineDeck.state === "error" ? <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>{offlineDeck.state === "error" ? "Download fortsetzen" : "Aktualisieren"}</ActionButton> : null}
-                  <ActionButton type="button" variant="secondary" icon={Trash2} disabled={offlineBusy || offlineDeck.state === "downloading"} onClick={() => void updateOfflineDownload(true)}>Offline-Daten entfernen</ActionButton>
+            </div>
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Farbe</span>
+              <div className="core-settings-row-control">
+                <ColorPicker value={activeDraft.appearance.iconColor} ariaLabel="Farbe auswählen" onValueCommit={(iconColor) => setDraft((current) => current ? { ...current, appearance: normalizeDeckAppearance({ ...current.appearance, iconColor }) } : current)} />
+              </div>
+            </div>
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">CoRe-Modus</span>
+              <div className="core-settings-row-control">
+                <CoreModeControl value={activeDraft.learning.coreMode} onChange={(coreMode) => changeLearningDraft({ ...activeDraft.learning, coreMode })} />
+              </div>
+            </div>
+            {onGenerateVariants && createDefaultDeckSettings(deck.deckSettings).coreMode === "on" ? (
+              <div className="core-settings-row" data-testid="deck-settings-variant-generation">
+                <div className="core-settings-row-text">
+                  <span className="core-settings-row-title">Kartenvarianten</span>
+                  <p className="core-settings-row-hint">{variantGenerationRunning ? "Es läuft bereits eine Generierung." : `Je eine Variante für bis zu ${CARD_VARIANT_BATCH_LIMIT} Karten, nacheinander im Hintergrund.`}</p>
                 </div>
-              ) : <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>Offline verfügbar machen</ActionButton>}
+                <div className="core-settings-row-control">
+                  <ActionButton type="button" variant="secondary" icon={Sparkles} disabled={variantGenerationRunning} onClick={() => onGenerateVariants(deck, "missing")}>Varianten generieren</ActionButton>
+                  <ActionButton type="button" variant="secondary" icon={RefreshCw} disabled={variantGenerationRunning} onClick={() => setRefreshDialogOpen(true)}>Varianten neu generieren</ActionButton>
+                </div>
+              </div>
+            ) : null}
+            <div className="core-settings-row" data-testid="deck-settings-leech">
+              <label htmlFor="deck-settings-leech-threshold" className="core-settings-row-title">Lernbremse ab Fehlern</label>
+              <div className="core-settings-row-control">
+                <CoreNumberField id="deck-settings-leech-threshold" value={activeDraft.leech.leechThreshold} min={1} max={99} unit="Fehler" className="w-32"
+                  onChange={(leechThreshold) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechThreshold } } : current)} />
+                <CoreSegmentedControl
+                  ariaLabel="Aktion der Lernbremse"
+                  className="core-segmented-touch"
+                  options={LEECH_ACTION_OPTIONS}
+                  value={activeDraft.leech.leechAction}
+                  onValueChange={(leechAction) => setDraft((current) => current ? { ...current, leech: { ...current.leech, leechAction } } : current)}
+                />
+              </div>
             </div>
-          ) : null}
-        </SoftPanel>
-      </section>
-
-      <LearningSettingsPanel draft={activeDraft.learning} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onDraftChange={changeLearningDraft} onApplyProfile={applyLearningProfile} />
-      </InPageNavigation>
+            {onDownloadDeck && onRemoveDeckDownload ? (
+              <div className="core-settings-row">
+                <div className="core-settings-row-text">
+                  <span className="core-settings-row-title">Offline-Nutzung</span>
+                  <p className="core-settings-row-hint">{offlineLabel}{offlineDeck?.state === "downloading" && offlineDeck.expectedCardCount > 0 ? ` · ${offlineDeck.verifiedCardCount} von ${offlineDeck.expectedCardCount} Karten` : ""}</p>
+                </div>
+                <div className="core-settings-row-control">
+                  {offlineDeck && offlineDeck.state !== "none" ? (
+                    <>
+                      {offlineDeck.state === "outdated" || offlineDeck.state === "error" ? <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>{offlineDeck.state === "error" ? "Download fortsetzen" : "Aktualisieren"}</ActionButton> : null}
+                      <ActionButton type="button" variant="secondary" icon={Trash2} disabled={offlineBusy || offlineDeck.state === "downloading"} onClick={() => void updateOfflineDownload(true)}>Offline-Daten entfernen</ActionButton>
+                    </>
+                  ) : <ActionButton type="button" variant="primary" icon={Download} disabled={offlineBusy} onClick={() => void updateOfflineDownload(false)}>Offline verfügbar machen</ActionButton>}
+                </div>
+              </div>
+            ) : null}
+            <div className="core-settings-row" data-layout="inline">
+              <span className="core-settings-row-title">Unterstapel</span>
+              <div className="core-settings-row-control">
+                <ActionButton type="button" variant="secondary" icon={FolderPlus} onClick={() => onRequestContextAction(() => onCreateSubdeck(deck.id))}>Unterstapel anlegen</ActionButton>
+              </div>
+            </div>
+            <div className="core-settings-row" data-layout="inline">
+              <div className="core-settings-row-text">
+                <span className="core-settings-row-title">Stapel löschen</span>
+                <p className="core-settings-row-hint">Markiert den Stapel mit Unterstapeln und Karten als gelöscht.</p>
+              </div>
+              <div className="core-settings-row-control">
+                <ActionButton type="button" variant="destructive" icon={Trash2} onClick={() => onRequestContextAction(() => setDeleteDialogOpen(true))}>Löschen</ActionButton>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <LearningSettingsPanel section={area === "tagesrunde" ? "daily" : "scheduler"} draft={activeDraft.learning} profiles={learningProfiles} defaultProfileName={deck.name} onProfilesChange={onSaveLearningProfiles} onDraftChange={changeLearningDraft} onApplyProfile={applyLearningProfile} />
+      )}
+    </div>
 
       <ActionDialog open={deleteDialogOpen} title="Stapelbaum löschen?" description={<div className="grid gap-2"><p>„{deck.name}“ und alle Inhalte dieses Stapelbaums werden als gelöscht markiert.</p><ul className="list-disc pl-6"><li>{deckRow?.descendantCount ?? 0} Unterstapel</li><li>{deckRow?.summary.totalCards ?? 0} {(deckRow?.summary.totalCards ?? 0) === 1 ? "aktive Karte" : "aktive Karten"}</li></ul></div>} confirmLabel="Stapelbaum löschen" cancelLabel="Abbrechen" confirmLoading={deleting} destructive onCancel={() => setDeleteDialogOpen(false)} onConfirm={() => void confirmDelete()} />
       <ActionDialog
@@ -298,6 +373,6 @@ export function DeckSettingsScreen({ deck, decks, deckSummaries, learningProfile
           onGenerateVariants?.(deck, "refresh");
         }}
       />
-    </div>
+    </SettingsDialogFrame>
   );
 }

@@ -452,7 +452,7 @@ test("[Vertrag: Geschwister begraben] @beta-core eine Antwort stellt die Geschwi
   await page.getByRole("textbox", { name: "Rückseite" }).fill("Reykjavík");
   const deck = await finishManualCreation(page, deckName, 2);
 
-  await page.goto(`/stapel-einstellungen?deck=${encodeURIComponent(deck.id)}&returnView=learn`);
+  await page.goto(`/lernen?settingsDeck=${encodeURIComponent(deck.id)}&settings=tagesrunde`);
   const buryNew = page.getByRole("checkbox", { name: "Neue Geschwisterkarten begraben" });
   await expect(buryNew).not.toBeChecked();
   await expect(page.getByRole("checkbox", { name: "Fällige Geschwisterkarten begraben" })).not.toBeChecked();

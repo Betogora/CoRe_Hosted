@@ -38,7 +38,7 @@ export function codeFootprint() {
     { label: "Erstellen & Import", files: ["CreationScreen", "CreationHome", "ManualCreationPanel", "ApkgImportPanel", "AiSourceCreationPanel"], color: "var(--core-learning-status-in-progress)" },
     { label: "Prüfungen", files: ["ExamPlanningScreen", "ExamPlanEditor"], color: "var(--core-action-primary)" },
     { label: "Statistik", files: ["StatisticsScreen"], color: "var(--core-learning-status-due)" },
-    { label: "Konto & Sync", files: ["AuthGateScreen", "SettingsScreen", "SyncConflictPanel"], color: "var(--core-learning-progress-completed)" },
+    { label: "Konto & Sync", files: ["AuthGateScreen", "SettingsDialog", "SettingsDialogFrame", "SettingsScreen", "SyncConflictPanel"], color: "var(--core-learning-progress-completed)" },
     { label: "Hilfe", files: ["HelpScreen"], color: "var(--core-text-secondary)" },
   ];
   const files = [...sourceFiles("src"), ...sourceFiles("api"), "src/styles.css"].filter((file) => !file.endsWith(".d.ts") && file !== "src/database.types.ts");
