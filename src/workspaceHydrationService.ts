@@ -275,7 +275,7 @@ export function createWorkspaceHydrationService({
     }
     if (!cardIds.size && !noteIds.size) return page;
     const changed = items.filter((entry) => cardIds.has(entry.id) || noteIds.has(entry.noteId));
-    const local = await repository.loadCatalogEntries(changed.map((entry) => entry.id));
+    const local = changed.length ? await repository.loadCatalogEntries(changed.map((entry) => entry.id)) : new Map<string, CardCatalogEntry>();
     const shown = items.flatMap((entry) => {
       if (!cardIds.has(entry.id) && !noteIds.has(entry.noteId)) return [entry];
       const row = local.get(entry.id);
